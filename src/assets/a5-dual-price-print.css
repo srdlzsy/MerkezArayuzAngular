@@ -1,0 +1,182 @@
+@media print {
+  @page {
+    size: A5 landscape;
+    margin: 0mm;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .bg-black {
+    -webkit-print-color-adjust: exact;
+  }
+}
+
+.bg-black {
+  background-color: black;
+  color: white;
+  font-size: 72px;
+}
+
+body {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.a5-page {
+  width: 100%;
+  height: 148mm;
+  overflow: hidden;
+  box-sizing: border-box;
+}
+
+.ml-2 {
+  margin-left: 0.5rem;
+}
+
+.row {
+  display: flex;
+  flex-wrap: nowrap;
+  width: 100%;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.page-row {
+  height: 148mm;
+  align-items: stretch;
+}
+
+.label-half {
+  width: 49.5%;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.label-gap {
+  width: 1%;
+  flex: 0 0 1%;
+}
+
+.label-card {
+  height: 148mm;
+  padding: 12mm 10mm 8mm 6mm;
+  display: flex;
+  flex-direction: column;
+  box-sizing: border-box;
+}
+
+.label-spacer {
+  height: 6mm;
+}
+
+.col-md-12 {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.text-center {
+  text-align: center;
+}
+
+.text-wrap {
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.float-right {
+  margin-left: auto;
+}
+
+.mr-4 {
+  margin-right: 1.5rem;
+}
+
+.ml-5 {
+  margin-left: 3rem;
+}
+
+.mt-3 {
+  margin-top: 1rem;
+}
+
+.label-name {
+  min-height: 24mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label-name h3 {
+  font-size: 17px;
+  font-weight: 400;
+  line-height: 1.05;
+}
+
+.label-price-row {
+  min-height: 42mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.label-price {
+  font-size: 80px;
+  font-weight: 400;
+  line-height: 0.95;
+  white-space: nowrap;
+}
+
+.label-currency {
+  font-size: 30px;
+  font-weight: 400;
+}
+
+.label-meta-wrap {
+  min-height: 30mm;
+}
+
+.label-meta {
+  font-size: 15px;
+  line-height: 1.35;
+}
+
+.label-bottom {
+  margin-top: auto;
+  min-height: 22mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+}
+
+.barcode-holder {
+  display: flex;
+  align-items: flex-end;
+}
+
+.barcode-holder svg {
+  width: 100px;
+  height: 52px;
+}
+
+h1,
+h3 {
+  margin: 0;
+  line-height: 1;
+}
+
+img,
+svg {
+  display: block;
+}
+
+svg {
+  max-width: 100%;
+}
+
+.page-break-row {
+  page-break-before: always;
+}

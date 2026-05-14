@@ -1,0 +1,389 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.dialog-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  height: min(820px, calc(100vh - 1.25rem));
+  background: #f8fafc;
+}
+
+.dialog-header {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.9rem;
+  padding: 1rem 1.15rem 0.95rem;
+  background: linear-gradient(180deg, rgba(15, 118, 110, 0.06), rgba(255, 255, 255, 0.98) 72%);
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dialog-heading {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.dialog-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.eyebrow {
+  margin: 0;
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+}
+
+.dialog-heading h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: clamp(1.18rem, 1.65vw, 1.6rem);
+  line-height: 1.2;
+}
+
+.subtitle {
+  margin: 0;
+  color: #526579;
+  font-size: 0.88rem;
+  line-height: 1.5;
+}
+
+.print-button,
+.close-button {
+  min-height: 38px;
+  border-radius: 10px;
+  padding: 0.56rem 0.95rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
+}
+
+.print-button {
+  color: #fff;
+  background: linear-gradient(135deg, #0f766e, #0b5c56);
+  border: 1px solid #0b5c56;
+}
+
+.close-button {
+  color: #0f172a;
+  background: #f8fafc;
+  border: 1px solid #d7e1ec;
+}
+
+.print-button:hover,
+.close-button:hover {
+  transform: translateY(-1px);
+}
+
+.dialog-body {
+  display: grid;
+  gap: 0.9rem;
+  padding: 1rem 1.15rem 1.15rem;
+  overflow: auto;
+}
+
+.summary-shell {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.summary-card,
+.detail-card,
+.total-card,
+.state-card {
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 14px;
+  box-shadow: 0 6px 16px rgba(15, 23, 42, 0.04);
+}
+
+.summary-card,
+.detail-card,
+.state-card {
+  padding: 0.9rem 0.95rem;
+}
+
+.summary-card-primary {
+  grid-column: span 2;
+  display: grid;
+  gap: 0.75rem;
+  background: linear-gradient(135deg, #f0fdfa, #eff6ff);
+  border-color: #bfdbfe;
+}
+
+.summary-copy h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.08rem;
+}
+
+.summary-copy p {
+  margin: 0.3rem 0 0;
+  color: #475569;
+}
+
+.summary-eyebrow {
+  margin: 0 0 0.25rem;
+  color: #0f766e;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.summary-badges {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+}
+
+.summary-badge {
+  display: inline-flex;
+  align-items: center;
+  padding: 0.34rem 0.62rem;
+  color: #1d4ed8;
+  border-radius: 999px;
+  background: rgba(255, 255, 255, 0.78);
+  font-size: 0.76rem;
+  font-weight: 700;
+}
+
+.metric-label {
+  color: #64748b;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.metric-value {
+  display: block;
+  margin-top: 0.32rem;
+  color: #0f172a;
+  font-size: 0.94rem;
+  line-height: 1.45;
+}
+
+.totals-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.total-card {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.9rem 0.95rem;
+}
+
+.total-card span {
+  color: #526579;
+  font-size: 0.8rem;
+  font-weight: 700;
+}
+
+.total-card strong {
+  color: #0f172a;
+  font-size: 1.08rem;
+}
+
+.total-card-primary {
+  background: #f0fdfa;
+  border-color: #99f6e4;
+}
+
+.total-card-info {
+  background: #eff6ff;
+  border-color: #bfdbfe;
+}
+
+.total-card-warning {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.75rem;
+}
+
+.detail-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  margin-bottom: 0.75rem;
+}
+
+.detail-card-head h3,
+.state-card h3 {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.detail-card-head h3 {
+  color: #0f172a;
+  font-size: 0.9rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.detail-card-head span {
+  color: #64748b;
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.state-card p {
+  margin: 0;
+  color: #526579;
+  line-height: 1.5;
+  font-size: 0.88rem;
+}
+
+.table-wrap {
+  overflow-x: auto;
+  border: 1px solid #e2e8f0;
+  border-radius: 12px;
+  background: #fff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+table {
+  width: 100%;
+  min-width: 480px;
+  border-collapse: collapse;
+  background: #fff;
+}
+
+th,
+td {
+  padding: 0.68rem 0.75rem;
+  text-align: left;
+  border-bottom: 1px solid #eef2f7;
+}
+
+td {
+  color: #0f172a;
+  font-size: 0.86rem;
+}
+
+th {
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  background: #f8fafc;
+}
+
+.empty-row {
+  color: #64748b;
+  text-align: center;
+}
+
+.feedback-card {
+  background: #fff7ed;
+  border-color: #fed7aa;
+}
+
+.state-card-error {
+  border: 1px solid #fecaca;
+  background: #fff7f7;
+}
+
+.register-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.7rem;
+}
+
+.register-item {
+  display: grid;
+  gap: 0.25rem;
+  padding: 0.8rem 0.85rem;
+  border: 1px solid #dbe3ee;
+  border-radius: 12px;
+  background: #f8fafc;
+}
+
+.register-item span {
+  color: #64748b;
+  font-size: 0.66rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.register-item strong {
+  color: #0f172a;
+  font-size: 0.9rem;
+}
+
+.icmal-print-root {
+  display: none;
+}
+
+@media print {
+  .icmal-print-root {
+    display: block;
+  }
+}
+
+@media (max-width: 1080px) {
+  .summary-shell,
+  .totals-grid,
+  .detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-card-primary {
+    grid-column: span 2;
+  }
+}
+
+@media (max-width: 820px) {
+  .dialog-header,
+  .dialog-actions,
+  .detail-card-head {
+    flex-direction: column;
+    align-items: start;
+  }
+
+  .dialog-header {
+    padding: 0.95rem 1rem 0.9rem;
+  }
+
+  .dialog-body {
+    padding: 1rem;
+  }
+
+  .summary-shell,
+  .totals-grid,
+  .detail-grid,
+  .register-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-card-primary {
+    grid-column: span 1;
+  }
+
+  .dialog-actions,
+  .print-button,
+  .close-button {
+    width: 100%;
+  }
+}

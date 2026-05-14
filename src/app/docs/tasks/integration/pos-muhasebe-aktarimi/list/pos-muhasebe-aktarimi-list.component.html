@@ -1,0 +1,724 @@
+<section class="task-page">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Entegrasyon Islemleri</p>
+      <h2>{{ page.title }}</h2>
+      <p class="subtitle">
+        POS muhasebe aktarimi menusunu tek sayfali 4 tab omurgasiyla hazirlar. Backend henuz
+        scaffold modunda olsa da route, request contract ve kullanici dili bugunden sabitlenir.
+      </p>
+
+      <div class="hero-actions">
+        <button type="button" class="ghost-button" (click)="loadOverview()" [disabled]="isBusy('overview')">
+          {{ isBusy('overview') ? 'Overview yenileniyor...' : 'Overview Yenile' }}
+        </button>
+      </div>
+
+      <div class="highlight-strip">
+        <span class="highlight-pill" *ngFor="let code of permissionCodes">{{ code }}</span>
+      </div>
+    </div>
+
+    <aside class="hero-side">
+      <article class="hero-stat" *ngFor="let item of heroStats()">
+        <span>{{ item.label }}</span>
+        <strong>{{ item.value }}</strong>
+      </article>
+      <article class="hero-stat hero-stat-wide">
+        <span>Kullanici Deposu</span>
+        <strong>{{ currentUserWarehouse() ?? '-' }}</strong>
+      </article>
+    </aside>
+  </header>
+
+  <article
+    class="feedback-card"
+    *ngIf="feedback() as currentFeedback"
+    [class.is-success]="currentFeedback.tone === 'success'"
+    [class.is-error]="currentFeedback.tone === 'error'"
+    [class.is-info]="currentFeedback.tone === 'info'"
+  >
+    <h3>{{ currentFeedback.title }}</h3>
+    <p>{{ currentFeedback.message }}</p>
+  </article>
+
+  <section class="metrics-grid">
+    <article class="metric-card">
+      <span>Scaffold Durumu</span>
+      <strong>{{ overview()?.isImplemented === false ? 'Hazir ama backend baglanmadi' : 'Aktif' }}</strong>
+      <p>501 cevabi geldiğinde aksiyon kartlari response mesajini aynen gosterir.</p>
+    </article>
+    <article class="metric-card">
+      <span>Toolbar Dili</span>
+      <strong>Staging odakli</strong>
+      <p>Ice aktar, ERPye gonder, sil ve guncelle ifadeleri ayni anlama sabitlenir.</p>
+    </article>
+    <article class="metric-card">
+      <span>Liste Davranisi</span>
+      <strong>Placeholder + Empty State</strong>
+      <p>Gercek veri modelleri gelene kadar business grid yerine iskelet kartlar kalir.</p>
+    </article>
+  </section>
+
+  <nav class="tab-nav" aria-label="POS muhasebe tablari">
+    <button
+      type="button"
+      class="tab-button"
+      *ngFor="let tab of tabs; trackBy: trackByTab"
+      [class.is-active]="activeTab() === tab.id"
+      (click)="selectTab(tab.id)"
+    >
+      <span>{{ tab.label }}</span>
+      <small>{{ tab.toolbarActions.length }} aksiyon</small>
+    </button>
+  </nav>
+
+  <section class="workspace-grid">
+    <article class="panel">
+      <div class="panel-head">
+        <div>
+          <p class="section-kicker">Aktif Tab</p>
+          <h3>{{ activeTabDefinition().label }}</h3>
+          <p>{{ activeTabDefinition().subtitle }}</p>
+        </div>
+      </div>
+
+      <p class="panel-copy">{{ activeTabDefinition().description }}</p>
+
+      <div class="route-strip">
+        <span class="route-pill" *ngFor="let route of activeTabDefinition().routes">
+          <code>{{ route }}</code>
+        </span>
+      </div>
+
+      <div class="info-grid">
+        <article class="info-card">
+          <h4>Toolbar Aksiyonlari</h4>
+          <div class="badge-row">
+            <span class="mini-pill" *ngFor="let item of activeTabDefinition().toolbarActions">{{ item }}</span>
+          </div>
+        </article>
+
+        <article class="info-card">
+          <h4>Liste Kolon Beklentisi</h4>
+          <div class="badge-row">
+            <span class="mini-pill" *ngFor="let column of activeTabDefinition().futureColumns">{{ column }}</span>
+          </div>
+        </article>
+
+        <article class="info-card">
+          <h4>Staging Dili</h4>
+          <ul class="plain-list">
+            <li *ngFor="let item of stagingLanguage">{{ item }}</li>
+          </ul>
+        </article>
+
+        <article class="info-card">
+          <h4>Kritik Sinirlar</h4>
+          <ul class="plain-list">
+            <li *ngFor="let item of criticalBoundaries">{{ item }}</li>
+          </ul>
+        </article>
+      </div>
+
+      <div class="notes-shell">
+        <article class="note-card" *ngFor="let note of activeTabDefinition().notes">
+          <span>UI Notu</span>
+          <p>{{ note }}</p>
+        </article>
+      </div>
+    </article>
+
+    <article class="panel action-panel">
+      <div class="panel-head">
+        <div>
+          <p class="section-kicker">Scaffold Aksiyonlari</p>
+          <h3>Endpoint kontratlarini simdiden dogrula</h3>
+          <p>
+            Bu panel her sekmenin route ailesini cagirir. Backend 501 donse bile action code, route
+            ve message bilgisi operasyona gorunur kalir.
+          </p>
+        </div>
+      </div>
+
+      <ng-container [ngSwitch]="activeTab()">
+        <ng-container *ngSwitchCase="'z-raporlari'">
+          <section class="form-section" [formGroup]="rangeForm">
+            <div class="section-head">
+              <h4>Liste ve Detay</h4>
+              <p>Tarih/depo filtresiyle listele, gerekiyorsa tek bir reportId detayini cagir.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Baslangic</span>
+                <input type="date" formControlName="startDate" />
+              </label>
+              <label class="field">
+                <span>Bitis</span>
+                <input type="date" formControlName="endDate" />
+              </label>
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" placeholder="110" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Only Pending</span>
+                <input type="checkbox" formControlName="onlyPending" />
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="detailForm">
+              <label class="field field-wide">
+                <span>Report Id</span>
+                <input type="text" formControlName="reportId" placeholder="3f905cf7-..." />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="loadZReportsList()" [disabled]="isBusy('z-list')">
+                {{ isBusy('z-list') ? 'Liste cagriliyor...' : 'Listele' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="loadZReportDetail()" [disabled]="isBusy('z-detail')">
+                {{ isBusy('z-detail') ? 'Detay cagriliyor...' : 'Detay' }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section" [formGroup]="zReportImportForm">
+            <div class="section-head">
+              <h4>Ice Aktar</h4>
+              <p>Scaffold import request'i businessDate, importMode ve sourceCode ile kurulur.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field">
+                <span>Business Date</span>
+                <input type="date" formControlName="businessDate" />
+              </label>
+              <label class="field">
+                <span>Import Mode</span>
+                <input type="text" formControlName="importMode" placeholder="Daily" />
+              </label>
+              <label class="field">
+                <span>Source Code</span>
+                <input type="text" formControlName="sourceCode" placeholder="POS" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Overwrite Existing</span>
+                <input type="checkbox" formControlName="overwriteExisting" />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="importZReports()" [disabled]="isBusy('z-import')">
+                {{ isBusy('z-import') ? 'Import cagriliyor...' : 'Ice Aktar' }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section">
+            <div class="section-head">
+              <h4>ERP Gonder ve Staging Sil</h4>
+              <p>DocumentIds tek textbox'ta bosluk, satir veya virgul ile ayrilarak girilebilir.</p>
+            </div>
+
+            <div class="field-row" [formGroup]="transferForm">
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field field-wide">
+                <span>Document Ids</span>
+                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+              </label>
+              <label class="field checkbox-field">
+                <span>Continue On Error</span>
+                <input type="checkbox" formControlName="continueOnError" />
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="deleteForm">
+              <label class="field">
+                <span>Silme Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field field-wide">
+                <span>Silinecek Document Ids</span>
+                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="secondary-button" (click)="transferZReports()" [disabled]="isBusy('z-transfer')">
+                {{ isBusy('z-transfer') ? 'ERP cagriliyor...' : 'ERPye Gonder' }}
+              </button>
+              <button type="button" class="ghost-button" (click)="deleteZReports()" [disabled]="isBusy('z-delete')">
+                {{ isBusy('z-delete') ? 'Silme cagriliyor...' : 'Sil' }}
+              </button>
+            </div>
+          </section>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'pos-faturalar'">
+          <section class="form-section" [formGroup]="rangeForm">
+            <div class="section-head">
+              <h4>Liste ve Detay</h4>
+              <p>Tarih filtreli liste, tekil invoiceId ile detay kurgusu.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Baslangic</span>
+                <input type="date" formControlName="startDate" />
+              </label>
+              <label class="field">
+                <span>Bitis</span>
+                <input type="date" formControlName="endDate" />
+              </label>
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Only Pending</span>
+                <input type="checkbox" formControlName="onlyPending" />
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="detailForm">
+              <label class="field field-wide">
+                <span>Invoice Id</span>
+                <input type="text" formControlName="invoiceId" placeholder="f7d6c50d-..." />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="loadInvoicesList()" [disabled]="isBusy('invoice-list')">
+                {{ isBusy('invoice-list') ? 'Liste cagriliyor...' : 'Listele' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="loadInvoiceDetail()" [disabled]="isBusy('invoice-detail')">
+                {{ isBusy('invoice-detail') ? 'Detay cagriliyor...' : 'Detay' }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section" [formGroup]="documentImportForm">
+            <div class="section-head">
+              <h4>Ice Aktar</h4>
+              <p>POS kaynakli satis faturalarini staginge cekmek icin ornek request kontrati.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field">
+                <span>Business Date</span>
+                <input type="date" formControlName="businessDate" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Include Previously Imported</span>
+                <input type="checkbox" formControlName="includePreviouslyImported" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Overwrite Existing</span>
+                <input type="checkbox" formControlName="overwriteExisting" />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="importInvoices()" [disabled]="isBusy('invoice-import')">
+                {{ isBusy('invoice-import') ? 'Import cagriliyor...' : 'Ice Aktar' }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section" [formGroup]="updateForm">
+            <div class="section-head">
+              <h4>Header Guncelle + ERP + Sil</h4>
+              <p>Bu fazda update kontrati header agirliklidir; satir guncellemesi beklenmemelidir.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field field-wide">
+                <span>Invoice Id</span>
+                <input type="text" formControlName="resourceId" placeholder="f7d6c50d-..." />
+              </label>
+              <label class="field">
+                <span>Document No</span>
+                <input type="text" formControlName="documentNo" />
+              </label>
+              <label class="field">
+                <span>Customer Tax No</span>
+                <input type="text" formControlName="customerTaxNo" />
+              </label>
+              <label class="field">
+                <span>Payment Type</span>
+                <input type="text" formControlName="paymentType" />
+              </label>
+              <label class="field">
+                <span>Branch No</span>
+                <input type="number" formControlName="branchNo" />
+              </label>
+              <label class="field field-wide">
+                <span>Description</span>
+                <textarea formControlName="description"></textarea>
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="transferForm">
+              <label class="field">
+                <span>ERP Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field field-wide">
+                <span>ERP Document Ids</span>
+                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+              </label>
+              <label class="field checkbox-field">
+                <span>Continue On Error</span>
+                <input type="checkbox" formControlName="continueOnError" />
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="deleteForm">
+              <label class="field">
+                <span>Silme Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field field-wide">
+                <span>Silinecek Document Ids</span>
+                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="secondary-button" (click)="updateInvoice()" [disabled]="isBusy('invoice-update')">
+                {{ isBusy('invoice-update') ? 'Update cagriliyor...' : 'Guncelle' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="transferInvoices()" [disabled]="isBusy('invoice-transfer')">
+                {{ isBusy('invoice-transfer') ? 'ERP cagriliyor...' : 'ERPye Gonder' }}
+              </button>
+              <button type="button" class="ghost-button" (click)="deleteInvoices()" [disabled]="isBusy('invoice-delete')">
+                {{ isBusy('invoice-delete') ? 'Silme cagriliyor...' : 'Sil' }}
+              </button>
+            </div>
+          </section>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'gider-pusulalari'">
+          <section class="form-section" [formGroup]="rangeForm">
+            <div class="section-head">
+              <h4>Liste ve Detay</h4>
+              <p>POS faturalarla ayni liste/detay deneyiminin gider pusulasi karsiligi.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Baslangic</span>
+                <input type="date" formControlName="startDate" />
+              </label>
+              <label class="field">
+                <span>Bitis</span>
+                <input type="date" formControlName="endDate" />
+              </label>
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Only Pending</span>
+                <input type="checkbox" formControlName="onlyPending" />
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="detailForm">
+              <label class="field field-wide">
+                <span>Expense Id</span>
+                <input type="text" formControlName="expenseId" placeholder="9e3a0a0d-..." />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="loadExpenseNotesList()" [disabled]="isBusy('expense-list')">
+                {{ isBusy('expense-list') ? 'Liste cagriliyor...' : 'Listele' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="loadExpenseNoteDetail()" [disabled]="isBusy('expense-detail')">
+                {{ isBusy('expense-detail') ? 'Detay cagriliyor...' : 'Detay' }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section" [formGroup]="documentImportForm">
+            <div class="section-head">
+              <h4>Ice Aktar</h4>
+              <p>Import request modeli POS faturalarla paralel tutulur.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field">
+                <span>Business Date</span>
+                <input type="date" formControlName="businessDate" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Include Previously Imported</span>
+                <input type="checkbox" formControlName="includePreviouslyImported" />
+              </label>
+              <label class="field checkbox-field">
+                <span>Overwrite Existing</span>
+                <input type="checkbox" formControlName="overwriteExisting" />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="importExpenseNotes()" [disabled]="isBusy('expense-import')">
+                {{ isBusy('expense-import') ? 'Import cagriliyor...' : 'Ice Aktar' }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section" [formGroup]="updateForm">
+            <div class="section-head">
+              <h4>Header Guncelle + ERP + Sil</h4>
+              <p>Header update, ERPye gonder ve staging silme aksiyonlari ayni toolbar diliyle calisir.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field field-wide">
+                <span>Expense Id</span>
+                <input type="text" formControlName="resourceId" placeholder="9e3a0a0d-..." />
+              </label>
+              <label class="field">
+                <span>Document No</span>
+                <input type="text" formControlName="documentNo" />
+              </label>
+              <label class="field">
+                <span>Customer Tax No</span>
+                <input type="text" formControlName="customerTaxNo" />
+              </label>
+              <label class="field">
+                <span>Payment Type</span>
+                <input type="text" formControlName="paymentType" />
+              </label>
+              <label class="field">
+                <span>Branch No</span>
+                <input type="number" formControlName="branchNo" />
+              </label>
+              <label class="field field-wide">
+                <span>Description</span>
+                <textarea formControlName="description"></textarea>
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="transferForm">
+              <label class="field">
+                <span>ERP Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field field-wide">
+                <span>ERP Document Ids</span>
+                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+              </label>
+              <label class="field checkbox-field">
+                <span>Continue On Error</span>
+                <input type="checkbox" formControlName="continueOnError" />
+              </label>
+            </div>
+
+            <div class="field-row" [formGroup]="deleteForm">
+              <label class="field">
+                <span>Silme Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" />
+              </label>
+              <label class="field field-wide">
+                <span>Silinecek Document Ids</span>
+                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="secondary-button" (click)="updateExpenseNote()" [disabled]="isBusy('expense-update')">
+                {{ isBusy('expense-update') ? 'Update cagriliyor...' : 'Guncelle' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="transferExpenseNotes()" [disabled]="isBusy('expense-transfer')">
+                {{ isBusy('expense-transfer') ? 'ERP cagriliyor...' : 'ERPye Gonder' }}
+              </button>
+              <button type="button" class="ghost-button" (click)="deleteExpenseNotes()" [disabled]="isBusy('expense-delete')">
+                {{ isBusy('expense-delete') ? 'Silme cagriliyor...' : 'Sil' }}
+              </button>
+            </div>
+          </section>
+        </ng-container>
+
+        <ng-container *ngSwitchCase="'kasa-eslemeleri'">
+          <section class="form-section" [formGroup]="mappingListForm">
+            <div class="section-head">
+              <h4>Listele</h4>
+              <p>Master-data tabinda tarih filtresi yerine branch ve cash register filtresi kullanilir.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Branch No</span>
+                <input type="number" formControlName="branchNo" />
+              </label>
+              <label class="field field-wide">
+                <span>Cash Register No</span>
+                <input type="text" formControlName="cashRegisterNo" placeholder="CR-01" />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="loadCashRegisterMappings()" [disabled]="isBusy('mapping-list')">
+                {{ isBusy('mapping-list') ? 'Liste cagriliyor...' : 'Listele' }}
+              </button>
+            </div>
+          </section>
+
+          <section class="form-section" [formGroup]="mappingForm">
+            <div class="section-head">
+              <h4>Olustur ve Guncelle</h4>
+              <p>Inline edit veya drawer edit davranisi icin gerekli minimum alanlar simdiden hazirdir.</p>
+            </div>
+
+            <div class="field-row">
+              <label class="field field-wide">
+                <span>Mapping Id</span>
+                <input type="text" formControlName="mappingId" placeholder="update icin zorunlu" />
+              </label>
+              <label class="field">
+                <span>Cash Register No</span>
+                <input type="text" formControlName="cashRegisterNo" placeholder="CR-01" />
+              </label>
+              <label class="field">
+                <span>Branch No</span>
+                <input type="number" formControlName="branchNo" />
+              </label>
+              <label class="field">
+                <span>Branch Name</span>
+                <input type="text" formControlName="branchName" />
+              </label>
+              <label class="field field-wide">
+                <span>Description</span>
+                <textarea formControlName="description"></textarea>
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="createCashRegisterMapping()" [disabled]="isBusy('mapping-create')">
+                {{ isBusy('mapping-create') ? 'Create cagriliyor...' : 'Olustur' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="updateCashRegisterMapping()" [disabled]="isBusy('mapping-update')">
+                {{ isBusy('mapping-update') ? 'Update cagriliyor...' : 'Guncelle' }}
+              </button>
+            </div>
+          </section>
+        </ng-container>
+      </ng-container>
+    </article>
+  </section>
+
+  <section class="response-grid">
+    <article class="panel response-panel" *ngIf="overview() as overviewResponse">
+      <div class="panel-head compact">
+        <div>
+          <p class="section-kicker">Menu Response</p>
+          <h3>{{ overviewAction()?.label || 'Overview' }}</h3>
+          <p>{{ overviewAction() ? formatTimestamp(overviewAction()!.occurredAt) : '-' }}</p>
+        </div>
+        <span class="status-pill" [class]="getStatusClass(overviewAction())">
+          {{ overviewAction()?.status || 200 }}
+        </span>
+      </div>
+
+      <div class="response-summary-grid">
+        <article class="summary-card">
+          <span>Action</span>
+          <strong>{{ overviewResponse.actionCode }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Method</span>
+          <strong>{{ overviewResponse.httpMethod }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Route</span>
+          <strong>{{ overviewResponse.route }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Implemented</span>
+          <strong>{{ overviewResponse.isImplemented ? 'true' : 'false' }}</strong>
+        </article>
+      </div>
+
+      <p class="response-message">{{ overviewResponse.message }}</p>
+
+      <details class="json-block">
+        <summary>Overview JSON</summary>
+        <pre>{{ overviewJson() }}</pre>
+      </details>
+    </article>
+
+    <article class="panel response-panel">
+      <div class="panel-head compact">
+        <div>
+          <p class="section-kicker">Tab Response</p>
+          <h3>{{ activeTabAction()?.label || activeTabDefinition().label + ' aksiyonu bekleniyor' }}</h3>
+          <p *ngIf="activeTabAction()">{{ formatTimestamp(activeTabAction()!.occurredAt) }}</p>
+        </div>
+        <span class="status-pill" [class]="getStatusClass(activeTabAction())">
+          {{ activeTabAction()?.status || '---' }}
+        </span>
+      </div>
+
+      <ng-container *ngIf="activeTabAction() as action; else emptyActionState">
+        <div class="response-summary-grid">
+          <article class="summary-card">
+            <span>Module/Menu</span>
+            <strong>{{ action.response.moduleCode }} / {{ action.response.menuCode }}</strong>
+          </article>
+          <article class="summary-card">
+            <span>Permission</span>
+            <strong>{{ action.response.permissionCode }}</strong>
+          </article>
+          <article class="summary-card">
+            <span>Action</span>
+            <strong>{{ action.response.actionCode }}</strong>
+          </article>
+          <article class="summary-card">
+            <span>Resource Id</span>
+            <strong>{{ action.response.resourceId || '-' }}</strong>
+          </article>
+        </div>
+
+        <p class="response-message">{{ action.response.message }}</p>
+
+        <details class="json-block">
+          <summary>Request Preview</summary>
+          <pre>{{ activeRequestJson() }}</pre>
+        </details>
+
+        <details class="json-block">
+          <summary>Response JSON</summary>
+          <pre>{{ activeActionJson() }}</pre>
+        </details>
+      </ng-container>
+
+      <ng-template #emptyActionState>
+        <div class="empty-state">
+          <h4>Aksiyon sonucu henuz yok</h4>
+          <p>Secili tabdaki bir kontrat butonuna basildiginda scaffold response ayrintisi burada gosterilir.</p>
+        </div>
+      </ng-template>
+    </article>
+  </section>
+</section>

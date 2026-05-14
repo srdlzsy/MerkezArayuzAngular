@@ -1,0 +1,105 @@
+<section class="task-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="welcome-box">
+      <h2>{{ current.title }}</h2>
+    </div>
+    <p class="subtitle">{{ current.subtitle }}</p>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card">
+      <h3>Kaynak</h3>
+      <p>{{ current.baseRouteOrFile }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Zamanlama Formati</h3>
+      <p>{{ zamanlama() || 'aralik-YYYY-MM-DD-YYYY-MM-DD' }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Toplam Kayit</h3>
+      <p>{{ totalCount() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Son Yukleme</h3>
+      <p>{{ lastLoadedAt() ? formatDate(lastLoadedAt() || '') : 'Henuz yuklenmedi' }}</p>
+    </article>
+  </section>
+
+  <section class="task-block">
+    <article class="query-card">
+      <div class="query-grid">
+        <label class="field">
+          <span>Baslangic Tarihi</span>
+          <input
+            type="date"
+            [value]="startDate()"
+            (input)="updateStartDate($any($event.target).value ?? '')"
+          />
+        </label>
+
+        <label class="field">
+          <span>Bitis Tarihi</span>
+          <input
+            type="date"
+            [value]="endDate()"
+            (input)="updateEndDate($any($event.target).value ?? '')"
+          />
+        </label>
+
+        <button type="button" class="task-action task-action-secondary query-create" (click)="openCreate()">
+          Olustur
+        </button>
+
+        <div class="field field-preview">
+          <span>Gonderilecek Deger</span>
+          <code>{{ zamanlama() || 'aralik-YYYY-MM-DD-YYYY-MM-DD' }}</code>
+        </div>
+
+        <button
+          type="button"
+          class="task-action task-action-primary query-submit"
+          (click)="loadRows()"
+          [disabled]="isLoading()"
+        >
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+      </div>
+
+      <p class="query-path">{{ requestPath() }}</p>
+    </article>
+
+    <section class="status-strip" *ngIf="statusSummary().length">
+      <article class="status-card" *ngFor="let status of statusSummary()">
+        <strong>{{ status.count }}</strong>
+        <span>{{ status.label }}</span>
+      </article>
+    </section>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
+      <h3>Liste Yuklenemedi</h3>
+      <p>{{ errorMessage }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Liste Yukleniyor</h3>
+      <p>Secilen tarih araligi icin siparisler getiriliyor.</p>
+    </article>
+
+    <app-api-list-table
+      *ngIf="!isLoading() && rows().length"
+      [rows]="rows()"
+      [columns]="tableColumns"
+      (rowAction)="openDetail($event)"
+    ></app-api-list-table>
+
+    <article class="state-card" *ngIf="!isLoading() && !errorMessage() && !rows().length">
+      <h3>Kayit Bulunamadi</h3>
+      <p>Secilen tarih araliginda siparis bulunmuyor.</p>
+    </article>
+  </section>
+
+  <section class="sample" *ngIf="current.codeSample">
+    <h3>Ornek</h3>
+    <pre><code>{{ current.codeSample }}</code></pre>
+  </section>
+</section>

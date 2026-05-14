@@ -1,0 +1,450 @@
+<section class="detail-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">
+        {{
+          mode === 'users'
+            ? 'KULLANICI DETAYI'
+            : mode === 'roles'
+              ? 'ROL VE YETKI YONETIMI'
+              : 'PERMISSION DETAYI'
+        }}
+      </p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle" *ngIf="mode === 'users'">
+        Kullanici metadata guncellemesi ve rol atamasi ayni ekrandan yonetilir.
+      </p>
+      <p class="subtitle" *ngIf="mode === 'roles'">
+        Rol bilgisi, aktiflik durumu ve permission secimleri `module > menu > action` agaci
+        uzerinden guncellenir.
+      </p>
+      <p class="subtitle" *ngIf="mode === 'permissions'">
+        Permission metadata ve katalogtaki yeri ayni ekranda gorulur.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" class="ghost-button" (click)="goBack()">Listeye Don</button>
+      <button type="button" class="ghost-button" (click)="loadWorkspace()" [disabled]="loading()">
+        {{ loading() ? 'Yukleniyor...' : 'Veriyi Yenile' }}
+      </button>
+    </div>
+  </header>
+
+  <section class="workspace">
+    <aside class="entity-panel">
+      <div class="panel-header">
+        <div class="panel-head">
+          <p class="eyebrow small">
+            {{
+              mode === 'users' ? 'KULLANICILAR' : mode === 'roles' ? 'ROLLER' : 'PERMISSIONS'
+            }}
+          </p>
+          <h3>
+            {{ mode === 'users' ? 'Kullanici Listesi' : mode === 'roles' ? 'Rol Listesi' : 'Permission Listesi' }}
+          </h3>
+        </div>
+      </div>
+
+      <label class="search-field">
+        <span>Ara</span>
+        <input
+          type="search"
+          [value]="entitySearch()"
+          (input)="setEntitySearch($event)"
+          [placeholder]="
+            mode === 'users'
+              ? 'Kullanici veya depo ara'
+              : mode === 'roles'
+                ? 'Rol veya aciklama ara'
+                : 'Code, module veya menu ara'
+          "
+        />
+      </label>
+
+      <div class="feedback feedback-error" *ngIf="error()">{{ error() }}</div>
+      <div class="loader-state" *ngIf="loading()">Liste yukleniyor...</div>
+
+      <div class="entity-list" *ngIf="mode === 'users'">
+        <button
+          type="button"
+          class="entity-chip"
+          *ngFor="let user of filteredUsers(); trackBy: trackByUser"
+          [class.active]="user.id === activeUserId()"
+          (click)="selectUser(user.id)"
+        >
+          <strong>{{ getUserDisplayName(user) }}</strong>
+          <small>{{ user.username }}</small>
+          <small>{{ user.warehouseName || user.warehouseNo || '-' }}</small>
+        </button>
+      </div>
+
+      <div class="entity-list" *ngIf="mode === 'roles'">
+        <button
+          type="button"
+          class="entity-chip"
+          *ngFor="let role of filteredRoles(); trackBy: trackByRole"
+          [class.active]="role.id === activeRoleId()"
+          (click)="selectRole(role.id)"
+        >
+          <strong>{{ role.name || 'Adsiz Rol' }}</strong>
+          <small>{{ role.id }}</small>
+          <small>{{ role.permissions.length }} permission</small>
+        </button>
+      </div>
+
+      <div class="entity-list" *ngIf="mode === 'permissions'">
+        <button
+          type="button"
+          class="entity-chip"
+          *ngFor="let permission of filteredPermissions(); trackBy: trackByPermission"
+          [class.active]="permission.id === activePermissionId()"
+          (click)="selectPermission(permission.id)"
+        >
+          <strong>{{ permission.code }}</strong>
+          <small>{{ permission.name }}</small>
+          <small>{{ permission.moduleName }} / {{ permission.menuName }}</small>
+        </button>
+      </div>
+    </aside>
+
+    <section class="editor-panel">
+      <div class="feedback feedback-error" *ngIf="saveError()">{{ saveError() }}</div>
+      <div class="feedback feedback-success" *ngIf="saveSuccess()">{{ saveSuccess() }}</div>
+
+      <ng-container *ngIf="mode === 'users'">
+        <ng-container *ngIf="selectedUser() as user; else noSelection">
+          <div class="editor-hero">
+            <div class="editor-head">
+              <div>
+                <p class="eyebrow small">SECILI KULLANICI</p>
+                <h3>{{ getUserDisplayName(user) }}</h3>
+                <p class="editor-meta">{{ user.username }} · {{ user.email }}</p>
+              </div>
+
+              <button type="button" class="primary-button" (click)="save()" [disabled]="saving()">
+                {{ saving() ? 'Kaydediliyor...' : 'Kullaniciyi Guncelle' }}
+              </button>
+            </div>
+
+            <div class="summary-grid">
+              <article class="summary-card">
+                <strong>{{ user.roles.length }}</strong>
+                <span>Rol</span>
+              </article>
+              <article class="summary-card">
+                <strong>{{ user.permissions.length }}</strong>
+                <span>Permission</span>
+              </article>
+              <article class="summary-card">
+                <strong>{{ user.modules.length }}</strong>
+                <span>Modul</span>
+              </article>
+            </div>
+          </div>
+
+          <form class="form-card" [formGroup]="userForm">
+            <div class="form-grid">
+              <label class="field">
+                <span>Kullanici Adi</span>
+                <input type="text" formControlName="username" />
+              </label>
+
+              <label class="field">
+                <span>E-Posta</span>
+                <input type="email" formControlName="email" />
+              </label>
+
+              <label class="field checkbox-field">
+                <span>Durum</span>
+                <label class="checkbox-row">
+                  <input type="checkbox" formControlName="isActive" />
+                  <span>Kullanici aktif</span>
+                </label>
+              </label>
+
+              <label class="field">
+                <span>Ad</span>
+                <input type="text" formControlName="firstName" />
+              </label>
+
+              <label class="field">
+                <span>Soyad</span>
+                <input type="text" formControlName="lastName" />
+              </label>
+
+              <label class="field">
+                <span>Depo No</span>
+                <input type="text" formControlName="warehouseNo" />
+              </label>
+
+              <label class="field field-wide">
+                <span>Depo Ismi</span>
+                <input type="text" formControlName="warehouseName" />
+              </label>
+
+              <label class="field field-wide">
+                <span>Roller</span>
+                <select multiple class="role-select" (change)="onUserRoleSelectionChange($event)">
+                  <option
+                    *ngFor="let role of roles(); trackBy: trackByRole"
+                    [selected]="isRoleAssigned(role.id)"
+                    [value]="role.id"
+                  >
+                    {{ role.name }}
+                  </option>
+                </select>
+              </label>
+            </div>
+          </form>
+
+          <section class="catalog-card" *ngIf="getVisibleCatalogModules().length > 0">
+            <div class="catalog-head">
+              <div>
+                <p class="eyebrow small">YETKI AGACI</p>
+                <h4>Kullanicinin Modul ve Menu Erisimi</h4>
+              </div>
+            </div>
+
+            <div class="catalog-list">
+              <article class="catalog-module" *ngFor="let module of getVisibleCatalogModules()">
+                <h5>{{ module.name || module.code }}</h5>
+                <div class="catalog-menu" *ngFor="let menu of module.menus">
+                  <strong>{{ menu.name || menu.code }}</strong>
+                  <div class="catalog-actions">
+                    <span class="permission-chip read-only" *ngFor="let action of menu.actions">
+                      {{ action.name || action.code }}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </ng-container>
+      </ng-container>
+
+      <ng-container *ngIf="mode === 'roles'">
+        <ng-container *ngIf="selectedRole() as role; else noSelection">
+          <div class="editor-hero">
+            <div class="editor-head">
+              <div>
+                <p class="eyebrow small">SECILI ROL</p>
+                <h3>{{ role.name || 'Adsiz Rol' }}</h3>
+                <p class="editor-meta">{{ role.id }}</p>
+              </div>
+
+              <button type="button" class="primary-button" (click)="save()" [disabled]="saving()">
+                {{ saving() ? 'Kaydediliyor...' : 'Rolu Kaydet' }}
+              </button>
+            </div>
+
+            <div class="summary-grid">
+              <article class="summary-card">
+                <strong>{{ countSelectedRolePermissions() }}</strong>
+                <span>Secili permission</span>
+              </article>
+              <article class="summary-card">
+                <strong>{{ countCatalogMenus(permissionCatalog()) }}</strong>
+                <span>Menu</span>
+              </article>
+              <article class="summary-card">
+                <strong>{{ countCatalogActions(permissionCatalog()) }}</strong>
+                <span>Action</span>
+              </article>
+            </div>
+          </div>
+
+          <form class="form-card" [formGroup]="roleForm">
+            <div class="form-grid compact-grid">
+              <label class="field">
+                <span>Rol Adi</span>
+                <input type="text" formControlName="name" />
+              </label>
+
+              <label class="field checkbox-field">
+                <span>Durum</span>
+                <label class="checkbox-row">
+                  <input type="checkbox" formControlName="isActive" />
+                  <span>Rol aktif</span>
+                </label>
+              </label>
+
+              <label class="field field-wide">
+                <span>Aciklama</span>
+                <textarea formControlName="description" rows="4"></textarea>
+              </label>
+            </div>
+          </form>
+
+          <section class="catalog-card">
+            <div class="catalog-head">
+              <div>
+                <p class="eyebrow small">PERMISSION AGACI</p>
+                <h4>Module > Menu > Action</h4>
+              </div>
+
+              <div class="catalog-actions-toolbar">
+                <label class="search-field inline-search">
+                  <span>Filtre</span>
+                  <input
+                    type="search"
+                    [value]="detailSearch()"
+                    (input)="setDetailSearch($event)"
+                    placeholder="Action, menu veya modul ara"
+                  />
+                </label>
+
+                <button type="button" class="tool-button" (click)="toggleSelectedOnly()">
+                  {{ showSelectedOnly() ? 'Tumunu Goster' : 'Secilileri Goster' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="empty-state compact" *ngIf="visibleRolePermissionModules().length === 0">
+              <h3>Goruntulenecek permission bulunamadi</h3>
+              <p>Aramayi temizleyebilir veya filtreyi kapatabilirsin.</p>
+            </div>
+
+            <div class="responsibility-list" *ngIf="visibleRolePermissionModules().length > 0">
+              <article class="responsibility-card" *ngFor="let moduleView of visibleRolePermissionModules(); trackBy: trackByModule">
+                <div class="responsibility-top">
+                  <label class="toggle-row level-one">
+                    <input
+                      type="checkbox"
+                      [checked]="moduleView.module.selected"
+                      (change)="toggleModule(moduleView.module, ($any($event.target).checked))"
+                    />
+                    <span class="toggle-copy">
+                      <strong>{{ moduleView.module.label }}</strong>
+                      <small>{{ moduleView.menus.length }} gorunen menu</small>
+                    </span>
+                  </label>
+                </div>
+
+                <div class="task-list">
+                  <article class="task-card" *ngFor="let menuView of moduleView.menus; trackBy: trackByMenu">
+                    <label class="toggle-row level-two">
+                      <input
+                        type="checkbox"
+                        [checked]="menuView.menu.selected"
+                        (change)="toggleMenu(moduleView.module, menuView.menu, ($any($event.target).checked))"
+                      />
+                      <span class="toggle-copy">
+                        <strong>{{ menuView.menu.label }}</strong>
+                        <small>{{ menuView.actions.length }} action</small>
+                      </span>
+                    </label>
+
+                    <div class="permission-list">
+                      <label
+                        class="permission-chip"
+                        *ngFor="let action of menuView.actions; trackBy: trackByAction"
+                        [class.active]="action.selected"
+                        [class.disabled]="action.disabled"
+                      >
+                        <input
+                          type="checkbox"
+                          [checked]="action.selected"
+                          [disabled]="action.disabled"
+                          (change)="toggleAction(moduleView.module, menuView.menu, action, ($any($event.target).checked))"
+                        />
+                        <span>{{ action.label }}</span>
+                        <small>{{ action.code }}</small>
+                      </label>
+                    </div>
+                  </article>
+                </div>
+              </article>
+            </div>
+          </section>
+        </ng-container>
+      </ng-container>
+
+      <ng-container *ngIf="mode === 'permissions'">
+        <ng-container *ngIf="selectedPermission() as permission; else noSelection">
+          <div class="editor-hero">
+            <div class="editor-head">
+              <div>
+                <p class="eyebrow small">SECILI PERMISSION</p>
+                <h3>{{ permission.name }}</h3>
+                <p class="editor-meta">{{ permission.code }}</p>
+              </div>
+
+              <button type="button" class="primary-button" (click)="save()" [disabled]="saving()">
+                {{ saving() ? 'Kaydediliyor...' : 'Permission Kaydet' }}
+              </button>
+            </div>
+
+            <div class="summary-grid">
+              <article class="summary-card">
+                <strong>{{ permission.moduleName }}</strong>
+                <span>Modul</span>
+              </article>
+              <article class="summary-card">
+                <strong>{{ permission.menuName }}</strong>
+                <span>Menu</span>
+              </article>
+              <article class="summary-card">
+                <strong>{{ permission.actionName }}</strong>
+                <span>Action</span>
+              </article>
+            </div>
+          </div>
+
+          <form class="form-card" [formGroup]="permissionForm">
+            <div class="form-grid compact-grid">
+              <label class="field">
+                <span>Code</span>
+                <input type="text" formControlName="code" />
+              </label>
+
+              <label class="field">
+                <span>Name</span>
+                <input type="text" formControlName="name" />
+              </label>
+
+              <label class="field field-wide">
+                <span>Aciklama</span>
+                <textarea formControlName="description" rows="4"></textarea>
+              </label>
+            </div>
+          </form>
+
+          <section class="catalog-card" *ngIf="getVisibleCatalogModules().length > 0">
+            <div class="catalog-head">
+              <div>
+                <p class="eyebrow small">KATALOG</p>
+                <h4>Permission'in Gectigi Yer</h4>
+              </div>
+            </div>
+
+            <div class="catalog-list">
+              <article class="catalog-module" *ngFor="let module of getVisibleCatalogModules()">
+                <h5>{{ module.name || module.code }}</h5>
+                <div class="catalog-menu" *ngFor="let menu of module.menus">
+                  <strong>{{ menu.name || menu.code }}</strong>
+                  <div class="catalog-actions">
+                    <span
+                      class="permission-chip read-only"
+                      *ngFor="let action of menu.actions"
+                      [class.active]="isCatalogActionHighlighted(action.permissionCode)"
+                    >
+                      {{ action.name || action.code }}
+                    </span>
+                  </div>
+                </div>
+              </article>
+            </div>
+          </section>
+        </ng-container>
+      </ng-container>
+
+      <ng-template #noSelection>
+        <section class="empty-state">
+          <h3>Kayit secimi bekleniyor</h3>
+          <p>Soldaki listeden bir kayit secerek detay ekranini acabilirsin.</p>
+        </section>
+      </ng-template>
+    </section>
+  </section>
+</section>

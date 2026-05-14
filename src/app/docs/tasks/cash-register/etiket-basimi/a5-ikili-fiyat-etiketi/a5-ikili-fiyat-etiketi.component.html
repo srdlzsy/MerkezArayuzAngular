@@ -1,0 +1,86 @@
+<div *ngFor="let pair of productPairs; let i = index; let isLast = last" class="a5-page ml-2">
+  <div class="row page-row">
+    <div *ngIf="pair[0]" class="label-half">
+      <div class="label-card">
+        <div class="label-spacer"></div>
+        <div class="col-md-12 mt-3 label-name">
+          <div>
+            <h3 class="text-center text-wrap">{{ pair[0].productName }}</h3>
+          </div>
+        </div>
+        <div class="col-md-12 label-price-row">
+          <h1 class="text-center label-price">
+            {{ pair[0].price.toFixed(2) }} <span class="label-currency">TL</span>
+          </h1>
+        </div>
+        <div class="col-md-12 label-meta-wrap">
+          <div class="ml-5 label-meta">
+            <div>Urun Kodu: {{ pair[0].productCode }}</div>
+            <div>Uretim Yeri: {{ pair[0].origin || '-' }}</div>
+            <div>Fiyat Degisiklik Tarihi: {{ pair[0].priceChangeDate || '-' }}</div>
+            <div>Etiket Basim Tarihi: {{ labelPrintDate }}</div>
+            <div>
+              KDV Dahil Birim Fiyat {{ pair[0].unitPriceFactor.toFixed(2) }}
+              TL/{{ pair[0].alternativeUnitName }}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12 label-bottom">
+          <img
+            *ngIf="isDomestic(pair[0].origin)"
+            width="120"
+            height="60"
+            src="/assets/YerliUretim.jpg"
+            alt="Yerli Uretim"
+          />
+          <div class="float-right mr-4 barcode-holder">
+            <svg [id]="'barcode-left-' + i"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+
+    <div class="label-gap"></div>
+
+    <div *ngIf="pair[1]" class="label-half">
+      <div class="label-card">
+        <div class="label-spacer"></div>
+        <div class="col-md-12 mt-3 label-name">
+          <div>
+            <h3 class="text-center text-wrap mr-2">{{ pair[1].productName }}</h3>
+          </div>
+        </div>
+        <div class="col-md-12 label-price-row">
+          <h1 class="text-center label-price">
+            {{ pair[1].price.toFixed(2) }} <span class="label-currency">TL</span>
+          </h1>
+        </div>
+        <div class="col-md-12 label-meta-wrap">
+          <div class="ml-5 label-meta">
+            <div>Urun Kodu: {{ pair[1].productCode }}</div>
+            <div>Uretim Yeri: {{ pair[1].origin || '-' }}</div>
+            <div>Fiyat Degisiklik Tarihi: {{ pair[1].priceChangeDate || '-' }}</div>
+            <div>Etiket Basim Tarihi: {{ labelPrintDate }}</div>
+            <div>
+              KDV Dahil Birim Fiyat {{ pair[1].unitPriceFactor.toFixed(2) }}
+              TL/{{ pair[1].alternativeUnitName }}
+            </div>
+          </div>
+        </div>
+        <div class="col-md-12 label-bottom">
+          <img
+            *ngIf="isDomestic(pair[1].origin)"
+            width="120"
+            height="60"
+            src="/assets/YerliUretim.jpg"
+            alt="Yerli Uretim"
+          />
+          <div class="float-right mr-4 barcode-holder">
+            <svg [id]="'barcode-right-' + i"></svg>
+          </div>
+        </div>
+      </div>
+    </div>
+  </div>
+  <div class="page-break-row" *ngIf="!isLast"></div>
+</div>

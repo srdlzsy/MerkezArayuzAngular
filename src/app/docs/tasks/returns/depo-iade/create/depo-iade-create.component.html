@@ -1,0 +1,175 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">DEPO IADE</p>
+      <h2>{{ current.title }} Olustur</h2>
+      <p class="subtitle">Depoyu sec, iade kalemlerini ekle ve fisi kaydet.</p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="ghost-button" (click)="close()">Kapat</button>
+      <button type="submit" class="primary-button" [disabled]="submitting()" form="depo-iade-form">
+        {{ submitting() ? 'Kaydediliyor...' : 'Iadeyi Kaydet' }}
+      </button>
+    </div>
+  </header>
+
+  <div class="dialog-body">
+    <form id="depo-iade-form" class="form-shell" [formGroup]="form" (ngSubmit)="submit()">
+      <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Iade Bilgileri</h3>
+        </div>
+
+        <div class="dual-search">
+          <div class="search-block">
+            <div class="search-label">Depo Ara</div>
+            <div class="search-input-group">
+              <input
+                type="text"
+                [formControl]="warehouseQuery"
+                placeholder="Depo adi veya unvan..."
+                (keydown.enter)="$event.preventDefault(); searchWarehouse()"
+              />
+              <button type="button" class="small-btn" [disabled]="warehouseLoading()" (click)="searchWarehouse()">
+                {{ warehouseLoading() ? '...' : 'Ara' }}
+              </button>
+            </div>
+            <div class="feedback-error mini-error" *ngIf="warehouseError()">{{ warehouseError() }}</div>
+
+            <div class="selected-item" *ngIf="selectedWarehouse() as warehouse">
+              <span class="selected-text">{{ getWarehouseLabel(warehouse) }} - {{ getWarehouseName(warehouse) }}</span>
+              <button type="button" class="clear-btn" (click)="clearWarehouse()">X</button>
+            </div>
+
+            <div class="search-results" *ngIf="warehouseResults().length">
+              <div class="result-item" *ngFor="let warehouse of warehouseResults(); trackBy: trackByWarehouse" (click)="selectWarehouse(warehouse)">
+                <strong>{{ getWarehouseLabel(warehouse) }}</strong>
+                <span>{{ getWarehouseName(warehouse) }}</span>
+              </div>
+            </div>
+          </div>
+
+          <div class="search-block">
+            <div class="search-label">Stok Ara</div>
+            <div class="search-input-group">
+              <input
+                type="text"
+                [formControl]="stockQuery"
+                placeholder="Stok adi, kodu veya barkod..."
+                (keydown.enter)="$event.preventDefault(); searchStock()"
+              />
+              <button
+                type="button"
+                class="small-btn"
+                [disabled]="stockLoading() || !selectedWarehouse()"
+                (click)="searchStock()"
+              >
+                {{ stockLoading() ? '...' : 'Ara' }}
+              </button>
+            </div>
+            <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
+
+            <div class="search-results stock-results-list" *ngIf="stockResults().length">
+              <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
+                <div>
+                  <strong>{{ stock.stockName }}</strong>
+                  <span class="stock-code">{{ stock.stockCode }}</span>
+                </div>
+                <button type="button" class="add-mini">+</button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <div class="contact-row">
+          <div class="contact-field">
+            <label>Muhatap Ad Soyad *</label>
+            <input type="text" formControlName="muhatapAdSoyad" placeholder="Depo yetkilisi" />
+            <small class="field-error" *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched">
+              Zorunlu
+            </small>
+          </div>
+          <div class="contact-field">
+            <label>Transfer Deposu *</label>
+            <input type="number" formControlName="transitWarehouseNo" min="1" placeholder="60" />
+          </div>
+          <div class="contact-field">
+            <label>Hareket Tarihi *</label>
+            <input type="date" formControlName="movementDate" />
+          </div>
+        </div>
+
+        <div class="contact-row">
+          <div class="contact-field">
+            <label>Belge Tarihi *</label>
+            <input type="date" formControlName="documentDate" />
+          </div>
+          <div class="contact-field">
+            <label>Belge No</label>
+            <input type="text" formControlName="documentNo" placeholder="Opsiyonel" />
+          </div>
+          <div class="contact-field">
+            <label>Aciklama</label>
+            <input type="text" formControlName="description" placeholder="Opsiyonel" />
+          </div>
+        </div>
+
+        <p class="helper-text">
+          Plaka ve sofor bilgileri create adiminda degil, e-irsaliye gonderimi sirasinda alinmalidir.
+        </p>
+      </section>
+
+      <section class="panel kalem-panel">
+        <div class="panel-head">
+          <h3>Iade Kalemleri</h3>
+          <div class="kalem-stats" *ngIf="kalemCount()">
+            <span class="badge">{{ kalemCount() }} Kalem</span>
+            <span class="total-badge">Toplam: {{ toplamMiktar() }}</span>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="!kalemCount()">
+          Yukaridan stok arayip kalem ekleyin
+        </div>
+
+        <div class="kalem-table-head" *ngIf="kalemCount()">
+          <div class="col-stok">Stok Bilgisi</div>
+          <div class="col-miktar">Iade Miktari</div>
+          <div class="col-islem">Islem</div>
+        </div>
+
+        <div class="kalem-list" *ngIf="kalemCount()">
+          <div class="kalem-row" *ngFor="let kalem of kalemler.controls; let i = index; trackBy: trackByKalem" [formGroup]="kalem">
+            <div class="col-stok">
+              <div class="kalem-info">
+                <strong>{{ kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value }}</strong>
+                <span class="kalem-kod">{{ kalem.controls.stokKodu.value }}</span>
+                <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
+              </div>
+            </div>
+            <div class="col-miktar">
+              <input
+                type="number"
+                [attr.min]="kalem.controls.birimKatsayisi.value ?? 1"
+                [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
+                formControlName="miktar"
+                placeholder="Iade"
+                [class.error]="kalem.controls.miktar.invalid && kalem.controls.miktar.touched"
+              />
+              <small class="field-error" *ngIf="kalem.controls.miktar.invalid && kalem.controls.miktar.touched">
+                Gecerli miktar
+              </small>
+            </div>
+            <div class="col-islem">
+              <button type="button" class="remove-btn" (click)="removeKalem(i)" title="Kaldir">Sil</button>
+            </div>
+          </div>
+        </div>
+      </section>
+    </form>
+  </div>
+</section>
+

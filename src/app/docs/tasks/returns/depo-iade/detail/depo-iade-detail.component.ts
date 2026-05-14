@@ -1,0 +1,59 @@
+import { CommonModule } from '@angular/common';
+import { Component, computed, inject } from '@angular/core';
+import type { IFurpaWarehouseReturnDetailApiDto } from '@interfaces';
+
+import {
+  DepoIadeDirection,
+  IadeIslemleriService
+} from '../../../../../core/api/module-services/iade-islemleri.service';
+import { DOCS_PAGES } from '../../../../config/docs-pages.config';
+import { DocsContentPage } from '../../../../models/docs.models';
+import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-task-detail.base';
+
+interface DepoIadeDetailDialogData {
+  seri?: string;
+  sira?: number;
+  direction?: DepoIadeDirection;
+  pageId?: string;
+}
+
+@Component({
+  selector: 'app-depo-iade-detail',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './depo-iade-detail.component.html',
+  styleUrl: './depo-iade-detail.component.scss'
+})
+export class DepoIadeDetailComponent extends KalemliTaskDetailBase<IFurpaWarehouseReturnDetailApiDto> {
+  protected readonly page: DocsContentPage =
+    DOCS_PAGES[this.resolveDialogData().pageId ?? 'giden-depo-iadeleri'] ??
+    DOCS_PAGES['giden-depo-iadeleri'];
+  protected readonly screenTitle = 'Depo Iade Detayi';
+  protected readonly detailRequestPath = computed(() => {
+    const payload = this.resolveDialogData();
+
+    if (!payload.seri || payload.sira === null || payload.sira === undefined) {
+      return `${this.page.baseRouteOrFile}/{seri}/{sira}`;
+    }
+
+    return `${this.page.baseRouteOrFile}/${encodeURIComponent(payload.seri)}/${payload.sira}`;
+  });
+  private readonly iadeIslemleriService = inject(IadeIslemleriService);
+
+  protected override loadDetail(): void {
+    this.loadDetailRequest(
+      (seri: string, sira: number) =>
+        this.iadeIslemleriService.getDepoIadeDetay(seri, sira, this.resolveDirection()),
+      'Detay icin gerekli iade anahtari bulunamadi.',
+      'Depo iade detayi yuklenemedi. Lutfen tekrar deneyin.'
+    );
+  }
+
+  private resolveDialogData(): DepoIadeDetailDialogData {
+    return (this.data as DepoIadeDetailDialogData | null) ?? {};
+  }
+
+  private resolveDirection(): DepoIadeDirection {
+    return this.resolveDialogData().direction ?? 'giden';
+  }
+}

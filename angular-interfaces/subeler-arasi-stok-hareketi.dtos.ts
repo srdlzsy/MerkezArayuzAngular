@@ -1,0 +1,54 @@
+/**
+ * Warehouse shipping, receiving, and return API DTO aliases.
+ */
+
+import type {
+  AcceptWarehouseReceivingHttpRequest,
+  AcceptWarehouseReceivingLineHttpRequest,
+  AcceptWarehouseReceivingLineResultDto,
+  AcceptWarehouseReceivingResponse,
+  CreateInterWarehouseShipmentHttpRequest,
+  CreateInterWarehouseShipmentLineHttpRequest,
+  CreateInterWarehouseShipmentResponse,
+  CreateWarehouseReturnHttpRequest,
+  CreateWarehouseReturnResponse,
+  WarehouseShippingDetailDto,
+  WarehouseShippingHeaderDto,
+  WarehouseShippingLineItemDto,
+  WarehouseShippingListItemDto
+} from './sevk-iade-malkabul.dtos';
+
+export type IFurpaWarehouseShippingListItemApiDto = WarehouseShippingListItemDto;
+export type IFurpaWarehouseShippingHeaderApiDto = WarehouseShippingHeaderDto;
+export type IFurpaWarehouseShippingItemApiDto = WarehouseShippingLineItemDto;
+export type IFurpaWarehouseShippingDetailApiDto = WarehouseShippingDetailDto;
+export type IFurpaCreateWarehouseShippingLineRequestApiDto =
+  CreateInterWarehouseShipmentLineHttpRequest;
+export type IFurpaCreateWarehouseShippingRequestApiDto = CreateInterWarehouseShipmentHttpRequest;
+export type IFurpaCreateWarehouseShippingResponseApiDto = CreateInterWarehouseShipmentResponse;
+export type IFurpaWarehouseReceiptAcceptanceLineRequestApiDto =
+  AcceptWarehouseReceivingLineHttpRequest;
+export type IFurpaWarehouseReceiptAcceptanceRequestApiDto = AcceptWarehouseReceivingHttpRequest;
+export type IFurpaWarehouseReceiptAcceptanceResponseLineApiDto =
+  AcceptWarehouseReceivingLineResultDto;
+export type IFurpaWarehouseReceiptAcceptanceResponseApiDto = AcceptWarehouseReceivingResponse;
+
+export type IFurpaWarehouseReceiptListItemApiDto = WarehouseShippingListItemDto;
+export type IFurpaWarehouseReceiptHeaderApiDto = WarehouseShippingHeaderDto;
+export type IFurpaWarehouseReceiptItemApiDto = WarehouseShippingLineItemDto;
+export type IFurpaWarehouseReceiptDetailApiDto = WarehouseShippingDetailDto;
+
+export type IFurpaWarehouseReturnListItemApiDto = WarehouseShippingListItemDto;
+export type IFurpaWarehouseReturnHeaderApiDto = WarehouseShippingHeaderDto;
+export type IFurpaWarehouseReturnItemApiDto = WarehouseShippingLineItemDto;
+export type IFurpaWarehouseReturnDetailApiDto = WarehouseShippingDetailDto;
+export type IFurpaCreateWarehouseReturnRequestApiDto = CreateWarehouseReturnHttpRequest;
+export type IFurpaCreateWarehouseReturnResponseApiDto = CreateWarehouseReturnResponse;
+export type IFurpaCreateInterWarehouseShipmentRequestApiDto = CreateInterWarehouseShipmentHttpRequest;
+export type IFurpaCreateInterWarehouseShipmentResponseApiDto = CreateInterWarehouseShipmentResponse;
+export type IFurpaAcceptWarehouseReceivingLineRequestApiDto =
+  AcceptWarehouseReceivingLineHttpRequest;
+export type IFurpaAcceptWarehouseReceivingRequestApiDto = AcceptWarehouseReceivingHttpRequest;
+export type IFurpaAcceptWarehouseReceivingResponseLineApiDto =
+  AcceptWarehouseReceivingLineResultDto;
+export type IFurpaAcceptWarehouseReceivingResponseApiDto = AcceptWarehouseReceivingResponse;

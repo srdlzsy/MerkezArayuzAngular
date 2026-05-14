@@ -1,0 +1,128 @@
+@media print {
+  @page {
+    size: A5 landscape;   /* 210mm x 148mm */
+    margin: 0;
+  }
+
+  html, body {
+    margin: 0;
+    padding: 0;
+    font-family: 'Times New Roman', Times, serif;
+    color: #000;
+  }
+
+  /* Her chunk = 1 A5 sayfa */
+  .a5-page{
+    width: 210mm;
+    height: 148mm;
+    box-sizing: border-box;
+
+    /* yazıcı kırpmasın diye güvenli alan */
+    padding: 6mm;
+    break-after: page;
+    page-break-after: always;
+    overflow: hidden;
+  }
+
+  /* 2 eşit etiket */
+  .etiket-grid{
+    width: 100%;
+    height: 100%;
+    display: grid;
+    grid-template-columns: 1fr 1fr; /* 2 yan yana */
+    column-gap: 6mm;
+  }
+
+  .etiket{
+    border: 1px solid #000;
+    box-sizing: border-box;
+    padding: 4mm;
+    overflow: hidden;
+    display: flex;
+    flex-direction: column;
+  }
+
+  .etiket-empty{
+    border: 1px dashed #bbb;
+  }
+
+  .etiketBaslik{
+    height: 16mm;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    font-size: 22px;
+    font-weight: 900;
+    letter-spacing: 0.5px;
+
+    background: rgb(221, 190, 190);
+    color: #fff;
+
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+
+    margin-bottom: 3mm;
+  }
+
+  .price-line{
+    text-align: center;
+    font-weight: 900;
+    font-size: 70px;
+    line-height: 1;
+    margin: 0;
+  }
+
+  .price-line sup{
+    font-size: 28px;
+    font-weight: 800;
+    margin-left: 6mm;
+  }
+
+  .name-line{
+    text-align: center;
+    font-weight: 900;
+    font-size: 32px;
+    line-height: 1.05;
+    margin: 4mm 0 3mm 0;
+
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;         /* uzun isim taşmasın */
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+  }
+
+  .meta{
+    font-size: 16px;
+    font-weight: 700;
+    line-height: 1.25;
+    margin-top: 2mm;
+    flex: 1;
+  }
+  .meta div{ margin: 0.6mm 0; }
+
+  .footer{
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-end;
+    margin-top: 3mm;
+  }
+
+  .yerli{
+    width: 70mm;
+    height: 18mm;
+    object-fit: contain;
+  }
+
+  .barcode-svg{
+    width: 70mm;
+    height: 22mm;
+    display: block;
+  }
+}
+
+/* ekranda da düzgün dursun */
+body{
+  font-family: 'Times New Roman', Times, serif;
+}

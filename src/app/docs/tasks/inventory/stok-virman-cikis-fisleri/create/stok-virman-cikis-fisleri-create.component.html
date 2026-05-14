@@ -1,0 +1,66 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">{{ screenTitle }}</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">{{ current.subtitle }}</p>
+    </div>
+
+    <button type="button" class="close-button" (click)="close()">Kapat</button>
+  </header>
+
+  <div class="dialog-body">
+    <section class="info-grid">
+      <article class="info-card emphasis-card">
+        <h3>Ekran</h3>
+        <p>{{ screenNote }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Kaynak</h3>
+        <p>{{ current.baseRouteOrFile }}</p>
+      </article>
+      <article class="info-card" *ngFor="let item of current.highlights">
+        <h3>Not</h3>
+        <p>{{ item }}</p>
+      </article>
+    </section>
+
+    <section class="task-block">
+      <div class="task-title">{{ current.listTitle }}</div>
+      <div class="task-list">
+        <article class="task-item" *ngFor="let item of current.items">
+          <div class="task-item-head">
+            <h4>{{ item.name }}</h4>
+            <p>{{ item.description }}</p>
+          </div>
+
+          <div class="table-wrap" *ngIf="item.endpoints?.length">
+            <table>
+              <thead>
+                <tr>
+                  <th>Method</th>
+                  <th>Path</th>
+                  <th>Aciklama</th>
+                  <th>Payload</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let endpoint of item.endpoints">
+                  <td>{{ endpoint.method }}</td>
+                  <td>{{ endpoint.path }}</td>
+                  <td>{{ endpoint.description }}</td>
+                  <td>{{ endpoint.payload || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="sample" *ngIf="current.codeSample">
+      <h3>Ornek</h3>
+      <pre><code>{{ current.codeSample }}</code></pre>
+    </section>
+  </div>
+</section>

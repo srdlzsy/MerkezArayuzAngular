@@ -1,0 +1,178 @@
+/* Genel Sayfa Stili */
+.page {
+  width: 210mm; /* A4 genişlik */
+  min-height: 297mm; /* A4 yükseklik */
+  margin: 0 auto;
+  padding: 15mm;
+  box-sizing: border-box;
+  font-family: 'Arial', sans-serif;
+  font-size: 12px;
+  background: white;
+  color: black;
+}
+
+/* Yazdırma için ek ayarlar */
+@media print {
+  body {
+    margin: 0;
+    padding: 0;
+    background: white;
+  }
+  
+  .page {
+    width: 100%;
+    height: 100%;
+    margin: 0;
+    padding: 15mm;
+    page-break-after: always;
+    page-break-inside: avoid;
+  }
+  
+  .header, .content {
+    -webkit-print-color-adjust: exact;
+    print-color-adjust: exact;
+  }
+}
+
+/* HEADER */
+.header {
+  border-bottom: 3px solid #333;
+  margin-bottom: 20px;
+  padding-bottom: 10px;
+}
+
+.header-inner {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-end;
+}
+
+.header h2 {
+  margin: 0;
+  font-size: 24px;
+  font-weight: bold;
+}
+
+.print-date {
+  font-size: 14px;
+  font-weight: bold;
+  color: #555;
+}
+
+/* TABLO */
+.content {
+  width: 100%;
+  overflow: hidden;
+}
+
+.price-change-table {
+  width: 100%;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.price-change-table thead {
+  background-color: #f2f2f2;
+  border-bottom: 2px solid #333;
+}
+
+.price-change-table th {
+  padding: 10px 8px;
+  text-align: left;
+  font-weight: bold;
+  font-size: 13px;
+  border-right: 1px solid #ddd;
+  word-wrap: break-word;
+  vertical-align: top;
+}
+
+.price-change-table th:last-child {
+  border-right: none;
+}
+
+.price-change-table tbody tr {
+  border-bottom: 1px solid #ddd;
+  page-break-inside: avoid;
+}
+
+.price-change-table tbody tr:nth-child(even) {
+  background-color: #f9f9f9;
+}
+
+.price-change-table td {
+  padding: 8px;
+  font-size: 12px;
+  border-right: 1px solid #ddd;
+  word-wrap: break-word;
+  vertical-align: top;
+}
+
+.price-change-table td:last-child {
+  border-right: none;
+}
+
+/* Sütun Genişlikleri */
+.price-change-table th:nth-child(1),
+.price-change-table td:nth-child(1) {
+  width: 12%; /* Ürün Kodu */
+}
+
+.price-change-table th:nth-child(2),
+.price-change-table td:nth-child(2) {
+  width: 15%; /* Barkodu */
+}
+
+.price-change-table th:nth-child(3),
+.price-change-table td:nth-child(3) {
+  width: 25%; /* Ürün Adı */
+}
+
+.price-change-table th:nth-child(4),
+.price-change-table td:nth-child(4) {
+  width: 10%; /* Eski Fiyat */
+  text-align: right;
+}
+
+.price-change-table th:nth-child(5),
+.price-change-table td:nth-child(5) {
+  width: 10%; /* Yeni Fiyat */
+  text-align: right;
+}
+
+.price-change-table th:nth-child(6),
+.price-change-table td:nth-child(6) {
+  width: 8%; /* Fark */
+  text-align: right;
+  font-weight: bold;
+}
+
+.price-change-table th:nth-child(7),
+.price-change-table td:nth-child(7) {
+  width: 20%; /* Değişiklik Tarihi */
+  text-align: center;
+}
+
+/* Sayfa Sonu Kontrolleri */
+@media print {
+  tr {
+    page-break-inside: avoid;
+  }
+  
+  tbody tr:last-child {
+    page-break-after: avoid;
+  }
+}
+
+/* Fiyat renklendirmesi */
+.price-change-table td:nth-child(6) {
+  color: #c00;
+}
+
+/* Sayfa numarası (opsiyonel) */
+@page {
+  margin: 15mm;
+}
+
+@page :first {
+  margin-top: 15mm;
+}

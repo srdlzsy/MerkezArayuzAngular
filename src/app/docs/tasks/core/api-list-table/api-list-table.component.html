@@ -1,0 +1,143 @@
+<section class="api-list-table">
+  <div class="table-controls">
+    <label class="control-field control-field-search">
+      <span>Filtre</span>
+      <input
+        type="search"
+        [value]="filterTerm()"
+        [placeholder]="filterPlaceholder()"
+        (input)="updateFilter($any($event.target).value ?? '')"
+      />
+    </label>
+
+    <div class="control-actions">
+      <button
+        *ngIf="hasActiveFilter()"
+        type="button"
+        class="ghost-action"
+        (click)="clearFilter()"
+      >
+        Filtreyi Temizle
+      </button>
+
+      <label class="control-field control-field-size">
+        <span>Sayfa Boyutu</span>
+        <select [value]="pageSize()" (change)="updatePageSize($any($event.target).value ?? pageSize())">
+          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }} / sayfa</option>
+        </select>
+      </label>
+    </div>
+  </div>
+
+  <article class="state-card state-card-neutral" *ngIf="filteredCount() === 0">
+    <h3>Filtre Sonucu Bos</h3>
+    <p>
+      {{
+        hasActiveFilter()
+          ? 'Girilen filtreye uygun kayit bulunamadi. Arama ifadesini duzenleyip tekrar deneyin.'
+          : 'Gosterilecek kayit bulunamadi.'
+      }}
+    </p>
+  </article>
+
+  <ng-container *ngIf="filteredCount() > 0">
+    <div class="table-wrap">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th
+              *ngFor="let column of columns(); trackBy: trackByColumn"
+              [attr.aria-sort]="getAriaSort(column.key)"
+            >
+              <button
+                type="button"
+                class="sort-button"
+                [class.is-active]="isSorted(column.key)"
+                (click)="toggleSort(column.key)"
+              >
+                <span>{{ column.label }}</span>
+                <span class="sort-indicator">{{ getSortIndicator(column.key) }}</span>
+              </button>
+            </th>
+            <th>Islem</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of pagedRows(); trackBy: trackByRow">
+            <td *ngFor="let column of columns(); trackBy: trackByColumn">
+              <ng-container [ngSwitch]="column.type ?? 'text'">
+                <span
+                  *ngSwitchCase="'status'"
+                  class="status-pill"
+                  [class]="getStatusTone(readCell(row, column))"
+                >
+                  {{ formatText(readCell(row, column), column.emptyValue || 'Bilinmiyor') }}
+                </span>
+                <ng-container *ngSwitchCase="'date'">
+                  {{ formatDate(readCell(row, column)) }}
+                </ng-container>
+                <ng-container *ngSwitchDefault>
+                  {{ formatText(readCell(row, column), column.emptyValue || '-') }}
+                </ng-container>
+              </ng-container>
+            </td>
+            <td class="action-cell">
+              <div class="row-actions">
+                <button type="button" class="row-action row-action-primary" (click)="rowAction.emit(row)">
+                  {{ actionLabel() }}
+                </button>
+                <button
+                  *ngFor="let action of getVisibleAdditionalActions(row); trackBy: trackByAdditionalAction"
+                  type="button"
+                  class="row-action"
+                  [class]="getRowActionToneClass(action.tone)"
+                  [disabled]="isAdditionalActionDisabled(action, row)"
+                  (click)="emitAdditionalRowAction(action.key, row)"
+                >
+                  {{ action.label }}
+                </button>
+              </div>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="table-footer">
+      <div class="page-summary">
+        {{ rangeStart() }}-{{ rangeEnd() }} / {{ filteredCount() }} kayit
+      </div>
+
+      <div class="pager">
+        <button type="button" class="pager-button" (click)="goToPage(1)" [disabled]="currentPage() <= 1">
+          Ilk
+        </button>
+        <button
+          type="button"
+          class="pager-button"
+          (click)="goToPage(currentPage() - 1)"
+          [disabled]="currentPage() <= 1"
+        >
+          Geri
+        </button>
+        <span class="pager-state">Sayfa {{ currentPage() }} / {{ totalPages() }}</span>
+        <button
+          type="button"
+          class="pager-button"
+          (click)="goToPage(currentPage() + 1)"
+          [disabled]="currentPage() >= totalPages()"
+        >
+          Ileri
+        </button>
+        <button
+          type="button"
+          class="pager-button"
+          (click)="goToPage(totalPages())"
+          [disabled]="currentPage() >= totalPages()"
+        >
+          Son
+        </button>
+      </div>
+    </footer>
+  </ng-container>
+</section>

@@ -1,0 +1,578 @@
+<section class="create-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">KASA ISLEMLERI</p>
+      <h2>Kasa Sayimi Olustur</h2>
+      <p class="subtitle">
+        {{ endpointPath }} endpointine <strong>{{ payloadName }}</strong> gonderen create ekrani.
+        Form, dokumandaki lookup endpointleriyle kasa, kasiyer, banknot ve odeme tipi yardimcilari
+        da sunar.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" class="ghost-button" (click)="loadLookupData()" [disabled]="lookupLoading()">
+        {{ lookupLoading() ? 'Lookup Yukleniyor...' : 'Lookuplari Yenile' }}
+      </button>
+      <button type="button" class="secondary-button" (click)="goBack()">Listeye Don</button>
+    </div>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card accent-card">
+      <h3>Endpoint</h3>
+      <p>{{ endpointPath }}</p>
+    </article>
+    <article class="info-card">
+      <h3>JWT Deposu</h3>
+      <p>{{ currentWarehouseLabel() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Belge Serisi</h3>
+      <p>{{ generatedSeriePreview() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Online Kasa Kaydi</h3>
+      <p>{{ onlineCashRegisterDetails().length }}</p>
+    </article>
+  </section>
+
+  <article class="feedback feedback-error" *ngIf="lookupError()">{{ lookupError() }}</article>
+  <article class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</article>
+  <article class="feedback feedback-success" *ngIf="submitSuccess()">{{ submitSuccess() }}</article>
+
+  <article class="response-card" *ngIf="createdResponse() as response">
+    <div>
+      <p class="eyebrow small">Create Response</p>
+      <h3>{{ response.documentSerie }}/{{ response.documentOrderNo }}</h3>
+      <p>
+        {{ response.summaryDate | date: 'dd.MM.yyyy' }} tarihli belge
+        <strong>{{ response.writeConnectionName }}</strong> uzerinden kaydedildi.
+      </p>
+    </div>
+
+    <div class="response-grid">
+      <div>
+        <span>Depo</span>
+        <strong>{{ response.warehouseNo }}</strong>
+      </div>
+      <div>
+        <span>Satir</span>
+        <strong>{{ response.lineCount }}</strong>
+      </div>
+      <div>
+        <span>Toplam</span>
+        <strong>{{ response.total | number:'1.2-2' }} TL</strong>
+      </div>
+    </div>
+  </article>
+
+  <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-head">
+      <div>
+        <h3>{{ current.title }} Create Formu</h3>
+        <p>
+          Dokumana gore <strong>paymentTypes</strong> veya <strong>storeExpenses</strong>
+          koleksiyonlarindan en az biri dolu olmali. <strong>warehouseNo</strong> opsiyoneldir;
+          gonderilirse JWT deposu ile ayni olmalidir.
+        </p>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="secondary-button" (click)="syncTotalWithSuggestion()">
+          Hesaplanan Toplami Yaz
+        </button>
+        <button type="submit" class="primary-button" [disabled]="submitting()">
+          {{ submitting() ? 'Kaydediliyor...' : 'Kasa Sayimini Kaydet' }}
+        </button>
+      </div>
+    </div>
+
+    <section class="form-section">
+      <div class="section-head">
+        <div>
+          <h4>Belge Basligi</h4>
+          <p>SummaryDate, kasa numarasi, Z raporu ve sorumlular bu bloktan gider.</p>
+        </div>
+
+        <div class="section-actions">
+          <button
+            type="button"
+            class="secondary-button compact-button"
+            (click)="loadZReportTotal()"
+            [disabled]="zReportLoading()"
+          >
+            {{ zReportLoading() ? 'Z Raporu Okunuyor...' : 'Z Raporunu Oku' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="form-grid">
+        <label class="field">
+          <span>Summary Date</span>
+          <input type="date" formControlName="summaryDate" />
+        </label>
+
+        <label class="field">
+          <span>Warehouse No</span>
+          <input type="number" formControlName="warehouseNo" placeholder="110" />
+          <small>Opsiyonel. JWT deposu ile ayni olmali.</small>
+        </label>
+
+        <label class="field" *ngIf="cashRegisters().length > 0; else manualCashNo">
+          <span>Cash No</span>
+          <select formControlName="cashNo" (change)="onCashNoChanged()">
+            <option [ngValue]="null">Kasa sec</option>
+            <option *ngFor="let register of cashRegisters()" [ngValue]="register.cashRegisterNo">
+              {{ getCashRegisterLabel(register) }}
+            </option>
+          </select>
+        </label>
+
+        <ng-template #manualCashNo>
+          <label class="field">
+            <span>Cash No</span>
+            <input type="number" formControlName="cashNo" placeholder="1" (change)="onCashNoChanged()" />
+          </label>
+        </ng-template>
+
+        <label class="field">
+          <span>Z Report No</span>
+          <input type="number" formControlName="zReportNo" placeholder="125" />
+        </label>
+
+        <label class="field">
+          <span>Cashier No</span>
+          <input type="number" formControlName="cashierNo" placeholder="1001" />
+        </label>
+
+        <label class="field">
+          <span>Manager No</span>
+          <input type="number" formControlName="managerNo" placeholder="1002" />
+        </label>
+
+        <label class="field">
+          <span>Z Total Value</span>
+          <input type="number" step="0.01" formControlName="zTotalValue" placeholder="15340.5" />
+        </label>
+
+        <label class="field">
+          <span>Total</span>
+          <input type="number" step="0.01" formControlName="total" placeholder="15340.5" />
+        </label>
+      </div>
+
+      <div class="status-row">
+        <span class="status-pill" *ngIf="cashRegisterLoading()">Kasa detayi yukleniyor</span>
+        <span class="status-pill" *ngIf="zReportMessage()">{{ zReportMessage() }}</span>
+        <span class="status-pill warning" *ngIf="!hasRequiredFinancialLines()">
+          Kaydetmek icin paymentTypes veya storeExpenses satiri eklenmeli
+        </span>
+        <span class="status-pill">
+          Form Toplami: {{ suggestedSummaryTotal() | number:'1.2-2' }} TL
+        </span>
+        <span class="status-pill">
+          Z Farki: {{ totalDifference() | number:'1.2-2' }} TL
+        </span>
+      </div>
+    </section>
+
+    <article class="helper-card" *ngIf="cashRegisterDetail() as detail">
+      <h4>Kasa Detayi</h4>
+      <div class="helper-grid">
+        <div>
+          <span>Cash Register No</span>
+          <strong>{{ detail.cashRegisterNo || '-' }}</strong>
+        </div>
+        <div>
+          <span>Banka</span>
+          <strong>{{ detail.bank || '-' }}</strong>
+        </div>
+        <div>
+          <span>Terminal</span>
+          <strong>{{ detail.terminalId || '-' }}</strong>
+        </div>
+        <div>
+          <span>Merchant</span>
+          <strong>{{ detail.merchantNo || '-' }}</strong>
+        </div>
+      </div>
+      <p *ngIf="cashRegisterMessage()">{{ cashRegisterMessage() }}</p>
+    </article>
+
+    <section class="form-section">
+      <div class="section-head">
+        <div>
+          <h4>Kasiyer Arama</h4>
+          <p>`GET /kasiyerler?filterString=...` yardimcisiyla kasiyer veya mudur kodu ata.</p>
+        </div>
+      </div>
+
+      <div class="lookup-row">
+        <label class="field field-grow">
+          <span>Kasiyer ara</span>
+          <input
+            type="search"
+            [formControl]="cashierLookupQuery"
+            placeholder="Mehmet, Ayse, 1001"
+          />
+        </label>
+
+        <button
+          type="button"
+          class="secondary-button compact-button"
+          (click)="searchCashiers()"
+          [disabled]="cashierLookupLoading()"
+        >
+          {{ cashierLookupLoading() ? 'Araniyor...' : 'Kasiyerleri Getir' }}
+        </button>
+      </div>
+
+      <div class="feedback feedback-error" *ngIf="cashierLookupError()">{{ cashierLookupError() }}</div>
+
+      <div class="template-grid" *ngIf="cashierLookupResults().length > 0">
+        <article class="template-card" *ngFor="let cashier of cashierLookupResults()">
+          <div>
+            <h5>{{ getCashierLabel(cashier) }}</h5>
+            <p>{{ cashier.cashierAuthorization || 'Yetki yok' }}</p>
+          </div>
+
+          <div class="template-actions">
+            <button type="button" class="link-button" (click)="applyCashier(cashier, 'cashier')">
+              Kasiyer No'ya Yaz
+            </button>
+            <button type="button" class="link-button" (click)="applyCashier(cashier, 'manager')">
+              Mudur No'ya Yaz
+            </button>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="section-head">
+        <div>
+          <h4>Payment Types</h4>
+          <p>Request icindeki <code>paymentTypes</code> koleksiyonu. Create icin zorunlu alanlardan biridir.</p>
+        </div>
+
+        <div class="section-actions">
+          <button type="button" class="secondary-button compact-button" (click)="addEmptyPaymentType()">
+            Bos Odeme Satiri Ekle
+          </button>
+        </div>
+      </div>
+
+      <div class="template-group" *ngIf="bankPaymentTypes().length > 0">
+        <h5>Banka Odeme Tipleri</h5>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="chip-button"
+            *ngFor="let item of bankPaymentTypes()"
+            (click)="addPaymentTypeTemplate(item)"
+          >
+            {{ item.paymentName }} <small *ngIf="item.terminalId">({{ item.terminalId }})</small>
+          </button>
+        </div>
+      </div>
+
+      <div class="template-group" *ngIf="foodCheckPaymentTypes().length > 0">
+        <h5>Yemek Ceki Tipleri</h5>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="chip-button"
+            *ngFor="let item of foodCheckPaymentTypes()"
+            (click)="addPaymentTypeTemplate(item)"
+          >
+            {{ item.paymentName }}
+          </button>
+        </div>
+      </div>
+
+      <div class="template-group" *ngIf="onlinePaymentTypes().length > 0">
+        <h5>Online Odeme Tipleri</h5>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="chip-button"
+            *ngFor="let item of onlinePaymentTypes()"
+            (click)="addPaymentTypeTemplate(item)"
+          >
+            {{ item.paymentName }}
+          </button>
+        </div>
+      </div>
+
+      <div class="template-group" *ngIf="expenseVoucherPaymentTypes().length > 0">
+        <h5>Masraf Pusulasi Tipleri</h5>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="chip-button"
+            *ngFor="let item of expenseVoucherPaymentTypes()"
+            (click)="addPaymentTypeTemplate(item)"
+          >
+            {{ item.paymentName }}
+          </button>
+        </div>
+      </div>
+
+      <div class="line-list" formArrayName="paymentTypes" *ngIf="paymentTypes.length > 0; else noPaymentLines">
+        <article
+          class="line-card"
+          *ngFor="let group of paymentTypes.controls; let index = index; trackBy: trackByIndex"
+          [formGroup]="group"
+        >
+          <div class="line-card-head">
+            <h5>Odeme Satiri {{ index + 1 }}</h5>
+            <button type="button" class="link-button danger" (click)="removePaymentType(index)">
+              Kaldir
+            </button>
+          </div>
+
+          <div class="line-grid">
+            <label class="field">
+              <span>Payment Name</span>
+              <input type="text" formControlName="paymentName" placeholder="Nakit" />
+            </label>
+            <label class="field">
+              <span>Payment Type No</span>
+              <input type="number" formControlName="paymentTypeNo" placeholder="1" />
+            </label>
+            <label class="field">
+              <span>Account Code</span>
+              <input type="text" formControlName="accountCode" placeholder="POS-AKBANK" />
+            </label>
+            <label class="field">
+              <span>Terminal Id</span>
+              <input type="text" formControlName="terminalId" placeholder="TERM-01" />
+            </label>
+            <label class="field">
+              <span>Slip Number</span>
+              <input type="number" formControlName="slipNumber" placeholder="0" />
+            </label>
+            <label class="field">
+              <span>Amount Value</span>
+              <input type="number" step="0.01" formControlName="amountValue" placeholder="11340.5" />
+            </label>
+          </div>
+        </article>
+      </div>
+
+      <ng-template #noPaymentLines>
+        <article class="empty-state">
+          <h5>Payment type satiri eklenmedi</h5>
+          <p>Nakit, banka, online veya yemek ceki tiplerinden birini ekleyebilirsin.</p>
+        </article>
+      </ng-template>
+    </section>
+
+    <section class="form-section">
+      <div class="section-head">
+        <div>
+          <h4>Store Expenses</h4>
+          <p>Request icindeki <code>storeExpenses</code> koleksiyonu. PaymentTypes yerine tek basina da kayda izin verir.</p>
+        </div>
+
+        <div class="section-actions">
+          <button type="button" class="secondary-button compact-button" (click)="addEmptyStoreExpense()">
+            Bos Masraf Satiri Ekle
+          </button>
+        </div>
+      </div>
+
+      <div class="template-group" *ngIf="storeExpenseTemplates().length > 0">
+        <h5>Magaza Masrafi Tipleri</h5>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="chip-button"
+            *ngFor="let item of storeExpenseTemplates()"
+            (click)="addStoreExpenseTemplate(item)"
+          >
+            {{ item.paymentName }}
+          </button>
+        </div>
+      </div>
+
+      <div class="line-list" formArrayName="storeExpenses" *ngIf="storeExpenses.length > 0">
+        <article
+          class="line-card"
+          *ngFor="let group of storeExpenses.controls; let index = index; trackBy: trackByIndex"
+          [formGroup]="group"
+        >
+          <div class="line-card-head">
+            <h5>Masraf Satiri {{ index + 1 }}</h5>
+            <button type="button" class="link-button danger" (click)="removeStoreExpense(index)">
+              Kaldir
+            </button>
+          </div>
+
+          <div class="line-grid">
+            <label class="field">
+              <span>Store Expenses Type</span>
+              <input type="text" formControlName="storeExpensesType" placeholder="Magaza Gideri" />
+            </label>
+            <label class="field field-wide">
+              <span>Description</span>
+              <input type="text" formControlName="description" placeholder="Aciklama" />
+            </label>
+            <label class="field">
+              <span>Amount Value</span>
+              <input type="number" step="0.01" formControlName="amountValue" placeholder="150" />
+            </label>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="section-head">
+        <div>
+          <h4>Banknote Movements</h4>
+          <p>Nakit dagilimini girmek istersen <code>banknoteMovements</code> satirlari ekleyebilirsin.</p>
+        </div>
+
+        <div class="section-actions">
+          <button type="button" class="secondary-button compact-button" (click)="addEmptyBanknote()">
+            Bos Banknot Satiri
+          </button>
+        </div>
+      </div>
+
+      <div class="template-group" *ngIf="banknoteTypes().length > 0">
+        <h5>Banknot Tipleri</h5>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="chip-button"
+            *ngFor="let item of banknoteTypes()"
+            (click)="addBanknoteTemplate(item)"
+          >
+            {{ item.value | number:'1.0-2' }} TL
+          </button>
+        </div>
+      </div>
+
+      <div class="line-list" formArrayName="banknoteMovements" *ngIf="banknoteMovements.length > 0">
+        <article
+          class="line-card"
+          *ngFor="let group of banknoteMovements.controls; let index = index; trackBy: trackByIndex"
+          [formGroup]="group"
+        >
+          <div class="line-card-head">
+            <h5>Banknot Satiri {{ index + 1 }}</h5>
+            <div class="template-actions">
+              <button type="button" class="link-button" (click)="recalculateBanknoteTotal(index)">
+                Tutar Hesapla
+              </button>
+              <button type="button" class="link-button danger" (click)="removeBanknote(index)">
+                Kaldir
+              </button>
+            </div>
+          </div>
+
+          <div class="line-grid">
+            <label class="field">
+              <span>Banknote Type</span>
+              <input type="number" formControlName="banknoteType" placeholder="1" />
+            </label>
+            <label class="field">
+              <span>Value</span>
+              <input type="number" step="0.01" formControlName="value" placeholder="200" />
+            </label>
+            <label class="field">
+              <span>Quantity</span>
+              <input type="number" formControlName="quantity" placeholder="20" />
+            </label>
+            <label class="field">
+              <span>Total</span>
+              <input type="number" step="0.01" formControlName="total" placeholder="4000" />
+            </label>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="form-section">
+      <div class="section-head">
+        <div>
+          <h4>Gift Check Movements</h4>
+          <p>Hediye ceki veya kupon dagilimi gerekiyorsa <code>giftCheckMovements</code> satirlari eklenir.</p>
+        </div>
+
+        <div class="section-actions">
+          <button type="button" class="secondary-button compact-button" (click)="addEmptyGiftCheck()">
+            Bos Hediye Ceki Satiri
+          </button>
+        </div>
+      </div>
+
+      <div class="template-group" *ngIf="giftCheckTypes().length > 0">
+        <h5>Hediye Ceki Tipleri</h5>
+        <div class="template-actions">
+          <button
+            type="button"
+            class="chip-button"
+            *ngFor="let item of giftCheckTypes()"
+            (click)="addGiftCheckTemplate(item)"
+          >
+            Tip {{ item.giftCheckType }} / {{ item.value | number:'1.0-2' }} TL
+          </button>
+        </div>
+      </div>
+
+      <div class="line-list" formArrayName="giftCheckMovements" *ngIf="giftCheckMovements.length > 0">
+        <article
+          class="line-card"
+          *ngFor="let group of giftCheckMovements.controls; let index = index; trackBy: trackByIndex"
+          [formGroup]="group"
+        >
+          <div class="line-card-head">
+            <h5>Hediye Ceki Satiri {{ index + 1 }}</h5>
+            <div class="template-actions">
+              <button type="button" class="link-button" (click)="recalculateGiftCheckTotal(index)">
+                Tutar Hesapla
+              </button>
+              <button type="button" class="link-button danger" (click)="removeGiftCheck(index)">
+                Kaldir
+              </button>
+            </div>
+          </div>
+
+          <div class="line-grid">
+            <label class="field">
+              <span>Gift Check Type</span>
+              <input type="number" formControlName="giftCheckType" placeholder="1" />
+            </label>
+            <label class="field">
+              <span>Value</span>
+              <input type="number" step="0.01" formControlName="value" placeholder="100" />
+            </label>
+            <label class="field">
+              <span>Quantity</span>
+              <input type="number" formControlName="quantity" placeholder="3" />
+            </label>
+            <label class="field">
+              <span>Total</span>
+              <input type="number" step="0.01" formControlName="total" placeholder="300" />
+            </label>
+          </div>
+        </article>
+      </div>
+    </section>
+
+    <section class="preview-card">
+      <div class="section-head">
+        <div>
+          <h4>Payload Onizleme</h4>
+          <p>Formun anlik olarak uretecegi JSON govdesi.</p>
+        </div>
+      </div>
+
+      <pre><code>{{ payloadPreview() }}</code></pre>
+    </section>
+  </form>
+</section>

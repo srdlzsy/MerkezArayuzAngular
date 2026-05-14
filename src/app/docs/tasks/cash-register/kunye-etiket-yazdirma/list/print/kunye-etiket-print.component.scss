@@ -1,0 +1,227 @@
+.print-sheet {
+  width: 100%;
+  max-width: 194mm;
+  min-height: 270mm;
+  margin: 0 auto;
+  padding: 9mm 6mm 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-columns: repeat(2, 82mm);
+  gap: 10mm;
+  background: #ffffff;
+  page-break-after: always;
+  justify-content: center;
+  align-content: flex-start;
+  justify-items: center;
+  align-items: start;
+  font-family: 'Times New Roman', serif;
+}
+
+.print-sheet:last-child {
+  page-break-after: auto;
+  break-after: auto;
+}
+
+.label-wrapper {
+  width: 82mm;
+  box-sizing: border-box;
+  page-break-inside: avoid;
+  break-inside: avoid;
+  align-self: start;
+}
+
+.tag-label {
+  border: 1px solid #000;
+  padding: 5px 7px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  background: #ffffff;
+  color: #000000;
+  box-sizing: border-box;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.label-header {
+  margin-bottom: 5px;
+}
+
+.product-title {
+  text-align: center;
+  font-size: 11px;
+  font-weight: bold;
+  line-height: 1.15;
+  min-height: 22px;
+  text-transform: uppercase;
+}
+
+.product-type-bar {
+  margin-top: 4px;
+  background: #595959;
+  color: #ffffff;
+  text-align: center;
+  font-size: 8px;
+  font-weight: bold;
+  padding: 6px 4px;
+  text-transform: uppercase;
+  letter-spacing: 0.2px;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.top-section {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 7px;
+  margin-top: 6px;
+  margin-bottom: 6px;
+}
+
+.qr-section {
+  width: 34%;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: flex-start;
+  padding-top: 1px;
+}
+
+.qr-box {
+  width: 18mm;
+  height: 18mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+
+.qr-svg {
+  width: 18mm;
+  height: 18mm;
+  shape-rendering: crispEdges;
+  display: block;
+}
+
+.qr-number {
+  margin-top: 3px;
+  font-size: 6px;
+  line-height: 1.05;
+  font-weight: bold;
+  text-align: center;
+  word-break: break-all;
+}
+
+.cost-section {
+  width: 66%;
+  font-size: 7px;
+  line-height: 1.15;
+}
+
+.cost-title {
+  text-align: right;
+  font-weight: bold;
+  margin-bottom: 5px;
+  font-size: 7px;
+}
+
+.cost-row,
+.cost-total {
+  display: flex;
+  justify-content: space-between;
+  align-items: flex-start;
+  gap: 4px;
+  margin-bottom: 2px;
+  font-size: 7px;
+}
+
+.cost-row span:first-child,
+.cost-total span:first-child {
+  font-weight: bold;
+  max-width: 58%;
+}
+
+.cost-row span:last-child,
+.cost-total span:last-child {
+  min-width: 40px;
+  text-align: right;
+}
+
+.cost-total {
+  margin-top: 4px;
+  padding-top: 4px;
+  border-top: 1px solid #000;
+  font-weight: bold;
+}
+
+.info-section {
+  margin-top: 2px;
+  border-top: 1px solid #000;
+}
+
+.info-row {
+  display: flex;
+  border-bottom: 1px solid #000;
+  min-height: 18px;
+  align-items: center;
+}
+
+.info-label {
+  width: 42%;
+  font-weight: bold;
+  font-size: 6px;
+  line-height: 1.1;
+  padding: 1px 3px 1px 1px;
+  text-transform: uppercase;
+}
+
+.info-value {
+  width: 58%;
+  font-size: 6px;
+  line-height: 1.1;
+  padding: 1px 2px;
+  word-break: break-word;
+}
+
+.footer-section {
+  margin-top: 2px;
+  padding-top: 2px;
+  text-align: center;
+}
+
+.footer-text {
+  font-size: 5px;
+  line-height: 1.15;
+  margin-bottom: 0;
+}
+
+.footer-dates {
+  display: flex;
+  justify-content: space-between;
+  gap: 6px;
+  margin-top: 2px;
+  font-size: 5px;
+  line-height: 1.1;
+  font-weight: bold;
+}
+
+@media print {
+  .print-sheet {
+    width: 100%;
+    max-width: 194mm;
+    min-height: 270mm;
+    padding-top: 9mm;
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .print-sheet:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .label-wrapper {
+    break-inside: avoid;
+    page-break-inside: avoid;
+  }
+}

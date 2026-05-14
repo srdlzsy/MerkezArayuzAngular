@@ -1,0 +1,37 @@
+<div class="page">
+  <div class="header">
+    <div class="header-inner">
+      <h2>FIYAT DEGISIM ETIKETLERI</h2>
+      <div class="print-date">
+        {{ today | date:'dd.MM.yyyy HH:mm' }}
+      </div>
+    </div>
+  </div>
+
+  <div class="content">
+    <table class="price-change-table">
+      <thead>
+        <tr>
+          <th>Urun Kodu</th>
+          <th>Barkod</th>
+          <th>Urun Adi</th>
+          <th>Eski Fiyat</th>
+          <th>Yeni Fiyat</th>
+          <th>Fark</th>
+          <th>Degisiklik Tarihi ve Saati</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let product of productsToPrint">
+          <td>{{ product.productCode }}</td>
+          <td>{{ product.barcode }}</td>
+          <td>{{ product.productName }}</td>
+          <td>{{ product.oldPrice.toFixed(2) }}</td>
+          <td>{{ product.price.toFixed(2) }}</td>
+          <td>{{ (product.price - product.oldPrice).toFixed(2) }}</td>
+          <td>{{ product.priceChangeDate || '-' }}</td>
+        </tr>
+      </tbody>
+    </table>
+  </div>
+</div>

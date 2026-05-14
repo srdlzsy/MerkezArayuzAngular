@@ -1,0 +1,67 @@
+<main class="login-shell">
+  <section class="login-layout">
+    <aside class="hero-panel">
+      <div class="hero-badge">FURPA ONLINE SISTEM</div>
+      <img class="hero-logo" src="assets/furpa-login.png" alt="Furpa Online" />
+
+      <div class="hero-copy">
+        <h1>Operasyon ekranlari tek merkezde.</h1>
+        <p>
+          Yetkinize acik task sayfalari, stok ve siparis akislari ile rol bazli yonetim
+          ekranlarina tek girisle ulasin.
+        </p>
+      </div>
+
+      <div class="hero-note">
+        <img src="assets/furpa-600.png" alt="Furpa" />
+        <span>FURPA gorev ekranlari ve dokumantasyon merkezi</span>
+      </div>
+    </aside>
+
+    <section class="login-card">
+      <div class="brand-row">
+        <img class="brand-logo" src="assets/furpa-600.png" alt="Furpa" />
+        <div>
+          <p class="eyebrow">Hos geldiniz</p>
+          <h2>Giris Yapin</h2>
+        </div>
+      </div>
+
+      <p class="muted">
+        Task ekranlarini gormek icin kullanici adi veya e-posta adresiniz ve sifreniz ile sisteme giris yapin.
+      </p>
+
+      <form class="form" (ngSubmit)="submit()">
+        <label>
+          <span>Kullanici Adi / E-posta</span>
+          <input
+            type="text"
+            name="usernameOrEmail"
+            [(ngModel)]="usernameOrEmail"
+            placeholder="admin veya ad@firma.com"
+            autocomplete="username"
+          />
+        </label>
+
+        <label>
+          <span>Sifre</span>
+          <input
+            type="password"
+            name="password"
+            [(ngModel)]="password"
+            placeholder="Sifrenizi girin"
+            autocomplete="current-password"
+          />
+        </label>
+
+        @if (error()) {
+          <p class="error">{{ error() }}</p>
+        }
+
+        <button type="submit" [disabled]="submitting()">
+          {{ submitting() ? 'Giris yapiliyor...' : 'Giris Yap' }}
+        </button>
+      </form>
+    </section>
+  </section>
+</main>

@@ -1,0 +1,226 @@
+<section class="task-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Operasyon Islemleri</p>
+      <div class="welcome-box">
+        <h2>{{ current.title }}</h2>
+      </div>
+      <p class="subtitle">
+        Export islerini kuyruga alip job durumu uzerinden takip edin. Ekran ayni kalir, ama artik
+        her aksiyon yeni backend'in `job` akisina gore canli durum gosterir.
+      </p>
+    </div>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card emphasis-card">
+      <h3>Aktif Aksiyon</h3>
+      <p>{{ activeActionCount() }} operasyon + 1 hazir olmayan aksiyon</p>
+    </article>
+    <article class="info-card">
+      <h3>Durum</h3>
+      <p>{{ statusLabel() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Son Islem</h3>
+      <p>{{ lastTriggeredActionLabel() }}</p>
+    </article>
+  </section>
+
+  <section class="task-block">
+    <article class="control-shell">
+      <div class="control-copy">
+        <div class="task-title">Operasyon Paneli</div>
+        <p>
+          Terazi, urun ve kasiyer exportleri kuyruga atilir. Baslatilan her is icin `jobId`
+          uretilir ve asagidaki durum panelinden takip edilir.
+        </p>
+      </div>
+      <div class="control-indicator" [class.is-busy]="isBusy()">
+        <span class="control-dot"></span>
+        <span>{{ isBusy() ? 'Job takip ediliyor' : 'Sistem hazir' }}</span>
+      </div>
+    </article>
+
+    <article
+      class="state-card state-card-feedback"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <article class="job-card" *ngIf="activeJob() as job">
+      <div class="job-card-head">
+        <div>
+          <h3>Aktif Job</h3>
+          <p>{{ job.operation || 'Operation' }} - {{ job.jobId }}</p>
+        </div>
+        <span class="job-pill" [class]="getJobTone(job.status)">
+          {{ formatJobStatus(job.status) }}
+        </span>
+      </div>
+
+      <div class="job-grid">
+        <div>
+          <span>Olusturma</span>
+          <strong>{{ formatJobTime(job.createdAtUtc) }}</strong>
+        </div>
+        <div>
+          <span>Baslama</span>
+          <strong>{{ formatJobTime(job.startedAtUtc) }}</strong>
+        </div>
+        <div>
+          <span>Tamamlama</span>
+          <strong>{{ formatJobTime(job.completedAtUtc) }}</strong>
+        </div>
+        <div>
+          <span>Depo</span>
+          <strong>{{ job.warehouseNo ?? '-' }}</strong>
+        </div>
+      </div>
+
+      <p class="job-message" *ngIf="job.message">{{ job.message }}</p>
+      <p class="job-message job-message-error" *ngIf="job.errorMessage">{{ job.errorMessage }}</p>
+    </article>
+
+    <div class="action-grid">
+      <article
+        class="action-card"
+        *ngFor="let action of actions"
+        [class.is-running]="isActionRunning(action.key)"
+        [class.is-disabled]="!action.enabled"
+        [class]="action.accent"
+      >
+        <div class="action-card-head">
+          <div class="action-icon">
+            <i [class]="action.icon"></i>
+          </div>
+          <div class="action-copy">
+            <div class="action-title-row">
+              <h3>{{ action.title }}</h3>
+              <span class="action-badge" *ngIf="!action.enabled">{{ action.disabledReason }}</span>
+            </div>
+            <p>{{ action.description }}</p>
+          </div>
+        </div>
+
+        <button
+          type="button"
+          class="action-button"
+          [disabled]="isActionDisabled(action)"
+          (click)="triggerAction(action.key)"
+        >
+          <span>
+            {{
+              isActionRunning(action.key)
+                ? 'Takip ediliyor...'
+                : action.enabled
+                  ? 'Isi Baslat'
+                  : 'Kullanima Kapali'
+            }}
+          </span>
+          <i class="fas fa-arrow-right"></i>
+        </button>
+      </article>
+    </div>
+
+    <article class="authorization-shell">
+      <div class="authorization-head">
+        <div>
+          <h3>Authorization File Kayitlari</h3>
+          <p>
+            `GET /api/operations/authorization-files` ile mevcut kayitlari yukle, R/X/Z
+            degisikliklerini ayni ekrandan `POST` ile toplu kaydet.
+          </p>
+        </div>
+        <div class="authorization-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            (click)="loadAuthorizationFiles()"
+            [disabled]="authorizationLoading() || authorizationSaving()"
+          >
+            {{ authorizationLoading() ? 'Yukleniyor...' : 'Listeyi Yenile' }}
+          </button>
+          <button
+            type="button"
+            class="primary-button"
+            (click)="saveAuthorizationFiles()"
+            [disabled]="!authorizationHasChanges() || authorizationSaving()"
+          >
+            {{ authorizationSaving() ? 'Kaydediliyor...' : 'Degisiklikleri Kaydet' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="authorization-summary">
+        <span>{{ authorizationSummary().total }} kayit</span>
+        <span>R: {{ authorizationSummary().rEnabled }}</span>
+        <span>X: {{ authorizationSummary().xEnabled }}</span>
+        <span>Z: {{ authorizationSummary().zEnabled }}</span>
+        <span *ngIf="authorizationHasChanges()" class="summary-pill">Kaydedilmemis degisiklik var</span>
+      </div>
+
+      <div class="authorization-empty" *ngIf="!authorizationLoading() && authorizationFiles().length === 0">
+        Authorization file kaydi bulunamadi.
+      </div>
+
+      <div class="authorization-table-wrap" *ngIf="authorizationFiles().length > 0">
+        <table class="authorization-table">
+          <thead>
+            <tr>
+              <th>ID</th>
+              <th>Ad</th>
+              <th>R</th>
+              <th>X</th>
+              <th>Z</th>
+              <th>Guncelleme</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of authorizationFiles(); trackBy: trackByAuthorizationFile">
+              <td>{{ item.id }}</td>
+              <td>
+                <strong>{{ item.name }}</strong>
+              </td>
+              <td>
+                <label class="checkbox-cell">
+                  <input
+                    type="checkbox"
+                    [checked]="item.r"
+                    (change)="updateAuthorizationFlag(item.id, 'r', $any($event.target).checked)"
+                  />
+                  <span>{{ item.r ? 'Acik' : 'Kapali' }}</span>
+                </label>
+              </td>
+              <td>
+                <label class="checkbox-cell">
+                  <input
+                    type="checkbox"
+                    [checked]="item.x"
+                    (change)="updateAuthorizationFlag(item.id, 'x', $any($event.target).checked)"
+                  />
+                  <span>{{ item.x ? 'Acik' : 'Kapali' }}</span>
+                </label>
+              </td>
+              <td>
+                <label class="checkbox-cell">
+                  <input
+                    type="checkbox"
+                    [checked]="item.z"
+                    (change)="updateAuthorizationFlag(item.id, 'z', $any($event.target).checked)"
+                  />
+                  <span>{{ item.z ? 'Acik' : 'Kapali' }}</span>
+                </label>
+              </td>
+              <td>{{ formatAuthorizationDate(item.updateDate) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </article>
+  </section>
+</section>

@@ -1,0 +1,41 @@
+<div *ngFor="let chunk of productsToPrintChunks; let chunkIndex = index" class="a5-page">
+  <div class="etiket-grid">
+    <div class="etiket" *ngFor="let product of chunk; let i = index">
+      <div class="etiketBaslik">AYIN ETIKETI</div>
+
+      <div class="price-line">
+        {{ displayPrice(product).toFixed(2) }} <sup>TL</sup>
+      </div>
+
+      <div class="name-line">
+        {{ product.productName }}
+      </div>
+
+      <div class="meta">
+        <div>Urun Kodu: {{ product.productCode }}</div>
+        <div>Uretim Yeri: {{ product.origin || '-' }}</div>
+        <div>Fiyat Degisiklik Tarihi: {{ product.priceChangeDate || '-' }}</div>
+        <div>Etiket Basim Tarihi: {{ etiketCikarmaTarihi }}</div>
+        <div>KDV Dahil: {{ product.unitPriceFactor.toFixed(2) }} TL/{{ product.alternativeUnitName }}</div>
+        <div *ngIf="product.expirationDate">Promosyon Bitis: {{ product.expirationDate }}</div>
+      </div>
+
+      <div class="footer">
+        <img
+          *ngIf="isDomestic(product.origin)"
+          src="/assets/YerliUretim.jpg"
+          class="yerli"
+          alt="Yerli Uretim"
+        />
+
+        <svg
+          class="barcode-svg"
+          [attr.id]="'barcode-' + (chunkIndex * 2 + i)"
+          [attr.data-code]="product.barcode"
+        ></svg>
+      </div>
+    </div>
+
+    <div class="etiket etiket-empty" *ngIf="chunk.length === 1"></div>
+  </div>
+</div>

@@ -1,0 +1,114 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">{{ screenTitle }}</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">Detay Anahtari: {{ requestIdentity() }}</p>
+    </div>
+
+    <button type="button" class="close-button" (click)="close()">Kapat</button>
+  </header>
+
+  <div class="dialog-body">
+    <section class="info-grid">
+      <article class="info-card emphasis-card">
+        <h3>Kaynak</h3>
+        <p>{{ requestPath() }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Aktif Depo</h3>
+        <p>{{ activeDepoNo() ?? '-' }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Kalem Sayisi</h3>
+        <p>{{ kalemCount() }}</p>
+      </article>
+    </section>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Detay Yukleniyor</h3>
+      <p>Secilen sayim sonucunun ayrintisi getiriliyor.</p>
+    </article>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
+      <h3>Detay Yuklenemedi</h3>
+      <p>{{ errorMessage }}</p>
+    </article>
+
+    <ng-container *ngIf="!isLoading() && currentDetail() as detail">
+      <section class="summary-grid">
+        <article class="summary-card">
+          <h3>Evrak No</h3>
+          <p>{{ detail.documentNo }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Tarih</h3>
+          <p>{{ formatDate(detail.documentDate) }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Depo No</h3>
+          <p>{{ detail.warehouseNo }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Depo</h3>
+          <p>{{ detail.warehouseName || '-' }}</p>
+        </article>
+        <article class="summary-card summary-card-wide">
+          <h3>Sayim Adi</h3>
+          <p>{{ detail.name || '-' }}</p>
+        </article>
+      </section>
+
+      <section class="task-block">
+        <div class="task-title">Sayim Kalemleri</div>
+
+        <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
+          <table>
+            <thead>
+              <tr>
+                <th>Satir</th>
+                <th>Stok Kodu</th>
+                <th>Stok Ismi</th>
+                <th>Barkod</th>
+                <th>Birim</th>
+                <th>Birim Musiri</th>
+                <th>Miktar 1</th>
+                <th>Miktar 2</th>
+                <th>Miktar 3</th>
+                <th>Miktar 4</th>
+                <th>Miktar 5</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let kalem of kalemler(); trackBy: trackByKalem">
+                <td>{{ kalem.rowNo }}</td>
+                <td>{{ kalem.stockCode || '-' }}</td>
+                <td>{{ kalem.stockName || '-' }}</td>
+                <td>{{ kalem.barcode || '-' }}</td>
+                <td>{{ kalem.unitName || '-' }}</td>
+                <td>{{ kalem.unitPointer }}</td>
+                <td>{{ formatNumber(kalem.quantity1) }}</td>
+                <td>{{ formatNumber(kalem.quantity2) }}</td>
+                <td>{{ formatNumber(kalem.quantity3) }}</td>
+                <td>{{ formatNumber(kalem.quantity4) }}</td>
+                <td>{{ formatNumber(kalem.quantity5) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </ng-container>
+
+    <section class="sample" *ngIf="current.codeSample">
+      <h3>Ornek</h3>
+      <pre><code>{{ current.codeSample }}</code></pre>
+    </section>
+  </div>
+</section>
+
+<ng-template #noKalemler>
+  <article class="state-card">
+    <h3>Kalem Bulunamadi</h3>
+    <p>Bu sayim sonucu icin kalem bilgisi donmedi.</p>
+  </article>
+</ng-template>

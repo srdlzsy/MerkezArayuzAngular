@@ -1,0 +1,186 @@
+@media print {
+  @page {
+    size: A4;
+    margin: 0;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+
+  .print-half-page {
+    width: 210mm;
+    height: 148mm;
+    box-sizing: border-box;
+    padding: 4mm 4mm 0 5mm;
+
+    display: grid !important;
+    grid-template-columns: repeat(3, 1fr) !important;
+    grid-template-rows: repeat(4, 34.8mm) !important;
+    column-gap: 1.5mm !important;
+    row-gap: 1mm !important;
+
+    align-content: start !important;
+    overflow: hidden;
+
+    page-break-after: always;
+    break-after: page;
+  }
+
+  .print-half-page:last-child {
+    page-break-after: auto;
+    break-after: auto;
+  }
+
+  .rack-label {
+    padding: 1mm;
+    box-sizing: border-box;
+    overflow: hidden;
+    min-height: 0;
+
+    display: flex;
+    flex-direction: column;
+    justify-content: flex-start;
+    align-items: stretch;
+  }
+
+  .lbl-title {
+    font-size: 15px;
+    font-weight: 800;
+    text-align: center;
+    line-height: 1.05;
+    margin: 0 0 0.4mm 0;
+    padding-top: 0.3mm;
+
+    display: -webkit-box;
+    line-clamp: 2;
+    -webkit-line-clamp: 2;
+    -webkit-box-orient: vertical;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .lbl-mid {
+    display: flex;
+    align-items: flex-start;
+    gap: 1.5mm;
+    min-height: 0;
+    flex-shrink: 0;
+  }
+
+  .lbl-barcode {
+    flex: 1;
+    position: relative;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .barcode-svg {
+    width: 100% !important;
+    height: 12.5mm !important;
+    display: block !important;
+    overflow: hidden !important;
+    flex-shrink: 0;
+  }
+
+  .lbl-barcode.has-koli::before {
+    content: attr(data-koli);
+    position: absolute;
+    left: 50%;
+    top: 0;
+    transform: translateX(-50%);
+    font-size: 7px;
+    font-weight: 700;
+    line-height: 1;
+    white-space: nowrap;
+    padding: 0 0.6mm;
+    background: #fff;
+    z-index: 10;
+    pointer-events: none;
+  }
+
+  .lbl-barcode.has-koli .barcode-svg {
+    height: 10.5mm !important;
+    margin-top: 2.3mm;
+  }
+
+  .lbl-price {
+    white-space: nowrap;
+    text-align: right;
+    display: flex;
+    align-items: flex-end;
+    justify-content: flex-end;
+    gap: 0.8mm;
+
+    margin-top: 0;
+    padding-right: 0.5mm;
+    flex-shrink: 0;
+  }
+
+  .price-val {
+    font-size: 28px;
+    font-weight: 1000;
+    line-height: 0.95;
+  }
+
+  .price-cur {
+    font-size: 15px;
+    font-weight: 700;
+    line-height: 1;
+  }
+
+  .lbl-info {
+    font-size: 8.5px;
+    line-height: 1.05;
+    margin-top: 0.2mm;
+    display: flex;
+    justify-content: space-between;
+    gap: 1.5mm;
+    white-space: nowrap;
+    overflow: hidden;
+    flex-shrink: 0;
+  }
+
+  .lbl-bottom {
+    font-size: 8.5px;
+    line-height: 1.05;
+    margin-top: 0.2mm;
+    display: flex;
+    gap: 1.5mm;
+    align-items: flex-start;
+    overflow: hidden;
+    min-height: 0;
+  }
+
+  .lbl-col {
+    flex: 1;
+    min-width: 0;
+    overflow: hidden;
+  }
+
+  .lbl-strong {
+    font-weight: 700;
+  }
+
+  .lbl-badge {
+    width: 12mm;
+    display: flex;
+    justify-content: flex-end;
+    align-items: flex-start;
+    flex-shrink: 0;
+  }
+
+  .badge-img {
+    width: 12mm;
+    height: auto;
+    display: block;
+  }
+
+  img,
+  svg {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

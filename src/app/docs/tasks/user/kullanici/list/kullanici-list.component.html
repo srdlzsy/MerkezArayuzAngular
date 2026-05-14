@@ -1,0 +1,197 @@
+<section class="task-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">KULLANICI YONETIMI</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">{{ current.subtitle }}</p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" class="ghost-button" (click)="loadData()" [disabled]="loading()">
+        {{ loading() ? 'Yukleniyor...' : 'Listeyi Yenile' }}
+      </button>
+      <button
+        *ngIf="canCreate()"
+        type="button"
+        class="primary-button"
+        (click)="openCreate()"
+      >
+        Yeni Kayit
+      </button>
+    </div>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card accent-card">
+      <h3>Kaynak</h3>
+      <p>{{ current.baseRouteOrFile }}</p>
+    </article>
+    <article class="info-card" *ngFor="let item of current.highlights">
+      <h3>Not</h3>
+      <p>{{ item }}</p>
+    </article>
+  </section>
+
+  <section class="list-card">
+    <div class="toolbar">
+      <div class="toolbar-copy">
+        <p class="eyebrow small">{{ current.listTitle }}</p>
+        <h3>{{ current.title }} Listesi</h3>
+      </div>
+
+      <label class="search-field">
+        <span>Ara</span>
+        <input
+          type="search"
+          [value]="search()"
+          (input)="setSearch($event)"
+          [placeholder]="
+            mode === 'users'
+              ? 'Kullanici, e-posta, depo veya rol ara'
+              : mode === 'roles'
+                ? 'Rol adi veya aciklama ara'
+                : 'Code, modul, menu veya action ara'
+          "
+        />
+      </label>
+    </div>
+
+    <div class="feedback feedback-error" *ngIf="error()">{{ error() }}</div>
+
+    <div class="loader-state" *ngIf="loading()">Liste verileri yukleniyor...</div>
+
+    <div class="empty-state" *ngIf="!loading() && mode === 'users' && filteredUsers().length === 0">
+      <h3>Kullanici bulunamadi</h3>
+      <p>Filtreyi genislet veya yeni bir kullanici ekle.</p>
+    </div>
+
+    <div class="empty-state" *ngIf="!loading() && mode === 'roles' && filteredRoles().length === 0">
+      <h3>Rol bulunamadi</h3>
+      <p>Filtreyi genislet veya yeni bir rol ekle.</p>
+    </div>
+
+    <div
+      class="empty-state"
+      *ngIf="!loading() && mode === 'permissions' && filteredPermissions().length === 0"
+    >
+      <h3>Permission bulunamadi</h3>
+      <p>Filtreyi genislet veya yeni bir permission ekle.</p>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading() && mode === 'users' && filteredUsers().length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Kullanici</th>
+            <th>E-Posta</th>
+            <th>Depo</th>
+            <th>Roller</th>
+            <th>Durum</th>
+            <th>Guncellendi</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let user of filteredUsers(); trackBy: trackByUser">
+            <td>
+              <strong>{{ getUserDisplayName(user) }}</strong>
+              <small>{{ user.username }}</small>
+            </td>
+            <td>{{ user.email || '-' }}</td>
+            <td>{{ getUserWarehouseLabel(user) }}</td>
+            <td>
+              <span class="chip" *ngFor="let role of user.roles">{{ role }}</span>
+              <span *ngIf="(user.roles ?? []).length === 0">-</span>
+            </td>
+            <td>
+              <span class="status-pill" [class.status-pill-active]="user.isActive">
+                {{ user.isActive ? 'Aktif' : 'Pasif' }}
+              </span>
+            </td>
+            <td>{{ (user.updatedAtUtc || user.createdAtUtc) | date: 'dd.MM.yyyy HH:mm' }}</td>
+            <td class="action-cell">
+              <button type="button" class="row-button" (click)="openDetail(user.id)">
+                Duzenle
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div class="table-wrap" *ngIf="!loading() && mode === 'roles' && filteredRoles().length > 0">
+      <table>
+        <thead>
+          <tr>
+            <th>Rol</th>
+            <th>Aciklama</th>
+            <th>Permission</th>
+            <th>Durum</th>
+            <th>Guncellendi</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let role of filteredRoles(); trackBy: trackByRole">
+            <td>
+              <strong>{{ role.name || '-' }}</strong>
+              <small>{{ role.id }}</small>
+            </td>
+            <td>{{ role.description || '-' }}</td>
+            <td>{{ role.permissions.length }}</td>
+            <td>
+              <span class="status-pill" [class.status-pill-active]="role.isActive">
+                {{ role.isActive ? 'Aktif' : 'Pasif' }}
+              </span>
+            </td>
+            <td>{{ (role.updatedAtUtc || role.createdAtUtc) | date: 'dd.MM.yyyy HH:mm' }}</td>
+            <td class="action-cell">
+              <button type="button" class="row-button" (click)="openDetail(role.id)">
+                Yetkileri Yonet
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <div
+      class="table-wrap"
+      *ngIf="!loading() && mode === 'permissions' && filteredPermissions().length > 0"
+    >
+      <table>
+        <thead>
+          <tr>
+            <th>Code</th>
+            <th>Name</th>
+            <th>Module</th>
+            <th>Menu</th>
+            <th>Action</th>
+            <th>Guncellendi</th>
+            <th></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let permission of filteredPermissions(); trackBy: trackByPermission">
+            <td>
+              <strong>{{ permission.code }}</strong>
+            </td>
+            <td>
+              {{ permission.name }}
+              <small *ngIf="permission.description">{{ permission.description }}</small>
+            </td>
+            <td>{{ permission.moduleName }}</td>
+            <td>{{ permission.menuName }}</td>
+            <td>{{ permission.actionName }}</td>
+            <td>{{ (permission.updatedAtUtc || permission.createdAtUtc) | date: 'dd.MM.yyyy HH:mm' }}</td>
+            <td class="action-cell">
+              <button type="button" class="row-button" (click)="openDetail(permission.id)">
+                Duzenle
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </section>
+</section>

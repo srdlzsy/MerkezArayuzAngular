@@ -1,0 +1,111 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">{{ screenTitle }}</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">Kayit No: {{ orderIdentity() }}</p>
+    </div>
+
+    <button type="button" class="close-button" (click)="close()">Kapat</button>
+  </header>
+
+  <div class="dialog-body">
+    <section class="info-grid">
+      <article class="info-card emphasis-card">
+        <h3>Kaynak</h3>
+        <p>{{ current.baseRouteOrFile }}/ayrinti/{{ orderIdentity() }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Kalem Sayisi</h3>
+        <p>{{ kalemCount() }}</p>
+      </article>
+      <article class="info-card" *ngIf="header() as header">
+        <h3>Hareket Tipleri</h3>
+        <p>{{ header.movementTypes?.length ? header.movementTypes.join(', ') : '-' }}</p>
+      </article>
+    </section>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Detay Yukleniyor</h3>
+      <p>Secilen kaydin ayrintisi getiriliyor.</p>
+    </article>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
+      <h3>Detay Yuklenemedi</h3>
+      <p>{{ errorMessage }}</p>
+    </article>
+
+    <ng-container *ngIf="!isLoading() && header() as header">
+      <section class="summary-grid">
+        <article class="summary-card">
+          <h3>Seri / Sira</h3>
+          <p>{{ getHeaderText(header, 'documentSerie') || '-' }} / {{ getHeaderNumber(header, 'documentOrderNo') ?? '-' }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Belge No</h3>
+          <p>{{ getHeaderText(header, 'documentNo') || '-' }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Tarih</h3>
+          <p>{{ formatDate(resolvePrimaryDate(header)) }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Depo No</h3>
+          <p>{{ getHeaderNumber(header, 'warehouseNo') ?? '-' }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Depo</h3>
+          <p>{{ getHeaderText(header, 'warehouseName') || '-' }}</p>
+        </article>
+        <article class="summary-card summary-card-wide">
+          <h3>Aciklama</h3>
+          <p>{{ getHeaderText(header, 'description') || '-' }}</p>
+        </article>
+      </section>
+
+      <section class="task-block">
+        <div class="task-title">Kalemler</div>
+
+        <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
+          <table>
+            <thead>
+              <tr>
+                <th>Satir</th>
+                <th>Stok Kodu</th>
+                <th>Stok Ismi</th>
+                <th>Birim</th>
+                <th>Hareket Tipi</th>
+                <th>Miktar</th>
+                <th>Miktar 2</th>
+                <th>Birim Fiyat</th>
+                <th>Tutar</th>
+                <th>Aciklama</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let kalem of kalemler(); trackBy: trackByKalem">
+                <td>{{ getLineNumber(kalem, 'rowNo', 'lineNo') ?? '-' }}</td>
+                <td>{{ getLineText(kalem, 'stockCode') || '-' }}</td>
+                <td>{{ getLineText(kalem, 'stockName') || '-' }}</td>
+                <td>{{ getLineText(kalem, 'unitName') || '-' }}</td>
+                <td>{{ getLineNumber(kalem, 'movementType') ?? '-' }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'quantity')) }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'quantity2')) }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'unitPrice')) }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'lineAmount')) }}</td>
+                <td>{{ getLineText(kalem, 'description') || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </ng-container>
+
+    <ng-template #noKalemler>
+      <article class="state-card">
+        <h3>Kalem Bulunamadi</h3>
+        <p>Bu kayit icin kalem bilgisi donmedi.</p>
+      </article>
+    </ng-template>
+  </div>
+</section>

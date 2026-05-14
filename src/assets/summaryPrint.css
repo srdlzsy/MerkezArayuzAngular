@@ -1,0 +1,98 @@
+/* assets/summaryPrint.css */
+@page { size: A4; margin: 6mm; }
+
+html, body{
+  margin: 0 !important;
+  padding: 0 !important;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 10pt;                 /* biraz küçülttük */
+  color: #000;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+/* ngxPrint açtığı pencere (about:blank) */
+body{
+  height: auto !important;
+}
+
+/* Print section */
+#print_section{
+  width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+
+  /* >>> 2. boş sayfayı engelleyen kritik satırlar */
+  page-break-after: auto !important;
+  break-after: auto !important;
+}
+
+/* GENEL TABLO */
+table{
+  width: 100% !important;
+  border-collapse: collapse !important;
+  margin: 0 0 4mm 0 !important;   /* araları azalt */
+}
+
+th, td{
+  border: 1px solid #000 !important;
+  padding: 3px 5px !important;    /* padding küçült */
+  vertical-align: middle !important;
+  line-height: 1.1 !important;
+}
+
+/* "large" tarayıcıya göre değişiyor -> sabitle */
+[style*="font-size: large"]{
+  font-size: 10pt !important;
+}
+
+/* 24px başlıkları biraz küçült */
+td[style*="font-size: 24px"]{
+  font-size: 13pt !important;
+  font-weight: 700 !important;
+}
+
+/* Üst sağ bilgi satırı */
+h5{
+  margin: 0 0 3mm 0 !important;
+  font-size: 10pt !important;
+  font-weight: 600 !important;
+}
+
+/* Bootstrap container boşluklarını sıfırla */
+.container, .container-fluid{
+  width: 100% !important;
+  max-width: 100% !important;
+  margin: 0 !important;
+  padding: 0 !important;
+}
+
+/* <br>’ler yüzünden taşma olmasın */
+br{
+  display: none !important;
+}
+
+/* satırlar bölünmesin */
+tr, thead, tbody{
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+/* imza alanı: float’lar print’te sorun çıkarır */
+.row{ margin: 0 !important; padding: 0 !important; }
+.col-md-12{ margin: 0 !important; padding: 0 !important; width: 100% !important; }
+
+.float-left, .float-right{
+  float: none !important;
+  display: inline-block !important;
+  vertical-align: top !important;
+  width: 32% !important;
+  box-sizing: border-box !important;
+}
+.float-left{ margin-right: 3% !important; }
+
+/* SON ELEMAN asla sayfa kırmasın (boş 2. sayfa fix) */
+#print_section *:last-child{
+  page-break-after: auto !important;
+  break-after: auto !important;
+}

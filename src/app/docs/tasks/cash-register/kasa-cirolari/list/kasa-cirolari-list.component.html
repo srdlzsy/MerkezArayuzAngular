@@ -1,0 +1,331 @@
+<section class="task-page" *ngIf="page as current">
+  <header class="hero-shell">
+    <article class="hero-panel hero-panel-primary">
+      <p class="eyebrow">Kasa Islemleri</p>
+      <div class="welcome-box">
+        <h2>{{ current.title }}</h2>
+      </div>
+      <p class="subtitle">{{ current.subtitle }}</p>
+
+      <div class="hero-chip-row">
+        <span class="hero-chip hero-chip-solid">{{ selectedSourceLabel() }}</span>
+        <span class="hero-chip">{{ selectedDateRangeLabel() }}</span>
+        <span class="hero-chip">{{ currentWarehouseLabel() }}</span>
+      </div>
+    </article>
+
+    <article class="hero-panel hero-panel-metrics">
+      <div class="metric-grid">
+        <article class="metric-card metric-card-strong">
+          <span>Net Tahsilat</span>
+          <strong>{{ totalNetCollection() | number:'1.2-2' }} TL</strong>
+        </article>
+
+        <article class="metric-card">
+          <span>Toplam Satis</span>
+          <strong>{{ totalSalesAmount() | number:'1.2-2' }} TL</strong>
+        </article>
+
+        <article class="metric-card">
+          <span>Ortalama Net</span>
+          <strong>{{ averageNetCollection() | number:'1.2-2' }} TL</strong>
+        </article>
+
+        <article class="metric-card">
+          <span>Odeme Satiri</span>
+          <strong>{{ totalPaymentLineCount() }}</strong>
+          <p>{{ sourceDistributionLabel() }}</p>
+        </article>
+      </div>
+    </article>
+  </header>
+
+  <section class="task-block">
+    <article class="surface-card control-panel">
+      <div class="control-layout">
+        <section class="source-section">
+          <div class="section-copy">
+            <span class="section-kicker">Kaynak Secimi</span>
+            <h3>Kasa kaynagini sec</h3>
+          </div>
+
+          <div class="source-option-grid">
+            <button
+              type="button"
+              class="source-option"
+              [class.is-active]="selectedSource() === 'new'"
+              (click)="selectSource('new')"
+            >
+              <span class="source-option-title">Yeni</span>
+              <strong>{{ getSourcePillCount('new') }}</strong>
+              <small>ShopigoCiroConnection</small>
+            </button>
+
+            <button
+              type="button"
+              class="source-option"
+              [class.is-active]="selectedSource() === 'old'"
+              (click)="selectSource('old')"
+              >
+              <span class="source-option-title">Eski</span>
+              <strong>{{ getSourcePillCount('old') }}</strong>
+              <small>Mikro Summaries</small>
+            </button>
+
+            <button
+              type="button"
+              class="source-option"
+              [class.is-active]="selectedSource() === 'total'"
+              (click)="selectSource('total')"
+            >
+              <span class="source-option-title">Toplam</span>
+              <strong>{{ getSourcePillCount('total') }}</strong>
+              <small>Birlesik gorunum</small>
+            </button>
+          </div>
+        </section>
+
+        <section class="filters-section">
+          <div class="section-copy">
+            <span class="section-kicker">Sorgu Parametreleri</span>
+            <h3>Tarih araligini sec</h3>
+          </div>
+
+          <div class="filters-grid">
+            <label class="field">
+              <span>Baslangic Tarihi</span>
+              <input
+                type="date"
+                [value]="startDate()"
+                (input)="updateStartDate($any($event.target).value ?? '')"
+              />
+            </label>
+
+            <label class="field">
+              <span>Bitis Tarihi</span>
+              <input
+                type="date"
+                [value]="endDate()"
+                (input)="updateEndDate($any($event.target).value ?? '')"
+              />
+            </label>
+
+            <button
+              type="button"
+              class="task-action task-action-primary query-submit"
+              (click)="loadRows()"
+              [disabled]="isLoading()"
+            >
+              {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+            </button>
+          </div>
+        </section>
+      </div>
+    </article>
+
+    <article class="surface-card overview-panel">
+      <div class="overview-head">
+        <div class="results-copy">
+          <span class="section-kicker">Ciro Ozeti</span>
+          <h3>Sube bazli gunluk toplamlar</h3>
+        </div>
+
+        <div class="scope-switch">
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="overviewScope() === 'all'"
+            (click)="selectOverviewScope('all')"
+          >
+            Tum Subeler
+          </button>
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="overviewScope() === 'current'"
+            (click)="selectOverviewScope('current')"
+          >
+            Aktif Depo
+          </button>
+        </div>
+      </div>
+
+      <div class="summary-strip overview-strip" *ngIf="overview() as currentOverview">
+        <article class="summary-item">
+          <span>Kapsam</span>
+          <strong>{{ overviewScopeLabel() }}</strong>
+        </article>
+        <article class="summary-item">
+          <span>Gunluk Toplam</span>
+          <strong>{{ currentOverview.dailyTotal | number:'1.2-2' }} TL</strong>
+        </article>
+        <article class="summary-item">
+          <span>Musteri</span>
+          <strong>{{ currentOverview.dailyCustomerCount }}</strong>
+        </article>
+        <article class="summary-item">
+          <span>Ortalama Sepet</span>
+          <strong>{{ currentOverview.averageBasketAmount | number:'1.2-2' }} TL</strong>
+        </article>
+      </div>
+
+      <div class="overview-metric-grid" *ngIf="overview() as currentOverview">
+        <article class="overview-metric-card">
+          <span>Nakit</span>
+          <strong>{{ currentOverview.dailyCashPayment | number:'1.2-2' }} TL</strong>
+          <p>{{ overviewCashRate() | number:'1.2-2' }}%</p>
+        </article>
+        <article class="overview-metric-card">
+          <span>Kredi Karti</span>
+          <strong>{{ currentOverview.dailyCreditCardPayment | number:'1.2-2' }} TL</strong>
+          <p>{{ overviewCreditRate() | number:'1.2-2' }}%</p>
+        </article>
+        <article class="overview-metric-card">
+          <span>Gift Kart</span>
+          <strong>{{ currentOverview.dailyGiftCardPayment | number:'1.2-2' }} TL</strong>
+          <p>{{ currentOverview.dailyFurparaCardCustomerCount }} Furpara musteri</p>
+        </article>
+        <article class="overview-metric-card">
+          <span>Masraf Pusulasi</span>
+          <strong>{{ currentOverview.dailyExpenseNoteTotal | number:'1.2-2' }} TL</strong>
+          <p>{{ currentOverview.dailyExpenseNoteCount }} adet</p>
+        </article>
+        <article class="overview-metric-card">
+          <span>Indirim Karti</span>
+          <strong>{{ currentOverview.dailyDiscountCardCustomerCount }}</strong>
+          <p>Musteri sayisi</p>
+        </article>
+        <article class="overview-metric-card">
+          <span>Vadeli Satis</span>
+          <strong>{{ currentOverview.dailyFuturesSalesTotal | number:'1.2-2' }} TL</strong>
+          <p>{{ currentOverview.dailyFuturesSalesCount }} fis</p>
+        </article>
+      </div>
+
+      <article class="state-card" *ngIf="overviewLoading()">
+        <h3>Ozet Yukleniyor</h3>
+        <p>Secilen tarih araligi icin sube bazli kasa ciro ozeti getiriliyor.</p>
+      </article>
+
+      <article class="state-card state-card-error" *ngIf="overviewError() as currentOverviewError">
+        <h3>Ozet Yuklenemedi</h3>
+        <p>{{ currentOverviewError }}</p>
+      </article>
+
+      <div class="overview-table-shell" *ngIf="!overviewLoading() && !overviewError() && branchOverviewRows().length">
+        <div class="overview-table-head">
+          <div class="results-copy">
+            <span class="section-kicker">Sube Cirolari</span>
+            <h3>{{ branchOverviewCount() }} sube listelendi</h3>
+          </div>
+        </div>
+
+        <div class="branch-table-wrap">
+          <table class="branch-table">
+            <thead>
+              <tr>
+                <th>Sube</th>
+                <th>Bolge</th>
+                <th class="align-right">Musteri</th>
+                <th>Son Fis</th>
+                <th class="align-right">Nakit</th>
+                <th class="align-right">Kredi</th>
+                <th class="align-right">Gift</th>
+                <th class="align-right">Toplam</th>
+                <th class="align-right">Ort. Sepet</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let branch of branchOverviewRows(); trackBy: trackByBranch">
+                <td>
+                  <strong>{{ branch.branchName }}</strong>
+                  <div class="table-meta">Sube No: {{ branch.branchNo }}</div>
+                </td>
+                <td>{{ branch.region || '-' }}</td>
+                <td class="align-right">{{ branch.customerCount }}</td>
+                <td>{{ branch.lastBillTime || '-' }}</td>
+                <td class="align-right">{{ branch.cashTotal | number:'1.2-2' }}</td>
+                <td class="align-right">{{ branch.creditTotal | number:'1.2-2' }}</td>
+                <td class="align-right">{{ branch.giftCardTotal | number:'1.2-2' }}</td>
+                <td class="align-right cell-strong">{{ branch.overallTotal | number:'1.2-2' }}</td>
+                <td class="align-right">{{ branch.averageBasketAmount | number:'1.2-2' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+
+      <article class="state-card empty-state" *ngIf="!overviewLoading() && !overviewError() && !branchOverviewRows().length">
+        <h3>Ozet Bulunamadi</h3>
+        <p>Secilen tarih araliginda sube bazli ciro ozeti bulunmuyor.</p>
+      </article>
+    </article>
+
+    <article class="surface-card results-panel">
+      <div class="results-head">
+        <div class="results-copy">
+          <span class="section-kicker">Sonuclar</span>
+          <h3>Vardiya ve kasiyer bazli ozet</h3>
+        </div>
+
+        <div class="results-inline-metrics">
+          <article class="inline-metric">
+            <span>Toplam Kayit</span>
+            <strong>{{ totalCount() }}</strong>
+          </article>
+          <article class="inline-metric">
+            <span>Kaynak Dagilimi</span>
+            <strong>{{ sourceDistributionLabel() }}</strong>
+          </article>
+          <article class="inline-metric">
+            <span>Son Yukleme</span>
+            <strong>{{ lastLoadedAt() ? formatDate(lastLoadedAt() || '') : 'Henuz yok' }}</strong>
+          </article>
+        </div>
+      </div>
+
+      <div class="summary-strip">
+        <article class="summary-item">
+          <span>Aktif Kaynak</span>
+          <strong>{{ selectedSourceLabel() }}</strong>
+        </article>
+        <article class="summary-item">
+          <span>Depo Baglami</span>
+          <strong>{{ currentWarehouseLabel() }}</strong>
+        </article>
+        <article class="summary-item">
+          <span>Toplam Satis</span>
+          <strong>{{ totalSalesAmount() | number:'1.2-2' }} TL</strong>
+        </article>
+        <article class="summary-item">
+          <span>Ortalama Net Tahsilat</span>
+          <strong>{{ averageNetCollection() | number:'1.2-2' }} TL</strong>
+        </article>
+      </div>
+
+      <article class="state-card state-card-error" *ngIf="errorMessage() as currentError">
+        <h3>{{ getErrorTitle() }}</h3>
+        <p>{{ currentError }}</p>
+      </article>
+
+      <article class="state-card" *ngIf="isLoading()">
+        <h3>{{ getLoadingTitle() }}</h3>
+        <p>{{ getLoadingMessage() }}</p>
+      </article>
+
+      <div class="table-shell" *ngIf="!isLoading() && rows().length">
+        <app-api-list-table
+          [rows]="rows()"
+          [columns]="tableColumns"
+          [filterPlaceholder]="getTableFilterPlaceholder()"
+          (rowAction)="openDetail($event)"
+        ></app-api-list-table>
+      </div>
+
+      <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
+        <h3>{{ getEmptyTitle() }}</h3>
+        <p>{{ getEmptyMessage() }}</p>
+      </article>
+    </article>
+  </section>
+</section>

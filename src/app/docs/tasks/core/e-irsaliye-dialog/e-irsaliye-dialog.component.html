@@ -1,0 +1,178 @@
+<section class="dialog-shell">
+  <header class="dialog-hero">
+    <div>
+      <p class="eyebrow">E-IRSALIYE AKSIYONU</p>
+      <h2>{{ headline() }}</h2>
+      <p class="subtitle">
+        {{ operationLabel() }} icin seri ve sira bazli gonderim yapilir. Mevcut evrak yeniden
+        olusturulmaz.
+      </p>
+    </div>
+
+    <button type="button" class="ghost-button" (click)="closeDialog()">Kapat</button>
+  </header>
+
+  <section class="summary-grid">
+    <article class="summary-card">
+      <span class="label">Seri / Sira</span>
+      <strong>{{ row.seri }} / {{ row.sira }}</strong>
+    </article>
+    <article class="summary-card">
+      <span class="label">Belge No</span>
+      <strong>{{ row.belgeNo || 'Bos' }}</strong>
+    </article>
+    <article class="summary-card">
+      <span class="label">Muhatap</span>
+      <strong>{{ row.muhatap || '-' }}</strong>
+    </article>
+    <article class="summary-card">
+      <span class="label">Durum</span>
+      <strong>{{ row.durumu || '-' }}</strong>
+    </article>
+  </section>
+
+  <article class="notice-card" *ngIf="hasMissingDocumentNo()">
+    <h3>Belge numarasi bos olabilir</h3>
+    <p>
+      Bu aksiyon belge numarasina degil, URL icindeki <code>seri</code> ve <code>sira</code>
+      degerlerine gore calisir. Bu nedenle buton aktif birakildi.
+    </p>
+  </article>
+
+  <section class="meta-grid">
+    <article class="meta-card">
+      <span class="meta-label">POST Endpoint</span>
+      <code>{{ endpointPath() }}</code>
+    </article>
+    <article class="meta-card">
+      <span class="meta-label">PDF Endpoint</span>
+      <code>{{ pdfEndpointPath() }}</code>
+    </article>
+    <article class="meta-card">
+      <span class="meta-label">Request Model</span>
+      <strong>SendEDespatchHttpRequest</strong>
+    </article>
+    <article class="meta-card">
+      <span class="meta-label">Response Model</span>
+      <strong>SendEDespatchResponse</strong>
+    </article>
+  </section>
+
+  <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+    <div class="form-head">
+      <div>
+        <h3>Tasima Bilgileri</h3>
+        <p>Dokumandaki request modeline gore plaka, sofor adi soyadi ve TCKN zorunludur.</p>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="secondary-button" (click)="closeDialog()">Vazgec</button>
+        <button type="submit" class="primary-button" [disabled]="submitting() || !!response()">
+          {{ submitting() ? 'Gonderiliyor...' : 'E-Irsaliyeye Donustur' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+    <div class="feedback feedback-error" *ngIf="pdfError()">{{ pdfError() }}</div>
+
+    <div class="form-grid">
+      <label class="field">
+        <span>Plaka</span>
+        <input type="text" formControlName="plaque" placeholder="16 ABC 123" />
+        <small
+          class="field-error"
+          *ngIf="controls.plaque.invalid && (controls.plaque.dirty || controls.plaque.touched)"
+        >
+          Plaka zorunludur.
+        </small>
+      </label>
+
+      <label class="field">
+        <span>Sofor Adi Soyadi</span>
+        <input type="text" formControlName="driverNameSurname" placeholder="Ad Soyad" />
+        <small
+          class="field-error"
+          *ngIf="
+            controls.driverNameSurname.invalid &&
+            (controls.driverNameSurname.dirty || controls.driverNameSurname.touched)
+          "
+        >
+          Sofor adi soyadi zorunludur.
+        </small>
+      </label>
+
+      <label class="field">
+        <span>Sofor TCKN</span>
+        <input
+          type="text"
+          inputmode="numeric"
+          maxlength="11"
+          formControlName="driverTckn"
+          placeholder="11111111111"
+        />
+        <small
+          class="field-error"
+          *ngIf="
+            controls.driverTckn.invalid &&
+            (controls.driverTckn.dirty || controls.driverTckn.touched)
+          "
+        >
+          Sofor TCKN 11 haneli olmali.
+        </small>
+      </label>
+    </div>
+
+    <section class="preview-card">
+      <div class="preview-head">
+        <h4>Request Preview</h4>
+        <span>application/json</span>
+      </div>
+      <pre><code>{{ getRequestPreview() }}</code></pre>
+    </section>
+  </form>
+
+  <section class="result-card" *ngIf="response() as result">
+    <div class="result-head">
+      <div>
+        <p class="eyebrow success">GONDERIM TAMAMLANDI</p>
+        <h3>{{ getDocumentTypeLabel(result.documentType) }}</h3>
+        <p class="subtitle">Uyumsoft servisine basarili gonderim yapildi.</p>
+      </div>
+
+      <div class="result-actions">
+        <button type="button" class="secondary-button" (click)="openPdf()" [disabled]="pdfLoading()">
+          {{ pdfLoading() ? 'PDF Hazirlaniyor...' : 'PDF Goster' }}
+        </button>
+        <button type="button" class="primary-button" (click)="closeDialog()">Tamam</button>
+      </div>
+    </div>
+
+    <div class="result-grid">
+      <article class="result-item">
+        <span class="meta-label">E-Irsaliye No</span>
+        <strong>{{ result.eDespatchDocumentNo }}</strong>
+      </article>
+      <article class="result-item">
+        <span class="meta-label">UUID</span>
+        <strong>{{ result.eDespatchUuid }}</strong>
+      </article>
+      <article class="result-item">
+        <span class="meta-label">Servis Dokuman No</span>
+        <strong>{{ result.serviceDocumentNumber }}</strong>
+      </article>
+      <article class="result-item">
+        <span class="meta-label">Servis Dokuman Id</span>
+        <strong>{{ result.serviceDocumentId }}</strong>
+      </article>
+      <article class="result-item">
+        <span class="meta-label">Gonderim Zamani</span>
+        <strong>{{ result.sentAt | date: 'dd.MM.yyyy HH:mm:ss' }}</strong>
+      </article>
+      <article class="result-item result-item-wide">
+        <span class="meta-label">Servis Endpointi</span>
+        <code>{{ result.endpointUrl }}</code>
+      </article>
+    </div>
+  </section>
+</section>

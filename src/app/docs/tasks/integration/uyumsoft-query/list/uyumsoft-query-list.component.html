@@ -1,0 +1,393 @@
+<section class="uyumsoft-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Entegrasyon Islemleri</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">{{ current.subtitle }}</p>
+
+      <div class="hero-utility-grid">
+        <article class="hero-note-card">
+          <span>Servis Turu</span>
+          <strong>{{ serviceLabel }}</strong>
+          <p>{{ mode === 'despatch' ? 'E-irsaliye query modulu' : 'E-fatura query modulu' }}</p>
+        </article>
+        <article class="hero-note-card" *ngIf="selectedOperation() as operation">
+          <span>Secili Operasyon</span>
+          <strong>{{ operation.operationName }}</strong>
+          <p>{{ operation.groupName || 'Group belirtilmemis' }}</p>
+        </article>
+      </div>
+
+      <div class="hero-actions">
+        <button type="button" class="ghost-button" (click)="refreshData()" [disabled]="overviewLoading() || operationsLoading()">
+          {{ overviewLoading() || operationsLoading() ? 'Servis verisi yenileniyor...' : 'Servis Verisini Yenile' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="applyCodeSample()">
+          Dokuman Ornegini Yukle
+        </button>
+        <button type="button" class="ghost-button" (click)="applySelectedOperationHint()" [disabled]="!selectedOperation()">
+          Request Hint Kullan
+        </button>
+      </div>
+
+      <div class="highlight-strip">
+        <span class="highlight-pill" *ngFor="let item of serviceHighlights()">{{ item }}</span>
+      </div>
+    </div>
+
+    <aside class="hero-side" *ngIf="overview() as model">
+      <article class="hero-stat">
+        <span>Servis Key</span>
+        <strong>{{ model.serviceKey || '-' }}</strong>
+      </article>
+      <article class="hero-stat">
+        <span>Kontrat</span>
+        <strong>{{ model.contractName || '-' }}</strong>
+      </article>
+      <article class="hero-stat">
+        <span>Operasyon</span>
+        <strong>{{ operationCatalog().length }}</strong>
+      </article>
+      <article class="hero-stat">
+        <span>Filtre Sonucu</span>
+        <strong>{{ filteredOperations().length }}</strong>
+      </article>
+      <article class="hero-stat hero-stat-wide">
+        <span>Endpoint</span>
+        <strong>{{ model.endpointUrl || '-' }}</strong>
+      </article>
+      <article class="hero-stat hero-stat-wide">
+        <span>WSDL</span>
+        <strong>{{ model.wsdlUrl || '-' }}</strong>
+      </article>
+    </aside>
+  </header>
+
+  <section class="metrics-grid">
+    <article class="metric-card" *ngFor="let item of serviceMetrics()">
+      <span>{{ item.label }}</span>
+      <strong>{{ item.value }}</strong>
+    </article>
+  </section>
+
+  <article
+    class="feedback-card"
+    *ngIf="feedback() as currentFeedback"
+    [class.is-success]="currentFeedback.tone === 'success'"
+    [class.is-error]="currentFeedback.tone === 'error'"
+    [class.is-info]="currentFeedback.tone === 'info'"
+  >
+    <h3>{{ currentFeedback.title }}</h3>
+    <p>{{ currentFeedback.message }}</p>
+  </article>
+
+  <section class="scenario-shell">
+    <div class="panel-head compact">
+      <div>
+        <h3>Hazir Senaryolar</h3>
+        <p>
+          {{ mode === 'despatch'
+            ? 'E-irsaliye tarafinda sik kullanilan PDF, envelope, tarih ve liste query akislari icin hizli baslangic kartlari.'
+            : 'E-fatura tarafinda sik kullanilan tarih, liste ve tekil belge query akislari icin hizli baslangic kartlari.' }}
+        </p>
+      </div>
+    </div>
+
+    <div class="preset-grid">
+      <article class="preset-card" *ngFor="let preset of quickPresets()">
+        <div class="preset-head">
+          <strong>{{ preset.title }}</strong>
+          <span class="mini-pill">{{ preset.operationName }}</span>
+        </div>
+        <p>{{ preset.description }}</p>
+        <div class="preset-tags">
+          <span class="preset-tag" *ngFor="let tag of preset.tags">{{ tag }}</span>
+        </div>
+        <button type="button" class="ghost-button" (click)="applyPreset(preset)">
+          Forma Yukle
+        </button>
+      </article>
+    </div>
+  </section>
+
+  <section class="workspace-grid">
+    <article class="panel catalog-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Operasyon Explorer</h3>
+          <p>Overview ve operations endpointlerinden gelen whitelist GET operasyonlarini tek listede birlestirir.</p>
+        </div>
+        <span class="state-pill">{{ filteredOperations().length }} operasyon</span>
+      </div>
+
+      <label class="field">
+        <span>Listeyi Filtrele</span>
+        <input type="text" [formControl]="operationFilter" placeholder="Operation, group veya SOAP action ara" />
+      </label>
+
+      <div class="operation-list" *ngIf="filteredOperations().length > 0; else emptyOperations">
+        <button
+          type="button"
+          class="operation-card"
+          *ngFor="let operation of filteredOperations(); trackBy: trackByOperation"
+          [class.is-selected]="selectedOperationName() === operation.operationName"
+          (click)="selectOperation(operation.operationName)"
+        >
+          <div class="operation-card-head">
+            <strong>{{ operation.operationName }}</strong>
+            <span class="mini-pill">{{ operation.groupName || 'Group yok' }}</span>
+          </div>
+          <p>{{ operation.requestHint || 'Bu operasyon icin requestHint bilgisi bulunmuyor.' }}</p>
+          <code>{{ operation.soapAction || '-' }}</code>
+        </button>
+      </div>
+
+      <ng-template #emptyOperations>
+        <div class="empty-state">
+          <h4>Operasyon listesi bos</h4>
+          <p>Servis whitelist donmuyorsa backend tarafindaki connected service konfigurasyonunu kontrol et.</p>
+        </div>
+      </ng-template>
+    </article>
+
+    <article class="panel request-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Istek Olusturucu</h3>
+          <p>Secili GET operasyonunu daha anlasilir adimlarla kur, parametreleri rehberli gir ve istersen hazir sablon kullan.</p>
+        </div>
+      </div>
+
+      <div class="selected-operation-shell" *ngIf="selectedOperation() as operation">
+        <article class="summary-card">
+          <span>Operasyon</span>
+          <strong>{{ operation.operationName }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>Group</span>
+          <strong>{{ operation.groupName || '-' }}</strong>
+        </article>
+        <article class="summary-card">
+          <span>SOAP Action</span>
+          <strong>{{ operation.soapAction || '-' }}</strong>
+        </article>
+      </div>
+
+      <section class="guide-shell" *ngIf="requestGuide() as guide">
+        <div class="guide-card guide-card-primary">
+          <span>Request Rehberi</span>
+          <strong>{{ guide.title }}</strong>
+          <p>{{ guide.description }}</p>
+        </div>
+
+        <div class="guide-summary-grid">
+          <article class="summary-card" *ngFor="let item of requestGuideSummary()">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </article>
+        </div>
+
+        <div class="guide-actions">
+          <button type="button" class="ghost-button" (click)="applyPayloadTemplate()">
+            Payload Sablonunu Yukle
+          </button>
+          <button type="button" class="ghost-button" (click)="applyAllParameterSuggestions()">
+            Ornek Parametreleri Ekle
+          </button>
+          <button type="button" class="ghost-button" (click)="clearPayloadXml()">
+            Payload Temizle
+          </button>
+        </div>
+
+        <div class="tip-list" *ngIf="guide.tips.length > 0">
+          <article class="tip-card" *ngFor="let tip of guide.tips">
+            <span>Ipuclari</span>
+            <p>{{ tip }}</p>
+          </article>
+        </div>
+
+        <div class="suggestion-shell" *ngIf="guide.parameterSuggestions.length > 0">
+          <div class="panel-head compact">
+            <div>
+              <h4>Onerilen Parametreler</h4>
+              <p>Asagidaki kartlar tek tikla name/value satiri ekler veya mevcut parametreyi gunceller.</p>
+            </div>
+          </div>
+
+          <div class="suggestion-grid">
+            <button
+              type="button"
+              class="suggestion-card"
+              *ngFor="let suggestion of guide.parameterSuggestions"
+              (click)="applyParameterSuggestion(suggestion)"
+            >
+              <strong>{{ suggestion.label }}</strong>
+              <span>{{ suggestion.name }} = {{ suggestion.example }}</span>
+              <p>{{ suggestion.description }}</p>
+            </button>
+          </div>
+        </div>
+      </section>
+
+      <form class="request-form" [formGroup]="requestForm">
+        <label class="field">
+          <span>Secili Operasyon</span>
+          <input type="text" formControlName="operationName" readonly />
+        </label>
+
+        <label class="field">
+          <span>{{ requestGuide().payloadLabel }}</span>
+          <small *ngIf="requestGuide().payloadTemplate.trim()">
+            Bu operasyon icin onerilen XML fragment sablonu var. "Payload Sablonunu Yukle" ile editore tasiyabilirsin.
+          </small>
+          <textarea
+            class="xml-editor"
+            formControlName="payloadXml"
+            placeholder="<query><PageIndex>1</PageIndex></query>"
+          ></textarea>
+        </label>
+
+        <div class="parameter-shell">
+          <div class="panel-head compact">
+            <div>
+              <h4>Scalar Parametreler</h4>
+              <p>Servis GET tarafinda kullanilacak name/value ciftlerini acikca burada olustur.</p>
+            </div>
+            <button type="button" class="ghost-button" (click)="addParameter()">
+              Parametre Ekle
+            </button>
+          </div>
+
+          <div class="parameter-list" *ngIf="parameterArray.controls.length > 0; else emptyParameters">
+            <div class="parameter-row" *ngFor="let parameter of parameterArray.controls; let index = index">
+              <label class="field">
+                <span>Parametre Adi</span>
+                <input type="text" [formControl]="parameter.controls.name" placeholder="despatchId" />
+              </label>
+              <label class="field">
+                <span>Ornek veya Gercek Deger</span>
+                <input type="text" [formControl]="parameter.controls.value" placeholder="3fd0e4f4-87a2-43f2-b5ca-f2a4fd778111" />
+              </label>
+              <button type="button" class="ghost-button remove-button" (click)="removeParameter(index)">
+                Sil
+              </button>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #emptyParameters>
+          <div class="empty-state compact-empty">
+            <p>Scalar parametre eklemek zorunlu degil; ama tekil belge ve formatli tarih query'lerinde genelde gerekir.</p>
+          </div>
+        </ng-template>
+
+        <div class="action-row">
+          <button type="button" class="primary-button" (click)="executeSelectedOperation()" [disabled]="executeLoading()">
+            {{ executeLoading() ? 'Operasyon calisiyor...' : 'Operasyonu Calistir' }}
+          </button>
+          <button type="button" class="secondary-button" (click)="clearParameters()">
+            Parametreleri Temizle
+          </button>
+        </div>
+      </form>
+
+      <article class="hint-card" *ngIf="selectedOperation()?.requestHint as requestHint">
+        <span>Request Hint</span>
+        <pre>{{ requestHint }}</pre>
+      </article>
+    </article>
+  </section>
+
+  <section class="panel response-panel">
+    <div class="panel-head">
+      <div>
+        <h3>Servis Yaniti</h3>
+        <p>Scalar sonuc, attribute haritasi, node agaci ve ham XML ayni yerde izlenir.</p>
+      </div>
+    </div>
+
+    <div class="empty-state" *ngIf="!operationResponse()">
+      <h4>Yanit henuz yok</h4>
+      <p>Listeledigin whitelist GET operasyonlarindan birini calistirdiginda response burada acilir.</p>
+    </div>
+
+    <ng-container *ngIf="operationResponse() as response">
+      <section class="response-summary-grid">
+        <article class="response-summary-card" *ngFor="let item of responseSummary()">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
+          <i class="status-pill" [class]="item.tone">{{ item.value }}</i>
+        </article>
+      </section>
+
+      <div class="response-meta">
+        <span>{{ response.serviceName || '-' }}</span>
+        <span>{{ response.operationName || '-' }}</span>
+        <span>{{ response.resultElementName || '-' }}</span>
+      </div>
+
+      <article class="message-card" *ngIf="response.message || response.scalarValue">
+        <div *ngIf="response.message">
+          <span>Mesaj</span>
+          <p>{{ response.message }}</p>
+        </div>
+        <div *ngIf="response.scalarValue">
+          <span>Scalar Value</span>
+          <p>{{ response.scalarValue }}</p>
+        </div>
+      </article>
+
+      <div class="attribute-grid" *ngIf="(response.resultAttributes | keyvalue).length > 0">
+        <article class="attribute-card" *ngFor="let attribute of response.resultAttributes | keyvalue">
+          <span>{{ attribute.key }}</span>
+          <strong>{{ attribute.value || '-' }}</strong>
+        </article>
+      </div>
+
+      <section class="node-section" *ngIf="response.nodes.length > 0">
+        <div class="panel-head compact">
+          <div>
+            <h4>Response Node Agaci</h4>
+            <p>Backend tarafinin parse ettigi XML node yapisi.</p>
+          </div>
+        </div>
+
+        <ng-template #nodeTree let-nodes>
+          <div class="node-tree">
+            <article class="node-card" *ngFor="let node of nodes; trackBy: trackByNode">
+              <div class="node-head">
+                <strong>{{ node.name || '-' }}</strong>
+                <span>{{ node.value || 'Deger yok' }}</span>
+              </div>
+
+              <div class="attribute-grid nested-attributes" *ngIf="hasNodeAttributes(node)">
+                <article class="attribute-card" *ngFor="let attribute of node.attributes | keyvalue">
+                  <span>{{ attribute.key }}</span>
+                  <strong>{{ attribute.value || '-' }}</strong>
+                </article>
+              </div>
+
+              <ng-container *ngIf="node.children.length > 0">
+                <ng-container *ngTemplateOutlet="nodeTree; context: { $implicit: node.children }"></ng-container>
+              </ng-container>
+            </article>
+          </div>
+        </ng-template>
+
+        <ng-container *ngTemplateOutlet="nodeTree; context: { $implicit: response.nodes }"></ng-container>
+      </section>
+
+      <section class="response-json-grid">
+        <details class="json-block">
+          <summary>Normalize JSON</summary>
+          <pre>{{ responseJson() }}</pre>
+        </details>
+
+        <details class="json-block">
+          <summary>Raw XML</summary>
+          <pre>{{ response.rawXml || '-' }}</pre>
+        </details>
+      </section>
+    </ng-container>
+  </section>
+</section>

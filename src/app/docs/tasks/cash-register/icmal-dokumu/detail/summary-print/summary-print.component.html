@@ -1,0 +1,230 @@
+<div class="container">
+  <h5>
+    Kasa Mali Bellek Kodu: {{ model().cashRegisterDetail?.cashRegisterNo || '-' }}
+    &nbsp;&nbsp;&nbsp; Icmal Tarihi: {{ formattedSummaryDate() }}
+  </h5>
+</div>
+
+<div class="container summary-print-sheet">
+  <table>
+    <tr>
+      <td colspan="2" class="headline-cell">
+        <strong>{{ model().warehouseNo }}</strong> / <strong>{{ model().warehouseName }}</strong>
+        Gunluk Kasa Hesabi
+      </td>
+      <td colspan="2" class="headline-cell">
+        Evrak Seri: <strong>{{ model().summary.documentSerie }}</strong> /
+        Evrak Sira: <strong>{{ model().summary.documentOrderNo }}</strong>
+      </td>
+    </tr>
+    <tr>
+      <td class="label-cell">Kasiyer</td>
+      <td class="value-cell">{{ model().cashierName }}</td>
+      <td class="label-cell">Duzenleyen</td>
+      <td class="value-cell">{{ model().managerName }}</td>
+    </tr>
+    <tr>
+      <td class="label-cell">Kasa No</td>
+      <td class="value-cell">{{ model().summary.cashNo }}</td>
+      <td class="label-cell">Z Rapor No</td>
+      <td class="value-cell">{{ model().summary.zReportNo }}</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th>Banknot</th>
+      <th>Deger</th>
+      <th>Adet</th>
+      <th>Toplam</th>
+    </tr>
+    <tr *ngFor="let banknote of model().banknoteMovements">
+      <td>{{ banknoteLabel(banknote.value) }}</td>
+      <td>{{ banknote.value | number:'1.2-2' }} TL</td>
+      <td>{{ banknote.quantity }}</td>
+      <td>{{ banknote.total | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="2">TOPLAM</td>
+      <td>{{ model().banknoteQuantity }} Adet</td>
+      <td>{{ model().banknoteTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th>Kredi Karti</th>
+      <th>Terminal No</th>
+      <th>Slip Sayisi</th>
+      <th>Tutar</th>
+    </tr>
+    <tr *ngFor="let creditCard of model().creditCards">
+      <td>{{ creditCard.typeName }}</td>
+      <td>{{ creditCard.terminalId || '-' }}</td>
+      <td>{{ creditCard.slipNumber }}</td>
+      <td>{{ creditCard.amount | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="2">TOPLAM</td>
+      <td>{{ model().creditCardsQuantity }} Adet</td>
+      <td>{{ model().creditCardsTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th>Tipi</th>
+      <th>Yemek Cekleri</th>
+      <th>Adet</th>
+      <th>Tutar</th>
+    </tr>
+    <tr *ngFor="let foodCheck of model().foodChecks">
+      <td>Yemek Ceki</td>
+      <td>{{ foodCheck.typeName }}</td>
+      <td>{{ foodCheck.slipNumber }}</td>
+      <td>{{ foodCheck.amount | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="2">TOPLAM</td>
+      <td>{{ model().foodChecksQuantity }} Adet</td>
+      <td>{{ model().foodChecksTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th colspan="3">Vadeli - Online Satislar</th>
+    </tr>
+    <tr>
+      <th>Online Magaza</th>
+      <th>Fis Sayisi</th>
+      <th>Tutar</th>
+    </tr>
+    <tr *ngFor="let onlineSale of model().onlineSales">
+      <td>{{ onlineSale.typeName }}</td>
+      <td>{{ onlineSale.slipNumber }}</td>
+      <td>{{ onlineSale.amount | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>TOPLAM</td>
+      <td>{{ model().onlineSalesQuantity }} Adet</td>
+      <td>{{ model().onlineSalesTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th>Gider Tipi</th>
+      <th>Gider Fisi Sayisi</th>
+      <th>Tutar</th>
+    </tr>
+    <tr *ngFor="let expense of model().expenseCompass">
+      <td>{{ expense.typeName }}</td>
+      <td>{{ expense.slipNumber }}</td>
+      <td>{{ expense.amount | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>TOPLAM</td>
+      <td>{{ model().expenseCompassQuantity }} Adet</td>
+      <td>{{ model().expenseCompassTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th>Tipi</th>
+      <th>Hediye Cekleri</th>
+      <th>Slip Sayisi</th>
+      <th>Tutar</th>
+    </tr>
+    <tr *ngFor="let giftCheck of model().giftCheckMovements">
+      <td>Hediye Ceki</td>
+      <td>{{ giftCheck.value | number:'1.2-2' }} TL</td>
+      <td>{{ giftCheck.quantity }}</td>
+      <td>{{ giftCheck.total | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="2">TOPLAM</td>
+      <td>{{ model().giftCheckQuantity }} Adet</td>
+      <td>{{ model().giftCheckTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th>Magaza Gider Fisi</th>
+      <th>Aciklama</th>
+      <th>Tutar</th>
+    </tr>
+    <tr *ngFor="let expense of model().storeExpenses">
+      <td>{{ expense.typeName }}</td>
+      <td>{{ expense.description || '-' }}</td>
+      <td>{{ expense.amount | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td colspan="2">TOPLAM</td>
+      <td>{{ model().storeExpensesTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <table>
+    <tr>
+      <th colspan="3">KASA DETAY DOKUM</th>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Nakit Toplami</td>
+      <td>{{ model().banknoteQuantity }} Adet</td>
+      <td>{{ model().banknoteTotal | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Kredi Karti Toplami</td>
+      <td>{{ model().creditCardsQuantity }} Adet</td>
+      <td>{{ model().creditCardsTotal | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Yemek Ceki Toplami</td>
+      <td>{{ model().foodChecksQuantity }} Adet</td>
+      <td>{{ model().foodChecksTotal | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Vadeli Satis Toplami</td>
+      <td>{{ model().onlineSalesQuantity }} Adet</td>
+      <td>{{ model().onlineSalesTotal | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Giderleri Toplami</td>
+      <td>{{ model().expenseCompassQuantity }} Adet</td>
+      <td>{{ model().expenseCompassTotal | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Genel Toplam</td>
+      <td colspan="2">{{ model().generalTotal | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Z Raporu Tutari</td>
+      <td colspan="2">{{ (model().zTotalValue ?? 0) | number:'1.2-2' }} TL</td>
+    </tr>
+    <tr class="total-row">
+      <td>Kasa Fark Tutari</td>
+      <td colspan="2">{{ model().differenceTotal | number:'1.2-2' }} TL</td>
+    </tr>
+  </table>
+
+  <div class="signature-row">
+    <div class="float-left signature-box">
+      <table>
+        <tr>
+          <th>Kasiyer<br />{{ model().cashierName }}</th>
+        </tr>
+      </table>
+    </div>
+
+    <div class="float-right signature-box">
+      <table>
+        <tr>
+          <th>Duzenleyen<br />{{ model().managerName }}</th>
+        </tr>
+      </table>
+    </div>
+  </div>
+</div>

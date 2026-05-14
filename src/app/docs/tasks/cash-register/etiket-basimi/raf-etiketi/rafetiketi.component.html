@@ -1,0 +1,56 @@
+<div *ngFor="let page of halfPages; let pageIndex = index" class="print-half-page">
+  <div *ngFor="let product of page; let i = index" class="rack-label">
+    <div class="lbl-title">{{ product.productName }}</div>
+
+    <div class="lbl-mid">
+      <div
+        class="lbl-barcode"
+        [class.has-koli]="!!product.packageFactor"
+        [attr.data-koli]="product.packageFactor ? ('Koli Adedi: ' + product.packageFactor) : null"
+      >
+        <svg
+          class="barcode-svg"
+          [attr.id]="'barcode-' + (pageIndex * 12 + i)"
+          [attr.data-code]="product.barcode"
+          width="220"
+          height="70"
+        ></svg>
+      </div>
+
+      <div class="lbl-price">
+        <span class="price-val">{{ product.price.toFixed(2) }}</span>
+        <span class="price-cur">TL</span>
+      </div>
+    </div>
+
+    <div class="lbl-info">
+      <span>Fiyat Degisiklik: {{ product.priceChangeDate || '-' }}</span>
+      <span>Uretim: {{ product.origin || '-' }}</span>
+    </div>
+
+    <div class="lbl-bottom">
+      <div class="lbl-col">
+        KDV Dahil Birim:<br />
+        <span class="lbl-strong">
+          {{ product.unitPriceFactor.toFixed(2) }}
+        </span>
+      </div>
+
+      <div class="lbl-col">
+        Basim Tarihi:<br />
+        <span class="lbl-strong">
+          {{ etiketCikarmaTarihi | date:'dd.MM.yyyy HH:mm' }}
+        </span>
+      </div>
+
+      <div class="lbl-badge">
+        <img
+          class="badge-img"
+          *ngIf="isDomestic(product.origin)"
+          src="/assets/YerliUretim.jpg"
+          alt="Yerli Uretim"
+        />
+      </div>
+    </div>
+  </div>
+</div>

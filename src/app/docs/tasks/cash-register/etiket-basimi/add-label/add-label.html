@@ -1,0 +1,41 @@
+<section class="dialog-shell">
+  <header class="dialog-head">
+    <div>
+      <p class="eyebrow">Manuel Ekleme</p>
+      <h3>Etiket Icin Urun Ara</h3>
+      <p>Stok kodu, barkod veya urun adina gore arama yapip sonucu listeye ekleyin.</p>
+    </div>
+    <button type="button" class="ghost-button" (click)="closeDialog()">Kapat</button>
+  </header>
+
+  <label class="field">
+    <span>Arama</span>
+    <input
+      [(ngModel)]="searchText"
+      (ngModelChange)="onSearchChange()"
+      placeholder="En az 3 karakter girin"
+      autocomplete="off"
+    />
+  </label>
+
+  <p class="feedback" *ngIf="feedbackMessage">{{ feedbackMessage }}</p>
+  <p class="feedback" *ngIf="isSearching">Araniyor...</p>
+
+  <div class="results" *ngIf="findProducts.length">
+    <button
+      type="button"
+      class="result-card"
+      *ngFor="let item of findProducts"
+      (click)="selectProduct(item)"
+    >
+      <strong>{{ item.productName }}</strong>
+      <span>{{ item.productCode }}</span>
+      <span>{{ item.barcode || 'Barkod yok' }}</span>
+      <span>{{ item.price | number:'1.2-2' }} TL</span>
+    </button>
+  </div>
+
+  <footer class="dialog-foot">
+    <button type="button" class="secondary-button" (click)="closeDialog()">Vazgec</button>
+  </footer>
+</section>

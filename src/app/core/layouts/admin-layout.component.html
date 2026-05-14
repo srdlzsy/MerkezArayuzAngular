@@ -1,0 +1,111 @@
+<div class="admin-layout">
+  <aside class="app-sidebar" [class.app-sidebar-open]="isSidebarOpen()">
+    <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
+  </aside>
+
+  <button
+    type="button"
+    class="sidebar-backdrop"
+    *ngIf="isSidebarOpen()"
+    (click)="closeSidebar()"
+    aria-label="Menuyu kapat"
+  ></button>
+
+  <main class="main-content">
+    <header class="topbar">
+      <div class="topbar-leading">
+        <button type="button" class="menu-trigger" (click)="toggleSidebar()" aria-label="Menuyu ac">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <a class="home-link" routerLink="/dashboard" aria-label="Anasayfa">
+          <img src="assets/furpa-600.png" alt="Furpa" />
+        </a>
+        <strong class="page-title">{{ pageTitle() }}</strong>
+      </div>
+
+      <div class="topbar-user">
+        <span class="topbar-divider"></span>
+        <span class="topbar-branch">{{ branchLabel() }}</span>
+        <button type="button" class="logout-button" (click)="logout()">Cikis</button>
+      </div>
+    </header>
+
+    <header class="topbar-mobile">
+      <div class="topbar-mobile-main">
+        <button type="button" class="menu-trigger mobile-trigger" (click)="toggleSidebar()" aria-label="Menuyu ac">
+          <span></span>
+          <span></span>
+          <span></span>
+        </button>
+        <a class="home-link mobile-home-link" routerLink="/dashboard" aria-label="Anasayfa">
+          <img src="assets/furpa-600.png" alt="Furpa" />
+        </a>
+      </div>
+
+      <div class="topbar-mobile-meta">
+        <strong class="page-title mobile-page-title">{{ pageTitle() }}</strong>
+
+        <div class="mobile-user">
+          <span class="topbar-branch mobile-branch">{{ branchLabel() }}</span>
+          <button type="button" class="logout-button mobile-logout" (click)="logout()">Cikis</button>
+        </div>
+      </div>
+    </header>
+
+    <section class="content-wrapper">
+      <router-outlet></router-outlet>
+    </section>
+  </main>
+</div>
+
+<ng-template #sidebarContent>
+  <div class="sidebar-header">
+    <button
+      type="button"
+      class="sidebar-close"
+      (click)="closeSidebar()"
+      aria-label="Menuyu kapat"
+    >
+      x
+    </button>
+    <h2>FURPA ONLINE<br />SISTEM</h2>
+  </div>
+
+  <div class="branch-card">
+    <span>{{ branchLabel() }}</span>
+  </div>
+
+  <div class="menu-label">MENU</div>
+
+  <nav class="sidebar-nav">
+    <section class="menu-group" *ngFor="let group of menuGroups()">
+      <button
+        type="button"
+        class="menu-group-toggle"
+        (click)="toggleSection(group.id)"
+        [attr.aria-expanded]="isSectionOpen(group.id)"
+      >
+        <span class="group-label">
+          <i [class]="getGroupIcon(group)"></i>
+          <span>{{ group.label }}</span>
+        </span>
+        <span class="chevron">{{ isSectionOpen(group.id) ? '-' : '+' }}</span>
+      </button>
+
+      <div class="menu-tree" *ngIf="isSectionOpen(group.id)">
+        <a
+          *ngFor="let item of group.children"
+          class="menu-link"
+          [routerLink]="item.route"
+          routerLinkActive="menu-link-active"
+          [routerLinkActiveOptions]="{ exact: true }"
+          (click)="handleLeafNavigate()"
+        >
+          {{ item.label }}
+        </a>
+      </div>
+    </section>
+  </nav>
+</ng-template>

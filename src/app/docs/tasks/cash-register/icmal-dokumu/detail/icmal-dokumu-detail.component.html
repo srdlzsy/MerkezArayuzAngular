@@ -1,0 +1,334 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header icmal-print-hidden">
+    <div class="dialog-heading">
+      <p class="eyebrow">Detay</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">Icmal satirinin tum odeme ve kasa detaylari bu ekranda toplanir.</p>
+    </div>
+
+    <div class="dialog-actions">
+      <button type="button" class="print-button" [disabled]="!printModel()" (click)="printSummary()">
+        Yazdir
+      </button>
+      <button type="button" class="close-button" (click)="close()">Kapat</button>
+    </div>
+  </header>
+
+  <div class="dialog-body" *ngIf="summary as currentSummary; else missingSummary">
+    <article
+      class="state-card feedback-card icmal-print-hidden"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <article class="state-card icmal-print-hidden" *ngIf="isLoading()">
+      <h3>Detaylar getiriliyor</h3>
+      <p>Odeme dagilimlari, Z raporu ve kasa bilgileri yukleniyor.</p>
+    </article>
+
+    <section class="summary-shell icmal-print-hidden">
+      <article class="summary-card summary-card-primary">
+        <div class="summary-copy">
+          <p class="summary-eyebrow">Icmal Kaydi</p>
+          <h3>{{ warehouseNo() }} / {{ warehouseName() }}</h3>
+          <p>{{ formatSummaryDate(currentSummary.summaryDate) }}</p>
+        </div>
+
+        <div class="summary-badges">
+          <span class="summary-badge">Evrak Seri: {{ currentSummary.documentSerie }}</span>
+          <span class="summary-badge">Evrak Sira: {{ currentSummary.documentOrderNo }}</span>
+        </div>
+      </article>
+
+      <article class="summary-card">
+        <span class="metric-label">Kasiyer</span>
+        <strong class="metric-value">{{ cashierName() }}</strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="metric-label">Duzenleyen</span>
+        <strong class="metric-value">{{ managerName() }}</strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="metric-label">Kasa No</span>
+        <strong class="metric-value">{{ currentSummary.cashNo }}</strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="metric-label">Z Rapor No</span>
+        <strong class="metric-value">{{ currentSummary.zReportNo }}</strong>
+      </article>
+
+      <article class="summary-card">
+        <span class="metric-label">Kasa Cihazi</span>
+        <strong class="metric-value">{{ cashRegisterDetail()?.cashRegisterNo || '-' }}</strong>
+      </article>
+    </section>
+
+    <section class="totals-grid icmal-print-hidden">
+      <article class="total-card total-card-primary">
+        <span>Kasa Genel Toplam</span>
+        <strong>{{ generalTotal() | number:'1.2-2' }} TL</strong>
+      </article>
+
+      <article class="total-card total-card-info">
+        <span>Z Raporu Tutari</span>
+        <strong>{{ (zTotalValue() ?? 0) | number:'1.2-2' }} TL</strong>
+      </article>
+
+      <article class="total-card total-card-warning">
+        <span>Kasa Fark Tutari</span>
+        <strong>{{ differenceTotal() | number:'1.2-2' }} TL</strong>
+      </article>
+
+      <article class="total-card">
+        <span>Hediye Ceki</span>
+        <strong>{{ giftCheckTotal() | number:'1.2-2' }} TL</strong>
+      </article>
+    </section>
+
+    <section class="detail-grid icmal-print-hidden">
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Nakit Hareketleri</h3>
+          <span>{{ banknoteQuantity() }} Adet</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Deger</th>
+                <th>Adet</th>
+                <th>Toplam</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of banknoteMovements()">
+                <td>{{ item.value | number:'1.2-2' }} TL</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.total | number:'1.2-2' }} TL</td>
+              </tr>
+              <tr *ngIf="!banknoteMovements().length">
+                <td colspan="3" class="empty-row">Kayit yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Kredi Kartlari</h3>
+          <span>{{ creditCardsQuantity() }} Slip</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Terminal</th>
+                <th>Slip</th>
+                <th>Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of creditCards()">
+                <td>{{ item.typeName }}</td>
+                <td>{{ item.terminalId || '-' }}</td>
+                <td>{{ item.slipNumber }}</td>
+                <td>{{ item.amount | number:'1.2-2' }} TL</td>
+              </tr>
+              <tr *ngIf="!creditCards().length">
+                <td colspan="4" class="empty-row">Kayit yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Yemek Cekleri</h3>
+          <span>{{ foodChecksQuantity() }} Adet</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Slip</th>
+                <th>Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of foodChecks()">
+                <td>{{ item.typeName }}</td>
+                <td>{{ item.slipNumber }}</td>
+                <td>{{ item.amount | number:'1.2-2' }} TL</td>
+              </tr>
+              <tr *ngIf="!foodChecks().length">
+                <td colspan="3" class="empty-row">Kayit yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Hediye Cekleri</h3>
+          <span>{{ giftCheckQuantity() }} Adet</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Deger</th>
+                <th>Adet</th>
+                <th>Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of giftCheckMovements()">
+                <td>{{ item.value | number:'1.2-2' }} TL</td>
+                <td>{{ item.quantity }}</td>
+                <td>{{ item.total | number:'1.2-2' }} TL</td>
+              </tr>
+              <tr *ngIf="!giftCheckMovements().length">
+                <td colspan="3" class="empty-row">Kayit yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Online Satislar</h3>
+          <span>{{ onlineSalesQuantity() }} Fis</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Fis</th>
+                <th>Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of onlineSales()">
+                <td>{{ item.typeName }}</td>
+                <td>{{ item.slipNumber }}</td>
+                <td>{{ item.amount | number:'1.2-2' }} TL</td>
+              </tr>
+              <tr *ngIf="!onlineSales().length">
+                <td colspan="3" class="empty-row">Kayit yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Gider Pusulalari</h3>
+          <span>{{ expenseCompassQuantity() }} Fis</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Fis</th>
+                <th>Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of expenseCompass()">
+                <td>{{ item.typeName }}</td>
+                <td>{{ item.slipNumber }}</td>
+                <td>{{ item.amount | number:'1.2-2' }} TL</td>
+              </tr>
+              <tr *ngIf="!expenseCompass().length">
+                <td colspan="3" class="empty-row">Kayit yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Magaza Giderleri</h3>
+          <span>{{ storeExpenses().length }} Kalem</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Aciklama</th>
+                <th>Tutar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of storeExpenses()">
+                <td>{{ item.typeName }}</td>
+                <td>{{ item.description || '-' }}</td>
+                <td>{{ item.amount | number:'1.2-2' }} TL</td>
+              </tr>
+              <tr *ngIf="!storeExpenses().length">
+                <td colspan="3" class="empty-row">Kayit yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="detail-card">
+        <div class="detail-card-head">
+          <h3>Kasa Bilgisi</h3>
+          <span>{{ cashRegisterDetail()?.cashNo || currentSummary.cashNo }}</span>
+        </div>
+        <div class="register-grid">
+          <article class="register-item">
+            <span>Kasa Mali Bellek</span>
+            <strong>{{ cashRegisterDetail()?.cashRegisterNo || '-' }}</strong>
+          </article>
+          <article class="register-item">
+            <span>Banka</span>
+            <strong>{{ cashRegisterDetail()?.bank || '-' }}</strong>
+          </article>
+          <article class="register-item">
+            <span>Terminal</span>
+            <strong>{{ cashRegisterDetail()?.terminalId || '-' }}</strong>
+          </article>
+          <article class="register-item">
+            <span>Merchant</span>
+            <strong>{{ cashRegisterDetail()?.merchantNo || '-' }}</strong>
+          </article>
+        </div>
+      </article>
+    </section>
+
+    <section id="print_section" class="icmal-print-root" aria-hidden="true">
+      <app-summary-print *ngIf="printModel() as model" [model]="model"></app-summary-print>
+    </section>
+  </div>
+</section>
+
+<ng-template #missingSummary>
+  <section class="dialog-page">
+    <div class="dialog-body">
+      <article class="state-card state-card-error">
+        <h3>Kayit secilemedi</h3>
+        <p>Icmal detayini acmak icin listeden gecerli bir satir secilmesi gerekiyor.</p>
+      </article>
+    </div>
+  </section>
+</ng-template>

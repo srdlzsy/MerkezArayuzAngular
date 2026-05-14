@@ -1,0 +1,2329 @@
+import { CommonModule } from '@angular/common';
+import {
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal
+} from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import {
+  FormControl,
+  FormGroup,
+  ReactiveFormsModule,
+  Validators
+} from '@angular/forms';
+import { finalize, switchMap, takeWhile, timer } from 'rxjs';
+import type {
+  IAxataInboundAtfCompanyReceivingBatchRequestApiDto,
+  IAxataInboundAtfCompanyReceivingRequestApiDto,
+  IAxataManualIncomingCompanyReceivingBatchRequestApiDto,
+  IAxataManualIncomingCompanyReceivingRequestApiDto,
+  IAxataManualIncomingInventoryCountBatchRequestApiDto,
+  IAxataManualIncomingInventoryCountRequestApiDto,
+  IAxataOutboundDeliveryBatchRequestApiDto,
+  IAxataOutboundDeliveryRequestApiDto,
+  IAxataExecutionMode,
+  IAxataSynchronizationFetchProfileApiDto,
+  IAxataSynchronizationJobApiDto,
+  IAxataSynchronizationJobArtifactApiDto,
+  IAxataSynchronizationManualDocumentBatchRequestApiDto,
+  IAxataSynchronizationManualDocumentCandidateItemApiDto,
+  IAxataSynchronizationManualDocumentItemApiDto,
+  IAxataSynchronizationProbeApiDto,
+  IAxataSynchronizationPreviewItemApiDto,
+  IAxataSynchronizationTaskApiDto,
+  IFurpaAcceptWarehouseReceivingRequestApiDto
+} from '@interfaces';
+
+import {
+  AxataInboundAtfCompanyReceivingBatchResponseDto,
+  AxataInboundAtfCompanyReceivingResponseDto,
+  AxataManualIncomingCompanyReceivingBatchResponseDto,
+  AxataManualIncomingCompanyReceivingResponseDto,
+  AxataManualIncomingInventoryCountBatchResponseDto,
+  AxataManualIncomingInventoryCountResponseDto,
+  AxataManualOutboundDeliveryBatchResponseDto,
+  AxataManualIncomingWarehouseReceivingAcceptResponseDto,
+  AxataManualIncomingWarehouseReceivingBatchResponseDto,
+  AxataManualIncomingWarehouseReceivingDetailDto,
+  AxataManualIncomingWarehouseReceivingListItemDto,
+  AxataOutboundDeliveryResponseDto,
+  AxataSynchronizationFetchProfilesOverviewDto,
+  AxataSynchronizationHealthDto,
+  AxataSynchronizationJobDetailDto,
+  AxataSynchronizationJobDto,
+  AxataSynchronizationManualDispatchBatchDto,
+  AxataSynchronizationManualDispatchDto,
+  AxataSynchronizationManualDocumentBatchDto,
+  AxataSynchronizationManualDocumentCandidatesDto,
+  AxataSynchronizationManualDocumentDto,
+  AxataSynchronizationOverviewDto,
+  AxataSynchronizationTaskPreviewDto,
+  EntegrasyonIslemleriService,
+  isAxataJobTerminalStatus
+} from '../../../../../core/api/module-services/entegrasyon-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { DOCS_PAGES } from '../../../../config/docs-pages.config';
+import { DocsContentPage } from '../../../../models/docs.models';
+
+type FeedbackTone = 'success' | 'error' | 'info';
+
+interface PageFeedback {
+  tone: FeedbackTone;
+  title: string;
+  message: string;
+}
+
+interface IncomingWarehouseLineDraft {
+  movementGuid: string;
+  stockCode: string;
+  stockName: string;
+  shippedQuantity: number;
+  receivedQuantity: number;
+}
+
+interface IncomingWarehouseBatchQueueItem {
+  reference: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  allowDiscrepancy: boolean;
+  lines: IFurpaAcceptWarehouseReceivingRequestApiDto['lines'];
+}
+
+const DEFAULT_TASK_CODE = 'product-master-sync';
+const DEFAULT_EXECUTION_MODE: IAxataExecutionMode = 'DryRun';
+const DOCUMENT_TASK_CODES = new Set([
+  'issued-warehouse-order-sync',
+  'company-receiving-sync',
+  'inventory-count-sync'
+]);
+
+@Component({
+  selector: 'app-axata-senkronizasyonu-list',
+  standalone: true,
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: './axata-senkronizasyonu-list.component.html',
+  styleUrl: './axata-senkronizasyonu-list.component.scss'
+})
+export class AxataSenkronizasyonuListComponent {
+  protected readonly page: DocsContentPage = DOCS_PAGES['axata-senkronizasyonu'];
+  protected readonly executionModes = ['DryRun', 'Outbox'] as const;
+  protected readonly overview = signal<AxataSynchronizationOverviewDto | null>(null);
+  protected readonly health = signal<AxataSynchronizationHealthDto | null>(null);
+  protected readonly fetchProfiles = signal<AxataSynchronizationFetchProfilesOverviewDto | null>(null);
+  protected readonly preview = signal<AxataSynchronizationTaskPreviewDto | null>(null);
+  protected readonly activeJob = signal<AxataSynchronizationJobDetailDto | null>(null);
+  protected readonly manualCandidates =
+    signal<AxataSynchronizationManualDocumentCandidatesDto | null>(null);
+  protected readonly manualDocumentResult =
+    signal<AxataSynchronizationManualDocumentDto | null>(null);
+  protected readonly manualDispatchResult =
+    signal<AxataSynchronizationManualDispatchDto | null>(null);
+  protected readonly manualDispatchBatchResult =
+    signal<AxataSynchronizationManualDispatchBatchDto | null>(null);
+  protected readonly feedback = signal<PageFeedback | null>(null);
+  protected readonly overviewLoading = signal(false);
+  protected readonly healthLoading = signal(false);
+  protected readonly fetchProfilesLoading = signal(false);
+  protected readonly previewLoading = signal(false);
+  protected readonly executeLoading = signal(false);
+  protected readonly manualLoading = signal(false);
+  protected readonly dispatchLoading = signal(false);
+  protected readonly candidateLoading = signal(false);
+  protected readonly batchLoading = signal(false);
+  protected readonly incomingCompanyLoading = signal(false);
+  protected readonly incomingInventoryLoading = signal(false);
+  protected readonly incomingWarehouseLoading = signal(false);
+  protected readonly incomingWarehouseDetailLoading = signal(false);
+  protected readonly incomingWarehouseAcceptLoading = signal(false);
+  protected readonly axataOutboundLoading = signal(false);
+  protected readonly axataInboundAtfLoading = signal(false);
+  protected readonly genericJobLoading = signal(false);
+
+  protected readonly form = new FormGroup({
+    taskCode: new FormControl<string>(DEFAULT_TASK_CODE, {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    warehouseNo: new FormControl<number | null>(null),
+    take: new FormControl<number>(10, {
+      nonNullable: true,
+      validators: [Validators.min(1), Validators.max(100)]
+    }),
+    executionMode: new FormControl<IAxataExecutionMode>(DEFAULT_EXECUTION_MODE, {
+      nonNullable: true
+    }),
+    candidateStartDate: new FormControl<string>(this.getRelativeDate(6), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    candidateEndDate: new FormControl<string>(this.getToday(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    candidateTake: new FormControl<number>(25, {
+      nonNullable: true,
+      validators: [Validators.min(1), Validators.max(100)]
+    }),
+    manualDocumentSerie: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    manualDocumentOrderNo: new FormControl<number | null>(null),
+    manualDocumentNo: new FormControl<number | null>(null),
+    manualDocumentDate: new FormControl<string>(this.getToday(), {
+      nonNullable: true
+    })
+  });
+  protected readonly batchForm = new FormGroup({
+    continueOnError: new FormControl<boolean>(true, {
+      nonNullable: true
+    })
+  });
+  protected readonly incomingJsonForm = new FormGroup({
+    companyReceivingJson: new FormControl<string>(this.getManualIncomingCompanyReceivingTemplate(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    companyReceivingBatchJson: new FormControl<string>(
+      this.getManualIncomingCompanyReceivingBatchTemplate(),
+      {
+        nonNullable: true,
+        validators: [Validators.required]
+      }
+    ),
+    inventoryCountJson: new FormControl<string>(this.getManualIncomingInventoryCountTemplate(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    inventoryCountBatchJson: new FormControl<string>(
+      this.getManualIncomingInventoryCountBatchTemplate(),
+      {
+        nonNullable: true,
+        validators: [Validators.required]
+      }
+    )
+  });
+  protected readonly axataBridgeForm = new FormGroup({
+    outboundDeliveryJson: new FormControl<string>(this.getAxataOutboundDeliveryTemplate(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    outboundDeliveryBatchJson: new FormControl<string>(
+      this.getAxataOutboundDeliveryBatchTemplate(),
+      {
+        nonNullable: true,
+        validators: [Validators.required]
+      }
+    ),
+    inboundAtfJson: new FormControl<string>(this.getAxataInboundAtfCompanyReceivingTemplate(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    inboundAtfBatchJson: new FormControl<string>(
+      this.getAxataInboundAtfCompanyReceivingBatchTemplate(),
+      {
+        nonNullable: true,
+        validators: [Validators.required]
+      }
+    )
+  });
+  protected readonly incomingWarehouseForm = new FormGroup({
+    warehouseNo: new FormControl<number | null>(null),
+    startDate: new FormControl<string>(this.getRelativeDate(6), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    endDate: new FormControl<string>(this.getToday(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    detailSerie: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    detailOrderNo: new FormControl<number | null>(null),
+    allowDiscrepancy: new FormControl<boolean>(false, {
+      nonNullable: true
+    }),
+    continueOnError: new FormControl<boolean>(true, {
+      nonNullable: true
+    })
+  });
+
+  private readonly destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
+  private readonly entegrasyonIslemleriService = inject(EntegrasyonIslemleriService);
+  protected readonly selectedTaskCode = signal(this.form.controls.taskCode.value);
+  protected readonly selectedBatchDocuments = signal<IAxataSynchronizationManualDocumentItemApiDto[]>([]);
+  protected readonly batchResult = signal<AxataSynchronizationManualDocumentBatchDto | null>(null);
+  protected readonly incomingCompanyReceivingResult =
+    signal<AxataManualIncomingCompanyReceivingResponseDto | null>(null);
+  protected readonly incomingCompanyReceivingBatchResult =
+    signal<AxataManualIncomingCompanyReceivingBatchResponseDto | null>(null);
+  protected readonly incomingInventoryCountResult =
+    signal<AxataManualIncomingInventoryCountResponseDto | null>(null);
+  protected readonly incomingInventoryCountBatchResult =
+    signal<AxataManualIncomingInventoryCountBatchResponseDto | null>(null);
+  protected readonly axataOutboundResult =
+    signal<AxataOutboundDeliveryResponseDto | null>(null);
+  protected readonly axataOutboundBatchResult =
+    signal<AxataManualOutboundDeliveryBatchResponseDto | null>(null);
+  protected readonly axataInboundAtfResult =
+    signal<AxataInboundAtfCompanyReceivingResponseDto | null>(null);
+  protected readonly axataInboundAtfBatchResult =
+    signal<AxataInboundAtfCompanyReceivingBatchResponseDto | null>(null);
+  protected readonly incomingWarehouseReceivings =
+    signal<AxataManualIncomingWarehouseReceivingListItemDto[]>([]);
+  protected readonly incomingWarehouseReceivingDetail =
+    signal<AxataManualIncomingWarehouseReceivingDetailDto | null>(null);
+  protected readonly incomingWarehouseLineDrafts = signal<IncomingWarehouseLineDraft[]>([]);
+  protected readonly incomingWarehouseAcceptResult =
+    signal<AxataManualIncomingWarehouseReceivingAcceptResponseDto | null>(null);
+  protected readonly incomingWarehouseBatchQueue = signal<IncomingWarehouseBatchQueueItem[]>([]);
+  protected readonly incomingWarehouseBatchResult =
+    signal<AxataManualIncomingWarehouseReceivingBatchResponseDto | null>(null);
+
+  protected readonly currentWarehouseNo = computed(
+    () => this.authService.currentUser()?.depoNo ?? null
+  );
+  protected readonly tasks = computed(() => this.overview()?.tasks ?? []);
+  protected readonly selectedTask = computed(
+    () =>
+      this.tasks().find(
+        (task: IAxataSynchronizationTaskApiDto) => task.code === this.selectedTaskCode()
+      ) ?? null
+  );
+  protected readonly selectedTaskDescription = computed(
+    () => this.selectedTask()?.description || 'Task secildiginde preview ve execute akislarini buradan yonetebilirsin.'
+  );
+  protected readonly recentJobs = computed(() => this.overview()?.recentJobs ?? []);
+  protected readonly requiresWarehouseNo = computed(() => {
+    const selectedTask = this.selectedTask();
+
+    if (selectedTask) {
+      return selectedTask.requiresWarehouseNo;
+    }
+
+    return DOCUMENT_TASK_CODES.has(this.selectedTaskCode());
+  });
+  protected readonly supportsManualDocuments = computed(() => {
+    const selectedTask = this.selectedTask();
+
+    if (typeof selectedTask?.supportsManualDocuments === 'boolean') {
+      return selectedTask.supportsManualDocuments;
+    }
+
+    return DOCUMENT_TASK_CODES.has(this.selectedTaskCode());
+  });
+  protected readonly supportsLiveDispatch = computed(
+    () => this.selectedTask()?.supportsLiveDispatch ?? false
+  );
+  protected readonly selectedTaskLiveOperationName = computed(
+    () => this.selectedTask()?.liveOperationName?.trim() || null
+  );
+  protected readonly isDocumentTask = computed(() => this.supportsManualDocuments());
+  protected readonly isInventoryCountTask = computed(
+    () => this.selectedTaskCode() === 'inventory-count-sync'
+  );
+  protected readonly isBusy = computed(
+    () =>
+      this.overviewLoading() ||
+      this.healthLoading() ||
+      this.fetchProfilesLoading() ||
+      this.previewLoading() ||
+      this.executeLoading() ||
+      this.manualLoading() ||
+      this.dispatchLoading() ||
+      this.candidateLoading() ||
+      this.batchLoading() ||
+      this.incomingCompanyLoading() ||
+      this.incomingInventoryLoading() ||
+      this.incomingWarehouseLoading() ||
+      this.incomingWarehouseDetailLoading() ||
+      this.incomingWarehouseAcceptLoading() ||
+      this.axataOutboundLoading() ||
+      this.axataInboundAtfLoading() ||
+      this.genericJobLoading()
+  );
+  protected readonly selectedBatchCount = computed(() => this.selectedBatchDocuments().length);
+  protected readonly enabledTaskCount = computed(
+    () => this.tasks().filter((task: IAxataSynchronizationTaskApiDto) => task.enabled).length
+  );
+  protected readonly manualTaskCount = computed(
+    () =>
+      this.tasks().filter(
+        (task: IAxataSynchronizationTaskApiDto) => task.supportsManualDocuments
+      ).length
+  );
+  protected readonly liveDispatchTaskCount = computed(
+    () =>
+      this.tasks().filter(
+        (task: IAxataSynchronizationTaskApiDto) => task.supportsLiveDispatch
+      ).length
+  );
+  protected readonly selectedTaskCapabilities = computed(() => {
+    const selectedTask = this.selectedTask();
+
+    if (!selectedTask) {
+      return [];
+    }
+
+    const capabilities = [
+      selectedTask.requiresWarehouseNo ? 'Warehouse zorunlu' : 'Depodan bagimsiz',
+      selectedTask.supportsManualDocuments ? 'Manual documents var' : 'Manual documents yok',
+      selectedTask.supportsLiveDispatch ? 'Canli dispatch var' : 'Canli dispatch yok',
+      selectedTask.scheduleEnabled
+        ? `Scheduler ${selectedTask.intervalMinutes} dk`
+        : 'Scheduler pasif'
+    ];
+
+    if (selectedTask.liveOperationName?.trim()) {
+      capabilities.push(`Live op ${selectedTask.liveOperationName.trim()}`);
+    }
+
+    return capabilities;
+  });
+  protected readonly selectedTaskLimits = computed(() => {
+    const selectedTask = this.selectedTask();
+
+    if (!selectedTask) {
+      return [];
+    }
+
+    const notes = [
+      'Bu surum AXATA belge no verip canli SOAP fetch yapmaz.',
+      'Outbox basarisi AXATA kabul etti degil, payload dosyalandi anlamina gelir.'
+    ];
+
+    switch (selectedTask.code) {
+      case 'firm-master-sync':
+      case 'product-master-sync':
+        notes.unshift('Bu task icin UI sadece preview, job ve outbox deneyimi sunmalidir.');
+        break;
+      case 'issued-warehouse-order-sync':
+        notes.unshift(
+          'Canli dispatch mevcut Mikro evragini yeniden gonderir; AXATAdan otomatik belge cekmez.'
+        );
+        notes.push(
+          'Depolar-arasi-sevk belge detayi icin ayri AXATA dispatch butonu acilmamalidir.'
+        );
+        break;
+      case 'company-receiving-sync':
+        notes.unshift(
+          'Canli dispatch sadece mevcut Mikro firma mal kabul evragini tekrar gonderir.'
+        );
+        break;
+      case 'inventory-count-sync':
+        notes.unshift('inventory-count-sync icin canli dispatch butonu gosterilmemelidir.');
+        notes.push(
+          'Inventory count taski AXATA -> Mikro manual incoming tarafinda ayrica kullanilabilir.'
+        );
+        break;
+      default:
+        break;
+    }
+
+    return notes.filter((note, index, items) => items.indexOf(note) === index);
+  });
+  protected readonly currentIncomingWarehouseReference = computed(() => {
+    const detail = this.incomingWarehouseReceivingDetail();
+    const header = detail?.header;
+
+    if (!header) {
+      return '-';
+    }
+
+    return `${header.documentSerie}.${header.documentOrderNo}`;
+  });
+  protected readonly currentIncomingWarehouseLineTotal = computed(() =>
+    this.incomingWarehouseLineDrafts().reduce(
+      (total: number, item: IncomingWarehouseLineDraft) => total + item.receivedQuantity,
+      0
+    )
+  );
+  protected readonly statusSummary = computed(() => {
+    const overview = this.overview();
+
+    if (!overview) {
+      return [];
+    }
+
+    return [
+      {
+        label: 'Modul',
+        value: overview.enabled ? 'Aktif' : 'Kapali',
+        tone: overview.enabled ? 'status-pill-success' : 'status-pill-danger'
+      },
+      {
+        label: 'Worker',
+        value: overview.workerEnabled ? 'Calisiyor' : 'Kapali',
+        tone: overview.workerEnabled ? 'status-pill-success' : 'status-pill-warn'
+      },
+      {
+        label: 'Scheduler',
+        value: overview.schedulerEnabled ? 'Planli' : 'Pasif',
+        tone: overview.schedulerEnabled ? 'status-pill-success' : 'status-pill-neutral'
+      }
+    ];
+  });
+  protected readonly previewJson = computed(() =>
+    this.preview()
+      ? this.formatJson(
+          this.preview()!.items.map((item: IAxataSynchronizationPreviewItemApiDto) => ({
+            key: item.key,
+            summary: item.summary,
+            payloadJson: this.tryParseJson(item.payloadJson)
+          }))
+        )
+      : ''
+  );
+  protected readonly manualResultJson = computed(() =>
+    this.manualDocumentResult()
+      ? this.formatJson({
+          documentReference: this.manualDocumentResult()!.documentReference,
+          payloadJson: this.tryParseJson(this.manualDocumentResult()!.payloadJson),
+          notes: this.manualDocumentResult()!.notes,
+          artifacts: this.manualDocumentResult()!.artifacts
+        })
+      : ''
+  );
+
+  constructor() {
+    this.form.controls.taskCode.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((taskCode: string) => {
+        this.selectedTaskCode.set(taskCode);
+        this.preview.set(null);
+        this.manualCandidates.set(null);
+        this.manualDocumentResult.set(null);
+        this.manualDispatchResult.set(null);
+        this.manualDispatchBatchResult.set(null);
+        this.batchResult.set(null);
+        this.selectedBatchDocuments.set([]);
+        this.feedback.set(null);
+      });
+
+    effect(() => {
+      const tasks = this.tasks();
+
+      if (!tasks.length) {
+        return;
+      }
+
+      const currentTaskCode = this.selectedTaskCode();
+
+      if (tasks.some((task: IAxataSynchronizationTaskApiDto) => task.code === currentTaskCode)) {
+        return;
+      }
+
+      const fallbackTaskCode =
+        tasks.find((task: IAxataSynchronizationTaskApiDto) => task.enabled)?.code ?? tasks[0].code;
+
+      this.form.controls.taskCode.setValue(fallbackTaskCode, { emitEvent: false });
+      this.selectedTaskCode.set(fallbackTaskCode);
+    });
+
+    effect(() => {
+      if (!this.requiresWarehouseNo()) {
+        return;
+      }
+
+      const warehouseNo = this.toPositiveNumber(this.form.controls.warehouseNo.value);
+      const currentWarehouseNo = this.currentWarehouseNo();
+
+      if (!warehouseNo && currentWarehouseNo) {
+        this.form.controls.warehouseNo.setValue(currentWarehouseNo, { emitEvent: false });
+      }
+    });
+
+    effect(() => {
+      const warehouseNo = this.toPositiveNumber(this.incomingWarehouseForm.controls.warehouseNo.value);
+      const currentWarehouseNo = this.currentWarehouseNo();
+
+      if (!warehouseNo && currentWarehouseNo) {
+        this.incomingWarehouseForm.controls.warehouseNo.setValue(currentWarehouseNo, {
+          emitEvent: false
+        });
+      }
+    });
+
+    this.loadOverview();
+    this.loadHealth();
+    this.loadFetchProfiles();
+  }
+
+  protected loadOverview(): void {
+    this.overviewLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .getAxataSynchronizationOverview()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.overviewLoading.set(false))
+      )
+      .subscribe({
+        next: (overview: AxataSynchronizationOverviewDto) => {
+          this.overview.set(overview);
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Overview okunamadi',
+            message: 'Axata senkronizasyon overview endpointi su anda cevap vermedi.'
+          });
+        }
+      });
+  }
+
+  protected loadHealth(): void {
+    this.healthLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .getAxataSynchronizationHealth()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.healthLoading.set(false))
+      )
+      .subscribe({
+        next: (health: AxataSynchronizationHealthDto) => {
+          this.health.set(health);
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Health probe okunamadi',
+            message: 'Baglanti testi sonuclari getirilemedi. Endpoint ve SQL erisimlerini sonra tekrar kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected loadFetchProfiles(): void {
+    this.fetchProfilesLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .getAxataSynchronizationFetchProfiles()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.fetchProfilesLoading.set(false))
+      )
+      .subscribe({
+        next: (profiles: AxataSynchronizationFetchProfilesOverviewDto) => {
+          this.fetchProfiles.set(profiles);
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Fetch profile listesi okunamadi',
+            message:
+              'Eski worker parity profilleri getirilemedi. AXATA fetch/import konfigurasyonunu kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected selectTask(taskCode: string): void {
+    this.form.controls.taskCode.setValue(taskCode);
+  }
+
+  protected previewSelectedTask(): void {
+    const taskCode = this.selectedTaskCode();
+    const warehouseNo = this.resolveWarehouseNo();
+
+    if (this.requiresWarehouseNo() && !warehouseNo) {
+      return;
+    }
+
+    this.previewLoading.set(true);
+    this.preview.set(null);
+
+    this.entegrasyonIslemleriService
+      .getAxataSynchronizationTaskPreview(
+        taskCode,
+        warehouseNo,
+        this.toPositiveNumber(this.form.controls.take.value) ?? 10
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.previewLoading.set(false))
+      )
+      .subscribe({
+        next: (preview: AxataSynchronizationTaskPreviewDto) => {
+          this.preview.set(preview);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Preview hazir',
+            message: `${preview.taskName} icin ${preview.returnedRecordCount} kayitlik payload getirildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Preview alinamadi',
+            message: 'Secili task icin preview olusturulamadi. Warehouse ve task secimini kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected executeSelectedTask(): void {
+    const taskCode = this.selectedTaskCode();
+    const warehouseNo = this.resolveWarehouseNo();
+
+    if (this.requiresWarehouseNo() && !warehouseNo) {
+      return;
+    }
+
+    this.executeLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .executeAxataSynchronizationTask(taskCode, {
+        executionMode: this.form.controls.executionMode.value,
+        warehouseNo: warehouseNo ?? undefined
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.executeLoading.set(false))
+      )
+      .subscribe({
+        next: (job: IAxataSynchronizationJobApiDto) => {
+          this.activeJob.set(this.createPendingJobDetail(job));
+          this.feedback.set({
+            tone: 'success',
+            title: 'Job kuyruga alindi',
+            message: `${job.taskName} ${job.executionMode} modunda calistiriliyor. Durum otomatik izlenecek.`
+          });
+          this.pollJob(job.jobId);
+          this.loadOverview();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Job baslatilamadi',
+            message: 'Secili task execute edilirken hata alindi. DryRun/Outbox ve warehouse degerlerini kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected executeSelectedTaskViaJobsEndpoint(): void {
+    const taskCode = this.selectedTaskCode();
+    const warehouseNo = this.resolveWarehouseNo();
+
+    if (this.requiresWarehouseNo() && !warehouseNo) {
+      return;
+    }
+
+    this.genericJobLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createAxataSynchronizationJob({
+        taskCode,
+        executionMode: this.form.controls.executionMode.value,
+        warehouseNo: warehouseNo ?? undefined
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.genericJobLoading.set(false))
+      )
+      .subscribe({
+        next: (job: AxataSynchronizationJobDto) => {
+          this.activeJob.set(this.createPendingJobDetail(job));
+          this.feedback.set({
+            tone: 'success',
+            title: 'Genel jobs endpointi ile kuyruga alindi',
+            message: `${job.taskName} jobs endpointi uzerinden calistirildi. Durum otomatik izlenecek.`
+          });
+          this.pollJob(job.jobId);
+          this.loadOverview();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Jobs endpointi basarisiz',
+            message: 'POST /integrations/axata-sync/jobs cagrisi tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected isBatchCandidateSelected(
+    candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto
+  ): boolean {
+    const item = this.mapCandidateToBatchItem(candidate);
+
+    if (!item) {
+      return false;
+    }
+
+    return this.selectedBatchDocuments().some((selected) =>
+      this.isSameDocumentSelection(selected, item)
+    );
+  }
+
+  protected toggleBatchCandidate(
+    candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto
+  ): void {
+    const item = this.mapCandidateToBatchItem(candidate);
+
+    if (!item) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Aday batch secimine uygun degil',
+        message: 'Secili task icin aday kayitta gerekli belge alanlari eksik.'
+      });
+      return;
+    }
+
+    this.selectedBatchDocuments.update((items: IAxataSynchronizationManualDocumentItemApiDto[]) => {
+      const exists = items.some((selected) => this.isSameDocumentSelection(selected, item));
+
+      if (exists) {
+        return items.filter((selected) => !this.isSameDocumentSelection(selected, item));
+      }
+
+      return [...items, item];
+    });
+  }
+
+  protected addCurrentManualDocumentToBatch(): void {
+    const item = this.buildCurrentManualDocumentItem();
+
+    if (!item) {
+      return;
+    }
+
+    this.selectedBatchDocuments.update((items: IAxataSynchronizationManualDocumentItemApiDto[]) => {
+      if (items.some((selected) => this.isSameDocumentSelection(selected, item))) {
+        return items;
+      }
+
+      return [...items, item];
+    });
+
+    this.feedback.set({
+      tone: 'info',
+      title: 'Belge batch listesine eklendi',
+      message: 'Manual formdaki evrak toplu preview/execute listesine tasindi.'
+    });
+  }
+
+  protected removeBatchDocument(index: number): void {
+    this.selectedBatchDocuments.update((items: IAxataSynchronizationManualDocumentItemApiDto[]) =>
+      items.filter((_item, itemIndex) => itemIndex !== index)
+    );
+  }
+
+  protected clearBatchDocuments(): void {
+    this.selectedBatchDocuments.set([]);
+    this.batchResult.set(null);
+  }
+
+  protected previewManualDocumentBatch(): void {
+    if (!this.isDocumentTask()) {
+      return;
+    }
+
+    const request = this.buildBatchDocumentRequest();
+
+    if (!request) {
+      return;
+    }
+
+    this.batchLoading.set(true);
+    this.batchResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataManualDocumentBatch(this.selectedTaskCode(), request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.batchLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataSynchronizationManualDocumentBatchDto) => {
+          this.batchResult.set(result);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Batch preview hazir',
+            message: `${result.requestedDocumentCount} evrak icin toplu preview sonucu dondu.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Batch preview alinamadi',
+            message: 'Toplu preview cagrisi su anda tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected executeManualDocumentBatch(): void {
+    if (!this.isDocumentTask()) {
+      return;
+    }
+
+    const request = this.buildBatchDocumentExecuteRequest();
+
+    if (!request) {
+      return;
+    }
+
+    this.batchLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .executeAxataManualDocumentBatch(this.selectedTaskCode(), request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.batchLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataSynchronizationManualDocumentBatchDto) => {
+          this.batchResult.set(result);
+          this.feedback.set({
+            tone: result.failedDocumentCount > 0 ? 'info' : 'success',
+            title: 'Batch execute tamamlandi',
+            message: `${result.succeededDocumentCount} basarili, ${result.failedDocumentCount} hatali evrak raporlandi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Batch execute basarisiz',
+            message: 'Toplu execute cagrisi tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected submitManualIncomingCompanyReceiving(): void {
+    const request =
+      this.parseJsonText<IAxataManualIncomingCompanyReceivingRequestApiDto>(
+        this.incomingJsonForm.controls.companyReceivingJson.value,
+        'Firma mal kabul single JSON'
+      );
+
+    if (!request) {
+      return;
+    }
+
+    this.incomingCompanyLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createManualIncomingCompanyReceiving(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingCompanyLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataManualIncomingCompanyReceivingResponseDto) => {
+          this.incomingCompanyReceivingResult.set(result);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Firma mal kabul olusturuldu',
+            message: `${result.documentSerie}.${result.documentOrderNo} basariyla kaydedildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Firma mal kabul olusturulamadi',
+            message: 'Manual incoming company receiving single endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected submitManualIncomingCompanyReceivingBatch(): void {
+    const request =
+      this.parseJsonText<IAxataManualIncomingCompanyReceivingBatchRequestApiDto>(
+        this.incomingJsonForm.controls.companyReceivingBatchJson.value,
+        'Firma mal kabul batch JSON'
+      );
+
+    if (!request) {
+      return;
+    }
+
+    this.incomingCompanyLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createManualIncomingCompanyReceivingBatch(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingCompanyLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataManualIncomingCompanyReceivingBatchResponseDto) => {
+          this.incomingCompanyReceivingBatchResult.set(result);
+          this.feedback.set({
+            tone: result.failedCount > 0 ? 'info' : 'success',
+            title: 'Firma mal kabul batch tamamlandi',
+            message: `${result.succeededCount} basarili, ${result.failedCount} hatali kayit raporlandi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Firma mal kabul batch basarisiz',
+            message: 'Manual incoming company receivings batch endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected submitManualIncomingInventoryCount(): void {
+    const request = this.parseJsonText<IAxataManualIncomingInventoryCountRequestApiDto>(
+      this.incomingJsonForm.controls.inventoryCountJson.value,
+      'Sayim single JSON'
+    );
+
+    if (!request) {
+      return;
+    }
+
+    this.incomingInventoryLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createManualIncomingInventoryCount(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingInventoryLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataManualIncomingInventoryCountResponseDto) => {
+          this.incomingInventoryCountResult.set(result);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Sayim sonucu olusturuldu',
+            message: `${result.documentNo} nolu sayim sonucu basariyla kaydedildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Sayim sonucu olusturulamadi',
+            message: 'Manual incoming inventory count single endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected submitManualIncomingInventoryCountBatch(): void {
+    const request = this.parseJsonText<IAxataManualIncomingInventoryCountBatchRequestApiDto>(
+      this.incomingJsonForm.controls.inventoryCountBatchJson.value,
+      'Sayim batch JSON'
+    );
+
+    if (!request) {
+      return;
+    }
+
+    this.incomingInventoryLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createManualIncomingInventoryCountBatch(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingInventoryLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataManualIncomingInventoryCountBatchResponseDto) => {
+          this.incomingInventoryCountBatchResult.set(result);
+          this.feedback.set({
+            tone: result.failedCount > 0 ? 'info' : 'success',
+            title: 'Sayim batch tamamlandi',
+            message: `${result.succeededCount} basarili, ${result.failedCount} hatali kayit raporlandi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Sayim batch basarisiz',
+            message: 'Manual incoming inventory counts batch endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected loadIncomingWarehouseReceivings(): void {
+    const warehouseNo = this.toPositiveNumber(this.incomingWarehouseForm.controls.warehouseNo.value);
+    const startDate = this.incomingWarehouseForm.controls.startDate.value.trim();
+    const endDate = this.incomingWarehouseForm.controls.endDate.value.trim();
+
+    if (!warehouseNo || !startDate || !endDate) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Depo mal kabul filtreleri eksik',
+        message: 'Warehouse, baslangic ve bitis tarihleri zorunlu.'
+      });
+      return;
+    }
+
+    this.incomingWarehouseLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .getManualIncomingWarehouseReceivings(warehouseNo, startDate, endDate)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingWarehouseLoading.set(false))
+      )
+      .subscribe({
+        next: (items: AxataManualIncomingWarehouseReceivingListItemDto[]) => {
+          this.incomingWarehouseReceivings.set(items ?? []);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Bekleyen depo kabulleri listelendi',
+            message: `${items.length} kayit getirildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Bekleyen depo kabulleri getirilemedi',
+            message: 'manual/incoming/warehouse-receivings list endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected loadIncomingWarehouseReceivingDetail(
+    item?: AxataManualIncomingWarehouseReceivingListItemDto
+  ): void {
+    if (item) {
+      this.incomingWarehouseForm.patchValue(
+        {
+          detailSerie: item.documentSerie,
+          detailOrderNo: item.documentOrderNo
+        },
+        { emitEvent: false }
+      );
+    }
+
+    const warehouseNo = this.toPositiveNumber(this.incomingWarehouseForm.controls.warehouseNo.value);
+    const detailSerie = this.incomingWarehouseForm.controls.detailSerie.value.trim();
+    const detailOrderNo = this.toPositiveNumber(this.incomingWarehouseForm.controls.detailOrderNo.value);
+
+    if (!warehouseNo || !detailSerie || !detailOrderNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Detay referansi eksik',
+        message: 'Warehouse, seri ve sira bilgisi ile detay getirilmelidir.'
+      });
+      return;
+    }
+
+    this.incomingWarehouseDetailLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .getManualIncomingWarehouseReceivingDetail(detailSerie, detailOrderNo, warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingWarehouseDetailLoading.set(false))
+      )
+      .subscribe({
+        next: (detail: AxataManualIncomingWarehouseReceivingDetailDto) => {
+          this.incomingWarehouseReceivingDetail.set(detail);
+          this.incomingWarehouseLineDrafts.set(
+            (detail.items ?? []).map((line) => ({
+              movementGuid: line.movementGuid,
+              stockCode: line.stockCode,
+              stockName: line.stockName,
+              shippedQuantity: line.quantity,
+              receivedQuantity: line.quantity
+            }))
+          );
+          this.feedback.set({
+            tone: 'info',
+            title: 'Depo kabul detayi hazir',
+            message: `${detail.header.documentSerie}.${detail.header.documentOrderNo} kabul formuna tasindi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Depo kabul detayi okunamadi',
+            message: 'manual/incoming/warehouse-receivings detay endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected updateIncomingWarehouseReceivedQuantity(
+    movementGuid: string,
+    rawValue: string
+  ): void {
+    const nextValue = Math.max(0, Number(rawValue) || 0);
+
+    this.incomingWarehouseLineDrafts.update((items: IncomingWarehouseLineDraft[]) =>
+      items.map((item: IncomingWarehouseLineDraft) =>
+        item.movementGuid === movementGuid
+          ? {
+              ...item,
+              receivedQuantity: nextValue
+            }
+          : item
+      )
+    );
+  }
+
+  protected acceptIncomingWarehouseReceiving(): void {
+    const request = this.buildIncomingWarehouseAcceptRequest();
+    const detail = this.incomingWarehouseReceivingDetail();
+
+    if (!request || !detail?.header) {
+      return;
+    }
+
+    this.incomingWarehouseAcceptLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .acceptManualIncomingWarehouseReceiving(
+        detail.header.documentSerie,
+        detail.header.documentOrderNo,
+        request
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingWarehouseAcceptLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataManualIncomingWarehouseReceivingAcceptResponseDto) => {
+          this.incomingWarehouseAcceptResult.set(result);
+          this.feedback.set({
+            tone: result.hasDiscrepancy ? 'info' : 'success',
+            title: 'Depo kabul tamamlandi',
+            message: `${result.documentSerie}.${result.documentOrderNo} icin kabul sonucu kaydedildi.`
+          });
+          this.loadIncomingWarehouseReceivings();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Depo kabul basarisiz',
+            message: 'Tekli incoming warehouse receiving accept endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected enqueueIncomingWarehouseReceivingBatch(): void {
+    const request = this.buildIncomingWarehouseAcceptRequest();
+    const detail = this.incomingWarehouseReceivingDetail();
+
+    if (!request || !detail?.header) {
+      return;
+    }
+
+    const queueItem: IncomingWarehouseBatchQueueItem = {
+      reference: `${detail.header.documentSerie}.${detail.header.documentOrderNo}`,
+      documentSerie: detail.header.documentSerie,
+      documentOrderNo: detail.header.documentOrderNo,
+      allowDiscrepancy: request.allowDiscrepancy,
+      lines: request.lines
+    };
+
+    this.incomingWarehouseBatchQueue.update((items: IncomingWarehouseBatchQueueItem[]) => {
+      const nextItems = items.filter((item) => item.reference !== queueItem.reference);
+      return [...nextItems, queueItem];
+    });
+
+    this.feedback.set({
+      tone: 'info',
+      title: 'Depo kabul batch sirasina eklendi',
+      message: `${queueItem.reference} toplu kabul listesine tasindi.`
+    });
+  }
+
+  protected removeIncomingWarehouseBatchItem(reference: string): void {
+    this.incomingWarehouseBatchQueue.update((items: IncomingWarehouseBatchQueueItem[]) =>
+      items.filter((item) => item.reference !== reference)
+    );
+  }
+
+  protected clearIncomingWarehouseBatchQueue(): void {
+    this.incomingWarehouseBatchQueue.set([]);
+    this.incomingWarehouseBatchResult.set(null);
+  }
+
+  protected acceptIncomingWarehouseReceivingBatch(): void {
+    const items = this.incomingWarehouseBatchQueue();
+
+    if (!items.length) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Batch kabul listesi bos',
+        message: 'Toplu kabul icin once en az bir evragi kuyruga eklemelisin.'
+      });
+      return;
+    }
+
+    this.incomingWarehouseAcceptLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .acceptManualIncomingWarehouseReceivingBatch({
+        continueOnError: this.incomingWarehouseForm.controls.continueOnError.value,
+        items: items.map((item: IncomingWarehouseBatchQueueItem) => ({
+          documentSerie: item.documentSerie,
+          documentOrderNo: item.documentOrderNo,
+          allowDiscrepancy: item.allowDiscrepancy,
+          lines: item.lines
+        }))
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.incomingWarehouseAcceptLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataManualIncomingWarehouseReceivingBatchResponseDto) => {
+          this.incomingWarehouseBatchResult.set(result);
+          this.feedback.set({
+            tone: result.failedCount > 0 ? 'info' : 'success',
+            title: 'Depo kabul batch tamamlandi',
+            message: `${result.succeededCount} basarili, ${result.failedCount} hatali kayit raporlandi.`
+          });
+          this.loadIncomingWarehouseReceivings();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Depo kabul batch basarisiz',
+            message: 'Toplu incoming warehouse receiving accept endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected loadManualCandidates(): void {
+    if (!this.isDocumentTask()) {
+      this.feedback.set({
+        tone: 'info',
+        title: 'Manuel evrak adayi yok',
+        message: 'Manuel aday listesi yalnizca evrak bazli tasklar icin kullanilir.'
+      });
+      return;
+    }
+
+    const warehouseNo = this.resolveWarehouseNo(true);
+    const startDate = this.form.controls.candidateStartDate.value.trim();
+    const endDate = this.form.controls.candidateEndDate.value.trim();
+
+    if (!warehouseNo || !startDate || !endDate) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Aday filtreleri eksik',
+        message: 'Warehouse, baslangic ve bitis tarihlerini doldurman gerekiyor.'
+      });
+      return;
+    }
+
+    this.candidateLoading.set(true);
+    this.manualCandidates.set(null);
+
+    this.entegrasyonIslemleriService
+      .getAxataManualDocumentCandidates(this.selectedTaskCode(), {
+        warehouseNo,
+        startDate,
+        endDate,
+        take: this.toPositiveNumber(this.form.controls.candidateTake.value) ?? 25
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.candidateLoading.set(false))
+      )
+      .subscribe({
+        next: (candidates: AxataSynchronizationManualDocumentCandidatesDto) => {
+          this.manualCandidates.set(candidates);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Adaylar hazir',
+            message: `${candidates.returnedRecordCount} evrak secilebilir durumda listelendi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Aday liste alinamadi',
+            message: 'Manuel kurtarma adaylari getirilemedi. Tarih araligi ve warehouse bilgisini kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected applyCandidate(candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto): void {
+    this.form.patchValue(
+      {
+        manualDocumentSerie: candidate.documentSerie ?? '',
+        manualDocumentOrderNo: candidate.documentOrderNo,
+        manualDocumentNo: candidate.documentNo,
+        manualDocumentDate: candidate.documentDate?.slice(0, 10) || this.getToday()
+      },
+      { emitEvent: false }
+    );
+
+    this.feedback.set({
+      tone: 'info',
+      title: 'Aday forma tasindi',
+      message: `${candidate.documentReference} icin manuel preview veya execute adimina gecilebilir.`
+    });
+  }
+
+  protected previewManualDocument(): void {
+    if (!this.isDocumentTask()) {
+      return;
+    }
+
+    const request = this.buildManualDocumentRequest();
+
+    if (!request) {
+      return;
+    }
+
+    this.manualLoading.set(true);
+    this.manualDocumentResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataManualDocument(this.selectedTaskCode(), request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.manualLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataSynchronizationManualDocumentDto) => {
+          this.manualDocumentResult.set(result);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Manuel preview hazir',
+            message: `${result.documentReference} icin payload uretilip kontrol paneline yansitildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Manuel preview alinamadi',
+            message: 'Secilen evrak icin manuel preview olusturulamadi.'
+          });
+        }
+      });
+  }
+
+  protected executeManualDocument(): void {
+    if (!this.isDocumentTask()) {
+      return;
+    }
+
+    const request = this.buildManualDocumentExecuteRequest();
+
+    if (!request) {
+      return;
+    }
+
+    this.manualLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .executeAxataManualDocument(this.selectedTaskCode(), request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.manualLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataSynchronizationManualDocumentDto) => {
+          this.manualDocumentResult.set(result);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Manuel execute tamamlandi',
+            message: `${result.documentReference} ${result.executionMode} modunda islenip sonucu ekrana yazildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Manuel execute basarisiz',
+            message: 'Secilen evrak tekli kurtarma akisi ile islenemedi.'
+          });
+        }
+      });
+  }
+
+  protected dispatchManualDocument(): void {
+    if (!this.isDocumentTask() || !this.supportsLiveDispatch()) {
+      return;
+    }
+
+    const request = this.buildManualDocumentRequest();
+
+    if (!request) {
+      return;
+    }
+
+    this.dispatchLoading.set(true);
+    this.manualDispatchResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .dispatchAxataManualDocument(this.selectedTaskCode(), request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.dispatchLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataSynchronizationManualDispatchDto) => {
+          this.manualDispatchResult.set(result);
+          this.feedback.set({
+            tone: result.isSuccess ? 'success' : 'info',
+            title: result.isSuccess ? 'Canli dispatch tamamlandi' : 'Canli dispatch cevap verdi',
+            message:
+              result.serviceMessage?.trim() ||
+              `${result.documentReference} icin AXATA canli dispatch sonucu ekrana yazildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Canli dispatch basarisiz',
+            message: 'Secili evrak AXATA canli dispatch endpointi ile gonderilemedi.'
+          });
+        }
+      });
+  }
+
+  protected dispatchManualDocumentBatch(): void {
+    if (!this.isDocumentTask() || !this.supportsLiveDispatch()) {
+      return;
+    }
+
+    const request = this.buildBatchDocumentRequest();
+
+    if (!request) {
+      return;
+    }
+
+    this.dispatchLoading.set(true);
+    this.manualDispatchBatchResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .dispatchAxataManualDocumentBatch(this.selectedTaskCode(), request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.dispatchLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataSynchronizationManualDispatchBatchDto) => {
+          this.manualDispatchBatchResult.set(result);
+          this.feedback.set({
+            tone: result.failedDocumentCount > 0 ? 'info' : 'success',
+            title: 'Canli dispatch batch tamamlandi',
+            message: `${result.succeededDocumentCount} basarili, ${result.failedDocumentCount} hatali dispatch raporlandi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Canli dispatch batch basarisiz',
+            message: 'Toplu AXATA dispatch cagrisi su anda tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected submitAxataOutboundDelivery(): void {
+    const request = this.parseJsonText<IAxataOutboundDeliveryRequestApiDto>(
+      this.axataBridgeForm.controls.outboundDeliveryJson.value,
+      'AXATA outbound delivery single JSON'
+    );
+
+    if (!request) {
+      return;
+    }
+
+    this.axataOutboundLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createAxataOutboundDeliveryInterWarehouseShipment(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.axataOutboundLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataOutboundDeliveryResponseDto) => {
+          this.axataOutboundResult.set(result);
+          this.feedback.set({
+            tone: 'success',
+            title: 'AXATA outbound delivery islendi',
+            message: `${result.documentSerie}.${result.documentOrderNo} nolu depolar arasi sevk olusturuldu.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'AXATA outbound delivery basarisiz',
+            message: 'Tekli outbound delivery -> inter warehouse shipment donusumu tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected submitAxataOutboundDeliveryBatch(): void {
+    const request = this.parseJsonText<IAxataOutboundDeliveryBatchRequestApiDto>(
+      this.axataBridgeForm.controls.outboundDeliveryBatchJson.value,
+      'AXATA outbound delivery batch JSON'
+    );
+
+    if (!request) {
+      return;
+    }
+
+    this.axataOutboundLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createAxataOutboundDeliveryInterWarehouseShipmentBatch(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.axataOutboundLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataManualOutboundDeliveryBatchResponseDto) => {
+          this.axataOutboundBatchResult.set(result);
+          this.feedback.set({
+            tone: result.failedCount > 0 ? 'info' : 'success',
+            title: 'AXATA outbound delivery batch tamamlandi',
+            message: `${result.succeededCount} basarili, ${result.failedCount} hatali kayit raporlandi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'AXATA outbound delivery batch basarisiz',
+            message: 'Coklu outbound delivery -> shipment donusumu tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected submitAxataInboundAtfCompanyReceiving(): void {
+    const request = this.parseJsonText<IAxataInboundAtfCompanyReceivingRequestApiDto>(
+      this.axataBridgeForm.controls.inboundAtfJson.value,
+      'AXATA inbound ATF single JSON'
+    );
+
+    if (!request) {
+      return;
+    }
+
+    this.axataInboundAtfLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createAxataInboundAtfCompanyReceiving(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.axataInboundAtfLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataInboundAtfCompanyReceivingResponseDto) => {
+          this.axataInboundAtfResult.set(result);
+          this.feedback.set({
+            tone: 'success',
+            title: 'AXATA inbound ATF islendi',
+            message: `${result.documentSerie}.${result.documentOrderNo} nolu firma mal kabul kaydi olusturuldu.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'AXATA inbound ATF basarisiz',
+            message: 'Tekli inbound ATF -> company receiving donusumu tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected submitAxataInboundAtfCompanyReceivingBatch(): void {
+    const request = this.parseJsonText<IAxataInboundAtfCompanyReceivingBatchRequestApiDto>(
+      this.axataBridgeForm.controls.inboundAtfBatchJson.value,
+      'AXATA inbound ATF batch JSON'
+    );
+
+    if (!request) {
+      return;
+    }
+
+    this.axataInboundAtfLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .createAxataInboundAtfCompanyReceivingBatch(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.axataInboundAtfLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataInboundAtfCompanyReceivingBatchResponseDto) => {
+          this.axataInboundAtfBatchResult.set(result);
+          this.feedback.set({
+            tone: result.failedCount > 0 ? 'info' : 'success',
+            title: 'AXATA inbound ATF batch tamamlandi',
+            message: `${result.succeededCount} basarili, ${result.failedCount} hatali kayit raporlandi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'AXATA inbound ATF batch basarisiz',
+            message: 'Coklu inbound ATF -> company receiving donusumu tamamlanamadi.'
+          });
+        }
+      });
+  }
+
+  protected formatStatus(status: string | null | undefined): string {
+    const normalizedStatus = status?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    switch (normalizedStatus) {
+      case 'queued':
+        return 'Kuyrukta';
+      case 'running':
+        return 'Calisiyor';
+      case 'succeeded':
+        return 'Basarili';
+      case 'failed':
+        return 'Basarisiz';
+      case 'cancelled':
+        return 'Iptal';
+      case 'healthy':
+        return 'Saglikli';
+      case 'warning':
+        return 'Uyari';
+      case 'unhealthy':
+        return 'Sorunlu';
+      default:
+        return status?.trim() || 'Bilinmiyor';
+    }
+  }
+
+  protected getStatusTone(status: string | null | undefined): string {
+    const normalizedStatus = status?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (
+      normalizedStatus === 'succeeded' ||
+      normalizedStatus === 'healthy' ||
+      normalizedStatus === 'enabled'
+    ) {
+      return 'status-pill-success';
+    }
+
+    if (
+      normalizedStatus === 'queued' ||
+      normalizedStatus === 'running' ||
+      normalizedStatus === 'warning'
+    ) {
+      return 'status-pill-warn';
+    }
+
+    if (
+      normalizedStatus === 'failed' ||
+      normalizedStatus === 'cancelled' ||
+      normalizedStatus === 'unhealthy' ||
+      normalizedStatus === 'disabled'
+    ) {
+      return 'status-pill-danger';
+    }
+
+    return 'status-pill-neutral';
+  }
+
+  protected formatTimestamp(value: string | null | undefined): string {
+    if (!value?.trim()) {
+      return '-';
+    }
+
+    const parsedValue = new Date(value);
+
+    if (Number.isNaN(parsedValue.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'short',
+      timeStyle: 'medium'
+    }).format(parsedValue);
+  }
+
+  protected formatDuration(durationMs: number | null | undefined): string {
+    if (!durationMs || durationMs <= 0) {
+      return '-';
+    }
+
+    if (durationMs < 1000) {
+      return `${durationMs} ms`;
+    }
+
+    return `${(durationMs / 1000).toFixed(1)} sn`;
+  }
+
+  protected formatExecutionMode(mode: string | null | undefined): string {
+    if (mode === 'DryRun') {
+      return 'Dry Run';
+    }
+
+    if (mode === 'Outbox') {
+      return 'Outbox';
+    }
+
+    return mode?.trim() || '-';
+  }
+
+  protected formatFlow(value: string | null | undefined): string {
+    return value?.trim().replace(/->/g, ' -> ') || '-';
+  }
+
+  protected formatArtifactLabel(artifact: IAxataSynchronizationJobArtifactApiDto): string {
+    return `${artifact.kind}: ${artifact.name}`;
+  }
+
+  protected formatJson(value: unknown): string {
+    return JSON.stringify(value, null, 2);
+  }
+
+  protected formatSelectedBatchDocument(
+    item: IAxataSynchronizationManualDocumentItemApiDto
+  ): string {
+    if (this.isInventoryCountTask()) {
+      return `${item.documentNo ?? '-'} / ${item.documentDate ?? '-'}`;
+    }
+
+    return `${item.documentSerie ?? '-'} / ${item.documentOrderNo ?? '-'}`;
+  }
+
+  protected trackByTask = (_index: number, task: IAxataSynchronizationTaskApiDto): string =>
+    task.code;
+
+  protected trackByJob = (_index: number, job: IAxataSynchronizationJobApiDto): string =>
+    job.jobId;
+
+  protected trackByProbe = (_index: number, probe: IAxataSynchronizationProbeApiDto): string =>
+    probe.name;
+  protected trackByFetchProfile = (
+    _index: number,
+    profile: IAxataSynchronizationFetchProfileApiDto
+  ): string => profile.code;
+
+  protected trackByPreviewItem = (
+    _index: number,
+    item: IAxataSynchronizationPreviewItemApiDto
+  ): string => item.key;
+
+  protected trackByCandidate = (
+    _index: number,
+    item: IAxataSynchronizationManualDocumentCandidateItemApiDto
+  ): string => item.documentReference;
+  protected trackBySelectedBatchDocument = (
+    _index: number,
+    item: IAxataSynchronizationManualDocumentItemApiDto
+  ): string => this.formatSelectedBatchDocument(item);
+  protected trackByIncomingWarehouseReceiving = (
+    _index: number,
+    item: AxataManualIncomingWarehouseReceivingListItemDto
+  ): string => `${item.documentSerie}|${item.documentOrderNo}`;
+  protected trackByIncomingWarehouseLine = (
+    _index: number,
+    item: IncomingWarehouseLineDraft
+  ): string => item.movementGuid;
+  protected trackByIncomingWarehouseBatchItem = (
+    _index: number,
+    item: IncomingWarehouseBatchQueueItem
+  ): string => item.reference;
+
+  private mapCandidateToBatchItem(
+    candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto
+  ): IAxataSynchronizationManualDocumentItemApiDto | null {
+    if (this.isInventoryCountTask()) {
+      if (!candidate.documentNo || !candidate.documentDate) {
+        return null;
+      }
+
+      return {
+        documentNo: candidate.documentNo,
+        documentDate: candidate.documentDate
+      };
+    }
+
+    if (!candidate.documentSerie || !candidate.documentOrderNo) {
+      return null;
+    }
+
+    return {
+      documentSerie: candidate.documentSerie,
+      documentOrderNo: candidate.documentOrderNo
+    };
+  }
+
+  private buildCurrentManualDocumentItem(): IAxataSynchronizationManualDocumentItemApiDto | null {
+    if (this.isInventoryCountTask()) {
+      const documentNo = this.toPositiveNumber(this.form.controls.manualDocumentNo.value);
+      const documentDate = this.form.controls.manualDocumentDate.value.trim();
+
+      if (!documentNo || !documentDate) {
+        this.feedback.set({
+          tone: 'error',
+          title: 'Batch evrak referansi eksik',
+          message: 'Inventory count batch secimi icin document no ve document date gerekli.'
+        });
+        return null;
+      }
+
+      return {
+        documentNo,
+        documentDate
+      };
+    }
+
+    const documentSerie = this.form.controls.manualDocumentSerie.value.trim();
+    const documentOrderNo = this.toPositiveNumber(this.form.controls.manualDocumentOrderNo.value);
+
+    if (!documentSerie || !documentOrderNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Batch evrak referansi eksik',
+        message: 'Batch secimi icin document serie ve order no gerekli.'
+      });
+      return null;
+    }
+
+    return {
+      documentSerie,
+      documentOrderNo
+    };
+  }
+
+  private isSameDocumentSelection(
+    left: IAxataSynchronizationManualDocumentItemApiDto,
+    right: IAxataSynchronizationManualDocumentItemApiDto
+  ): boolean {
+    return (
+      (left.documentSerie ?? '') === (right.documentSerie ?? '') &&
+      (left.documentOrderNo ?? null) === (right.documentOrderNo ?? null) &&
+      (left.documentNo ?? null) === (right.documentNo ?? null) &&
+      (left.documentDate ?? '') === (right.documentDate ?? '')
+    );
+  }
+
+  private buildBatchDocumentRequest(): IAxataSynchronizationManualDocumentBatchRequestApiDto | null {
+    const warehouseNo = this.resolveWarehouseNo(true);
+
+    if (!warehouseNo) {
+      return null;
+    }
+
+    const documents = this.selectedBatchDocuments();
+
+    if (!documents.length) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Batch secimi bos',
+        message: 'Toplu preview veya execute icin en az bir evrak secmelisin.'
+      });
+      return null;
+    }
+
+    return {
+      warehouseNo,
+      continueOnError: this.batchForm.controls.continueOnError.value,
+      documents
+    };
+  }
+
+  private buildBatchDocumentExecuteRequest():
+    | (IAxataSynchronizationManualDocumentBatchRequestApiDto & {
+        executionMode: IAxataExecutionMode;
+      })
+    | null {
+    const request = this.buildBatchDocumentRequest();
+
+    if (!request) {
+      return null;
+    }
+
+    return {
+      ...request,
+      executionMode: this.form.controls.executionMode.value
+    };
+  }
+
+  private buildIncomingWarehouseAcceptRequest(): IFurpaAcceptWarehouseReceivingRequestApiDto | null {
+    const drafts = this.incomingWarehouseLineDrafts();
+
+    if (!drafts.length) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Kabul satiri yok',
+        message: 'Accept islemi icin once bir depo kabul detayi yuklenmeli.'
+      });
+      return null;
+    }
+
+    return {
+      allowDiscrepancy: this.incomingWarehouseForm.controls.allowDiscrepancy.value,
+      lines: drafts.map((item: IncomingWarehouseLineDraft) => ({
+        movementGuid: item.movementGuid,
+        receivedQuantity: item.receivedQuantity
+      }))
+    };
+  }
+
+  private parseJsonText<T>(value: string, label: string): T | null {
+    if (!value.trim()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'JSON bos',
+        message: `${label} alani bos birakilamaz.`
+      });
+      return null;
+    }
+
+    try {
+      return JSON.parse(value) as T;
+    } catch {
+      this.feedback.set({
+        tone: 'error',
+        title: 'JSON parse edilemedi',
+        message: `${label} icindeki JSON formati gecersiz.`
+      });
+      return null;
+    }
+  }
+
+  private pollJob(jobId: string): void {
+    timer(0, 3000)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        switchMap(() => this.entegrasyonIslemleriService.getAxataSynchronizationJobDetail(jobId)),
+        takeWhile(
+          (job: AxataSynchronizationJobDetailDto) => !isAxataJobTerminalStatus(job.status),
+          true
+        )
+      )
+      .subscribe({
+        next: (job: AxataSynchronizationJobDetailDto) => {
+          this.activeJob.set(job);
+
+          if (!isAxataJobTerminalStatus(job.status)) {
+            return;
+          }
+
+          this.feedback.set({
+            tone: job.status?.trim().toLocaleLowerCase('tr-TR') === 'succeeded' ? 'success' : 'error',
+            title:
+              job.status?.trim().toLocaleLowerCase('tr-TR') === 'succeeded'
+                ? 'Job tamamlandi'
+                : 'Job hata ile bitti',
+            message:
+              job.message?.trim() ||
+              job.errorMessage?.trim() ||
+              `${job.taskName} icin durum ${this.formatStatus(job.status)} olarak dondu.`
+          });
+          this.loadOverview();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Job durumu okunamadi',
+            message: 'Arka plandaki job icin detay endpointi okunamadi.'
+          });
+        }
+      });
+  }
+
+  private createPendingJobDetail(
+    job: IAxataSynchronizationJobApiDto
+  ): AxataSynchronizationJobDetailDto {
+    return {
+      ...job,
+      requestedByUserId: null,
+      startedAtUtc: null,
+      completedAtUtc: null,
+      affectedRecordCount: 0,
+      message: null,
+      errorMessage: null,
+      artifacts: []
+    };
+  }
+
+  private buildManualDocumentRequest(
+  ):
+    | {
+        warehouseNo?: number;
+        documentSerie?: string;
+        documentOrderNo?: number;
+        documentNo?: number;
+        documentDate?: string;
+      }
+    | null {
+    const warehouseNo = this.resolveWarehouseNo(true);
+
+    if (!warehouseNo) {
+      return null;
+    }
+
+    if (this.isInventoryCountTask()) {
+      const documentNo = this.toPositiveNumber(this.form.controls.manualDocumentNo.value);
+      const documentDate = this.form.controls.manualDocumentDate.value.trim();
+
+      if (!documentNo || !documentDate) {
+        this.feedback.set({
+          tone: 'error',
+          title: 'Sayim evragi eksik',
+          message: 'Inventory count manual islemi icin document no ve document date zorunlu.'
+        });
+        return null;
+      }
+
+      return {
+        warehouseNo,
+        documentNo,
+        documentDate
+      };
+    }
+
+    const documentSerie = this.form.controls.manualDocumentSerie.value.trim();
+    const documentOrderNo = this.toPositiveNumber(this.form.controls.manualDocumentOrderNo.value);
+
+    if (!documentSerie || !documentOrderNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Evrak referansi eksik',
+        message: 'Manual preview/execute icin seri ve sira bilgisi zorunlu.'
+      });
+      return null;
+    }
+
+    return {
+      warehouseNo,
+      documentSerie,
+      documentOrderNo
+    };
+  }
+
+  private buildManualDocumentExecuteRequest():
+    | {
+        warehouseNo?: number;
+        documentSerie?: string;
+        documentOrderNo?: number;
+        documentNo?: number;
+        documentDate?: string;
+        executionMode: IAxataExecutionMode;
+      }
+    | null {
+    const request = this.buildManualDocumentRequest();
+
+    if (!request) {
+      return null;
+    }
+
+    return {
+      ...request,
+      executionMode: this.form.controls.executionMode.value
+    };
+  }
+
+  private resolveWarehouseNo(isRequired = this.requiresWarehouseNo()): number | null {
+    const warehouseNo =
+      this.toPositiveNumber(this.form.controls.warehouseNo.value) ??
+      this.toPositiveNumber(this.currentWarehouseNo());
+
+    if (isRequired && !warehouseNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Warehouse gerekli',
+        message: 'Secili task warehouseNo istiyor. JWT deposunu kullan veya alani doldur.'
+      });
+      return null;
+    }
+
+    return warehouseNo;
+  }
+
+  private toPositiveNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      const parsedValue = Number(value);
+
+      if (Number.isFinite(parsedValue) && parsedValue > 0) {
+        return parsedValue;
+      }
+    }
+
+    return null;
+  }
+
+  protected tryParseJson(value: string | null | undefined): unknown {
+    if (!value?.trim()) {
+      return {};
+    }
+
+    try {
+      return JSON.parse(value);
+    } catch {
+      return value;
+    }
+  }
+
+  private getToday(): string {
+    const date = new Date();
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private getRelativeDate(daysBack: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() - daysBack);
+    const year = date.getFullYear();
+    const month = `${date.getMonth() + 1}`.padStart(2, '0');
+    const day = `${date.getDate()}`.padStart(2, '0');
+
+    return `${year}-${month}-${day}`;
+  }
+
+  private getManualIncomingCompanyReceivingTemplate(): string {
+    return this.formatJson({
+      customerCode: '120.01.03106',
+      movementDate: this.getToday(),
+      documentDate: this.getToday(),
+      documentNo: 'IRS-000123',
+      deliverer: 'Teslim Eden',
+      receiver: 'Teslim Alan',
+      description: '',
+      allowOrderOverReceiving: false,
+      lines: [
+        {
+          stockCode: '015792',
+          quantity: 6,
+          unitPrice: 0,
+          unitPointer: 1,
+          lastConsumingDate: '2026-12-31',
+          orderGuid: '1bb2b4fe-b722-4e67-9d4b-050b6d87e800',
+          description: '',
+          partyCode: '',
+          lotNo: 0,
+          projectCode: '',
+          customerResponsibilityCenter: '',
+          productResponsibilityCenter: ''
+        }
+      ]
+    });
+  }
+
+  private getManualIncomingCompanyReceivingBatchTemplate(): string {
+    return this.formatJson({
+      continueOnError: true,
+      items: [
+        JSON.parse(this.getManualIncomingCompanyReceivingTemplate())
+      ]
+    });
+  }
+
+  private getManualIncomingInventoryCountTemplate(): string {
+    return this.formatJson({
+      name: 'Nisan 2026 Genel Sayim',
+      documentDate: this.getToday(),
+      lines: [
+        {
+          stockCode: '015792',
+          quantity: 24,
+          barcode: '8690000000012',
+          unitPointer: 1
+        }
+      ]
+    });
+  }
+
+  private getManualIncomingInventoryCountBatchTemplate(): string {
+    return this.formatJson({
+      continueOnError: true,
+      items: [
+        JSON.parse(this.getManualIncomingInventoryCountTemplate())
+      ]
+    });
+  }
+
+  private getAxataOutboundDeliveryTemplate(): string {
+    return this.formatJson({
+      sourceWarehouseNo: 110,
+      targetWarehouseNo: 50,
+      transitWarehouseNo: 60,
+      movementDate: this.getToday(),
+      documentDate: this.getToday(),
+      documentNo: 'AXT-OUT-0001',
+      axataDeliveryNo: 'AXATA-DEL-1001',
+      movementCode: 'C01',
+      description: '',
+      lines: [
+        {
+          stockCode: '015550',
+          quantity: 10,
+          unitPrice: 0,
+          unitPointer: 1,
+          description: '',
+          partyCode: '',
+          lotNo: 0,
+          projectCode: '',
+          warehouseOrderLineGuid: null
+        }
+      ]
+    });
+  }
+
+  private getAxataOutboundDeliveryBatchTemplate(): string {
+    return this.formatJson({
+      continueOnError: true,
+      items: [
+        JSON.parse(this.getAxataOutboundDeliveryTemplate())
+      ]
+    });
+  }
+
+  private getAxataInboundAtfCompanyReceivingTemplate(): string {
+    return this.formatJson({
+      warehouseNo: 110,
+      customerCode: '120.01.03106',
+      movementDate: this.getToday(),
+      documentDate: this.getToday(),
+      documentNo: 'ATF-000123',
+      axataOrderNo: 'AXATA-ORDER-1001',
+      invoiceNo: 'IRS-000123',
+      deliverer: 'Teslim Eden',
+      receiver: 'Teslim Alan',
+      description: '',
+      allowOrderOverReceiving: false,
+      lines: [
+        {
+          stockCode: '015792',
+          quantity: 6,
+          unitPrice: 0,
+          unitPointer: 1,
+          lastConsumingDate: '2026-12-31',
+          orderGuid: '1bb2b4fe-b722-4e67-9d4b-050b6d87e800',
+          description: '',
+          partyCode: '',
+          lotNo: 0,
+          projectCode: '',
+          customerResponsibilityCenter: '',
+          productResponsibilityCenter: ''
+        }
+      ]
+    });
+  }
+
+  private getAxataInboundAtfCompanyReceivingBatchTemplate(): string {
+    return this.formatJson({
+      continueOnError: true,
+      items: [
+        JSON.parse(this.getAxataInboundAtfCompanyReceivingTemplate())
+      ]
+    });
+  }
+}

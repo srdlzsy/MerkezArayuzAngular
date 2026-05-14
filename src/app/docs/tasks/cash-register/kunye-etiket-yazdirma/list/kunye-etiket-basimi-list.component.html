@@ -1,0 +1,85 @@
+<section class="kunye-page">
+  <header class="kunye-header kunye-print-hidden">
+    <div>
+      <p class="eyebrow">KUNYE ETIKET BASIMI</p>
+      <h2>{{page.title }}</h2>
+      <p class="subtitle">Tarih sec, etiketleri getir ve yazdir.</p>
+    </div>
+
+    <div class="actions">
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="!selectedCount() || printState() === 'preparing'"
+        (click)="printSelected()"
+      >
+        Yazdir ({{ selectedCount() }})
+      </button>
+    </div>
+  </header>
+
+  <section class="filters kunye-print-hidden">
+    <label class="field">
+      <span>Kunye Tarihi</span>
+      <input type="date" [ngModel]="selectedDate()" (ngModelChange)="onDateChange($event)" />
+    </label>
+
+    <div class="status">
+      <span *ngIf="isLoading()" class="pill">Yukleniyor</span>
+      <span *ngIf="!isLoading() && hasData()" class="pill success">{{ tags().length }} etiket</span>
+    </div>
+  </section>
+
+  <div
+    class="feedback kunye-print-hidden"
+    *ngIf="feedback() as message"
+    [class.error]="message.tone === 'error'"
+  >
+    {{ message.message }}
+  </div>
+
+  <section class="table-shell kunye-print-hidden">
+    <table>
+      <thead>
+        <tr>
+          <th class="select-col">
+            <input
+              type="checkbox"
+              [checked]="selection.hasValue() && isAllSelected()"
+              [indeterminate]="selection.hasValue() && !isAllSelected()"
+              (change)="$event ? masterToggle() : null"
+              [disabled]="!hasData()"
+            />
+          </th>
+          <th>Kunye No</th>
+          <th>Urun</th>
+          <th>Tur</th>
+          <th>Uretim Yeri</th>
+        </tr>
+      </thead>
+      <tbody>
+        <tr *ngFor="let tag of tags(); trackBy: trackByTag">
+          <td class="select-col">
+            <input
+              type="checkbox"
+              (click)="$event.stopPropagation()"
+              (change)="$event ? toggleRow(tag) : null"
+              [checked]="selection.isSelected(tag)"
+            />
+          </td>
+          <td>{{ tag.takenTag }}</td>
+          <td>{{ tag.productName }}</td>
+          <td>{{ tag.goodsGenus }}</td>
+          <td>{{ tag.productionDistrict }} {{ tag.productionCity }}</td>
+        </tr>
+        <tr *ngIf="!tags().length && !isLoading()">
+          <td colspan="5" class="empty-row">Secilen tarihe ait veri bulunamadi.</td>
+        </tr>
+      </tbody>
+    </table>
+  </section>
+
+  <section class="kunye-print-root" *ngIf="selectedCount()">
+    <app-kunye-etiket-print [tags]="selectedTags()"></app-kunye-etiket-print>
+  </section>
+</section>

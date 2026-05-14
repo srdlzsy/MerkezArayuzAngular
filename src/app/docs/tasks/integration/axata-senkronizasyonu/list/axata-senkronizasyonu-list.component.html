@@ -1,0 +1,1421 @@
+<section class="task-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">Entegrasyon Islemleri</p>
+      <div class="welcome-box">
+        <h2>{{ current.title }}</h2>
+      </div>
+      <p class="subtitle">
+        AXATA task'larini preview al, queue'ya koy, canli dispatch ile yeniden gonder ve
+        gerekiyorsa AXATA native body veya manual incoming kurtarma akislarini ayni ekrandan yonet.
+      </p>
+
+      <div class="hero-utility-grid">
+        <article class="hero-note-card" *ngIf="selectedTask() as task">
+          <span>Secili Task</span>
+          <strong>{{ task.name }}</strong>
+          <p>
+            {{ formatFlow(task.flow) }} | {{ task.enabled ? 'Aktif' : 'Kapali' }}
+            <span *ngIf="task.liveOperationName"> | {{ task.liveOperationName }}</span>
+          </p>
+        </article>
+        <article class="hero-note-card">
+          <span>Calisma Modu</span>
+          <strong>{{ formatExecutionMode(form.controls.executionMode.value) }}</strong>
+          <p>Preview, queue, dispatch ve operasyonel kurtarma ayni yuzeyde yonetilir.</p>
+        </article>
+      </div>
+
+      <div class="hero-actions">
+        <button type="button" class="ghost-button" (click)="loadOverview()" [disabled]="overviewLoading()">
+          {{ overviewLoading() ? 'Overview yukleniyor...' : 'Overview Yenile' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="loadHealth()" [disabled]="healthLoading()">
+          {{ healthLoading() ? 'Health yukleniyor...' : 'Health Yenile' }}
+        </button>
+        <button type="button" class="ghost-button" (click)="loadFetchProfiles()" [disabled]="fetchProfilesLoading()">
+          {{ fetchProfilesLoading() ? 'Profiller yukleniyor...' : 'Fetch Profilleri' }}
+        </button>
+      </div>
+
+      <div class="capability-strip" *ngIf="selectedTaskCapabilities().length > 0">
+        <span class="note-pill" *ngFor="let capability of selectedTaskCapabilities()">
+          {{ capability }}
+        </span>
+      </div>
+    </div>
+
+    <aside class="hero-side" *ngIf="overview() as model">
+      <article class="hero-stat">
+        <span>Aktif Task</span>
+        <strong>{{ enabledTaskCount() }} / {{ model.tasks.length }}</strong>
+      </article>
+      <article class="hero-stat">
+        <span>Manual Evrak</span>
+        <strong>{{ manualTaskCount() }}</strong>
+      </article>
+      <article class="hero-stat">
+        <span>Live Dispatch</span>
+        <strong>{{ liveDispatchTaskCount() }}</strong>
+      </article>
+      <article class="hero-stat">
+        <span>Son Job</span>
+        <strong>{{ model.recentJobs.length }}</strong>
+      </article>
+      <article class="hero-stat hero-stat-wide">
+        <span>Main Endpoint</span>
+        <strong>{{ model.mainEndpointUrl || '-' }}</strong>
+      </article>
+      <article class="hero-stat hero-stat-wide">
+        <span>Extended Endpoint</span>
+        <strong>{{ model.extendedEndpointUrl || '-' }}</strong>
+      </article>
+    </aside>
+  </header>
+
+  <section class="command-grid">
+    <article class="command-card command-card-primary">
+      <div class="command-card-head">
+        <span>Genel Orkestrasyon</span>
+        <strong>Task + Preview + Job</strong>
+      </div>
+      <p>Secili task uzerinden payload preview al, kuyruğa ver ve job sonucunu ayni akista izle.</p>
+      <div class="command-card-metrics">
+        <span>{{ enabledTaskCount() }} aktif task</span>
+        <span>{{ formatExecutionMode(form.controls.executionMode.value) }}</span>
+      </div>
+      <a class="command-link" href="#task-yonetimi">Task Yonetimine Git</a>
+    </article>
+
+    <article class="command-card command-card-cool">
+      <div class="command-card-head">
+        <span>Gozlem</span>
+        <strong>Health + Fetch + Son Job</strong>
+      </div>
+      <p>Kaynak SQL, endpoint sagligi, fetch parity profilleri ve son islenen job kayitlarini izle.</p>
+      <div class="command-card-metrics">
+        <span>{{ recentJobs().length }} recent job</span>
+        <span>{{ fetchProfiles()?.profiles?.length ?? 0 }} fetch profil</span>
+      </div>
+      <a class="command-link" href="#izleme-merkezi">Izleme Merkezine Git</a>
+    </article>
+
+    <article class="command-card command-card-warm" *ngIf="isDocumentTask()">
+      <div class="command-card-head">
+        <span>Manual Kurtarma</span>
+        <strong>Mikro -> AXATA</strong>
+      </div>
+      <p>Aday evrak topla, tekli veya toplu preview/execute yap ve gerekiyorsa live dispatch ile tekrar gonder.</p>
+      <div class="command-card-metrics">
+        <span>{{ selectedBatchCount() }} batch secimi</span>
+        <span>{{ supportsLiveDispatch() ? 'Dispatch acik' : 'Dispatch kapali' }}</span>
+      </div>
+      <a class="command-link" href="#manual-kurtarma">Manual Kurtarmaya Git</a>
+    </article>
+
+    <article class="command-card command-card-soft">
+      <div class="command-card-head">
+        <span>Manual Incoming</span>
+        <strong>AXATA -> Mikro</strong>
+      </div>
+      <p>Manual incoming payload'lari, native bridge donusumleri ve depo kabul akislarini operasyonel panelden yonet.</p>
+      <div class="command-card-metrics">
+        <span>Company + Inventory</span>
+        <span>{{ incomingWarehouseBatchQueue().length }} kabul kuyrugu</span>
+      </div>
+      <a class="command-link" href="#manual-incoming">Incoming Alanina Git</a>
+    </article>
+  </section>
+
+  <section class="info-grid" *ngIf="statusSummary().length">
+    <article class="info-card" *ngFor="let item of statusSummary()">
+      <h3>{{ item.label }}</h3>
+      <p>
+        <span class="status-pill" [class]="item.tone">{{ item.value }}</span>
+      </p>
+    </article>
+    <article class="info-card emphasis-card" *ngIf="overview() as model">
+      <h3>Kaynak Profil</h3>
+      <p>{{ model.sourceDatabaseProfile || '-' }}</p>
+    </article>
+    <article class="info-card emphasis-card" *ngIf="fetchProfiles() as profiles">
+      <h3>Fetch Profili</h3>
+      <p>{{ profiles.profiles.length }} profil, {{ profiles.notes.length }} not</p>
+    </article>
+  </section>
+
+  <article
+    class="state-card state-card-feedback"
+    *ngIf="feedback() as currentFeedback"
+    [class.state-card-success]="currentFeedback.tone === 'success'"
+    [class.state-card-error]="currentFeedback.tone === 'error'"
+    [class.state-card-info]="currentFeedback.tone === 'info'"
+  >
+    <h3>{{ currentFeedback.title }}</h3>
+    <p>{{ currentFeedback.message }}</p>
+  </article>
+
+  <nav class="section-nav" aria-label="Axata bolumleri">
+    <a class="section-link" href="#task-yonetimi">
+      <span>Task Yonetimi</span>
+      <strong>{{ enabledTaskCount() }} aktif task</strong>
+    </a>
+    <a class="section-link" href="#izleme-merkezi">
+      <span>Izleme Merkezi</span>
+      <strong>{{ recentJobs().length }} son job</strong>
+    </a>
+    <a class="section-link" href="#manual-kurtarma" *ngIf="isDocumentTask()">
+      <span>Manual Kurtarma</span>
+      <strong>{{ selectedBatchCount() }} batch secimi</strong>
+    </a>
+    <a class="section-link" href="#manual-incoming">
+      <span>Manual Incoming</span>
+      <strong>Company + Inventory</strong>
+    </a>
+    <a class="section-link" href="#native-bridge">
+      <span>Native Bridge</span>
+      <strong>Outbound + ATF</strong>
+    </a>
+    <a class="section-link" href="#warehouse-accept">
+      <span>Warehouse Accept</span>
+      <strong>{{ incomingWarehouseBatchQueue().length }} kuyruk</strong>
+    </a>
+  </nav>
+
+  <section class="section-shell" id="task-yonetimi">
+    <div class="section-banner">
+      <div class="section-banner-copy">
+        <p class="section-kicker">Task Yonetimi</p>
+        <h3>Orkestrasyon katmanini tek task uzerinden yonet</h3>
+        <p>
+          Bu alan preview, execute ve queue tabanli job akisini bir araya getirir. Sol tarafta task
+          katalogu, sag tarafta secili task'in calisma parametreleri yer alir.
+        </p>
+        <div class="route-strip">
+          <span class="route-pill"><code>GET /api/integrations/axata-sync</code></span>
+          <span class="route-pill"><code>GET /tasks/&#123;taskCode&#125;/preview</code></span>
+          <span class="route-pill"><code>POST /tasks/&#123;taskCode&#125;/execute</code></span>
+          <span class="route-pill"><code>POST /jobs</code></span>
+        </div>
+      </div>
+
+      <div class="section-banner-side">
+        <article class="section-mini-stat" *ngIf="selectedTask() as task">
+          <span>Secili Task</span>
+          <strong>{{ task.code }}</strong>
+        </article>
+        <article class="section-mini-stat">
+          <span>Execution</span>
+          <strong>{{ formatExecutionMode(form.controls.executionMode.value) }}</strong>
+        </article>
+      </div>
+    </div>
+
+    <section class="workspace-grid workspace-grid-primary">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Task Katalogu</h3>
+            <p>Overview endpointinden gelen aktif gorevler ve task capability bilgileri.</p>
+          </div>
+        </div>
+
+        <div class="task-grid" *ngIf="tasks().length > 0; else emptyTasks">
+          <button
+            type="button"
+            class="task-card"
+            *ngFor="let task of tasks(); trackBy: trackByTask"
+            [class.is-selected]="selectedTaskCode() === task.code"
+            [class.is-disabled]="!task.enabled"
+            (click)="selectTask(task.code)"
+          >
+            <div class="task-card-head">
+              <h4>{{ task.name }}</h4>
+              <span class="status-pill" [class]="getStatusTone(task.enabled ? 'enabled' : 'disabled')">
+                {{ task.enabled ? 'Aktif' : 'Kapali' }}
+              </span>
+            </div>
+
+            <p>{{ task.description }}</p>
+
+            <div class="task-meta">
+              <span>{{ formatFlow(task.flow) }}</span>
+              <span>{{ task.requiresWarehouseNo ? 'Warehouse zorunlu' : 'Depodan bagimsiz' }}</span>
+              <span>{{ task.intervalMinutes }} dk</span>
+            </div>
+
+            <div class="task-capability-row">
+              <span class="mini-pill" [class.is-positive]="task.supportsManualDocuments">
+                {{ task.supportsManualDocuments ? 'Manual documents' : 'Manual yok' }}
+              </span>
+              <span class="mini-pill" [class.is-positive]="task.supportsLiveDispatch">
+                {{ task.supportsLiveDispatch ? 'Live dispatch' : 'Dispatch yok' }}
+              </span>
+              <span class="mini-pill" [class.is-positive]="task.scheduleEnabled">
+                {{ task.scheduleEnabled ? 'Scheduler acik' : 'Scheduler pasif' }}
+              </span>
+              <span class="mini-pill" *ngIf="task.liveOperationName">
+                {{ task.liveOperationName }}
+              </span>
+            </div>
+          </button>
+        </div>
+
+        <ng-template #emptyTasks>
+          <div class="empty-state">
+            <h4>Task listesi bos</h4>
+            <p>Overview endpointi task dondurmediyse entegrasyon konfigurasyonunu kontrol et.</p>
+          </div>
+        </ng-template>
+      </article>
+
+      <article class="panel control-panel">
+        <div class="panel-head">
+          <div>
+            <h3>Preview ve Execute</h3>
+            <p>{{ selectedTaskDescription() }}</p>
+          </div>
+        </div>
+
+        <div class="selected-task-summary" *ngIf="selectedTask() as task">
+          <article class="summary-chip-card">
+            <span>Kod</span>
+            <strong>{{ task.code }}</strong>
+          </article>
+          <article class="summary-chip-card">
+            <span>Flow</span>
+            <strong>{{ formatFlow(task.flow) }}</strong>
+          </article>
+          <article class="summary-chip-card">
+            <span>Varsayilan Depo</span>
+            <strong>{{ task.defaultWarehouseNo ?? '-' }}</strong>
+          </article>
+          <article class="summary-chip-card">
+            <span>Sistem</span>
+            <strong>{{ task.sourceSystem }} -> {{ task.targetSystem }}</strong>
+          </article>
+          <article class="summary-chip-card">
+            <span>Live Operation</span>
+            <strong>{{ selectedTaskLiveOperationName() || '-' }}</strong>
+          </article>
+        </div>
+
+        <div class="note-list" *ngIf="selectedTaskLimits().length > 0">
+          <span class="note-pill is-warning" *ngFor="let note of selectedTaskLimits()">
+            {{ note }}
+          </span>
+        </div>
+
+        <div class="workflow-rail">
+          <article class="workflow-step">
+            <span>1</span>
+            <strong>Task Sec</strong>
+            <p>Katalogdan gorevi sec ve gereken depo kapsamını belirle.</p>
+          </article>
+          <article class="workflow-step">
+            <span>2</span>
+            <strong>Preview veya Execute</strong>
+            <p>DryRun ya da Outbox modunda payloadi izle veya kuyruga ver.</p>
+          </article>
+          <article class="workflow-step">
+            <span>3</span>
+            <strong>Job Sonucunu Topla</strong>
+            <p>Artifact, hata ve kayit adetlerini ayni panelden takip et.</p>
+          </article>
+        </div>
+
+        <form class="control-form" [formGroup]="form">
+          <label class="field">
+            <span>Secili Task</span>
+            <input type="text" formControlName="taskCode" readonly />
+          </label>
+
+          <div class="field-row">
+            <label class="field">
+              <span>Warehouse No</span>
+              <input type="number" formControlName="warehouseNo" placeholder="110" />
+              <small *ngIf="requiresWarehouseNo()">
+                Secili task icin warehouse gerekli. Bos kalirsa JWT deposu kullanilir.
+              </small>
+            </label>
+
+            <label class="field">
+              <span>Preview Take</span>
+              <input type="number" formControlName="take" min="1" max="100" />
+            </label>
+          </div>
+
+          <label class="field">
+            <span>Execution Mode</span>
+            <select formControlName="executionMode">
+              <option *ngFor="let mode of executionModes" [value]="mode">
+                {{ formatExecutionMode(mode) }}
+              </option>
+            </select>
+          </label>
+
+          <div class="action-row">
+            <button type="button" class="primary-button" (click)="previewSelectedTask()" [disabled]="previewLoading() || executeLoading()">
+              {{ previewLoading() ? 'Preview hazirlaniyor...' : 'Preview Al' }}
+            </button>
+            <button type="button" class="secondary-button" (click)="executeSelectedTask()" [disabled]="executeLoading()">
+              {{ executeLoading() ? 'Task calisiyor...' : 'Task Calistir' }}
+            </button>
+            <button
+              type="button"
+              class="secondary-button"
+              (click)="executeSelectedTaskViaJobsEndpoint()"
+              [disabled]="genericJobLoading()"
+            >
+              {{ genericJobLoading() ? 'Jobs endpointi calisiyor...' : 'Jobs Endpointi Ile Calistir' }}
+            </button>
+          </div>
+        </form>
+
+        <div class="active-job" *ngIf="activeJob() as job">
+          <div class="panel-head compact">
+            <div>
+              <h4>Aktif Job</h4>
+              <p>{{ job.taskName }} - {{ job.jobId }}</p>
+            </div>
+            <span class="status-pill" [class]="getStatusTone(job.status)">
+              {{ formatStatus(job.status) }}
+            </span>
+          </div>
+
+          <div class="job-metrics">
+            <div>
+              <span>Olusturma</span>
+              <strong>{{ formatTimestamp(job.createdAtUtc) }}</strong>
+            </div>
+            <div>
+              <span>Baslama</span>
+              <strong>{{ formatTimestamp(job.startedAtUtc) }}</strong>
+            </div>
+            <div>
+              <span>Tamamlama</span>
+              <strong>{{ formatTimestamp(job.completedAtUtc) }}</strong>
+            </div>
+            <div>
+              <span>Kayit</span>
+              <strong>{{ job.affectedRecordCount }}</strong>
+            </div>
+          </div>
+
+          <p class="job-message" *ngIf="job.message">{{ job.message }}</p>
+          <p class="job-message error" *ngIf="job.errorMessage">{{ job.errorMessage }}</p>
+
+          <div class="artifact-list" *ngIf="job.artifacts.length > 0">
+            <h5>Artifactler</h5>
+            <article class="artifact-card" *ngFor="let artifact of job.artifacts">
+              <strong>{{ formatArtifactLabel(artifact) }}</strong>
+              <span>{{ artifact.path }}</span>
+            </article>
+          </div>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <section class="section-shell" id="izleme-merkezi">
+    <div class="section-banner">
+      <div class="section-banner-copy">
+        <p class="section-kicker">Izleme Merkezi</p>
+        <h3>Health, fetch parity ve son islem izlerini yan yana oku</h3>
+        <p>
+          Servis sagligi, eski worker parity profilleri ve queue gecmisi ayni satirda oldugunda
+          operator daha hizli karar verebilir.
+        </p>
+        <div class="route-strip">
+          <span class="route-pill"><code>GET /api/integrations/axata-sync/health</code></span>
+          <span class="route-pill"><code>GET /api/integrations/axata-sync/fetch-profiles</code></span>
+          <span class="route-pill"><code>GET /api/integrations/axata-sync/jobs/&#123;jobId&#125;</code></span>
+        </div>
+      </div>
+
+      <div class="section-banner-side">
+        <article class="section-mini-stat">
+          <span>Health Probe</span>
+          <strong>{{ health()?.probes?.length ?? 0 }}</strong>
+        </article>
+        <article class="section-mini-stat">
+          <span>Recent Job</span>
+          <strong>{{ recentJobs().length }}</strong>
+        </article>
+      </div>
+    </div>
+
+    <section class="workspace-grid workspace-grid-secondary">
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Task Preview Sonucu</h3>
+            <p>Canli veriden uretilen ornek payload listesi ve toplu JSON gorunumu.</p>
+          </div>
+        </div>
+
+        <div class="empty-state" *ngIf="!preview()">
+          <h4>Preview henuz alinmadi</h4>
+          <p>Secili task icin once <code>Preview Al</code> aksiyonunu calistir.</p>
+        </div>
+
+        <ng-container *ngIf="preview() as previewModel">
+          <div class="preview-meta">
+            <span>{{ previewModel.taskName }}</span>
+            <span>{{ previewModel.returnedRecordCount }} / {{ previewModel.totalRecordCount }} kayit</span>
+            <span>{{ formatTimestamp(previewModel.generatedAtUtc) }}</span>
+          </div>
+
+          <div class="note-list" *ngIf="previewModel.notes.length > 0">
+            <span class="note-pill" *ngFor="let note of previewModel.notes">{{ note }}</span>
+          </div>
+
+          <div class="preview-list" *ngIf="previewModel.items.length > 0">
+            <article class="preview-card" *ngFor="let item of previewModel.items; trackBy: trackByPreviewItem">
+              <div class="preview-card-head">
+                <strong>{{ item.key }}</strong>
+                <span>{{ item.summary }}</span>
+              </div>
+              <pre>{{ formatJson(tryParseJson(item.payloadJson)) }}</pre>
+            </article>
+          </div>
+
+          <details class="json-block">
+            <summary>Toplu JSON gorunumu</summary>
+            <pre>{{ previewJson() }}</pre>
+          </details>
+        </ng-container>
+      </article>
+
+      <article class="panel">
+        <div class="panel-head">
+          <div>
+            <h3>Health ve Fetch Profilleri</h3>
+            <p>SQL/endpoint probe durumu ile planli AXATA fetch-import profillerini birlikte kontrol et.</p>
+          </div>
+        </div>
+
+        <div class="probe-list" *ngIf="health() as healthModel; else noHealth">
+          <article class="probe-card" *ngFor="let probe of healthModel.probes; trackBy: trackByProbe">
+            <div class="probe-head">
+              <strong>{{ probe.name }}</strong>
+              <span class="status-pill" [class]="getStatusTone(probe.status)">
+                {{ formatStatus(probe.status) }}
+              </span>
+            </div>
+            <span>{{ formatDuration(probe.durationMs) }}</span>
+            <p *ngIf="probe.message">{{ probe.message }}</p>
+          </article>
+        </div>
+
+        <ng-template #noHealth>
+          <div class="empty-state">
+            <h4>Health verisi yok</h4>
+            <p>Baglanti testleri getirilemediyse yukaridaki yenile aksiyonunu tekrar deneyin.</p>
+          </div>
+        </ng-template>
+
+        <div class="fetch-profile-shell">
+          <div class="panel-head compact">
+            <div>
+              <h4>Fetch Profilleri</h4>
+              <p>Eski worker parity icin hedeflenen fetch/ack profilleri.</p>
+            </div>
+          </div>
+
+          <div class="note-list" *ngIf="fetchProfiles()?.notes?.length">
+            <span class="note-pill" *ngFor="let note of fetchProfiles()!.notes">{{ note }}</span>
+          </div>
+
+          <div class="fetch-profile-list" *ngIf="fetchProfiles()?.profiles?.length; else noProfiles">
+            <article class="fetch-profile-card" *ngFor="let profile of fetchProfiles()!.profiles; trackBy: trackByFetchProfile">
+              <div class="preview-card-head">
+                <strong>{{ profile.code }} - {{ profile.name }}</strong>
+                <span class="status-pill" [class]="getStatusTone(profile.isImplemented ? 'enabled' : 'disabled')">
+                  {{ profile.isImplemented ? 'Hazir' : 'Scaffold' }}
+                </span>
+              </div>
+
+              <div class="task-meta">
+                <span>{{ profile.sourceSystem }} -> {{ profile.targetSystem }}</span>
+                <span>{{ profile.companyCode || '-' }}</span>
+                <span>{{ profile.warehouseCode || '-' }}</span>
+                <span>{{ profile.movementType || 'Movement bagimsiz' }}</span>
+              </div>
+
+              <div class="fetch-route-grid">
+                <div>
+                  <span>Fetch</span>
+                  <strong>{{ profile.fetchOperation }}</strong>
+                  <small>{{ profile.sourceEndpointKind }} | {{ profile.sourceEndpointUrl }}</small>
+                </div>
+                <div>
+                  <span>Ack</span>
+                  <strong>{{ profile.ackOperation }}</strong>
+                  <small>{{ profile.ackEndpointKind }} | {{ profile.ackEndpointUrl }}</small>
+                </div>
+              </div>
+
+              <p class="fetch-note">
+                {{ profile.currentHandling }}<span *ngIf="profile.currentRoute"> | {{ profile.currentRoute }}</span>
+              </p>
+            </article>
+          </div>
+
+          <ng-template #noProfiles>
+            <div class="empty-state compact-empty">
+              <p>Fetch profile bilgisi henuz yuklenmedi.</p>
+            </div>
+          </ng-template>
+        </div>
+
+        <div class="recent-jobs">
+          <h4>Son Job'lar</h4>
+          <div class="job-list" *ngIf="recentJobs().length > 0; else emptyJobs">
+            <article class="recent-job-card" *ngFor="let job of recentJobs(); trackBy: trackByJob">
+              <div class="recent-job-head">
+                <strong>{{ job.taskName }}</strong>
+                <span class="status-pill" [class]="getStatusTone(job.status)">
+                  {{ formatStatus(job.status) }}
+                </span>
+              </div>
+              <p>{{ formatExecutionMode(job.executionMode) }} | {{ job.triggerSource }}</p>
+              <span>{{ formatTimestamp(job.createdAtUtc) }}</span>
+            </article>
+          </div>
+
+          <ng-template #emptyJobs>
+            <div class="empty-state compact-empty">
+              <p>Overview icinde son job kaydi yok.</p>
+            </div>
+          </ng-template>
+        </div>
+      </article>
+    </section>
+  </section>
+
+  <section class="section-shell" id="manual-kurtarma" *ngIf="isDocumentTask()">
+    <div class="section-banner">
+      <div class="section-banner-copy">
+        <p class="section-kicker">Manual Kurtarma</p>
+        <h3>Mikro -> AXATA evraklarini operasyonel olarak yeniden isle</h3>
+        <p>
+          Aday havuzundan evrak sec, tekil payload'i incele, toplu execute calistir ve task
+          destekliyorsa canli dispatch ile uzak sisteme tekrar gonder.
+        </p>
+        <div class="route-strip">
+          <span class="route-pill"><code>GET /manual/tasks/&#123;taskCode&#125;/documents/candidates</code></span>
+          <span class="route-pill"><code>POST /manual/tasks/&#123;taskCode&#125;/documents/preview</code></span>
+          <span class="route-pill"><code>POST /manual/tasks/&#123;taskCode&#125;/documents/execute-batch</code></span>
+          <span class="route-pill" *ngIf="supportsLiveDispatch()"><code>POST /manual/tasks/&#123;taskCode&#125;/documents/dispatch-batch</code></span>
+        </div>
+      </div>
+
+      <div class="section-banner-side">
+        <article class="section-mini-stat">
+          <span>Batch Secimi</span>
+          <strong>{{ selectedBatchCount() }}</strong>
+        </article>
+        <article class="section-mini-stat">
+          <span>Dispatch</span>
+          <strong>{{ supportsLiveDispatch() ? 'Acilabilir' : 'Yok' }}</strong>
+        </article>
+      </div>
+    </div>
+
+    <section class="panel rescue-panel" [formGroup]="form">
+      <div class="panel-head">
+        <div>
+          <h3>Mikro -> AXATA Manuel Evrak Kurtarma</h3>
+          <p>
+            Evrak adaylarini listele, tekli veya toplu preview/execute yap, gerekiyorsa
+            <span *ngIf="supportsLiveDispatch()"> canli dispatch ile tekrar gonder. </span>
+            <span *ngIf="!supportsLiveDispatch()"> bu task icin canli dispatch acik degil. </span>
+          </p>
+        </div>
+      </div>
+
+      <div class="workflow-rail">
+        <article class="workflow-step">
+          <span>1</span>
+          <strong>Aday Topla</strong>
+          <p>Tarih araligindan operasyonel kurtarmaya uygun evraklari sec.</p>
+        </article>
+        <article class="workflow-step">
+          <span>2</span>
+          <strong>Tekli Kontrol</strong>
+          <p>Preview, execute veya gerekiyorsa canli dispatch ile tek evragi dene.</p>
+        </article>
+        <article class="workflow-step">
+          <span>3</span>
+          <strong>Toplu Islem</strong>
+          <p>Batch listesi olustur, continue-on-error ile toplu senaryolari yonet.</p>
+        </article>
+      </div>
+
+      <div class="rescue-grid">
+        <div class="rescue-column">
+          <div class="stack-card">
+            <div class="panel-head compact">
+              <div>
+                <h4>Aday Havuzu</h4>
+                <p>Tarih araligi, depo ve take bilgisiyle secilebilir evrak listesi.</p>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Baslangic</span>
+                <input type="date" formControlName="candidateStartDate" />
+              </label>
+              <label class="field">
+                <span>Bitis</span>
+                <input type="date" formControlName="candidateEndDate" />
+              </label>
+              <label class="field small-field">
+                <span>Take</span>
+                <input type="number" formControlName="candidateTake" min="1" max="100" />
+              </label>
+            </div>
+
+            <button type="button" class="secondary-button full-width" (click)="loadManualCandidates()" [disabled]="candidateLoading()">
+              {{ candidateLoading() ? 'Adaylar yukleniyor...' : 'Aday Evraklari Listele' }}
+            </button>
+
+            <div class="candidate-list" *ngIf="manualCandidates() as candidateModel; else noCandidates">
+              <article class="candidate-card" *ngFor="let item of candidateModel.items; trackBy: trackByCandidate">
+                <div>
+                  <strong>{{ item.documentReference }}</strong>
+                  <p>{{ item.summary }}</p>
+                </div>
+                <div class="candidate-meta">
+                  <span>{{ item.lineCount }} satir</span>
+                  <span>{{ item.totalQuantity }} miktar</span>
+                </div>
+                <div class="candidate-actions">
+                  <button type="button" class="ghost-button" (click)="applyCandidate(item)">Forma Tasi</button>
+                  <button
+                    type="button"
+                    class="ghost-button"
+                    (click)="toggleBatchCandidate(item)"
+                  >
+                    {{ isBatchCandidateSelected(item) ? 'Batchten Cikar' : 'Batche Ekle' }}
+                  </button>
+                </div>
+              </article>
+            </div>
+
+            <ng-template #noCandidates>
+              <div class="empty-state compact-empty">
+                <p>Aday liste henuz yuklenmedi.</p>
+              </div>
+            </ng-template>
+          </div>
+        </div>
+
+        <div class="rescue-column">
+          <div class="stack-card">
+            <div class="panel-head compact">
+              <div>
+                <h4>Tekli Evrak Isleme</h4>
+                <p>Form referansiyla preview, execute ve tekli dispatch akislarini calistir.</p>
+              </div>
+            </div>
+
+            <div class="field-row" *ngIf="!isInventoryCountTask(); else inventoryFields">
+              <label class="field">
+                <span>Document Serie</span>
+                <input type="text" formControlName="manualDocumentSerie" placeholder="F110" />
+              </label>
+              <label class="field">
+                <span>Document Order No</span>
+                <input type="number" formControlName="manualDocumentOrderNo" placeholder="2451" />
+              </label>
+            </div>
+
+            <ng-template #inventoryFields>
+              <div class="field-row">
+                <label class="field">
+                  <span>Document No</span>
+                  <input type="number" formControlName="manualDocumentNo" placeholder="1052" />
+                </label>
+                <label class="field">
+                  <span>Document Date</span>
+                  <input type="date" formControlName="manualDocumentDate" />
+                </label>
+              </div>
+            </ng-template>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="previewManualDocument()" [disabled]="manualLoading() || dispatchLoading()">
+                {{ manualLoading() ? 'Preview olusturuluyor...' : 'Tekli Preview' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="executeManualDocument()" [disabled]="manualLoading() || dispatchLoading()">
+                {{ manualLoading() ? 'Calistiriliyor...' : 'Tekli Execute' }}
+              </button>
+              <button
+                type="button"
+                class="secondary-button"
+                *ngIf="supportsLiveDispatch()"
+                (click)="dispatchManualDocument()"
+                [disabled]="manualLoading() || dispatchLoading()"
+              >
+                {{ dispatchLoading() ? 'Dispatch yapiliyor...' : 'Canli Dispatch' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="addCurrentManualDocumentToBatch()">
+                Formdaki Evragi Batch'e Ekle
+              </button>
+            </div>
+
+            <div class="manual-result" *ngIf="manualDocumentResult() as result">
+              <div class="panel-head compact">
+                <div>
+                  <h4>{{ result.documentReference }}</h4>
+                  <p>{{ formatExecutionMode(result.executionMode) }} | {{ result.affectedRecordCount }} kayit</p>
+                </div>
+                <span class="status-pill status-pill-success">Hazir</span>
+              </div>
+
+              <div class="note-list" *ngIf="result.notes.length > 0">
+                <span class="note-pill" *ngFor="let note of result.notes">{{ note }}</span>
+              </div>
+
+              <div class="artifact-list" *ngIf="result.artifacts.length > 0">
+                <h5>Artifactler</h5>
+                <article class="artifact-card" *ngFor="let artifact of result.artifacts">
+                  <strong>{{ formatArtifactLabel(artifact) }}</strong>
+                  <span>{{ artifact.path }}</span>
+                </article>
+              </div>
+
+              <details class="json-block" open>
+                <summary>Payload</summary>
+                <pre>{{ manualResultJson() }}</pre>
+              </details>
+            </div>
+
+            <div class="dispatch-shell" *ngIf="manualDispatchResult() as result">
+              <div class="panel-head compact">
+                <div>
+                  <h4>Canli Dispatch Sonucu</h4>
+                  <p>{{ result.documentReference }} | {{ result.operationName }}</p>
+                </div>
+                <span class="status-pill" [class]="getStatusTone(result.isSuccess ? 'succeeded' : 'warning')">
+                  {{ result.isSuccess ? 'Basarili' : 'Kontrol Et' }}
+                </span>
+              </div>
+
+              <div class="preview-meta">
+                <span>{{ result.endpointUrl }}</span>
+                <span>{{ formatTimestamp(result.dispatchedAtUtc) }}</span>
+                <span>State: {{ result.serviceState ?? '-' }}</span>
+              </div>
+
+              <p class="job-message">{{ result.serviceMessage }}</p>
+
+              <div class="note-list" *ngIf="result.notes.length > 0">
+                <span class="note-pill" *ngFor="let note of result.notes">{{ note }}</span>
+              </div>
+
+              <details class="json-block">
+                <summary>Payload JSON</summary>
+                <pre>{{ formatJson(tryParseJson(result.payloadJson)) }}</pre>
+              </details>
+
+              <details class="json-block">
+                <summary>Request XML</summary>
+                <pre>{{ result.requestXml }}</pre>
+              </details>
+
+              <details class="json-block">
+                <summary>Response XML</summary>
+                <pre>{{ result.responseXml }}</pre>
+              </details>
+            </div>
+          </div>
+
+          <div class="batch-shell">
+            <div class="panel-head compact">
+              <div>
+                <h4>Batch Preview / Execute</h4>
+                <p>{{ selectedBatchCount() }} secili evrak toplu akisa hazir.</p>
+              </div>
+              <label class="toggle-inline">
+                <input type="checkbox" [formControl]="batchForm.controls.continueOnError" />
+                <span>ContinueOnError</span>
+              </label>
+            </div>
+
+            <div class="selected-batch-list" *ngIf="selectedBatchDocuments().length > 0; else emptyBatchSelection">
+              <article
+                class="selected-batch-card"
+                *ngFor="let item of selectedBatchDocuments(); trackBy: trackBySelectedBatchDocument; let index = index"
+              >
+                <strong>{{ formatSelectedBatchDocument(item) }}</strong>
+                <button type="button" class="ghost-button" (click)="removeBatchDocument(index)">Cikar</button>
+              </article>
+            </div>
+
+            <ng-template #emptyBatchSelection>
+              <div class="empty-state compact-empty">
+                <p>Toplu preview veya execute icin aday listeden ya da formdan evrak ekleyin.</p>
+              </div>
+            </ng-template>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="previewManualDocumentBatch()" [disabled]="batchLoading() || dispatchLoading()">
+                {{ batchLoading() ? 'Batch preview...' : 'Batch Preview' }}
+              </button>
+              <button type="button" class="secondary-button" (click)="executeManualDocumentBatch()" [disabled]="batchLoading() || dispatchLoading()">
+                {{ batchLoading() ? 'Batch execute...' : 'Batch Execute' }}
+              </button>
+              <button
+                type="button"
+                class="secondary-button"
+                *ngIf="supportsLiveDispatch()"
+                (click)="dispatchManualDocumentBatch()"
+                [disabled]="batchLoading() || dispatchLoading()"
+              >
+                {{ dispatchLoading() ? 'Dispatch yapiliyor...' : 'Batch Dispatch' }}
+              </button>
+              <button type="button" class="ghost-button" (click)="clearBatchDocuments()">Listeyi Temizle</button>
+            </div>
+
+            <div class="manual-result" *ngIf="batchResult() as batch">
+              <div class="preview-meta">
+                <span>{{ batch.requestedDocumentCount }} talep</span>
+                <span>{{ batch.succeededDocumentCount }} basarili</span>
+                <span>{{ batch.failedDocumentCount }} hatali</span>
+              </div>
+
+              <div class="note-list" *ngIf="batch.notes.length > 0">
+                <span class="note-pill" *ngFor="let note of batch.notes">{{ note }}</span>
+              </div>
+
+              <div class="artifact-list" *ngIf="batch.documents.length > 0">
+                <article class="artifact-card" *ngFor="let item of batch.documents">
+                  <strong>{{ item.documentReference }}</strong>
+                  <span>{{ item.affectedRecordCount }} kayit</span>
+                </article>
+              </div>
+
+              <div class="failure-list" *ngIf="batch.failures.length > 0">
+                <article class="failure-card" *ngFor="let failure of batch.failures">
+                  <strong>{{ failure.documentReference }}</strong>
+                  <p>{{ failure.errorMessage }}</p>
+                </article>
+              </div>
+            </div>
+
+            <div class="manual-result" *ngIf="manualDispatchBatchResult() as result">
+              <div class="preview-meta">
+                <span>{{ result.requestedDocumentCount }} talep</span>
+                <span>{{ result.succeededDocumentCount }} dispatch basarili</span>
+                <span>{{ result.failedDocumentCount }} dispatch hatasi</span>
+              </div>
+
+              <div class="note-list" *ngIf="result.notes.length > 0">
+                <span class="note-pill" *ngFor="let note of result.notes">{{ note }}</span>
+              </div>
+
+              <div class="artifact-list" *ngIf="result.documents.length > 0">
+                <article class="artifact-card" *ngFor="let item of result.documents">
+                  <strong>{{ item.documentReference }}</strong>
+                  <span>{{ item.serviceMessage }}</span>
+                </article>
+              </div>
+
+              <div class="failure-list" *ngIf="result.failures.length > 0">
+                <article class="failure-card" *ngFor="let failure of result.failures">
+                  <strong>{{ failure.documentReference }}</strong>
+                  <p>{{ failure.errorMessage }}</p>
+                </article>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </section>
+
+  <section class="section-shell" id="manual-incoming">
+    <div class="section-banner">
+      <div class="section-banner-copy">
+        <p class="section-kicker">AXATA -> Mikro</p>
+        <h3>Manual incoming payload'larini editorden dogrudan uygula</h3>
+        <p>
+          Operasyon ekibi AXATA kaynakli payload'i buraya yapistirip company receiving veya inventory
+          count olarak Mikro'ya yazabilir.
+        </p>
+        <div class="route-strip">
+          <span class="route-pill"><code>POST /manual/incoming/company-receivings</code></span>
+          <span class="route-pill"><code>POST /manual/incoming/company-receivings/batch</code></span>
+          <span class="route-pill"><code>POST /manual/incoming/inventory-counts</code></span>
+          <span class="route-pill"><code>POST /manual/incoming/inventory-counts/batch</code></span>
+        </div>
+      </div>
+
+      <div class="section-banner-side">
+        <article class="section-mini-stat">
+          <span>Alan</span>
+          <strong>Company Receiving</strong>
+        </article>
+        <article class="section-mini-stat">
+          <span>Alan</span>
+          <strong>Inventory Count</strong>
+        </article>
+      </div>
+    </div>
+
+    <section class="panel incoming-json-panel" [formGroup]="incomingJsonForm">
+      <div class="panel-head">
+        <div>
+          <h3>AXATA -> Mikro Manual Incoming</h3>
+          <p>
+            <code>manual/incoming/company-receivings</code>,
+            <code>manual/incoming/inventory-counts</code> ve batch varyantlari icin dogrudan request body calistir.
+          </p>
+        </div>
+      </div>
+
+      <div class="incoming-json-grid">
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Firma Mal Kabul - Single</h4>
+              <p>POST /manual/incoming/company-receivings</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitManualIncomingCompanyReceiving()" [disabled]="incomingCompanyLoading()">
+              {{ incomingCompanyLoading() ? 'Gonderiliyor...' : 'Single Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="incomingJsonForm.controls.companyReceivingJson"></textarea>
+          <details class="json-block" *ngIf="incomingCompanyReceivingResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Firma Mal Kabul - Batch</h4>
+              <p>POST /manual/incoming/company-receivings/batch</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitManualIncomingCompanyReceivingBatch()" [disabled]="incomingCompanyLoading()">
+              {{ incomingCompanyLoading() ? 'Gonderiliyor...' : 'Batch Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="incomingJsonForm.controls.companyReceivingBatchJson"></textarea>
+          <details class="json-block" *ngIf="incomingCompanyReceivingBatchResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Sayim Sonucu - Single</h4>
+              <p>POST /manual/incoming/inventory-counts</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitManualIncomingInventoryCount()" [disabled]="incomingInventoryLoading()">
+              {{ incomingInventoryLoading() ? 'Gonderiliyor...' : 'Single Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="incomingJsonForm.controls.inventoryCountJson"></textarea>
+          <details class="json-block" *ngIf="incomingInventoryCountResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Sayim Sonucu - Batch</h4>
+              <p>POST /manual/incoming/inventory-counts/batch</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitManualIncomingInventoryCountBatch()" [disabled]="incomingInventoryLoading()">
+              {{ incomingInventoryLoading() ? 'Gonderiliyor...' : 'Batch Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="incomingJsonForm.controls.inventoryCountBatchJson"></textarea>
+          <details class="json-block" *ngIf="incomingInventoryCountBatchResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+      </div>
+    </section>
+  </section>
+
+  <section class="section-shell" id="native-bridge">
+    <div class="section-banner">
+      <div class="section-banner-copy">
+        <p class="section-kicker">Native Bridge</p>
+        <h3>AXATA native body'leri minimum donusumle Mikro write use-case'lerine bagla</h3>
+        <p>
+          Outbound delivery ve inbound ATF payload'lari icin ayri editorler bulunur; operator ham
+          AXATA verisini once cevirip sonra sonucu response'tan dogrulayabilir.
+        </p>
+        <div class="route-strip">
+          <span class="route-pill"><code>POST /manual/axata/outbound-deliveries/inter-warehouse-shipments</code></span>
+          <span class="route-pill"><code>POST /manual/axata/outbound-deliveries/inter-warehouse-shipments/batch</code></span>
+          <span class="route-pill"><code>POST /manual/axata/inbound-atf/company-receivings</code></span>
+          <span class="route-pill"><code>POST /manual/axata/inbound-atf/company-receivings/batch</code></span>
+        </div>
+      </div>
+
+      <div class="section-banner-side">
+        <article class="section-mini-stat">
+          <span>Akis</span>
+          <strong>Outbound Delivery</strong>
+        </article>
+        <article class="section-mini-stat">
+          <span>Akis</span>
+          <strong>Inbound ATF</strong>
+        </article>
+      </div>
+    </div>
+
+    <section class="panel axata-bridge-panel" [formGroup]="axataBridgeForm">
+      <div class="panel-head">
+        <div>
+          <h3>AXATA Native Bridge</h3>
+          <p>
+            AXATA tarafindan toparlanan native body'leri dogrudan Mikro write use-case'lerine bagla.
+          </p>
+        </div>
+      </div>
+
+      <div class="incoming-json-grid">
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Outbound Delivery -> Depolar Arasi Sevk</h4>
+              <p>POST /manual/axata/outbound-deliveries/inter-warehouse-shipments</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitAxataOutboundDelivery()" [disabled]="axataOutboundLoading()">
+              {{ axataOutboundLoading() ? 'Gonderiliyor...' : 'Single Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="axataBridgeForm.controls.outboundDeliveryJson"></textarea>
+          <details class="json-block" *ngIf="axataOutboundResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Outbound Delivery -> Sevk Batch</h4>
+              <p>POST /manual/axata/outbound-deliveries/inter-warehouse-shipments/batch</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitAxataOutboundDeliveryBatch()" [disabled]="axataOutboundLoading()">
+              {{ axataOutboundLoading() ? 'Gonderiliyor...' : 'Batch Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="axataBridgeForm.controls.outboundDeliveryBatchJson"></textarea>
+          <details class="json-block" *ngIf="axataOutboundBatchResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Inbound ATF -> Firma Mal Kabul</h4>
+              <p>POST /manual/axata/inbound-atf/company-receivings</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitAxataInboundAtfCompanyReceiving()" [disabled]="axataInboundAtfLoading()">
+              {{ axataInboundAtfLoading() ? 'Gonderiliyor...' : 'Single Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="axataBridgeForm.controls.inboundAtfJson"></textarea>
+          <details class="json-block" *ngIf="axataInboundAtfResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+
+        <article class="json-editor-card">
+          <div class="panel-head compact">
+            <div>
+              <h4>Inbound ATF -> Mal Kabul Batch</h4>
+              <p>POST /manual/axata/inbound-atf/company-receivings/batch</p>
+            </div>
+            <button type="button" class="primary-button" (click)="submitAxataInboundAtfCompanyReceivingBatch()" [disabled]="axataInboundAtfLoading()">
+              {{ axataInboundAtfLoading() ? 'Gonderiliyor...' : 'Batch Gonder' }}
+            </button>
+          </div>
+          <textarea class="json-editor" [formControl]="axataBridgeForm.controls.inboundAtfBatchJson"></textarea>
+          <details class="json-block" *ngIf="axataInboundAtfBatchResult() as result">
+            <summary>Response</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </article>
+      </div>
+    </section>
+  </section>
+
+  <section class="section-shell" id="warehouse-accept">
+    <div class="section-banner">
+      <div class="section-banner-copy">
+        <p class="section-kicker">Bekleyen Kabuller</p>
+        <h3>Manual incoming warehouse receiving kabul akislarini ayri bir operasyon masasinda yonet</h3>
+        <p>
+          Bekleyen kabulleri listele, tek bir sevki detayi ile ac, satir bazli received quantity
+          gir ve istersen batch kabul kuyrugu olustur.
+        </p>
+        <div class="route-strip">
+          <span class="route-pill"><code>GET /manual/incoming/warehouse-receivings</code></span>
+          <span class="route-pill"><code>GET /manual/incoming/warehouse-receivings/&#123;serie&#125;/&#123;orderNo&#125;</code></span>
+          <span class="route-pill"><code>POST /manual/incoming/warehouse-receivings/&#123;serie&#125;/&#123;orderNo&#125;/accept</code></span>
+          <span class="route-pill"><code>POST /manual/incoming/warehouse-receivings/accept-batch</code></span>
+        </div>
+      </div>
+
+      <div class="section-banner-side">
+        <article class="section-mini-stat">
+          <span>Bekleyen Liste</span>
+          <strong>{{ incomingWarehouseReceivings().length }}</strong>
+        </article>
+        <article class="section-mini-stat">
+          <span>Batch Kuyrugu</span>
+          <strong>{{ incomingWarehouseBatchQueue().length }}</strong>
+        </article>
+      </div>
+    </div>
+
+    <section class="panel incoming-warehouse-panel" [formGroup]="incomingWarehouseForm">
+      <div class="panel-head">
+        <div>
+          <h3>Bekleyen Depo Kabulleri</h3>
+          <p>
+            Bekleyen warehouse receiving kayitlarini listele, detayi ac, satir bazli kabul et veya
+            toplu accept batch kuyrugu olustur.
+          </p>
+        </div>
+      </div>
+
+      <div class="incoming-warehouse-grid">
+        <article class="warehouse-column">
+          <div class="stack-card">
+            <div class="panel-head compact">
+              <div>
+                <h4>Kabul Listesi</h4>
+                <p>Tarih araligi ve depo ile bekleyen kabul evraklarini topla.</p>
+              </div>
+            </div>
+
+            <div class="field-row warehouse-filter-row">
+              <label class="field">
+                <span>Warehouse No</span>
+                <input type="number" formControlName="warehouseNo" placeholder="110" />
+              </label>
+              <label class="field">
+                <span>Baslangic</span>
+                <input type="date" formControlName="startDate" />
+              </label>
+              <label class="field">
+                <span>Bitis</span>
+                <input type="date" formControlName="endDate" />
+              </label>
+            </div>
+
+            <button type="button" class="primary-button full-width" (click)="loadIncomingWarehouseReceivings()" [disabled]="incomingWarehouseLoading()">
+              {{ incomingWarehouseLoading() ? 'Liste yukleniyor...' : 'Bekleyen Kabulleri Listele' }}
+            </button>
+
+            <div class="candidate-list" *ngIf="incomingWarehouseReceivings().length > 0; else noIncomingWarehouse">
+              <article
+                class="candidate-card"
+                *ngFor="let item of incomingWarehouseReceivings(); trackBy: trackByIncomingWarehouseReceiving"
+              >
+                <div>
+                  <strong>{{ item.documentSerie }}.{{ item.documentOrderNo }}</strong>
+                  <p>{{ item.sourceWarehouse }} -> {{ item.targetWarehouse }}</p>
+                </div>
+                <div class="candidate-meta">
+                  <span>{{ item.lineCount }} satir</span>
+                  <span>{{ item.totalQuantity }} miktar</span>
+                </div>
+                <button type="button" class="ghost-button" (click)="loadIncomingWarehouseReceivingDetail(item)">
+                  Detayi Ac
+                </button>
+              </article>
+            </div>
+
+            <ng-template #noIncomingWarehouse>
+              <div class="empty-state compact-empty">
+                <p>Bekleyen depo kabul listesi henuz yuklenmedi.</p>
+              </div>
+            </ng-template>
+          </div>
+        </article>
+
+        <article class="warehouse-column">
+          <div class="stack-card">
+            <div class="panel-head compact">
+              <div>
+                <h4>Kabul Detayi</h4>
+                <p>Seri ve sira ile detayi ac, satir bazli kabul miktarini duzenle.</p>
+              </div>
+            </div>
+
+            <div class="field-row">
+              <label class="field">
+                <span>Detail Serie</span>
+                <input type="text" formControlName="detailSerie" placeholder="F110" />
+              </label>
+              <label class="field">
+                <span>Detail Order No</span>
+                <input type="number" formControlName="detailOrderNo" placeholder="3694" />
+              </label>
+            </div>
+
+            <div class="action-row">
+              <button type="button" class="secondary-button" (click)="loadIncomingWarehouseReceivingDetail()" [disabled]="incomingWarehouseDetailLoading()">
+                {{ incomingWarehouseDetailLoading() ? 'Detay yukleniyor...' : 'Detayi Getir' }}
+              </button>
+              <label class="toggle-inline">
+                <input type="checkbox" [formControl]="incomingWarehouseForm.controls.allowDiscrepancy" />
+                <span>AllowDiscrepancy</span>
+              </label>
+            </div>
+
+            <div class="manual-result" *ngIf="incomingWarehouseReceivingDetail() as detail">
+              <div class="panel-head compact">
+                <div>
+                  <h4>{{ currentIncomingWarehouseReference() }}</h4>
+                  <p>{{ detail.header.sourceWarehouse }} -> {{ detail.header.targetWarehouse }}</p>
+                </div>
+                <span class="status-pill" [class]="getStatusTone(detail.header.shippingState === 1 ? 'succeeded' : 'running')">
+                  {{ detail.header.shippingState === 1 ? 'Kabul Edildi' : 'Bekliyor' }}
+                </span>
+              </div>
+
+              <div class="preview-meta">
+                <span>{{ detail.header.lineCount }} satir</span>
+                <span>{{ detail.header.totalQuantity }} sevk</span>
+                <span>{{ currentIncomingWarehouseLineTotal() }} kabul</span>
+              </div>
+
+              <div class="warehouse-lines">
+                <article
+                  class="warehouse-line-card"
+                  *ngFor="let line of incomingWarehouseLineDrafts(); trackBy: trackByIncomingWarehouseLine"
+                >
+                  <div>
+                    <strong>{{ line.stockCode }}</strong>
+                    <p>{{ line.stockName }}</p>
+                  </div>
+                  <label class="field compact-field">
+                    <span>Sevk</span>
+                    <input type="number" [value]="line.shippedQuantity" readonly />
+                  </label>
+                  <label class="field compact-field">
+                    <span>Kabul</span>
+                    <input
+                      type="number"
+                      [value]="line.receivedQuantity"
+                      (input)="updateIncomingWarehouseReceivedQuantity(line.movementGuid, $any($event.target).value)"
+                    />
+                  </label>
+                </article>
+              </div>
+
+              <div class="action-row">
+                <button type="button" class="primary-button" (click)="acceptIncomingWarehouseReceiving()" [disabled]="incomingWarehouseAcceptLoading()">
+                  {{ incomingWarehouseAcceptLoading() ? 'Kabul kaydediliyor...' : 'Tekli Kabul Et' }}
+                </button>
+                <button type="button" class="secondary-button" (click)="enqueueIncomingWarehouseReceivingBatch()">
+                  Batch Kuyruguna Ekle
+                </button>
+              </div>
+
+              <details class="json-block" *ngIf="incomingWarehouseAcceptResult() as result">
+                <summary>Single Accept Response</summary>
+                <pre>{{ formatJson(result) }}</pre>
+              </details>
+            </div>
+          </div>
+
+          <div class="batch-shell">
+            <div class="panel-head compact">
+              <div>
+                <h4>Warehouse Accept Batch</h4>
+                <p>{{ incomingWarehouseBatchQueue().length }} evrak kuyrukta.</p>
+              </div>
+              <label class="toggle-inline">
+                <input type="checkbox" [formControl]="incomingWarehouseForm.controls.continueOnError" />
+                <span>ContinueOnError</span>
+              </label>
+            </div>
+
+            <div class="selected-batch-list" *ngIf="incomingWarehouseBatchQueue().length > 0; else emptyIncomingWarehouseBatch">
+              <article
+                class="selected-batch-card"
+                *ngFor="let item of incomingWarehouseBatchQueue(); trackBy: trackByIncomingWarehouseBatchItem"
+              >
+                <strong>{{ item.reference }}</strong>
+                <span>{{ item.lines.length }} satir</span>
+                <button type="button" class="ghost-button" (click)="removeIncomingWarehouseBatchItem(item.reference)">Cikar</button>
+              </article>
+            </div>
+
+            <ng-template #emptyIncomingWarehouseBatch>
+              <div class="empty-state compact-empty">
+                <p>Toplu kabul icin kuyruk henuz bos.</p>
+              </div>
+            </ng-template>
+
+            <div class="action-row">
+              <button type="button" class="primary-button" (click)="acceptIncomingWarehouseReceivingBatch()" [disabled]="incomingWarehouseAcceptLoading()">
+                {{ incomingWarehouseAcceptLoading() ? 'Batch kabul...' : 'Batch Kabul Et' }}
+              </button>
+              <button type="button" class="ghost-button" (click)="clearIncomingWarehouseBatchQueue()">Kuyrugu Temizle</button>
+            </div>
+
+            <details class="json-block" *ngIf="incomingWarehouseBatchResult() as result">
+              <summary>Batch Accept Response</summary>
+              <pre>{{ formatJson(result) }}</pre>
+            </details>
+          </div>
+        </article>
+      </div>
+    </section>
+  </section>
+
+  <section class="section-shell" id="kapsam-notlari">
+    <section class="panel reference-panel">
+      <div class="panel-head">
+        <div>
+          <h3>Kapsam Notlari</h3>
+          <p>Bu sayfa yeni dokumandaki AXATA entegrasyon ailesinin ana operasyon alanlarini artik kapsiyor.</p>
+        </div>
+      </div>
+      <div class="reference-grid">
+        <article class="reference-card">
+          <h4>Queue ve Polling</h4>
+          <p><code>tasks/&lt;taskCode&gt;/execute</code> ve <code>POST /jobs</code> iki ayri aksiyon olarak acildi; ikisi de otomatik job polling ile izleniyor.</p>
+        </article>
+        <article class="reference-card">
+          <h4>Fetch ve Dispatch</h4>
+          <p><code>fetch-profiles</code>, tekli/toplu dispatch ve task capability bilgileri ayni ekranda gorunur hale getirildi.</p>
+        </article>
+        <article class="reference-card">
+          <h4>AXATA Native Bridge</h4>
+          <p>Outbound delivery ve inbound ATF body'leri icin ayri JSON editor panelleri eklendi.</p>
+        </article>
+        <article class="reference-card">
+          <h4>Incoming Recovery</h4>
+          <p>Company receiving, inventory count ve warehouse receiving single/batch kabul akislarinin tamami interaktif kaldirac olarak sunuluyor.</p>
+        </article>
+      </div>
+    </section>
+  </section>
+</section>

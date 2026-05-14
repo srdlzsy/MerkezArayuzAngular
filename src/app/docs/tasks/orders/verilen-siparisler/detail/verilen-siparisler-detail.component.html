@@ -1,0 +1,125 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">{{ screenTitle }}</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">Siparis No: {{ orderIdentity() }}</p>
+    </div>
+
+    <button type="button" class="close-button" (click)="close()">Kapat</button>
+  </header>
+
+  <div class="dialog-body">
+    <section class="info-grid">
+      <article class="info-card emphasis-card">
+        <h3>Kaynak</h3>
+        <p>{{ current.baseRouteOrFile }}/{{ orderIdentity() }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Kalem Sayisi</h3>
+        <p>{{ itemCount() }}</p>
+      </article>
+      <article class="info-card" *ngIf="detail() as order">
+        <h3>Durum</h3>
+        <p>
+          <span class="status-pill" [class]="getStatusTone(order.header.isClosed)">
+            {{ getStatusLabel(order.header.isClosed) }}
+          </span>
+        </p>
+      </article>
+    </section>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Detay Yukleniyor</h3>
+      <p>Secilen siparisin ayrintisi getiriliyor.</p>
+    </article>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
+      <h3>Detay Yuklenemedi</h3>
+      <p>{{ errorMessage }}</p>
+    </article>
+
+    <ng-container *ngIf="!isLoading() && detail() as order">
+      <section class="summary-grid">
+        <article class="summary-card">
+          <h3>Seri / Sira</h3>
+          <p>{{ order.header.documentSerie }} / {{ order.header.documentOrderNo }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Belge Tarihi</h3>
+          <p>{{ formatDate(order.header.documentDate) }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Teslim Tarihi</h3>
+          <p>{{ formatDate(order.header.deliveryDate) }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Cari Kod</h3>
+          <p>{{ order.header.customerCode || '-' }}</p>
+        </article>
+        <article class="summary-card summary-card-wide">
+          <h3>Musteri</h3>
+          <p>{{ order.header.customerDisplayName || '-' }}</p>
+        </article>
+        <article class="summary-card summary-card-wide">
+          <h3>Adres</h3>
+          <p>{{ order.header.customerAddress || '-' }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Toplam Miktar</h3>
+          <p>{{ formatNumber(order.header.totalQuantity) }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Kalan</h3>
+          <p>{{ formatNumber(order.header.totalRemainingQuantity) }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Toplam Tutar</h3>
+          <p>{{ formatNumber(order.header.totalAmount) }}</p>
+        </article>
+      </section>
+
+      <section class="task-block">
+        <div class="task-title">Siparis Kalemleri</div>
+
+        <div class="table-wrap" *ngIf="order.items.length; else noKalemler">
+          <table>
+            <thead>
+              <tr>
+                <th>Stok Kodu</th>
+                <th>Stok Ismi</th>
+                <th>Birim</th>
+                <th>Miktar</th>
+                <th>Teslim</th>
+                <th>Kalan</th>
+                <th>Fiyat</th>
+                <th>Tutar</th>
+                <th>Aciklama</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let kalem of order.items; trackBy: trackByItem">
+                <td>{{ kalem.stockCode || '-' }}</td>
+                <td>{{ kalem.stockName || '-' }}</td>
+                <td>{{ kalem.unitName || '-' }}</td>
+                <td>{{ formatNumber(kalem.quantity) }}</td>
+                <td>{{ formatNumber(kalem.deliveredQuantity) }}</td>
+                <td>{{ formatNumber(kalem.remainingQuantity) }}</td>
+                <td>{{ formatNumber(kalem.unitPrice) }}</td>
+                <td>{{ formatNumber(kalem.lineAmount) }}</td>
+                <td>{{ kalem.description || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </ng-container>
+
+    <ng-template #noKalemler>
+      <article class="state-card">
+        <h3>Kalem Bulunamadi</h3>
+        <p>Bu siparis icin kalem bilgisi donmedi.</p>
+      </article>
+    </ng-template>
+  </div>
+</section>

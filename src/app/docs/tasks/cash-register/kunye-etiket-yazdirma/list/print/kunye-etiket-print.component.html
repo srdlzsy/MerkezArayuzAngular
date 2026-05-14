@@ -1,0 +1,100 @@
+<div class="print-sheet" *ngFor="let page of pages">
+  <div class="label-wrapper" *ngFor="let tag of page.items; let i = index">
+    <div class="tag-label">
+      <div class="label-header">
+        <div class="product-title">{{ tag.productName }} ({{ tag.goodsGenus }})</div>
+        <div class="product-type-bar">{{ tag.goodsType }}</div>
+      </div>
+
+      <div class="top-section">
+        <div class="qr-section">
+          <div class="qr-box">
+            <svg class="qr-svg" [attr.id]="'qr-' + (page.startIndex + i)"></svg>
+          </div>
+          <div class="qr-number">{{ tag.takenTag }}</div>
+        </div>
+
+        <div class="cost-section">
+          <div class="cost-title">*** ÜRÜN MALİYETİ ***</div>
+          <div class="cost-row">
+            <span>ALIŞ FİYATI</span>
+            <span>: {{ (tag.buyingPrice || 0) | number:'1.2-2' }} TL</span>
+          </div>
+          <div class="cost-row">
+            <span>İŞÇİLİK</span>
+            <span>: {{ ((tag.buyingPrice || 0) * 0.115) | number:'1.2-2' }} TL</span>
+          </div>
+          <div class="cost-row">
+            <span>MAĞAZACILIK GİDERİ</span>
+            <span>: {{ ((tag.buyingPrice || 0) * 0.065) | number:'1.2-2' }} TL</span>
+          </div>
+          <div class="cost-row">
+            <span>DEPOLAMA + NAKLİYE</span>
+            <span>: {{ ((tag.buyingPrice || 0) * 0.055) | number:'1.2-2' }} TL</span>
+          </div>
+          <div class="cost-row">
+            <span>FİRE - İMHA</span>
+            <span>: {{ ((tag.buyingPrice || 0) * 0.049) | number:'1.2-2' }} TL</span>
+          </div>
+          <div class="cost-row" *ngIf="tag.buyingPrice != null">
+            <span>RÜSUM VERGİSİ</span>
+            <span>: {{ tag.buyingPrice | number:'1.2-2' }} TL</span>
+          </div>
+          <div class="cost-row" *ngIf="tag.buyingPrice != null">
+            <span>KDV</span>
+            <span>: {{ tag.buyingPrice | number:'1.2-2' }} TL</span>
+          </div>
+          <div class="cost-total">
+            <span>TOPLAM MALİYET</span>
+            <span>: {{
+              (
+                (tag.buyingPrice || 0) +
+                (tag.buyingPrice || 0) * 0.115 +
+                (tag.buyingPrice || 0) * 0.065 +
+                (tag.buyingPrice || 0) * 0.055 +
+                (tag.buyingPrice || 0) * 0.049 +
+                (tag.buyingPrice || 0) +
+                (tag.buyingPrice || 0)
+      
+              ) | number:'1.2-2'
+            }} TL</span>
+          </div>
+        </div>
+      </div>
+
+      <div class="info-section">
+        <div class="info-row">
+          <div class="info-label">ÜRETİM YERİ / GÜMRÜK KAPISI</div>
+          <div class="info-value">
+            : {{ tag.productionCity || '' }} / {{ tag.productionDistrict || '' }} /
+            {{ tag.productionDistrict }}
+          </div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">ÜRETİM/İTHALAT TARİHİ</div>
+          <div class="info-value">: {{ tag.productionDate | date:'dd.MM.yyyy HH:mm' }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">MİKTARI</div>
+          <div class="info-value">: {{ (tag.quantity || 0) | number:'1.2-2' }} Kg/Adet</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">ÜRETİCİ</div>
+          <div class="info-value">: {{ tag.manufacturer || '' }}</div>
+        </div>
+        <div class="info-row">
+          <div class="info-label">İŞLETME ADI</div>
+          <div class="info-value">: {{ tag.buyer || '' }}</div>
+        </div>
+      </div>
+
+      <div class="footer-section">
+        <div class="footer-text">
+          T.C. Ticaret Bakanlığı Hal Kayıt Sistemi'nden alınan künye bilgilerini
+          <strong>www.hal.gov.tr</strong> adresinden künye numarası ile sorgulayabilirsiniz.
+        </div>
+     
+      </div>
+    </div>
+  </div>
+</div>

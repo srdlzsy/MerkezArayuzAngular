@@ -1,0 +1,182 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">DEPO MAL KABUL</p>
+      <h2>{{ current.title }} Kabul Et</h2>
+      <p class="subtitle">
+        Seri ve sira ile bekleyen sevki getir, kabul miktarlarini duzenle ve mal kabul islemini tamamla.
+      </p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="ghost-button" (click)="close()">Kapat</button>
+      <button
+        type="submit"
+        class="primary-button"
+        form="depolar-arasi-nakliye-mal-kabul-form"
+        [disabled]="submitting() || loadingDetail() || !activeReceipt() || !kalemCount()"
+      >
+        {{ submitting() ? 'Kabul Ediliyor...' : 'Kabul Et' }}
+      </button>
+    </div>
+  </header>
+
+  <div class="dialog-body">
+    <form
+      id="depolar-arasi-nakliye-mal-kabul-form"
+      class="form-shell"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+    >
+      <div class="feedback feedback-error" *ngIf="loadError()">{{ loadError() }}</div>
+      <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Sevk Referansi</h3>
+        </div>
+
+        <div class="reference-grid">
+          <label class="field">
+            <span>Seri *</span>
+            <input type="text" formControlName="seri" placeholder="Orn. F110" />
+            <small class="field-error" *ngIf="controls.seri.invalid && controls.seri.touched">
+              Seri zorunlu
+            </small>
+          </label>
+
+          <label class="field">
+            <span>Sira *</span>
+            <input type="number" min="0" step="1" formControlName="sira" placeholder="Orn. 3694" />
+            <small class="field-error" *ngIf="controls.sira.invalid && controls.sira.touched">
+              Gecerli bir sira gir
+            </small>
+          </label>
+
+          <button type="button" class="secondary-button fetch-button" [disabled]="loadingDetail()" (click)="loadReceiptDetail()">
+            {{ loadingDetail() ? 'Sevk Yukleniyor...' : 'Sevki Getir' }}
+          </button>
+        </div>
+
+        <p class="helper-text">
+          Bekleyen gelen sevkin seri ve sira bilgisini gir. Satirlar sevk detayindan otomatik dolacak.
+        </p>
+      </section>
+
+      <section class="panel" *ngIf="activeReceipt() as receipt">
+        <div class="panel-head">
+          <h3>Sevk Ozeti</h3>
+
+          <div class="summary-badges">
+            <span class="badge">{{ kalemCount() }} Satir</span>
+            <span class="total-badge">Sevk: {{ toplamSevkMiktari() }}</span>
+            <span class="total-badge">Kabul: {{ toplamKabulMiktari() }}</span>
+          </div>
+        </div>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="summary-label">Belge</span>
+            <strong>{{ receipt.header.documentSerie }} / {{ receipt.header.documentOrderNo }}</strong>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Tarih</span>
+            <strong>{{ receipt.header.documentDate || receipt.header.movementDate || '-' }}</strong>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Kaynak Depo</span>
+            <strong>{{ receipt.header.sourceWarehouseNo }} - {{ receipt.header.sourceWarehouse || '-' }}</strong>
+          </article>
+
+          <article class="summary-card">
+            <span class="summary-label">Durum</span>
+            <strong>{{ receipt.header.shippingState === 1 ? 'Tamamlandi' : 'Bekliyor' }}</strong>
+          </article>
+        </div>
+
+        <label class="checkbox-row">
+          <input type="checkbox" formControlName="allowDiscrepancy" />
+          <span>Eksik veya fazla kabul varsa farkli kabul etmeye izin ver</span>
+        </label>
+
+        <article class="warning-card" *ngIf="hasDiscrepancy() && !controls.allowDiscrepancy.value">
+          Sevk miktari ile kabul miktari farkli satirlar var. Devam etmek icin ustteki secenegi acman gerekir.
+        </article>
+      </section>
+
+      <section class="panel kalem-panel">
+        <div class="panel-head">
+          <h3>Kabul Kalemleri</h3>
+        </div>
+
+        <div class="empty-state" *ngIf="!activeReceipt()">
+          Once sevkin seri ve sira bilgisini girip detayini getir.
+        </div>
+
+        <div class="empty-state" *ngIf="activeReceipt() && !kalemCount()">
+          Bu sevke ait kabul edilebilir kalem bulunamadi.
+        </div>
+
+        <div class="kalem-table-head" *ngIf="kalemCount()">
+          <div class="col-stok">Stok</div>
+          <div class="col-sevk">Sevk</div>
+          <div class="col-kabul">Kabul</div>
+          <div class="col-fark">Fark</div>
+        </div>
+
+        <div class="kalem-list" *ngIf="kalemCount()" formArrayName="lines">
+          <div
+            class="kalem-row"
+            *ngFor="let line of lines.controls; let i = index; trackBy: trackByLine"
+            [formGroupName]="i"
+          >
+            <div class="col-stok">
+              <div class="kalem-info">
+                <strong>{{ line.controls.stockName.value || line.controls.stockCode.value }}</strong>
+                <span class="kalem-kod">{{ line.controls.stockCode.value }}</span>
+                <span class="kalem-meta" *ngIf="line.controls.warehouseOrderNo.value">
+                  Siparis: {{ line.controls.warehouseOrderNo.value }}
+                </span>
+                <span class="kalem-meta" *ngIf="line.controls.description.value">
+                  {{ line.controls.description.value }}
+                </span>
+              </div>
+            </div>
+
+            <div class="col-sevk">
+              <strong>{{ line.controls.shippedQuantity.value ?? 0 }}</strong>
+              <span>{{ line.controls.unitName.value || '-' }}</span>
+            </div>
+
+            <div class="col-kabul">
+              <input
+                type="number"
+                min="0"
+                step="0.001"
+                formControlName="receivedQuantity"
+                [class.error]="line.controls.receivedQuantity.invalid && line.controls.receivedQuantity.touched"
+              />
+              <small class="field-error" *ngIf="line.controls.receivedQuantity.invalid && line.controls.receivedQuantity.touched">
+                Gecerli miktar gir
+              </small>
+            </div>
+
+            <div class="col-fark">
+              <span
+                class="difference-pill"
+                [class.difference-pill-missing]="getDifferenceType(line) === 'missing'"
+                [class.difference-pill-excess]="getDifferenceType(line) === 'excess'"
+                [class.difference-pill-none]="getDifferenceType(line) === 'none'"
+              >
+                {{ getDifferenceLabel(line) }}
+              </span>
+              <small>{{ getDifferenceQuantity(line) }}</small>
+            </div>
+          </div>
+        </div>
+      </section>
+    </form>
+  </div>
+</section>

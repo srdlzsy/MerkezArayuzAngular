@@ -1,0 +1,234 @@
+<section class="create-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="hero-copy">
+      <p class="eyebrow">KULLANICI YONETIMI</p>
+      <h2>{{ pageHeading() }}</h2>
+      <p class="subtitle">
+        {{ endpointPath() }} endpointine {{ payloadName() }} gonderen form.
+      </p>
+    </div>
+
+    <div class="hero-actions">
+      <button type="button" class="ghost-button" (click)="goBack()">Listeye Don</button>
+    </div>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card accent-card">
+      <h3>Endpoint</h3>
+      <p>{{ endpointPath() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Payload</h3>
+      <p>{{ payloadName() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Baglam</h3>
+      <p>{{ current.title }}</p>
+    </article>
+  </section>
+
+  <form
+    class="form-card"
+    [formGroup]="mode === 'users' ? userForm : mode === 'roles' ? roleForm : permissionForm"
+    (ngSubmit)="submit()"
+  >
+    <div class="form-head">
+      <div>
+        <h3>{{ pageHeading() }}</h3>
+        <p *ngIf="mode === 'users'">
+          Kullanici kaydi `auth/register` ile olusur; secili roller kaydin ardindan
+          `/api/users/id/roles` uzerinden atanir.
+        </p>
+        <p *ngIf="mode === 'roles'">
+          Rol metadata bilgisi `SaveRoleBody` ile olusturulur. Permission atamalari rol detay
+          ekranindan yonetilir.
+        </p>
+        <p *ngIf="mode === 'permissions'">
+          Permission kaydi `module > menu > action` agacina baglanacak code ile tanimlanir.
+        </p>
+      </div>
+
+      <div class="form-actions">
+        <button type="button" class="secondary-button" (click)="goBack()">Vazgec</button>
+        <button type="submit" class="primary-button" [disabled]="submitting()">
+          {{ submitting() ? 'Kaydediliyor...' : 'Kaydet' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="feedback feedback-error" *ngIf="dependencyError()">{{ dependencyError() }}</div>
+    <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+    <div class="feedback feedback-success" *ngIf="submitSuccess()">{{ submitSuccess() }}</div>
+
+    <ng-container *ngIf="mode === 'users'">
+      <div class="loader-state" *ngIf="loadingDependencies()">Rol listesi yukleniyor...</div>
+
+      <div class="form-grid" [formGroup]="userForm">
+        <label class="field">
+          <span>Kullanici Adi</span>
+          <input type="text" formControlName="username" placeholder="admin" />
+          <small
+            class="field-error"
+            *ngIf="
+              userControls.username.invalid &&
+              (userControls.username.dirty || userControls.username.touched)
+            "
+          >
+            Kullanici adi zorunludur.
+          </small>
+        </label>
+
+        <label class="field">
+          <span>E-Posta</span>
+          <input type="email" formControlName="email" placeholder="admin@furpamerkez.local" />
+          <small
+            class="field-error"
+            *ngIf="
+              userControls.email.invalid &&
+              (userControls.email.dirty || userControls.email.touched)
+            "
+          >
+            Gecerli e-posta zorunludur.
+          </small>
+        </label>
+
+        <label class="field">
+          <span>Sifre</span>
+          <input type="password" formControlName="password" placeholder="Sifre" />
+          <small
+            class="field-error"
+            *ngIf="
+              userControls.password.invalid &&
+              (userControls.password.dirty || userControls.password.touched)
+            "
+          >
+            En az 6 karakterlik sifre zorunludur.
+          </small>
+        </label>
+
+        <label class="field">
+          <span>Ad</span>
+          <input type="text" formControlName="firstName" placeholder="System" />
+        </label>
+
+        <label class="field">
+          <span>Soyad</span>
+          <input type="text" formControlName="lastName" placeholder="Admin" />
+        </label>
+
+        <label class="field">
+          <span>Depo No</span>
+          <input type="text" formControlName="warehouseNo" placeholder="110" />
+        </label>
+
+        <label class="field field-wide">
+          <span>Depo Ismi</span>
+          <input type="text" formControlName="warehouseName" placeholder="KESTEL 1" />
+        </label>
+
+        <label class="field field-wide">
+          <span>Roller</span>
+          <select
+            multiple
+            class="role-select"
+            [disabled]="loadingDependencies() || availableRoles().length === 0"
+            (change)="onRoleSelectionChange($event)"
+          >
+            <option
+              *ngFor="let role of availableRoles()"
+              [selected]="isRoleSelected(role.id)"
+              [value]="role.id"
+            >
+              {{ role.name }}
+            </option>
+          </select>
+          <small *ngIf="!loadingDependencies() && availableRoles().length > 0">
+            Secili rol sayisi: {{ selectedRoleCount() }}
+          </small>
+        </label>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="mode === 'roles'">
+      <div class="form-grid compact-grid" [formGroup]="roleForm">
+        <label class="field">
+          <span>Rol Adi</span>
+          <input type="text" formControlName="name" placeholder="Administrator" />
+          <small
+            class="field-error"
+            *ngIf="
+              roleControls.name.invalid && (roleControls.name.dirty || roleControls.name.touched)
+            "
+          >
+            Rol adi zorunludur.
+          </small>
+        </label>
+
+        <label class="field field-wide">
+          <span>Aciklama</span>
+          <textarea formControlName="description" rows="4" placeholder="Rol aciklamasi"></textarea>
+        </label>
+
+        <label class="field checkbox-field">
+          <span>Durum</span>
+          <label class="checkbox-row">
+            <input type="checkbox" formControlName="isActive" />
+            <span>Rol aktif</span>
+          </label>
+        </label>
+      </div>
+    </ng-container>
+
+    <ng-container *ngIf="mode === 'permissions'">
+      <div class="form-grid compact-grid" [formGroup]="permissionForm">
+        <label class="field">
+          <span>Code</span>
+          <input
+            type="text"
+            formControlName="code"
+            placeholder="siparis-islemleri.verilen-depo-siparisleri.list"
+          />
+          <small
+            class="field-error"
+            *ngIf="
+              permissionControls.code.invalid &&
+              (permissionControls.code.dirty || permissionControls.code.touched)
+            "
+          >
+            Permission code zorunludur.
+          </small>
+        </label>
+
+        <label class="field">
+          <span>Name</span>
+          <input type="text" formControlName="name" placeholder="VerilenDepoSiparisleri Listele" />
+          <small
+            class="field-error"
+            *ngIf="
+              permissionControls.name.invalid &&
+              (permissionControls.name.dirty || permissionControls.name.touched)
+            "
+          >
+            Permission name zorunludur.
+          </small>
+        </label>
+
+        <label class="field field-wide">
+          <span>Aciklama</span>
+          <textarea
+            formControlName="description"
+            rows="4"
+            placeholder="SiparisIslemleri > VerilenDepoSiparisleri > Listele yetkisi."
+          ></textarea>
+        </label>
+      </div>
+
+      <section class="helper-card">
+        <h4>Mevcut Permission Sayisi</h4>
+        <p>{{ permissions().length }}</p>
+        <small>Benzer bir kayit acmadan once mevcut code yapisini kontrol edebilirsin.</small>
+      </section>
+    </ng-container>
+  </form>
+</section>

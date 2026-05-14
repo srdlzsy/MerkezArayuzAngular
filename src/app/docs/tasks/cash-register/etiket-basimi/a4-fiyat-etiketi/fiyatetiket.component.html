@@ -1,0 +1,29 @@
+<div *ngFor="let product of productsToPrint; let i = index" class="etiket-page">
+  <div class="header-space"></div>
+
+  <h1 class="price-line">
+    {{ product.price.toFixed(2) }} <sup>TL</sup>
+  </h1>
+
+  <h2 class="name-line">
+    {{ product.productName }}
+  </h2>
+
+  <div class="meta">
+    <div>Ürün Kodu: {{ product.productCode }}</div>
+    <div>Üretim Yeri: {{ product.origin }}</div>
+    <div>Fiyat Değişiklik Tarihi: {{ product.priceChangeDate }}</div>
+    <div>Etiket Basım Tarihi: {{ etiketCikarmaTarihi }}</div>
+    <div>KDV Dahil Birim Fiyat: {{ product.unitPriceFactor.toFixed(2) }} TL/{{ product.alternativeUnitName }}</div>
+  </div>
+
+  <div class="footer">
+    <div class="yerli">
+      <img *ngIf="isDomestic(product.origin)" src="/assets/YerliUretim.jpg" alt="Yerli Uretim" />
+    </div>
+
+    <div class="barcode-wrap">
+      <svg class="barcode-svg" [attr.id]="'barcode-' + i" [attr.data-code]="product?.barcode"></svg>
+    </div>
+  </div>
+</div>
