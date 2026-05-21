@@ -1,0 +1,66 @@
+<section class="dialog-page" *ngIf="difference as item">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">MAL KABUL FARKI</p>
+      <h2>{{ page.title }}</h2>
+      <p class="subtitle">
+        {{ item.documentSerie }} / {{ item.documentOrderNo }} - {{ item.productCode }}
+      </p>
+    </div>
+
+    <button type="button" class="close-button" (click)="close()">Kapat</button>
+  </header>
+
+  <div class="dialog-body">
+    <section class="summary-grid">
+      <article class="summary-card">
+        <h3>Belge</h3>
+        <p>{{ item.documentNo || '-' }}</p>
+      </article>
+      <article class="summary-card">
+        <h3>Tip</h3>
+        <p>{{ item.isReturn ? 'Depo Iadesi' : 'Depo Sevki' }}</p>
+      </article>
+      <article class="summary-card">
+        <h3>Tarih</h3>
+        <p>{{ formatDate(item.documentDate || item.movementDate) }}</p>
+      </article>
+      <article class="summary-card">
+        <h3>Fark Tipi</h3>
+        <p>{{ getDifferenceTypeLabel(item.differenceType) }}</p>
+      </article>
+    </section>
+
+    <section class="summary-grid">
+      <article class="summary-card">
+        <h3>Kaynak Depo</h3>
+        <p>{{ item.sourceWarehouseNo }} - {{ item.sourceWarehouse || '-' }}</p>
+      </article>
+      <article class="summary-card">
+        <h3>Hedef Depo</h3>
+        <p>{{ item.targetWarehouseNo }} - {{ item.targetWarehouse || '-' }}</p>
+      </article>
+      <article class="summary-card">
+        <h3>Sevk Miktari</h3>
+        <p>{{ formatNumber(item.quantity) }} {{ item.unitName || '' }}</p>
+      </article>
+      <article class="summary-card">
+        <h3>Kabul Miktari</h3>
+        <p>{{ formatNumber(item.receivedQuantity) }} {{ item.unitName || '' }}</p>
+      </article>
+    </section>
+
+    <section class="task-block">
+      <div class="task-title">Kalem</div>
+
+      <div class="line-shell">
+        <strong>{{ item.productName || item.productCode }}</strong>
+        <span>{{ item.productCode }}</span>
+        <span>Satir: {{ item.lineNo }}</span>
+        <span>Movement GUID: {{ item.movementGuid }}</span>
+        <span>Fark: {{ formatNumber(item.differenceQuantity) }}</span>
+        <p>{{ item.description || '-' }}</p>
+      </div>
+    </section>
+  </div>
+</section>

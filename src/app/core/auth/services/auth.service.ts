@@ -1,6 +1,6 @@
 import { HttpClient } from '@angular/common/http';
 import { inject, Injectable, computed, signal } from '@angular/core';
-import { Observable, map, of, switchMap, throwError } from 'rxjs';
+import { Observable, catchError, finalize, map, of, shareReplay, switchMap, throwError } from 'rxjs';
 
 import { KullaniciIslemleriService } from '../../api/module-services/kullanici-islemleri.service';
 import { API_BASE_URL } from '../../api/api-base-url.token';
@@ -44,7 +44,10 @@ export class AuthService {
   private readonly apiBaseUrl = inject(API_BASE_URL);
   private readonly kullaniciIslemleriService = inject(KullaniciIslemleriService);
   private readonly storage = sessionStorage;
-  private readonly sessionSignal = signal<AuthSession | null>(this.readStoredSession());
+  private readonly storedSession = this.readStoredSession();
+  private readonly sessionSignal = signal<AuthSession | null>(this.storedSession);
+  private hydrationRequest$: Observable<CurrentUser | null> | null = null;
+  private hasRefreshedHydratedSession = !this.storedSession?.accessToken;
 
   readonly isAuthenticated = computed(() => !!this.sessionSignal()?.accessToken);
   readonly currentUser = computed(() => this.sessionSignal()?.currentUser ?? null);
@@ -115,6 +118,34 @@ export class AuthService {
     );
   }
 
+  ensureHydratedCurrentUser(): Observable<CurrentUser | null> {
+    const session = this.sessionSignal();
+
+    if (!session?.accessToken) {
+      return of(null);
+    }
+
+    if (this.hasRefreshedHydratedSession) {
+      return of(session.currentUser);
+    }
+
+    if (!this.hydrationRequest$) {
+      this.hydrationRequest$ = this.refreshCurrentUser().pipe(
+        catchError((error: unknown) => {
+          this.logout();
+          return throwError(() => error);
+        }),
+        finalize(() => {
+          this.hasRefreshedHydratedSession = true;
+          this.hydrationRequest$ = null;
+        }),
+        shareReplay(1)
+      );
+    }
+
+    return this.hydrationRequest$;
+  }
+
   login(usernameOrEmail: string, password: string): Observable<boolean> {
     const normalizedIdentifier = usernameOrEmail.trim();
     const normalizedPassword = password.trim();
@@ -148,6 +179,8 @@ export class AuthService {
   }
 
   logout(): void {
+    this.hasRefreshedHydratedSession = true;
+    this.hydrationRequest$ = null;
     this.sessionSignal.set(null);
     this.clearStoredSession();
   }
@@ -207,6 +240,8 @@ export class AuthService {
       currentUser
     };
 
+    this.hasRefreshedHydratedSession = true;
+    this.hydrationRequest$ = null;
     this.sessionSignal.set(session);
     this.storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
   }

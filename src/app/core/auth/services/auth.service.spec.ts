@@ -138,7 +138,7 @@ describe('AuthService', () => {
         depoIsmi: 'Merkez Depo',
         roller: ['Administrator'],
         sorumluluklar: [],
-        permissions: ['stok-islemleri.etiket-belgeleri.list']
+        permissions: ['kasa-islemleri.etiket-belgeleri.list']
       }
     });
 
@@ -153,7 +153,7 @@ describe('AuthService', () => {
       depoIsmi: 'Merkez Depo',
       roller: ['Administrator'],
       sorumluluklar: [],
-      permissions: ['stok-islemleri.etiket-belgeleri.list'],
+      permissions: ['kasa-islemleri.etiket-belgeleri.list'],
       displayName: 'Embedded User'
     });
   });

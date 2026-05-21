@@ -9,7 +9,6 @@
       </p>
 
       <div class="header-chip-row" *ngIf="header() as currentHeader">
-        <span class="source-badge source-badge-strong">{{ headerSourceLabel() }}</span>
         <span class="header-chip">{{ formatWarehouse(currentHeader) }}</span>
         <span class="header-chip">{{ cashierDisplayLabel() }}</span>
       </div>
@@ -78,10 +77,6 @@
             <p>{{ cashierDisplayLabel() }}</p>
           </article>
           <article class="summary-card">
-            <h3>Kaynak</h3>
-            <p>{{ getSourceLabel(currentHeader.source) }}</p>
-          </article>
-          <article class="summary-card">
             <h3>Vardiya</h3>
             <p>{{ currentHeader.shiftNo }}</p>
           </article>
@@ -129,7 +124,6 @@
               <tr>
                 <th>Odeme Tipi</th>
                 <th>Kasa / Banka</th>
-                <th>Kaynak</th>
                 <th class="numeric-head">Satir</th>
                 <th class="numeric-head">Tutar</th>
                 <th class="numeric-head">Komisyon</th>
@@ -145,11 +139,6 @@
                 <td class="label-cell">
                   <strong>{{ payment.cashBankName || '-' }}</strong>
                   <div class="meta-line">{{ payment.cashBankCode || '-' }}</div>
-                </td>
-                <td>
-                  <span class="source-badge source-badge-inline">
-                    {{ getSourceLabel(payment.source) }}
-                  </span>
                 </td>
                 <td class="numeric-cell">{{ payment.paymentLineCount }}</td>
                 <td class="numeric-cell">{{ payment.amount | number:'1.2-2' }} TL</td>

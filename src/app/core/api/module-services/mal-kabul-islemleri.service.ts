@@ -9,6 +9,9 @@ import type {
   IFurpaCompanyMovementListItemApiDto,
   IFurpaCreateCompanyReceiptRequestApiDto,
   IFurpaCreateCompanyReceiptResponseApiDto,
+  IFurpaGoodsAcceptanceDifferenceApiDto,
+  IFurpaGoodsAcceptanceDifferenceListQueryApiDto,
+  IFurpaGoodsAcceptanceDifferenceScopeApiDto,
   IOfflineOperationResponseApiDto,
   IFurpaWarehouseReceiptListItemApiDto,
   IFurpaWarehouseReceiptDetailApiDto,
@@ -128,6 +131,20 @@ export class MalKabulIslemleriService extends BaseApiService {
     );
   }
 
+  listGoodsAcceptanceDifferences(
+    request: IFurpaGoodsAcceptanceDifferenceListQueryApiDto
+  ): Observable<IFurpaGoodsAcceptanceDifferenceApiDto[]> {
+    return this.getWithQuery<IFurpaGoodsAcceptanceDifferenceApiDto[]>(
+      'mal-kabul-islemleri/mal-kabul-farklari',
+      {
+        WarehouseNo: request.warehouseNo,
+        StartDate: request.startDate,
+        EndDate: request.endDate,
+        scope: request.scope
+      }
+    );
+  }
+
   getToptanGirisIrsaliyeleri(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
     return this.listCompanyReceipts({ startDate: range.startDate, endDate: range.endDate })
@@ -152,6 +169,19 @@ export class MalKabulIslemleriService extends BaseApiService {
   ): Observable<IFurpaWarehouseReceiptListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
     return this.listWarehouseReceipts({ startDate: range.startDate, endDate: range.endDate });
+  }
+
+  getMalKabulFarklari(
+    zamanlama: string,
+    scope: IFurpaGoodsAcceptanceDifferenceScopeApiDto = 'accepted'
+  ): Observable<IFurpaGoodsAcceptanceDifferenceApiDto[]> {
+    const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
+
+    return this.listGoodsAcceptanceDifferences({
+      startDate: range.startDate,
+      endDate: range.endDate,
+      scope
+    });
   }
 
   getDepoDagitimMalKabulFisDetay(

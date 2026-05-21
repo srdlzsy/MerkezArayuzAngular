@@ -5,8 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type {
   CashTurnoverDetailDto,
   CashTurnoverListItemDto,
-  CashTurnoverRouteSource,
-  CashTurnoverSource
+  CashTurnoverRouteSource
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -31,20 +30,6 @@ function toDateOnly(value: string | null | undefined): string {
   return normalizedValue.includes('T')
     ? normalizedValue.split('T')[0] ?? normalizedValue
     : normalizedValue;
-}
-
-function getCashTurnoverSourceLabel(
-  source: CashTurnoverSource | CashTurnoverRouteSource | null | undefined
-): string {
-  switch (source) {
-    case 'old':
-      return 'Eski Kasa';
-    case 'total':
-      return 'Toplam';
-    case 'new':
-    default:
-      return 'Yeni Kasa';
-  }
 }
 
 function isCashTurnoverDetailDialogData(
@@ -81,9 +66,6 @@ export class KasaCirolariDetailComponent
   protected readonly detail = signal<CashTurnoverDetailDto | null>(null);
 
   protected readonly header = computed(() => this.detail()?.header ?? this.summary ?? null);
-  protected readonly headerSourceLabel = computed(() =>
-    getCashTurnoverSourceLabel(this.header()?.source ?? this.routeSource)
-  );
   protected readonly cashierDisplayLabel = computed(() => {
     const header = this.header();
 
@@ -263,9 +245,5 @@ export class KasaCirolariDetailComponent
     }
 
     return 0;
-  }
-
-  protected getSourceLabel(source: CashTurnoverSource | null | undefined): string {
-    return getCashTurnoverSourceLabel(source);
   }
 }

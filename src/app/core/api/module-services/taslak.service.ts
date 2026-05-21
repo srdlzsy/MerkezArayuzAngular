@@ -34,13 +34,14 @@ export class TaslakService extends BaseApiService {
 
   getVerilenFirmaSiparisleri(
     firmaCariKod: string,
-    _depoNo: number
+    depoNo: number
   ): Observable<IFurpaCompanyOrderDetailApiDto[]> {
     const range = this.getRangeToken();
 
     return this.getWithQuery<IFurpaCompanyOrderListItemApiDto[]>(
       'siparis-islemleri/verilen-firma-siparisleri',
       {
+        WarehouseNo: depoNo,
         StartDate: range.startDate,
         EndDate: range.endDate,
         CustomerCode: firmaCariKod,
@@ -49,7 +50,11 @@ export class TaslakService extends BaseApiService {
     ).pipe(
       switchMap((items: IFurpaCompanyOrderListItemApiDto[]) =>
         this.collectSequentially(items, (item: IFurpaCompanyOrderListItemApiDto) =>
-          this.siparisIslemleriService.getVerilenSiparisDetay(item.documentSerie, item.documentOrderNo)
+          this.siparisIslemleriService.getVerilenSiparisDetay(
+            item.documentSerie,
+            item.documentOrderNo,
+            depoNo
+          )
         )
       )
     );

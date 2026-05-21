@@ -7,9 +7,9 @@
     </div>
 
     <div class="header-actions">
-      <button type="button" class="ghost-button" (click)="close()">Kapat</button>
-      <button type="submit" class="primary-button" [disabled]="submitting()" form="toptan-giris-form">
-        {{ submitting() ? 'Kaydediliyor...' : 'Irsaliyeyi Kaydet' }}
+      <button type="button" class="ghost-button" (click)="closeDialog()">Kapat</button>
+      <button type="submit" class="primary-button" [disabled]="submitting() || !!createdReceiptResult()" form="toptan-giris-form">
+        {{ createdReceiptResult() ? 'Kayit Tamamlandi' : (submitting() ? 'Kaydediliyor...' : 'Irsaliyeyi Kaydet') }}
       </button>
     </div>
   </header>
@@ -17,6 +17,14 @@
   <div class="dialog-body">
     <form id="toptan-giris-form" class="form-shell" [formGroup]="form" (ngSubmit)="submit()">
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <div class="feedback feedback-success" *ngIf="createdReceiptResult() as result">
+        <strong>{{ result.documentNo || (result.documentSerie + '/' + result.documentOrderNo) }}</strong>
+        mal kabul kaydi olustu.
+        <span *ngIf="(result.autoCreatedReturnLineCount ?? 0) > 0">
+          Iade: {{ result.autoCreatedReturnDocumentSerie || '-' }}/{{ result.autoCreatedReturnDocumentOrderNo || '-' }}
+          - {{ result.returnEDespatchStatus || 'GonderimBekliyor' }}.
+        </span>
+      </div>
 
       <section class="panel">
         <div class="panel-head">
@@ -154,16 +162,19 @@
           <div class="contact-field">
             <label>Belge Tarihi *</label>
             <input type="date" formControlName="documentDate" />
+            <small class="field-error" *ngIf="isDocumentDateInvalid()">
+              Belge tarihi hareket tarihinden once olamaz.
+            </small>
           </div>
         </div>
 
         <div class="contact-row">
           <div class="contact-field">
-            <label>Belge No *</label>
-            <input type="text" formControlName="documentNo" placeholder="ST12026000002395" />
-            <small>Format: bosluksuz seri + 9 haneli sayisal sira.</small>
+            <label>Belge No / Prefix</label>
+            <input type="text" formControlName="documentNo" placeholder="Bos, ULK veya ST12026000002395" />
+            <small>Bos birakilabilir; e-belgede bosluksuz seri + 9 haneli sira kullanilir.</small>
             <small class="field-error" *ngIf="isDocumentNoInvalid()">
-              Belge No zorunludur ve `ST12026000002395` benzeri bir formatta olmalidir.
+              Belge no kontrol edilmeli.
             </small>
           </div>
           <div class="contact-field">
@@ -188,6 +199,10 @@
             <input type="checkbox" formControlName="allowOrderOverReceiving" />
             <span>Siparis kalanini asan kabule izin ver</span>
           </label>
+          <label class="contact-field" style="justify-content: center;">
+            <input type="checkbox" formControlName="autoCreateReturnForPartialAcceptance" />
+            <span>Eksik kabul farki icin firma iadesi olustur</span>
+          </label>
         </div>
 
         <p class="helper-text">
@@ -201,7 +216,9 @@
           <div class="kalem-stats" *ngIf="kalemCount()">
             <span class="badge">{{ kalemCount() }} Kalem</span>
             <span class="total-badge">Siparis: {{ toplamSiparisMiktari() | number: '1.0-2' }}</span>
-            <span class="total-badge alt">Mal Kabul: {{ toplamMalKabulMiktari() | number: '1.0-2' }}</span>
+            <span class="total-badge alt">Irsaliye: {{ toplamIrsaliyeMiktari() | number: '1.0-2' }}</span>
+            <span class="total-badge net">Fiili: {{ toplamFiiliKabulMiktari() | number: '1.0-2' }}</span>
+            <span class="total-badge return" *ngIf="toplamIadeMiktari() > 0">Iade: {{ toplamIadeMiktari() | number: '1.0-2' }}</span>
           </div>
         </div>
 
@@ -211,9 +228,10 @@
 
         <div class="kalem-table-head" *ngIf="kalemCount()">
           <div class="col-stok">Stok Bilgisi</div>
-          <div class="col-siparis">Sip Miktari</div>
-          <div class="col-mal-kabul">Mal Kabul</div>
-          <div class="col-fark">Fark</div>
+          <div class="col-siparis">Sip Kalan</div>
+          <div class="col-irsaliye">Irsaliye</div>
+          <div class="col-fiili">Fiili Kabul</div>
+          <div class="col-fark">Iade Farki</div>
           <div class="col-islem">Islem</div>
         </div>
 
@@ -230,32 +248,45 @@
               </div>
             </div>
             <div class="col-siparis quantity-cell">
-              <span class="cell-label">Sip Miktari</span>
+              <span class="cell-label">Sip Kalan</span>
               <div class="readonly-quantity">
                 {{ kalem.controls.siparisMiktari.value | number: '1.0-2' }}
               </div>
             </div>
-            <div class="col-mal-kabul quantity-cell">
-              <span class="cell-label">Mal Kabul</span>
+            <div class="col-irsaliye quantity-cell">
+              <span class="cell-label">Irsaliye</span>
               <input
                 type="number"
                 [attr.min]="kalem.controls.birimKatsayisi.value ?? 1"
                 [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
-                formControlName="malKabulMiktari"
-                placeholder="Mal kabul"
-                [class.error]="kalem.controls.malKabulMiktari.invalid && kalem.controls.malKabulMiktari.touched"
+                formControlName="irsaliyeMiktari"
+                placeholder="Irsaliye"
+                [class.error]="kalem.controls.irsaliyeMiktari.invalid && kalem.controls.irsaliyeMiktari.touched"
               />
-              <small class="field-error" *ngIf="kalem.controls.malKabulMiktari.invalid && kalem.controls.malKabulMiktari.touched">
-                Gecerli miktar
+              <small class="field-error" *ngIf="kalem.controls.irsaliyeMiktari.invalid && kalem.controls.irsaliyeMiktari.touched">
+                Sifirdan buyuk
+              </small>
+            </div>
+            <div class="col-fiili quantity-cell">
+              <span class="cell-label">Fiili Kabul</span>
+              <input
+                type="number"
+                min="0"
+                [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
+                formControlName="fiiliKabulMiktari"
+                placeholder="Fiili"
+                [class.error]="isAcceptedQuantityInvalid(kalem)"
+              />
+              <small class="field-error" *ngIf="isAcceptedQuantityInvalid(kalem)">
+                Irsaliyeyi asamaz
               </small>
             </div>
             <div class="col-fark">
-              <span class="cell-label">Fark</span>
+              <span class="cell-label">Iade Farki</span>
               <div
                 class="difference-pill"
-                [class.has-diff]="getKalemFark(kalem) !== 0"
+                [class.has-diff]="getKalemFark(kalem) > 0"
                 [class.positive]="getKalemFark(kalem) > 0"
-                [class.negative]="getKalemFark(kalem) < 0"
               >
                 {{ getKalemFark(kalem) | number: '1.0-2' }}
               </div>

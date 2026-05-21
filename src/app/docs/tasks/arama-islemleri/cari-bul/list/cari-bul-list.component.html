@@ -1,0 +1,123 @@
+<section class="lookup-page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Arama Islemleri</p>
+      <h2>Cari Bul</h2>
+      <p class="subtitle">
+        Barkoddan stok eslestir, varsayilan tedarikciyi ve cari onerilerini gor.
+      </p>
+    </div>
+
+    <article class="metric-card">
+      <span>Oneri</span>
+      <strong>{{ suggestionCount() }}</strong>
+    </article>
+  </header>
+
+  <section class="query-panel">
+    <label class="field field-main">
+      <span>Barkod</span>
+      <input
+        type="search"
+        [(ngModel)]="barcodeInput"
+        placeholder="Barkod gir"
+        (keydown.enter)="$event.preventDefault(); searchByBarcode()"
+      />
+    </label>
+
+    <label class="field field-small">
+      <span>Depo No</span>
+      <input type="number" min="1" step="1" [(ngModel)]="warehouseNo" placeholder="JWT" />
+    </label>
+
+    <label class="field field-small">
+      <span>Limit</span>
+      <input type="number" min="1" max="25" step="1" [(ngModel)]="take" />
+    </label>
+
+    <button type="button" class="primary-action" [disabled]="isLoading()" (click)="searchByBarcode()">
+      {{ isLoading() ? 'Araniyor...' : 'Ara' }}
+    </button>
+
+    <button type="button" class="ghost-action" (click)="clear()">Temizle</button>
+  </section>
+
+  <article class="feedback feedback-error" *ngIf="errorMessage()">
+    {{ errorMessage() }}
+  </article>
+
+  <article class="state-card" *ngIf="isLoading()">
+    <h3>Cari bilgisi araniyor</h3>
+    <p>Barkod stokla eslestiriliyor ve cari onerileri getiriliyor.</p>
+  </article>
+
+  <ng-container *ngIf="!isLoading() && result() as foundResult">
+    <ng-container *ngIf="foundResult.isFound; else notFound">
+      <article class="summary-card">
+        <div class="product-main">
+          <div>
+            <h3>{{ foundResult.stockName || foundResult.stockCode || foundResult.barcode }}</h3>
+            <p>{{ foundResult.stockCode || '-' }} / {{ foundResult.matchedBarcode || foundResult.barcode }}</p>
+          </div>
+          <span class="status-pill">{{ foundResult.resolutionSource || 'matched' }}</span>
+        </div>
+
+        <div class="detail-grid">
+          <span>Depo: <strong>{{ foundResult.warehouseNo || '-' }}</strong></span>
+          <span>Ana Barkod: <strong>{{ foundResult.primaryBarcode || '-' }}</strong></span>
+          <span>Koli Barkodu: <strong>{{ foundResult.caseBarcode || '-' }}</strong></span>
+          <span>Koli Ici: <strong>{{ foundResult.unitsPerCase || '-' }}</strong></span>
+        </div>
+      </article>
+
+      <article class="supplier-card" *ngIf="foundResult.defaultSupplierCode || foundResult.defaultSupplierName">
+        <span class="section-label">Varsayilan Tedarikci</span>
+        <h3>{{ foundResult.defaultSupplierName || '-' }}</h3>
+        <p>{{ foundResult.defaultSupplierCode || '-' }}</p>
+      </article>
+
+      <section class="suggestion-list" *ngIf="foundResult.suggestions.length">
+        <article
+          class="suggestion-card"
+          *ngFor="let suggestion of foundResult.suggestions; trackBy: trackBySuggestion"
+        >
+          <div class="suggestion-head">
+            <div>
+              <h3>{{ suggestion.customerName }}</h3>
+              <p>{{ suggestion.customerCode }}</p>
+            </div>
+            <span class="default-badge" *ngIf="suggestion.isDefaultSupplier">Varsayilan</span>
+          </div>
+
+          <div class="detail-grid">
+            <span>Vergi/TCKN: <strong>{{ suggestion.taxNoOrTckn || '-' }}</strong></span>
+            <span>Hareket: <strong>{{ suggestion.movementCount }}</strong></span>
+            <span>Son Tarih: <strong>{{ formatDate(suggestion.lastMovementDate) }}</strong></span>
+            <span>Son Belge: <strong>{{ suggestion.lastDocumentNo || '-' }}</strong></span>
+            <span class="wide">Kaynak: <strong>{{ formatSources(suggestion.sources) }}</strong></span>
+          </div>
+        </article>
+      </section>
+
+      <article
+        class="state-card"
+        *ngIf="!foundResult.suggestions.length && !foundResult.defaultSupplierCode && !foundResult.defaultSupplierName"
+      >
+        <h3>Cari onerisi bulunamadi</h3>
+        <p>Stok bulundu, ancak bu barkod icin yakin gecmis cari hareketi yok.</p>
+      </article>
+    </ng-container>
+  </ng-container>
+
+  <ng-template #notFound>
+    <article class="state-card warning-card">
+      <h3>Barkod bulunamadi</h3>
+      <p>{{ result()?.barcode || barcodeInput }} icin stok eslesmesi bulunamadi.</p>
+    </article>
+  </ng-template>
+
+  <article class="state-card" *ngIf="!isLoading() && hasSearched() && !result() && !errorMessage()">
+    <h3>Sonuc yok</h3>
+    <p>Barkodu kontrol edip tekrar dene.</p>
+  </article>
+</section>

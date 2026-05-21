@@ -15,6 +15,7 @@ import type {
   IInvoiceViewingListItemApiDto,
   IInvoiceViewingListQueryApiDto,
   IInvoiceViewingListResponseApiDto,
+  IInvoiceViewingPdfResponseApiDto,
   IInvoiceViewingRenderRequestApiDto,
   IInvoiceViewingSynchronizationRequestApiDto,
   IInvoiceViewingPrintedStateRequestApiDto,
@@ -28,6 +29,7 @@ import { BaseApiService } from '../base-api.service';
 export type InvoiceViewingListItemDto = IInvoiceViewingListItemApiDto;
 export type InvoiceViewingListResponseDto = IInvoiceViewingListResponseApiDto;
 export type InvoiceViewingDetailDto = IInvoiceViewingDetailApiDto;
+export type InvoiceViewingPdfResponseDto = IInvoiceViewingPdfResponseApiDto;
 export type InvoiceViewingSynchronizationRequestDto =
   IInvoiceViewingSynchronizationRequestApiDto;
 export type InvoiceViewingRenderRequestDto = IInvoiceViewingRenderRequestApiDto;
@@ -119,9 +121,19 @@ export class FaturaIslemleriService extends BaseApiService {
     );
   }
 
-  getInvoiceViewingDetail(documentId: string) {
-    return this.get<InvoiceViewingDetailDto>(
+  getInvoiceViewingPdf(documentId: string) {
+    return this.get<InvoiceViewingPdfResponseDto>(
       `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}`
+    );
+  }
+
+  getInvoiceViewingDetail(documentId: string) {
+    return this.getInvoiceViewingHtmlDetail(documentId);
+  }
+
+  getInvoiceViewingHtmlDetail(documentId: string) {
+    return this.get<InvoiceViewingDetailDto>(
+      `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}/detail`
     );
   }
 

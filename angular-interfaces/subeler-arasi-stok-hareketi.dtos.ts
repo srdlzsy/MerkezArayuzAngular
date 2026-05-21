@@ -12,6 +12,9 @@ import type {
   CreateInterWarehouseShipmentResponse,
   CreateWarehouseReturnHttpRequest,
   CreateWarehouseReturnResponse,
+  GoodsAcceptanceDifferenceDto,
+  GoodsAcceptanceDifferenceListQuery,
+  GoodsAcceptanceDifferenceScope,
   WarehouseShippingDetailDto,
   WarehouseShippingHeaderDto,
   WarehouseShippingLineItemDto,
@@ -52,3 +55,7 @@ export type IFurpaAcceptWarehouseReceivingRequestApiDto = AcceptWarehouseReceivi
 export type IFurpaAcceptWarehouseReceivingResponseLineApiDto =
   AcceptWarehouseReceivingLineResultDto;
 export type IFurpaAcceptWarehouseReceivingResponseApiDto = AcceptWarehouseReceivingResponse;
+export type IFurpaGoodsAcceptanceDifferenceScopeApiDto = GoodsAcceptanceDifferenceScope;
+export type IFurpaGoodsAcceptanceDifferenceListQueryApiDto =
+  GoodsAcceptanceDifferenceListQuery;
+export type IFurpaGoodsAcceptanceDifferenceApiDto = GoodsAcceptanceDifferenceDto;

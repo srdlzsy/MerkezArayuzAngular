@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import type { IFurpaWarehouseReturnDetailApiDto } from '@interfaces';
 
 import {
@@ -29,15 +29,6 @@ export class DepoIadeDetailComponent extends KalemliTaskDetailBase<IFurpaWarehou
     DOCS_PAGES[this.resolveDialogData().pageId ?? 'giden-depo-iadeleri'] ??
     DOCS_PAGES['giden-depo-iadeleri'];
   protected readonly screenTitle = 'Depo Iade Detayi';
-  protected readonly detailRequestPath = computed(() => {
-    const payload = this.resolveDialogData();
-
-    if (!payload.seri || payload.sira === null || payload.sira === undefined) {
-      return `${this.page.baseRouteOrFile}/{seri}/{sira}`;
-    }
-
-    return `${this.page.baseRouteOrFile}/${encodeURIComponent(payload.seri)}/${payload.sira}`;
-  });
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
 
   protected override loadDetail(): void {

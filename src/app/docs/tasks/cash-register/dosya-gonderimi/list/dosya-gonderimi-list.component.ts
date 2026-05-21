@@ -71,12 +71,12 @@ export class DosyaGonderimiListComponent {
     },
     {
       key: 'promosyon',
-      title: 'Promosyon Dosyasi',
-      description: 'Backend dokumanina gore bu akis henuz aktif degil.',
+      title: 'Promosyon Dosyasi Olustur',
+      description:
+        'Promosyon ve yardimci POS dosyalarini kuyruga alir, sonucu job uzerinden takip eder.',
       icon: 'fas fa-tags',
       accent: 'accent-promotion',
-      enabled: false,
-      disabledReason: 'Hazir degil'
+      enabled: true
     }
   ];
 

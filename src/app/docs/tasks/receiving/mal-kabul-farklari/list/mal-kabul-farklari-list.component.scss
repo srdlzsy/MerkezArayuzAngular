@@ -1,0 +1,64 @@
+@use '../../../core/api-list-page/api-list-page.shared';
+
+.query-grid-difference {
+  display: grid;
+  grid-template-columns: minmax(150px, 0.75fr) minmax(150px, 0.75fr) minmax(300px, 1fr) auto;
+  align-items: end;
+}
+
+.scope-field {
+  display: grid;
+  gap: 0.45rem;
+  min-width: 0;
+}
+
+.scope-field > span {
+  color: #64748b;
+  font-size: 0.6rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.scope-segmented {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 3px;
+  min-height: 36px;
+  padding: 3px;
+  border: 1px solid #d6deef;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.scope-option {
+  min-width: 0;
+  min-height: 28px;
+  padding: 0.34rem 0.62rem;
+  color: #475569;
+  border: 0;
+  border-radius: 7px;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: background-color 0.16s ease, color 0.16s ease, box-shadow 0.16s ease;
+}
+
+.scope-option:hover {
+  color: #0f172a;
+  background: #eef6f5;
+}
+
+.scope-option.is-active {
+  color: #ffffff;
+  background: #0f766e;
+  box-shadow: 0 1px 4px rgba(15, 118, 110, 0.22);
+}
+
+@media (max-width: 900px) {
+  .query-grid-difference {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+}

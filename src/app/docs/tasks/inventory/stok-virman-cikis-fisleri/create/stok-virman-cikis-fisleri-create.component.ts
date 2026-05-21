@@ -1,19 +1,27 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
 
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
-import { DocsContentPage } from '../../../../models/docs.models';
-import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { StockDocumentCreateBase } from '../../../core/stock-document-create/stock-document-create.base';
 
 @Component({
   selector: 'app-stok-virman-cikis-fisleri-create',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './stok-virman-cikis-fisleri-create.component.html',
-  styleUrl: './stok-virman-cikis-fisleri-create.component.scss'
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: '../../../core/stock-document-create/stock-document-create.template.html',
+  styleUrl: '../../../core/stock-document-create/stock-document-create.scss'
 })
-export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
-  protected readonly page: DocsContentPage = DOCS_PAGES['virmanlar'];
-  protected readonly screenTitle = 'Olustur';
-  protected readonly screenNote = 'Olusturma ekrani hazirligi';
+export class StokVirmanCikisFisleriCreateComponent extends StockDocumentCreateBase {
+  constructor() {
+    super({
+      kind: 'virman',
+      page: DOCS_PAGES['virmanlar'],
+      eyebrow: 'VIRMAN',
+      submitLabel: 'Virmani Kaydet',
+      submittingLabel: 'Kaydediliyor...',
+      controllerName: 'StokVirmanCikisFisleri',
+      descriptionPlaceholder: 'Reyon duzenleme virmani'
+    });
+  }
 }

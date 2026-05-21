@@ -4,7 +4,7 @@
       <p class="eyebrow">DEPO MAL KABUL</p>
       <h2>{{ current.title }} Kabul Et</h2>
       <p class="subtitle">
-        Seri ve sira ile bekleyen sevki getir, kabul miktarlarini duzenle ve mal kabul islemini tamamla.
+        Seri ve sira ile bekleyen sevk veya iadeyi getir, kabul miktarlarini duzenle ve mal kabul islemini tamamla.
       </p>
     </div>
 
@@ -54,12 +54,12 @@
           </label>
 
           <button type="button" class="secondary-button fetch-button" [disabled]="loadingDetail()" (click)="loadReceiptDetail()">
-            {{ loadingDetail() ? 'Sevk Yukleniyor...' : 'Sevki Getir' }}
+            {{ loadingDetail() ? 'Evrak Yukleniyor...' : 'Evraki Getir' }}
           </button>
         </div>
 
         <p class="helper-text">
-          Bekleyen gelen sevkin seri ve sira bilgisini gir. Satirlar sevk detayindan otomatik dolacak.
+          Bekleyen gelen sevk veya iadenin seri ve sira bilgisini gir. Satirlar evrak detayindan otomatik dolacak.
         </p>
       </section>
 
@@ -91,6 +91,11 @@
           </article>
 
           <article class="summary-card">
+            <span class="summary-label">Tip</span>
+            <strong>{{ receipt.header.isReturn ? 'Depo Iadesi' : 'Depo Sevki' }}</strong>
+          </article>
+
+          <article class="summary-card">
             <span class="summary-label">Durum</span>
             <strong>{{ receipt.header.shippingState === 1 ? 'Tamamlandi' : 'Bekliyor' }}</strong>
           </article>
@@ -98,7 +103,7 @@
 
         <label class="checkbox-row">
           <input type="checkbox" formControlName="allowDiscrepancy" />
-          <span>Eksik veya fazla kabul varsa farkli kabul etmeye izin ver</span>
+          <span>Eksik veya fazla kabul varsa farki sth_FormulMiktar uzerinde kaydetmeye izin ver</span>
         </label>
 
         <article class="warning-card" *ngIf="hasDiscrepancy() && !controls.allowDiscrepancy.value">

@@ -29,7 +29,7 @@ export abstract class ApiTaskListPageBase<
   protected readonly destroyRef = inject(DestroyRef);
   private activeRequestId = 0;
 
-  protected readonly startDate = signal(this.getdayoffsetfromtoday(-2));
+  protected readonly startDate = signal(this.getdayoffsetfromtoday(-0));
   protected readonly endDate = signal(this.getInitialEndDate());
   protected readonly rows = signal<Row[]>([]);
   protected readonly isLoading = signal(false);

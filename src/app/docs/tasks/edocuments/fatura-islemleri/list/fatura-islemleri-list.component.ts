@@ -38,6 +38,7 @@ import {
   type InvoiceViewingDetailDto,
   type InvoiceViewingListItemDto,
   type InvoiceViewingListResponseDto,
+  type InvoiceViewingPdfResponseDto,
   type InvoiceViewingRenderRequestDto,
   type InvoiceViewingSynchronizationRequestDto,
   type InvoiceViewingPrintedStateRequestDto,
@@ -236,6 +237,7 @@ export class FaturaIslemleriListComponent {
   protected readonly viewingListLoading = signal(false);
   protected readonly viewingSyncLoading = signal(false);
   protected readonly viewingDetailLoading = signal(false);
+  protected readonly viewingPdfLoading = signal(false);
   protected readonly viewingRenderLoading = signal(false);
   protected readonly viewingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly printedStateUpdatingDocumentId = signal<string | null>(null);
@@ -893,6 +895,46 @@ export class FaturaIslemleriListComponent {
     this.fetchViewingDetail(documentId);
   }
 
+  protected openViewingPdf(summary: InvoiceViewingListItemDto): void {
+    if (!this.canViewDetail()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Detay yetkisi gerekli',
+        message: 'Resmi PDF acmak icin detail yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    this.viewingPdfLoading.set(true);
+
+    this.faturaIslemleriService
+      .getInvoiceViewingPdf(summary.documentId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.viewingPdfLoading.set(false))
+      )
+      .subscribe({
+        next: (response: InvoiceViewingPdfResponseDto) => {
+          const opened = this.openPdfResponse(response);
+
+          this.feedback.set({
+            tone: opened ? 'success' : 'info',
+            title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
+            message: opened
+              ? `${summary.invoiceId} resmi PDF olarak acildi.`
+              : response.message || 'Uyumsoft PDF cevabi alindi ancak tarayici icin acilabilir PDF datasina cevrilemedi.'
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'PDF acilamadi',
+            message: this.resolveErrorMessage(error, 'Secili belge icin resmi PDF getirilemedi.')
+          });
+        }
+      });
+  }
+
   protected renderViewingDetailWithOverrides(): void {
     const documentId = this.selectedViewingDocumentId();
 
@@ -1541,14 +1583,6 @@ export class FaturaIslemleriListComponent {
     return document.usedEmbeddedXslt ? 'Gomulu XSLT' : 'Genel XSLT';
   }
 
-  protected getDocumentSourceLabel(document: InvoiceRenderedDocumentDto | null): string {
-    if (!document?.source?.trim()) {
-      return '-';
-    }
-
-    return document.source;
-  }
-
   protected getDocumentProfileLabel(document: InvoiceRenderedDocumentDto | null): string {
     if (!document?.profile) {
       return '-';
@@ -1654,6 +1688,71 @@ export class FaturaIslemleriListComponent {
           });
         }
       });
+  }
+
+  private openPdfResponse(response: InvoiceViewingPdfResponseDto): boolean {
+    const base64Payload = this.findPdfBase64Payload(response);
+
+    if (!base64Payload) {
+      return false;
+    }
+
+    try {
+      const binary = atob(base64Payload.replace(/\s/g, ''));
+      const bytes = new Uint8Array(binary.length);
+
+      for (let index = 0; index < binary.length; index += 1) {
+        bytes[index] = binary.charCodeAt(index);
+      }
+
+      const objectUrl = URL.createObjectURL(
+        new Blob([bytes], {
+          type: 'application/pdf'
+        })
+      );
+      const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+
+      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+
+      return !!openedWindow;
+    } catch {
+      return false;
+    }
+  }
+
+  private findPdfBase64Payload(response: InvoiceViewingPdfResponseDto): string | null {
+    const candidates = [
+      response.scalarValue,
+      response.rawXml,
+      ...this.flattenNodeValues(response.nodes ?? [])
+    ];
+
+    for (const candidate of candidates) {
+      const value = candidate?.trim();
+
+      if (!value) {
+        continue;
+      }
+
+      const dataUrlMatch = value.match(/data:application\/pdf;base64,([A-Za-z0-9+/=\s]+)/);
+      if (dataUrlMatch?.[1]) {
+        return dataUrlMatch[1];
+      }
+
+      const pdfMatch = value.match(/JVBERi0[A-Za-z0-9+/=\s]+={0,2}/);
+      if (pdfMatch?.[0]) {
+        return pdfMatch[0];
+      }
+    }
+
+    return null;
+  }
+
+  private flattenNodeValues(nodes: IUyumsoftResponseNodeApiDto[]): string[] {
+    return nodes.flatMap((node) => [
+      node.value ?? '',
+      ...this.flattenNodeValues(node.children ?? [])
+    ]);
   }
 
   private fetchSendingDetail(

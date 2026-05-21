@@ -1,0 +1,206 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">{{ config.eyebrow }}</p>
+      <h2>{{ current.title }} Olustur</h2>
+      <p class="subtitle">{{ current.subtitle }}</p>
+    </div>
+
+    <div class="header-actions">
+      <button type="button" class="ghost-button" (click)="close()">Kapat</button>
+      <button
+        type="submit"
+        class="primary-button"
+        form="stock-document-create-form"
+        [disabled]="submitting()"
+      >
+        {{ submitting() ? config.submittingLabel : config.submitLabel }}
+      </button>
+    </div>
+  </header>
+
+  <div class="dialog-body">
+    <form
+      id="stock-document-create-form"
+      class="form-shell"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+    >
+      <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Fis Bilgileri</h3>
+          <div class="summary-badges" *ngIf="lineCount()">
+            <span class="badge">{{ lineCount() }} Kalem</span>
+            <span class="total-badge">Toplam: {{ totalQuantity() }}</span>
+          </div>
+        </div>
+
+        <div class="form-grid">
+          <label class="field" *ngIf="usesStockReceiptFields()">
+            <span>Olusturan *</span>
+            <input type="text" formControlName="creator" placeholder="VARDIYA-1" />
+          </label>
+
+          <label class="field" *ngIf="usesStockReceiptFields()">
+            <span>Teslim Alan *</span>
+            <input type="text" formControlName="acceptor" placeholder="SEF-01" />
+          </label>
+
+          <label class="field" *ngIf="usesInventoryCountFields()">
+            <span>Sayim Adi *</span>
+            <input type="text" formControlName="name" placeholder="Nisan 2026 Genel Sayim" />
+          </label>
+
+          <label class="field" *ngIf="usesInventoryCountFields()">
+            <span>Client Request Id</span>
+            <div class="inline-field">
+              <input type="text" formControlName="clientRequestId" />
+              <button type="button" class="small-btn" (click)="regenerateClientRequestId()">
+                Yenile
+              </button>
+            </div>
+          </label>
+
+          <label class="field" *ngIf="usesMovementDate()">
+            <span>Hareket Tarihi *</span>
+            <input type="date" formControlName="movementDate" />
+          </label>
+
+          <label class="field">
+            <span>Belge Tarihi *</span>
+            <input type="date" formControlName="documentDate" />
+          </label>
+
+          <label class="field" *ngIf="!usesInventoryCountFields()">
+            <span>Belge No</span>
+            <input type="text" formControlName="documentNo" placeholder="Opsiyonel" />
+          </label>
+
+          <label class="field field-wide" *ngIf="!usesInventoryCountFields()">
+            <span>Aciklama</span>
+            <input
+              type="text"
+              formControlName="description"
+              [placeholder]="getDescriptionPlaceholder()"
+            />
+          </label>
+        </div>
+      </section>
+
+      <section class="panel search-panel">
+        <div class="panel-head">
+          <h3>Stok Ekle</h3>
+        </div>
+
+        <div class="search-row">
+          <input
+            type="text"
+            [formControl]="stockQuery"
+            [placeholder]="getStockSearchPlaceholder()"
+            (keydown.enter)="$event.preventDefault(); searchStock()"
+          />
+          <button type="button" class="small-btn" [disabled]="stockLoading()" (click)="searchStock()">
+            {{ stockLoading() ? 'Araniyor...' : 'Ara' }}
+          </button>
+          <button type="button" class="small-btn secondary" (click)="addManualLine()">
+            Manuel Satir
+          </button>
+        </div>
+
+        <div class="feedback feedback-error compact" *ngIf="stockError()">{{ stockError() }}</div>
+
+        <div class="search-results" *ngIf="stockResults().length">
+          <button
+            type="button"
+            class="result-item"
+            *ngFor="let stock of stockResults(); trackBy: trackByStock"
+            (click)="addStockLine(stock)"
+          >
+            <strong>{{ stock.stockName }}</strong>
+            <span>{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel kalem-panel">
+        <div class="panel-head">
+          <h3>Kalemler</h3>
+        </div>
+
+        <div class="empty-state" *ngIf="!lineCount()">
+          Stok arayarak ya da manuel satir ekleyerek fis kalemlerini hazirla.
+        </div>
+
+        <div class="line-list" formArrayName="lines" *ngIf="lineCount()">
+          <article
+            class="line-row"
+            *ngFor="let line of lines.controls; let i = index; trackBy: trackByLine"
+            [formGroupName]="i"
+          >
+            <div class="line-main">
+              <label class="field">
+                <span>Stok Kodu *</span>
+                <input type="text" formControlName="stockCode" />
+              </label>
+
+              <label class="field">
+                <span>Stok Adi</span>
+                <input type="text" formControlName="stockName" />
+              </label>
+
+              <label class="field" *ngIf="usesInventoryCountFields()">
+                <span>Barkod</span>
+                <input type="text" formControlName="barcode" />
+              </label>
+
+              <label class="field" *ngIf="usesVirmanFields()">
+                <span>Hareket Tipi *</span>
+                <select formControlName="movementType">
+                  <option [ngValue]="0">0 - Giris</option>
+                  <option [ngValue]="1">1 - Cikis</option>
+                  <option [ngValue]="2">2 - Virman</option>
+                </select>
+              </label>
+
+              <label class="field compact-field">
+                <span>Miktar *</span>
+                <input type="number" min="0.001" step="0.001" formControlName="quantity" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Birim *</span>
+                <input type="number" min="1" step="1" formControlName="unitPointer" />
+              </label>
+            </div>
+
+            <div class="line-extra" *ngIf="!usesInventoryCountFields()">
+              <label class="field">
+                <span>Satir Aciklama</span>
+                <input type="text" formControlName="description" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Parti</span>
+                <input type="text" formControlName="partyCode" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Lot</span>
+                <input type="number" min="0" step="1" formControlName="lotNo" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Proje</span>
+                <input type="text" formControlName="projectCode" />
+              </label>
+            </div>
+
+            <button type="button" class="remove-btn" (click)="removeLine(i)">Sil</button>
+          </article>
+        </div>
+      </section>
+    </form>
+  </div>
+</section>

@@ -12,10 +12,6 @@
   <div class="dialog-body">
     <section class="info-grid">
       <article class="info-card emphasis-card">
-        <h3>Kaynak</h3>
-        <p>{{ current.baseRouteOrFile }}/ayrinti/{{ orderIdentity() }}</p>
-      </article>
-      <article class="info-card">
         <h3>Kalem Sayisi</h3>
         <p>{{ kalemCount() }}</p>
       </article>
@@ -65,6 +61,18 @@
           <h3>Firma Unvani</h3>
           <p>{{ resolveCompanyTitle(header) || '-' }}</p>
         </article>
+        <article class="summary-card" *ngIf="getHeaderNumber(header, 'totalNetAcceptedQuantity') !== null">
+          <h3>Net Kabul</h3>
+          <p>{{ formatNumber(getHeaderNumber(header, 'totalNetAcceptedQuantity')) }}</p>
+        </article>
+        <article class="summary-card" *ngIf="getHeaderNumber(header, 'totalReturnedQuantity') !== null">
+          <h3>Iade Farki</h3>
+          <p>{{ formatNumber(getHeaderNumber(header, 'totalReturnedQuantity')) }}</p>
+        </article>
+        <article class="summary-card" *ngIf="getHeaderText(header, 'returnEDespatchStatus')">
+          <h3>Iade E-Irsaliye</h3>
+          <p>{{ getHeaderText(header, 'returnEDespatchStatus') }}</p>
+        </article>
       </section>
 
       <section class="task-block">
@@ -78,7 +86,10 @@
                 <th>Stok Kodu</th>
                 <th>Stok Ismi</th>
                 <th>Birim</th>
-                <th>Miktar</th>
+                <th>Irsaliye</th>
+                <th>Fiili</th>
+                <th>Iade</th>
+                <th>Iade Durumu</th>
                 <th>Birim Fiyat</th>
                 <th>Tutar</th>
                 <th>Parti</th>
@@ -92,7 +103,10 @@
                 <td>{{ getLineText(kalem, 'stockCode') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'stockName') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'unitName') || '-' }}</td>
-                <td>{{ formatNumber(getLineNumber(kalem, 'quantity')) }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'dispatchQuantity', 'quantity')) }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'physicalAcceptedQuantity', 'quantity')) }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'returnQuantity')) }}</td>
+                <td>{{ getLineText(kalem, 'returnStatus') || '-' }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'unitPrice')) }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'lineAmount')) }}</td>
                 <td>{{ getLineText(kalem, 'partyCode') || '-' }}</td>

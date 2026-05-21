@@ -10,7 +10,7 @@ import {
   IFurpaLabelDocumentProductApiDto,
   IFurpaLabelTagApiDto,
   IFurpaBanknoteMovementItemApiDto,
-  IFurpaBanknoteTrackItemApiDto,
+  IFurpaBanknoteTrackApiDto,
   IFurpaBanknoteTypeItemApiDto,
   IFurpaCashierLookupItemApiDto,
   IFurpaCashierSearchItemApiDto,
@@ -80,17 +80,17 @@ export class KasaIslemleriService extends BaseApiService {
       return of([]);
     }
 
-    return this.getWithQuery<IFurpaLabelDocumentProductApiDto[]>('stok-islemleri/etiket-belgeleri/fiyati-degisen-urunler', {
+    return this.getWithQuery<IFurpaLabelDocumentProductApiDto[]>('kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler', {
       dateTimeFilter
     });
   }
 
   getEtiketBelgesi(docId: number): Observable<IEtiketBasimProduct[]> {
-    return this.get<IFurpaLabelDocumentProductApiDto[]>(`stok-islemleri/etiket-belgeleri/${docId}`);
+    return this.get<IFurpaLabelDocumentProductApiDto[]>(`kasa-islemleri/etiket-belgeleri/${docId}`);
   }
 
   getEklenenSonOnEtiketBelgesi(warehouseNo: number): Observable<ILabelDocument[]> {
-    return this.getWithQuery<IFurpaLabelDocumentListItemApiDto[]>('stok-islemleri/etiket-belgeleri/son', {
+    return this.getWithQuery<IFurpaLabelDocumentListItemApiDto[]>('kasa-islemleri/etiket-belgeleri/son', {
       warehouseNo,
       take: 10
     });
@@ -101,7 +101,7 @@ export class KasaIslemleriService extends BaseApiService {
   }
 
   getKunyeler(tarih: string): Observable<IKunyeTag[]> {
-    return this.getWithQuery<IFurpaLabelTagApiDto[]>('stok-islemleri/etiket-belgeleri/kunye-etiket-yazdirma', {
+    return this.getWithQuery<IFurpaLabelTagApiDto[]>('kasa-islemleri/kunye-etiket-yazdirma', {
       dateToGet: tarih.slice(0, 10)
     });
   }
@@ -152,9 +152,9 @@ export class KasaIslemleriService extends BaseApiService {
   getBanknotTakipleri(
     dateToGet: string,
     warehouseNo?: number | null
-  ): Observable<IFurpaBanknoteTrackItemApiDto[]> {
-    return this.getWithQuery<IFurpaBanknoteTrackItemApiDto[]>(
-      'kasa-islemleri/kasa-sayimlari/banknot-takipleri',
+  ): Observable<IFurpaBanknoteTrackApiDto[]> {
+    return this.getWithQuery<IFurpaBanknoteTrackApiDto[]>(
+      'kasa-islemleri/banknot-takipleri',
       {
         dateToGet,
         warehouseNo: warehouseNo ?? undefined
@@ -162,11 +162,10 @@ export class KasaIslemleriService extends BaseApiService {
     );
   }
 
-  getBanknotToplamTutar(dateToGet: string, warehouseNo?: number | null): Observable<number | null> {
-    return this.getWithQuery<unknown>('kasa-islemleri/kasa-sayimlari/banknot-takipleri/toplam', {
-      dateToGet,
-      warehouseNo: warehouseNo ?? undefined
-    }).pipe(map((value: unknown) => this.mapNullableNumber(value)));
+  getBanknotTakipDetayi(banknoteTrackId: number): Observable<IFurpaBanknoteTrackApiDto> {
+    return this.get<IFurpaBanknoteTrackApiDto>(
+      `kasa-islemleri/banknot-takipleri/${banknoteTrackId}`
+    );
   }
 
   getHediyeCekiHareketDetaylari(
@@ -284,7 +283,7 @@ export class KasaIslemleriService extends BaseApiService {
     return this.post<
       IFurpaCreateBanknoteTrackResponseApiDto,
       IFurpaCreateBanknoteTrackRequestApiDto
-    >('kasa-islemleri/kasa-sayimlari/banknot-takipleri', request);
+    >('kasa-islemleri/banknot-takipleri', request);
   }
 
 
@@ -301,9 +300,7 @@ export class KasaIslemleriService extends BaseApiService {
   }
 
   getPromosyonDosyasi(): Observable<null> {
-    return throwError(() =>
-      buildProblemError('Promosyon dosyasi akisi backend dokumaninda aktif degil.')
-    );
+    return this.tetikle('operations/promofile');
   }
 
   getMusteriDosyasi(): Observable<null> {

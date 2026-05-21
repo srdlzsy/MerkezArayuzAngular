@@ -2,10 +2,13 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, effect, inject, signal } from '@angular/core';
 import {
+  AbstractControl,
   FormArray,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
+  ValidationErrors,
+  ValidatorFn,
   Validators
 } from '@angular/forms';
 import type {
@@ -13,13 +16,14 @@ import type {
   IFurpaCompanyOrderDetailApiDto,
   IFurpaCompanyOrderItemApiDto,
   IFurpaCreateCompanyReceiptRequestApiDto,
+  IFurpaCreateCompanyReceiptResponseApiDto,
   IFurpaProductSearchItemApiDto,
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
-import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
+import { formatDateOnly, generateClientRequestId } from '../../../../../core/api/furpa-merkez-api.utils';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
@@ -35,7 +39,8 @@ interface KalemFormValue {
   birim: string;
   birimKatsayisi: number | null;
   siparisMiktari: number | null;
-  malKabulMiktari: number | null;
+  irsaliyeMiktari: number | null;
+  fiiliKabulMiktari: number | null;
   aciklama: string;
   skt: string;
   modelKodu: string;
@@ -51,13 +56,29 @@ type KalemFormGroup = FormGroup<{
   birim: FormControl<string>;
   birimKatsayisi: FormControl<number | null>;
   siparisMiktari: FormControl<number | null>;
-  malKabulMiktari: FormControl<number | null>;
+  irsaliyeMiktari: FormControl<number | null>;
+  fiiliKabulMiktari: FormControl<number | null>;
   aciklama: FormControl<string>;
   skt: FormControl<string>;
   modelKodu: FormControl<string>;
 }>;
 
-const DOCUMENT_NO_PATTERN = /^[A-Za-z][A-Za-z0-9]*\d{9}$/;
+const acceptedQuantityValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const group = control as KalemFormGroup;
+  const dispatchQuantity = Number(group.controls.irsaliyeMiktari.value ?? 0);
+  const acceptedQuantity = Number(group.controls.fiiliKabulMiktari.value ?? 0);
+
+  return acceptedQuantity > dispatchQuantity ? { acceptedGreaterThanDispatch: true } : null;
+};
+
+const documentDateValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const movementDate = control.get('movementDate')?.value;
+  const documentDate = control.get('documentDate')?.value;
+
+  return movementDate && documentDate && documentDate < movementDate
+    ? { documentDateBeforeMovementDate: true }
+    : null;
+};
 
 @Component({
   selector: 'app-toptan-giris-irsaliyeleri-create',
@@ -72,6 +93,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   private readonly taslakService = inject(TaslakService);
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
   private readonly today = formatDateOnly(new Date());
+  private readonly clientRequestId = generateClientRequestId();
 
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-mal-kabulleri'];
   protected readonly customerQuery = new FormControl('', { nonNullable: true });
@@ -87,6 +109,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly orderError = signal('');
   protected readonly submitError = signal('');
   protected readonly submitting = signal(false);
+  protected readonly createdReceiptResult = signal<IFurpaCreateCompanyReceiptResponseApiDto | null>(null);
   protected readonly availableOrders = signal<IFurpaCompanyOrderDetailApiDto[]>([]);
   protected readonly selectedOrderKeys = signal<string[]>([]);
   private customerRequestId = 0;
@@ -115,16 +138,16 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
       validators: [Validators.required]
     }),
     documentNo: new FormControl('', {
-      nonNullable: true,
-      validators: [Validators.required, Validators.pattern(DOCUMENT_NO_PATTERN)]
+      nonNullable: true
     }),
     deliverer: new FormControl('', { nonNullable: true }),
     receiver: new FormControl('', { nonNullable: true }),
     description: new FormControl('', { nonNullable: true }),
     allowOrderOverReceiving: new FormControl(false, { nonNullable: true }),
+    autoCreateReturnForPartialAcceptance: new FormControl(true, { nonNullable: true }),
     kalemler: new FormArray<KalemFormGroup>([])
   };
-  protected readonly form = new FormGroup(this.controls);
+  protected readonly form = new FormGroup(this.controls, { validators: [documentDateValidator] });
 
   constructor() {
     super();
@@ -145,6 +168,17 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   protected isDocumentNoInvalid(): boolean {
     const control = this.controls.documentNo;
     return control.invalid && (control.touched || control.dirty);
+  }
+
+  protected isDocumentDateInvalid(): boolean {
+    return (
+      this.form.hasError('documentDateBeforeMovementDate') &&
+      (this.controls.documentDate.touched || this.controls.documentDate.dirty)
+    );
+  }
+
+  protected closeDialog(): void {
+    this.close(this.createdReceiptResult() ? { created: true } : undefined);
   }
 
   protected searchCustomer(): void {
@@ -449,9 +483,12 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
 
     if (existingControl) {
       const step = stock.unitMultiplier ?? existingControl.controls.birimKatsayisi.value ?? 1;
-      const currentMalKabul = Number(existingControl.controls.malKabulMiktari.value ?? 0);
-      existingControl.controls.malKabulMiktari.setValue(currentMalKabul + step);
-      existingControl.controls.malKabulMiktari.markAsDirty();
+      const currentDispatch = Number(existingControl.controls.irsaliyeMiktari.value ?? 0);
+      const currentAccepted = Number(existingControl.controls.fiiliKabulMiktari.value ?? 0);
+      existingControl.controls.irsaliyeMiktari.setValue(currentDispatch + step);
+      existingControl.controls.fiiliKabulMiktari.setValue(currentAccepted + step);
+      existingControl.controls.irsaliyeMiktari.markAsDirty();
+      existingControl.controls.fiiliKabulMiktari.markAsDirty();
       this.stockQuery.setValue('');
       this.stockResults.set([]);
       this.stockError.set('');
@@ -469,7 +506,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected submit(): void {
-    if (this.submitting()) {
+    if (this.submitting() || this.createdReceiptResult()) {
       return;
     }
 
@@ -497,8 +534,8 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
       .createToptanGirisIrsaliyesi(this.buildRequest())
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: () => {
-          this.close({ created: true });
+        next: (result: IFurpaCreateCompanyReceiptResponseApiDto) => {
+          this.createdReceiptResult.set(result);
         },
         error: (error: HttpErrorResponse) => {
           this.submitError.set(
@@ -519,17 +556,36 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     );
   }
 
-  protected toplamMalKabulMiktari(): number {
+  protected toplamIrsaliyeMiktari(): number {
     return this.kalemler.controls.reduce(
-      (total, control) => total + Number(control.controls.malKabulMiktari.value ?? 0),
+      (total, control) => total + Number(control.controls.irsaliyeMiktari.value ?? 0),
       0
     );
   }
 
+  protected toplamFiiliKabulMiktari(): number {
+    return this.kalemler.controls.reduce(
+      (total, control) => total + Number(control.controls.fiiliKabulMiktari.value ?? 0),
+      0
+    );
+  }
+
+  protected toplamIadeMiktari(): number {
+    return this.kalemler.controls.reduce((total, control) => total + this.getKalemFark(control), 0);
+  }
+
   protected getKalemFark(control: KalemFormGroup): number {
+    const difference =
+      Number(control.controls.irsaliyeMiktari.value ?? 0) -
+      Number(control.controls.fiiliKabulMiktari.value ?? 0);
+
+    return difference > 0 ? difference : 0;
+  }
+
+  protected isAcceptedQuantityInvalid(control: KalemFormGroup): boolean {
     return (
-      Number(control.controls.siparisMiktari.value ?? 0) -
-      Number(control.controls.malKabulMiktari.value ?? 0)
+      (control.controls.fiiliKabulMiktari.invalid || control.hasError('acceptedGreaterThanDispatch')) &&
+      (control.controls.fiiliKabulMiktari.touched || control.controls.fiiliKabulMiktari.dirty)
     );
   }
 
@@ -566,13 +622,16 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
       siparisMiktari: new FormControl<number | null>(0, {
         validators: [Validators.required, Validators.min(0)]
       }),
-      malKabulMiktari: new FormControl<number | null>(1, {
+      irsaliyeMiktari: new FormControl<number | null>(1, {
         validators: [Validators.required, Validators.min(0.01)]
+      }),
+      fiiliKabulMiktari: new FormControl<number | null>(1, {
+        validators: [Validators.required, Validators.min(0)]
       }),
       aciklama: new FormControl('', { nonNullable: true }),
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl('', { nonNullable: true })
-    });
+    }, { validators: [acceptedQuantityValidator] });
   }
 
   private addOrMergeKalemFromSiparis(kalem: IFurpaCompanyOrderItemApiDto, siparisReferansi: string): void {
@@ -591,16 +650,20 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
       return controlStockCode === normalizedStockCode && controlSiparisGuid === normalizedSiparisGuid;
     });
 
+    const remainingQuantity = Number(kalem.remainingQuantity ?? 0);
     const quantity = Number(kalem.quantity ?? 0);
-    const incomingQuantity = quantity > 0 ? quantity : 1;
+    const incomingQuantity = remainingQuantity > 0 ? remainingQuantity : quantity > 0 ? quantity : 1;
 
     if (existingControl) {
       const currentSiparis = Number(existingControl.controls.siparisMiktari.value ?? 0);
-      const currentMalKabul = Number(existingControl.controls.malKabulMiktari.value ?? 0);
+      const currentDispatch = Number(existingControl.controls.irsaliyeMiktari.value ?? 0);
+      const currentAccepted = Number(existingControl.controls.fiiliKabulMiktari.value ?? 0);
       existingControl.controls.siparisMiktari.setValue(currentSiparis + incomingQuantity);
-      existingControl.controls.malKabulMiktari.setValue(currentMalKabul + incomingQuantity);
+      existingControl.controls.irsaliyeMiktari.setValue(currentDispatch + incomingQuantity);
+      existingControl.controls.fiiliKabulMiktari.setValue(currentAccepted + incomingQuantity);
       existingControl.controls.siparisMiktari.markAsDirty();
-      existingControl.controls.malKabulMiktari.markAsDirty();
+      existingControl.controls.irsaliyeMiktari.markAsDirty();
+      existingControl.controls.fiiliKabulMiktari.markAsDirty();
       return;
     }
 
@@ -620,13 +683,16 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
         siparisMiktari: new FormControl<number | null>(incomingQuantity, {
           validators: [Validators.required, Validators.min(0.01)]
         }),
-        malKabulMiktari: new FormControl<number | null>(incomingQuantity, {
+        irsaliyeMiktari: new FormControl<number | null>(incomingQuantity, {
           validators: [Validators.required, Validators.min(0.01)]
+        }),
+        fiiliKabulMiktari: new FormControl<number | null>(incomingQuantity, {
+          validators: [Validators.required, Validators.min(0)]
         }),
         aciklama: new FormControl(kalem.description?.trim() ?? '', { nonNullable: true }),
         skt: new FormControl('', { nonNullable: true }),
         modelKodu: new FormControl('', { nonNullable: true })
-      })
+      }, { validators: [acceptedQuantityValidator] })
     );
   }
 
@@ -634,6 +700,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
 
     return {
+      clientRequestId: this.clientRequestId,
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       movementDate: rawValue.movementDate,
       documentDate: rawValue.documentDate,
@@ -642,6 +709,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
       receiver: rawValue.receiver.trim(),
       description: rawValue.description.trim(),
       allowOrderOverReceiving: rawValue.allowOrderOverReceiving,
+      autoCreateReturnForPartialAcceptance: rawValue.autoCreateReturnForPartialAcceptance,
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
     };
   }
@@ -649,7 +717,8 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   private mapKalem(kalem: KalemFormValue) {
     return {
       stockCode: kalem.stokKodu.trim(),
-      quantity: Number(kalem.malKabulMiktari ?? 0),
+      dispatchQuantity: Number(kalem.irsaliyeMiktari ?? 0),
+      acceptedQuantity: Number(kalem.fiiliKabulMiktari ?? 0),
       unitPrice: 0,
       unitPointer: kalem.birimKatsayisi ?? 1,
       lastConsumingDate: this.normalizeOptionalText(kalem.skt) ?? undefined,

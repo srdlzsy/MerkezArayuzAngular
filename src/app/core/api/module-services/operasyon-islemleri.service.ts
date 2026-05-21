@@ -1,5 +1,4 @@
 import { Injectable } from '@angular/core';
-import { throwError } from 'rxjs';
 import type {
   IAuthorizationFileItemDto,
   IOperationJobDetailDto,
@@ -8,7 +7,6 @@ import type {
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
-import { buildProblemError } from '../furpa-merkez-api.utils';
 
 export type OperationJobDto = IOperationJobDto;
 export type OperationJobDetailDto = IOperationJobDetailDto;
@@ -40,9 +38,7 @@ export class OperasyonIslemleriService extends BaseApiService {
   }
 
   createPromoFileJob() {
-    return throwError(() =>
-      buildProblemError('Promosyon dosyasi akisi backend dokumaninda aktif degil.')
-    );
+    return this.get<OperationJobDto>('operations/promofile');
   }
 
   getJobDetail(jobId: string) {

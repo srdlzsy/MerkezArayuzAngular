@@ -46,16 +46,6 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
 
     return `${payload.evrakNo} / ${depoNo} / ${payload.tarih}`;
   });
-  protected readonly requestPath = computed(() => {
-    const payload = this.data;
-    const depoNo = this.activeDepoNo();
-
-    if (!payload?.evrakNo || !payload.tarih || depoNo === null || depoNo === undefined) {
-      return `${this.page.baseRouteOrFile}/ayrinti/{evrakNo}/{depoNo}/{tarih}`;
-    }
-
-    return `${this.page.baseRouteOrFile}/ayrinti/${payload.evrakNo}/${depoNo}/${payload.tarih}`;
-  });
 
   protected trackByKalem(index: number, kalem: IFurpaInventoryCountItemApiDto): string {
     return [

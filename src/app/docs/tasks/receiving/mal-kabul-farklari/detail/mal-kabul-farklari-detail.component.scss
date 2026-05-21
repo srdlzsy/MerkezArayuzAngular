@@ -1,0 +1,17 @@
+@use '../../../core/api-detail-page/api-detail-page.shared';
+
+.line-shell {
+  display: grid;
+  gap: 8px;
+}
+
+.line-shell strong {
+  font-size: 1rem;
+}
+
+.line-shell span,
+.line-shell p {
+  margin: 0;
+  color: #475569;
+  overflow-wrap: anywhere;
+}

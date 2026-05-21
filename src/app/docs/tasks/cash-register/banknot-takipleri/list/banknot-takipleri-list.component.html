@@ -1,0 +1,242 @@
+<section class="task-page banknote-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="welcome-box">
+      <h2>{{ current.title }}</h2>
+    </div>
+    <p class="subtitle">{{ current.subtitle }}</p>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card">
+      <h3>Depo</h3>
+      <p>{{ selectedWarehouseLabel() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Gun</h3>
+      <p>{{ lastLoadedDate() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Toplam Kayit</h3>
+      <p>{{ totalCount() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Fark</h3>
+      <p
+        [class.amount-negative]="differenceTotalAmount() < 0"
+        [class.amount-positive]="differenceTotalAmount() > 0"
+      >
+        {{ formatCurrency(differenceTotalAmount()) }}
+      </p>
+    </article>
+  </section>
+
+  <section class="task-block">
+    <form class="query-card banknote-query" [formGroup]="filtersForm" (ngSubmit)="loadTracks()" novalidate>
+      <div class="query-grid banknote-query-grid">
+        <label class="field date-field">
+          <span>Takip Gunu</span>
+          <input type="date" formControlName="targetDate" [max]="maxTargetDate" />
+        </label>
+
+        <label class="field mode-field">
+          <span>Depo Kapsami</span>
+          <select [value]="warehouseMode()" (change)="updateWarehouseMode($any($event.target).value ?? '')">
+            <option value="current">Aktif Depo</option>
+            <option value="all">Tum Depolar</option>
+            <option value="custom">Ozel Depo</option>
+          </select>
+        </label>
+
+        <label class="field custom-warehouse-field">
+          <span>Depo No</span>
+          <input type="number" min="1" formControlName="customWarehouseNo" placeholder="110" />
+        </label>
+
+        <div class="field field-preview">
+          <span>Gonderilecek Deger</span>
+          <code>{{ requestPath() }}</code>
+        </div>
+
+        <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+
+        <button type="button" class="task-action task-action-secondary query-create" (click)="openCreatePanel()">
+          Yeni
+        </button>
+      </div>
+
+      <p class="query-path">{{ requestPath() }}</p>
+    </form>
+
+    <section class="banknote-totals">
+      <article class="info-card">
+        <h3>Toplam</h3>
+        <p>{{ formatCurrency(totalAmount()) }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Teslim</h3>
+        <p>{{ formatCurrency(deliveryTotalAmount()) }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Fark Dagilimi</h3>
+        <p>{{ differenceSummaryLabel() }}</p>
+      </article>
+    </section>
+
+    <article
+      class="state-card feedback-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Liste Yukleniyor</h3>
+      <p>{{ selectedWarehouseLabel() }} icin {{ filtersForm.controls.targetDate.value }} tarihli kayitlar getiriliyor.</p>
+    </article>
+
+    <app-api-list-table
+      *ngIf="!isLoading() && tracks().length"
+      [rows]="tracks()"
+      [columns]="tableColumns"
+      actionLabel="Detay"
+      filterPlaceholder="ID, depo, teslim eden, teslim alan veya tutar ara"
+      (rowAction)="openDetail($event)"
+    ></app-api-list-table>
+
+    <article class="state-card" *ngIf="!isLoading() && !feedback() && !tracks().length">
+      <h3>Kayit Bulunamadi</h3>
+      <p>Secilen gun ve depo kapsami icin banknot takip kaydi bulunmuyor.</p>
+    </article>
+
+    <section class="banknote-workspace" [class.has-create-panel]="isCreatePanelOpen()">
+      <article class="query-card detail-panel">
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Detay</span>
+            <h3>Banknot Takip Kaydi</h3>
+          </div>
+          <span class="panel-chip" *ngIf="isDetailLoading()">Yukleniyor</span>
+        </div>
+
+        <article class="state-card state-card-error compact-state" *ngIf="detailError() as currentDetailError">
+          <h3>Detay Yuklenemedi</h3>
+          <p>{{ currentDetailError }}</p>
+        </article>
+
+        <ng-container *ngIf="selectedTrackDetail() as detail; else noDetail">
+          <div class="detail-main">
+            <span>ID {{ detail.banknoteTrackId }}</span>
+            <strong>{{ detail.warehouseName || 'Depo' }}</strong>
+            <p>{{ formatDateTime(detail.banknoteTrackDate) }}</p>
+          </div>
+
+          <dl class="detail-list">
+            <div>
+              <dt>Depo No</dt>
+              <dd>{{ detail.warehouseNo }}</dd>
+            </div>
+            <div>
+              <dt>Toplam Tutar</dt>
+              <dd>{{ formatCurrency(detail.totalAmount) }}</dd>
+            </div>
+            <div>
+              <dt>Teslim Tutar</dt>
+              <dd>{{ formatCurrency(detail.deliveryTotalAmount) }}</dd>
+            </div>
+            <div>
+              <dt>Fark</dt>
+              <dd
+                [class.amount-negative]="getDifferenceTone(detail.differenceAmount) === 'negative'"
+                [class.amount-positive]="getDifferenceTone(detail.differenceAmount) === 'positive'"
+              >
+                {{ formatCurrency(detail.differenceAmount) }}
+              </dd>
+            </div>
+            <div>
+              <dt>Teslim Eden</dt>
+              <dd>{{ detail.deliverer || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Teslim Alan</dt>
+              <dd>{{ detail.receiver || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Kayit Tarihi</dt>
+              <dd>{{ formatDateTime(detail.createDate) }}</dd>
+            </div>
+          </dl>
+        </ng-container>
+
+        <ng-template #noDetail>
+          <div class="empty-copy">
+            <h3>Kayit secilmedi</h3>
+            <p>Tablodan bir kayit acildiginda detay burada gosterilir.</p>
+          </div>
+        </ng-template>
+      </article>
+
+      <form
+        class="query-card create-panel"
+        *ngIf="isCreatePanelOpen()"
+        [formGroup]="createForm"
+        (ngSubmit)="submitCreate()"
+        novalidate
+      >
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Olustur</span>
+            <h3>Yeni Teslim Kaydi</h3>
+          </div>
+          <span class="panel-chip">{{ currentWarehouseLabel() }}</span>
+        </div>
+
+        <div class="create-grid">
+          <label class="field">
+            <span>Tarih</span>
+            <input type="date" formControlName="banknoteTrackDate" [max]="maxTargetDate" />
+          </label>
+
+          <label class="field">
+            <span>Toplam Tutar</span>
+            <input type="number" min="0" step="0.01" formControlName="totalAmount" placeholder="12000" />
+          </label>
+
+          <label class="field">
+            <span>Teslim Tutar</span>
+            <input type="number" min="0" step="0.01" formControlName="deliveryTotalAmount" placeholder="11850" />
+          </label>
+
+          <label class="field">
+            <span>Teslim Eden</span>
+            <input type="text" formControlName="deliverer" maxlength="80" autocomplete="off" />
+          </label>
+
+          <label class="field">
+            <span>Teslim Alan</span>
+            <input type="text" formControlName="receiver" maxlength="80" autocomplete="off" />
+          </label>
+        </div>
+
+        <article class="create-result" *ngIf="createdResponse() as response">
+          <span>{{ response.created ? 'Yeni kayit' : 'Mevcut kayit' }}</span>
+          <strong>ID {{ response.banknoteTrackId }}</strong>
+          <p>{{ response.banknoteTrackDate }} - Depo {{ response.warehouseNo }}</p>
+        </article>
+
+        <div class="form-actions">
+          <button type="submit" class="task-action task-action-primary" [disabled]="isCreating()">
+            {{ isCreating() ? 'Kaydediliyor...' : 'Kaydet' }}
+          </button>
+          <button type="button" class="task-action task-action-secondary" (click)="resetCreateForm()" [disabled]="isCreating()">
+            Temizle
+          </button>
+        </div>
+      </form>
+    </section>
+  </section>
+</section>

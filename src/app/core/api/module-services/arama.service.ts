@@ -19,6 +19,31 @@ import {
 } from '../furpa-merkez-api.utils';
 import { BaseApiService } from '../base-api.service';
 
+export interface CariBulResultDto {
+  isFound: boolean;
+  barcode: string;
+  warehouseNo: number;
+  resolutionSource: string;
+  stockCode: string | null;
+  stockName: string | null;
+  matchedBarcode: string | null;
+  primaryBarcode: string | null;
+  caseBarcode: string | null;
+  unitsPerCase: number | null;
+  defaultSupplierCode: string | null;
+  defaultSupplierName: string | null;
+  suggestions: Array<{
+    customerCode: string;
+    customerName: string;
+    taxNoOrTckn: string | null;
+    isDefaultSupplier: boolean;
+    movementCount: number;
+    lastMovementDate: string | null;
+    lastDocumentNo: string | null;
+    sources: string[];
+  }>;
+}
+
 @Injectable({
   providedIn: 'root'
 })
@@ -117,6 +142,26 @@ export class AramaService extends BaseApiService {
       undefined,
       take
     );
+  }
+
+  searchPrices(
+    query: string,
+    warehouseNo?: number,
+    take: number = 20
+  ): Observable<ProductLookupItemDto[]> {
+    const filters = this.buildProductSearchQuery(query);
+
+    if (!filters.barcode && !filters.stockCode && !filters.stockName) {
+      return of([]);
+    }
+
+    return this.getWithQuery<ProductLookupItemDto[]>('arama-islemleri/fiyat-gor', {
+      warehouseNo,
+      barcode: filters.barcode,
+      stockCode: filters.stockCode,
+      stockName: filters.stockName,
+      take: Math.min(take, 100)
+    });
   }
 
   getByFilterForLabel(query: string, take: number = 20): Observable<ProductLookupItemDto[]> {
@@ -242,6 +287,49 @@ export class AramaService extends BaseApiService {
     return this.getWithQuery<ProductCustomerSuggestionsDto>(
       `arama-islemleri/urunler/${encodeURIComponent(stockCode.trim())}/cari-onerileri`,
       {
+        take: Math.min(Math.max(take, 1), 25)
+      }
+    );
+  }
+
+  /**
+   * Barkoddan cari/firma bul
+   * Barkodu stokla eslestirir, varsayilan tedarikciyi ve yakin gecmis stok hareketlerinden
+   * cari onerilerini doner.
+   * @param barcode Barkod (zorunlu)
+   * @param warehouseNo Depo numarasi (opsiyonel)
+   * @param take Gosterilecek sayi (varsayilan: 10, max: 25)
+   */
+  searchCustomerByBarcode(
+    barcode: string,
+    warehouseNo?: number,
+    take: number = 10
+  ): Observable<CariBulResultDto> {
+    const normalizedBarcode = barcode.trim();
+
+    if (!normalizedBarcode) {
+      return of({
+        isFound: false,
+        barcode: '',
+        warehouseNo: warehouseNo || 0,
+        resolutionSource: 'not-found',
+        stockCode: null,
+        stockName: null,
+        matchedBarcode: null,
+        primaryBarcode: null,
+        caseBarcode: null,
+        unitsPerCase: null,
+        defaultSupplierCode: null,
+        defaultSupplierName: null,
+        suggestions: []
+      });
+    }
+
+    return this.getWithQuery<CariBulResultDto>(
+      'arama-islemleri/cari-bul',
+      {
+        barcode: normalizedBarcode,
+        warehouseNo,
         take: Math.min(Math.max(take, 1), 25)
       }
     );

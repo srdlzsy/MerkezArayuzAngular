@@ -5,6 +5,7 @@ declare module 'rxjs' {
   export const of: (...args: any[]) => Observable;
   export const timer: (...args: any[]) => Observable<number>;
   export const throwError: (...args: any[]) => Observable<never>;
+  export const firstValueFrom: (...args: any[]) => Promise<any>;
   export class BehaviorSubject<T = any> {
     constructor(value: T);
     next(value: T): void;
@@ -15,6 +16,7 @@ declare module 'rxjs' {
   export const map: any;
   export const switchMap: any;
   export const catchError: any;
+  export const delay: any;
   export const finalize: any;
   export const takeWhile: any;
   export const filter: any;

@@ -234,7 +234,7 @@ export class StokIslemleriService extends BaseApiService {
     take: number = 10
   ): Observable<LabelDocumentListItemDto[]> {
     return this.getWithQuery<LabelDocumentListItemDto[]>(
-      'stok-islemleri/etiket-belgeleri',
+      'kasa-islemleri/etiket-belgeleri',
       { warehouseNo, take: Math.min(take, 100) }
     );
   }

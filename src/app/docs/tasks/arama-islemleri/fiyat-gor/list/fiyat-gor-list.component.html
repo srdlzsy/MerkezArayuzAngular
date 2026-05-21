@@ -1,0 +1,85 @@
+<section class="lookup-page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Arama Islemleri</p>
+      <h2>Fiyat Gor</h2>
+      <p class="subtitle">
+        Barkod, stok kodu veya urun adi ile hizli fiyat sorgusu yap.
+      </p>
+    </div>
+
+    <article class="metric-card">
+      <span>Sonuc</span>
+      <strong>{{ totalCount() }}</strong>
+    </article>
+  </header>
+
+  <section class="query-panel">
+    <label class="field field-main">
+      <span>Arama</span>
+      <input
+        type="search"
+        [(ngModel)]="searchQuery"
+        placeholder="Barkod, stok kodu veya urun adi"
+        (keydown.enter)="$event.preventDefault(); search()"
+      />
+    </label>
+
+    <label class="field field-small">
+      <span>Depo No</span>
+      <input type="number" min="1" step="1" [(ngModel)]="warehouseNo" placeholder="JWT" />
+    </label>
+
+    <label class="field field-small">
+      <span>Limit</span>
+      <input type="number" min="1" max="100" step="1" [(ngModel)]="take" />
+    </label>
+
+    <button type="button" class="primary-action" [disabled]="isLoading()" (click)="search()">
+      {{ isLoading() ? 'Araniyor...' : 'Ara' }}
+    </button>
+
+    <button type="button" class="ghost-action" (click)="clear()">Temizle</button>
+  </section>
+
+  <article class="feedback feedback-error" *ngIf="errorMessage()">
+    {{ errorMessage() }}
+  </article>
+
+  <article class="state-card" *ngIf="isLoading()">
+    <h3>Fiyat sorgusu yapiliyor</h3>
+    <p>Secilen kriterlerle fiyat bilgisi getiriliyor.</p>
+  </article>
+
+  <section class="result-grid" *ngIf="!isLoading() && results().length">
+    <article class="product-card" *ngFor="let item of results(); trackBy: trackByProduct">
+      <div class="product-main">
+        <div>
+          <h3>{{ item.stockName || item.stockCode }}</h3>
+          <p>{{ item.stockCode }} / {{ item.barcode || '-' }}</p>
+        </div>
+        <strong class="price">{{ formatPrice(item.price) }} TL</strong>
+      </div>
+
+      <div class="detail-grid">
+        <span>Birim: <strong>{{ item.unitName || '-' }}</strong></span>
+        <span>Fiyat Tipi: <strong>{{ item.priceTypeCode }}</strong></span>
+        <span *ngIf="item.secondaryUnitName">
+          Alternatif: <strong>{{ item.secondaryUnitName }} x{{ item.secondaryUnitMultiplier }}</strong>
+        </span>
+        <span>Depo: <strong>{{ item.warehouseNo || '-' }}</strong></span>
+      </div>
+
+      <div class="badge-row" *ngIf="getBlockedLabels(item).length">
+        <span class="danger-badge" *ngFor="let label of getBlockedLabels(item)">
+          {{ label }}
+        </span>
+      </div>
+    </article>
+  </section>
+
+  <article class="state-card" *ngIf="!isLoading() && hasSearched() && !results().length && !errorMessage()">
+    <h3>Urun bulunamadi</h3>
+    <p>Arama ifadesini veya depo filtresini degistirip tekrar dene.</p>
+  </article>
+</section>

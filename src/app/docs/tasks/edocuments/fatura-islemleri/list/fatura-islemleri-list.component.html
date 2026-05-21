@@ -354,12 +354,21 @@
           <div class="action-row">
             <button
               type="button"
+              class="primary-button"
+              *ngIf="canViewDetail()"
+              (click)="openViewingPdf(summary)"
+              [disabled]="viewingPdfLoading()"
+            >
+              {{ viewingPdfLoading() ? 'PDF Aciliyor...' : 'Resmi PDF Ac' }}
+            </button>
+            <button
+              type="button"
               class="ghost-button"
               *ngIf="canViewDetail()"
               (click)="reloadViewingDetail()"
               [disabled]="viewingDetailLoading()"
             >
-              Varsayilan Acilis
+              HTML Detay
             </button>
             <button
               type="button"
@@ -442,10 +451,6 @@
           </details>
 
           <section class="summary-grid compact-summary-grid">
-            <article class="summary-card">
-              <span>Kaynak</span>
-              <strong>{{ getDocumentSourceLabel(detail.document) }}</strong>
-            </article>
             <article class="summary-card">
               <span>Profil</span>
               <strong>{{ getDocumentProfileLabel(detail.document) }}</strong>
@@ -930,10 +935,6 @@
             </details>
 
             <section class="summary-grid compact-summary-grid">
-              <article class="summary-card">
-                <span>Kaynak</span>
-                <strong>{{ getDocumentSourceLabel(detail.document) }}</strong>
-              </article>
               <article class="summary-card">
                 <span>Profil</span>
                 <strong>{{ getDocumentProfileLabel(detail.document) }}</strong>

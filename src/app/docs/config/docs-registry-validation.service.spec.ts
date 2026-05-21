@@ -126,6 +126,41 @@ describe('docs-registry-validation.service', () => {
     expect(result.unmappedFrontendTasks).toEqual([]);
   });
 
+  it('ignores arama tasks that intentionally do not have frontend routes', () => {
+    const sorumluluklar: SorumlulukGorevVeYetkiResponseModel[] = [
+      {
+        id: 1,
+        isim: 'Arama Islemleri',
+        sebike: 'arama-islemleri',
+        gorevler: [
+          {
+            id: 1,
+            isim: 'Fiyat Gor',
+            sebike: 'fiyat-gor',
+            yetkiler: []
+          },
+          {
+            id: 2,
+            isim: 'Cari Bul',
+            sebike: 'cari-bul',
+            yetkiler: []
+          },
+          {
+            id: 3,
+            isim: 'Urunler',
+            sebike: 'urunler',
+            yetkiler: []
+          }
+        ]
+      }
+    ];
+
+    const result = buildDocsRegistryValidationResult(sorumluluklar, []);
+
+    expect(result.unknownBackendTasks).toEqual(['arama-islemleri > urunler']);
+    expect(result.unmappedFrontendTasks).toEqual([]);
+  });
+
   it('accepts Axata synchronization tasks when backend uses the camel-case menu key', () => {
     const registrations = [
       buildRegistration(

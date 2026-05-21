@@ -1,9 +1,17 @@
 <section class="dialog-page" *ngIf="page as current">
   <header class="dialog-header icmal-print-hidden">
     <div class="dialog-heading">
-      <p class="eyebrow">Detay</p>
-      <h2>{{ current.title }}</h2>
-      <p class="subtitle">Icmal satirinin tum odeme ve kasa detaylari bu ekranda toplanir.</p>
+      <p class="eyebrow">{{ current.title }}</p>
+      <ng-container *ngIf="summary as currentSummary; else genericTitle">
+        <h2>{{ warehouseNo() }} / {{ warehouseName() }}</h2>
+        <p class="subtitle">
+          {{ formatSummaryDate(currentSummary.summaryDate) }} | Kasa {{ currentSummary.cashNo }} |
+          Z Rapor {{ currentSummary.zReportNo }}
+        </p>
+      </ng-container>
+      <ng-template #genericTitle>
+        <h2>{{ current.title }}</h2>
+      </ng-template>
     </div>
 
     <div class="dialog-actions">

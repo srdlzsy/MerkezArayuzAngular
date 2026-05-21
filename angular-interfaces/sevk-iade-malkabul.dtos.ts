@@ -19,6 +19,7 @@ export interface WarehouseShippingListItemDto {
   targetWarehouse: string;
   shippingWarehouseNo: number;
   shippingState: number;
+  isReturn: boolean;
   plaque: string;
   driverNameSurname: string;
   driverTckn: string;
@@ -40,6 +41,7 @@ export interface WarehouseShippingHeaderDto {
   targetWarehouse: string;
   shippingWarehouseNo: number;
   shippingState: number;
+  isReturn: boolean;
   plaque: string;
   driverNameSurname: string;
   driverTckn: string;
@@ -168,6 +170,13 @@ export interface CompanyMovementHeaderDto {
   lineCount: number;
   totalQuantity: number;
   totalAmount: number;
+  totalDispatchQuantity?: number;
+  totalNetAcceptedQuantity?: number;
+  totalReturnedQuantity?: number;
+  autoCreatedReturnLineCount?: number;
+  autoCreatedReturnDocumentSerie?: string | null;
+  autoCreatedReturnDocumentOrderNo?: number | null;
+  returnEDespatchStatus?: string | null;
 }
 
 export interface CompanyMovementLineItemDto {
@@ -190,6 +199,14 @@ export interface CompanyMovementLineItemDto {
   lotNo: number;
   projectCode: string;
   orderGuid: string | null;
+  dispatchQuantity?: number;
+  physicalAcceptedQuantity?: number;
+  returnQuantity?: number;
+  returnStatus?: string | null;
+  returnMovementGuid?: string | null;
+  returnDocumentSerie?: string | null;
+  returnDocumentOrderNo?: number | null;
+  returnEDespatchStatus?: string | null;
 }
 
 export interface CompanyMovementDetailDto {
@@ -296,6 +313,7 @@ export interface AcceptWarehouseReceivingResponse {
   sourceWarehouseNo: number;
   transitWarehouseNo: number;
   shippingState: number;
+  isReturn: boolean;
   lineCount: number;
   totalShippedQuantity: number;
   totalReceivedQuantity: number;
@@ -317,6 +335,39 @@ export interface AcceptWarehouseReceivingLineResultDto {
   differenceType: string;
 }
 
+export type GoodsAcceptanceDifferenceScope = 'accepted' | 'created';
+
+export interface GoodsAcceptanceDifferenceListQuery {
+  warehouseNo?: number;
+  startDate: string;
+  endDate: string;
+  scope?: GoodsAcceptanceDifferenceScope;
+}
+
+export interface GoodsAcceptanceDifferenceDto {
+  documentDate: string | null;
+  movementDate: string | null;
+  documentNo: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  lineNo: number;
+  movementGuid: string;
+  isReturn: boolean;
+  sourceWarehouseNo: number;
+  sourceWarehouse: string;
+  targetWarehouseNo: number;
+  targetWarehouse: string;
+  productCode: string;
+  productName: string;
+  unitName: string;
+  unitPointer: number;
+  quantity: number;
+  receivedQuantity: number;
+  differenceQuantity: number;
+  differenceType: string;
+  description: string;
+}
+
 // ============================================================================
 // Firma Mal Kabul Modelleri
 // ============================================================================
@@ -326,17 +377,20 @@ export interface CreateCompanyReceivingHttpRequest {
   customerCode: string;
   movementDate: string;
   documentDate: string;
-  documentNo: string;
+  documentNo?: string | null;
   deliverer: string;
   receiver: string;
   description: string;
   allowOrderOverReceiving: boolean;
+  autoCreateReturnForPartialAcceptance?: boolean;
   lines: CreateCompanyReceivingLineHttpRequest[];
 }
 
 export interface CreateCompanyReceivingLineHttpRequest {
   stockCode: string;
-  quantity: number;
+  quantity?: number;
+  dispatchQuantity?: number;
+  acceptedQuantity?: number;
   unitPrice: number;
   unitPointer: number;
   lastConsumingDate?: string;
@@ -364,6 +418,13 @@ export interface CreateCompanyReceivingResponse {
   totalOrderOverReceivedQuantity: number;
   totalAmount: number;
   writeConnectionName: string;
+  totalDispatchQuantity?: number;
+  totalNetAcceptedQuantity?: number;
+  totalReturnedQuantity?: number;
+  autoCreatedReturnLineCount?: number;
+  autoCreatedReturnDocumentSerie?: string | null;
+  autoCreatedReturnDocumentOrderNo?: number | null;
+  returnEDespatchStatus?: string | null;
   lines: CreateCompanyReceivingLineResultDto[];
 }
 
@@ -381,6 +442,14 @@ export interface CreateCompanyReceivingLineResultDto {
   orderlessQuantity: number;
   orderRemainingBefore: number;
   orderRemainingAfter: number;
+  dispatchQuantity?: number;
+  physicalAcceptedQuantity?: number;
+  returnQuantity?: number;
+  returnStatus?: string | null;
+  returnMovementGuid?: string | null;
+  returnDocumentSerie?: string | null;
+  returnDocumentOrderNo?: number | null;
+  returnEDespatchStatus?: string | null;
 }
 
 export interface EDespatchCustomerSuggestionDto {

@@ -227,9 +227,9 @@
 .attribute-card {
   display: grid;
   gap: 0.32rem;
-  padding: 0.95rem 1rem;
+  padding: 0.72rem 0.82rem;
   border: 1px solid var(--line);
-  border-radius: 18px;
+  border-radius: 8px;
   background: var(--surface-soft);
 }
 
@@ -241,7 +241,7 @@
   color: #6c7c75;
   font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.05em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -514,21 +514,24 @@
 
 .detail-panel {
   display: grid;
-  gap: 1rem;
+  gap: 0.75rem;
 }
 
 .detail-hero {
-  padding: 1rem;
+  padding: 0.75rem 0.85rem;
   border: 1px solid var(--line);
-  border-radius: 22px;
-  background:
-    radial-gradient(circle at top right, rgba(15, 118, 110, 0.12), transparent 34%),
-    linear-gradient(180deg, #ffffff 0%, #f8fcfb 100%);
+  border-radius: 8px;
+  background: #ffffff;
 }
 
 .detail-copy {
   display: grid;
-  gap: 0.25rem;
+  gap: 0.16rem;
+}
+
+.detail-copy h3 {
+  font-size: 1rem;
+  line-height: 1.22;
 }
 
 .inline-note {

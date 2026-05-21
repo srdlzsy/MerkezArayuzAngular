@@ -1,6 +1,7 @@
 import type {
   IFurpaCompanyOrderListItemApiDto,
   IFurpaCompanyMovementListItemApiDto,
+  IFurpaGoodsAcceptanceDifferenceApiDto,
   IFurpaInventoryCountListItemApiDto,
   IFurpaStockReceiptListItemApiDto,
   IFurpaVirmanListItemApiDto,
@@ -17,7 +18,6 @@ export const FIRMA_SIPARISI_LIST_COLUMNS = [
   { key: 'documentSerie', label: 'Seri' },
   { key: 'documentOrderNo', label: 'Sira' },
   { key: 'customerDisplayName', label: 'Musteri' },
-  { key: 'customerAddress', label: 'Adres' },
   { key: 'lineCount', label: 'Satir' },
   { key: 'totalQuantity', label: 'Toplam Miktar' },
   { key: 'deliveryDate', label: 'Teslim Tarihi', type: 'date' }
@@ -111,6 +111,13 @@ export const buildWarehouseMovementListColumns = (
     { key: 'documentOrderNo', label: 'Sira' },
     { key: 'documentNo', label: 'Belge No' },
     {
+      key: 'returnType',
+      label: 'Tip',
+      type: 'status',
+      resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
+        row.isReturn ? 'Depo Iadesi' : 'Depo Sevki'
+    },
+    {
       key: 'counterpartyWarehouseNo',
       label: 'Muhatap Depo No',
       resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
@@ -143,3 +150,53 @@ export const buildWarehouseMovementListColumns = (
         row.shippingState === 1 ? 'Tamamlandi' : 'Bekliyor'
     }
   ] as const satisfies readonly ApiListTableColumn<IFurpaWarehouseShippingListItemApiDto>[];
+
+export const MAL_KABUL_FARKLARI_LIST_COLUMNS = [
+  { key: 'documentSerie', label: 'Seri' },
+  { key: 'documentOrderNo', label: 'Sira' },
+  { key: 'lineNo', label: 'Satir' },
+  { key: 'documentNo', label: 'Belge No' },
+  {
+    key: 'returnType',
+    label: 'Tip',
+    type: 'status',
+    resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
+      row.isReturn ? 'Depo Iadesi' : 'Depo Sevki'
+  },
+  {
+    key: 'counterpartyWarehouse',
+    label: 'Muhatap Depo',
+    resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
+      `${row.sourceWarehouseNo} - ${row.sourceWarehouse || '-'} -> ${row.targetWarehouseNo} - ${
+        row.targetWarehouse || '-'
+      }`
+  },
+  { key: 'productCode', label: 'Stok Kodu' },
+  { key: 'productName', label: 'Stok Adi' },
+  { key: 'quantity', label: 'Sevk Miktari' },
+  { key: 'receivedQuantity', label: 'Kabul Miktari' },
+  { key: 'differenceQuantity', label: 'Fark' },
+  {
+    key: 'differenceType',
+    label: 'Fark Tipi',
+    type: 'status',
+    resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) => {
+      if (row.differenceType === 'missing') {
+        return 'Eksik';
+      }
+
+      if (row.differenceType === 'excess') {
+        return 'Fazla';
+      }
+
+      return row.differenceType || 'Bilinmiyor';
+    }
+  },
+  {
+    key: 'movementDate',
+    label: 'Tarih',
+    type: 'date',
+    resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
+      row.documentDate || row.movementDate
+  }
+] as const satisfies readonly ApiListTableColumn<IFurpaGoodsAcceptanceDifferenceApiDto>[];

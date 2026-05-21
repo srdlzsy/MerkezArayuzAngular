@@ -1,0 +1,234 @@
+@use '../../../core/api-list-page/api-list-page.shared';
+
+.info-grid .info-card:nth-child(1),
+.info-grid .info-card:nth-child(2) {
+  display: block;
+}
+
+.amount-negative {
+  color: #b91c1c;
+}
+
+.amount-positive {
+  color: #047857;
+}
+
+.banknote-query-grid {
+  flex-wrap: wrap;
+}
+
+.banknote-query-grid .field {
+  min-width: 150px;
+}
+
+.mode-field {
+  min-width: 170px;
+}
+
+.custom-warehouse-field {
+  max-width: 140px;
+}
+
+.field select {
+  width: 100%;
+  min-height: 36px;
+  padding: 0.42rem 0.65rem;
+  color: #0f172a;
+  border: 1px solid #d6deef;
+  border-radius: 9px;
+  background: #fff;
+  box-sizing: border-box;
+  font-size: 0.88rem;
+}
+
+.field select:focus {
+  outline: 2px solid rgba(59, 130, 246, 0.14);
+  border-color: #93c5fd;
+}
+
+.banknote-totals {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.banknote-totals .info-card {
+  display: block;
+  min-width: 150px;
+}
+
+.feedback-card {
+  padding: 0.7rem 0.82rem;
+}
+
+.state-card-success {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.banknote-workspace {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.5rem;
+}
+
+.banknote-workspace.has-create-panel {
+  grid-template-columns: minmax(0, 0.95fr) minmax(320px, 0.75fr);
+}
+
+.detail-panel,
+.create-panel {
+  display: grid;
+  gap: 0.75rem;
+}
+
+.panel-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.panel-head h3,
+.empty-copy h3 {
+  margin: 0.12rem 0 0;
+  color: #0f172a;
+  font-size: 0.95rem;
+}
+
+.section-kicker,
+.detail-main span,
+.detail-list dt,
+.create-result span {
+  color: #64748b;
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.panel-chip {
+  display: inline-flex;
+  align-items: center;
+  min-height: 28px;
+  padding: 0.28rem 0.55rem;
+  color: #334155;
+  border-radius: 999px;
+  background: #eef4fa;
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.compact-state {
+  padding: 0.65rem 0.75rem;
+}
+
+.detail-main {
+  display: grid;
+  gap: 0.24rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+}
+
+.detail-main strong {
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.detail-main p,
+.empty-copy p,
+.create-result p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.45;
+}
+
+.detail-list {
+  display: grid;
+  gap: 0;
+  margin: 0;
+}
+
+.detail-list div {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.62rem 0;
+  border-bottom: 1px solid #eef2f7;
+}
+
+.detail-list dt,
+.detail-list dd {
+  margin: 0;
+}
+
+.detail-list dd {
+  color: #0f172a;
+  font-size: 0.86rem;
+  font-weight: 700;
+  text-align: right;
+}
+
+.empty-copy {
+  padding: 0.75rem 0;
+}
+
+.create-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.create-grid .field:first-child,
+.create-grid .field:nth-child(4),
+.create-grid .field:nth-child(5) {
+  grid-column: 1 / -1;
+}
+
+.create-result {
+  display: grid;
+  gap: 0.2rem;
+  padding: 0.72rem 0.8rem;
+  border: 1px solid #bbf7d0;
+  border-radius: 10px;
+  background: #f0fdf4;
+}
+
+.create-result span {
+  color: #047857;
+}
+
+.form-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.45rem;
+  flex-wrap: wrap;
+}
+
+:host ::ng-deep app-api-list-table .table-controls {
+  border-radius: 12px 12px 0 0;
+}
+
+@media (max-width: 960px) {
+  .banknote-workspace {
+    grid-template-columns: 1fr;
+  }
+}
+
+@media (max-width: 700px) {
+  .custom-warehouse-field,
+  .query-submit,
+  .query-create,
+  .form-actions .task-action {
+    width: 100%;
+    max-width: none;
+  }
+
+  .create-grid {
+    grid-template-columns: 1fr;
+  }
+}

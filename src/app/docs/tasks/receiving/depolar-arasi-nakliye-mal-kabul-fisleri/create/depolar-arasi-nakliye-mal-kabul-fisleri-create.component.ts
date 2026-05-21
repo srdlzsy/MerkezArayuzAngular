@@ -137,7 +137,7 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
           }
 
           this.loadError.set(
-            this.resolveErrorMessage(error, 'Sevk detayi getirilemedi. Seri ve sira bilgisini kontrol edin.')
+            this.resolveErrorMessage(error, 'Evrak detayi getirilemedi. Seri ve sira bilgisini kontrol edin.')
           );
         }
       });
@@ -153,12 +153,12 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
     const receipt = this.activeReceipt();
 
     if (!receipt) {
-      this.submitError.set('Once kabul edecegin sevki getir.');
+      this.submitError.set('Once kabul edecegin evraki getir.');
       return;
     }
 
     if (!this.isLoadedReferenceCurrent(receipt)) {
-      this.submitError.set('Seri veya sira degisti. Sevki yeniden getirip tekrar deneyin.');
+      this.submitError.set('Seri veya sira degisti. Evraki yeniden getirip tekrar deneyin.');
       return;
     }
 
@@ -174,7 +174,7 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
 
     if (this.hasDiscrepancy() && !this.controls.allowDiscrepancy.value) {
       this.submitError.set(
-        'Eksik veya fazla kabul edilen satirlar var. Devam etmek icin farkli kabul etmeye izin ver secenegini ac.'
+        'Eksik veya fazla kabul edilen satirlar var. Devam etmek icin farki kaydetmeye izin ver secenegini ac.'
       );
       return;
     }

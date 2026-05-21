@@ -124,6 +124,7 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly manualDispatchBatchResult =
     signal<AxataSynchronizationManualDispatchBatchDto | null>(null);
   protected readonly feedback = signal<PageFeedback | null>(null);
+  protected readonly selectedTab = signal<'tasks' | 'monitor' | 'manual' | 'incoming'>('tasks');
   protected readonly overviewLoading = signal(false);
   protected readonly healthLoading = signal(false);
   protected readonly fetchProfilesLoading = signal(false);
@@ -551,6 +552,15 @@ export class AxataSenkronizasyonuListComponent {
     this.loadOverview();
     this.loadHealth();
     this.loadFetchProfiles();
+  }
+
+  protected selectTab(tab: string): void {
+    const tabName = tab as 'tasks' | 'monitor' | 'manual' | 'incoming';
+    this.selectedTab.set(tabName);
+  }
+
+  protected loadCandidates(): void {
+    this.loadManualCandidates();
   }
 
   protected loadOverview(): void {
@@ -1801,6 +1811,10 @@ export class AxataSenkronizasyonuListComponent {
 
   protected trackByProbe = (_index: number, probe: IAxataSynchronizationProbeApiDto): string =>
     probe.name;
+
+  protected trackByRecentJob = (_index: number, job: IAxataSynchronizationJobApiDto): string =>
+    job.jobId;
+
   protected trackByFetchProfile = (
     _index: number,
     profile: IAxataSynchronizationFetchProfileApiDto
@@ -2190,18 +2204,21 @@ export class AxataSenkronizasyonuListComponent {
 
   private getManualIncomingCompanyReceivingTemplate(): string {
     return this.formatJson({
+      clientRequestId: 'd8d0f3d6-5c62-4c67-b6b7-0f5d76b81b6f',
       customerCode: '120.01.03106',
       movementDate: this.getToday(),
       documentDate: this.getToday(),
-      documentNo: 'IRS-000123',
+      documentNo: 'ST12026000002395',
       deliverer: 'Teslim Eden',
       receiver: 'Teslim Alan',
       description: '',
       allowOrderOverReceiving: false,
+      autoCreateReturnForPartialAcceptance: true,
       lines: [
         {
           stockCode: '015792',
-          quantity: 6,
+          dispatchQuantity: 10,
+          acceptedQuantity: 8,
           unitPrice: 0,
           unitPointer: 1,
           lastConsumingDate: '2026-12-31',

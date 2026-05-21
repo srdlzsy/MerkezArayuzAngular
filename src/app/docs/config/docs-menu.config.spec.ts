@@ -314,6 +314,12 @@ describe('docs-menu.config', () => {
             isim: 'Firma Mal Kabulleri',
             sebike: 'firma-mal-kabulleri',
             yetkiler: []
+          },
+          {
+            id: 22,
+            isim: 'Mal Kabul Farklari',
+            sebike: 'mal-kabul-farklari',
+            yetkiler: []
           }
         ]
       },
@@ -366,13 +372,14 @@ describe('docs-menu.config', () => {
 
     expect(hasDocsTaskAccess('verilen-firma-siparisleri', sorumluluklar)).toBeTrue();
     expect(hasDocsTaskAccess('firma-mal-kabulleri', sorumluluklar)).toBeTrue();
+    expect(hasDocsTaskAccess('mal-kabul-farklari', sorumluluklar)).toBeTrue();
     expect(hasDocsTaskAccess('giden-firma-sevkleri', sorumluluklar)).toBeTrue();
     expect(hasDocsTaskAccess('masraf-fisleri', sorumluluklar)).toBeTrue();
     expect(hasDocsTaskAccess('virmanlar', sorumluluklar)).toBeTrue();
     expect(hasDocsTaskAccess('kullanicilar', sorumluluklar)).toBeTrue();
   });
 
-  it('keeps backend-only tasks visible when a reference page exists', () => {
+  it('keeps banknote track task visible when the backend menu sends it', () => {
     const sorumluluklar: Sorumluluk[] = [
       {
         id: 1,
@@ -381,34 +388,8 @@ describe('docs-menu.config', () => {
         gorevler: [
           {
             id: 11,
-            isim: 'Kasa Hareketleri',
-            sebike: 'kasa-hareketleri',
-            yetkiler: []
-          }
-        ]
-      },
-      {
-        id: 2,
-        isim: 'Iade Islemleri',
-        sebike: 'iade-islemleri',
-        gorevler: [
-          {
-            id: 21,
-            isim: 'Musteri Iadeleri',
-            sebike: 'musteri-iadeleri',
-            yetkiler: []
-          }
-        ]
-      },
-      {
-        id: 3,
-        isim: 'Sevk Islemleri',
-        sebike: 'sevk-islemleri',
-        gorevler: [
-          {
-            id: 31,
-            isim: 'Sevk Planlari',
-            sebike: 'sevk-planlari',
+            isim: 'Banknot Takipleri',
+            sebike: 'banknot-takipleri',
             yetkiler: []
           }
         ]
@@ -417,13 +398,34 @@ describe('docs-menu.config', () => {
 
     const menu = buildDocsMenuForUser(sorumluluklar);
 
-    expect(hasDocsTaskAccess('kasa-hareketleri', sorumluluklar)).toBeTrue();
-    expect(hasDocsTaskAccess('musteri-iadeleri', sorumluluklar)).toBeTrue();
-    expect(hasDocsTaskAccess('sevk-planlari', sorumluluklar)).toBeTrue();
+    expect(hasDocsTaskAccess('banknot-takipleri', sorumluluklar)).toBeTrue();
     expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
-      ['kasa-hareketleri'],
-      ['musteri-iadeleri'],
-      ['sevk-planlari']
+      ['banknot-takipleri']
+    ]);
+  });
+
+  it('keeps kunye label print task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Kasa Islemleri',
+        sebike: 'kasa-islemleri',
+        gorevler: [
+          {
+            id: 12,
+            isim: 'Kunye Etiket Yazdirma',
+            sebike: 'kunye-etiket-yazdirma',
+            yetkiler: []
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('kunye-etiket-yazdirma', sorumluluklar)).toBeTrue();
+    expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
+      ['kunye-etiket-yazdirma']
     ]);
   });
 });

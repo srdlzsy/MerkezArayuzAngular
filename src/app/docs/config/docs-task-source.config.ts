@@ -248,7 +248,9 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
         'Firma mal kabul gecmisi, ETTN ile on-dolum ve siparis baglama create akisini kapsar.',
       baseRouteOrFile: '/api/mal-kabul-islemleri/firma-mal-kabulleri',
       highlights: [
-        'DocumentNo zorunludur ve seri + 9 haneli sira formatinda olmalidir',
+        'DocumentNo bos, prefix veya seri + 9 haneli sira formatinda olabilir',
+        'Yeni create akisi dispatchQuantity ve acceptedQuantity alanlarini ayri gonderir',
+        'Eksik kabul farki icin varsayilan olarak otomatik firma iadesi olusturulur',
         'ETTN endpointi create ekrani icin ust bilgi ve kalem on-dolumu saglar',
         'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir'
       ],
@@ -279,11 +281,23 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
               path: '/api/mal-kabul-islemleri/firma-mal-kabulleri',
               description: 'Yeni firma mal kabul fisini olusturur',
               payload: 'CreateCompanyReceivingHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/mal-kabul-islemleri/mal-kabuller/firma',
+              description: 'Firma mal kabul create endpoint aliasi',
+              payload: 'CreateCompanyReceivingHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/{clientRequestId}',
+              description: 'Offline retry icin create sonucunu sorgular'
             }
           ]
         }
       ],
       codeSample: `{
+  "clientRequestId": "d8d0f3d6-5c62-4c67-b6b7-0f5d76b81b6f",
   "customerCode": "120.01.03106",
   "movementDate": "2026-04-20",
   "documentDate": "2026-04-20",
@@ -292,10 +306,12 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
   "receiver": "Teslim Alan",
   "description": "",
   "allowOrderOverReceiving": false,
+  "autoCreateReturnForPartialAcceptance": true,
   "lines": [
     {
       "stockCode": "015792",
-      "quantity": 6,
+      "dispatchQuantity": 10,
+      "acceptedQuantity": 8,
       "unitPrice": 0,
       "unitPointer": 1,
       "lastConsumingDate": "2026-12-31",
@@ -310,34 +326,20 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       ).then((m) => m.ToptanGirisIrsaliyeleriListComponent),
     { accessKeyAliases: ['toptan-giris-irsaliyeleri'] }
   ),
-  'irsaliye-kabulleri': referenceTask({
-    id: 'irsaliye-kabulleri',
-    title: 'Irsaliye Kabulleri',
-    subtitle:
-      'Backend tarafinda kullanici menusu olarak donen irsaliye kabul gorevi icin referans kaydidir.',
-    baseRouteOrFile: '/api/mal-kabul-islemleri/irsaliye-kabulleri',
-    highlights: ['Menu eslesmesi hazir', 'Referans dokumantasyon', 'Ozel ekran bekleniyor'],
-    listTitle: 'Notlar',
-    items: [
-      {
-        name: 'Irsaliye Kabulleri',
-        description:
-          'Bu sayfa backend menu agacindaki gorevin frontend route karsiligini korumak icin eklendi.'
-      }
-    ]
-  }),
   'depo-mal-kabulleri': singleRouteTask(
     {
       id: 'depo-mal-kabulleri',
       title: 'Depo Mal Kabulleri',
       subtitle:
-        'Bekleyen gelen depo sevklerini listeler, movementGuid bazli kabul yapar ve ETTN ile resmi e-irsaliye karsilastirmasini destekler.',
+        'Bekleyen gelen depo sevklerini ve depo iadelerini listeler, movementGuid bazli kabul yapar ve ETTN ile resmi e-irsaliye karsilastirmasini destekler.',
       baseRouteOrFile: '/api/mal-kabul-islemleri/depo-mal-kabulleri',
       highlights: [
-        'Bu ekran bos fis acmaz; bekleyen gelen sevklerden create benzeri kabul akisi uretir',
+        'Bu ekran bos fis acmaz; bekleyen gelen sevklerden ve iadelerden create benzeri kabul akisi uretir',
+        'isReturn false normal gelen depo sevkini, true gelen depo iadesini ifade eder',
         'Satir eslestirmesi movementGuid ile yapilmalidir',
         'ETTN endpointi resmi gelen e-irsaliye satirlarini on-karsilastirma icin kullanilir',
         'allowDiscrepancy false iken eksik/fazla kabul 409 Conflict ile engellenir',
+        'allowDiscrepancy true iken fark sth_FormulMiktar uzerinde recorded-on-formula-quantity olarak izlenir',
         'Kabul islemi mevcut sevk satirlarini gunceller, yeni ana hareket acmaz'
       ],
       listTitle: 'Endpointler',
@@ -345,17 +347,17 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
         {
           name: 'DepolarArasiNakliyeMalKabulFisleriController',
           description:
-            'Bekleyen gelen depo sevklerini listeler, detay ve kabul komutlarini movementGuid bazli calistirir.',
+            'Bekleyen gelen depo sevklerini ve depo iadelerini listeler, detay ve kabul komutlarini movementGuid bazli calistirir.',
           endpoints: [
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/depo-mal-kabulleri?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'Bekleyen gelen depo sevklerini mal kabul listesi olarak getirir'
+              description: 'Bekleyen gelen depo sevklerini ve iadelerini mal kabul listesi olarak getirir'
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/depo-mal-kabulleri/{seri}/{sira}?warehouseNo=110',
-              description: 'Secilen bekleyen gelen sevkin detayini ve kabul icin movementGuid satirlarini getirir'
+              description: 'Secilen bekleyen gelen sevk veya iade detayini ve kabul icin movementGuid satirlarini getirir'
             },
             {
               method: 'GET',
@@ -386,6 +388,94 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
         '../tasks/receiving/depolar-arasi-nakliye-mal-kabul-fisleri/list/depolar-arasi-nakliye-mal-kabul-fisleri-list.component'
       ).then((m) => m.DepolarArasiNakliyeMalKabulFisleriListComponent),
     { accessKeyAliases: ['depolar-arasi-nakliye-mal-kabul-fisleri'] }
+  ),
+  'mal-kabul-farklari': singleRouteTask(
+    {
+      id: 'mal-kabul-farklari',
+      title: 'Mal Kabul Farklari',
+      subtitle:
+        'Kabul edilmis depo sevki veya depo iadesi satirlarinda sevk miktari ile kabul miktari farklarini listeler.',
+      baseRouteOrFile: '/api/mal-kabul-islemleri/mal-kabul-farklari',
+      highlights: [
+        'scope=accepted kullanicinin deposunun kabul ettigi evraklari listeler',
+        'scope=created kullanicinin deposunun olusturdugu veya gonderdigi evraklari listeler',
+        'Normal sevk ve depo iadesi ayni response icinde isReturn alanina gore ayrilir',
+        'differenceQuantity = receivedQuantity - quantity mantigiyla hesaplanir',
+        'Sadece kabul edilmis satirlar doner'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'MalKabulFarklariController',
+          description:
+            'Mal kabulde eksik veya fazla kabul edilen depo sevki/iadesi satirlarini tarih ve kapsam filtresiyle listeler.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/mal-kabul-islemleri/mal-kabul-farklari?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30&scope=accepted',
+              description: 'Mal kabul farklarini accepted veya created kapsaminda listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/mal-kabul-islemleri/mal-kabul-farklari/accepted?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
+              description: 'Kullanicinin deposunun kabul ettigi evraklardaki farklari listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/mal-kabul-islemleri/mal-kabul-farklari/created?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
+              description: 'Kullanicinin deposunun olusturdugu veya gonderdigi evraklardaki farklari listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/mal-kabul-islemleri/mal-kabul-farklari/kabul-ettigim?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
+              description: 'accepted kapsami icin Turkce alias'
+            },
+            {
+              method: 'GET',
+              path: '/api/mal-kabul-islemleri/mal-kabul-farklari/olusturdugum?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
+              description: 'created kapsami icin Turkce alias'
+            }
+          ]
+        }
+      ],
+      codeSample: `[
+  {
+    "documentDate": "2026-04-10T00:00:00",
+    "movementDate": "2026-04-10T00:00:00",
+    "documentNo": "FRM2026600065140",
+    "documentSerie": "F50",
+    "documentOrderNo": 192188,
+    "lineNo": 28,
+    "movementGuid": "8d4a5a77-1b3f-4f2a-93a1-b90a1b7d3c11",
+    "isReturn": false,
+    "sourceWarehouseNo": 50,
+    "sourceWarehouse": "PANAYIR PREMIUM",
+    "targetWarehouseNo": 135,
+    "targetWarehouse": "ALICI DEPO",
+    "productCode": "019042",
+    "productName": "COOK EKO BUYUK BUZDOLABI POS.30x42CM 80 YAP.*15",
+    "unitName": "ADET",
+    "unitPointer": 1,
+    "quantity": 45,
+    "receivedQuantity": 25,
+    "differenceQuantity": -20,
+    "differenceType": "missing",
+    "description": ""
+  }
+]`
+    },
+    () =>
+      import(
+        '../tasks/receiving/mal-kabul-farklari/list/mal-kabul-farklari-list.component'
+      ).then((m) => m.MalKabulFarklariListComponent),
+    {
+      accessKeyAliases: [
+        'MalKabulFarklari',
+        'kabul-ettigim',
+        'olusturdugum',
+        'mal-kabul-islemleri-mal-kabul-farklari'
+      ]
+    }
   ),
   'giden-firma-sevkleri': singleRouteTask(
     {
@@ -471,31 +561,62 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       ).then((m) => m.DepolarArasiNakliyeSevkFisleriListComponent),
     { accessKeyAliases: ['depolar-arasi-nakliye-sevk-fisleri'] }
   ),
-  'sevk-planlari': referenceTask({
-    id: 'sevk-planlari',
-    title: 'Sevk Planlari',
-    subtitle:
-      'Backend tarafinda kullanici menusu olarak donen sevk plani gorevi icin referans kaydidir.',
-    baseRouteOrFile: '/api/sevk-islemleri/sevk-planlari',
-    highlights: ['Menu eslesmesi hazir', 'Planlama gorevi', 'Referans dokumantasyon'],
-    listTitle: 'Notlar',
-    items: [
-      {
-        name: 'Sevk Planlari',
-        description:
-          'Bu sayfa backend menu agacindaki sevk plani kaydinin frontendde kaybolmamasini saglar.'
-      }
-    ]
-  }),
   'masraf-fisleri': singleRouteTask(
     {
       id: 'masraf-fisleri',
       title: 'Masraf Fisleri',
       subtitle: 'Masraf fisleri icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/stok-islemleri/masraf-fisleri',
-      highlights: ['Sarf', 'Depo cikisi', 'Gorev ekrani'],
-      listTitle: 'Controller',
-      items: [{ name: 'SarfDepoCikisFisleriController', description: 'Sarf depo cikis fisleri.' }]
+      highlights: [
+        'warehouseNo body icinden alinmaz; JWT icindeki kullanici deposu kullanilir',
+        'sth_isemri_gider_kodu backend tarafinda sabit 0032 yazilir',
+        'creator ve acceptor hareket grup kodlarina yazilir',
+        'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'SarfDepoCikisFisleriController',
+          description: 'Masraf fisleri icin liste, detay ve create endpointlerini sunar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/masraf-fisleri?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
+              description: 'Masraf fislerini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/masraf-fisleri/{seri}/{sira}?warehouseNo=110',
+              description: 'Masraf fisi detayini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/stok-islemleri/masraf-fisleri',
+              description: 'Yeni masraf fisi olusturur',
+              payload: 'CreateStockReceiptHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "creator": "VARDIYA-2",
+  "acceptor": "SEF-02",
+  "movementDate": "2026-04-21",
+  "documentDate": "2026-04-21",
+  "documentNo": "",
+  "description": "Ic tuketim masrafi",
+  "lines": [
+    {
+      "stockCode": "018888",
+      "quantity": 5,
+      "unitPointer": 1,
+      "description": "",
+      "partyCode": "",
+      "lotNo": 0,
+      "projectCode": ""
+    }
+  ]
+}`
     },
     () =>
       import(
@@ -509,9 +630,56 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       title: 'Zayiat Fisleri',
       subtitle: 'Zayiat fisleri icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/stok-islemleri/zayiat-fisleri',
-      highlights: ['Fire', 'Depo cikisi', 'Gorev ekrani'],
-      listTitle: 'Controller',
-      items: [{ name: 'FireDepoCikisFisleriController', description: 'Fire depo cikis fisleri.' }]
+      highlights: [
+        'warehouseNo body icinden alinmaz; JWT icindeki kullanici deposu kullanilir',
+        'backend STOK_HAREKETLERI icin sth_cins = 4 olarak kayit yazar',
+        'creator ve acceptor hareket grup kodlarina yazilir',
+        'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'FireDepoCikisFisleriController',
+          description: 'Zayiat fisleri icin liste, detay ve create endpointlerini sunar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/zayiat-fisleri?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
+              description: 'Zayiat fislerini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/zayiat-fisleri/{seri}/{sira}?warehouseNo=110',
+              description: 'Zayiat fisi detayini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/stok-islemleri/zayiat-fisleri',
+              description: 'Yeni zayiat fisi olusturur',
+              payload: 'CreateStockReceiptHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "creator": "VARDIYA-1",
+  "acceptor": "SEF-01",
+  "movementDate": "2026-04-21",
+  "documentDate": "2026-04-21",
+  "documentNo": "",
+  "description": "Gun sonu zayiat",
+  "lines": [
+    {
+      "stockCode": "015792",
+      "quantity": 2,
+      "unitPointer": 1,
+      "description": "",
+      "partyCode": "",
+      "lotNo": 0,
+      "projectCode": ""
+    }
+  ]
+}`
     },
     () =>
       import(
@@ -525,11 +693,55 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       title: 'Virmanlar',
       subtitle: 'Virmanlar icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/stok-islemleri/virmanlar',
-      highlights: ['Virman', 'Cikis', 'Gorev ekrani'],
-      listTitle: 'Controller',
+      highlights: [
+        'warehouseNo body icinden alinmaz; JWT icindeki kullanici deposu kullanilir',
+        'movementType satir bazinda sth_tip kolonuna yazilir',
+        'giris ve cikis depo no eski yapiya uygun olarak kullanici deposuna yazilir',
+        'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
+      ],
+      listTitle: 'Endpointler',
       items: [
-        { name: 'StokVirmanCikisFisleriController', description: 'Virman cikis fisleri.' }
-      ]
+        {
+          name: 'StokVirmanCikisFisleriController',
+          description: 'Virman fisleri icin liste, detay ve create endpointlerini sunar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/virmanlar?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
+              description: 'Virman evraklarini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/virmanlar/{seri}/{sira}?warehouseNo=110',
+              description: 'Virman detayini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/stok-islemleri/virmanlar',
+              description: 'Yeni virman evragi olusturur',
+              payload: 'CreateVirmanHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "movementDate": "2026-04-21",
+  "documentDate": "2026-04-21",
+  "documentNo": "",
+  "description": "Reyon duzenleme virmani",
+  "lines": [
+    {
+      "stockCode": "015792",
+      "movementType": 2,
+      "quantity": 3,
+      "unitPointer": 1,
+      "description": "",
+      "partyCode": "",
+      "lotNo": 0,
+      "projectCode": ""
+    }
+  ]
+}`
     },
     () =>
       import(
@@ -575,38 +787,6 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       ),
     { accessKeyAliases: ['firma-iade'] }
   ),
-  'musteri-iadeleri': referenceTask({
-    id: 'musteri-iadeleri',
-    title: 'Musteri Iadeleri',
-    subtitle:
-      'Backend tarafinda kullanici menusu olarak donen musteri iadesi gorevi icin referans kaydidir.',
-    baseRouteOrFile: '/api/iade-islemleri/musteri-iadeleri',
-    highlights: ['Menu eslesmesi hazir', 'Iade gorevi', 'Referans dokumantasyon'],
-    listTitle: 'Notlar',
-    items: [
-      {
-        name: 'Musteri Iadeleri',
-        description:
-          'Bu sayfa backend menu agacindaki musteri iade kaydinin frontendde gorunmesini saglar.'
-      }
-    ]
-  }),
-  'tedarikci-iadeleri': referenceTask({
-    id: 'tedarikci-iadeleri',
-    title: 'Tedarikci Iadeleri',
-    subtitle:
-      'Backend tarafinda kullanici menusu olarak donen tedarikci iadesi gorevi icin referans kaydidir.',
-    baseRouteOrFile: '/api/iade-islemleri/tedarikci-iadeleri',
-    highlights: ['Menu eslesmesi hazir', 'Iade gorevi', 'Referans dokumantasyon'],
-    listTitle: 'Notlar',
-    items: [
-      {
-        name: 'Tedarikci Iadeleri',
-        description:
-          'Bu sayfa backend menu agacindaki tedarikci iade kaydinin frontendde gorunmesini saglar.'
-      }
-    ]
-  }),
   'giden-depo-iadeleri': singleRouteTask(
     {
       id: 'giden-depo-iadeleri',
@@ -689,14 +869,14 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
         'Queue tabanli export',
         'Job polling',
         'Authorization file grid',
-        'Promofile su an bilincli olarak pasif'
+        'Promofile queue/polling destegi'
       ],
       listTitle: 'Endpointler',
       items: [
         {
           name: 'OperationsController',
           description:
-            'Terazi, urun/barcode/PLU ve kasiyer exportlerini job olarak baslatir; authorization file kayitlarini da ayni modulden yonetir.',
+            'Terazi, urun/barcode/PLU, kasiyer ve promosyon exportlerini job olarak baslatir; authorization file kayitlarini da ayni modulden yonetir.',
           endpoints: [
             {
               method: 'GET',
@@ -712,6 +892,11 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
               method: 'GET',
               path: '/api/operations/cashierfile',
               description: 'Kasiyer export isini kuyruga alir'
+            },
+            {
+              method: 'GET',
+              path: '/api/operations/promofile',
+              description: 'Promosyon ve yardimci POS dosyalari isini kuyruga alir'
             },
             {
               method: 'GET',
@@ -857,25 +1042,25 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/manual/axata/inbound-atf/company-receivings',
-                description: 'AXATA inbound ATF verisini Mikro firma mal kabule cevirir',
+                description: 'AXATA inbound ATF verisini Mikro firma mal kabule cevirir; native quantity kismi kabul farki olusturmaz',
                 payload: 'AxataInboundAtfCompanyReceivingHttpRequest'
               },
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/manual/axata/inbound-atf/company-receivings/batch',
-                description: 'Coklu AXATA inbound ATF kaydini toplu firma mal kabule cevirir',
+                description: 'Coklu AXATA inbound ATF kaydini toplu firma mal kabule cevirir; native quantity kismi kabul farki olusturmaz',
                 payload: 'AxataInboundAtfCompanyReceivingBatchHttpRequest'
               },
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/manual/incoming/company-receivings',
-                description: 'AXATA kaynakli tekil firma mal kabul payloadini Mikroya yazar',
+                description: 'dispatchQuantity ve acceptedQuantity ayrimiyla kismi kabul destekleyen firma mal kabul payloadini Mikroya yazar',
                 payload: 'CreateCompanyReceivingHttpRequest'
               },
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/manual/incoming/company-receivings/batch',
-                description: 'AXATA kaynakli coklu firma mal kabul payloadlarini toplu yazar',
+                description: 'Kismi kabul destekleyen coklu firma mal kabul payloadlarini toplu yazar',
                 payload: 'AxataManualIncomingCompanyReceivingBatchHttpRequest'
               },
               {
@@ -1105,22 +1290,23 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       id: 'fatura-goruntuleme',
       title: 'Fatura Goruntuleme',
       subtitle:
-        'Manuel inbox senkronizasyonu, cache listeleme, documentId ile detay acma, gelismis render ve yazdirildi durumunu ayri komutla guncelleme akislarini yeni API uzerinden sunar.',
+        'Manuel inbox senkronizasyonu, cache listeleme, documentId ile PDF acma, HTML detay/render ve yazdirildi durumunu ayri komutla guncelleme akislarini yeni API uzerinden sunar.',
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
         'POST senkronize ile cache guncelleme',
         'invoiceDate bazli liste',
-        'documentId ile detay',
+        'documentId ile resmi PDF',
+        'HTML detay /detail endpointinden alinir',
         'POST render override',
         'Yazdirildi komutu ayri endpoint',
-        'Backend htmlContent onizleme'
+        'Varsayilan belge acma Uyumsoft GetInboxInvoicePdf kullanir'
       ],
       listTitle: 'Endpointler',
       items: [
         {
           name: 'InvoiceViewingController',
           description:
-            'Uyumsoft inbox kayitlarini lokal cachee senkronize eder, cache listesini dondurur, belgeyi documentId ile getirir ve printed guncellemesini ayri komutla yapar.',
+            'Uyumsoft inbox kayitlarini lokal cachee senkronize eder, cache listesini dondurur, belgeyi documentId ile PDF veya HTML detay olarak getirir ve printed guncellemesini ayri komutla yapar.',
           endpoints: [
             {
               method: 'GET',
@@ -1135,7 +1321,17 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}',
-              description: 'Secili evragin summary ve render edilmis belge detayini getirir'
+              description: 'Secili evragin resmi PDF datasini Uyumsoft GetInboxInvoicePdf ile getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}/pdf',
+              description: 'PDF acma endpoint aliasi'
+            },
+            {
+              method: 'GET',
+              path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}/detail',
+              description: 'Secili evragin summary ve HTML render detayini getirir'
             },
             {
               method: 'POST',
@@ -1393,7 +1589,7 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       title: 'Etiket Belgeleri',
       subtitle:
         'Tarih, belge ve manuel urun ekleme kaynaklarini kullanarak etiket onizleme ve baski alma gorevi.',
-      baseRouteOrFile: '/api/stok-islemleri/etiket-belgeleri',
+      baseRouteOrFile: '/api/kasa-islemleri/etiket-belgeleri',
       highlights: ['Tarihe gore urun etiketi', 'Belge bazli yukleme', 'Baski onizleme ve yazdirma'],
       listTitle: 'Etiket Basim Islem Akisi',
       items: [
@@ -1404,22 +1600,22 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/stok-islemleri/etiket-belgeleri/fiyati-degisen-urunler?dateTimeFilter=...',
+              path: '/api/kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler?dateTimeFilter=...',
               description: 'Belirli zamandan sonra fiyati degisen urunleri getirir'
             },
             {
               method: 'GET',
-              path: '/api/stok-islemleri/etiket-belgeleri/{documentId}',
+              path: '/api/kasa-islemleri/etiket-belgeleri/{documentId}',
               description: 'Belge numarasina gore etiket satirlarini getirir'
             },
             {
               method: 'GET',
-              path: '/api/stok-islemleri/etiket-belgeleri/son?warehouseNo=...&take=10',
+              path: '/api/kasa-islemleri/etiket-belgeleri/son?warehouseNo=...&take=10',
               description: 'Depoya ait son 10 belgeyi listeler'
             },
             {
               method: 'GET',
-              path: '/api/stok-islemleri/etiket-belgeleri/etiketler?dateToGet=...',
+              path: '/api/kasa-islemleri/etiket-belgeleri/etiketler?dateToGet=...',
               description: 'Secilen gun icin kunye/tag kayitlarini getirir'
             }
           ]
@@ -1437,24 +1633,24 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       id: 'kunye-etiket-yazdirma',
       title: 'Kunye Etiket Yazdirma',
       subtitle:
-        'Urun secimi, belge numarasi veya tarih araligi ile kune bazli etiket onizleme ve yazdirma gorevi.',
-      baseRouteOrFile: '/api/stok-islemleri/kunye-etiket-yazdirma',
+        'Kasa Islemleri altindaki tarih bazli kunye etiket onizleme ve yazdirma gorevi.',
+      baseRouteOrFile: '/api/kasa-islemleri/kunye-etiket-yazdirma',
       highlights: [
-        'Urun, belge veya tarihe gore kune etiketi',
+        'JWT deposuna gore kunye etiket kayitlari',
         'Onizleme ve yazdirma',
-        'Kunye bazli veri modeli'
+        'LabelTagDto response modeli'
       ],
       listTitle: 'Kunye Etiket Yazdirma Akisi',
       items: [
         {
           name: 'KunyeEtiketYazdirmaController',
           description:
-            'Kunye bazli etiket verisi toplama, onizleme ve yazdirma endpointleri.',
+            'Kunye bazli etiket verisi toplama, onizleme ve yazdirma endpointini sunar.',
           endpoints: [
             {
               method: 'GET',
-              path: '/api/stok-islemleri/kunye-etiket-yazdirma?dateToGet=...',
-              description: 'Secilen gun icin kunye/tag kayitlarini getirir'
+              path: '/api/kasa-islemleri/kunye-etiket-yazdirma?dateToGet=...',
+              description: 'Secilen gun icin kullanici deposuna ait kunye etiket kayitlarini getirir'
             }
           ]
         }
@@ -1615,6 +1811,57 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
     ],
     ['icmal-dokumu']
   ),
+  'banknot-takipleri': singleRouteTask(
+    {
+      id: 'banknot-takipleri',
+      title: 'Banknot Takipleri',
+      subtitle:
+        'Gunluk fiziksel para teslim kayitlarini liste, detay ve create rotalariyla ayri Kasa gorevi olarak sunar.',
+      baseRouteOrFile: '/api/kasa-islemleri/banknot-takipleri',
+      highlights: [
+        'Kasa sayimlari altindan ayrilan yeni route ailesidir',
+        'warehouseNo = 1 tum depolari listeler',
+        'differenceAmount deliveryTotalAmount - totalAmount olarak gelir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'BanknotTakipleriController',
+          description: 'Gunluk banknot teslim ve toplam kayitlarini yonetir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/banknot-takipleri?dateToGet=2026-04-24&warehouseNo=110',
+              description: 'Secilen gun icin banknot takip kayitlarini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/banknot-takipleri/{banknoteTrackId}',
+              description: 'Banknot takip kaydinin detayini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/banknot-takipleri',
+              description: 'Gunluk banknot teslim kaydi olusturur',
+              payload: 'CreateBanknoteTrackHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "banknoteTrackDate": "2026-04-24",
+  "totalAmount": 12000,
+  "deliveryTotalAmount": 11850,
+  "deliverer": "Teslim Eden",
+  "receiver": "Teslim Alan"
+}`
+    },
+    () =>
+      import('../tasks/cash-register/banknot-takipleri/list/banknot-takipleri-list.component').then(
+        (m) => m.BanknotTakipleriListComponent
+      ),
+    { accessKeyAliases: ['banknot-takip', 'BanknotTakipleri'] }
+  ),
   'kasa-cirolari': singleRouteTask(
     {
       id: 'kasa-cirolari',
@@ -1739,23 +1986,6 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
         (m) => m.KasaCirolariListComponent
       )
   ),
-  'kasa-hareketleri': referenceTask({
-    id: 'kasa-hareketleri',
-    title: 'Kasa Hareketleri',
-    subtitle:
-      'Backend tarafinda kullanici menusu olarak donen kasa hareketleri gorevi icin referans kaydidir.',
-    baseRouteOrFile: '/api/kasa-islemleri/kasa-hareketleri',
-    highlights: ['Menu eslesmesi hazir', 'Kasa gorevi', 'Referans dokumantasyon'],
-    listTitle: 'Notlar',
-    items: [
-      {
-        name: 'Kasa Hareketleri',
-        description:
-          'Bu sayfa backend menu agacindaki kasa hareketleri kaydinin frontendde kaybolmamasini saglar.'
-      }
-    ]
-  }),
-
   'sayim-sonuclari': singleRouteTask(
     {
       id: 'sayim-sonuclari',
@@ -1764,6 +1994,7 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
       baseRouteOrFile: '/api/stok-islemleri/sayim-sonuclari',
       highlights: [
         'Detay acarken documentNo ile birlikte documentDate query parametresi zorunludur',
+        'Mobil offline pilotta request icin clientRequestId uretilir',
         'Barkod bos gonderilirse backend stok kodundan barkod bulmaya calisabilir'
       ],
       listTitle: 'Islem Adimlari',
@@ -1793,6 +2024,7 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
         }
       ],
       codeSample: `{
+  "clientRequestId": "7c9b31f6-1ab4-4ed1-b02b-2a90e5e7d3fd",
   "name": "Nisan 2026 Genel Sayim",
   "documentDate": "2026-04-21",
   "lines": [
@@ -2036,6 +2268,128 @@ export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = {
         }
       )
     ]
+  ),
+  'cari-bul': singleRouteTask(
+    {
+      id: 'cari-bul',
+      title: 'Cari Bul',
+      subtitle: 'Barkoddan cari/firma bulma ve oneriler; arama islemleri altinda hizli arama ekrani.',
+      baseRouteOrFile: '/api/arama-islemleri/cari-bul',
+      highlights: [
+        'Barkod bazli cari arama',
+        'Varsayilan tedarikci bilgisi',
+        'Yakin gecmis stok hareketleri',
+        'Firma onerileri'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AramaIslemleriController',
+          description: 'Cari/firma arama ve bulma islemleri. Barkoddan stok eslestirip varsayilan tedarikci ve onerilen firmalar dondurur.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/cari-bul?barcode=8690000000000&warehouseNo=110&take=10',
+              description: 'Barkod ile cari/firma bulur ve varsayilan tedarikci ile yakin gecmis onerilerini dondurur'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/barkodlar/8690000000000/cariler?warehouseNo=110&take=10',
+              description: 'Barkod odakli alias; ayni islevle cari onerileri getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/urunler/015550/cari-onerileri?take=10',
+              description: 'Stok kodundan cari onerilerini getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "isProductFound": true,
+  "stockCode": "015550",
+  "stockName": "Stok Adi",
+  "defaultSupplierCode": "120.01.03106",
+  "defaultSupplierName": "ORNEK TEDARIKCI",
+  "suggestions": [
+    {
+      "customerCode": "120.01.03106",
+      "customerName": "ORNEK TEDARIKCI",
+      "isDefaultSupplier": true,
+      "movementCount": 8,
+      "lastMovementDate": "2026-05-01T00:00:00"
+    }
+  ]
+}`
+    },
+    () =>
+      import('../tasks/arama-islemleri/cari-bul/list/cari-bul-list.component').then(
+        (m) => m.CariBulListComponent
+      ),
+    { accessKeyAliases: ['arama-islemleri-cari-bul', 'cari-ara', 'firma-bul'] }
+  ),
+  'fiyat-gor': singleRouteTask(
+    {
+      id: 'fiyat-gor',
+      title: 'Fiyat Gor',
+      subtitle: 'Hizli fiyat sorgu ekrani; barkod, stok kodu veya urun adi ile fiyat aramasi yapabilir.',
+      baseRouteOrFile: '/api/arama-islemleri/fiyat-gor',
+      highlights: [
+        'Barkod ile fiyat sorgusu',
+        'Stok kodu ile fiyat arama',
+        'Urun adi ile arama',
+        'Mikro fiyat proseduru'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AramaIslemleriController',
+          description: 'Fiyat arama ve goruntuleme islemleri. Ayni Mikro fiyat arama prosedurunu kullanir ve urun/fiyat bilgisini dondurur.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/fiyat-gor?warehouseNo=110&barcode=8690000000000',
+              description: 'Barkod uzerinden fiyat sorgusu yapar'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/fiyat-gor?warehouseNo=110&stockCode=015550',
+              description: 'Stok kodu uzerinden fiyat sorgusu yapar'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/fiyat-gor?warehouseNo=110&stockName=sut&take=20',
+              description: 'Urun adinda contains arama ile fiyat listesi getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/barkodlar/8690000000000/fiyat?warehouseNo=110&take=20',
+              description: 'Barkod odakli alias; fiyat bilgisini dondurur'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "warehouseNo": 110,
+  "barcode": "8690000000000",
+  "stockCode": "015550",
+  "stockName": "Stok Adi",
+  "price": 125.5,
+  "priceTypeCode": 1,
+  "unitName": "AD",
+  "unitMultiplier": 1,
+  "secondaryUnitName": "KOLI",
+  "secondaryUnitMultiplier": 12,
+  "isSalesBlocked": false,
+  "isOrderBlocked": false,
+  "isGoodsAcceptanceBlocked": false
+}`
+    },
+    () =>
+      import('../tasks/arama-islemleri/fiyat-gor/list/fiyat-gor-list.component').then(
+        (m) => m.FiyatGorListComponent
+      ),
+    { accessKeyAliases: ['arama-islemleri-fiyat-gor', 'fiyat-ara', 'fiyat-sorgula'] }
   )
 };
 

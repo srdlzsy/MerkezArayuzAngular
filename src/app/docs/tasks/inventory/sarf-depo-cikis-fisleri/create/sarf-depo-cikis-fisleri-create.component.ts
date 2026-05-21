@@ -1,19 +1,27 @@
 import { CommonModule } from '@angular/common';
 import { Component } from '@angular/core';
+import { ReactiveFormsModule } from '@angular/forms';
 
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
-import { DocsContentPage } from '../../../../models/docs.models';
-import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { StockDocumentCreateBase } from '../../../core/stock-document-create/stock-document-create.base';
 
 @Component({
   selector: 'app-sarf-depo-cikis-fisleri-create',
   standalone: true,
-  imports: [CommonModule],
-  templateUrl: './sarf-depo-cikis-fisleri-create.component.html',
-  styleUrl: './sarf-depo-cikis-fisleri-create.component.scss'
+  imports: [CommonModule, ReactiveFormsModule],
+  templateUrl: '../../../core/stock-document-create/stock-document-create.template.html',
+  styleUrl: '../../../core/stock-document-create/stock-document-create.scss'
 })
-export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
-  protected readonly page: DocsContentPage = DOCS_PAGES['masraf-fisleri'];
-  protected readonly screenTitle = 'Olustur';
-  protected readonly screenNote = 'Olusturma ekrani hazirligi';
+export class SarfDepoCikisFisleriCreateComponent extends StockDocumentCreateBase {
+  constructor() {
+    super({
+      kind: 'stock-receipt',
+      page: DOCS_PAGES['masraf-fisleri'],
+      eyebrow: 'MASRAF FISI',
+      submitLabel: 'Masraf Fisini Kaydet',
+      submittingLabel: 'Kaydediliyor...',
+      controllerName: 'SarfDepoCikisFisleri',
+      descriptionPlaceholder: 'Ic tuketim masrafi'
+    });
+  }
 }

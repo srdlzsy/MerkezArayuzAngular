@@ -162,7 +162,8 @@ export interface BanknoteTypeItemDto {
   banknoteType: number;
 }
 
-export interface BanknoteTrackItemDto {
+export interface BanknoteTrackDto {
+  banknoteTrackId: number;
   warehouseNo: number;
   warehouseName: string;
   banknoteTrackDate: string;
@@ -173,6 +174,8 @@ export interface BanknoteTrackItemDto {
   receiver: string;
   createDate: string;
 }
+
+export type BanknoteTrackItemDto = BanknoteTrackDto;
 
 // ============================================================================
 // Hediye Çeki Modelleri
@@ -521,7 +524,8 @@ export interface IFurpaGiftCheckMovementItemApiDto {
 export type IFurpaBanknoteTypeItemApiDto = IFurpaBanknoteMovementItemApiDto;
 export type IFurpaGiftCheckTypeItemApiDto = IFurpaGiftCheckMovementItemApiDto;
 
-export interface IFurpaBanknoteTrackItemApiDto {
+export interface IFurpaBanknoteTrackApiDto {
+  banknoteTrackId: number;
   warehouseNo: number;
   warehouseName: string;
   banknoteTrackDate: string;
@@ -532,6 +536,8 @@ export interface IFurpaBanknoteTrackItemApiDto {
   receiver: string;
   createDate: string;
 }
+
+export type IFurpaBanknoteTrackItemApiDto = IFurpaBanknoteTrackApiDto;
 
 export interface IFurpaCashierLookupItemApiDto {
   cashierCode: number;

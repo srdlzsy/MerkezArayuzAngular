@@ -15,7 +15,7 @@
   <section class="info-grid">
     <article class="info-card emphasis-card">
       <h3>Aktif Aksiyon</h3>
-      <p>{{ activeActionCount() }} operasyon + 1 hazir olmayan aksiyon</p>
+      <p>{{ activeActionCount() }} operasyon</p>
     </article>
     <article class="info-card">
       <h3>Durum</h3>
@@ -32,8 +32,8 @@
       <div class="control-copy">
         <div class="task-title">Operasyon Paneli</div>
         <p>
-          Terazi, urun ve kasiyer exportleri kuyruga atilir. Baslatilan her is icin `jobId`
-          uretilir ve asagidaki durum panelinden takip edilir.
+          Terazi, urun, kasiyer ve promosyon exportleri kuyruga atilir. Baslatilan her is icin
+          `jobId` uretilir ve asagidaki durum panelinden takip edilir.
         </p>
       </div>
       <div class="control-indicator" [class.is-busy]="isBusy()">

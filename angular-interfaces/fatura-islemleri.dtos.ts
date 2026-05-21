@@ -73,6 +73,8 @@ export interface IInvoiceViewingDetailApiDto {
   document: IInvoiceRenderedDocumentApiDto;
 }
 
+export type IInvoiceViewingPdfResponseApiDto = IUyumsoftOperationResponseApiDto;
+
 export interface IInvoiceViewingSynchronizationRequestApiDto {
   startDate: string;
   endDate: string;

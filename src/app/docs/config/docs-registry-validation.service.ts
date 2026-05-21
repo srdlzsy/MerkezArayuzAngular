@@ -19,6 +19,7 @@ import {
 interface BackendTaskDescriptor {
   responsibilityLabel: string;
   taskLabel: string;
+  responsibilityMatchKeys: string[];
   matchKeys: string[];
 }
 
@@ -45,8 +46,21 @@ function buildMatchKeys(values: Array<string | null | undefined>): string[] {
     .filter((value, index, items) => !!value && items.indexOf(value) === index);
 }
 
+const BACKEND_TASKS_WITHOUT_FRONTEND_ROUTE: readonly {
+  responsibilityKeys: string[];
+  taskKeys: string[];
+}[] = [];
+
 function hasAnySharedKey(left: string[], right: string[]): boolean {
   return left.some((value) => right.includes(value));
+}
+
+function isBackendTaskWithoutFrontendRoute(task: BackendTaskDescriptor): boolean {
+  return BACKEND_TASKS_WITHOUT_FRONTEND_ROUTE.some(
+    (ignoredTask) =>
+      hasAnySharedKey(task.responsibilityMatchKeys, ignoredTask.responsibilityKeys) &&
+      hasAnySharedKey(task.matchKeys, ignoredTask.taskKeys)
+  );
 }
 
 function describeBackendTask(task: BackendTaskDescriptor): string {
@@ -89,6 +103,7 @@ function collectBackendTasks(
   return sorumluluklar.flatMap((sorumluluk) => {
     const responsibilityLabel =
       sorumluluk.sebike?.trim() || sorumluluk.isim?.trim() || 'AdsizSorumluluk';
+    const responsibilityMatchKeys = buildMatchKeys([sorumluluk.isim, sorumluluk.sebike]);
 
     return (sorumluluk.gorevler ?? []).flatMap((gorev) => {
       const taskLabel = gorev.sebike?.trim() || gorev.isim?.trim() || 'AdsizGorev';
@@ -102,6 +117,7 @@ function collectBackendTasks(
         {
           responsibilityLabel,
           taskLabel,
+          responsibilityMatchKeys,
           matchKeys
         }
       ];
@@ -121,6 +137,7 @@ export function buildDocsRegistryValidationResult(
     unknownBackendTasks: backendTasks
       .filter(
         (backendTask) =>
+          !isBackendTaskWithoutFrontendRoute(backendTask) &&
           !frontendTasks.some((frontendTask) =>
             hasAnySharedKey(frontendTask.accessKeys, backendTask.matchKeys)
           )
