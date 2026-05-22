@@ -29,7 +29,6 @@ export class RafetiketiComponent implements OnInit, AfterViewInit, OnChanges, On
 
   ngOnInit(): void {
     this.halfPages = this.chunk(this.productsToPrint, 1);
-    console.log('RafetiketiComponent initialized with products:', this.productsToPrint);
     window.addEventListener('beforeprint', this.beforePrintHandler);
   }
 

@@ -269,7 +269,6 @@ export class EtiketBasimiListComponent {
     this.filtersForm.controls.documentId.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((documentId: number | null) => {
-        console.log('Document ID changed:', documentId);
         if (typeof documentId !== 'number' || Number.isNaN(documentId)) {
           this.lastHandledDocumentId = null;
           return;
@@ -567,7 +566,6 @@ export class EtiketBasimiListComponent {
           if (loadId !== this.activeLoadId) {
             return;
           }
-          console.log(`Fetched ${products.length} products from ${sourceLabel}. Removed ${removedCount} duplicates.`);
 
           this.products.set(products);
           this.previewMode.set('labels');
