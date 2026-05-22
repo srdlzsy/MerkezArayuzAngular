@@ -67,8 +67,6 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   protected readonly row = this.dialogData.row;
   protected readonly headline = computed(() => this.resolveHeadline(this.dialogData.kind));
   protected readonly operationLabel = computed(() => this.resolveOperationLabel(this.dialogData.kind));
-  protected readonly endpointPath = computed(() => this.resolveEndpointPath(this.dialogData.kind));
-  protected readonly pdfEndpointPath = computed(() => this.resolvePdfEndpointPath(this.dialogData.kind));
   protected readonly hasMissingDocumentNo = computed(() => !this.row.belgeNo?.trim());
 
   protected readonly controls = {
@@ -153,11 +151,6 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
 
   protected closeDialog(): void {
     this.close(!!this.response());
-  }
-
-  protected getRequestPreview(): string {
-    const request = this.form.getRawValue() as IFurpaSendEDespatchRequestApiDto;
-    return JSON.stringify(request, null, 2);
   }
 
   protected getDocumentTypeLabel(documentType: number): string {
@@ -248,36 +241,6 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
         return 'Giden Depo Iadesi';
       default:
         return 'Giden Firma Sevki';
-    }
-  }
-
-  private resolveEndpointPath(kind: EDespatchDialogKind): string {
-    const identity = `${encodeURIComponent(this.row.seri)}/${this.row.sira}`;
-
-    switch (kind) {
-      case 'warehouse-shipment':
-        return `/api/sevk-islemleri/depolar-arasi-sevkler/giden/${identity}/e-irsaliye`;
-      case 'company-return':
-        return `/api/iade-islemleri/firma-iadeleri/${identity}/e-irsaliye`;
-      case 'warehouse-return':
-        return `/api/iade-islemleri/depo-iadeleri/giden/${identity}/e-irsaliye`;
-      default:
-        return `/api/sevk-islemleri/firma-sevkleri/giden/${identity}/e-irsaliye`;
-    }
-  }
-
-  private resolvePdfEndpointPath(kind: EDespatchDialogKind): string {
-    const identity = `${encodeURIComponent(this.row.seri)}/${this.row.sira}`;
-
-    switch (kind) {
-      case 'warehouse-shipment':
-        return `/api/sevk-islemleri/depolar-arasi-sevkler/giden/${identity}/e-irsaliye/pdf`;
-      case 'company-return':
-        return `/api/iade-islemleri/firma-iadeleri/${identity}/e-irsaliye/pdf`;
-      case 'warehouse-return':
-        return `/api/iade-islemleri/depo-iadeleri/giden/${identity}/e-irsaliye/pdf`;
-      default:
-        return `/api/sevk-islemleri/firma-sevkleri/giden/${identity}/e-irsaliye/pdf`;
     }
   }
 

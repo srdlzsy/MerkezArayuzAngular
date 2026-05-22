@@ -9,8 +9,8 @@ import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
   selector: 'app-kunye-etiket-basimi-create',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './kunye-etiket-basimi-create.component.html',
-  styleUrl: './kunye-etiket-basimi-create.component.scss'
+  templateUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.template.html',
+  styleUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.scss'
 })
 export class KunyeEtiketBasimiCreateComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['etiketler'];

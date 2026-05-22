@@ -1,0 +1,43 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">{{ screenTitle }}</p>
+      <h2>{{ current.title }}</h2>
+      <p class="subtitle">{{ current.subtitle }}</p>
+    </div>
+
+    <button type="button" class="close-button" (click)="close()">Kapat</button>
+  </header>
+
+  <div class="dialog-body">
+    <section class="status-strip">
+      <article class="status-card status-card-primary">
+        <span>Ekran</span>
+        <strong>{{ screenNote }}</strong>
+      </article>
+      <article class="status-card" *ngFor="let item of current.highlights">
+        <span>Odak</span>
+        <strong>{{ item }}</strong>
+      </article>
+    </section>
+
+    <section class="workflow-panel">
+      <div class="workflow-head">
+        <div>
+          <h3>{{ current.listTitle }}</h3>
+          <p>{{ current.subtitle }}</p>
+        </div>
+      </div>
+
+      <div class="workflow-list">
+        <article class="workflow-item" *ngFor="let item of current.items; let index = index">
+          <span class="step-number">{{ index + 1 }}</span>
+          <div>
+            <h4>{{ item.description }}</h4>
+            <p>{{ current.title }} ekraninda bu is adimi kullanici akisi icin hazirlanir.</p>
+          </div>
+        </article>
+      </div>
+    </section>
+  </div>
+</section>

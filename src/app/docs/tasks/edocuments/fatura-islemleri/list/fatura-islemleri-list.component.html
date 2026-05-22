@@ -8,8 +8,8 @@
       <p class="subtitle">
         {{
           activeWorkspace() === 'viewing'
-            ? 'Gerektiginde once Uyumsoft inbox kayitlarini senkronize et; sonra lokal belgeyi documentId ile ac, render et ve printed kararini ayri komutla ver.'
-            : 'Mikro bekleyen faturayi sec, UBL onizle, secili belgeleri Uyumsofta gonder; outbox ve manuel preview araclarini altta kullan.'
+            ? 'Faturalari tablo uzerinden takip et, belgeyi ac ve yazdirildi durumunu yonet.'
+            : 'Bekleyen faturalari tablo uzerinden sec, onizle ve Uyumsofta gonder.'
         }}
       </p>
     </div>
@@ -35,12 +35,6 @@
       </button>
     </div>
 
-    <div class="hero-stats">
-      <article class="stat-card" *ngFor="let stat of heroStats(); trackBy: trackByStat">
-        <span>{{ stat.label }}</span>
-        <strong>{{ stat.value }}</strong>
-      </article>
-    </div>
   </header>
 
   <article
@@ -68,11 +62,10 @@
         <article class="panel panel-soft">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">1. Senkron ve Liste</p>
+              <p class="section-kicker">Filtreler</p>
               <h3>Fatura kayitlari</h3>
-              <p>Once secili tarih araligini cache'e cek, sonra invoiceDate bazli filtre ve legacy aramayi kullan.</p>
             </div>
-            <span class="panel-badge">Inbox cache</span>
+            <span class="panel-badge">Goruntuleme</span>
           </div>
 
           <div class="empty-state compact-empty" *ngIf="!canViewList()">
@@ -122,12 +115,6 @@
                   formControlName="searchText"
                   [placeholder]="getSelectedViewingSearchOption()?.placeholder || 'Arama girin'"
                 />
-                <small class="field-hint">
-                  {{
-                    getSelectedViewingSearchOption()?.hint ||
-                      'Arama yapmak istemiyorsan bu alan bos kalabilir.'
-                  }}
-                </small>
               </label>
               <label class="field">
                 <span>Sayfa</span>
@@ -166,26 +153,14 @@
               </button>
             </div>
 
-            <div class="inline-note">
-              Senkronizasyon secili tarih araligini `uyumsoft_inbox_invoices` cache'ine yazar ve
-              uygunysa listeyi ayni filtrelerle yeniden yukler.
-            </div>
-
-            <section class="metric-grid" *ngIf="viewingList()">
-              <article class="summary-card" *ngFor="let metric of viewingMetrics(); trackBy: trackByMetric">
-                <span>{{ metric.label }}</span>
-                <strong>{{ metric.value }}</strong>
-              </article>
-            </section>
           </ng-container>
         </article>
 
         <article class="panel">
           <div class="panel-head">
             <div>
-              <p class="section-kicker">2. Secim</p>
+              <p class="section-kicker">Liste</p>
               <h3>Belge listesi</h3>
-              <p>Satir secmek belgeyi acar, printed durumunu kendiliginden degistirmez.</p>
             </div>
             <span class="panel-badge">{{ filteredViewingItems().length }} kayit</span>
           </div>
@@ -196,7 +171,7 @@
               type="text"
               [value]="viewingQuickFilter()"
               (input)="setViewingQuickFilter($event)"
-              placeholder="invoiceId, documentId, musteri veya tutar"
+              placeholder="fatura no, musteri veya tutar"
             />
           </label>
 
@@ -218,54 +193,78 @@
             <p>Secili filtrelerle gosterilecek satir yok.</p>
           </div>
 
-          <div class="invoice-list" *ngIf="filteredViewingItems().length > 0">
-            <button
-              type="button"
-              class="invoice-row"
-              *ngFor="let item of filteredViewingItems(); trackBy: trackByInvoice"
-              [class.is-selected]="isViewingCardSelected(item)"
-              (click)="openViewingDetail(item)"
-            >
-              <div class="invoice-row-main">
-                <div class="invoice-title-row">
-                  <div>
+          <div class="invoice-table-shell" *ngIf="filteredViewingItems().length > 0">
+            <table class="invoice-table">
+              <thead>
+                <tr>
+                  <th>Fatura No</th>
+                  <th>Musteri</th>
+                  <th>Tarih</th>
+                  <th>Durum</th>
+                  <th class="amount-column">Tutar</th>
+                  <th class="action-column">Islem</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let item of filteredViewingItems(); trackBy: trackByInvoice"
+                  [class.is-selected]="isViewingCardSelected(item)"
+                  tabindex="0"
+                  (click)="openViewingDetail(item)"
+                  (keydown.enter)="openViewingDetail(item)"
+                >
+                  <td>
                     <strong>{{ item.invoiceId }}</strong>
-                    <span>{{ item.customerTitle }}</span>
-                  </div>
-                  <strong class="amount">{{ item.invoiceTotal | number: '1.2-2' }} TL</strong>
-                </div>
-
-                <div class="meta-strip">
-                  <span>documentId: {{ item.documentId }}</span>
-                  <span>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</span>
-                  <span>{{ item.createDate | date: 'dd.MM.yyyy HH:mm' }}</span>
-                  <span>{{ item.customerTcknVkn || '-' }}</span>
-                </div>
-
-                <div class="chip-row">
-                  <span
-                    class="status-pill"
-                    [class.status-pill-success]="item.isProcessed"
-                    [class.status-pill-neutral]="!item.isProcessed"
-                  >
-                    {{ item.isProcessed ? 'Islendi' : 'Bekliyor' }}
-                  </span>
-                  <span
-                    class="status-pill"
-                    [class.status-pill-success]="item.isPrinted"
-                    [class.status-pill-neutral]="!item.isPrinted"
-                  >
-                    {{ item.isPrinted ? 'Yazdirildi' : 'Yazdirilmadi' }}
-                  </span>
-                  <span class="status-pill status-pill-neutral">
-                    {{ item.isStandard ? 'Standart' : 'Ozel XSLT' }}
-                  </span>
-                  <span class="status-pill status-pill-neutral">
-                    {{ item.statusCode || '-' }} {{ item.status || 'Bilinmiyor' }}
-                  </span>
-                </div>
-              </div>
-            </button>
+                  </td>
+                  <td>
+                    <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
+                    <small>{{ item.customerTcknVkn || '-' }}</small>
+                  </td>
+                  <td>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</td>
+                  <td>
+                    <div class="compact-statuses">
+                      <span
+                        class="status-pill"
+                        [class.status-pill-success]="item.isProcessed"
+                        [class.status-pill-neutral]="!item.isProcessed"
+                      >
+                        {{ item.isProcessed ? 'Islendi' : 'Bekliyor' }}
+                      </span>
+                      <span
+                        class="status-pill"
+                        [class.status-pill-success]="item.isPrinted"
+                        [class.status-pill-neutral]="!item.isPrinted"
+                      >
+                        {{ item.isPrinted ? 'Yazdirildi' : 'Yazdirilmadi' }}
+                      </span>
+                    </div>
+                  </td>
+                  <td class="amount-column">
+                    <strong>{{ item.invoiceTotal | number: '1.2-2' }} TL</strong>
+                  </td>
+                  <td>
+                    <div class="table-actions">
+                      <button
+                        type="button"
+                        class="ghost-button compact-button"
+                        (click)="$event.stopPropagation(); openViewingDetail(item)"
+                      >
+                        Ac
+                      </button>
+                      <button
+                        type="button"
+                        class="primary-button compact-button"
+                        *ngIf="canViewDetail()"
+                        (click)="$event.stopPropagation(); openViewingPdf(item)"
+                        [disabled]="viewingPdfLoading()"
+                      >
+                        PDF
+                      </button>
+                    </div>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
           </div>
 
           <div class="pagination-row" *ngIf="viewingList() as response">
@@ -290,16 +289,34 @@
         </article>
       </div>
 
-      <article class="panel detail-panel">
+      <div
+        class="detail-dialog-backdrop"
+        *ngIf="viewingDetailDialogOpen()"
+        (click)="closeViewingDetailDialog()"
+      >
+        <article
+          class="panel detail-panel detail-dialog"
+          role="dialog"
+          aria-modal="true"
+          (click)="$event.stopPropagation()"
+        >
         <div class="panel-head">
           <div>
-            <p class="section-kicker">3. Belge</p>
+            <p class="section-kicker">Belge</p>
             <h3>Onizleme ve aksiyonlar</h3>
-            <p>documentId anahtarli detay ve ayri printed komutu.</p>
           </div>
-          <span class="panel-badge" *ngIf="selectedViewingSummary()">
-            {{ getViewingModeSummary() }}
-          </span>
+          <div class="dialog-head-actions">
+            <span class="panel-badge" *ngIf="selectedViewingSummary()">
+              {{ getViewingModeSummary() }}
+            </span>
+            <button
+              type="button"
+              class="ghost-button compact-button"
+              (click)="closeViewingDetailDialog()"
+            >
+              Kapat
+            </button>
+          </div>
         </div>
 
         <div class="empty-state" *ngIf="!selectedViewingSummary() && !viewingDetailLoading()">
@@ -326,9 +343,9 @@
             </div>
 
             <div class="detail-tags">
-              <span class="token">documentId: {{ summary.documentId }}</span>
               <span class="token">{{ summary.invoiceDate | date: 'dd.MM.yyyy' }}</span>
               <span class="token">{{ summary.invoiceType || '-' }}</span>
+              <span class="token">{{ summary.status || 'Durum yok' }}</span>
             </div>
           </section>
 
@@ -344,10 +361,6 @@
             <article class="summary-card">
               <span>Durum</span>
               <strong>{{ summary.statusCode || '-' }} {{ summary.status || 'Bilinmiyor' }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Tasarim Tipi</span>
-              <strong>{{ summary.isStandard ? 'Standart' : 'Embedded / Ozel' }}</strong>
             </article>
           </section>
 
@@ -385,19 +398,6 @@
                     : 'Yazdirildi Say'
               }}
             </button>
-            <button
-              type="button"
-              class="secondary-button"
-              *ngIf="viewingDetail() && canSendCreate()"
-              (click)="useDocumentXmlForPreview(viewingDetail()?.document ?? null)"
-            >
-              XML'i Preview Alanina Tasi
-            </button>
-          </div>
-
-          <div class="inline-note">
-            Belgeyi acmak sadece goruntuler. Kalici printed guncellemesi yalnizca bu butonla
-            yapilir.
           </div>
         </ng-container>
 
@@ -450,26 +450,10 @@
             </div>
           </details>
 
-          <section class="summary-grid compact-summary-grid">
-            <article class="summary-card">
-              <span>Profil</span>
-              <strong>{{ getDocumentProfileLabel(detail.document) }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>XSLT</span>
-              <strong>{{ getDocumentXsltLabel(detail.document) }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Tasarim</span>
-              <strong>{{ getDocumentDesignLabel(detail.document) }}</strong>
-            </article>
-          </section>
-
           <div class="document-preview-shell" *ngIf="detail.document.htmlContent; else noViewingHtml">
             <div class="preview-head">
               <div>
                 <h4>Belge Gorunumu</h4>
-                <p>Backend'den gelen HTML dogrudan gosterilir.</p>
               </div>
             </div>
             <iframe
@@ -500,7 +484,8 @@
             </section>
           </details>
         </ng-container>
-      </article>
+        </article>
+      </div>
     </section>
 
     <ng-template #sendingWorkspace>
@@ -509,11 +494,10 @@
           <article class="panel panel-soft">
             <div class="panel-head">
               <div>
-                <p class="section-kicker">1. Bekleyen Liste</p>
+                <p class="section-kicker">Filtreler</p>
                 <h3>Mikro bekleyen faturalar</h3>
-                <p>Senaryo, tarih ve gonderim durumuna gore kuyruğu olustur.</p>
               </div>
-              <span class="panel-badge">GET pending</span>
+              <span class="panel-badge">Gonderim</span>
             </div>
 
             <div class="empty-state compact-empty" *ngIf="!canSendList()">
@@ -538,7 +522,6 @@
                       {{ option.label }}
                     </option>
                   </select>
-                  <small class="field-hint">{{ getSelectedSendingScenarioDescription() }}</small>
                 </label>
                 <label class="field">
                   <span>Gonderim Durumu</span>
@@ -564,21 +547,14 @@
                 </button>
               </div>
 
-              <section class="metric-grid" *ngIf="sendingList()">
-                <article class="summary-card" *ngFor="let metric of sendingMetrics(); trackBy: trackByMetric">
-                  <span>{{ metric.label }}</span>
-                  <strong>{{ metric.value }}</strong>
-                </article>
-              </section>
             </ng-container>
           </article>
 
           <article class="panel">
             <div class="panel-head">
               <div>
-                <p class="section-kicker">2. Secim ve Kuyruk</p>
+                <p class="section-kicker">Liste</p>
                 <h3>Canli gonderim listesi</h3>
-                <p>Satiri onizle, gerekiyorsa kuyruga ekle, sonra toplu gonder.</p>
               </div>
               <span class="panel-badge">{{ filteredSendingItems().length }} kayit</span>
             </div>
@@ -596,10 +572,7 @@
             <div class="queue-banner" *ngIf="selectedSendingItems().length > 0">
               <div>
                 <span class="section-label">Gonderim Kuyrugu</span>
-                <p>
-                  {{ selectedSendingItems().length }} belge canli gonderim icin hazir. Kuyruga
-                  sadece gonderilmemis kayitlar eklenir.
-                </p>
+                <p>{{ selectedSendingItems().length }} belge secildi.</p>
               </div>
 
               <div class="action-row" *ngIf="canSendCreate()">
@@ -645,84 +618,92 @@
               <p>Secili filtrelerle gosterilecek bekleyen fatura yok.</p>
             </div>
 
-            <div class="invoice-list" *ngIf="filteredSendingItems().length > 0">
-              <article
-                class="invoice-row sending-row"
-                *ngFor="let item of filteredSendingItems(); trackBy: trackBySendingInvoice"
-                [class.is-selected]="isSendingCardSelected(item)"
-                [class.is-queued]="isSendingItemSelected(item)"
-              >
-                <div class="invoice-row-main">
-                  <div class="invoice-title-row">
-                    <div>
-                      <strong>{{ item.invoiceId }}</strong>
-                      <span>{{ item.customerTitle }}</span>
-                    </div>
-                    <strong class="amount">{{ item.payableTotal | number: '1.2-2' }} TL</strong>
-                  </div>
-
-                  <div class="meta-strip">
-                    <span>{{ item.documentSerie }} / {{ item.documentOrderNo }}</span>
-                    <span>{{ item.documentDate | date: 'dd.MM.yyyy' }}</span>
-                    <span>{{ item.customerCode || '-' }}</span>
-                    <span>{{ item.targetAlias || '-' }}</span>
-                  </div>
-
-                  <div class="chip-row">
-                    <span
-                      class="status-pill"
-                      [class.status-pill-success]="item.isSent"
-                      [class.status-pill-neutral]="!item.isSent"
-                    >
-                      {{ item.isSent ? 'Gonderildi' : 'Bekliyor' }}
-                    </span>
-                    <span class="status-pill status-pill-neutral">
-                      {{ getScenarioLabel(item.scenario) }}
-                    </span>
-                    <span class="status-pill status-pill-neutral">
-                      {{ item.invoiceProfileId || '-' }}
-                    </span>
-                    <span class="status-pill status-pill-neutral">
-                      {{ item.warehouseName || 'Depo bilgisi yok' }}
-                    </span>
-                  </div>
-
-                  <div class="inline-meta" *ngIf="item.sentDocumentNo || item.shipmentDocumentNo">
-                    <span *ngIf="item.sentDocumentNo">Belge No: {{ item.sentDocumentNo }}</span>
-                    <span *ngIf="item.shipmentDocumentNo">
-                      Irsaliye: {{ item.shipmentDocumentNo }}
-                    </span>
-                  </div>
-                </div>
-
-                <div class="sending-row-actions">
-                  <button
-                    type="button"
-                    class="ghost-button compact-button"
+            <div class="invoice-table-shell" *ngIf="filteredSendingItems().length > 0">
+              <table class="invoice-table sending-table">
+                <thead>
+                  <tr>
+                    <th class="table-check-cell">Sec</th>
+                    <th>Fatura No</th>
+                    <th>Musteri</th>
+                    <th>Tarih</th>
+                    <th>Durum</th>
+                    <th>Senaryo</th>
+                    <th class="amount-column">Tutar</th>
+                    <th class="action-column">Islem</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr
+                    *ngFor="let item of filteredSendingItems(); trackBy: trackBySendingInvoice"
+                    [class.is-selected]="isSendingCardSelected(item)"
+                    [class.is-queued]="isSendingItemSelected(item)"
+                    tabindex="0"
                     (click)="openSendingDetail(item)"
+                    (keydown.enter)="openSendingDetail(item)"
                   >
-                    Onizle
-                  </button>
-                  <button
-                    type="button"
-                    class="secondary-button compact-button"
-                    *ngIf="canSendCreate()"
-                    [disabled]="item.isSent"
-                    (click)="toggleSendingSelection(item)"
-                  >
-                    {{ getSendingSelectionLabel(item) }}
-                  </button>
-                </div>
-              </article>
+                    <td class="table-check-cell">
+                      <input
+                        type="checkbox"
+                        [checked]="isSendingItemSelected(item)"
+                        [disabled]="item.isSent || !canSendCreate()"
+                        [attr.aria-label]="item.invoiceId + ' sec'"
+                        (click)="$event.stopPropagation()"
+                        (change)="toggleSendingSelection(item)"
+                      />
+                    </td>
+                    <td>
+                      <strong>{{ item.invoiceId }}</strong>
+                      <small>{{ item.documentSerie }} / {{ item.documentOrderNo }}</small>
+                    </td>
+                    <td>
+                      <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
+                      <small>{{ item.customerCode || item.customerTcknVkn || '-' }}</small>
+                    </td>
+                    <td>{{ item.documentDate | date: 'dd.MM.yyyy' }}</td>
+                    <td>
+                      <span
+                        class="status-pill"
+                        [class.status-pill-success]="item.isSent"
+                        [class.status-pill-neutral]="!item.isSent"
+                      >
+                        {{ item.isSent ? 'Gonderildi' : 'Bekliyor' }}
+                      </span>
+                    </td>
+                    <td>{{ getScenarioLabel(item.scenario) }}</td>
+                    <td class="amount-column">
+                      <strong>{{ item.payableTotal | number: '1.2-2' }} TL</strong>
+                    </td>
+                    <td>
+                      <div class="table-actions">
+                        <button
+                          type="button"
+                          class="ghost-button compact-button"
+                          (click)="$event.stopPropagation(); openSendingDetail(item)"
+                        >
+                          Onizle
+                        </button>
+                        <button
+                          type="button"
+                          class="primary-button compact-button"
+                          *ngIf="canSendCreate() && !item.isSent"
+                          (click)="$event.stopPropagation(); sendCurrentInvoice(item)"
+                          [disabled]="sendingRequestLoading()"
+                        >
+                          Gonder
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
             </div>
           </article>
 
           <article class="panel" *ngIf="lastSendResponse() as response">
             <div class="panel-head">
               <div>
-                <p class="section-kicker">3. Gonderim Sonucu</p>
+                <p class="section-kicker">Sonuc</p>
                 <h3>Canli servis cevabi</h3>
-                <p>Basarili ve hatali belgeler response bazli ayrik gorunur.</p>
               </div>
               <span class="panel-badge">{{ getScenarioLabel(response.scenario) }}</span>
             </div>
@@ -772,16 +753,34 @@
           </article>
         </div>
 
-        <article class="panel detail-panel">
+        <div
+          class="detail-dialog-backdrop"
+          *ngIf="sendingDetailDialogOpen()"
+          (click)="closeSendingDetailDialog()"
+        >
+          <article
+            class="panel detail-panel detail-dialog"
+            role="dialog"
+            aria-modal="true"
+            (click)="$event.stopPropagation()"
+          >
           <div class="panel-head">
             <div>
-              <p class="section-kicker">3. Onizleme</p>
+              <p class="section-kicker">Belge</p>
               <h3>UBL ve gonderim aksiyonlari</h3>
-              <p>Secili bekleyen faturayi render et; gonderim ise ayri komutla tetiklenir.</p>
             </div>
-            <span class="panel-badge" *ngIf="selectedSendingSummary()">
-              {{ getSendingModeSummary() }}
-            </span>
+            <div class="dialog-head-actions">
+              <span class="panel-badge" *ngIf="selectedSendingSummary()">
+                {{ getSendingModeSummary() }}
+              </span>
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                (click)="closeSendingDetailDialog()"
+              >
+                Kapat
+              </button>
+            </div>
           </div>
 
           <div class="empty-state" *ngIf="!selectedSendingSummary() && !sendingDetailLoading()">
@@ -860,20 +859,8 @@
               >
                 {{ sendingRequestLoading() ? 'Gonderiliyor...' : 'Bu Faturayi Gonder' }}
               </button>
-              <button
-                type="button"
-                class="secondary-button"
-                *ngIf="sendingDetail() && canSendCreate()"
-                (click)="useDocumentXmlForPreview(sendingDetail()?.document ?? null)"
-              >
-                XML'i Preview Alanina Tasi
-              </button>
             </div>
 
-            <div class="inline-note">
-              Bu paneldeki onizleme sadece belgeyi render eder. Canli Uyumsoft gonderimi yalnizca
-              gonder butonlariyla yapilir.
-            </div>
           </ng-container>
 
           <ng-container *ngIf="sendingDetail() as detail">
@@ -934,26 +921,10 @@
               </div>
             </details>
 
-            <section class="summary-grid compact-summary-grid">
-              <article class="summary-card">
-                <span>Profil</span>
-                <strong>{{ getDocumentProfileLabel(detail.document) }}</strong>
-              </article>
-              <article class="summary-card">
-                <span>XSLT</span>
-                <strong>{{ getDocumentXsltLabel(detail.document) }}</strong>
-              </article>
-              <article class="summary-card">
-                <span>Tasarim</span>
-                <strong>{{ getDocumentDesignLabel(detail.document) }}</strong>
-              </article>
-            </section>
-
             <div class="document-preview-shell" *ngIf="detail.document.htmlContent; else noSendingHtml">
               <div class="preview-head">
                 <div>
                   <h4>Belge Gorunumu</h4>
-                  <p>Mikro verisinden uretilen UBL ve backend render sonucu.</p>
                 </div>
               </div>
               <iframe
@@ -984,17 +955,17 @@
               </section>
             </details>
           </ng-container>
-        </article>
+          </article>
+        </div>
       </section>
 
-      <section class="advanced-shell">
-        <div class="section-heading">
+      <details class="advanced-shell technical-tools">
+        <summary class="section-heading">
           <div>
-            <p class="section-kicker">Gelistirilmis Operasyonlar</p>
-            <h3>Outbox ve manuel preview araclari</h3>
-            <p>Canli gonderim akisindan bagimsiz teknik sorgu ve goruntuleme araclari burada.</p>
+            <p class="section-kicker">Teknik</p>
+            <h3>Outbox ve manuel preview</h3>
           </div>
-        </div>
+        </summary>
 
         <section class="workspace-grid sending-grid">
           <div class="workspace-stack">
@@ -1415,7 +1386,7 @@
             </article>
           </div>
         </section>
-      </section>
+      </details>
     </ng-template>
   </ng-container>
 </section>

@@ -9,8 +9,8 @@ import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
   selector: 'app-dosya-gonderimi-detail',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './dosya-gonderimi-detail.component.html',
-  styleUrl: './dosya-gonderimi-detail.component.scss'
+  templateUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.template.html',
+  styleUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.scss'
 })
 export class DosyaGonderimiDetailComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['authorization-files'];

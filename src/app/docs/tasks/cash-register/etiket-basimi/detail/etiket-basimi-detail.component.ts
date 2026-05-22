@@ -9,8 +9,8 @@ import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
   selector: 'app-etiket-basimi-detail',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './etiket-basimi-detail.component.html',
-  styleUrl: './etiket-basimi-detail.component.scss'
+  templateUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.template.html',
+  styleUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.scss'
 })
 export class EtiketBasimiDetailComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['etiket-belgeleri'];

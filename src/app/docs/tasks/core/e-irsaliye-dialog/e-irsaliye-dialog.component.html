@@ -34,27 +34,27 @@
   <article class="notice-card" *ngIf="hasMissingDocumentNo()">
     <h3>Belge numarasi bos olabilir</h3>
     <p>
-      Bu aksiyon belge numarasina degil, URL icindeki <code>seri</code> ve <code>sira</code>
-      degerlerine gore calisir. Bu nedenle buton aktif birakildi.
+      Bu aksiyon belge numarasindan bagimsiz olarak secili seri ve sira ile calisir. Bu nedenle
+      buton aktif birakildi.
     </p>
   </article>
 
   <section class="meta-grid">
     <article class="meta-card">
-      <span class="meta-label">POST Endpoint</span>
-      <code>{{ endpointPath() }}</code>
+      <span class="meta-label">Gonderim</span>
+      <strong>{{ operationLabel() }}</strong>
     </article>
     <article class="meta-card">
-      <span class="meta-label">PDF Endpoint</span>
-      <code>{{ pdfEndpointPath() }}</code>
+      <span class="meta-label">PDF</span>
+      <strong>Gonderim sonrasi hazir</strong>
     </article>
     <article class="meta-card">
-      <span class="meta-label">Request Model</span>
-      <strong>SendEDespatchHttpRequest</strong>
+      <span class="meta-label">Kontrol</span>
+      <strong>Tasima bilgileri</strong>
     </article>
     <article class="meta-card">
-      <span class="meta-label">Response Model</span>
-      <strong>SendEDespatchResponse</strong>
+      <span class="meta-label">Durum</span>
+      <strong>{{ response() ? 'Tamamlandi' : 'Hazir' }}</strong>
     </article>
   </section>
 
@@ -62,7 +62,7 @@
     <div class="form-head">
       <div>
         <h3>Tasima Bilgileri</h3>
-        <p>Dokumandaki request modeline gore plaka, sofor adi soyadi ve TCKN zorunludur.</p>
+        <p>Plaka, sofor adi soyadi ve TCKN bilgilerini tamamla.</p>
       </div>
 
       <div class="form-actions">
@@ -123,13 +123,6 @@
       </label>
     </div>
 
-    <section class="preview-card">
-      <div class="preview-head">
-        <h4>Request Preview</h4>
-        <span>application/json</span>
-      </div>
-      <pre><code>{{ getRequestPreview() }}</code></pre>
-    </section>
   </form>
 
   <section class="result-card" *ngIf="response() as result">
@@ -168,10 +161,6 @@
       <article class="result-item">
         <span class="meta-label">Gonderim Zamani</span>
         <strong>{{ result.sentAt | date: 'dd.MM.yyyy HH:mm:ss' }}</strong>
-      </article>
-      <article class="result-item result-item-wide">
-        <span class="meta-label">Servis Endpointi</span>
-        <code>{{ result.endpointUrl }}</code>
       </article>
     </div>
   </section>

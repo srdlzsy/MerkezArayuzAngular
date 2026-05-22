@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -42,6 +43,7 @@ type GiftCheckLineFormGroup = FormGroup<{
 }>;
 
 type PaymentTypeLineFormGroup = FormGroup<{
+  source: FormControl<CashDrawerPaymentSource>;
   paymentName: FormControl<string>;
   paymentTypeNo: FormControl<number | null>;
   accountCode: FormControl<string>;
@@ -56,6 +58,35 @@ type StoreExpenseLineFormGroup = FormGroup<{
   amountValue: FormControl<number | null>;
 }>;
 
+type CashDrawerPanelId =
+  | 'banknotes'
+  | 'cards'
+  | 'foodChecks'
+  | 'storeExpenses'
+  | 'expenseVouchers'
+  | 'giftChecks'
+  | 'deferredSales';
+
+type CashDrawerPaymentSource = 'card' | 'foodCheck' | 'expenseVoucher' | 'deferredSale' | 'other';
+
+type DrawerNoticeTone = 'warning' | 'error' | 'success';
+
+interface DrawerNotice {
+  title: string;
+  message: string;
+  tone: DrawerNoticeTone;
+}
+
+interface CashDrawerCard {
+  id: CashDrawerPanelId;
+  title: string;
+  description: string;
+  quantity: number;
+  quantityLabel: string;
+  total: number;
+  tone: string;
+}
+
 @Component({
   selector: 'app-icmal-dokumu-create',
   standalone: true,
@@ -65,9 +96,11 @@ type StoreExpenseLineFormGroup = FormGroup<{
 })
 export class IcmalDokumuCreateComponent implements OnInit {
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly today = this.formatAsInputDate(new Date());
+  private readonly formRevision = signal(0);
 
   protected readonly page: DocsContentPage = DOCS_PAGES['kasa-sayimlari'];
   protected readonly endpointPath = '/api/kasa-islemleri/kasa-sayimlari';
@@ -105,6 +138,8 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected readonly submitError = signal('');
   protected readonly submitSuccess = signal('');
   protected readonly createdResponse = signal<IFurpaCreateCashSummaryResponseApiDto | null>(null);
+  protected readonly activePanel = signal<CashDrawerPanelId | null>(null);
+  protected readonly drawerNotice = signal<DrawerNotice | null>(null);
 
   protected readonly cashierLookupQuery = new FormControl('', { nonNullable: true });
   protected readonly cashierLookupResults = signal<IFurpaCashierSearchItemApiDto[]>([]);
@@ -150,35 +185,129 @@ export class IcmalDokumuCreateComponent implements OnInit {
   };
   protected readonly form = new FormGroup(this.controls);
 
-  protected readonly paymentTypesTotal = computed(() =>
-    this.sumFormArray(this.paymentTypes, (group) => group.controls.amountValue.value)
+  protected readonly paymentTypesTotal = computed(() => {
+    this.formRevision();
+    return this.sumFormArray(this.paymentTypes, (group) => group.controls.amountValue.value);
+  });
+  protected readonly storeExpensesTotal = computed(() => {
+    this.formRevision();
+    return this.sumFormArray(this.storeExpenses, (group) => group.controls.amountValue.value);
+  });
+  protected readonly banknoteTotal = computed(() => {
+    this.formRevision();
+    return this.sumFormArray(this.banknoteMovements, (group) => group.controls.total.value);
+  });
+  protected readonly giftCheckTotal = computed(() => {
+    this.formRevision();
+    return this.sumFormArray(this.giftCheckMovements, (group) => group.controls.total.value);
+  });
+  protected readonly banknoteQuantityTotal = computed(() => {
+    this.formRevision();
+    return this.sumFormArray(this.banknoteMovements, (group) => group.controls.quantity.value);
+  });
+  protected readonly giftCheckQuantityTotal = computed(() => {
+    this.formRevision();
+    return this.sumFormArray(this.giftCheckMovements, (group) => group.controls.quantity.value);
+  });
+  protected readonly drawerGrandTotal = computed(() =>
+    this.roundCurrency(
+      this.banknoteTotal() +
+        this.paymentTypesTotal() +
+        this.storeExpensesTotal() +
+        this.giftCheckTotal()
+    )
   );
-  protected readonly storeExpensesTotal = computed(() =>
-    this.sumFormArray(this.storeExpenses, (group) => group.controls.amountValue.value)
-  );
-  protected readonly banknoteTotal = computed(() =>
-    this.sumFormArray(this.banknoteMovements, (group) => group.controls.total.value)
-  );
-  protected readonly giftCheckTotal = computed(() =>
-    this.sumFormArray(this.giftCheckMovements, (group) => group.controls.total.value)
-  );
-  protected readonly suggestedSummaryTotal = computed(
-    () => this.paymentTypesTotal() + this.storeExpensesTotal()
-  );
+  protected readonly suggestedSummaryTotal = computed(() => this.drawerGrandTotal());
   protected readonly totalDifference = computed(() => {
+    this.formRevision();
     const declaredTotal = this.toSafeNumber(this.controls.total.value);
     const zTotal = this.toSafeNumber(this.controls.zTotalValue.value);
 
     return this.roundCurrency(declaredTotal - zTotal);
   });
-  protected readonly hasRequiredFinancialLines = computed(
-    () => this.paymentTypes.length > 0 || this.storeExpenses.length > 0
-  );
-  protected readonly payloadPreview = computed(() =>
-    JSON.stringify(this.buildRequestPreview(), null, 2)
-  );
+  protected readonly hasRequiredFinancialLines = computed(() => {
+    this.formRevision();
+    return (
+      this.paymentTypes.length > 0 ||
+      this.storeExpenses.length > 0 ||
+      this.banknoteMovements.length > 0 ||
+      this.giftCheckMovements.length > 0
+    );
+  });
+  protected readonly summaryCards = computed<CashDrawerCard[]>(() => {
+    this.formRevision();
+
+    return [
+      {
+        id: 'banknotes',
+        title: 'Banknotlar',
+        description: 'Nakit adetleri',
+        quantity: this.banknoteQuantityTotal(),
+        quantityLabel: 'Adet',
+        total: this.banknoteTotal(),
+        tone: 'cash'
+      },
+      {
+        id: 'cards',
+        title: 'Kredi Kartlari',
+        description: 'POS slipleri',
+        quantity: this.paymentSlipCountBySource('card'),
+        quantityLabel: 'Slip',
+        total: this.paymentTotalBySource('card'),
+        tone: 'card'
+      },
+      {
+        id: 'foodChecks',
+        title: 'Yemek Cekleri',
+        description: 'Yemek karti ve kupon',
+        quantity: this.paymentSlipCountBySource('foodCheck'),
+        quantityLabel: 'Adet',
+        total: this.paymentTotalBySource('foodCheck'),
+        tone: 'food'
+      },
+      {
+        id: 'storeExpenses',
+        title: 'Magaza Giderleri',
+        description: 'Kasadan odenen gider',
+        quantity: this.storeExpenses.length,
+        quantityLabel: 'Satir',
+        total: this.storeExpensesTotal(),
+        tone: 'expense'
+      },
+      {
+        id: 'expenseVouchers',
+        title: 'Gider Pusulasi',
+        description: 'Pusula ve masraf',
+        quantity: this.paymentLineCountBySource('expenseVoucher'),
+        quantityLabel: 'Adet',
+        total: this.paymentTotalBySource('expenseVoucher'),
+        tone: 'voucher'
+      },
+      {
+        id: 'giftChecks',
+        title: 'Hediye Cekleri',
+        description: 'Hediye ceki sayimi',
+        quantity: this.giftCheckQuantityTotal(),
+        quantityLabel: 'Adet',
+        total: this.giftCheckTotal(),
+        tone: 'gift'
+      },
+      {
+        id: 'deferredSales',
+        title: 'Vadeli Satislar',
+        description: 'Online ve vadeli odeme',
+        quantity: this.paymentSlipCountBySource('deferredSale'),
+        quantityLabel: 'Adet',
+        total: this.paymentTotalBySource('deferredSale'),
+        tone: 'deferred'
+      }
+    ];
+  });
 
   ngOnInit(): void {
+    this.form.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.refreshComputedFormState());
     this.loadLookupData();
   }
 
@@ -196,6 +325,97 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected get storeExpenses(): FormArray<StoreExpenseLineFormGroup> {
     return this.controls.storeExpenses;
+  }
+
+  protected openPanel(panelId: CashDrawerPanelId): void {
+    if (panelId === 'cards' && !this.toSafeNumber(this.controls.cashNo.value)) {
+      this.drawerNotice.set({
+        title: 'Kasa No gerekli',
+        message: 'Kredi karti bilgileri icin once kasa numarasini secin.',
+        tone: 'warning'
+      });
+      return;
+    }
+
+    this.prefillPanel(panelId);
+    this.drawerNotice.set(null);
+    this.activePanel.set(panelId);
+  }
+
+  protected closePanel(): void {
+    this.activePanel.set(null);
+  }
+
+  protected dismissDrawerNotice(): void {
+    this.drawerNotice.set(null);
+  }
+
+  protected getActivePanelTitle(): string {
+    const panelId = this.activePanel();
+
+    if (!panelId) {
+      return '';
+    }
+
+    return this.getPanelTitle(panelId);
+  }
+
+  protected getActivePanelDescription(): string {
+    const panelId = this.activePanel();
+
+    switch (panelId) {
+      case 'banknotes':
+        return 'Banknot adetlerini gir, tutarlar otomatik hesaplansin.';
+      case 'cards':
+        return 'POS slip sayisi ve toplam tutarlari banka bazinda gir.';
+      case 'foodChecks':
+        return 'Yemek ceki satirlarinda adet ve tutar bilgisini tamamla.';
+      case 'storeExpenses':
+        return 'Magazadan yapilan giderleri aciklama ve tutar ile kaydet.';
+      case 'expenseVouchers':
+        return 'Gider pusulasi satirlarinda slip/adet ve tutari gir.';
+      case 'giftChecks':
+        return 'Hediye ceki adetlerini ve toplamlarini tamamla.';
+      case 'deferredSales':
+        return 'Vadeli veya online satis satirlarini tek yerden takip et.';
+      default:
+        return '';
+    }
+  }
+
+  protected getActivePanelTotal(): number {
+    const panelId = this.activePanel();
+
+    switch (panelId) {
+      case 'banknotes':
+        return this.banknoteTotal();
+      case 'cards':
+        return this.paymentTotalBySource('card');
+      case 'foodChecks':
+        return this.paymentTotalBySource('foodCheck');
+      case 'storeExpenses':
+        return this.storeExpensesTotal();
+      case 'expenseVouchers':
+        return this.paymentTotalBySource('expenseVoucher');
+      case 'giftChecks':
+        return this.giftCheckTotal();
+      case 'deferredSales':
+        return this.paymentTotalBySource('deferredSale');
+      default:
+        return 0;
+    }
+  }
+
+  protected isPaymentTypeSource(
+    group: PaymentTypeLineFormGroup,
+    source: CashDrawerPaymentSource
+  ): boolean {
+    return group.controls.source.value === source;
+  }
+
+  protected hasPaymentTypeSource(source: CashDrawerPaymentSource): boolean {
+    this.formRevision();
+    return this.paymentTypes.controls.some((group) => group.controls.source.value === source);
   }
 
   protected loadLookupData(): void {
@@ -344,6 +564,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.cashRegisterDetail.set(null);
     this.bankPaymentTypes.set([]);
     this.cashRegisterMessage.set('');
+    this.refreshComputedFormState();
 
     if (cashNo === null || cashNo === undefined || cashNo <= 0) {
       return;
@@ -428,20 +649,37 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.controls.managerNo.markAsTouched();
   }
 
-  protected addEmptyPaymentType(): void {
-    this.paymentTypes.push(this.createPaymentTypeGroup());
+  protected addEmptyPaymentType(source: CashDrawerPaymentSource = 'other'): void {
+    this.paymentTypes.push(
+      this.createPaymentTypeGroup(
+        {
+          paymentName: this.getDefaultPaymentName(source),
+          paymentTypeNo: 0,
+          slipNumber: 0,
+          amountValue: 0
+        },
+        source
+      )
+    );
+    this.refreshComputedFormState();
   }
 
-  protected addPaymentTypeTemplate(template: IFurpaPaymentTypeLookupItemApiDto): void {
-    this.paymentTypes.push(this.createPaymentTypeGroup(template));
+  protected addPaymentTypeTemplate(
+    template: IFurpaPaymentTypeLookupItemApiDto,
+    source: CashDrawerPaymentSource = 'other'
+  ): void {
+    this.paymentTypes.push(this.createPaymentTypeGroup(template, source));
+    this.refreshComputedFormState();
   }
 
   protected removePaymentType(index: number): void {
     this.paymentTypes.removeAt(index);
+    this.refreshComputedFormState();
   }
 
   protected addEmptyStoreExpense(): void {
     this.storeExpenses.push(this.createStoreExpenseGroup());
+    this.refreshComputedFormState();
   }
 
   protected addStoreExpenseTemplate(template: IFurpaPaymentTypeLookupItemApiDto): void {
@@ -452,22 +690,27 @@ export class IcmalDokumuCreateComponent implements OnInit {
         amountValue: template.amountValue ?? 0
       })
     );
+    this.refreshComputedFormState();
   }
 
   protected removeStoreExpense(index: number): void {
     this.storeExpenses.removeAt(index);
+    this.refreshComputedFormState();
   }
 
   protected addEmptyBanknote(): void {
     this.banknoteMovements.push(this.createBanknoteGroup());
+    this.refreshComputedFormState();
   }
 
   protected addBanknoteTemplate(template: IFurpaBanknoteTypeItemApiDto): void {
     this.banknoteMovements.push(this.createBanknoteGroup(template));
+    this.refreshComputedFormState();
   }
 
   protected removeBanknote(index: number): void {
     this.banknoteMovements.removeAt(index);
+    this.refreshComputedFormState();
   }
 
   protected recalculateBanknoteTotal(index: number): void {
@@ -477,18 +720,22 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
     group.controls.total.setValue(this.roundCurrency(quantity * value));
     group.controls.total.markAsDirty();
+    this.refreshComputedFormState();
   }
 
   protected addEmptyGiftCheck(): void {
     this.giftCheckMovements.push(this.createGiftCheckGroup());
+    this.refreshComputedFormState();
   }
 
   protected addGiftCheckTemplate(template: IFurpaGiftCheckTypeItemApiDto): void {
     this.giftCheckMovements.push(this.createGiftCheckGroup(template));
+    this.refreshComputedFormState();
   }
 
   protected removeGiftCheck(index: number): void {
     this.giftCheckMovements.removeAt(index);
+    this.refreshComputedFormState();
   }
 
   protected recalculateGiftCheckTotal(index: number): void {
@@ -498,12 +745,14 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
     group.controls.total.setValue(this.roundCurrency(quantity * value));
     group.controls.total.markAsDirty();
+    this.refreshComputedFormState();
   }
 
   protected syncTotalWithSuggestion(): void {
     this.controls.total.setValue(this.suggestedSummaryTotal());
     this.controls.total.markAsDirty();
     this.controls.total.markAsTouched();
+    this.refreshComputedFormState();
   }
 
   protected loadZReportTotal(): void {
@@ -560,7 +809,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
     if (!this.hasRequiredFinancialLines()) {
       this.submitError.set(
-        'Kaydetmek icin en az bir paymentTypes veya storeExpenses satiri eklemelisin.'
+        'Kaydetmek icin en az bir sayim kartina satir eklemelisin.'
       );
     }
 
@@ -580,6 +829,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .subscribe({
         next: (response: IFurpaCreateCashSummaryResponseApiDto) => {
           this.createdResponse.set(response);
+          this.closePanel();
           this.submitSuccess.set(
             `${response.documentSerie}/${response.documentOrderNo} basariyla olusturuldu.`
           );
@@ -593,6 +843,8 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected readonly trackByIndex = (index: number, _item: unknown): number => index;
+  protected readonly trackByCardId = (_index: number, item: CashDrawerCard): CashDrawerPanelId =>
+    item.id;
 
   protected getCashRegisterLabel(register: IFurpaCashRegistryItemApiDto): string {
     return `Kasa ${register.cashRegisterNo}`;
@@ -604,6 +856,148 @@ export class IcmalDokumuCreateComponent implements OnInit {
     );
 
     return parts.join(' - ');
+  }
+
+  private prefillPanel(panelId: CashDrawerPanelId): void {
+    switch (panelId) {
+      case 'banknotes': {
+        if (this.banknoteMovements.length === 0 && this.banknoteTypes().length > 0) {
+          [...this.banknoteTypes()]
+            .sort((left, right) => right.value - left.value)
+            .forEach((item) => this.addBanknoteTemplate(item));
+        }
+        return;
+      }
+      case 'cards': {
+        if (!this.hasPaymentTypeSourceValue('card') && this.bankPaymentTypes().length > 0) {
+          this.bankPaymentTypes().forEach((item) => this.addPaymentTypeTemplate(item, 'card'));
+        }
+        return;
+      }
+      case 'foodChecks': {
+        if (!this.hasPaymentTypeSourceValue('foodCheck') && this.foodCheckPaymentTypes().length > 0) {
+          this.foodCheckPaymentTypes().forEach((item) =>
+            this.addPaymentTypeTemplate(item, 'foodCheck')
+          );
+        }
+        return;
+      }
+      case 'storeExpenses': {
+        if (this.storeExpenses.length === 0 && this.storeExpenseTemplates().length > 0) {
+          this.storeExpenseTemplates().forEach((item) => this.addStoreExpenseTemplate(item));
+        }
+        return;
+      }
+      case 'expenseVouchers': {
+        if (
+          !this.hasPaymentTypeSourceValue('expenseVoucher') &&
+          this.expenseVoucherPaymentTypes().length > 0
+        ) {
+          this.expenseVoucherPaymentTypes().forEach((item) =>
+            this.addPaymentTypeTemplate(item, 'expenseVoucher')
+          );
+        }
+        return;
+      }
+      case 'giftChecks': {
+        if (this.giftCheckMovements.length === 0 && this.giftCheckTypes().length > 0) {
+          this.giftCheckTypes().forEach((item) => this.addGiftCheckTemplate(item));
+        }
+        return;
+      }
+      case 'deferredSales': {
+        if (
+          !this.hasPaymentTypeSourceValue('deferredSale') &&
+          this.onlinePaymentTypes().length > 0
+        ) {
+          this.onlinePaymentTypes().forEach((item) =>
+            this.addPaymentTypeTemplate(item, 'deferredSale')
+          );
+        }
+        return;
+      }
+    }
+  }
+
+  private getPanelTitle(panelId: CashDrawerPanelId): string {
+    switch (panelId) {
+      case 'banknotes':
+        return 'Banknotlar';
+      case 'cards':
+        return 'Kredi Kartlari';
+      case 'foodChecks':
+        return 'Yemek Cekleri';
+      case 'storeExpenses':
+        return 'Magaza Giderleri';
+      case 'expenseVouchers':
+        return 'Gider Pusulasi';
+      case 'giftChecks':
+        return 'Hediye Cekleri';
+      case 'deferredSales':
+        return 'Vadeli Satislar';
+    }
+  }
+
+  private getDefaultPaymentName(source: CashDrawerPaymentSource): string {
+    switch (source) {
+      case 'card':
+        return 'Kredi Karti';
+      case 'foodCheck':
+        return 'Yemek Ceki';
+      case 'expenseVoucher':
+        return 'Gider Pusulasi';
+      case 'deferredSale':
+        return 'Vadeli Satis';
+      case 'other':
+        return 'Odeme';
+    }
+  }
+
+  private hasPaymentTypeSourceValue(source: CashDrawerPaymentSource): boolean {
+    return this.paymentTypes.controls.some((group) => group.controls.source.value === source);
+  }
+
+  private paymentTotalBySource(source: CashDrawerPaymentSource): number {
+    this.formRevision();
+    return this.roundCurrency(
+      this.paymentTypes.controls
+        .filter((group) => group.controls.source.value === source)
+        .reduce(
+          (total, group) => total + this.toSafeNumber(group.controls.amountValue.value),
+          0
+        )
+    );
+  }
+
+  private paymentSlipCountBySource(source: CashDrawerPaymentSource): number {
+    this.formRevision();
+    const sourceControls = this.paymentTypes.controls.filter(
+      (group) => group.controls.source.value === source
+    );
+    const slipTotal = sourceControls.reduce(
+      (total, group) => total + this.toSafeNumber(group.controls.slipNumber.value),
+      0
+    );
+
+    if (slipTotal > 0) {
+      return slipTotal;
+    }
+
+    return sourceControls.filter(
+      (group) =>
+        this.toSafeNumber(group.controls.amountValue.value) > 0 ||
+        group.controls.paymentName.value.trim().length > 0
+    ).length;
+  }
+
+  private paymentLineCountBySource(source: CashDrawerPaymentSource): number {
+    this.formRevision();
+    return this.paymentTypes.controls.filter((group) => group.controls.source.value === source)
+      .length;
+  }
+
+  private refreshComputedFormState(): void {
+    this.formRevision.update((value) => value + 1);
   }
 
   private loadBankPaymentTypes(cashRegisterNo: string): void {
@@ -664,9 +1058,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   private createPaymentTypeGroup(
-    template?: Partial<IFurpaPaymentTypeLookupItemApiDto>
+    template?: Partial<IFurpaPaymentTypeLookupItemApiDto>,
+    source: CashDrawerPaymentSource = 'other'
   ): PaymentTypeLineFormGroup {
     return new FormGroup({
+      source: new FormControl(source, { nonNullable: true }),
       paymentName: new FormControl(template?.paymentName?.trim() ?? '', {
         nonNullable: true,
         validators: [Validators.required]

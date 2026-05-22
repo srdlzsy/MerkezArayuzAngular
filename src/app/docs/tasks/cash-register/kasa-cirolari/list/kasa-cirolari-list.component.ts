@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, inject, signal } from '@angular/core';
+import { ChangeDetectionStrategy, Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type {
   CashTurnoverOverviewBranchDto,
@@ -126,7 +126,8 @@ const CASH_TURNOVER_LIST_COLUMNS: readonly ApiListTableColumn<CashTurnoverListIt
   standalone: true,
   imports: [CommonModule, ApiListTableComponent],
   templateUrl: './kasa-cirolari-list.component.html',
-  styleUrl: './kasa-cirolari-list.component.scss'
+  styleUrl: './kasa-cirolari-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class KasaCirolariListComponent extends ApiTaskListPageBase<
   CashTurnoverListItemDto,
@@ -139,6 +140,7 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   protected override readonly canCreate = false;
   protected readonly selectedSource = signal<CashTurnoverRouteSource>('new');
   protected readonly overviewScope = signal<'all' | 'current'>('all');
+  protected readonly overviewPanelOpen = signal(false);
 
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
@@ -233,7 +235,9 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   });
 
   protected override fetchRows(_zamanlama: string) {
-    this.loadOverview();
+    if (this.overviewPanelOpen()) {
+      this.loadOverview();
+    }
 
     return this.kasaIslemleriService.getKasaCirolari({
       warehouseNo: this.authService.currentUser()?.depoNo ?? undefined,
@@ -261,7 +265,19 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
     }
 
     this.overviewScope.set(scope);
-    this.loadOverview();
+
+    if (this.overviewPanelOpen()) {
+      this.loadOverview();
+    }
+  }
+
+  protected toggleOverviewPanel(): void {
+    const nextOpenState = !this.overviewPanelOpen();
+    this.overviewPanelOpen.set(nextOpenState);
+
+    if (nextOpenState) {
+      this.loadOverview();
+    }
   }
 
   protected getSourcePillCount(source: CashTurnoverRouteSource): number {

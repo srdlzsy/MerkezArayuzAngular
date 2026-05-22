@@ -45,8 +45,6 @@ export class KullaniciCreateComponent implements OnInit {
   protected readonly submitting = signal(false);
   protected readonly submitError = signal('');
   protected readonly submitSuccess = signal('');
-  protected readonly endpointPath = computed(() => this.resolveEndpointPath());
-  protected readonly payloadName = computed(() => this.resolvePayloadName());
   protected readonly pageHeading = computed(() => this.resolvePageHeading());
 
   protected readonly userControls = {
@@ -315,31 +313,9 @@ export class KullaniciCreateComponent implements OnInit {
       case 'roles':
         return 'Rol Olustur';
       case 'permissions':
-        return 'Permission Olustur';
+        return 'Yetki Olustur';
       default:
         return 'Kullanici Olustur';
-    }
-  }
-
-  private resolveEndpointPath(): string {
-    switch (this.mode) {
-      case 'roles':
-        return '/api/roles';
-      case 'permissions':
-        return '/api/permissions';
-      default:
-        return '/api/auth/register';
-    }
-  }
-
-  private resolvePayloadName(): string {
-    switch (this.mode) {
-      case 'roles':
-        return 'SaveRoleBody';
-      case 'permissions':
-        return 'SavePermissionBody';
-      default:
-        return 'RegisterUserRequest';
     }
   }
 
@@ -348,7 +324,7 @@ export class KullaniciCreateComponent implements OnInit {
       case 'roles':
         return 'Rol basariyla olusturuldu.';
       case 'permissions':
-        return 'Permission basariyla olusturuldu.';
+        return 'Yetki basariyla olusturuldu.';
       default:
         return 'Kullanici basariyla olusturuldu.';
     }
@@ -359,7 +335,7 @@ export class KullaniciCreateComponent implements OnInit {
       case 'roles':
         return 'Rol olusturulurken beklenmeyen bir hata olustu.';
       case 'permissions':
-        return 'Permission olusturulurken beklenmeyen bir hata olustu.';
+        return 'Yetki olusturulurken beklenmeyen bir hata olustu.';
       default:
         return 'Kullanici olusturulurken beklenmeyen bir hata olustu.';
     }
@@ -368,7 +344,7 @@ export class KullaniciCreateComponent implements OnInit {
   private getDependencyErrorMessage(): string {
     switch (this.mode) {
       case 'permissions':
-        return 'Permission listesi yuklenemedi.';
+        return 'Yetki listesi yuklenemedi.';
       case 'users':
         return 'Rol listesi yuklenemedi.';
       default:

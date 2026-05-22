@@ -3,19 +3,18 @@
     <div class="hero-copy">
       <p class="eyebrow">Operasyon Islemleri</p>
       <div class="welcome-box">
-        <h2>{{ current.title }}</h2>
+        <h2>Yetki ve Kasa Dosyalari</h2>
       </div>
       <p class="subtitle">
-        Export islerini kuyruga alip job durumu uzerinden takip edin. Ekran ayni kalir, ama artik
-        her aksiyon yeni backend'in `job` akisina gore canli durum gosterir.
+        Terazi, urun, kasiyer ve promosyon dosyalarini hazirla; calisan islemleri ekrandan takip et.
       </p>
     </div>
   </header>
 
   <section class="info-grid">
     <article class="info-card emphasis-card">
-      <h3>Aktif Aksiyon</h3>
-      <p>{{ activeActionCount() }} operasyon</p>
+      <h3>Hazir Islem</h3>
+      <p>{{ activeActionCount() }} islem</p>
     </article>
     <article class="info-card">
       <h3>Durum</h3>
@@ -30,15 +29,15 @@
   <section class="task-block">
     <article class="control-shell">
       <div class="control-copy">
-        <div class="task-title">Operasyon Paneli</div>
+        <div class="task-title">Dosya Hazirlama Paneli</div>
         <p>
-          Terazi, urun, kasiyer ve promosyon exportleri kuyruga atilir. Baslatilan her is icin
-          `jobId` uretilir ve asagidaki durum panelinden takip edilir.
+          Terazi, urun, kasiyer ve promosyon dosyalarini olusturma islemlerini baslat.
+          Durumu bu ekrandan canli olarak takip edebilirsin.
         </p>
       </div>
       <div class="control-indicator" [class.is-busy]="isBusy()">
         <span class="control-dot"></span>
-        <span>{{ isBusy() ? 'Job takip ediliyor' : 'Sistem hazir' }}</span>
+        <span>{{ isBusy() ? 'Islem takip ediliyor' : 'Sistem hazir' }}</span>
       </div>
     </article>
 
@@ -55,8 +54,8 @@
     <article class="job-card" *ngIf="activeJob() as job">
       <div class="job-card-head">
         <div>
-          <h3>Aktif Job</h3>
-          <p>{{ job.operation || 'Operation' }} - {{ job.jobId }}</p>
+          <h3>Aktif Islem</h3>
+          <p>{{ job.operation || 'Islem' }} - {{ job.jobId }}</p>
         </div>
         <span class="job-pill" [class]="getJobTone(job.status)">
           {{ formatJobStatus(job.status) }}
@@ -118,7 +117,7 @@
               isActionRunning(action.key)
                 ? 'Takip ediliyor...'
                 : action.enabled
-                  ? 'Isi Baslat'
+                  ? 'Baslat'
                   : 'Kullanima Kapali'
             }}
           </span>
@@ -130,10 +129,10 @@
     <article class="authorization-shell">
       <div class="authorization-head">
         <div>
-          <h3>Authorization File Kayitlari</h3>
+          <h3>Yetki Dosyalari</h3>
           <p>
-            `GET /api/operations/authorization-files` ile mevcut kayitlari yukle, R/X/Z
-            degisikliklerini ayni ekrandan `POST` ile toplu kaydet.
+            Mevcut yetki dosyalarini yukle, R/X/Z izinlerini kontrol et ve degisiklikleri tek
+            seferde kaydet.
           </p>
         </div>
         <div class="authorization-actions">
@@ -165,7 +164,7 @@
       </div>
 
       <div class="authorization-empty" *ngIf="!authorizationLoading() && authorizationFiles().length === 0">
-        Authorization file kaydi bulunamadi.
+        Yetki dosyasi kaydi bulunamadi.
       </div>
 
       <div class="authorization-table-wrap" *ngIf="authorizationFiles().length > 0">

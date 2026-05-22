@@ -837,9 +837,9 @@ export class KullaniciDetailComponent implements OnInit {
   private getLoadErrorMessage(): string {
     switch (this.mode) {
       case 'roles':
-        return 'Rol ve permission katalogu yuklenemedi.';
+        return 'Rol ve yetki katalogu yuklenemedi.';
       case 'permissions':
-        return 'Permission detaylari yuklenemedi.';
+        return 'Yetki detaylari yuklenemedi.';
       default:
         return 'Kullanici detaylari yuklenemedi.';
     }
@@ -848,9 +848,9 @@ export class KullaniciDetailComponent implements OnInit {
   private getSaveSuccessMessage(): string {
     switch (this.mode) {
       case 'roles':
-        return 'Rol bilgileri ve permission atamalari kaydedildi.';
+        return 'Rol bilgileri ve yetki atamalari kaydedildi.';
       case 'permissions':
-        return 'Permission kaydi guncellendi.';
+        return 'Yetki kaydi guncellendi.';
       default:
         return 'Kullanici bilgileri guncellendi.';
     }
@@ -861,7 +861,7 @@ export class KullaniciDetailComponent implements OnInit {
       case 'roles':
         return 'Rol kaydi guncellenemedi.';
       case 'permissions':
-        return 'Permission kaydi guncellenemedi.';
+        return 'Yetki kaydi guncellenemedi.';
       default:
         return 'Kullanici kaydi guncellenemedi.';
     }

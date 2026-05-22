@@ -232,6 +232,7 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingQuickFilter = signal('');
 
   protected readonly viewingList = signal<InvoiceViewingListResponseDto | null>(null);
+  protected readonly viewingDetailDialogOpen = signal(false);
   protected readonly selectedViewingDocumentId = signal<string | null>(null);
   protected readonly viewingDetail = signal<InvoiceViewingDetailDto | null>(null);
   protected readonly viewingListLoading = signal(false);
@@ -243,6 +244,7 @@ export class FaturaIslemleriListComponent {
   protected readonly printedStateUpdatingDocumentId = signal<string | null>(null);
 
   protected readonly sendingList = signal<InvoiceSendingListResponseDto | null>(null);
+  protected readonly sendingDetailDialogOpen = signal(false);
   protected readonly selectedSendingKey = signal<string | null>(null);
   protected readonly sendingDetail = signal<InvoiceSendingDetailDto | null>(null);
   protected readonly sendingListLoading = signal(false);
@@ -425,11 +427,7 @@ export class FaturaIslemleriListComponent {
             value: this.selectedViewingSummary()?.invoiceId || '-'
           },
           {
-            label: 'DocumentId',
-            value: this.selectedViewingSummary()?.documentId || '-'
-          },
-          {
-            label: 'Printed',
+            label: 'Yazdirildi',
             value: this.selectedViewingSummary()
               ? this.selectedViewingSummary()!.isPrinted
                 ? 'Evet'
@@ -449,10 +447,6 @@ export class FaturaIslemleriListComponent {
           {
             label: 'Kuyruk',
             value: `${this.selectedSendingItems().length}`
-          },
-          {
-            label: 'Outbox Adayi',
-            value: `${this.outboxInvoiceIdCandidates().length}`
           }
         ]
   );
@@ -787,6 +781,7 @@ export class FaturaIslemleriListComponent {
     const hasSearch = !!searchField && !!searchText;
 
     if (!keepSelection) {
+      this.viewingDetailDialogOpen.set(false);
       this.selectedViewingDocumentId.set(null);
       this.viewingDetail.set(null);
     }
@@ -818,21 +813,17 @@ export class FaturaIslemleriListComponent {
           const selectedId = this.selectedViewingDocumentId();
 
           if (selectedId && !response.items.some((item) => item.documentId === selectedId)) {
+            this.viewingDetailDialogOpen.set(false);
             this.selectedViewingDocumentId.set(null);
             this.viewingDetail.set(null);
           }
 
-          this.feedback.set({
-            tone: 'info',
-            title: 'Liste guncellendi',
-            message: hasSearch
-              ? `${response.totalCount} kayit icinden arama sonucunun ${response.pageNumber}. sayfasi yuklendi.`
-              : `${response.totalCount} kaydin ${response.pageNumber}. sayfasi yuklendi.`
-          });
+          this.clearInfoFeedback();
         },
         error: (error: HttpErrorResponse) => {
           this.viewingList.set(null);
           this.viewingDetail.set(null);
+          this.viewingDetailDialogOpen.set(false);
           this.selectedViewingDocumentId.set(null);
           this.feedback.set({
             tone: 'error',
@@ -868,6 +859,7 @@ export class FaturaIslemleriListComponent {
 
   protected openViewingDetail(item: InvoiceViewingListItemDto): void {
     this.selectedViewingDocumentId.set(item.documentId);
+    this.viewingDetailDialogOpen.set(true);
     this.viewingRenderMode.set('default');
     this.resetViewingRenderForm();
 
@@ -881,6 +873,10 @@ export class FaturaIslemleriListComponent {
     }
 
     this.fetchViewingDetail(item.documentId);
+  }
+
+  protected closeViewingDetailDialog(): void {
+    this.viewingDetailDialogOpen.set(false);
   }
 
   protected reloadViewingDetail(): void {
@@ -1080,6 +1076,7 @@ export class FaturaIslemleriListComponent {
     const rawValue = this.sendingFilterForm.getRawValue();
 
     if (!keepSelection) {
+      this.sendingDetailDialogOpen.set(false);
       this.selectedSendingKey.set(null);
       this.sendingDetail.set(null);
       this.selectedSendingKeys.set([]);
@@ -1108,18 +1105,16 @@ export class FaturaIslemleriListComponent {
           const selectedKey = this.selectedSendingKey();
 
           if (selectedKey && !this.findSendingItemByKey(selectedKey, response)) {
+            this.sendingDetailDialogOpen.set(false);
             this.selectedSendingKey.set(null);
             this.sendingDetail.set(null);
           }
 
-          this.feedback.set({
-            tone: 'info',
-            title: 'Bekleyen fatura listesi guncellendi',
-            message: `${this.getScenarioLabel(rawValue.scenario)} icin ${response.totalCount} kayit yuklendi.`
-          });
+          this.clearInfoFeedback();
         },
         error: (error: HttpErrorResponse) => {
           this.sendingList.set(null);
+          this.sendingDetailDialogOpen.set(false);
           this.selectedSendingKey.set(null);
           this.sendingDetail.set(null);
           this.selectedSendingKeys.set([]);
@@ -1155,6 +1150,7 @@ export class FaturaIslemleriListComponent {
 
   protected openSendingDetail(item: InvoiceSendingListItemDto): void {
     this.selectedSendingKey.set(this.buildSendingKey(item.documentSerie, item.documentOrderNo));
+    this.sendingDetailDialogOpen.set(true);
     this.sendingRenderMode.set('default');
     this.resetSendingRenderForm(item.scenario);
 
@@ -1168,6 +1164,10 @@ export class FaturaIslemleriListComponent {
     }
 
     this.fetchSendingDetail(item.documentSerie, item.documentOrderNo, item.scenario);
+  }
+
+  protected closeSendingDetailDialog(): void {
+    this.sendingDetailDialogOpen.set(false);
   }
 
   protected reloadSendingDetail(): void {
@@ -2025,6 +2025,12 @@ export class FaturaIslemleriListComponent {
 
   private hasPermission(permissionCodes: string[], code: string): boolean {
     return permissionCodes.includes(this.normalizeText(code));
+  }
+
+  private clearInfoFeedback(): void {
+    if (this.feedback()?.tone === 'info') {
+      this.feedback.set(null);
+    }
   }
 
   private normalizeText(value: unknown): string {

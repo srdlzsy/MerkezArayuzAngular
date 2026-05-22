@@ -145,6 +145,76 @@ export class KullaniciListComponent implements OnInit {
     return true;
   }
 
+  protected getPageDescription(): string {
+    switch (this.mode) {
+      case 'roles':
+        return 'Rolleri, aktiflik durumlarini ve yetki kapsamlarini tek listeden yonet.';
+      case 'permissions':
+        return 'Yetki kayitlarini modul, menu ve aksiyon baglaminda kontrol et.';
+      default:
+        return 'Kullanicilari, depo bilgilerini, rollerini ve aktiflik durumlarini takip et.';
+    }
+  }
+
+  protected getListHeading(): string {
+    switch (this.mode) {
+      case 'roles':
+        return 'Rol Listesi';
+      case 'permissions':
+        return 'Yetki Listesi';
+      default:
+        return 'Kullanici Listesi';
+    }
+  }
+
+  protected getSearchPlaceholder(): string {
+    switch (this.mode) {
+      case 'roles':
+        return 'Rol adi veya aciklama ara';
+      case 'permissions':
+        return 'Kod, modul, menu veya aksiyon ara';
+      default:
+        return 'Kullanici, e-posta, depo veya rol ara';
+    }
+  }
+
+  protected totalRecordCount(): number {
+    switch (this.mode) {
+      case 'roles':
+        return this.roles().length;
+      case 'permissions':
+        return this.permissions().length;
+      default:
+        return this.users().length;
+    }
+  }
+
+  protected visibleRecordCount(): number {
+    switch (this.mode) {
+      case 'roles':
+        return this.filteredRoles().length;
+      case 'permissions':
+        return this.filteredPermissions().length;
+      default:
+        return this.filteredUsers().length;
+    }
+  }
+
+  protected activeRecordCount(): number {
+    switch (this.mode) {
+      case 'roles':
+        return this.roles().filter((role) => role.isActive).length;
+      case 'permissions':
+        return new Set(this.permissions().map((permission) => permission.moduleName)).size;
+      default:
+        return this.users().filter((user) => user.isActive).length;
+    }
+  }
+
+  protected activeRecordLabel(): string {
+    return this.mode === 'permissions' ? 'Modul' : 'Aktif';
+  }
+
   protected openCreate(): void {
     void this.router.navigateByUrl(`/docs/api/${this.page.id}/ekle`);
   }
@@ -198,7 +268,7 @@ export class KullaniciListComponent implements OnInit {
       case 'roles':
         return 'Rol listesi yuklenemedi.';
       case 'permissions':
-        return 'Permission listesi yuklenemedi.';
+        return 'Yetki listesi yuklenemedi.';
       default:
         return 'Kullanici listesi yuklenemedi.';
     }

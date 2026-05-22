@@ -7,19 +7,18 @@
             ? 'KULLANICI DETAYI'
             : mode === 'roles'
               ? 'ROL VE YETKI YONETIMI'
-              : 'PERMISSION DETAYI'
+              : 'YETKI DETAYI'
         }}
       </p>
       <h2>{{ current.title }}</h2>
       <p class="subtitle" *ngIf="mode === 'users'">
-        Kullanici metadata guncellemesi ve rol atamasi ayni ekrandan yonetilir.
+        Kullanici bilgileri ve rol atamasi ayni ekrandan yonetilir.
       </p>
       <p class="subtitle" *ngIf="mode === 'roles'">
-        Rol bilgisi, aktiflik durumu ve permission secimleri `module > menu > action` agaci
-        uzerinden guncellenir.
+        Rol bilgisi, aktiflik durumu ve yetki secimleri ayni ekrandan guncellenir.
       </p>
       <p class="subtitle" *ngIf="mode === 'permissions'">
-        Permission metadata ve katalogtaki yeri ayni ekranda gorulur.
+        Yetki bilgisi ve katalogtaki yeri ayni ekranda gorulur.
       </p>
     </div>
 
@@ -37,11 +36,11 @@
         <div class="panel-head">
           <p class="eyebrow small">
             {{
-              mode === 'users' ? 'KULLANICILAR' : mode === 'roles' ? 'ROLLER' : 'PERMISSIONS'
+              mode === 'users' ? 'KULLANICILAR' : mode === 'roles' ? 'ROLLER' : 'YETKILER'
             }}
           </p>
           <h3>
-            {{ mode === 'users' ? 'Kullanici Listesi' : mode === 'roles' ? 'Rol Listesi' : 'Permission Listesi' }}
+            {{ mode === 'users' ? 'Kullanici Listesi' : mode === 'roles' ? 'Rol Listesi' : 'Yetki Listesi' }}
           </h3>
         </div>
       </div>
@@ -57,7 +56,7 @@
               ? 'Kullanici veya depo ara'
               : mode === 'roles'
                 ? 'Rol veya aciklama ara'
-                : 'Code, module veya menu ara'
+                : 'Kod, modul veya menu ara'
           "
         />
       </label>
@@ -89,7 +88,7 @@
         >
           <strong>{{ role.name || 'Adsiz Rol' }}</strong>
           <small>{{ role.id }}</small>
-          <small>{{ role.permissions.length }} permission</small>
+          <small>{{ role.permissions.length }} yetki</small>
         </button>
       </div>
 
@@ -134,7 +133,7 @@
               </article>
               <article class="summary-card">
                 <strong>{{ user.permissions.length }}</strong>
-                <span>Permission</span>
+                <span>Yetki</span>
               </article>
               <article class="summary-card">
                 <strong>{{ user.modules.length }}</strong>
@@ -241,7 +240,7 @@
             <div class="summary-grid">
               <article class="summary-card">
                 <strong>{{ countSelectedRolePermissions() }}</strong>
-                <span>Secili permission</span>
+                <span>Secili yetki</span>
               </article>
               <article class="summary-card">
                 <strong>{{ countCatalogMenus(permissionCatalog()) }}</strong>
@@ -249,7 +248,7 @@
               </article>
               <article class="summary-card">
                 <strong>{{ countCatalogActions(permissionCatalog()) }}</strong>
-                <span>Action</span>
+                <span>Aksiyon</span>
               </article>
             </div>
           </div>
@@ -279,8 +278,8 @@
           <section class="catalog-card">
             <div class="catalog-head">
               <div>
-                <p class="eyebrow small">PERMISSION AGACI</p>
-                <h4>Module > Menu > Action</h4>
+                <p class="eyebrow small">YETKI AGACI</p>
+                <h4>Modul, Menu ve Aksiyonlar</h4>
               </div>
 
               <div class="catalog-actions-toolbar">
@@ -290,7 +289,7 @@
                     type="search"
                     [value]="detailSearch()"
                     (input)="setDetailSearch($event)"
-                    placeholder="Action, menu veya modul ara"
+                    placeholder="Aksiyon, menu veya modul ara"
                   />
                 </label>
 
@@ -301,7 +300,7 @@
             </div>
 
             <div class="empty-state compact" *ngIf="visibleRolePermissionModules().length === 0">
-              <h3>Goruntulenecek permission bulunamadi</h3>
+              <h3>Goruntulenecek yetki bulunamadi</h3>
               <p>Aramayi temizleyebilir veya filtreyi kapatabilirsin.</p>
             </div>
 
@@ -365,13 +364,13 @@
           <div class="editor-hero">
             <div class="editor-head">
               <div>
-                <p class="eyebrow small">SECILI PERMISSION</p>
+                <p class="eyebrow small">SECILI YETKI</p>
                 <h3>{{ permission.name }}</h3>
                 <p class="editor-meta">{{ permission.code }}</p>
               </div>
 
               <button type="button" class="primary-button" (click)="save()" [disabled]="saving()">
-                {{ saving() ? 'Kaydediliyor...' : 'Permission Kaydet' }}
+                {{ saving() ? 'Kaydediliyor...' : 'Yetkiyi Kaydet' }}
               </button>
             </div>
 
@@ -386,7 +385,7 @@
               </article>
               <article class="summary-card">
                 <strong>{{ permission.actionName }}</strong>
-                <span>Action</span>
+                <span>Aksiyon</span>
               </article>
             </div>
           </div>
@@ -394,12 +393,12 @@
           <form class="form-card" [formGroup]="permissionForm">
             <div class="form-grid compact-grid">
               <label class="field">
-                <span>Code</span>
+                <span>Kod</span>
                 <input type="text" formControlName="code" />
               </label>
 
               <label class="field">
-                <span>Name</span>
+                <span>Ad</span>
                 <input type="text" formControlName="name" />
               </label>
 
@@ -414,7 +413,7 @@
             <div class="catalog-head">
               <div>
                 <p class="eyebrow small">KATALOG</p>
-                <h4>Permission'in Gectigi Yer</h4>
+                <h4>Yetkinin Gectigi Yer</h4>
               </div>
             </div>
 

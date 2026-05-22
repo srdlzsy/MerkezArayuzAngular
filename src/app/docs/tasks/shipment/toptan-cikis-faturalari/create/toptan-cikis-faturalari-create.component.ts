@@ -9,8 +9,8 @@ import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
   selector: 'app-toptan-cikis-faturalari-create',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: './toptan-cikis-faturalari-create.component.html',
-  styleUrl: './toptan-cikis-faturalari-create.component.scss'
+  templateUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.template.html',
+  styleUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.scss'
 })
 export class ToptanCikisFaturalariCreateComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['gelen-firma-sevkleri'];

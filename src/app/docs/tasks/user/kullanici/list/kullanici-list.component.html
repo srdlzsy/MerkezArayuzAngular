@@ -3,7 +3,7 @@
     <div class="hero-copy">
       <p class="eyebrow">KULLANICI YONETIMI</p>
       <h2>{{ current.title }}</h2>
-      <p class="subtitle">{{ current.subtitle }}</p>
+      <p class="subtitle">{{ getPageDescription() }}</p>
     </div>
 
     <div class="hero-actions">
@@ -21,22 +21,26 @@
     </div>
   </header>
 
-  <section class="info-grid">
-    <article class="info-card accent-card">
-      <h3>Kaynak</h3>
-      <p>{{ current.baseRouteOrFile }}</p>
+  <section class="summary-grid">
+    <article class="summary-card accent-card">
+      <h3>Toplam</h3>
+      <p>{{ totalRecordCount() }}</p>
     </article>
-    <article class="info-card" *ngFor="let item of current.highlights">
-      <h3>Not</h3>
-      <p>{{ item }}</p>
+    <article class="summary-card">
+      <h3>Gorunen</h3>
+      <p>{{ visibleRecordCount() }}</p>
+    </article>
+    <article class="summary-card">
+      <h3>{{ activeRecordLabel() }}</h3>
+      <p>{{ activeRecordCount() }}</p>
     </article>
   </section>
 
   <section class="list-card">
     <div class="toolbar">
       <div class="toolbar-copy">
-        <p class="eyebrow small">{{ current.listTitle }}</p>
-        <h3>{{ current.title }} Listesi</h3>
+        <p class="eyebrow small">{{ mode === 'permissions' ? 'YETKI KATALOGU' : 'YONETIM LISTESI' }}</p>
+        <h3>{{ getListHeading() }}</h3>
       </div>
 
       <label class="search-field">
@@ -45,13 +49,7 @@
           type="search"
           [value]="search()"
           (input)="setSearch($event)"
-          [placeholder]="
-            mode === 'users'
-              ? 'Kullanici, e-posta, depo veya rol ara'
-              : mode === 'roles'
-                ? 'Rol adi veya aciklama ara'
-                : 'Code, modul, menu veya action ara'
-          "
+          [placeholder]="getSearchPlaceholder()"
         />
       </label>
     </div>
@@ -74,8 +72,8 @@
       class="empty-state"
       *ngIf="!loading() && mode === 'permissions' && filteredPermissions().length === 0"
     >
-      <h3>Permission bulunamadi</h3>
-      <p>Filtreyi genislet veya yeni bir permission ekle.</p>
+      <h3>Yetki bulunamadi</h3>
+      <p>Filtreyi genislet veya yeni bir yetki ekle.</p>
     </div>
 
     <div class="table-wrap" *ngIf="!loading() && mode === 'users' && filteredUsers().length > 0">
@@ -125,7 +123,7 @@
           <tr>
             <th>Rol</th>
             <th>Aciklama</th>
-            <th>Permission</th>
+            <th>Yetki</th>
             <th>Durum</th>
             <th>Guncellendi</th>
             <th></th>
@@ -162,11 +160,11 @@
       <table>
         <thead>
           <tr>
-            <th>Code</th>
-            <th>Name</th>
-            <th>Module</th>
+            <th>Kod</th>
+            <th>Ad</th>
+            <th>Modul</th>
             <th>Menu</th>
-            <th>Action</th>
+            <th>Aksiyon</th>
             <th>Guncellendi</th>
             <th></th>
           </tr>

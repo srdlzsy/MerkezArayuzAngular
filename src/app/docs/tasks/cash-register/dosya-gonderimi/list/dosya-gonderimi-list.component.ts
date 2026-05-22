@@ -48,15 +48,15 @@ export class DosyaGonderimiListComponent {
     {
       key: 'terazi',
       title: 'Terazi Dosyasi Olustur',
-      description: 'Terazi export isini kuyruga alir ve sonucunu job uzerinden takip eder.',
+      description: 'Terazi dosyasini hazirlar ve sonucunu ekrandan takip eder.',
       icon: 'fas fa-balance-scale',
       accent: 'accent-scale',
       enabled: true
     },
     {
       key: 'urun',
-      title: 'Urun / Barcode / PLU Dosyasi',
-      description: 'Urun, barkod ve PLU export isini kuyruga alir.',
+      title: 'Urun / Barkod / PLU Dosyasi',
+      description: 'Urun, barkod ve PLU dosyalarini kasalar icin hazirlar.',
       icon: 'fas fa-cube',
       accent: 'accent-product',
       enabled: true
@@ -64,7 +64,7 @@ export class DosyaGonderimiListComponent {
     {
       key: 'kasiyer',
       title: 'Kasiyer Dosyasi Olustur',
-      description: 'Kasiyer ve yetki export isini kuyruga alir.',
+      description: 'Kasiyer ve yetki dosyalarini kasalara gonderime hazirlar.',
       icon: 'fas fa-address-card',
       accent: 'accent-cashier',
       enabled: true
@@ -73,7 +73,7 @@ export class DosyaGonderimiListComponent {
       key: 'promosyon',
       title: 'Promosyon Dosyasi Olustur',
       description:
-        'Promosyon ve yardimci POS dosyalarini kuyruga alir, sonucu job uzerinden takip eder.',
+        'Promosyon ve yardimci POS dosyalarini hazirlar, sonucu ekrandan takip eder.',
       icon: 'fas fa-tags',
       accent: 'accent-promotion',
       enabled: true
@@ -174,8 +174,8 @@ export class DosyaGonderimiListComponent {
           this.authorizationLoading.set(false);
           this.feedback.set({
             tone: 'error',
-            title: 'Authorization listesi alinamadi',
-            message: 'Authorization file kayitlari su anda okunamadi.'
+            title: 'Yetki dosyalari alinamadi',
+            message: 'Yetki dosyasi kayitlari su anda okunamadi.'
           });
         }
       });
@@ -197,8 +197,8 @@ export class DosyaGonderimiListComponent {
           this.authorizationHasChanges.set(false);
           this.feedback.set({
             tone: 'success',
-            title: 'Authorization kayitlari guncellendi',
-            message: 'Secilen R/X/Z alanlari backend tarafina toplu olarak kaydedildi.'
+            title: 'Yetki dosyalari guncellendi',
+            message: 'Secilen R/X/Z izinleri toplu olarak kaydedildi.'
           });
           this.loadAuthorizationFiles();
         },
@@ -206,7 +206,7 @@ export class DosyaGonderimiListComponent {
           this.authorizationSaving.set(false);
           this.feedback.set({
             tone: 'error',
-            title: 'Authorization kayitlari kaydedilemedi',
+            title: 'Yetki dosyalari kaydedilemedi',
             message: 'Toplu guncelleme sirasinda hata alindi.'
           });
         }
@@ -340,7 +340,7 @@ export class DosyaGonderimiListComponent {
           this.feedback.set({
             tone: 'success',
             title: 'Is kuyruga alindi',
-            message: `${action.title} islemi job olarak baslatildi. Durum otomatik takip ediliyor.`
+            message: `${action.title} islemi baslatildi. Durum otomatik takip ediliyor.`
           });
 
           this.pollJob(job.jobId, action);
@@ -396,7 +396,7 @@ export class DosyaGonderimiListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Durum alinamadi',
-            message: `${action.title} icin job durumu okunamadi.`
+            message: `${action.title} icin islem durumu okunamadi.`
           });
         }
       });

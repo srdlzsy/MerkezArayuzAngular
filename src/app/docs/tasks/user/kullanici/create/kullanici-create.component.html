@@ -4,7 +4,7 @@
       <p class="eyebrow">KULLANICI YONETIMI</p>
       <h2>{{ pageHeading() }}</h2>
       <p class="subtitle">
-        {{ endpointPath() }} endpointine {{ payloadName() }} gonderen form.
+        Bilgileri doldur, gerekli rol veya yetki bagini sec, kaydi tamamla.
       </p>
     </div>
 
@@ -15,12 +15,14 @@
 
   <section class="info-grid">
     <article class="info-card accent-card">
-      <h3>Endpoint</h3>
-      <p>{{ endpointPath() }}</p>
+      <h3>Islem</h3>
+      <p>{{ pageHeading() }}</p>
     </article>
     <article class="info-card">
-      <h3>Payload</h3>
-      <p>{{ payloadName() }}</p>
+      <h3>Destek Verisi</h3>
+      <p *ngIf="mode === 'users'">Rol listesi</p>
+      <p *ngIf="mode === 'roles'">Rol bilgileri</p>
+      <p *ngIf="mode === 'permissions'">Mevcut yetkiler</p>
     </article>
     <article class="info-card">
       <h3>Baglam</h3>
@@ -37,15 +39,13 @@
       <div>
         <h3>{{ pageHeading() }}</h3>
         <p *ngIf="mode === 'users'">
-          Kullanici kaydi `auth/register` ile olusur; secili roller kaydin ardindan
-          `/api/users/id/roles` uzerinden atanir.
+          Yeni kullanicinin temel bilgilerini gir, gerekiyorsa rollerini sec ve tek seferde kaydet.
         </p>
         <p *ngIf="mode === 'roles'">
-          Rol metadata bilgisi `SaveRoleBody` ile olusturulur. Permission atamalari rol detay
-          ekranindan yonetilir.
+          Rol adini ve aciklamasini belirle. Yetki atamalarini rol detayindan yonetebilirsin.
         </p>
         <p *ngIf="mode === 'permissions'">
-          Permission kaydi `module > menu > action` agacina baglanacak code ile tanimlanir.
+          Yetki kodunu menu agacina uygun gir, kullanicilarin gorecegi adi ve aciklamayi tamamla.
         </p>
       </div>
 
@@ -67,7 +67,7 @@
       <div class="form-grid" [formGroup]="userForm">
         <label class="field">
           <span>Kullanici Adi</span>
-          <input type="text" formControlName="username" placeholder="admin" />
+          <input type="text" formControlName="username" placeholder="ahmet.yilmaz" />
           <small
             class="field-error"
             *ngIf="
@@ -81,7 +81,7 @@
 
         <label class="field">
           <span>E-Posta</span>
-          <input type="email" formControlName="email" placeholder="admin@furpamerkez.local" />
+          <input type="email" formControlName="email" placeholder="ahmet.yilmaz@furpa.local" />
           <small
             class="field-error"
             *ngIf="
@@ -109,12 +109,12 @@
 
         <label class="field">
           <span>Ad</span>
-          <input type="text" formControlName="firstName" placeholder="System" />
+          <input type="text" formControlName="firstName" placeholder="Ahmet" />
         </label>
 
         <label class="field">
           <span>Soyad</span>
-          <input type="text" formControlName="lastName" placeholder="Admin" />
+          <input type="text" formControlName="lastName" placeholder="Yilmaz" />
         </label>
 
         <label class="field">
@@ -154,7 +154,7 @@
       <div class="form-grid compact-grid" [formGroup]="roleForm">
         <label class="field">
           <span>Rol Adi</span>
-          <input type="text" formControlName="name" placeholder="Administrator" />
+          <input type="text" formControlName="name" placeholder="Magaza Yoneticisi" />
           <small
             class="field-error"
             *ngIf="
@@ -183,7 +183,7 @@
     <ng-container *ngIf="mode === 'permissions'">
       <div class="form-grid compact-grid" [formGroup]="permissionForm">
         <label class="field">
-          <span>Code</span>
+          <span>Yetki Kodu</span>
           <input
             type="text"
             formControlName="code"
@@ -196,13 +196,13 @@
               (permissionControls.code.dirty || permissionControls.code.touched)
             "
           >
-            Permission code zorunludur.
+            Yetki kodu zorunludur.
           </small>
         </label>
 
         <label class="field">
-          <span>Name</span>
-          <input type="text" formControlName="name" placeholder="VerilenDepoSiparisleri Listele" />
+          <span>Yetki Adi</span>
+          <input type="text" formControlName="name" placeholder="Verilen depo siparislerini listele" />
           <small
             class="field-error"
             *ngIf="
@@ -210,7 +210,7 @@
               (permissionControls.name.dirty || permissionControls.name.touched)
             "
           >
-            Permission name zorunludur.
+            Yetki adi zorunludur.
           </small>
         </label>
 
@@ -225,9 +225,9 @@
       </div>
 
       <section class="helper-card">
-        <h4>Mevcut Permission Sayisi</h4>
+        <h4>Mevcut Yetki Sayisi</h4>
         <p>{{ permissions().length }}</p>
-        <small>Benzer bir kayit acmadan once mevcut code yapisini kontrol edebilirsin.</small>
+        <small>Benzer bir kayit acmadan once mevcut yetki kodlarini kontrol edebilirsin.</small>
       </section>
     </ng-container>
   </form>
