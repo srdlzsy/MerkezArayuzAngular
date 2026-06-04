@@ -1,0 +1,365 @@
+<section class="task-page green-grocer-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="welcome-box">
+      <h2>{{ current.title }}</h2>
+    </div>
+    <p class="subtitle">{{ current.subtitle }}</p>
+  </header>
+
+  <section class="info-grid">
+    <article class="info-card">
+      <h3>Gun</h3>
+      <p>{{ lastLoadedDate() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Urun</h3>
+      <p>{{ summaryItems().length }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Evrak</h3>
+      <p>{{ branchDocumentCount() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Sube</h3>
+      <p>{{ branchCount() }}</p>
+    </article>
+    <article class="info-card">
+      <h3>Yesillik</h3>
+      <p>{{ formatQuantity(greenTotalQuantity()) }}</p>
+    </article>
+  </section>
+
+  <section class="task-block">
+    <form class="query-card green-query" [formGroup]="filtersForm" (ngSubmit)="loadReports()" novalidate>
+      <div class="query-grid green-query-grid">
+        <label class="field date-field">
+          <span>Rapor Gunu</span>
+          <input type="date" formControlName="targetDate" [max]="maxTargetDate" />
+        </label>
+
+        <div class="field field-preview">
+          <span>Endpoint</span>
+          <code>{{ requestPath() }}</code>
+        </div>
+
+        <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+      </div>
+
+      <p class="query-path">{{ requestPath() }}</p>
+    </form>
+
+    <article class="state-card state-card-error" *ngIf="!canViewReports()">
+      <h3>Yetki kontrolu</h3>
+      <p>Bu ekran icin green-grocer.reports.list yetkisi veya GreenGrocer gorev erisimi beklenir.</p>
+    </article>
+
+    <article
+      class="state-card feedback-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Raporlar Yukleniyor</h3>
+      <p>{{ filtersForm.controls.targetDate.value }} tarihli manav ve yesillik raporlari getiriliyor.</p>
+    </article>
+
+    <section class="report-metrics">
+      <article class="info-card">
+        <h3>Genel Miktar</h3>
+        <p>{{ formatQuantity(summaryTotalQuantity()) }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Sube Satiri</h3>
+        <p>{{ branchItems().length }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Urun Kirilimi</h3>
+        <p>{{ productRows().length }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Lazy Sube</h3>
+        <p>{{ lazyBranches().length }}</p>
+      </article>
+    </section>
+
+    <nav class="report-tabs" aria-label="GreenGrocer rapor sekmeleri">
+      <button
+        type="button"
+        class="report-tab"
+        *ngFor="let tab of tabs; trackBy: trackByTab"
+        [class.report-tab-active]="activeTab() === tab.id"
+        (click)="selectTab(tab.id)"
+      >
+        <span>{{ tab.label }}</span>
+        <strong>{{ getTabCount(tab.id) }}</strong>
+        <small>{{ tab.description }}</small>
+      </button>
+    </nav>
+
+    <ng-container [ngSwitch]="activeTab()">
+      <section class="task-item report-panel" *ngSwitchCase="'summary'">
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Genel Manav Raporu</span>
+            <h3>Urun ve Tip Toplamlari</h3>
+          </div>
+          <span class="panel-chip">{{ formatQuantity(summaryTotalQuantity()) }}</span>
+        </div>
+
+        <div class="table-wrap" *ngIf="summaryItems().length; else emptySummary">
+          <table class="report-table">
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Urun Kodu</th>
+                <th>Urun</th>
+                <th class="number-cell">Miktar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of summaryItems(); trackBy: trackBySummary">
+                <td>
+                  <span class="type-pill">{{ getTypeLabel(item.typeCode) }}</span>
+                </td>
+                <td>{{ item.productCode }}</td>
+                <td>{{ item.productName }}</td>
+                <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #emptySummary>
+          <article class="state-card compact-state" *ngIf="!isLoading()">
+            <h3>Genel rapor bos</h3>
+            <p>Secilen gun icin urun/tip bazinda manav kaydi bulunmuyor.</p>
+          </article>
+        </ng-template>
+      </section>
+
+      <section class="task-item report-panel" *ngSwitchCase="'byBranch'">
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Sube / Evrak Bazli Manav Raporu</span>
+            <h3>Evrak Satirlari</h3>
+          </div>
+          <span class="panel-chip">{{ branchDocumentCount() }} evrak</span>
+        </div>
+
+        <div class="table-wrap" *ngIf="branchItems().length; else emptyBranch">
+          <table class="report-table branch-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Sube</th>
+                <th>Evrak</th>
+                <th>Tip</th>
+                <th>Urun</th>
+                <th class="number-cell">Miktar</th>
+                <th *ngIf="canDeleteOrders()">Islem</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of branchItems(); trackBy: trackByBranchItem">
+                <td>{{ formatDateTime(item.orderDate) }}</td>
+                <td>{{ formatBranch(item) }}</td>
+                <td>{{ formatDocument(item) }}</td>
+                <td>
+                  <span class="type-pill">{{ getTypeLabel(item.typeCode) }}</span>
+                </td>
+                <td>
+                  <span class="product-name">{{ item.productName }}</span>
+                  <small>{{ item.productCode }}</small>
+                </td>
+                <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                <td *ngIf="canDeleteOrders()">
+                  <button
+                    type="button"
+                    class="row-action row-action-danger"
+                    (click)="deleteOrder(item)"
+                    [disabled]="isDeleting(item)"
+                  >
+                    {{ isDeleting(item) ? 'Siliniyor...' : 'Sil' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #emptyBranch>
+          <article class="state-card compact-state" *ngIf="!isLoading()">
+            <h3>Sube raporu bos</h3>
+            <p>Secilen gun icin sube/evrak bazli manav kaydi bulunmuyor.</p>
+          </article>
+        </ng-template>
+
+        <section class="lazy-branches" *ngIf="lazyBranches().length">
+          <div class="panel-head">
+            <div>
+              <span class="section-kicker">Lazy Branches</span>
+              <h3>Siparis girmeyen subeler</h3>
+            </div>
+            <span class="panel-chip">{{ lazyBranches().length }}</span>
+          </div>
+
+          <div class="lazy-grid">
+            <article class="lazy-card" *ngFor="let branch of lazyBranches(); trackBy: trackByLazyBranch">
+              <strong>{{ branch.branchName }}</strong>
+              <span>Sube {{ branch.branchNo }}</span>
+              <small>Bolge {{ branch.regionCode }}</small>
+            </article>
+          </div>
+        </section>
+      </section>
+
+      <section class="task-item report-panel" *ngSwitchCase="'byProduct'">
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Urun Bazli Manav Raporu</span>
+            <h3>Urun Toplamlari</h3>
+          </div>
+          <span class="panel-chip">{{ productRows().length }} urun</span>
+        </div>
+
+        <section class="product-workspace" *ngIf="productRows().length; else emptyProduct">
+          <div class="table-wrap product-list">
+            <table class="report-table">
+              <thead>
+                <tr>
+                  <th>Tip</th>
+                  <th>Urun</th>
+                  <th class="number-cell">Toplam</th>
+                  <th class="number-cell">Kirilim</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let item of productRows(); trackBy: trackByProduct"
+                  [class.selected-row]="selectedProduct()?.key === item.key"
+                  (click)="selectProduct(item)"
+                >
+                  <td>
+                    <span class="type-pill">{{ getTypeLabel(item.typeCode) }}</span>
+                  </td>
+                  <td>
+                    <span class="product-name">{{ item.productName }}</span>
+                    <small>{{ item.productCode }}</small>
+                  </td>
+                  <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                  <td class="number-cell">{{ item.breakdownItems.length }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <article class="query-card product-detail" *ngIf="selectedProduct() as product">
+            <div class="panel-head">
+              <div>
+                <span class="section-kicker">Secili Urun</span>
+                <h3>{{ product.productName }}</h3>
+              </div>
+              <span class="panel-chip">{{ formatQuantity(product.quantity) }}</span>
+            </div>
+
+            <div class="table-wrap" *ngIf="product.breakdownItems.length; else emptyProductBreakdown">
+              <table class="report-table compact-table">
+                <thead>
+                  <tr>
+                    <th>Tarih</th>
+                    <th>Sube</th>
+                    <th>Evrak</th>
+                    <th class="number-cell">Miktar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of product.breakdownItems; trackBy: trackByBranchItem">
+                    <td>{{ formatDateTime(item.orderDate) }}</td>
+                    <td>{{ formatBranch(item) }}</td>
+                    <td>{{ formatDocument(item) }}</td>
+                    <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <ng-template #emptyProductBreakdown>
+              <article class="state-card compact-state">
+                <h3>Kirilim yok</h3>
+                <p>Backend bu urun icin sube/evrak kirilimi donmedi.</p>
+              </article>
+            </ng-template>
+          </article>
+        </section>
+
+        <ng-template #emptyProduct>
+          <article class="state-card compact-state" *ngIf="!isLoading()">
+            <h3>Urun raporu bos</h3>
+            <p>Secilen gun icin urun bazli manav kaydi bulunmuyor.</p>
+          </article>
+        </ng-template>
+      </section>
+
+      <section class="task-item report-panel" *ngSwitchCase="'greens'">
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Yesillik Raporu</span>
+            <h3>Tip 12 Evrak Satirlari</h3>
+          </div>
+          <span class="panel-chip">{{ formatQuantity(greenTotalQuantity()) }}</span>
+        </div>
+
+        <div class="table-wrap" *ngIf="greenItems().length; else emptyGreens">
+          <table class="report-table branch-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Sube</th>
+                <th>Evrak</th>
+                <th>Urun</th>
+                <th class="number-cell">Miktar</th>
+                <th *ngIf="canDeleteOrders()">Islem</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of greenItems(); trackBy: trackByBranchItem">
+                <td>{{ formatDateTime(item.orderDate) }}</td>
+                <td>{{ formatBranch(item) }}</td>
+                <td>{{ formatDocument(item) }}</td>
+                <td>
+                  <span class="product-name">{{ item.productName }}</span>
+                  <small>{{ item.productCode }}</small>
+                </td>
+                <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                <td *ngIf="canDeleteOrders()">
+                  <button
+                    type="button"
+                    class="row-action row-action-danger"
+                    (click)="deleteOrder(item)"
+                    [disabled]="isDeleting(item)"
+                  >
+                    {{ isDeleting(item) ? 'Siliniyor...' : 'Sil' }}
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #emptyGreens>
+          <article class="state-card compact-state" *ngIf="!isLoading()">
+            <h3>Yesillik raporu bos</h3>
+            <p>Secilen gun icin sto_model_kodu 12 kapsaminda satir bulunmuyor.</p>
+          </article>
+        </ng-template>
+      </section>
+    </ng-container>
+  </section>
+</section>

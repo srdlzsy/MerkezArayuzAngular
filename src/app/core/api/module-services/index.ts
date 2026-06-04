@@ -10,4 +10,5 @@ export * from './arama.service';
 export * from './operasyon-islemleri.service';
 export * from './entegrasyon-islemleri.service';
 export * from './fatura-islemleri.service';
+export * from './green-grocer.service';
 export * from './taslak.service';

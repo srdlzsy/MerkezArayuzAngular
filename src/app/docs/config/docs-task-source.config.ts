@@ -10,6 +10,7 @@ import { RETURNS_TASK_SOURCE } from './returns.task-source';
 import { CASH_REGISTER_TASK_SOURCE } from './cash-register.task-source';
 import { INTEGRATION_TASK_SOURCE } from './integration.task-source';
 import { EDOCUMENTS_TASK_SOURCE } from './edocuments.task-source';
+import { GREEN_GROCER_TASK_SOURCE } from './green-grocer.task-source';
 import { USER_TASK_SOURCE } from './user.task-source';
 import { SEARCH_TASK_SOURCE } from './search.task-source';
 
@@ -24,6 +25,7 @@ const DOCS_DOMAIN_TASK_SOURCES: ReadonlyArray<Record<string, DocsTaskSource>> = 
   CASH_REGISTER_TASK_SOURCE,
   INTEGRATION_TASK_SOURCE,
   EDOCUMENTS_TASK_SOURCE,
+  GREEN_GROCER_TASK_SOURCE,
   USER_TASK_SOURCE,
   SEARCH_TASK_SOURCE
 ];
