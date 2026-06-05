@@ -5494,7 +5494,7 @@ Legacy farklarini okurken su noktalari esas alinmalidir:
 
 - Hangfire ve SignalR beklentisi yoktur; bu modul application icindeki hosted queue + polling modeliyle calisir
 - `warehouseNo` artik `ClaimTypes.Name` degil, `warehouse_no` claim'inden okunur
-- `promofile` eski sistemdeki yardimci dosya zincirini su an uretmez; endpoint bilincli olarak `409 Conflict` doner
+- `promofile` de yeni kuyruk/polling modeliyle calisir; eski yardimci dosya zinciri job icinde uretilir
 
 Temel route:
 
@@ -5514,9 +5514,9 @@ Mevcut endpointler:
   - kasiyer ve yetki dosyalari isi kuyruga alinir
   - response `202 Accepted`
 - `GET /api/operations/promofile`
-  - su an bilincli olarak aktif degil
-  - `409 Conflict` donebilir
-  - neden: promotion ve GIB veri kaynagi bu API'ye henuz tasinmadi
+  - promosyon ve yardimci POS dosyalari isi kuyruga alinir
+  - response `202 Accepted`
+  - Mayday/UYUM connection stringleri eksikse job `Failed` durumuna duser ve `errorMessage` ile sebep doner
 - `GET /api/operations/jobs/{jobId}`
   - kuyruga atilan isin durumunu dondurur
   - response `OperationJobDetailDto`
@@ -5540,6 +5540,7 @@ Ayni akis su ekran aksiyonlari icin de gecerlidir:
 
 - `Urun/Barcode/PLU Dosyasi Olustur`
 - `Kasiyer Dosyasi Olustur`
+- `Promosyon Dosyasi Olustur`
 
 Job response modelleri:
 
@@ -5607,8 +5608,9 @@ Operasyon modulu notlari:
 - UI canli progress stream beklememelidir; polling yeterlidir
 - `scalesfile` icin `BranchDetails` kaydi ve `ScalesType` bilgisi zorunludur
 - `productbarcodeplunofile` ve `cashierfile` lokal export uretebilir; branch network path varsa ek olarak paylasima da kopyalanir
+- `promofile` `PROMO.DAT`, `NOPROMO.DAT`, `NOCEK.DAT`, `NOYEMEK.DAT`, `GRUP.DAT`, `OZELKOD.DAT`, `EFATVNO.DAT` ve kasa bazli `MESAJ.xxx` dosyalarini uretir
 - export klasoru config'deki `OperationsExport:BasePath` ile verilebilir; bos ise uygulama altindaki `App_Data/OperationsExports` kullanilir
-- `promofile` UI'da simdilik gizlenmeli ya da "hazir degil" etiketiyle pasif sunulmalidir
+- `promofile` icin `ConnectionStrings:MaydayConnection` ve `ConnectionStrings:UyumConnection` ayarlari gereklidir
 
 ## Entegrasyon Islemleri
 

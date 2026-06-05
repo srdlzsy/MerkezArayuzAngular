@@ -524,15 +524,127 @@ Response modeli:
 - `roles` koleksiyonu yeni haliyle response icinde gelir.
 - `200` basarili atama, `400` validation, `404` user veya role kaydi bulunamadi doner.
 
+## GreenGrocer / Manav Yesillik Raporlari
+
+Bu modul eski `Furpa.GreenGrocerWebUI` icindeki manav/yesillik raporlarini yeni API'ye tasir.
+
+Yetki:
+
+- `green-grocer.reports.list`: raporlari goruntuleme
+- `green-grocer.reports.update`: manav siparisi silme
+
+Tarih query alani:
+
+- `date` onerilir.
+- Geriye uyum icin `dateToGet` de kabul edilir.
+
+### Genel Manav Raporu
+
+`GET /api/green-grocer/reports/summary?date=2026-06-04`
+
+Alias:
+
+`GET /api/green-grocer/reports?date=2026-06-04`
+
+Amac:
+
+- `DEPOLAR_ARASI_SIPARISLER` kayitlarini `STOKLAR.sto_model_kodu in ('10','11','12')` filtresiyle urun/tip bazinda toplar.
+
+Response item:
+
+```json
+{
+  "typeCode": "10",
+  "productCode": "016201",
+  "productName": "ELMA",
+  "quantity": 42.5
+}
+```
+
+### Sube/Evrak Bazli Manav Raporu
+
+`GET /api/green-grocer/reports/by-branch?date=2026-06-04`
+
+Response:
+
+```json
+{
+  "items": [
+    {
+      "orderDate": "2026-06-04T00:00:00",
+      "branchNo": 110,
+      "branchName": "KESTEL 1",
+      "documentSerie": "F110",
+      "documentOrderNo": 1234,
+      "typeCode": "10",
+      "productCode": "016201",
+      "productName": "ELMA",
+      "quantity": 12
+    }
+  ],
+  "lazyBranches": [
+    {
+      "branchNo": 120,
+      "branchName": "ORNEK SUBE",
+      "regionCode": "1"
+    }
+  ]
+}
+```
+
+### Urun Bazli Manav Raporu
+
+`GET /api/green-grocer/reports/by-product?date=2026-06-04`
+
+Amac:
+
+- Urunleri toplam miktar ve sube/evrak kirilimiyle dondurur.
+
+### Yesillik Raporu
+
+`GET /api/green-grocer/reports/greens?date=2026-06-04`
+
+Amac:
+
+- Yalnizca `STOKLAR.sto_model_kodu = '12'` olan satirlari sube ve evrak bilgisiyle listeler.
+
+### Manav Siparisi Sil
+
+`DELETE /api/green-grocer/orders?documentSerie=F110&documentOrderNo=1234`
+
+Opsiyonel sube filtresi:
+
+`DELETE /api/green-grocer/orders?documentSerie=F110&documentOrderNo=1234&warehouseNo=110`
+
+Kural:
+
+- Sadece son 24 saat icinde olusturulan evraklar silinebilir.
+- Eski WebUI'deki `TimeSpan.Hours` davranisi yerine `TotalHours` kullanilir.
+- Kayit yoksa `404`, 24 saat penceresi gecmisse `409 Conflict` doner.
+
+Response:
+
+```json
+{
+  "documentSerie": "F110",
+  "documentOrderNo": 1234,
+  "warehouseNo": 110,
+  "deletedLineCount": 8,
+  "latestCreateDate": "2026-06-04T09:15:10",
+  "deletedAt": "2026-06-04T10:01:22"
+}
+```
+
 ## Ortak Arama Islemleri
 
 Bu endpointler siparis, mal kabul, sevk, iade gibi formlarda ortak secim/arama icin kullanilir.
 
 Not:
 
-- Tum endpointler `Authorization: Bearer {token}` ister.
+- Aksi belirtilmedikce endpointler `Authorization: Bearer {token}` ister.
 - Genel arama endpointleri menu/action permission istemez; login olan kullanici kullanabilir.
 - UI menusu olarak gorunen `FiyatGor` ve `CariBul` endpointleri kendi `list` permission'larini ister.
+- `Son Kunye` endpoint'i anonim cagrilabilir; login olmadan kullanilacaksa `warehouseNo` query parametresi zorunludur.
 - Mikro tarafinda sadece SELECT/read-only mantigiyla calisir.
 - Urun arama `dbo.__StokveFiyatArama_Gokhan` stored procedure'u ile yapilir.
 - Mobil barkod okutma senaryolarinda genel `urunler` listesi yerine once `barkodlar/{barcode}/cozumle` endpoint'i tercih edilmelidir.
@@ -646,6 +758,62 @@ UI kullanim notu:
 
 - Sol menu altinda `AramaIslemleri > FiyatGor` gibi ayri bir hizli ekran olarak sunulabilir.
 - Barkod okutma ekraninda pratik yol `barkodlar/{barcode}/fiyat` alias'idir.
+
+### Urun Son Kunye
+
+Secili stok kodu ve sube/depo icin son sevk tarihli kunye bilgisini ve Mikro satis fiyatini getirir.
+
+`GET /api/arama-islemleri/urunler/016201/son-kunye?warehouseNo=110`
+
+Yetki:
+
+- Anonim cagrilabilir, token zorunlu degildir.
+- Login olmadan cagrilirsa `warehouseNo` zorunludur.
+- Login olan kullanici icin `warehouseNo` verilmezse JWT icindeki depo kullanilir.
+
+Path:
+
+```text
+stockCode      zorunlu; Mikro stok kodu, ornek: 016201
+```
+
+Query:
+
+```text
+warehouseNo    anonim cagri icin zorunlu; login varsa opsiyonel
+```
+
+Response:
+
+```json
+{
+  "branchNo": 110,
+  "branchName": "Sube Adi",
+  "productionCity": "BURSA",
+  "stockCode": "016201",
+  "stockName": "MNV ELMA STARKING (KIRMIZI) KG",
+  "salesPrice": 99.9,
+  "productionDistrict": "NILUFER",
+  "productName": "ELMA",
+  "goodsType": "STARKING",
+  "goodsGenus": "KIRMIZI",
+  "quantity": 10,
+  "takenTag": "2323439260090550630",
+  "buyer": "Alici",
+  "productionDate": "2026-05-21T00:00:00",
+  "buyingPrice": 50,
+  "shippingDate": "2026-05-21T00:00:00",
+  "manufacturer": "Uretici",
+  "productUnit": "Kg"
+}
+```
+
+Not:
+
+- Kayit bulunamazsa response `200 OK` ile `null` doner.
+- Eslesme stok adi uzerinden degil, `FaturaIslem.StokId -> MuhStok.Stokid -> MuhStok.StokKodu -> STOKLAR.sto_kod` uzerinden yapilir.
+- Fiyat `fn_StokSatisFiyati(stockCode, '1', warehouseNo, '1')` fonksiyonundan gelir.
+- `ShippingDate <= GETDATE()` filtresi uygulanir ve en yeni `ShippingDate` satiri doner.
 
 ### Tek Barkod Cozumle
 
@@ -3102,7 +3270,7 @@ Belirli bir tarih icin kullanicinin deposuna ait kunye etiket kayitlarini Kasa I
 
 Yetki:
 
-- `kasa-islemleri.kunye-etiket-yazdirma.list`
+- yok; token gerekmez, herkese aciktir
 
 Not:
 
@@ -3130,6 +3298,55 @@ Response:
     "buyingPrice": 450,
     "shippingDate": "2026-04-24T00:00:00",
     "manufacturer": "TEDARIKCI A"
+  }
+]
+```
+
+### Kunye Etiket Yazdirma Detayli Liste
+
+Belirli bir depo ve tarih icin kunye etiket kayitlarini stok kodu, stok adi, satis fiyati ve urun birimi bilgileriyle getirir. Mevcut `GET /api/kasa-islemleri/kunye-etiket-yazdirma` endpointi degismeden kalir; bu endpoint zengin response gereken ekranlar icindir.
+
+`GET /api/kasa-islemleri/kunye-etiket-yazdirma/detayli-etiketler?warehouseNo=110&dateToGet=2026-04-24`
+
+Yetki:
+
+- `kasa-islemleri.kunye-etiket-yazdirma.list`
+
+Query:
+
+- `warehouseNo` zorunlu, 1 veya daha buyuk depo numarasi
+- `dateToGet` zorunlu, sorgulanacak sevk tarihi
+
+Not:
+
+- response modeli `KunyeLabelTagDto` doner
+- veri `[Furpa].[dbo].[VwKunyeNet]`, `[KUNYENET].[dbo].[FaturaIslem]`, `[KUNYENET].[dbo].[MuhStok]` ve Mikro `dbo.STOKLAR` joinlerinden okunur
+- `salesPrice` alani Mikro `dbo.fn_StokSatisFiyati(stockCode, '1', branchNo, '1')` fonksiyonundan gelir
+- tarih filtresi secilen gunun tamamini kapsar
+
+Response:
+
+```json
+[
+  {
+    "branchNo": 110,
+    "branchName": "KESTEL 1",
+    "productionCity": "BURSA",
+    "stockCode": "STK-001",
+    "stockName": "DANA KIYMA",
+    "salesPrice": 599.9,
+    "productionDistrict": "KESTEL",
+    "productName": "DANA KIYMA",
+    "goodsType": "ET",
+    "goodsGenus": "BUYUKBAS",
+    "quantity": 12.5,
+    "takenTag": "TAG-20260424-001",
+    "buyer": "FURPA",
+    "productionDate": "2026-04-24T00:00:00",
+    "buyingPrice": 450,
+    "shippingDate": "2026-04-24T00:00:00",
+    "manufacturer": "TEDARIKCI A",
+    "productUnit": "KG"
   }
 ]
 ```
@@ -3764,13 +3981,11 @@ Yetki:
 Not:
 
 - yeni kasa rotalari ayri `ShopigoCiroConnection` kaynagini kullanir ve `SHOPIGO` veritabanindan okur
-- eski kasa rotalari mevcut `MikroConnection` uzerindeki `Summaries` kaynagini kullanir
 - `/api/kasa-islemleri/kasa-cirolari` ve `/yeni` yalnizca yeni kasalari doner
-- `/eski` yalnizca klasik Mikro `Summaries` kaynagindaki eski kasalari doner
-- `/toplam` eski ve yeni kasalari ayni response modelinde birlikte doner
+- `/eski` eski kasa icin `TurnoverTotals` kaynagindan gun/sube toplam satiri doner
+- eski kasa liste satirinda kasa/kasiyer kirilimi olmadigi icin `shiftNo=0`, `cashierCode=""`, `cashierName=""` doner
+- `/toplam` yeni kasa satirlarini ve eski kasa gun/sube toplam satirini birlikte doner
 - `shiftNo` alani SHOPIGO tarafindaki `kasano` degerinden beslenir
-- eski kasa tarafinda `shiftNo` alani Mikro `CashNo` degerinden beslenir
-- eski kasa tarafinda `productLineCount` ve `totalSalesQuantity` alanlari kaynak tabloda bulunmadigi icin `0` doner
 - liste request modeli ortak `WarehouseOrderDateRangeHttpRequest` yapisindadir
 - `warehouseNo` verilmezse JWT icindeki kullanici deposu kullanilir
 - response modeli `CashTurnoverListItemDto` doner
@@ -3888,7 +4103,7 @@ Not:
 
 - `businessDate`, `shiftNo` ve `cashierCode` zorunludur
 - `shiftNo` filtresi SHOPIGO tarafinda `kasano` kolonu ile eslestirilir
-- eski kasa tarafinda `shiftNo` filtresi Mikro `CashNo` kolonu ile eslestirilir
+- eski kasa tarafinda kasa/kasiyer bazli detay kaynagi olmadigindan `/eski/detay` kayit bulamazsa `404 Not Found` doner
 - response modeli `CashTurnoverDetailDto` doner
 - ustte toplam header bilgisi, altta odeme tipi bazli kirilim listesi gelir
 - `source` alani hem header hem odeme satirlarinda kaynagi gosterir
@@ -4657,6 +4872,9 @@ Kasa Islemleri / Etiket Belgeleri
 Kasa Islemleri / Kunye Etiket Yazdirma
   -> tarih bazli kunye etiket kayitlari icin GET /api/kasa-islemleri/kunye-etiket-yazdirma?dateToGet=...
   -> liste satirlarini LabelTagDto ile goster
+  -> depo ve tarih bazli zengin response icin GET /api/kasa-islemleri/kunye-etiket-yazdirma/detayli-etiketler?warehouseNo=...&dateToGet=...
+  -> zengin liste satirlarini KunyeLabelTagDto ile goster
+  -> detayli-etiketler endpointi token istemez
   -> yetki kodu kasa-islemleri.kunye-etiket-yazdirma.list
 
 Stok Islemleri / Virmanlar
