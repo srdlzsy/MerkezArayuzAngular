@@ -41,6 +41,17 @@ import {
   ISummariesCT,
   ISummariesDetailsCT,
   IKunyeTag,
+  KasaHareketBranchDto,
+  KasaHareketCashRegisterDto,
+  KasaHareketDeleteStagingHttpRequest,
+  KasaHareketImportHttpRequest,
+  KasaHareketImportResultDto,
+  KasaHareketMikroTransferHttpRequest,
+  KasaHareketMikroTransferRangeHttpRequest,
+  KasaHareketProcedureResultDto,
+  KasaHareketReportHttpRequest,
+  KasaHareketReportRowDto,
+  KasaHareketScheduledImportHttpRequest,
   // Yeni DTOs
   CashTurnoverDetailDto,
   CashTurnoverDetailHttpRequest,
@@ -284,6 +295,90 @@ export class KasaIslemleriService extends BaseApiService {
       IFurpaCreateBanknoteTrackResponseApiDto,
       IFurpaCreateBanknoteTrackRequestApiDto
     >('kasa-islemleri/banknot-takipleri', request);
+  }
+
+  getKasaHareketSubeleri(): Observable<KasaHareketBranchDto[]> {
+    return this.get<KasaHareketBranchDto[]>(
+      'kasa-islemleri/kasa-hareket-aktarimi/subeler'
+    );
+  }
+
+  getKasaHareketKasalar(branchNo: number): Observable<KasaHareketCashRegisterDto[]> {
+    return this.get<KasaHareketCashRegisterDto[]>(
+      `kasa-islemleri/kasa-hareket-aktarimi/subeler/${branchNo}/kasalar`
+    );
+  }
+
+  importKasaHareketleri(
+    request: KasaHareketImportHttpRequest
+  ): Observable<KasaHareketImportResultDto> {
+    return this.post<KasaHareketImportResultDto, KasaHareketImportHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/hareketler/aktar',
+      request
+    );
+  }
+
+  importKasaHareketIptalBelgeleri(
+    request: KasaHareketImportHttpRequest
+  ): Observable<KasaHareketImportResultDto> {
+    return this.post<KasaHareketImportResultDto, KasaHareketImportHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/iptal-belgeleri/aktar',
+      request
+    );
+  }
+
+  runKasaHareketZamanliAktarim(
+    request: KasaHareketScheduledImportHttpRequest
+  ): Observable<KasaHareketImportResultDto> {
+    return this.post<
+      KasaHareketImportResultDto,
+      KasaHareketScheduledImportHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/zamanli-aktarim/calistir', request);
+  }
+
+  deleteKasaHareketStaging(
+    request: KasaHareketDeleteStagingHttpRequest
+  ): Observable<KasaHareketProcedureResultDto> {
+    return this.deleteWithBody<
+      KasaHareketProcedureResultDto,
+      KasaHareketDeleteStagingHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/staging', request);
+  }
+
+  transferKasaHareketToMikro(
+    request: KasaHareketMikroTransferHttpRequest
+  ): Observable<KasaHareketProcedureResultDto> {
+    return this.post<KasaHareketProcedureResultDto, KasaHareketMikroTransferHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/mikro/aktar',
+      request
+    );
+  }
+
+  deleteKasaHareketFromMikro(
+    request: KasaHareketMikroTransferHttpRequest
+  ): Observable<KasaHareketProcedureResultDto> {
+    return this.deleteWithBody<
+      KasaHareketProcedureResultDto,
+      KasaHareketMikroTransferHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/mikro', request);
+  }
+
+  transferKasaHareketRangeToMikro(
+    request: KasaHareketMikroTransferRangeHttpRequest
+  ): Observable<KasaHareketProcedureResultDto> {
+    return this.post<
+      KasaHareketProcedureResultDto,
+      KasaHareketMikroTransferRangeHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/mikro/aralik-aktar', request);
+  }
+
+  getKasaHareketRaporu(
+    request: KasaHareketReportHttpRequest
+  ): Observable<KasaHareketReportRowDto[]> {
+    return this.getWithQuery<KasaHareketReportRowDto[], KasaHareketReportHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/rapor',
+      request
+    );
   }
 
 

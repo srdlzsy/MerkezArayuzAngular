@@ -145,6 +145,104 @@ export interface CashTurnoverOverviewDto {
 }
 
 // ============================================================================
+// Kasa Hareket Aktarimi Modelleri
+// ============================================================================
+
+export interface KasaHareketBranchDto {
+  branchNo: number;
+  branchName: string;
+  region: string;
+}
+
+export interface KasaHareketCashRegisterDto {
+  branchNo: number;
+  cashRegisterNo: number;
+  cashRegisterType: number;
+}
+
+export interface KasaHareketImportHttpRequest {
+  startDate: string;
+  endDate: string;
+  branches: number[];
+  cashRegisters: number[];
+  fileRootPath?: string | null;
+  skipExisting: boolean;
+  dryRun: boolean;
+}
+
+export interface KasaHareketScheduledImportHttpRequest {
+  date?: string | null;
+  addDay?: number | null;
+  fileRootPath?: string | null;
+  skipExisting: boolean;
+  dryRun: boolean;
+}
+
+export interface KasaHareketDeleteStagingHttpRequest {
+  date: string;
+  branchNo?: number | null;
+  cashRegisterNo?: number | null;
+}
+
+export interface KasaHareketMikroTransferHttpRequest {
+  date: string;
+  branchNo?: number | null;
+}
+
+export interface KasaHareketMikroTransferRangeHttpRequest {
+  startDate: string;
+  endDate: string;
+}
+
+export interface KasaHareketReportHttpRequest {
+  date: string;
+  branchNo?: number | null;
+  cashRegisterNo?: number | null;
+}
+
+export interface KasaHareketImportIssueDto {
+  branchNo: number | null;
+  cashRegisterNo: number | null;
+  file: string | null;
+  receiptNo: string | null;
+  lineNo: number | null;
+  message: string;
+}
+
+export interface KasaHareketImportResultDto {
+  runId: string;
+  importType: string;
+  status: string;
+  processedFiles: number;
+  processedInvoices: number;
+  skippedExistingInvoices: number;
+  insertedLines: number;
+  insertedPayments: number;
+  insertedPromotions: number;
+  warnings: KasaHareketImportIssueDto[];
+  errors: KasaHareketImportIssueDto[];
+}
+
+export interface KasaHareketProcedureResultDto {
+  procedure: string;
+  message: string;
+  date: string;
+  branchNo: number | null;
+  cashRegisterNo: number | null;
+}
+
+export interface KasaHareketReportRowDto {
+  date: string;
+  branchNo: number;
+  branchName: string;
+  cashRegisterNo: number;
+  netAmount: number;
+  expense: number;
+  checkAmount: number;
+  difference: number;
+}
+
+// ============================================================================
 // Banknot Hareketi Modelleri
 // ============================================================================
 

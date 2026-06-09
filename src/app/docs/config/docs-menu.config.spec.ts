@@ -428,4 +428,29 @@ describe('docs-menu.config', () => {
       ['kunye-etiket-yazdirma']
     ]);
   });
+
+  it('keeps cash movement transfer task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Kasa Islemleri',
+        sebike: 'kasa-islemleri',
+        gorevler: [
+          {
+            id: 13,
+            isim: 'Kasa Hareket Aktarimi',
+            sebike: 'kasa-hareket-aktarimi',
+            yetkiler: []
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('kasa-hareket-aktarimi', sorumluluklar)).toBeTrue();
+    expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
+      ['kasa-hareket-aktarimi']
+    ]);
+  });
 });

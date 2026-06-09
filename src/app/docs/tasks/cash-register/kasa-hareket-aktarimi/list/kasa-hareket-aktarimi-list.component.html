@@ -1,0 +1,437 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="surface-card transfer-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Kasa Islemleri</span>
+        <h2>{{ current.title }}</h2>
+      </div>
+
+      <div class="task-tabs" aria-label="Kasa hareket aktarimi sekmeleri">
+        <button
+          type="button"
+          class="task-tab"
+          [class.is-active]="activeTab() === 'import'"
+          (click)="selectTab('import')"
+        >
+          Import
+        </button>
+        <button
+          type="button"
+          class="task-tab"
+          [class.is-active]="activeTab() === 'rapor'"
+          (click)="selectTab('rapor')"
+        >
+          Rapor
+          <span>{{ reportRows().length }}</span>
+        </button>
+        <button
+          type="button"
+          class="task-tab"
+          [class.is-active]="activeTab() === 'mikro'"
+          (click)="selectTab('mikro')"
+        >
+          Mikro Aktarim
+        </button>
+      </div>
+    </header>
+
+    <form class="scope-bar" [formGroup]="scopeForm" novalidate>
+      <label class="field">
+        <span>Sube</span>
+        <select formControlName="branchNo">
+          <option [ngValue]="null">Tum Subeler</option>
+          <option *ngFor="let branch of branches(); trackBy: trackByBranch" [ngValue]="branch.branchNo">
+            {{ getBranchLabel(branch) }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Kasa</span>
+        <select formControlName="cashRegisterNo">
+          <option [ngValue]="null">Tum Kasalar</option>
+          <option
+            *ngFor="let cashRegister of cashRegisters(); trackBy: trackByCashRegister"
+            [ngValue]="cashRegister.cashRegisterNo"
+          >
+            {{ getCashRegisterLabel(cashRegister) }}
+          </option>
+        </select>
+      </label>
+
+      <button type="button" class="task-action task-action-secondary" (click)="loadBranches()" [disabled]="branchesLoading()">
+        {{ branchesLoading() ? 'Yukleniyor...' : 'Subeleri Yenile' }}
+      </button>
+
+      <div class="scope-summary">
+        <span>Kapsam</span>
+        <strong>{{ scopeSummary() }}</strong>
+        <small *ngIf="cashRegistersLoading()">Kasalar yukleniyor</small>
+      </div>
+    </form>
+
+    <section class="metric-strip">
+      <article class="metric-card">
+        <span>Sube</span>
+        <strong>{{ selectedBranchLabel() }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Kasa</span>
+        <strong>{{ selectedCashRegisterLabel() }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Rapor Satiri</span>
+        <strong>{{ reportRows().length }}</strong>
+      </article>
+      <article class="metric-card" [class.metric-negative]="reportTotalDifference() < 0">
+        <span>Rapor Farki</span>
+        <strong>{{ formatCurrency(reportTotalDifference()) }}</strong>
+      </article>
+    </section>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <ng-container [ngSwitch]="activeTab()">
+      <section class="tab-panel" *ngSwitchCase="'import'">
+        <form class="panel-grid import-panel" [formGroup]="importForm" (ngSubmit)="runImport()" novalidate>
+          <div class="panel-main">
+            <div class="mode-tabs" aria-label="Import tipi">
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="importForm.controls.importType.value === 'normal'"
+                (click)="selectImportMode('normal')"
+              >
+                HR Hareket
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="importForm.controls.importType.value === 'cancel'"
+                (click)="selectImportMode('cancel')"
+              >
+                IP Iptal
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="importForm.controls.importType.value === 'scheduled'"
+                (click)="selectImportMode('scheduled')"
+              >
+                Zamanli
+              </button>
+            </div>
+
+            <div class="form-grid" *ngIf="importForm.controls.importType.value !== 'scheduled'; else scheduledFields">
+              <label class="field">
+                <span>Baslangic</span>
+                <input type="date" formControlName="startDate" />
+              </label>
+
+              <label class="field">
+                <span>Bitis</span>
+                <input type="date" formControlName="endDate" />
+              </label>
+            </div>
+
+            <ng-template #scheduledFields>
+              <div class="form-grid">
+                <label class="field">
+                  <span>Zamanli Tarih</span>
+                  <input type="date" formControlName="scheduledDate" />
+                </label>
+
+                <label class="field">
+                  <span>Add Day</span>
+                  <input type="number" step="1" formControlName="addDay" placeholder="-1" />
+                </label>
+              </div>
+            </ng-template>
+
+            <label class="field field-wide">
+              <span>Dosya Root</span>
+              <input type="text" formControlName="fileRootPath" placeholder="Backend konfigurasyonu" />
+            </label>
+
+            <div class="toggle-row">
+              <label class="check-field">
+                <input type="checkbox" formControlName="skipExisting" />
+                <span>Skip Existing</span>
+              </label>
+
+              <label class="check-field">
+                <input type="checkbox" formControlName="dryRun" />
+                <span>Dry Run</span>
+              </label>
+            </div>
+
+            <div class="form-actions">
+              <button type="submit" class="task-action task-action-primary" [disabled]="importLoading()">
+                {{ importLoading() ? 'Calisiyor...' : getImportModeLabel(importForm.controls.importType.value) + ' Calistir' }}
+              </button>
+            </div>
+          </div>
+
+          <aside class="request-card">
+            <span class="section-kicker">Request</span>
+            <pre><code>{{ getImportRequestPreview() }}</code></pre>
+          </aside>
+        </form>
+
+        <section class="result-grid" *ngIf="lastImportResult() as importResult">
+          <article class="result-card result-main">
+            <span class="section-kicker">Sonuc</span>
+            <h3>{{ importResult.status || 'Durum' }}</h3>
+            <p>{{ importResult.runId || '-' }} / {{ importResult.importType || '-' }}</p>
+          </article>
+          <article class="result-card">
+            <span>Dosya</span>
+            <strong>{{ importResult.processedFiles }}</strong>
+          </article>
+          <article class="result-card">
+            <span>Fis</span>
+            <strong>{{ importResult.processedInvoices }}</strong>
+          </article>
+          <article class="result-card">
+            <span>Duplicate</span>
+            <strong>{{ importResult.skippedExistingInvoices }}</strong>
+          </article>
+          <article class="result-card">
+            <span>Satir</span>
+            <strong>{{ importResult.insertedLines }}</strong>
+          </article>
+          <article class="result-card">
+            <span>Odeme</span>
+            <strong>{{ importResult.insertedPayments }}</strong>
+          </article>
+          <article class="result-card">
+            <span>Promosyon</span>
+            <strong>{{ importResult.insertedPromotions }}</strong>
+          </article>
+        </section>
+
+        <div class="table-wrap issue-table-wrap" *ngIf="importIssueRows().length">
+          <table class="data-table issue-table">
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Sube</th>
+                <th>Kasa</th>
+                <th>Dosya</th>
+                <th>Fis</th>
+                <th>Satir</th>
+                <th>Mesaj</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let issue of importIssueRows(); trackBy: trackByIssue"
+                [class.issue-error]="issue.severity === 'Hata'"
+              >
+                <td><span class="status-pill">{{ issue.severity }}</span></td>
+                <td>{{ issue.branchNo ?? '-' }}</td>
+                <td>{{ issue.cashRegisterNo ?? '-' }}</td>
+                <td>{{ issue.file || '-' }}</td>
+                <td>{{ issue.receiptNo || '-' }}</td>
+                <td>{{ issue.lineNo ?? '-' }}</td>
+                <td>{{ issue.message }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="tab-panel" *ngSwitchCase="'rapor'">
+        <form class="report-toolbar" [formGroup]="reportForm" (ngSubmit)="loadReport()" novalidate>
+          <label class="field">
+            <span>Rapor Tarihi</span>
+            <input type="date" formControlName="date" />
+          </label>
+
+          <button type="submit" class="task-action task-action-primary" [disabled]="reportLoading()">
+            {{ reportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
+          </button>
+
+          <div class="request-inline">
+            <span>Request</span>
+            <code>{{ getReportRequestPreview() }}</code>
+          </div>
+        </form>
+
+        <section class="summary-strip">
+          <article class="summary-item">
+            <span>Net</span>
+            <strong>{{ formatCurrency(reportTotalNet()) }}</strong>
+          </article>
+          <article class="summary-item">
+            <span>Masraf</span>
+            <strong>{{ formatCurrency(reportTotalExpense()) }}</strong>
+          </article>
+          <article class="summary-item">
+            <span>Cek</span>
+            <strong>{{ formatCurrency(reportTotalCheck()) }}</strong>
+          </article>
+          <article class="summary-item" [class.metric-negative]="reportTotalDifference() < 0">
+            <span>Fark</span>
+            <strong>{{ formatCurrency(reportTotalDifference()) }}</strong>
+          </article>
+        </section>
+
+        <article class="state-card" *ngIf="reportLoading()">
+          <h3>Rapor yukleniyor</h3>
+          <p>{{ scopeSummary() }} icin {{ reportForm.controls.date.value }} tarihli rapor aliniyor.</p>
+        </article>
+
+        <div class="table-wrap" *ngIf="!reportLoading() && reportRows().length">
+          <table class="data-table report-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Sube</th>
+                <th>Kasa</th>
+                <th class="align-right">Net</th>
+                <th class="align-right">Masraf</th>
+                <th class="align-right">Cek</th>
+                <th class="align-right">Fark</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of reportRows(); trackBy: trackByReportRow">
+                <td>{{ formatDate(row.date) }}</td>
+                <td>
+                  <strong>{{ row.branchName || 'Sube' }}</strong>
+                  <div class="table-meta">No: {{ row.branchNo }}</div>
+                </td>
+                <td>{{ row.cashRegisterNo }}</td>
+                <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
+                <td class="align-right">{{ formatCurrency(row.expense) }}</td>
+                <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
+                <td class="align-right cell-strong" [class.amount-negative]="row.difference < 0">
+                  {{ formatCurrency(row.difference) }}
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card empty-state" *ngIf="!reportLoading() && !reportRows().length">
+          <h3>Rapor satiri yok</h3>
+          <p>Secilen filtrelerle rapor kaydi bulunmuyor.</p>
+        </article>
+      </section>
+
+      <section class="tab-panel" *ngSwitchCase="'mikro'">
+        <form class="report-toolbar" [formGroup]="mikroForm" novalidate>
+          <label class="field">
+            <span>Islem Tarihi</span>
+            <input type="date" formControlName="date" />
+          </label>
+
+          <div class="request-inline">
+            <span>Request</span>
+            <code>{{ getMikroRequestPreview() }}</code>
+          </div>
+        </form>
+
+        <section class="action-grid">
+          <article class="action-card">
+            <span class="section-kicker">Staging</span>
+            <h3>Staging Sil</h3>
+            <p>{{ scopeSummary() }}</p>
+            <button
+              type="button"
+              class="task-action task-action-danger"
+              (click)="runProcedure('staging-delete')"
+              [disabled]="!!procedureLoadingAction()"
+            >
+              {{ isProcedureLoading('staging-delete') ? 'Siliniyor...' : 'Staging Sil' }}
+            </button>
+          </article>
+
+          <article class="action-card">
+            <span class="section-kicker">Mikro</span>
+            <h3>Mikroya Aktar</h3>
+            <p>{{ selectedBranchLabel() }}</p>
+            <button
+              type="button"
+              class="task-action task-action-primary"
+              (click)="runProcedure('mikro-transfer')"
+              [disabled]="!!procedureLoadingAction()"
+            >
+              {{ isProcedureLoading('mikro-transfer') ? 'Aktariliyor...' : 'Mikroya Aktar' }}
+            </button>
+          </article>
+
+          <article class="action-card">
+            <span class="section-kicker">Mikro</span>
+            <h3>Mikrodan Sil</h3>
+            <p>{{ selectedBranchLabel() }}</p>
+            <button
+              type="button"
+              class="task-action task-action-danger"
+              (click)="runProcedure('mikro-delete')"
+              [disabled]="!!procedureLoadingAction()"
+            >
+              {{ isProcedureLoading('mikro-delete') ? 'Siliniyor...' : 'Mikrodan Sil' }}
+            </button>
+          </article>
+        </section>
+
+        <form class="range-card" [formGroup]="mikroRangeForm" (ngSubmit)="runProcedure('mikro-range-transfer')" novalidate>
+          <div class="title-block">
+            <span class="section-kicker">Tarih Araligi</span>
+            <h3>Aralik Aktar</h3>
+          </div>
+
+          <label class="field">
+            <span>Baslangic</span>
+            <input type="date" formControlName="startDate" />
+          </label>
+
+          <label class="field">
+            <span>Bitis</span>
+            <input type="date" formControlName="endDate" />
+          </label>
+
+          <button type="submit" class="task-action task-action-primary" [disabled]="!!procedureLoadingAction()">
+            {{ isProcedureLoading('mikro-range-transfer') ? 'Aktariliyor...' : 'Aralik Aktar' }}
+          </button>
+
+          <div class="request-inline">
+            <span>Request</span>
+            <code>{{ getMikroRangeRequestPreview() }}</code>
+          </div>
+        </form>
+
+        <article class="procedure-result" *ngIf="lastProcedureResult() as procedureResult">
+          <span class="section-kicker">Procedure Sonucu</span>
+          <h3>{{ procedureResult.procedure || '-' }}</h3>
+          <p>{{ procedureResult.message || '-' }}</p>
+          <dl>
+            <div>
+              <dt>Tarih</dt>
+              <dd>{{ formatDate(procedureResult.date) }}</dd>
+            </div>
+            <div>
+              <dt>Sube</dt>
+              <dd>{{ procedureResult.branchNo ?? '-' }}</dd>
+            </div>
+            <div>
+              <dt>Kasa</dt>
+              <dd>{{ procedureResult.cashRegisterNo ?? '-' }}</dd>
+            </div>
+          </dl>
+        </article>
+      </section>
+    </ng-container>
+  </article>
+</section>

@@ -474,5 +474,104 @@ export const CASH_REGISTER_TASK_SOURCE = {
       import('../tasks/cash-register/kasa-cirolari/list/kasa-cirolari-list.component').then(
         (m) => m.KasaCirolariListComponent
       )
+  ),
+  'kasa-hareket-aktarimi': singleRouteTask(
+    {
+      id: 'kasa-hareket-aktarimi',
+      title: 'Kasa Hareket Aktarimi',
+      subtitle:
+        'Eski kasa HR/IP dosyalarini staging tablolara alir, staging hareketlerini Mikro stok hareketlerine aktarir veya aktarimi geri siler.',
+      baseRouteOrFile: '/api/kasa-islemleri/kasa-hareket-aktarimi',
+      highlights: [
+        'Sube ve kasa lookup endpointleriyle import filtreleri hazirlanir',
+        'HR hareket importu ve IP iptal belge importu ayri aksiyonlardir',
+        'Zamanli import HR ve IP dosyalarini birlikte calistirir',
+        'dryRun import dosyalarini parse eder, staging tablolara yazmaz',
+        'Mikro aktar/sil endpointleri stored procedure sonucu doner'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'KasaHareketAktarimiController',
+          description:
+            'Kasa hareket dosyalarini import eder, staging temizler, Mikro aktarimini yonetir ve rapor satirlarini sunar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/subeler',
+              description: 'Kasa hareket aktarimi icin sube listesini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/subeler/{branchNo}/kasalar',
+              description: 'Secilen subeye ait kasa listesini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/hareketler/aktar',
+              description: 'HR formatindaki kasa hareket dosyalarini staging tablolara aktarir',
+              payload: 'KasaHareketImportHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/iptal-belgeleri/aktar',
+              description: 'IP formatindaki iptal belge dosyalarini staging tablolara aktarir',
+              payload: 'KasaHareketImportHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/zamanli-aktarim/calistir',
+              description: 'Zamanli HR/IP import akislarini birlikte calistirir',
+              payload: 'KasaHareketScheduledImportHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/staging',
+              description: 'Secilen tarih/sube/kasa filtresi icin staging hareketlerini siler',
+              payload: 'KasaHareketDeleteStagingHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aktar',
+              description: 'Staging hareketlerini Mikro stok hareketlerine aktarir',
+              payload: 'KasaHareketMikroTransferHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/mikro',
+              description: 'Secilen tarih/sube filtresi icin Mikro aktarimini geri siler',
+              payload: 'KasaHareketMikroTransferHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aralik-aktar',
+              description: 'Tarih araligi icin Mikro aktarim procedure akisini calistirir',
+              payload: 'KasaHareketMikroTransferRangeHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/rapor?date=2026-06-09&branchNo=110&cashRegisterNo=1',
+              description: 'Aktarim rapor satirlarini tarih, sube ve kasa filtresiyle getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "startDate": "2026-06-08",
+  "endDate": "2026-06-09",
+  "branches": [110, 115],
+  "cashRegisters": [1, 2],
+  "fileRootPath": null,
+  "skipExisting": true,
+  "dryRun": false
+}`
+    },
+    () =>
+      import('../tasks/cash-register/kasa-hareket-aktarimi/list/kasa-hareket-aktarimi-list.component').then(
+        (m) => m.KasaHareketAktarimiListComponent
+      ),
+    {
+      accessKeyAliases: ['KasaHareketAktarimi']
+    }
   )
 } as const satisfies Record<string, DocsTaskSource>;
