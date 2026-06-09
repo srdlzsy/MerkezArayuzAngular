@@ -1,15 +1,23 @@
-﻿<section class="axata-compact" *ngIf="page as current">
-  <!-- Compact Header with Quick Stats -->
+<section class="axata-compact" *ngIf="page as current">
   <header class="compact-header">
     <div class="header-top">
       <div>
         <h1>{{ current.title }}</h1>
-        <p class="header-subtitle">Orkestrasyon ve Entegrasyon Yönetimi</p>
+        <p class="header-subtitle">Worker, manual kurtarma, live audit ve AXATA aktarimlari</p>
       </div>
+
       <div class="quick-stats">
         <div class="stat-item" *ngIf="overview() as model">
-          <span>Aktif</span>
+          <span>Aktif Task</span>
           <strong>{{ enabledTaskCount() }}/{{ model.tasks.length }}</strong>
+        </div>
+        <div class="stat-item">
+          <span>Manual</span>
+          <strong>{{ manualTaskCount() }}</strong>
+        </div>
+        <div class="stat-item">
+          <span>Dispatch</span>
+          <strong>{{ liveDispatchTaskCount() }}</strong>
         </div>
         <div class="stat-item">
           <span>Mode</span>
@@ -18,47 +26,43 @@
       </div>
     </div>
 
-    <!-- Refresh Buttons -->
     <div class="header-actions">
       <button type="button" class="action-btn" (click)="loadOverview()" [disabled]="overviewLoading()">
-        <span>↻</span> {{ overviewLoading() ? 'Yükleniyor...' : 'Yenile' }}
+        {{ overviewLoading() ? 'Yukleniyor...' : 'Overview' }}
       </button>
       <button type="button" class="action-btn" (click)="loadHealth()" [disabled]="healthLoading()">
-        <span>⚕</span> {{ healthLoading() ? 'Kontrol ediliyor...' : 'Health' }}
+        {{ healthLoading() ? 'Kontrol...' : 'Health' }}
+      </button>
+      <button type="button" class="action-btn" (click)="loadFetchProfiles()" [disabled]="fetchProfilesLoading()">
+        {{ fetchProfilesLoading() ? 'Yukleniyor...' : 'Fetch Profilleri' }}
       </button>
     </div>
   </header>
 
-  <!-- Feedback Message -->
   <article class="feedback-bar" *ngIf="feedback() as msg" [class]="'feedback-' + msg.tone">
     <strong>{{ msg.title }}</strong>
     <p>{{ msg.message }}</p>
   </article>
 
-  <!-- Tab Navigation -->
   <nav class="tab-nav">
     <button class="tab-btn" [class.active]="selectedTab() === 'tasks'" (click)="selectTab('tasks')">
-      📋 Görevler
+      Genel Durum
     </button>
     <button class="tab-btn" [class.active]="selectedTab() === 'monitor'" (click)="selectTab('monitor')">
-      👁 zleme
+      Kontrol / Fark
     </button>
     <button class="tab-btn" [class.active]="selectedTab() === 'manual'" (click)="selectTab('manual')" *ngIf="isDocumentTask()">
-      🔧 Kurtarma
+      Mikro -> AXATA
     </button>
     <button class="tab-btn" [class.active]="selectedTab() === 'incoming'" (click)="selectTab('incoming')">
-      📥 Gelen
+      AXATA -> Mikro
     </button>
   </nav>
 
-  <!-- TASKS TAB -->
   <section class="tab-content" *ngIf="selectedTab() === 'tasks'">
-    <!-- Task Selection -->
-    <div class="section-block">
-      <h2 class="section-title">
-        <span class="icon">📋</span> Görev Seç
-      </h2>
-      <div class="task-selector">
+    <div class="section-grid">
+      <div class="section-block">
+        <h2 class="section-title">Task Secimi</h2>
         <div class="tasks-list" *ngIf="tasks().length > 0; else noTasks">
           <button
             type="button"
@@ -70,181 +74,845 @@
           >
             <div class="task-header">
               <strong>{{ task.name }}</strong>
-              <span class="badge" [class.success]="task.enabled">{{ task.enabled ? '✓' : '✕' }}</span>
+              <span class="badge" [class.success]="task.enabled">{{ task.enabled ? 'Aktif' : 'Kapali' }}</span>
             </div>
             <p class="task-desc">{{ task.description }}</p>
             <div class="task-meta">
+              <small>{{ task.code }}</small>
               <small>{{ formatFlow(task.flow) }}</small>
-              <small>{{ task.intervalMinutes }}dk</small>
+              <small>{{ task.intervalMinutes }} dk</small>
             </div>
           </button>
         </div>
         <ng-template #noTasks>
-          <div class="empty-msg">Görev yok</div>
+          <div class="empty-msg">Task listesi henuz gelmedi.</div>
+        </ng-template>
+      </div>
+
+      <div class="section-block" *ngIf="selectedTask() as task">
+        <h2 class="section-title">Task Kontrol</h2>
+        <p class="section-desc">{{ selectedTaskDescription() }}</p>
+
+        <form class="compact-form" [formGroup]="form">
+          <label class="form-row">
+            <span>Depo No</span>
+            <input type="number" formControlName="warehouseNo" placeholder="JWT deposu veya manuel" />
+          </label>
+
+          <label class="form-row">
+            <span>Preview Take</span>
+            <input type="number" formControlName="take" min="1" max="100" />
+          </label>
+
+          <label class="form-row">
+            <span>Execution Mode</span>
+            <select formControlName="executionMode">
+              <option *ngFor="let mode of executionModes" [value]="mode">
+                {{ formatExecutionMode(mode) }}
+              </option>
+            </select>
+          </label>
+
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="previewSelectedTask()" [disabled]="previewLoading()">
+              {{ previewLoading() ? 'Preview...' : 'Preview' }}
+            </button>
+            <button type="button" class="btn secondary" (click)="executeSelectedTask()" [disabled]="executeLoading()">
+              {{ executeLoading() ? 'Calisiyor...' : 'Route Execute' }}
+            </button>
+            <button type="button" class="btn secondary" (click)="executeSelectedTaskViaJobsEndpoint()" [disabled]="genericJobLoading()">
+              {{ genericJobLoading() ? 'Kuyruk...' : 'Jobs Endpoint' }}
+            </button>
+          </div>
+        </form>
+
+        <div class="pill-row">
+          <span class="status-pill" *ngFor="let item of selectedTaskCapabilities()">{{ item }}</span>
+        </div>
+
+        <ul class="note-list">
+          <li *ngFor="let note of selectedTaskLimits()">{{ note }}</li>
+        </ul>
+      </div>
+    </div>
+
+    <div class="section-grid">
+      <div class="section-block" *ngIf="overview() as model">
+        <h2 class="section-title">Modul Durumu</h2>
+        <div class="status-grid">
+          <div class="status-card" *ngFor="let item of statusSummary()">
+            <span>{{ item.label }}</span>
+            <strong [class]="item.tone">{{ item.value }}</strong>
+          </div>
+        </div>
+        <div class="info-row">
+          <span>Mikro Profil</span>
+          <strong>{{ model.sourceDatabaseProfile || '-' }}</strong>
+        </div>
+        <div class="info-row">
+          <span>AXATA Main</span>
+          <strong>{{ model.mainEndpointUrl || '-' }}</strong>
+        </div>
+        <div class="info-row">
+          <span>AXATA Ext</span>
+          <strong>{{ model.extendedEndpointUrl || '-' }}</strong>
+        </div>
+      </div>
+
+      <div class="section-block" *ngIf="fetchProfiles() as profiles">
+        <h2 class="section-title">Fetch Profilleri</h2>
+        <div class="compact-table" *ngIf="profiles.profiles.length; else noFetchProfiles">
+          <div class="table-row table-head">
+            <span>Profil</span>
+            <span>Movement</span>
+            <span>Durum</span>
+          </div>
+          <div class="table-row" *ngFor="let profile of profiles.profiles; trackBy: trackByFetchProfile">
+            <span>
+              <strong>{{ profile.code }}</strong>
+              <small>{{ profile.name }}</small>
+            </span>
+            <span>{{ profile.movementType || '-' }}</span>
+            <span class="status-pill" [class.status-pill-success]="profile.isImplemented" [class.status-pill-neutral]="!profile.isImplemented">
+              {{ profile.isImplemented ? 'Aktif' : 'Planli' }}
+            </span>
+          </div>
+        </div>
+        <ng-template #noFetchProfiles>
+          <div class="empty-msg">Fetch profili yok.</div>
         </ng-template>
       </div>
     </div>
 
-    <!-- Task Controls -->
-    <div class="section-block" *ngIf="selectedTask() as task">
-      <h2 class="section-title">
-        <span class="icon">⚙</span> Kontrol Paneli
-      </h2>
-      <form class="compact-form" [formGroup]="form">
-        <label class="form-row">
-          <span>Depo No</span>
-          <input type="number" formControlName="warehouseNo" placeholder="110" />
-        </label>
-
-        <label class="form-row">
-          <span>Preview Al</span>
-          <input type="number" formControlName="take" min="1" max="100" />
-        </label>
-
-        <label class="form-row">
-          <span>Mode</span>
-          <select formControlName="executionMode">
-            <option *ngFor="let mode of executionModes" [value]="mode">
-              {{ formatExecutionMode(mode) }}
-            </option>
-          </select>
-        </label>
-
-        <div class="button-group">
-          <button type="button" class="btn primary" (click)="previewSelectedTask()" [disabled]="previewLoading()">
-            {{ previewLoading() ? '⏳' : '👁' }} Preview
-          </button>
-          <button type="button" class="btn secondary" (click)="executeSelectedTask()" [disabled]="executeLoading()">
-            {{ executeLoading() ? '⏳' : '▶' }} Çalıştır
-          </button>
-        </div>
-      </form>
-    </div>
-
-    <!-- Active Job Status -->
     <div class="section-block" *ngIf="activeJob() as job">
-      <h2 class="section-title">
-        <span class="icon">📊</span> Job Durumu
-      </h2>
-      <div class="job-status">
-        <div class="status-row">
-          <span>Durum:</span>
-          <strong [class]="'status-' + job.status">{{ formatStatus(job.status) }}</strong>
+      <h2 class="section-title">Aktif Job</h2>
+      <div class="status-grid">
+        <div class="status-card">
+          <span>Durum</span>
+          <strong [class]="getStatusTone(job.status)">{{ formatStatus(job.status) }}</strong>
         </div>
-        <div class="status-row">
-          <span>Etkilenen:</span>
-          <strong>{{ job.affectedRecordCount }} kayıt</strong>
+        <div class="status-card">
+          <span>Etkilenen</span>
+          <strong>{{ job.affectedRecordCount }}</strong>
         </div>
-        <div class="status-row">
-          <span>Tamamlama:</span>
+        <div class="status-card">
+          <span>Tamamlanma</span>
           <strong>{{ formatTimestamp(job.completedAtUtc) }}</strong>
         </div>
-        <p class="job-msg" *ngIf="job.message">{{ job.message }}</p>
-        <p class="job-error" *ngIf="job.errorMessage">❌ {{ job.errorMessage }}</p>
+      </div>
+      <p class="job-msg" *ngIf="job.message">{{ job.message }}</p>
+      <p class="job-error" *ngIf="job.errorMessage">{{ job.errorMessage }}</p>
+      <div class="pill-row" *ngIf="job.artifacts.length">
+        <span class="status-pill" *ngFor="let artifact of job.artifacts">{{ formatArtifactLabel(artifact) }}</span>
       </div>
     </div>
   </section>
 
-  <!-- MONITORING TAB -->
   <section class="tab-content" *ngIf="selectedTab() === 'monitor'">
-    <!-- Preview Results -->
     <div class="section-block">
-      <h2 class="section-title">
-        <span class="icon">👁</span> Preview Sonucu
-      </h2>
-      <ng-container *ngIf="preview() as previewModel; else noPreview">
-        <div class="preview-info">
-          <div class="info-row">
-            <span>Görev:</span>
-            <strong>{{ previewModel.taskName }}</strong>
-          </div>
-          <div class="info-row">
-            <span>Kayıt:</span>
-            <strong>{{ previewModel.returnedRecordCount }} / {{ previewModel.totalRecordCount }}</strong>
-          </div>
-          <div class="info-row">
-            <span>Oluş:</span>
-            <strong>{{ formatTimestamp(previewModel.generatedAtUtc) }}</strong>
-          </div>
-        </div>
-        <details class="json-details">
-          <summary>JSON Detayları</summary>
-          <pre>{{ previewJson() }}</pre>
-        </details>
-      </ng-container>
-      <ng-template #noPreview>
-        <div class="empty-msg">Henüz preview alınmadı</div>
-      </ng-template>
+      <h2 class="section-title">Kontrol / Fark Analizi</h2>
+      <p class="section-desc">Bu cagri veri yazmaz; Mikro siparis bayraklari ve AXATA pending sevk kuyrugunu raporlar.</p>
+
+      <form class="compact-form form-grid" [formGroup]="auditForm">
+        <label class="form-row">
+          <span>Baslangic</span>
+          <input type="date" formControlName="startDate" />
+        </label>
+        <label class="form-row">
+          <span>Bitis</span>
+          <input type="date" formControlName="endDate" />
+        </label>
+        <label class="form-row">
+          <span>Depo No</span>
+          <input type="number" formControlName="warehouseNo" placeholder="Opsiyonel" />
+        </label>
+        <label class="form-row">
+          <span>Take</span>
+          <input type="number" formControlName="take" min="1" max="200" />
+        </label>
+      </form>
+
+      <div class="button-group">
+        <button type="button" class="btn primary" (click)="loadAuditOverview()" [disabled]="auditLoading()">
+          {{ auditLoading() ? 'Analiz...' : 'Fark Analizi Al' }}
+        </button>
+      </div>
     </div>
 
-    <!-- Health & Profiles -->
-    <div class="section-block">
-      <h2 class="section-title">
-        <span class="icon">⚕</span> Sistem Durumu
-      </h2>
-      <ng-container *ngIf="health() as healthModel; else noHealth">
-        <div class="health-grid">
+    <ng-container *ngIf="audit() as auditModel">
+      <div class="section-block">
+        <h2 class="section-title">Audit Ozeti</h2>
+        <div class="status-grid">
+          <div class="status-card primary-status">
+            <span>Sync Durumu</span>
+            <strong [class]="auditModel.isInSync ? 'status-pill-success' : 'status-pill-warn'">
+              {{ auditModel.isInSync ? 'Uyumlu' : 'Mudahale Gerekebilir' }}
+            </strong>
+          </div>
+          <div class="status-card" *ngFor="let item of auditSummaryCards()">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
+          </div>
+        </div>
+
+        <div class="info-row">
+          <span>Uretim Zamani</span>
+          <strong>{{ formatTimestamp(auditModel.generatedAtUtc) }}</strong>
+        </div>
+        <div class="info-row">
+          <span>Aralik</span>
+          <strong>{{ formatTimestamp(auditModel.startDate) }} - {{ formatTimestamp(auditModel.endDate) }}</strong>
+        </div>
+
+        <ul class="note-list" *ngIf="auditModel.notes.length">
+          <li *ngFor="let note of auditModel.notes">{{ note }}</li>
+        </ul>
+      </div>
+
+      <div class="section-grid">
+        <div class="section-block">
+          <h2 class="section-title">AXATA Pending Hareketler</h2>
+          <div class="compact-table" *ngIf="auditModel.outboundDeliverySummaries.length; else noMovementSummary">
+            <div class="table-row table-head">
+              <span>Tip</span>
+              <span>Dokuman</span>
+              <span>Miktar</span>
+              <span>Kontrol</span>
+            </div>
+            <div class="table-row" *ngFor="let item of auditModel.outboundDeliverySummaries">
+              <span>{{ item.movementType }} / {{ item.pendingStatus }}</span>
+              <span>{{ item.pendingDocumentCount }} belge, {{ item.pendingLineCount }} satir</span>
+              <span>{{ item.pendingQuantity | number:'1.0-2' }}</span>
+              <span>{{ item.checkLevel }}</span>
+            </div>
+          </div>
+          <ng-template #noMovementSummary>
+            <div class="empty-msg">Pending hareket ozeti yok.</div>
+          </ng-template>
+        </div>
+
+        <div class="section-block">
+          <h2 class="section-title">Mudahale Adaylari</h2>
+          <div class="compact-table" *ngIf="auditModel.interventionCandidates.length; else noIntervention">
+            <div class="table-row table-head">
+              <span>AXATA</span>
+              <span>Mikro Belge</span>
+              <span>Durum</span>
+            </div>
+            <div class="table-row" *ngFor="let item of auditModel.interventionCandidates">
+              <span>{{ item.movementType }} #{{ item.axataSequenceNo }}</span>
+              <span>{{ item.documentSerie }}.{{ item.documentOrderNo || '-' }}</span>
+              <span>{{ item.mikroCheckState }}</span>
+            </div>
+          </div>
+          <ng-template #noIntervention>
+            <div class="empty-msg">Guvenli mudahale adayi yok.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <div class="section-grid">
+        <div class="section-block">
+          <h2 class="section-title">Mikro -> AXATA Eksikler</h2>
+          <div class="compact-table" *ngIf="auditModel.unsyncedWarehouseOrders.length; else noUnsynced">
+            <div class="table-row table-head">
+              <span>Belge</span>
+              <span>Depo</span>
+              <span>Satir</span>
+              <span>Durum</span>
+            </div>
+            <div class="table-row" *ngFor="let item of auditModel.unsyncedWarehouseOrders">
+              <span>{{ item.documentSerie }}.{{ item.documentOrderNo }}</span>
+              <span>{{ item.outWarehouseNo }} -> {{ item.inWarehouseNo }}</span>
+              <span>{{ item.sentLineCount }}/{{ item.lineCount }}</span>
+              <span>{{ item.state }}</span>
+            </div>
+          </div>
+          <ng-template #noUnsynced>
+            <div class="empty-msg">Eksik giden Mikro siparisi yok.</div>
+          </ng-template>
+        </div>
+
+        <div class="section-block">
+          <h2 class="section-title">AXATA Pending Sevkler</h2>
+          <div class="compact-table" *ngIf="auditModel.pendingOutboundDeliveries.length; else noPendingDeliveries">
+            <div class="table-row table-head">
+              <span>AXATA</span>
+              <span>Belge</span>
+              <span>Miktar</span>
+              <span>State</span>
+            </div>
+            <div class="table-row" *ngFor="let item of auditModel.pendingOutboundDeliveries">
+              <span>{{ item.movementType }} #{{ item.axataSequenceNo }}</span>
+              <span>{{ item.documentSerie }}.{{ item.documentOrderNo || '-' }}</span>
+              <span>{{ item.quantity | number:'1.0-2' }}</span>
+              <span>{{ item.mikroCheckState }}</span>
+            </div>
+          </div>
+          <ng-template #noPendingDeliveries>
+            <div class="empty-msg">AXATA pending sevk yok.</div>
+          </ng-template>
+        </div>
+      </div>
+
+      <details class="json-details">
+        <summary>Audit JSON</summary>
+        <pre>{{ auditJson() }}</pre>
+      </details>
+    </ng-container>
+
+    <div class="section-grid">
+      <div class="section-block">
+        <h2 class="section-title">Task Preview Sonucu</h2>
+        <ng-container *ngIf="preview() as previewModel; else noPreview">
+          <div class="status-grid">
+            <div class="status-card">
+              <span>Gorev</span>
+              <strong>{{ previewModel.taskName }}</strong>
+            </div>
+            <div class="status-card">
+              <span>Kayit</span>
+              <strong>{{ previewModel.returnedRecordCount }} / {{ previewModel.totalRecordCount }}</strong>
+            </div>
+            <div class="status-card">
+              <span>Uretim</span>
+              <strong>{{ formatTimestamp(previewModel.generatedAtUtc) }}</strong>
+            </div>
+          </div>
+          <details class="json-details">
+            <summary>Preview JSON</summary>
+            <pre>{{ previewJson() }}</pre>
+          </details>
+        </ng-container>
+        <ng-template #noPreview>
+          <div class="empty-msg">Task preview sonucu henuz yok.</div>
+        </ng-template>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Health ve Son Joblar</h2>
+        <div class="health-grid" *ngIf="health() as healthModel">
           <div class="health-item" *ngFor="let probe of healthModel.probes; trackBy: trackByProbe">
             <div class="health-name">{{ probe.name }}</div>
-            <div class="health-status" [class]="'status-' + probe.status">
-              {{ probe.status }}
+            <div class="health-status" [class]="getStatusTone(probe.status)">
+              {{ formatStatus(probe.status) }}
+            </div>
+            <small>{{ formatDuration(probe.durationMs) }}</small>
+          </div>
+        </div>
+
+        <div class="jobs-list" *ngIf="recentJobs().length">
+          <div class="job-item" *ngFor="let job of recentJobs(); trackBy: trackByRecentJob">
+            <div class="job-name">{{ job.taskName }}</div>
+            <div class="job-status-badge" [class]="getStatusTone(job.status)">
+              {{ formatStatus(job.status) }}
             </div>
           </div>
         </div>
-      </ng-container>
-      <ng-template #noHealth>
-        <div class="empty-msg">Health verisi yok</div>
-      </ng-template>
+      </div>
+    </div>
+  </section>
+
+  <section class="tab-content" *ngIf="selectedTab() === 'manual' && isDocumentTask()">
+    <div class="section-grid">
+      <div class="section-block">
+        <h2 class="section-title">Aday Evrak Listesi</h2>
+        <form class="compact-form form-grid" [formGroup]="form">
+          <label class="form-row">
+            <span>Depo No</span>
+            <input type="number" formControlName="warehouseNo" />
+          </label>
+          <label class="form-row">
+            <span>Baslangic</span>
+            <input type="date" formControlName="candidateStartDate" />
+          </label>
+          <label class="form-row">
+            <span>Bitis</span>
+            <input type="date" formControlName="candidateEndDate" />
+          </label>
+          <label class="form-row">
+            <span>Take</span>
+            <input type="number" formControlName="candidateTake" min="1" max="100" />
+          </label>
+        </form>
+
+        <div class="button-group">
+          <button type="button" class="btn primary" (click)="loadCandidates()" [disabled]="candidateLoading()">
+            {{ candidateLoading() ? 'Araniyor...' : 'Aday Bul' }}
+          </button>
+        </div>
+
+        <div class="compact-table" *ngIf="manualCandidates() as candidates">
+          <div class="table-row table-head">
+            <span>Evrak</span>
+            <span>Ozet</span>
+            <span>Islem</span>
+          </div>
+          <div class="table-row" *ngFor="let candidate of candidates.items; trackBy: trackByCandidate">
+            <span>
+              <strong>{{ candidate.documentReference }}</strong>
+              <small>{{ formatTimestamp(candidate.documentDate) }}</small>
+            </span>
+            <span>{{ candidate.summary }}</span>
+            <span class="row-actions">
+              <button type="button" class="mini-btn" (click)="applyCandidate(candidate)">Sec</button>
+              <button
+                type="button"
+                class="mini-btn"
+                [class.active]="isBatchCandidateSelected(candidate)"
+                (click)="toggleBatchCandidate(candidate)"
+              >
+                Batch
+              </button>
+            </span>
+          </div>
+        </div>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Tekil / Toplu Kurtarma</h2>
+        <form class="compact-form form-grid" [formGroup]="form">
+          <label class="form-row" *ngIf="!isInventoryCountTask()">
+            <span>Seri</span>
+            <input type="text" formControlName="manualDocumentSerie" />
+          </label>
+          <label class="form-row" *ngIf="!isInventoryCountTask()">
+            <span>Sira</span>
+            <input type="number" formControlName="manualDocumentOrderNo" />
+          </label>
+          <label class="form-row" *ngIf="isInventoryCountTask()">
+            <span>Document No</span>
+            <input type="number" formControlName="manualDocumentNo" />
+          </label>
+          <label class="form-row" *ngIf="isInventoryCountTask()">
+            <span>Document Date</span>
+            <input type="date" formControlName="manualDocumentDate" />
+          </label>
+          <label class="form-row">
+            <span>Mode</span>
+            <select formControlName="executionMode">
+              <option *ngFor="let mode of executionModes" [value]="mode">
+                {{ formatExecutionMode(mode) }}
+              </option>
+            </select>
+          </label>
+        </form>
+
+        <form class="compact-form" [formGroup]="batchForm">
+          <label class="form-row inline">
+            <input type="checkbox" formControlName="continueOnError" />
+            <span>Toplu islemlerde hatada devam et</span>
+          </label>
+        </form>
+
+        <div class="button-group">
+          <button type="button" class="btn primary" (click)="previewManualDocument()" [disabled]="manualLoading()">
+            Preview
+          </button>
+          <button type="button" class="btn secondary" (click)="executeManualDocument()" [disabled]="manualLoading()">
+            DryRun / Outbox
+          </button>
+          <button type="button" class="btn secondary" (click)="dispatchManualDocument()" [disabled]="dispatchLoading() || !supportsLiveDispatch()">
+            Canli Dispatch
+          </button>
+        </div>
+
+        <div class="button-group">
+          <button type="button" class="btn secondary" (click)="addCurrentManualDocumentToBatch()">
+            Batch Listesine Ekle
+          </button>
+          <button type="button" class="btn secondary" (click)="previewManualDocumentBatch()" [disabled]="batchLoading() || selectedBatchCount() === 0">
+            Batch Preview ({{ selectedBatchCount() }})
+          </button>
+          <button type="button" class="btn secondary" (click)="executeManualDocumentBatch()" [disabled]="batchLoading() || selectedBatchCount() === 0">
+            Batch Execute
+          </button>
+          <button type="button" class="btn secondary" (click)="dispatchManualDocumentBatch()" [disabled]="dispatchLoading() || selectedBatchCount() === 0 || !supportsLiveDispatch()">
+            Batch Dispatch
+          </button>
+        </div>
+
+        <p class="section-desc" *ngIf="selectedTaskLiveOperationName() as operation">
+          Canli dispatch operasyonu: {{ operation }}
+        </p>
+
+        <div class="pill-row" *ngIf="selectedBatchDocuments().length">
+          <span class="status-pill" *ngFor="let item of selectedBatchDocuments(); let i = index; trackBy: trackBySelectedBatchDocument">
+            {{ formatSelectedBatchDocument(item) }}
+            <button type="button" class="pill-remove" (click)="removeBatchDocument(i)">x</button>
+          </span>
+          <button type="button" class="mini-btn" (click)="clearBatchDocuments()">Temizle</button>
+        </div>
+      </div>
     </div>
 
-    <!-- Recent Jobs -->
-    <div class="section-block">
-      <h2 class="section-title">
-        <span class="icon">📜</span> Son şler
-      </h2>
-      <div class="jobs-list">
-        <div class="job-item" *ngFor="let job of recentJobs(); trackBy: trackByRecentJob; let i = index" [class.limit]="i >= 5">
-          <div class="job-name">{{ job.taskName }}</div>
-          <div class="job-status-badge" [class]="'status-' + job.status">{{ formatStatus(job.status) }}</div>
+    <div class="section-grid">
+      <div class="section-block">
+        <h2 class="section-title">Manual Sonuc</h2>
+        <details class="json-details" *ngIf="manualDocumentResult()">
+          <summary>Preview / Execute JSON</summary>
+          <pre>{{ manualResultJson() }}</pre>
+        </details>
+        <details class="json-details" *ngIf="manualDispatchResult() as dispatchResult">
+          <summary>Canli Dispatch JSON</summary>
+          <pre>{{ formatJson(dispatchResult) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="manualDispatchBatchResult() as dispatchBatch">
+          <summary>Canli Dispatch Batch JSON</summary>
+          <pre>{{ formatJson(dispatchBatch) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="batchResult() as result">
+          <summary>Batch Preview / Execute JSON</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+        <div class="empty-msg" *ngIf="!manualDocumentResult() && !manualDispatchResult() && !manualDispatchBatchResult() && !batchResult()">
+          Henuz manual islem sonucu yok.
         </div>
       </div>
     </div>
   </section>
 
-  <!-- MANUAL RECOVERY TAB -->
-  <section class="tab-content" *ngIf="selectedTab() === 'manual' && isDocumentTask()">
-    <div class="section-block">
-      <h2 class="section-title">
-        <span class="icon">🔧</span> Manual Kurtarma
-      </h2>
-      <p class="section-desc">
-        Aday evrakları topla ve kurtarma işlemini başlat
-      </p>
-      <div class="button-group">
-        <button type="button" class="btn primary" (click)="loadCandidates()" [disabled]="candidateLoading()">
-          {{ candidateLoading() ? '⏳' : '🔍' }} Aday Bul
-        </button>
-      </div>
-      <div class="candidate-count" *ngIf="manualCandidates() as candidates">
-        {{ candidates.items.length }} aday hazır
-      </div>
-    </div>
-  </section>
-
-  <!-- INCOMING TAB -->
   <section class="tab-content" *ngIf="selectedTab() === 'incoming'">
     <div class="section-block">
-      <h2 class="section-title">
-        <span class="icon">📥</span> Gelen Veriler
-      </h2>
+      <h2 class="section-title">C01 Live AXATA Fetch / Import</h2>
       <p class="section-desc">
-        Manuel incoming payload ve depo kabulünü yönet
+        Preview veri yazmaz. Import Mikro depolar arasi sevk fisi olusturur; acknowledge aciksa basarili kayittan sonra AXATA ack atar.
       </p>
-      <div class="incoming-info">
-        <div class="info-row">
-          <span>Kabul Kuyruğu:</span>
-          <strong>{{ incomingWarehouseBatchQueue().length }} öğe</strong>
+
+      <form class="compact-form form-grid" [formGroup]="c01ImportForm">
+        <label class="form-row">
+          <span>Take</span>
+          <input type="number" formControlName="take" min="1" max="200" />
+        </label>
+        <label class="form-row inline">
+          <input type="checkbox" formControlName="continueOnError" />
+          <span>Hatada devam et</span>
+        </label>
+        <label class="form-row inline">
+          <input type="checkbox" formControlName="acknowledge" />
+          <span>Basarili kayitlari AXATA ack ile kapat</span>
+        </label>
+      </form>
+
+      <div class="button-group">
+        <button type="button" class="btn primary" (click)="loadC01OutboundDeliveryPreview()" [disabled]="c01PreviewLoading()">
+          {{ c01PreviewLoading() ? 'Preview...' : 'C01 Preview' }}
+        </button>
+        <button type="button" class="btn secondary" (click)="executeC01OutboundDeliveryImport()" [disabled]="c01ImportLoading()">
+          {{ c01ImportLoading() ? 'Import...' : 'C01 Import' }}
+        </button>
+      </div>
+
+      <ng-container *ngIf="c01OutboundDeliveryPreview() as c01Preview">
+        <div class="status-grid">
+          <div class="status-card">
+            <span>Fetched</span>
+            <strong>{{ c01Preview.returnedDocumentCount }}/{{ c01Preview.totalFetchedDocumentCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Satir</span>
+            <strong>{{ c01Preview.totalLineCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Miktar</span>
+            <strong>{{ c01Preview.totalQuantity | number:'1.0-2' }}</strong>
+          </div>
         </div>
+
+        <div class="compact-table" *ngIf="c01Preview.documents.length">
+          <div class="table-row table-head">
+            <span>AXATA</span>
+            <span>Mikro Belge</span>
+            <span>Miktar</span>
+            <span>Durum</span>
+          </div>
+          <div class="table-row" *ngFor="let item of c01Preview.documents">
+            <span>#{{ item.axataSequenceNo }} / {{ item.axataDeliveryNo }}</span>
+            <span>{{ item.documentSerie }}.{{ item.documentOrderNo }}</span>
+            <span>{{ item.axataQuantity | number:'1.0-2' }}</span>
+            <span class="status-pill" [class.status-pill-success]="item.canImport" [class.status-pill-warn]="!item.canImport">
+              {{ item.canImport ? 'Import edilebilir' : (item.warning || 'Kontrol gerekli') }}
+            </span>
+          </div>
+        </div>
+
+        <details class="json-details">
+          <summary>C01 Preview JSON</summary>
+          <pre>{{ c01PreviewJson() }}</pre>
+        </details>
+      </ng-container>
+
+      <ng-container *ngIf="c01OutboundDeliveryImportResult() as c01Import">
+        <div class="status-grid">
+          <div class="status-card">
+            <span>Basarili</span>
+            <strong>{{ c01Import.succeededDocumentCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Hatali</span>
+            <strong>{{ c01Import.failedDocumentCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Atlanan</span>
+            <strong>{{ c01Import.skippedDocumentCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Yazilan Miktar</span>
+            <strong>{{ c01Import.createdMovementQuantity | number:'1.0-2' }}</strong>
+          </div>
+        </div>
+        <details class="json-details">
+          <summary>C01 Import JSON</summary>
+          <pre>{{ c01ImportJson() }}</pre>
+        </details>
+      </ng-container>
+    </div>
+
+    <div class="section-grid">
+      <div class="section-block">
+        <h2 class="section-title">AXATA Native Body -> Mikro</h2>
+        <form class="compact-form" [formGroup]="axataBridgeForm">
+          <label class="form-row">
+            <span>Outbound Delivery JSON</span>
+            <textarea formControlName="outboundDeliveryJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="submitAxataOutboundDelivery()" [disabled]="axataOutboundLoading()">
+              Outbound Tekil
+            </button>
+          </div>
+
+          <label class="form-row">
+            <span>Outbound Delivery Batch JSON</span>
+            <textarea formControlName="outboundDeliveryBatchJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn secondary" (click)="submitAxataOutboundDeliveryBatch()" [disabled]="axataOutboundLoading()">
+              Outbound Batch
+            </button>
+          </div>
+
+          <label class="form-row">
+            <span>Inbound ATF JSON</span>
+            <textarea formControlName="inboundAtfJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="submitAxataInboundAtfCompanyReceiving()" [disabled]="axataInboundAtfLoading()">
+              Inbound ATF Tekil
+            </button>
+          </div>
+
+          <label class="form-row">
+            <span>Inbound ATF Batch JSON</span>
+            <textarea formControlName="inboundAtfBatchJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn secondary" (click)="submitAxataInboundAtfCompanyReceivingBatch()" [disabled]="axataInboundAtfLoading()">
+              Inbound ATF Batch
+            </button>
+          </div>
+        </form>
+
+        <details class="json-details" *ngIf="axataOutboundResult() as result">
+          <summary>Outbound Tekil Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="axataOutboundBatchResult() as result">
+          <summary>Outbound Batch Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="axataInboundAtfResult() as result">
+          <summary>Inbound ATF Tekil Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="axataInboundAtfBatchResult() as result">
+          <summary>Inbound ATF Batch Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Manual Incoming JSON</h2>
+        <form class="compact-form" [formGroup]="incomingJsonForm">
+          <label class="form-row">
+            <span>Firma Mal Kabul JSON</span>
+            <textarea formControlName="companyReceivingJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="submitManualIncomingCompanyReceiving()" [disabled]="incomingCompanyLoading()">
+              Mal Kabul Tekil
+            </button>
+          </div>
+
+          <label class="form-row">
+            <span>Firma Mal Kabul Batch JSON</span>
+            <textarea formControlName="companyReceivingBatchJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn secondary" (click)="submitManualIncomingCompanyReceivingBatch()" [disabled]="incomingCompanyLoading()">
+              Mal Kabul Batch
+            </button>
+          </div>
+
+          <label class="form-row">
+            <span>Sayim JSON</span>
+            <textarea formControlName="inventoryCountJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="submitManualIncomingInventoryCount()" [disabled]="incomingInventoryLoading()">
+              Sayim Tekil
+            </button>
+          </div>
+
+          <label class="form-row">
+            <span>Sayim Batch JSON</span>
+            <textarea formControlName="inventoryCountBatchJson" rows="8"></textarea>
+          </label>
+          <div class="button-group">
+            <button type="button" class="btn secondary" (click)="submitManualIncomingInventoryCountBatch()" [disabled]="incomingInventoryLoading()">
+              Sayim Batch
+            </button>
+          </div>
+        </form>
+
+        <details class="json-details" *ngIf="incomingCompanyReceivingResult() as result">
+          <summary>Mal Kabul Tekil Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="incomingCompanyReceivingBatchResult() as result">
+          <summary>Mal Kabul Batch Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="incomingInventoryCountResult() as result">
+          <summary>Sayim Tekil Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+        <details class="json-details" *ngIf="incomingInventoryCountBatchResult() as result">
+          <summary>Sayim Batch Sonuc</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
+      </div>
+    </div>
+
+    <div class="section-block">
+      <h2 class="section-title">Bekleyen Depo Kabulleri</h2>
+      <form class="compact-form form-grid" [formGroup]="incomingWarehouseForm">
+        <label class="form-row">
+          <span>Depo No</span>
+          <input type="number" formControlName="warehouseNo" />
+        </label>
+        <label class="form-row">
+          <span>Baslangic</span>
+          <input type="date" formControlName="startDate" />
+        </label>
+        <label class="form-row">
+          <span>Bitis</span>
+          <input type="date" formControlName="endDate" />
+        </label>
+        <label class="form-row inline">
+          <input type="checkbox" formControlName="continueOnError" />
+          <span>Batch hatada devam et</span>
+        </label>
+      </form>
+
+      <div class="button-group">
+        <button type="button" class="btn primary" (click)="loadIncomingWarehouseReceivings()" [disabled]="incomingWarehouseLoading()">
+          {{ incomingWarehouseLoading() ? 'Listeleniyor...' : 'Bekleyenleri Listele' }}
+        </button>
+      </div>
+
+      <div class="section-grid">
+        <div class="compact-table" *ngIf="incomingWarehouseReceivings().length; else noWarehouseReceivings">
+          <div class="table-row table-head">
+            <span>Belge</span>
+            <span>Depo</span>
+            <span>Tarih</span>
+            <span>Islem</span>
+          </div>
+          <div class="table-row" *ngFor="let item of incomingWarehouseReceivings(); trackBy: trackByIncomingWarehouseReceiving">
+            <span>{{ item.documentSerie }}.{{ item.documentOrderNo }}</span>
+            <span>{{ item.sourceWarehouseNo }} -> {{ item.targetWarehouseNo }}</span>
+            <span>{{ formatTimestamp(item.documentDate) }}</span>
+            <span>
+              <button type="button" class="mini-btn" (click)="loadIncomingWarehouseReceivingDetail(item)">
+                Detay
+              </button>
+            </span>
+          </div>
+        </div>
+        <ng-template #noWarehouseReceivings>
+          <div class="empty-msg">Bekleyen depo kabul listesi bos.</div>
+        </ng-template>
+
+        <div class="section-block nested-flat" *ngIf="incomingWarehouseReceivingDetail() as detail">
+          <h3 class="section-subtitle">{{ currentIncomingWarehouseReference() }} Kabul Detayi</h3>
+          <form class="compact-form" [formGroup]="incomingWarehouseForm">
+            <label class="form-row inline">
+              <input type="checkbox" formControlName="allowDiscrepancy" />
+              <span>Farkli miktara izin ver</span>
+            </label>
+          </form>
+          <div class="compact-table">
+            <div class="table-row table-head">
+              <span>Stok</span>
+              <span>Gelen</span>
+              <span>Kabul</span>
+            </div>
+            <div class="table-row" *ngFor="let line of incomingWarehouseLineDrafts(); trackBy: trackByIncomingWarehouseLine">
+              <span>
+                <strong>{{ line.stockCode }}</strong>
+                <small>{{ line.stockName }}</small>
+              </span>
+              <span>{{ line.shippedQuantity | number:'1.0-2' }}</span>
+              <span>
+                <input
+                  class="table-input"
+                  type="number"
+                  [value]="line.receivedQuantity"
+                  (input)="updateIncomingWarehouseReceivedQuantity(line.movementGuid, $any($event.target).value)"
+                />
+              </span>
+            </div>
+          </div>
+          <div class="info-row">
+            <span>Toplam kabul</span>
+            <strong>{{ currentIncomingWarehouseLineTotal() | number:'1.0-2' }}</strong>
+          </div>
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="acceptIncomingWarehouseReceiving()" [disabled]="incomingWarehouseAcceptLoading()">
+              Tekil Kabul
+            </button>
+            <button type="button" class="btn secondary" (click)="enqueueIncomingWarehouseReceivingBatch()">
+              Batch Kuyruga Ekle
+            </button>
+          </div>
+          <details class="json-details" *ngIf="incomingWarehouseAcceptResult() as result">
+            <summary>Kabul Sonuc JSON</summary>
+            <pre>{{ formatJson(result) }}</pre>
+          </details>
+        </div>
+      </div>
+
+      <div class="section-block nested-flat" *ngIf="incomingWarehouseBatchQueue().length || incomingWarehouseBatchResult()">
+        <h3 class="section-subtitle">Depo Kabul Batch Kuyrugu</h3>
+        <div class="pill-row" *ngIf="incomingWarehouseBatchQueue().length">
+          <span class="status-pill" *ngFor="let item of incomingWarehouseBatchQueue(); trackBy: trackByIncomingWarehouseBatchItem">
+            {{ item.reference }}
+            <button type="button" class="pill-remove" (click)="removeIncomingWarehouseBatchItem(item.reference)">x</button>
+          </span>
+        </div>
+        <div class="button-group">
+          <button type="button" class="btn primary" (click)="acceptIncomingWarehouseReceivingBatch()" [disabled]="incomingWarehouseAcceptLoading() || !incomingWarehouseBatchQueue().length">
+            Batch Kabul
+          </button>
+          <button type="button" class="btn secondary" (click)="clearIncomingWarehouseBatchQueue()">
+            Temizle
+          </button>
+        </div>
+        <details class="json-details" *ngIf="incomingWarehouseBatchResult() as result">
+          <summary>Batch Kabul Sonuc JSON</summary>
+          <pre>{{ formatJson(result) }}</pre>
+        </details>
       </div>
     </div>
   </section>

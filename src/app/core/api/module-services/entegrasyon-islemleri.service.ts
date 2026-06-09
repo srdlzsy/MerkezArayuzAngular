@@ -4,6 +4,8 @@ import type {
   IAxataInboundAtfCompanyReceivingBatchResponseApiDto,
   IAxataInboundAtfCompanyReceivingRequestApiDto,
   IAxataInboundAtfCompanyReceivingResponseApiDto,
+  IAxataIntegrationAuditApiDto,
+  IAxataIntegrationAuditQueryApiDto,
   IAxataManualIncomingCompanyReceivingBatchRequestApiDto,
   IAxataManualIncomingCompanyReceivingBatchResponseApiDto,
   IAxataManualIncomingCompanyReceivingRequestApiDto,
@@ -19,6 +21,9 @@ import type {
   IAxataManualIncomingWarehouseReceivingDetailApiDto,
   IAxataManualIncomingWarehouseReceivingListItemApiDto,
   IAxataManualOutboundDeliveryBatchResponseApiDto,
+  IAxataOutboundDeliveryImportExecuteApiDto,
+  IAxataOutboundDeliveryImportExecuteRequestApiDto,
+  IAxataOutboundDeliveryImportPreviewApiDto,
   IAxataSynchronizationConnectionTestApiDto,
   IAxataSynchronizationExecuteRequestApiDto,
   IAxataSynchronizationExecuteTaskRequestApiDto,
@@ -41,15 +46,25 @@ import type {
   IAxataSynchronizationOverviewApiDto,
   IAxataSynchronizationPreviewApiDto,
   ICashRegisterBranchMappingHttpRequestApiDto,
+  ICashRegisterBranchMappingApiDto,
   ICashRegisterBranchMappingListHttpRequestApiDto,
+  IBranchInvoiceDetailApiDto,
+  IBranchInvoiceListItemApiDto,
+  IExpenseNoteDetailApiDto,
+  IExpenseNoteListItemApiDto,
   IImportPosDocumentsHttpRequestApiDto,
   IImportZReportsHttpRequestApiDto,
   IModuleActionScaffoldResponseApiDto,
+  IPosAccountingBatchResultApiDto,
   IPosAccountingDateRangeHttpRequestApiDto,
+  IPosAccountingImportResultApiDto,
   IPosAccountingDeleteHttpRequestApiDto,
   IPosAccountingModuleActionScaffoldResponseApiDto,
+  IPosAccountingOverviewApiDto,
   IPosAccountingTransferHttpRequestApiDto,
   IUpdatePosAccountingDocumentHttpRequestApiDto,
+  IZReportDetailApiDto,
+  IZReportListItemApiDto,
   IUyumsoftConnectedServiceOverviewApiDto,
   IUyumsoftOperationDefinitionApiDto,
   IUyumsoftOperationRequestApiDto,
@@ -65,6 +80,7 @@ export type AxataSynchronizationJobDetailDto = IAxataSynchronizationJobDetailApi
 export type AxataSynchronizationHealthDto = IAxataSynchronizationConnectionTestApiDto;
 export type AxataSynchronizationFetchProfilesOverviewDto =
   IAxataSynchronizationFetchProfilesOverviewApiDto;
+export type AxataIntegrationAuditDto = IAxataIntegrationAuditApiDto;
 export type AxataSynchronizationManualDocumentDto = IAxataSynchronizationManualDocumentApiDto;
 export type AxataSynchronizationManualDocumentCandidatesDto =
   IAxataSynchronizationManualDocumentCandidatesApiDto;
@@ -97,9 +113,23 @@ export type AxataInboundAtfCompanyReceivingResponseDto =
   IAxataInboundAtfCompanyReceivingResponseApiDto;
 export type AxataInboundAtfCompanyReceivingBatchResponseDto =
   IAxataInboundAtfCompanyReceivingBatchResponseApiDto;
+export type AxataOutboundDeliveryImportPreviewDto =
+  IAxataOutboundDeliveryImportPreviewApiDto;
+export type AxataOutboundDeliveryImportExecuteDto =
+  IAxataOutboundDeliveryImportExecuteApiDto;
 export type ModuleActionScaffoldResponseDto = IModuleActionScaffoldResponseApiDto;
 export type PosAccountingModuleActionScaffoldResponseDto =
   IPosAccountingModuleActionScaffoldResponseApiDto;
+export type PosAccountingOverviewDto = IPosAccountingOverviewApiDto;
+export type ZReportListItemDto = IZReportListItemApiDto;
+export type ZReportDetailDto = IZReportDetailApiDto;
+export type BranchInvoiceListItemDto = IBranchInvoiceListItemApiDto;
+export type BranchInvoiceDetailDto = IBranchInvoiceDetailApiDto;
+export type ExpenseNoteListItemDto = IExpenseNoteListItemApiDto;
+export type ExpenseNoteDetailDto = IExpenseNoteDetailApiDto;
+export type CashRegisterBranchMappingDto = ICashRegisterBranchMappingApiDto;
+export type PosAccountingImportResultDto = IPosAccountingImportResultApiDto;
+export type PosAccountingBatchResultDto = IPosAccountingBatchResultApiDto;
 export type UyumsoftConnectedServiceOverviewDto =
   IUyumsoftConnectedServiceOverviewApiDto;
 export type UyumsoftOperationDefinitionDto = IUyumsoftOperationDefinitionApiDto;
@@ -146,6 +176,36 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     return this.get<AxataSynchronizationFetchProfilesOverviewDto>(
       'integrations/axata-sync/fetch-profiles'
     );
+  }
+
+  getAxataIntegrationAuditOverview(query: IAxataIntegrationAuditQueryApiDto) {
+    return this.getWithQuery<AxataIntegrationAuditDto>(
+      'integrations/axata-sync/live/audit/overview',
+      {
+        startDate: query.startDate ?? undefined,
+        endDate: query.endDate ?? undefined,
+        warehouseNo: query.warehouseNo ?? undefined,
+        take: query.take ?? undefined
+      }
+    );
+  }
+
+  previewAxataC01OutboundDeliveryImport(take?: number | null) {
+    return this.getWithQuery<AxataOutboundDeliveryImportPreviewDto>(
+      'integrations/axata-sync/live/axata/outbound-deliveries/c01/preview',
+      {
+        take: take ?? undefined
+      }
+    );
+  }
+
+  executeAxataC01OutboundDeliveryImport(
+    request: IAxataOutboundDeliveryImportExecuteRequestApiDto
+  ) {
+    return this.post<
+      AxataOutboundDeliveryImportExecuteDto,
+      IAxataOutboundDeliveryImportExecuteRequestApiDto
+    >('integrations/axata-sync/live/axata/outbound-deliveries/c01/import', request);
   }
 
   getAxataSynchronizationTaskPreview(
@@ -407,116 +467,117 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     >('integrations/axata-sync/manual/axata/inbound-atf/company-receivings/batch', request);
   }
 
-  getPosAccountingOverview() {
-    return this.get<PosAccountingModuleActionScaffoldResponseDto>(
-      'entegrasyon-islemleri/pos-muhasebe-aktarimi'
-    );
+  getPosAccountingOverview(query: IPosAccountingDateRangeHttpRequestApiDto) {
+    return this.getWithQuery<
+      PosAccountingOverviewDto,
+      IPosAccountingDateRangeHttpRequestApiDto
+    >('entegrasyon-islemleri/pos-muhasebe-aktarimi', query);
   }
 
   getPosAccountingZReports(query: IPosAccountingDateRangeHttpRequestApiDto) {
     return this.getWithQuery<
-      PosAccountingModuleActionScaffoldResponseDto,
+      ZReportListItemDto[],
       IPosAccountingDateRangeHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari', query);
   }
 
-  getPosAccountingZReportDetail(reportId: string) {
-    return this.get<PosAccountingModuleActionScaffoldResponseDto>(
-      `entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/${encodeURIComponent(reportId)}`
+  getPosAccountingZReportDetail(totalId: number) {
+    return this.get<ZReportDetailDto>(
+      `entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/${totalId}`
     );
   }
 
   importPosAccountingZReports(request: IImportZReportsHttpRequestApiDto) {
     return this.post<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingImportResultDto,
       IImportZReportsHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar', request);
   }
 
   transferPosAccountingZReports(request: IPosAccountingTransferHttpRequestApiDto) {
     return this.post<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingBatchResultDto,
       IPosAccountingTransferHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/erpye-gonder', request);
   }
 
   deletePosAccountingZReports(request: IPosAccountingDeleteHttpRequestApiDto) {
     return this.deleteWithBody<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingBatchResultDto,
       IPosAccountingDeleteHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari', request);
   }
 
   getPosAccountingInvoices(query: IPosAccountingDateRangeHttpRequestApiDto) {
     return this.getWithQuery<
-      PosAccountingModuleActionScaffoldResponseDto,
+      BranchInvoiceListItemDto[],
       IPosAccountingDateRangeHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar', query);
   }
 
-  getPosAccountingInvoiceDetail(invoiceId: string) {
-    return this.get<PosAccountingModuleActionScaffoldResponseDto>(
-      `entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/${encodeURIComponent(invoiceId)}`
+  getPosAccountingInvoiceDetail(invoiceId: number) {
+    return this.get<BranchInvoiceDetailDto>(
+      `entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/${invoiceId}`
     );
   }
 
   importPosAccountingInvoices(request: IImportPosDocumentsHttpRequestApiDto) {
     return this.post<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingImportResultDto,
       IImportPosDocumentsHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/ice-aktar', request);
   }
 
   transferPosAccountingInvoices(request: IPosAccountingTransferHttpRequestApiDto) {
     return this.post<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingBatchResultDto,
       IPosAccountingTransferHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/erpye-gonder', request);
   }
 
   updatePosAccountingInvoice(
-    invoiceId: string,
+    invoiceId: number,
     request: IUpdatePosAccountingDocumentHttpRequestApiDto
   ) {
     return this.put<
-      PosAccountingModuleActionScaffoldResponseDto,
+      BranchInvoiceDetailDto,
       IUpdatePosAccountingDocumentHttpRequestApiDto
     >(
-      `entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/${encodeURIComponent(invoiceId)}`,
+      `entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/${invoiceId}`,
       request
     );
   }
 
   deletePosAccountingInvoices(request: IPosAccountingDeleteHttpRequestApiDto) {
     return this.deleteWithBody<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingBatchResultDto,
       IPosAccountingDeleteHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar', request);
   }
 
   getPosAccountingExpenseNotes(query: IPosAccountingDateRangeHttpRequestApiDto) {
     return this.getWithQuery<
-      PosAccountingModuleActionScaffoldResponseDto,
+      ExpenseNoteListItemDto[],
       IPosAccountingDateRangeHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari', query);
   }
 
-  getPosAccountingExpenseNoteDetail(expenseId: string) {
-    return this.get<PosAccountingModuleActionScaffoldResponseDto>(
-      `entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/${encodeURIComponent(expenseId)}`
+  getPosAccountingExpenseNoteDetail(expenseId: number) {
+    return this.get<ExpenseNoteDetailDto>(
+      `entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/${expenseId}`
     );
   }
 
   importPosAccountingExpenseNotes(request: IImportPosDocumentsHttpRequestApiDto) {
     return this.post<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingImportResultDto,
       IImportPosDocumentsHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/ice-aktar', request);
   }
 
   transferPosAccountingExpenseNotes(request: IPosAccountingTransferHttpRequestApiDto) {
     return this.post<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingBatchResultDto,
       IPosAccountingTransferHttpRequestApiDto
     >(
       'entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/erpye-gonder',
@@ -525,21 +586,21 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   }
 
   updatePosAccountingExpenseNote(
-    expenseId: string,
+    expenseId: number,
     request: IUpdatePosAccountingDocumentHttpRequestApiDto
   ) {
     return this.put<
-      PosAccountingModuleActionScaffoldResponseDto,
+      ExpenseNoteDetailDto,
       IUpdatePosAccountingDocumentHttpRequestApiDto
     >(
-      `entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/${encodeURIComponent(expenseId)}`,
+      `entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/${expenseId}`,
       request
     );
   }
 
   deletePosAccountingExpenseNotes(request: IPosAccountingDeleteHttpRequestApiDto) {
     return this.deleteWithBody<
-      PosAccountingModuleActionScaffoldResponseDto,
+      PosAccountingBatchResultDto,
       IPosAccountingDeleteHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari', request);
   }
@@ -548,7 +609,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     query: ICashRegisterBranchMappingListHttpRequestApiDto
   ) {
     return this.getWithQuery<
-      PosAccountingModuleActionScaffoldResponseDto,
+      CashRegisterBranchMappingDto[],
       ICashRegisterBranchMappingListHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri', query);
   }
@@ -557,20 +618,20 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     request: ICashRegisterBranchMappingHttpRequestApiDto
   ) {
     return this.post<
-      PosAccountingModuleActionScaffoldResponseDto,
+      CashRegisterBranchMappingDto,
       ICashRegisterBranchMappingHttpRequestApiDto
     >('entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri', request);
   }
 
   updatePosAccountingCashRegisterMapping(
-    mappingId: string,
+    mappingId: number,
     request: ICashRegisterBranchMappingHttpRequestApiDto
   ) {
     return this.put<
-      PosAccountingModuleActionScaffoldResponseDto,
+      CashRegisterBranchMappingDto,
       ICashRegisterBranchMappingHttpRequestApiDto
     >(
-      `entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri/${encodeURIComponent(mappingId)}`,
+      `entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri/${mappingId}`,
       request
     );
   }

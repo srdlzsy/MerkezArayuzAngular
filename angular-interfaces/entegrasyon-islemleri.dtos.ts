@@ -132,6 +132,89 @@ export interface IAxataSynchronizationFetchProfilesOverviewApiDto {
   notes: string[];
 }
 
+export interface IAxataIntegrationAuditQueryApiDto {
+  startDate?: string | null;
+  endDate?: string | null;
+  warehouseNo?: number | null;
+  take?: number | null;
+}
+
+export interface IAxataIntegrationAuditApiDto {
+  isInSync: boolean;
+  generatedAtUtc: string | null;
+  startDate: string;
+  endDate: string;
+  warehouseNo: number | null;
+  summary: IAxataIntegrationAuditSummaryApiDto;
+  outboundDeliverySummaries: IAxataOutboundDeliveryMovementSummaryApiDto[];
+  unsyncedWarehouseOrders: IAxataUnsyncedWarehouseOrderApiDto[];
+  pendingOutboundDeliveries: IAxataPendingOutboundDeliveryApiDto[];
+  interventionCandidates: IAxataPendingOutboundDeliveryApiDto[];
+  notes: string[];
+}
+
+export interface IAxataIntegrationAuditSummaryApiDto {
+  mikroWarehouseOrderDocumentCount: number;
+  sentWarehouseOrderDocumentCount: number;
+  partiallySentWarehouseOrderDocumentCount: number;
+  unsentWarehouseOrderDocumentCount: number;
+  pendingOutboundDeliveryDocumentCount: number;
+  pendingOutboundDeliveryLineCount: number;
+  pendingOutboundDeliveryQuantity: number;
+  c01PendingDocumentCount: number;
+  c01MissingInMikroDocumentCount: number;
+  c01MikroExistsPendingAckDocumentCount: number;
+}
+
+export interface IAxataOutboundDeliveryMovementSummaryApiDto {
+  movementType: string;
+  pendingStatus: string;
+  pendingDocumentCount: number;
+  pendingLineCount: number;
+  pendingQuantity: number;
+  mikroMissingDocumentCount: number;
+  mikroExistsPendingAckDocumentCount: number;
+  checkLevel: string;
+}
+
+export interface IAxataUnsyncedWarehouseOrderApiDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  documentDate: string;
+  inWarehouseNo: number;
+  outWarehouseNo: number;
+  lineCount: number;
+  sentLineCount: number;
+  unsentLineCount: number;
+  totalQuantity: number;
+  sentQuantity: number;
+  unsentQuantity: number;
+  state: string;
+  lastUpdateDate: string | null;
+  warning: string;
+}
+
+export interface IAxataPendingOutboundDeliveryApiDto {
+  movementType: string;
+  status: string;
+  axataSequenceNo: number;
+  axataDeliveryNo: string;
+  documentSerie: string;
+  documentOrderNo: number | null;
+  sourceWarehouseNo: number;
+  targetWarehouseNo: number;
+  axataDate: string | null;
+  lineCount: number;
+  quantity: number;
+  mikroOrderLineCount: number;
+  mikroOrderQuantity: number;
+  mikroDeliveredQuantity: number;
+  existingLinkedMovementLineCount: number;
+  mikroCheckState: string;
+  canIntervene: boolean;
+  warning: string | null;
+}
+
 export interface IAxataSynchronizationManualDocumentApiDto {
   taskCode: string;
   taskName: string;
@@ -278,7 +361,84 @@ export interface IAxataManualIncomingBatchFailureResponseApiDto {
   errorMessage: string;
 }
 
+export interface IAxataOutboundDeliveryImportPreviewQueryApiDto {
+  take?: number | null;
+}
+
+export interface IAxataOutboundDeliveryImportExecuteRequestApiDto {
+  take?: number | null;
+  continueOnError: boolean;
+  acknowledge: boolean;
+}
+
+export interface IAxataOutboundDeliveryImportPreviewApiDto {
+  movementType: string;
+  pendingStatus: string;
+  generatedAtUtc: string | null;
+  totalFetchedDocumentCount: number;
+  returnedDocumentCount: number;
+  totalLineCount: number;
+  totalQuantity: number;
+  documents: IAxataOutboundDeliveryImportDocumentApiDto[];
+  notes: string[];
+}
+
+export interface IAxataOutboundDeliveryImportExecuteApiDto {
+  movementType: string;
+  pendingStatus: string;
+  generatedAtUtc: string | null;
+  requestedDocumentCount: number;
+  succeededDocumentCount: number;
+  failedDocumentCount: number;
+  skippedDocumentCount: number;
+  createdMovementLineCount: number;
+  createdMovementQuantity: number;
+  results: IAxataOutboundDeliveryImportResultApiDto[];
+  failures: IAxataOutboundDeliveryImportFailureApiDto[];
+  notes: string[];
+}
+
+export interface IAxataOutboundDeliveryImportDocumentApiDto {
+  axataSequenceNo: number;
+  axataDeliveryNo: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  movementType: string;
+  status: string;
+  sourceWarehouseNo: number;
+  targetWarehouseNo: number;
+  axataDate: string | null;
+  axataLineCount: number;
+  axataQuantity: number;
+  mikroOrderLineCount: number;
+  mikroOrderQuantity: number;
+  mikroDeliveredQuantity: number;
+  existingLinkedMovementLineCount: number;
+  canImport: boolean;
+  warning: string | null;
+}
+
+export interface IAxataOutboundDeliveryImportResultApiDto {
+  axataSequenceNo: number;
+  axataDeliveryNo: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  movementSerie: string;
+  movementOrderNo: number;
+  createdMovementLineCount: number;
+  createdMovementQuantity: number;
+  acknowledged: boolean;
+  message: string;
+}
+
+export interface IAxataOutboundDeliveryImportFailureApiDto {
+  axataSequenceNo: number | null;
+  axataDeliveryNo: string | null;
+  errorMessage: string;
+}
+
 export interface IAxataOutboundDeliveryLineRequestApiDto {
+  lineNo: number;
   stockCode: string;
   quantity: number;
   unitPrice?: number | null;
@@ -287,6 +447,8 @@ export interface IAxataOutboundDeliveryLineRequestApiDto {
   partyCode?: string | null;
   lotNo?: number | null;
   projectCode?: string | null;
+  customerResponsibilityCenter?: string | null;
+  productResponsibilityCenter?: string | null;
   warehouseOrderLineGuid?: string | null;
 }
 
@@ -309,6 +471,7 @@ export interface IAxataOutboundDeliveryBatchRequestApiDto {
 }
 
 export interface IAxataInboundAtfCompanyReceivingLineRequestApiDto {
+  lineNo: number;
   stockCode: string;
   quantity: number;
   unitPrice?: number | null;
@@ -482,6 +645,7 @@ export interface IPosAccountingDateRangeHttpRequestApiDto {
 export interface IImportZReportsHttpRequestApiDto {
   warehouseNo?: number | null;
   businessDate?: string | null;
+  reportPath?: string | null;
   importMode?: string | null;
   sourceCode?: string | null;
   overwriteExisting: boolean;
@@ -496,13 +660,13 @@ export interface IImportPosDocumentsHttpRequestApiDto {
 
 export interface IPosAccountingTransferHttpRequestApiDto {
   warehouseNo?: number | null;
-  documentIds: ReadonlyArray<string>;
+  documentIds: ReadonlyArray<number>;
   continueOnError: boolean;
 }
 
 export interface IPosAccountingDeleteHttpRequestApiDto {
   warehouseNo?: number | null;
-  documentIds: ReadonlyArray<string>;
+  documentIds: ReadonlyArray<number>;
 }
 
 export interface IUpdatePosAccountingDocumentHttpRequestApiDto {
@@ -523,6 +687,100 @@ export interface ICashRegisterBranchMappingHttpRequestApiDto {
   branchNo?: number | null;
   branchName?: string | null;
   description?: string | null;
+}
+
+export interface IPosAccountingOverviewApiDto {
+  [key: string]: unknown;
+}
+
+export interface IZReportListItemApiDto {
+  totalId: number;
+  billNo?: string | null;
+  zNo?: string | null;
+  cashRegisterNo?: string | null;
+  branchName?: string | null;
+  date?: string | null;
+  cashPaymentTotal?: number | null;
+  creditCardPaymentTotal?: number | null;
+  greatTotal?: number | null;
+  isSent: boolean;
+}
+
+export interface IZReportDetailApiDto {
+  header?: Record<string, unknown> | null;
+  details?: ReadonlyArray<Record<string, unknown>>;
+  bankDetails?: ReadonlyArray<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+export interface IBranchInvoiceListItemApiDto {
+  invoiceId: number;
+  invoiceGuid?: string | null;
+  branchNo?: number | null;
+  branchName?: string | null;
+  documentNo?: string | null;
+  customerTaxNo?: string | null;
+  customerName?: string | null;
+  invoiceDate?: string | null;
+  paymentType?: string | null;
+  invoiceTotal?: number | null;
+  isSent: boolean;
+}
+
+export interface IBranchInvoiceDetailApiDto {
+  header?: Record<string, unknown> | null;
+  lines?: ReadonlyArray<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+export interface IExpenseNoteListItemApiDto {
+  expenseId: number;
+  expenseGuid?: string | null;
+  documentNo?: string | null;
+  branchNo?: number | null;
+  branchName?: string | null;
+  expenseDate?: string | null;
+  paymentType?: string | null;
+  expenseTotal?: number | null;
+  isSent: boolean;
+}
+
+export interface IExpenseNoteDetailApiDto {
+  header?: Record<string, unknown> | null;
+  lines?: ReadonlyArray<Record<string, unknown>>;
+  [key: string]: unknown;
+}
+
+export interface ICashRegisterBranchMappingApiDto {
+  id: number;
+  cashRegisterNo: string;
+  branchNo?: number | null;
+  branchName?: string | null;
+  description?: string | null;
+}
+
+export interface IPosAccountingOperationResultApiDto {
+  documentId?: number | null;
+  sourceGuid?: string | null;
+  success: boolean;
+  message?: string | null;
+}
+
+export interface IPosAccountingImportResultApiDto {
+  documentKind: string;
+  businessDate: string;
+  importedCount: number;
+  skippedCount: number;
+  errorCount: number;
+  results: ReadonlyArray<IPosAccountingOperationResultApiDto>;
+}
+
+export interface IPosAccountingBatchResultApiDto {
+  documentKind: string;
+  requestedCount: number;
+  successCount: number;
+  errorCount: number;
+  results: ReadonlyArray<IPosAccountingOperationResultApiDto>;
 }
 
 export type IPosAccountingModuleActionScaffoldResponseApiDto =

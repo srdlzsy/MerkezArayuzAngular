@@ -14,6 +14,8 @@ import type {
   ICashRegisterBranchMappingListHttpRequestApiDto,
   IImportPosDocumentsHttpRequestApiDto,
   IImportZReportsHttpRequestApiDto,
+  IPosAccountingOperationResultApiDto,
+  IPosAccountingOverviewApiDto,
   IPosAccountingDateRangeHttpRequestApiDto,
   IPosAccountingDeleteHttpRequestApiDto,
   IPosAccountingTransferHttpRequestApiDto,
@@ -33,7 +35,7 @@ type PosAccountingTabId =
   | 'pos-faturalar'
   | 'gider-pusulalari'
   | 'kasa-eslemeleri';
-type FeedbackTone = 'success' | 'error' | 'info';
+type FeedbackTone = 'success' | 'error' | 'info' | 'warning';
 
 interface PosAccountingTabDefinition {
   id: PosAccountingTabId;
@@ -57,7 +59,12 @@ interface PosAccountingActionState {
   status: number;
   occurredAt: string;
   requestPreview: unknown;
-  response: ModuleActionScaffoldResponseDto;
+  response: unknown;
+}
+
+interface PosAccountingSummaryItem {
+  label: string;
+  value: string;
 }
 
 const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
@@ -69,7 +76,7 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
       'Liste, detay, ice aktar, ERPye gonder ve staging silme aksiyonlari gelecekte bu tabda bulusacak.',
     routes: [
       'GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari',
-      'GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{reportId}',
+      'GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{totalId}',
       'POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar',
       'POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/erpye-gonder',
       'DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari'
@@ -79,7 +86,8 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
     notes: [
       'Sil aksiyonu staging kaydini temizler; ERPde olusan fis silme butonu gibi sunulmamalidir.',
       'ERPye gonder toplu secim mantigiyla tasarlanmistir.',
-      'Detay akisi header + KDV satiri + odeme satiri panellerine bolunmelidir.'
+      'Detay akisi header + KDV satiri + odeme satiri panellerine bolunmelidir.',
+      'Z raporu ice aktar endpointi parser hazir olana kadar basarisiz import satirlari dondurebilir.'
     ]
   },
   {
@@ -101,7 +109,8 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
     notes: [
       'Bu fazda satir duzeyi update kontrati yok; ekran header agirlikli tasarlanmalidir.',
       'Liste aksiyonu tarih bazli calisacakmis gibi simdiden kurulmalidir.',
-      'Toplu ERP gonderim secimi ileride coklu secim modeline baglanacaktir.'
+      'Toplu ERP gonderim secimi int tipindeki invoiceId degerleriyle calisir.',
+      'Import kaynagi Furpa/Mayday PosFaturas ve opsiyonel Vera FATURA verisini birlestirir.'
     ]
   },
   {
@@ -123,7 +132,8 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
     notes: [
       'POS faturalar tabiyla ayni liste + detay deneyimi korunmalidir.',
       'Header agirlikli update semantigi bu tabda da korunur.',
-      'Business veri henuz yok; placeholder kartlari ile bos durum anlatilmalidir.'
+      'Toplu ERP gonderim ve silme int tipindeki expenseId degerleriyle calisir.',
+      'Import yalniz BelgeTuru = 4 Furpa kaynakli gider pusulalarini staginge yazar.'
     ]
   },
   {
@@ -142,7 +152,7 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
     notes: [
       'Bu tab tarih filtresi istemez; master-data mantigiyla ele alinmalidir.',
       'Minimum alanlar cashRegisterNo ve branchNodur.',
-      'Gercek veri gelene kadar create/update butonlari scaffold mesajiyla birlikte gorunmelidir.'
+      'Create ve update cevaplari CashRegisterBranchMappingDto olarak okunmalidir.'
     ]
   }
 ];
@@ -170,7 +180,7 @@ export class PosMuhasebeAktarimiListComponent {
   private readonly defaultWarehouseNo = this.authService.currentUser()?.depoNo ?? null;
 
   protected readonly activeTab = signal<PosAccountingTabId>('z-raporlari');
-  protected readonly overview = signal<ModuleActionScaffoldResponseDto | null>(null);
+  protected readonly overview = signal<IPosAccountingOverviewApiDto | null>(null);
   protected readonly overviewAction = signal<PosAccountingActionState | null>(null);
   protected readonly tabActions = signal<Record<PosAccountingTabId, PosAccountingActionState | null>>({
     'z-raporlari': null,
@@ -205,6 +215,7 @@ export class PosMuhasebeAktarimiListComponent {
     businessDate: new FormControl<string>(this.getToday(), {
       nonNullable: true
     }),
+    reportPath: new FormControl<string>('', { nonNullable: true }),
     importMode: new FormControl<string>('Daily', { nonNullable: true }),
     sourceCode: new FormControl<string>('POS', { nonNullable: true }),
     overwriteExisting: new FormControl<boolean>(false, { nonNullable: true })
@@ -246,7 +257,7 @@ export class PosMuhasebeAktarimiListComponent {
     }),
     branchNo: new FormControl<number | null>(this.defaultWarehouseNo),
     branchName: new FormControl<string>('Kestel 1', { nonNullable: true }),
-    description: new FormControl<string>('Scaffold denemesi', { nonNullable: true })
+    description: new FormControl<string>('POS muhasebe esleme denemesi', { nonNullable: true })
   });
 
   protected readonly currentUserWarehouse = computed(
@@ -267,7 +278,7 @@ export class PosMuhasebeAktarimiListComponent {
     this.activeTabAction() ? this.formatJson(this.activeTabAction()!.requestPreview) : ''
   );
   protected readonly overviewJson = computed(() =>
-    this.overview() ? this.formatJson(this.overview()) : ''
+    this.overviewAction() ? this.formatJson(this.overviewAction()!.response) : ''
   );
   protected readonly heroStats = computed(() => [
     {
@@ -280,7 +291,7 @@ export class PosMuhasebeAktarimiListComponent {
     },
     {
       label: 'Calisma Durumu',
-      value: this.overview()?.isImplemented === false ? 'Scaffold / 501' : 'Aktif'
+      value: this.resolveOverviewStatus()
     },
     {
       label: 'Son Aksiyon',
@@ -294,9 +305,9 @@ export class PosMuhasebeAktarimiListComponent {
     'guncelle = staging header verisini duzenle'
   ] as const;
   protected readonly criticalBoundaries = [
-    'Bugun route, yetki ve HTTP contractlari acik; business response DTOlari henuz yok.',
-    'Tum endpointler su an 501 Not Implemented donebilir; UI bunu hata degil scaffold bilgisi olarak anlatmalidir.',
-    'Liste/detay kartlari bugunden cizilebilir, fakat veri alani yerine placeholder ve response mesaji gosterilmelidir.'
+    'Bu menu artik scaffold response degil, belge tipine gore business DTO dondurur.',
+    'Z raporu parseri ve ERP muhasebe fisi yazma henuz tamamlanmadi; sonuc satirlari uyari olarak okunmalidir.',
+    'Toplu gonderme ve silme requestlerinde DocumentIds GUID degil int koleksiyonudur.'
   ] as const;
 
   constructor() {
@@ -316,16 +327,20 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   protected loadOverview(): void {
-    this.executeScaffoldRequest(
+    const request = this.buildDateRangeRequest();
+
+    this.executeApiRequest(
       'overview',
       'Menu overview',
       null,
-      {
-        route: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi'
-      },
-      this.entegrasyonIslemleriService.getPosAccountingOverview(),
+      request,
+      this.entegrasyonIslemleriService.getPosAccountingOverview(request),
       (state: PosAccountingActionState) => {
-        this.overview.set(state.response);
+        this.overview.set(
+          this.isScaffoldResponse(state.response)
+            ? null
+            : (state.response as IPosAccountingOverviewApiDto)
+        );
         this.overviewAction.set(state);
       }
     );
@@ -334,7 +349,7 @@ export class PosMuhasebeAktarimiListComponent {
   protected loadZReportsList(): void {
     const request = this.buildDateRangeRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'z-list',
       'Z raporlari listele',
       'z-raporlari',
@@ -344,28 +359,27 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   protected loadZReportDetail(): void {
-    const reportId = this.detailForm.controls.reportId.value.trim();
+    const totalId = this.parsePositiveInt(this.detailForm.controls.reportId.value, 'Total Id');
 
-    if (!reportId) {
-      this.raiseMissingField('Report Id');
+    if (totalId === null) {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'z-detail',
       'Z raporu detay',
       'z-raporlari',
       {
-        reportId
+        totalId
       },
-      this.entegrasyonIslemleriService.getPosAccountingZReportDetail(reportId)
+      this.entegrasyonIslemleriService.getPosAccountingZReportDetail(totalId)
     );
   }
 
   protected importZReports(): void {
     const request = this.buildZReportImportRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'z-import',
       'Z raporu ice aktar',
       'z-raporlari',
@@ -381,7 +395,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'z-transfer',
       'Z raporu ERPye gonder',
       'z-raporlari',
@@ -397,7 +411,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'z-delete',
       'Z raporu staging sil',
       'z-raporlari',
@@ -409,7 +423,7 @@ export class PosMuhasebeAktarimiListComponent {
   protected loadInvoicesList(): void {
     const request = this.buildDateRangeRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'invoice-list',
       'POS faturalar listele',
       'pos-faturalar',
@@ -419,14 +433,13 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   protected loadInvoiceDetail(): void {
-    const invoiceId = this.detailForm.controls.invoiceId.value.trim();
+    const invoiceId = this.parsePositiveInt(this.detailForm.controls.invoiceId.value, 'Invoice Id');
 
-    if (!invoiceId) {
-      this.raiseMissingField('Invoice Id');
+    if (invoiceId === null) {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'invoice-detail',
       'POS fatura detay',
       'pos-faturalar',
@@ -440,7 +453,7 @@ export class PosMuhasebeAktarimiListComponent {
   protected importInvoices(): void {
     const request = this.buildDocumentImportRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'invoice-import',
       'POS fatura ice aktar',
       'pos-faturalar',
@@ -456,7 +469,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'invoice-transfer',
       'POS fatura ERPye gonder',
       'pos-faturalar',
@@ -466,16 +479,15 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   protected updateInvoice(): void {
-    const resourceId = this.updateForm.controls.resourceId.value.trim();
+    const resourceId = this.parsePositiveInt(this.updateForm.controls.resourceId.value, 'Invoice Id');
 
-    if (!resourceId) {
-      this.raiseMissingField('Invoice Id');
+    if (resourceId === null) {
       return;
     }
 
     const request = this.buildUpdateRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'invoice-update',
       'POS fatura guncelle',
       'pos-faturalar',
@@ -494,7 +506,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'invoice-delete',
       'POS fatura staging sil',
       'pos-faturalar',
@@ -506,7 +518,7 @@ export class PosMuhasebeAktarimiListComponent {
   protected loadExpenseNotesList(): void {
     const request = this.buildDateRangeRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'expense-list',
       'Gider pusulalari listele',
       'gider-pusulalari',
@@ -516,14 +528,13 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   protected loadExpenseNoteDetail(): void {
-    const expenseId = this.detailForm.controls.expenseId.value.trim();
+    const expenseId = this.parsePositiveInt(this.detailForm.controls.expenseId.value, 'Expense Id');
 
-    if (!expenseId) {
-      this.raiseMissingField('Expense Id');
+    if (expenseId === null) {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'expense-detail',
       'Gider pusulasi detay',
       'gider-pusulalari',
@@ -537,7 +548,7 @@ export class PosMuhasebeAktarimiListComponent {
   protected importExpenseNotes(): void {
     const request = this.buildDocumentImportRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'expense-import',
       'Gider pusulasi ice aktar',
       'gider-pusulalari',
@@ -553,7 +564,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'expense-transfer',
       'Gider pusulasi ERPye gonder',
       'gider-pusulalari',
@@ -563,16 +574,15 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   protected updateExpenseNote(): void {
-    const resourceId = this.updateForm.controls.resourceId.value.trim();
+    const resourceId = this.parsePositiveInt(this.updateForm.controls.resourceId.value, 'Expense Id');
 
-    if (!resourceId) {
-      this.raiseMissingField('Expense Id');
+    if (resourceId === null) {
       return;
     }
 
     const request = this.buildUpdateRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'expense-update',
       'Gider pusulasi guncelle',
       'gider-pusulalari',
@@ -591,7 +601,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'expense-delete',
       'Gider pusulasi staging sil',
       'gider-pusulalari',
@@ -603,7 +613,7 @@ export class PosMuhasebeAktarimiListComponent {
   protected loadCashRegisterMappings(): void {
     const request = this.buildMappingListRequest();
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'mapping-list',
       'Kasa eslemeleri listele',
       'kasa-eslemeleri',
@@ -619,7 +629,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'mapping-create',
       'Kasa eslemesi olustur',
       'kasa-eslemeleri',
@@ -629,10 +639,9 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   protected updateCashRegisterMapping(): void {
-    const mappingId = this.mappingForm.controls.mappingId.value.trim();
+    const mappingId = this.parsePositiveInt(this.mappingForm.controls.mappingId.value, 'Mapping Id');
 
-    if (!mappingId) {
-      this.raiseMissingField('Mapping Id');
+    if (mappingId === null) {
       return;
     }
 
@@ -642,7 +651,7 @@ export class PosMuhasebeAktarimiListComponent {
       return;
     }
 
-    this.executeScaffoldRequest(
+    this.executeApiRequest(
       'mapping-update',
       'Kasa eslemesi guncelle',
       'kasa-eslemeleri',
@@ -680,19 +689,135 @@ export class PosMuhasebeAktarimiListComponent {
       return 'status-pill-neutral';
     }
 
-    if (state.status >= 500 || state.response.isImplemented === false) {
+    if (
+      state.status >= 500 ||
+      this.isScaffoldResponse(state.response) ||
+      this.hasFailedResults(state.response)
+    ) {
       return 'status-pill-warn';
     }
 
     return 'status-pill-success';
   }
 
-  private executeScaffoldRequest(
+  protected getResponseSummaryItems(response: unknown): readonly PosAccountingSummaryItem[] {
+    if (this.isScaffoldResponse(response)) {
+      return [
+        { label: 'Action', value: response.actionCode },
+        { label: 'Method', value: response.httpMethod },
+        { label: 'Route', value: response.route },
+        { label: 'Implemented', value: response.isImplemented ? 'true' : 'false' }
+      ];
+    }
+
+    if (Array.isArray(response)) {
+      return [
+        { label: 'Kayit', value: `${response.length}` },
+        { label: 'DTO', value: this.resolveArrayResponseName(response) }
+      ];
+    }
+
+    if (!this.isRecord(response)) {
+      return [{ label: 'Response', value: this.formatValue(response) }];
+    }
+
+    if (this.isImportResponse(response)) {
+      return [
+        { label: 'Document Kind', value: this.formatValue(response['documentKind']) },
+        { label: 'Imported', value: this.formatValue(response['importedCount']) },
+        { label: 'Skipped', value: this.formatValue(response['skippedCount']) },
+        { label: 'Errors', value: this.formatValue(response['errorCount']) }
+      ];
+    }
+
+    if (this.isBatchResponse(response)) {
+      return [
+        { label: 'Document Kind', value: this.formatValue(response['documentKind']) },
+        { label: 'Requested', value: this.formatValue(response['requestedCount']) },
+        { label: 'Success', value: this.formatValue(response['successCount']) },
+        { label: 'Errors', value: this.formatValue(response['errorCount']) }
+      ];
+    }
+
+    if (this.isDetailResponse(response)) {
+      return [
+        { label: 'Header', value: response['header'] ? 'var' : '-' },
+        { label: 'Lines', value: this.formatValue(response['lines']) },
+        { label: 'Details', value: this.formatValue(response['details']) },
+        { label: 'Bank Details', value: this.formatValue(response['bankDetails']) }
+      ];
+    }
+
+    if ('cashRegisterNo' in response) {
+      return [
+        { label: 'Mapping Id', value: this.formatValue(response['id']) },
+        { label: 'Kasa No', value: this.formatValue(response['cashRegisterNo']) },
+        { label: 'Sube No', value: this.formatValue(response['branchNo']) },
+        { label: 'Sube', value: this.formatValue(response['branchName']) }
+      ];
+    }
+
+    return Object.entries(response)
+      .filter(([, value]) => this.isSummaryValue(value))
+      .slice(0, 4)
+      .map(([key, value]) => ({
+        label: this.toDisplayLabel(key),
+        value: this.formatValue(value)
+      }));
+  }
+
+  protected getResponseMessage(response: unknown, label: string): string {
+    return this.resolveResponseMessage(response, label);
+  }
+
+  protected getPreviewRows(response: unknown): readonly Record<string, unknown>[] {
+    if (Array.isArray(response)) {
+      return response.filter((item): item is Record<string, unknown> => this.isRecord(item)).slice(0, 8);
+    }
+
+    if (this.isRecord(response)) {
+      const header = response['header'];
+
+      if (this.isRecord(header)) {
+        return [header];
+      }
+
+      if ('cashRegisterNo' in response || 'id' in response) {
+        return [response];
+      }
+    }
+
+    return [];
+  }
+
+  protected getPreviewColumns(response: unknown): readonly string[] {
+    const firstRow = this.getPreviewRows(response)[0];
+
+    return firstRow ? Object.keys(firstRow).slice(0, 8) : [];
+  }
+
+  protected getOperationResults(
+    response: unknown
+  ): readonly IPosAccountingOperationResultApiDto[] {
+    if (!this.isRecord(response) || !Array.isArray(response['results'])) {
+      return [];
+    }
+
+    return response['results'].filter((item): item is IPosAccountingOperationResultApiDto =>
+      this.isOperationResult(item)
+    );
+  }
+
+  protected formatCell(row: Record<string, unknown>, column: string): string {
+    return this.formatValue(row[column]);
+  }
+
+  private executeApiRequest<TResponse>(
     actionKey: string,
     actionLabel: string,
     tabId: PosAccountingTabId | null,
     requestPreview: unknown,
-    request$: Observable<ModuleActionScaffoldResponseDto>,
+    request$: Observable<TResponse>,
     onState?: (state: PosAccountingActionState) => void
   ): void {
     this.busyAction.set(actionKey);
@@ -703,7 +828,7 @@ export class PosMuhasebeAktarimiListComponent {
         finalize(() => this.busyAction.set(null))
       )
       .subscribe({
-        next: (response: ModuleActionScaffoldResponseDto) => {
+        next: (response: TResponse) => {
           const state = this.buildActionState(actionLabel, 200, requestPreview, response);
           this.applyActionState(tabId, state, onState);
         },
@@ -747,13 +872,16 @@ export class PosMuhasebeAktarimiListComponent {
 
     onState?.(state);
 
-    const isScaffold = state.status === 501 || state.response.isImplemented === false;
+    const isScaffold = this.isScaffoldResponse(state.response);
+    const tone = this.resolveResponseTone(state);
     this.feedback.set({
-      tone: isScaffold ? 'info' : 'success',
+      tone,
       title: isScaffold
         ? `${state.label}: backend scaffold modunda`
-        : `${state.label}: basarili`,
-      message: state.response.message
+        : tone === 'warning'
+          ? `${state.label}: uyari var`
+          : `${state.label}: basarili`,
+      message: this.resolveResponseMessage(state.response, state.label)
     });
   }
 
@@ -761,7 +889,7 @@ export class PosMuhasebeAktarimiListComponent {
     label: string,
     status: number,
     requestPreview: unknown,
-    response: ModuleActionScaffoldResponseDto
+    response: unknown
   ): PosAccountingActionState {
     return {
       label,
@@ -777,24 +905,180 @@ export class PosMuhasebeAktarimiListComponent {
   ): ModuleActionScaffoldResponseDto | null {
     const payload = error.error;
 
-    if (typeof payload !== 'object' || payload === null) {
-      return null;
+    return this.isScaffoldResponse(payload) ? payload : null;
+  }
+
+  private resolveOverviewStatus(): string {
+    const response = this.overviewAction()?.response;
+
+    if (this.isScaffoldResponse(response)) {
+      return response.isImplemented === false ? 'Scaffold / 501' : 'Scaffold';
     }
 
-    if (
-      'moduleCode' in payload &&
-      'menuCode' in payload &&
-      'actionCode' in payload &&
-      'httpMethod' in payload &&
-      'permissionCode' in payload &&
-      'route' in payload &&
-      'isImplemented' in payload &&
-      'message' in payload
-    ) {
-      return payload as ModuleActionScaffoldResponseDto;
+    return this.overview() ? 'Business DTO' : 'Hazir';
+  }
+
+  private resolveResponseTone(state: PosAccountingActionState): FeedbackTone {
+    if (state.status >= 400 && !this.isScaffoldResponse(state.response)) {
+      return 'error';
     }
 
-    return null;
+    if (this.isScaffoldResponse(state.response)) {
+      return 'info';
+    }
+
+    if (this.hasFailedResults(state.response)) {
+      return 'warning';
+    }
+
+    return 'success';
+  }
+
+  private resolveResponseMessage(response: unknown, label: string): string {
+    if (this.isScaffoldResponse(response)) {
+      return response.message;
+    }
+
+    if (Array.isArray(response)) {
+      return `${label} ${response.length} kayit dondurdu.`;
+    }
+
+    if (!this.isRecord(response)) {
+      return `${label} response alindi.`;
+    }
+
+    if (this.isImportResponse(response)) {
+      return `${response['documentKind']} import sonucu: ${response['importedCount']} aktarildi, ${response['skippedCount']} atlandi, ${response['errorCount']} hata.`;
+    }
+
+    if (this.isBatchResponse(response)) {
+      return `${response['documentKind']} batch sonucu: ${response['successCount']}/${response['requestedCount']} basarili, ${response['errorCount']} hata.`;
+    }
+
+    return `${label} business DTO response alindi.`;
+  }
+
+  private hasFailedResults(response: unknown): boolean {
+    if (this.isRecord(response) && typeof response['errorCount'] === 'number' && response['errorCount'] > 0) {
+      return true;
+    }
+
+    return this.getOperationResults(response).some((item) => item.success === false);
+  }
+
+  private isScaffoldResponse(value: unknown): value is ModuleActionScaffoldResponseDto {
+    if (!this.isRecord(value)) {
+      return false;
+    }
+
+    return (
+      'moduleCode' in value &&
+      'menuCode' in value &&
+      'actionCode' in value &&
+      'httpMethod' in value &&
+      'permissionCode' in value &&
+      'route' in value &&
+      'isImplemented' in value &&
+      'message' in value
+    );
+  }
+
+  private isImportResponse(value: Record<string, unknown>): boolean {
+    return (
+      'importedCount' in value &&
+      'skippedCount' in value &&
+      'errorCount' in value &&
+      'results' in value
+    );
+  }
+
+  private isBatchResponse(value: Record<string, unknown>): boolean {
+    return (
+      'requestedCount' in value &&
+      'successCount' in value &&
+      'errorCount' in value &&
+      'results' in value
+    );
+  }
+
+  private isDetailResponse(value: Record<string, unknown>): boolean {
+    return 'header' in value && ('lines' in value || 'details' in value || 'bankDetails' in value);
+  }
+
+  private isOperationResult(value: unknown): value is IPosAccountingOperationResultApiDto {
+    return this.isRecord(value) && typeof value['success'] === 'boolean';
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return typeof value === 'object' && value !== null && !Array.isArray(value);
+  }
+
+  private isSummaryValue(value: unknown): boolean {
+    return (
+      value === null ||
+      value === undefined ||
+      typeof value === 'string' ||
+      typeof value === 'number' ||
+      typeof value === 'boolean'
+    );
+  }
+
+  private resolveArrayResponseName(value: readonly unknown[]): string {
+    const firstItem = value.find((item) => this.isRecord(item));
+
+    if (!this.isRecord(firstItem)) {
+      return 'Liste';
+    }
+
+    if ('totalId' in firstItem) {
+      return 'ZReportListItemDto[]';
+    }
+
+    if ('invoiceId' in firstItem) {
+      return 'BranchInvoiceListItemDto[]';
+    }
+
+    if ('expenseId' in firstItem) {
+      return 'ExpenseNoteListItemDto[]';
+    }
+
+    if ('cashRegisterNo' in firstItem) {
+      return 'CashRegisterBranchMappingDto[]';
+    }
+
+    return 'Liste';
+  }
+
+  private formatValue(value: unknown): string {
+    if (value === null || value === undefined || value === '') {
+      return '-';
+    }
+
+    if (Array.isArray(value)) {
+      return `${value.length} satir`;
+    }
+
+    if (typeof value === 'number') {
+      return new Intl.NumberFormat('tr-TR', {
+        maximumFractionDigits: 2
+      }).format(value);
+    }
+
+    if (typeof value === 'boolean') {
+      return value ? 'true' : 'false';
+    }
+
+    if (typeof value === 'string') {
+      return value;
+    }
+
+    return 'Object';
+  }
+
+  private toDisplayLabel(value: string): string {
+    return value
+      .replace(/([a-z0-9])([A-Z])/g, '$1 $2')
+      .replace(/^./, (firstLetter) => firstLetter.toLocaleUpperCase('tr-TR'));
   }
 
   private buildDateRangeRequest(): IPosAccountingDateRangeHttpRequestApiDto {
@@ -810,6 +1094,7 @@ export class PosMuhasebeAktarimiListComponent {
     return {
       warehouseNo: this.zReportImportForm.controls.warehouseNo.value,
       businessDate: this.zReportImportForm.controls.businessDate.value || null,
+      reportPath: this.normalizeOptionalText(this.zReportImportForm.controls.reportPath.value),
       importMode: this.zReportImportForm.controls.importMode.value.trim() || null,
       sourceCode: this.zReportImportForm.controls.sourceCode.value.trim() || null,
       overwriteExisting: this.zReportImportForm.controls.overwriteExisting.value
@@ -829,6 +1114,10 @@ export class PosMuhasebeAktarimiListComponent {
   private buildTransferRequest(): IPosAccountingTransferHttpRequestApiDto | null {
     const documentIds = this.parseDocumentIds(this.transferForm.controls.documentIdsText.value);
 
+    if (documentIds === null) {
+      return null;
+    }
+
     if (!documentIds.length) {
       this.raiseMissingField('Document Id listesi');
       return null;
@@ -843,6 +1132,10 @@ export class PosMuhasebeAktarimiListComponent {
 
   private buildDeleteRequest(): IPosAccountingDeleteHttpRequestApiDto | null {
     const documentIds = this.parseDocumentIds(this.deleteForm.controls.documentIdsText.value);
+
+    if (documentIds === null) {
+      return null;
+    }
 
     if (!documentIds.length) {
       this.raiseMissingField('Silinecek Document Id listesi');
@@ -890,11 +1183,43 @@ export class PosMuhasebeAktarimiListComponent {
     };
   }
 
-  private parseDocumentIds(rawValue: string): string[] {
-    return rawValue
+  private parseDocumentIds(rawValue: string): number[] | null {
+    const tokens = rawValue
       .split(/[\s,;\r\n]+/)
       .map((item) => item.trim())
-      .filter((item, index, items) => !!item && items.indexOf(item) === index);
+      .filter(Boolean);
+    const invalidTokens = tokens.filter((item) => !/^\d+$/.test(item));
+
+    if (invalidTokens.length) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'DocumentIds tipi hatali',
+        message: `DocumentIds int koleksiyonu olmali. Gecersiz deger: ${invalidTokens[0]}`
+      });
+      return null;
+    }
+
+    return Array.from(new Set(tokens.map((item) => Number(item))));
+  }
+
+  private parsePositiveInt(rawValue: string, fieldLabel: string): number | null {
+    const normalizedValue = rawValue.trim();
+
+    if (!normalizedValue) {
+      this.raiseMissingField(fieldLabel);
+      return null;
+    }
+
+    if (!/^\d+$/.test(normalizedValue)) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Id tipi hatali',
+        message: `${fieldLabel} int tipinde olmalidir.`
+      });
+      return null;
+    }
+
+    return Number(normalizedValue);
   }
 
   private normalizeOptionalText(value: string): string | null {
@@ -906,7 +1231,7 @@ export class PosMuhasebeAktarimiListComponent {
     this.feedback.set({
       tone: 'error',
       title: 'Gerekli alan eksik',
-      message: `${fieldLabel} girmeden bu scaffold aksiyonu cagrilamaz.`
+      message: `${fieldLabel} girmeden bu aksiyon cagrilamaz.`
     });
   }
 

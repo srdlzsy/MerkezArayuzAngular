@@ -4,8 +4,8 @@
       <p class="eyebrow">Entegrasyon Islemleri</p>
       <h2>{{ page.title }}</h2>
       <p class="subtitle">
-        POS muhasebe aktarimi menusunu tek sayfali 4 tab omurgasiyla hazirlar. Backend henuz
-        scaffold modunda olsa da route, request contract ve kullanici dili bugunden sabitlenir.
+        POS muhasebe aktarimi menusunu tek sayfali 4 tab omurgasiyla hazirlar. Backend artik
+        belge tipine gore business DTO dondurur; Z parser ve ERP fisi adimlari kismi durumdadir.
       </p>
 
       <div class="hero-actions">
@@ -37,6 +37,7 @@
     [class.is-success]="currentFeedback.tone === 'success'"
     [class.is-error]="currentFeedback.tone === 'error'"
     [class.is-info]="currentFeedback.tone === 'info'"
+    [class.is-warning]="currentFeedback.tone === 'warning'"
   >
     <h3>{{ currentFeedback.title }}</h3>
     <p>{{ currentFeedback.message }}</p>
@@ -44,9 +45,9 @@
 
   <section class="metrics-grid">
     <article class="metric-card">
-      <span>Scaffold Durumu</span>
-      <strong>{{ overview()?.isImplemented === false ? 'Hazir ama backend baglanmadi' : 'Aktif' }}</strong>
-      <p>501 cevabi geldiğinde aksiyon kartlari response mesajini aynen gosterir.</p>
+      <span>Response Durumu</span>
+      <strong>Business DTO</strong>
+      <p>Liste, detay, import, update, batch ve mapping cevaplari kendi DTO modeliyle okunur.</p>
     </article>
     <article class="metric-card">
       <span>Toolbar Dili</span>
@@ -55,8 +56,8 @@
     </article>
     <article class="metric-card">
       <span>Liste Davranisi</span>
-      <strong>Placeholder + Empty State</strong>
-      <p>Gercek veri modelleri gelene kadar business grid yerine iskelet kartlar kalir.</p>
+      <strong>OnlyPending default</strong>
+      <p>Bekleyen staging kayitlari varsayilan gelir; tum/arsiv gorunumu icin OnlyPending kapatilir.</p>
     </article>
   </section>
 
@@ -132,11 +133,11 @@
     <article class="panel action-panel">
       <div class="panel-head">
         <div>
-          <p class="section-kicker">Scaffold Aksiyonlari</p>
+          <p class="section-kicker">API Aksiyonlari</p>
           <h3>Endpoint kontratlarini simdiden dogrula</h3>
           <p>
-            Bu panel her sekmenin route ailesini cagirir. Backend 501 donse bile action code, route
-            ve message bilgisi operasyona gorunur kalir.
+            Bu panel her sekmenin route ailesini cagirir. Gelen business DTO, request preview,
+            liste onizlemesi ve batch result satirlari operasyona gorunur kalir.
           </p>
         </div>
       </div>
@@ -146,7 +147,7 @@
           <section class="form-section" [formGroup]="rangeForm">
             <div class="section-head">
               <h4>Liste ve Detay</h4>
-              <p>Tarih/depo filtresiyle listele, gerekiyorsa tek bir reportId detayini cagir.</p>
+              <p>Tarih/depo filtresiyle listele, gerekiyorsa tek bir totalId detayini cagir.</p>
             </div>
 
             <div class="field-row">
@@ -170,8 +171,8 @@
 
             <div class="field-row" [formGroup]="detailForm">
               <label class="field field-wide">
-                <span>Report Id</span>
-                <input type="text" formControlName="reportId" placeholder="3f905cf7-..." />
+                <span>Total Id</span>
+                <input type="text" formControlName="reportId" placeholder="125" />
               </label>
             </div>
 
@@ -188,7 +189,7 @@
           <section class="form-section" [formGroup]="zReportImportForm">
             <div class="section-head">
               <h4>Ice Aktar</h4>
-              <p>Scaffold import request'i businessDate, importMode ve sourceCode ile kurulur.</p>
+              <p>Import request'i businessDate, reportPath, importMode ve sourceCode ile kurulur.</p>
             </div>
 
             <div class="field-row">
@@ -199,6 +200,10 @@
               <label class="field">
                 <span>Business Date</span>
                 <input type="date" formControlName="businessDate" />
+              </label>
+              <label class="field field-wide">
+                <span>Report Path</span>
+                <input type="text" formControlName="reportPath" placeholder="\\server\\zreports\\2026-06-09" />
               </label>
               <label class="field">
                 <span>Import Mode</span>
@@ -234,7 +239,7 @@
               </label>
               <label class="field field-wide">
                 <span>Document Ids</span>
-                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+                <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
               <label class="field checkbox-field">
                 <span>Continue On Error</span>
@@ -249,7 +254,7 @@
               </label>
               <label class="field field-wide">
                 <span>Silinecek Document Ids</span>
-                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+                <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
             </div>
 
@@ -293,7 +298,7 @@
             <div class="field-row" [formGroup]="detailForm">
               <label class="field field-wide">
                 <span>Invoice Id</span>
-                <input type="text" formControlName="invoiceId" placeholder="f7d6c50d-..." />
+                <input type="text" formControlName="invoiceId" placeholder="125" />
               </label>
             </div>
 
@@ -348,7 +353,7 @@
             <div class="field-row">
               <label class="field field-wide">
                 <span>Invoice Id</span>
-                <input type="text" formControlName="resourceId" placeholder="f7d6c50d-..." />
+                <input type="text" formControlName="resourceId" placeholder="125" />
               </label>
               <label class="field">
                 <span>Document No</span>
@@ -379,7 +384,7 @@
               </label>
               <label class="field field-wide">
                 <span>ERP Document Ids</span>
-                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+                <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
               <label class="field checkbox-field">
                 <span>Continue On Error</span>
@@ -394,7 +399,7 @@
               </label>
               <label class="field field-wide">
                 <span>Silinecek Document Ids</span>
-                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+                <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
             </div>
 
@@ -441,7 +446,7 @@
             <div class="field-row" [formGroup]="detailForm">
               <label class="field field-wide">
                 <span>Expense Id</span>
-                <input type="text" formControlName="expenseId" placeholder="9e3a0a0d-..." />
+                <input type="text" formControlName="expenseId" placeholder="125" />
               </label>
             </div>
 
@@ -496,7 +501,7 @@
             <div class="field-row">
               <label class="field field-wide">
                 <span>Expense Id</span>
-                <input type="text" formControlName="resourceId" placeholder="9e3a0a0d-..." />
+                <input type="text" formControlName="resourceId" placeholder="125" />
               </label>
               <label class="field">
                 <span>Document No</span>
@@ -527,7 +532,7 @@
               </label>
               <label class="field field-wide">
                 <span>ERP Document Ids</span>
-                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+                <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
               <label class="field checkbox-field">
                 <span>Continue On Error</span>
@@ -542,7 +547,7 @@
               </label>
               <label class="field field-wide">
                 <span>Silinecek Document Ids</span>
-                <textarea formControlName="documentIdsText" placeholder="guid-1, guid-2"></textarea>
+                <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
             </div>
 
@@ -629,38 +634,26 @@
   </section>
 
   <section class="response-grid">
-    <article class="panel response-panel" *ngIf="overview() as overviewResponse">
+    <article class="panel response-panel" *ngIf="overviewAction() as overviewState">
       <div class="panel-head compact">
         <div>
           <p class="section-kicker">Menu Response</p>
-          <h3>{{ overviewAction()?.label || 'Overview' }}</h3>
-          <p>{{ overviewAction() ? formatTimestamp(overviewAction()!.occurredAt) : '-' }}</p>
+          <h3>{{ overviewState.label }}</h3>
+          <p>{{ formatTimestamp(overviewState.occurredAt) }}</p>
         </div>
-        <span class="status-pill" [class]="getStatusClass(overviewAction())">
-          {{ overviewAction()?.status || 200 }}
+        <span class="status-pill" [class]="getStatusClass(overviewState)">
+          {{ overviewState.status }}
         </span>
       </div>
 
       <div class="response-summary-grid">
-        <article class="summary-card">
-          <span>Action</span>
-          <strong>{{ overviewResponse.actionCode }}</strong>
-        </article>
-        <article class="summary-card">
-          <span>Method</span>
-          <strong>{{ overviewResponse.httpMethod }}</strong>
-        </article>
-        <article class="summary-card">
-          <span>Route</span>
-          <strong>{{ overviewResponse.route }}</strong>
-        </article>
-        <article class="summary-card">
-          <span>Implemented</span>
-          <strong>{{ overviewResponse.isImplemented ? 'true' : 'false' }}</strong>
+        <article class="summary-card" *ngFor="let item of getResponseSummaryItems(overviewState.response)">
+          <span>{{ item.label }}</span>
+          <strong>{{ item.value }}</strong>
         </article>
       </div>
 
-      <p class="response-message">{{ overviewResponse.message }}</p>
+      <p class="response-message">{{ getResponseMessage(overviewState.response, overviewState.label) }}</p>
 
       <details class="json-block">
         <summary>Overview JSON</summary>
@@ -682,25 +675,52 @@
 
       <ng-container *ngIf="activeTabAction() as action; else emptyActionState">
         <div class="response-summary-grid">
-          <article class="summary-card">
-            <span>Module/Menu</span>
-            <strong>{{ action.response.moduleCode }} / {{ action.response.menuCode }}</strong>
-          </article>
-          <article class="summary-card">
-            <span>Permission</span>
-            <strong>{{ action.response.permissionCode }}</strong>
-          </article>
-          <article class="summary-card">
-            <span>Action</span>
-            <strong>{{ action.response.actionCode }}</strong>
-          </article>
-          <article class="summary-card">
-            <span>Resource Id</span>
-            <strong>{{ action.response.resourceId || '-' }}</strong>
+          <article class="summary-card" *ngFor="let item of getResponseSummaryItems(action.response)">
+            <span>{{ item.label }}</span>
+            <strong>{{ item.value }}</strong>
           </article>
         </div>
 
-        <p class="response-message">{{ action.response.message }}</p>
+        <p class="response-message">{{ getResponseMessage(action.response, action.label) }}</p>
+
+        <div class="data-preview" *ngIf="getPreviewRows(action.response).length">
+          <div class="data-preview-head">
+            <h4>DTO Onizleme</h4>
+            <span>{{ getPreviewRows(action.response).length }} satir</span>
+          </div>
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th *ngFor="let column of getPreviewColumns(action.response)">{{ column }}</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of getPreviewRows(action.response)">
+                  <td *ngFor="let column of getPreviewColumns(action.response)">
+                    {{ formatCell(row, column) }}
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </div>
+
+        <div class="operation-results" *ngIf="getOperationResults(action.response).length">
+          <div class="data-preview-head">
+            <h4>Batch / Import Sonuclari</h4>
+            <span>{{ getOperationResults(action.response).length }} satir</span>
+          </div>
+          <article
+            class="result-row"
+            *ngFor="let result of getOperationResults(action.response)"
+            [class.is-failed]="result.success === false"
+          >
+            <strong>{{ result.documentId ?? '-' }}</strong>
+            <span>{{ result.success ? 'Basarili' : 'Hatali' }}</span>
+            <p>{{ result.message || '-' }}</p>
+          </article>
+        </div>
 
         <details class="json-block">
           <summary>Request Preview</summary>
@@ -716,7 +736,7 @@
       <ng-template #emptyActionState>
         <div class="empty-state">
           <h4>Aksiyon sonucu henuz yok</h4>
-          <p>Secili tabdaki bir kontrat butonuna basildiginda scaffold response ayrintisi burada gosterilir.</p>
+          <p>Secili tabdaki bir kontrat butonuna basildiginda business DTO ayrintisi burada gosterilir.</p>
         </div>
       </ng-template>
     </article>

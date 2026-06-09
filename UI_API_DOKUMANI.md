@@ -14,7 +14,9 @@ Bu dokuman, mevcut backend durumuna gore frontend/UI tasarimi ve entegrasyonu ic
 
 ## Mobil Offline Pilot Kurallari
 
-Bu surumde mobil offline pilot sadece iki create akisinda vardir:
+Bu bolum mobil uygulamanin offline iken olusturdugu fisleri internet geldiginde guvenli sekilde backend'e gondermesi icin create retry kurallarini anlatir.
+
+Offline create pilotu su iki create akisinda vardir:
 
 - `POST /api/mal-kabul-islemleri/firma-mal-kabulleri`
 - `POST /api/stok-islemleri/sayim-sonuclari`
@@ -55,6 +57,279 @@ Ortak offline status response modeli:
 - `Processing`: istek backend tarafinda rezerve edildi, islem tamamlanmadi veya sonuc henuz toparlanamadi
 - `Completed`: istek basariyla tamamlandi; `result` alaninda asil business response bulunur
 - `Failed`: son deneme hata ile kapandi; `errorMessage` dolu olabilir. Ayni payload ile retry yapilabilir, ama payload degistiyse yeni `clientRequestId` kullanilmalidir
+
+## Mobil Urun-Fiyat Katalog Sync
+
+Mobil el terminali online iken depo bazli urun, barkod ve fiyat katalogunu indirip kendi local veritabanina kaydedebilir. Cihaz offline oldugunda barkod okutma API'ye gitmeden bu local katalog uzerinden yapilmalidir.
+
+Endpoint:
+
+```text
+GET /api/mobile-sync/urun-fiyat-katalogu
+```
+
+Yetki:
+
+- `Authorization: Bearer {token}` zorunludur.
+- `arama-islemleri.fiyat-gor.list` permission'i gerekir.
+- `warehouseNo` verilmezse JWT icindeki depo kullanilir.
+
+Query:
+
+```text
+warehouseNo    opsiyonel; verilmezse JWT icindeki depo kullanilir
+since          opsiyonel; onceki tamamlanmis syncToken, ISO 8601 tarih
+cursor         opsiyonel; hasMore=true ise backend'in verdigi nextCursor
+pageSize       opsiyonel; default 5000, max 10000
+```
+
+Ilk tam indirme:
+
+```text
+GET /api/mobile-sync/urun-fiyat-katalogu?warehouseNo=110&pageSize=5000
+```
+
+Devam sayfasi:
+
+```text
+GET /api/mobile-sync/urun-fiyat-katalogu?warehouseNo=110&pageSize=5000&cursor={nextCursor}
+```
+
+Degisenleri alma:
+
+```text
+GET /api/mobile-sync/urun-fiyat-katalogu?warehouseNo=110&since=2026-06-08T10:30:00
+```
+
+Response:
+
+```json
+{
+  "warehouseNo": 110,
+  "generatedAt": "2026-06-08T10:35:00",
+  "since": "2026-06-08T10:30:00",
+  "syncToken": null,
+  "nextCursor": "eyJzdG9ja0NvZGUiOiIwMTU1NTAiLCJiYXJjb2RlIjoiODY5MDAwMDAwMDAwMCJ9",
+  "hasMore": true,
+  "pageSize": 5000,
+  "items": [
+    {
+      "warehouseNo": 110,
+      "barcode": "8690000000000",
+      "lookupSource": "barcode",
+      "stockCode": "015550",
+      "stockName": "Stok Adi",
+      "price": 125.5,
+      "priceTypeCode": 1,
+      "unitPointer": 1,
+      "unitName": "AD",
+      "unitMultiplier": 1,
+      "secondaryUnitName": "KOLI",
+      "secondaryUnitMultiplier": 12,
+      "salesBlockCode": 0,
+      "orderBlockCode": 0,
+      "goodsAcceptanceBlockCode": 0,
+      "isSalesBlocked": false,
+      "isOrderBlocked": false,
+      "isGoodsAcceptanceBlocked": false,
+      "isPassive": false,
+      "isDeleted": false,
+      "productManagerCode": "PER001",
+      "updatedAt": "2026-06-08T10:20:00"
+    }
+  ],
+  "deletedBarcodes": []
+}
+```
+
+Paging ve sync token kurali:
+
+- `hasMore = true` ise mobil `nextCursor` ile sonraki sayfayi istemelidir.
+- `cursor` icinde sync penceresi bilgisi de vardir; devam sayfalarinda `since` tekrar gonderilmek zorunda degildir.
+- `syncToken` sadece `hasMore = false` oldugunda kalici olarak saklanmalidir.
+- Sonraki sync'te mobil bu degeri `since` olarak gondermelidir.
+- Mobil local DB kayitlarini `barcode + warehouseNo` anahtariyla upsert etmelidir.
+- `deletedBarcodes` icindeki barkodlar local DB'den silinmeli veya pasif isaretlenmelidir.
+- Offline okutma sirasinda bulunan fiyat son basarili sync anindaki fiyattir; UI'da "son guncelleme" bilgisi gosterilmelidir.
+- Sync tekrarinda ayni barkodlar tekrar gelebilir; mobil upsert islemi idempotent olmalidir.
+
+Mobil offline okuma akisi:
+
+```text
+Online:
+1. Mobil katalog endpoint'ini cagirir.
+2. hasMore=true oldukca nextCursor ile devam eder.
+3. Gelen items local DB'ye yazilir.
+4. hasMore=false oldugunda syncToken saklanir.
+
+Offline:
+1. Kullanici barkod okutur.
+2. Mobil barcode + warehouseNo ile local DB'den urunu bulur.
+3. Fiyat, stok adi, birim ve blok bilgileri local kayittan gosterilir.
+```
+
+## Mobil Cari Katalog Sync
+
+Mobil el terminali online iken cari/firma katalogunu indirip kendi local veritabanina kaydedebilir. Cihaz offline iken mal kabul, siparis veya iade ekranlarindaki cari secimi bu local katalog uzerinden yapilabilir.
+
+Endpoint:
+
+```text
+GET /api/mobile-sync/cari-katalogu
+```
+
+Yetki:
+
+- `Authorization: Bearer {token}` zorunludur.
+- Ek menu/action permission'i yoktur; login olan kullanici kullanabilir.
+
+Query:
+
+```text
+since          opsiyonel; onceki tamamlanmis syncToken, ISO 8601 tarih
+cursor         opsiyonel; hasMore=true ise backend'in verdigi nextCursor
+pageSize       opsiyonel; default 5000, max 10000
+```
+
+Ilk tam indirme:
+
+```text
+GET /api/mobile-sync/cari-katalogu?pageSize=5000
+```
+
+Devam sayfasi:
+
+```text
+GET /api/mobile-sync/cari-katalogu?pageSize=5000&cursor={nextCursor}
+```
+
+Degisenleri alma:
+
+```text
+GET /api/mobile-sync/cari-katalogu?since=2026-06-08T10:30:00
+```
+
+Response:
+
+```json
+{
+  "generatedAt": "2026-06-08T10:35:00",
+  "since": "2026-06-08T10:30:00",
+  "syncToken": null,
+  "nextCursor": "eyJjdXN0b21lckNvZGUiOiIxMjAuMDEuMDMxMDYifQ",
+  "hasMore": true,
+  "pageSize": 5000,
+  "items": [
+    {
+      "customerCode": "120.01.03106",
+      "customerName": "Firma Adi",
+      "customerTitle": "Ticaret Ltd.",
+      "customerDisplayName": "Firma Adi Ticaret Ltd.",
+      "taxNumber": "1234567890",
+      "representativeCode": "PER001",
+      "representativeName": "Satis Temsilcisi",
+      "invoiceAddressNo": 1,
+      "shippingAddressNo": 1,
+      "isLocked": false,
+      "isClosed": false,
+      "isDeleted": false,
+      "updatedAt": "2026-06-08T10:20:00"
+    }
+  ],
+  "deletedCustomerCodes": []
+}
+```
+
+Sync kurali:
+
+- `hasMore = true` ise mobil `nextCursor` ile sonraki sayfayi istemelidir.
+- `syncToken` sadece `hasMore = false` oldugunda kalici olarak saklanmalidir.
+- Sonraki sync'te mobil bu degeri `since` olarak gondermelidir.
+- Mobil local DB kayitlarini `customerCode` anahtariyla upsert etmelidir.
+- `deletedCustomerCodes` icindeki cariler local DB'den silinmeli veya pasif isaretlenmelidir.
+- Ilk tam indirme silinmis/pasif kayitlari dondurmez; `since` ile delta sync yapildiginda silinen kayitlar da bildirilir.
+
+## Mobil Depo Katalog Sync
+
+Mobil el terminali online iken depo katalogunu indirip kendi local veritabanina kaydedebilir. Cihaz offline iken hedef depo, kaynak depo veya karsi depo secimleri bu local katalog uzerinden yapilabilir.
+
+Endpoint:
+
+```text
+GET /api/mobile-sync/depo-katalogu
+```
+
+Yetki:
+
+- `Authorization: Bearer {token}` zorunludur.
+- Ek menu/action permission'i yoktur; login olan kullanici kullanabilir.
+
+Query:
+
+```text
+since          opsiyonel; onceki tamamlanmis syncToken, ISO 8601 tarih
+cursor         opsiyonel; hasMore=true ise backend'in verdigi nextCursor
+pageSize       opsiyonel; default 5000, max 10000
+```
+
+Ilk tam indirme:
+
+```text
+GET /api/mobile-sync/depo-katalogu?pageSize=5000
+```
+
+Devam sayfasi:
+
+```text
+GET /api/mobile-sync/depo-katalogu?pageSize=5000&cursor={nextCursor}
+```
+
+Degisenleri alma:
+
+```text
+GET /api/mobile-sync/depo-katalogu?since=2026-06-08T10:30:00
+```
+
+Response:
+
+```json
+{
+  "generatedAt": "2026-06-08T10:35:00",
+  "since": "2026-06-08T10:30:00",
+  "syncToken": null,
+  "nextCursor": "eyJ3YXJlaG91c2VObyI6MTEwfQ",
+  "hasMore": true,
+  "pageSize": 5000,
+  "items": [
+    {
+      "warehouseNo": 110,
+      "warehouseName": "Kestel Depo",
+      "companyNo": 0,
+      "branchNo": 0,
+      "groupCode": "SUBE",
+      "warehouseType": 0,
+      "responsibilityCenterCode": "SRM001",
+      "projectCode": "",
+      "address": "Adres satiri",
+      "district": "Kestel",
+      "province": "Bursa",
+      "isInventoryExcluded": false,
+      "isDeleted": false,
+      "updatedAt": "2026-06-08T10:20:00"
+    }
+  ],
+  "deletedWarehouseNos": []
+}
+```
+
+Sync kurali:
+
+- `hasMore = true` ise mobil `nextCursor` ile sonraki sayfayi istemelidir.
+- `syncToken` sadece `hasMore = false` oldugunda kalici olarak saklanmalidir.
+- Sonraki sync'te mobil bu degeri `since` olarak gondermelidir.
+- Mobil local DB kayitlarini `warehouseNo` anahtariyla upsert etmelidir.
+- `deletedWarehouseNos` icindeki depolar local DB'den silinmeli veya pasif isaretlenmelidir.
+- Ilk tam indirme silinmis/pasif kayitlari dondurmez; `since` ile delta sync yapildiginda silinen kayitlar da bildirilir.
 
 ## Base URL
 
@@ -648,6 +923,8 @@ Not:
 - Mikro tarafinda sadece SELECT/read-only mantigiyla calisir.
 - Urun arama `dbo.__StokveFiyatArama_Gokhan` stored procedure'u ile yapilir.
 - Mobil barkod okutma senaryolarinda genel `urunler` listesi yerine once `barkodlar/{barcode}/cozumle` endpoint'i tercih edilmelidir.
+- Mobil offline fiyat okutma icin tekil `fiyat-gor` endpointleri yerine `GET /api/mobile-sync/urun-fiyat-katalogu` ile depo bazli katalog cihaza indirilmelidir.
+- Mobil offline cari ve depo secimleri icin online arama endpointleri yerine `GET /api/mobile-sync/cari-katalogu` ve `GET /api/mobile-sync/depo-katalogu` kataloglari cihaza indirilmelidir.
 - Mal kabul create ekranlarinda cari secimini hizlandirmak icin `urunler/{stockCode}/cari-onerileri` endpoint'i yardimci olarak kullanilabilir.
 
 ### Urun Ara
@@ -758,6 +1035,7 @@ UI kullanim notu:
 
 - Sol menu altinda `AramaIslemleri > FiyatGor` gibi ayri bir hizli ekran olarak sunulabilir.
 - Barkod okutma ekraninda pratik yol `barkodlar/{barcode}/fiyat` alias'idir.
+- El terminali offline kullanacaksa bu endpoint online anlik sorgu icin kalmali; offline veri hazirligi `Mobil Urun-Fiyat Katalog Sync` endpoint'iyle yapilmalidir.
 
 ### Urun Son Kunye
 
@@ -4701,7 +4979,7 @@ Bu endpoint iskelet olarak acildi. Is kurali ve Mikro veritabani entegrasyonu so
 
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi`
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari`
-- `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{reportId}`
+- `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{totalId}`
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar`
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/erpye-gonder`
 - `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari`
@@ -4737,6 +5015,12 @@ Arama Islemleri / Fiyat Gor
   -> barkod, stok kodu veya stok adi ile GET /api/arama-islemleri/fiyat-gor
   -> barkod okutma kisayolu icin GET /api/arama-islemleri/barkodlar/{barcode}/fiyat
   -> liste satirlarini ProductLookupItemDto ile goster
+
+Mobil Offline Fiyat Katalogu
+  -> online iken GET /api/mobile-sync/urun-fiyat-katalogu ile depo bazli katalog indir
+  -> hasMore=true ise nextCursor ile devam et
+  -> hasMore=false olunca syncToken'i localde sakla
+  -> offline barkod okutunca local DB'deki barcode + warehouseNo kaydini kullan
 
 Arama Islemleri / Cari Bul
   -> barkod ile GET /api/arama-islemleri/cari-bul
@@ -5872,6 +6156,12 @@ Mevcut endpointler:
   - eski worker parity icin planlanan AXATA fetch/import profillerini listeler
   - her profil icin bugunku fallback route ve implementasyon durumu gorulebilir
   - response `AxataSynchronizationFetchProfilesOverviewDto`
+- `GET /api/integrations/axata-sync/live/audit/overview?startDate=2026-06-08&endDate=2026-06-08&warehouseNo=110&take=50`
+  - eski worker calisirken Mikro ve AXATA arasindaki farklari kontrol eder; veri yazmaz
+  - Mikro -> AXATA siparis tarafinda `ssip_special1` worker basari bayragini raporlar
+  - AXATA -> Mikro sevk tarafinda `getOutBoundDeliveryListAsync` ile `C01/C02/C03/C4`, `Status=0` kuyrugunu okur
+  - C01 icin Mikro siparis satiri ve sevk fisi linkini de kontrol eder
+  - response `AxataIntegrationAuditDto`
 - `GET /api/integrations/axata-sync/tasks/{taskCode}/preview?warehouseNo=1&take=10`
   - secili task icin canli veriden preview payload dondurur
   - response `AxataSynchronizationPreviewDto`
@@ -5912,6 +6202,14 @@ Mevcut endpointler:
   - secilen birden fazla evraki canli SOAP dispatch ile toplu gonderir
   - response `AxataSynchronizationManualDispatchBatchDto`
   - `ContinueOnError = true` ise red alan veya hata veren evraklar `Failures` icine yazilir
+- `GET /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/preview?take=20`
+  - AXATA `AxataServicePool.svc/getOutBoundDeliveryListAsync` uzerinden `MovementType=C01`, `Status=0` bekleyen depo sevklerini okur
+  - Mikro depolar arasi siparis eslesmesini, kalan teslim miktarini ve import edilebilirlik durumunu gosterir
+  - response `AxataOutboundDeliveryImportPreviewDto`
+- `POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/import`
+  - AXATA C01 bekleyen teslimatlarini Mikro depolar arasi sevk fisine cevirir
+  - Mikro fis ve `STOK_HAREKETLERI_EK` linkleri basarili yazildiktan sonra AXATA `AxataServicePoolEXT.svc/updIntegrationTableAsync` ile `ENT006.S06STAT=1` yapar
+  - response `AxataOutboundDeliveryImportExecuteDto`
 - `POST /api/integrations/axata-sync/manual/axata/outbound-deliveries/inter-warehouse-shipments`
   - AXATA outbound delivery verisini AXATA-native body ile Mikro depolar arasi sevke cevirir
   - response `CreateInterWarehouseShipmentResponse`
@@ -6003,6 +6301,57 @@ Content-Type: application/json
 }
 ```
 
+Ornek AXATA/Mikro fark kontrolu:
+
+```http
+GET /api/integrations/axata-sync/live/audit/overview?startDate=2026-06-08&endDate=2026-06-08&take=50
+Authorization: Bearer {token}
+```
+
+Bu cagri veri yazmaz. Amaci eski worker calisirken durumu anlamaktir:
+
+- `isInSync=true` ise secili tarih araliginda Mikro siparis bayraklari tamam ve AXATA pending sevk kuyrugu bos demektir
+- `unsyncedWarehouseOrders` Mikro'da olup worker basari bayragi tum satirlarda `1` olmayan depolar arasi siparisleri gosterir
+- `pendingOutboundDeliveries` AXATA'da `Status=0` bekleyen sevkleri gosterir
+- `interventionCandidates` C01 icin guvenli mudahale adaylarini gosterir
+- `MikroShipmentExistsPendingAck` ise Mikro fis/link zaten vardir; duplicate fis acmadan sadece AXATA ack gerekebilir
+- `ReadyForImport` ise Mikro siparis satiri eslesmistir ama sevk fisi yoktur; C01 import ile mudahale edilebilir
+
+Ornek C01 AXATA'dan cekme preview:
+
+```http
+GET /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/preview?take=20
+Authorization: Bearer {token}
+```
+
+Bu cagri AXATA'da bekleyen `MovementType=C01`, `Status=0` teslimatlari getirir; Mikro siparis satiri, depo ve kalan miktar kontrolunu yapar. Veri yazmaz ve AXATA status guncellemez.
+
+Ornek C01 import:
+
+```http
+POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/import
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+```json
+{
+  "take": 20,
+  "continueOnError": true,
+  "acknowledge": true
+}
+```
+
+Import davranisi:
+
+- AXATA fetch: `AxataServicePool.svc/getOutBoundDeliveryListAsync`
+- Query: `CompanyCode=01`, `WarehouseCode=01`, `MovementType=C01`, `Status=0`
+- Mikro eslesme: `S06TESL` degeri `DocumentSerie.DocumentOrderNo` olarak okunur
+- Satir eslesme: `S07KALN + S07SKOD` -> `ssip_satirno + ssip_stok_kod`
+- Mikro yazim: depolar arasi sevk fisi, `STOK_HAREKETLERI_EK.sth_subesip_uid` linki ve `ssip_teslim_miktar` guncellemesi
+- AXATA ack: Mikro yazim basarili olursa `AxataServicePoolEXT.svc/updIntegrationTableAsync` ile `ENT006.S06STAT=1`, `IDField=S06SIRA`
+- `acknowledge=false` verilirse Mikro yazilir ama AXATA status guncellenmez; bu sadece kontrollu test/kurtarma icin kullanilmalidir
+
 Ornek manuel evrak preview:
 
 ```http
@@ -6047,13 +6396,15 @@ Manuel kurtarma akis onerisi:
   - toplu yeniden gonderimde `manual ... /documents/execute-batch` kullan; `ContinueOnError = true` ise basarili ve hatali evraklar ayni response'ta ayrisir
   - `Outbox` sonucu artifact path'i operasyon ekibine verilebilir
 - Senaryo `AXATA -> Mikro`:
+  - AXATA C01 depo sevkleri bekliyorsa once `live/axata/outbound-deliveries/c01/preview` ile kontrol et
+  - eslesmeler dogruysa `live/axata/outbound-deliveries/c01/import` ile Mikro sevki yaz ve AXATA ack at
   - AXATA outbound delivery verisi eldeyse `manual/axata/outbound-deliveries/inter-warehouse-shipments` ile dogrudan Mikro sevki yaz
   - AXATA inbound ATF verisi eldeyse `manual/axata/inbound-atf/company-receivings` ile dogrudan Mikro firma mal kabule cevir
   - AXATA ham verisi operasyon tarafinda toparlanmis ise `manual/incoming/company-receivings` veya `manual/incoming/inventory-counts` kullan
   - coklu belge geliyorsa `.../company-receivings/batch` veya `.../inventory-counts/batch` ile tek cagrida islenebilir
   - depo sevki zaten bekleyen belge olarak Mikro'ya dusmus ama kabulde takildiysa once `manual/incoming/warehouse-receivings` ile listele, gerekirse detay endpoint'i ile satirlari kontrol et, sonra `.../accept` veya `.../accept-batch` kullan
 - Not:
-  - bu surumde endpoint AXATA'dan belge numarasi verip canli SOAP fetch yapmaz; operasyon ya native AXATA body gonderir ya da mevcut Mikro bekleyen belgesini tamamlar
+  - C01 icin backend AXATA'dan canli SOAP fetch yapar; C02/C03/C04/G01/G02 fetch-import akislari ayri fazdir
   - `dispatch` endpoint'leri AXATA'ya canli yazim yapar; `execute` endpoint'leri ise sadece `DryRun/Outbox` icindir
   - eski worker operasyon isimleri kullanildigi icin canli AXATA dispatch sahada endpoint/credential ile dogrulanmalidir
 
@@ -6068,9 +6419,12 @@ Entegrasyon modulu notlari:
 - `manual/tasks/{taskCode}/documents/dispatch*` endpoint'leri yalnizca AXATA'ya canli gonderim icindir; `Outbox` yerine kullanilir
 - `manual/incoming/*` endpoint'leri worker'dan bagimsiz operasyonel kurtarma katmanidir
 - `manual/axata/*` endpoint'leri AXATA-native request body'sini minimum donusumle Mikro write use-case'lerine baglar
+- `live/audit/overview` endpoint'i eski worker calisirken kontrol/durum tespiti icindir; Mikro veya AXATA verisi yazmaz
+- `live/axata/outbound-deliveries/c01/*` endpoint'leri AXATA'dan canli C01 cekip Mikro'ya yazar; AXATA ack sadece Mikro kaydi basarili olursa atilir
+- `live/axata/outbound-deliveries/c01/import` gerekiyorsa mudahale icindir; mevcut worker'in yerine otomatik calisan yeni worker olarak dusunulmemelidir
 - toplu endpoint'lerde `ContinueOnError = true` ise HTTP 200 donup basarisiz item'lari `Failures` listesinde raporlar
 - `Outbox` modu su an gercek SOAP dispatch degil, payload uretim ve dosyalama asamasidir
-- canli AXATA belge fetch/ack adapter'i halen ayri fazdir
+- canli AXATA belge fetch/ack adapter'i su an C01 depo sevki icin aktiftir; diger hareket tipleri planli profildir
 - `GET /api/integrations/axata-sync` icindeki her task artik `supportsManualDocuments`, `supportsLiveDispatch` ve varsa `liveOperationName` alanlarini da dondurur
 - `GET /api/integrations/axata-sync/fetch-profiles` ile UI eski worker parity icin hedeflenen `C01/C02/C03/C04(query C4)/G01/G02` ve benzeri fetch profillerini okuyabilir
 
@@ -6106,6 +6460,9 @@ UI manuel aktarim senaryolari:
   - gerekiyorsa `.../dispatch` veya `.../dispatch-batch`
 - AXATA outbound delivery verisi operasyon ekibinin elindeyse ve Mikro'da depolar arasi sevk yaratilacaksa:
   - `manual/axata/outbound-deliveries/inter-warehouse-shipments`
+- AXATA C01 depo sevkleri AXATA'da bekliyorsa:
+  - `live/axata/outbound-deliveries/c01/preview`
+  - `live/axata/outbound-deliveries/c01/import`
 - AXATA inbound ATF verisi operasyon ekibinin elindeyse ve Mikro'da firma mal kabul yaratilacaksa:
   - `manual/axata/inbound-atf/company-receivings`
 - Sevk zaten Mikro'ya dusmus ama kabulde takilmissa:
@@ -6115,8 +6472,8 @@ UI manuel aktarim senaryolari:
 
 UI'nin kullaniciya acik soylemesi gereken kritik sinirlar:
 
-- bu surum belge numarasi verip AXATA'dan canli SOAP fetch yapmaz
-- yani "AXATA belge no gir, sistem otomatik cekip Mikro'ya yazsin" akisi henuz yoktur
+- C01 depo sevki icin AXATA'dan canli SOAP fetch/import vardir
+- C02/C03/C04/G01/G02 icin "AXATA'dan cek ve Mikro'ya yaz" akisi henuz yoktur
 - `dispatch*` endpoint'leri sadece `issued-warehouse-order-sync` ve `company-receiving-sync` icin aktiflenmelidir
 - `depolar-arasi-sevk` belge detayi icin ayrica AXATA dispatch butonu acilmamalidir
 - `firm-master-sync` ve `product-master-sync` icin UI sadece preview/job/outbox deneyimi sunmalidir
@@ -6129,6 +6486,10 @@ UI ekran parcasi onerisi:
   - `GET /api/integrations/axata-sync`
   - `GET /api/integrations/axata-sync/health`
   - son job listesi ve task bazli durum
+- `Kontrol / Fark Analizi` sekmesi:
+  - `GET /api/integrations/axata-sync/live/audit/overview`
+  - "siparisler AXATA'ya gitti mi", "AXATA sevkleri Mikro'ya dustu mu", "mudahaale adayi var mi" kartlari
+  - varsayilan tarih bugun olmali; tarih araligi ve depo filtresi opsiyonel verilmelidir
 - `Mikro -> AXATA Manuel` sekmesi:
   - task secimi
   - aday liste
@@ -6136,6 +6497,7 @@ UI ekran parcasi onerisi:
   - dry-run/outbox
   - gerekiyorsa canli dispatch
 - `AXATA -> Mikro Manuel` sekmesi:
+  - C01 live preview/import
   - native AXATA body ile outbound delivery / inbound ATF aktarimi
   - serbest body ile company receiving / inventory count aktarimi
   - batch import sonucunda `Failures` gosterimi
@@ -6154,7 +6516,8 @@ UI'da sonraki faz icin acilabilecek ekranlar:
 
 - `AXATA'dan Cek ve Islet` sekmesi
   - amac: operasyon ekibi AXATA body toplamak zorunda kalmadan tanimli profile gore fetch baslatsin
-  - ornek profiller: `C01`, `C02`, `C03`, `C04(query C4)`, `G01`, `G02`
+  - aktif profil: `C01`
+  - planli profiller: `C02`, `C03`, `C04(query C4)`, `G01`, `G02`
   - beklenen akis:
     - profil sec
     - preview al
@@ -6169,8 +6532,8 @@ UI'da sonraki faz icin acilabilecek ekranlar:
 
 UI tarafinda simdiden scaffold edilebilecek ama mevcut backend'de henuz aktif olmayan endpoint aileleri:
 
-- `manual/fetch/outbound-deliveries/{profileCode}/preview`
-- `manual/fetch/outbound-deliveries/{profileCode}/execute`
+- `manual/fetch/outbound-deliveries/{profileCode}/preview` (`C01` icin yeni live route kullanilir)
+- `manual/fetch/outbound-deliveries/{profileCode}/execute` (`C01` icin yeni live route kullanilir)
 - `manual/fetch/inbound-deliveries/{profileCode}/preview`
 - `manual/fetch/inbound-deliveries/{profileCode}/execute`
 
@@ -6199,10 +6562,11 @@ Yetki kodlari:
 Mevcut backend durumu:
 
 - route ailesi aciktir
-- controller ve request contract'lari tanimlidir
-- tum endpoint'ler su an `501 Not Implemented` doner
-- response modeli `ModuleActionScaffoldResponse`'dur
-- yani UI ekrani cizilebilir, fakat business veri beklenmemelidir
+- controller, request contract'lari ve business DTO response'lari tanimlidir
+- overview, liste, detay, POS fatura import, gider pusulasi import, header guncelleme, staging silme ve kasa esleme bakimi aktif endpoint olarak calisir
+- Z raporu dosya parser'i henuz API tarafinda uygulanmamistir; `z-raporlari/ice-aktar` basarisiz import sonucu doner
+- ERP muhasebe fisi yazma henuz uygulanmamistir; `erpye-gonder` endpoint'leri secili kayitlar icin batch sonuc doner ama `IsSent=true` yapmaz
+- liste endpoint'leri varsayilan olarak yalniz `IsSent = false` bekleyen kayitlari dondurur; bunun icin `OnlyPending=true` default gelir
 
 UI bu menuyu tek sayfa icinde 4 tab olarak kurgulamalidir:
 
@@ -6221,10 +6585,10 @@ Bu tab'in hedefi gelecekte su akisi yurutmektir:
 - secilen raporlar ERP muhasebe fisine donusturulur
 - hatali veya tekrarli importlar loglanir
 
-Scaffold endpoint'ler:
+Endpoint'ler:
 
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari`
-- `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{reportId}`
+- `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{totalId}`
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar`
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/erpye-gonder`
 - `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari`
@@ -6239,9 +6603,9 @@ UI beklentisi:
 
 #### POS Faturalar Tab'i
 
-Bu tab'in hedefi gelecekte POS kaynakli satis faturalarini once staging'e alip sonra ERP'ye aktarmaktir.
+Bu tab'in hedefi POS kaynakli satis faturalarini once staging'e alip sonra ERP'ye aktarmaktir.
 
-Scaffold endpoint'ler:
+Endpoint'ler:
 
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar`
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/{invoiceId}`
@@ -6253,15 +6617,22 @@ Scaffold endpoint'ler:
 UI beklentisi:
 
 - liste ekraninda tarih bazli veri cekme aksiyonu vardir
-- detay ekraninda `documentNo`, `customerTaxNo`, `paymentType`, `branchNo`, `description` duzenleme alanlari dusunulmelidir
+- detay ekraninda `documentNo`, `customerTaxNo`, `paymentType` duzenleme alanlari dusunulmelidir
 - satir duzeyi guncelleme bu surumde contract'ta yoktur; ekran agirlikla ust belge duzenleme mantigiyla tasarlanmalidir
 - kullanici daha sonra ERP gonderimi icin birden fazla fatura secebilecekmis gibi secim modeli hazir tutulmalidir
+
+Kaynak veri davranisi:
+
+- POS fatura importu iki kaynagi birlestirir: Furpa/Mayday kaynakli `Furpa.dbo.PosFaturas` ve opsiyonel `Vera.dbo.FATURA`
+- Furpa/Mayday tarafinda yalniz `BelgeTuru = 2` alinir; `BelgeTipi` kaynak kolon gibi filtrelenmez, `BelgeTuru AS BelgeTipi` olarak uretilir
+- Vera tarafi yalniz `VeraConnection` tanimliysa okunur; `BELGE_TIPI = 'FATURA'` ve `BELGE_TURU = 'FATURA'` filtresi kullanilir
+- yeni staging kayitlari `Invoices` ve `InvoiceLines` tablolarina `IsSent = false` olarak yazilir
 
 #### Gider Pusulalari Tab'i
 
 Bu tab, POS gider pusulasi staging ve ERP'ye aktarim akisinin web karsiligidir.
 
-Scaffold endpoint'ler:
+Endpoint'ler:
 
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari`
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/{expenseId}`
@@ -6276,11 +6647,18 @@ UI beklentisi:
 - ayrim yalnizca is anlami ve kolon isimlerinde olmalidir
 - detay formunda belge satirlari okunur, ama guncellenen alanlar header agirlikli olacakmis gibi dusunulmelidir
 
+Kaynak veri davranisi:
+
+- gider pusulasi importu aktif WinUI davranisina uygun olarak Furpa kaynaklidir
+- kaynak tablo `Furpa.dbo.PosFaturas`, satir hesap kaynagi `Furpa.dbo.PosFaturaSatirs` + Mikro `STOKLAR` eslesmesidir
+- yalniz `BelgeTuru = 4` kayitlari alinir
+- yeni staging kayitlari `ExpenseNotes` ve `ExpenseNoteLines` tablolarina `IsSent = false` olarak yazilir
+
 #### Kasa Eslemeleri Tab'i
 
 Bu tab'in amaci yazar kasa / cihaz no ile sube arasindaki eslemeyi yonetmektir.
 
-Scaffold endpoint'ler:
+Endpoint'ler:
 
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri`
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri`
@@ -6294,16 +6672,17 @@ UI beklentisi:
 
 #### UI Durum Yonetimi
 
-Bu menu scaffold oldugu icin UI tarafinda su davranis onerilir:
+Bu menu kismi implementasyon durumunda oldugu icin UI tarafinda su davranis onerilir:
 
-- route acik olsa da ilk cagrida `501` gelirse ekran "hazir ama backend baglanmadi" uyarisina dussun
-- `ModuleActionScaffoldResponse.message` kullaniciya dogrudan gosterilebilir
-- tab'ler simdiden cizilebilir, ama kayit listeleri yerine placeholder / empty-state kartlari kullanilmalidir
-- aksiyon butonlari gorunsun fakat tiklandiginda backend `501` cevabi kullaniciya net anlatilsin
+- liste, detay, import, guncelleme ve silme aksiyonlari normal DTO response'lariyla calisir
+- Z raporu importu ve ERP'ye gonderme aksiyonlari simdilik `success=false` sonuc satirlari dondurebilir; UI bunu hata/uyari olarak gostermelidir
+- toplu islemlerde response icindeki `results[]` satir bazli okunmali, tek bir hata tum batch basarisiz gibi gosterilmemelidir
+- `OnlyPending=true` varsayilani nedeniyle liste ekranlari ERP'ye gonderilmemis staging kayitlarini gosterir; arsiv/tum kayit gorunumu icin `OnlyPending=false` gonderilmelidir
+- `sil` aksiyonu staging kaydini temizler; ERP'de olusmus muhasebe fisi silme aksiyonu gibi sunulmamalidir
 
-#### Gelecek Faz Icin Ekran Beklentisi
+#### Ekran Omurgasi
 
-Bu menu ileride gercek implementasyona gectiginde UI'nin tekrar buyuk refactor istememesi icin su omurga korunmalidir:
+UI'nin tekrar buyuk refactor istememesi icin su omurga korunmalidir:
 
 - tek menu, cok tab
 - liste / detay / toplu islem ayrimi
@@ -6319,56 +6698,40 @@ Bu nedenle frontend tarafinda bugunden su dil benimsenmelidir:
 
 Not:
 
-- bu bolumde anlatilan is akislarinin buyuk kismi hedef tasarimdir
-- bugun dogrulanabilen durum, yalnizca route + yetki + HTTP contract + scaffold response varligidir
-- gercek veri modeli ve business response DTO'lari backend implementasyon fazinda netlesecektir
+- POS fatura ve gider pusulasi importlari staging tablolarina yazar; ERP muhasebe fisi yazma bu API projesinde henuz tamamlanmamistir
+- Z raporu liste/detay/silme mevcut staging tablolarini kullanir; dosyadan Z raporu parser'i henuz uygulanmamistir
+- ID alanlari `int` tipindedir: `totalId`, `invoiceId`, `expenseId`, `mappingId`
+- toplu gonderme ve silme isteklerinde `DocumentIds` GUID degil `int` koleksiyonudur
 
 #### Mevcut Request / Response Kontratlari
 
-Bu menu su an scaffold oldugu icin `liste`, `detay`, `import`, `gonder`, `sil` ve `guncelle` endpoint'lerinin tumu response olarak ayni modeli doner:
-
-- `ModuleActionScaffoldResponse`
-
-Yani bugunku backend durumunda:
-
-- ozel `ZReportListItemDto`
-- ozel `PosInvoiceDetailDto`
-- ozel `ExpenseNoteDetailDto`
-- ozel `CashRegisterBranchMappingDto`
-
-gibi business response DTO'lari henuz yoktur.
-
-UI tarafi bu fazda response'u su mantikla ele almalidir:
-
-- `isImplemented = false`
-- `message = backend iskelet endpoint aciklamasi`
-- `moduleCode`, `menuCode`, `actionCode` alanlari ile ekran aksiyonu eslenebilir
+Bu menu artik scaffold response degil, belge tipine gore business DTO dondurur.
 
 Endpoint bazli request / response ozet tablosu:
 
 | Endpoint | Request kaynagi | Request modeli | Mevcut response |
 |---|---|---|---|
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi` | body yok | body yok | `ModuleActionScaffoldResponse` |
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari` | query | `PosAccountingDateRangeHttpRequest` | `ModuleActionScaffoldResponse` |
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{reportId}` | path | `reportId: Guid` | `ModuleActionScaffoldResponse` |
-| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar` | body | `ImportZReportsHttpRequest` | `ModuleActionScaffoldResponse` |
-| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/erpye-gonder` | body | `PosAccountingTransferHttpRequest` | `ModuleActionScaffoldResponse` |
-| `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari` | body | `PosAccountingDeleteHttpRequest` | `ModuleActionScaffoldResponse` |
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar` | query | `PosAccountingDateRangeHttpRequest` | `ModuleActionScaffoldResponse` |
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/{invoiceId}` | path | `invoiceId: Guid` | `ModuleActionScaffoldResponse` |
-| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/ice-aktar` | body | `ImportPosDocumentsHttpRequest` | `ModuleActionScaffoldResponse` |
-| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/erpye-gonder` | body | `PosAccountingTransferHttpRequest` | `ModuleActionScaffoldResponse` |
-| `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/{invoiceId}` | body | `UpdatePosAccountingDocumentHttpRequest` | `ModuleActionScaffoldResponse` |
-| `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar` | body | `PosAccountingDeleteHttpRequest` | `ModuleActionScaffoldResponse` |
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari` | query | `PosAccountingDateRangeHttpRequest` | `ModuleActionScaffoldResponse` |
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/{expenseId}` | path | `expenseId: Guid` | `ModuleActionScaffoldResponse` |
-| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/ice-aktar` | body | `ImportPosDocumentsHttpRequest` | `ModuleActionScaffoldResponse` |
-| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/erpye-gonder` | body | `PosAccountingTransferHttpRequest` | `ModuleActionScaffoldResponse` |
-| `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/{expenseId}` | body | `UpdatePosAccountingDocumentHttpRequest` | `ModuleActionScaffoldResponse` |
-| `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari` | body | `PosAccountingDeleteHttpRequest` | `ModuleActionScaffoldResponse` |
-| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri` | query | `CashRegisterBranchMappingListHttpRequest` | `ModuleActionScaffoldResponse` |
-| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri` | body | `CashRegisterBranchMappingHttpRequest` | `ModuleActionScaffoldResponse` |
-| `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri/{mappingId}` | body | `CashRegisterBranchMappingHttpRequest` | `ModuleActionScaffoldResponse` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi` | query | `PosAccountingDateRangeHttpRequest` | `PosAccountingOverviewDto` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari` | query | `PosAccountingDateRangeHttpRequest` | `ZReportListItemDto[]` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{totalId}` | path | `totalId: int` | `ZReportDetailDto` |
+| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar` | body | `ImportZReportsHttpRequest` | `PosAccountingImportResultDto` |
+| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/erpye-gonder` | body | `PosAccountingTransferHttpRequest` | `PosAccountingBatchResultDto` |
+| `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari` | body | `PosAccountingDeleteHttpRequest` | `PosAccountingBatchResultDto` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar` | query | `PosAccountingDateRangeHttpRequest` | `BranchInvoiceListItemDto[]` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/{invoiceId}` | path | `invoiceId: int` | `BranchInvoiceDetailDto` |
+| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/ice-aktar` | body | `ImportPosDocumentsHttpRequest` | `PosAccountingImportResultDto` |
+| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/erpye-gonder` | body | `PosAccountingTransferHttpRequest` | `PosAccountingBatchResultDto` |
+| `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/{invoiceId}` | body | `UpdatePosAccountingDocumentHttpRequest` | `BranchInvoiceDetailDto` |
+| `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar` | body | `PosAccountingDeleteHttpRequest` | `PosAccountingBatchResultDto` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari` | query | `PosAccountingDateRangeHttpRequest` | `ExpenseNoteListItemDto[]` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/{expenseId}` | path | `expenseId: int` | `ExpenseNoteDetailDto` |
+| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/ice-aktar` | body | `ImportPosDocumentsHttpRequest` | `PosAccountingImportResultDto` |
+| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/erpye-gonder` | body | `PosAccountingTransferHttpRequest` | `PosAccountingBatchResultDto` |
+| `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/{expenseId}` | body | `UpdatePosAccountingDocumentHttpRequest` | `ExpenseNoteDetailDto` |
+| `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari` | body | `PosAccountingDeleteHttpRequest` | `PosAccountingBatchResultDto` |
+| `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri` | query | `CashRegisterBranchMappingListHttpRequest` | `CashRegisterBranchMappingDto[]` |
+| `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri` | body | `CashRegisterBranchMappingHttpRequest` | `CashRegisterBranchMappingDto` |
+| `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri/{mappingId}` | body | `CashRegisterBranchMappingHttpRequest` | `CashRegisterBranchMappingDto` |
 
 Request modellerinin alanlari:
 
@@ -6385,6 +6748,7 @@ public sealed class ImportZReportsHttpRequest
 {
     public int? WarehouseNo { get; init; }
     public DateTime? BusinessDate { get; init; }
+    public string? ReportPath { get; init; }
     public string? ImportMode { get; init; }
     public string? SourceCode { get; init; }
     public bool OverwriteExisting { get; init; }
@@ -6401,14 +6765,14 @@ public sealed class ImportPosDocumentsHttpRequest
 public sealed class PosAccountingTransferHttpRequest
 {
     public int? WarehouseNo { get; init; }
-    public IReadOnlyCollection<Guid> DocumentIds { get; init; }
+    public IReadOnlyCollection<int> DocumentIds { get; init; }
     public bool ContinueOnError { get; init; } = true;
 }
 
 public sealed class PosAccountingDeleteHttpRequest
 {
     public int? WarehouseNo { get; init; }
-    public IReadOnlyCollection<Guid> DocumentIds { get; init; }
+    public IReadOnlyCollection<int> DocumentIds { get; init; }
 }
 
 public sealed class UpdatePosAccountingDocumentHttpRequest
@@ -6435,42 +6799,61 @@ public sealed class CashRegisterBranchMappingHttpRequest
 }
 ```
 
-Mevcut response modeli:
+Ortak import / batch response modelleri:
 
 ```csharp
-public sealed record ModuleActionScaffoldResponse(
-    string ModuleCode,
-    string ModuleName,
-    string MenuCode,
-    string MenuName,
-    string ActionCode,
-    string ActionName,
-    string HttpMethod,
-    string PermissionCode,
-    string Route,
-    string? ResourceId,
-    bool IsImplemented,
+public sealed record PosAccountingImportResultDto(
+    string DocumentKind,
+    DateTime BusinessDate,
+    int ImportedCount,
+    int SkippedCount,
+    int ErrorCount,
+    IReadOnlyCollection<PosAccountingOperationResultDto> Results);
+
+public sealed record PosAccountingBatchResultDto(
+    string DocumentKind,
+    int RequestedCount,
+    int SuccessCount,
+    int ErrorCount,
+    IReadOnlyCollection<PosAccountingOperationResultDto> Results);
+
+public sealed record PosAccountingOperationResultDto(
+    int? DocumentId,
+    Guid? SourceGuid,
+    bool Success,
     string Message);
 ```
 
-Ornek scaffold response:
+Ornek import response:
 
 ```json
 {
-  "moduleCode": "entegrasyon-islemleri",
-  "moduleName": "EntegrasyonIslemleri",
-  "menuCode": "pos-muhasebe-aktarimi",
-  "menuName": "PosMuhasebeAktarimi",
-  "actionCode": "list",
-  "actionName": "Listele",
-  "httpMethod": "GET",
-  "permissionCode": "entegrasyon-islemleri.pos-muhasebe-aktarimi.list",
-  "route": "/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar",
-  "resourceId": null,
-  "isImplemented": false,
-  "message": "Bu endpoint iskelet olarak acildi. Is kurali ve Mikro veritabani entegrasyonu sonraki adimda baglanacak."
+  "documentKind": "Invoice",
+  "businessDate": "2026-06-09T00:00:00",
+  "importedCount": 12,
+  "skippedCount": 1,
+  "errorCount": 0,
+  "results": [
+    {
+      "documentId": 125,
+      "sourceGuid": "4b7127f1-f7f7-4769-8641-8d1c6ff84d6f",
+      "success": true,
+      "message": "POS invoice was imported."
+    }
+  ]
 }
 ```
+
+Liste ve detay response'lari:
+
+- `PosAccountingOverviewDto`: bekleyen Z raporu, fatura, gider pusulasi adet/tutar ozetleri ve kasa esleme adedi
+- `ZReportListItemDto`: `totalId`, `billNo`, `zNo`, `cashRegisterNo`, `branchName`, `date`, `cashPaymentTotal`, `creditCardPaymentTotal`, `greatTotal`, `isSent`
+- `ZReportDetailDto`: `header`, `details[]`, `bankDetails[]`
+- `BranchInvoiceListItemDto`: `invoiceId`, `invoiceGuid`, `branchNo`, `branchName`, `documentNo`, `customerTaxNo`, `customerName`, `invoiceDate`, `paymentType`, `invoiceTotal`, `isSent`
+- `BranchInvoiceDetailDto`: `header`, `lines[]`
+- `ExpenseNoteListItemDto`: `expenseId`, `expenseGuid`, `documentNo`, `branchNo`, `branchName`, `expenseDate`, `paymentType`, `expenseTotal`, `isSent`
+- `ExpenseNoteDetailDto`: `header`, `lines[]`
+- `CashRegisterBranchMappingDto`: `id`, `cashRegisterNo`, `branchNo`, `branchName`
 
 ## Uyumsoft Entegrasyonu
 
@@ -8611,6 +8994,138 @@ public sealed record AxataSynchronizationManualDispatchBatchDto(
     IReadOnlyCollection<AxataSynchronizationManualDocumentBatchFailureDto> Failures,
     IReadOnlyCollection<string> Notes);
 
+public sealed record AxataIntegrationAuditDto(
+    bool IsInSync,
+    DateTime GeneratedAtUtc,
+    DateTime StartDate,
+    DateTime EndDate,
+    int? WarehouseNo,
+    AxataIntegrationAuditSummaryDto Summary,
+    IReadOnlyCollection<AxataOutboundDeliveryMovementSummaryDto> OutboundDeliverySummaries,
+    IReadOnlyCollection<AxataUnsyncedWarehouseOrderDto> UnsyncedWarehouseOrders,
+    IReadOnlyCollection<AxataPendingOutboundDeliveryDto> PendingOutboundDeliveries,
+    IReadOnlyCollection<AxataPendingOutboundDeliveryDto> InterventionCandidates,
+    IReadOnlyCollection<string> Notes);
+
+public sealed record AxataIntegrationAuditSummaryDto(
+    int MikroWarehouseOrderDocumentCount,
+    int SentWarehouseOrderDocumentCount,
+    int PartiallySentWarehouseOrderDocumentCount,
+    int UnsentWarehouseOrderDocumentCount,
+    int PendingOutboundDeliveryDocumentCount,
+    int PendingOutboundDeliveryLineCount,
+    double PendingOutboundDeliveryQuantity,
+    int C01PendingDocumentCount,
+    int C01MissingInMikroDocumentCount,
+    int C01MikroExistsPendingAckDocumentCount);
+
+public sealed record AxataOutboundDeliveryMovementSummaryDto(
+    string MovementType,
+    string PendingStatus,
+    int PendingDocumentCount,
+    int PendingLineCount,
+    double PendingQuantity,
+    int MikroMissingDocumentCount,
+    int MikroExistsPendingAckDocumentCount,
+    string CheckLevel);
+
+public sealed record AxataUnsyncedWarehouseOrderDto(
+    string DocumentSerie,
+    int DocumentOrderNo,
+    DateTime DocumentDate,
+    int InWarehouseNo,
+    int OutWarehouseNo,
+    int LineCount,
+    int SentLineCount,
+    int UnsentLineCount,
+    double TotalQuantity,
+    double SentQuantity,
+    double UnsentQuantity,
+    string State,
+    DateTime? LastUpdateDate,
+    string Warning);
+
+public sealed record AxataPendingOutboundDeliveryDto(
+    string MovementType,
+    string Status,
+    long AxataSequenceNo,
+    string AxataDeliveryNo,
+    string DocumentSerie,
+    int? DocumentOrderNo,
+    int SourceWarehouseNo,
+    int TargetWarehouseNo,
+    DateTime? AxataDate,
+    int LineCount,
+    double Quantity,
+    int MikroOrderLineCount,
+    double MikroOrderQuantity,
+    double MikroDeliveredQuantity,
+    int ExistingLinkedMovementLineCount,
+    string MikroCheckState,
+    bool CanIntervene,
+    string? Warning);
+
+public sealed record AxataOutboundDeliveryImportPreviewDto(
+    string MovementType,
+    string PendingStatus,
+    DateTime GeneratedAtUtc,
+    int TotalFetchedDocumentCount,
+    int ReturnedDocumentCount,
+    int TotalLineCount,
+    double TotalQuantity,
+    IReadOnlyCollection<AxataOutboundDeliveryImportDocumentDto> Documents,
+    IReadOnlyCollection<string> Notes);
+
+public sealed record AxataOutboundDeliveryImportExecuteDto(
+    string MovementType,
+    string PendingStatus,
+    DateTime GeneratedAtUtc,
+    int RequestedDocumentCount,
+    int SucceededDocumentCount,
+    int FailedDocumentCount,
+    int SkippedDocumentCount,
+    int CreatedMovementLineCount,
+    double CreatedMovementQuantity,
+    IReadOnlyCollection<AxataOutboundDeliveryImportResultDto> Results,
+    IReadOnlyCollection<AxataOutboundDeliveryImportFailureDto> Failures,
+    IReadOnlyCollection<string> Notes);
+
+public sealed record AxataOutboundDeliveryImportDocumentDto(
+    long AxataSequenceNo,
+    string AxataDeliveryNo,
+    string DocumentSerie,
+    int DocumentOrderNo,
+    string MovementType,
+    string Status,
+    int SourceWarehouseNo,
+    int TargetWarehouseNo,
+    DateTime? AxataDate,
+    int AxataLineCount,
+    double AxataQuantity,
+    int MikroOrderLineCount,
+    double MikroOrderQuantity,
+    double MikroDeliveredQuantity,
+    int ExistingLinkedMovementLineCount,
+    bool CanImport,
+    string? Warning);
+
+public sealed record AxataOutboundDeliveryImportResultDto(
+    long AxataSequenceNo,
+    string AxataDeliveryNo,
+    string DocumentSerie,
+    int DocumentOrderNo,
+    string MovementSerie,
+    int MovementOrderNo,
+    int CreatedMovementLineCount,
+    double CreatedMovementQuantity,
+    bool Acknowledged,
+    string Message);
+
+public sealed record AxataOutboundDeliveryImportFailureDto(
+    long? AxataSequenceNo,
+    string? AxataDeliveryNo,
+    string ErrorMessage);
+
 public sealed record AxataManualIncomingCompanyReceivingBatchResponse(
     int RequestedCount,
     int SucceededCount,
@@ -8785,6 +9300,9 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `AxataSynchronizationExecuteHttpRequest`: `TaskCode`, `ExecutionMode`, `WarehouseNo`
 - `AxataSynchronizationExecuteTaskHttpRequest`: `ExecutionMode`, `WarehouseNo`
 - `AxataSynchronizationManualDocumentCandidatesHttpRequest`: `WarehouseNo`, `StartDate`, `EndDate`, `Take`
+- `AxataIntegrationAuditHttpRequest`: `StartDate`, `EndDate`, `WarehouseNo`, `Take`
+- `AxataOutboundDeliveryImportPreviewHttpRequest`: `Take`
+- `AxataOutboundDeliveryImportExecuteHttpRequest`: `Take`, `ContinueOnError`, `Acknowledge`
 - `AxataSynchronizationManualDocumentHttpRequest`: `WarehouseNo`, `DocumentSerie`, `DocumentOrderNo`, `DocumentNo`, `DocumentDate`
 - `AxataSynchronizationManualDocumentExecuteHttpRequest`: `WarehouseNo`, `DocumentSerie`, `DocumentOrderNo`, `DocumentNo`, `DocumentDate`, `ExecutionMode`
 - `AxataSynchronizationManualDocumentItemHttpRequest`: `DocumentSerie`, `DocumentOrderNo`, `DocumentNo`, `DocumentDate`
@@ -8801,7 +9319,7 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `AxataManualIncomingWarehouseReceivingBatchHttpRequest`: `ContinueOnError`, `Items`
 - `AxataManualIncomingWarehouseReceivingBatchItemHttpRequest`: `DocumentSerie`, `DocumentOrderNo`, `AllowDiscrepancy`, `Lines`
 - `PosAccountingDateRangeHttpRequest`: `StartDate`, `EndDate`, `WarehouseNo`, `OnlyPending`
-- `ImportZReportsHttpRequest`: `WarehouseNo`, `BusinessDate`, `ImportMode`, `SourceCode`, `OverwriteExisting`
+- `ImportZReportsHttpRequest`: `WarehouseNo`, `BusinessDate`, `ReportPath`, `ImportMode`, `SourceCode`, `OverwriteExisting`
 - `ImportPosDocumentsHttpRequest`: `WarehouseNo`, `BusinessDate`, `IncludePreviouslyImported`, `OverwriteExisting`
 - `PosAccountingTransferHttpRequest`: `WarehouseNo`, `DocumentIds`, `ContinueOnError`
 - `PosAccountingDeleteHttpRequest`: `WarehouseNo`, `DocumentIds`
@@ -8823,7 +9341,7 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari`, `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar` ve `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari` endpoint'leri query'de `PosAccountingDateRangeHttpRequest` kullanir
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar` body'de `ImportZReportsHttpRequest` alir
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/ice-aktar` ve `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/ice-aktar` body'de `ImportPosDocumentsHttpRequest` alir
-- `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/*/erpye-gonder` ve `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/*` endpoint'leri secili belge listesi bekler; `DocumentIds[]` GUID koleksiyonudur
+- `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/*/erpye-gonder` ve `DELETE /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/*` endpoint'leri secili belge listesi bekler; `DocumentIds[]` int koleksiyonudur
 - `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/{invoiceId}` ve `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/{expenseId}` body'de `UpdatePosAccountingDocumentHttpRequest` alir
 - `GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri` query'de `CashRegisterBranchMappingListHttpRequest` kullanir
 - `POST /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri` ve `PUT /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri/{mappingId}` body'de `CashRegisterBranchMappingHttpRequest` alir

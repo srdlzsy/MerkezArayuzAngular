@@ -23,6 +23,7 @@ import type {
   IAxataManualIncomingInventoryCountBatchRequestApiDto,
   IAxataManualIncomingInventoryCountRequestApiDto,
   IAxataOutboundDeliveryBatchRequestApiDto,
+  IAxataOutboundDeliveryImportExecuteRequestApiDto,
   IAxataOutboundDeliveryRequestApiDto,
   IAxataExecutionMode,
   IAxataSynchronizationFetchProfileApiDto,
@@ -40,6 +41,7 @@ import type {
 import {
   AxataInboundAtfCompanyReceivingBatchResponseDto,
   AxataInboundAtfCompanyReceivingResponseDto,
+  AxataIntegrationAuditDto,
   AxataManualIncomingCompanyReceivingBatchResponseDto,
   AxataManualIncomingCompanyReceivingResponseDto,
   AxataManualIncomingInventoryCountBatchResponseDto,
@@ -49,6 +51,8 @@ import {
   AxataManualIncomingWarehouseReceivingBatchResponseDto,
   AxataManualIncomingWarehouseReceivingDetailDto,
   AxataManualIncomingWarehouseReceivingListItemDto,
+  AxataOutboundDeliveryImportExecuteDto,
+  AxataOutboundDeliveryImportPreviewDto,
   AxataOutboundDeliveryResponseDto,
   AxataSynchronizationFetchProfilesOverviewDto,
   AxataSynchronizationHealthDto,
@@ -113,6 +117,7 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly overview = signal<AxataSynchronizationOverviewDto | null>(null);
   protected readonly health = signal<AxataSynchronizationHealthDto | null>(null);
   protected readonly fetchProfiles = signal<AxataSynchronizationFetchProfilesOverviewDto | null>(null);
+  protected readonly audit = signal<AxataIntegrationAuditDto | null>(null);
   protected readonly preview = signal<AxataSynchronizationTaskPreviewDto | null>(null);
   protected readonly activeJob = signal<AxataSynchronizationJobDetailDto | null>(null);
   protected readonly manualCandidates =
@@ -128,6 +133,7 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly overviewLoading = signal(false);
   protected readonly healthLoading = signal(false);
   protected readonly fetchProfilesLoading = signal(false);
+  protected readonly auditLoading = signal(false);
   protected readonly previewLoading = signal(false);
   protected readonly executeLoading = signal(false);
   protected readonly manualLoading = signal(false);
@@ -141,6 +147,8 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly incomingWarehouseAcceptLoading = signal(false);
   protected readonly axataOutboundLoading = signal(false);
   protected readonly axataInboundAtfLoading = signal(false);
+  protected readonly c01PreviewLoading = signal(false);
+  protected readonly c01ImportLoading = signal(false);
   protected readonly genericJobLoading = signal(false);
 
   protected readonly form = new FormGroup({
@@ -180,6 +188,21 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly batchForm = new FormGroup({
     continueOnError: new FormControl<boolean>(true, {
       nonNullable: true
+    })
+  });
+  protected readonly auditForm = new FormGroup({
+    startDate: new FormControl<string>(this.getToday(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    endDate: new FormControl<string>(this.getToday(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    warehouseNo: new FormControl<number | null>(null),
+    take: new FormControl<number>(50, {
+      nonNullable: true,
+      validators: [Validators.min(1), Validators.max(200)]
     })
   });
   protected readonly incomingJsonForm = new FormGroup({
@@ -230,6 +253,18 @@ export class AxataSenkronizasyonuListComponent {
       }
     )
   });
+  protected readonly c01ImportForm = new FormGroup({
+    take: new FormControl<number>(20, {
+      nonNullable: true,
+      validators: [Validators.min(1), Validators.max(200)]
+    }),
+    continueOnError: new FormControl<boolean>(true, {
+      nonNullable: true
+    }),
+    acknowledge: new FormControl<boolean>(true, {
+      nonNullable: true
+    })
+  });
   protected readonly incomingWarehouseForm = new FormGroup({
     warehouseNo: new FormControl<number | null>(null),
     startDate: new FormControl<string>(this.getRelativeDate(6), {
@@ -274,6 +309,10 @@ export class AxataSenkronizasyonuListComponent {
     signal<AxataInboundAtfCompanyReceivingResponseDto | null>(null);
   protected readonly axataInboundAtfBatchResult =
     signal<AxataInboundAtfCompanyReceivingBatchResponseDto | null>(null);
+  protected readonly c01OutboundDeliveryPreview =
+    signal<AxataOutboundDeliveryImportPreviewDto | null>(null);
+  protected readonly c01OutboundDeliveryImportResult =
+    signal<AxataOutboundDeliveryImportExecuteDto | null>(null);
   protected readonly incomingWarehouseReceivings =
     signal<AxataManualIncomingWarehouseReceivingListItemDto[]>([]);
   protected readonly incomingWarehouseReceivingDetail =
@@ -332,6 +371,7 @@ export class AxataSenkronizasyonuListComponent {
       this.overviewLoading() ||
       this.healthLoading() ||
       this.fetchProfilesLoading() ||
+      this.auditLoading() ||
       this.previewLoading() ||
       this.executeLoading() ||
       this.manualLoading() ||
@@ -345,6 +385,8 @@ export class AxataSenkronizasyonuListComponent {
       this.incomingWarehouseAcceptLoading() ||
       this.axataOutboundLoading() ||
       this.axataInboundAtfLoading() ||
+      this.c01PreviewLoading() ||
+      this.c01ImportLoading() ||
       this.genericJobLoading()
   );
   protected readonly selectedBatchCount = computed(() => this.selectedBatchDocuments().length);
@@ -393,7 +435,7 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     const notes = [
-      'Bu surum AXATA belge no verip canli SOAP fetch yapmaz.',
+      'C01 canli fetch/import, AXATA -> Mikro Manuel sekmesinde ayrica yonetilir.',
       'Outbox basarisi AXATA kabul etti degil, payload dosyalandi anlamina gelir.'
     ];
 
@@ -489,6 +531,49 @@ export class AxataSenkronizasyonuListComponent {
         })
       : ''
   );
+  protected readonly auditJson = computed(() => (this.audit() ? this.formatJson(this.audit()) : ''));
+  protected readonly c01PreviewJson = computed(() =>
+    this.c01OutboundDeliveryPreview() ? this.formatJson(this.c01OutboundDeliveryPreview()) : ''
+  );
+  protected readonly c01ImportJson = computed(() =>
+    this.c01OutboundDeliveryImportResult()
+      ? this.formatJson(this.c01OutboundDeliveryImportResult())
+      : ''
+  );
+  protected readonly auditSummaryCards = computed(() => {
+    const summary = this.audit()?.summary;
+
+    if (!summary) {
+      return [];
+    }
+
+    return [
+      {
+        label: 'Mikro Siparis',
+        value: summary.mikroWarehouseOrderDocumentCount
+      },
+      {
+        label: 'Tam Giden',
+        value: summary.sentWarehouseOrderDocumentCount
+      },
+      {
+        label: 'Eksik Giden',
+        value: summary.unsentWarehouseOrderDocumentCount
+      },
+      {
+        label: 'AXATA Pending',
+        value: summary.pendingOutboundDeliveryDocumentCount
+      },
+      {
+        label: 'C01 Pending',
+        value: summary.c01PendingDocumentCount
+      },
+      {
+        label: 'Ack Bekleyen',
+        value: summary.c01MikroExistsPendingAckDocumentCount
+      }
+    ];
+  });
 
   constructor() {
     this.form.controls.taskCode.valueChanges
@@ -628,6 +713,120 @@ export class AxataSenkronizasyonuListComponent {
             title: 'Fetch profile listesi okunamadi',
             message:
               'Eski worker parity profilleri getirilemedi. AXATA fetch/import konfigurasyonunu kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected loadAuditOverview(): void {
+    const startDate = this.auditForm.controls.startDate.value.trim();
+    const endDate = this.auditForm.controls.endDate.value.trim();
+
+    if (!startDate || !endDate) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Audit tarih araligi eksik',
+        message: 'Kontrol / fark analizi icin baslangic ve bitis tarihi zorunlu.'
+      });
+      return;
+    }
+
+    this.auditLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .getAxataIntegrationAuditOverview({
+        startDate,
+        endDate,
+        warehouseNo: this.toPositiveNumber(this.auditForm.controls.warehouseNo.value) ?? undefined,
+        take: this.toPositiveNumber(this.auditForm.controls.take.value) ?? 50
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.auditLoading.set(false))
+      )
+      .subscribe({
+        next: (audit: AxataIntegrationAuditDto) => {
+          this.audit.set(audit);
+          this.feedback.set({
+            tone: audit.isInSync ? 'success' : 'info',
+            title: audit.isInSync ? 'Sistem es zamanli gorunuyor' : 'Fark analizi hazir',
+            message: audit.isInSync
+              ? 'Secili aralikta Mikro bayraklari tamam ve AXATA pending kuyrugu bos gorunuyor.'
+              : `${audit.unsyncedWarehouseOrders.length} Mikro siparisi ve ${audit.pendingOutboundDeliveries.length} AXATA pending sevki raporlandi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Fark analizi alinamadi',
+            message: 'live/audit/overview endpointi cevap vermedi veya filtreleri kabul etmedi.'
+          });
+        }
+      });
+  }
+
+  protected loadC01OutboundDeliveryPreview(): void {
+    this.c01PreviewLoading.set(true);
+    this.c01OutboundDeliveryPreview.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataC01OutboundDeliveryImport(
+        this.toPositiveNumber(this.c01ImportForm.controls.take.value) ?? 20
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.c01PreviewLoading.set(false))
+      )
+      .subscribe({
+        next: (preview: AxataOutboundDeliveryImportPreviewDto) => {
+          this.c01OutboundDeliveryPreview.set(preview);
+          this.feedback.set({
+            tone: 'info',
+            title: 'C01 live preview hazir',
+            message: `${preview.returnedDocumentCount}/${preview.totalFetchedDocumentCount} AXATA pending C01 evraki listelendi. Veri yazilmadi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'C01 preview alinamadi',
+            message: 'AXATA C01 live preview endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected executeC01OutboundDeliveryImport(): void {
+    const request: IAxataOutboundDeliveryImportExecuteRequestApiDto = {
+      take: this.toPositiveNumber(this.c01ImportForm.controls.take.value) ?? 20,
+      continueOnError: this.c01ImportForm.controls.continueOnError.value,
+      acknowledge: this.c01ImportForm.controls.acknowledge.value
+    };
+
+    this.c01ImportLoading.set(true);
+    this.c01OutboundDeliveryImportResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .executeAxataC01OutboundDeliveryImport(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.c01ImportLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataOutboundDeliveryImportExecuteDto) => {
+          this.c01OutboundDeliveryImportResult.set(result);
+          this.feedback.set({
+            tone: result.failedDocumentCount > 0 ? 'info' : 'success',
+            title: 'C01 import tamamlandi',
+            message: `${result.succeededDocumentCount} basarili, ${result.failedDocumentCount} hatali, ${result.skippedDocumentCount} atlanan evrak raporlandi.`
+          });
+          this.loadAuditOverview();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'C01 import basarisiz',
+            message: 'AXATA C01 import endpointi Mikro yazim veya AXATA ack sirasinda hata dondu.'
           });
         }
       });
@@ -2280,6 +2479,7 @@ export class AxataSenkronizasyonuListComponent {
       description: '',
       lines: [
         {
+          lineNo: 1,
           stockCode: '015550',
           quantity: 10,
           unitPrice: 0,
@@ -2288,7 +2488,8 @@ export class AxataSenkronizasyonuListComponent {
           partyCode: '',
           lotNo: 0,
           projectCode: '',
-          warehouseOrderLineGuid: null
+          customerResponsibilityCenter: '',
+          productResponsibilityCenter: ''
         }
       ]
     });
@@ -2318,12 +2519,12 @@ export class AxataSenkronizasyonuListComponent {
       allowOrderOverReceiving: false,
       lines: [
         {
+          lineNo: 1,
           stockCode: '015792',
           quantity: 6,
           unitPrice: 0,
           unitPointer: 1,
           lastConsumingDate: '2026-12-31',
-          orderGuid: '1bb2b4fe-b722-4e67-9d4b-050b6d87e800',
           description: '',
           partyCode: '',
           lotNo: 0,
