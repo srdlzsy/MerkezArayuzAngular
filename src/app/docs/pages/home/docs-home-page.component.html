@@ -1,27 +1,207 @@
-<section class="hero">
-  <div class="hero-copy">
-    <span class="eyebrow">Overview</span>
-    <h2>Hosgeldiniz</h2>
-    <p></p>
-  </div>
+<section class="home-shell">
+  <section class="hero">
+    <div class="hero-copy">
+      <span class="eyebrow">Overview</span>
+      <h2>Hosgeldiniz</h2>
+      <p>{{ apiCount() }} gorev sayfasi erisime hazir.</p>
+    </div>
 
-  <div class="hero-metrics">
-    <article>
-      <strong>{{ apiCount() }}</strong>
-      <span>Gorev sayfasi</span>
+    <article class="feedback-card">
+      <div class="feedback-head">
+        <div>
+          <span class="eyebrow">Home</span>
+          <h3>Sikayet / Oneri</h3>
+        </div>
+        <span class="status-badge" [class]="getStatusTone(feedbackSummary()?.latestStatus ?? null)">
+          {{ latestStatusLabel() }}
+        </span>
+      </div>
+
+      <div class="feedback-metrics">
+        <article>
+          <span>Acik</span>
+          <strong>{{ feedbackSummary()?.myOpenCount ?? 0 }}</strong>
+        </article>
+        <article>
+          <span>Cozulen</span>
+          <strong>{{ feedbackSummary()?.myResolvedCount ?? 0 }}</strong>
+        </article>
+        <article>
+          <span>Son Kayit</span>
+          <strong>{{ latestCreatedLabel() }}</strong>
+        </article>
+      </div>
+
+      <article
+        class="feedback-message"
+        *ngIf="feedbackMessage() as currentMessage"
+        [class.message-error]="currentMessage.tone === 'error'"
+        [class.message-success]="currentMessage.tone === 'success'"
+      >
+        <strong>{{ currentMessage.title }}</strong>
+        <span>{{ currentMessage.text }}</span>
+      </article>
+
+      <div class="feedback-actions">
+        <button type="button" class="primary-action" (click)="openFeedbackModal()">
+          Gonder
+        </button>
+        <button type="button" class="secondary-action" (click)="toggleHistory()" [disabled]="historyLoading()">
+          {{ historyOpen() ? 'Gecmisi Kapat' : 'Gecmisim' }}
+        </button>
+        <button type="button" class="icon-action" (click)="loadFeedbackSummary()" [disabled]="summaryLoading()">
+          Yenile
+        </button>
+      </div>
     </article>
-  </div>
+  </section>
+
+  <section class="feedback-history" *ngIf="historyOpen()">
+    <div class="history-list">
+      <div class="history-head">
+        <span class="eyebrow">Gecmisim</span>
+        <strong>{{ myFeedbackItems().length }} kayit</strong>
+      </div>
+
+      <article class="feedback-message" *ngIf="historyLoading()">
+        <strong>Yukleniyor</strong>
+        <span>Kayitlar getiriliyor.</span>
+      </article>
+
+      <button
+        type="button"
+        class="history-item"
+        *ngFor="let item of myFeedbackItems(); trackBy: trackFeedback"
+        [class.is-active]="selectedFeedback()?.id === item.id"
+        (click)="selectFeedback(item)"
+      >
+        <span class="status-badge" [class]="getStatusTone(item.status)">{{ item.statusName }}</span>
+        <strong>{{ item.title }}</strong>
+        <small>{{ item.typeName }} / {{ item.priorityName }} / {{ formatDateTime(item.createdAtUtc) }}</small>
+      </button>
+
+      <article class="feedback-message" *ngIf="!historyLoading() && !myFeedbackItems().length">
+        <strong>Kayit yok</strong>
+        <span>Henuz gonderilmis sikayet veya oneri bulunmuyor.</span>
+      </article>
+    </div>
+
+    <article class="history-detail" *ngIf="selectedFeedback() as selected">
+      <div class="feedback-head">
+        <div>
+          <span class="eyebrow">{{ selected.typeName }}</span>
+          <h3>{{ selected.title }}</h3>
+        </div>
+        <span class="status-badge" [class]="getStatusTone(selected.status)">
+          {{ selected.statusName }}
+        </span>
+      </div>
+
+      <p>{{ selected.message }}</p>
+
+      <dl class="detail-grid">
+        <div>
+          <dt>Oncelik</dt>
+          <dd [class]="getPriorityTone(selected.priority)">{{ selected.priorityName }}</dd>
+        </div>
+        <div>
+          <dt>Depo</dt>
+          <dd>{{ selected.warehouseName || '-' }} {{ selected.warehouseNo ? '(' + selected.warehouseNo + ')' : '' }}</dd>
+        </div>
+        <div>
+          <dt>Olusturma</dt>
+          <dd>{{ formatDateTime(selected.createdAtUtc) }}</dd>
+        </div>
+        <div>
+          <dt>Guncelleme</dt>
+          <dd>{{ formatDateTime(selected.updatedAtUtc) }}</dd>
+        </div>
+      </dl>
+
+      <article class="admin-note" *ngIf="selected.adminNote">
+        <span class="eyebrow">Yonetim Notu</span>
+        <p>{{ selected.adminNote }}</p>
+      </article>
+    </article>
+  </section>
+
+  <section class="grid">
+    <article class="group-card" *ngFor="let group of navGroups()">
+      <span class="eyebrow">{{ group.label }}</span>
+      <h3>{{ group.label }}</h3>
+      <p>{{ group.summary }}</p>
+      <a class="jump-link" [routerLink]="getFirstRoute(group.children)">Ilk gorevi ac</a>
+
+      <div class="chips">
+        <span *ngFor="let label of getPreviewLabels(group.children)">{{ label }}</span>
+      </div>
+    </article>
+  </section>
 </section>
 
-<section class="grid">
-  <article class="group-card" *ngFor="let group of navGroups()">
-    <span class="eyebrow">{{ group.label }}</span>
-    <h3>{{ group.label }}</h3>
-    <p>{{ group.summary }}</p>
-    <a class="jump-link" [routerLink]="getFirstRoute(group.children)">Ilk gorevi ac</a>
+<section class="modal-backdrop" *ngIf="feedbackModalOpen()" (click)="closeFeedbackModal()">
+  <form
+    class="feedback-modal"
+    [formGroup]="feedbackForm"
+    (click)="$event.stopPropagation()"
+    (ngSubmit)="submitFeedback()"
+    novalidate
+  >
+    <header class="feedback-head">
+      <div>
+        <span class="eyebrow">Yeni Kayit</span>
+        <h3>Sikayet / Oneri Gonder</h3>
+      </div>
+      <button type="button" class="icon-action" (click)="closeFeedbackModal()">Kapat</button>
+    </header>
 
-    <div class="chips">
-      <span *ngFor="let label of getPreviewLabels(group.children)">{{ label }}</span>
+    <div class="modal-grid">
+      <label class="field">
+        <span>Tip</span>
+        <select formControlName="type">
+          <option *ngFor="let option of feedbackTypeOptions" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Oncelik</span>
+        <select formControlName="priority">
+          <option *ngFor="let option of feedbackPriorityOptions" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field field-wide">
+        <span>Baslik</span>
+        <input type="text" formControlName="title" maxlength="120" autocomplete="off" />
+      </label>
+
+      <label class="field field-wide">
+        <span>Mesaj</span>
+        <textarea formControlName="message" maxlength="2000" rows="7"></textarea>
+      </label>
     </div>
-  </article>
+
+    <article
+      class="feedback-message"
+      *ngIf="feedbackMessage() as currentMessage"
+      [class.message-error]="currentMessage.tone === 'error'"
+      [class.message-success]="currentMessage.tone === 'success'"
+    >
+      <strong>{{ currentMessage.title }}</strong>
+      <span>{{ currentMessage.text }}</span>
+    </article>
+
+    <div class="modal-actions">
+      <button type="button" class="secondary-action" (click)="closeFeedbackModal()" [disabled]="submittingFeedback()">
+        Vazgec
+      </button>
+      <button type="submit" class="primary-action" [disabled]="submittingFeedback()">
+        {{ submittingFeedback() ? 'Gonderiliyor...' : 'Gonder' }}
+      </button>
+    </div>
+  </form>
 </section>

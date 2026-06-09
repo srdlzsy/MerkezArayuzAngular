@@ -8,6 +8,7 @@ export * from './kullanici-islemleri.service';
 export * from './sayim-islemleri.service';
 export * from './arama.service';
 export * from './operasyon-islemleri.service';
+export * from './ortak-islemler.service';
 export * from './entegrasyon-islemleri.service';
 export * from './fatura-islemleri.service';
 export * from './green-grocer.service';

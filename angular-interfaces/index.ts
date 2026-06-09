@@ -5,6 +5,7 @@ export * from './siparis-islemleri.dtos';
 export * from './sevk-iade-malkabul.dtos';
 export * from './stok-islemleri.dtos';
 export * from './fatura-islemleri.dtos';
+export * from './feedback.dtos';
 export * from './green-grocer.dtos';
 
 // Compatibility alias exports

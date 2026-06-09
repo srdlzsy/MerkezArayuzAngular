@@ -453,4 +453,35 @@ describe('docs-menu.config', () => {
       ['kasa-hareket-aktarimi']
     ]);
   });
+
+  it('keeps complaint suggestion management task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Ortak Islemler',
+        sebike: 'OrtakIslemler',
+        gorevler: [
+          {
+            id: 14,
+            isim: 'Sikayet Oneri',
+            sebike: 'SikayetOneri',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Listele',
+                sebike: 'ortak-islemler.sikayet-oneri.list'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('sikayet-oneri', sorumluluklar)).toBeTrue();
+    expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
+      ['sikayet-oneri']
+    ]);
+  });
 });

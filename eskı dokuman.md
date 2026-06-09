@@ -4434,6 +4434,207 @@ Response:
 }
 ```
 
+### Kasa Hareket Aktarimi
+
+Eski kasa hareket dosyalarini HR/IP formatindan staging tablolara alir, staging hareketlerini Mikro stok hareketlerine aktarir veya aktarimi geri siler.
+
+Temel route:
+
+- `api/kasa-islemleri/kasa-hareket-aktarimi`
+
+Yetki kodlari:
+
+- `kasa-islemleri.kasa-hareket-aktarimi.list`
+- `kasa-islemleri.kasa-hareket-aktarimi.detail`
+- `kasa-islemleri.kasa-hareket-aktarimi.create`
+- `kasa-islemleri.kasa-hareket-aktarimi.update`
+
+Mevcut backend durumu:
+
+- route ailesi aktiftir
+- sube/kasa lookup, HR hareket import, IP iptal import, zamanli import, staging silme, Mikro'ya aktar/sil/aralik aktar ve rapor endpointleri calisir
+- import dosya kaynagi `KasaHareketAktarimi:FileRootPath` konfigurasyonundan okunur; default deger `\\10.0.0.55\kasa\`
+- zamanli importta `Date` verilmezse `KasaHareketAktarimi:ScheduledAddDay` kullanilir; default `-1`, yani dunun dosyalarini okur
+- dosya yolu `{root}\{subeNo}\HRddMMyy.*` ve `{root}\{subeNo}\IPddMMyy.*` desenindedir
+- `cashRegisters` filtresi verilirse dosya adi `{prefix}{ddMMyy}.{kasaNo:000}` olarak aranir
+- `skipExisting=true` iken duplicate kontrolu `Sube + KasaNo + FisNo + BelgeTuru + Tarih` alanlariyla yapilir
+- `dryRun=true` import dosyalarini parse eder, barkod lookup ve hata/uyari listesi uretir, staging'e yazmaz
+- barkod lookup Mikro barkod tanimlarindan urun kodu bulmaya calisir; bulunamayan barkodlar response `warnings` icinde doner
+- HR import normal kasa hareketlerini, IP import iptal belgelerini staging'e alir
+- Mikro aktar/sil endpointleri stored procedure calistirir; response sadece procedure adi, mesaj ve filtre bilgisini doner
+
+Endpoint'ler:
+
+| Endpoint | Request kaynagi | Request modeli | Response | Yetki |
+|---|---|---|---|---|
+| `GET /api/kasa-islemleri/kasa-hareket-aktarimi/subeler` | - | - | `KasaHareketBranchDto[]` | `list` |
+| `GET /api/kasa-islemleri/kasa-hareket-aktarimi/subeler/{branchNo}/kasalar` | path | `branchNo: int` | `KasaHareketCashRegisterDto[]` | `list` |
+| `POST /api/kasa-islemleri/kasa-hareket-aktarimi/hareketler/aktar` | body | `KasaHareketImportHttpRequest` | `KasaHareketImportResultDto` | `create` |
+| `POST /api/kasa-islemleri/kasa-hareket-aktarimi/iptal-belgeleri/aktar` | body | `KasaHareketImportHttpRequest` | `KasaHareketImportResultDto` | `create` |
+| `POST /api/kasa-islemleri/kasa-hareket-aktarimi/zamanli-aktarim/calistir` | body | `KasaHareketScheduledImportHttpRequest` | `KasaHareketImportResultDto` | `create` |
+| `DELETE /api/kasa-islemleri/kasa-hareket-aktarimi/staging` | body | `KasaHareketDeleteStagingHttpRequest` | `KasaHareketProcedureResultDto` | `update` |
+| `POST /api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aktar` | body | `KasaHareketMikroTransferHttpRequest` | `KasaHareketProcedureResultDto` | `create` |
+| `DELETE /api/kasa-islemleri/kasa-hareket-aktarimi/mikro` | body | `KasaHareketMikroTransferHttpRequest` | `KasaHareketProcedureResultDto` | `update` |
+| `POST /api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aralik-aktar` | body | `KasaHareketMikroTransferRangeHttpRequest` | `KasaHareketProcedureResultDto` | `create` |
+| `GET /api/kasa-islemleri/kasa-hareket-aktarimi/rapor` | query | `KasaHareketReportHttpRequest` | `KasaHareketReportRowDto[]` | `detail` |
+
+Import request:
+
+```json
+{
+  "startDate": "2026-06-08",
+  "endDate": "2026-06-09",
+  "branches": [110, 115],
+  "cashRegisters": [1, 2],
+  "fileRootPath": "\\\\10.0.0.55\\kasa\\",
+  "skipExisting": true,
+  "dryRun": false
+}
+```
+
+Import response:
+
+```json
+{
+  "runId": "normal-20260608-153000",
+  "importType": "normal",
+  "status": "Completed",
+  "processedFiles": 4,
+  "processedInvoices": 128,
+  "skippedExistingInvoices": 3,
+  "insertedLines": 642,
+  "insertedPayments": 146,
+  "insertedPromotions": 12,
+  "warnings": [
+    {
+      "branchNo": 110,
+      "cashRegisterNo": 1,
+      "file": "HR080626.001",
+      "receiptNo": "3456",
+      "lineNo": 24,
+      "message": "Sistemde olmayan barkod: 8690000000000"
+    }
+  ],
+  "errors": []
+}
+```
+
+Zamanli import:
+
+`POST /api/kasa-islemleri/kasa-hareket-aktarimi/zamanli-aktarim/calistir`
+
+```json
+{
+  "date": "2026-06-09",
+  "addDay": null,
+  "fileRootPath": null,
+  "skipExisting": true,
+  "dryRun": true
+}
+```
+
+Not:
+
+- zamanli import ayni tarih icin HR ve IP importlarini birlikte calistirir
+- `date` bos gonderilirse `DateTime.Today + addDay/configured ScheduledAddDay` hesaplanir
+- response `importType = scheduled` olarak doner ve HR/IP sonuc adetlerini toplar
+
+Staging silme:
+
+`DELETE /api/kasa-islemleri/kasa-hareket-aktarimi/staging`
+
+```json
+{
+  "date": "2026-06-09",
+  "branchNo": 110,
+  "cashRegisterNo": 1
+}
+```
+
+Bu endpoint `HareketSil` procedure'unu calistirir. `branchNo` ve `cashRegisterNo` opsiyoneldir; UI'da staging temizleme aksiyonu olarak sunulmalidir, Mikro evragi silme aksiyonu gibi adlandirilmamalidir.
+
+Mikro'ya aktar:
+
+`POST /api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aktar`
+
+```json
+{
+  "date": "2026-06-09",
+  "branchNo": 110
+}
+```
+
+Bu endpoint `StokHareketYaz` procedure'unu calistirir. `branchNo` opsiyoneldir.
+
+Mikro'dan sil:
+
+`DELETE /api/kasa-islemleri/kasa-hareket-aktarimi/mikro`
+
+```json
+{
+  "date": "2026-06-09",
+  "branchNo": 110
+}
+```
+
+Bu endpoint `StokHareketSil` procedure'unu calistirir.
+
+Tarih araligi Mikro aktarimi:
+
+`POST /api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aralik-aktar`
+
+```json
+{
+  "startDate": "2026-06-01",
+  "endDate": "2026-06-09"
+}
+```
+
+Bu endpoint `StokHareketYaz2` procedure'unu calistirir ve sube filtresi almaz.
+
+Procedure response:
+
+```json
+{
+  "procedure": "StokHareketYaz",
+  "message": "StokHareketYaz calisti.",
+  "date": "2026-06-09T00:00:00",
+  "branchNo": 110,
+  "cashRegisterNo": null
+}
+```
+
+Rapor:
+
+`GET /api/kasa-islemleri/kasa-hareket-aktarimi/rapor?date=2026-06-09&branchNo=110&cashRegisterNo=1`
+
+Response:
+
+```json
+[
+  {
+    "date": "2026-06-09T00:00:00",
+    "branchNo": 110,
+    "branchName": "KESTEL 1",
+    "cashRegisterNo": 1,
+    "netAmount": 24500.75,
+    "expense": 350.25,
+    "checkAmount": 1250,
+    "difference": 22900.5
+  }
+]
+```
+
+UI beklentisi:
+
+- ekran tek menu olarak acilabilir; `Import`, `Rapor`, `Mikro Aktarim` sekmeleri yeterlidir
+- ekran acilisinda `subeler`, sube secilince `subeler/{branchNo}/kasalar` cagrilmalidir
+- import dialogunda tarih araligi zorunlu, sube/kasa filtreleri opsiyonel olmalidir
+- `dryRun` bir onizleme modu gibi sunulmalidir; sonuc adetleri ve `warnings/errors` satir bazli gosterilmelidir
+- `skipExisting=true` varsayilani korunmalidir; tekrar import gereken durumlarda kullanici bilincli olarak kapatmalidir
+- `staging sil`, `Mikro'ya aktar`, `Mikro'dan sil` ve `aralik aktar` aksiyonlari ayri butonlar olmalidir
+- procedure response'unda adet bilgisi yoktur; UI mesaj alanini ve calistirilan filtreleri gostermelidir
+
 ### Kasa Sayimlari Liste
 
 Belirli bir gune ait kasa sayim belgelerini getirir.
@@ -5226,6 +5427,19 @@ Kasa Islemleri / Kasa Cirolari
   -> kullanici satira tiklar
   -> GET /api/kasa-islemleri/kasa-cirolari/detay?businessDate=...&shiftNo=...&cashierCode=...
   -> detay ekraninda header ozetini ust kartta, odeme kirilimini alttaki gridde goster
+
+Kasa Islemleri / Kasa Hareket Aktarimi
+  -> ekran acilisinda sube filtresi icin GET /api/kasa-islemleri/kasa-hareket-aktarimi/subeler
+  -> kullanici sube secince kasa filtresi icin GET /api/kasa-islemleri/kasa-hareket-aktarimi/subeler/{branchNo}/kasalar
+  -> HR hareket dosyalarini staging'e almak icin POST /api/kasa-islemleri/kasa-hareket-aktarimi/hareketler/aktar
+  -> IP iptal dosyalarini staging'e almak icin POST /api/kasa-islemleri/kasa-hareket-aktarimi/iptal-belgeleri/aktar
+  -> zamanli/gunluk toplu calistirma icin POST /api/kasa-islemleri/kasa-hareket-aktarimi/zamanli-aktarim/calistir
+  -> import oncesi dryRun=true ile parse/lookup sonucu gosterilebilir
+  -> rapor gridini doldurmak icin GET /api/kasa-islemleri/kasa-hareket-aktarimi/rapor?date=...
+  -> staging temizleme icin DELETE /api/kasa-islemleri/kasa-hareket-aktarimi/staging
+  -> staging hareketlerini Mikro'ya yazmak icin POST /api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aktar
+  -> Mikro'ya yazilmis hareketleri silmek icin DELETE /api/kasa-islemleri/kasa-hareket-aktarimi/mikro
+  -> tarih araligi toplu aktarim icin POST /api/kasa-islemleri/kasa-hareket-aktarimi/mikro/aralik-aktar
 ```
 
 ## Fatura Islemleri
@@ -8678,6 +8892,54 @@ public sealed record CashTurnoverBranchOverviewItemDto(
     int FuturesSalesCount,
     double AverageBasketAmount);
 
+public sealed record KasaHareketBranchDto(
+    int BranchNo,
+    string BranchName,
+    string Region);
+
+public sealed record KasaHareketCashRegisterDto(
+    int BranchNo,
+    int CashRegisterNo,
+    byte CashRegisterType);
+
+public sealed record KasaHareketImportResultDto(
+    string RunId,
+    string ImportType,
+    string Status,
+    int ProcessedFiles,
+    int ProcessedInvoices,
+    int SkippedExistingInvoices,
+    int InsertedLines,
+    int InsertedPayments,
+    int InsertedPromotions,
+    IReadOnlyCollection<KasaHareketImportIssueDto> Warnings,
+    IReadOnlyCollection<KasaHareketImportIssueDto> Errors);
+
+public sealed record KasaHareketImportIssueDto(
+    int? BranchNo,
+    int? CashRegisterNo,
+    string? File,
+    string? ReceiptNo,
+    int? LineNo,
+    string Message);
+
+public sealed record KasaHareketProcedureResultDto(
+    string Procedure,
+    string Message,
+    DateTime Date,
+    int? BranchNo,
+    int? CashRegisterNo);
+
+public sealed record KasaHareketReportRowDto(
+    DateTime Date,
+    int BranchNo,
+    string BranchName,
+    int CashRegisterNo,
+    decimal NetAmount,
+    decimal Expense,
+    decimal CheckAmount,
+    decimal Difference);
+
 public sealed record CreateBanknoteTrackResponse(
     Guid BanknoteTrackId,
     DateTime BanknoteTrackDate,
@@ -9264,6 +9526,12 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `UpdateCashSummaryDetailLineHttpRequest`: `TypeName`, `PaymentTypeId`, `AccountCode`, `SlipNumber`, `Amount`, `TerminalId`, `Description`
 - `UpdateCashSummaryBanknotesHttpRequest`: `WarehouseNo`, `BanknoteMovements`
 - `UpdateCashSummaryBanknoteLineHttpRequest`: `Value`, `BanknoteType`, `Quantity`, `Total`
+- `KasaHareketImportHttpRequest`: `StartDate`, `EndDate`, `Branches`, `CashRegisters`, `FileRootPath`, `SkipExisting`, `DryRun`
+- `KasaHareketScheduledImportHttpRequest`: `Date`, `AddDay`, `FileRootPath`, `SkipExisting`, `DryRun`
+- `KasaHareketDeleteStagingHttpRequest`: `Date`, `BranchNo`, `CashRegisterNo`
+- `KasaHareketMikroTransferHttpRequest`: `Date`, `BranchNo`
+- `KasaHareketMikroTransferRangeHttpRequest`: `StartDate`, `EndDate`
+- `KasaHareketReportHttpRequest`: `Date`, `BranchNo`, `CashRegisterNo`
 
 ### Fatura Request Modelleri
 

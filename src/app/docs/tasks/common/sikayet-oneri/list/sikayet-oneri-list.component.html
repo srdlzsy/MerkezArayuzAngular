@@ -1,0 +1,241 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="surface-card feedback-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ortak Islemler</span>
+        <h2>{{ current.title }}</h2>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Kayit</span>
+          <strong>{{ rows().length }}</strong>
+        </article>
+        <article>
+          <span>Yeni</span>
+          <strong>{{ newCount() }}</strong>
+        </article>
+        <article>
+          <span>Acik</span>
+          <strong>{{ openCount() }}</strong>
+        </article>
+        <article>
+          <span>Final</span>
+          <strong>{{ finalCount() }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="loadRows()" novalidate>
+      <label class="field">
+        <span>Durum</span>
+        <select formControlName="status">
+          <option *ngFor="let option of statusOptions" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Tip</span>
+        <select formControlName="type">
+          <option *ngFor="let option of typeOptions" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Depo</span>
+        <input type="number" min="1" formControlName="warehouseNo" placeholder="110" />
+      </label>
+
+      <label class="field">
+        <span>Baslangic</span>
+        <input type="date" formControlName="startDate" />
+      </label>
+
+      <label class="field">
+        <span>Bitis</span>
+        <input type="date" formControlName="endDate" />
+      </label>
+
+      <label class="field take-field">
+        <span>Take</span>
+        <input type="number" min="1" max="500" formControlName="take" />
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading()">
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+        <button type="button" class="task-action task-action-secondary" (click)="clearFilters()">
+          Temizle
+        </button>
+      </div>
+
+      <div class="scope-chip">
+        <span>Kapsam</span>
+        <strong>{{ selectedScopeLabel() }}</strong>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid">
+      <div class="list-panel">
+        <article class="state-card" *ngIf="isLoading()">
+          <h3>Liste yukleniyor</h3>
+          <p>{{ selectedScopeLabel() }} kapsamindaki sikayet/oneri kayitlari getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap" *ngIf="!isLoading() && rows().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Durum</th>
+                <th>Tip</th>
+                <th>Baslik</th>
+                <th>Oncelik</th>
+                <th>Depo</th>
+                <th>Olusturan</th>
+                <th>Tarih</th>
+                <th>Not</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let item of rows(); trackBy: trackByFeedback"
+                [class.is-selected]="selectedItem()?.id === item.id"
+                (click)="openDetail(item)"
+              >
+                <td>
+                  <span class="status-badge" [class]="getStatusTone(item.status)">
+                    {{ item.statusName || item.status }}
+                  </span>
+                </td>
+                <td>{{ item.typeName || item.type }}</td>
+                <td>
+                  <strong>{{ item.title }}</strong>
+                  <div class="table-meta">{{ item.message }}</div>
+                </td>
+                <td>
+                  <span [class]="getPriorityTone(item.priority)">
+                    {{ item.priorityName || item.priority }}
+                  </span>
+                </td>
+                <td>{{ item.warehouseName || '-' }} {{ item.warehouseNo ? '(' + item.warehouseNo + ')' : '' }}</td>
+                <td>{{ item.createdByFullName || item.createdByUsername || '-' }}</td>
+                <td>{{ formatDateTime(item.createdAtUtc) }}</td>
+                <td>{{ item.adminNote || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading() && !rows().length">
+          <h3>Kayit yok</h3>
+          <p>Secilen filtrelerle gosterilecek kayit bulunmuyor.</p>
+        </article>
+      </div>
+
+      <aside class="detail-panel">
+        <ng-container *ngIf="selectedItem() as selected; else noSelection">
+          <div class="detail-head">
+            <div>
+              <span class="section-kicker">{{ selected.typeName || selected.type }}</span>
+              <h3>{{ selected.title }}</h3>
+            </div>
+            <span class="status-badge" [class]="getStatusTone(selected.status)">
+              {{ selected.statusName || selected.status }}
+            </span>
+          </div>
+
+          <article class="state-card compact-state" *ngIf="isDetailLoading()">
+            <h3>Detay yukleniyor</h3>
+            <p>Secili kayit yenileniyor.</p>
+          </article>
+
+          <p class="message-body">{{ selected.message }}</p>
+
+          <dl class="detail-grid">
+            <div>
+              <dt>Oncelik</dt>
+              <dd [class]="getPriorityTone(selected.priority)">{{ selected.priorityName || selected.priority }}</dd>
+            </div>
+            <div>
+              <dt>Depo</dt>
+              <dd>{{ selected.warehouseName || '-' }} {{ selected.warehouseNo ? '(' + selected.warehouseNo + ')' : '' }}</dd>
+            </div>
+            <div>
+              <dt>Olusturan</dt>
+              <dd>{{ selected.createdByFullName || selected.createdByUsername || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Olusturma</dt>
+              <dd>{{ formatDateTime(selected.createdAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>Okundu</dt>
+              <dd>{{ formatDateTime(selected.readAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>Kapanis</dt>
+              <dd>{{ formatDateTime(selected.closedAtUtc) }}</dd>
+            </div>
+          </dl>
+
+          <form class="status-form" [formGroup]="statusForm" (ngSubmit)="changeStatus()" novalidate>
+            <label class="field">
+              <span>Durum</span>
+              <select formControlName="status" [disabled]="!canUpdate()">
+                <option *ngFor="let option of updateStatusOptions" [ngValue]="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Admin Notu</span>
+              <textarea formControlName="adminNote" rows="6" maxlength="1000" [disabled]="!canUpdate()"></textarea>
+            </label>
+
+            <div class="detail-actions">
+              <button
+                type="button"
+                class="task-action task-action-secondary"
+                (click)="markAsRead()"
+                [disabled]="!canUpdate() || !!updatingAction()"
+              >
+                {{ updatingAction() === 'read' ? 'Isaretleniyor...' : 'Okundu' }}
+              </button>
+              <button
+                type="submit"
+                class="task-action task-action-primary"
+                [disabled]="!canUpdate() || !!updatingAction()"
+              >
+                {{ updatingAction() === 'status' ? 'Guncelleniyor...' : 'Durumu Kaydet' }}
+              </button>
+            </div>
+          </form>
+        </ng-container>
+
+        <ng-template #noSelection>
+          <article class="state-card">
+            <h3>Kayit secilmedi</h3>
+            <p>Tablodan bir satir secildiginde detay burada gosterilir.</p>
+          </article>
+        </ng-template>
+      </aside>
+    </section>
+  </article>
+</section>
