@@ -1,0 +1,17 @@
+@use '../../_settings-page.shared';
+
+.pos-filter {
+  grid-template-columns: minmax(120px, 0.18fr) minmax(120px, 0.18fr) auto minmax(210px, 0.32fr);
+}
+
+.compact-table .data-table {
+  min-width: 620px;
+}
+
+.message-table .data-table {
+  min-width: 560px;
+}
+
+.message-table {
+  max-height: 320px;
+}

@@ -1,0 +1,25 @@
+@use '../../_settings-page.shared';
+
+.cashier-filter {
+  grid-template-columns: minmax(220px, 0.45fr) auto;
+}
+
+.inline-check {
+  display: inline-flex;
+  min-height: 2.1rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  padding: 0.38rem 0.55rem;
+  background: #fff;
+}
+
+.inline-check input {
+  width: 1rem;
+  height: 1rem;
+}
+
+.state-toggle {
+  align-content: start;
+}

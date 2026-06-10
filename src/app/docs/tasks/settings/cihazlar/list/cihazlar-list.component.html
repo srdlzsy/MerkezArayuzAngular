@@ -1,0 +1,217 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="settings-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ayar Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p class="subtitle">{{ current.subtitle }}</p>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Cihaz</span>
+          <strong>{{ devices().length }}</strong>
+        </article>
+        <article>
+          <span>Tip</span>
+          <strong>{{ deviceTypes().length }}</strong>
+        </article>
+        <article>
+          <span>Online</span>
+          <strong>{{ onlineCount() }}</strong>
+        </article>
+        <article>
+          <span>Durum</span>
+          <strong>{{ statusKnownCount() }}/{{ devices().length }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="loadAll()" novalidate>
+      <label class="field">
+        <span>Sube</span>
+        <input type="number" min="1" formControlName="branchNo" placeholder="110" />
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('load')">
+          <i class="fa-solid fa-list"></i>
+          {{ isLoading('load') ? 'Yukleniyor' : 'Listele' }}
+        </button>
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="refreshStatuses()"
+          [disabled]="isLoading('status')"
+        >
+          <i class="fa-solid fa-signal"></i>
+          {{ isLoading('status') ? 'Yenileniyor' : 'Durum' }}
+        </button>
+      </div>
+
+      <div class="state-card state-card-info">
+        <h3>Offline</h3>
+        <p>{{ offlineCount() }} cihaz cevap vermiyor.</p>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Cihaz Listesi</span>
+            <h3>Tanimli Cihazlar</h3>
+          </div>
+        </div>
+
+        <article class="state-card" *ngIf="isLoading('load')">
+          <h3>Liste yukleniyor</h3>
+          <p>Cihaz tanimlari ve durumlari getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap" *ngIf="!isLoading('load') && devices().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Durum</th>
+                <th>Sube</th>
+                <th>Tip</th>
+                <th>IP</th>
+                <th>Gecikme</th>
+                <th>Aciklama</th>
+                <th>Aksiyon</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let device of devices(); trackBy: trackByDevice"
+                [class.is-selected]="selectedDevice()?.id === device.id"
+                (click)="selectDevice(device)"
+              >
+                <td>
+                  <span class="status-badge" [class]="getStatusClass(device)">
+                    {{ getStatusLabel(device) }}
+                  </span>
+                </td>
+                <td>{{ device.branchNo }}</td>
+                <td>{{ device.deviceTypeName }}</td>
+                <td>
+                  <strong>{{ device.ipAddress }}</strong>
+                  <span class="table-meta">{{ getStatus(device)?.error || 'Cihaz kaydi' }}</span>
+                </td>
+                <td>{{ getLatencyLabel(device) }}</td>
+                <td>{{ device.description || '-' }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="task-action task-action-danger"
+                    (click)="$event.stopPropagation(); deleteDevice(device)"
+                    [disabled]="!canUpdate() || isLoading('delete')"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                    Sil
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading('load') && !devices().length">
+          <h3>Kayit yok</h3>
+          <p>Secilen filtreyle cihaz kaydi bulunmuyor.</p>
+        </article>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Yeni Cihaz</span>
+            <h3>Cihaz Tanimi</h3>
+          </div>
+        </div>
+
+        <form class="form-panel form-grid" [formGroup]="deviceForm" (ngSubmit)="createDevice()" novalidate>
+          <label class="field">
+            <span>Sube</span>
+            <input type="number" min="1" formControlName="branchNo" />
+          </label>
+
+          <label class="field">
+            <span>Cihaz Tipi</span>
+            <select formControlName="deviceTypeId">
+              <option [ngValue]="null">Seciniz</option>
+              <option
+                *ngFor="let deviceType of deviceTypes(); trackBy: trackByDeviceType"
+                [ngValue]="deviceType.id"
+              >
+                {{ deviceType.deviceName }}
+              </option>
+            </select>
+          </label>
+
+          <label class="field">
+            <span>IP Adresi</span>
+            <input type="text" maxlength="64" formControlName="ipAddress" />
+          </label>
+
+          <label class="field full-field">
+            <span>Aciklama</span>
+            <textarea rows="3" maxlength="250" formControlName="description"></textarea>
+          </label>
+
+          <button
+            type="submit"
+            class="task-action task-action-primary full-field"
+            [disabled]="!canCreate() || isLoading('create')"
+          >
+            <i class="fa-solid fa-plus"></i>
+            {{ isLoading('create') ? 'Ekleniyor' : 'Cihaz Ekle' }}
+          </button>
+        </form>
+
+        <ng-container *ngIf="selectedDevice() as selected">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="panel-kicker">Detay</span>
+              <h3>{{ selected.ipAddress }}</h3>
+            </div>
+            <span class="status-badge" [class]="getStatusClass(selected)">
+              {{ getStatusLabel(selected) }}
+            </span>
+          </div>
+
+          <dl class="detail-grid">
+            <div>
+              <dt>Sube</dt>
+              <dd>{{ selected.branchNo }}</dd>
+            </div>
+            <div>
+              <dt>Cihaz Tipi</dt>
+              <dd>{{ selected.deviceTypeName }}</dd>
+            </div>
+            <div>
+              <dt>Gecikme</dt>
+              <dd>{{ getLatencyLabel(selected) }}</dd>
+            </div>
+            <div>
+              <dt>Hata</dt>
+              <dd>{{ getStatus(selected)?.error || '-' }}</dd>
+            </div>
+          </dl>
+        </ng-container>
+      </aside>
+    </section>
+  </article>
+</section>

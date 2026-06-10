@@ -1,0 +1,9 @@
+@use '../../_settings-page.shared';
+
+.filter-bar {
+  grid-template-columns: minmax(150px, 0.24fr) auto;
+}
+
+.data-table {
+  min-width: 840px;
+}

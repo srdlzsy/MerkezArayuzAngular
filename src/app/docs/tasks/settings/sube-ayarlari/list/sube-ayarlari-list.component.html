@@ -1,0 +1,238 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="settings-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ayar Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p class="subtitle">{{ current.subtitle }}</p>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Sube</span>
+          <strong>{{ branchSettings().length }}</strong>
+        </article>
+        <article>
+          <span>Filtre</span>
+          <strong>{{ filteredBranchSettings().length }}</strong>
+        </article>
+        <article>
+          <span>Kasa</span>
+          <strong>{{ totalCashCount() }}</strong>
+        </article>
+        <article>
+          <span>Secili</span>
+          <strong>{{ selectedBranch()?.branchNo || '-' }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="loadRows()" novalidate>
+      <label class="field">
+        <span>Sube</span>
+        <input type="number" min="1" formControlName="branchNo" placeholder="110" />
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('load')">
+          <i class="fa-solid fa-rotate"></i>
+          {{ isLoading('load') ? 'Yukleniyor' : 'Yenile' }}
+        </button>
+        <button type="button" class="task-action task-action-secondary" (click)="newBranch()">
+          <i class="fa-solid fa-plus"></i>
+          Yeni
+        </button>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Liste</span>
+            <h3>Sube Ayarlari</h3>
+          </div>
+        </div>
+
+        <article class="state-card" *ngIf="isLoading('load')">
+          <h3>Liste yukleniyor</h3>
+          <p>Sube ayar kayitlari getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap" *ngIf="!isLoading('load') && filteredBranchSettings().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sube</th>
+                <th>IP</th>
+                <th>Terazi</th>
+                <th>Tip</th>
+                <th>POSKON</th>
+                <th>POSGENEL</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let branch of filteredBranchSettings(); trackBy: trackByBranch"
+                [class.is-selected]="selectedBranch()?.branchNo === branch.branchNo"
+                (click)="selectBranch(branch)"
+              >
+                <td>
+                  <strong>{{ branch.branchNo }}</strong>
+                </td>
+                <td>{{ branch.branchIpAddress || '-' }}</td>
+                <td>{{ branch.branchScalesFolderPath || '-' }}</td>
+                <td>{{ branch.scalesType }}</td>
+                <td>{{ branch.poskonFolderPath || '-' }}</td>
+                <td>{{ branch.posGenelFolderPath || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading('load') && !filteredBranchSettings().length">
+          <h3>Kayit yok</h3>
+          <p>Secilen filtreyle sube ayari bulunmuyor.</p>
+        </article>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Form</span>
+            <h3>{{ selectedBranch() ? 'Sube Guncelle' : 'Sube Olustur' }}</h3>
+          </div>
+        </div>
+
+        <form
+          class="form-panel form-grid two-col"
+          [formGroup]="settingsForm"
+          (ngSubmit)="saveSettings()"
+          novalidate
+        >
+          <label class="field">
+            <span>Sube No</span>
+            <input
+              type="number"
+              min="1"
+              formControlName="branchNo"
+              [readonly]="!!selectedBranch()"
+            />
+          </label>
+
+          <label class="field">
+            <span>Sube IP</span>
+            <input type="text" maxlength="64" formControlName="branchIpAddress" />
+          </label>
+
+          <label class="field">
+            <span>Terazi Klasoru</span>
+            <input type="text" maxlength="260" formControlName="branchScalesFolderPath" />
+          </label>
+
+          <label class="field">
+            <span>Scales Type</span>
+            <input type="number" min="0" formControlName="scalesType" />
+          </label>
+
+          <label class="field">
+            <span>POSKON</span>
+            <input type="text" maxlength="260" formControlName="poskonFolderPath" />
+          </label>
+
+          <label class="field">
+            <span>POSGENEL</span>
+            <input type="text" maxlength="260" formControlName="posGenelFolderPath" />
+          </label>
+
+          <button
+            type="submit"
+            class="task-action task-action-primary full-field"
+            [disabled]="isLoading('save') || (selectedBranch() ? !canUpdate() : !canCreate())"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            {{ getSaveLabel() }}
+          </button>
+        </form>
+
+        <ng-container *ngIf="selectedBranch(); else draftCashRegisters">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="panel-kicker">Kasalar</span>
+              <h3>Sube Kasa Tanimlari</h3>
+            </div>
+          </div>
+
+          <article class="state-card" *ngIf="isLoading('cash')">
+            <h3>Kasalar yukleniyor</h3>
+            <p>Secili subenin kasa tanimlari getiriliyor.</p>
+          </article>
+
+          <div class="draft-list" *ngIf="!isLoading('cash') && cashRegistries().length">
+            <div class="draft-row" *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry">
+              <div>
+                <strong>Kasa {{ cash.cashNo }}</strong>
+                <span>Tip {{ cash.cashType }} / Detay {{ cash.detailId }}</span>
+              </div>
+            </div>
+          </div>
+
+          <article class="state-card" *ngIf="!isLoading('cash') && !cashRegistries().length">
+            <h3>Kasa yok</h3>
+            <p>Secili sube icin kasa tanimi donmedi.</p>
+          </article>
+        </ng-container>
+
+        <ng-template #draftCashRegisters>
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="panel-kicker">Baslangic Kasalari</span>
+              <h3>Kasa Satirlari</h3>
+            </div>
+          </div>
+
+          <form class="form-panel form-grid two-col" [formGroup]="cashDraftForm" (ngSubmit)="addCashDraft()" novalidate>
+            <label class="field">
+              <span>Kasa No</span>
+              <input type="number" min="1" formControlName="cashNo" />
+            </label>
+
+            <label class="field">
+              <span>Kasa Tipi</span>
+              <input type="number" min="0" max="255" formControlName="cashType" />
+            </label>
+
+            <button type="submit" class="task-action task-action-secondary full-field">
+              <i class="fa-solid fa-plus"></i>
+              Satir Ekle
+            </button>
+          </form>
+
+          <div class="draft-list" *ngIf="cashDrafts().length">
+            <div class="draft-row" *ngFor="let draft of cashDrafts(); trackBy: trackByCashDraft">
+              <div>
+                <strong>Kasa {{ draft.cashNo }}</strong>
+                <span>Tip {{ draft.cashType }}</span>
+              </div>
+              <button type="button" class="task-action task-action-danger" (click)="removeCashDraft(draft)">
+                <i class="fa-solid fa-trash"></i>
+                Sil
+              </button>
+            </div>
+          </div>
+        </ng-template>
+      </aside>
+    </section>
+  </article>
+</section>

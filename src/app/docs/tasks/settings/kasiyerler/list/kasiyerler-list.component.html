@@ -1,0 +1,186 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="settings-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ayar Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p class="subtitle">{{ current.subtitle }}</p>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Kasiyer</span>
+          <strong>{{ cashiers().length }}</strong>
+        </article>
+        <article>
+          <span>Aktif</span>
+          <strong>{{ activeCount() }}</strong>
+        </article>
+        <article>
+          <span>Pasif</span>
+          <strong>{{ passiveCount() }}</strong>
+        </article>
+        <article>
+          <span>Filtre</span>
+          <strong>{{ filteredCashiers().length }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <form class="filter-bar cashier-filter" [formGroup]="filterForm" (ngSubmit)="loadCashiers()" novalidate>
+      <label class="field">
+        <span>Arama</span>
+        <input type="search" formControlName="search" />
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('load')">
+          <i class="fa-solid fa-rotate"></i>
+          {{ isLoading('load') ? 'Yukleniyor' : 'Yenile' }}
+        </button>
+        <button type="button" class="task-action task-action-secondary" (click)="newCashier()">
+          <i class="fa-solid fa-plus"></i>
+          Yeni
+        </button>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Liste</span>
+            <h3>Kasiyer Tanimlari</h3>
+          </div>
+        </div>
+
+        <article class="state-card" *ngIf="isLoading('load')">
+          <h3>Liste yukleniyor</h3>
+          <p>Kasiyer kayitlari getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap" *ngIf="!isLoading('load') && filteredCashiers().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Durum</th>
+                <th>Kod</th>
+                <th>Ad</th>
+                <th>Yetki</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let cashier of filteredCashiers(); trackBy: trackByCashier"
+                [class.is-selected]="selectedCashier()?.cashierCode === cashier.cashierCode"
+                (click)="selectCashier(cashier)"
+              >
+                <td>
+                  <span class="status-badge" [class]="getStatusClass(cashier)">
+                    {{ cashier.cashierState ? 'Aktif' : 'Pasif' }}
+                  </span>
+                </td>
+                <td><strong>{{ cashier.cashierCode }}</strong></td>
+                <td>{{ cashier.cashierName }}</td>
+                <td>{{ cashier.cashierAuthorization }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading('load') && !filteredCashiers().length">
+          <h3>Kayit yok</h3>
+          <p>Secilen arama degeriyle kasiyer bulunmuyor.</p>
+        </article>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Form</span>
+            <h3>{{ selectedCashier() ? 'Kasiyer Guncelle' : 'Kasiyer Olustur' }}</h3>
+          </div>
+          <span class="status-badge" *ngIf="selectedCashier() as selected" [class]="getStatusClass(selected)">
+            {{ selected.cashierState ? 'Aktif' : 'Pasif' }}
+          </span>
+        </div>
+
+        <form class="form-panel form-grid two-col" [formGroup]="cashierForm" (ngSubmit)="saveCashier()" novalidate>
+          <label class="field full-field">
+            <span>Kasiyer Adi</span>
+            <input type="text" maxlength="120" formControlName="cashierName" />
+          </label>
+
+          <label class="field">
+            <span>Yetki</span>
+            <input type="text" maxlength="30" formControlName="cashierAuthorization" />
+          </label>
+
+          <label class="field state-toggle">
+            <span>Durum</span>
+            <label class="inline-check">
+              <input type="checkbox" formControlName="cashierState" />
+              <strong>Aktif</strong>
+            </label>
+          </label>
+
+          <button
+            type="submit"
+            class="task-action task-action-primary"
+            [disabled]="isLoading('save') || (selectedCashier() ? !canUpdate() : !canCreate())"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            {{ getSaveLabel() }}
+          </button>
+
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="resetPassword()"
+            [disabled]="!selectedCashier() || !canUpdate() || isLoading('password')"
+          >
+            <i class="fa-solid fa-key"></i>
+            {{ isLoading('password') ? 'Sifirlaniyor' : 'Sifre Sifirla' }}
+          </button>
+        </form>
+
+        <article class="state-card state-card-success" *ngIf="generatedPassword() as password">
+          <h3>Tek seferlik sifre</h3>
+          <p><span class="password-chip">{{ password }}</span></p>
+        </article>
+
+        <ng-container *ngIf="selectedCashier() as selected">
+          <dl class="detail-grid">
+            <div>
+              <dt>Kod</dt>
+              <dd>{{ selected.cashierCode }}</dd>
+            </div>
+            <div>
+              <dt>Yetki</dt>
+              <dd>{{ selected.cashierAuthorization }}</dd>
+            </div>
+            <div>
+              <dt>Ad</dt>
+              <dd>{{ selected.cashierName }}</dd>
+            </div>
+            <div>
+              <dt>Durum</dt>
+              <dd>{{ selected.cashierState ? 'Aktif' : 'Pasif' }}</dd>
+            </div>
+          </dl>
+        </ng-container>
+      </aside>
+    </section>
+  </article>
+</section>

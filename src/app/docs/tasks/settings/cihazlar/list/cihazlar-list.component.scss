@@ -1,0 +1,9 @@
+@use '../../_settings-page.shared';
+
+.filter-bar {
+  grid-template-columns: minmax(150px, 0.24fr) auto minmax(190px, 0.34fr);
+}
+
+.form-panel {
+  display: grid;
+}

@@ -1,0 +1,302 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="settings-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ayar Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p class="subtitle">{{ current.subtitle }}</p>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Kasa</span>
+          <strong>{{ cashRegistries().length }}</strong>
+        </article>
+        <article>
+          <span>Terminal</span>
+          <strong>{{ terminals().length }}</strong>
+        </article>
+        <article>
+          <span>Mesaj</span>
+          <strong>{{ messageStatuses().length }}</strong>
+        </article>
+        <article>
+          <span>Hazir</span>
+          <strong>{{ readyMessageCount() }}/{{ messageStatuses().length }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <form class="filter-bar pos-filter" [formGroup]="scopeForm" (ngSubmit)="loadCashRegistries()" novalidate>
+      <label class="field">
+        <span>Sube</span>
+        <input type="number" min="1" formControlName="branchNo" placeholder="110" />
+      </label>
+
+      <label class="field">
+        <span>Kasa No</span>
+        <input type="number" min="1" formControlName="cashNo" placeholder="1" />
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('cash')">
+          <i class="fa-solid fa-cash-register"></i>
+          {{ isLoading('cash') ? 'Yukleniyor' : 'Kasalar' }}
+        </button>
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="loadTerminals()"
+          [disabled]="isLoading('terminals')"
+        >
+          <i class="fa-solid fa-credit-card"></i>
+          {{ isLoading('terminals') ? 'Yukleniyor' : 'Terminaller' }}
+        </button>
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="loadMessageStatuses()"
+          [disabled]="isLoading('messages')"
+        >
+          <i class="fa-solid fa-envelope-open-text"></i>
+          {{ isLoading('messages') ? 'Yukleniyor' : 'Mesaj' }}
+        </button>
+      </div>
+
+      <div class="state-card state-card-info">
+        <h3>Hata</h3>
+        <p>{{ messageErrorCount() }} mesaj satiri hata durumunda.</p>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="split-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Kasalar</span>
+            <h3>Sube Kasa Tanimlari</h3>
+          </div>
+        </div>
+
+        <article class="state-card" *ngIf="isLoading('cash')">
+          <h3>Kasalar yukleniyor</h3>
+          <p>Sube kasa tanimlari getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap compact-table" *ngIf="!isLoading('cash') && cashRegistries().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Sube</th>
+                <th>Kasa</th>
+                <th>Tip</th>
+                <th>Aksiyon</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry"
+                [class.is-selected]="selectedCashRegistry()?.cashNo === cash.cashNo"
+                (click)="selectCashRegistry(cash)"
+              >
+                <td>{{ cash.branchNo }}</td>
+                <td><strong>{{ cash.cashNo }}</strong></td>
+                <td>{{ cash.cashType }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="task-action task-action-danger"
+                    (click)="$event.stopPropagation(); deleteCashRegister(cash)"
+                    [disabled]="!canUpdate() || isLoading('delete')"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                    Sil
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading('cash') && !cashRegistries().length">
+          <h3>Kasa yok</h3>
+          <p>Secili subede kasa tanimi bulunmuyor.</p>
+        </article>
+
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Terminaller</span>
+            <h3>Kasa Terminal Detayi</h3>
+          </div>
+        </div>
+
+        <article class="state-card" *ngIf="isLoading('terminals')">
+          <h3>Terminaller yukleniyor</h3>
+          <p>Secili kasa icin POS terminal detaylari getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap compact-table" *ngIf="!isLoading('terminals') && terminals().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Terminal</th>
+                <th>Banka</th>
+                <th>Terminal ID</th>
+                <th>Merchant</th>
+                <th>Aksiyon</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminal">
+                <td><strong>{{ terminal.terminalNo }}</strong></td>
+                <td>{{ terminal.bank || '-' }}</td>
+                <td>{{ terminal.terminalId || '-' }}</td>
+                <td>{{ terminal.merchantNo || '-' }}</td>
+                <td>
+                  <button
+                    type="button"
+                    class="task-action task-action-danger"
+                    (click)="deleteTerminal(terminal)"
+                    [disabled]="!canUpdate() || isLoading('delete')"
+                  >
+                    <i class="fa-solid fa-trash"></i>
+                    Sil
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading('terminals') && !terminals().length">
+          <h3>Terminal yok</h3>
+          <p>Secili kasa icin terminal detayi bulunmuyor.</p>
+        </article>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Yeni Kasa</span>
+            <h3>Kasa ve POS Terminali</h3>
+          </div>
+        </div>
+
+        <form
+          class="form-panel form-grid"
+          [formGroup]="cashRegisterForm"
+          (ngSubmit)="createCashRegister()"
+          novalidate
+        >
+          <label class="field">
+            <span>Sube</span>
+            <input type="number" min="1" formControlName="branchNo" />
+          </label>
+
+          <label class="field">
+            <span>Kasa No</span>
+            <input type="number" min="1" formControlName="cashNo" />
+          </label>
+
+          <label class="field">
+            <span>Kasa Tipi</span>
+            <input type="number" min="0" max="255" formControlName="cashType" />
+          </label>
+
+          <button
+            type="submit"
+            class="task-action task-action-primary full-field"
+            [disabled]="!canCreate() || isLoading('create')"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            {{ isLoading('create') ? 'Olusturuluyor' : 'Kasa Olustur' }}
+          </button>
+        </form>
+
+        <form class="form-panel form-grid two-col" [formGroup]="terminalDraftForm" (ngSubmit)="addTerminalDraft()" novalidate>
+          <label class="field">
+            <span>Terminal No</span>
+            <input type="text" maxlength="64" formControlName="terminalNo" />
+          </label>
+
+          <label class="field">
+            <span>Banka</span>
+            <input type="text" maxlength="80" formControlName="bank" />
+          </label>
+
+          <label class="field">
+            <span>Terminal ID</span>
+            <input type="text" maxlength="80" formControlName="terminalId" />
+          </label>
+
+          <label class="field">
+            <span>Merchant No</span>
+            <input type="text" maxlength="80" formControlName="merchantNo" />
+          </label>
+
+          <button type="submit" class="task-action task-action-secondary full-field">
+            <i class="fa-solid fa-plus"></i>
+            Terminal Ekle
+          </button>
+        </form>
+
+        <div class="draft-list" *ngIf="terminalDrafts().length">
+          <div class="draft-row" *ngFor="let draft of terminalDrafts(); trackBy: trackByTerminalDraft">
+            <div>
+              <strong>{{ draft.terminalNo }}</strong>
+              <span>{{ draft.bank || '-' }} / {{ draft.terminalId || '-' }}</span>
+            </div>
+            <button type="button" class="task-action task-action-danger" (click)="removeTerminalDraft(draft)">
+              <i class="fa-solid fa-trash"></i>
+              Sil
+            </button>
+          </div>
+        </div>
+
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">POSKON</span>
+            <h3>Mesaj Durumlari</h3>
+          </div>
+        </div>
+
+        <div class="table-wrap message-table" *ngIf="messageStatuses().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Durum</th>
+                <th>Kasa</th>
+                <th>Dosya</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let status of messageStatuses(); trackBy: trackByMessageStatus">
+                <td>
+                  <span class="status-badge" [class]="getMessageStatusClass(status)">
+                    {{ getMessageStatusLabel(status) }}
+                  </span>
+                </td>
+                <td>{{ status.branchNo }}/{{ status.cashNo }}</td>
+                <td>
+                  <strong>{{ status.filePath }}</strong>
+                  <span class="table-meta">{{ status.error || 'State ' + status.state }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </aside>
+    </section>
+  </article>
+</section>

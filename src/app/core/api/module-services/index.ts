@@ -14,3 +14,4 @@ export * from './fatura-islemleri.service';
 export * from './green-grocer.service';
 export * from './rapor-islemleri.service';
 export * from './taslak.service';
+export * from './ayar-islemleri.service';
