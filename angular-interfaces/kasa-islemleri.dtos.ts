@@ -145,6 +145,52 @@ export interface CashTurnoverOverviewDto {
 }
 
 // ============================================================================
+// Kasa Ciro Aktarimi Modelleri
+// ============================================================================
+
+export interface KasaCiroBranchDto {
+  branchNo: number;
+  branchName: string;
+  region: string;
+}
+
+export interface KasaCiroImportHttpRequest {
+  startDate: string;
+  endDate: string;
+  branches: number[];
+  movementRootPath?: string | null;
+  dryRun: boolean;
+}
+
+export interface KasaCiroImportIssueDto {
+  date: string | null;
+  branchNo: number | null;
+  cashRegisterNo: number | null;
+  file: string | null;
+  lineNo: number | null;
+  message: string;
+}
+
+export interface KasaCiroImportResultDto {
+  runId: string;
+  status: string;
+  startDate: string;
+  endDate: string;
+  processedDays: number;
+  processedBranches: number;
+  processedFiles: number;
+  skippedEmptyBranches: number;
+  insertedTotals: number;
+  updatedTotals: number;
+  insertedDetails: number;
+  updatedDetails: number;
+  insertedDiscountCards: number;
+  updatedDiscountCards: number;
+  warnings: KasaCiroImportIssueDto[];
+  errors: KasaCiroImportIssueDto[];
+}
+
+// ============================================================================
 // Kasa Hareket Aktarimi Modelleri
 // ============================================================================
 

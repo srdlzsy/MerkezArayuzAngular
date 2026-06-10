@@ -1,0 +1,193 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="surface-card turnover-transfer-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Kasa Islemleri</span>
+        <h2>{{ current.title }}</h2>
+      </div>
+
+      <div class="mode-pill" [class.is-live]="!importForm.controls.dryRun.value">
+        <span>Mod</span>
+        <strong>{{ importModeLabel() }}</strong>
+      </div>
+    </header>
+
+    <form class="transfer-grid" [formGroup]="importForm" (ngSubmit)="runImport()" novalidate>
+      <section class="form-panel">
+        <div class="form-grid">
+          <label class="field">
+            <span>Baslangic</span>
+            <input type="date" formControlName="startDate" />
+          </label>
+
+          <label class="field">
+            <span>Bitis</span>
+            <input type="date" formControlName="endDate" />
+          </label>
+
+          <label class="field field-wide">
+            <span>Subeler</span>
+            <select multiple size="8" formControlName="branches">
+              <option
+                *ngFor="let branch of branches(); trackBy: trackByBranch"
+                [ngValue]="branch.branchNo"
+              >
+                {{ getBranchLabel(branch) }}
+              </option>
+            </select>
+          </label>
+
+          <div class="branch-actions">
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              (click)="loadBranches()"
+              [disabled]="branchesLoading()"
+            >
+              {{ branchesLoading() ? 'Yukleniyor...' : 'Subeleri Yenile' }}
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              (click)="selectAllBranches()"
+              [disabled]="!branches().length"
+            >
+              Tumunu Sec
+            </button>
+            <button type="button" class="task-action task-action-secondary" (click)="clearBranches()">
+              Temizle
+            </button>
+          </div>
+
+          <label class="field field-wide">
+            <span>Movement Root Path</span>
+            <input type="text" formControlName="movementRootPath" placeholder="Backend konfigurasyonu" />
+          </label>
+        </div>
+
+        <div class="transfer-actions">
+          <label class="check-field">
+            <input type="checkbox" formControlName="dryRun" />
+            <span>Dry Run</span>
+          </label>
+
+          <button type="submit" class="task-action task-action-primary" [disabled]="importLoading()">
+            {{ importLoading() ? 'Calisiyor...' : 'Ciro Aktarimini Calistir' }}
+          </button>
+        </div>
+      </section>
+
+      <aside class="request-card">
+        <span class="section-kicker">Request</span>
+        <pre><code>{{ requestPreview() }}</code></pre>
+      </aside>
+    </form>
+
+    <section class="metric-strip">
+      <article class="metric-card">
+        <span>Kapsam</span>
+        <strong>{{ branchScopeLabel() }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Secili Sube</span>
+        <strong>{{ selectedBranchCount() || 'Otomatik' }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Dosya</span>
+        <strong>{{ formatNumber(importResult()?.processedFiles) }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Uyari / Hata</span>
+        <strong>{{ importResult()?.warnings?.length ?? 0 }} / {{ importResult()?.errors?.length ?? 0 }}</strong>
+      </article>
+    </section>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="result-panel" *ngIf="importResult() as result">
+      <div class="result-head">
+        <div class="title-block">
+          <span class="section-kicker">Sonuc</span>
+          <h3>{{ result.status || 'Durum' }}</h3>
+        </div>
+        <code>{{ result.runId || '-' }}</code>
+      </div>
+
+      <section class="result-grid">
+        <article class="result-card">
+          <span>Gun</span>
+          <strong>{{ formatNumber(result.processedDays) }}</strong>
+        </article>
+        <article class="result-card">
+          <span>Sube</span>
+          <strong>{{ formatNumber(result.processedBranches) }}</strong>
+        </article>
+        <article class="result-card">
+          <span>Bos Sube</span>
+          <strong>{{ formatNumber(result.skippedEmptyBranches) }}</strong>
+        </article>
+        <article class="result-card">
+          <span>Toplam Satir</span>
+          <strong>{{ formatNumber(resultTotalRows()) }}</strong>
+        </article>
+      </section>
+
+      <section class="write-grid">
+        <article class="write-card">
+          <span>Totals</span>
+          <strong>{{ formatNumber(result.insertedTotals) }} / {{ formatNumber(result.updatedTotals) }}</strong>
+        </article>
+        <article class="write-card">
+          <span>Details</span>
+          <strong>{{ formatNumber(result.insertedDetails) }} / {{ formatNumber(result.updatedDetails) }}</strong>
+        </article>
+        <article class="write-card">
+          <span>Discount Cards</span>
+          <strong>
+            {{ formatNumber(result.insertedDiscountCards) }} /
+            {{ formatNumber(result.updatedDiscountCards) }}
+          </strong>
+        </article>
+      </section>
+    </section>
+
+    <div class="table-wrap" *ngIf="issueRows().length">
+      <table class="data-table">
+        <thead>
+          <tr>
+            <th>Tip</th>
+            <th>Tarih</th>
+            <th>Sube</th>
+            <th>Kasa</th>
+            <th>Dosya</th>
+            <th>Satir</th>
+            <th>Mesaj</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let issue of issueRows(); trackBy: trackByIssue"
+            [class.issue-error]="issue.severity === 'Hata'"
+          >
+            <td><span class="status-pill">{{ issue.severity }}</span></td>
+            <td>{{ formatDate(issue.date) }}</td>
+            <td>{{ issue.branchNo ?? '-' }}</td>
+            <td>{{ issue.cashRegisterNo ?? '-' }}</td>
+            <td>{{ issue.file || '-' }}</td>
+            <td>{{ issue.lineNo ?? '-' }}</td>
+            <td>{{ issue.message }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </article>
+</section>

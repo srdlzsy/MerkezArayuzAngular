@@ -475,6 +475,57 @@ export const CASH_REGISTER_TASK_SOURCE = {
         (m) => m.KasaCirolariListComponent
       )
   ),
+  'kasa-ciro-aktarimi': singleRouteTask(
+    {
+      id: 'kasa-ciro-aktarimi',
+      title: 'Kasa Ciro Aktarimi',
+      subtitle:
+        'Eski kasa HR dosyalarini okuyup TurnoverTotals, TurnoverDetails ve TurnoverDiscountCardDetails tablolarina ciro ozetlerini aktarir.',
+      baseRouteOrFile: '/api/kasa-islemleri/kasa-ciro-aktarimi',
+      highlights: [
+        'Sube lookup ile aktarim kapsami opsiyonel secilir',
+        'branches bos birakilirsa 101..300 araligindaki sube klasorleri taranir',
+        'movementRootPath bos birakilirsa backend konfigurasyonu ve fallback path kullanilir',
+        'dryRun dosyalari parse eder ve insert/update adetlerini hesaplar, DB yazmaz',
+        'Basarili import sonucu Kasa Cirolari ekraninda eski veya toplam kaynaklariyla izlenir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'KasaCiroAktarimiController',
+          description:
+            'HRddMMyy.* dosyalarindan eski kasa ciro tablolarina total, detail ve indirim karti kirilimlarini aktarir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/kasa-ciro-aktarimi/subeler',
+              description: 'Kasa ciro aktarimi icin sube listesini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/kasa-ciro-aktarimi/metin/aktar',
+              description: 'Secilen tarih araligi ve subeler icin HR dosyalarindan ciro import eder',
+              payload: 'KasaCiroImportHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "startDate": "2026-06-01",
+  "endDate": "2026-06-09",
+  "branches": [101, 102, 110],
+  "movementRootPath": "\\\\10.0.0.55\\kasa\\",
+  "dryRun": true
+}`
+    },
+    () =>
+      import('../tasks/cash-register/kasa-ciro-aktarimi/list/kasa-ciro-aktarimi-list.component').then(
+        (m) => m.KasaCiroAktarimiListComponent
+      ),
+    {
+      accessKeyAliases: ['KasaCiroAktarimi', 'kasa-ciro-aktarimi']
+    }
+  ),
   'kasa-hareket-aktarimi': singleRouteTask(
     {
       id: 'kasa-hareket-aktarimi',

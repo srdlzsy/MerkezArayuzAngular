@@ -52,6 +52,9 @@ import {
   KasaHareketReportHttpRequest,
   KasaHareketReportRowDto,
   KasaHareketScheduledImportHttpRequest,
+  KasaCiroBranchDto,
+  KasaCiroImportHttpRequest,
+  KasaCiroImportResultDto,
   // Yeni DTOs
   CashTurnoverDetailDto,
   CashTurnoverDetailHttpRequest,
@@ -295,6 +298,21 @@ export class KasaIslemleriService extends BaseApiService {
       IFurpaCreateBanknoteTrackResponseApiDto,
       IFurpaCreateBanknoteTrackRequestApiDto
     >('kasa-islemleri/banknot-takipleri', request);
+  }
+
+  getKasaCiroAktarimiSubeleri(): Observable<KasaCiroBranchDto[]> {
+    return this.get<KasaCiroBranchDto[]>(
+      'kasa-islemleri/kasa-ciro-aktarimi/subeler'
+    );
+  }
+
+  importKasaCiroMetin(
+    request: KasaCiroImportHttpRequest
+  ): Observable<KasaCiroImportResultDto> {
+    return this.post<KasaCiroImportResultDto, KasaCiroImportHttpRequest>(
+      'kasa-islemleri/kasa-ciro-aktarimi/metin/aktar',
+      request
+    );
   }
 
   getKasaHareketSubeleri(): Observable<KasaHareketBranchDto[]> {
