@@ -22,6 +22,7 @@ export class ApiListTableComponent {
   readonly rows = input.required<readonly ApiListRow[]>();
   readonly columns = input.required<readonly ApiListTableColumn[]>();
   readonly actionLabel = input('Detay');
+  readonly showRowAction = input(true);
   readonly additionalActions = input<readonly ApiListTableRowAction[]>([]);
   readonly filterPlaceholder = input('Seri, sira, firma, depo veya durum ara');
   readonly rowAction = output<any>();

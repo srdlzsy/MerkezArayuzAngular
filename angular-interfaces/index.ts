@@ -7,6 +7,7 @@ export * from './stok-islemleri.dtos';
 export * from './fatura-islemleri.dtos';
 export * from './feedback.dtos';
 export * from './green-grocer.dtos';
+export * from './rapor-islemleri.dtos';
 
 // Compatibility alias exports
 export * from './common-api.dtos';

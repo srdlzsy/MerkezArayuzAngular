@@ -59,7 +59,7 @@
                 <span class="sort-indicator">{{ getSortIndicator(column.key) }}</span>
               </button>
             </th>
-            <th>Islem</th>
+            <th *ngIf="showRowAction() || additionalActions().length">Islem</th>
           </tr>
         </thead>
         <tbody>
@@ -81,9 +81,14 @@
                 </ng-container>
               </ng-container>
             </td>
-            <td class="action-cell">
+            <td class="action-cell" *ngIf="showRowAction() || additionalActions().length">
               <div class="row-actions">
-                <button type="button" class="row-action row-action-primary" (click)="rowAction.emit(row)">
+                <button
+                  *ngIf="showRowAction()"
+                  type="button"
+                  class="row-action row-action-primary"
+                  (click)="rowAction.emit(row)"
+                >
                   {{ actionLabel() }}
                 </button>
                 <button

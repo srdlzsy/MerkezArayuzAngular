@@ -1,0 +1,141 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="report-workspace">
+    <header class="workspace-head">
+      <div class="title-block">
+        <span class="section-kicker">Rapor Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p>{{ selectedDefinition().description }}</p>
+      </div>
+
+      <div class="report-tabs" aria-label="Satis analizi raporlari">
+        <button
+          *ngFor="let report of reportDefinitions; trackBy: trackByReport"
+          type="button"
+          class="report-tab"
+          [class.is-active]="selectedReport() === report.key"
+          (click)="selectReport(report.key)"
+        >
+          <span>{{ report.group }}</span>
+          {{ report.label }}
+        </button>
+      </div>
+    </header>
+
+    <section class="filter-panel">
+      <div class="filters-grid">
+        <label class="field">
+          <span>Baslangic</span>
+          <input
+            type="date"
+            [value]="startDate()"
+            (input)="updateStartDate($any($event.target).value ?? '')"
+          />
+        </label>
+
+        <label class="field">
+          <span>Bitis</span>
+          <input
+            type="date"
+            [value]="endDate()"
+            (input)="updateEndDate($any($event.target).value ?? '')"
+          />
+        </label>
+
+        <div class="scope-switch" aria-label="Sube kapsami">
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="scope() === 'all'"
+            (click)="selectScope('all')"
+          >
+            Tum Subeler
+          </button>
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="scope() === 'current'"
+            (click)="selectScope('current')"
+          >
+            Aktif Depo
+          </button>
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="scope() === 'manual'"
+            (click)="selectScope('manual')"
+          >
+            Manuel
+          </button>
+        </div>
+
+        <label class="field manual-field" *ngIf="scope() === 'manual'">
+          <span>Sube No</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [value]="manualWarehouseNo()"
+            (input)="updateManualWarehouseNo($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="loadRows()"
+          [disabled]="isLoading()"
+        >
+          {{ isLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
+        </button>
+      </div>
+
+      <div class="request-line">
+        <span>{{ selectedDateRangeLabel() }}</span>
+        <span>{{ scopeLabel() }}</span>
+        <code>{{ requestPreview() }}</code>
+      </div>
+    </section>
+
+    <section class="metric-strip" *ngIf="metrics().length">
+      <article class="metric-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+      </article>
+    </section>
+
+    <div class="table-context" *ngIf="rows().length">
+      <span>{{ selectedDefinition().label }}</span>
+      <span>{{ selectedDateRangeLabel() }}</span>
+      <span>{{ scopeLabel() }}</span>
+      <strong>{{ totalCount() }} kayit</strong>
+      <strong *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</strong>
+    </div>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as currentError">
+      <h3>Rapor Yuklenemedi</h3>
+      <p>{{ currentError }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Rapor Yukleniyor</h3>
+      <p>{{ selectedDefinition().label }} icin secilen tarih araligi okunuyor.</p>
+    </article>
+
+    <div class="table-shell" *ngIf="!isLoading() && rows().length">
+      <app-api-list-table
+        [rows]="rows()"
+        [columns]="tableColumns()"
+        [showRowAction]="false"
+        filterPlaceholder="Sube, banka, belge, terminal, kart veya tutar ara"
+      ></app-api-list-table>
+    </div>
+
+    <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
+      <h3>Kayit Bulunamadi</h3>
+      <p>Secilen rapor, tarih araligi ve sube kapsami icin kayit donmedi.</p>
+    </article>
+
+    <p class="result-note" *ngIf="resultNote() as note">{{ note }}</p>
+  </article>
+</section>

@@ -1,0 +1,323 @@
+:host {
+  display: block;
+  --report-border: #dbe4e0;
+  --report-soft: #f6faf8;
+  --report-accent: #0f766e;
+  --report-accent-deep: #115e59;
+  --report-ink: #12211c;
+  --report-muted: #61726b;
+}
+
+.task-page {
+  display: block;
+}
+
+.report-workspace {
+  display: grid;
+  gap: 0.6rem;
+  padding: 0.68rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.workspace-head {
+  display: grid;
+  grid-template-columns: minmax(210px, 0.42fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.title-block {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.title-block h2 {
+  margin: 0;
+  color: var(--report-ink);
+  font-size: 1.12rem;
+  line-height: 1.18;
+}
+
+.title-block p {
+  margin: 0;
+  color: var(--report-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.section-kicker,
+.field span,
+.report-tab span,
+.metric-card span,
+.request-line span,
+.table-context span {
+  color: var(--report-muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  justify-content: flex-end;
+}
+
+.report-tab,
+.scope-pill,
+.task-action {
+  min-height: 2.08rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  padding: 0.36rem 0.58rem;
+  background: #ffffff;
+  color: var(--report-ink);
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.report-tab {
+  display: grid;
+  gap: 0.05rem;
+  min-width: 132px;
+  text-align: left;
+}
+
+.report-tab.is-active,
+.scope-pill.is-active {
+  border-color: rgba(15, 118, 110, 0.36);
+  background: #e9f8f5;
+  color: var(--report-accent-deep);
+}
+
+.filter-panel {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(126px, 0.16fr)) minmax(260px, 0.5fr) minmax(116px, 0.16fr) auto;
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.field input {
+  width: 100%;
+  min-height: 2.08rem;
+  padding: 0.38rem 0.5rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--report-ink);
+  box-sizing: border-box;
+  font: inherit;
+}
+
+.field input:focus {
+  outline: 2px solid rgba(15, 118, 110, 0.15);
+  border-color: var(--report-accent);
+}
+
+.scope-switch {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+  padding: 0.2rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.task-action-primary {
+  border-color: var(--report-accent);
+  background: var(--report-accent);
+  color: #ffffff;
+}
+
+.task-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.request-line,
+.table-context {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+  align-items: center;
+}
+
+.request-line code {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--report-accent-deep);
+  font-size: 0.72rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.metric-card {
+  display: grid;
+  gap: 0.15rem;
+  min-width: 0;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.metric-card strong {
+  overflow: hidden;
+  color: var(--report-ink);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-context {
+  padding: 0.35rem 0.48rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.table-context strong {
+  color: var(--report-ink);
+  font-size: 0.78rem;
+}
+
+.state-card {
+  padding: 0.62rem 0.72rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.state-card h3 {
+  margin: 0 0 0.12rem;
+  color: var(--report-ink);
+  font-size: 0.84rem;
+}
+
+.state-card p {
+  margin: 0;
+  color: var(--report-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.state-card-error {
+  border-color: #f1b9b9;
+  background: #fff7f7;
+}
+
+.result-note {
+  margin: 0;
+  color: var(--report-muted);
+  font-size: 0.74rem;
+}
+
+:host ::ng-deep app-api-list-table .api-list-table {
+  gap: 0.42rem;
+}
+
+:host ::ng-deep app-api-list-table .table-controls {
+  padding: 0.48rem;
+  border: 1px solid var(--report-border);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: var(--report-soft);
+  box-shadow: none;
+}
+
+:host ::ng-deep app-api-list-table .control-field {
+  gap: 0.16rem;
+}
+
+:host ::ng-deep app-api-list-table .control-field input,
+:host ::ng-deep app-api-list-table .control-field select {
+  min-height: 2rem;
+  border-radius: 8px;
+}
+
+:host ::ng-deep app-api-list-table .table-wrap {
+  max-height: calc(100vh - 295px);
+  overflow: auto;
+  border: 1px solid var(--report-border);
+  border-radius: 0 0 8px 8px;
+  box-shadow: none;
+}
+
+:host ::ng-deep app-api-list-table .data-table th,
+:host ::ng-deep app-api-list-table .data-table td {
+  padding: 0.48rem 0.6rem;
+}
+
+:host ::ng-deep app-api-list-table .table-footer {
+  padding-inline: 0.2rem;
+}
+
+:host ::ng-deep app-api-list-table .sort-button.is-active {
+  color: var(--report-accent-deep);
+}
+
+@media (max-width: 1220px) {
+  .workspace-head,
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-tabs {
+    justify-content: flex-start;
+  }
+
+  .manual-field {
+    max-width: 220px;
+  }
+}
+
+@media (max-width: 720px) {
+  .metric-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .report-tab,
+  .scope-pill,
+  .scope-switch,
+  .task-action,
+  .manual-field {
+    width: 100%;
+  }
+
+  .scope-switch {
+    box-sizing: border-box;
+  }
+
+  :host ::ng-deep app-api-list-table .table-wrap {
+    max-height: calc(100vh - 360px);
+  }
+}
