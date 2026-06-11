@@ -201,13 +201,14 @@ export const INTEGRATION_TASK_SOURCE = {
       id: 'pos-muhasebe-aktarimi',
       title: 'POS Muhasebe Aktarimi',
       subtitle:
-        'Z raporlari, POS faturalar, gider pusulalari ve kasa eslemeleri icin scaffold tabanli web omurgasi.',
+        'Z raporlari, POS faturalar, gider pusulalari ve kasa eslemeleri icin aktif business DTO tabanli web omurgasi.',
       baseRouteOrFile: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi',
       highlights: [
         'Tek menu, 4 tab',
-        'Scaffold response odakli',
-        '501 Not Implemented uyumlu UI',
+        'Business DTO response odakli',
+        'Z dosya importu haric aktif backend akislari',
         'Liste / detay / toplu islem ayrimi',
+        'Belge tipine gore totalIds / invoiceIds / expenseIds secimi',
         'Staging ve ERP kavramlarini ayri tutar'
       ],
       listTitle: 'Endpointler',
@@ -215,63 +216,63 @@ export const INTEGRATION_TASK_SOURCE = {
         {
           name: 'PosMuhasebeAktarimiController',
           description:
-            'POS muhasebe aktarimi ailesinin route ve request contractlarini acik tutar; business implementasyon sonraki fazda baglanacaktir.',
+            'POS muhasebe aktarimi ailesinin liste, detay, import, update, silme, kasa esleme ve ERPye gonderme akisini sunar.',
           endpoints: [
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi',
-              description: 'Menu overview scaffold response dondurur'
+              description: 'Menu overview business DTO response dondurur'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari',
-              description: 'Z raporlari listesi icin scaffold response dondurur',
+              description: 'Z raporlari listesini dondurur; OnlyPending default true kabul edilir',
               payload: 'PosAccountingDateRangeHttpRequest'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{reportId}',
-              description: 'Z raporu detay routeu scaffold response dondurur'
+              description: 'Z raporu header, KDV ve odeme detaylarini dondurur'
             },
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/ice-aktar',
-              description: 'Z raporlarini staginge alma akisinin contracti hazirdir',
+              description: 'Z raporu dosya parseri aktif olana kadar basarisiz import sonuc satiri dondurebilir',
               payload: 'ImportZReportsHttpRequest'
             },
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/erpye-gonder',
-              description: 'Z raporlarini ERPye gonderme akisinin contracti hazirdir',
+              description: 'Secili totalIds kayitlarini Mikro muhasebe fisine aktarir',
               payload: 'PosAccountingTransferHttpRequest'
             },
             {
               method: 'DELETE',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari',
-              description: 'Z raporu staging temizleme akisinin contracti hazirdir',
+              description: 'Secili totalIds staging kayitlarini temizler',
               payload: 'PosAccountingDeleteHttpRequest'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar',
-              description: 'POS faturalar listesi icin scaffold response dondurur',
+              description: 'POS faturalar listesini dondurur; OnlyPending default true kabul edilir',
               payload: 'PosAccountingDateRangeHttpRequest'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/{invoiceId}',
-              description: 'POS fatura detay routeu scaffold response dondurur'
+              description: 'POS fatura detayini dondurur'
             },
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/ice-aktar',
-              description: 'POS faturalarini staginge alma akisinin contracti hazirdir',
+              description: 'POS faturalarini staginge alir; dateToGet, businessDate aliasi olarak desteklenir',
               payload: 'ImportPosDocumentsHttpRequest'
             },
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/erpye-gonder',
-              description: 'POS faturalarini ERPye gonderme akisinin contracti hazirdir',
+              description: 'Secili invoiceIds kayitlarini Mikro muhasebe fisine aktarir',
               payload: 'PosAccountingTransferHttpRequest'
             },
             {
@@ -283,30 +284,30 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'DELETE',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar',
-              description: 'POS fatura staging temizleme contracti hazirdir',
+              description: 'Secili invoiceIds staging kayitlarini temizler',
               payload: 'PosAccountingDeleteHttpRequest'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari',
-              description: 'Gider pusulalari listesi icin scaffold response dondurur',
+              description: 'Gider pusulalari listesini dondurur; OnlyPending default true kabul edilir',
               payload: 'PosAccountingDateRangeHttpRequest'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/{expenseId}',
-              description: 'Gider pusulasi detay routeu scaffold response dondurur'
+              description: 'Gider pusulasi detayini dondurur'
             },
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/ice-aktar',
-              description: 'Gider pusulasi import contracti hazirdir',
+              description: 'Gider pusulasini staginge alir; dateToGet, businessDate aliasi olarak desteklenir',
               payload: 'ImportPosDocumentsHttpRequest'
             },
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/erpye-gonder',
-              description: 'Gider pusulasi ERP transfer contracti hazirdir',
+              description: 'Secili expenseIds kayitlarini Mikro muhasebe fisine aktarir',
               payload: 'PosAccountingTransferHttpRequest'
             },
             {
@@ -318,13 +319,13 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'DELETE',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari',
-              description: 'Gider pusulasi staging temizleme contracti hazirdir',
+              description: 'Secili expenseIds staging kayitlarini temizler',
               payload: 'PosAccountingDeleteHttpRequest'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/kasa-eslemeleri',
-              description: 'Kasa eslemeleri listesi icin scaffold response dondurur',
+              description: 'Kasa eslemeleri listesini dondurur',
               payload: 'CashRegisterBranchMappingListHttpRequest'
             },
             {
@@ -343,11 +344,8 @@ export const INTEGRATION_TASK_SOURCE = {
         }
       ],
       codeSample: `{
-  "moduleCode": "entegrasyon-islemleri",
-  "menuCode": "pos-muhasebe-aktarimi",
-  "actionCode": "list",
-  "isImplemented": false,
-  "message": "Bu endpoint iskelet olarak acildi. Is kurali ve Mikro veritabani entegrasyonu sonraki adimda baglanacak."
+  "invoiceIds": [125, 126],
+  "continueOnError": true
 }`
     },
     () =>

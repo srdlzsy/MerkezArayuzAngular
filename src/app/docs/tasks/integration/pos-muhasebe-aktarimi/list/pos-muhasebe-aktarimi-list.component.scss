@@ -349,6 +349,15 @@
   grid-column: span 3;
 }
 
+.field-help {
+  grid-column: span 6;
+  align-self: end;
+  margin: 0;
+  color: var(--pos-muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
 .field-wide {
   grid-column: span 6;
 }
@@ -600,7 +609,8 @@ code {
   }
 
   .field,
-  .field-wide {
+  .field-wide,
+  .field-help {
     grid-column: auto;
   }
 

@@ -5,7 +5,7 @@
       <h2>{{ page.title }}</h2>
       <p class="subtitle">
         POS muhasebe aktarimi menusunu tek sayfali 4 tab omurgasiyla hazirlar. Backend artik
-        belge tipine gore business DTO dondurur; Z parser ve ERP fisi adimlari kismi durumdadir.
+        belge tipine gore business DTO dondurur; Z dosya importu haric ERP gonderimleri aktiftir.
       </p>
 
       <div class="hero-actions">
@@ -229,7 +229,7 @@
           <section class="form-section">
             <div class="section-head">
               <h4>ERP Gonder ve Staging Sil</h4>
-              <p>DocumentIds tek textbox'ta bosluk, satir veya virgul ile ayrilarak girilebilir.</p>
+              <p>TotalIds tek textbox'ta bosluk, satir veya virgul ile ayrilarak girilebilir.</p>
             </div>
 
             <div class="field-row" [formGroup]="transferForm">
@@ -238,7 +238,7 @@
                 <input type="number" formControlName="warehouseNo" />
               </label>
               <label class="field field-wide">
-                <span>Document Ids</span>
+                <span>Total Ids</span>
                 <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
               <label class="field checkbox-field">
@@ -253,7 +253,7 @@
                 <input type="number" formControlName="warehouseNo" />
               </label>
               <label class="field field-wide">
-                <span>Silinecek Document Ids</span>
+                <span>Silinecek Total Ids</span>
                 <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
             </div>
@@ -327,6 +327,7 @@
                 <span>Business Date</span>
                 <input type="date" formControlName="businessDate" />
               </label>
+              <p class="field-help">Request preview ayni tarihi businessDate ve dateToGet alias'i ile gonderir.</p>
               <label class="field checkbox-field">
                 <span>Include Previously Imported</span>
                 <input type="checkbox" formControlName="includePreviouslyImported" />
@@ -383,7 +384,7 @@
                 <input type="number" formControlName="warehouseNo" />
               </label>
               <label class="field field-wide">
-                <span>ERP Document Ids</span>
+                <span>ERP Invoice Ids</span>
                 <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
               <label class="field checkbox-field">
@@ -398,7 +399,7 @@
                 <input type="number" formControlName="warehouseNo" />
               </label>
               <label class="field field-wide">
-                <span>Silinecek Document Ids</span>
+                <span>Silinecek Invoice Ids</span>
                 <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
             </div>
@@ -475,6 +476,7 @@
                 <span>Business Date</span>
                 <input type="date" formControlName="businessDate" />
               </label>
+              <p class="field-help">Request preview ayni tarihi businessDate ve dateToGet alias'i ile gonderir.</p>
               <label class="field checkbox-field">
                 <span>Include Previously Imported</span>
                 <input type="checkbox" formControlName="includePreviouslyImported" />
@@ -531,7 +533,7 @@
                 <input type="number" formControlName="warehouseNo" />
               </label>
               <label class="field field-wide">
-                <span>ERP Document Ids</span>
+                <span>ERP Expense Ids</span>
                 <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
               <label class="field checkbox-field">
@@ -546,7 +548,7 @@
                 <input type="number" formControlName="warehouseNo" />
               </label>
               <label class="field field-wide">
-                <span>Silinecek Document Ids</span>
+                <span>Silinecek Expense Ids</span>
                 <textarea formControlName="documentIdsText" placeholder="125, 126"></textarea>
               </label>
             </div>
@@ -709,7 +711,7 @@
         <div class="operation-results" *ngIf="getOperationResults(action.response).length">
           <div class="data-preview-head">
             <h4>Batch / Import Sonuclari</h4>
-            <span>{{ getOperationResults(action.response).length }} satir</span>
+            <span>{{ getOperationResults(action.response).length }} satir, mesajda fis/yevmiye no olabilir</span>
           </div>
           <article
             class="result-row"

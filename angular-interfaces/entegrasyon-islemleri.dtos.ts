@@ -654,19 +654,26 @@ export interface IImportZReportsHttpRequestApiDto {
 export interface IImportPosDocumentsHttpRequestApiDto {
   warehouseNo?: number | null;
   businessDate?: string | null;
+  dateToGet?: string | null;
   includePreviouslyImported: boolean;
   overwriteExisting: boolean;
 }
 
 export interface IPosAccountingTransferHttpRequestApiDto {
   warehouseNo?: number | null;
-  documentIds: ReadonlyArray<number>;
+  documentIds?: ReadonlyArray<number>;
+  totalIds?: ReadonlyArray<number>;
+  invoiceIds?: ReadonlyArray<number>;
+  expenseIds?: ReadonlyArray<number>;
   continueOnError: boolean;
 }
 
 export interface IPosAccountingDeleteHttpRequestApiDto {
   warehouseNo?: number | null;
-  documentIds: ReadonlyArray<number>;
+  documentIds?: ReadonlyArray<number>;
+  totalIds?: ReadonlyArray<number>;
+  invoiceIds?: ReadonlyArray<number>;
+  expenseIds?: ReadonlyArray<number>;
 }
 
 export interface IUpdatePosAccountingDocumentHttpRequestApiDto {

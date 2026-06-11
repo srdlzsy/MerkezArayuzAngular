@@ -67,13 +67,18 @@ interface PosAccountingSummaryItem {
   value: string;
 }
 
+type PosAccountingIdPayload = Pick<
+  IPosAccountingTransferHttpRequestApiDto,
+  'documentIds' | 'totalIds' | 'invoiceIds' | 'expenseIds'
+>;
+
 const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
   {
     id: 'z-raporlari',
     label: 'Z Raporlari',
-    subtitle: 'Staging import, detay inceleme ve ERP transfer iskeleti.',
+    subtitle: 'Staging liste, detay inceleme ve aktif ERP transfer akisi.',
     description:
-      'Liste, detay, ice aktar, ERPye gonder ve staging silme aksiyonlari gelecekte bu tabda bulusacak.',
+      'Mevcut staging Z raporlari listelenir, detay incelenir, ERPye gonderilir ve staging kaydi temizlenebilir.',
     routes: [
       'GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari',
       'GET /api/entegrasyon-islemleri/pos-muhasebe-aktarimi/z-raporlari/{totalId}',
@@ -85,9 +90,10 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
     futureColumns: ['Durum', 'Tarih', 'Z No', 'Kasa No', 'Sube', 'Toplam'],
     notes: [
       'Sil aksiyonu staging kaydini temizler; ERPde olusan fis silme butonu gibi sunulmamalidir.',
-      'ERPye gonder toplu secim mantigiyla tasarlanmistir.',
+      'ERPye gonder totalIds koleksiyonu ile calisir ve basarili kayitlarda IsSent bilgisini true yapar.',
       'Detay akisi header + KDV satiri + odeme satiri panellerine bolunmelidir.',
-      'Z raporu ice aktar endpointi parser hazir olana kadar basarisiz import satirlari dondurebilir.'
+      'Z raporu dosya ice aktar endpointi parser hazir olana kadar basarisiz import satirlari dondurebilir.',
+      'Batch result mesajlari fis no veya yevmiye no bilgisini satir bazli tasiyabilir.'
     ]
   },
   {
@@ -109,8 +115,9 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
     notes: [
       'Bu fazda satir duzeyi update kontrati yok; ekran header agirlikli tasarlanmalidir.',
       'Liste aksiyonu tarih bazli calisacakmis gibi simdiden kurulmalidir.',
-      'Toplu ERP gonderim secimi int tipindeki invoiceId degerleriyle calisir.',
-      'Import kaynagi Furpa/Mayday PosFaturas ve opsiyonel Vera FATURA verisini birlestirir.'
+      'Toplu ERP gonderim secimi invoiceIds koleksiyonu ile calisir.',
+      'Import kaynagi Furpa/Mayday PosFaturas ve opsiyonel Vera FATURA verisini birlestirir.',
+      'ERPye gonder odeme tipi, satis ve KDV satirlarini Mikro muhasebe fisine yazar.'
     ]
   },
   {
@@ -132,8 +139,9 @@ const POS_ACCOUNTING_TABS: readonly PosAccountingTabDefinition[] = [
     notes: [
       'POS faturalar tabiyla ayni liste + detay deneyimi korunmalidir.',
       'Header agirlikli update semantigi bu tabda da korunur.',
-      'Toplu ERP gonderim ve silme int tipindeki expenseId degerleriyle calisir.',
-      'Import yalniz BelgeTuru = 4 Furpa kaynakli gider pusulalarini staginge yazar.'
+      'Toplu ERP gonderim ve silme expenseIds koleksiyonu ile calisir.',
+      'Import yalniz BelgeTuru = 4 Furpa kaynakli gider pusulalarini staginge yazar.',
+      'ERPye gonder odeme, gider ve indirilecek KDV satirlarini Mikro muhasebe fisine yazar.'
     ]
   },
   {
@@ -300,14 +308,14 @@ export class PosMuhasebeAktarimiListComponent {
   ]);
   protected readonly stagingLanguage = [
     'ice aktar = kaynaktan staginge cek',
-    'ERPye gonder = stagingden muhasebe kaydina donustur',
+    'ERPye gonder = stagingden Mikro muhasebe fisi olustur',
     'sil = staging kaydini temizle',
     'guncelle = staging header verisini duzenle'
   ] as const;
   protected readonly criticalBoundaries = [
     'Bu menu artik scaffold response degil, belge tipine gore business DTO dondurur.',
-    'Z raporu parseri ve ERP muhasebe fisi yazma henuz tamamlanmadi; sonuc satirlari uyari olarak okunmalidir.',
-    'Toplu gonderme ve silme requestlerinde DocumentIds GUID degil int koleksiyonudur.'
+    'Z raporu dosya parseri haric liste, detay, guncelleme, silme ve ERPye gonderme akislari aktif backend endpointlerine baglidir.',
+    'Toplu gonderme ve silme requestlerinde belge tipine gore totalIds, invoiceIds veya expenseIds tercih edilir; documentIds geriye uyum alanidir.'
   ] as const;
 
   constructor() {
@@ -1102,9 +1110,12 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   private buildDocumentImportRequest(): IImportPosDocumentsHttpRequestApiDto {
+    const businessDate = this.documentImportForm.controls.businessDate.value || null;
+
     return {
       warehouseNo: this.documentImportForm.controls.warehouseNo.value,
-      businessDate: this.documentImportForm.controls.businessDate.value || null,
+      businessDate,
+      dateToGet: businessDate,
       includePreviouslyImported:
         this.documentImportForm.controls.includePreviouslyImported.value,
       overwriteExisting: this.documentImportForm.controls.overwriteExisting.value
@@ -1119,13 +1130,13 @@ export class PosMuhasebeAktarimiListComponent {
     }
 
     if (!documentIds.length) {
-      this.raiseMissingField('Document Id listesi');
+      this.raiseMissingField(`${this.getActiveIdCollectionLabel()} listesi`);
       return null;
     }
 
     return {
       warehouseNo: this.transferForm.controls.warehouseNo.value,
-      documentIds,
+      ...this.buildSelectedIdPayload(documentIds),
       continueOnError: this.transferForm.controls.continueOnError.value
     };
   }
@@ -1138,14 +1149,40 @@ export class PosMuhasebeAktarimiListComponent {
     }
 
     if (!documentIds.length) {
-      this.raiseMissingField('Silinecek Document Id listesi');
+      this.raiseMissingField(`Silinecek ${this.getActiveIdCollectionLabel()} listesi`);
       return null;
     }
 
     return {
       warehouseNo: this.deleteForm.controls.warehouseNo.value,
-      documentIds
+      ...this.buildSelectedIdPayload(documentIds)
     };
+  }
+
+  private buildSelectedIdPayload(documentIds: readonly number[]): PosAccountingIdPayload {
+    switch (this.activeTab()) {
+      case 'z-raporlari':
+        return { totalIds: documentIds };
+      case 'pos-faturalar':
+        return { invoiceIds: documentIds };
+      case 'gider-pusulalari':
+        return { expenseIds: documentIds };
+      default:
+        return { documentIds };
+    }
+  }
+
+  private getActiveIdCollectionLabel(): string {
+    switch (this.activeTab()) {
+      case 'z-raporlari':
+        return 'Total Id';
+      case 'pos-faturalar':
+        return 'Invoice Id';
+      case 'gider-pusulalari':
+        return 'Expense Id';
+      default:
+        return 'Document Id';
+    }
   }
 
   private buildUpdateRequest(): IUpdatePosAccountingDocumentHttpRequestApiDto {
@@ -1193,8 +1230,8 @@ export class PosMuhasebeAktarimiListComponent {
     if (invalidTokens.length) {
       this.feedback.set({
         tone: 'error',
-        title: 'DocumentIds tipi hatali',
-        message: `DocumentIds int koleksiyonu olmali. Gecersiz deger: ${invalidTokens[0]}`
+        title: 'Id listesi tipi hatali',
+        message: `${this.getActiveIdCollectionLabel()} degerleri int koleksiyonu olmali. Gecersiz deger: ${invalidTokens[0]}`
       });
       return null;
     }
