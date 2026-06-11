@@ -190,6 +190,17 @@ button:disabled {
   border-color: #5eead4;
 }
 
+.field input.invalid-control {
+  border-color: #dc2626;
+  background: #fff7f7;
+}
+
+.field-error {
+  color: #b91c1c;
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .inline-field input {
   min-width: 0;
 }

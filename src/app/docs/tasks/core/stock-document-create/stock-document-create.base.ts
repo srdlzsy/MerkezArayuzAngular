@@ -50,6 +50,8 @@ type StockDocumentLineFormGroup = FormGroup<{
 
 @Directive()
 export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
+  private readonly guidPattern =
+    /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i;
   private readonly aramaService = inject(AramaService);
   private readonly stokIslemleriService = inject(StokIslemleriService);
   private readonly sayimIslemleriService = inject(SayimIslemleriService);
@@ -101,7 +103,10 @@ export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
         nonNullable: true,
         validators: config.kind === 'inventory-count' ? [Validators.required] : []
       }),
-      clientRequestId: new FormControl(this.createClientRequestId(), { nonNullable: true }),
+      clientRequestId: new FormControl(this.createClientRequestId(), {
+        nonNullable: true,
+        validators: [Validators.required, Validators.pattern(this.guidPattern)]
+      }),
       movementDate: new FormControl(this.today, {
         nonNullable: true,
         validators: config.kind === 'inventory-count' ? [] : [Validators.required]
@@ -216,6 +221,12 @@ export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
 
   protected regenerateClientRequestId(): void {
     this.controls.clientRequestId.setValue(this.createClientRequestId());
+    this.controls.clientRequestId.markAsDirty();
+  }
+
+  protected hasClientRequestIdError(): boolean {
+    const control = this.controls.clientRequestId;
+    return control.invalid && (control.dirty || control.touched);
   }
 
   protected submit(): void {
@@ -224,6 +235,7 @@ export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
 
     if (this.form.invalid) {
       this.form.markAllAsTouched();
+      this.submitError.set('Zorunlu alanlari ve Client Request Id GUID formatini kontrol et.');
       return;
     }
 
@@ -312,9 +324,10 @@ export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
 
   private buildInventoryCountRequest(): IFurpaCreateInventoryCountRequestApiDto {
     const rawValue = this.form.getRawValue();
+    const clientRequestId = rawValue.clientRequestId.trim();
 
     return {
-      clientRequestId: rawValue.clientRequestId.trim(),
+      clientRequestId: clientRequestId || undefined,
       name: rawValue.name.trim(),
       documentDate: rawValue.documentDate,
       lines: rawValue.lines.map((line) => ({
@@ -404,11 +417,38 @@ export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
   }
 
   private createClientRequestId(): string {
-    if (typeof crypto !== 'undefined' && typeof crypto.randomUUID === 'function') {
-      return crypto.randomUUID();
+    const cryptoApi = globalThis.crypto;
+
+    if (typeof cryptoApi?.randomUUID === 'function') {
+      return cryptoApi.randomUUID();
     }
 
-    return `client-${Date.now()}-${Math.random().toString(16).slice(2)}`;
+    const bytes = new Uint8Array(16);
+
+    if (typeof cryptoApi?.getRandomValues === 'function') {
+      cryptoApi.getRandomValues(bytes);
+    } else {
+      for (let index = 0; index < bytes.length; index += 1) {
+        bytes[index] = Math.floor(Math.random() * 256);
+      }
+    }
+
+    bytes[6] = (bytes[6] & 0x0f) | 0x40;
+    bytes[8] = (bytes[8] & 0x3f) | 0x80;
+
+    return this.formatGuid(bytes);
+  }
+
+  private formatGuid(bytes: Uint8Array): string {
+    const hex = Array.from(bytes, (byte) => byte.toString(16).padStart(2, '0'));
+
+    return [
+      hex.slice(0, 4).join(''),
+      hex.slice(4, 6).join(''),
+      hex.slice(6, 8).join(''),
+      hex.slice(8, 10).join(''),
+      hex.slice(10, 16).join('')
+    ].join('-');
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

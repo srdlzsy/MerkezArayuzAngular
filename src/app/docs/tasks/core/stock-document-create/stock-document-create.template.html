@@ -56,11 +56,20 @@
           <label class="field" *ngIf="usesInventoryCountFields()">
             <span>Client Request Id</span>
             <div class="inline-field">
-              <input type="text" formControlName="clientRequestId" />
+              <input
+                type="text"
+                formControlName="clientRequestId"
+                autocomplete="off"
+                spellcheck="false"
+                [class.invalid-control]="hasClientRequestIdError()"
+              />
               <button type="button" class="small-btn" (click)="regenerateClientRequestId()">
                 Yenile
               </button>
             </div>
+            <small class="field-error" *ngIf="hasClientRequestIdError()">
+              GUID formatinda olmali. Ornek: 7c9b31f6-1ab4-4ed1-b02b-2a90e5e7d3fd
+            </small>
           </label>
 
           <label class="field" *ngIf="usesMovementDate()">
