@@ -87,8 +87,8 @@ export const INTEGRATION_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/integrations/axata-sync/manual/tasks/{taskCode}/documents/candidates?...',
-              description: 'Manuel kurtarma icin evrak adaylarini listeler'
+              path: '/api/integrations/axata-sync/manual/tasks/{taskCode}/documents/candidates?warehouseNo=...&startDate=...&endDate=...&skip=0&take=25',
+              description: 'Manuel kurtarma icin evrak adaylarini skip/take ile sayfali listeler'
             },
             {
               method: 'POST',

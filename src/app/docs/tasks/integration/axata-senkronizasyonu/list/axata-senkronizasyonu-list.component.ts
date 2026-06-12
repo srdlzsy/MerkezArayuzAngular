@@ -177,6 +177,10 @@ export class AxataSenkronizasyonuListComponent {
       nonNullable: true,
       validators: [Validators.required]
     }),
+    candidateSkip: new FormControl<number>(0, {
+      nonNullable: true,
+      validators: [Validators.min(0)]
+    }),
     candidateTake: new FormControl<number>(25, {
       nonNullable: true,
       validators: [Validators.min(1), Validators.max(100)]
@@ -621,6 +625,7 @@ export class AxataSenkronizasyonuListComponent {
         this.manualDispatchBatchResult.set(null);
         this.batchResult.set(null);
         this.selectedBatchDocuments.set([]);
+        this.form.controls.candidateSkip.setValue(0, { emitEvent: false });
         this.feedback.set(null);
       });
 
@@ -680,6 +685,51 @@ export class AxataSenkronizasyonuListComponent {
 
   protected loadCandidates(): void {
     this.loadManualCandidates();
+  }
+
+  protected loadPreviousCandidatePage(): void {
+    const previousSkip = Math.max(0, this.getCandidateSkip() - this.getCandidateTake());
+
+    this.form.controls.candidateSkip.setValue(previousSkip, { emitEvent: false });
+    this.loadManualCandidates();
+  }
+
+  protected loadNextCandidatePage(
+    candidates: AxataSynchronizationManualDocumentCandidatesDto
+  ): void {
+    const nextSkip = this.getCandidateSkippedRecordCount(candidates) + this.getCandidateTake();
+
+    this.form.controls.candidateSkip.setValue(nextSkip, { emitEvent: false });
+    this.loadManualCandidates();
+  }
+
+  protected canLoadPreviousCandidatePage(): boolean {
+    return !this.candidateLoading() && this.getCandidateSkip() > 0;
+  }
+
+  protected canLoadNextCandidatePage(
+    candidates: AxataSynchronizationManualDocumentCandidatesDto
+  ): boolean {
+    return (
+      !this.candidateLoading() &&
+      this.getCandidateSkippedRecordCount(candidates) + candidates.returnedRecordCount <
+        candidates.totalRecordCount
+    );
+  }
+
+  protected formatCandidatePageSummary(
+    candidates: AxataSynchronizationManualDocumentCandidatesDto
+  ): string {
+    const skippedRecordCount = this.getCandidateSkippedRecordCount(candidates);
+
+    if (!candidates.returnedRecordCount) {
+      return `0 / ${candidates.totalRecordCount} kayit`;
+    }
+
+    const firstRecordNo = skippedRecordCount + 1;
+    const lastRecordNo = skippedRecordCount + candidates.returnedRecordCount;
+
+    return `${firstRecordNo}-${lastRecordNo} / ${candidates.totalRecordCount} kayit`;
   }
 
   protected loadOverview(): void {
@@ -1589,6 +1639,8 @@ export class AxataSenkronizasyonuListComponent {
     const warehouseNo = this.resolveWarehouseNo(true);
     const startDate = this.form.controls.candidateStartDate.value.trim();
     const endDate = this.form.controls.candidateEndDate.value.trim();
+    const skip = this.getCandidateSkip();
+    const take = this.getCandidateTake();
 
     if (!warehouseNo || !startDate || !endDate) {
       this.feedback.set({
@@ -1607,7 +1659,8 @@ export class AxataSenkronizasyonuListComponent {
         warehouseNo,
         startDate,
         endDate,
-        take: this.toPositiveNumber(this.form.controls.candidateTake.value) ?? 25
+        skip,
+        take
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -1616,10 +1669,14 @@ export class AxataSenkronizasyonuListComponent {
       .subscribe({
         next: (candidates: AxataSynchronizationManualDocumentCandidatesDto) => {
           this.manualCandidates.set(candidates);
+          this.form.controls.candidateSkip.setValue(
+            this.getCandidateSkippedRecordCount(candidates),
+            { emitEvent: false }
+          );
           this.feedback.set({
             tone: 'info',
             title: 'Adaylar hazir',
-            message: `${candidates.returnedRecordCount} evrak secilebilir durumda listelendi.`
+            message: `${this.formatCandidatePageSummary(candidates)} araliginda ${candidates.returnedRecordCount} evrak listelendi.`
           });
         },
         error: () => {
@@ -2452,6 +2509,20 @@ export class AxataSenkronizasyonuListComponent {
     return 'C01';
   }
 
+  private getCandidateTake(): number {
+    return Math.min(this.toPositiveNumber(this.form.controls.candidateTake.value) ?? 25, 100);
+  }
+
+  private getCandidateSkip(): number {
+    return this.toNonNegativeNumber(this.form.controls.candidateSkip.value) ?? 0;
+  }
+
+  private getCandidateSkippedRecordCount(
+    candidates: AxataSynchronizationManualDocumentCandidatesDto
+  ): number {
+    return this.toNonNegativeNumber(candidates.skippedRecordCount) ?? this.getCandidateSkip();
+  }
+
   private toPositiveNumber(value: unknown): number | null {
     if (typeof value === 'number' && Number.isFinite(value) && value > 0) {
       return value;
@@ -2461,6 +2532,22 @@ export class AxataSenkronizasyonuListComponent {
       const parsedValue = Number(value);
 
       if (Number.isFinite(parsedValue) && parsedValue > 0) {
+        return parsedValue;
+      }
+    }
+
+    return null;
+  }
+
+  private toNonNegativeNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value) && value >= 0) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      const parsedValue = Number(value);
+
+      if (Number.isFinite(parsedValue) && parsedValue >= 0) {
         return parsedValue;
       }
     }

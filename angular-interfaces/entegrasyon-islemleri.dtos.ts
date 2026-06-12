@@ -249,6 +249,7 @@ export interface IAxataSynchronizationManualDocumentCandidatesApiDto {
   startDate: string;
   endDate: string;
   totalRecordCount: number;
+  skippedRecordCount: number;
   returnedRecordCount: number;
   generatedAtUtc: string | null;
   items: IAxataSynchronizationManualDocumentCandidateItemApiDto[];
@@ -270,6 +271,7 @@ export interface IAxataSynchronizationManualDocumentCandidatesQueryApiDto {
   warehouseNo?: number | null;
   startDate: string;
   endDate: string;
+  skip?: number | null;
   take?: number | null;
 }
 

@@ -273,6 +273,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
         warehouseNo: query.warehouseNo ?? undefined,
         startDate: query.startDate,
         endDate: query.endDate,
+        skip: query.skip ?? undefined,
         take: query.take ?? undefined
       }
     );

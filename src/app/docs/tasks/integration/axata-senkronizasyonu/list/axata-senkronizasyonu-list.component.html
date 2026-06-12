@@ -431,6 +431,10 @@
             <input type="date" formControlName="candidateEndDate" />
           </label>
           <label class="form-row">
+            <span>Skip</span>
+            <input type="number" formControlName="candidateSkip" min="0" />
+          </label>
+          <label class="form-row">
             <span>Take</span>
             <input type="number" formControlName="candidateTake" min="1" max="100" />
           </label>
@@ -442,31 +446,55 @@
           </button>
         </div>
 
-        <div class="compact-table" *ngIf="manualCandidates() as candidates">
-          <div class="table-row table-head">
-            <span>Evrak</span>
-            <span>Ozet</span>
-            <span>Islem</span>
-          </div>
-          <div class="table-row" *ngFor="let candidate of candidates.items; trackBy: trackByCandidate">
-            <span>
-              <strong>{{ candidate.documentReference }}</strong>
-              <small>{{ formatTimestamp(candidate.documentDate) }}</small>
-            </span>
-            <span>{{ candidate.summary }}</span>
-            <span class="row-actions">
-              <button type="button" class="mini-btn" (click)="applyCandidate(candidate)">Sec</button>
+        <ng-container *ngIf="manualCandidates() as candidates">
+          <div class="candidate-count">
+            <span>{{ formatCandidatePageSummary(candidates) }}</span>
+            <div class="candidate-page-actions">
               <button
                 type="button"
                 class="mini-btn"
-                [class.active]="isBatchCandidateSelected(candidate)"
-                (click)="toggleBatchCandidate(candidate)"
+                (click)="loadPreviousCandidatePage()"
+                [disabled]="!canLoadPreviousCandidatePage()"
               >
-                Batch
+                Onceki
               </button>
-            </span>
+              <button
+                type="button"
+                class="mini-btn"
+                (click)="loadNextCandidatePage(candidates)"
+                [disabled]="!canLoadNextCandidatePage(candidates)"
+              >
+                Sonraki
+              </button>
+            </div>
           </div>
-        </div>
+
+          <div class="compact-table">
+            <div class="table-row table-head">
+              <span>Evrak</span>
+              <span>Ozet</span>
+              <span>Islem</span>
+            </div>
+            <div class="table-row" *ngFor="let candidate of candidates.items; trackBy: trackByCandidate">
+              <span>
+                <strong>{{ candidate.documentReference }}</strong>
+                <small>{{ formatTimestamp(candidate.documentDate) }}</small>
+              </span>
+              <span>{{ candidate.summary }}</span>
+              <span class="row-actions">
+                <button type="button" class="mini-btn" (click)="applyCandidate(candidate)">Sec</button>
+                <button
+                  type="button"
+                  class="mini-btn"
+                  [class.active]="isBatchCandidateSelected(candidate)"
+                  (click)="toggleBatchCandidate(candidate)"
+                >
+                  Batch
+                </button>
+              </span>
+            </div>
+          </div>
+        </ng-container>
       </div>
 
       <div class="section-block">
