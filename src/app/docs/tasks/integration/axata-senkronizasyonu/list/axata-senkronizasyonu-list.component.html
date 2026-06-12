@@ -95,8 +95,8 @@
 
         <form class="compact-form" [formGroup]="form">
           <label class="form-row">
-            <span>Depo No</span>
-            <input type="number" formControlName="warehouseNo" placeholder="JWT deposu veya manuel" />
+            <span>{{ taskWarehouseLabel() }}</span>
+            <input type="number" formControlName="warehouseNo" [placeholder]="taskWarehousePlaceholder()" />
           </label>
 
           <label class="form-row">
@@ -419,8 +419,8 @@
         <h2 class="section-title">Aday Evrak Listesi</h2>
         <form class="compact-form form-grid" [formGroup]="form">
           <label class="form-row">
-            <span>Depo No</span>
-            <input type="number" formControlName="warehouseNo" />
+            <span>{{ taskWarehouseLabel() }}</span>
+            <input type="number" formControlName="warehouseNo" [placeholder]="taskWarehousePlaceholder()" />
           </label>
           <label class="form-row">
             <span>Baslangic</span>
@@ -573,6 +573,93 @@
   </section>
 
   <section class="tab-content" *ngIf="selectedTab() === 'incoming'">
+    <div class="section-block">
+      <h2 class="section-title">AXATA Kuyruk Preview</h2>
+      <p class="section-desc">
+        C01/C02/C03/C4 pending outbound delivery kuyrugunu canli okur. Bu cagri Mikro'ya yazmaz ve AXATA ack atmaz.
+      </p>
+
+      <form class="compact-form form-grid" [formGroup]="queuePreviewForm">
+        <label class="form-row">
+          <span>Movement Type</span>
+          <select formControlName="movementType">
+            <option *ngFor="let movementType of queueMovementTypes" [value]="movementType">
+              {{ formatQueueMovementType(movementType) }}
+            </option>
+          </select>
+        </label>
+        <label class="form-row">
+          <span>Take</span>
+          <input type="number" formControlName="take" min="1" max="200" />
+        </label>
+      </form>
+
+      <div class="button-group">
+        <button type="button" class="btn primary" (click)="loadOutboundDeliveryQueuePreview()" [disabled]="queuePreviewLoading()">
+          {{ queuePreviewLoading() ? 'Kuyruk okunuyor...' : 'Kuyruk Preview Al' }}
+        </button>
+      </div>
+
+      <ng-container *ngIf="outboundDeliveryQueuePreview() as queuePreview">
+        <div class="status-grid">
+          <div class="status-card">
+            <span>Movement</span>
+            <strong>{{ formatQueueMovementType(queuePreview.movementType) }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Fetched</span>
+            <strong>{{ queuePreview.returnedDocumentCount }}/{{ queuePreview.totalFetchedDocumentCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Satir</span>
+            <strong>{{ queuePreview.totalLineCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Miktar</span>
+            <strong>{{ queuePreview.totalQuantity | number:'1.0-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="compact-table" *ngIf="queuePreview.documents.length; else noQueuePreviewDocuments">
+          <div class="table-row table-head">
+            <span>AXATA</span>
+            <span>Belge / Depo</span>
+            <span>Miktar</span>
+            <span>Handling</span>
+          </div>
+          <div class="table-row" *ngFor="let item of queuePreview.documents; trackBy: trackByQueuePreviewDocument">
+            <span>
+              #{{ item.axataSequenceNo }} / {{ item.axataDeliveryNo }}
+              <small>{{ formatTimestamp(item.axataDate) }}</small>
+            </span>
+            <span>
+              {{ item.documentSerie }}.{{ item.documentOrderNo || '-' }}
+              <small>{{ item.sourceWarehouseNo }} -> {{ item.targetWarehouseNo }}</small>
+            </span>
+            <span>
+              {{ item.quantity | number:'1.0-2' }}
+              <small>{{ item.lineCount }} satir</small>
+            </span>
+            <span class="status-pill" [class.status-pill-success]="item.hasLiveImport" [class.status-pill-warn]="!item.hasLiveImport && !!item.warning" [class.status-pill-neutral]="!item.hasLiveImport && !item.warning">
+              {{ item.hasLiveImport ? 'Import destekli' : item.currentHandling }}
+            </span>
+          </div>
+        </div>
+        <ng-template #noQueuePreviewDocuments>
+          <div class="empty-msg">Secili hareket tipi icin AXATA pending kuyrugu bos.</div>
+        </ng-template>
+
+        <ul class="note-list" *ngIf="queuePreview.notes.length">
+          <li *ngFor="let note of queuePreview.notes">{{ note }}</li>
+        </ul>
+
+        <details class="json-details">
+          <summary>Kuyruk Preview JSON</summary>
+          <pre>{{ queuePreviewJson() }}</pre>
+        </details>
+      </ng-container>
+    </div>
+
     <div class="section-block">
       <h2 class="section-title">C01 Live AXATA Fetch / Import</h2>
       <p class="section-desc">

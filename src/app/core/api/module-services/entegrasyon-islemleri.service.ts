@@ -24,6 +24,8 @@ import type {
   IAxataOutboundDeliveryImportExecuteApiDto,
   IAxataOutboundDeliveryImportExecuteRequestApiDto,
   IAxataOutboundDeliveryImportPreviewApiDto,
+  IAxataOutboundDeliveryQueuePreviewApiDto,
+  IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto,
   IAxataSynchronizationConnectionTestApiDto,
   IAxataSynchronizationExecuteRequestApiDto,
   IAxataSynchronizationExecuteTaskRequestApiDto,
@@ -117,6 +119,8 @@ export type AxataOutboundDeliveryImportPreviewDto =
   IAxataOutboundDeliveryImportPreviewApiDto;
 export type AxataOutboundDeliveryImportExecuteDto =
   IAxataOutboundDeliveryImportExecuteApiDto;
+export type AxataOutboundDeliveryQueuePreviewDto =
+  IAxataOutboundDeliveryQueuePreviewApiDto;
 export type ModuleActionScaffoldResponseDto = IModuleActionScaffoldResponseApiDto;
 export type PosAccountingModuleActionScaffoldResponseDto =
   IPosAccountingModuleActionScaffoldResponseApiDto;
@@ -195,6 +199,20 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       'integrations/axata-sync/live/axata/outbound-deliveries/c01/preview',
       {
         take: take ?? undefined
+      }
+    );
+  }
+
+  previewAxataOutboundDeliveryQueue(
+    query: IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto
+  ) {
+    const movementType = query.movementType?.trim();
+
+    return this.getWithQuery<AxataOutboundDeliveryQueuePreviewDto>(
+      'integrations/axata-sync/live/axata/outbound-deliveries/preview',
+      {
+        movementType: movementType || undefined,
+        take: query.take ?? undefined
       }
     );
   }

@@ -12,6 +12,7 @@ export const INTEGRATION_TASK_SOURCE = {
         highlights: [
           'Task overview + health probe',
           'Fetch profile explorer',
+          'Live audit ve AXATA queue preview',
           'Preview, route-based execute ve POST /jobs',
           'Job polling',
           'Document bazli batch kurtarma',
@@ -43,8 +44,29 @@ export const INTEGRATION_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/integrations/axata-sync/live/audit/overview?startDate=...&endDate=...&warehouseNo=50&take=50',
+              description: 'Mikro siparis bayraklari ile AXATA pending sevk kuyrugunu karsilastirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/preview?movementType=C02&take=20',
+              description: 'C01/C02/C03/C4 AXATA pending outbound delivery kuyrugunu okur; Mikro veya AXATA verisi yazmaz'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c01/preview?take=20',
+              description: 'C01 pending teslimatlarini Mikro siparis satirlariyla eslestirir; veri yazmaz'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c01/import',
+              description: 'Uygun C01 teslimatlarini Mikro sevk fisine cevirir; acknowledge true ise AXATA ack atar',
+              payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
               path: '/api/integrations/axata-sync/tasks/{taskCode}/preview?warehouseNo=...&take=10',
-              description: 'Secili task icin canli veriden preview payload olusturur'
+              description: 'Secili task icin canli veriden preview payload olusturur; issued-warehouse-order-sync icin warehouseNo kaynak/cikis depodur'
             },
               {
                 method: 'POST',
@@ -179,7 +201,7 @@ export const INTEGRATION_TASK_SOURCE = {
         ],
       codeSample: `{
   "executionMode": "DryRun",
-  "warehouseNo": 1
+  "warehouseNo": 50
 }`
     },
     () =>

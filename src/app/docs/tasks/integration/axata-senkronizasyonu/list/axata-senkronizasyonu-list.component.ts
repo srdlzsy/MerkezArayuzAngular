@@ -24,6 +24,7 @@ import type {
   IAxataManualIncomingInventoryCountRequestApiDto,
   IAxataOutboundDeliveryBatchRequestApiDto,
   IAxataOutboundDeliveryImportExecuteRequestApiDto,
+  IAxataOutboundDeliveryQueueDocumentApiDto,
   IAxataOutboundDeliveryRequestApiDto,
   IAxataExecutionMode,
   IAxataSynchronizationFetchProfileApiDto,
@@ -53,6 +54,7 @@ import {
   AxataManualIncomingWarehouseReceivingListItemDto,
   AxataOutboundDeliveryImportExecuteDto,
   AxataOutboundDeliveryImportPreviewDto,
+  AxataOutboundDeliveryQueuePreviewDto,
   AxataOutboundDeliveryResponseDto,
   AxataSynchronizationFetchProfilesOverviewDto,
   AxataSynchronizationHealthDto,
@@ -73,6 +75,7 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 
 type FeedbackTone = 'success' | 'error' | 'info';
+type AxataQueueMovementType = 'C01' | 'C02' | 'C03' | 'C4';
 
 interface PageFeedback {
   tone: FeedbackTone;
@@ -114,6 +117,7 @@ const DOCUMENT_TASK_CODES = new Set([
 export class AxataSenkronizasyonuListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['axata-senkronizasyonu'];
   protected readonly executionModes = ['DryRun', 'Outbox'] as const;
+  protected readonly queueMovementTypes = ['C01', 'C02', 'C03', 'C4'] as const;
   protected readonly overview = signal<AxataSynchronizationOverviewDto | null>(null);
   protected readonly health = signal<AxataSynchronizationHealthDto | null>(null);
   protected readonly fetchProfiles = signal<AxataSynchronizationFetchProfilesOverviewDto | null>(null);
@@ -147,6 +151,7 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly incomingWarehouseAcceptLoading = signal(false);
   protected readonly axataOutboundLoading = signal(false);
   protected readonly axataInboundAtfLoading = signal(false);
+  protected readonly queuePreviewLoading = signal(false);
   protected readonly c01PreviewLoading = signal(false);
   protected readonly c01ImportLoading = signal(false);
   protected readonly genericJobLoading = signal(false);
@@ -265,6 +270,15 @@ export class AxataSenkronizasyonuListComponent {
       nonNullable: true
     })
   });
+  protected readonly queuePreviewForm = new FormGroup({
+    movementType: new FormControl<AxataQueueMovementType>('C02', {
+      nonNullable: true
+    }),
+    take: new FormControl<number>(20, {
+      nonNullable: true,
+      validators: [Validators.min(1), Validators.max(200)]
+    })
+  });
   protected readonly incomingWarehouseForm = new FormGroup({
     warehouseNo: new FormControl<number | null>(null),
     startDate: new FormControl<string>(this.getRelativeDate(6), {
@@ -313,6 +327,8 @@ export class AxataSenkronizasyonuListComponent {
     signal<AxataOutboundDeliveryImportPreviewDto | null>(null);
   protected readonly c01OutboundDeliveryImportResult =
     signal<AxataOutboundDeliveryImportExecuteDto | null>(null);
+  protected readonly outboundDeliveryQueuePreview =
+    signal<AxataOutboundDeliveryQueuePreviewDto | null>(null);
   protected readonly incomingWarehouseReceivings =
     signal<AxataManualIncomingWarehouseReceivingListItemDto[]>([]);
   protected readonly incomingWarehouseReceivingDetail =
@@ -362,6 +378,14 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly selectedTaskLiveOperationName = computed(
     () => this.selectedTask()?.liveOperationName?.trim() || null
   );
+  protected readonly taskWarehouseLabel = computed(() =>
+    this.selectedTaskCode() === 'issued-warehouse-order-sync' ? 'Kaynak Depo No' : 'Depo No'
+  );
+  protected readonly taskWarehousePlaceholder = computed(() =>
+    this.selectedTaskCode() === 'issued-warehouse-order-sync'
+      ? 'AXATA kaynak/cikis deposu'
+      : 'JWT deposu veya manuel'
+  );
   protected readonly isDocumentTask = computed(() => this.supportsManualDocuments());
   protected readonly isInventoryCountTask = computed(
     () => this.selectedTaskCode() === 'inventory-count-sync'
@@ -385,6 +409,7 @@ export class AxataSenkronizasyonuListComponent {
       this.incomingWarehouseAcceptLoading() ||
       this.axataOutboundLoading() ||
       this.axataInboundAtfLoading() ||
+      this.queuePreviewLoading() ||
       this.c01PreviewLoading() ||
       this.c01ImportLoading() ||
       this.genericJobLoading()
@@ -435,7 +460,8 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     const notes = [
-      'C01 canli fetch/import, AXATA -> Mikro Manuel sekmesinde ayrica yonetilir.',
+      'C01 canli fetch/import, AXATA -> Mikro sekmesinde ayrica yonetilir.',
+      'C02/C03/C4 icin sadece AXATA kuyruk preview vardir; Mikro yazma ve ack yoktur.',
       'Outbox basarisi AXATA kabul etti degil, payload dosyalandi anlamina gelir.'
     ];
 
@@ -447,6 +473,9 @@ export class AxataSenkronizasyonuListComponent {
       case 'issued-warehouse-order-sync':
         notes.unshift(
           'Canli dispatch mevcut Mikro evragini yeniden gonderir; AXATAdan otomatik belge cekmez.'
+        );
+        notes.unshift(
+          'Bu taskta warehouseNo hedef depo degil, AXATA kaynak/cikis deposudur; Mikro ssip_cikdepo filtresi kullanilir.'
         );
         notes.push(
           'Depolar-arasi-sevk belge detayi icin ayri AXATA dispatch butonu acilmamalidir.'
@@ -538,6 +567,11 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly c01ImportJson = computed(() =>
     this.c01OutboundDeliveryImportResult()
       ? this.formatJson(this.c01OutboundDeliveryImportResult())
+      : ''
+  );
+  protected readonly queuePreviewJson = computed(() =>
+    this.outboundDeliveryQueuePreview()
+      ? this.formatJson(this.outboundDeliveryQueuePreview())
       : ''
   );
   protected readonly auditSummaryCards = computed(() => {
@@ -791,6 +825,44 @@ export class AxataSenkronizasyonuListComponent {
             tone: 'error',
             title: 'C01 preview alinamadi',
             message: 'AXATA C01 live preview endpointi hata dondu.'
+          });
+        }
+      });
+  }
+
+  protected loadOutboundDeliveryQueuePreview(): void {
+    const movementType = this.normalizeQueueMovementType(
+      this.queuePreviewForm.controls.movementType.value
+    );
+    const take = this.toPositiveNumber(this.queuePreviewForm.controls.take.value) ?? 20;
+
+    this.queuePreviewLoading.set(true);
+    this.outboundDeliveryQueuePreview.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataOutboundDeliveryQueue({
+        movementType,
+        take
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.queuePreviewLoading.set(false))
+      )
+      .subscribe({
+        next: (preview: AxataOutboundDeliveryQueuePreviewDto) => {
+          this.outboundDeliveryQueuePreview.set(preview);
+          this.feedback.set({
+            tone: 'info',
+            title: `${preview.movementType} kuyruk preview hazir`,
+            message: `${preview.returnedDocumentCount}/${preview.totalFetchedDocumentCount} AXATA pending evraki listelendi. Bu cagri Mikro'ya yazmaz ve AXATA ack atmaz.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Kuyruk preview alinamadi',
+            message:
+              'AXATA outbound-deliveries/preview endpointi hata dondu. Movement type ve take degerlerini kontrol et.'
           });
         }
       });
@@ -1984,6 +2056,14 @@ export class AxataSenkronizasyonuListComponent {
     return value?.trim().replace(/->/g, ' -> ') || '-';
   }
 
+  protected formatQueueMovementType(value: string | null | undefined): string {
+    if (value === 'C4') {
+      return 'C4 (C04)';
+    }
+
+    return value?.trim() || '-';
+  }
+
   protected formatArtifactLabel(artifact: IAxataSynchronizationJobArtifactApiDto): string {
     return `${artifact.kind}: ${artifact.name}`;
   }
@@ -2044,6 +2124,10 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     item: IncomingWarehouseBatchQueueItem
   ): string => item.reference;
+  protected trackByQueuePreviewDocument = (
+    _index: number,
+    item: IAxataOutboundDeliveryQueueDocumentApiDto
+  ): string => `${item.movementType}|${item.axataSequenceNo}|${item.axataDeliveryNo}`;
 
   private mapCandidateToBatchItem(
     candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto
@@ -2352,6 +2436,20 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     return warehouseNo;
+  }
+
+  private normalizeQueueMovementType(value: string): AxataQueueMovementType {
+    const normalizedValue = value.trim().toUpperCase();
+
+    if (normalizedValue === 'C04') {
+      return 'C4';
+    }
+
+    if (this.queueMovementTypes.includes(normalizedValue as AxataQueueMovementType)) {
+      return normalizedValue as AxataQueueMovementType;
+    }
+
+    return 'C01';
   }
 
   private toPositiveNumber(value: unknown): number | null {

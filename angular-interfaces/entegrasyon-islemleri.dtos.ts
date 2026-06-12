@@ -365,6 +365,11 @@ export interface IAxataOutboundDeliveryImportPreviewQueryApiDto {
   take?: number | null;
 }
 
+export interface IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto {
+  movementType?: string | null;
+  take?: number | null;
+}
+
 export interface IAxataOutboundDeliveryImportExecuteRequestApiDto {
   take?: number | null;
   continueOnError: boolean;
@@ -396,6 +401,35 @@ export interface IAxataOutboundDeliveryImportExecuteApiDto {
   results: IAxataOutboundDeliveryImportResultApiDto[];
   failures: IAxataOutboundDeliveryImportFailureApiDto[];
   notes: string[];
+}
+
+export interface IAxataOutboundDeliveryQueuePreviewApiDto {
+  movementType: string;
+  pendingStatus: string;
+  generatedAtUtc: string | null;
+  totalFetchedDocumentCount: number;
+  returnedDocumentCount: number;
+  totalLineCount: number;
+  totalQuantity: number;
+  documents: IAxataOutboundDeliveryQueueDocumentApiDto[];
+  notes: string[];
+}
+
+export interface IAxataOutboundDeliveryQueueDocumentApiDto {
+  axataSequenceNo: number;
+  axataDeliveryNo: string;
+  documentSerie: string;
+  documentOrderNo: number | null;
+  movementType: string;
+  status: string;
+  sourceWarehouseNo: number;
+  targetWarehouseNo: number;
+  axataDate: string | null;
+  lineCount: number;
+  quantity: number;
+  hasLiveImport: boolean;
+  currentHandling: string;
+  warning: string | null;
 }
 
 export interface IAxataOutboundDeliveryImportDocumentApiDto {
