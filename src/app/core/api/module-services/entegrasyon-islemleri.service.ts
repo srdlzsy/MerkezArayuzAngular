@@ -190,7 +190,9 @@ export class EntegrasyonIslemleriService extends BaseApiService {
         startDate: query.startDate ?? undefined,
         endDate: query.endDate ?? undefined,
         warehouseNo: query.warehouseNo ?? undefined,
-        take: query.take ?? undefined
+        take: query.take ?? undefined,
+        documentSerie: query.documentSerie?.trim() || undefined,
+        documentOrderNo: query.documentOrderNo ?? undefined
       }
     );
   }

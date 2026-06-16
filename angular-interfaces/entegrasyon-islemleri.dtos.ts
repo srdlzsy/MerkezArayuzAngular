@@ -137,6 +137,8 @@ export interface IAxataIntegrationAuditQueryApiDto {
   endDate?: string | null;
   warehouseNo?: number | null;
   take?: number | null;
+  documentSerie?: string | null;
+  documentOrderNo?: number | null;
 }
 
 export interface IAxataIntegrationAuditApiDto {
@@ -149,6 +151,7 @@ export interface IAxataIntegrationAuditApiDto {
   outboundDeliverySummaries: IAxataOutboundDeliveryMovementSummaryApiDto[];
   unsyncedWarehouseOrders: IAxataUnsyncedWarehouseOrderApiDto[];
   sentWarehouseOrdersMissingMikroShipments: IAxataSentWarehouseOrderMissingShipmentApiDto[];
+  sentWarehouseOrdersWithShipmentDifferences: IAxataSentWarehouseOrderMissingShipmentApiDto[];
   pendingOutboundDeliveries: IAxataPendingOutboundDeliveryApiDto[];
   interventionCandidates: IAxataPendingOutboundDeliveryApiDto[];
   operations: IAxataIntegrationAuditOperationApiDto[];
@@ -163,6 +166,9 @@ export interface IAxataIntegrationAuditSummaryApiDto {
   sentWarehouseOrderMissingMikroShipmentDocumentCount: number;
   sentWarehouseOrderMissingMikroShipmentLineCount: number;
   sentWarehouseOrderMissingMikroShipmentQuantity: number;
+  sentWarehouseOrderShipmentDifferenceDocumentCount: number;
+  sentWarehouseOrderShipmentDifferenceLineCount: number;
+  sentWarehouseOrderShipmentDifferenceQuantity: number;
   pendingOutboundDeliveryDocumentCount: number;
   pendingOutboundDeliveryLineCount: number;
   pendingOutboundDeliveryQuantity: number;
@@ -229,6 +235,9 @@ export interface IAxataSentWarehouseOrderMissingShipmentApiDto {
   missingMovementLinkQuantity: number;
   deliveredQuantity: number;
   linkedMovementLineCount: number;
+  differenceLineCount: number;
+  differenceQuantity: number;
+  differenceReason: string;
   state: string;
   lastUpdateDate: string | null;
   warning: string;

@@ -109,6 +109,14 @@ interface MissingShipmentWarehouseGroup extends MissingShipmentVisibleSummary {
   totalQuantity: number;
 }
 
+interface ShipmentDifferenceVisibleSummary {
+  documentCount: number;
+  differenceLineCount: number;
+  differenceQuantity: number;
+  linkedLineCount: number;
+  totalLineCount: number;
+}
+
 interface IncomingWarehouseLineDraft {
   movementGuid: string;
   stockCode: string;
@@ -658,6 +666,10 @@ export class AxataSenkronizasyonuListComponent {
         value: summary.sentWarehouseOrderMissingMikroShipmentDocumentCount
       },
       {
+        label: 'Kismi Fark',
+        value: summary.sentWarehouseOrderShipmentDifferenceDocumentCount
+      },
+      {
         label: 'AXATA Pending',
         value: summary.pendingOutboundDeliveryDocumentCount
       },
@@ -708,6 +720,18 @@ export class AxataSenkronizasyonuListComponent {
         tone:
           summary.sentWarehouseOrderMissingMikroShipmentDocumentCount > 0
             ? 'danger'
+            : 'success'
+      },
+      {
+        label: 'Kismi Sevk / Fark',
+        value: `${summary.sentWarehouseOrderShipmentDifferenceDocumentCount}`,
+        detail:
+          summary.sentWarehouseOrderShipmentDifferenceDocumentCount > 0
+            ? `${summary.sentWarehouseOrderShipmentDifferenceLineCount.toLocaleString('tr-TR')} satir / ${summary.sentWarehouseOrderShipmentDifferenceQuantity.toLocaleString('tr-TR')} miktar fark`
+            : 'Kismi sevk veya siparis-sevk farki yok',
+        tone:
+          summary.sentWarehouseOrderShipmentDifferenceDocumentCount > 0
+            ? 'warn'
             : 'success'
       },
       {
@@ -782,6 +806,27 @@ export class AxataSenkronizasyonuListComponent {
       )
       .slice(0, 6);
   });
+  protected readonly shipmentDifferenceVisibleSummary =
+    computed<ShipmentDifferenceVisibleSummary>(() => {
+      const items = this.audit()?.sentWarehouseOrdersWithShipmentDifferences ?? [];
+
+      return items.reduce(
+        (summary: ShipmentDifferenceVisibleSummary, item) => ({
+          documentCount: summary.documentCount + 1,
+          differenceLineCount: summary.differenceLineCount + item.differenceLineCount,
+          differenceQuantity: summary.differenceQuantity + item.differenceQuantity,
+          linkedLineCount: summary.linkedLineCount + item.linkedMovementLineCount,
+          totalLineCount: summary.totalLineCount + item.lineCount
+        }),
+        {
+          documentCount: 0,
+          differenceLineCount: 0,
+          differenceQuantity: 0,
+          linkedLineCount: 0,
+          totalLineCount: 0
+        }
+      );
+    });
   protected readonly firstMissingShipment = computed(
     () => this.audit()?.sentWarehouseOrdersMissingMikroShipments[0] ?? null
   );
@@ -2474,6 +2519,35 @@ export class AxataSenkronizasyonuListComponent {
     return this.toPercent(group.missingLineCount, group.totalLineCount);
   }
 
+  protected getShipmentDifferenceLineRate(
+    item: IAxataSentWarehouseOrderMissingShipmentApiDto
+  ): number {
+    return this.toPercent(item.differenceLineCount, item.lineCount);
+  }
+
+  protected getShipmentDifferenceQuantityRate(
+    item: IAxataSentWarehouseOrderMissingShipmentApiDto
+  ): number {
+    return this.toPercent(item.differenceQuantity, item.totalQuantity);
+  }
+
+  protected formatShipmentDifferenceReason(value: string | null | undefined): string {
+    const normalizedValue = value?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    switch (normalizedValue) {
+      case 'missingmovementlinkandquantitydifference':
+        return 'Link ve miktar farki';
+      case 'missingmovementlink':
+        return 'Link eksigi';
+      case 'quantitydifference':
+        return 'Miktar farki';
+      case 'none':
+        return 'Fark yok';
+      default:
+        return value?.trim() || '-';
+    }
+  }
+
   protected formatTimestamp(value: string | null | undefined): string {
     if (!value?.trim()) {
       return '-';
@@ -2609,6 +2683,10 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     item: IAxataSentWarehouseOrderMissingShipmentApiDto
   ): string => `${item.documentSerie}|${item.documentOrderNo}`;
+  protected trackByShipmentDifference = (
+    _index: number,
+    item: IAxataSentWarehouseOrderMissingShipmentApiDto
+  ): string => `${item.documentSerie}|${item.documentOrderNo}|${item.differenceReason}`;
   protected trackByPendingDelivery = (
     _index: number,
     item: IAxataPendingOutboundDeliveryApiDto

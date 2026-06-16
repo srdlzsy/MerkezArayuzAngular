@@ -322,6 +322,19 @@
           <strong>{{ auditModel.summary.sentWarehouseOrderMissingMikroShipmentDocumentCount }}</strong>
           <p>{{ auditModel.summary.sentWarehouseOrderMissingMikroShipmentLineCount | number:'1.0-0' }} satir link bekliyor</p>
         </div>
+        <div
+          class="flow-step"
+          [class.success]="auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount === 0"
+          [class.warn]="auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount > 0"
+        >
+          <span>4. Kismi Fark</span>
+          <strong>{{ auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount }}</strong>
+          <p>
+            {{ auditModel.summary.sentWarehouseOrderShipmentDifferenceLineCount | number:'1.0-0' }}
+            satir / {{ auditModel.summary.sentWarehouseOrderShipmentDifferenceQuantity | number:'1.0-2' }}
+            miktar fark
+          </p>
+        </div>
       </div>
 
       <div class="section-block" *ngIf="auditModel.operations.length">
@@ -449,6 +462,70 @@
           <div class="empty-msg">AXATA'ya gidip Mikro sevk linki eksik kalan belge yok.</div>
         </div>
       </ng-template>
+
+      <div
+        class="section-block shipment-difference-section"
+        *ngIf="auditModel.sentWarehouseOrdersWithShipmentDifferences.length"
+      >
+        <div class="audit-section-head">
+          <div>
+            <h2 class="section-title">Kismi Sevk / Siparis-Sevk Farki</h2>
+            <p class="section-desc">
+              Gosterilen {{ shipmentDifferenceVisibleSummary().documentCount }} belgede
+              {{ shipmentDifferenceVisibleSummary().differenceLineCount | number:'1.0-0' }}
+              problemli satir var. Bu liste inceleme icindir, otomatik import/ack aksiyonu tasimaz.
+            </p>
+          </div>
+          <div class="audit-summary-mini">
+            <strong>{{ shipmentDifferenceVisibleSummary().differenceQuantity | number:'1.0-2' }}</strong>
+            <span>fark miktari</span>
+          </div>
+        </div>
+
+        <div class="compact-table missing-table">
+          <div class="table-row table-head">
+            <span>Belge</span>
+            <span>Depo / Tarih</span>
+            <span>Link / Fark</span>
+            <span>Miktar</span>
+            <span>Uyari</span>
+          </div>
+          <div
+            class="table-row"
+            *ngFor="let item of auditModel.sentWarehouseOrdersWithShipmentDifferences; trackBy: trackByShipmentDifference"
+          >
+            <span>
+              <strong>{{ item.documentSerie }}.{{ item.documentOrderNo }}</strong>
+              <small>{{ formatShipmentDifferenceReason(item.differenceReason) }}</small>
+            </span>
+            <span>
+              {{ item.outWarehouseNo }} -> {{ item.inWarehouseNo }}
+              <small>{{ formatTimestamp(item.documentDate) }}</small>
+            </span>
+            <span>
+              <span class="metric-line">
+                {{ item.linkedMovementLineCount }} linkli /
+                {{ item.differenceLineCount }} problemli satir
+              </span>
+              <span class="bar-meter warn">
+                <span [style.width.%]="getShipmentDifferenceLineRate(item)"></span>
+              </span>
+            </span>
+            <span>
+              <span class="metric-line">
+                {{ item.differenceQuantity | number:'1.0-2' }} fark /
+                {{ item.totalQuantity | number:'1.0-2' }} toplam
+              </span>
+              <span class="bar-meter warn">
+                <span [style.width.%]="getShipmentDifferenceQuantityRate(item)"></span>
+              </span>
+            </span>
+            <span>
+              <small>{{ item.warning || 'AXATA satirlariyla karsilastirilmali.' }}</small>
+            </span>
+          </div>
+        </div>
+      </div>
 
       <div class="section-grid">
         <div class="section-block">
