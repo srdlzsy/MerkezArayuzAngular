@@ -148,8 +148,10 @@ export interface IAxataIntegrationAuditApiDto {
   summary: IAxataIntegrationAuditSummaryApiDto;
   outboundDeliverySummaries: IAxataOutboundDeliveryMovementSummaryApiDto[];
   unsyncedWarehouseOrders: IAxataUnsyncedWarehouseOrderApiDto[];
+  sentWarehouseOrdersMissingMikroShipments: IAxataSentWarehouseOrderMissingShipmentApiDto[];
   pendingOutboundDeliveries: IAxataPendingOutboundDeliveryApiDto[];
   interventionCandidates: IAxataPendingOutboundDeliveryApiDto[];
+  operations: IAxataIntegrationAuditOperationApiDto[];
   notes: string[];
 }
 
@@ -158,6 +160,9 @@ export interface IAxataIntegrationAuditSummaryApiDto {
   sentWarehouseOrderDocumentCount: number;
   partiallySentWarehouseOrderDocumentCount: number;
   unsentWarehouseOrderDocumentCount: number;
+  sentWarehouseOrderMissingMikroShipmentDocumentCount: number;
+  sentWarehouseOrderMissingMikroShipmentLineCount: number;
+  sentWarehouseOrderMissingMikroShipmentQuantity: number;
   pendingOutboundDeliveryDocumentCount: number;
   pendingOutboundDeliveryLineCount: number;
   pendingOutboundDeliveryQuantity: number;
@@ -177,6 +182,22 @@ export interface IAxataOutboundDeliveryMovementSummaryApiDto {
   checkLevel: string;
 }
 
+export interface IAxataIntegrationAuditOperationApiDto {
+  code: string;
+  title: string;
+  state: string;
+  severity: string;
+  documentCount: number;
+  lineCount: number;
+  quantity: number;
+  listRoute: string | null;
+  previewRoute: string | null;
+  executeRoute: string | null;
+  canExecute: boolean;
+  writesData: boolean;
+  description: string;
+}
+
 export interface IAxataUnsyncedWarehouseOrderApiDto {
   documentSerie: string;
   documentOrderNo: number;
@@ -189,6 +210,25 @@ export interface IAxataUnsyncedWarehouseOrderApiDto {
   totalQuantity: number;
   sentQuantity: number;
   unsentQuantity: number;
+  state: string;
+  lastUpdateDate: string | null;
+  warning: string;
+}
+
+export interface IAxataSentWarehouseOrderMissingShipmentApiDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  documentDate: string;
+  inWarehouseNo: number;
+  outWarehouseNo: number;
+  lineCount: number;
+  sentLineCount: number;
+  missingMovementLinkLineCount: number;
+  totalQuantity: number;
+  sentQuantity: number;
+  missingMovementLinkQuantity: number;
+  deliveredQuantity: number;
+  linkedMovementLineCount: number;
   state: string;
   lastUpdateDate: string | null;
   warning: string;
@@ -375,6 +415,11 @@ export interface IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto {
 export interface IAxataOutboundDeliveryImportExecuteRequestApiDto {
   take?: number | null;
   continueOnError: boolean;
+  acknowledge: boolean;
+}
+
+export interface IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto {
+  status?: string | null;
   acknowledge: boolean;
 }
 

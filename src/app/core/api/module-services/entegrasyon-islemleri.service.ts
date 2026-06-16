@@ -21,6 +21,7 @@ import type {
   IAxataManualIncomingWarehouseReceivingDetailApiDto,
   IAxataManualIncomingWarehouseReceivingListItemApiDto,
   IAxataManualOutboundDeliveryBatchResponseApiDto,
+  IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto,
   IAxataOutboundDeliveryImportExecuteApiDto,
   IAxataOutboundDeliveryImportExecuteRequestApiDto,
   IAxataOutboundDeliveryImportPreviewApiDto,
@@ -224,6 +225,33 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       AxataOutboundDeliveryImportExecuteDto,
       IAxataOutboundDeliveryImportExecuteRequestApiDto
     >('integrations/axata-sync/live/axata/outbound-deliveries/c01/import', request);
+  }
+
+  previewAxataC01OutboundDeliveryDocumentImport(
+    documentSerie: string,
+    documentOrderNo: number,
+    status?: string | null
+  ) {
+    return this.getWithQuery<AxataOutboundDeliveryImportPreviewDto>(
+      `integrations/axata-sync/live/axata/outbound-deliveries/c01/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/preview`,
+      {
+        status: status?.trim() || undefined
+      }
+    );
+  }
+
+  executeAxataC01OutboundDeliveryDocumentImport(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto
+  ) {
+    return this.post<
+      AxataOutboundDeliveryImportExecuteDto,
+      IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto
+    >(
+      `integrations/axata-sync/live/axata/outbound-deliveries/c01/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/import`,
+      request
+    );
   }
 
   getAxataSynchronizationTaskPreview(

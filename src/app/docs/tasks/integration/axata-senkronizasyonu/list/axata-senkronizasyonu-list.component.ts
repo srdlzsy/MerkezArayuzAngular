@@ -18,14 +18,18 @@ import { finalize, switchMap, takeWhile, timer } from 'rxjs';
 import type {
   IAxataInboundAtfCompanyReceivingBatchRequestApiDto,
   IAxataInboundAtfCompanyReceivingRequestApiDto,
+  IAxataIntegrationAuditOperationApiDto,
   IAxataManualIncomingCompanyReceivingBatchRequestApiDto,
   IAxataManualIncomingCompanyReceivingRequestApiDto,
   IAxataManualIncomingInventoryCountBatchRequestApiDto,
   IAxataManualIncomingInventoryCountRequestApiDto,
   IAxataOutboundDeliveryBatchRequestApiDto,
+  IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto,
   IAxataOutboundDeliveryImportExecuteRequestApiDto,
   IAxataOutboundDeliveryQueueDocumentApiDto,
   IAxataOutboundDeliveryRequestApiDto,
+  IAxataPendingOutboundDeliveryApiDto,
+  IAxataSentWarehouseOrderMissingShipmentApiDto,
   IAxataExecutionMode,
   IAxataSynchronizationFetchProfileApiDto,
   IAxataSynchronizationJobApiDto,
@@ -36,6 +40,7 @@ import type {
   IAxataSynchronizationProbeApiDto,
   IAxataSynchronizationPreviewItemApiDto,
   IAxataSynchronizationTaskApiDto,
+  IAxataUnsyncedWarehouseOrderApiDto,
   IFurpaAcceptWarehouseReceivingRequestApiDto
 } from '@interfaces';
 
@@ -76,11 +81,32 @@ import { DocsContentPage } from '../../../../models/docs.models';
 
 type FeedbackTone = 'success' | 'error' | 'info';
 type AxataQueueMovementType = 'C01' | 'C02' | 'C03' | 'C4';
+type AuditInsightTone = 'success' | 'warn' | 'danger' | 'neutral';
 
 interface PageFeedback {
   tone: FeedbackTone;
   title: string;
   message: string;
+}
+
+interface AuditInsightCard {
+  label: string;
+  value: string;
+  detail: string;
+  tone: AuditInsightTone;
+}
+
+interface MissingShipmentVisibleSummary {
+  documentCount: number;
+  missingLineCount: number;
+  missingQuantity: number;
+  linkedLineCount: number;
+  totalLineCount: number;
+}
+
+interface MissingShipmentWarehouseGroup extends MissingShipmentVisibleSummary {
+  warehouseNo: number;
+  totalQuantity: number;
 }
 
 interface IncomingWarehouseLineDraft {
@@ -154,6 +180,7 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly queuePreviewLoading = signal(false);
   protected readonly c01PreviewLoading = signal(false);
   protected readonly c01ImportLoading = signal(false);
+  protected readonly c01DocumentRescueLoading = signal(false);
   protected readonly genericJobLoading = signal(false);
 
   protected readonly form = new FormGroup({
@@ -274,6 +301,21 @@ export class AxataSenkronizasyonuListComponent {
       nonNullable: true
     })
   });
+  protected readonly c01DocumentRescueForm = new FormGroup({
+    documentSerie: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    documentOrderNo: new FormControl<number | null>(null, {
+      validators: [Validators.min(0)]
+    }),
+    status: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    acknowledge: new FormControl<boolean>(false, {
+      nonNullable: true
+    })
+  });
   protected readonly queuePreviewForm = new FormGroup({
     movementType: new FormControl<AxataQueueMovementType>('C02', {
       nonNullable: true
@@ -330,6 +372,10 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly c01OutboundDeliveryPreview =
     signal<AxataOutboundDeliveryImportPreviewDto | null>(null);
   protected readonly c01OutboundDeliveryImportResult =
+    signal<AxataOutboundDeliveryImportExecuteDto | null>(null);
+  protected readonly c01DocumentRescuePreview =
+    signal<AxataOutboundDeliveryImportPreviewDto | null>(null);
+  protected readonly c01DocumentRescueImportResult =
     signal<AxataOutboundDeliveryImportExecuteDto | null>(null);
   protected readonly outboundDeliveryQueuePreview =
     signal<AxataOutboundDeliveryQueuePreviewDto | null>(null);
@@ -416,6 +462,7 @@ export class AxataSenkronizasyonuListComponent {
       this.queuePreviewLoading() ||
       this.c01PreviewLoading() ||
       this.c01ImportLoading() ||
+      this.c01DocumentRescueLoading() ||
       this.genericJobLoading()
   );
   protected readonly selectedBatchCount = computed(() => this.selectedBatchDocuments().length);
@@ -573,6 +620,14 @@ export class AxataSenkronizasyonuListComponent {
       ? this.formatJson(this.c01OutboundDeliveryImportResult())
       : ''
   );
+  protected readonly c01DocumentRescuePreviewJson = computed(() =>
+    this.c01DocumentRescuePreview() ? this.formatJson(this.c01DocumentRescuePreview()) : ''
+  );
+  protected readonly c01DocumentRescueImportJson = computed(() =>
+    this.c01DocumentRescueImportResult()
+      ? this.formatJson(this.c01DocumentRescueImportResult())
+      : ''
+  );
   protected readonly queuePreviewJson = computed(() =>
     this.outboundDeliveryQueuePreview()
       ? this.formatJson(this.outboundDeliveryQueuePreview())
@@ -599,6 +654,10 @@ export class AxataSenkronizasyonuListComponent {
         value: summary.unsentWarehouseOrderDocumentCount
       },
       {
+        label: 'Sevk Linki Eksik',
+        value: summary.sentWarehouseOrderMissingMikroShipmentDocumentCount
+      },
+      {
         label: 'AXATA Pending',
         value: summary.pendingOutboundDeliveryDocumentCount
       },
@@ -612,6 +671,120 @@ export class AxataSenkronizasyonuListComponent {
       }
     ];
   });
+  protected readonly criticalAuditOperation = computed(
+    () =>
+      this.audit()?.operations.find(
+        (operation: IAxataIntegrationAuditOperationApiDto) =>
+          operation.code === 'sent-to-axata-missing-mikro-shipment'
+      ) ?? null
+  );
+  protected readonly auditInsightCards = computed<AuditInsightCard[]>(() => {
+    const summary = this.audit()?.summary;
+
+    if (!summary) {
+      return [];
+    }
+
+    return [
+      {
+        label: 'AXATA Gonderim',
+        value: `${summary.sentWarehouseOrderDocumentCount}/${summary.mikroWarehouseOrderDocumentCount}`,
+        detail:
+          summary.unsentWarehouseOrderDocumentCount > 0
+            ? `${summary.unsentWarehouseOrderDocumentCount} belge henuz gitmemis`
+            : 'Mikro siparisleri AXATA gonderim bayraginda tamam',
+        tone: summary.unsentWarehouseOrderDocumentCount > 0 ? 'warn' : 'success'
+      },
+      {
+        label: 'AXATA Pending',
+        value: `${summary.pendingOutboundDeliveryDocumentCount}`,
+        detail: `${summary.pendingOutboundDeliveryLineCount} satir / ${summary.pendingOutboundDeliveryQuantity.toLocaleString('tr-TR')} miktar`,
+        tone: summary.pendingOutboundDeliveryDocumentCount > 0 ? 'warn' : 'success'
+      },
+      {
+        label: 'Mikro Sevk Linki',
+        value: `${summary.sentWarehouseOrderMissingMikroShipmentDocumentCount}`,
+        detail: `${summary.sentWarehouseOrderMissingMikroShipmentLineCount.toLocaleString('tr-TR')} satir / ${summary.sentWarehouseOrderMissingMikroShipmentQuantity.toLocaleString('tr-TR')} miktar eksik`,
+        tone:
+          summary.sentWarehouseOrderMissingMikroShipmentDocumentCount > 0
+            ? 'danger'
+            : 'success'
+      },
+      {
+        label: 'C01 Kuyruk',
+        value: `${summary.c01PendingDocumentCount}`,
+        detail:
+          summary.c01MikroExistsPendingAckDocumentCount > 0
+            ? `${summary.c01MikroExistsPendingAckDocumentCount} belge ack bekliyor`
+            : 'C01 pending ve ack bekleyen belge yok',
+        tone:
+          summary.c01PendingDocumentCount > 0 ||
+          summary.c01MikroExistsPendingAckDocumentCount > 0
+            ? 'warn'
+            : 'success'
+      }
+    ];
+  });
+  protected readonly missingShipmentVisibleSummary =
+    computed<MissingShipmentVisibleSummary>(() => {
+      const items = this.audit()?.sentWarehouseOrdersMissingMikroShipments ?? [];
+
+      return items.reduce(
+        (summary: MissingShipmentVisibleSummary, item) => ({
+          documentCount: summary.documentCount + 1,
+          missingLineCount: summary.missingLineCount + item.missingMovementLinkLineCount,
+          missingQuantity: summary.missingQuantity + item.missingMovementLinkQuantity,
+          linkedLineCount: summary.linkedLineCount + item.linkedMovementLineCount,
+          totalLineCount: summary.totalLineCount + item.lineCount
+        }),
+        {
+          documentCount: 0,
+          missingLineCount: 0,
+          missingQuantity: 0,
+          linkedLineCount: 0,
+          totalLineCount: 0
+        }
+      );
+    });
+  protected readonly missingShipmentWarehouseGroups = computed<
+    MissingShipmentWarehouseGroup[]
+  >(() => {
+    const groups = new Map<number, MissingShipmentWarehouseGroup>();
+
+    for (const item of this.audit()?.sentWarehouseOrdersMissingMikroShipments ?? []) {
+      const current =
+        groups.get(item.inWarehouseNo) ??
+        {
+          warehouseNo: item.inWarehouseNo,
+          documentCount: 0,
+          missingLineCount: 0,
+          missingQuantity: 0,
+          linkedLineCount: 0,
+          totalLineCount: 0,
+          totalQuantity: 0
+        };
+
+      groups.set(item.inWarehouseNo, {
+        ...current,
+        documentCount: current.documentCount + 1,
+        missingLineCount: current.missingLineCount + item.missingMovementLinkLineCount,
+        missingQuantity: current.missingQuantity + item.missingMovementLinkQuantity,
+        linkedLineCount: current.linkedLineCount + item.linkedMovementLineCount,
+        totalLineCount: current.totalLineCount + item.lineCount,
+        totalQuantity: current.totalQuantity + item.totalQuantity
+      });
+    }
+
+    return Array.from(groups.values())
+      .sort(
+        (left: MissingShipmentWarehouseGroup, right: MissingShipmentWarehouseGroup) =>
+          right.missingQuantity - left.missingQuantity
+      )
+      .slice(0, 6);
+  });
+  protected readonly firstMissingShipment = computed(
+    () => this.audit()?.sentWarehouseOrdersMissingMikroShipments[0] ?? null
+  );
 
   constructor() {
     this.form.controls.taskCode.valueChanges
@@ -952,6 +1125,160 @@ export class AxataSenkronizasyonuListComponent {
           });
         }
       });
+  }
+
+  protected previewC01DocumentRescue(): void {
+    const reference = this.buildC01DocumentRescueReference();
+
+    if (!reference) {
+      return;
+    }
+
+    this.c01DocumentRescueLoading.set(true);
+    this.c01DocumentRescuePreview.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataC01OutboundDeliveryDocumentImport(
+        reference.documentSerie,
+        reference.documentOrderNo,
+        reference.status
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.c01DocumentRescueLoading.set(false))
+      )
+      .subscribe({
+        next: (preview: AxataOutboundDeliveryImportPreviewDto) => {
+          this.c01DocumentRescuePreview.set(preview);
+          this.feedback.set({
+            tone: 'info',
+            title: 'C01 belge rescue preview hazir',
+            message: `${reference.documentSerie}.${reference.documentOrderNo} icin ${preview.returnedDocumentCount} AXATA teslimat kaydi kontrol edildi. Veri yazilmadi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'C01 belge rescue preview alinamadi',
+            message: 'Belge bazli AXATA teslimat preview endpointi cevap vermedi.'
+          });
+        }
+      });
+  }
+
+  protected executeC01DocumentRescue(): void {
+    const reference = this.buildC01DocumentRescueReference();
+
+    if (!reference) {
+      return;
+    }
+
+    const request: IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto = {
+      status: reference.status,
+      acknowledge: this.c01DocumentRescueForm.controls.acknowledge.value
+    };
+
+    this.c01DocumentRescueLoading.set(true);
+    this.c01DocumentRescueImportResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .executeAxataC01OutboundDeliveryDocumentImport(
+        reference.documentSerie,
+        reference.documentOrderNo,
+        request
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.c01DocumentRescueLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataOutboundDeliveryImportExecuteDto) => {
+          this.c01DocumentRescueImportResult.set(result);
+          this.feedback.set({
+            tone: result.failedDocumentCount > 0 ? 'info' : 'success',
+            title: 'C01 belge rescue import tamamlandi',
+            message: `${result.succeededDocumentCount} basarili, ${result.failedDocumentCount} hatali, ${result.skippedDocumentCount} atlanan evrak raporlandi.`
+          });
+          this.loadAuditOverview();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'C01 belge rescue import basarisiz',
+            message: 'Belge bazli AXATA teslimat import endpointi islemi tamamlayamadi.'
+          });
+        }
+      });
+  }
+
+  protected applyUnsyncedWarehouseOrderToManual(
+    item: IAxataUnsyncedWarehouseOrderApiDto
+  ): void {
+    this.form.controls.taskCode.setValue('issued-warehouse-order-sync');
+    this.form.patchValue(
+      {
+        warehouseNo: item.outWarehouseNo,
+        candidateStartDate: item.documentDate.slice(0, 10),
+        candidateEndDate: item.documentDate.slice(0, 10),
+        manualDocumentSerie: item.documentSerie,
+        manualDocumentOrderNo: item.documentOrderNo
+      },
+      { emitEvent: false }
+    );
+    this.selectedTaskCode.set('issued-warehouse-order-sync');
+    this.selectedTab.set('manual');
+    this.feedback.set({
+      tone: 'info',
+      title: 'C01 dispatch formu hazir',
+      message: `${item.documentSerie}.${item.documentOrderNo} kaynak depo ${item.outWarehouseNo} ile Mikro -> AXATA formuna tasindi.`
+    });
+  }
+
+  protected applyMissingShipmentToC01Rescue(
+    item: IAxataSentWarehouseOrderMissingShipmentApiDto
+  ): void {
+    this.c01DocumentRescueForm.patchValue(
+      {
+        documentSerie: item.documentSerie,
+        documentOrderNo: item.documentOrderNo,
+        status: '1',
+        acknowledge: false
+      },
+      { emitEvent: false }
+    );
+    this.selectedTab.set('incoming');
+    this.feedback.set({
+      tone: 'info',
+      title: 'C01 belge rescue formu hazir',
+      message: `${item.documentSerie}.${item.documentOrderNo} status=1 ve ack kapali olarak AXATA -> Mikro rescue formuna tasindi.`
+    });
+  }
+
+  protected applyPendingDeliveryToC01Rescue(item: IAxataPendingOutboundDeliveryApiDto): void {
+    if (item.movementType !== 'C01' || !item.documentOrderNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'C01 rescue uygun degil',
+        message: 'Belge bazli import yalnizca Mikro evrak referansi bulunan C01 teslimatlari icin kullanilir.'
+      });
+      return;
+    }
+
+    this.c01DocumentRescueForm.patchValue(
+      {
+        documentSerie: item.documentSerie,
+        documentOrderNo: item.documentOrderNo,
+        status: this.normalizeAxataStatus(item.status) ?? '0',
+        acknowledge: false
+      },
+      { emitEvent: false }
+    );
+    this.selectedTab.set('incoming');
+    this.feedback.set({
+      tone: 'info',
+      title: 'Pending C01 rescue formuna tasindi',
+      message: `${item.documentSerie}.${item.documentOrderNo} icin belge bazli preview veya import calistirilabilir.`
+    });
   }
 
   protected selectTask(taskCode: string): void {
@@ -2068,6 +2395,85 @@ export class AxataSenkronizasyonuListComponent {
     return 'status-pill-neutral';
   }
 
+  protected getAuditOperationTone(
+    operation: IAxataIntegrationAuditOperationApiDto
+  ): string {
+    const normalizedSeverity = operation.severity?.trim().toLocaleLowerCase('tr-TR') ?? '';
+    const normalizedState = operation.state?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (
+      normalizedSeverity === 'critical' ||
+      normalizedSeverity === 'error' ||
+      normalizedSeverity === 'danger'
+    ) {
+      return 'status-pill-danger';
+    }
+
+    if (
+      normalizedSeverity === 'warning' ||
+      normalizedSeverity === 'warn' ||
+      normalizedState.includes('missing') ||
+      normalizedState.includes('pending')
+    ) {
+      return 'status-pill-warn';
+    }
+
+    if (
+      normalizedSeverity === 'success' ||
+      normalizedSeverity === 'ok' ||
+      normalizedState === 'ok' ||
+      normalizedState === 'insync'
+    ) {
+      return 'status-pill-success';
+    }
+
+    return 'status-pill-neutral';
+  }
+
+  protected getAuditInsightClass(tone: AuditInsightTone): string {
+    switch (tone) {
+      case 'success':
+        return 'audit-card-success';
+      case 'warn':
+        return 'audit-card-warn';
+      case 'danger':
+        return 'audit-card-danger';
+      default:
+        return 'audit-card-neutral';
+    }
+  }
+
+  protected formatAuditState(value: string | null | undefined): string {
+    const normalizedValue = value?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    switch (normalizedValue) {
+      case 'ok':
+        return 'Sorun yok';
+      case 'actionrequired':
+        return 'Aksiyon gerekli';
+      case 'warning':
+        return 'Kontrol gerekli';
+      default:
+        return value?.trim() || '-';
+    }
+  }
+
+  protected getMissingShipmentLineRate(
+    item: IAxataSentWarehouseOrderMissingShipmentApiDto
+  ): number {
+    return this.toPercent(item.missingMovementLinkLineCount, item.lineCount);
+  }
+
+  protected getMissingShipmentQuantityRate(
+    item: IAxataSentWarehouseOrderMissingShipmentApiDto
+  ): number {
+    return this.toPercent(item.missingMovementLinkQuantity, item.totalQuantity);
+  }
+
+  protected getMissingShipmentGroupRate(group: MissingShipmentWarehouseGroup): number {
+    return this.toPercent(group.missingLineCount, group.totalLineCount);
+  }
+
   protected formatTimestamp(value: string | null | undefined): string {
     if (!value?.trim()) {
       return '-';
@@ -2184,6 +2590,28 @@ export class AxataSenkronizasyonuListComponent {
   protected trackByQueuePreviewDocument = (
     _index: number,
     item: IAxataOutboundDeliveryQueueDocumentApiDto
+  ): string => `${item.movementType}|${item.axataSequenceNo}|${item.axataDeliveryNo}`;
+  protected trackByAuditOperation = (
+    _index: number,
+    item: IAxataIntegrationAuditOperationApiDto
+  ): string => item.code;
+  protected trackByAuditInsightCard = (_index: number, item: AuditInsightCard): string =>
+    item.label;
+  protected trackByMissingShipmentWarehouseGroup = (
+    _index: number,
+    item: MissingShipmentWarehouseGroup
+  ): string => `${item.warehouseNo}`;
+  protected trackByUnsyncedWarehouseOrder = (
+    _index: number,
+    item: IAxataUnsyncedWarehouseOrderApiDto
+  ): string => `${item.documentSerie}|${item.documentOrderNo}`;
+  protected trackByMissingShipment = (
+    _index: number,
+    item: IAxataSentWarehouseOrderMissingShipmentApiDto
+  ): string => `${item.documentSerie}|${item.documentOrderNo}`;
+  protected trackByPendingDelivery = (
+    _index: number,
+    item: IAxataPendingOutboundDeliveryApiDto
   ): string => `${item.movementType}|${item.axataSequenceNo}|${item.axataDeliveryNo}`;
 
   private mapCandidateToBatchItem(
@@ -2401,6 +2829,44 @@ export class AxataSenkronizasyonuListComponent {
     };
   }
 
+  private buildC01DocumentRescueReference():
+    | {
+        documentSerie: string;
+        documentOrderNo: number;
+        status?: string;
+      }
+    | null {
+    const documentSerie = this.c01DocumentRescueForm.controls.documentSerie.value.trim();
+    const documentOrderNo = this.toPositiveNumber(
+      this.c01DocumentRescueForm.controls.documentOrderNo.value
+    );
+    const status = this.normalizeAxataStatus(this.c01DocumentRescueForm.controls.status.value);
+
+    if (!documentSerie || !documentOrderNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'C01 belge referansi eksik',
+        message: 'Belge bazli rescue icin seri ve sira bilgisi zorunlu.'
+      });
+      return null;
+    }
+
+    if (this.c01DocumentRescueForm.controls.status.value.trim() && !status) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'AXATA status gecersiz',
+        message: 'Belge bazli rescue status alani bos, 0 veya 1 olmalidir.'
+      });
+      return null;
+    }
+
+    return {
+      documentSerie,
+      documentOrderNo,
+      status: status ?? undefined
+    };
+  }
+
   private buildManualDocumentRequest(
   ):
     | {
@@ -2509,6 +2975,16 @@ export class AxataSenkronizasyonuListComponent {
     return 'C01';
   }
 
+  private normalizeAxataStatus(value: string | null | undefined): string | null {
+    const normalizedValue = value?.trim();
+
+    if (normalizedValue === '0' || normalizedValue === '1') {
+      return normalizedValue;
+    }
+
+    return null;
+  }
+
   private getCandidateTake(): number {
     return Math.min(this.toPositiveNumber(this.form.controls.candidateTake.value) ?? 25, 100);
   }
@@ -2553,6 +3029,14 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     return null;
+  }
+
+  private toPercent(value: number, total: number): number {
+    if (!Number.isFinite(value) || !Number.isFinite(total) || total <= 0) {
+      return 0;
+    }
+
+    return Math.max(0, Math.min(100, (value / total) * 100));
   }
 
   protected tryParseJson(value: string | null | undefined): unknown {
