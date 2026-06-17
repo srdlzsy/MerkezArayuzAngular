@@ -388,8 +388,8 @@ export interface IAxataSynchronizationManualDispatchApiDto {
   serviceState: number | null;
   serviceMessage: string;
   payloadJson: string;
-  requestXml: string;
-  responseXml: string;
+  requestPayloadJson: string;
+  responsePayloadJson: string;
   notes: string[];
 }
 
@@ -664,7 +664,6 @@ export interface IUyumsoftOperationParameterApiDto {
 }
 
 export interface IUyumsoftOperationRequestApiDto {
-  payloadXml?: string | null;
   parameters?: IUyumsoftOperationParameterApiDto[];
 }
 
@@ -701,7 +700,7 @@ export interface IUyumsoftOperationResponseApiDto {
   scalarValue: string | null;
   resultAttributes: Record<string, string | null>;
   nodes: IUyumsoftResponseNodeApiDto[];
-  rawXml: string;
+  responsePayloadJson: string;
 }
 
 export type IAxataManualIncomingCompanyReceivingRequestApiDto =

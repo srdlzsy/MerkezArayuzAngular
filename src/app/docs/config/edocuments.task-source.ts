@@ -122,7 +122,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-gonderimi/outbox/search',
-              description: 'Uyumsoft GetOutboxInvoices operasyonunu payloadXml ve parameters ile cagirir',
+              description: 'Uyumsoft GetOutboxInvoices operasyonunu typed parameters ile cagirir',
               payload: 'UyumsoftOperationHttpRequest'
             },
             {

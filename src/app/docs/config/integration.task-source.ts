@@ -117,13 +117,13 @@ export const INTEGRATION_TASK_SOURCE = {
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/manual/tasks/{taskCode}/documents/dispatch',
-                description: 'Secili tek evraki eski AXATA worker kontratina uygun canli SOAP dispatch ile gonderir',
+                description: 'Secili tek evraki eski AXATA worker kontratina uygun WCF client ile canli gonderir',
                 payload: 'AxataSynchronizationManualDocumentHttpRequest'
               },
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/manual/tasks/{taskCode}/documents/dispatch-batch',
-                description: 'Birden fazla secili evraki canli SOAP dispatch ile toplu gonderir',
+                description: 'Birden fazla secili evraki canli WCF dispatch ile toplu gonderir',
                 payload: 'AxataSynchronizationManualDocumentBatchHttpRequest'
               },
               {
@@ -392,7 +392,7 @@ export const INTEGRATION_TASK_SOURCE = {
       highlights: [
         'Servis ozet karti',
         'Operasyon explorer',
-        'Scalar parameter + payloadXml',
+        'Typed parameter formu',
         'Whitelist Get* operasyonlari'
       ],
       listTitle: 'Endpointler',
@@ -463,7 +463,7 @@ export const INTEGRATION_TASK_SOURCE = {
       highlights: [
         'Servis ozet karti',
         'Despatch operasyon explorer',
-        'Scalar parameter + payloadXml',
+        'Typed parameter formu',
         'Whitelist Get* operasyonlari'
       ],
       listTitle: 'Endpointler',
@@ -503,7 +503,20 @@ export const INTEGRATION_TASK_SOURCE = {
         }
       ],
       codeSample: `{
-  "payloadXml": "<query><PageIndex>1</PageIndex><PageSize>20</PageSize><IsArchived>false</IsArchived></query>"
+  "parameters": [
+    {
+      "name": "PageIndex",
+      "value": "1"
+    },
+    {
+      "name": "PageSize",
+      "value": "20"
+    },
+    {
+      "name": "IsArchived",
+      "value": "false"
+    }
+  ]
 }`
     },
     () =>

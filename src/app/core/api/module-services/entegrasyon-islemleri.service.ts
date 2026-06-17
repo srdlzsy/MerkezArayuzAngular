@@ -155,7 +155,6 @@ export function isAxataJobTerminalStatus(status: string | null | undefined): boo
 })
 export class EntegrasyonIslemleriService extends BaseApiService {
   private toUyumsoftGetQuery(request: IUyumsoftOperationRequestApiDto): {
-    payloadXml?: string;
     parameter?: string[];
   } {
     const parameterValues =
@@ -164,7 +163,6 @@ export class EntegrasyonIslemleriService extends BaseApiService {
         .map((item) => `${item.name.trim()}=${item.value ?? ''}`) ?? [];
 
     return {
-      payloadXml: request.payloadXml ?? undefined,
       parameter: parameterValues.length ? parameterValues : undefined
     };
   }

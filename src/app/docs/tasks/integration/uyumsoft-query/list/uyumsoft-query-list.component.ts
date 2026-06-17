@@ -46,7 +46,6 @@ interface QueryPreset {
   title: string;
   description: string;
   operationName: string;
-  payloadXml?: string;
   parameters?: IUyumsoftOperationParameterApiDto[];
   tags: string[];
 }
@@ -61,9 +60,7 @@ interface ParameterSuggestion {
 interface RequestGuide {
   title: string;
   description: string;
-  mode: 'none' | 'parameters' | 'payload' | 'mixed';
-  payloadLabel: string;
-  payloadTemplate: string;
+  mode: 'none' | 'parameters';
   parameterSuggestions: ParameterSuggestion[];
   tips: string[];
 }
@@ -110,7 +107,6 @@ export class UyumsoftQueryListComponent {
       nonNullable: true,
       validators: [Validators.required]
     }),
-    payloadXml: new FormControl('', { nonNullable: true }),
     parameters: new FormArray<ParameterFormGroup>([])
   });
   protected readonly parameterArray = this.requestForm.controls.parameters;
@@ -241,7 +237,8 @@ export class UyumsoftQueryListComponent {
       message: response.message,
       scalarValue: response.scalarValue,
       resultAttributes: response.resultAttributes,
-      nodes: response.nodes
+      nodes: response.nodes,
+      responsePayloadJson: response.responsePayloadJson
     });
   });
 
@@ -253,8 +250,7 @@ export class UyumsoftQueryListComponent {
 
   protected readonly requestGuide = computed<RequestGuide>(() =>
     this.buildRequestGuide(
-      this.selectedOperationName() || this.requestForm.controls.operationName.value,
-      this.selectedOperation()?.requestHint ?? ''
+      this.selectedOperationName() || this.requestForm.controls.operationName.value
     )
   );
 
@@ -272,8 +268,8 @@ export class UyumsoftQueryListComponent {
         value: `${guide.parameterSuggestions.length}`
       },
       {
-        label: 'Payload',
-        value: guide.payloadTemplate.trim() ? 'Sablon var' : 'Opsiyonel'
+        label: 'Request',
+        value: guide.parameterSuggestions.length ? 'Typed parametre' : 'Parametresiz'
       },
       {
         label: 'Group',
@@ -292,7 +288,7 @@ export class UyumsoftQueryListComponent {
       : [
           'Inbox / outbox despatch sorgulari',
           'Receipt advice, envelope ve status log senaryolari',
-          'despatchId, isInbox ve query XML kombinasyonlari'
+          'despatchId, isInbox ve typed query parametreleri'
         ]
   );
 
@@ -416,7 +412,6 @@ export class UyumsoftQueryListComponent {
 
   protected applyPreset(preset: QueryPreset): void {
     this.requestForm.controls.operationName.setValue(preset.operationName);
-    this.requestForm.controls.payloadXml.setValue(preset.payloadXml?.trim() ?? '');
     this.clearParameters();
 
     for (const parameter of preset.parameters ?? []) {
@@ -431,12 +426,10 @@ export class UyumsoftQueryListComponent {
   }
 
   protected applyCodeSample(): void {
-    const parsedSample = this.parseCodeSample(this.page.codeSample);
-
-    this.requestForm.controls.payloadXml.setValue(parsedSample.payloadXml);
+    const parsedSample = this.parseParameterSample(this.page.codeSample);
     this.clearParameters();
 
-    for (const parameter of parsedSample.parameters) {
+    for (const parameter of parsedSample) {
       this.addParameter(parameter);
     }
 
@@ -459,36 +452,53 @@ export class UyumsoftQueryListComponent {
       return;
     }
 
-    this.requestForm.controls.payloadXml.setValue(requestHint);
-    this.feedback.set({
-      tone: 'info',
-      title: 'Request hint alana yerlestirildi',
-      message: 'Operasyonun requestHint bilgisi payloadXml editorune tasindi.'
-    });
-  }
+    const parsedParameters = this.parseParameterSample(requestHint);
 
-  protected applyPayloadTemplate(): void {
-    const template = this.requestGuide().payloadTemplate.trim();
-
-    if (!template) {
+    if (parsedParameters.length === 0) {
       this.feedback.set({
         tone: 'info',
-        title: 'Payload sablonu yok',
-        message: 'Secili operasyon icin oneri niteliginde bir payload sablonu bulunmuyor.'
+        title: 'Hint parametreye donusmedi',
+        message: 'Request hint typed parameter olarak okunamadi; onerilen parametre kartlarini kullanabilirsin.'
       });
       return;
     }
 
-    this.requestForm.controls.payloadXml.setValue(template);
+    this.clearParameters();
+
+    for (const parameter of parsedParameters) {
+      this.addParameter(parameter);
+    }
+
     this.feedback.set({
       tone: 'info',
-      title: 'Payload sablonu uygulandi',
-      message: 'Secili operasyon icin onerilen XML fragment editor alanina yerlestirildi.'
+      title: 'Request hint uygulandi',
+      message: `${parsedParameters.length} adet requestHint parametresi forma tasindi.`
     });
   }
 
-  protected clearPayloadXml(): void {
-    this.requestForm.controls.payloadXml.setValue('');
+  protected applyParameterTemplate(): void {
+    const suggestions = this.requestGuide().parameterSuggestions;
+
+    if (!suggestions.length) {
+      this.feedback.set({
+        tone: 'info',
+        title: 'Parametre sablonu yok',
+        message: 'Secili operasyon icin oneri niteliginde typed parameter sablonu bulunmuyor.'
+      });
+      return;
+    }
+
+    this.clearParameters();
+
+    for (const suggestion of suggestions) {
+      this.addParameter({ name: suggestion.name, value: suggestion.example });
+    }
+
+    this.feedback.set({
+      tone: 'info',
+      title: 'Parametre sablonu uygulandi',
+      message: `${suggestions.length} adet typed parameter forma yerlestirildi.`
+    });
   }
 
   protected applyParameterSuggestion(suggestion: ParameterSuggestion): void {
@@ -580,11 +590,7 @@ export class UyumsoftQueryListComponent {
       case 'none':
         return 'Hazir alan gerekmez';
       case 'parameters':
-        return 'Scalar parametre agirlikli';
-      case 'payload':
-        return 'Payload XML agirlikli';
-      case 'mixed':
-        return 'Parametre + payload birlikte';
+        return 'Typed parametre';
       default:
         return 'Karma';
     }
@@ -626,7 +632,6 @@ export class UyumsoftQueryListComponent {
   }
 
   private buildRequestBody(): IUyumsoftOperationRequestApiDto {
-    const payloadXml = this.requestForm.controls.payloadXml.value.trim();
     const parameters = this.parameterArray.controls
       .map((parameterGroup: ParameterFormGroup) => ({
         name: parameterGroup.controls.name.value.trim(),
@@ -635,7 +640,6 @@ export class UyumsoftQueryListComponent {
       .filter((parameter: IUyumsoftOperationParameterApiDto) => !!parameter.name);
 
     return {
-      payloadXml: payloadXml || null,
       parameters: parameters.length ? parameters : undefined
     };
   }
@@ -655,44 +659,30 @@ export class UyumsoftQueryListComponent {
     this.addParameter({ name, value });
   }
 
-  private buildRequestGuide(operationName: string, requestHint: string): RequestGuide {
+  private buildRequestGuide(operationName: string): RequestGuide {
     const normalizedName = operationName.trim();
 
     if (!normalizedName) {
       return {
         title: 'Operasyon sec',
-        description: 'Soldaki listeden bir GET operasyonu sectiginde bu alan request turunu aciklar.',
-        mode: 'mixed',
-        payloadLabel: 'Payload XML',
-        payloadTemplate: '',
+        description: 'Soldaki listeden bir GET operasyonu sectiginde bu alan gerekli typed parametreleri aciklar.',
+        mode: 'parameters',
         parameterSuggestions: [],
         tips: [
           'Tekil belge operasyonlarinda genelde bir kimlik parametresi gerekir.',
-          'Liste operasyonlarinda cogu zaman <query>...</query> XML fragment kullanilir.'
+          'Liste operasyonlarinda PageIndex, PageSize ve IsArchived gibi typed query alanlari kullanilir.'
         ]
       };
     }
 
     const parameterSuggestions = this.getParameterSuggestionsForOperation(normalizedName);
-    const payloadTemplate = this.getPayloadTemplateForOperation(normalizedName, requestHint);
-    const requiresPayload = !!payloadTemplate.trim();
     const requiresParameters = parameterSuggestions.length > 0;
-    const mode: RequestGuide['mode'] = requiresPayload && requiresParameters
-      ? 'mixed'
-      : requiresPayload
-        ? 'payload'
-        : requiresParameters
-          ? 'parameters'
-          : 'none';
+    const mode: RequestGuide['mode'] = requiresParameters ? 'parameters' : 'none';
 
     return {
       title: this.getGuideTitle(normalizedName),
       description: this.getGuideDescription(normalizedName),
       mode,
-      payloadLabel: normalizedName.includes('List') || normalizedName.includes('Invoices') || normalizedName.includes('Despatches')
-        ? 'Query XML'
-        : 'Payload XML',
-      payloadTemplate,
       parameterSuggestions,
       tips: this.getGuideTips(normalizedName)
     };
@@ -744,16 +734,16 @@ export class UyumsoftQueryListComponent {
     }
 
     if (operationName.includes('List') || operationName.includes('Invoices') || operationName.includes('Despatches')) {
-      return 'Sayfalama ve filtreleme icin genelde <query> XML fragment bekler.';
+      return 'Sayfalama ve filtreleme icin typed query model alanlari parameters listesiyle gonderilir.';
     }
 
-    return 'Operasyon ismine gore scalar parametre ve/veya payload XML kullanabilirsin.';
+    return 'Operasyon ismine gore scalar veya typed query parametrelerini name/value olarak gonderebilirsin.';
   }
 
   private getGuideTips(operationName: string): string[] {
     const tips = [
-      'Scalar parametreler backend tarafinda name/value listesi olarak gonderilir.',
-      'Payload XML alani wrapper istemez; dogrudan ilgili fragment ile baslamalidir.'
+      'Parametreler backend tarafinda WCF metod imzasina gore scalar argumanlara veya typed query model propertylerine basilir.',
+      'Cok degerli alanlarda ayni parametre adini birden fazla satir olarak ekleyebilirsin.'
     ];
 
     if (operationName.includes('Envelope')) {
@@ -820,28 +810,43 @@ export class UyumsoftQueryListComponent {
       });
     }
 
-    return suggestions;
-  }
-
-  private getPayloadTemplateForOperation(operationName: string, requestHint: string): string {
-    const trimmedHint = requestHint.trim();
-
     if (
       operationName.includes('List') ||
       /Get(Inbox|Outbox)(Invoices|Despatches)$/.test(operationName) ||
       operationName.includes('ReceiptAdvices')
     ) {
-      return (
-        trimmedHint ||
-        '<query><PageIndex>1</PageIndex><PageSize>20</PageSize><IsArchived>false</IsArchived></query>'
+      suggestions.push(
+        {
+          name: 'PageIndex',
+          label: 'Sayfa',
+          example: '1',
+          description: 'Paged query modelinde okunacak sayfa numarasi.'
+        },
+        {
+          name: 'PageSize',
+          label: 'Sayfa Boyutu',
+          example: '20',
+          description: 'Paged query modelinde tek istekte donen kayit sayisi.'
+        },
+        {
+          name: 'IsArchived',
+          label: 'Arsiv',
+          example: 'false',
+          description: 'Uyumsoft tarafinda arsiv kayitlari dahil edilecekse true kullanilir.'
+        }
       );
     }
 
     if (operationName.includes('CustomerCreditInfo')) {
-      return trimmedHint || '<request><VknTckn>1111111111</VknTckn></request>';
+      suggestions.push({
+        name: 'VknTckn',
+        label: 'VKN/TCKN',
+        example: '1111111111',
+        description: 'Musteri kredi bilgisi sorgusunda kullanilan vergi veya kimlik numarasi.'
+      });
     }
 
-    return trimmedHint;
+    return suggestions;
   }
 
   private getInvoiceQuickPresets(): QueryPreset[] {
@@ -864,11 +869,14 @@ export class UyumsoftQueryListComponent {
       {
         id: 'invoice-outbox-list',
         title: 'Outbox Invoice List',
-        description: 'Sayfali giden fatura listesini XML query ile ceker.',
+        description: 'Sayfali giden fatura listesini typed query parametreleriyle ceker.',
         operationName: 'GetOutboxInvoiceList',
-        payloadXml:
-          '<query><PageIndex>1</PageIndex><PageSize>20</PageSize><IsArchived>false</IsArchived></query>',
-        tags: ['Liste', 'Payload XML']
+        parameters: [
+          { name: 'PageIndex', value: '1' },
+          { name: 'PageSize', value: '20' },
+          { name: 'IsArchived', value: 'false' }
+        ],
+        tags: ['Liste', 'Typed Parametre']
       },
       {
         id: 'invoice-outbox-pdf',
@@ -906,11 +914,14 @@ export class UyumsoftQueryListComponent {
       {
         id: 'despatch-outbox-list',
         title: 'Outbox Despatch List',
-        description: 'Sayfali giden e-irsaliye listesini XML query ile getirir.',
+        description: 'Sayfali giden e-irsaliye listesini typed query parametreleriyle getirir.',
         operationName: 'GetOutboxDespatchList',
-        payloadXml:
-          '<query><PageIndex>1</PageIndex><PageSize>20</PageSize><IsArchived>false</IsArchived></query>',
-        tags: ['Liste', 'Payload XML']
+        parameters: [
+          { name: 'PageIndex', value: '1' },
+          { name: 'PageSize', value: '20' },
+          { name: 'IsArchived', value: 'false' }
+        ],
+        tags: ['Liste', 'Typed Parametre']
       },
       {
         id: 'despatch-pdf',
@@ -958,33 +969,61 @@ export class UyumsoftQueryListComponent {
     ];
   }
 
-  private parseCodeSample(
+  private parseParameterSample(
     codeSample: string | undefined
-  ): { payloadXml: string; parameters: IUyumsoftOperationParameterApiDto[] } {
+  ): IUyumsoftOperationParameterApiDto[] {
     if (!codeSample?.trim()) {
-      return {
-        payloadXml: '',
-        parameters: []
-      };
+      return [];
     }
+
+    const trimmedSample = codeSample.trim();
 
     try {
-      const parsedValue = JSON.parse(codeSample) as IUyumsoftOperationRequestApiDto;
+      const parsedValue = JSON.parse(trimmedSample) as IUyumsoftOperationRequestApiDto;
 
-      return {
-        payloadXml: parsedValue.payloadXml?.trim() ?? '',
-        parameters: (parsedValue.parameters ?? []).map(
-          (parameter: IUyumsoftOperationParameterApiDto) => ({
-            name: parameter.name ?? '',
-            value: parameter.value ?? ''
-          })
-        )
-      };
+      return this.normalizeParameters(parsedValue.parameters ?? []);
     } catch {
-      return {
-        payloadXml: codeSample.trim(),
-        parameters: []
-      };
+      return this.parseXmlParameterSample(trimmedSample);
     }
+  }
+
+  private normalizeParameters(
+    parameters: IUyumsoftOperationParameterApiDto[]
+  ): IUyumsoftOperationParameterApiDto[] {
+    return parameters
+      .map((parameter: IUyumsoftOperationParameterApiDto) => ({
+        name: parameter.name?.trim() ?? '',
+        value: parameter.value?.trim() ?? ''
+      }))
+      .filter((parameter: IUyumsoftOperationParameterApiDto) => !!parameter.name);
+  }
+
+  private parseXmlParameterSample(sample: string): IUyumsoftOperationParameterApiDto[] {
+    if (!sample.startsWith('<') || typeof DOMParser === 'undefined') {
+      return [];
+    }
+
+    const document = new DOMParser().parseFromString(sample, 'application/xml');
+
+    if (document.querySelector('parsererror') || !document.documentElement) {
+      return [];
+    }
+
+    return this.extractLeafParameters(document.documentElement);
+  }
+
+  private extractLeafParameters(element: Element): IUyumsoftOperationParameterApiDto[] {
+    const children = Array.from(element.children);
+
+    if (children.length === 0) {
+      return [
+        {
+          name: element.tagName,
+          value: element.textContent?.trim() ?? ''
+        }
+      ];
+    }
+
+    return children.flatMap((child: Element) => this.extractLeafParameters(child));
   }
 }

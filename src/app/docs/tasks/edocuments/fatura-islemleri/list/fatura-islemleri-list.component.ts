@@ -103,8 +103,11 @@ const VIEWING_UPDATE_PERMISSION = 'fatura-islemleri.fatura-goruntuleme.update';
 const SENDING_LIST_PERMISSION = 'fatura-islemleri.fatura-gonderimi.list';
 const SENDING_DETAIL_PERMISSION = 'fatura-islemleri.fatura-gonderimi.detail';
 const SENDING_CREATE_PERMISSION = 'fatura-islemleri.fatura-gonderimi.create';
-const DEFAULT_OUTBOX_QUERY_XML =
-  '<query><PageIndex>1</PageIndex><PageSize>20</PageSize><IsArchived>false</IsArchived></query>';
+const DEFAULT_OUTBOX_QUERY_PARAMETERS: IUyumsoftOperationParameterApiDto[] = [
+  { name: 'PageIndex', value: '1' },
+  { name: 'PageSize', value: '20' },
+  { name: 'IsArchived', value: 'false' }
+];
 const DEFAULT_PREVIEW_XML =
   '<Invoice><!-- UBL XML icerigini buraya yapistirin --></Invoice>';
 
@@ -321,10 +324,19 @@ export class FaturaIslemleriListComponent {
     })
   });
   protected readonly outboxSearchForm = new FormGroup({
-    payloadXml: new FormControl<string>(DEFAULT_OUTBOX_QUERY_XML, {
-      nonNullable: true
-    }),
-    parameters: new FormArray<ParameterFormGroup>([])
+    parameters: new FormArray<ParameterFormGroup>(
+      DEFAULT_OUTBOX_QUERY_PARAMETERS.map(
+        (parameter) =>
+          new FormGroup({
+            name: new FormControl(parameter.name, {
+              nonNullable: true
+            }),
+            value: new FormControl(parameter.value ?? '', {
+              nonNullable: true
+            })
+          })
+      )
+    )
   });
   protected readonly renderForm = new FormGroup({
     invoiceId: new FormControl<string>('', {
@@ -650,7 +662,8 @@ export class FaturaIslemleriListComponent {
       message: response.message,
       scalarValue: response.scalarValue,
       resultAttributes: response.resultAttributes,
-      nodes: response.nodes
+      nodes: response.nodes,
+      responsePayloadJson: response.responsePayloadJson
     });
   });
   protected readonly outboxInvoiceIdCandidates = computed(() => {
@@ -1308,12 +1321,14 @@ export class FaturaIslemleriListComponent {
   }
 
   protected applyDefaultOutboxQuery(): void {
-    this.outboxSearchForm.controls.payloadXml.setValue(DEFAULT_OUTBOX_QUERY_XML);
     this.clearSearchParameters();
+    for (const parameter of DEFAULT_OUTBOX_QUERY_PARAMETERS) {
+      this.addSearchParameter(parameter);
+    }
     this.feedback.set({
       tone: 'info',
       title: 'Outbox sorgu sablonu yuklendi',
-      message: 'Sayfali Uyumsoft outbox query sablonu forma geri tasindi.'
+      message: 'Sayfali Uyumsoft outbox typed parameter sablonu forma geri tasindi.'
     });
   }
 
@@ -1723,7 +1738,7 @@ export class FaturaIslemleriListComponent {
   private findPdfBase64Payload(response: InvoiceViewingPdfResponseDto): string | null {
     const candidates = [
       response.scalarValue,
-      response.rawXml,
+      response.responsePayloadJson,
       ...this.flattenNodeValues(response.nodes ?? [])
     ];
 
@@ -1853,7 +1868,6 @@ export class FaturaIslemleriListComponent {
   }
 
   private buildOutboxSearchRequest(): InvoiceOutboxSearchRequestDto {
-    const payloadXml = this.outboxSearchForm.controls.payloadXml.value.trim();
     const parameters = this.outboxParameterArray.controls
       .map((parameterGroup: ParameterFormGroup) => ({
         name: parameterGroup.controls.name.value.trim(),
@@ -1862,7 +1876,6 @@ export class FaturaIslemleriListComponent {
       .filter((parameter: IUyumsoftOperationParameterApiDto) => !!parameter.name);
 
     return {
-      payloadXml: payloadXml || null,
       parameters: parameters.length ? parameters : undefined
     };
   }

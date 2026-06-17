@@ -974,7 +974,7 @@
                 <div>
                   <p class="section-kicker">4. Outbox Arama</p>
                   <h3>Uyumsoft sorgusu</h3>
-                  <p>Payload XML ve opsiyonel parametrelerle sonucu getir.</p>
+                  <p>Typed query parametreleriyle sonucu getir.</p>
                 </div>
                 <span class="panel-badge">GetOutboxInvoices</span>
               </div>
@@ -986,16 +986,11 @@
 
               <ng-container *ngIf="canSendList()">
                 <form class="request-form" [formGroup]="outboxSearchForm">
-                  <label class="field">
-                    <span>Payload XML</span>
-                    <textarea class="xml-editor" formControlName="payloadXml"></textarea>
-                  </label>
-
                   <div class="parameter-shell">
                     <div class="panel-head compact-head">
                       <div>
-                        <h4>Parametreler</h4>
-                        <p>Gerekiyorsa name ve value ekle.</p>
+                        <h4>Typed Parametreler</h4>
+                        <p>WCF query model property'leri icin name ve value ekle.</p>
                       </div>
                       <button
                         type="button"
@@ -1058,7 +1053,7 @@
                     {{ outboxSearchLoading() ? 'Sorgu calisiyor...' : 'Outbox Ara' }}
                   </button>
                   <button type="button" class="secondary-button" (click)="applyDefaultOutboxQuery()">
-                    Varsayilan XML
+                    Varsayilan Parametre
                   </button>
                   <button type="button" class="ghost-button" (click)="clearSearchParameters()">
                     Parametreleri Temizle
@@ -1125,7 +1120,7 @@
                   </div>
                 </div>
 
-                <details class="advanced-panel" *ngIf="response.nodes.length > 0 || response.rawXml">
+                <details class="advanced-panel" *ngIf="response.nodes.length > 0 || response.responsePayloadJson">
                   <summary>Ham sonuc</summary>
 
                   <section class="node-section" *ngIf="response.nodes.length > 0">
@@ -1164,8 +1159,8 @@
                       <pre>{{ outboxResponseJson() }}</pre>
                     </details>
                     <details class="code-block">
-                      <summary>Raw XML</summary>
-                      <pre>{{ response.rawXml || '-' }}</pre>
+                      <summary>Response Payload JSON</summary>
+                      <pre>{{ response.responsePayloadJson || '-' }}</pre>
                     </details>
                   </section>
                 </details>
