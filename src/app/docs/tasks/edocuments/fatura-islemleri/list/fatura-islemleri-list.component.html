@@ -939,7 +939,7 @@
                     <span>Kayitli Referans</span>
                     <strong>{{ references.currentReference?.invoiceNo || getReturnReferenceLabel(summary) }}</strong>
                     <small *ngIf="references.currentReference?.invoiceDate">
-                      {{ references.currentReference?.invoiceDate | date: 'dd.MM.yyyy' }}
+                      {{ references.currentReference.invoiceDate | date: 'dd.MM.yyyy' }}
                     </small>
                   </article>
                   <article class="summary-card" *ngIf="references.fallbackReference">
