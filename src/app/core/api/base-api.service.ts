@@ -76,8 +76,21 @@ export class BaseApiService {
   }
 
   protected buildUrl(path: string): string {
+    if (/^https?:\/\//i.test(path)) {
+      return path;
+    }
+
     const trimmedBaseUrl = this.apiBaseUrl.replace(/\/+$/, '');
-    const trimmedPath = path.replace(/^\/+/, '');
+    let trimmedPath = path.replace(/^\/+/, '');
+
+    if (trimmedBaseUrl.toLocaleLowerCase('en-US').endsWith('/api')) {
+      trimmedPath = trimmedPath.replace(/^api(?:\/|$)/i, '');
+    }
+
+    if (!trimmedPath) {
+      return trimmedBaseUrl;
+    }
+
     return `${trimmedBaseUrl}/${trimmedPath}`;
   }
 

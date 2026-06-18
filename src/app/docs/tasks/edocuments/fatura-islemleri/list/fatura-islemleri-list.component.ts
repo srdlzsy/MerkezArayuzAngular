@@ -16,6 +16,7 @@ import type {
   IInvoiceSendingScenarioApiDto,
   IInvoiceStateFilterApiDto,
   IInvoiceViewingSearchFieldApiDto,
+  IUyumsoftInvoiceListItemApiDto,
   IUyumsoftOperationParameterApiDto,
   IUyumsoftResponseNodeApiDto
 } from '@interfaces';
@@ -40,7 +41,6 @@ import {
   type InvoiceViewingDetailDto,
   type InvoiceViewingListItemDto,
   type InvoiceViewingListResponseDto,
-  type InvoiceViewingPdfResponseDto,
   type InvoiceViewingRenderRequestDto,
   type InvoiceViewingSynchronizationRequestDto,
   type InvoiceViewingPrintedStateRequestDto,
@@ -98,11 +98,6 @@ interface SendingScenarioOption {
   description: string;
 }
 
-interface SendingPdfLookup {
-  value: string;
-  source: 'invoice-number' | 'technical-id';
-}
-
 const VIEWING_TASK_ID = 'fatura-goruntuleme';
 const SENDING_TASK_ID = 'fatura-gonderimi';
 const VIEWING_LIST_PERMISSION = 'fatura-islemleri.fatura-goruntuleme.list';
@@ -112,7 +107,7 @@ const SENDING_LIST_PERMISSION = 'fatura-islemleri.fatura-gonderimi.list';
 const SENDING_DETAIL_PERMISSION = 'fatura-islemleri.fatura-gonderimi.detail';
 const SENDING_CREATE_PERMISSION = 'fatura-islemleri.fatura-gonderimi.create';
 const DEFAULT_OUTBOX_QUERY_PARAMETERS: IUyumsoftOperationParameterApiDto[] = [
-  { name: 'PageIndex', value: '1' },
+  { name: 'PageIndex', value: '0' },
   { name: 'PageSize', value: '20' },
   { name: 'IsArchived', value: 'false' }
 ];
@@ -275,6 +270,7 @@ export class FaturaIslemleriListComponent {
 
   protected readonly outboxSearchResponse = signal<InvoiceOutboxSearchResponseDto | null>(null);
   protected readonly outboxSearchLoading = signal(false);
+  protected readonly outboxPdfLoadingKey = signal<string | null>(null);
   protected readonly renderedOutboxDocument = signal<InvoiceRenderedDocumentDto | null>(null);
   protected readonly renderedOutboxLoading = signal(false);
   protected readonly previewDocument = signal<InvoiceRenderedDocumentDto | null>(null);
@@ -661,8 +657,8 @@ export class FaturaIslemleriListComponent {
         tone: 'status-pill-neutral'
       },
       {
-        label: 'Aday Invoice',
-        value: `${this.outboxInvoiceIdCandidates().length}`,
+        label: 'Typed Fatura',
+        value: `${response.invoiceList?.items.length ?? 0}`,
         tone: 'status-pill-neutral'
       }
     ];
@@ -684,13 +680,13 @@ export class FaturaIslemleriListComponent {
       scalarValue: response.scalarValue,
       resultAttributes: response.resultAttributes,
       nodes: response.nodes,
+      invoiceList: response.invoiceList,
       responsePayloadJson: response.responsePayloadJson
     });
   });
-  protected readonly outboxInvoiceIdCandidates = computed(() => {
-    const response = this.outboxSearchResponse();
-    return response ? this.extractInvoiceIds(response.nodes) : [];
-  });
+  protected readonly outboxInvoiceRows = computed(
+    () => this.outboxSearchResponse()?.invoiceList?.items ?? []
+  );
 
   constructor() {
     this.destroyRef.onDestroy(() => this.releasePreviewUrls());
@@ -935,10 +931,21 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
+    const invoiceUuid = summary.documentId?.trim();
+
+    if (!invoiceUuid) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'PDF anahtari yok',
+        message: 'Satirin teknik Uyumsoft UUID bilgisi bulunmadigi icin PDF acilamaz.'
+      });
+      return;
+    }
+
     this.viewingPdfLoading.set(true);
 
     this.faturaIslemleriService
-      .getUyumsoftEInvoiceInboxPdfFileByNumber(summary.documentId)
+      .getUyumsoftEInvoiceInboxPdfFile(invoiceUuid)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.viewingPdfLoading.set(false))
@@ -1344,26 +1351,21 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
-    const lookup = this.getSendingPdfLookup(summary);
+    const invoiceUuid = this.getSendingPdfInvoiceUuid(summary);
 
-    if (!lookup) {
+    if (!invoiceUuid) {
       this.feedback.set({
         tone: 'info',
         title: 'PDF anahtari yok',
-        message:
-          'Bu fatura icin Uyumsoft teknik id veya resmi fatura numarasi henuz bulunmuyor.'
+        message: 'Bu fatura icin Uyumsoft teknik UUID henuz bulunmuyor.'
       });
       return;
     }
 
     this.sendingPdfLoadingKey.set(this.buildSendingKey(summary.documentSerie, summary.documentOrderNo));
 
-    const pdfRequest =
-      lookup.source === 'technical-id'
-        ? this.faturaIslemleriService.getUyumsoftEInvoiceOutboxPdfFile(lookup.value)
-        : this.faturaIslemleriService.getUyumsoftEInvoiceOutboxPdfFileByNumber(lookup.value);
-
-    pdfRequest
+    this.faturaIslemleriService
+      .getUyumsoftEInvoiceOutboxPdfFile(invoiceUuid)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.sendingPdfLoadingKey.set(null))
@@ -1589,12 +1591,14 @@ export class FaturaIslemleriListComponent {
         next: (response: InvoiceOutboxSearchResponseDto) => {
           this.outboxSearchResponse.set(response);
 
-          const invoiceIds = this.extractInvoiceIds(response.nodes);
+          const firstInvoiceUuid = response.invoiceList?.items.find(
+            (item) => !!item.invoiceUuid?.trim()
+          )?.invoiceUuid;
           const currentInvoiceId = this.renderForm.controls.invoiceId.value.trim();
 
-          if (!currentInvoiceId && invoiceIds.length > 0) {
-            this.renderForm.controls.invoiceId.setValue(invoiceIds[0]);
-            this.previewForm.controls.invoiceId.setValue(invoiceIds[0]);
+          if (!currentInvoiceId && firstInvoiceUuid?.trim()) {
+            this.renderForm.controls.invoiceId.setValue(firstInvoiceUuid.trim());
+            this.previewForm.controls.invoiceId.setValue(firstInvoiceUuid.trim());
           }
 
           this.feedback.set({
@@ -1602,7 +1606,7 @@ export class FaturaIslemleriListComponent {
             title: response.isSucceeded ? 'Outbox sorgusu tamamlandi' : 'Outbox sorgusu hata ile dondu',
             message:
               response.message?.trim() ||
-              `${response.operationName || 'GetOutboxInvoices'} cevabi alindi.`
+              `${response.operationName || 'GetOutboxInvoiceList'} cevabi alindi.`
           });
         },
         error: (error: HttpErrorResponse) => {
@@ -1618,14 +1622,85 @@ export class FaturaIslemleriListComponent {
       });
   }
 
-  protected applyInvoiceIdCandidate(invoiceId: string): void {
-    this.renderForm.controls.invoiceId.setValue(invoiceId);
-    this.previewForm.controls.invoiceId.setValue(invoiceId);
+  protected applyInvoiceUuidCandidate(invoiceUuid: string): void {
+    this.renderForm.controls.invoiceId.setValue(invoiceUuid);
+    this.previewForm.controls.invoiceId.setValue(invoiceUuid);
     this.feedback.set({
       tone: 'info',
-      title: 'InvoiceId secildi',
-      message: `${invoiceId} render ve preview formlarina tasindi.`
+      title: 'Invoice UUID secildi',
+      message: `${invoiceUuid} render ve preview formlarina tasindi.`
     });
+  }
+
+  protected applyOutboxInvoiceRow(row: IUyumsoftInvoiceListItemApiDto): void {
+    const invoiceUuid = row.invoiceUuid?.trim();
+
+    if (!invoiceUuid) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Invoice UUID yok',
+        message: `${row.invoiceNumber || 'Secili satir'} icin teknik UUID API cevabinda bulunamadi.`
+      });
+      return;
+    }
+
+    this.applyInvoiceUuidCandidate(invoiceUuid);
+  }
+
+  protected openOutboxInvoicePdf(row: IUyumsoftInvoiceListItemApiDto): void {
+    if (!this.canSendDetail()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'PDF yetkisi gerekli',
+        message: 'Outbox PDF dosyasini acmak icin detail yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const invoiceUuid = row.invoiceUuid?.trim();
+    const pdfFilePath = row.pdfFilePath?.trim();
+
+    if (!invoiceUuid || !pdfFilePath) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'PDF yolu yok',
+        message:
+          `${row.invoiceNumber || 'Secili fatura'} icin teknik UUID veya pdfFilePath ` +
+          'API cevabinda bulunamadi.'
+      });
+      return;
+    }
+
+    this.outboxPdfLoadingKey.set(invoiceUuid);
+
+    this.faturaIslemleriService
+      .getUyumsoftEInvoicePdfFileFromPath(pdfFilePath)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.outboxPdfLoadingKey.set(null))
+      )
+      .subscribe({
+        next: (blob: Blob) => {
+          const opened = this.openPdfBlob(blob);
+          this.feedback.set({
+            tone: opened ? 'success' : 'info',
+            title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
+            message: opened
+              ? `${row.invoiceNumber || invoiceUuid} outbox PDF olarak acildi.`
+              : 'Uyumsoft outbox PDF dosyasi alindi ancak tarayici yeni sekmeyi acamadi.'
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'PDF acilamadi',
+            message: this.resolveErrorMessage(
+              error,
+              'Secili outbox satiri icin Uyumsoft PDF dosyasi alinamadi.'
+            )
+          });
+        }
+      });
   }
 
   protected renderOutboxInvoice(): void {
@@ -1856,7 +1931,13 @@ export class FaturaIslemleriListComponent {
   }
 
   protected canOpenSendingPdf(summary: InvoiceSendingListItemDto | null | undefined): boolean {
-    return !!summary && summary.isSent && !!this.getSendingPdfLookup(summary);
+    return !!summary && summary.isSent && !!this.getSendingPdfInvoiceUuid(summary);
+  }
+
+  protected canOpenOutboxInvoicePdf(
+    row: IUyumsoftInvoiceListItemApiDto | null | undefined
+  ): boolean {
+    return !!row?.invoiceUuid?.trim() && !!row.pdfFilePath?.trim();
   }
 
   protected isSendingPdfLoading(summary: InvoiceSendingListItemDto): boolean {
@@ -1864,6 +1945,11 @@ export class FaturaIslemleriListComponent {
       this.sendingPdfLoadingKey() ===
       this.buildSendingKey(summary.documentSerie, summary.documentOrderNo)
     );
+  }
+
+  protected isOutboxInvoicePdfLoading(row: IUyumsoftInvoiceListItemApiDto): boolean {
+    const invoiceUuid = row.invoiceUuid?.trim();
+    return !!invoiceUuid && this.outboxPdfLoadingKey() === invoiceUuid;
   }
 
   protected isReturnInvoice(item: InvoiceSendingListItemDto | null | undefined): boolean {
@@ -1983,6 +2069,14 @@ export class FaturaIslemleriListComponent {
   ): string => this.buildReturnReferenceKey(item);
   protected readonly trackByNode = (_index: number, node: IUyumsoftResponseNodeApiDto): string =>
     `${node.name}|${node.value ?? ''}`;
+  protected readonly trackByOutboxInvoiceRow = (
+    index: number,
+    row: IUyumsoftInvoiceListItemApiDto
+  ): string =>
+    row.invoiceUuid?.trim() ||
+    row.invoiceNumber?.trim() ||
+    row.localDocumentId?.trim() ||
+    `${row.direction}|${index}`;
   protected readonly trackByStat = (_index: number, stat: HeroStat): string => stat.label;
   protected readonly trackByMetric = (_index: number, metric: SummaryMetric): string =>
     metric.label;
@@ -2020,71 +2114,6 @@ export class FaturaIslemleriListComponent {
           });
         }
       });
-  }
-
-  private openPdfResponse(response: InvoiceViewingPdfResponseDto): boolean {
-    const base64Payload = this.findPdfBase64Payload(response);
-
-    if (!base64Payload) {
-      return false;
-    }
-
-    try {
-      const binary = atob(base64Payload.replace(/\s/g, ''));
-      const bytes = new Uint8Array(binary.length);
-
-      for (let index = 0; index < binary.length; index += 1) {
-        bytes[index] = binary.charCodeAt(index);
-      }
-
-      const objectUrl = URL.createObjectURL(
-        new Blob([bytes], {
-          type: 'application/pdf'
-        })
-      );
-      const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
-
-      setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-
-      return !!openedWindow;
-    } catch {
-      return false;
-    }
-  }
-
-  private findPdfBase64Payload(response: InvoiceViewingPdfResponseDto): string | null {
-    const candidates = [
-      response.scalarValue,
-      response.responsePayloadJson,
-      ...this.flattenNodeValues(response.nodes ?? [])
-    ];
-
-    for (const candidate of candidates) {
-      const value = candidate?.trim();
-
-      if (!value) {
-        continue;
-      }
-
-      const dataUrlMatch = value.match(/data:application\/pdf;base64,([A-Za-z0-9+/=\s]+)/);
-      if (dataUrlMatch?.[1]) {
-        return dataUrlMatch[1];
-      }
-
-      const pdfMatch = value.match(/JVBERi0[A-Za-z0-9+/=\s]+={0,2}/);
-      if (pdfMatch?.[0]) {
-        return pdfMatch[0];
-      }
-    }
-
-    return null;
-  }
-
-  private flattenNodeValues(nodes: IUyumsoftResponseNodeApiDto[]): string[] {
-    return nodes.flatMap((node) => [
-      node.value ?? '',
-      ...this.flattenNodeValues(node.children ?? [])
-    ]);
   }
 
   private openPdfBlob(blob: Blob): boolean {
@@ -2539,30 +2568,14 @@ export class FaturaIslemleriListComponent {
     return `${documentSerie}|${documentOrderNo}`;
   }
 
-  private getSendingPdfLookup(
+  private getSendingPdfInvoiceUuid(
     summary: InvoiceSendingListItemDto | null | undefined
-  ): SendingPdfLookup | null {
+  ): string | null {
     if (!summary?.isSent) {
       return null;
     }
 
-    const technicalId = summary.serviceDocumentId?.trim();
-
-    if (technicalId) {
-      return {
-        value: technicalId,
-        source: 'technical-id'
-      };
-    }
-
-    const invoiceNumber = summary.sentDocumentNo?.trim() || summary.invoiceId?.trim();
-
-    return invoiceNumber
-      ? {
-          value: invoiceNumber,
-          source: 'invoice-number'
-        }
-      : null;
+    return summary.serviceDocumentId?.trim() || null;
   }
 
   private buildReturnReferenceKey(reference: InvoiceReturnReferenceDto): string {
@@ -2669,34 +2682,6 @@ export class FaturaIslemleriListComponent {
     return this.getInvoiceScenario(value) ?? 'EFatura';
   }
 
-  private extractInvoiceIds(nodes: IUyumsoftResponseNodeApiDto[]): string[] {
-    const invoiceIds = new Set<string>();
-
-    const visit = (node: IUyumsoftResponseNodeApiDto): void => {
-      const normalizedNodeName = this.normalizeIdentifier(node.name);
-
-      if (normalizedNodeName === 'invoiceid' && node.value?.trim()) {
-        invoiceIds.add(node.value.trim());
-      }
-
-      for (const [attributeKey, attributeValue] of Object.entries(node.attributes ?? {})) {
-        if (this.normalizeIdentifier(attributeKey) === 'invoiceid' && attributeValue?.trim()) {
-          invoiceIds.add(attributeValue.trim());
-        }
-      }
-
-      for (const child of node.children ?? []) {
-        visit(child);
-      }
-    };
-
-    for (const node of nodes) {
-      visit(node);
-    }
-
-    return Array.from(invoiceIds);
-  }
-
   private normalizeIdentifier(value: string | null | undefined): string {
     return (value ?? '').replace(/[^a-zA-Z0-9]+/g, '').toLocaleLowerCase('tr-TR');
   }
@@ -2726,9 +2711,12 @@ export class FaturaIslemleriListComponent {
     if (typeof error.error === 'object' && error.error !== null) {
       const problem = error.error as Record<string, unknown>;
       const message = problem['message'] ?? problem['detail'] ?? problem['title'];
+      const correlationId = problem['correlationId'] ?? problem['traceId'];
 
       if (typeof message === 'string' && message.trim()) {
-        return message;
+        return typeof correlationId === 'string' && correlationId.trim()
+          ? `${message} (correlationId: ${correlationId})`
+          : message;
       }
     }
 

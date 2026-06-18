@@ -690,6 +690,58 @@ export interface IUyumsoftResponseNodeApiDto {
   children: IUyumsoftResponseNodeApiDto[];
 }
 
+export interface IUyumsoftInvoiceListApiDto {
+  pageIndex: number;
+  pageSize: number;
+  totalCount: number;
+  totalPages: number;
+  items: IUyumsoftInvoiceListItemApiDto[];
+}
+
+export interface IUyumsoftInvoiceListItemApiDto {
+  invoiceUuid: string | null;
+  invoiceNumber: string | null;
+  direction: string;
+  pdfFilePath: string | null;
+  localDocumentId: string | null;
+  scenario: string | null;
+  scenarioCode: number | null;
+  type: string;
+  typeCode: number;
+  targetTcknVkn: string | null;
+  targetTitle: string | null;
+  envelopeIdentifier: string | null;
+  status: string;
+  statusCode: number;
+  envelopeStatus: string;
+  envelopeStatusCode: number;
+  message: string | null;
+  createDateUtc: string;
+  executionDate: string | null;
+  payableAmount: number;
+  taxTotal: number;
+  taxExclusiveAmount: number;
+  documentCurrencyCode: string | null;
+  exchangeRate: number;
+  vat1: number;
+  vat8: number;
+  vat10: number;
+  vat18: number;
+  vat20: number;
+  vat0TaxableAmount: number;
+  vat1TaxableAmount: number;
+  vat8TaxableAmount: number;
+  vat10TaxableAmount: number;
+  vat18TaxableAmount: number;
+  vat20TaxableAmount: number;
+  orderDocumentId: string | null;
+  isArchived: boolean;
+  invoiceTipType: string;
+  invoiceTipTypeCode: number;
+  isNew: boolean | null;
+  isSeen: boolean | null;
+}
+
 export interface IUyumsoftOperationResponseApiDto {
   serviceKey: string;
   serviceName: string;
@@ -700,6 +752,7 @@ export interface IUyumsoftOperationResponseApiDto {
   scalarValue: string | null;
   resultAttributes: Record<string, string | null>;
   nodes: IUyumsoftResponseNodeApiDto[];
+  invoiceList: IUyumsoftInvoiceListApiDto | null;
   responsePayloadJson: string;
 }
 

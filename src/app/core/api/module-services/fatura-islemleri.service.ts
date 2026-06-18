@@ -176,15 +176,9 @@ export class FaturaIslemleriService extends BaseApiService {
     );
   }
 
-  getUyumsoftEInvoiceInboxPdfFile(invoiceId: string) {
+  getUyumsoftEInvoiceInboxPdfFile(invoiceUuid: string) {
     return this.getBlob(
-      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/${encodeURIComponent(invoiceId)}/pdf-file`
-    );
-  }
-
-  getUyumsoftEInvoiceInboxPdfFileByNumber(invoiceNumber: string) {
-    return this.getBlob(
-      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/${encodeURIComponent(invoiceNumber)}/pdf-file`
+      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/${encodeURIComponent(invoiceUuid)}/pdf-file`
     );
   }
 
@@ -242,16 +236,14 @@ export class FaturaIslemleriService extends BaseApiService {
     );
   }
 
-  getUyumsoftEInvoiceOutboxPdfFile(invoiceId: string) {
+  getUyumsoftEInvoiceOutboxPdfFile(invoiceUuid: string) {
     return this.getBlob(
-      `entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/${encodeURIComponent(invoiceId)}/pdf-file`
+      `entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/${encodeURIComponent(invoiceUuid)}/pdf-file`
     );
   }
 
-  getUyumsoftEInvoiceOutboxPdfFileByNumber(invoiceNumber: string) {
-    return this.getBlob(
-      `entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/${encodeURIComponent(invoiceNumber)}/pdf-file`
-    );
+  getUyumsoftEInvoicePdfFileFromPath(pdfFilePath: string) {
+    return this.getBlob(pdfFilePath);
   }
 
   previewInvoiceDocument(request: InvoicePreviewRequestDto) {

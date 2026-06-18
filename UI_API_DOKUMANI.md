@@ -6587,8 +6587,8 @@ Response `InvoiceViewingListResponse`:
   "pageSize": 50,
   "items": [
     {
-      "documentId": "DOC-001",
-      "invoiceId": "INV-2026-0001",
+      "documentId": "9d6e0f84-3d3c-4c58-a1b0-4c0f8f4fd999",
+      "invoiceId": "FRM2026600075612",
       "customerTitle": "ORNEK MUSTERI",
       "customerTcknVkn": "1234567890",
       "createDate": "2026-05-01T09:15:00",
@@ -6614,8 +6614,8 @@ Liste davranisi:
 - legacy `GetInvoicesAsync(isProcessed, isPrinted)` akisindaki gibi tarih + islenme + yazdirilma filtresi uygulanir
 - tarih filtresi `invoiceDate` veya fallback olarak `createDate` alanina uygulanir
 - tarih araligi gun seviyesindedir; bitis tarihi SQL tarafinda `+1 gun exclusive` mantigi ile uygulanir
-- `documentId` bu listedeki operasyon anahtaridir; UI icinde row key olarak bunun saklanmasi gerekir
-- `invoiceId` ekranda gostereceginiz fatura numarasidir; detay ve update bununla acilmaz
+- `documentId` bu listedeki Uyumsoft teknik UUID/operasyon anahtaridir; UI row key, PDF, detay, render ve printed isteklerinde bunu aynen kullanir
+- `invoiceId` kullaniciya gosterilecek resmi fatura numarasidir; route parametresi olarak kullanilmaz
 - `ProcessedState` ve `PrintedState` legacy WinForms'taki gibi tri-state filtre davranisi saglar
 - `customerTitle` response'a buyuk harfe cevrilmis gelir
 - DB tarafindaki kolon `isStandart` olsa da API response'unda alan `isStandard` olarak gelir
@@ -6691,15 +6691,9 @@ Response:
 - Backend Uyumsoft e-fatura `GetInboxInvoicePdf` operasyonunu `invoiceId = documentId` parametresiyle cagirir.
 - PDF payload Uyumsoft response yapisina gore `scalarValue`, `nodes` veya `responsePayloadJson` icinde gelir; UI mevcut entegrasyon endpointindeki `GetInboxInvoicePdf` cevabi gibi yorumlamalidir.
 
-Direkt PDF binary almak isteyen UI ekranlari icin onerilen endpoint:
+Direkt PDF binary almak isteyen UI ekranlarinda liste satirindaki `documentId` teknik UUID olarak kullanilir:
 
-Teknik Uyumsoft `invoiceId` biliniyorsa:
-
-`GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf-file`
-
-UI elinde sadece resmi fatura numarasi / `documentId` varsa:
-
-`GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{documentId}/pdf-file`
+`GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{documentId}/pdf-file`
 
 Response:
 
@@ -6707,15 +6701,26 @@ Response:
 - `Content-Disposition: inline`
 - JSON beklenmemelidir; UI yeni sekme, iframe veya blob URL ile dogrudan PDF gosterebilir.
 
-Onemli:
+UI uygulama kurali:
 
-- `invoiceId` Uyumsoft'un teknik belge id'sidir; `FRP2026000021435` gibi resmi fatura numarasi degildir.
-- Liste satirinda teknik `invoiceId` yoksa UI `by-number` endpointini kullanmalidir.
+- `row.documentId` -> teknik UUID -> route'a gonderilir
+- `row.invoiceId` -> resmi fatura numarasi -> ekranda gosterilir
+- UI `row.invoiceId` degerini PDF URL'sine yazmaz
+- UI `by-number` endpointine otomatik fallback yapmaz
+- `row.documentId` bos ise PDF butonu pasif olur ve veri/entegrasyon hatasi gosterilir
 
 Bu endpoint ne icin kullanilmali:
 
 - kullanici liste satirina tiklayip faturanin resmi PDF'ini acmak istediginde
 - fatura goruntuleme ekraninda varsayilan belge acma aksiyonu icin
+
+Frontend ornegi:
+
+```ts
+const pdfPath =
+  `/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/` +
+  `${encodeURIComponent(row.documentId)}/pdf-file`;
+```
 
 Bu endpoint ne yapmaz:
 
@@ -8564,6 +8569,7 @@ Bu entegrasyonun kapsami:
 - sadece whitelist'e alinmis `Get*` operasyonlarinin acilmasi
 - request body'sinde `parameters` listesiyle scalar parametre ve typed query model alani destegi
 - response'un generic ve recursive bir agac modeli ile normalize edilmesi
+- e-fatura `GetInboxInvoiceList` ve `GetOutboxInvoiceList` cevaplarinda frontend icin ayrica typed `invoiceList` alani donulmesi
 - ileride `Send*`, `Save*`, `Query*`, `Change*`, `Set*` ailelerinin ayni omurgaya eklenebilecek sekilde tasarlanmasi
 
 Bu moduller su an nerede kullanilir:
@@ -8592,6 +8598,68 @@ Mevcut business akislardan farki:
 - yeni moduller `invoiceId`, `despatchId`, `query`, `request` gibi Uyumsoft-side parametrelerle calisir
 - UI bu modulleri normal depo/firma sevk detay ekraninda ana aksiyon gibi degil, entegrasyon/yonetim araci gibi konumlandirmalidir
 
+### UI Icin Tek E-Fatura Kimlik Sozlesmesi
+
+Frontend e-fatura liste, detay ve PDF islemlerinde asagidaki eslemeyi aynen uygulamalidir:
+
+| API alani | Anlami | UI kullanimi |
+|---|---|---|
+| `invoiceUuid` | Uyumsoft teknik `InvoiceId` degeri | Row key ve tum teknik belge route'larinin path parametresi |
+| `invoiceNumber` | Uyumsoft resmi `DocumentId` degeri | Kullaniciya gosterilen fatura numarasi ve arama metni |
+| `direction` | Belgenin kutusu: `inbox` veya `outbox` | Badge/sekme bilgisi; PDF yolunu UI bununla yeniden uretmez |
+| `pdfFilePath` | Backend'in UUID ve kutu bilgisinden olusturdugu hazir binary PDF yolu | `PDF Goster` aksiyonunda dogrudan cagrilir |
+| `localDocumentId` | Uyumsoft outbox lokal belge referansi | Yardimci bilgi; teknik route anahtari degildir |
+
+Kesin kurallar:
+
+1. Liste kaynagi `response.invoiceList.items` alanidir.
+2. UI resmi fatura numarasini `row.invoiceNumber` ile gosterir.
+3. UI teknik kimlik olarak sadece `row.invoiceUuid` kullanir.
+4. UI PDF URL'si uretmez; `row.pdfFilePath` degerini dogrudan cagirir.
+5. UI `invoiceNumber`, `localDocumentId` veya ekranda gorunen metinden UUID/route turetmez.
+6. UI yeni ekranlarda `by-number` endpointini cagirmez ve UUID istegi hata verirse `by-number` endpointine otomatik fallback yapmaz.
+7. `invoiceUuid` veya `pdfFilePath` bos ise PDF butonu pasif olur; satir veri hatasi olarak ele alinir.
+8. `/pdf-file` cevabi JSON degil `application/pdf` binary veridir; istemci blob olarak okumali veya yetkili yeni sekme/iframe akisi kullanmalidir.
+
+Kopyalanabilir temel UI akisi:
+
+```ts
+type UyumsoftInvoiceRow = {
+  invoiceUuid: string | null;
+  invoiceNumber: string | null;
+  direction: "inbox" | "outbox";
+  pdfFilePath: string | null;
+};
+
+function canOpenInvoicePdf(row: UyumsoftInvoiceRow): boolean {
+  return Boolean(row.invoiceUuid && row.pdfFilePath);
+}
+
+async function openInvoicePdf(row: UyumsoftInvoiceRow, token: string) {
+  if (!row.invoiceUuid || !row.pdfFilePath) {
+    throw new Error("Faturanin teknik UUID/PDF yolu API cevabinda bulunamadi.");
+  }
+
+  const response = await fetch(row.pdfFilePath, {
+    headers: { Authorization: `Bearer ${token}` }
+  });
+
+  if (!response.ok) {
+    throw new Error(`Fatura PDF alinamadi. HTTP ${response.status}`);
+  }
+
+  const pdfBlob = await response.blob();
+  const objectUrl = URL.createObjectURL(pdfBlob);
+  window.open(objectUrl, "_blank", "noopener,noreferrer");
+}
+```
+
+Isim benzerligine dikkat:
+
+- route sablonundaki `{invoiceUuid}` Uyumsoft teknik kimligini ifade eder
+- frontend response'undaki `invoiceUuid` bu route'a gonderilecek degerdir
+- frontend response'undaki `invoiceNumber` route'a gonderilmez
+
 ### Route Aileleri
 
 #### E-Fatura
@@ -8602,22 +8670,22 @@ Mevcut business akislardan farki:
 - `POST /api/entegrasyon-islemleri/uyumsoft/e-fatura/get/{operationName}`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/system/date`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/system/date/formatted?format=yyyy-MM-dd`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/data`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/view`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf-file`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{invoiceNumber}/pdf-file`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/status-with-logs`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/data`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/view`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/status-with-logs`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/response-view`
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/invoices/{invoiceId}/envelope`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceUuid}`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceUuid}/data`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceUuid}/view`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceUuid}/pdf`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceUuid}/pdf-file`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{invoiceNumber}/pdf-file` (yalniz legacy/operator kullanimi)
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceUuid}/status-with-logs`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/data`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/view`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/pdf`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/pdf-file`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file` (yalniz legacy/operator kullanimi)
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/status-with-logs`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/response-view`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/invoices/{invoiceUuid}/envelope`
 
 #### E-Irsaliye
 
@@ -8645,7 +8713,9 @@ Not:
 - hazir alias `GET` route'lari katalogdaki sik kullanilan sistem tarihi ve tekil remote belge sorgularini operation formu kurmadan cagirabilmek icin vardir
 - bu modullerde `/pdf`, `/view`, `/envelope` ile biten route'lar binary dosya degil, JSON `UyumsoftOperationResponseDto` doner
 - e-fatura icin `/pdf-file` ile biten inbox/outbox route'lari istisnadir; direkt `application/pdf` binary response doner ve liste ekranlarindaki `PDF Goster` aksiyonlari icin onerilir
-- `{invoiceId}` route'lari Uyumsoft teknik id bekler; resmi fatura no ile PDF acilacaksa `by-number/{invoiceNumber}/pdf-file` route'u kullanilmalidir
+- `{invoiceUuid}` route'lari Uyumsoft teknik UUID bekler. Liste response'unda bu deger `invoiceList.items[].invoiceUuid` alanindadir.
+- Liste cevabi ayrica hazir `invoiceList.items[].pdfFilePath` dondurur; yeni UI bu yolu dogrudan cagirir.
+- `by-number/{invoiceNumber}/pdf-file` route'u sadece eski istemci veya manuel operator sorgusu icindir; yeni UI akisinin parcasi degildir.
 
 ### Yetki Kodlari
 
@@ -8777,6 +8847,11 @@ Not:
 - `operationName` buyuk/kucuk harf duyarli gibi dusunulmemeli; backend case-insensitive bakar
 - buna ragmen UI exact isimleri her zaman `GET .../operations` cevabindan alip kullanmalidir
 - cok alanli typed query modellerinde ana tercih bu route olmalidir
+- `GetInboxInvoiceList` ve `GetOutboxInvoiceList` operasyonlarinda generic alanlara ek olarak typed `invoiceList` alani dolar
+- `invoiceList.items[].invoiceUuid`, Uyumsoft `InvoiceId` degeridir ve PDF/detail endpointlerine gonderilecek teknik anahtardir
+- `invoiceList.items[].invoiceNumber`, Uyumsoft `DocumentId` degeridir ve kullaniciya gosterilen resmi fatura numarasidir
+- `invoiceList.items[].direction`, satirin `inbox` veya `outbox` kaynagindan geldigini belirtir
+- `invoiceList.items[].pdfFilePath`, ilgili kutu ve teknik UUID icin backend tarafindan hazirlanmis PDF endpoint yoludur; UI bu alani dogrudan kullanir
 
 #### Hazir alias `GET` route'lari
 
@@ -8874,6 +8949,59 @@ Content-Type: application/json
 }
 ```
 
+Paged e-fatura outbox listesi:
+
+```http
+POST /api/entegrasyon-islemleri/uyumsoft/e-fatura/get/GetOutboxInvoiceList
+Authorization: Bearer {token}
+Content-Type: application/json
+```
+
+```json
+{
+  "parameters": [
+    { "name": "PageIndex", "value": "0" },
+    { "name": "PageSize", "value": "20" },
+    { "name": "IsArchived", "value": "false" }
+  ]
+}
+```
+
+Bu operasyonun response'unda frontend listeyi `invoiceList.items` uzerinden okumali, `invoiceUuid` degerini row key olarak saklamali ve PDF aksiyonunda `pdfFilePath` alanini dogrudan kullanmalidir.
+
+Kisaltilmis response ornegi:
+
+```json
+{
+  "serviceKey": "e-invoice",
+  "operationName": "GetOutboxInvoiceList",
+  "isSucceeded": true,
+  "invoiceList": {
+    "pageIndex": 0,
+    "pageSize": 20,
+    "totalCount": 1,
+    "totalPages": 1,
+    "items": [
+      {
+        "invoiceUuid": "9d6e0f84-3d3c-4c58-a1b0-4c0f8f4fd999",
+        "invoiceNumber": "FRM2026600075612",
+        "direction": "outbox",
+        "pdfFilePath": "/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/9d6e0f84-3d3c-4c58-a1b0-4c0f8f4fd999/pdf-file",
+        "localDocumentId": "FRM2026600075612",
+        "scenario": "eInvoice",
+        "status": "Completed",
+        "createDateUtc": "2026-06-18T08:30:00Z",
+        "payableAmount": 1250.00,
+        "documentCurrencyCode": "TRY",
+        "isArchived": false
+      }
+    ]
+  },
+  "nodes": [],
+  "responsePayloadJson": "..."
+}
+```
+
 Paged e-irsaliye outbox listesi:
 
 ```http
@@ -8932,7 +9060,19 @@ GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/9d6e0f84-3d3c-4
 Authorization: Bearer {token}
 ```
 
-Fatura numarasiyla e-fatura PDF dosyasi:
+Frontend uygulama ornegi:
+
+```ts
+if (!row.pdfFilePath) {
+  throw new Error("PDF yolu API cevabinda bulunamadi.");
+}
+
+const pdfUrl = row.pdfFilePath;
+```
+
+UI `pdfFilePath` degerini degistirmeden cagirir. `FRM2026600075612` gibi resmi fatura numarasindan URL uretmez.
+
+Fatura numarasiyla e-fatura PDF dosyasi, yalnizca legacy/operator endpointi:
 
 ```http
 GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/FRP2026000021435/pdf-file
@@ -8944,7 +9084,11 @@ Response:
 - `Content-Type: application/pdf`
 - `Content-Disposition: inline`
 - UI bu endpointleri fatura listesinde `PDF Goster` icin kullanabilir; JSON parse edilmez.
-- `FRP...` gibi resmi fatura numarasi varsa `by-number`, Uyumsoft liste response'undaki teknik `InvoiceId` varsa normal `{invoiceId}` route'u kullanilmalidir.
+- Yeni UI akisi her zaman `invoiceList.items[].pdfFilePath` alanini kullanmalidir.
+- `pdfFilePath`, `invoiceUuid` ile olusturulmus normal `{invoiceUuid}/pdf-file` route'unu tasir.
+- `invoiceNumber`/`DocumentId` kullaniciya gosterilir; PDF route'una teknik anahtar olarak gonderilmez.
+- `by-number` endpoint'i once resmi numarayla Uyumsoft listesinde teknik UUID cozmeye calisir ve yalnizca `DocumentId` degeri istenen numarayla birebir eslesen satiri kabul eder. Eslesme bulunmazsa ilk kaydi kullanmaz; yanlis faturayi acma riski yerine `Uyumsoft fatura numarasina gore teknik invoiceId bulunamadi` detayli `404` cevabi doner.
+- Frontend `pdfFilePath` istegi hata verdiginde `by-number` endpoint'ine geri dusmemelidir; asil hata kullaniciya gosterilmeli ve correlationId loglanmalidir.
 
 Tekil e-irsaliye makbuz PDF sorgusu:
 
@@ -8987,6 +9131,7 @@ Tum operasyonlar normalize edilmis tek bir response modeline dondurulur:
 - `scalarValue`
 - `resultAttributes`
 - `nodes`
+- `invoiceList`
 - `responsePayloadJson`
 
 Alan anlami:
@@ -9000,9 +9145,68 @@ Alan anlami:
 - `nodes`
   - kompleks response'lar icin recursive tree yapisidir
   - paged result, item listesi, ic ice child node yapilari buradan okunur
+- `invoiceList`
+  - sadece e-fatura `GetInboxInvoiceList` ve `GetOutboxInvoiceList` cevaplarinda dolan typed liste alanidir
+  - `pageIndex`, `pageSize`, `totalCount`, `totalPages`, `items` alanlarini tasir
+  - diger operasyonlarda `null` olur
+  - `items[].invoiceUuid`: Uyumsoft teknik `InvoiceId`; PDF/detail route'una gonderilir
+  - `items[].invoiceNumber`: Uyumsoft resmi `DocumentId`; ekranda fatura no olarak gosterilir
+  - `items[].direction`: `inbox` veya `outbox`
+  - `items[].pdfFilePath`: UI'nin dogrudan cagiracagi `application/pdf` endpoint yolu
+  - `items[].localDocumentId`, `scenario`, `scenarioCode`: outbox'a ozel alanlardir; inbox satirlarinda bos olabilir
+  - `items[].isNew`, `isSeen`: inbox'a ozel alanlardir; outbox satirlarinda bos olabilir
 - `responsePayloadJson`
   - WCF response objesinin JSON karsiligini verir
   - debug/response inceleme sekmesi icin uygundur
+
+#### `invoiceList.items[]` Alan Sozlesmesi
+
+| Alan | Tip | UI davranisi |
+|---|---|---|
+| `invoiceUuid` | `string/null` | Teknik Uyumsoft kimligi. Row key olarak saklanir; kullaniciya ana fatura no olarak gosterilmez. |
+| `invoiceNumber` | `string/null` | Resmi fatura numarasi. Ana liste kolonunda gosterilir ve metin aramasinda kullanilir. |
+| `direction` | `string` | `inbox` veya `outbox`. Salt okunur kutu bilgisidir. |
+| `pdfFilePath` | `string/null` | PDF butonunun dogrudan cagiracagi relative API yolu. Bos ise buton pasif olur. |
+| `localDocumentId` | `string/null` | Outbox lokal belge referansi. Route anahtari degildir. |
+| `scenario` | `string/null` | Outbox senaryosu; ornek `eInvoice`, `eArchive`. |
+| `scenarioCode` | `number/null` | Uyumsoft senaryo kodu. UI etiketi icin `scenario` tercih edilir. |
+| `type` | `string` | Uyumsoft fatura turu metni. |
+| `typeCode` | `number` | Uyumsoft fatura turu kodu. |
+| `targetTcknVkn` | `string/null` | Hedef taraf TCKN/VKN bilgisi. |
+| `targetTitle` | `string/null` | Hedef taraf unvani. |
+| `envelopeIdentifier` | `string/null` | Uyumsoft zarf tanimlayicisi. |
+| `status` | `string` | Belge durum metni. |
+| `statusCode` | `number` | Belge durum kodu. |
+| `envelopeStatus` | `string` | Zarf durum metni. |
+| `envelopeStatusCode` | `number` | Zarf durum kodu. |
+| `message` | `string/null` | Uyumsoft belge durum/aciklama mesaji. |
+| `createDateUtc` | `date-time` | Uyumsoft kayit olusturma zamani, UTC. UI lokal saat dilimine cevirerek gosterebilir. |
+| `executionDate` | `date-time/null` | Belgenin islem/yurutme zamani. |
+| `payableAmount` | `decimal` | Odenecek toplam tutar. |
+| `taxTotal` | `decimal` | Toplam vergi. |
+| `taxExclusiveAmount` | `decimal` | Vergi haric toplam. |
+| `documentCurrencyCode` | `string/null` | Belge para birimi; ornek `TRY`. |
+| `exchangeRate` | `decimal` | Kur bilgisi. |
+| `vat1`, `vat8`, `vat10`, `vat18`, `vat20` | `decimal` | Oran bazli KDV tutarlari. |
+| `vat0TaxableAmount`, `vat1TaxableAmount`, `vat8TaxableAmount`, `vat10TaxableAmount`, `vat18TaxableAmount`, `vat20TaxableAmount` | `decimal` | Oran bazli vergilendirilebilir matrahlar. |
+| `orderDocumentId` | `string/null` | Iliskili siparis belge numarasi. |
+| `isArchived` | `boolean` | Uyumsoft arsiv durumu. |
+| `invoiceTipType` | `string` | Fatura tip sinifi; ornek satis/iade karsiligi enum metni. |
+| `invoiceTipTypeCode` | `number` | Fatura tip sinifi kodu. |
+| `isNew` | `boolean/null` | Yalniz inbox satirlarinda yeni belge bilgisi. |
+| `isSeen` | `boolean/null` | Yalniz inbox satirlarinda gorulme bilgisi. |
+
+UI liste kolonlari icin minimum zorunlu set:
+
+- `invoiceNumber`
+- `targetTitle`
+- `targetTcknVkn`
+- `createDateUtc` veya `executionDate`
+- `payableAmount`
+- `documentCurrencyCode`
+- `status`
+- `direction`
+- `pdfFilePath`
 
 UI render onerisi:
 
@@ -9031,6 +9235,9 @@ Bu modullerde exception middleware davranisi su sekildedir:
   - token yok/gecersiz
 - `403 Forbidden`
   - ilgili module permission'i yok
+- `404 Not Found`
+  - legacy `by-number` endpointi resmi numaradan teknik UUID cozemedi
+  - UI bu durumda ayni istegi tekrar tekrar denemez ve baska satirin UUID'sini kullanmaz
 - `409 Conflict`
   - Uyumsoft remote service request'i reddetti
   - WCF servis hatasi dondu
@@ -9042,6 +9249,8 @@ UI notu:
 
 - `409` cevaplarini "servis reddetti / uzak servis cevabi" gibi kullaniciya daha anlamli bir dille gostermek dogru olur
 - `400` cevaplari ise lokal request form hatasi gibi ele alinmalidir
+- hata response'undaki `correlationId`, destek/log incelemesi icin UI tarafinda kaydedilmelidir
+- `pdfFilePath` cagrisi `404` donerse UI `invoiceNumber` ile `by-number` fallback yapmamalidir; satiri yenileyip yeni `invoiceUuid/pdfFilePath` almak veya hatayi kullaniciya gostermek gerekir
 
 ### E-Fatura Modulu: Dahil Olan GET Operasyonlari
 
@@ -9355,6 +9564,7 @@ public sealed record UyumsoftOperationResponseDto(
     string? ScalarValue,
     IReadOnlyDictionary<string, string?> ResultAttributes,
     IReadOnlyCollection<UyumsoftResponseNodeDto> Nodes,
+    UyumsoftInvoiceListDto? InvoiceList,
     string ResponsePayloadJson);
 
 public sealed record UyumsoftResponseNodeDto(
@@ -9362,6 +9572,56 @@ public sealed record UyumsoftResponseNodeDto(
     string? Value,
     IReadOnlyDictionary<string, string?> Attributes,
     IReadOnlyCollection<UyumsoftResponseNodeDto> Children);
+
+public sealed record UyumsoftInvoiceListDto(
+    int PageIndex,
+    int PageSize,
+    int TotalCount,
+    int TotalPages,
+    IReadOnlyCollection<UyumsoftInvoiceListItemDto> Items);
+
+public sealed record UyumsoftInvoiceListItemDto(
+    string? InvoiceUuid,
+    string? InvoiceNumber,
+    string Direction,
+    string? PdfFilePath,
+    string? LocalDocumentId,
+    string? Scenario,
+    int? ScenarioCode,
+    string Type,
+    int TypeCode,
+    string? TargetTcknVkn,
+    string? TargetTitle,
+    string? EnvelopeIdentifier,
+    string Status,
+    int StatusCode,
+    string EnvelopeStatus,
+    int EnvelopeStatusCode,
+    string? Message,
+    DateTime CreateDateUtc,
+    DateTime? ExecutionDate,
+    decimal PayableAmount,
+    decimal TaxTotal,
+    decimal TaxExclusiveAmount,
+    string? DocumentCurrencyCode,
+    decimal ExchangeRate,
+    decimal Vat1,
+    decimal Vat8,
+    decimal Vat10,
+    decimal Vat18,
+    decimal Vat20,
+    decimal Vat0TaxableAmount,
+    decimal Vat1TaxableAmount,
+    decimal Vat8TaxableAmount,
+    decimal Vat10TaxableAmount,
+    decimal Vat18TaxableAmount,
+    decimal Vat20TaxableAmount,
+    string? OrderDocumentId,
+    bool IsArchived,
+    string InvoiceTipType,
+    int InvoiceTipTypeCode,
+    bool? IsNew,
+    bool? IsSeen);
 ```
 
 ### Auth ve Yetki Modelleri
@@ -11504,7 +11764,7 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `POST /api/entegrasyon-islemleri/uyumsoft/e-fatura/get/{operationName}` ve `POST /api/entegrasyon-islemleri/uyumsoft/e-irsaliye/get/{operationName}` endpoint'leri body'de `UyumsoftOperationHttpRequest` alir.
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/get/{operationName}` ve `GET /api/entegrasyon-islemleri/uyumsoft/e-irsaliye/get/{operationName}` endpoint'leri body almaz; tekrar eden `parameter=name=value` query parametresi kullanir.
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/system/date/formatted` endpoint'i `format` query parametresi alir.
-- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/.../{invoiceId}` alias route'lari `invoiceId` path parametresiyle calisir.
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/.../{invoiceUuid}` alias route'lari `invoiceUuid` path parametresiyle calisir.
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-irsaliye/.../{despatchId}` alias route'lari `despatchId` path parametresiyle calisir; `GET /api/entegrasyon-islemleri/uyumsoft/e-irsaliye/despatches/{despatchId}/envelope` icin ek olarak `isInbox` query parametresi zorunludur.
 - Cok sayida detay endpointi ayri request class'i kullanmaz; path parametreleri ve opsiyonel `warehouseNo` query parametresi ile calisir.
 - `GET /api/kasa-islemleri/etiket-belgeleri`, `GET /api/kasa-islemleri/etiket-belgeleri/son`, `GET /api/kasa-islemleri/etiket-belgeleri/tumu` ve `GET /api/kasa-islemleri/etiket-belgeleri/{documentId}` endpointleri ayri request class'i yerine dogrudan action parametreleri kullanir.

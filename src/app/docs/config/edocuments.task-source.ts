@@ -7,12 +7,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
       id: 'fatura-goruntuleme',
       title: 'Fatura Goruntuleme',
       subtitle:
-        'Manuel inbox senkronizasyonu, cache listeleme, documentId ile PDF acma, HTML detay/render ve yazdirildi durumunu ayri komutla guncelleme akislarini yeni API uzerinden sunar.',
+        'Manuel inbox senkronizasyonu, cache listeleme, teknik documentId ile PDF acma, HTML detay/render ve yazdirildi durumunu ayri komutla guncelleme akislarini yeni API uzerinden sunar.',
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
         'POST senkronize ile cache guncelleme',
         'invoiceDate bazli liste',
-        'documentId ile direkt PDF dosyasi',
+        'documentId teknik UUID ile direkt PDF dosyasi',
         'HTML detay /detail endpointinden alinir',
         'POST render override',
         'Yazdirildi komutu ayri endpoint',
@@ -47,8 +47,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{documentId}/pdf-file',
-              description: 'Resmi fatura numarasini kullanarak inbox PDF dosyasini application/pdf olarak getirir'
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{documentId}/pdf-file',
+              description: 'Liste satirindaki teknik documentId UUID ile inbox PDF dosyasini application/pdf olarak getirir'
             },
             {
               method: 'GET',
@@ -140,23 +140,18 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-gonderimi/outbox/search',
-              description: 'Uyumsoft GetOutboxInvoices operasyonunu typed parameters ile cagirir',
+              description: 'Uyumsoft GetOutboxInvoiceList operasyonunu typed parameters ile cagirir ve invoiceList doner',
               payload: 'UyumsoftOperationHttpRequest'
             },
             {
               method: 'GET',
-              path: '/api/fatura-islemleri/fatura-gonderimi/outbox/{invoiceId}?profile=Auto&preferEmbeddedXslt=true',
+              path: '/api/fatura-islemleri/fatura-gonderimi/outbox/{invoiceUuid}?profile=Auto&preferEmbeddedXslt=true',
               description: 'Secili outbox faturasini render edilmis belge olarak getirir'
             },
             {
               method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file',
-              description: 'Uyumsoft teknik invoiceId ile outbox PDF dosyasini getirir'
-            },
-            {
-              method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file',
-              description: 'Resmi fatura numarasiyla outbox PDF dosyasini application/pdf olarak getirir'
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/pdf-file',
+              description: 'invoiceList.items[].pdfFilePath tarafindan verilen UUID tabanli outbox PDF dosyasini getirir'
             },
             {
               method: 'POST',

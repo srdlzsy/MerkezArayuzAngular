@@ -458,7 +458,7 @@
             </div>
             <iframe
               class="document-frame"
-              sandbox=""
+              sandbox="allow-scripts"
               [src]="getDocumentPreviewUrl(detail.document.htmlContent)"
             ></iframe>
           </div>
@@ -1114,7 +1114,7 @@
               </div>
               <iframe
                 class="document-frame"
-                sandbox=""
+                sandbox="allow-scripts"
                 [src]="getDocumentPreviewUrl(detail.document.htmlContent)"
               ></iframe>
             </div>
@@ -1161,7 +1161,7 @@
                   <h3>Uyumsoft sorgusu</h3>
                   <p>Typed query parametreleriyle sonucu getir.</p>
                 </div>
-                <span class="panel-badge">GetOutboxInvoices</span>
+                <span class="panel-badge">GetOutboxInvoiceList</span>
               </div>
 
               <div class="empty-state compact-empty" *ngIf="!canSendList()">
@@ -1199,7 +1199,7 @@
                           <input
                             type="text"
                             [formControl]="parameter.controls.name"
-                            placeholder="invoiceId"
+                            placeholder="PageIndex"
                           />
                         </label>
                         <label class="field">
@@ -1252,7 +1252,7 @@
                 <div>
                   <p class="section-kicker">5. Sonuc</p>
                   <h3>Outbox cevabi</h3>
-                  <p>InvoiceId adaylarini sec ve gerekirse ham sonucu incele.</p>
+                  <p>Typed invoiceList satirlarini sec ve gerekirse ham sonucu incele.</p>
                 </div>
                 <span class="panel-badge" *ngIf="outboxSearchResponse()">
                   {{ outboxSearchResponse()?.isSucceeded ? 'Basarili' : 'Hata' }}
@@ -1280,18 +1280,79 @@
                   </article>
                 </section>
 
-                <div class="candidate-shell" *ngIf="outboxInvoiceIdCandidates().length > 0">
-                  <span class="section-label">Aday Invoice Id</span>
-                  <div class="candidate-strip">
-                    <button
-                      type="button"
-                      class="candidate-chip"
-                      *ngFor="let invoiceId of outboxInvoiceIdCandidates()"
-                      (click)="applyInvoiceIdCandidate(invoiceId)"
-                    >
-                      {{ invoiceId }}
-                    </button>
-                  </div>
+                <div
+                  class="invoice-table-shell compact-table-shell"
+                  *ngIf="outboxInvoiceRows().length > 0"
+                >
+                  <table class="invoice-table compact-invoice-table">
+                    <thead>
+                      <tr>
+                        <th>Fatura No</th>
+                        <th>Invoice UUID</th>
+                        <th>Tarih</th>
+                        <th>Durum</th>
+                        <th class="amount-column">Tutar</th>
+                        <th class="action-column">Islem</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr
+                        *ngFor="let row of outboxInvoiceRows(); trackBy: trackByOutboxInvoiceRow"
+                      >
+                        <td>
+                          <strong>{{ row.invoiceNumber || '-' }}</strong>
+                          <small>{{ row.direction || '-' }}</small>
+                        </td>
+                        <td>
+                          <span class="table-main-text">{{ row.invoiceUuid || '-' }}</span>
+                          <small>{{ row.localDocumentId || '-' }}</small>
+                        </td>
+                        <td>{{ (row.executionDate || row.createDateUtc) | date: 'dd.MM.yyyy HH:mm' }}</td>
+                        <td>
+                          <div class="compact-statuses">
+                            <span class="status-pill status-pill-neutral">
+                              {{ row.status || '-' }}
+                            </span>
+                            <span
+                              class="status-pill"
+                              [class.status-pill-success]="row.pdfFilePath"
+                              [class.status-pill-neutral]="!row.pdfFilePath"
+                            >
+                              {{ row.pdfFilePath ? 'PDF var' : 'PDF yok' }}
+                            </span>
+                          </div>
+                        </td>
+                        <td class="amount-column">
+                          <strong>
+                            {{ row.payableAmount | number: '1.2-2' }}
+                            {{ row.documentCurrencyCode || '' }}
+                          </strong>
+                        </td>
+                        <td>
+                          <div class="table-actions">
+                            <button
+                              type="button"
+                              class="ghost-button compact-button"
+                              (click)="applyOutboxInvoiceRow(row)"
+                              [disabled]="!row.invoiceUuid"
+                            >
+                              UUID Sec
+                            </button>
+                            <button
+                              type="button"
+                              class="primary-button compact-button"
+                              (click)="openOutboxInvoicePdf(row)"
+                              [disabled]="
+                                !canOpenOutboxInvoicePdf(row) || isOutboxInvoicePdfLoading(row)
+                              "
+                            >
+                              {{ isOutboxInvoicePdfLoading(row) ? 'Aciliyor...' : 'PDF' }}
+                            </button>
+                          </div>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
                 </div>
 
                 <div class="message-card" *ngIf="response.message || response.scalarValue">
@@ -1359,9 +1420,9 @@
                 <div>
                   <p class="section-kicker">6. Outbox Belge</p>
                   <h3>Tekil belge onizleme</h3>
-                  <p>Secilen invoiceId ile HTML sonucu getir.</p>
+                  <p>Secilen invoiceUuid ile HTML sonucu getir.</p>
                 </div>
-                <span class="panel-badge">GET outbox invoiceId</span>
+                <span class="panel-badge">GET outbox invoiceUuid</span>
               </div>
 
               <div class="empty-state compact-empty" *ngIf="!canSendDetail()">
@@ -1372,8 +1433,8 @@
               <ng-container *ngIf="canSendDetail()">
                 <form class="request-form" [formGroup]="renderForm">
                   <label class="field">
-                    <span>Invoice Id</span>
-                    <input type="text" formControlName="invoiceId" placeholder="INV-2026-0001" />
+                    <span>Invoice UUID</span>
+                    <input type="text" formControlName="invoiceId" placeholder="9d6e0f84-..." />
                   </label>
                   <label class="field">
                     <span>Profil</span>
@@ -1414,7 +1475,7 @@
               <ng-container *ngIf="renderedOutboxDocument() as document">
                 <section class="summary-grid compact-summary-grid">
                   <article class="summary-card">
-                    <span>Invoice Id</span>
+                    <span>Invoice UUID</span>
                     <strong>{{ document.invoiceId || '-' }}</strong>
                   </article>
                   <article class="summary-card">
@@ -1446,7 +1507,7 @@
                   </div>
                   <iframe
                     class="document-frame"
-                    sandbox=""
+                    sandbox="allow-scripts"
                     [src]="getDocumentPreviewUrl(document.htmlContent)"
                   ></iframe>
                 </div>
@@ -1477,7 +1538,7 @@
               <ng-container *ngIf="canSendCreate()">
                 <form class="request-form" [formGroup]="previewForm">
                   <label class="field">
-                    <span>Invoice Id</span>
+                    <span>Invoice Referansi</span>
                     <input type="text" formControlName="invoiceId" placeholder="Opsiyonel referans" />
                   </label>
                   <label class="field">
@@ -1526,7 +1587,7 @@
               <ng-container *ngIf="previewDocument() as document">
                 <section class="summary-grid compact-summary-grid">
                   <article class="summary-card">
-                    <span>Invoice Id</span>
+                    <span>Invoice Referansi</span>
                     <strong>{{ document.invoiceId || '-' }}</strong>
                   </article>
                   <article class="summary-card">
@@ -1552,7 +1613,7 @@
                   </div>
                   <iframe
                     class="document-frame"
-                    sandbox=""
+                    sandbox="allow-scripts"
                     [src]="getDocumentPreviewUrl(document.htmlContent)"
                   ></iframe>
                 </div>

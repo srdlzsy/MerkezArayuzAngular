@@ -431,23 +431,23 @@ export const INTEGRATION_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf-file',
-              description: 'Uyumsoft teknik invoiceId ile inbox PDF dosyasini getirir'
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceUuid}/pdf-file',
+              description: 'Uyumsoft teknik invoiceUuid ile inbox PDF dosyasini getirir'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{invoiceNumber}/pdf-file',
-              description: 'Resmi fatura numarasiyla inbox PDF dosyasini getirir'
+              description: 'Legacy/operator endpointidir; yeni UI PDF aksiyonunda kullanilmaz'
             },
             {
               method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file',
-              description: 'Uyumsoft teknik invoiceId ile outbox PDF dosyasini getirir'
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/pdf-file',
+              description: 'Uyumsoft teknik invoiceUuid ile outbox PDF dosyasini getirir'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file',
-              description: 'Resmi fatura numarasiyla outbox PDF dosyasini getirir'
+              description: 'Legacy/operator endpointidir; yeni UI PDF aksiyonunda kullanilmaz'
             }
           ]
         }

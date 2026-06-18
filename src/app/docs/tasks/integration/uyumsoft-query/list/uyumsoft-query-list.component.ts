@@ -214,6 +214,11 @@ export class UyumsoftQueryListComponent {
         tone: 'status-pill-neutral'
       },
       {
+        label: 'Fatura',
+        value: `${response.invoiceList?.items.length ?? 0}`,
+        tone: 'status-pill-neutral'
+      },
+      {
         label: 'Attribute',
         value: `${Object.keys(response.resultAttributes ?? {}).length}`,
         tone: 'status-pill-neutral'
@@ -238,6 +243,7 @@ export class UyumsoftQueryListComponent {
       scalarValue: response.scalarValue,
       resultAttributes: response.resultAttributes,
       nodes: response.nodes,
+      invoiceList: response.invoiceList,
       responsePayloadJson: response.responsePayloadJson
     });
   });
