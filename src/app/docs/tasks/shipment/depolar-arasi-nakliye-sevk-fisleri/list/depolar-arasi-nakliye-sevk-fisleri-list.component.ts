@@ -26,13 +26,13 @@ const ROW_ACTIONS: readonly ApiListTableRowAction<IFurpaWarehouseShippingListIte
     key: 'send-e-irsaliye',
     label: 'E-Irsaliyeye Donustur',
     tone: 'success',
-    isVisible: (row) => !row.descriptionEttn?.trim()
+    isVisible: (row) => !row.documentNo?.trim()
   },
   {
     key: 'show-pdf',
     label: 'PDF Goster',
     tone: 'neutral',
-    isVisible: (row) => !!row.descriptionEttn?.trim()
+    isVisible: (row) => !!row.documentNo?.trim()
   }
 ];
 

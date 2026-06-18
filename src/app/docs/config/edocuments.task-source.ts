@@ -12,7 +12,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
       highlights: [
         'POST senkronize ile cache guncelleme',
         'invoiceDate bazli liste',
-        'documentId ile resmi PDF',
+        'documentId ile direkt PDF dosyasi',
         'HTML detay /detail endpointinden alinir',
         'POST render override',
         'Yazdirildi komutu ayri endpoint',
@@ -44,6 +44,11 @@ export const EDOCUMENTS_TASK_SOURCE = {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}/pdf',
               description: 'PDF acma endpoint aliasi'
+            },
+            {
+              method: 'GET',
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{documentId}/pdf-file',
+              description: 'Secili inbox faturasini application/pdf binary dosyasi olarak getirir'
             },
             {
               method: 'GET',
@@ -89,6 +94,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Canli SendInvoice gonderimi',
         'Outbox arama',
         'Tekil outbox belge render',
+        'Gonderilmis belge PDF Goster',
         'XML preview'
       ],
       listTitle: 'Endpointler',
@@ -141,6 +147,11 @@ export const EDOCUMENTS_TASK_SOURCE = {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-gonderimi/outbox/{invoiceId}?profile=Auto&preferEmbeddedXslt=true',
               description: 'Secili outbox faturasini render edilmis belge olarak getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file',
+              description: 'Secili outbox faturasini application/pdf binary dosyasi olarak getirir'
             },
             {
               method: 'POST',

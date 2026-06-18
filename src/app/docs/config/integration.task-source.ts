@@ -393,7 +393,8 @@ export const INTEGRATION_TASK_SOURCE = {
         'Servis ozet karti',
         'Operasyon explorer',
         'Typed parameter formu',
-        'Whitelist Get* operasyonlari'
+        'Whitelist Get* operasyonlari',
+        'Direkt PDF binary aliaslari'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -427,6 +428,16 @@ export const INTEGRATION_TASK_SOURCE = {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/system/date',
               description: 'Sik kullanilan sistem tarihi alias routeunu operationName secmeden cagirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf-file',
+              description: 'Inbox e-faturasini application/pdf binary response olarak getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file',
+              description: 'Outbox e-faturasini application/pdf binary response olarak getirir'
             }
           ]
         }

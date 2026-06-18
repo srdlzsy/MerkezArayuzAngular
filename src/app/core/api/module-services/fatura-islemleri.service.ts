@@ -29,6 +29,8 @@ import type {
 
 import { BaseApiService } from '../base-api.service';
 
+type InvoiceSendingScenarioBodyValue = 1 | 2;
+
 export type InvoiceViewingListItemDto = IInvoiceViewingListItemApiDto;
 export type InvoiceViewingListResponseDto = IInvoiceViewingListResponseApiDto;
 export type InvoiceViewingDetailDto = IInvoiceViewingDetailApiDto;
@@ -92,9 +94,14 @@ export class FaturaIslemleriService extends BaseApiService {
     documentOrderNo: number,
     request: InvoiceSendingRenderRequestDto
   ) {
+    const body: InvoiceSendingRenderRequestDto = {
+      ...request,
+      scenario: this.toInvoiceSendingScenarioBodyValue(request.scenario)
+    };
+
     return this.post<InvoiceSendingDetailDto, InvoiceSendingRenderRequestDto>(
       `fatura-islemleri/fatura-gonderimi/${encodeURIComponent(documentSerie)}/${documentOrderNo}/render`,
-      request
+      body
     );
   }
 
@@ -116,16 +123,26 @@ export class FaturaIslemleriService extends BaseApiService {
     documentOrderNo: number,
     request: UpdateInvoiceReturnReferenceRequestDto
   ) {
+    const body: UpdateInvoiceReturnReferenceRequestDto = {
+      ...request,
+      scenario: this.toInvoiceSendingScenarioBodyValue(request.scenario)
+    };
+
     return this.put<InvoiceReturnReferenceDto | null, UpdateInvoiceReturnReferenceRequestDto>(
       `fatura-islemleri/fatura-gonderimi/${encodeURIComponent(documentSerie)}/${documentOrderNo}/return-reference`,
-      request
+      body
     );
   }
 
   sendInvoiceDocuments(request: SendInvoiceDocumentsRequestDto) {
+    const body: SendInvoiceDocumentsRequestDto = {
+      ...request,
+      scenario: this.toInvoiceSendingScenarioBodyValue(request.scenario)
+    };
+
     return this.post<SendInvoiceDocumentsResponseDto, SendInvoiceDocumentsRequestDto>(
       'fatura-islemleri/fatura-gonderimi/send',
-      request
+      body
     );
   }
 
@@ -156,6 +173,12 @@ export class FaturaIslemleriService extends BaseApiService {
   getInvoiceViewingPdf(documentId: string) {
     return this.get<InvoiceViewingPdfResponseDto>(
       `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}`
+    );
+  }
+
+  getUyumsoftEInvoiceInboxPdfFile(documentId: string) {
+    return this.getBlob(
+      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/${encodeURIComponent(documentId)}/pdf-file`
     );
   }
 
@@ -213,10 +236,39 @@ export class FaturaIslemleriService extends BaseApiService {
     );
   }
 
+  getUyumsoftEInvoiceOutboxPdfFile(invoiceId: string) {
+    return this.getBlob(
+      `entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/${encodeURIComponent(invoiceId)}/pdf-file`
+    );
+  }
+
   previewInvoiceDocument(request: InvoicePreviewRequestDto) {
     return this.post<InvoiceRenderedDocumentDto, InvoicePreviewRequestDto>(
       'fatura-islemleri/fatura-gonderimi/preview',
       request
     );
+  }
+
+  private toInvoiceSendingScenarioBodyValue(
+    value: string | number | null | undefined
+  ): InvoiceSendingScenarioBodyValue | undefined {
+    if (value === 1 || value === 2) {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      return value === 2 ? 2 : 1;
+    }
+
+    const normalizedValue = (value ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, '')
+      .toLocaleLowerCase('tr-TR');
+
+    if (!normalizedValue) {
+      return undefined;
+    }
+
+    return normalizedValue.includes('arsiv') || normalizedValue.includes('archive') ? 2 : 1;
   }
 }

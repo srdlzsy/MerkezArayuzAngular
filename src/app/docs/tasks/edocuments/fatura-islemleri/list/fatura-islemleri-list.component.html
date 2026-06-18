@@ -941,11 +941,25 @@
                     <small *ngIf="references.currentReference?.invoiceDate as currentReferenceInvoiceDate">
                       {{ currentReferenceInvoiceDate | date: 'dd.MM.yyyy' }}
                     </small>
+                    <ng-container
+                      *ngIf="getReturnReferenceAmount(references.currentReference) !== null"
+                    >
+                      <small>
+                        {{ getReturnReferenceAmount(references.currentReference) | number: '1.2-2' }} TL
+                      </small>
+                    </ng-container>
                   </article>
                   <article class="summary-card" *ngIf="references.fallbackReference">
                     <span>Fallback Aday</span>
                     <strong>{{ references.fallbackReference.invoiceNo }}</strong>
                     <small>{{ references.fallbackReference.invoiceDate | date: 'dd.MM.yyyy' }}</small>
+                    <ng-container
+                      *ngIf="getReturnReferenceAmount(references.fallbackReference) !== null"
+                    >
+                      <small>
+                        {{ getReturnReferenceAmount(references.fallbackReference) | number: '1.2-2' }} TL
+                      </small>
+                    </ng-container>
                   </article>
                 </section>
 
@@ -994,6 +1008,9 @@
                     </div>
                     <div class="meta-strip">
                       <span>{{ getReferenceDocumentLabel(reference) }}</span>
+                      <ng-container *ngIf="getReturnReferenceAmount(reference) !== null">
+                        <span>{{ getReturnReferenceAmount(reference) | number: '1.2-2' }} TL</span>
+                      </ng-container>
                       <span>{{ getReturnReferenceBadge(reference) }}</span>
                     </div>
                     <button
@@ -1079,6 +1096,15 @@
                 <div>
                   <h4>Belge Gorunumu</h4>
                 </div>
+                <button
+                  type="button"
+                  class="secondary-button compact-button"
+                  *ngIf="selectedSendingSummary() as summary"
+                  (click)="openSendingPdfFile(summary)"
+                  [disabled]="!canOpenSendingPdf(summary) || isSendingPdfLoading(summary)"
+                >
+                  {{ isSendingPdfLoading(summary) ? 'PDF aciliyor...' : 'PDF Goster' }}
+                </button>
               </div>
               <iframe
                 class="document-frame"

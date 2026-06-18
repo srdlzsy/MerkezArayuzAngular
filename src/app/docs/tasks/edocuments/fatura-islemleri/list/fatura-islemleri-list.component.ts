@@ -259,6 +259,7 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly selectedSendingKeys = signal<string[]>([]);
   protected readonly sendingRequestLoading = signal(false);
+  protected readonly sendingPdfLoadingKey = signal<string | null>(null);
   protected readonly lastSendResponse = signal<SendInvoiceDocumentsResponseDto | null>(null);
   protected readonly returnReferencePanelOpen = signal(false);
   protected readonly returnReferenceCandidates =
@@ -931,21 +932,21 @@ export class FaturaIslemleriListComponent {
     this.viewingPdfLoading.set(true);
 
     this.faturaIslemleriService
-      .getInvoiceViewingPdf(summary.documentId)
+      .getUyumsoftEInvoiceInboxPdfFile(summary.documentId)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.viewingPdfLoading.set(false))
       )
       .subscribe({
-        next: (response: InvoiceViewingPdfResponseDto) => {
-          const opened = this.openPdfResponse(response);
+        next: (blob: Blob) => {
+          const opened = this.openPdfBlob(blob);
 
           this.feedback.set({
             tone: opened ? 'success' : 'info',
             title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
             message: opened
               ? `${summary.invoiceId} resmi PDF olarak acildi.`
-              : response.message || 'Uyumsoft PDF cevabi alindi ancak tarayici icin acilabilir PDF datasina cevrilemedi.'
+              : 'Uyumsoft PDF dosyasi alindi ancak tarayici yeni sekmeyi acamadi.'
           });
         },
         error: (error: HttpErrorResponse) => {
@@ -1321,6 +1322,60 @@ export class FaturaIslemleriListComponent {
     }
 
     this.submitSendingDocuments([summary]);
+  }
+
+  protected openSendingPdfFile(summary: InvoiceSendingListItemDto): void {
+    if (!this.canSendDetail()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'PDF yetkisi gerekli',
+        message: 'Gonderilmis faturanin PDF dosyasini acmak icin detail yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const lookupId = this.getSendingPdfLookupId(summary);
+
+    if (!lookupId) {
+      this.feedback.set({
+        tone: 'info',
+        title: 'PDF anahtari yok',
+        message:
+          'Bu fatura icin Uyumsoft outbox PDF anahtari henuz bulunmuyor. Gonderim sonrasi serviceDocumentId veya invoiceId donmelidir.'
+      });
+      return;
+    }
+
+    this.sendingPdfLoadingKey.set(this.buildSendingKey(summary.documentSerie, summary.documentOrderNo));
+
+    this.faturaIslemleriService
+      .getUyumsoftEInvoiceOutboxPdfFile(lookupId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.sendingPdfLoadingKey.set(null))
+      )
+      .subscribe({
+        next: (blob: Blob) => {
+          const opened = this.openPdfBlob(blob);
+          this.feedback.set({
+            tone: opened ? 'success' : 'info',
+            title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
+            message: opened
+              ? `${summary.invoiceId} outbox PDF olarak acildi.`
+              : 'Uyumsoft outbox PDF dosyasi alindi ancak tarayici yeni sekmeyi acamadi.'
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'PDF acilamadi',
+            message: this.resolveErrorMessage(
+              error,
+              'Secili gonderilmis fatura icin Uyumsoft outbox PDF dosyasi alinamadi.'
+            )
+          });
+        }
+      });
   }
 
   protected openReturnReferencePanel(summary: InvoiceSendingListItemDto): void {
@@ -1745,6 +1800,17 @@ export class FaturaIslemleriListComponent {
     return this.isSendingItemSelected(item) ? 'Kuyruktan Cikar' : 'Kuyruga Ekle';
   }
 
+  protected canOpenSendingPdf(summary: InvoiceSendingListItemDto | null | undefined): boolean {
+    return !!summary && summary.isSent && !!this.getSendingPdfLookupId(summary);
+  }
+
+  protected isSendingPdfLoading(summary: InvoiceSendingListItemDto): boolean {
+    return (
+      this.sendingPdfLoadingKey() ===
+      this.buildSendingKey(summary.documentSerie, summary.documentOrderNo)
+    );
+  }
+
   protected isReturnInvoice(item: InvoiceSendingListItemDto | null | undefined): boolean {
     return (item?.invoiceTypeCode ?? '').trim().toUpperCase() === 'IADE';
   }
@@ -1779,6 +1845,21 @@ export class FaturaIslemleriListComponent {
     }
 
     return `${sourceDocumentSerie} / ${reference.sourceDocumentOrderNo}`;
+  }
+
+  protected getReturnReferenceAmount(reference: InvoiceReturnReferenceDto | null): number | null {
+    if (!reference) {
+      return null;
+    }
+
+    const amount =
+      reference.payableTotal ??
+      reference.invoiceTotal ??
+      reference.totalAmount ??
+      reference.amount ??
+      null;
+
+    return typeof amount === 'number' && Number.isFinite(amount) ? amount : null;
   }
 
   protected getReturnReferenceBadge(reference: InvoiceReturnReferenceDto): string {
@@ -1949,6 +2030,21 @@ export class FaturaIslemleriListComponent {
       node.value ?? '',
       ...this.flattenNodeValues(node.children ?? [])
     ]);
+  }
+
+  private openPdfBlob(blob: Blob): boolean {
+    const pdfBlob =
+      blob.type === 'application/pdf'
+        ? blob
+        : new Blob([blob], {
+            type: 'application/pdf'
+          });
+    const objectUrl = URL.createObjectURL(pdfBlob);
+    const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+
+    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+
+    return !!openedWindow;
   }
 
   private loadReturnReferenceCandidates(summary: InvoiceSendingListItemDto): void {
@@ -2306,6 +2402,7 @@ export class FaturaIslemleriListComponent {
             invoiceId: result.invoiceId?.trim() || item.invoiceId,
             customerCode: result.customerCode?.trim() || item.customerCode,
             customerTitle: result.customerTitle?.trim() || item.customerTitle,
+            serviceDocumentId: result.serviceDocumentId?.trim() || item.serviceDocumentId,
             isSent: result.isSucceeded ? true : item.isSent,
             sentDocumentNo: result.serviceDocumentNumber?.trim() || item.sentDocumentNo
           };
@@ -2331,6 +2428,8 @@ export class FaturaIslemleriListComponent {
             invoiceId: result.invoiceId?.trim() || currentDetail.summary.invoiceId,
             customerCode: result.customerCode?.trim() || currentDetail.summary.customerCode,
             customerTitle: result.customerTitle?.trim() || currentDetail.summary.customerTitle,
+            serviceDocumentId:
+              result.serviceDocumentId?.trim() || currentDetail.summary.serviceDocumentId,
             isSent: result.isSucceeded ? true : currentDetail.summary.isSent,
             sentDocumentNo:
               result.serviceDocumentNumber?.trim() || currentDetail.summary.sentDocumentNo
@@ -2358,6 +2457,21 @@ export class FaturaIslemleriListComponent {
 
   private buildSendingKey(documentSerie: string, documentOrderNo: number): string {
     return `${documentSerie}|${documentOrderNo}`;
+  }
+
+  private getSendingPdfLookupId(
+    summary: InvoiceSendingListItemDto | null | undefined
+  ): string | null {
+    if (!summary?.isSent) {
+      return null;
+    }
+
+    return (
+      summary.serviceDocumentId?.trim() ||
+      summary.invoiceId?.trim() ||
+      summary.sentDocumentNo?.trim() ||
+      null
+    );
   }
 
   private buildReturnReferenceKey(reference: InvoiceReturnReferenceDto): string {

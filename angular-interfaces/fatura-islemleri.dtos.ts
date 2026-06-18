@@ -10,6 +10,7 @@ import type {
 export type IInvoiceStateFilterApiDto = -1 | 0 | 1;
 export type IInvoiceRenderProfileApiDto = 'Auto' | 'EFatura' | 'EArsiv';
 export type IInvoiceSendingScenarioApiDto = 'EFatura' | 'EArsiv';
+export type IInvoiceSendingScenarioBodyApiDto = IInvoiceSendingScenarioApiDto | 1 | 2;
 export type IInvoiceViewingSearchFieldApiDto =
   | 'InvoiceDate'
   | 'InvoiceId'
@@ -115,6 +116,7 @@ export interface IInvoiceSendingListItemApiDto {
   invoiceId: string;
   documentDate: string | null;
   sentDocumentNo: string | null;
+  serviceDocumentId?: string | null;
   isSent: boolean;
   customerCode: string;
   customerTitle: string;
@@ -150,6 +152,10 @@ export interface IInvoiceReturnReferenceApiDto {
   sourceDocumentOrderNo: number | null;
   invoiceNo: string;
   invoiceDate: string | null;
+  payableTotal?: number | null;
+  invoiceTotal?: number | null;
+  totalAmount?: number | null;
+  amount?: number | null;
   isFallbackCandidate: boolean;
   isGeneratedInvoiceNo: boolean;
 }
@@ -161,14 +167,14 @@ export interface IInvoiceReturnReferenceCandidatesResponseApiDto {
 }
 
 export interface IUpdateInvoiceReturnReferenceRequestApiDto {
-  scenario?: IInvoiceSendingScenarioApiDto | string | null;
+  scenario?: IInvoiceSendingScenarioBodyApiDto | string | null;
   sourceDocumentSerie?: string | null;
   sourceDocumentOrderNo?: number | null;
   useFallbackWhenNotSelected?: boolean | null;
 }
 
 export interface IInvoiceSendingRenderRequestApiDto {
-  scenario?: IInvoiceSendingScenarioApiDto | null;
+  scenario?: IInvoiceSendingScenarioBodyApiDto | null;
   profile?: IInvoiceRenderProfileApiDto | null;
   preferEmbeddedXslt?: boolean | null;
   fallbackToGeneral?: boolean | null;
@@ -180,7 +186,7 @@ export interface IInvoiceSendingDocumentKeyApiDto {
 }
 
 export interface ISendInvoiceDocumentsRequestApiDto {
-  scenario?: IInvoiceSendingScenarioApiDto | null;
+  scenario?: IInvoiceSendingScenarioBodyApiDto | null;
   documents: IInvoiceSendingDocumentKeyApiDto[];
 }
 
