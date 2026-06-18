@@ -136,6 +136,10 @@ export interface IInvoiceSendingListItemApiDto {
   returnInvoiceDate: string | null;
   warehouseName: string | null;
   description: string | null;
+  sendingPdfInvoiceUuid?: string | null;
+  sendingPdfInvoiceNumber?: string | null;
+  sendingPdfLocalDocumentId?: string | null;
+  sendingPdfFilePath?: string | null;
 }
 
 export interface IInvoiceSendingListResponseApiDto {

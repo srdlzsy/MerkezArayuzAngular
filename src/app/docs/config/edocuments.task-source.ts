@@ -150,8 +150,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/pdf-file',
-              description: 'invoiceList.items[].pdfFilePath tarafindan verilen UUID tabanli outbox PDF dosyasini getirir'
+              path: '{summary.sendingPdfFilePath}',
+              description: 'Fatura gonderimi listesinde summary.sendingPdfFilePath alanindan gelen PDF dosyasini getirir'
             },
             {
               method: 'POST',

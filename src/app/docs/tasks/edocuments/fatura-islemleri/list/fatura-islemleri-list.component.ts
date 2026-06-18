@@ -519,6 +519,9 @@ export class FaturaIslemleriListComponent {
         item.returnInvoiceNo,
         item.returnInvoiceDate,
         item.sentDocumentNo,
+        item.sendingPdfInvoiceNumber,
+        item.sendingPdfLocalDocumentId,
+        item.sendingPdfFilePath,
         item.warehouseName,
         item.description,
         `${item.payableTotal}`
@@ -1351,13 +1354,13 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
-    const invoiceUuid = this.getSendingPdfInvoiceUuid(summary);
+    const pdfFilePath = this.getSendingPdfFilePath(summary);
 
-    if (!invoiceUuid) {
+    if (!pdfFilePath) {
       this.feedback.set({
         tone: 'info',
-        title: 'PDF anahtari yok',
-        message: 'Bu fatura icin Uyumsoft teknik UUID henuz bulunmuyor.'
+        title: 'PDF yolu yok',
+        message: 'Gonderilmis fatura icin sendingPdfFilePath API cevabinda bulunmuyor.'
       });
       return;
     }
@@ -1365,7 +1368,7 @@ export class FaturaIslemleriListComponent {
     this.sendingPdfLoadingKey.set(this.buildSendingKey(summary.documentSerie, summary.documentOrderNo));
 
     this.faturaIslemleriService
-      .getUyumsoftEInvoiceOutboxPdfFile(invoiceUuid)
+      .getUyumsoftEInvoicePdfFileFromPath(pdfFilePath)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.sendingPdfLoadingKey.set(null))
@@ -1377,7 +1380,7 @@ export class FaturaIslemleriListComponent {
             tone: opened ? 'success' : 'info',
             title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
             message: opened
-              ? `${summary.invoiceId} outbox PDF olarak acildi.`
+              ? `${summary.sentDocumentNo || summary.invoiceId} outbox PDF olarak acildi.`
               : 'Uyumsoft outbox PDF dosyasi alindi ancak tarayici yeni sekmeyi acamadi.'
           });
         },
@@ -1931,7 +1934,21 @@ export class FaturaIslemleriListComponent {
   }
 
   protected canOpenSendingPdf(summary: InvoiceSendingListItemDto | null | undefined): boolean {
-    return !!summary && summary.isSent && !!this.getSendingPdfInvoiceUuid(summary);
+    return !!summary && summary.isSent && !!this.getSendingPdfFilePath(summary);
+  }
+
+  protected getSendingPdfButtonTitle(
+    summary: InvoiceSendingListItemDto | null | undefined
+  ): string {
+    if (!summary?.isSent) {
+      return 'PDF sadece gonderilmis faturalar icin acilir.';
+    }
+
+    if (!this.getSendingPdfFilePath(summary)) {
+      return 'API cevabinda sendingPdfFilePath bulunmuyor.';
+    }
+
+    return 'Gonderilmis fatura PDF dosyasini ac.';
   }
 
   protected canOpenOutboxInvoicePdf(
@@ -2568,14 +2585,14 @@ export class FaturaIslemleriListComponent {
     return `${documentSerie}|${documentOrderNo}`;
   }
 
-  private getSendingPdfInvoiceUuid(
+  private getSendingPdfFilePath(
     summary: InvoiceSendingListItemDto | null | undefined
   ): string | null {
     if (!summary?.isSent) {
       return null;
     }
 
-    return summary.serviceDocumentId?.trim() || null;
+    return summary.sendingPdfFilePath?.trim() || null;
   }
 
   private buildReturnReferenceKey(reference: InvoiceReturnReferenceDto): string {

@@ -854,6 +854,13 @@
                 <span>Gonderim Durumu</span>
                 <strong>{{ summary.isSent ? (summary.sentDocumentNo || 'Gonderildi') : 'Bekliyor' }}</strong>
               </article>
+              <article class="summary-card" *ngIf="summary.isSent">
+                <span>PDF Yolu</span>
+                <strong>{{ summary.sendingPdfFilePath ? 'Hazir' : 'Yok' }}</strong>
+                <small *ngIf="summary.sendingPdfInvoiceNumber || summary.sendingPdfLocalDocumentId">
+                  {{ summary.sendingPdfInvoiceNumber || summary.sendingPdfLocalDocumentId }}
+                </small>
+              </article>
               <article
                 class="summary-card"
                 *ngIf="isReturnInvoice(summary)"
@@ -1108,6 +1115,7 @@
                   *ngIf="selectedSendingSummary() as summary"
                   (click)="openSendingPdfFile(summary)"
                   [disabled]="!canOpenSendingPdf(summary) || isSendingPdfLoading(summary)"
+                  [title]="getSendingPdfButtonTitle(summary)"
                 >
                   {{ isSendingPdfLoading(summary) ? 'PDF aciliyor...' : 'PDF Goster' }}
                 </button>
