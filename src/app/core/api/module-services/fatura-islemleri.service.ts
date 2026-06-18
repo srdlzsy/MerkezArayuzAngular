@@ -5,6 +5,8 @@ import type {
   IInvoiceOutboxSearchResponseApiDto,
   IInvoicePreviewRequestApiDto,
   IInvoiceRenderedDocumentApiDto,
+  IInvoiceReturnReferenceApiDto,
+  IInvoiceReturnReferenceCandidatesResponseApiDto,
   IInvoiceSendingDetailApiDto,
   IInvoiceSendingListItemApiDto,
   IInvoiceSendingListQueryApiDto,
@@ -20,6 +22,7 @@ import type {
   IInvoiceViewingSynchronizationRequestApiDto,
   IInvoiceViewingPrintedStateRequestApiDto,
   IInvoiceViewingPrintedStateResponseApiDto,
+  IUpdateInvoiceReturnReferenceRequestApiDto,
   ISendInvoiceDocumentsRequestApiDto,
   ISendInvoiceDocumentsResponseApiDto
 } from '@interfaces';
@@ -44,6 +47,11 @@ export type InvoiceSendingListItemDto = IInvoiceSendingListItemApiDto;
 export type InvoiceSendingListResponseDto = IInvoiceSendingListResponseApiDto;
 export type InvoiceSendingDetailDto = IInvoiceSendingDetailApiDto;
 export type InvoiceSendingRenderRequestDto = IInvoiceSendingRenderRequestApiDto;
+export type InvoiceReturnReferenceDto = IInvoiceReturnReferenceApiDto;
+export type InvoiceReturnReferenceCandidatesResponseDto =
+  IInvoiceReturnReferenceCandidatesResponseApiDto;
+export type UpdateInvoiceReturnReferenceRequestDto =
+  IUpdateInvoiceReturnReferenceRequestApiDto;
 export type SendInvoiceDocumentsRequestDto = ISendInvoiceDocumentsRequestApiDto;
 export type SendInvoiceDocumentsResponseDto = ISendInvoiceDocumentsResponseApiDto;
 
@@ -86,6 +94,30 @@ export class FaturaIslemleriService extends BaseApiService {
   ) {
     return this.post<InvoiceSendingDetailDto, InvoiceSendingRenderRequestDto>(
       `fatura-islemleri/fatura-gonderimi/${encodeURIComponent(documentSerie)}/${documentOrderNo}/render`,
+      request
+    );
+  }
+
+  getInvoiceReturnReferenceCandidates(
+    documentSerie: string,
+    documentOrderNo: number,
+    scenario: IInvoiceSendingScenarioApiDto
+  ) {
+    return this.getWithQuery<InvoiceReturnReferenceCandidatesResponseDto>(
+      `fatura-islemleri/fatura-gonderimi/${encodeURIComponent(documentSerie)}/${documentOrderNo}/return-reference-candidates`,
+      {
+        scenario
+      }
+    );
+  }
+
+  updateInvoiceReturnReference(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: UpdateInvoiceReturnReferenceRequestDto
+  ) {
+    return this.put<InvoiceReturnReferenceDto | null, UpdateInvoiceReturnReferenceRequestDto>(
+      `fatura-islemleri/fatura-gonderimi/${encodeURIComponent(documentSerie)}/${documentOrderNo}/return-reference`,
       request
     );
   }

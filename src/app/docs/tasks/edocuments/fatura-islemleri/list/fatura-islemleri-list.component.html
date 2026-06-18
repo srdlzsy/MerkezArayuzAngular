@@ -565,7 +565,7 @@
                 type="text"
                 [value]="sendingQuickFilter()"
                 (input)="setSendingQuickFilter($event)"
-                placeholder="invoiceId, musteri, seri, alias veya depo"
+                placeholder="invoiceId, musteri, seri, iade ref, alias veya depo"
               />
             </label>
 
@@ -594,8 +594,15 @@
               </div>
 
               <div class="candidate-strip">
-                <span class="candidate-chip" *ngFor="let item of selectedSendingItems(); trackBy: trackBySendingInvoice">
+                <span
+                  class="candidate-chip"
+                  *ngFor="let item of selectedSendingItems(); trackBy: trackBySendingInvoice"
+                  [class.is-danger]="isReturnInvoice(item) && !hasReturnReference(item)"
+                >
                   {{ item.invoiceId }}
+                  <ng-container *ngIf="isReturnInvoice(item) && !hasReturnReference(item)">
+                    - iade ref yok
+                  </ng-container>
                 </span>
               </div>
             </div>
@@ -628,6 +635,7 @@
                     <th>Tarih</th>
                     <th>Durum</th>
                     <th>Senaryo</th>
+                    <th>Iade Ref</th>
                     <th class="amount-column">Tutar</th>
                     <th class="action-column">Islem</th>
                   </tr>
@@ -670,6 +678,21 @@
                       </span>
                     </td>
                     <td>{{ getScenarioLabel(item.scenario) }}</td>
+                    <td>
+                      <ng-container *ngIf="isReturnInvoice(item); else noReturnReference">
+                        <span
+                          class="status-pill"
+                          [class.status-pill-success]="hasReturnReference(item)"
+                          [class.status-pill-danger]="!hasReturnReference(item)"
+                        >
+                          {{ getReturnReferenceLabel(item) }}
+                        </span>
+                        <small *ngIf="item.returnInvoiceDate">
+                          {{ item.returnInvoiceDate | date: 'dd.MM.yyyy' }}
+                        </small>
+                      </ng-container>
+                      <ng-template #noReturnReference>-</ng-template>
+                    </td>
                     <td class="amount-column">
                       <strong>{{ item.payableTotal | number: '1.2-2' }} TL</strong>
                     </td>
@@ -810,6 +833,7 @@
                 <span class="token">{{ summary.documentSerie }} / {{ summary.documentOrderNo }}</span>
                 <span class="token">{{ summary.documentDate | date: 'dd.MM.yyyy' }}</span>
                 <span class="token">{{ getScenarioLabel(summary.scenario) }}</span>
+                <span class="token">{{ summary.invoiceTypeCode || '-' }}</span>
               </div>
             </section>
 
@@ -830,6 +854,17 @@
                 <span>Gonderim Durumu</span>
                 <strong>{{ summary.isSent ? (summary.sentDocumentNo || 'Gonderildi') : 'Bekliyor' }}</strong>
               </article>
+              <article
+                class="summary-card"
+                *ngIf="isReturnInvoice(summary)"
+                [class.summary-card-alert]="!hasReturnReference(summary)"
+              >
+                <span>Iade Referansi</span>
+                <strong>{{ getReturnReferenceLabel(summary) }}</strong>
+                <small *ngIf="summary.returnInvoiceDate">
+                  {{ summary.returnInvoiceDate | date: 'dd.MM.yyyy' }}
+                </small>
+              </article>
             </section>
 
             <div class="action-row">
@@ -841,6 +876,19 @@
                 [disabled]="sendingDetailLoading()"
               >
                 Varsayilan Onizleme
+              </button>
+              <button
+                type="button"
+                class="secondary-button"
+                *ngIf="isReturnInvoice(summary) && canSendDetail()"
+                (click)="openReturnReferencePanel(summary)"
+                [disabled]="returnReferenceLoading()"
+              >
+                {{
+                  returnReferenceLoading()
+                    ? 'Referanslar yukleniyor...'
+                    : 'Iadeye Konu Fatura Sec/Degistir'
+                }}
               </button>
               <button
                 type="button"
@@ -860,6 +908,111 @@
                 {{ sendingRequestLoading() ? 'Gonderiliyor...' : 'Bu Faturayi Gonder' }}
               </button>
             </div>
+
+            <section
+              class="reference-panel"
+              *ngIf="returnReferencePanelOpen() && isReturnInvoice(summary)"
+            >
+              <div class="panel-head compact-head">
+                <div>
+                  <p class="section-kicker">Iade Referansi</p>
+                  <h4>Iadeye konu faturalar</h4>
+                </div>
+                <button
+                  type="button"
+                  class="ghost-button compact-button"
+                  (click)="reloadReturnReferenceCandidates()"
+                  [disabled]="returnReferenceLoading()"
+                >
+                  Yenile
+                </button>
+              </div>
+
+              <div class="empty-state compact-empty" *ngIf="returnReferenceLoading()">
+                <h4>Adaylar yukleniyor</h4>
+                <p>Secili iade fatura icin referans listesi hazirlaniyor.</p>
+              </div>
+
+              <ng-container *ngIf="returnReferenceCandidates() as references">
+                <section class="summary-grid compact-summary-grid">
+                  <article class="summary-card">
+                    <span>Kayitli Referans</span>
+                    <strong>{{ references.currentReference?.invoiceNo || getReturnReferenceLabel(summary) }}</strong>
+                    <small *ngIf="references.currentReference?.invoiceDate">
+                      {{ references.currentReference?.invoiceDate | date: 'dd.MM.yyyy' }}
+                    </small>
+                  </article>
+                  <article class="summary-card" *ngIf="references.fallbackReference">
+                    <span>Fallback Aday</span>
+                    <strong>{{ references.fallbackReference.invoiceNo }}</strong>
+                    <small>{{ references.fallbackReference.invoiceDate | date: 'dd.MM.yyyy' }}</small>
+                  </article>
+                </section>
+
+                <div class="action-row" *ngIf="references.fallbackReference as fallbackReference">
+                  <button
+                    type="button"
+                    class="secondary-button"
+                    *ngIf="canSendCreate()"
+                    (click)="saveFallbackReturnReference(summary)"
+                    [disabled]="!!returnReferenceSavingKey()"
+                  >
+                    {{
+                      isSavingFallbackReference(fallbackReference)
+                        ? 'Fallback kaydediliyor...'
+                        : 'Fallback Referansi Kullan'
+                    }}
+                  </button>
+                </div>
+
+                <div
+                  class="empty-state compact-empty"
+                  *ngIf="
+                    !returnReferenceLoading() &&
+                    getReturnReferenceCandidates(references).length === 0 &&
+                    !references.fallbackReference
+                  "
+                >
+                  <h4>Aday bulunamadi</h4>
+                  <p>Backend secilebilir iade referansi veya fallback aday dondurmedi.</p>
+                </div>
+
+                <div
+                  class="reference-list"
+                  *ngIf="getReturnReferenceCandidates(references).length > 0"
+                >
+                  <article
+                    class="reference-card"
+                    *ngFor="
+                      let reference of getReturnReferenceCandidates(references);
+                      trackBy: trackByReturnReference
+                    "
+                  >
+                    <div class="reference-card-main">
+                      <strong>{{ reference.invoiceNo }}</strong>
+                      <span>{{ reference.invoiceDate | date: 'dd.MM.yyyy' }}</span>
+                    </div>
+                    <div class="meta-strip">
+                      <span>{{ getReferenceDocumentLabel(reference) }}</span>
+                      <span>{{ getReturnReferenceBadge(reference) }}</span>
+                    </div>
+                    <button
+                      type="button"
+                      class="primary-button compact-button"
+                      *ngIf="canSendCreate()"
+                      (click)="saveReturnReference(summary, reference)"
+                      [disabled]="!!returnReferenceSavingKey()"
+                    >
+                      {{
+                        isSavingReturnReference(reference)
+                          ? 'Kaydediliyor...'
+                          : 'Bu Faturayi Sec'
+                      }}
+                    </button>
+                  </article>
+                </div>
+              </ng-container>
+            </section>
 
           </ng-container>
 

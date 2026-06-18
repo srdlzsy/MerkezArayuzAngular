@@ -85,6 +85,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
       highlights: [
         'Bekleyen fatura listesi',
         'UBL onizleme ve POST render override',
+        'Iade fatura referansi secimi',
         'Canli SendInvoice gonderimi',
         'Outbox arama',
         'Tekil outbox belge render',
@@ -112,6 +113,17 @@ export const EDOCUMENTS_TASK_SOURCE = {
               path: '/api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/render',
               description: 'Secili bekleyen fatura icin senaryo ve XSLT ayarlarini override ederek belgeyi yeniden render eder',
               payload: 'InvoiceSendingRenderRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/return-reference-candidates?scenario=EFatura',
+              description: 'Iade faturasi icin kayitli, fallback ve secilebilir iade referansi adaylarini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/return-reference',
+              description: 'Iade faturasi icin secilen veya fallback iade referansini kaydeder',
+              payload: 'UpdateInvoiceReturnReferenceRequest'
             },
             {
               method: 'POST',

@@ -129,6 +129,8 @@ export interface IInvoiceSendingListItemApiDto {
   payableTotal: number;
   shipmentDocumentNo: string | null;
   shipmentDocumentDate: string | null;
+  returnInvoiceNo: string | null;
+  returnInvoiceDate: string | null;
   warehouseName: string | null;
   description: string | null;
 }
@@ -141,6 +143,28 @@ export interface IInvoiceSendingListResponseApiDto {
 export interface IInvoiceSendingDetailApiDto {
   summary: IInvoiceSendingListItemApiDto;
   document: IInvoiceRenderedDocumentApiDto;
+}
+
+export interface IInvoiceReturnReferenceApiDto {
+  sourceDocumentSerie: string | null;
+  sourceDocumentOrderNo: number | null;
+  invoiceNo: string;
+  invoiceDate: string | null;
+  isFallbackCandidate: boolean;
+  isGeneratedInvoiceNo: boolean;
+}
+
+export interface IInvoiceReturnReferenceCandidatesResponseApiDto {
+  currentReference: IInvoiceReturnReferenceApiDto | null;
+  fallbackReference: IInvoiceReturnReferenceApiDto | null;
+  candidates: IInvoiceReturnReferenceApiDto[];
+}
+
+export interface IUpdateInvoiceReturnReferenceRequestApiDto {
+  scenario?: IInvoiceSendingScenarioApiDto | string | null;
+  sourceDocumentSerie?: string | null;
+  sourceDocumentOrderNo?: number | null;
+  useFallbackWhenNotSelected?: boolean | null;
 }
 
 export interface IInvoiceSendingRenderRequestApiDto {

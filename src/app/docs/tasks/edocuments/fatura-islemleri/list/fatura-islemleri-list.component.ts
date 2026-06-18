@@ -31,6 +31,8 @@ import {
   type InvoiceOutboxSearchResponseDto,
   type InvoicePreviewRequestDto,
   type InvoiceRenderedDocumentDto,
+  type InvoiceReturnReferenceCandidatesResponseDto,
+  type InvoiceReturnReferenceDto,
   type InvoiceSendingDetailDto,
   type InvoiceSendingListItemDto,
   type InvoiceSendingListResponseDto,
@@ -43,6 +45,7 @@ import {
   type InvoiceViewingSynchronizationRequestDto,
   type InvoiceViewingPrintedStateRequestDto,
   type InvoiceViewingPrintedStateResponseDto,
+  type UpdateInvoiceReturnReferenceRequestDto,
   type SendInvoiceDocumentsResponseDto
 } from '../../../../../core/api/module-services/fatura-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
@@ -257,6 +260,11 @@ export class FaturaIslemleriListComponent {
   protected readonly selectedSendingKeys = signal<string[]>([]);
   protected readonly sendingRequestLoading = signal(false);
   protected readonly lastSendResponse = signal<SendInvoiceDocumentsResponseDto | null>(null);
+  protected readonly returnReferencePanelOpen = signal(false);
+  protected readonly returnReferenceCandidates =
+    signal<InvoiceReturnReferenceCandidatesResponseDto | null>(null);
+  protected readonly returnReferenceLoading = signal(false);
+  protected readonly returnReferenceSavingKey = signal<string | null>(null);
 
   protected readonly outboxSearchResponse = signal<InvoiceOutboxSearchResponseDto | null>(null);
   protected readonly outboxSearchLoading = signal(false);
@@ -505,6 +513,8 @@ export class FaturaIslemleriListComponent {
         item.invoiceTypeCode,
         item.scenario,
         item.shipmentDocumentNo,
+        item.returnInvoiceNo,
+        item.returnInvoiceDate,
         item.sentDocumentNo,
         item.warehouseName,
         item.description,
@@ -560,6 +570,10 @@ export class FaturaIslemleriListComponent {
       {
         label: 'Secilen',
         value: `${this.selectedSendingItems().length}`
+      },
+      {
+        label: 'Iade Ref Eksik',
+        value: `${items.filter((item) => this.isReturnInvoice(item) && !this.hasReturnReference(item)).length}`
       },
       {
         label: 'Senaryo',
@@ -1094,6 +1108,9 @@ export class FaturaIslemleriListComponent {
       this.sendingDetail.set(null);
       this.selectedSendingKeys.set([]);
       this.lastSendResponse.set(null);
+      this.returnReferencePanelOpen.set(false);
+      this.returnReferenceCandidates.set(null);
+      this.returnReferenceSavingKey.set(null);
     }
 
     this.sendingListLoading.set(true);
@@ -1131,6 +1148,9 @@ export class FaturaIslemleriListComponent {
           this.selectedSendingKey.set(null);
           this.sendingDetail.set(null);
           this.selectedSendingKeys.set([]);
+          this.returnReferencePanelOpen.set(false);
+          this.returnReferenceCandidates.set(null);
+          this.returnReferenceSavingKey.set(null);
           this.feedback.set({
             tone: 'error',
             title: 'Gonderim listesi yuklenemedi',
@@ -1155,6 +1175,9 @@ export class FaturaIslemleriListComponent {
     this.sendingQuickFilter.set('');
     this.clearSendingSelection();
     this.lastSendResponse.set(null);
+    this.returnReferencePanelOpen.set(false);
+    this.returnReferenceCandidates.set(null);
+    this.returnReferenceSavingKey.set(null);
   }
 
   protected setSendingQuickFilter(event: Event): void {
@@ -1165,6 +1188,9 @@ export class FaturaIslemleriListComponent {
     this.selectedSendingKey.set(this.buildSendingKey(item.documentSerie, item.documentOrderNo));
     this.sendingDetailDialogOpen.set(true);
     this.sendingRenderMode.set('default');
+    this.returnReferencePanelOpen.set(false);
+    this.returnReferenceCandidates.set(null);
+    this.returnReferenceSavingKey.set(null);
     this.resetSendingRenderForm(item.scenario);
 
     if (!this.canSendDetail()) {
@@ -1295,6 +1321,103 @@ export class FaturaIslemleriListComponent {
     }
 
     this.submitSendingDocuments([summary]);
+  }
+
+  protected openReturnReferencePanel(summary: InvoiceSendingListItemDto): void {
+    if (!this.isReturnInvoice(summary)) {
+      return;
+    }
+
+    if (!this.canSendDetail()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Iade referansi icin detay yetkisi gerekli',
+        message: 'Iadeye konu fatura adaylarini gormek icin detail yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    this.returnReferencePanelOpen.set(true);
+    this.loadReturnReferenceCandidates(summary);
+  }
+
+  protected reloadReturnReferenceCandidates(): void {
+    const summary = this.selectedSendingSummary();
+
+    if (!summary) {
+      return;
+    }
+
+    this.openReturnReferencePanel(summary);
+  }
+
+  protected saveReturnReference(
+    summary: InvoiceSendingListItemDto,
+    reference: InvoiceReturnReferenceDto
+  ): void {
+    if (!this.canSendCreate()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Referans kayit yetkisi gerekli',
+        message: 'Iade fatura referansini kaydetmek icin create yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const sourceDocumentSerie = reference.sourceDocumentSerie?.trim() ?? '';
+
+    if (!sourceDocumentSerie || reference.sourceDocumentOrderNo === null) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Referans eksik',
+        message: 'Secilen adayda kaynak seri veya sira bilgisi bulunmuyor.'
+      });
+      return;
+    }
+
+    this.saveReturnReferenceRequest(
+      summary,
+      {
+        scenario: this.resolveSendingScenario(summary.scenario),
+        sourceDocumentSerie,
+        sourceDocumentOrderNo: reference.sourceDocumentOrderNo,
+        useFallbackWhenNotSelected: false
+      },
+      reference,
+      this.buildReturnReferenceKey(reference)
+    );
+  }
+
+  protected saveFallbackReturnReference(summary: InvoiceSendingListItemDto): void {
+    if (!this.canSendCreate()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Referans kayit yetkisi gerekli',
+        message: 'Iade fatura referansini kaydetmek icin create yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const fallbackReference = this.returnReferenceCandidates()?.fallbackReference ?? null;
+
+    if (!fallbackReference) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Fallback aday yok',
+        message: 'Backend bu iade faturasi icin otomatik fallback aday dondurmedi.'
+      });
+      return;
+    }
+
+    this.saveReturnReferenceRequest(
+      summary,
+      {
+        scenario: this.resolveSendingScenario(summary.scenario),
+        useFallbackWhenNotSelected: true
+      },
+      fallbackReference,
+      `fallback:${this.buildReturnReferenceKey(fallbackReference)}`
+    );
   }
 
   protected addSearchParameter(
@@ -1622,6 +1745,60 @@ export class FaturaIslemleriListComponent {
     return this.isSendingItemSelected(item) ? 'Kuyruktan Cikar' : 'Kuyruga Ekle';
   }
 
+  protected isReturnInvoice(item: InvoiceSendingListItemDto | null | undefined): boolean {
+    return (item?.invoiceTypeCode ?? '').trim().toUpperCase() === 'IADE';
+  }
+
+  protected hasReturnReference(item: InvoiceSendingListItemDto | null | undefined): boolean {
+    return !!item?.returnInvoiceNo?.trim();
+  }
+
+  protected getReturnReferenceLabel(item: InvoiceSendingListItemDto): string {
+    if (!this.isReturnInvoice(item)) {
+      return '-';
+    }
+
+    return item.returnInvoiceNo?.trim() || 'Referans gerekli';
+  }
+
+  protected getReturnReferenceCandidates(
+    response: InvoiceReturnReferenceCandidatesResponseDto | null
+  ): InvoiceReturnReferenceDto[] {
+    return response?.candidates ?? [];
+  }
+
+  protected getReferenceDocumentLabel(reference: InvoiceReturnReferenceDto | null): string {
+    if (!reference) {
+      return '-';
+    }
+
+    const sourceDocumentSerie = reference.sourceDocumentSerie?.trim();
+
+    if (!sourceDocumentSerie || reference.sourceDocumentOrderNo === null) {
+      return '-';
+    }
+
+    return `${sourceDocumentSerie} / ${reference.sourceDocumentOrderNo}`;
+  }
+
+  protected getReturnReferenceBadge(reference: InvoiceReturnReferenceDto): string {
+    if (reference.isFallbackCandidate) {
+      return 'Fallback';
+    }
+
+    return reference.isGeneratedInvoiceNo ? 'Uretilen No' : 'Aday';
+  }
+
+  protected isSavingReturnReference(reference: InvoiceReturnReferenceDto): boolean {
+    return this.returnReferenceSavingKey() === this.buildReturnReferenceKey(reference);
+  }
+
+  protected isSavingFallbackReference(reference: InvoiceReturnReferenceDto | null): boolean {
+    return reference
+      ? this.returnReferenceSavingKey() === `fallback:${this.buildReturnReferenceKey(reference)}`
+      : false;
+  }
+
   protected isPrintedStateUpdating(documentId: string | null | undefined): boolean {
     return !!documentId && this.printedStateUpdatingDocumentId() === documentId;
   }
@@ -1664,6 +1841,10 @@ export class FaturaIslemleriListComponent {
     _index: number,
     item: InvoiceSendingListItemDto
   ): string => this.buildSendingKey(item.documentSerie, item.documentOrderNo);
+  protected readonly trackByReturnReference = (
+    _index: number,
+    item: InvoiceReturnReferenceDto
+  ): string => this.buildReturnReferenceKey(item);
   protected readonly trackByNode = (_index: number, node: IUyumsoftResponseNodeApiDto): string =>
     `${node.name}|${node.value ?? ''}`;
   protected readonly trackByStat = (_index: number, stat: HeroStat): string => stat.label;
@@ -1770,6 +1951,106 @@ export class FaturaIslemleriListComponent {
     ]);
   }
 
+  private loadReturnReferenceCandidates(summary: InvoiceSendingListItemDto): void {
+    this.returnReferenceLoading.set(true);
+    this.returnReferenceCandidates.set(null);
+
+    this.faturaIslemleriService
+      .getInvoiceReturnReferenceCandidates(
+        summary.documentSerie,
+        summary.documentOrderNo,
+        this.resolveSendingScenario(summary.scenario)
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.returnReferenceLoading.set(false))
+      )
+      .subscribe({
+        next: (response: InvoiceReturnReferenceCandidatesResponseDto) => {
+          const normalizedResponse: InvoiceReturnReferenceCandidatesResponseDto = {
+            ...response,
+            candidates: response.candidates ?? []
+          };
+
+          this.returnReferenceCandidates.set(normalizedResponse);
+
+          if (
+            !normalizedResponse.currentReference &&
+            !normalizedResponse.fallbackReference &&
+            normalizedResponse.candidates.length === 0
+          ) {
+            this.feedback.set({
+              tone: 'info',
+              title: 'Iade referans adayi yok',
+              message: `${summary.invoiceId} icin secilebilir iade referansi donmedi.`
+            });
+            return;
+          }
+
+          this.clearInfoFeedback();
+        },
+        error: (error: HttpErrorResponse) => {
+          this.returnReferenceCandidates.set(null);
+          this.feedback.set({
+            tone: 'error',
+            title: 'Iade referans adaylari alinamadi',
+            message: this.resolveErrorMessage(
+              error,
+              'Secili iade fatura icin referans adaylari getirilemedi.'
+            )
+          });
+        }
+      });
+  }
+
+  private saveReturnReferenceRequest(
+    summary: InvoiceSendingListItemDto,
+    request: UpdateInvoiceReturnReferenceRequestDto,
+    optimisticReference: InvoiceReturnReferenceDto,
+    savingKey: string
+  ): void {
+    this.returnReferenceSavingKey.set(savingKey);
+
+    this.faturaIslemleriService
+      .updateInvoiceReturnReference(summary.documentSerie, summary.documentOrderNo, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.returnReferenceSavingKey.set(null))
+      )
+      .subscribe({
+        next: (savedReference: InvoiceReturnReferenceDto | null) => {
+          const reference = savedReference?.invoiceNo?.trim()
+            ? savedReference
+            : optimisticReference;
+
+          this.mergeReturnReference(summary, reference);
+          this.returnReferenceCandidates.update((currentResponse) =>
+            currentResponse
+              ? {
+                  ...currentResponse,
+                  currentReference: reference
+                }
+              : currentResponse
+          );
+          this.feedback.set({
+            tone: 'success',
+            title: 'Iade referansi kaydedildi',
+            message: `${summary.invoiceId} icin ${reference.invoiceNo} referansi kullanilacak.`
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Iade referansi kaydedilemedi',
+            message: this.resolveErrorMessage(
+              error,
+              'Secili iade referansi backend tarafinda kaydedilemedi.'
+            )
+          });
+        }
+      });
+  }
+
   private fetchSendingDetail(
     documentSerie: string,
     documentOrderNo: number,
@@ -1822,6 +2103,26 @@ export class FaturaIslemleriListComponent {
         tone: 'info',
         title: 'Gonderilecek belge secilmedi',
         message: 'Canli gonderim icin en az bir gonderilmemis belge secmelisin.'
+      });
+      return;
+    }
+
+    const missingReturnReference = unsentDocuments.find(
+      (item) => this.isReturnInvoice(item) && !this.hasReturnReference(item)
+    );
+
+    if (missingReturnReference) {
+      this.openSendingDetail(missingReturnReference);
+
+      if (this.canSendDetail()) {
+        this.returnReferencePanelOpen.set(true);
+        this.loadReturnReferenceCandidates(missingReturnReference);
+      }
+
+      this.feedback.set({
+        tone: 'error',
+        title: 'Iade referansi zorunlu',
+        message: `${missingReturnReference.invoiceId} iade faturasi gonderilmeden once iadeye konu fatura referansi secilmeli.`
       });
       return;
     }
@@ -1935,6 +2236,50 @@ export class FaturaIslemleriListComponent {
     }
   }
 
+  private mergeReturnReference(
+    summary: InvoiceSendingListItemDto,
+    reference: InvoiceReturnReferenceDto
+  ): void {
+    const selectedKey = this.buildSendingKey(summary.documentSerie, summary.documentOrderNo);
+    const returnInvoiceNo = reference.invoiceNo?.trim() || null;
+    const returnInvoiceDate = reference.invoiceDate ?? null;
+    const currentList = this.sendingList();
+
+    if (currentList) {
+      this.sendingList.set({
+        ...currentList,
+        items: currentList.items.map((item) =>
+          this.buildSendingKey(item.documentSerie, item.documentOrderNo) === selectedKey
+            ? {
+                ...item,
+                returnInvoiceNo,
+                returnInvoiceDate
+              }
+            : item
+        )
+      });
+    }
+
+    const currentDetail = this.sendingDetail();
+
+    if (
+      currentDetail &&
+      this.buildSendingKey(
+        currentDetail.summary.documentSerie,
+        currentDetail.summary.documentOrderNo
+      ) === selectedKey
+    ) {
+      this.sendingDetail.set({
+        ...currentDetail,
+        summary: {
+          ...currentDetail.summary,
+          returnInvoiceNo,
+          returnInvoiceDate
+        }
+      });
+    }
+  }
+
   private mergeSendResponse(response: SendInvoiceDocumentsResponseDto): void {
     const resultsByKey = new Map(
       response.items.map((item) => [
@@ -2013,6 +2358,15 @@ export class FaturaIslemleriListComponent {
 
   private buildSendingKey(documentSerie: string, documentOrderNo: number): string {
     return `${documentSerie}|${documentOrderNo}`;
+  }
+
+  private buildReturnReferenceKey(reference: InvoiceReturnReferenceDto): string {
+    return [
+      reference.sourceDocumentSerie ?? '',
+      reference.sourceDocumentOrderNo ?? '',
+      reference.invoiceNo ?? '',
+      reference.invoiceDate ?? ''
+    ].join('|');
   }
 
   private findSendingItemByKey(

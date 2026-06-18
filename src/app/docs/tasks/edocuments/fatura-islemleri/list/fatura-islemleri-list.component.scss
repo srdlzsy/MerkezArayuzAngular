@@ -214,6 +214,12 @@
   color: var(--primary);
 }
 
+.candidate-chip.is-danger {
+  border-color: #efb4b4;
+  background: #fff4f4;
+  color: var(--danger-text);
+}
+
 .workspace-tab:hover:not(:disabled),
 .ghost-button:hover:not(:disabled),
 .primary-button:hover:not(:disabled),
@@ -249,6 +255,11 @@
   border: 1px solid var(--line);
   border-radius: 8px;
   background: var(--surface-soft);
+}
+
+.summary-card-alert {
+  border-color: #efb4b4;
+  background: #fff7f7;
 }
 
 .stat-card span,
@@ -432,7 +443,7 @@
 
 .invoice-table {
   width: 100%;
-  min-width: 820px;
+  min-width: 960px;
   border-collapse: collapse;
   table-layout: fixed;
 }
@@ -700,6 +711,7 @@
 .advanced-panel,
 .code-block,
 .message-card,
+.reference-panel,
 .queue-banner,
 .section-heading {
   border-radius: 8px;
@@ -713,9 +725,46 @@
 .document-preview-shell,
 .advanced-panel,
 .code-block,
-.message-card {
+.message-card,
+.reference-panel {
   border: 1px solid var(--line);
   background: var(--surface-soft);
+}
+
+.reference-panel {
+  display: grid;
+  gap: 0.68rem;
+  padding: 0.85rem;
+}
+
+.reference-list {
+  display: grid;
+  gap: 0.6rem;
+}
+
+.reference-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.62rem;
+  align-items: center;
+  padding: 0.7rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.reference-card-main {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.reference-card-main strong {
+  color: var(--text);
+}
+
+.reference-card-main span {
+  color: var(--muted);
+  font-size: 0.82rem;
 }
 
 .queue-banner {
@@ -882,6 +931,7 @@
   .preview-head,
   .compact-head,
   .parameter-row,
+  .reference-card,
   .invoice-title-row,
   .pagination-row,
   .detail-hero,
@@ -905,6 +955,10 @@
 
   .detail-dialog {
     max-height: 94vh;
+  }
+
+  .reference-card {
+    grid-template-columns: 1fr;
   }
 }
 
