@@ -928,6 +928,12 @@
                 </button>
               </div>
 
+              <div class="meta-strip" *ngIf="returnReferenceInvoiceContext() as referenceInvoice">
+                <span>{{ referenceInvoice.documentSerie }} / {{ referenceInvoice.documentOrderNo }}</span>
+                <span>{{ referenceInvoice.scenario }}</span>
+                <span>{{ referenceInvoice.invoiceId }}</span>
+              </div>
+
               <div class="empty-state compact-empty" *ngIf="returnReferenceLoading()">
                 <h4>Adaylar yukleniyor</h4>
                 <p>Secili iade fatura icin referans listesi hazirlaniyor.</p>

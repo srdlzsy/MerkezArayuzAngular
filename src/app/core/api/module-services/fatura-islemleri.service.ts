@@ -29,7 +29,7 @@ import type {
 
 import { BaseApiService } from '../base-api.service';
 
-type InvoiceSendingScenarioBodyValue = 1 | 2;
+type InvoiceSendingScenarioBodyValue = 0 | 1;
 
 export type InvoiceViewingListItemDto = IInvoiceViewingListItemApiDto;
 export type InvoiceViewingListResponseDto = IInvoiceViewingListResponseApiDto;
@@ -176,9 +176,15 @@ export class FaturaIslemleriService extends BaseApiService {
     );
   }
 
-  getUyumsoftEInvoiceInboxPdfFile(documentId: string) {
+  getUyumsoftEInvoiceInboxPdfFile(invoiceId: string) {
     return this.getBlob(
-      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/${encodeURIComponent(documentId)}/pdf-file`
+      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/${encodeURIComponent(invoiceId)}/pdf-file`
+    );
+  }
+
+  getUyumsoftEInvoiceInboxPdfFileByNumber(invoiceNumber: string) {
+    return this.getBlob(
+      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/${encodeURIComponent(invoiceNumber)}/pdf-file`
     );
   }
 
@@ -242,6 +248,12 @@ export class FaturaIslemleriService extends BaseApiService {
     );
   }
 
+  getUyumsoftEInvoiceOutboxPdfFileByNumber(invoiceNumber: string) {
+    return this.getBlob(
+      `entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/${encodeURIComponent(invoiceNumber)}/pdf-file`
+    );
+  }
+
   previewInvoiceDocument(request: InvoicePreviewRequestDto) {
     return this.post<InvoiceRenderedDocumentDto, InvoicePreviewRequestDto>(
       'fatura-islemleri/fatura-gonderimi/preview',
@@ -252,12 +264,12 @@ export class FaturaIslemleriService extends BaseApiService {
   private toInvoiceSendingScenarioBodyValue(
     value: string | number | null | undefined
   ): InvoiceSendingScenarioBodyValue | undefined {
-    if (value === 1 || value === 2) {
+    if (value === 0 || value === 1) {
       return value;
     }
 
     if (typeof value === 'number') {
-      return value === 2 ? 2 : 1;
+      return value === 2 ? 1 : 0;
     }
 
     const normalizedValue = (value ?? '')
@@ -269,6 +281,6 @@ export class FaturaIslemleriService extends BaseApiService {
       return undefined;
     }
 
-    return normalizedValue.includes('arsiv') || normalizedValue.includes('archive') ? 2 : 1;
+    return normalizedValue.includes('arsiv') || normalizedValue.includes('archive') ? 1 : 0;
   }
 }

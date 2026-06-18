@@ -98,6 +98,11 @@ interface SendingScenarioOption {
   description: string;
 }
 
+interface SendingPdfLookup {
+  value: string;
+  source: 'invoice-number' | 'technical-id';
+}
+
 const VIEWING_TASK_ID = 'fatura-goruntuleme';
 const SENDING_TASK_ID = 'fatura-gonderimi';
 const VIEWING_LIST_PERMISSION = 'fatura-islemleri.fatura-goruntuleme.list';
@@ -262,6 +267,7 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingPdfLoadingKey = signal<string | null>(null);
   protected readonly lastSendResponse = signal<SendInvoiceDocumentsResponseDto | null>(null);
   protected readonly returnReferencePanelOpen = signal(false);
+  protected readonly returnReferenceInvoiceContext = signal<InvoiceSendingListItemDto | null>(null);
   protected readonly returnReferenceCandidates =
     signal<InvoiceReturnReferenceCandidatesResponseDto | null>(null);
   protected readonly returnReferenceLoading = signal(false);
@@ -932,7 +938,7 @@ export class FaturaIslemleriListComponent {
     this.viewingPdfLoading.set(true);
 
     this.faturaIslemleriService
-      .getUyumsoftEInvoiceInboxPdfFile(summary.documentId)
+      .getUyumsoftEInvoiceInboxPdfFileByNumber(summary.documentId)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.viewingPdfLoading.set(false))
@@ -1110,6 +1116,7 @@ export class FaturaIslemleriListComponent {
       this.selectedSendingKeys.set([]);
       this.lastSendResponse.set(null);
       this.returnReferencePanelOpen.set(false);
+      this.returnReferenceInvoiceContext.set(null);
       this.returnReferenceCandidates.set(null);
       this.returnReferenceSavingKey.set(null);
     }
@@ -1150,6 +1157,7 @@ export class FaturaIslemleriListComponent {
           this.sendingDetail.set(null);
           this.selectedSendingKeys.set([]);
           this.returnReferencePanelOpen.set(false);
+          this.returnReferenceInvoiceContext.set(null);
           this.returnReferenceCandidates.set(null);
           this.returnReferenceSavingKey.set(null);
           this.feedback.set({
@@ -1177,6 +1185,7 @@ export class FaturaIslemleriListComponent {
     this.clearSendingSelection();
     this.lastSendResponse.set(null);
     this.returnReferencePanelOpen.set(false);
+    this.returnReferenceInvoiceContext.set(null);
     this.returnReferenceCandidates.set(null);
     this.returnReferenceSavingKey.set(null);
   }
@@ -1190,6 +1199,7 @@ export class FaturaIslemleriListComponent {
     this.sendingDetailDialogOpen.set(true);
     this.sendingRenderMode.set('default');
     this.returnReferencePanelOpen.set(false);
+    this.returnReferenceInvoiceContext.set(null);
     this.returnReferenceCandidates.set(null);
     this.returnReferenceSavingKey.set(null);
     this.resetSendingRenderForm(item.scenario);
@@ -1334,22 +1344,26 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
-    const lookupId = this.getSendingPdfLookupId(summary);
+    const lookup = this.getSendingPdfLookup(summary);
 
-    if (!lookupId) {
+    if (!lookup) {
       this.feedback.set({
         tone: 'info',
         title: 'PDF anahtari yok',
         message:
-          'Bu fatura icin Uyumsoft outbox PDF anahtari henuz bulunmuyor. Gonderim sonrasi serviceDocumentId veya invoiceId donmelidir.'
+          'Bu fatura icin Uyumsoft teknik id veya resmi fatura numarasi henuz bulunmuyor.'
       });
       return;
     }
 
     this.sendingPdfLoadingKey.set(this.buildSendingKey(summary.documentSerie, summary.documentOrderNo));
 
-    this.faturaIslemleriService
-      .getUyumsoftEInvoiceOutboxPdfFile(lookupId)
+    const pdfRequest =
+      lookup.source === 'technical-id'
+        ? this.faturaIslemleriService.getUyumsoftEInvoiceOutboxPdfFile(lookup.value)
+        : this.faturaIslemleriService.getUyumsoftEInvoiceOutboxPdfFileByNumber(lookup.value);
+
+    pdfRequest
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.sendingPdfLoadingKey.set(null))
@@ -1392,22 +1406,39 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
+    const scenario = this.getInvoiceScenario(summary.scenario);
+
+    if (!scenario) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Fatura senaryosu gecersiz',
+        message: `${summary.invoiceId} satirinda EFatura veya EArsiv scenario bilgisi bulunmuyor.`
+      });
+      return;
+    }
+
+    const context: InvoiceSendingListItemDto = {
+      ...summary,
+      scenario
+    };
+
+    this.returnReferenceInvoiceContext.set(context);
     this.returnReferencePanelOpen.set(true);
-    this.loadReturnReferenceCandidates(summary);
+    this.loadReturnReferenceCandidates(context);
   }
 
   protected reloadReturnReferenceCandidates(): void {
-    const summary = this.selectedSendingSummary();
+    const summary = this.returnReferenceInvoiceContext();
 
     if (!summary) {
       return;
     }
 
-    this.openReturnReferencePanel(summary);
+    this.loadReturnReferenceCandidates(summary);
   }
 
   protected saveReturnReference(
-    summary: InvoiceSendingListItemDto,
+    _summary: InvoiceSendingListItemDto,
     reference: InvoiceReturnReferenceDto
   ): void {
     if (!this.canSendCreate()) {
@@ -1415,6 +1446,18 @@ export class FaturaIslemleriListComponent {
         tone: 'error',
         title: 'Referans kayit yetkisi gerekli',
         message: 'Iade fatura referansini kaydetmek icin create yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const summary = this.returnReferenceInvoiceContext();
+    const scenario = this.getInvoiceScenario(summary?.scenario);
+
+    if (!summary || !scenario) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Iade faturasi baglami kayip',
+        message: 'Referans kaydi icin secilen fatura seri, sira ve scenario bilgisi bulunamadi.'
       });
       return;
     }
@@ -1433,7 +1476,7 @@ export class FaturaIslemleriListComponent {
     this.saveReturnReferenceRequest(
       summary,
       {
-        scenario: this.resolveSendingScenario(summary.scenario),
+        scenario,
         sourceDocumentSerie,
         sourceDocumentOrderNo: reference.sourceDocumentOrderNo,
         useFallbackWhenNotSelected: false
@@ -1443,12 +1486,24 @@ export class FaturaIslemleriListComponent {
     );
   }
 
-  protected saveFallbackReturnReference(summary: InvoiceSendingListItemDto): void {
+  protected saveFallbackReturnReference(_summary: InvoiceSendingListItemDto): void {
     if (!this.canSendCreate()) {
       this.feedback.set({
         tone: 'error',
         title: 'Referans kayit yetkisi gerekli',
         message: 'Iade fatura referansini kaydetmek icin create yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const summary = this.returnReferenceInvoiceContext();
+    const scenario = this.getInvoiceScenario(summary?.scenario);
+
+    if (!summary || !scenario) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Iade faturasi baglami kayip',
+        message: 'Fallback kaydi icin secilen fatura seri, sira ve scenario bilgisi bulunamadi.'
       });
       return;
     }
@@ -1467,7 +1522,7 @@ export class FaturaIslemleriListComponent {
     this.saveReturnReferenceRequest(
       summary,
       {
-        scenario: this.resolveSendingScenario(summary.scenario),
+        scenario,
         useFallbackWhenNotSelected: true
       },
       fallbackReference,
@@ -1744,7 +1799,7 @@ export class FaturaIslemleriListComponent {
     );
   }
 
-  protected getScenarioLabel(value: string | null | undefined): string {
+  protected getScenarioLabel(value: unknown): string {
     return this.resolveSendingScenario(value) === 'EArsiv' ? 'E-Arsiv' : 'E-Fatura';
   }
 
@@ -1801,7 +1856,7 @@ export class FaturaIslemleriListComponent {
   }
 
   protected canOpenSendingPdf(summary: InvoiceSendingListItemDto | null | undefined): boolean {
-    return !!summary && summary.isSent && !!this.getSendingPdfLookupId(summary);
+    return !!summary && summary.isSent && !!this.getSendingPdfLookup(summary);
   }
 
   protected isSendingPdfLoading(summary: InvoiceSendingListItemDto): boolean {
@@ -2048,6 +2103,17 @@ export class FaturaIslemleriListComponent {
   }
 
   private loadReturnReferenceCandidates(summary: InvoiceSendingListItemDto): void {
+    const scenario = this.getInvoiceScenario(summary.scenario);
+
+    if (!scenario) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Fatura senaryosu gecersiz',
+        message: `${summary.documentSerie}/${summary.documentOrderNo} icin scenario belirlenemedi.`
+      });
+      return;
+    }
+
     this.returnReferenceLoading.set(true);
     this.returnReferenceCandidates.set(null);
 
@@ -2055,7 +2121,7 @@ export class FaturaIslemleriListComponent {
       .getInvoiceReturnReferenceCandidates(
         summary.documentSerie,
         summary.documentOrderNo,
-        this.resolveSendingScenario(summary.scenario)
+        scenario
       )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -2063,6 +2129,19 @@ export class FaturaIslemleriListComponent {
       )
       .subscribe({
         next: (response: InvoiceReturnReferenceCandidatesResponseDto) => {
+          if (response.invoice && !this.matchesReturnReferenceInvoice(summary, response.invoice)) {
+            this.returnReferenceCandidates.set(null);
+            this.feedback.set({
+              tone: 'error',
+              title: 'Iade referansi faturasi uyusmuyor',
+              message:
+                `Secilen ${summary.documentSerie}/${summary.documentOrderNo} (${scenario}) yerine ` +
+                `${response.invoice.documentSerie}/${response.invoice.documentOrderNo} ` +
+                `(${response.invoice.scenario}) cevabi dondu.`
+            });
+            return;
+          }
+
           const normalizedResponse: InvoiceReturnReferenceCandidatesResponseDto = {
             ...response,
             candidates: response.candidates ?? []
@@ -2090,10 +2169,12 @@ export class FaturaIslemleriListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Iade referans adaylari alinamadi',
-            message: this.resolveErrorMessage(
-              error,
-              'Secili iade fatura icin referans adaylari getirilemedi.'
-            )
+            message:
+              this.resolveErrorMessage(
+                error,
+                'Secili iade fatura icin referans adaylari getirilemedi.'
+              ) +
+              ` [${summary.documentSerie}/${summary.documentOrderNo}, scenario=${scenario}]`
           });
         }
       });
@@ -2150,7 +2231,7 @@ export class FaturaIslemleriListComponent {
   private fetchSendingDetail(
     documentSerie: string,
     documentOrderNo: number,
-    scenario: string | null | undefined
+    scenario: unknown
   ): void {
     this.sendingDetailLoading.set(true);
 
@@ -2211,8 +2292,7 @@ export class FaturaIslemleriListComponent {
       this.openSendingDetail(missingReturnReference);
 
       if (this.canSendDetail()) {
-        this.returnReferencePanelOpen.set(true);
-        this.loadReturnReferenceCandidates(missingReturnReference);
+        this.openReturnReferencePanel(missingReturnReference);
       }
 
       this.feedback.set({
@@ -2301,7 +2381,7 @@ export class FaturaIslemleriListComponent {
     });
   }
 
-  private resetSendingRenderForm(scenario?: string | null): void {
+  private resetSendingRenderForm(scenario?: unknown): void {
     this.sendingRenderForm.reset({
       scenario: this.resolveSendingScenario(scenario ?? this.sendingFilterForm.controls.scenario.value),
       profile: 'Auto',
@@ -2459,19 +2539,30 @@ export class FaturaIslemleriListComponent {
     return `${documentSerie}|${documentOrderNo}`;
   }
 
-  private getSendingPdfLookupId(
+  private getSendingPdfLookup(
     summary: InvoiceSendingListItemDto | null | undefined
-  ): string | null {
+  ): SendingPdfLookup | null {
     if (!summary?.isSent) {
       return null;
     }
 
-    return (
-      summary.serviceDocumentId?.trim() ||
-      summary.invoiceId?.trim() ||
-      summary.sentDocumentNo?.trim() ||
-      null
-    );
+    const technicalId = summary.serviceDocumentId?.trim();
+
+    if (technicalId) {
+      return {
+        value: technicalId,
+        source: 'technical-id'
+      };
+    }
+
+    const invoiceNumber = summary.sentDocumentNo?.trim() || summary.invoiceId?.trim();
+
+    return invoiceNumber
+      ? {
+          value: invoiceNumber,
+          source: 'invoice-number'
+        }
+      : null;
   }
 
   private buildReturnReferenceKey(reference: InvoiceReturnReferenceDto): string {
@@ -2539,8 +2630,43 @@ export class FaturaIslemleriListComponent {
     }
   }
 
+  private getInvoiceScenario(value: unknown): IInvoiceSendingScenarioApiDto | null {
+    const normalizedValue = this.normalizeIdentifier(String(value ?? ''));
+
+    if (value === 0 || normalizedValue === '0' || normalizedValue === 'efatura') {
+      return 'EFatura';
+    }
+
+    if (
+      value === 1 ||
+      value === 2 ||
+      normalizedValue === '1' ||
+      normalizedValue === '2' ||
+      normalizedValue === 'earsiv'
+    ) {
+      return 'EArsiv';
+    }
+
+    return null;
+  }
+
+  private matchesReturnReferenceInvoice(
+    selectedInvoice: InvoiceSendingListItemDto,
+    responseInvoice: NonNullable<InvoiceReturnReferenceCandidatesResponseDto['invoice']>
+  ): boolean {
+    const selectedScenario = this.getInvoiceScenario(selectedInvoice.scenario);
+    const responseScenario = this.getInvoiceScenario(responseInvoice.scenario);
+
+    return (
+      selectedInvoice.documentSerie.trim() === responseInvoice.documentSerie.trim() &&
+      selectedInvoice.documentOrderNo === responseInvoice.documentOrderNo &&
+      !!selectedScenario &&
+      selectedScenario === responseScenario
+    );
+  }
+
   private resolveSendingScenario(value: unknown): IInvoiceSendingScenarioApiDto {
-    return this.normalizeText(value) === 'earsiv' ? 'EArsiv' : 'EFatura';
+    return this.getInvoiceScenario(value) ?? 'EFatura';
   }
 
   private extractInvoiceIds(nodes: IUyumsoftResponseNodeApiDto[]): string[] {
@@ -2597,14 +2723,13 @@ export class FaturaIslemleriListComponent {
       return error.error;
     }
 
-    if (
-      typeof error.error === 'object' &&
-      error.error !== null &&
-      'message' in error.error &&
-      typeof error.error.message === 'string' &&
-      error.error.message.trim()
-    ) {
-      return error.error.message;
+    if (typeof error.error === 'object' && error.error !== null) {
+      const problem = error.error as Record<string, unknown>;
+      const message = problem['message'] ?? problem['detail'] ?? problem['title'];
+
+      if (typeof message === 'string' && message.trim()) {
+        return message;
+      }
     }
 
     return fallback;

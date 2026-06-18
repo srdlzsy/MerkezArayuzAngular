@@ -6693,13 +6693,24 @@ Response:
 
 Direkt PDF binary almak isteyen UI ekranlari icin onerilen endpoint:
 
-`GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{documentId}/pdf-file`
+Teknik Uyumsoft `invoiceId` biliniyorsa:
+
+`GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf-file`
+
+UI elinde sadece resmi fatura numarasi / `documentId` varsa:
+
+`GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{documentId}/pdf-file`
 
 Response:
 
 - `Content-Type: application/pdf`
 - `Content-Disposition: inline`
 - JSON beklenmemelidir; UI yeni sekme, iframe veya blob URL ile dogrudan PDF gosterebilir.
+
+Onemli:
+
+- `invoiceId` Uyumsoft'un teknik belge id'sidir; `FRP2026000021435` gibi resmi fatura numarasi degildir.
+- Liste satirinda teknik `invoiceId` yoksa UI `by-number` endpointini kullanmalidir.
 
 Bu endpoint ne icin kullanilmali:
 
@@ -6915,7 +6926,7 @@ Response `InvoiceSendingListResponse`:
       "targetAlias": "urn:mail:ornek@firma.com",
       "invoiceProfileId": "TICARIFATURA",
       "invoiceTypeCode": "SATIS",
-      "scenario": "EFatura",
+      "scenario": 0,
       "lineExtensionTotal": 1000.00,
       "taxTotal": 180.00,
       "chargeTotal": 0.00,
@@ -6936,6 +6947,7 @@ Davranis:
 - kaynak veri Mikro `CARI_HESAP_HAREKETLERI`, `CARI_HESAPLAR`, `CARI_HESAP_ADRESLERI` ve `Furpa.dbo.FaturaSeries` ustunden okunur
 - `Scenario = EFatura` icin yalniz e-fatura mukellefi ve e-fatura serisine bagli kayitlar gelir
 - `Scenario = EArsiv` icin yalniz e-arsiv tarafina dusen kayitlar gelir
+- `InvoiceSendingScenario` JSON response/body degeri sayisaldir: `0 = EFatura`, `1 = EArsiv`; query string tarafinda `EFatura` / `EArsiv` adlari da kullanilabilir
 - `isSent/SentState = 0` ise `cha_belge_no` bos olan kayitlar, `1` ise dolu olan kayitlar, `-1` ise tumu doner
 - `invoiceId` legacy WinForms mantigina uygun sekilde `seri + yil + 9 haneli sira` olarak uretilir
 - `invoiceProfileId` alani:
@@ -6949,15 +6961,123 @@ Davranis:
 
 ### Fatura Gonderimi Iade Referansi
 
-Iade faturasi icin UI akisi:
+#### UI uygulama kurali
+
+Iade referansi endpointleri cagirilirken hedef faturanin kimligi sadece secilen liste/detail satirindan alinmalidir:
+
+```ts
+const documentSerie = invoice.documentSerie;
+const documentOrderNo = invoice.documentOrderNo;
+const scenario = invoice.scenario;
+```
+
+Asagidaki alanlar kullanilmamalidir:
+
+- `invoiceId` icinden seri veya sira cikarmak
+- ekranda gorunen resmi fatura numarasini parcalamak
+- aktif sekmeye bakarak `scenario` degerini yeniden tahmin etmek
+- `EFatura` veya `EArsiv` degerini sabit yazmak
+
+Ornek liste satiri:
+
+```json
+{
+  "documentSerie": "FRP",
+  "documentOrderNo": 21763,
+  "invoiceId": "FRP2026000021763",
+  "invoiceTypeCode": "IADE",
+  "scenario": 0,
+  "returnInvoiceNo": "",
+  "returnInvoiceDate": null
+}
+```
+
+Bu satir icin dogru aday listesi cagrisi:
+
+```http
+GET /api/fatura-islemleri/fatura-gonderimi/FRP/21763/return-reference-candidates?scenario=EFatura
+```
+
+Dogru kaydetme cagrisi:
+
+```http
+PUT /api/fatura-islemleri/fatura-gonderimi/FRP/21763/return-reference
+Content-Type: application/json
+```
+
+```json
+{
+  "scenario": 0,
+  "sourceDocumentSerie": "ABC",
+  "sourceDocumentOrderNo": 123,
+  "useFallbackWhenNotSelected": false
+}
+```
+
+Yanlis ornek:
+
+```http
+PUT /api/fatura-islemleri/fatura-gonderimi/FRP26/21763/return-reference
+```
+
+```json
+{
+  "scenario": 1
+}
+```
+
+Bu ornekte iki hata vardir:
+
+1. `FRP26`, `invoiceId` degerinden turetilmistir; route'ta response'taki gercek `documentSerie` olan `FRP` kullanilmalidir.
+2. Fatura satiri `scenario = 0 (EFatura)` iken body'de `1 (EArsiv)` gonderilmistir. Backend bu durumda yalnizca e-Arsiv kuyrugunda arama yapar ve e-Fatura kaydini bulamaz.
+
+#### Kullanici akisi
 
 1. Liste/detail response'ta `invoiceTypeCode = IADE` ise UI her zaman `Iadeye konu fatura sec/degistir` aksiyonu gostermelidir.
 2. `returnInvoiceNo` bos ise gonderimden once referans secimi zorunludur.
 3. `returnInvoiceNo` doluysa mevcut referans gosterilir; kullanici bunun gecici sorgu/fallback ile doldugunu dusunuyorsa yine aday listesinden dogru faturayi secip guncelleyebilir.
-4. UI adaylari ceker.
+4. UI adaylari secilen satirin `documentSerie`, `documentOrderNo` ve `scenario` degerleriyle ceker.
 5. Kullanici dogru faturayi secerse referans kaydedilir.
 6. Kullanici secemiyorsa gecici olarak fallback kullanilabilir; fallback ayni carinin son normal faturasini secer.
-7. Sonra normal `send` endpoint'i cagrilir.
+7. PUT body'deki `scenario`, aday listesi cagrisi ve secilen fatura satirindaki `scenario` ile ayni olmalidir.
+8. Referans kaydedildikten sonra normal `send` endpoint'i cagrilir.
+
+#### Route parametreleri
+
+- `return-reference` ve `return-reference-candidates` route'larinda path parametresi olarak liste/detail response'undaki `documentSerie` ve `documentOrderNo` aynen kullanilmalidir.
+- UI `invoiceId` veya fatura numarasindan seri/sira parse etmeye calismamalidir. Ornek `invoiceId = FRP2026000021626` ise path'e `FRP26/21626` gibi turetilmis deger gondermek yerine response'taki gercek `documentSerie` kullanilmalidir.
+- Backend geriye uyumluluk icin `ABC26` gibi 3 harf + yil eki gorunen seriler bulunamazsa `ABC` ile de arama dener; yine de UI icin dogru kaynak response alanlaridir.
+
+#### Scenario kurali
+
+- Aday listesi GET sorgusundaki `scenario`, secilen satirin `scenario` alanidir.
+- Kaydetme PUT body'deki `scenario`, secilen satirin `scenario` alanidir.
+- UI `0` degerini bos/false saymamalidir; `0 = EFatura`, `1 = EArsiv` olarak normalize etmelidir.
+- `EFatura` kaydi `EArsiv` ile; `EArsiv` kaydi `EFatura` ile sorgulanmamalidir.
+- Ayni seri/sira diger senaryo filtresinde bulunmadigi icin yanlis scenario genellikle `404 Pending invoice was not found` hatasi uretir.
+- UI state icinde sekme degisse bile acik modal, secildigi fatura satirinin kendi `scenario` degerini korumalidir.
+
+Ornek UI endpoint olusturma:
+
+```ts
+const basePath =
+  `/api/fatura-islemleri/fatura-gonderimi/` +
+  `${encodeURIComponent(invoice.documentSerie)}/` +
+  `${invoice.documentOrderNo}`;
+
+const candidatesUrl =
+  `${basePath}/return-reference-candidates` +
+  `?scenario=${encodeURIComponent(invoice.scenario)}`;
+
+const updateBody = {
+  scenario: invoice.scenario,
+  sourceDocumentSerie: selectedInvoice?.sourceDocumentSerie ?? null,
+  sourceDocumentOrderNo: selectedInvoice?.sourceDocumentOrderNo ?? null,
+  useFallbackWhenNotSelected: selectedInvoice == null
+};
+```
+
+#### Aday listesini getirme
 
 `GET /api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/return-reference-candidates?scenario=EFatura`
 
@@ -6965,6 +7085,15 @@ Response `InvoiceReturnReferenceCandidatesResponse`:
 
 ```json
 {
+  "invoice": {
+    "documentSerie": "FRP",
+    "documentOrderNo": 21763,
+    "invoiceId": "FRP2026000021763",
+    "invoiceTypeCode": "IADE",
+    "scenario": 0,
+    "returnInvoiceNo": "",
+    "returnInvoiceDate": null
+  },
   "currentReference": null,
   "fallbackReference": {
     "sourceDocumentSerie": "ABC",
@@ -6978,13 +7107,15 @@ Response `InvoiceReturnReferenceCandidatesResponse`:
 }
 ```
 
+#### Referansi kaydetme
+
 `PUT /api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/return-reference`
 
 Secilen faturayi kaydetmek icin:
 
 ```json
 {
-  "scenario": "EFatura",
+  "scenario": 0,
   "sourceDocumentSerie": "ABC",
   "sourceDocumentOrderNo": 123,
   "useFallbackWhenNotSelected": false
@@ -6995,10 +7126,31 @@ Gecici fallback'i kaydetmek icin:
 
 ```json
 {
-  "scenario": "EFatura",
+  "scenario": 0,
   "useFallbackWhenNotSelected": true
 }
 ```
+
+#### 404 hata kontrol listesi
+
+`Pending invoice was not found` cevabi alininca UI su alanlari loglayip karsilastirmalidir:
+
+- secilen satirdaki `documentSerie`
+- route'a yazilan `documentSerie`
+- secilen satirdaki `documentOrderNo`
+- route'a yazilan `documentOrderNo`
+- secilen satirdaki `scenario`
+- GET query veya PUT body ile gonderilen `scenario`
+
+Ornek hata:
+
+```text
+Pending invoice was not found for FRP26/21763.
+Scenario=EArsiv.
+Tried series: FRP26, FRP.
+```
+
+Bu mesaj backend'in hem `FRP26` hem `FRP` serisini denedigini, fakat aramayi `EArsiv` filtresiyle yaptigini gosterir. Secilen satir `EFatura` ise once frontend body'deki `scenario` duzeltilmelidir.
 
 Not: Kayit `EBELGE_EVRAK_HAREKETLERI.ebh_related_uid = iade faturasi cha_Guid` uzerinden update/insert edilir. `send` sirasinda iade referansi halen bos ise backend fallback'i otomatik deneyip kaydeder; fallback bulunamazsa gonderim durdurulur.
 
@@ -7037,7 +7189,7 @@ Request:
 
 ```json
 {
-  "scenario": "EFatura",
+  "scenario": 0,
   "profile": "Auto",
   "preferEmbeddedXslt": true,
   "fallbackToGeneral": true
@@ -7061,7 +7213,7 @@ Request:
 
 ```json
 {
-  "scenario": "EFatura",
+  "scenario": 0,
   "documents": [
     {
       "documentSerie": "FAT",
@@ -7079,7 +7231,7 @@ Response `SendInvoiceDocumentsResponse`:
 
 ```json
 {
-  "scenario": "EFatura",
+  "scenario": 0,
   "requestedCount": 2,
   "succeededCount": 1,
   "failedCount": 1,
@@ -8455,12 +8607,14 @@ Mevcut business akislardan farki:
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/view`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf-file`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{invoiceNumber}/pdf-file`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/status-with-logs`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/data`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/view`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file`
+- `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/status-with-logs`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/response-view`
 - `GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/invoices/{invoiceId}/envelope`
@@ -8491,6 +8645,7 @@ Not:
 - hazir alias `GET` route'lari katalogdaki sik kullanilan sistem tarihi ve tekil remote belge sorgularini operation formu kurmadan cagirabilmek icin vardir
 - bu modullerde `/pdf`, `/view`, `/envelope` ile biten route'lar binary dosya degil, JSON `UyumsoftOperationResponseDto` doner
 - e-fatura icin `/pdf-file` ile biten inbox/outbox route'lari istisnadir; direkt `application/pdf` binary response doner ve liste ekranlarindaki `PDF Goster` aksiyonlari icin onerilir
+- `{invoiceId}` route'lari Uyumsoft teknik id bekler; resmi fatura no ile PDF acilacaksa `by-number/{invoiceNumber}/pdf-file` route'u kullanilmalidir
 
 ### Yetki Kodlari
 
@@ -8777,11 +8932,19 @@ GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/9d6e0f84-3d3c-4
 Authorization: Bearer {token}
 ```
 
+Fatura numarasiyla e-fatura PDF dosyasi:
+
+```http
+GET /api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/FRP2026000021435/pdf-file
+Authorization: Bearer {token}
+```
+
 Response:
 
 - `Content-Type: application/pdf`
 - `Content-Disposition: inline`
-- UI bu endpointi fatura listesinde `PDF Goster` icin kullanabilir; JSON parse edilmez.
+- UI bu endpointleri fatura listesinde `PDF Goster` icin kullanabilir; JSON parse edilmez.
+- `FRP...` gibi resmi fatura numarasi varsa `by-number`, Uyumsoft liste response'undaki teknik `InvoiceId` varsa normal `{invoiceId}` route'u kullanilmalidir.
 
 Tekil e-irsaliye makbuz PDF sorgusu:
 
@@ -10597,6 +10760,12 @@ public enum InvoiceDocumentProfile
     Auto = 0,
     EFatura = 1,
     EArsiv = 2
+}
+
+public enum InvoiceSendingScenario
+{
+    EFatura = 0,
+    EArsiv = 1
 }
 
 public sealed record InvoiceRenderedDocumentDto(

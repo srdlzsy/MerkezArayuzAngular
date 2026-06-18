@@ -47,8 +47,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{documentId}/pdf-file',
-              description: 'Secili inbox faturasini application/pdf binary dosyasi olarak getirir'
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{documentId}/pdf-file',
+              description: 'Resmi fatura numarasini kullanarak inbox PDF dosyasini application/pdf olarak getirir'
             },
             {
               method: 'GET',
@@ -151,7 +151,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file',
-              description: 'Secili outbox faturasini application/pdf binary dosyasi olarak getirir'
+              description: 'Uyumsoft teknik invoiceId ile outbox PDF dosyasini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file',
+              description: 'Resmi fatura numarasiyla outbox PDF dosyasini application/pdf olarak getirir'
             },
             {
               method: 'POST',
@@ -163,7 +168,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         }
       ],
       codeSample: `{
-  "scenario": "EFatura",
+  "scenario": 0,
   "documents": [
     {
       "documentSerie": "FAT",

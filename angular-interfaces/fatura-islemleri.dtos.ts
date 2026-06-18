@@ -10,7 +10,8 @@ import type {
 export type IInvoiceStateFilterApiDto = -1 | 0 | 1;
 export type IInvoiceRenderProfileApiDto = 'Auto' | 'EFatura' | 'EArsiv';
 export type IInvoiceSendingScenarioApiDto = 'EFatura' | 'EArsiv';
-export type IInvoiceSendingScenarioBodyApiDto = IInvoiceSendingScenarioApiDto | 1 | 2;
+export type IInvoiceSendingScenarioValueApiDto = IInvoiceSendingScenarioApiDto | 0 | 1;
+export type IInvoiceSendingScenarioBodyApiDto = IInvoiceSendingScenarioValueApiDto;
 export type IInvoiceViewingSearchFieldApiDto =
   | 'InvoiceDate'
   | 'InvoiceId'
@@ -124,7 +125,7 @@ export interface IInvoiceSendingListItemApiDto {
   targetAlias: string | null;
   invoiceProfileId: string | null;
   invoiceTypeCode: string | null;
-  scenario: IInvoiceSendingScenarioApiDto | string;
+  scenario: IInvoiceSendingScenarioValueApiDto;
   lineExtensionTotal: number;
   taxTotal: number;
   chargeTotal: number;
@@ -160,14 +161,25 @@ export interface IInvoiceReturnReferenceApiDto {
   isGeneratedInvoiceNo: boolean;
 }
 
+export interface IInvoiceReturnReferenceInvoiceApiDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  invoiceId: string;
+  invoiceTypeCode: string | null;
+  scenario: IInvoiceSendingScenarioValueApiDto;
+  returnInvoiceNo: string | null;
+  returnInvoiceDate: string | null;
+}
+
 export interface IInvoiceReturnReferenceCandidatesResponseApiDto {
+  invoice?: IInvoiceReturnReferenceInvoiceApiDto | null;
   currentReference: IInvoiceReturnReferenceApiDto | null;
   fallbackReference: IInvoiceReturnReferenceApiDto | null;
   candidates: IInvoiceReturnReferenceApiDto[];
 }
 
 export interface IUpdateInvoiceReturnReferenceRequestApiDto {
-  scenario?: IInvoiceSendingScenarioBodyApiDto | string | null;
+  scenario?: IInvoiceSendingScenarioBodyApiDto | null;
   sourceDocumentSerie?: string | null;
   sourceDocumentOrderNo?: number | null;
   useFallbackWhenNotSelected?: boolean | null;
@@ -201,7 +213,7 @@ export interface ISendInvoiceDocumentResultApiDto extends IInvoiceSendingDocumen
 }
 
 export interface ISendInvoiceDocumentsResponseApiDto {
-  scenario: IInvoiceSendingScenarioApiDto | string;
+  scenario: IInvoiceSendingScenarioValueApiDto;
   requestedCount: number;
   succeededCount: number;
   failedCount: number;

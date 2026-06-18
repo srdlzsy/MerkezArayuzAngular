@@ -432,12 +432,22 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{invoiceId}/pdf-file',
-              description: 'Inbox e-faturasini application/pdf binary response olarak getirir'
+              description: 'Uyumsoft teknik invoiceId ile inbox PDF dosyasini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{invoiceNumber}/pdf-file',
+              description: 'Resmi fatura numarasiyla inbox PDF dosyasini getirir'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceId}/pdf-file',
-              description: 'Outbox e-faturasini application/pdf binary response olarak getirir'
+              description: 'Uyumsoft teknik invoiceId ile outbox PDF dosyasini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file',
+              description: 'Resmi fatura numarasiyla outbox PDF dosyasini getirir'
             }
           ]
         }
