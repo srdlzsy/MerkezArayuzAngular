@@ -1,8 +1,5 @@
 import { Injectable } from '@angular/core';
 import type {
-  IInvoiceOutboxRenderQueryApiDto,
-  IInvoiceOutboxSearchRequestApiDto,
-  IInvoiceOutboxSearchResponseApiDto,
   IInvoicePreviewRequestApiDto,
   IInvoiceRenderedDocumentApiDto,
   IInvoiceReturnReferenceApiDto,
@@ -39,8 +36,6 @@ export type InvoiceViewingSynchronizationRequestDto =
   IInvoiceViewingSynchronizationRequestApiDto;
 export type InvoiceViewingRenderRequestDto = IInvoiceViewingRenderRequestApiDto;
 export type InvoiceRenderedDocumentDto = IInvoiceRenderedDocumentApiDto;
-export type InvoiceOutboxSearchRequestDto = IInvoiceOutboxSearchRequestApiDto;
-export type InvoiceOutboxSearchResponseDto = IInvoiceOutboxSearchResponseApiDto;
 export type InvoicePreviewRequestDto = IInvoicePreviewRequestApiDto;
 export type InvoiceViewingPrintedStateRequestDto = IInvoiceViewingPrintedStateRequestApiDto;
 export type InvoiceViewingPrintedStateResponseDto = IInvoiceViewingPrintedStateResponseApiDto;
@@ -217,33 +212,6 @@ export class FaturaIslemleriService extends BaseApiService {
       `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}/printed`,
       request
     );
-  }
-
-  searchOutboxInvoices(request: InvoiceOutboxSearchRequestDto) {
-    return this.post<InvoiceOutboxSearchResponseDto, InvoiceOutboxSearchRequestDto>(
-      'fatura-islemleri/fatura-gonderimi/outbox/search',
-      request
-    );
-  }
-
-  renderOutboxInvoice(invoiceId: string, query: IInvoiceOutboxRenderQueryApiDto = {}) {
-    return this.getWithQuery<InvoiceRenderedDocumentDto>(
-      `fatura-islemleri/fatura-gonderimi/outbox/${encodeURIComponent(invoiceId)}`,
-      {
-        profile: query.profile ?? undefined,
-        preferEmbeddedXslt: query.preferEmbeddedXslt ?? undefined
-      }
-    );
-  }
-
-  getUyumsoftEInvoiceOutboxPdfFile(invoiceUuid: string) {
-    return this.getBlob(
-      `entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/${encodeURIComponent(invoiceUuid)}/pdf-file`
-    );
-  }
-
-  getUyumsoftEInvoicePdfFileFromPath(pdfFilePath: string) {
-    return this.getBlob(pdfFilePath);
   }
 
   previewInvoiceDocument(request: InvoicePreviewRequestDto) {

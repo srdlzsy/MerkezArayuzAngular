@@ -24,6 +24,7 @@ import type {
   IAxataManualIncomingInventoryCountBatchRequestApiDto,
   IAxataManualIncomingInventoryCountRequestApiDto,
   IAxataOutboundDeliveryBatchRequestApiDto,
+  IAxataOutboundDeliveryByDateItemApiDto,
   IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto,
   IAxataOutboundDeliveryImportExecuteRequestApiDto,
   IAxataOutboundDeliveryQueueDocumentApiDto,
@@ -57,6 +58,7 @@ import {
   AxataManualIncomingWarehouseReceivingBatchResponseDto,
   AxataManualIncomingWarehouseReceivingDetailDto,
   AxataManualIncomingWarehouseReceivingListItemDto,
+  AxataOutboundDeliveriesByDateDto,
   AxataOutboundDeliveryImportExecuteDto,
   AxataOutboundDeliveryImportPreviewDto,
   AxataOutboundDeliveryQueuePreviewDto,
@@ -186,6 +188,7 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly axataOutboundLoading = signal(false);
   protected readonly axataInboundAtfLoading = signal(false);
   protected readonly queuePreviewLoading = signal(false);
+  protected readonly outboundDeliveriesByDateLoading = signal(false);
   protected readonly c01PreviewLoading = signal(false);
   protected readonly c01ImportLoading = signal(false);
   protected readonly c01DocumentRescueLoading = signal(false);
@@ -333,6 +336,12 @@ export class AxataSenkronizasyonuListComponent {
       validators: [Validators.min(1), Validators.max(200)]
     })
   });
+  protected readonly outboundDeliveriesByDateForm = new FormGroup({
+    date: new FormControl<string>(this.getToday(), {
+      nonNullable: true,
+      validators: [Validators.required]
+    })
+  });
   protected readonly incomingWarehouseForm = new FormGroup({
     warehouseNo: new FormControl<number | null>(null),
     startDate: new FormControl<string>(this.getRelativeDate(6), {
@@ -387,6 +396,8 @@ export class AxataSenkronizasyonuListComponent {
     signal<AxataOutboundDeliveryImportExecuteDto | null>(null);
   protected readonly outboundDeliveryQueuePreview =
     signal<AxataOutboundDeliveryQueuePreviewDto | null>(null);
+  protected readonly outboundDeliveriesByDate =
+    signal<AxataOutboundDeliveriesByDateDto | null>(null);
   protected readonly incomingWarehouseReceivings =
     signal<AxataManualIncomingWarehouseReceivingListItemDto[]>([]);
   protected readonly incomingWarehouseReceivingDetail =
@@ -468,6 +479,7 @@ export class AxataSenkronizasyonuListComponent {
       this.axataOutboundLoading() ||
       this.axataInboundAtfLoading() ||
       this.queuePreviewLoading() ||
+      this.outboundDeliveriesByDateLoading() ||
       this.c01PreviewLoading() ||
       this.c01ImportLoading() ||
       this.c01DocumentRescueLoading() ||
@@ -639,6 +651,11 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly queuePreviewJson = computed(() =>
     this.outboundDeliveryQueuePreview()
       ? this.formatJson(this.outboundDeliveryQueuePreview())
+      : ''
+  );
+  protected readonly outboundDeliveriesByDateJson = computed(() =>
+    this.outboundDeliveriesByDate()
+      ? this.formatJson(this.outboundDeliveriesByDate())
       : ''
   );
   protected readonly auditSummaryCards = computed(() => {
@@ -1131,6 +1148,52 @@ export class AxataSenkronizasyonuListComponent {
             title: 'Kuyruk preview alinamadi',
             message:
               'AXATA outbound-deliveries/preview endpointi hata dondu. Movement type ve take degerlerini kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected loadOutboundDeliveriesByDate(): void {
+    if (this.outboundDeliveriesByDateForm.invalid) {
+      this.outboundDeliveriesByDateForm.markAllAsTouched();
+      return;
+    }
+
+    const date = this.outboundDeliveriesByDateForm.controls.date.value.trim();
+
+    if (!date) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Sevk tarihi eksik',
+        message: 'AXATA sevk tarihi sorgusu icin date zorunlu.'
+      });
+      return;
+    }
+
+    this.outboundDeliveriesByDateLoading.set(true);
+    this.outboundDeliveriesByDate.set(null);
+
+    this.entegrasyonIslemleriService
+      .getAxataOutboundDeliveriesByDate({ date })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.outboundDeliveriesByDateLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataOutboundDeliveriesByDateDto) => {
+          this.outboundDeliveriesByDate.set(result);
+          this.feedback.set({
+            tone: 'info',
+            title: 'AXATA sevk tarihi listesi hazir',
+            message: `${result.totalDocumentCount} belge, ${result.totalLineCount} satir ve ${result.totalQuantity} toplam miktar listelendi. Bu cagri veri yazmaz.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'AXATA sevkleri alinamadi',
+            message:
+              'outbound-deliveries/by-date endpointi cevap vermedi. Tarihi yyyy-MM-dd formatinda kontrol et.'
           });
         }
       });
@@ -2665,6 +2728,10 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     item: IAxataOutboundDeliveryQueueDocumentApiDto
   ): string => `${item.movementType}|${item.axataSequenceNo}|${item.axataDeliveryNo}`;
+  protected trackByOutboundDeliveryByDate = (
+    _index: number,
+    item: IAxataOutboundDeliveryByDateItemApiDto
+  ): string => `${item.axataSequenceNo}|${item.axataDeliveryNo}|${item.documentSerie}|${item.documentOrderNo ?? ''}`;
   protected trackByAuditOperation = (
     _index: number,
     item: IAxataIntegrationAuditOperationApiDto

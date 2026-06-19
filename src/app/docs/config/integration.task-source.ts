@@ -13,6 +13,7 @@ export const INTEGRATION_TASK_SOURCE = {
           'Task overview + health probe',
           'Fetch profile explorer',
           'Live audit ve AXATA queue preview',
+          'AXATA sevk tarihi listesi',
           'Preview, route-based execute ve POST /jobs',
           'Job polling',
           'Document bazli batch kurtarma',
@@ -51,6 +52,11 @@ export const INTEGRATION_TASK_SOURCE = {
               method: 'GET',
               path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/preview?movementType=C02&take=20',
               description: 'C01/C02/C03/C4 AXATA pending outbound delivery kuyrugunu okur; Mikro veya AXATA verisi yazmaz'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/by-date?date=2026-06-19',
+              description: 'AXATA ENT006.S06ITAR tarihine gore sevk basliklarini ve ENT007 satir ozetini listeler; veri yazmaz'
             },
             {
               method: 'GET',
@@ -436,18 +442,8 @@ export const INTEGRATION_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/by-number/{invoiceNumber}/pdf-file',
-              description: 'Legacy/operator endpointidir; yeni UI PDF aksiyonunda kullanilmaz'
-            },
-            {
-              method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/{invoiceUuid}/pdf-file',
               description: 'Uyumsoft teknik invoiceUuid ile outbox PDF dosyasini getirir'
-            },
-            {
-              method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/outbox/invoices/by-number/{invoiceNumber}/pdf-file',
-              description: 'Legacy/operator endpointidir; yeni UI PDF aksiyonunda kullanilmaz'
             }
           ]
         }

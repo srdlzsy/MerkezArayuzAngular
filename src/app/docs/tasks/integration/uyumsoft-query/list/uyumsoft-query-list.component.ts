@@ -1,12 +1,5 @@
 import { CommonModule } from '@angular/common';
-import {
-  Component,
-  DestroyRef,
-  computed,
-  effect,
-  inject,
-  signal
-} from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
@@ -18,57 +11,33 @@ import {
 import { ActivatedRoute } from '@angular/router';
 import type {
   IUyumsoftOperationParameterApiDto,
-  IUyumsoftOperationRequestApiDto,
-  IUyumsoftResponseNodeApiDto
+  IUyumsoftOperationRequestApiDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
 import {
   EntegrasyonIslemleriService,
-  UyumsoftConnectedServiceOverviewDto,
   UyumsoftOperationDefinitionDto,
   UyumsoftOperationResponseDto
 } from '../../../../../core/api/module-services/entegrasyon-islemleri.service';
-import { DOCS_PAGES } from '../../../../config/docs-pages.config';
-import { DocsContentPage } from '../../../../models/docs.models';
 
-type FeedbackTone = 'success' | 'error' | 'info';
 type UyumsoftMode = 'invoice' | 'despatch';
-
-interface QueryFeedback {
-  tone: FeedbackTone;
-  title: string;
-  message: string;
-}
-
-interface QueryPreset {
-  id: string;
-  title: string;
-  description: string;
-  operationName: string;
-  parameters?: IUyumsoftOperationParameterApiDto[];
-  tags: string[];
-}
-
-interface ParameterSuggestion {
-  name: string;
-  label: string;
-  example: string;
-  description: string;
-}
-
-interface RequestGuide {
-  title: string;
-  description: string;
-  mode: 'none' | 'parameters';
-  parameterSuggestions: ParameterSuggestion[];
-  tips: string[];
-}
+type FeedbackTone = 'success' | 'error';
 
 type ParameterFormGroup = FormGroup<{
   name: FormControl<string>;
   value: FormControl<string>;
 }>;
+
+interface PageFeedback {
+  tone: FeedbackTone;
+  message: string;
+}
+
+interface OperationParameterDefinition {
+  name: string;
+  example: string;
+}
 
 @Component({
   selector: 'app-uyumsoft-query-list',
@@ -84,24 +53,19 @@ export class UyumsoftQueryListComponent {
 
   protected readonly taskId =
     (this.activatedRoute.snapshot.data['taskId'] as string | undefined) ?? 'uyumsoft-e-fatura';
-  protected readonly page: DocsContentPage =
-    DOCS_PAGES[this.taskId] ?? DOCS_PAGES['uyumsoft-e-fatura'];
   protected readonly mode: UyumsoftMode =
     this.taskId === 'uyumsoft-e-irsaliye' ? 'despatch' : 'invoice';
   protected readonly serviceLabel =
     this.mode === 'invoice' ? 'Uyumsoft E-Fatura' : 'Uyumsoft E-Irsaliye';
 
-  protected readonly overview = signal<UyumsoftConnectedServiceOverviewDto | null>(null);
-  protected readonly operationDefinitions = signal<UyumsoftOperationDefinitionDto[]>([]);
+  protected readonly operations = signal<UyumsoftOperationDefinitionDto[]>([]);
   protected readonly operationResponse = signal<UyumsoftOperationResponseDto | null>(null);
-  protected readonly feedback = signal<QueryFeedback | null>(null);
-  protected readonly overviewLoading = signal(false);
+  protected readonly feedback = signal<PageFeedback | null>(null);
   protected readonly operationsLoading = signal(false);
   protected readonly executeLoading = signal(false);
-  protected readonly filterValue = signal('');
   protected readonly selectedOperationName = signal('');
+  protected readonly openedPdfInvoiceId = signal<string | null>(null);
 
-  protected readonly operationFilter = new FormControl('', { nonNullable: true });
   protected readonly requestForm = new FormGroup({
     operationName: new FormControl('', {
       nonNullable: true,
@@ -111,191 +75,19 @@ export class UyumsoftQueryListComponent {
   });
   protected readonly parameterArray = this.requestForm.controls.parameters;
 
-  protected readonly operationCatalog = computed(() => {
-    const merged = new Map<string, UyumsoftOperationDefinitionDto>();
-    const overviewOperations = this.overview()?.supportedGetOperations ?? [];
-
-    for (const operation of overviewOperations) {
-      if (operation.operationName?.trim()) {
-        merged.set(operation.operationName, operation);
-      }
-    }
-
-    for (const operation of this.operationDefinitions()) {
-      if (!operation.operationName?.trim()) {
-        continue;
-      }
-
-      merged.set(operation.operationName, {
-        ...merged.get(operation.operationName),
-        ...operation
-      });
-    }
-
-    return Array.from(merged.values()).sort((left, right) =>
-      `${left.groupName} ${left.operationName}`.localeCompare(
-        `${right.groupName} ${right.operationName}`,
-        'tr-TR'
-      )
-    );
-  });
-
-  protected readonly filteredOperations = computed(() => {
-    const filter = this.filterValue();
-
-    if (!filter) {
-      return this.operationCatalog();
-    }
-
-    return this.operationCatalog().filter((operation: UyumsoftOperationDefinitionDto) =>
-      [
-        operation.operationName,
-        operation.groupName,
-        operation.soapAction,
-        operation.requestHint
-      ].some((value: string | null | undefined) =>
-        value?.toLocaleLowerCase('tr-TR').includes(filter)
-      )
-    );
-  });
-
-  protected readonly selectedOperation = computed(
-    () =>
-      this.operationCatalog().find(
-        (operation: UyumsoftOperationDefinitionDto) =>
-          operation.operationName === this.selectedOperationName()
-      ) ?? null
-  );
-
-  protected readonly serviceMetrics = computed(() => {
-    const overview = this.overview();
-
-    return [
-      {
-        label: 'Servis',
-        value: overview?.serviceName || '-'
-      },
-      {
-        label: 'Kontrat',
-        value: overview?.contractName || '-'
-      },
-      {
-        label: 'Operasyon',
-        value: `${this.operationCatalog().length}`
-      },
-      {
-        label: 'Filtre Sonucu',
-        value: `${this.filteredOperations().length}`
-      }
-    ];
-  });
-
-  protected readonly responseSummary = computed(() => {
-    const response = this.operationResponse();
-
-    if (!response) {
-      return [];
-    }
-
-    return [
-      {
-        label: 'Durum',
-        value: response.isSucceeded ? 'Basarili' : 'Basarisiz',
-        tone: response.isSucceeded ? 'status-pill-success' : 'status-pill-danger'
-      },
-      {
-        label: 'Result',
-        value: response.resultElementName || '-',
-        tone: 'status-pill-neutral'
-      },
-      {
-        label: 'Node',
-        value: `${response.nodes.length}`,
-        tone: 'status-pill-neutral'
-      },
-      {
-        label: 'Fatura',
-        value: `${response.invoiceList?.items.length ?? 0}`,
-        tone: 'status-pill-neutral'
-      },
-      {
-        label: 'Attribute',
-        value: `${Object.keys(response.resultAttributes ?? {}).length}`,
-        tone: 'status-pill-neutral'
-      }
-    ];
-  });
-
-  protected readonly responseJson = computed(() => {
-    const response = this.operationResponse();
-
-    if (!response) {
-      return '';
-    }
-
-    return this.formatJson({
-      serviceKey: response.serviceKey,
-      serviceName: response.serviceName,
-      operationName: response.operationName,
-      resultElementName: response.resultElementName,
-      isSucceeded: response.isSucceeded,
-      message: response.message,
-      scalarValue: response.scalarValue,
-      resultAttributes: response.resultAttributes,
-      nodes: response.nodes,
-      invoiceList: response.invoiceList,
-      responsePayloadJson: response.responsePayloadJson
-    });
-  });
-
-  protected readonly quickPresets = computed<QueryPreset[]>(() =>
-    this.mode === 'invoice'
-      ? this.getInvoiceQuickPresets()
-      : this.getDespatchQuickPresets()
-  );
-
-  protected readonly requestGuide = computed<RequestGuide>(() =>
-    this.buildRequestGuide(
-      this.selectedOperationName() || this.requestForm.controls.operationName.value
+  protected readonly sortedOperations = computed(() =>
+    [...this.operations()].sort((left, right) =>
+      left.operationName.localeCompare(right.operationName, 'tr-TR')
     )
   );
 
-  protected readonly requestGuideSummary = computed(() => {
-    const guide = this.requestGuide();
-    const selectedOperation = this.selectedOperation();
-
-    return [
-      {
-        label: 'Istek Stili',
-        value: this.formatRequestMode(guide.mode)
-      },
-      {
-        label: 'Parametre Onerisi',
-        value: `${guide.parameterSuggestions.length}`
-      },
-      {
-        label: 'Request',
-        value: guide.parameterSuggestions.length ? 'Typed parametre' : 'Parametresiz'
-      },
-      {
-        label: 'Group',
-        value: selectedOperation?.groupName || '-'
-      }
-    ];
+  protected readonly selectedOperation = computed(() => {
+    const operationName = this.selectedOperationName();
+    return this.operations().find((operation) => operation.operationName === operationName) ?? null;
   });
 
-  protected readonly serviceHighlights = computed(() =>
-    this.mode === 'invoice'
-      ? [
-          'Inbox / outbox invoice sorgulari',
-          'Envelope, response view ve PDF query akislari',
-          'Alias, access token ve formatli sistem tarihi senaryolari'
-        ]
-      : [
-          'Inbox / outbox despatch sorgulari',
-          'Receipt advice, envelope ve status log senaryolari',
-          'despatchId, isInbox ve typed query parametreleri'
-        ]
+  protected readonly responseJson = computed(() =>
+    this.operationResponse() ? JSON.stringify(this.operationResponse(), null, 2) : ''
   );
 
   constructor() {
@@ -303,71 +95,18 @@ export class UyumsoftQueryListComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((operationName: string) => {
         this.selectedOperationName.set(operationName);
+        this.createParameterInputs(operationName);
+        this.operationResponse.set(null);
+        this.openedPdfInvoiceId.set(null);
+        this.feedback.set(null);
       });
 
-    this.operationFilter.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((value: string) => {
-        this.filterValue.set(value.trim().toLocaleLowerCase('tr-TR'));
-      });
-
-    effect(() => {
-      const operations = this.operationCatalog();
-
-      if (!operations.length) {
-        return;
-      }
-
-      const currentOperationName = this.requestForm.controls.operationName.value;
-
-      if (
-        currentOperationName &&
-        operations.some(
-          (operation: UyumsoftOperationDefinitionDto) =>
-            operation.operationName === currentOperationName
-        )
-      ) {
-        return;
-      }
-
-      const nextOperationName = operations[0].operationName;
-      this.requestForm.controls.operationName.setValue(nextOperationName, { emitEvent: false });
-      this.selectedOperationName.set(nextOperationName);
-    });
-
-    this.applyCodeSample();
-    this.refreshData();
-  }
-
-  protected refreshData(): void {
-    this.loadOverview();
     this.loadOperations();
-  }
-
-  protected loadOverview(): void {
-    this.overviewLoading.set(true);
-
-    this.resolveOverviewRequest()
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.overviewLoading.set(false))
-      )
-      .subscribe({
-        next: (overview: UyumsoftConnectedServiceOverviewDto) => {
-          this.overview.set(overview);
-        },
-        error: () => {
-          this.feedback.set({
-            tone: 'error',
-            title: 'Servis ozeti alinamadi',
-            message: `${this.serviceLabel} overview endpointi su anda cevap vermiyor.`
-          });
-        }
-      });
   }
 
   protected loadOperations(): void {
     this.operationsLoading.set(true);
+    this.feedback.set(null);
 
     this.resolveOperationsRequest()
       .pipe(
@@ -376,184 +115,72 @@ export class UyumsoftQueryListComponent {
       )
       .subscribe({
         next: (operations: UyumsoftOperationDefinitionDto[]) => {
-          this.operationDefinitions.set(operations ?? []);
+          const items = operations ?? [];
+          this.operations.set(items);
+
+          const currentOperation = this.requestForm.controls.operationName.value;
+          const hasCurrentOperation = items.some(
+            (operation) => operation.operationName === currentOperation
+          );
+
+          if (!hasCurrentOperation) {
+            this.requestForm.controls.operationName.setValue(
+              items[0]?.operationName ?? ''
+            );
+          } else {
+            this.selectedOperationName.set(currentOperation);
+            this.createParameterInputs(currentOperation);
+          }
         },
         error: () => {
           this.feedback.set({
             tone: 'error',
-            title: 'Operasyonlar alinamadi',
-            message: `${this.serviceLabel} operasyon listesi yuklenemedi.`
+            message: `${this.serviceLabel} gorev listesi yuklenemedi.`
           });
         }
       });
   }
 
-  protected selectOperation(operationName: string): void {
-    this.requestForm.controls.operationName.setValue(operationName);
-    this.feedback.set(null);
+  protected getParameterExample(parameterName: string): string {
+    return this.getKnownParameterExample(parameterName);
   }
 
-  protected addParameter(
-    parameter: Partial<IUyumsoftOperationParameterApiDto> = {}
-  ): void {
+  protected clearParameterValues(): void {
+    for (const parameter of this.parameterArray.controls) {
+      parameter.controls.value.setValue('');
+    }
+  }
+
+  private addParameter(parameter: IUyumsoftOperationParameterApiDto): void {
     this.parameterArray.push(
       new FormGroup({
-        name: new FormControl(parameter.name ?? '', {
-          nonNullable: true
-        }),
-        value: new FormControl(parameter.value ?? '', {
-          nonNullable: true
-        })
+        name: new FormControl(parameter.name, { nonNullable: true }),
+        value: new FormControl(parameter.value ?? '', { nonNullable: true })
       })
     );
   }
 
-  protected removeParameter(index: number): void {
-    this.parameterArray.removeAt(index);
-  }
-
-  protected clearParameters(): void {
+  private clearParameters(): void {
     this.parameterArray.clear();
-  }
-
-  protected applyPreset(preset: QueryPreset): void {
-    this.requestForm.controls.operationName.setValue(preset.operationName);
-    this.clearParameters();
-
-    for (const parameter of preset.parameters ?? []) {
-      this.addParameter(parameter);
-    }
-
-    this.feedback.set({
-      tone: 'info',
-      title: 'Hazir senaryo yuklendi',
-      message: `${preset.title} senaryosu request formuna tasindi.`
-    });
-  }
-
-  protected applyCodeSample(): void {
-    const parsedSample = this.parseParameterSample(this.page.codeSample);
-    this.clearParameters();
-
-    for (const parameter of parsedSample) {
-      this.addParameter(parameter);
-    }
-
-    this.feedback.set({
-      tone: 'info',
-      title: 'Ornek istek yuklendi',
-      message: `${this.serviceLabel} icin dokuman ornegine gore request formu hazirlandi.`
-    });
-  }
-
-  protected applySelectedOperationHint(): void {
-    const requestHint = this.selectedOperation()?.requestHint?.trim();
-
-    if (!requestHint) {
-      this.feedback.set({
-        tone: 'info',
-        title: 'Hint bulunamadi',
-        message: 'Secili operasyon icin backend tarafinda requestHint tanimlanmamis.'
-      });
-      return;
-    }
-
-    const parsedParameters = this.parseParameterSample(requestHint);
-
-    if (parsedParameters.length === 0) {
-      this.feedback.set({
-        tone: 'info',
-        title: 'Hint parametreye donusmedi',
-        message: 'Request hint typed parameter olarak okunamadi; onerilen parametre kartlarini kullanabilirsin.'
-      });
-      return;
-    }
-
-    this.clearParameters();
-
-    for (const parameter of parsedParameters) {
-      this.addParameter(parameter);
-    }
-
-    this.feedback.set({
-      tone: 'info',
-      title: 'Request hint uygulandi',
-      message: `${parsedParameters.length} adet requestHint parametresi forma tasindi.`
-    });
-  }
-
-  protected applyParameterTemplate(): void {
-    const suggestions = this.requestGuide().parameterSuggestions;
-
-    if (!suggestions.length) {
-      this.feedback.set({
-        tone: 'info',
-        title: 'Parametre sablonu yok',
-        message: 'Secili operasyon icin oneri niteliginde typed parameter sablonu bulunmuyor.'
-      });
-      return;
-    }
-
-    this.clearParameters();
-
-    for (const suggestion of suggestions) {
-      this.addParameter({ name: suggestion.name, value: suggestion.example });
-    }
-
-    this.feedback.set({
-      tone: 'info',
-      title: 'Parametre sablonu uygulandi',
-      message: `${suggestions.length} adet typed parameter forma yerlestirildi.`
-    });
-  }
-
-  protected applyParameterSuggestion(suggestion: ParameterSuggestion): void {
-    this.upsertParameter(suggestion.name, suggestion.example);
-    this.feedback.set({
-      tone: 'info',
-      title: 'Parametre eklendi',
-      message: `${suggestion.name} parametresi ornek degeriyle request formuna yerlestirildi.`
-    });
-  }
-
-  protected applyAllParameterSuggestions(): void {
-    const suggestions = this.requestGuide().parameterSuggestions;
-
-    if (!suggestions.length) {
-      this.feedback.set({
-        tone: 'info',
-        title: 'Parametre onerisi yok',
-        message: 'Secili operasyon icin otomatik eklenebilecek bir scalar parametre tanimli degil.'
-      });
-      return;
-    }
-
-    for (const suggestion of suggestions) {
-      this.upsertParameter(suggestion.name, suggestion.example);
-    }
-
-    this.feedback.set({
-      tone: 'info',
-      title: 'Ornek parametreler eklendi',
-      message: `${suggestions.length} adet parametre onerisi request formuna tasindi.`
-    });
   }
 
   protected executeSelectedOperation(): void {
     const operationName = this.requestForm.controls.operationName.value.trim();
 
     if (!operationName) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'Operasyon secilmedi',
-        message: 'GET operasyonunu calistirmadan once listeden bir operasyon secmelisin.'
-      });
+      this.requestForm.controls.operationName.markAsTouched();
       return;
     }
 
     this.executeLoading.set(true);
     this.operationResponse.set(null);
+    this.openedPdfInvoiceId.set(null);
     this.feedback.set(null);
+
+    if (this.isInvoicePdfOperation(operationName)) {
+      this.openInvoicePdf(operationName);
+      return;
+    }
 
     this.resolveExecuteRequest(operationName, this.buildRequestBody())
       .pipe(
@@ -565,41 +192,18 @@ export class UyumsoftQueryListComponent {
           this.operationResponse.set(response);
           this.feedback.set({
             tone: response.isSucceeded ? 'success' : 'error',
-            title: response.isSucceeded
-              ? 'Operasyon basariyla tamamlandi'
-              : 'Operasyon hata ile dondu',
             message:
               response.message?.trim() ||
-              `${response.operationName} operasyonu ${response.isSucceeded ? 'basarili' : 'basarisiz'} sonuc verdi.`
+              `${operationName} ${response.isSucceeded ? 'basariyla tamamlandi.' : 'hata verdi.'}`
           });
         },
         error: () => {
           this.feedback.set({
             tone: 'error',
-            title: 'Servis cagrisi basarisiz',
-            message: `${operationName} operasyonu backend tarafinda tamamlanamadi.`
+            message: `${operationName} istegi tamamlanamadi.`
           });
         }
       });
-  }
-
-  protected hasNodeAttributes(node: IUyumsoftResponseNodeApiDto): boolean {
-    return Object.keys(node.attributes ?? {}).length > 0;
-  }
-
-  protected formatJson(value: unknown): string {
-    return JSON.stringify(value, null, 2);
-  }
-
-  protected formatRequestMode(mode: RequestGuide['mode']): string {
-    switch (mode) {
-      case 'none':
-        return 'Hazir alan gerekmez';
-      case 'parameters':
-        return 'Typed parametre';
-      default:
-        return 'Karma';
-    }
   }
 
   protected trackByOperation = (
@@ -607,19 +211,93 @@ export class UyumsoftQueryListComponent {
     operation: UyumsoftOperationDefinitionDto
   ): string => operation.operationName;
 
-  protected trackByNode = (_index: number, node: IUyumsoftResponseNodeApiDto): string =>
-    `${node.name}|${node.value ?? ''}`;
-
-  private resolveOverviewRequest() {
-    return this.mode === 'invoice'
-      ? this.entegrasyonIslemleriService.getUyumsoftEInvoiceOverview()
-      : this.entegrasyonIslemleriService.getUyumsoftEDespatchOverview();
-  }
-
   private resolveOperationsRequest() {
     return this.mode === 'invoice'
       ? this.entegrasyonIslemleriService.getUyumsoftEInvoiceOperations()
       : this.entegrasyonIslemleriService.getUyumsoftEDespatchOperations();
+  }
+
+  private isInvoicePdfOperation(operationName: string): boolean {
+    return (
+      this.mode === 'invoice' &&
+      (operationName === 'GetInboxInvoicePdf' ||
+        operationName === 'GetOutboxInvoicePdf')
+    );
+  }
+
+  private openInvoicePdf(operationName: string): void {
+    const invoiceId = this.getParameterValue('invoiceId');
+
+    if (!invoiceId) {
+      this.executeLoading.set(false);
+      this.feedback.set({
+        tone: 'error',
+        message: 'PDF acmak icin fatura UUID degeri zorunlu.'
+      });
+      return;
+    }
+
+    const direction = operationName === 'GetInboxInvoicePdf' ? 'inbox' : 'outbox';
+    const previewWindow = window.open('', '_blank');
+
+    if (previewWindow) {
+      previewWindow.document.title = 'PDF yukleniyor';
+      previewWindow.document.body.textContent = 'PDF yukleniyor...';
+    }
+
+    this.entegrasyonIslemleriService
+      .getUyumsoftEInvoicePdfFile(invoiceId, direction)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.executeLoading.set(false))
+      )
+      .subscribe({
+        next: (blob: Blob) => {
+          const pdfBlob =
+            blob.type === 'application/pdf'
+              ? blob
+              : new Blob([blob], { type: 'application/pdf' });
+          const pdfUrl = URL.createObjectURL(pdfBlob);
+
+          if (previewWindow) {
+            previewWindow.location.replace(pdfUrl);
+          } else {
+            const link = document.createElement('a');
+            link.href = pdfUrl;
+            link.target = '_blank';
+            link.rel = 'noopener noreferrer';
+            link.click();
+          }
+
+          window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 300_000);
+          this.openedPdfInvoiceId.set(invoiceId);
+          this.feedback.set({
+            tone: 'success',
+            message: `${invoiceId} PDF olarak acildi.`
+          });
+        },
+        error: () => {
+          previewWindow?.close();
+          this.feedback.set({
+            tone: 'error',
+            message: `${invoiceId} icin gercek PDF dosyasi alinamadi.`
+          });
+        }
+      });
+  }
+
+  private getParameterValue(parameterName: string): string {
+    const normalizedName = parameterName.toLocaleLowerCase('tr-TR');
+    return (
+      this.parameterArray.controls
+        .find(
+          (parameter) =>
+            parameter.controls.name.value
+              .trim()
+              .toLocaleLowerCase('tr-TR') === normalizedName
+        )
+        ?.controls.value.value.trim() ?? ''
+    );
   }
 
   private resolveExecuteRequest(
@@ -639,397 +317,196 @@ export class UyumsoftQueryListComponent {
 
   private buildRequestBody(): IUyumsoftOperationRequestApiDto {
     const parameters = this.parameterArray.controls
-      .map((parameterGroup: ParameterFormGroup) => ({
+      .map((parameterGroup) => ({
         name: parameterGroup.controls.name.value.trim(),
-        value: parameterGroup.controls.value.value.trim() || null
+        value: parameterGroup.controls.value.value.trim()
       }))
-      .filter((parameter: IUyumsoftOperationParameterApiDto) => !!parameter.name);
+      .filter((parameter) => !!parameter.name && !!parameter.value);
 
     return {
       parameters: parameters.length ? parameters : undefined
     };
   }
 
-  private upsertParameter(name: string, value: string): void {
-    const normalizedName = name.trim().toLocaleLowerCase('tr-TR');
-    const existingParameter = this.parameterArray.controls.find(
-      (parameterGroup: ParameterFormGroup) =>
-        parameterGroup.controls.name.value.trim().toLocaleLowerCase('tr-TR') === normalizedName
+  private createParameterInputs(operationName: string): void {
+    this.clearParameters();
+
+    const operation = this.operations().find(
+      (item) => item.operationName === operationName
+    );
+    const definitions = this.getOperationParameterDefinitions(
+      operationName,
+      operation?.requestHint ?? ''
     );
 
-    if (existingParameter) {
-      existingParameter.controls.value.setValue(value);
-      return;
+    for (const definition of definitions) {
+      this.addParameter({ name: definition.name, value: '' });
     }
-
-    this.addParameter({ name, value });
   }
 
-  private buildRequestGuide(operationName: string): RequestGuide {
-    const normalizedName = operationName.trim();
+  private getOperationParameterDefinitions(
+    operationName: string,
+    requestHint: string
+  ): OperationParameterDefinition[] {
+    const definitions = new Map<string, OperationParameterDefinition>();
+    const add = (name: string, example = this.getKnownParameterExample(name)) => {
+      const normalizedName = name.trim();
 
-    if (!normalizedName) {
-      return {
-        title: 'Operasyon sec',
-        description: 'Soldaki listeden bir GET operasyonu sectiginde bu alan gerekli typed parametreleri aciklar.',
-        mode: 'parameters',
-        parameterSuggestions: [],
-        tips: [
-          'Tekil belge operasyonlarinda genelde bir kimlik parametresi gerekir.',
-          'Liste operasyonlarinda PageIndex, PageSize ve IsArchived gibi typed query alanlari kullanilir.'
-        ]
-      };
-    }
-
-    const parameterSuggestions = this.getParameterSuggestionsForOperation(normalizedName);
-    const requiresParameters = parameterSuggestions.length > 0;
-    const mode: RequestGuide['mode'] = requiresParameters ? 'parameters' : 'none';
-
-    return {
-      title: this.getGuideTitle(normalizedName),
-      description: this.getGuideDescription(normalizedName),
-      mode,
-      parameterSuggestions,
-      tips: this.getGuideTips(normalizedName)
-    };
-  }
-
-  private getGuideTitle(operationName: string): string {
-    if (operationName.includes('SystemDate')) {
-      return 'Sistem tarihi sorgusu';
-    }
-
-    if (operationName.includes('Envelope')) {
-      return 'Envelope / zarf sorgusu';
-    }
-
-    if (operationName.includes('Pdf') || operationName.includes('View')) {
-      return 'Dokuman goruntuleme sorgusu';
-    }
-
-    if (operationName.includes('StatusWithLogs')) {
-      return 'Durum ve log sorgusu';
-    }
-
-    if (operationName.includes('List') || operationName.includes('Invoices') || operationName.includes('Despatches')) {
-      return 'Liste veya sayfalama sorgusu';
-    }
-
-    return 'Genel GET operasyonu';
-  }
-
-  private getGuideDescription(operationName: string): string {
-    if (operationName.includes('SystemDateWithFormat')) {
-      return 'Bu operasyon tek bir format parametresi ile string sistem tarihi doner.';
-    }
-
-    if (operationName.includes('SystemDate')) {
-      return 'Ek parametre gerektirmeden servis sistem tarihini okur.';
-    }
-
-    if (operationName.includes('Envelope')) {
-      return 'Tek bir belge kimligi ile remote UBL/envelope sonucunu sorgular.';
-    }
-
-    if (operationName.includes('Pdf') || operationName.includes('View')) {
-      return 'Tekil dokuman id parametresiyle PDF veya gorunum verisini ceker.';
-    }
-
-    if (operationName.includes('StatusWithLogs')) {
-      return 'Belge bazli durum ve Uyumsoft log kayitlarini okumak icin kullanilir.';
-    }
-
-    if (operationName.includes('List') || operationName.includes('Invoices') || operationName.includes('Despatches')) {
-      return 'Sayfalama ve filtreleme icin typed query model alanlari parameters listesiyle gonderilir.';
-    }
-
-    return 'Operasyon ismine gore scalar veya typed query parametrelerini name/value olarak gonderebilirsin.';
-  }
-
-  private getGuideTips(operationName: string): string[] {
-    const tips = [
-      'Parametreler backend tarafinda WCF metod imzasina gore scalar argumanlara veya typed query model propertylerine basilir.',
-      'Cok degerli alanlarda ayni parametre adini birden fazla satir olarak ekleyebilirsin.'
-    ];
-
-    if (operationName.includes('Envelope')) {
-      tips.push('Envelope sorgusunda despatchId veya invoiceId degerini GUID formatinda girmek en guvenli yaklasimdir.');
-    }
-
-    if (operationName.includes('List') || operationName.includes('Invoices') || operationName.includes('Despatches')) {
-      tips.push('Liste operasyonlarinda PageIndex ve PageSize ile baslayip gerekirse IsArchived benzeri alanlar eklenebilir.');
-    }
-
-    if (operationName.includes('WithFormat')) {
-      tips.push('format parametresine ornek olarak yyyy-MM-dd HH:mm:ss veya yyyy-MM-dd verebilirsin.');
-    }
-
-    return tips;
-  }
-
-  private getParameterSuggestionsForOperation(operationName: string): ParameterSuggestion[] {
-    const suggestions: ParameterSuggestion[] = [];
-    const idFieldName = this.mode === 'invoice' ? 'invoiceId' : 'despatchId';
-    const idFieldLabel = this.mode === 'invoice' ? 'Invoice Id' : 'Despatch Id';
-    const idExample =
-      this.mode === 'invoice'
-        ? '9d6e0f84-3d3c-4c58-a1b0-4c0f8f4fd999'
-        : '3fd0e4f4-87a2-43f2-b5ca-f2a4fd778111';
-
-    if (operationName.includes('WithFormat')) {
-      suggestions.push({
-        name: 'format',
-        label: 'Tarih Formati',
-        example: 'yyyy-MM-dd HH:mm:ss',
-        description: 'Formatli sistem tarihi donen operasyonlarda kullanilir.'
-      });
-    }
-
-    if (
-      operationName.includes('Invoice') ||
-      operationName.includes('Despatch') ||
-      operationName.includes('ReceiptAdvice') ||
-      operationName.includes('Envelope')
-    ) {
-      if (
-        operationName.includes('Pdf') ||
-        operationName.includes('View') ||
-        operationName.includes('StatusWithLogs') ||
-        operationName.includes('Envelope') ||
-        /^Get(Inbox|Outbox)(Invoice|Despatch)$/.test(operationName)
-      ) {
-        suggestions.push({
-          name: idFieldName,
-          label: idFieldLabel,
-          example: idExample,
-          description: 'Tekil belge sorgularinda remote belge kimligi olarak kullanilir.'
-        });
+      if (!normalizedName) {
+        return;
       }
+
+      const key = normalizedName.toLocaleLowerCase('tr-TR');
+      if (!definitions.has(key)) {
+        definitions.set(key, { name: normalizedName, example });
+      }
+    };
+
+    for (const parameterName of this.extractParameterNamesFromHint(requestHint)) {
+      add(parameterName);
     }
 
-    if (this.mode === 'despatch' && operationName.includes('Envelope')) {
-      suggestions.push({
-        name: 'isInbox',
-        label: 'Inbox mi?',
-        example: 'false',
-        description: 'Envelope sorgusunda dokumanin inbox mi outbox mi oldugunu belirtir.'
-      });
+    const fixedParameters: Record<string, string[]> = {
+      GetAccessToken: [
+        'ClaimText',
+        'ExpiresAtUtc',
+        'RefreshExpiresAtUtc',
+        'AllowRefresh'
+      ],
+      GetEInvoiceUsers: ['PageIndex', 'PageSize'],
+      GetEDespatchUsers: ['PageIndex', 'PageSize'],
+      GetUserAliasses: ['vknTckn'],
+      GetSystemUsersCompressedList: ['type'],
+      GetSystemUsersCompressedListOld: ['type'],
+      GetSummaryReport: ['startDate', 'endDate', 'periodFormat']
+    };
+
+    for (const parameterName of fixedParameters[operationName] ?? []) {
+      add(parameterName);
     }
 
-    if (
-      operationName.includes('List') ||
-      /Get(Inbox|Outbox)(Invoices|Despatches)$/.test(operationName) ||
-      operationName.includes('ReceiptAdvices')
-    ) {
-      suggestions.push(
-        {
-          name: 'PageIndex',
-          label: 'Sayfa',
-          example: '1',
-          description: 'Paged query modelinde okunacak sayfa numarasi.'
-        },
-        {
-          name: 'PageSize',
-          label: 'Sayfa Boyutu',
-          example: '20',
-          description: 'Paged query modelinde tek istekte donen kayit sayisi.'
-        },
-        {
-          name: 'IsArchived',
-          label: 'Arsiv',
-          example: 'false',
-          description: 'Uyumsoft tarafinda arsiv kayitlari dahil edilecekse true kullanilir.'
-        }
-      );
+    if (operationName.includes('WithFormat')) {
+      add('format');
     }
 
     if (operationName.includes('CustomerCreditInfo')) {
-      suggestions.push({
-        name: 'VknTckn',
-        label: 'VKN/TCKN',
-        example: '1111111111',
-        description: 'Musteri kredi bilgisi sorgusunda kullanilan vergi veya kimlik numarasi.'
-      });
+      add('VknTckn');
     }
 
-    return suggestions;
+    const isListOperation =
+      operationName.includes('List') ||
+      /Get(Inbox|Outbox)(Invoices|Despatches)$/.test(operationName) ||
+      operationName.includes('ReceiptAdvices');
+
+    if (isListOperation) {
+      add('PageIndex');
+      add('PageSize');
+      add('IsArchived');
+    }
+
+    const documentIdName = this.mode === 'invoice' ? 'invoiceId' : 'despatchId';
+    const isSingleDocumentOperation =
+      operationName.includes('Pdf') ||
+      operationName.includes('View') ||
+      operationName.includes('StatusWithLogs') ||
+      operationName.includes('Envelope') ||
+      /^Get(Inbox|Outbox)(Invoice|Despatch)$/.test(operationName) ||
+      /^Get(Inbox|Outbox)(Invoice|Despatch)Data$/.test(operationName);
+
+    if (isSingleDocumentOperation) {
+      add(documentIdName);
+    }
+
+    if (/Get(Inbox|Outbox)InvoicesData$/.test(operationName)) {
+      add('invoiceIds');
+    }
+
+    if (/Get(Inbox|Outbox)DespatchesData$/.test(operationName)) {
+      add('despatchIds');
+    }
+
+    if (this.mode === 'despatch' && operationName.includes('Envelope')) {
+      add('isInbox');
+    }
+
+    return Array.from(definitions.values());
   }
 
-  private getInvoiceQuickPresets(): QueryPreset[] {
-    return [
-      {
-        id: 'invoice-system-date',
-        title: 'Sistem Tarihi',
-        description: 'Uyumsoft servis saatini hizli kontrol eder.',
-        operationName: 'GetSystemDate',
-        tags: ['Kontrol', 'Basit']
-      },
-      {
-        id: 'invoice-system-date-format',
-        title: 'Formatli Sistem Tarihi',
-        description: 'Format parametresi ile okunur tarih dizesi dondurur.',
-        operationName: 'GetSystemDateWithFormat',
-        parameters: [{ name: 'format', value: 'yyyy-MM-dd HH:mm:ss' }],
-        tags: ['Format', 'Scalar']
-      },
-      {
-        id: 'invoice-outbox-list',
-        title: 'Outbox Invoice List',
-        description: 'Sayfali giden fatura listesini typed query parametreleriyle ceker.',
-        operationName: 'GetOutboxInvoiceList',
-        parameters: [
-          { name: 'PageIndex', value: '1' },
-          { name: 'PageSize', value: '20' },
-          { name: 'IsArchived', value: 'false' }
-        ],
-        tags: ['Liste', 'Typed Parametre']
-      },
-      {
-        id: 'invoice-outbox-pdf',
-        title: 'Tekil Invoice PDF',
-        description: 'Tek bir invoiceId ile PDF cevabini sorgular.',
-        operationName: 'GetOutboxInvoicePdf',
-        parameters: [
-          {
-            name: 'invoiceId',
-            value: '9d6e0f84-3d3c-4c58-a1b0-4c0f8f4fd999'
-          }
-        ],
-        tags: ['PDF', 'Tekil Belge']
-      }
+  private extractParameterNamesFromHint(requestHint: string): string[] {
+    if (!requestHint.trim()) {
+      return [];
+    }
+
+    const knownNames = [
+      'format',
+      'invoiceId',
+      'invoiceIds',
+      'despatchId',
+      'despatchIds',
+      'isInbox',
+      'PageIndex',
+      'PageSize',
+      'IsArchived',
+      'VknTckn',
+      'ClaimText',
+      'ExpiresAtUtc',
+      'RefreshExpiresAtUtc',
+      'AllowRefresh',
+      'startDate',
+      'endDate',
+      'periodFormat'
     ];
-  }
+    const foundNames = new Set<string>();
 
-  private getDespatchQuickPresets(): QueryPreset[] {
-    return [
-      {
-        id: 'despatch-system-date',
-        title: 'Sistem Tarihi',
-        description: 'BasicDespatchIntegration servis saatini hizli dogrular.',
-        operationName: 'GetSystemDate',
-        tags: ['Kontrol', 'Basit']
-      },
-      {
-        id: 'despatch-system-date-format',
-        title: 'Formatli Sistem Tarihi',
-        description: 'format parametresi ile servis tarihini okunur sekilde alir.',
-        operationName: 'GetSystemDateWithFormat',
-        parameters: [{ name: 'format', value: 'yyyy-MM-dd HH:mm:ss' }],
-        tags: ['Format', 'Scalar']
-      },
-      {
-        id: 'despatch-outbox-list',
-        title: 'Outbox Despatch List',
-        description: 'Sayfali giden e-irsaliye listesini typed query parametreleriyle getirir.',
-        operationName: 'GetOutboxDespatchList',
-        parameters: [
-          { name: 'PageIndex', value: '1' },
-          { name: 'PageSize', value: '20' },
-          { name: 'IsArchived', value: 'false' }
-        ],
-        tags: ['Liste', 'Typed Parametre']
-      },
-      {
-        id: 'despatch-pdf',
-        title: 'Tekil Despatch PDF',
-        description: 'Belirli bir despatch icin PDF verisini sorgular.',
-        operationName: 'GetOutboxDespatchPdf',
-        parameters: [
-          {
-            name: 'despatchId',
-            value: '3fd0e4f4-87a2-43f2-b5ca-f2a4fd778111'
-          }
-        ],
-        tags: ['PDF', 'Tekil Belge']
-      },
-      {
-        id: 'despatch-envelope',
-        title: 'Envelope Sorgusu',
-        description: 'Tek despatch icin zarf bilgisini inbox/outbox secimiyle getirir.',
-        operationName: 'GetDespatchEnvelope',
-        parameters: [
-          {
-            name: 'despatchId',
-            value: '3fd0e4f4-87a2-43f2-b5ca-f2a4fd778111'
-          },
-          {
-            name: 'isInbox',
-            value: 'false'
-          }
-        ],
-        tags: ['Envelope', 'Mixed']
-      },
-      {
-        id: 'despatch-receipt-pdf',
-        title: 'Receipt Advice PDF',
-        description: 'Makbuz/receipt advice PDF sorgusu icin hizli baslangic sunar.',
-        operationName: 'GetReceiptAdvicePdf',
-        parameters: [
-          {
-            name: 'despatchId',
-            value: '3fd0e4f4-87a2-43f2-b5ca-f2a4fd778111'
-          }
-        ],
-        tags: ['Makbuz', 'PDF']
+    for (const name of knownNames) {
+      if (new RegExp(`\\b${name}\\b`, 'i').test(requestHint)) {
+        foundNames.add(name);
       }
-    ];
+    }
+
+    const namePattern = /["']?name["']?\s*[:=]\s*["']([A-Za-z][A-Za-z0-9_]*)["']/gi;
+    let match: RegExpExecArray | null;
+
+    while ((match = namePattern.exec(requestHint)) !== null) {
+      foundNames.add(match[1]);
+    }
+
+    return Array.from(foundNames);
   }
 
-  private parseParameterSample(
-    codeSample: string | undefined
-  ): IUyumsoftOperationParameterApiDto[] {
-    if (!codeSample?.trim()) {
-      return [];
+  private getKnownParameterExample(parameterName: string): string {
+    switch (parameterName.toLocaleLowerCase('tr-TR')) {
+      case 'format':
+        return 'yyyy-MM-dd HH:mm:ss';
+      case 'pageindex':
+        return '1';
+      case 'pagesize':
+        return '20';
+      case 'isarchived':
+      case 'isinbox':
+      case 'allowrefresh':
+        return 'false';
+      case 'expiresatutc':
+      case 'refreshexpiresatutc':
+      case 'startdate':
+      case 'enddate':
+        return '2026-06-19T00:00:00';
+      case 'invoiceid':
+      case 'invoiceids':
+        return 'Fatura UUID';
+      case 'despatchid':
+      case 'despatchids':
+        return 'Irsaliye UUID';
+      case 'vkntckn':
+        return 'VKN veya TCKN';
+      case 'claimtext':
+        return 'Token claim metni';
+      case 'type':
+        return 'Alias tipi';
+      case 'periodformat':
+        return 'Rapor periyodu';
+      default:
+        return 'Deger girin';
     }
-
-    const trimmedSample = codeSample.trim();
-
-    try {
-      const parsedValue = JSON.parse(trimmedSample) as IUyumsoftOperationRequestApiDto;
-
-      return this.normalizeParameters(parsedValue.parameters ?? []);
-    } catch {
-      return this.parseXmlParameterSample(trimmedSample);
-    }
-  }
-
-  private normalizeParameters(
-    parameters: IUyumsoftOperationParameterApiDto[]
-  ): IUyumsoftOperationParameterApiDto[] {
-    return parameters
-      .map((parameter: IUyumsoftOperationParameterApiDto) => ({
-        name: parameter.name?.trim() ?? '',
-        value: parameter.value?.trim() ?? ''
-      }))
-      .filter((parameter: IUyumsoftOperationParameterApiDto) => !!parameter.name);
-  }
-
-  private parseXmlParameterSample(sample: string): IUyumsoftOperationParameterApiDto[] {
-    if (!sample.startsWith('<') || typeof DOMParser === 'undefined') {
-      return [];
-    }
-
-    const document = new DOMParser().parseFromString(sample, 'application/xml');
-
-    if (document.querySelector('parsererror') || !document.documentElement) {
-      return [];
-    }
-
-    return this.extractLeafParameters(document.documentElement);
-  }
-
-  private extractLeafParameters(element: Element): IUyumsoftOperationParameterApiDto[] {
-    const children = Array.from(element.children);
-
-    if (children.length === 0) {
-      return [
-        {
-          name: element.tagName,
-          value: element.textContent?.trim() ?? ''
-        }
-      ];
-    }
-
-    return children.flatMap((child: Element) => this.extractLeafParameters(child));
   }
 }

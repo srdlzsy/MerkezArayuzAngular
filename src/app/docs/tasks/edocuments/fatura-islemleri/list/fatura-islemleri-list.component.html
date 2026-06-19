@@ -9,30 +9,9 @@
         {{
           activeWorkspace() === 'viewing'
             ? 'Faturalari tablo uzerinden takip et, belgeyi ac ve yazdirildi durumunu yonet.'
-            : 'Bekleyen faturalari tablo uzerinden sec, onizle ve Uyumsofta gonder.'
+            : 'Giden faturalari tablo uzerinden takip et, onizle ve gonderilmemisleri Uyumsofta gonder.'
         }}
       </p>
-    </div>
-
-    <div class="workspace-switch" *ngIf="availableWorkspaces().length > 1">
-      <button
-        type="button"
-        class="workspace-tab"
-        [class.is-active]="activeWorkspace() === 'viewing'"
-        [disabled]="!canOpenViewingWorkspace()"
-        (click)="navigateToWorkspace('viewing')"
-      >
-        Goruntuleme
-      </button>
-      <button
-        type="button"
-        class="workspace-tab"
-        [class.is-active]="activeWorkspace() === 'sending'"
-        [disabled]="!canOpenSendingWorkspace()"
-        (click)="navigateToWorkspace('sending')"
-      >
-        Gonderim
-      </button>
     </div>
 
   </header>
@@ -495,14 +474,14 @@
             <div class="panel-head">
               <div>
                 <p class="section-kicker">Filtreler</p>
-                <h3>Mikro bekleyen faturalar</h3>
+                <h3>Mikro giden faturalar</h3>
               </div>
               <span class="panel-badge">Gonderim</span>
             </div>
 
             <div class="empty-state compact-empty" *ngIf="!canSendList()">
               <h4>Liste yetkisi gerekli</h4>
-              <p>`fatura-gonderimi.list` yetkisi olmadan bekleyen fatura listesi getirilemez.</p>
+              <p>`fatura-gonderimi.list` yetkisi olmadan giden fatura listesi getirilemez.</p>
             </div>
 
             <ng-container *ngIf="canSendList()">
@@ -540,7 +519,7 @@
                   (click)="applySendingFilters()"
                   [disabled]="sendingListLoading()"
                 >
-                  {{ sendingListLoading() ? 'Liste hazirlaniyor...' : 'Bekleyenleri Getir' }}
+                  {{ sendingListLoading() ? 'Liste hazirlaniyor...' : 'Giden Faturalari Getir' }}
                 </button>
                 <button type="button" class="secondary-button" (click)="resetSendingFilters()">
                   Sifirla
@@ -609,12 +588,12 @@
 
             <div class="empty-state" *ngIf="sendingListLoading()">
               <h4>Liste yukleniyor</h4>
-              <p>Bekleyen fatura kayitlari getiriliyor.</p>
+              <p>Giden fatura kayitlari getiriliyor.</p>
             </div>
 
             <div class="empty-state" *ngIf="!sendingListLoading() && !sendingList() && canSendList()">
               <h4>Liste henuz gelmedi</h4>
-              <p>Filtreleri gonderdiginde bekleyen fatura listesi burada gorunur.</p>
+              <p>Filtreleri gonderdiginde giden fatura listesi burada gorunur.</p>
             </div>
 
             <div
@@ -622,7 +601,7 @@
               *ngIf="!sendingListLoading() && sendingList() && filteredSendingItems().length === 0"
             >
               <h4>Kayit bulunamadi</h4>
-              <p>Secili filtrelerle gosterilecek bekleyen fatura yok.</p>
+              <p>Secili filtrelerle gosterilecek giden fatura yok.</p>
             </div>
 
             <div class="invoice-table-shell" *ngIf="filteredSendingItems().length > 0">
@@ -808,7 +787,7 @@
 
           <div class="empty-state" *ngIf="!selectedSendingSummary() && !sendingDetailLoading()">
             <h4>Belge secilmedi</h4>
-            <p>Soldan bir bekleyen fatura secerek UBL onizlemeyi ac.</p>
+            <p>Soldan bir giden fatura secerek UBL onizlemeyi ac.</p>
           </div>
 
           <div class="empty-state compact-empty" *ngIf="selectedSendingSummary() && !canSendDetail()">
@@ -818,13 +797,13 @@
 
           <div class="empty-state" *ngIf="sendingDetailLoading()">
             <h4>Belge hazirlaniyor</h4>
-            <p>Secili bekleyen fatura icin UBL ve HTML onizleme yukleniyor.</p>
+            <p>Secili giden fatura icin UBL ve HTML onizleme yukleniyor.</p>
           </div>
 
           <ng-container *ngIf="selectedSendingSummary() as summary">
             <section class="detail-hero">
               <div class="detail-copy">
-                <p class="section-kicker">Secili Bekleyen Fatura</p>
+                <p class="section-kicker">Secili Giden Fatura</p>
                 <h3>{{ summary.invoiceId }}</h3>
                 <p>{{ summary.customerTitle }}</p>
               </div>
@@ -854,13 +833,6 @@
                 <span>Gonderim Durumu</span>
                 <strong>{{ summary.isSent ? (summary.sentDocumentNo || 'Gonderildi') : 'Bekliyor' }}</strong>
               </article>
-              <article class="summary-card" *ngIf="summary.isSent">
-                <span>PDF Yolu</span>
-                <strong>{{ summary.sendingPdfFilePath ? 'Hazir' : 'Yok' }}</strong>
-                <small *ngIf="summary.sendingPdfInvoiceNumber || summary.sendingPdfLocalDocumentId">
-                  {{ summary.sendingPdfInvoiceNumber || summary.sendingPdfLocalDocumentId }}
-                </small>
-              </article>
               <article
                 class="summary-card"
                 *ngIf="isReturnInvoice(summary)"
@@ -880,7 +852,7 @@
                 class="ghost-button"
                 *ngIf="canSendDetail()"
                 (click)="reloadSendingDetail()"
-                [disabled]="sendingDetailLoading()"
+                [disabled]="sendingDetailLoading() || !canPreviewSendingInvoice(summary)"
               >
                 Varsayilan Onizleme
               </button>
@@ -1108,17 +1080,8 @@
               <div class="preview-head">
                 <div>
                   <h4>Belge Gorunumu</h4>
+                  <p>Backend HTML'i tek kez gosterilir; karekod secilen XSLT tarafindan uretilir.</p>
                 </div>
-                <button
-                  type="button"
-                  class="secondary-button compact-button"
-                  *ngIf="selectedSendingSummary() as summary"
-                  (click)="openSendingPdfFile(summary)"
-                  [disabled]="!canOpenSendingPdf(summary) || isSendingPdfLoading(summary)"
-                  [title]="getSendingPdfButtonTitle(summary)"
-                >
-                  {{ isSendingPdfLoading(summary) ? 'PDF aciliyor...' : 'PDF Goster' }}
-                </button>
               </div>
               <iframe
                 class="document-frame"
@@ -1156,382 +1119,16 @@
         <summary class="section-heading">
           <div>
             <p class="section-kicker">Teknik</p>
-            <h3>Outbox ve manuel preview</h3>
+            <h3>Manuel XML preview</h3>
           </div>
         </summary>
 
         <section class="workspace-grid sending-grid">
           <div class="workspace-stack">
-            <article class="panel panel-soft">
-              <div class="panel-head">
-                <div>
-                  <p class="section-kicker">4. Outbox Arama</p>
-                  <h3>Uyumsoft sorgusu</h3>
-                  <p>Typed query parametreleriyle sonucu getir.</p>
-                </div>
-                <span class="panel-badge">GetOutboxInvoiceList</span>
-              </div>
-
-              <div class="empty-state compact-empty" *ngIf="!canSendList()">
-                <h4>Outbox arama yetkisi gerekli</h4>
-                <p>`fatura-gonderimi.list` yetkisi olmadan arama yapilamaz.</p>
-              </div>
-
-              <ng-container *ngIf="canSendList()">
-                <form class="request-form" [formGroup]="outboxSearchForm">
-                  <div class="parameter-shell">
-                    <div class="panel-head compact-head">
-                      <div>
-                        <h4>Typed Parametreler</h4>
-                        <p>WCF query model property'leri icin name ve value ekle.</p>
-                      </div>
-                      <button
-                        type="button"
-                        class="ghost-button compact-button"
-                        (click)="addSearchParameter()"
-                      >
-                        Parametre Ekle
-                      </button>
-                    </div>
-
-                    <div
-                      class="parameter-list"
-                      *ngIf="outboxParameterArray.controls.length > 0; else emptySearchParameters"
-                    >
-                      <div
-                        class="parameter-row"
-                        *ngFor="let parameter of outboxParameterArray.controls; let index = index"
-                      >
-                        <label class="field">
-                          <span>Ad</span>
-                          <input
-                            type="text"
-                            [formControl]="parameter.controls.name"
-                            placeholder="PageIndex"
-                          />
-                        </label>
-                        <label class="field">
-                          <span>Deger</span>
-                          <input
-                            type="text"
-                            [formControl]="parameter.controls.value"
-                            placeholder="9d6e0f84-..."
-                          />
-                        </label>
-                        <button
-                          type="button"
-                          class="ghost-button compact-button"
-                          (click)="removeSearchParameter(index)"
-                        >
-                          Sil
-                        </button>
-                      </div>
-                    </div>
-
-                    <ng-template #emptySearchParameters>
-                      <div class="empty-state compact-empty">
-                        <p>Ek parametre vermek istemiyorsan bu alan bos kalabilir.</p>
-                      </div>
-                    </ng-template>
-                  </div>
-                </form>
-
-                <div class="action-row">
-                  <button
-                    type="button"
-                    class="primary-button"
-                    (click)="runOutboxSearch()"
-                    [disabled]="outboxSearchLoading()"
-                  >
-                    {{ outboxSearchLoading() ? 'Sorgu calisiyor...' : 'Outbox Ara' }}
-                  </button>
-                  <button type="button" class="secondary-button" (click)="applyDefaultOutboxQuery()">
-                    Varsayilan Parametre
-                  </button>
-                  <button type="button" class="ghost-button" (click)="clearSearchParameters()">
-                    Parametreleri Temizle
-                  </button>
-                </div>
-              </ng-container>
-            </article>
-
             <article class="panel">
               <div class="panel-head">
                 <div>
-                  <p class="section-kicker">5. Sonuc</p>
-                  <h3>Outbox cevabi</h3>
-                  <p>Typed invoiceList satirlarini sec ve gerekirse ham sonucu incele.</p>
-                </div>
-                <span class="panel-badge" *ngIf="outboxSearchResponse()">
-                  {{ outboxSearchResponse()?.isSucceeded ? 'Basarili' : 'Hata' }}
-                </span>
-              </div>
-
-              <div class="empty-state" *ngIf="outboxSearchLoading()">
-                <h4>Sorgu isleniyor</h4>
-                <p>Outbox cevabi hazirlaniyor.</p>
-              </div>
-
-              <div class="empty-state" *ngIf="!outboxSearchLoading() && !outboxSearchResponse()">
-                <h4>Sonuc henuz yok</h4>
-                <p>Sorgu tamamlandiginda sonuc burada acilir.</p>
-              </div>
-
-              <ng-container *ngIf="outboxSearchResponse() as response">
-                <section class="summary-grid compact-summary-grid">
-                  <article
-                    class="summary-card"
-                    *ngFor="let item of outboxResponseSummary(); trackBy: trackByResponseMetric"
-                  >
-                    <span>{{ item.label }}</span>
-                    <strong>{{ item.value }}</strong>
-                  </article>
-                </section>
-
-                <div
-                  class="invoice-table-shell compact-table-shell"
-                  *ngIf="outboxInvoiceRows().length > 0"
-                >
-                  <table class="invoice-table compact-invoice-table">
-                    <thead>
-                      <tr>
-                        <th>Fatura No</th>
-                        <th>Invoice UUID</th>
-                        <th>Tarih</th>
-                        <th>Durum</th>
-                        <th class="amount-column">Tutar</th>
-                        <th class="action-column">Islem</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      <tr
-                        *ngFor="let row of outboxInvoiceRows(); trackBy: trackByOutboxInvoiceRow"
-                      >
-                        <td>
-                          <strong>{{ row.invoiceNumber || '-' }}</strong>
-                          <small>{{ row.direction || '-' }}</small>
-                        </td>
-                        <td>
-                          <span class="table-main-text">{{ row.invoiceUuid || '-' }}</span>
-                          <small>{{ row.localDocumentId || '-' }}</small>
-                        </td>
-                        <td>{{ (row.executionDate || row.createDateUtc) | date: 'dd.MM.yyyy HH:mm' }}</td>
-                        <td>
-                          <div class="compact-statuses">
-                            <span class="status-pill status-pill-neutral">
-                              {{ row.status || '-' }}
-                            </span>
-                            <span
-                              class="status-pill"
-                              [class.status-pill-success]="row.pdfFilePath"
-                              [class.status-pill-neutral]="!row.pdfFilePath"
-                            >
-                              {{ row.pdfFilePath ? 'PDF var' : 'PDF yok' }}
-                            </span>
-                          </div>
-                        </td>
-                        <td class="amount-column">
-                          <strong>
-                            {{ row.payableAmount | number: '1.2-2' }}
-                            {{ row.documentCurrencyCode || '' }}
-                          </strong>
-                        </td>
-                        <td>
-                          <div class="table-actions">
-                            <button
-                              type="button"
-                              class="ghost-button compact-button"
-                              (click)="applyOutboxInvoiceRow(row)"
-                              [disabled]="!row.invoiceUuid"
-                            >
-                              UUID Sec
-                            </button>
-                            <button
-                              type="button"
-                              class="primary-button compact-button"
-                              (click)="openOutboxInvoicePdf(row)"
-                              [disabled]="
-                                !canOpenOutboxInvoicePdf(row) || isOutboxInvoicePdfLoading(row)
-                              "
-                            >
-                              {{ isOutboxInvoicePdfLoading(row) ? 'Aciliyor...' : 'PDF' }}
-                            </button>
-                          </div>
-                        </td>
-                      </tr>
-                    </tbody>
-                  </table>
-                </div>
-
-                <div class="message-card" *ngIf="response.message || response.scalarValue">
-                  <div *ngIf="response.message">
-                    <span>Mesaj</span>
-                    <p>{{ response.message }}</p>
-                  </div>
-                  <div *ngIf="response.scalarValue">
-                    <span>Scalar Value</span>
-                    <p>{{ response.scalarValue }}</p>
-                  </div>
-                </div>
-
-                <details class="advanced-panel" *ngIf="response.nodes.length > 0 || response.responsePayloadJson">
-                  <summary>Ham sonuc</summary>
-
-                  <section class="node-section" *ngIf="response.nodes.length > 0">
-                    <ng-template #nodeTree let-nodes>
-                      <div class="node-tree">
-                        <article class="node-card" *ngFor="let node of nodes; trackBy: trackByNode">
-                          <div class="node-head">
-                            <strong>{{ node.name || '-' }}</strong>
-                            <span>{{ node.value || 'Deger yok' }}</span>
-                          </div>
-
-                          <div class="attribute-grid" *ngIf="hasNodeAttributes(node)">
-                            <article class="attribute-card" *ngFor="let attribute of node.attributes | keyvalue">
-                              <span>{{ attribute.key }}</span>
-                              <strong>{{ attribute.value || '-' }}</strong>
-                            </article>
-                          </div>
-
-                          <ng-container *ngIf="node.children.length > 0">
-                            <ng-container
-                              *ngTemplateOutlet="nodeTree; context: { $implicit: node.children }"
-                            ></ng-container>
-                          </ng-container>
-                        </article>
-                      </div>
-                    </ng-template>
-
-                    <ng-container
-                      *ngTemplateOutlet="nodeTree; context: { $implicit: response.nodes }"
-                    ></ng-container>
-                  </section>
-
-                  <section class="code-grid">
-                    <details class="code-block">
-                      <summary>Normalize JSON</summary>
-                      <pre>{{ outboxResponseJson() }}</pre>
-                    </details>
-                    <details class="code-block">
-                      <summary>Response Payload JSON</summary>
-                      <pre>{{ response.responsePayloadJson || '-' }}</pre>
-                    </details>
-                  </section>
-                </details>
-              </ng-container>
-            </article>
-          </div>
-
-          <div class="workspace-stack">
-            <article class="panel">
-              <div class="panel-head">
-                <div>
-                  <p class="section-kicker">6. Outbox Belge</p>
-                  <h3>Tekil belge onizleme</h3>
-                  <p>Secilen invoiceUuid ile HTML sonucu getir.</p>
-                </div>
-                <span class="panel-badge">GET outbox invoiceUuid</span>
-              </div>
-
-              <div class="empty-state compact-empty" *ngIf="!canSendDetail()">
-                <h4>Belge render yetkisi gerekli</h4>
-                <p>`fatura-gonderimi.detail` yetkisi olmadan belge render edilemez.</p>
-              </div>
-
-              <ng-container *ngIf="canSendDetail()">
-                <form class="request-form" [formGroup]="renderForm">
-                  <label class="field">
-                    <span>Invoice UUID</span>
-                    <input type="text" formControlName="invoiceId" placeholder="9d6e0f84-..." />
-                  </label>
-                  <label class="field">
-                    <span>Profil</span>
-                    <select formControlName="profile">
-                      <option *ngFor="let profile of profileOptions" [ngValue]="profile">
-                        {{ profile }}
-                      </option>
-                    </select>
-                  </label>
-                  <label class="toggle-field toggle-field-wide">
-                    <input type="checkbox" formControlName="preferEmbeddedXslt" />
-                    <span>Varsa gomulu XSLT once denensin</span>
-                  </label>
-                </form>
-
-                <div class="action-row">
-                  <button
-                    type="button"
-                    class="primary-button"
-                    (click)="renderOutboxInvoice()"
-                    [disabled]="renderedOutboxLoading()"
-                  >
-                    {{ renderedOutboxLoading() ? 'Render aliniyor...' : 'Belgeyi Getir' }}
-                  </button>
-                </div>
-              </ng-container>
-
-              <div class="empty-state" *ngIf="!renderedOutboxLoading() && !renderedOutboxDocument()">
-                <h4>Belge henuz gelmedi</h4>
-                <p>InvoiceId secip render istediginde sonuc burada acilir.</p>
-              </div>
-
-              <div class="empty-state" *ngIf="renderedOutboxLoading()">
-                <h4>Belge yukleniyor</h4>
-                <p>Render sonucu hazirlaniyor.</p>
-              </div>
-
-              <ng-container *ngIf="renderedOutboxDocument() as document">
-                <section class="summary-grid compact-summary-grid">
-                  <article class="summary-card">
-                    <span>Invoice UUID</span>
-                    <strong>{{ document.invoiceId || '-' }}</strong>
-                  </article>
-                  <article class="summary-card">
-                    <span>Profil</span>
-                    <strong>{{ document.profile || '-' }}</strong>
-                  </article>
-                  <article class="summary-card">
-                    <span>XSLT</span>
-                    <strong>{{ document.appliedXsltName || '-' }}</strong>
-                  </article>
-                  <article class="summary-card">
-                    <span>Tasarim</span>
-                    <strong>{{ document.usedEmbeddedXslt ? 'Gomulu XSLT' : 'Genel XSLT' }}</strong>
-                  </article>
-                </section>
-
-                <div class="action-row" *ngIf="canSendCreate()">
-                  <button type="button" class="secondary-button" (click)="useDocumentXmlForPreview(document)">
-                    XML'i Preview Alanina Tasi
-                  </button>
-                </div>
-
-                <div class="document-preview-shell" *ngIf="document.htmlContent; else noRenderHtml">
-                  <div class="preview-head">
-                    <div>
-                      <h4>Belge Gorunumu</h4>
-                      <p>Outbox kaynagindan gelen HTML sonucu.</p>
-                    </div>
-                  </div>
-                  <iframe
-                    class="document-frame"
-                    sandbox="allow-scripts"
-                    [src]="getDocumentPreviewUrl(document.htmlContent)"
-                  ></iframe>
-                </div>
-
-                <ng-template #noRenderHtml>
-                  <div class="empty-state compact-empty">
-                    <p>Bu cevapta gosterilecek HTML bulunmuyor.</p>
-                  </div>
-                </ng-template>
-              </ng-container>
-            </article>
-
-            <article class="panel">
-              <div class="panel-head">
-                <div>
-                  <p class="section-kicker">7. XML Preview</p>
+                  <p class="section-kicker">4. XML Preview</p>
                   <h3>Ham XML gorunumu</h3>
                   <p>XML iceriginden sadece HTML onizleme uret.</p>
                 </div>

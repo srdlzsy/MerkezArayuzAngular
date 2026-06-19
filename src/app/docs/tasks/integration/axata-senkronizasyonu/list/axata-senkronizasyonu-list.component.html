@@ -962,6 +962,90 @@
     </div>
 
     <div class="section-block">
+      <h2 class="section-title">AXATA Sevk Tarihi</h2>
+      <p class="section-desc">
+        ENT006 sevk basliklarini secilen S06ITAR tarihine gore okur; pending filtrelemez, Mikro'ya yazmaz ve AXATA ack atmaz.
+      </p>
+
+      <form class="compact-form form-grid" [formGroup]="outboundDeliveriesByDateForm">
+        <label class="form-row">
+          <span>Sevk Tarihi</span>
+          <input type="date" formControlName="date" />
+        </label>
+      </form>
+
+      <div class="button-group">
+        <button
+          type="button"
+          class="btn primary"
+          (click)="loadOutboundDeliveriesByDate()"
+          [disabled]="outboundDeliveriesByDateLoading()"
+        >
+          {{ outboundDeliveriesByDateLoading() ? 'Sevkler okunuyor...' : 'Tarihe Gore Sevkleri Getir' }}
+        </button>
+      </div>
+
+      <ng-container *ngIf="outboundDeliveriesByDate() as byDate">
+        <div class="status-grid">
+          <div class="status-card">
+            <span>Tarih</span>
+            <strong>{{ byDate.date ? (byDate.date | date:'dd.MM.yyyy') : '-' }}</strong>
+          </div>
+          <div class="status-card">
+            <span>AXATA Tarih No</span>
+            <strong>{{ byDate.axataDateNumber }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Belge</span>
+            <strong>{{ byDate.totalDocumentCount }}</strong>
+          </div>
+          <div class="status-card">
+            <span>Satir / Miktar</span>
+            <strong>{{ byDate.totalLineCount }} / {{ byDate.totalQuantity | number:'1.0-2' }}</strong>
+          </div>
+        </div>
+
+        <div class="compact-table" *ngIf="byDate.items.length; else noOutboundDeliveriesByDate">
+          <div class="table-row table-head">
+            <span>AXATA</span>
+            <span>Belge</span>
+            <span>Depo / Tarih</span>
+            <span>Miktar</span>
+          </div>
+          <div
+            class="table-row"
+            *ngFor="let item of byDate.items; trackBy: trackByOutboundDeliveryByDate"
+          >
+            <span>
+              #{{ item.axataSequenceNo }} / {{ item.axataDeliveryNo }}
+              <small>{{ item.movementType || '-' }} / {{ item.status || '-' }}</small>
+            </span>
+            <span>
+              {{ item.documentSerie || '-' }}.{{ item.documentOrderNo || '-' }}
+              <small>{{ item.vehiclePlate || '-' }} / {{ item.driverName || '-' }}</small>
+            </span>
+            <span>
+              {{ item.sourceWarehouseCode || '-' }} -> {{ item.targetWarehouseCode || '-' }}
+              <small>{{ formatTimestamp(item.axataDate) }} / {{ formatTimestamp(item.transferDate) }}</small>
+            </span>
+            <span>
+              {{ item.quantity | number:'1.0-2' }}
+              <small>{{ item.lineCount }} satir</small>
+            </span>
+          </div>
+        </div>
+        <ng-template #noOutboundDeliveriesByDate>
+          <div class="empty-msg">Secili tarih icin AXATA sevk kaydi yok.</div>
+        </ng-template>
+
+        <details class="json-details">
+          <summary>Sevk Tarihi JSON</summary>
+          <pre>{{ outboundDeliveriesByDateJson() }}</pre>
+        </details>
+      </ng-container>
+    </div>
+
+    <div class="section-block">
       <h2 class="section-title">C01 Live AXATA Fetch / Import</h2>
       <p class="section-desc">
         Preview veri yazmaz. Import Mikro depolar arasi sevk fisi olusturur; acknowledge aciksa basarili kayittan sonra AXATA ack atar.

@@ -25,6 +25,8 @@ import type {
   IAxataOutboundDeliveryImportExecuteApiDto,
   IAxataOutboundDeliveryImportExecuteRequestApiDto,
   IAxataOutboundDeliveryImportPreviewApiDto,
+  IAxataOutboundDeliveriesByDateApiDto,
+  IAxataOutboundDeliveriesByDateHttpRequestApiDto,
   IAxataOutboundDeliveryQueuePreviewApiDto,
   IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto,
   IAxataSynchronizationConnectionTestApiDto,
@@ -122,6 +124,8 @@ export type AxataOutboundDeliveryImportExecuteDto =
   IAxataOutboundDeliveryImportExecuteApiDto;
 export type AxataOutboundDeliveryQueuePreviewDto =
   IAxataOutboundDeliveryQueuePreviewApiDto;
+export type AxataOutboundDeliveriesByDateDto =
+  IAxataOutboundDeliveriesByDateApiDto;
 export type ModuleActionScaffoldResponseDto = IModuleActionScaffoldResponseApiDto;
 export type PosAccountingModuleActionScaffoldResponseDto =
   IPosAccountingModuleActionScaffoldResponseApiDto;
@@ -214,6 +218,17 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       {
         movementType: movementType || undefined,
         take: query.take ?? undefined
+      }
+    );
+  }
+
+  getAxataOutboundDeliveriesByDate(
+    query: IAxataOutboundDeliveriesByDateHttpRequestApiDto
+  ) {
+    return this.getWithQuery<AxataOutboundDeliveriesByDateDto>(
+      'integrations/axata-sync/live/axata/outbound-deliveries/by-date',
+      {
+        date: query.date
       }
     );
   }
@@ -702,6 +717,15 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     return this.post<UyumsoftOperationResponseDto, IUyumsoftOperationRequestApiDto>(
       `entegrasyon-islemleri/uyumsoft/e-fatura/get/${encodeURIComponent(operationName)}`,
       request
+    );
+  }
+
+  getUyumsoftEInvoicePdfFile(
+    invoiceUuid: string,
+    direction: 'inbox' | 'outbox'
+  ) {
+    return this.getBlob(
+      `entegrasyon-islemleri/uyumsoft/e-fatura/${direction}/invoices/${encodeURIComponent(invoiceUuid)}/pdf-file`
     );
   }
 

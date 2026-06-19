@@ -136,7 +136,6 @@
   line-height: 1.6;
 }
 
-.workspace-switch,
 .hero-stats,
 .action-row,
 .chip-row,
@@ -150,14 +149,6 @@
   gap: 0.48rem;
 }
 
-.workspace-switch {
-  width: fit-content;
-  padding: 0.2rem;
-  border-radius: 8px;
-  background: rgba(15, 118, 110, 0.08);
-}
-
-.workspace-tab,
 .ghost-button,
 .primary-button,
 .secondary-button,
@@ -180,18 +171,10 @@
     opacity 0.18s ease;
 }
 
-.workspace-tab,
 .ghost-button {
   border-color: var(--line);
   background: #ffffff;
   color: var(--text);
-}
-
-.workspace-tab.is-active {
-  border-color: var(--primary);
-  background: var(--primary);
-  color: #ffffff;
-  box-shadow: 0 8px 16px rgba(15, 118, 110, 0.18);
 }
 
 .primary-button {
@@ -220,7 +203,6 @@
   color: var(--danger-text);
 }
 
-.workspace-tab:hover:not(:disabled),
 .ghost-button:hover:not(:disabled),
 .primary-button:hover:not(:disabled),
 .secondary-button:hover:not(:disabled),
@@ -229,7 +211,6 @@
   transform: translateY(-1px);
 }
 
-.workspace-tab:disabled,
 .ghost-button:disabled,
 .primary-button:disabled,
 .secondary-button:disabled {
@@ -968,8 +949,6 @@
     flex-direction: column;
   }
 
-  .workspace-switch,
-  .workspace-tab,
   .ghost-button,
   .primary-button,
   .secondary-button,
@@ -977,7 +956,6 @@
     width: 100%;
   }
 
-  .workspace-switch,
   .action-row,
   .candidate-strip {
     flex-direction: column;

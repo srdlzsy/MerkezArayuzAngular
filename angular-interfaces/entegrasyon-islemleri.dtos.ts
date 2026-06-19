@@ -421,6 +421,10 @@ export interface IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto {
   take?: number | null;
 }
 
+export interface IAxataOutboundDeliveriesByDateHttpRequestApiDto {
+  date: string;
+}
+
 export interface IAxataOutboundDeliveryImportExecuteRequestApiDto {
   take?: number | null;
   continueOnError: boolean;
@@ -486,6 +490,33 @@ export interface IAxataOutboundDeliveryQueueDocumentApiDto {
   hasLiveImport: boolean;
   currentHandling: string;
   warning: string | null;
+}
+
+export interface IAxataOutboundDeliveriesByDateApiDto {
+  date: string;
+  axataDateNumber: number;
+  generatedAtUtc: string;
+  totalDocumentCount: number;
+  totalLineCount: number;
+  totalQuantity: number;
+  items: IAxataOutboundDeliveryByDateItemApiDto[];
+}
+
+export interface IAxataOutboundDeliveryByDateItemApiDto {
+  axataSequenceNo: number;
+  axataDeliveryNo: string;
+  documentSerie: string;
+  documentOrderNo: number | null;
+  status: string;
+  movementType: string | null;
+  sourceWarehouseCode: string | null;
+  targetWarehouseCode: string | null;
+  axataDate: string | null;
+  transferDate: string | null;
+  lineCount: number;
+  quantity: number;
+  vehiclePlate: string | null;
+  driverName: string | null;
 }
 
 export interface IAxataOutboundDeliveryImportDocumentApiDto {

@@ -2,10 +2,7 @@
  * Fatura Islemleri DTOs
  */
 
-import type {
-  IUyumsoftOperationRequestApiDto,
-  IUyumsoftOperationResponseApiDto
-} from './entegrasyon-islemleri.dtos';
+import type { IUyumsoftOperationResponseApiDto } from './entegrasyon-islemleri.dtos';
 
 export type IInvoiceStateFilterApiDto = -1 | 0 | 1;
 export type IInvoiceRenderProfileApiDto = 'Auto' | 'EFatura' | 'EArsiv';
@@ -98,11 +95,6 @@ export interface IInvoiceViewingPrintedStateResponseApiDto {
   source: string | null;
 }
 
-export interface IInvoiceOutboxRenderQueryApiDto {
-  profile?: IInvoiceRenderProfileApiDto | null;
-  preferEmbeddedXslt?: boolean | null;
-}
-
 export interface IInvoiceSendingListQueryApiDto {
   startDate: string;
   endDate: string;
@@ -136,10 +128,6 @@ export interface IInvoiceSendingListItemApiDto {
   returnInvoiceDate: string | null;
   warehouseName: string | null;
   description: string | null;
-  sendingPdfInvoiceUuid?: string | null;
-  sendingPdfInvoiceNumber?: string | null;
-  sendingPdfLocalDocumentId?: string | null;
-  sendingPdfFilePath?: string | null;
 }
 
 export interface IInvoiceSendingListResponseApiDto {
@@ -230,6 +218,3 @@ export interface IInvoicePreviewRequestApiDto {
   profile?: IInvoiceRenderProfileApiDto | null;
   preferEmbeddedXslt?: boolean | null;
 }
-
-export type IInvoiceOutboxSearchRequestApiDto = IUyumsoftOperationRequestApiDto;
-export type IInvoiceOutboxSearchResponseApiDto = IUyumsoftOperationResponseApiDto;

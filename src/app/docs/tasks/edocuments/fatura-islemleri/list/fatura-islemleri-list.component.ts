@@ -3,22 +3,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
-  FormArray,
   FormControl,
   FormGroup,
   ReactiveFormsModule,
   Validators
 } from '@angular/forms';
 import { DomSanitizer, type SafeResourceUrl } from '@angular/platform-browser';
-import { ActivatedRoute, Router } from '@angular/router';
+import { ActivatedRoute } from '@angular/router';
 import type {
   IInvoiceRenderProfileApiDto,
   IInvoiceSendingScenarioApiDto,
   IInvoiceStateFilterApiDto,
-  IInvoiceViewingSearchFieldApiDto,
-  IUyumsoftInvoiceListItemApiDto,
-  IUyumsoftOperationParameterApiDto,
-  IUyumsoftResponseNodeApiDto
+  IInvoiceViewingSearchFieldApiDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -28,8 +24,6 @@ import {
 } from '../../../../../core/api/furpa-merkez-api.utils';
 import {
   FaturaIslemleriService,
-  type InvoiceOutboxSearchRequestDto,
-  type InvoiceOutboxSearchResponseDto,
   type InvoicePreviewRequestDto,
   type InvoiceRenderedDocumentDto,
   type InvoiceReturnReferenceCandidatesResponseDto,
@@ -49,15 +43,9 @@ import {
   type SendInvoiceDocumentsResponseDto
 } from '../../../../../core/api/module-services/fatura-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
-import { getPrimaryTaskRoutePath } from '../../../../config/docs-task-source.config';
 
 type WorkspaceMode = 'viewing' | 'sending';
 type FeedbackTone = 'success' | 'error' | 'info';
-
-type ParameterFormGroup = FormGroup<{
-  name: FormControl<string>;
-  value: FormControl<string>;
-}>;
 
 interface PageFeedback {
   tone: FeedbackTone;
@@ -106,11 +94,6 @@ const VIEWING_UPDATE_PERMISSION = 'fatura-islemleri.fatura-goruntuleme.update';
 const SENDING_LIST_PERMISSION = 'fatura-islemleri.fatura-gonderimi.list';
 const SENDING_DETAIL_PERMISSION = 'fatura-islemleri.fatura-gonderimi.detail';
 const SENDING_CREATE_PERMISSION = 'fatura-islemleri.fatura-gonderimi.create';
-const DEFAULT_OUTBOX_QUERY_PARAMETERS: IUyumsoftOperationParameterApiDto[] = [
-  { name: 'PageIndex', value: '0' },
-  { name: 'PageSize', value: '20' },
-  { name: 'IsArchived', value: 'false' }
-];
 const DEFAULT_PREVIEW_XML =
   '<Invoice><!-- UBL XML icerigini buraya yapistirin --></Invoice>';
 
@@ -123,7 +106,6 @@ const DEFAULT_PREVIEW_XML =
 })
 export class FaturaIslemleriListComponent {
   private readonly activatedRoute = inject(ActivatedRoute);
-  private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly sanitizer = inject(DomSanitizer);
   private readonly authService = inject(AuthService);
@@ -167,12 +149,12 @@ export class FaturaIslemleriListComponent {
     {
       value: 'EFatura',
       label: 'E-Fatura',
-      description: 'Mikro tarafindaki e-fatura bekleyenlerini getirir.'
+      description: 'Mikro tarafindaki giden e-faturalari getirir.'
     },
     {
       value: 'EArsiv',
       label: 'E-Arsiv',
-      description: 'E-arsiv tarafina dusen bekleyenleri getirir.'
+      description: 'E-arsiv tarafina dusen giden faturalari getirir.'
     }
   ];
   protected readonly embeddedPreferenceOptions: ReadonlyArray<EmbeddedPreferenceOption> = [
@@ -259,7 +241,6 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly selectedSendingKeys = signal<string[]>([]);
   protected readonly sendingRequestLoading = signal(false);
-  protected readonly sendingPdfLoadingKey = signal<string | null>(null);
   protected readonly lastSendResponse = signal<SendInvoiceDocumentsResponseDto | null>(null);
   protected readonly returnReferencePanelOpen = signal(false);
   protected readonly returnReferenceInvoiceContext = signal<InvoiceSendingListItemDto | null>(null);
@@ -268,11 +249,6 @@ export class FaturaIslemleriListComponent {
   protected readonly returnReferenceLoading = signal(false);
   protected readonly returnReferenceSavingKey = signal<string | null>(null);
 
-  protected readonly outboxSearchResponse = signal<InvoiceOutboxSearchResponseDto | null>(null);
-  protected readonly outboxSearchLoading = signal(false);
-  protected readonly outboxPdfLoadingKey = signal<string | null>(null);
-  protected readonly renderedOutboxDocument = signal<InvoiceRenderedDocumentDto | null>(null);
-  protected readonly renderedOutboxLoading = signal(false);
   protected readonly previewDocument = signal<InvoiceRenderedDocumentDto | null>(null);
   protected readonly previewLoading = signal(false);
 
@@ -334,33 +310,6 @@ export class FaturaIslemleriListComponent {
       nonNullable: true
     })
   });
-  protected readonly outboxSearchForm = new FormGroup({
-    parameters: new FormArray<ParameterFormGroup>(
-      DEFAULT_OUTBOX_QUERY_PARAMETERS.map(
-        (parameter) =>
-          new FormGroup({
-            name: new FormControl(parameter.name, {
-              nonNullable: true
-            }),
-            value: new FormControl(parameter.value ?? '', {
-              nonNullable: true
-            })
-          })
-      )
-    )
-  });
-  protected readonly renderForm = new FormGroup({
-    invoiceId: new FormControl<string>('', {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
-    profile: new FormControl<IInvoiceRenderProfileApiDto>('Auto', {
-      nonNullable: true
-    }),
-    preferEmbeddedXslt: new FormControl<boolean>(true, {
-      nonNullable: true
-    })
-  });
   protected readonly viewingRenderForm = new FormGroup({
     profile: new FormControl<IInvoiceRenderProfileApiDto>('Auto', {
       nonNullable: true
@@ -385,8 +334,6 @@ export class FaturaIslemleriListComponent {
       nonNullable: true
     })
   });
-  protected readonly outboxParameterArray = this.outboxSearchForm.controls.parameters;
-
   protected readonly viewingPermissionCodes = computed(() =>
     this.uniquePermissionCodes(this.authService.getTaskPermissionCodes(VIEWING_TASK_ID))
   );
@@ -426,17 +373,12 @@ export class FaturaIslemleriListComponent {
       this.canSendCreate()
   );
   protected readonly availableWorkspaces = computed<WorkspaceMode[]>(() => {
-    const workspaces: WorkspaceMode[] = [];
+    const hasAccess =
+      this.initialWorkspace === 'viewing'
+        ? this.canOpenViewingWorkspace()
+        : this.canOpenSendingWorkspace();
 
-    if (this.canOpenViewingWorkspace()) {
-      workspaces.push('viewing');
-    }
-
-    if (this.canOpenSendingWorkspace()) {
-      workspaces.push('sending');
-    }
-
-    return workspaces;
+    return hasAccess ? [this.initialWorkspace] : [];
   });
   protected readonly heroStats = computed<HeroStat[]>(() =>
     this.activeWorkspace() === 'viewing'
@@ -519,9 +461,6 @@ export class FaturaIslemleriListComponent {
         item.returnInvoiceNo,
         item.returnInvoiceDate,
         item.sentDocumentNo,
-        item.sendingPdfInvoiceNumber,
-        item.sendingPdfLocalDocumentId,
-        item.sendingPdfFilePath,
         item.warehouseName,
         item.description,
         `${item.payableTotal}`
@@ -566,7 +505,7 @@ export class FaturaIslemleriListComponent {
         value: `${response?.totalCount ?? 0}`
       },
       {
-        label: 'Bekleyen',
+        label: 'Gonderilmemis',
         value: `${items.filter((item) => !item.isSent).length}`
       },
       {
@@ -636,69 +575,8 @@ export class FaturaIslemleriListComponent {
       }
     ];
   });
-  protected readonly outboxResponseSummary = computed<ResponseMetric[]>(() => {
-    const response = this.outboxSearchResponse();
-
-    if (!response) {
-      return [];
-    }
-
-    return [
-      {
-        label: 'Durum',
-        value: response.isSucceeded ? 'Basarili' : 'Basarisiz',
-        tone: response.isSucceeded ? 'status-pill-success' : 'status-pill-danger'
-      },
-      {
-        label: 'Operation',
-        value: response.operationName || '-',
-        tone: 'status-pill-neutral'
-      },
-      {
-        label: 'Node',
-        value: `${response.nodes.length}`,
-        tone: 'status-pill-neutral'
-      },
-      {
-        label: 'Typed Fatura',
-        value: `${response.invoiceList?.items.length ?? 0}`,
-        tone: 'status-pill-neutral'
-      }
-    ];
-  });
-  protected readonly outboxResponseJson = computed(() => {
-    const response = this.outboxSearchResponse();
-
-    if (!response) {
-      return '';
-    }
-
-    return this.formatJson({
-      serviceKey: response.serviceKey,
-      serviceName: response.serviceName,
-      operationName: response.operationName,
-      resultElementName: response.resultElementName,
-      isSucceeded: response.isSucceeded,
-      message: response.message,
-      scalarValue: response.scalarValue,
-      resultAttributes: response.resultAttributes,
-      nodes: response.nodes,
-      invoiceList: response.invoiceList,
-      responsePayloadJson: response.responsePayloadJson
-    });
-  });
-  protected readonly outboxInvoiceRows = computed(
-    () => this.outboxSearchResponse()?.invoiceList?.items ?? []
-  );
-
   constructor() {
     this.destroyRef.onDestroy(() => this.releasePreviewUrls());
-
-    const availableWorkspaces = this.availableWorkspaces();
-
-    if (availableWorkspaces.length > 0 && !availableWorkspaces.includes(this.activeWorkspace())) {
-      this.activeWorkspace.set(availableWorkspaces[0]);
-    }
 
     if (this.activeWorkspace() === 'viewing' && this.canViewList()) {
       this.loadViewingList();
@@ -706,30 +584,6 @@ export class FaturaIslemleriListComponent {
 
     if (this.activeWorkspace() === 'sending' && this.canSendList()) {
       this.loadSendingList();
-    }
-  }
-
-  protected navigateToWorkspace(workspace: WorkspaceMode): void {
-    if (!this.availableWorkspaces().includes(workspace)) {
-      return;
-    }
-
-    this.activeWorkspace.set(workspace);
-
-    if (workspace === 'viewing' && !this.viewingList() && this.canViewList()) {
-      this.loadViewingList();
-    }
-
-    if (workspace === 'sending' && !this.sendingList() && this.canSendList()) {
-      this.loadSendingList();
-    }
-
-    const nextTaskId = workspace === 'viewing' ? VIEWING_TASK_ID : SENDING_TASK_ID;
-    const nextPath = getPrimaryTaskRoutePath(nextTaskId);
-    const normalizedPath = nextPath.startsWith('/') ? nextPath : `/${nextPath}`;
-
-    if (this.router.url !== normalizedPath) {
-      void this.router.navigateByUrl(normalizedPath);
     }
   }
 
@@ -1175,7 +1029,7 @@ export class FaturaIslemleriListComponent {
             title: 'Gonderim listesi yuklenemedi',
             message: this.resolveErrorMessage(
               error,
-              'Bekleyen fatura listesi su anda getirilemedi.'
+              'Giden fatura listesi su anda getirilemedi.'
             )
           });
         }
@@ -1290,7 +1144,7 @@ export class FaturaIslemleriListComponent {
             title: 'Render ayarlari uygulanamadi',
             message: this.resolveErrorMessage(
               error,
-              'Secili bekleyen fatura yeni render ayarlariyla gosterilemedi.'
+              'Secili giden fatura yeni render ayarlariyla gosterilemedi.'
             )
           });
         }
@@ -1342,59 +1196,6 @@ export class FaturaIslemleriListComponent {
     }
 
     this.submitSendingDocuments([summary]);
-  }
-
-  protected openSendingPdfFile(summary: InvoiceSendingListItemDto): void {
-    if (!this.canSendDetail()) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'PDF yetkisi gerekli',
-        message: 'Gonderilmis faturanin PDF dosyasini acmak icin detail yetkisi gerekiyor.'
-      });
-      return;
-    }
-
-    const pdfFilePath = this.getSendingPdfFilePath(summary);
-
-    if (!pdfFilePath) {
-      this.feedback.set({
-        tone: 'info',
-        title: 'PDF yolu yok',
-        message: 'Gonderilmis fatura icin sendingPdfFilePath API cevabinda bulunmuyor.'
-      });
-      return;
-    }
-
-    this.sendingPdfLoadingKey.set(this.buildSendingKey(summary.documentSerie, summary.documentOrderNo));
-
-    this.faturaIslemleriService
-      .getUyumsoftEInvoicePdfFileFromPath(pdfFilePath)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.sendingPdfLoadingKey.set(null))
-      )
-      .subscribe({
-        next: (blob: Blob) => {
-          const opened = this.openPdfBlob(blob);
-          this.feedback.set({
-            tone: opened ? 'success' : 'info',
-            title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
-            message: opened
-              ? `${summary.sentDocumentNo || summary.invoiceId} outbox PDF olarak acildi.`
-              : 'Uyumsoft outbox PDF dosyasi alindi ancak tarayici yeni sekmeyi acamadi.'
-          });
-        },
-        error: (error: HttpErrorResponse) => {
-          this.feedback.set({
-            tone: 'error',
-            title: 'PDF acilamadi',
-            message: this.resolveErrorMessage(
-              error,
-              'Secili gonderilmis fatura icin Uyumsoft outbox PDF dosyasi alinamadi.'
-            )
-          });
-        }
-      });
   }
 
   protected openReturnReferencePanel(summary: InvoiceSendingListItemDto): void {
@@ -1533,251 +1334,6 @@ export class FaturaIslemleriListComponent {
       fallbackReference,
       `fallback:${this.buildReturnReferenceKey(fallbackReference)}`
     );
-  }
-
-  protected addSearchParameter(
-    parameter: Partial<IUyumsoftOperationParameterApiDto> = {}
-  ): void {
-    this.outboxParameterArray.push(
-      new FormGroup({
-        name: new FormControl(parameter.name ?? '', {
-          nonNullable: true
-        }),
-        value: new FormControl(parameter.value ?? '', {
-          nonNullable: true
-        })
-      })
-    );
-  }
-
-  protected removeSearchParameter(index: number): void {
-    this.outboxParameterArray.removeAt(index);
-  }
-
-  protected clearSearchParameters(): void {
-    this.outboxParameterArray.clear();
-  }
-
-  protected applyDefaultOutboxQuery(): void {
-    this.clearSearchParameters();
-    for (const parameter of DEFAULT_OUTBOX_QUERY_PARAMETERS) {
-      this.addSearchParameter(parameter);
-    }
-    this.feedback.set({
-      tone: 'info',
-      title: 'Outbox sorgu sablonu yuklendi',
-      message: 'Sayfali Uyumsoft outbox typed parameter sablonu forma geri tasindi.'
-    });
-  }
-
-  protected runOutboxSearch(): void {
-    if (!this.canSendList()) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'Outbox arama yetkisi yok',
-        message: 'Fatura gonderimi outbox search endpointi icin gerekli yetki bulunmuyor.'
-      });
-      return;
-    }
-
-    const request = this.buildOutboxSearchRequest();
-    this.outboxSearchLoading.set(true);
-    this.outboxSearchResponse.set(null);
-
-    this.faturaIslemleriService
-      .searchOutboxInvoices(request)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.outboxSearchLoading.set(false))
-      )
-      .subscribe({
-        next: (response: InvoiceOutboxSearchResponseDto) => {
-          this.outboxSearchResponse.set(response);
-
-          const firstInvoiceUuid = response.invoiceList?.items.find(
-            (item) => !!item.invoiceUuid?.trim()
-          )?.invoiceUuid;
-          const currentInvoiceId = this.renderForm.controls.invoiceId.value.trim();
-
-          if (!currentInvoiceId && firstInvoiceUuid?.trim()) {
-            this.renderForm.controls.invoiceId.setValue(firstInvoiceUuid.trim());
-            this.previewForm.controls.invoiceId.setValue(firstInvoiceUuid.trim());
-          }
-
-          this.feedback.set({
-            tone: response.isSucceeded ? 'success' : 'error',
-            title: response.isSucceeded ? 'Outbox sorgusu tamamlandi' : 'Outbox sorgusu hata ile dondu',
-            message:
-              response.message?.trim() ||
-              `${response.operationName || 'GetOutboxInvoiceList'} cevabi alindi.`
-          });
-        },
-        error: (error: HttpErrorResponse) => {
-          this.feedback.set({
-            tone: 'error',
-            title: 'Outbox sorgusu calismadi',
-            message: this.resolveErrorMessage(
-              error,
-              'Uyumsoft outbox search endpointi su anda cevap vermiyor.'
-            )
-          });
-        }
-      });
-  }
-
-  protected applyInvoiceUuidCandidate(invoiceUuid: string): void {
-    this.renderForm.controls.invoiceId.setValue(invoiceUuid);
-    this.previewForm.controls.invoiceId.setValue(invoiceUuid);
-    this.feedback.set({
-      tone: 'info',
-      title: 'Invoice UUID secildi',
-      message: `${invoiceUuid} render ve preview formlarina tasindi.`
-    });
-  }
-
-  protected applyOutboxInvoiceRow(row: IUyumsoftInvoiceListItemApiDto): void {
-    const invoiceUuid = row.invoiceUuid?.trim();
-
-    if (!invoiceUuid) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'Invoice UUID yok',
-        message: `${row.invoiceNumber || 'Secili satir'} icin teknik UUID API cevabinda bulunamadi.`
-      });
-      return;
-    }
-
-    this.applyInvoiceUuidCandidate(invoiceUuid);
-  }
-
-  protected openOutboxInvoicePdf(row: IUyumsoftInvoiceListItemApiDto): void {
-    if (!this.canSendDetail()) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'PDF yetkisi gerekli',
-        message: 'Outbox PDF dosyasini acmak icin detail yetkisi gerekiyor.'
-      });
-      return;
-    }
-
-    const invoiceUuid = row.invoiceUuid?.trim();
-    const pdfFilePath = row.pdfFilePath?.trim();
-
-    if (!invoiceUuid || !pdfFilePath) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'PDF yolu yok',
-        message:
-          `${row.invoiceNumber || 'Secili fatura'} icin teknik UUID veya pdfFilePath ` +
-          'API cevabinda bulunamadi.'
-      });
-      return;
-    }
-
-    this.outboxPdfLoadingKey.set(invoiceUuid);
-
-    this.faturaIslemleriService
-      .getUyumsoftEInvoicePdfFileFromPath(pdfFilePath)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.outboxPdfLoadingKey.set(null))
-      )
-      .subscribe({
-        next: (blob: Blob) => {
-          const opened = this.openPdfBlob(blob);
-          this.feedback.set({
-            tone: opened ? 'success' : 'info',
-            title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
-            message: opened
-              ? `${row.invoiceNumber || invoiceUuid} outbox PDF olarak acildi.`
-              : 'Uyumsoft outbox PDF dosyasi alindi ancak tarayici yeni sekmeyi acamadi.'
-          });
-        },
-        error: (error: HttpErrorResponse) => {
-          this.feedback.set({
-            tone: 'error',
-            title: 'PDF acilamadi',
-            message: this.resolveErrorMessage(
-              error,
-              'Secili outbox satiri icin Uyumsoft PDF dosyasi alinamadi.'
-            )
-          });
-        }
-      });
-  }
-
-  protected renderOutboxInvoice(): void {
-    if (!this.canSendDetail()) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'Belge render yetkisi yok',
-        message: 'Outbox tekil belge render endpointi icin gerekli detail yetkisi bulunmuyor.'
-      });
-      return;
-    }
-
-    if (this.renderForm.invalid) {
-      this.renderForm.markAllAsTouched();
-      return;
-    }
-
-    const rawValue = this.renderForm.getRawValue();
-    this.renderedOutboxLoading.set(true);
-    this.renderedOutboxDocument.set(null);
-
-    this.faturaIslemleriService
-      .renderOutboxInvoice(rawValue.invoiceId.trim(), {
-        profile: rawValue.profile,
-        preferEmbeddedXslt: rawValue.preferEmbeddedXslt
-      })
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.renderedOutboxLoading.set(false))
-      )
-      .subscribe({
-        next: (document: InvoiceRenderedDocumentDto) => {
-          this.renderedOutboxDocument.set(document);
-          this.feedback.set({
-            tone: 'success',
-            title: 'Outbox belge render edildi',
-            message: `${document.invoiceId || rawValue.invoiceId} icin HTML onizleme hazir.`
-          });
-        },
-        error: (error: HttpErrorResponse) => {
-          this.feedback.set({
-            tone: 'error',
-            title: 'Belge render edilemedi',
-            message: this.resolveErrorMessage(
-              error,
-              'Secilen outbox invoiceId icin render sonucu getirilemedi.'
-            )
-          });
-        }
-      });
-  }
-
-  protected useDocumentXmlForPreview(document: InvoiceRenderedDocumentDto | null): void {
-    if (!document?.xmlContent?.trim()) {
-      this.feedback.set({
-        tone: 'info',
-        title: 'XML bulunamadi',
-        message: 'Secili belgede preview formuna tasinabilecek bir xmlContent yok.'
-      });
-      return;
-    }
-
-    this.previewForm.patchValue({
-      invoiceId: document.invoiceId ?? this.previewForm.controls.invoiceId.value,
-      xmlContent: document.xmlContent,
-      profile: this.normalizeProfile(document.profile),
-      preferEmbeddedXslt: true
-    });
-
-    this.feedback.set({
-      tone: 'info',
-      title: 'XML preview formuna tasindi',
-      message: 'Secili belgenin ham XML icerigi preview istegi icin hazirlandi.'
-    });
   }
 
   protected previewInvoiceXml(): void {
@@ -1933,40 +1489,10 @@ export class FaturaIslemleriListComponent {
     return this.isSendingItemSelected(item) ? 'Kuyruktan Cikar' : 'Kuyruga Ekle';
   }
 
-  protected canOpenSendingPdf(summary: InvoiceSendingListItemDto | null | undefined): boolean {
-    return !!summary && summary.isSent && !!this.getSendingPdfFilePath(summary);
-  }
-
-  protected getSendingPdfButtonTitle(
+  protected canPreviewSendingInvoice(
     summary: InvoiceSendingListItemDto | null | undefined
-  ): string {
-    if (!summary?.isSent) {
-      return 'PDF sadece gonderilmis faturalar icin acilir.';
-    }
-
-    if (!this.getSendingPdfFilePath(summary)) {
-      return 'API cevabinda sendingPdfFilePath bulunmuyor.';
-    }
-
-    return 'Gonderilmis fatura PDF dosyasini ac.';
-  }
-
-  protected canOpenOutboxInvoicePdf(
-    row: IUyumsoftInvoiceListItemApiDto | null | undefined
   ): boolean {
-    return !!row?.invoiceUuid?.trim() && !!row.pdfFilePath?.trim();
-  }
-
-  protected isSendingPdfLoading(summary: InvoiceSendingListItemDto): boolean {
-    return (
-      this.sendingPdfLoadingKey() ===
-      this.buildSendingKey(summary.documentSerie, summary.documentOrderNo)
-    );
-  }
-
-  protected isOutboxInvoicePdfLoading(row: IUyumsoftInvoiceListItemApiDto): boolean {
-    const invoiceUuid = row.invoiceUuid?.trim();
-    return !!invoiceUuid && this.outboxPdfLoadingKey() === invoiceUuid;
+    return !!summary?.documentSerie?.trim() && typeof summary.documentOrderNo === 'number';
   }
 
   protected isReturnInvoice(item: InvoiceSendingListItemDto | null | undefined): boolean {
@@ -2052,10 +1578,6 @@ export class FaturaIslemleriListComponent {
     );
   }
 
-  protected hasNodeAttributes(node: IUyumsoftResponseNodeApiDto): boolean {
-    return Object.keys(node.attributes ?? {}).length > 0;
-  }
-
   protected formatJson(value: unknown): string {
     return JSON.stringify(value, null, 2);
   }
@@ -2084,16 +1606,6 @@ export class FaturaIslemleriListComponent {
     _index: number,
     item: InvoiceReturnReferenceDto
   ): string => this.buildReturnReferenceKey(item);
-  protected readonly trackByNode = (_index: number, node: IUyumsoftResponseNodeApiDto): string =>
-    `${node.name}|${node.value ?? ''}`;
-  protected readonly trackByOutboxInvoiceRow = (
-    index: number,
-    row: IUyumsoftInvoiceListItemApiDto
-  ): string =>
-    row.invoiceUuid?.trim() ||
-    row.invoiceNumber?.trim() ||
-    row.localDocumentId?.trim() ||
-    `${row.direction}|${index}`;
   protected readonly trackByStat = (_index: number, stat: HeroStat): string => stat.label;
   protected readonly trackByMetric = (_index: number, metric: SummaryMetric): string =>
     metric.label;
@@ -2299,10 +1811,10 @@ export class FaturaIslemleriListComponent {
           this.sendingDetail.set(null);
           this.feedback.set({
             tone: 'error',
-            title: 'Bekleyen fatura yuklenemedi',
+            title: 'Giden fatura yuklenemedi',
             message: this.resolveErrorMessage(
               error,
-              'Secilen bekleyen fatura icin UBL onizleme getirilemedi.'
+              'Secilen giden fatura icin UBL onizleme getirilemedi.'
             )
           });
         }
@@ -2388,19 +1900,6 @@ export class FaturaIslemleriListComponent {
           });
         }
       });
-  }
-
-  private buildOutboxSearchRequest(): InvoiceOutboxSearchRequestDto {
-    const parameters = this.outboxParameterArray.controls
-      .map((parameterGroup: ParameterFormGroup) => ({
-        name: parameterGroup.controls.name.value.trim(),
-        value: parameterGroup.controls.value.value.trim() || null
-      }))
-      .filter((parameter: IUyumsoftOperationParameterApiDto) => !!parameter.name);
-
-    return {
-      parameters: parameters.length ? parameters : undefined
-    };
   }
 
   private buildViewingSynchronizationRequest(): InvoiceViewingSynchronizationRequestDto | null {
@@ -2585,16 +2084,6 @@ export class FaturaIslemleriListComponent {
     return `${documentSerie}|${documentOrderNo}`;
   }
 
-  private getSendingPdfFilePath(
-    summary: InvoiceSendingListItemDto | null | undefined
-  ): string | null {
-    if (!summary?.isSent) {
-      return null;
-    }
-
-    return summary.sendingPdfFilePath?.trim() || null;
-  }
-
   private buildReturnReferenceKey(reference: InvoiceReturnReferenceDto): string {
     return [
       reference.sourceDocumentSerie ?? '',
@@ -2645,19 +2134,6 @@ export class FaturaIslemleriListComponent {
     }
 
     return String(value).trim().toLocaleLowerCase('tr-TR');
-  }
-
-  private normalizeProfile(value: unknown): IInvoiceRenderProfileApiDto {
-    const normalizedValue = this.normalizeText(value);
-
-    switch (normalizedValue) {
-      case 'efatura':
-        return 'EFatura';
-      case 'earsiv':
-        return 'EArsiv';
-      default:
-        return 'Auto';
-    }
   }
 
   private getInvoiceScenario(value: unknown): IInvoiceSendingScenarioApiDto | null {

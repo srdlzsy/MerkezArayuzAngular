@@ -85,16 +85,14 @@ export const EDOCUMENTS_TASK_SOURCE = {
       id: 'fatura-gonderimi',
       title: 'Fatura Gonderimi',
       subtitle:
-        'Bekleyen Mikro faturalarini listeleme, UBL onizleme, canli gonderim, outbox arama ve XML preview akislarini tek modulde toplar.',
+        'Giden Mikro faturalarini listeleme, tek lokal HTML onizleme, canli gonderim ve manuel XML preview akislarini tek modulde toplar.',
       baseRouteOrFile: '/api/fatura-islemleri/fatura-gonderimi',
       highlights: [
-        'Bekleyen fatura listesi',
-        'UBL onizleme ve POST render override',
+        'Giden fatura listesi',
+        'Gonderilmemis ve gonderilmis satirlar icin lokal HTML onizleme',
         'Iade fatura referansi secimi',
         'Canli SendInvoice gonderimi',
-        'Outbox arama',
-        'Tekil outbox belge render',
-        'Gonderilmis belge PDF Goster',
+        'Karekodun tek kaynagi embedded veya fallback XSLT',
         'XML preview'
       ],
       listTitle: 'Endpointler',
@@ -102,7 +100,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         {
           name: 'InvoiceSendingController',
           description:
-            'Mikro bekleyen faturalarini listeler, secili belgeyi render eder, Uyumsofta gonderir; ayrica outbox ve manuel preview araclarini sunar.',
+            'Mikro giden faturalarini listeler, gonderim durumundan bagimsiz olarak lokal render eder, gonderilmemisleri Uyumsofta gonderir ve manuel XML preview sunar.',
           endpoints: [
             {
               method: 'GET',
@@ -112,12 +110,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}?scenario=EFatura',
-              description: 'Secili bekleyen fatura icin UBL ve HTML onizleme detayini getirir'
+              description: 'Secili giden fatura icin UBL ve HTML lokal onizleme detayini getirir; isSent degerinden bagimsizdir'
             },
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/render',
-              description: 'Secili bekleyen fatura icin senaryo ve XSLT ayarlarini override ederek belgeyi yeniden render eder',
+              description: 'Secili giden fatura icin senaryo ve XSLT ayarlarini override ederek belgeyi yeniden render eder',
               payload: 'InvoiceSendingRenderRequest'
             },
             {
@@ -134,24 +132,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-gonderimi/send',
-              description: 'Secili bekleyen faturalarni Uyumsoft SendInvoice ile canli ortama gonderir',
+              description: 'Secili gonderilmemis faturalari Uyumsoft SendInvoice ile canli ortama gonderir',
               payload: 'SendInvoiceDocumentsRequest'
-            },
-            {
-              method: 'POST',
-              path: '/api/fatura-islemleri/fatura-gonderimi/outbox/search',
-              description: 'Uyumsoft GetOutboxInvoiceList operasyonunu typed parameters ile cagirir ve invoiceList doner',
-              payload: 'UyumsoftOperationHttpRequest'
-            },
-            {
-              method: 'GET',
-              path: '/api/fatura-islemleri/fatura-gonderimi/outbox/{invoiceUuid}?profile=Auto&preferEmbeddedXslt=true',
-              description: 'Secili outbox faturasini render edilmis belge olarak getirir'
-            },
-            {
-              method: 'GET',
-              path: '{summary.sendingPdfFilePath}',
-              description: 'Fatura gonderimi listesinde summary.sendingPdfFilePath alanindan gelen PDF dosyasini getirir'
             },
             {
               method: 'POST',
