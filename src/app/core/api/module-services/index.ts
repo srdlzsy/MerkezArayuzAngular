@@ -15,3 +15,4 @@ export * from './green-grocer.service';
 export * from './rapor-islemleri.service';
 export * from './taslak.service';
 export * from './ayar-islemleri.service';
+export * from './duzeltme-islemleri.service';

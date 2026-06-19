@@ -19,6 +19,7 @@ import type {
   IAxataInboundAtfCompanyReceivingBatchRequestApiDto,
   IAxataInboundAtfCompanyReceivingRequestApiDto,
   IAxataIntegrationAuditOperationApiDto,
+  IAxataAuditOutboundDeliveryApiDto,
   IAxataManualIncomingCompanyReceivingBatchRequestApiDto,
   IAxataManualIncomingCompanyReceivingRequestApiDto,
   IAxataManualIncomingInventoryCountBatchRequestApiDto,
@@ -247,6 +248,14 @@ export class AxataSenkronizasyonuListComponent {
       validators: [Validators.required]
     }),
     warehouseNo: new FormControl<number | null>(null),
+    documentSerie: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    documentOrderNo: new FormControl<number | null>(null),
+    statuses: new FormControl<string>('0,1', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
     take: new FormControl<number>(50, {
       nonNullable: true,
       validators: [Validators.min(1), Validators.max(200)]
@@ -687,8 +696,8 @@ export class AxataSenkronizasyonuListComponent {
         value: summary.sentWarehouseOrderShipmentDifferenceDocumentCount
       },
       {
-        label: 'AXATA Pending',
-        value: summary.pendingOutboundDeliveryDocumentCount
+        label: 'AXATA Sevk',
+        value: summary.axataOutboundDeliveryDocumentCount ?? summary.pendingOutboundDeliveryDocumentCount
       },
       {
         label: 'C01 Pending',
@@ -697,6 +706,18 @@ export class AxataSenkronizasyonuListComponent {
       {
         label: 'Ack Bekleyen',
         value: summary.c01MikroExistsPendingAckDocumentCount
+      },
+      {
+        label: 'Tamamlanan Sevk',
+        value: summary.axataCompletedOutboundDeliveryDocumentCount ?? 0
+      },
+      {
+        label: 'Iptal / Zero',
+        value: summary.axataCancelledOutboundDeliveryDocumentCount ?? 0
+      },
+      {
+        label: 'Satirsiz AXATA',
+        value: summary.axataEmptyOutboundDeliveryDocumentCount ?? 0
       }
     ];
   });
@@ -723,6 +744,13 @@ export class AxataSenkronizasyonuListComponent {
             ? `${summary.unsentWarehouseOrderDocumentCount} belge henuz gitmemis`
             : 'Mikro siparisleri AXATA gonderim bayraginda tamam',
         tone: summary.unsentWarehouseOrderDocumentCount > 0 ? 'warn' : 'success'
+      },
+      {
+        label: 'AXATA Sevk Evreni',
+        value: `${summary.axataOutboundDeliveryDocumentCount ?? summary.pendingOutboundDeliveryDocumentCount}`,
+        detail: `${summary.axataCompletedOutboundDeliveryDocumentCount ?? 0} tamamlanan / ${summary.axataCancelledOutboundDeliveryDocumentCount ?? 0} iptal-zero`,
+        tone:
+          (summary.axataEmptyOutboundDeliveryDocumentCount ?? 0) > 0 ? 'warn' : 'neutral'
       },
       {
         label: 'AXATA Pending',
@@ -761,6 +789,15 @@ export class AxataSenkronizasyonuListComponent {
         tone:
           summary.c01PendingDocumentCount > 0 ||
           summary.c01MikroExistsPendingAckDocumentCount > 0
+            ? 'warn'
+            : 'success'
+      },
+      {
+        label: 'AXATA Sevki Bulunamayan',
+        value: `${summary.sentWarehouseOrderMissingAxataOutboundDeliveryDocumentCount ?? 0}`,
+        detail: 'Mikroda gonderildi gorunup secili AXATA status evreninde karsiligi bulunmayan ikincil kontrol',
+        tone:
+          (summary.sentWarehouseOrderMissingAxataOutboundDeliveryDocumentCount ?? 0) > 0
             ? 'warn'
             : 'success'
       }
@@ -1040,12 +1077,13 @@ export class AxataSenkronizasyonuListComponent {
   protected loadAuditOverview(): void {
     const startDate = this.auditForm.controls.startDate.value.trim();
     const endDate = this.auditForm.controls.endDate.value.trim();
+    const statuses = this.normalizeAuditStatuses(this.auditForm.controls.statuses.value);
 
-    if (!startDate || !endDate) {
+    if (!startDate || !endDate || !statuses) {
       this.feedback.set({
         tone: 'error',
         title: 'Audit tarih araligi eksik',
-        message: 'Kontrol / fark analizi icin baslangic ve bitis tarihi zorunlu.'
+        message: 'Baslangic, bitis tarihi ve AXATA status evreni zorunlu. Ornek: 0,1.'
       });
       return;
     }
@@ -1057,6 +1095,10 @@ export class AxataSenkronizasyonuListComponent {
         startDate,
         endDate,
         warehouseNo: this.toPositiveNumber(this.auditForm.controls.warehouseNo.value) ?? undefined,
+        documentSerie: this.auditForm.controls.documentSerie.value.trim() || undefined,
+        documentOrderNo:
+          this.toPositiveNumber(this.auditForm.controls.documentOrderNo.value) ?? undefined,
+        statuses,
         take: this.toPositiveNumber(this.auditForm.controls.take.value) ?? 50
       })
       .pipe(
@@ -1070,8 +1112,8 @@ export class AxataSenkronizasyonuListComponent {
             tone: audit.isInSync ? 'success' : 'info',
             title: audit.isInSync ? 'Sistem es zamanli gorunuyor' : 'Fark analizi hazir',
             message: audit.isInSync
-              ? 'Secili aralikta Mikro bayraklari tamam ve AXATA pending kuyrugu bos gorunuyor.'
-              : `${audit.unsyncedWarehouseOrders.length} Mikro siparisi ve ${audit.pendingOutboundDeliveries.length} AXATA pending sevki raporlandi.`
+              ? 'Mikro siparis bayraklari tamam; pending kuyruk, AXATA sevk donusu ve Mikro link kontrolleri uyumlu.'
+              : `${audit.unsyncedWarehouseOrders.length} Mikro siparis problemi, ${audit.pendingOutboundDeliveries.length} pending sevk ve ${audit.sentWarehouseOrdersMissingMikroShipments.length} kritik sevk donusu eksigi raporlandi.`
           });
         },
         error: () => {
@@ -2566,6 +2608,27 @@ export class AxataSenkronizasyonuListComponent {
     }
   }
 
+  protected getAuditOutboundDeliveryTone(
+    item: IAxataAuditOutboundDeliveryApiDto
+  ): string {
+    if (item.isCancelled || item.cancellationCode) {
+      return 'status-pill-neutral';
+    }
+
+    const status = item.status?.trim();
+    return status === '0' ? 'status-pill-warn' : 'status-pill-success';
+  }
+
+  protected formatAuditShipmentState(item: IAxataAuditOutboundDeliveryApiDto): string {
+    if (item.isCancelled) {
+      return item.cancellationCode
+        ? `Iptal (${item.cancellationCode})`
+        : 'Iptal / zero sevk';
+    }
+
+    return item.axataShipmentState?.trim() || (item.status === '0' ? 'Bekliyor' : 'Tamamlandi');
+  }
+
   protected getMissingShipmentLineRate(
     item: IAxataSentWarehouseOrderMissingShipmentApiDto
   ): number {
@@ -2758,6 +2821,10 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     item: IAxataPendingOutboundDeliveryApiDto
   ): string => `${item.movementType}|${item.axataSequenceNo}|${item.axataDeliveryNo}`;
+  protected trackByAuditOutboundDelivery = (
+    _index: number,
+    item: IAxataAuditOutboundDeliveryApiDto
+  ): string => `${item.status}|${item.movementType}|${item.axataSequenceNo}|${item.axataDeliveryNo}`;
 
   private mapCandidateToBatchItem(
     candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto
@@ -3128,6 +3195,15 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     return null;
+  }
+
+  private normalizeAuditStatuses(value: string | null | undefined): string | null {
+    const statuses = (value ?? '')
+      .split(',')
+      .map((item) => item.trim())
+      .filter((item, index, items) => (item === '0' || item === '1') && items.indexOf(item) === index);
+
+    return statuses.length ? statuses.join(',') : null;
   }
 
   private getCandidateTake(): number {

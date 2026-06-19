@@ -211,7 +211,9 @@
   <section class="tab-content" *ngIf="selectedTab() === 'monitor'">
     <div class="section-block">
       <h2 class="section-title">Kontrol / Fark Analizi</h2>
-      <p class="section-desc">Bu cagri veri yazmaz; Mikro siparis bayraklari ve AXATA pending sevk kuyrugunu raporlar.</p>
+      <p class="section-desc">
+        Bu cagri veri yazmaz; Mikro kaynakli siparis gonderimini, AXATA SQL sevklerini ve Mikro sevk linklerini birlikte raporlar.
+      </p>
 
       <form class="compact-form form-grid" [formGroup]="auditForm">
         <label class="form-row">
@@ -225,6 +227,19 @@
         <label class="form-row">
           <span>Depo No</span>
           <input type="number" formControlName="warehouseNo" placeholder="Opsiyonel" />
+        </label>
+        <label class="form-row">
+          <span>Belge Serisi</span>
+          <input type="text" formControlName="documentSerie" placeholder="Tek belge debug" />
+        </label>
+        <label class="form-row">
+          <span>Belge Sira</span>
+          <input type="number" formControlName="documentOrderNo" placeholder="Opsiyonel" />
+        </label>
+        <label class="form-row">
+          <span>AXATA Status</span>
+          <input type="text" formControlName="statuses" placeholder="0,1" />
+          <small>0: bekleyen, 1: tamamlanan</small>
         </label>
         <label class="form-row">
           <span>Take</span>
@@ -247,12 +262,12 @@
       >
         <div class="audit-command-copy">
           <span class="audit-eyebrow">Fark analizi sonucu</span>
-          <h2>{{ auditModel.isInSync ? 'Tum akislar uyumlu' : 'Mikro sevk linki icin mudahale gerekiyor' }}</h2>
+          <h2>{{ auditModel.isInSync ? 'Tum akislar uyumlu' : 'Entegrasyon farklari bulundu' }}</h2>
           <p *ngIf="criticalAuditOperation() as criticalOperation; else defaultAuditMessage">
             {{ criticalOperation.description }}
           </p>
           <ng-template #defaultAuditMessage>
-            <p>Sevk, pending kuyruk ve Mikro bayraklari ayni ekranda kontrol ediliyor.</p>
+            <p>Mikro siparis gonderimi ile AXATA kaynakli sevk donusu ayni ekranda kontrol ediliyor.</p>
           </ng-template>
 
           <div class="audit-meta-row">
@@ -261,6 +276,7 @@
               Aralik {{ formatTimestamp(auditModel.startDate) }} - {{ formatTimestamp(auditModel.endDate) }}
             </span>
             <span class="status-pill" *ngIf="auditModel.warehouseNo">Depo {{ auditModel.warehouseNo }}</span>
+            <span class="status-pill">AXATA Status {{ auditForm.controls.statuses.value }}</span>
           </div>
         </div>
 
@@ -309,9 +325,14 @@
           [class.success]="auditModel.summary.pendingOutboundDeliveryDocumentCount === 0"
           [class.warn]="auditModel.summary.pendingOutboundDeliveryDocumentCount > 0"
         >
-          <span>2. AXATA Pending</span>
-          <strong>{{ auditModel.summary.pendingOutboundDeliveryDocumentCount }}</strong>
-          <p>{{ auditModel.summary.pendingOutboundDeliveryLineCount }} satir pending kuyrukta</p>
+          <span>2. AXATA Sevkleri</span>
+          <strong>
+            {{ auditModel.summary.axataOutboundDeliveryDocumentCount ?? auditModel.summary.pendingOutboundDeliveryDocumentCount }}
+          </strong>
+          <p>
+            {{ auditModel.summary.pendingOutboundDeliveryDocumentCount }} pending /
+            {{ auditModel.summary.axataCompletedOutboundDeliveryDocumentCount ?? 0 }} tamamlanan
+          </p>
         </div>
         <div
           class="flow-step"
@@ -385,7 +406,7 @@
       >
         <div class="audit-section-head">
           <div>
-            <h2 class="section-title">AXATA'ya Gitti, Mikro Sevk Linki Eksik</h2>
+            <h2 class="section-title">AXATA Sevki Var, Mikro Sevk Linki Eksik</h2>
             <p class="section-desc">
               Gosterilen {{ missingShipmentVisibleSummary().documentCount }} belgede
               {{ missingShipmentVisibleSummary().missingLineCount | number:'1.0-0' }} satir link bekliyor.
@@ -459,7 +480,7 @@
       <ng-template #noMissingShipment>
         <div class="section-block">
           <h2 class="section-title">Sevk Linki Kontrolu</h2>
-          <div class="empty-msg">AXATA'ya gidip Mikro sevk linki eksik kalan belge yok.</div>
+          <div class="empty-msg">AXATA sevki oluşup Mikro sevk linki eksik kalan belge yok.</div>
         </div>
       </ng-template>
 
@@ -570,6 +591,44 @@
       </div>
 
       <div class="section-grid">
+        <div class="section-block">
+          <h2 class="section-title">AXATA Sevk Evreni</h2>
+          <p class="section-desc">
+            Secili status degerlerindeki ENT006/ENT007 belgeleri; tamamlanan ve iptal/zero sevkler dahil.
+          </p>
+          <div
+            class="compact-table"
+            *ngIf="auditModel.axataOutboundDeliveries?.length; else noAxataAuditDeliveries"
+          >
+            <div class="table-row table-head">
+              <span>AXATA / Belge</span>
+              <span>Status</span>
+              <span>Depo</span>
+              <span>Satir / Miktar</span>
+            </div>
+            <div
+              class="table-row"
+              *ngFor="let item of auditModel.axataOutboundDeliveries; trackBy: trackByAuditOutboundDelivery"
+            >
+              <span>
+                <strong>{{ item.movementType }} #{{ item.axataSequenceNo }}</strong>
+                <small>{{ item.documentSerie }}.{{ item.documentOrderNo || '-' }}</small>
+              </span>
+              <span>
+                <span [class]="getAuditOutboundDeliveryTone(item)">
+                  {{ formatAuditShipmentState(item) }}
+                </span>
+                <small>Status {{ item.status }}</small>
+              </span>
+              <span>{{ item.sourceWarehouseNo }} -> {{ item.targetWarehouseNo }}</span>
+              <span>{{ item.lineCount }} satir / {{ item.quantity | number:'1.0-2' }}</span>
+            </div>
+          </div>
+          <ng-template #noAxataAuditDeliveries>
+            <div class="empty-msg">Secili status evreninde AXATA sevki donmedi.</div>
+          </ng-template>
+        </div>
+
         <div class="section-block">
           <h2 class="section-title">Mikro -> AXATA Eksikler</h2>
           <div class="compact-table" *ngIf="auditModel.unsyncedWarehouseOrders.length; else noUnsynced">

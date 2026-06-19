@@ -1,0 +1,530 @@
+<section class="correction-page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Düzeltme İşlemleri</p>
+      <h2>{{ page.title }}</h2>
+      <p class="subtitle">{{ page.subtitle }}</p>
+    </div>
+
+    <div class="permission-strip">
+      <span [class.is-active]="canList()">Liste</span>
+      <span [class.is-active]="canDetail()">Detay</span>
+      <span [class.is-active]="canUpdate()">Güncelle</span>
+    </div>
+  </header>
+
+  <nav class="tab-strip" aria-label="Mikro evrak türleri">
+    <button
+      *ngFor="let tab of tabs"
+      type="button"
+      class="tab-button"
+      [class.is-active]="activeTab() === tab.id"
+      (click)="selectTab(tab.id)"
+    >
+      <i class="fa-solid" [ngClass]="tab.icon"></i>
+      <span>{{ tab.label }}</span>
+    </button>
+  </nav>
+
+  <article
+    *ngIf="feedback() as state"
+    class="feedback"
+    [class.feedback-error]="state.tone === 'error'"
+    [class.feedback-success]="state.tone === 'success'"
+  >
+    <strong>{{ state.title }}</strong>
+    <span>{{ state.message }}</span>
+  </article>
+
+  <ng-container [ngSwitch]="activeTab()">
+    <section *ngSwitchCase="'stock-card'" class="workspace stock-card-workspace">
+      <aside class="lookup-panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">STOKLAR</p>
+            <h3>Stok kartı ara</h3>
+          </div>
+          <span>{{ stockCards().length }} sonuç</span>
+        </div>
+
+        <label class="field">
+          <span>Kod, ad veya kısa ad</span>
+          <input
+            type="search"
+            [(ngModel)]="stockSearch.searchText"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Örn. süt veya 015550"
+            (keyup.enter)="searchStockCards()"
+          />
+        </label>
+
+        <div class="compact-row">
+          <label class="field">
+            <span>Sonuç Limiti</span>
+            <input
+              type="number"
+              min="1"
+              max="200"
+              [(ngModel)]="stockSearch.take"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="check-field">
+            <input
+              type="checkbox"
+              [(ngModel)]="stockSearch.includePassive"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <span>Pasifleri dahil et</span>
+          </label>
+        </div>
+
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canList() || isBusy('stock-search')"
+          (click)="searchStockCards()"
+        >
+          <i class="fa-solid fa-magnifying-glass"></i>
+          {{ isBusy('stock-search') ? 'Aranıyor...' : 'Stok Kartlarını Ara' }}
+        </button>
+
+        <div class="result-list">
+          <button
+            *ngFor="let row of stockCards(); trackBy: trackByStockCode"
+            type="button"
+            class="result-row"
+            [class.is-selected]="selectedStockCard()?.stockCode === row.stockCode"
+            [disabled]="isBusy('stock-detail')"
+            (click)="loadStockCard(row.stockCode)"
+          >
+            <span class="result-code">{{ row.stockCode }}</span>
+            <strong>{{ row.name }}</strong>
+            <small>{{ row.unit1Name || '-' }} · {{ row.mainGroupCode || 'Grupsuz' }}</small>
+            <span class="status-dot" [class.is-passive]="row.isPassive">
+              {{ row.isPassive ? 'Pasif' : 'Aktif' }}
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="editor-panel">
+        <ng-container *ngIf="stockCardDraft() as draft; else noStockCard">
+          <div class="editor-head">
+            <div>
+              <p class="panel-kicker">STOK KARTI</p>
+              <h3>{{ draft.stockCode }} · {{ draft.name }}</h3>
+              <p>
+                Oluşturma: {{ draft.createdAt ? (draft.createdAt | date: 'dd.MM.yyyy HH:mm') : '-' }}
+                · Son güncelleme:
+                {{ draft.lastUpdatedAt ? (draft.lastUpdatedAt | date: 'dd.MM.yyyy HH:mm') : '-' }}
+              </p>
+            </div>
+            <span class="change-badge">{{ changedStockCardFieldCount() }} değişiklik</span>
+          </div>
+
+          <div class="form-section">
+            <h4>Tanım ve gruplama</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of stockCardTextFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  type="text"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Teknik ve vergi alanları</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of stockCardNumberFields; trackBy: trackByField"
+                class="field"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  type="number"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+            </div>
+            <div class="toggle-grid">
+              <label
+                *ngFor="let field of stockCardBooleanFields; trackBy: trackByField"
+                class="toggle-field"
+              >
+                <input
+                  type="checkbox"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+                <span>{{ field.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetStockCard()">
+              Değişiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedStockCardFieldCount() || isBusy('stock-save')"
+              (click)="saveStockCard()"
+            >
+              {{ isBusy('stock-save') ? 'Kaydediliyor...' : 'Stok Kartını Güncelle' }}
+            </button>
+          </div>
+        </ng-container>
+
+        <ng-template #noStockCard>
+          <div class="empty-state">
+            <i class="fa-solid fa-box-open"></i>
+            <h3>Düzenlenecek stok kartını seçin</h3>
+            <p>Soldaki arama alanından bir stok kartı bulup detayını açın.</p>
+          </div>
+        </ng-template>
+      </main>
+    </section>
+
+    <section *ngSwitchCase="'stock-movement'" class="document-workspace">
+      <article class="lookup-bar">
+        <div class="lookup-title">
+          <p class="panel-kicker">STOK_HAREKETLERI</p>
+          <h3>Stok hareket evrakını bul</h3>
+        </div>
+        <label class="field">
+          <span>Belge Serisi *</span>
+          <input
+            type="text"
+            [(ngModel)]="stockLookup.documentSerie"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Belge Sıra *</span>
+          <input
+            type="number"
+            [(ngModel)]="stockLookup.documentOrderNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Evrak Tipi</span>
+          <input
+            type="number"
+            [(ngModel)]="stockLookup.documentType"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Hareket Tipi</span>
+          <input
+            type="number"
+            [(ngModel)]="stockLookup.movementType"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Hareket Cinsi</span>
+          <input
+            type="number"
+            [(ngModel)]="stockLookup.movementKind"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Normal / İade</span>
+          <input
+            type="number"
+            [(ngModel)]="stockLookup.normalReturn"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Depo No</span>
+          <input
+            type="number"
+            [(ngModel)]="stockLookup.warehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canDetail() || isBusy('movement-load')"
+          (click)="loadStockMovement()"
+        >
+          {{ isBusy('movement-load') ? 'Getiriliyor...' : 'Evrakı Getir' }}
+        </button>
+      </article>
+
+      <ng-container *ngIf="stockMovementDraft() as document; else noStockMovement">
+        <article class="document-summary">
+          <div>
+            <p class="panel-kicker">EVRAK ÖZETİ</p>
+            <h3>
+              {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
+              · {{ document.header.customerTitle || 'Carisiz Evrak' }}
+            </h3>
+          </div>
+          <div class="summary-metrics">
+            <span><strong>{{ document.header.lineCount }}</strong> satır</span>
+            <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
+            <span><strong>{{ document.header.totalAmount | number: '1.2-2' }}</strong> tutar</span>
+            <span class="change-badge">{{ changedStockMovementCount() }} değişiklik</span>
+          </div>
+        </article>
+
+        <article class="editor-panel">
+          <div class="form-section">
+            <h4>Evrak üst bilgileri</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of stockHeaderFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  [type]="field.type || 'text'"
+                  [ngModel]="fieldValue(document.header, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(document.header, field.key, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="line-stack">
+            <details
+              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
+              class="line-card"
+              [open]="document.lines.length === 1"
+            >
+              <summary>
+                <span class="line-index">{{ index + 1 }}</span>
+                <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
+                <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName }}</span>
+                <code>{{ line.movementGuid }}</code>
+              </summary>
+              <div class="form-grid line-form-grid">
+                <label
+                  *ngFor="let field of stockLineFields; trackBy: trackByField"
+                  class="field"
+                  [class.field-wide]="field.wide"
+                >
+                  <span>{{ field.label }}</span>
+                  <input
+                    [type]="field.type || 'text'"
+                    [ngModel]="fieldValue(line, field.key)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="setField(line, field.key, $event)"
+                  />
+                </label>
+              </div>
+            </details>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetStockMovement()">
+              Değişiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedStockMovementCount() || isBusy('movement-save')"
+              (click)="saveStockMovement()"
+            >
+              {{ isBusy('movement-save') ? 'Kaydediliyor...' : 'Stok Hareketini Güncelle' }}
+            </button>
+          </div>
+        </article>
+      </ng-container>
+
+      <ng-template #noStockMovement>
+        <div class="empty-state">
+          <i class="fa-solid fa-right-left"></i>
+          <h3>Seri ve sıra ile evrakı getirin</h3>
+          <p>Birden fazla eşleşme varsa filtre alanlarıyla aramayı daraltabilirsiniz.</p>
+        </div>
+      </ng-template>
+    </section>
+
+    <section *ngSwitchCase="'customer-movement'" class="document-workspace">
+      <article class="lookup-bar">
+        <div class="lookup-title">
+          <p class="panel-kicker">CARI_HESAP_HAREKETLERI</p>
+          <h3>Cari hareket evrakını bul</h3>
+        </div>
+        <label class="field">
+          <span>Belge Serisi *</span>
+          <input
+            type="text"
+            [(ngModel)]="customerLookup.documentSerie"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Belge Sıra *</span>
+          <input
+            type="number"
+            [(ngModel)]="customerLookup.documentOrderNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Evrak Tipi</span>
+          <input
+            type="number"
+            [(ngModel)]="customerLookup.documentType"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Hareket Tipi</span>
+          <input
+            type="number"
+            [(ngModel)]="customerLookup.movementType"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Hareket Cinsi</span>
+          <input
+            type="number"
+            [(ngModel)]="customerLookup.movementKind"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Normal / İade</span>
+          <input
+            type="number"
+            [(ngModel)]="customerLookup.normalReturn"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Cari Kodu</span>
+          <input
+            type="text"
+            [(ngModel)]="customerLookup.customerCode"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canDetail() || isBusy('customer-load')"
+          (click)="loadCustomerMovement()"
+        >
+          {{ isBusy('customer-load') ? 'Getiriliyor...' : 'Evrakı Getir' }}
+        </button>
+      </article>
+
+      <ng-container *ngIf="customerMovementDraft() as document; else noCustomerMovement">
+        <article class="document-summary">
+          <div>
+            <p class="panel-kicker">EVRAK ÖZETİ</p>
+            <h3>
+              {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
+              · {{ document.header.customerTitle || document.header.customerCode }}
+            </h3>
+          </div>
+          <div class="summary-metrics">
+            <span><strong>{{ document.header.lineCount }}</strong> satır</span>
+            <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
+            <span><strong>{{ document.header.totalAmount | number: '1.2-2' }}</strong> tutar</span>
+            <span class="change-badge">{{ changedCustomerMovementCount() }} değişiklik</span>
+          </div>
+        </article>
+
+        <article class="editor-panel">
+          <div class="form-section">
+            <h4>Evrak üst bilgileri</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of customerHeaderFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  [type]="field.type || 'text'"
+                  [ngModel]="fieldValue(document.header, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(document.header, field.key, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="line-stack">
+            <details
+              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
+              class="line-card"
+              [open]="document.lines.length === 1"
+            >
+              <summary>
+                <span class="line-index">{{ index + 1 }}</span>
+                <strong>{{ line.customerCode }} · {{ line.customerTitle }}</strong>
+                <span>{{ line.amount | number: '1.2-2' }} tutar</span>
+                <code>{{ line.movementGuid }}</code>
+              </summary>
+              <div class="form-grid line-form-grid">
+                <label
+                  *ngFor="let field of customerLineFields; trackBy: trackByField"
+                  class="field"
+                  [class.field-wide]="field.wide"
+                >
+                  <span>{{ field.label }}</span>
+                  <input
+                    [type]="field.type || 'text'"
+                    [ngModel]="fieldValue(line, field.key)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="setField(line, field.key, $event)"
+                  />
+                </label>
+              </div>
+            </details>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetCustomerMovement()">
+              Değişiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedCustomerMovementCount() || isBusy('customer-save')"
+              (click)="saveCustomerMovement()"
+            >
+              {{ isBusy('customer-save') ? 'Kaydediliyor...' : 'Cari Hareketi Güncelle' }}
+            </button>
+          </div>
+        </article>
+      </ng-container>
+
+      <ng-template #noCustomerMovement>
+        <div class="empty-state">
+          <i class="fa-solid fa-receipt"></i>
+          <h3>Seri ve sıra ile cari evrakı getirin</h3>
+          <p>Gerekirse cari kodu ve evrak filtreleriyle tek belgeye daraltın.</p>
+        </div>
+      </ng-template>
+    </section>
+  </ng-container>
+</section>

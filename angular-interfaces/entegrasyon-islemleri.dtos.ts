@@ -139,6 +139,7 @@ export interface IAxataIntegrationAuditQueryApiDto {
   take?: number | null;
   documentSerie?: string | null;
   documentOrderNo?: number | null;
+  statuses?: string | null;
 }
 
 export interface IAxataIntegrationAuditApiDto {
@@ -153,6 +154,7 @@ export interface IAxataIntegrationAuditApiDto {
   sentWarehouseOrdersMissingMikroShipments: IAxataSentWarehouseOrderMissingShipmentApiDto[];
   sentWarehouseOrdersWithShipmentDifferences: IAxataSentWarehouseOrderMissingShipmentApiDto[];
   pendingOutboundDeliveries: IAxataPendingOutboundDeliveryApiDto[];
+  axataOutboundDeliveries?: IAxataAuditOutboundDeliveryApiDto[];
   interventionCandidates: IAxataPendingOutboundDeliveryApiDto[];
   operations: IAxataIntegrationAuditOperationApiDto[];
   notes: string[];
@@ -175,6 +177,12 @@ export interface IAxataIntegrationAuditSummaryApiDto {
   c01PendingDocumentCount: number;
   c01MissingInMikroDocumentCount: number;
   c01MikroExistsPendingAckDocumentCount: number;
+  axataOutboundDeliveryDocumentCount?: number;
+  axataOutboundDeliveryLineCount?: number;
+  axataCompletedOutboundDeliveryDocumentCount?: number;
+  axataCancelledOutboundDeliveryDocumentCount?: number;
+  axataEmptyOutboundDeliveryDocumentCount?: number;
+  sentWarehouseOrderMissingAxataOutboundDeliveryDocumentCount?: number;
 }
 
 export interface IAxataOutboundDeliveryMovementSummaryApiDto {
@@ -262,6 +270,13 @@ export interface IAxataPendingOutboundDeliveryApiDto {
   mikroCheckState: string;
   canIntervene: boolean;
   warning: string | null;
+}
+
+export interface IAxataAuditOutboundDeliveryApiDto
+  extends IAxataPendingOutboundDeliveryApiDto {
+  axataShipmentState?: string | null;
+  isCancelled?: boolean;
+  cancellationCode?: string | null;
 }
 
 export interface IAxataSynchronizationManualDocumentApiDto {

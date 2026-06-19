@@ -12,7 +12,7 @@ export const INTEGRATION_TASK_SOURCE = {
         highlights: [
           'Task overview + health probe',
           'Fetch profile explorer',
-          'Live audit ve AXATA queue preview',
+          'AXATA SQL tabanli live audit, status evreni ve queue preview',
           'AXATA sevk tarihi listesi',
           'Preview, route-based execute ve POST /jobs',
           'Job polling',
@@ -45,8 +45,8 @@ export const INTEGRATION_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/integrations/axata-sync/live/audit/overview?startDate=...&endDate=...&warehouseNo=50&take=50',
-              description: 'Mikro siparis bayraklari ile AXATA pending sevk kuyrugunu karsilastirir'
+              path: '/api/integrations/axata-sync/live/audit/overview?startDate=...&endDate=...&warehouseNo=50&statuses=0,1&take=50',
+              description: 'Mikro siparis gonderimi ile AXATA pending/tamamlanmis/iptal sevklerini ve Mikro linklerini karsilastirir'
             },
             {
               method: 'GET',

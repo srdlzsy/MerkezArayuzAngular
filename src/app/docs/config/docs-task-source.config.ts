@@ -16,6 +16,7 @@ import { SEARCH_TASK_SOURCE } from './search.task-source';
 import { COMMON_TASK_SOURCE } from './common.task-source';
 import { RAPOR_ISLEMLERI_TASK_SOURCE } from './rapor-islemleri.task-source';
 import { AYAR_ISLEMLERI_TASK_SOURCE } from './ayar-islemleri.task-source';
+import { DUZELTME_ISLEMLERI_TASK_SOURCE } from './duzeltme-islemleri.task-source';
 
 export type { DocsTaskRouteSource, DocsTaskSource } from './docs-task-source.helpers';
 
@@ -31,6 +32,7 @@ const DOCS_DOMAIN_TASK_SOURCES: ReadonlyArray<Record<string, DocsTaskSource>> = 
   GREEN_GROCER_TASK_SOURCE,
   RAPOR_ISLEMLERI_TASK_SOURCE,
   AYAR_ISLEMLERI_TASK_SOURCE,
+  DUZELTME_ISLEMLERI_TASK_SOURCE,
   USER_TASK_SOURCE,
   SEARCH_TASK_SOURCE,
   COMMON_TASK_SOURCE
