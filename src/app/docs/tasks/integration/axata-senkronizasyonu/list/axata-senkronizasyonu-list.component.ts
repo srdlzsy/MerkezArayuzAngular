@@ -1082,6 +1082,27 @@ export class AxataSenkronizasyonuListComponent {
     this.selectedTab.set(tabName);
   }
 
+  protected openTaskOverview(): void {
+    if (this.selectedTaskCode() === 'product-master-sync') {
+      const fallbackTask = this.tasks().find(
+        (task: IAxataSynchronizationTaskApiDto) => task.code !== 'product-master-sync'
+      );
+
+      if (fallbackTask) {
+        this.form.controls.taskCode.setValue(fallbackTask.code);
+        this.selectedTaskCode.set(fallbackTask.code);
+      }
+    }
+
+    this.selectedTab.set('tasks');
+  }
+
+  protected openProductSynchronization(): void {
+    this.form.controls.taskCode.setValue('product-master-sync');
+    this.selectedTaskCode.set('product-master-sync');
+    this.selectedTab.set('tasks');
+  }
+
   protected loadCandidates(): void {
     this.loadManualCandidates();
   }

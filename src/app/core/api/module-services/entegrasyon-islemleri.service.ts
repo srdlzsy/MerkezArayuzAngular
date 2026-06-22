@@ -226,7 +226,8 @@ export class EntegrasyonIslemleriService extends BaseApiService {
         warehouseNo: query.warehouseNo ?? undefined,
         take: query.take ?? undefined,
         documentSerie: query.documentSerie?.trim() || undefined,
-        documentOrderNo: query.documentOrderNo ?? undefined
+        documentOrderNo: query.documentOrderNo ?? undefined,
+        statuses: query.statuses?.trim() || undefined
       }
     );
   }

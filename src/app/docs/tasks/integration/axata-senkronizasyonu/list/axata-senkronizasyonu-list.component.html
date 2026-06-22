@@ -40,8 +40,11 @@
   </article>
 
   <nav class="tab-nav">
-    <button class="tab-btn" [class.active]="selectedTab() === 'tasks'" (click)="selectTab('tasks')">
+    <button class="tab-btn" [class.active]="selectedTab() === 'tasks' && !isProductMasterTask()" (click)="openTaskOverview()">
       Görevler
+    </button>
+    <button class="tab-btn" [class.active]="selectedTab() === 'tasks' && isProductMasterTask()" (click)="openProductSynchronization()">
+      Ürünler
     </button>
     <button class="tab-btn" [class.active]="selectedTab() === 'monitor'" (click)="selectTab('monitor')">
       Fark Kontrolü
