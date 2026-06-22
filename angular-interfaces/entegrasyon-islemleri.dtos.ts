@@ -206,7 +206,7 @@ export interface IAxataIntegrationAuditApiDto {
   sentWarehouseOrdersMissingMikroShipments: IAxataSentWarehouseOrderMissingShipmentApiDto[];
   sentWarehouseOrdersWithShipmentDifferences: IAxataSentWarehouseOrderMissingShipmentApiDto[];
   pendingOutboundDeliveries: IAxataPendingOutboundDeliveryApiDto[];
-  axataOutboundDeliveries?: IAxataAuditOutboundDeliveryApiDto[];
+  axataOutboundDeliveries: IAxataAuditOutboundDeliveryApiDto[];
   interventionCandidates: IAxataPendingOutboundDeliveryApiDto[];
   operations: IAxataIntegrationAuditOperationApiDto[];
   notes: string[];
@@ -220,9 +220,12 @@ export interface IAxataIntegrationAuditSummaryApiDto {
   sentWarehouseOrderMissingMikroShipmentDocumentCount: number;
   sentWarehouseOrderMissingMikroShipmentLineCount: number;
   sentWarehouseOrderMissingMikroShipmentQuantity: number;
-  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryDocumentCount?: number;
-  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryLineCount?: number;
-  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryQuantity?: number;
+  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryDocumentCount: number;
+  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryLineCount: number;
+  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryQuantity: number;
+  sentWarehouseOrderMissingAxataOutboundDeliveryDocumentCount: number;
+  sentWarehouseOrderMissingAxataOutboundDeliveryLineCount: number;
+  sentWarehouseOrderMissingAxataOutboundDeliveryQuantity: number;
   sentWarehouseOrderShipmentDifferenceDocumentCount: number;
   sentWarehouseOrderShipmentDifferenceLineCount: number;
   sentWarehouseOrderShipmentDifferenceQuantity: number;
@@ -232,17 +235,14 @@ export interface IAxataIntegrationAuditSummaryApiDto {
   c01PendingDocumentCount: number;
   c01MissingInMikroDocumentCount: number;
   c01MikroExistsPendingAckDocumentCount: number;
-  axataOutboundDeliveryDocumentCount?: number;
-  axataOutboundDeliveryLineCount?: number;
-  axataOutboundDeliveryQuantity?: number;
-  axataCompletedOutboundDeliveryDocumentCount?: number;
-  axataCancelledOutboundDeliveryDocumentCount?: number;
-  axataCancelledOutboundDeliveryLineCount?: number;
-  axataCancelledOutboundDeliveryQuantity?: number;
-  axataEmptyOutboundDeliveryDocumentCount?: number;
-  sentWarehouseOrderMissingAxataOutboundDeliveryDocumentCount?: number;
-  sentWarehouseOrderMissingAxataOutboundDeliveryLineCount?: number;
-  sentWarehouseOrderMissingAxataOutboundDeliveryQuantity?: number;
+  axataOutboundDeliveryDocumentCount: number;
+  axataOutboundDeliveryLineCount: number;
+  axataOutboundDeliveryQuantity: number;
+  axataCompletedOutboundDeliveryDocumentCount: number;
+  axataCancelledOutboundDeliveryDocumentCount: number;
+  axataCancelledOutboundDeliveryLineCount: number;
+  axataCancelledOutboundDeliveryQuantity: number;
+  axataEmptyOutboundDeliveryDocumentCount: number;
 }
 
 export interface IAxataOrderWorkflowSummaryApiDto {

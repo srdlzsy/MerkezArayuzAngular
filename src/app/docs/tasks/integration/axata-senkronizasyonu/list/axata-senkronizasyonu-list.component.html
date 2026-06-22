@@ -635,11 +635,11 @@
         >
           <span>2. AXATA Sevkleri</span>
           <strong>
-            {{ auditModel.summary.axataOutboundDeliveryDocumentCount ?? auditModel.summary.pendingOutboundDeliveryDocumentCount }}
+            {{ auditModel.summary.axataOutboundDeliveryDocumentCount }}
           </strong>
           <p>
             {{ auditModel.summary.pendingOutboundDeliveryDocumentCount }} pending /
-            {{ auditModel.summary.axataCompletedOutboundDeliveryDocumentCount ?? 0 }} tamamlanan
+            {{ auditModel.summary.axataCompletedOutboundDeliveryDocumentCount }} tamamlanan
           </p>
         </div>
         <div
@@ -884,12 +884,22 @@
             <div class="table-row table-head">
               <span>AXATA</span>
               <span>Mikro Belge</span>
-              <span>Durum</span>
+              <span>Durum / Islem</span>
             </div>
             <div class="table-row three-col" *ngFor="let item of auditModel.interventionCandidates">
               <span>{{ item.movementType }} #{{ item.axataSequenceNo }}</span>
               <span>{{ item.documentSerie }}.{{ item.documentOrderNo || '-' }}</span>
-              <span>{{ item.mikroCheckState }}</span>
+              <span class="row-actions">
+                <span>{{ formatMikroCheckState(item.mikroCheckState) }}</span>
+                <button
+                  type="button"
+                  class="mini-btn"
+                  *ngIf="canApplyPendingDeliveryToC01Rescue(item)"
+                  (click)="applyPendingDeliveryToC01Rescue(item)"
+                >
+                  {{ getAuditOutboundDeliveryActionLabel(item) }}
+                </button>
+              </span>
             </div>
           </div>
           <ng-template #noIntervention>
@@ -905,7 +915,7 @@
             Secili status degerlerindeki ENT006/ENT007 belgeleri; tamamlanan ve iptal/zero sevkler dahil.
           </p>
           <div
-            class="compact-table"
+            class="compact-table audit-delivery-table"
             *ngIf="auditModel.axataOutboundDeliveries?.length; else noAxataAuditDeliveries"
           >
             <div class="table-row table-head">
@@ -913,6 +923,7 @@
               <span>Status</span>
               <span>Depo</span>
               <span>Satir / Miktar</span>
+              <span>Islem</span>
             </div>
             <div
               class="table-row"
@@ -926,10 +937,23 @@
                 <span [class]="getAuditOutboundDeliveryTone(item)">
                   {{ formatAuditShipmentState(item) }}
                 </span>
-                <small>Status {{ item.status }}</small>
+                <small>Status {{ item.status }} / {{ formatMikroCheckState(item.mikroCheckState) }}</small>
               </span>
               <span>{{ item.sourceWarehouseNo }} -> {{ item.targetWarehouseNo }}</span>
               <span>{{ item.lineCount }} satir / {{ item.quantity | number:'1.0-2' }}</span>
+              <span class="row-actions">
+                <button
+                  type="button"
+                  class="mini-btn"
+                  *ngIf="canApplyPendingDeliveryToC01Rescue(item)"
+                  (click)="applyPendingDeliveryToC01Rescue(item)"
+                >
+                  {{ getAuditOutboundDeliveryActionLabel(item) }}
+                </button>
+                <small *ngIf="!canApplyPendingDeliveryToC01Rescue(item)">
+                  {{ item.warning || 'Aksiyon yok' }}
+                </small>
+              </span>
             </div>
           </div>
           <ng-template #noAxataAuditDeliveries>
@@ -977,14 +1001,14 @@
               <span>{{ item.documentSerie }}.{{ item.documentOrderNo || '-' }}</span>
               <span>{{ item.quantity | number:'1.0-2' }}</span>
               <span class="row-actions">
-                <span>{{ item.mikroCheckState }}</span>
+                <span>{{ formatMikroCheckState(item.mikroCheckState) }}</span>
                 <button
                   type="button"
                   class="mini-btn"
-                  *ngIf="item.movementType === 'C01' && item.documentOrderNo"
+                  *ngIf="canApplyPendingDeliveryToC01Rescue(item)"
                   (click)="applyPendingDeliveryToC01Rescue(item)"
                 >
-                  C01 Rescue
+                  {{ getAuditOutboundDeliveryActionLabel(item) }}
                 </button>
               </span>
             </div>

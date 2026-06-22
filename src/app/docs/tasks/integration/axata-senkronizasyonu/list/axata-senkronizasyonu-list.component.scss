@@ -1019,6 +1019,11 @@
   min-width: 760px;
 }
 
+.audit-delivery-table .table-row {
+  grid-template-columns: 1.1fr 1fr 0.7fr 0.8fr 0.9fr;
+  min-width: 860px;
+}
+
 .row-actions {
   display: flex;
   gap: 0.35rem;

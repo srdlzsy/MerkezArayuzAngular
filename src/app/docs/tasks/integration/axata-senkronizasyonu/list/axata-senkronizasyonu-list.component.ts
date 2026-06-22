@@ -1553,29 +1553,33 @@ export class AxataSenkronizasyonuListComponent {
   }
 
   protected applyPendingDeliveryToC01Rescue(item: IAxataPendingOutboundDeliveryApiDto): void {
-    if (item.movementType !== 'C01' || !item.documentOrderNo) {
+    if (!this.canApplyPendingDeliveryToC01Rescue(item)) {
       this.feedback.set({
         tone: 'error',
         title: 'C01 rescue uygun degil',
-        message: 'Belge bazli import yalnizca Mikro evrak referansi bulunan C01 teslimatlari icin kullanilir.'
+        message: 'Belge bazli aksiyon yalnizca C01 ve guvenli durumdaki Mikro evrak referanslari icin kullanilir.'
       });
       return;
     }
+
+    const isAckOnly = this.isMikroShipmentExistsPendingAck(item);
 
     this.c01DocumentRescueForm.patchValue(
       {
         documentSerie: item.documentSerie,
         documentOrderNo: item.documentOrderNo,
         status: this.normalizeAxataStatus(item.status) ?? '0',
-        acknowledge: false
+        acknowledge: isAckOnly
       },
       { emitEvent: false }
     );
     this.selectedTab.set('incoming');
     this.feedback.set({
       tone: 'info',
-      title: 'Pending C01 rescue formuna tasindi',
-      message: `${item.documentSerie}.${item.documentOrderNo} icin belge bazli preview veya import calistirilabilir.`
+      title: isAckOnly ? 'C01 ACK formuna tasindi' : 'C01 rescue formuna tasindi',
+      message: isAckOnly
+        ? `${item.documentSerie}.${item.documentOrderNo} icin yeni fis uretmeden ACK/onarma kontrolu yapilmalidir.`
+        : `${item.documentSerie}.${item.documentOrderNo} icin belge bazli preview veya import calistirilabilir.`
     });
   }
 
@@ -2896,22 +2900,128 @@ export class AxataSenkronizasyonuListComponent {
   protected getAuditOutboundDeliveryTone(
     item: IAxataAuditOutboundDeliveryApiDto
   ): string {
-    if (item.isCancelled || item.cancellationCode) {
+    const status = item.status?.trim();
+    const state = item.mikroCheckState?.trim();
+
+    if (
+      item.isCancelled ||
+      item.cancellationCode ||
+      state === 'CancelledInAxata' ||
+      state === 'EmptyAxataDelivery'
+    ) {
       return 'status-pill-neutral';
     }
 
-    const status = item.status?.trim();
-    return status === '0' ? 'status-pill-warn' : 'status-pill-success';
+    if (status === '1' && state === 'Synchronized') {
+      return 'status-pill-success';
+    }
+
+    if (
+      (status === '0' && state === 'ReadyForImport') ||
+      state === 'MikroShipmentExistsPendingAck'
+    ) {
+      return 'status-pill-warn';
+    }
+
+    if (status === '1' && state === 'ReadyForImport') {
+      return 'status-pill-danger';
+    }
+
+    if (
+      state === 'OrderNotFound' ||
+      state === 'OrderLineMismatch' ||
+      state === 'Blocked'
+    ) {
+      return 'status-pill-danger';
+    }
+
+    return status === '0' ? 'status-pill-warn' : 'status-pill-neutral';
   }
 
   protected formatAuditShipmentState(item: IAxataAuditOutboundDeliveryApiDto): string {
-    if (item.isCancelled) {
+    const state = item.mikroCheckState?.trim();
+    const status = item.status?.trim();
+
+    if (item.isCancelled || state === 'CancelledInAxata') {
       return item.cancellationCode
         ? `Iptal (${item.cancellationCode})`
         : 'Iptal / zero sevk';
     }
 
-    return item.axataShipmentState?.trim() || (item.status === '0' ? 'Bekliyor' : 'Tamamlandi');
+    if (state === 'EmptyAxataDelivery') {
+      return 'Bos sevk';
+    }
+
+    if (status === '1' && state === 'Synchronized') {
+      return 'Tamamlandi';
+    }
+
+    if (status === '0' && state === 'ReadyForImport') {
+      return 'Aktarilabilir';
+    }
+
+    if (state === 'MikroShipmentExistsPendingAck') {
+      return 'ACK bekliyor';
+    }
+
+    if (status === '1' && state === 'ReadyForImport') {
+      return 'Mikro donus eksik';
+    }
+
+    if (
+      state === 'OrderNotFound' ||
+      state === 'OrderLineMismatch' ||
+      state === 'Blocked'
+    ) {
+      return 'Manuel inceleme';
+    }
+
+    return item.axataShipmentState?.trim() || (status === '0' ? 'Bekliyor' : 'Tamamlandi');
+  }
+
+  protected getAuditOutboundDeliveryActionLabel(
+    item: IAxataPendingOutboundDeliveryApiDto
+  ): string {
+    if (this.isMikroShipmentExistsPendingAck(item)) {
+      return 'ACK Formu';
+    }
+
+    return item.status?.trim() === '1' ? 'Rescue Formu' : 'Import Formu';
+  }
+
+  protected canApplyPendingDeliveryToC01Rescue(
+    item: IAxataPendingOutboundDeliveryApiDto
+  ): boolean {
+    const state = item.mikroCheckState?.trim();
+
+    return (
+      item.movementType === 'C01' &&
+      !!item.documentOrderNo &&
+      (item.canIntervene ||
+        state === 'ReadyForImport' ||
+        state === 'MikroShipmentExistsPendingAck')
+    );
+  }
+
+  protected formatMikroCheckState(value: string | null | undefined): string {
+    const labels: Record<string, string> = {
+      Synchronized: 'Senkron',
+      ReadyForImport: 'Aktarilabilir',
+      MikroShipmentExistsPendingAck: 'Mikro var, ACK bekliyor',
+      OrderNotFound: 'Siparis bulunamadi',
+      OrderLineMismatch: 'Satir eslesmedi',
+      Blocked: 'Blokeli',
+      CancelledInAxata: 'AXATA iptal / zero',
+      EmptyAxataDelivery: 'Bos sevk'
+    };
+
+    return value ? labels[value] ?? value : '-';
+  }
+
+  private isMikroShipmentExistsPendingAck(
+    item: IAxataPendingOutboundDeliveryApiDto
+  ): boolean {
+    return item.mikroCheckState?.trim() === 'MikroShipmentExistsPendingAck';
   }
 
   protected getRecommendedActionTone(
