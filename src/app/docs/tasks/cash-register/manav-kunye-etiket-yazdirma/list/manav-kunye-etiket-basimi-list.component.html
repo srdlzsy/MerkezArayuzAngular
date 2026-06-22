@@ -1,0 +1,128 @@
+<section class="container-fluid">
+  <div class="manav-kunye-screen">
+    <div class="row align-items-end search-row">
+      <label class="field col-lg-3 col-md-4">
+        <span>Depo No</span>
+        <input
+          type="number"
+          min="1"
+          [ngModel]="warehouseNo()"
+          (ngModelChange)="onWarehouseNoChange($event)"
+        />
+      </label>
+
+      <label class="field col-lg-3 col-md-4">
+        <span>Sevk Tarihi (opsiyonel)</span>
+        <input type="date" [ngModel]="selectedDate()" (ngModelChange)="onDateChange($event)" />
+      </label>
+
+      <div class="col-lg-6 action-buttons">
+        <button type="button" class="btn primary" (click)="loadTags()" [disabled]="isLoading()">
+          {{ isLoading() ? 'Sorgulaniyor' : 'Yenile' }}
+        </button>
+
+        <button
+          type="button"
+          class="btn primary"
+          (click)="clearDate()"
+          [disabled]="isLoading() || !selectedDate()"
+        >
+          Tum Tarihler
+        </button>
+
+        <button
+          type="button"
+          class="btn accent"
+          (click)="printSelected()"
+          [disabled]="!selectedCount() || printState() === 'preparing'"
+        >
+          Yazdir
+        </button>
+
+        <button type="button" class="btn warn" (click)="selection.clear(); tags.set([]); selectedCount.set(0); selectedTags.set([])">
+          Temizle
+        </button>
+      </div>
+    </div>
+
+    <div class="list-message" *ngIf="isLoading()">Etiketler yukleniyor...</div>
+
+    <div
+      class="list-message"
+      *ngIf="feedback() as currentFeedback"
+      [class.error]="currentFeedback.tone === 'error'"
+    >
+      {{ currentFeedback.message }}
+    </div>
+
+    <div class="summary-row" *ngIf="!isLoading()">
+      <div class="summary-item">
+        <span class="summary-label">Toplam Etiket</span>
+        <span class="summary-value">{{ tags().length }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Secili</span>
+        <span class="summary-value">{{ selectedCount() }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Depo</span>
+        <span class="summary-value">{{ warehouseNo() || '-' }}</span>
+      </div>
+      <div class="summary-item">
+        <span class="summary-label">Filtre</span>
+        <span class="summary-value">{{ selectedDate() || 'Son 1 Ay' }}</span>
+      </div>
+    </div>
+
+    <div class="table-wrapper" *ngIf="tags().length > 0">
+      <table class="col-md-12">
+        <thead>
+          <tr>
+            <th class="selector-cell">
+              <input
+                type="checkbox"
+                [checked]="selection.hasValue() && isAllSelected()"
+                [indeterminate]="selection.hasValue() && !isAllSelected()"
+                (change)="masterToggle()"
+              />
+            </th>
+            <th>Stok Kodu</th>
+            <th>Urun</th>
+            <th>Satis Fiyati</th>
+            <th>Birim</th>
+            <th>Miktar</th>
+            <th>Sevk Tarihi</th>
+            <th>Kunye No</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr
+            *ngFor="let tag of tags(); trackBy: trackByTag"
+            [class.selected-row]="selection.isSelected(tag)"
+            (click)="toggleRow(tag)"
+          >
+            <td class="selector-cell">
+              <input
+                type="checkbox"
+                (click)="$event.stopPropagation()"
+                (change)="toggleRow(tag)"
+                [checked]="selection.isSelected(tag)"
+              />
+            </td>
+            <td>{{ tag.stockCode }}</td>
+            <td>{{ tag.stockName || tag.productName }}</td>
+            <td>{{ (tag.salesPrice || 0) | number:'1.2-2' }} TL</td>
+            <td>{{ tag.productUnit || 'KG' }}</td>
+            <td>{{ (tag.quantity || 0) | number:'1.2-2' }}</td>
+            <td>{{ tag.shippingDate | date:'dd.MM.yyyy' }}</td>
+            <td>{{ tag.takenTag }}</td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+  </div>
+
+  <div id="printSection" class="kunye-print-root">
+    <app-manav-kunye-etiket-print [tags]="selectedTags()"></app-manav-kunye-etiket-print>
+  </div>
+</section>

@@ -253,6 +253,13 @@ export interface LabelTagDto {
   manufacturer: string;
 }
 
+export interface KunyeLabelTagDto extends LabelTagDto {
+  stockCode: string;
+  stockName: string;
+  salesPrice: number;
+  productUnit: string;
+}
+
 export interface CreateLabelDocumentHttpRequest {
   lines: CreateLabelDocumentLineHttpRequest[];
 }

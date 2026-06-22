@@ -1,0 +1,97 @@
+<div
+  class="manav-a5-page"
+  *ngFor="let tag of tags; let i = index"
+  [class.last-page]="isLast(i)"
+>
+  <section class="price-side">
+    <div>
+      <div class="product-name">{{ tag.stockName || tag.productName }}</div>
+      <div class="product-unit">{{ tag.productUnit || 'KG' }}</div>
+    </div>
+
+    <div class="price-area">
+      <div class="big-price">
+        {{ (tag.salesPrice || 0) | number:'1.2-2' }}<span>TL</span>
+      </div>
+    </div>
+  </section>
+
+  <section class="kunye-card">
+    <div class="kunye-title">{{ tag.productName }} ({{ tag.goodsGenus }})</div>
+    <div class="kunye-type">{{ tag.goodsType }}</div>
+
+    <div class="qr-cost-area">
+      <div class="qr-area">
+        <div class="qr-box">
+          <svg [attr.id]="'manav-qr-' + i"></svg>
+        </div>
+        <div class="kunye-no">{{ tag.takenTag }}</div>
+      </div>
+
+      <div class="cost-area">
+        <div class="cost-title">*** URUN MALIYETI ***</div>
+        <div class="cost-row">
+          <span>ALIS FIYATI</span>
+          <span>: {{ (tag.buyingPrice || 0) | number:'1.2-2' }} TL</span>
+        </div>
+        <div class="cost-row">
+          <span>ISCILIK</span>
+          <span>: {{ ((tag.buyingPrice || 0) * 0.115) | number:'1.2-2' }} TL</span>
+        </div>
+        <div class="cost-row">
+          <span>MAGAZACILIK GIDERI</span>
+          <span>: {{ ((tag.buyingPrice || 0) * 0.065) | number:'1.2-2' }} TL</span>
+        </div>
+        <div class="cost-row">
+          <span>DEPOLAMA + NAKLIYE</span>
+          <span>: {{ ((tag.buyingPrice || 0) * 0.055) | number:'1.2-2' }} TL</span>
+        </div>
+        <div class="cost-row">
+          <span>FIRE - IMHA</span>
+          <span>: {{ ((tag.buyingPrice || 0) * 0.049) | number:'1.2-2' }} TL</span>
+        </div>
+        <div class="cost-row">
+          <span>RUSUM VERGISI</span>
+          <span>: {{ (tag.buyingPrice || 0) | number:'1.2-2' }} TL</span>
+        </div>
+        <div class="cost-row">
+          <span>KDV</span>
+          <span>: {{ (tag.buyingPrice || 0) | number:'1.2-2' }} TL</span>
+        </div>
+        <div class="cost-line"></div>
+        <div class="cost-total">
+          <span>TOPLAM MALIYET</span>
+          <span>: {{ calculateCostTotal(tag) | number:'1.2-2' }} TL</span>
+        </div>
+      </div>
+    </div>
+
+    <div class="info-row">
+      <div class="info-label">URETIM YERI / GUMRUK KAPISI</div>
+      <div class="info-value">
+        {{ tag.productionCity || '' }} / {{ tag.productionDistrict || '' }}
+      </div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">URETIM/ITHALAT TARIHI</div>
+      <div class="info-value">{{ tag.productionDate | date:'dd.MM.yyyy HH:mm' }}</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">MIKTARI</div>
+      <div class="info-value">{{ (tag.quantity || 0) | number:'1.2-2' }} {{ tag.productUnit || 'KG' }}</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">URETICI</div>
+      <div class="info-value">{{ tag.manufacturer || '' }}</div>
+    </div>
+    <div class="info-row">
+      <div class="info-label">ISLETME ADI</div>
+      <div class="info-value">{{ tag.buyer || '' }}</div>
+    </div>
+
+    <div class="footer-note">
+      T.C. Ticaret Bakanligi Hal Kayit Sistemi'nden alinan kunye bilgilerini
+      www.hal.gov.tr adresinden kunye numarasi ile sorgulayabilirsiniz.
+    </div>
+  </section>
+</div>

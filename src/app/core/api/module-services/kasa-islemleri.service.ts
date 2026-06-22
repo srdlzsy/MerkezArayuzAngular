@@ -31,6 +31,7 @@ import {
   IFurpaGiftCheckTypeItemApiDto,
   IFurpaOnlineCashRegisterDetailApiDto,
   IFurpaPaymentTypeLookupItemApiDto,
+  IManavKunyeTag,
   IFurpaUpdateCashSummaryBanknotesRequestApiDto,
   IFurpaUpdateCashSummaryBanknotesResponseApiDto,
   IFurpaUpdateCashSummaryDetailsRequestApiDto,
@@ -118,6 +119,19 @@ export class KasaIslemleriService extends BaseApiService {
     return this.getWithQuery<IFurpaLabelTagApiDto[]>('kasa-islemleri/kunye-etiket-yazdirma', {
       dateToGet: tarih.slice(0, 10)
     });
+  }
+
+  getManavKunyeEtiketleri(
+    warehouseNo: number,
+    dateToGet?: string | null
+  ): Observable<IManavKunyeTag[]> {
+    return this.getWithQuery<IManavKunyeTag[]>(
+      'kasa-islemleri/manav-kunye-etiket-yazdirma/detayli-etiketler',
+      {
+        warehouseNo,
+        dateToGet: dateToGet?.slice(0, 10) || undefined
+      }
+    );
   }
 
   getIcmaller(dateToGet: string): Observable<ISummariesCT[]> {

@@ -7,13 +7,15 @@ import type {
   LabelDocumentListItemDto,
   LabelDocumentProductDto,
   LabelPriceChangedProductDto,
-  LabelTagDto
+  LabelTagDto,
+  KunyeLabelTagDto
 } from './stok-islemleri.dtos';
 
 export type IFurpaLabelDocumentListItemApiDto = LabelDocumentListItemDto;
 export type IFurpaLabelDocumentProductApiDto = LabelDocumentProductDto;
 export type IFurpaLabelPriceChangedProductApiDto = LabelPriceChangedProductDto;
 export type IFurpaLabelTagApiDto = LabelTagDto;
+export type IFurpaKunyeLabelTagApiDto = KunyeLabelTagDto;
 
 export type IEtiketBasimProduct = IFurpaLabelDocumentProductApiDto & {
   productPriceDocNumber?: string;
@@ -38,3 +40,5 @@ export type IKunyeTag = IFurpaLabelTagApiDto & {
   createdDate?: string | null;
   printDate?: string | null;
 };
+
+export type IManavKunyeTag = IFurpaKunyeLabelTagApiDto & IKunyeTag;

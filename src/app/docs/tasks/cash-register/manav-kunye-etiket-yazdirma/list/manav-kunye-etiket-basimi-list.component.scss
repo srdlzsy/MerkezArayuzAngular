@@ -1,0 +1,267 @@
+.manav-kunye-screen {
+  padding-top: 10px;
+}
+
+.row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.col-lg-3,
+.col-lg-6,
+.col-md-4 {
+  flex: 1 1 220px;
+}
+
+.search-row {
+  align-items: center;
+  background: #fff;
+  border: 1px solid #d9dee7;
+  border-radius: 6px;
+  box-shadow: 0 1px 3px rgba(20, 32, 48, 0.08);
+  margin: 0 0 10px 0;
+  padding: 10px 10px 0;
+}
+
+.field,
+.stock-field,
+.filter-field {
+  width: 100%;
+}
+
+.field {
+  display: grid;
+  gap: 5px;
+  margin: 0;
+  padding-bottom: 10px;
+}
+
+.field span {
+  font-size: 12px;
+  font-weight: 800;
+  color: #344054;
+}
+
+.field input {
+  height: 36px;
+  box-sizing: border-box;
+  border: 1px solid #cfd6e3;
+  border-radius: 6px;
+  padding: 0 10px;
+  color: #1f2937;
+}
+
+.filter-field button[mat-icon-button] {
+  height: 28px;
+  line-height: 28px;
+  width: 28px;
+}
+
+.clear-filter-button span {
+  display: block;
+  font-size: 14px;
+  font-weight: 700;
+  line-height: 28px;
+  text-align: center;
+}
+
+.stock-option-name {
+  margin-left: 8px;
+}
+
+.action-buttons {
+  display: flex;
+  justify-content: flex-end;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 8px;
+  padding-bottom: 1.25em;
+}
+
+.action-buttons button {
+  min-width: 104px;
+  height: 36px;
+}
+
+.btn {
+  border: 0;
+  border-radius: 6px;
+  color: #fff;
+  cursor: pointer;
+  font-weight: 800;
+  padding: 0 14px;
+}
+
+.btn.primary {
+  background: #2563eb;
+}
+
+.btn.accent {
+  background: #0f766e;
+}
+
+.btn.warn {
+  background: #b91c1c;
+}
+
+.btn:disabled {
+  cursor: not-allowed;
+  opacity: 0.55;
+}
+
+.list-message {
+  padding: 10px 12px;
+  font-weight: 700;
+  color: #44505f;
+}
+
+.list-message.error {
+  color: #b91c1c;
+}
+
+.summary-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 8px;
+  align-items: center;
+  margin-bottom: 10px;
+}
+
+.summary-item {
+  display: flex;
+  align-items: center;
+  gap: 8px;
+  min-height: 34px;
+  padding: 6px 12px;
+  border: 1px solid #d9dee7;
+  border-radius: 6px;
+  background: #f7f9fc;
+}
+
+.summary-label {
+  font-size: 12px;
+  font-weight: 700;
+  color: #667085;
+}
+
+.summary-value {
+  font-size: 14px;
+  font-weight: 800;
+  color: #1f2937;
+}
+
+.table-wrapper {
+  max-height: calc(100vh - 178px);
+  overflow: auto;
+  border: 1px solid #d9dee7;
+  border-radius: 6px;
+  background: #fff;
+  box-shadow: 0 1px 4px rgba(20, 32, 48, 0.08);
+}
+
+.table-wrapper table {
+  width: 100%;
+  min-width: 980px;
+}
+
+.table-wrapper th {
+  height: 42px;
+  background: #f1f4f8;
+  border-bottom: 1px solid #cfd6e3;
+  color: #344054;
+  font-size: 12px;
+  font-weight: 800;
+  text-align: left;
+}
+
+.table-wrapper td {
+  height: 40px;
+  border-bottom: 1px solid #eef1f5;
+  color: #1f2937;
+  font-size: 13px;
+}
+
+.table-wrapper th,
+.table-wrapper td {
+  padding: 0 12px;
+}
+
+.table-wrapper .selector-cell {
+  width: 48px;
+  padding-left: 14px;
+}
+
+.table-wrapper th:nth-child(2),
+.table-wrapper td:nth-child(2) {
+  width: 132px;
+  white-space: nowrap;
+}
+
+.table-wrapper th:nth-child(4),
+.table-wrapper td:nth-child(4) {
+  width: 120px;
+  white-space: nowrap;
+}
+
+.table-wrapper th:nth-child(5),
+.table-wrapper td:nth-child(5) {
+  width: 82px;
+  white-space: nowrap;
+}
+
+.table-wrapper th:nth-child(6),
+.table-wrapper td:nth-child(6) {
+  width: 96px;
+  white-space: nowrap;
+}
+
+.table-wrapper th:nth-child(7),
+.table-wrapper td:nth-child(7) {
+  width: 116px;
+  white-space: nowrap;
+}
+
+.table-wrapper th:nth-child(8),
+.table-wrapper td:nth-child(8) {
+  width: 190px;
+  white-space: nowrap;
+}
+
+.table-wrapper tbody tr {
+  cursor: pointer;
+}
+
+.table-wrapper tbody tr:hover {
+  background-color: #f7fbff;
+}
+
+.table-wrapper tbody tr.selected-row {
+  background-color: #e9f3ff;
+}
+
+.table-wrapper tbody tr.selected-row:hover {
+  background-color: #dcecff;
+}
+
+.kunye-print-root {
+  position: absolute;
+  left: -10000px;
+  top: 0;
+  visibility: hidden;
+}
+
+@media (max-width: 767px) {
+  .action-buttons {
+    justify-content: flex-start;
+    padding-bottom: 10px;
+  }
+
+  .summary-item {
+    flex: 1 1 140px;
+  }
+
+  .table-wrapper {
+    max-height: calc(100vh - 238px);
+  }
+}

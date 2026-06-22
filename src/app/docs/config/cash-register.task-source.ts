@@ -148,8 +148,50 @@ export const CASH_REGISTER_TASK_SOURCE = {
     () =>
       import('../tasks/cash-register/kunye-etiket-yazdirma/list/kunye-etiket-basimi-list.component').then(
         (m) => m.KunyeEtiketBasimiListComponent
-      ),
+    ),
     { accessKeyAliases: ['kunye-etiket-yazdirma', 'KunyeEtiketYazdirma'] }
+  ),
+  'manav-kunye-etiket-yazdirma': singleRouteTask(
+    {
+      id: 'manav-kunye-etiket-yazdirma',
+      title: 'Manav Kunye Etiket Yazdirma',
+      subtitle:
+        'Kasa Islemleri altindaki depo bazli manav kunye etiketlerini stok, fiyat ve birim bilgileriyle listeler.',
+      baseRouteOrFile: '/api/kasa-islemleri/manav-kunye-etiket-yazdirma',
+      highlights: [
+        'warehouseNo zorunludur',
+        'dateToGet opsiyoneldir; bos ise son 1 ay icinden son kunye kayitlari gelir',
+        'KunyeLabelTagDto response modeli stok kodu, satis fiyati ve urun birimi tasir',
+        'Endpoint anonim aciktir; menu gorunurlugu kasa-islemleri.manav-kunye-etiket-yazdirma.list yetkisine baglidir'
+      ],
+      listTitle: 'Manav Kunye Etiket Yazdirma Akisi',
+      items: [
+        {
+          name: 'ManavKunyeEtiketYazdirmaController',
+          description:
+            'Manav stoklari icin depo bazli zengin kunye etiket kayitlarini getirir ve baski akisini besler.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/manav-kunye-etiket-yazdirma/detayli-etiketler?warehouseNo=110&dateToGet=2026-04-24',
+              description:
+                'Secilen depo ve opsiyonel sevk tarihi icin manav kunye etiketlerini getirir'
+            }
+          ]
+        }
+      ]
+    },
+    () =>
+      import('../tasks/cash-register/manav-kunye-etiket-yazdirma/list/manav-kunye-etiket-basimi-list.component').then(
+        (m) => m.ManavKunyeEtiketBasimiListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'ManavKunyeEtiketYazdirma',
+        'manav-kunye-etiket-yazdirma',
+        'kasa-islemleri.manav-kunye-etiket-yazdirma'
+      ]
+    }
   ),
   'kasa-sayimlari': multiRouteTask(
     {

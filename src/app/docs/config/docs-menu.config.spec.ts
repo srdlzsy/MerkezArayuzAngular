@@ -429,6 +429,37 @@ describe('docs-menu.config', () => {
     ]);
   });
 
+  it('keeps manav kunye label print task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Kasa Islemleri',
+        sebike: 'kasa-islemleri',
+        gorevler: [
+          {
+            id: 13,
+            isim: 'Manav Kunye Etiket Yazdirma',
+            sebike: 'ManavKunyeEtiketYazdirma',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Listele',
+                sebike: 'kasa-islemleri.manav-kunye-etiket-yazdirma.list'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('manav-kunye-etiket-yazdirma', sorumluluklar)).toBeTrue();
+    expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
+      ['manav-kunye-etiket-yazdirma']
+    ]);
+  });
+
   it('keeps cash movement transfer task visible when the backend menu sends it', () => {
     const sorumluluklar: Sorumluluk[] = [
       {
