@@ -13,6 +13,7 @@ export const INTEGRATION_TASK_SOURCE = {
           'Task overview + health probe',
           'Fetch profile explorer',
           'AXATA SQL tabanli live audit, status evreni ve queue preview',
+          'Mikro siparisten AXATA siparis/sevk ve Mikro linkine evrak bazli yasam dongusu',
           'AXATA sevk tarihi listesi',
           'Preview, route-based execute ve POST /jobs',
           'Job polling',

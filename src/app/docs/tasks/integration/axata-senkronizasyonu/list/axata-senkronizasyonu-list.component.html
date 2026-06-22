@@ -310,6 +310,131 @@
         </div>
       </div>
 
+      <ng-container *ngIf="auditModel.workflowSummary as workflow">
+        <div class="audit-section-head workflow-heading">
+          <div>
+            <h2 class="section-title">Siparis Yasam Dongusu</h2>
+            <p class="section-desc">
+              Secilen Mikro siparisleri AXATA siparis kaydi, tum C01 SEV belgeleri ve Mikro sevk baglantisiyla izlenir.
+            </p>
+          </div>
+          <span
+            [class]="workflow.manualActionRequiredDocumentCount > 0 ? 'status-pill-danger' : 'status-pill-success'"
+          >
+            {{ workflow.manualActionRequiredDocumentCount }} manuel aksiyon
+          </span>
+        </div>
+
+        <div class="audit-kpi-grid workflow-kpi-grid">
+          <div
+            class="audit-kpi"
+            *ngFor="let card of workflowSummaryCards(); trackBy: trackByAuditInsightCard"
+            [ngClass]="getAuditInsightClass(card.tone)"
+          >
+            <span>{{ card.label }}</span>
+            <strong>{{ card.value }}</strong>
+            <p>{{ card.detail }}</p>
+          </div>
+        </div>
+
+        <div
+          class="order-lifecycle-list"
+          *ngIf="auditModel.orderLifecycles?.length; else noOrderLifecycles"
+        >
+          <details
+            class="order-lifecycle-card"
+            *ngFor="let item of auditModel.orderLifecycles; trackBy: trackByOrderLifecycle"
+            [open]="item.recommendedAction.requiresManualAction"
+          >
+            <summary>
+              <span class="lifecycle-document">
+                <strong>{{ item.documentSerie }}.{{ item.documentOrderNo }}</strong>
+                <small>{{ formatTimestamp(item.documentDate) }} · {{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</small>
+              </span>
+              <span>
+                <small>Mikro Siparis</small>
+                <strong>{{ item.mikroOrderQuantity | number:'1.0-2' }}</strong>
+              </span>
+              <span>
+                <small>AXATA SEV</small>
+                <strong>{{ item.axataShipmentQuantity | number:'1.0-2' }}</strong>
+              </span>
+              <span>
+                <small>Mikro Link</small>
+                <strong>{{ item.mikroLinkedShipmentQuantity | number:'1.0-2' }}</strong>
+              </span>
+              <span [class]="getRecommendedActionTone(item.recommendedAction)">
+                {{ item.recommendedAction.title }}
+              </span>
+            </summary>
+
+            <div class="lifecycle-body">
+              <div class="lifecycle-state-grid">
+                <article>
+                  <span>Mikro Gonderim Bayragi</span>
+                  <strong>{{ formatWorkflowState(item.mikroDispatchFlagState) }}</strong>
+                  <small>{{ item.mikroSentFlagLineCount }}/{{ item.mikroOrderLineCount }} satir</small>
+                </article>
+                <article>
+                  <span>AXATA Siparis</span>
+                  <strong>{{ formatWorkflowState(item.axataOrderState) }}</strong>
+                  <small>{{ item.axataOrderLineCount }} satir / {{ item.axataOrderQuantity | number:'1.0-2' }}</small>
+                </article>
+                <article>
+                  <span>AXATA Sevk</span>
+                  <strong>{{ formatWorkflowState(item.shipmentState) }}</strong>
+                  <small>{{ item.axataShipmentDocumentCount }} SEV · {{ item.axataShipmentLineCount }} satir</small>
+                </article>
+                <article>
+                  <span>Mikro Donus</span>
+                  <strong>{{ formatWorkflowState(item.mikroTransferState) }}</strong>
+                  <small>{{ item.mikroLinkedShipmentLineCount }} linkli satir</small>
+                </article>
+              </div>
+
+              <div class="lifecycle-action">
+                <div>
+                  <strong>{{ item.recommendedAction.title }}</strong>
+                  <p>{{ item.recommendedAction.reason }}</p>
+                </div>
+                <button
+                  type="button"
+                  class="mini-btn"
+                  *ngIf="item.recommendedAction.canExecute"
+                  (click)="applyLifecycleRecommendedAction(item)"
+                >
+                  Aksiyon Formuna Aktar
+                </button>
+              </div>
+
+              <div class="compact-table lifecycle-shipments" *ngIf="item.shipments.length">
+                <div class="table-row table-head">
+                  <span>AXATA SEV</span>
+                  <span>Tarih / Status</span>
+                  <span>Satir</span>
+                  <span>Miktar</span>
+                </div>
+                <div class="table-row" *ngFor="let shipment of item.shipments">
+                  <span>#{{ shipment.axataSequenceNo }} · {{ shipment.axataDeliveryNo }}</span>
+                  <span>
+                    {{ formatTimestamp(shipment.shipmentDate) }}
+                    <small>
+                      {{ shipment.isCancelled ? 'Iptal ' + (shipment.cancellationCode || '') : 'Status ' + shipment.status }}
+                    </small>
+                  </span>
+                  <span>{{ shipment.lineCount }}</span>
+                  <span>{{ shipment.quantity | number:'1.0-2' }}</span>
+                </div>
+              </div>
+            </div>
+          </details>
+        </div>
+
+        <ng-template #noOrderLifecycles>
+          <div class="empty-msg">Secili filtrelerde siparis yasam dongusu kaydi donmedi.</div>
+        </ng-template>
+      </ng-container>
+
       <div class="audit-flow">
         <div
           class="flow-step"

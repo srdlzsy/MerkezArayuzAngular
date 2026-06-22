@@ -20,6 +20,8 @@ import type {
   IAxataInboundAtfCompanyReceivingRequestApiDto,
   IAxataIntegrationAuditOperationApiDto,
   IAxataAuditOutboundDeliveryApiDto,
+  IAxataOrderLifecycleApiDto,
+  IAxataOrderRecommendedActionApiDto,
   IAxataManualIncomingCompanyReceivingBatchRequestApiDto,
   IAxataManualIncomingCompanyReceivingRequestApiDto,
   IAxataManualIncomingInventoryCountBatchRequestApiDto,
@@ -718,6 +720,63 @@ export class AxataSenkronizasyonuListComponent {
       {
         label: 'Satirsiz AXATA',
         value: summary.axataEmptyOutboundDeliveryDocumentCount ?? 0
+      }
+    ];
+  });
+  protected readonly workflowSummaryCards = computed<AuditInsightCard[]>(() => {
+    const summary = this.audit()?.workflowSummary;
+
+    if (!summary) {
+      return [];
+    }
+
+    return [
+      {
+        label: 'Mikro Siparis Evreni',
+        value: `${summary.mikroOrderDocumentCount}`,
+        detail: `${summary.axataOrderDocumentCount} siparis AXATA ENT000/ENT001 tarafinda bulundu`,
+        tone: summary.axataOrderMissingDocumentCount > 0 ? 'warn' : 'success'
+      },
+      {
+        label: 'AXATA Siparis Eksigi',
+        value: `${summary.axataOrderMissingDocumentCount}`,
+        detail: `${summary.axataOrderUnknownDocumentCount} baglanti nedeniyle dogrulanamadi`,
+        tone:
+          summary.axataOrderMissingDocumentCount > 0 ||
+          summary.axataOrderUnknownDocumentCount > 0
+            ? 'danger'
+            : 'success'
+      },
+      {
+        label: 'AXATA SEV Belgeleri',
+        value: `${summary.axataShipmentDocumentCount}`,
+        detail: `${summary.partiallyShippedDocumentCount} kismi / ${summary.fullyShippedDocumentCount} tam / ${summary.overShippedDocumentCount} fazla`,
+        tone: summary.overShippedDocumentCount > 0 ? 'danger' : 'neutral'
+      },
+      {
+        label: 'Mikro Sevk Baglantisi',
+        value: `${summary.mikroLinkedShipmentDocumentCount}`,
+        detail: `${summary.waitingForMikroTransferDocumentCount} bekliyor / ${summary.partiallyLinkedInMikroDocumentCount} kismi`,
+        tone:
+          summary.waitingForMikroTransferDocumentCount > 0 ||
+          summary.partiallyLinkedInMikroDocumentCount > 0
+            ? 'warn'
+            : 'success'
+      },
+      {
+        label: 'Tam Senkron',
+        value: `${summary.fullySynchronizedDocumentCount}`,
+        detail: `${summary.mikroOrderDocumentCount} Mikro siparisinden miktar bazli tamamlanan`,
+        tone:
+          summary.fullySynchronizedDocumentCount === summary.mikroOrderDocumentCount
+            ? 'success'
+            : 'neutral'
+      },
+      {
+        label: 'Manuel Aksiyon',
+        value: `${summary.manualActionRequiredDocumentCount}`,
+        detail: 'Evrak bazli onerilen mudahale karari bulunan siparis',
+        tone: summary.manualActionRequiredDocumentCount > 0 ? 'danger' : 'success'
       }
     ];
   });
@@ -1428,6 +1487,45 @@ export class AxataSenkronizasyonuListComponent {
       tone: 'info',
       title: 'Pending C01 rescue formuna tasindi',
       message: `${item.documentSerie}.${item.documentOrderNo} icin belge bazli preview veya import calistirilabilir.`
+    });
+  }
+
+  protected applyLifecycleRecommendedAction(item: IAxataOrderLifecycleApiDto): void {
+    const code = item.recommendedAction.code;
+
+    if (code === 'RESEND_ORDER_TO_AXATA') {
+      this.form.controls.taskCode.setValue('issued-warehouse-order-sync');
+      this.form.patchValue(
+        {
+          warehouseNo: item.sourceWarehouseNo,
+          candidateStartDate: item.documentDate.slice(0, 10),
+          candidateEndDate: item.documentDate.slice(0, 10),
+          manualDocumentSerie: item.documentSerie,
+          manualDocumentOrderNo: item.documentOrderNo
+        },
+        { emitEvent: false }
+      );
+      this.selectedTaskCode.set('issued-warehouse-order-sync');
+      this.selectedTab.set('manual');
+    } else {
+      const status =
+        code === 'IMPORT_PENDING_C01' || code === 'ACK_AXATA_ONLY' ? '0' : '1';
+      this.c01DocumentRescueForm.patchValue(
+        {
+          documentSerie: item.documentSerie,
+          documentOrderNo: item.documentOrderNo,
+          status,
+          acknowledge: code === 'ACK_AXATA_ONLY'
+        },
+        { emitEvent: false }
+      );
+      this.selectedTab.set('incoming');
+    }
+
+    this.feedback.set({
+      tone: 'info',
+      title: 'Onerilen aksiyon formu hazir',
+      message: `${item.documentSerie}.${item.documentOrderNo}: ${item.recommendedAction.title}`
     });
   }
 
@@ -2629,6 +2727,46 @@ export class AxataSenkronizasyonuListComponent {
     return item.axataShipmentState?.trim() || (item.status === '0' ? 'Bekliyor' : 'Tamamlandi');
   }
 
+  protected getRecommendedActionTone(
+    action: IAxataOrderRecommendedActionApiDto
+  ): string {
+    const severity = action.severity?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (severity === 'critical' || severity === 'error') {
+      return 'status-pill-danger';
+    }
+
+    if (severity === 'warning' || severity === 'warn') {
+      return 'status-pill-warn';
+    }
+
+    if (severity === 'success') {
+      return 'status-pill-success';
+    }
+
+    return 'status-pill-neutral';
+  }
+
+  protected formatWorkflowState(value: string | null | undefined): string {
+    const labels: Record<string, string> = {
+      Found: 'Bulundu',
+      NotFound: 'Bulunamadi',
+      Unknown: 'Dogrulanamadi',
+      QuantityMismatch: 'Miktar farki',
+      WaitingForAxataShipment: 'AXATA sevki bekleniyor',
+      PartiallyShipped: 'Kismi sevk',
+      FullyShipped: 'Tam sevk',
+      OverShipped: 'Fazla sevk',
+      CancelledInAxata: 'AXATA iptal / zero',
+      WaitingForMikroTransfer: 'Mikro aktarimi bekliyor',
+      PartiallyLinked: 'Kismi Mikro linki',
+      FullyLinked: 'Mikro linki tamam',
+      FullySynchronized: 'Tam senkron'
+    };
+
+    return value ? labels[value] ?? value : '-';
+  }
+
   protected getMissingShipmentLineRate(
     item: IAxataSentWarehouseOrderMissingShipmentApiDto
   ): number {
@@ -2825,6 +2963,10 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     item: IAxataAuditOutboundDeliveryApiDto
   ): string => `${item.status}|${item.movementType}|${item.axataSequenceNo}|${item.axataDeliveryNo}`;
+  protected trackByOrderLifecycle = (
+    _index: number,
+    item: IAxataOrderLifecycleApiDto
+  ): string => `${item.documentSerie}|${item.documentOrderNo}`;
 
   private mapCandidateToBatchItem(
     candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto

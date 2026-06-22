@@ -149,6 +149,8 @@ export interface IAxataIntegrationAuditApiDto {
   endDate: string;
   warehouseNo: number | null;
   summary: IAxataIntegrationAuditSummaryApiDto;
+  workflowSummary?: IAxataOrderWorkflowSummaryApiDto;
+  orderLifecycles?: IAxataOrderLifecycleApiDto[];
   outboundDeliverySummaries: IAxataOutboundDeliveryMovementSummaryApiDto[];
   unsyncedWarehouseOrders: IAxataUnsyncedWarehouseOrderApiDto[];
   sentWarehouseOrdersMissingMikroShipments: IAxataSentWarehouseOrderMissingShipmentApiDto[];
@@ -168,6 +170,9 @@ export interface IAxataIntegrationAuditSummaryApiDto {
   sentWarehouseOrderMissingMikroShipmentDocumentCount: number;
   sentWarehouseOrderMissingMikroShipmentLineCount: number;
   sentWarehouseOrderMissingMikroShipmentQuantity: number;
+  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryDocumentCount?: number;
+  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryLineCount?: number;
+  sentWarehouseOrderMissingMikroShipmentWithAxataDeliveryQuantity?: number;
   sentWarehouseOrderShipmentDifferenceDocumentCount: number;
   sentWarehouseOrderShipmentDifferenceLineCount: number;
   sentWarehouseOrderShipmentDifferenceQuantity: number;
@@ -179,10 +184,86 @@ export interface IAxataIntegrationAuditSummaryApiDto {
   c01MikroExistsPendingAckDocumentCount: number;
   axataOutboundDeliveryDocumentCount?: number;
   axataOutboundDeliveryLineCount?: number;
+  axataOutboundDeliveryQuantity?: number;
   axataCompletedOutboundDeliveryDocumentCount?: number;
   axataCancelledOutboundDeliveryDocumentCount?: number;
+  axataCancelledOutboundDeliveryLineCount?: number;
+  axataCancelledOutboundDeliveryQuantity?: number;
   axataEmptyOutboundDeliveryDocumentCount?: number;
   sentWarehouseOrderMissingAxataOutboundDeliveryDocumentCount?: number;
+  sentWarehouseOrderMissingAxataOutboundDeliveryLineCount?: number;
+  sentWarehouseOrderMissingAxataOutboundDeliveryQuantity?: number;
+}
+
+export interface IAxataOrderWorkflowSummaryApiDto {
+  mikroOrderDocumentCount: number;
+  axataOrderDocumentCount: number;
+  axataOrderMissingDocumentCount: number;
+  axataOrderUnknownDocumentCount: number;
+  axataOrderQuantityMismatchDocumentCount: number;
+  axataShipmentDocumentCount: number;
+  waitingForAxataShipmentDocumentCount: number;
+  partiallyShippedDocumentCount: number;
+  fullyShippedDocumentCount: number;
+  overShippedDocumentCount: number;
+  mikroLinkedShipmentDocumentCount: number;
+  waitingForMikroTransferDocumentCount: number;
+  partiallyLinkedInMikroDocumentCount: number;
+  fullyLinkedInMikroDocumentCount: number;
+  fullySynchronizedDocumentCount: number;
+  manualActionRequiredDocumentCount: number;
+}
+
+export interface IAxataOrderRecommendedActionApiDto {
+  code: string;
+  title: string;
+  severity: string;
+  requiresManualAction: boolean;
+  canExecute: boolean;
+  previewRoute: string | null;
+  executeRoute: string | null;
+  reason: string;
+}
+
+export interface IAxataOrderShipmentReferenceApiDto {
+  axataSequenceNo: number;
+  axataDeliveryNo: string;
+  status: string;
+  shipmentDate: string | null;
+  lineCount: number;
+  quantity: number;
+  isCancelled: boolean;
+  cancellationCode: string | null;
+}
+
+export interface IAxataOrderLifecycleApiDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  documentNo: string;
+  documentDate: string;
+  sourceWarehouseNo: number;
+  targetWarehouseNo: number;
+  mikroOrderLineCount: number;
+  mikroOrderQuantity: number;
+  mikroSentFlagLineCount: number;
+  mikroDispatchFlagState: string;
+  axataOrderExists: boolean | null;
+  axataOrderLineCount: number;
+  axataOrderQuantity: number;
+  axataOrderState: string;
+  axataShipmentDocumentCount: number;
+  axataPendingShipmentDocumentCount: number;
+  axataCompletedShipmentDocumentCount: number;
+  axataCancelledShipmentDocumentCount: number;
+  axataShipmentLineCount: number;
+  axataShipmentQuantity: number;
+  shipmentState: string;
+  mikroLinkedShipmentLineCount: number;
+  mikroLinkedShipmentQuantity: number;
+  mikroTransferState: string;
+  synchronizationState: string;
+  recommendedAction: IAxataOrderRecommendedActionApiDto;
+  shipments: IAxataOrderShipmentReferenceApiDto[];
 }
 
 export interface IAxataOutboundDeliveryMovementSummaryApiDto {
