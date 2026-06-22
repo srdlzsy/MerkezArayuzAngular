@@ -14,6 +14,7 @@ export const INTEGRATION_TASK_SOURCE = {
           'Fetch profile explorer',
           'AXATA SQL tabanli live audit, status evreni ve queue preview',
           'Mikro siparisten AXATA siparis/sevk ve Mikro linkine evrak bazli yasam dongusu',
+          'Mikro urun, tum barkod ve birimleriyle AXATA addSKUMaster canli aktarimi',
           'AXATA sevk tarihi listesi',
           'Preview, route-based execute ve POST /jobs',
           'Job polling',
@@ -43,6 +44,22 @@ export const INTEGRATION_TASK_SOURCE = {
               method: 'GET',
               path: '/api/integrations/axata-sync/fetch-profiles',
               description: 'Eski worker parity icin planlanan AXATA fetch/import profillerini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/products/preview?productCode=URUN001&take=20',
+              description: 'Aktif Mikro urunlerini tum barkod ve birimleriyle addSKUMaster paketi olarak onizler'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/products/dispatch',
+              description: 'Secili urun kodlarini veya take kadar aktif Mikro urununu AXATAya 100luk paketlerle canli gonderir',
+              payload: 'AxataProductSynchronizationDispatchHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/products/{productCode}/dispatch',
+              description: 'Tek Mikro urununu master, tum barkod ve birimleriyle AXATAya canli gonderir'
             },
             {
               method: 'GET',

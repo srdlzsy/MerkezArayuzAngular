@@ -19,7 +19,7 @@ import type {
   IFurpaWarehouseReceiptListItemApiDto
 } from './subeler-arasi-stok-hareketi.dtos';
 
-export type IAxataExecutionMode = 'DryRun' | 'Outbox';
+export type IAxataExecutionMode = 'DryRun' | 'Outbox' | 'Live';
 
 export interface IAxataSynchronizationTaskApiDto {
   code: string;
@@ -129,6 +129,56 @@ export interface IAxataSynchronizationFetchProfileApiDto {
 export interface IAxataSynchronizationFetchProfilesOverviewApiDto {
   generatedAtUtc: string | null;
   profiles: IAxataSynchronizationFetchProfileApiDto[];
+  notes: string[];
+}
+
+export interface IAxataProductSynchronizationPreviewQueryApiDto {
+  productCode?: string | null;
+  take?: number | null;
+}
+
+export interface IAxataProductSynchronizationDispatchRequestApiDto {
+  productCodes: string[];
+  take?: number | null;
+  continueOnError: boolean;
+}
+
+export interface IAxataProductSynchronizationItemApiDto {
+  productCode: string;
+  productName: string;
+  mainUnit: string;
+  barcodeCount: number;
+  barcodes: string[];
+  unitCount: number;
+  payloadJson: string;
+}
+
+export interface IAxataProductSynchronizationPreviewApiDto {
+  generatedAtUtc: string;
+  productCode: string | null;
+  totalRecordCount: number;
+  returnedRecordCount: number;
+  products: IAxataProductSynchronizationItemApiDto[];
+  notes: string[];
+}
+
+export interface IAxataProductSynchronizationResultApiDto {
+  productCode: string;
+  isSuccess: boolean;
+  serviceState: number | null;
+  serviceMessage: string;
+  barcodeCount: number;
+  unitCount: number;
+}
+
+export interface IAxataProductSynchronizationExecuteApiDto {
+  dispatchedAtUtc: string;
+  operationName: string;
+  endpointUrl: string;
+  requestedProductCount: number;
+  succeededProductCount: number;
+  failedProductCount: number;
+  results: IAxataProductSynchronizationResultApiDto[];
   notes: string[];
 }
 

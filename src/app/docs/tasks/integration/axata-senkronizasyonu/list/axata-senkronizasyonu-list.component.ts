@@ -33,6 +33,8 @@ import type {
   IAxataOutboundDeliveryQueueDocumentApiDto,
   IAxataOutboundDeliveryRequestApiDto,
   IAxataPendingOutboundDeliveryApiDto,
+  IAxataProductSynchronizationItemApiDto,
+  IAxataProductSynchronizationResultApiDto,
   IAxataSentWarehouseOrderMissingShipmentApiDto,
   IAxataExecutionMode,
   IAxataSynchronizationFetchProfileApiDto,
@@ -66,6 +68,8 @@ import {
   AxataOutboundDeliveryImportPreviewDto,
   AxataOutboundDeliveryQueuePreviewDto,
   AxataOutboundDeliveryResponseDto,
+  AxataProductSynchronizationExecuteDto,
+  AxataProductSynchronizationPreviewDto,
   AxataSynchronizationFetchProfilesOverviewDto,
   AxataSynchronizationHealthDto,
   AxataSynchronizationJobDetailDto,
@@ -155,7 +159,12 @@ const DOCUMENT_TASK_CODES = new Set([
 })
 export class AxataSenkronizasyonuListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['axata-senkronizasyonu'];
-  protected readonly executionModes = ['DryRun', 'Outbox'] as const;
+  protected readonly executionModes: readonly IAxataExecutionMode[] = ['DryRun', 'Outbox'];
+  protected readonly productExecutionModes: readonly IAxataExecutionMode[] = [
+    'DryRun',
+    'Outbox',
+    'Live'
+  ];
   protected readonly queueMovementTypes = ['C01', 'C02', 'C03', 'C4'] as const;
   protected readonly overview = signal<AxataSynchronizationOverviewDto | null>(null);
   protected readonly health = signal<AxataSynchronizationHealthDto | null>(null);
@@ -196,6 +205,8 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly c01ImportLoading = signal(false);
   protected readonly c01DocumentRescueLoading = signal(false);
   protected readonly genericJobLoading = signal(false);
+  protected readonly productPreviewLoading = signal(false);
+  protected readonly productDispatchLoading = signal(false);
 
   protected readonly form = new FormGroup({
     taskCode: new FormControl<string>(DEFAULT_TASK_CODE, {
@@ -236,6 +247,22 @@ export class AxataSenkronizasyonuListComponent {
     })
   });
   protected readonly batchForm = new FormGroup({
+    continueOnError: new FormControl<boolean>(true, {
+      nonNullable: true
+    })
+  });
+  protected readonly productSynchronizationForm = new FormGroup({
+    productCode: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(50)]
+    }),
+    productCodes: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    take: new FormControl<number>(20, {
+      nonNullable: true,
+      validators: [Validators.min(1), Validators.max(100000)]
+    }),
     continueOnError: new FormControl<boolean>(true, {
       nonNullable: true
     })
@@ -419,6 +446,10 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly incomingWarehouseBatchQueue = signal<IncomingWarehouseBatchQueueItem[]>([]);
   protected readonly incomingWarehouseBatchResult =
     signal<AxataManualIncomingWarehouseReceivingBatchResponseDto | null>(null);
+  protected readonly productSynchronizationPreview =
+    signal<AxataProductSynchronizationPreviewDto | null>(null);
+  protected readonly productSynchronizationResult =
+    signal<AxataProductSynchronizationExecuteDto | null>(null);
 
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
@@ -470,6 +501,12 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly isInventoryCountTask = computed(
     () => this.selectedTaskCode() === 'inventory-count-sync'
   );
+  protected readonly isProductMasterTask = computed(
+    () => this.selectedTaskCode() === 'product-master-sync'
+  );
+  protected readonly taskExecutionModes = computed<readonly IAxataExecutionMode[]>(() =>
+    this.isProductMasterTask() ? this.productExecutionModes : this.executionModes
+  );
   protected readonly isBusy = computed(
     () =>
       this.overviewLoading() ||
@@ -494,7 +531,9 @@ export class AxataSenkronizasyonuListComponent {
       this.c01PreviewLoading() ||
       this.c01ImportLoading() ||
       this.c01DocumentRescueLoading() ||
-      this.genericJobLoading()
+      this.genericJobLoading() ||
+      this.productPreviewLoading() ||
+      this.productDispatchLoading()
   );
   protected readonly selectedBatchCount = computed(() => this.selectedBatchDocuments().length);
   protected readonly enabledTaskCount = computed(
@@ -549,8 +588,15 @@ export class AxataSenkronizasyonuListComponent {
 
     switch (selectedTask.code) {
       case 'firm-master-sync':
-      case 'product-master-sync':
         notes.unshift('Bu task icin UI sadece preview, job ve outbox deneyimi sunmalidir.');
+        break;
+      case 'product-master-sync':
+        notes.unshift(
+          'Urun master icin task preview/job/outbox yaninda tekli veya toplu addSKUMaster canli dispatch kullanilabilir.'
+        );
+        notes.push(
+          'Otomatik zamanli aktarim icin Worker, Scheduler ve product-master-sync Schedule ayarlarinin ucu de aktif olmalidir.'
+        );
         break;
       case 'issued-warehouse-order-sync':
         notes.unshift(
@@ -667,6 +713,23 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly outboundDeliveriesByDateJson = computed(() =>
     this.outboundDeliveriesByDate()
       ? this.formatJson(this.outboundDeliveriesByDate())
+      : ''
+  );
+  protected readonly productSynchronizationPreviewJson = computed(() =>
+    this.productSynchronizationPreview()
+      ? this.formatJson(
+          this.productSynchronizationPreview()!.products.map(
+            (item: IAxataProductSynchronizationItemApiDto) => ({
+              ...item,
+              payloadJson: this.tryParseJson(item.payloadJson)
+            })
+          )
+        )
+      : ''
+  );
+  protected readonly productSynchronizationResultJson = computed(() =>
+    this.productSynchronizationResult()
+      ? this.formatJson(this.productSynchronizationResult())
       : ''
   );
   protected readonly auditSummaryCards = computed(() => {
@@ -955,8 +1018,13 @@ export class AxataSenkronizasyonuListComponent {
         this.manualDispatchResult.set(null);
         this.manualDispatchBatchResult.set(null);
         this.batchResult.set(null);
+        this.productSynchronizationPreview.set(null);
+        this.productSynchronizationResult.set(null);
         this.selectedBatchDocuments.set([]);
         this.form.controls.candidateSkip.setValue(0, { emitEvent: false });
+        if (taskCode !== 'product-master-sync' && this.form.controls.executionMode.value === 'Live') {
+          this.form.controls.executionMode.setValue('DryRun', { emitEvent: false });
+        }
         this.feedback.set(null);
       });
 
@@ -1531,6 +1599,104 @@ export class AxataSenkronizasyonuListComponent {
 
   protected selectTask(taskCode: string): void {
     this.form.controls.taskCode.setValue(taskCode);
+  }
+
+  protected previewProductSynchronization(): void {
+    if (this.productSynchronizationForm.invalid) {
+      this.productSynchronizationForm.markAllAsTouched();
+      return;
+    }
+
+    const productCode = this.productSynchronizationForm.controls.productCode.value.trim();
+    const take = this.toPositiveNumber(this.productSynchronizationForm.controls.take.value) ?? 20;
+
+    this.productPreviewLoading.set(true);
+    this.productSynchronizationPreview.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataProducts({
+        productCode: productCode || undefined,
+        take
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.productPreviewLoading.set(false))
+      )
+      .subscribe({
+        next: (preview: AxataProductSynchronizationPreviewDto) => {
+          this.productSynchronizationPreview.set(preview);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Urun master preview hazir',
+            message: `${preview.returnedRecordCount}/${preview.totalRecordCount} aktif Mikro urunu addSKUMaster paketiyle onizlendi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Urun preview alinamadi',
+            message: 'Urun kodunu ve take degerini kontrol et.'
+          });
+        }
+      });
+  }
+
+  protected dispatchSingleProduct(): void {
+    const productCode = this.productSynchronizationForm.controls.productCode.value.trim();
+
+    if (!productCode) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Urun kodu gerekli',
+        message: 'Tek urun canli dispatch icin Mikro urun kodunu gir.'
+      });
+      return;
+    }
+
+    this.dispatchProductCode(productCode);
+  }
+
+  protected dispatchProductCode(productCode: string): void {
+    this.runProductDispatch(
+      this.entegrasyonIslemleriService.dispatchAxataProduct(productCode),
+      `${productCode} canli addSKUMaster`
+    );
+  }
+
+  protected dispatchSelectedProducts(): void {
+    const productCodes = this.parseProductCodes(
+      this.productSynchronizationForm.controls.productCodes.value
+    );
+
+    if (!productCodes.length) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Urun listesi bos',
+        message: 'Secili urun dispatch icin kodlari virgul veya yeni satirla ayirarak gir.'
+      });
+      return;
+    }
+
+    this.runProductDispatch(
+      this.entegrasyonIslemleriService.dispatchAxataProducts({
+        productCodes,
+        continueOnError: this.productSynchronizationForm.controls.continueOnError.value
+      }),
+      `${productCodes.length} secili urun`
+    );
+  }
+
+  protected dispatchProductBatch(): void {
+    const take = this.toPositiveNumber(this.productSynchronizationForm.controls.take.value) ?? 20;
+
+    this.runProductDispatch(
+      this.entegrasyonIslemleriService.dispatchAxataProducts({
+        productCodes: [],
+        take,
+        continueOnError: this.productSynchronizationForm.controls.continueOnError.value
+      }),
+      `Sirali ilk ${take} aktif urun`
+    );
   }
 
   protected previewSelectedTask(): void {
@@ -2967,6 +3133,14 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     item: IAxataOrderLifecycleApiDto
   ): string => `${item.documentSerie}|${item.documentOrderNo}`;
+  protected trackByProductSynchronizationItem = (
+    _index: number,
+    item: IAxataProductSynchronizationItemApiDto
+  ): string => item.productCode;
+  protected trackByProductSynchronizationResult = (
+    _index: number,
+    item: IAxataProductSynchronizationResultApiDto
+  ): string => item.productCode;
 
   private mapCandidateToBatchItem(
     candidate: IAxataSynchronizationManualDocumentCandidateItemApiDto
@@ -2990,6 +3164,46 @@ export class AxataSenkronizasyonuListComponent {
       documentSerie: candidate.documentSerie,
       documentOrderNo: candidate.documentOrderNo
     };
+  }
+
+  private runProductDispatch(
+    request$: ReturnType<EntegrasyonIslemleriService['dispatchAxataProducts']>,
+    operationLabel: string
+  ): void {
+    this.productDispatchLoading.set(true);
+    this.productSynchronizationResult.set(null);
+
+    request$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.productDispatchLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataProductSynchronizationExecuteDto) => {
+          this.productSynchronizationResult.set(result);
+          this.feedback.set({
+            tone: result.failedProductCount ? 'info' : 'success',
+            title: result.failedProductCount
+              ? 'Urun dispatch kismi tamamlandi'
+              : 'Urun dispatch tamamlandi',
+            message: `${operationLabel}: ${result.succeededProductCount} basarili, ${result.failedProductCount} hatali.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Canli urun dispatch basarisiz',
+            message: `${operationLabel} AXATA addSKUMaster operasyonuna gonderilemedi.`
+          });
+        }
+      });
+  }
+
+  private parseProductCodes(value: string): string[] {
+    return value
+      .split(/[\s,;]+/)
+      .map((item) => item.trim())
+      .filter((item, index, items) => !!item && items.indexOf(item) === index);
   }
 
   private buildCurrentManualDocumentItem(): IAxataSynchronizationManualDocumentItemApiDto | null {

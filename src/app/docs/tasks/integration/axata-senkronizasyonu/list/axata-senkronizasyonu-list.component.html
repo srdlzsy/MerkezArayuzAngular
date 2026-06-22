@@ -107,7 +107,7 @@
           <label class="form-row">
             <span>Execution Mode</span>
             <select formControlName="executionMode">
-              <option *ngFor="let mode of executionModes" [value]="mode">
+              <option *ngFor="let mode of taskExecutionModes()" [value]="mode">
                 {{ formatExecutionMode(mode) }}
               </option>
             </select>
@@ -133,6 +133,197 @@
         <ul class="note-list">
           <li *ngFor="let note of selectedTaskLimits()">{{ note }}</li>
         </ul>
+      </div>
+    </div>
+
+    <div class="section-grid" *ngIf="isProductMasterTask()">
+      <div class="section-block">
+        <h2 class="section-title">Canli Urun Master</h2>
+        <p class="section-desc">
+          Mikro aktif stoklarini tum barkod ve birimleriyle AXATA addSKUMaster operasyonuna
+          onizler veya canli gonderir.
+        </p>
+
+        <form class="compact-form" [formGroup]="productSynchronizationForm">
+          <label class="form-row">
+            <span>Tek Urun Kodu</span>
+            <input type="text" formControlName="productCode" maxlength="50" placeholder="URUN001" />
+          </label>
+
+          <label class="form-row">
+            <span>Toplu Urun Kodlari</span>
+            <textarea
+              formControlName="productCodes"
+              rows="4"
+              placeholder="URUN001, URUN002 veya her satira bir kod"
+            ></textarea>
+          </label>
+
+          <label class="form-row">
+            <span>Preview / Sirali Aktarim Adedi</span>
+            <input type="number" formControlName="take" min="1" max="100000" />
+          </label>
+
+          <label class="form-row inline">
+            <input type="checkbox" formControlName="continueOnError" />
+            <span>Bir urun hata verirse diger urunlerle devam et</span>
+          </label>
+
+          <div class="button-group">
+            <button
+              type="button"
+              class="btn primary"
+              (click)="previewProductSynchronization()"
+              [disabled]="productPreviewLoading()"
+            >
+              {{ productPreviewLoading() ? 'Onizleniyor...' : 'Urun Preview' }}
+            </button>
+            <button
+              type="button"
+              class="btn secondary"
+              (click)="dispatchSingleProduct()"
+              [disabled]="productDispatchLoading()"
+            >
+              Tek Urunu Gonder
+            </button>
+            <button
+              type="button"
+              class="btn secondary"
+              (click)="dispatchSelectedProducts()"
+              [disabled]="productDispatchLoading()"
+            >
+              Secili Kodlari Gonder
+            </button>
+            <button
+              type="button"
+              class="btn secondary"
+              (click)="dispatchProductBatch()"
+              [disabled]="productDispatchLoading()"
+            >
+              Ilk {{ productSynchronizationForm.controls.take.value }} Urunu Gonder
+            </button>
+          </div>
+        </form>
+
+        <ul class="note-list">
+          <li>Preview veri yazmaz; canli butonlar AXATA servisine gercek paket gonderir.</li>
+          <li>Bos urun listesiyle toplu aktarim, take kadar aktif Mikro urununu sirali secer.</li>
+          <li>Backend urunleri AXATA'ya 100 kayitlik paketler halinde gonderir.</li>
+        </ul>
+      </div>
+
+      <div class="section-block">
+        <h2 class="section-title">Urun Aktarim Sonucu</h2>
+
+        <ng-container *ngIf="productSynchronizationPreview() as productPreview">
+          <div class="status-grid">
+            <div class="status-card">
+              <span>Bulunan</span>
+              <strong>{{ productPreview.totalRecordCount }}</strong>
+            </div>
+            <div class="status-card">
+              <span>Onizlenen</span>
+              <strong>{{ productPreview.returnedRecordCount }}</strong>
+            </div>
+            <div class="status-card">
+              <span>Uretim</span>
+              <strong>{{ formatTimestamp(productPreview.generatedAtUtc) }}</strong>
+            </div>
+          </div>
+
+          <div class="compact-table" *ngIf="productPreview.products.length">
+            <div class="table-row table-head">
+              <span>Urun</span>
+              <span>Ana Birim</span>
+              <span>Barkod / Birim</span>
+              <span>Aksiyon</span>
+            </div>
+            <div
+              class="table-row"
+              *ngFor="let item of productPreview.products; trackBy: trackByProductSynchronizationItem"
+            >
+              <span>
+                <strong>{{ item.productCode }}</strong>
+                <small>{{ item.productName }}</small>
+              </span>
+              <span>{{ item.mainUnit || '-' }}</span>
+              <span>{{ item.barcodeCount }} barkod / {{ item.unitCount }} birim</span>
+              <span class="row-actions">
+                <button
+                  type="button"
+                  class="mini-btn"
+                  (click)="dispatchProductCode(item.productCode)"
+                  [disabled]="productDispatchLoading()"
+                >
+                  Canli Gonder
+                </button>
+              </span>
+            </div>
+          </div>
+
+          <details class="json-details">
+            <summary>Urun Preview Payload</summary>
+            <pre>{{ productSynchronizationPreviewJson() }}</pre>
+          </details>
+        </ng-container>
+
+        <ng-container *ngIf="productSynchronizationResult() as productResult">
+          <div class="status-grid">
+            <div class="status-card">
+              <span>Istenen</span>
+              <strong>{{ productResult.requestedProductCount }}</strong>
+            </div>
+            <div class="status-card">
+              <span>Basarili</span>
+              <strong>{{ productResult.succeededProductCount }}</strong>
+            </div>
+            <div class="status-card">
+              <span>Hatali</span>
+              <strong>{{ productResult.failedProductCount }}</strong>
+            </div>
+            <div class="status-card">
+              <span>Operasyon</span>
+              <strong>{{ productResult.operationName }}</strong>
+            </div>
+          </div>
+
+          <div class="compact-table" *ngIf="productResult.results.length">
+            <div class="table-row table-head">
+              <span>Urun</span>
+              <span>Durum</span>
+              <span>Paket</span>
+              <span>Servis Mesaji</span>
+            </div>
+            <div
+              class="table-row"
+              *ngFor="let item of productResult.results; trackBy: trackByProductSynchronizationResult"
+            >
+              <span>{{ item.productCode }}</span>
+              <span
+                class="status-pill"
+                [class.status-pill-success]="item.isSuccess"
+                [class.status-pill-danger]="!item.isSuccess"
+              >
+                {{ item.isSuccess ? 'Basarili' : 'Hatali' }}
+                <small *ngIf="item.serviceState !== null">#{{ item.serviceState }}</small>
+              </span>
+              <span>{{ item.barcodeCount }} barkod / {{ item.unitCount }} birim</span>
+              <span>{{ item.serviceMessage || '-' }}</span>
+            </div>
+          </div>
+
+          <details class="json-details">
+            <summary>Canli Dispatch JSON</summary>
+            <pre>{{ productSynchronizationResultJson() }}</pre>
+          </details>
+        </ng-container>
+
+        <div
+          class="empty-msg"
+          *ngIf="!productSynchronizationPreview() && !productSynchronizationResult()"
+        >
+          Henuz urun preview veya canli dispatch sonucu yok.
+        </div>
       </div>
     </div>
 

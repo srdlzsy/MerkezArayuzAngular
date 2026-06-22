@@ -29,6 +29,10 @@ import type {
   IAxataOutboundDeliveriesByDateHttpRequestApiDto,
   IAxataOutboundDeliveryQueuePreviewApiDto,
   IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto,
+  IAxataProductSynchronizationDispatchRequestApiDto,
+  IAxataProductSynchronizationExecuteApiDto,
+  IAxataProductSynchronizationPreviewApiDto,
+  IAxataProductSynchronizationPreviewQueryApiDto,
   IAxataSynchronizationConnectionTestApiDto,
   IAxataSynchronizationExecuteRequestApiDto,
   IAxataSynchronizationExecuteTaskRequestApiDto,
@@ -126,6 +130,10 @@ export type AxataOutboundDeliveryQueuePreviewDto =
   IAxataOutboundDeliveryQueuePreviewApiDto;
 export type AxataOutboundDeliveriesByDateDto =
   IAxataOutboundDeliveriesByDateApiDto;
+export type AxataProductSynchronizationPreviewDto =
+  IAxataProductSynchronizationPreviewApiDto;
+export type AxataProductSynchronizationExecuteDto =
+  IAxataProductSynchronizationExecuteApiDto;
 export type ModuleActionScaffoldResponseDto = IModuleActionScaffoldResponseApiDto;
 export type PosAccountingModuleActionScaffoldResponseDto =
   IPosAccountingModuleActionScaffoldResponseApiDto;
@@ -182,6 +190,30 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   getAxataSynchronizationFetchProfiles() {
     return this.get<AxataSynchronizationFetchProfilesOverviewDto>(
       'integrations/axata-sync/fetch-profiles'
+    );
+  }
+
+  previewAxataProducts(query: IAxataProductSynchronizationPreviewQueryApiDto) {
+    return this.getWithQuery<AxataProductSynchronizationPreviewDto>(
+      'integrations/axata-sync/live/products/preview',
+      {
+        productCode: query.productCode?.trim() || undefined,
+        take: query.take ?? undefined
+      }
+    );
+  }
+
+  dispatchAxataProducts(request: IAxataProductSynchronizationDispatchRequestApiDto) {
+    return this.post<
+      AxataProductSynchronizationExecuteDto,
+      IAxataProductSynchronizationDispatchRequestApiDto
+    >('integrations/axata-sync/live/products/dispatch', request);
+  }
+
+  dispatchAxataProduct(productCode: string) {
+    return this.post<AxataProductSynchronizationExecuteDto, Record<string, never>>(
+      `integrations/axata-sync/live/products/${encodeURIComponent(productCode)}/dispatch`,
+      {}
     );
   }
 
