@@ -13,6 +13,9 @@ import type {
   StockCardListItemDto,
   StockCardPatchHttpRequest,
   StockCardUpdateResponse,
+  StockCardWarehousePatchHttpRequest,
+  StockCardWarehouseSettingsDto,
+  StockCardWarehouseUpdateResponse,
   StockMovementDocumentDto,
   StockMovementDocumentLineDto,
   StockMovementDocumentLookupHttpRequest,
@@ -83,6 +86,14 @@ const STOCK_CARD_BOOLEAN_FIELDS: readonly FieldDefinition[] = [
   { key: 'salesStopped', label: 'Satış Durduruldu' },
   { key: 'orderStopped', label: 'Sipariş Durduruldu' },
   { key: 'receivingStopped', label: 'Kabul Durduruldu' },
+  { key: 'isPassive', label: 'Pasif' },
+  { key: 'discountDisabled', label: 'İskonto Kapalı' }
+];
+
+const STOCK_CARD_WAREHOUSE_FIELDS: readonly FieldDefinition[] = [
+  { key: 'salesStopped', label: 'Satış Durduruldu' },
+  { key: 'orderStopped', label: 'Sipariş Durduruldu' },
+  { key: 'receivingStopped', label: 'Mal Kabul Durduruldu' },
   { key: 'isPassive', label: 'Pasif' },
   { key: 'discountDisabled', label: 'İskonto Kapalı' }
 ];
@@ -193,6 +204,7 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockCardTextFields = STOCK_CARD_TEXT_FIELDS;
   protected readonly stockCardNumberFields = STOCK_CARD_NUMBER_FIELDS;
   protected readonly stockCardBooleanFields = STOCK_CARD_BOOLEAN_FIELDS;
+  protected readonly stockCardWarehouseFields = STOCK_CARD_WAREHOUSE_FIELDS;
   protected readonly stockHeaderFields = STOCK_HEADER_FIELDS;
   protected readonly stockLineFields = STOCK_LINE_FIELDS;
   protected readonly customerHeaderFields = CUSTOMER_HEADER_FIELDS;
@@ -208,6 +220,10 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockCards = signal<StockCardListItemDto[]>([]);
   protected readonly selectedStockCard = signal<StockCardDetailDto | null>(null);
   protected readonly stockCardDraft = signal<StockCardDetailDto | null>(null);
+  protected readonly stockCardWarehouseSettings = signal<StockCardWarehouseSettingsDto[]>([]);
+  protected readonly selectedWarehouseSetting = signal<StockCardWarehouseSettingsDto | null>(null);
+  protected readonly warehouseSettingDraft = signal<StockCardWarehouseSettingsDto | null>(null);
+  protected readonly warehouseBusyAction = signal<'load' | 'save' | null>(null);
   protected readonly stockMovement = signal<StockMovementDocumentDto | null>(null);
   protected readonly stockMovementDraft = signal<StockMovementDocumentDto | null>(null);
   protected readonly customerMovement = signal<CustomerMovementDocumentDto | null>(null);
@@ -218,6 +234,7 @@ export class MikroEvrakDuzenlemeListComponent {
     includePassive: false,
     take: 50
   };
+  protected warehouseFilterNo: number | null = null;
   protected stockLookup: StockMovementDocumentLookupHttpRequest = {
     documentSerie: '',
     documentOrderNo: 0,
@@ -259,6 +276,13 @@ export class MikroEvrakDuzenlemeListComponent {
       this.stockMovementDraft(),
       STOCK_HEADER_FIELDS,
       STOCK_LINE_FIELDS
+    )
+  );
+  protected readonly changedWarehouseFieldCount = computed(() =>
+    this.countChanges(
+      this.selectedWarehouseSetting(),
+      this.warehouseSettingDraft(),
+      STOCK_CARD_WAREHOUSE_FIELDS
     )
   );
   protected readonly changedCustomerMovementCount = computed(() =>
@@ -310,6 +334,8 @@ export class MikroEvrakDuzenlemeListComponent {
 
     this.busyAction.set('stock-detail');
     this.feedback.set(null);
+    this.stockCardWarehouseSettings.set([]);
+    this.selectWarehouseSetting(null);
     this.service
       .getStockCard(stockCode)
       .pipe(
@@ -317,7 +343,10 @@ export class MikroEvrakDuzenlemeListComponent {
         finalize(() => this.busyAction.set(null))
       )
       .subscribe({
-        next: (card: StockCardDetailDto) => this.applyStockCard(card),
+        next: (card: StockCardDetailDto) => {
+          this.applyStockCard(card);
+          this.loadStockCardWarehouseSettings();
+        },
         error: (error: unknown) => this.handleError(error, 'Stok kartı detayı getirilemedi.')
       });
   }
@@ -354,6 +383,7 @@ export class MikroEvrakDuzenlemeListComponent {
             ...draft,
             ...response.stockCard
           });
+          this.loadStockCardWarehouseSettings();
           this.feedback.set({
             tone: 'success',
             title: 'Stok kartı güncellendi',
@@ -490,6 +520,107 @@ export class MikroEvrakDuzenlemeListComponent {
     this.stockCardDraft.set(original ? this.clone(original) : null);
   }
 
+  protected loadStockCardWarehouseSettings(): void {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    if (!stockCode || !this.canDetail()) {
+      return;
+    }
+
+    const warehouseNo =
+      typeof this.warehouseFilterNo === 'number' &&
+      Number.isFinite(this.warehouseFilterNo) &&
+      this.warehouseFilterNo > 0
+        ? this.warehouseFilterNo
+        : undefined;
+
+    this.warehouseBusyAction.set('load');
+    this.service
+      .getStockCardWarehouseSettings(stockCode, warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.warehouseBusyAction.set(null))
+      )
+      .subscribe({
+        next: (rows: StockCardWarehouseSettingsDto[]) => {
+          this.stockCardWarehouseSettings.set(rows ?? []);
+          const selectedWarehouseNo = this.selectedWarehouseSetting()?.warehouseNo;
+          const selected =
+            rows?.find((row) => row.warehouseNo === selectedWarehouseNo) ?? rows?.[0] ?? null;
+          this.selectWarehouseSetting(selected);
+        },
+        error: (error: unknown) => {
+          this.stockCardWarehouseSettings.set([]);
+          this.selectWarehouseSetting(null);
+          this.handleError(error, 'Stok kartının depo bazlı ayarları getirilemedi.');
+        }
+      });
+  }
+
+  protected selectWarehouseSetting(setting: StockCardWarehouseSettingsDto | null): void {
+    this.selectedWarehouseSetting.set(setting ? this.clone(setting) : null);
+    this.warehouseSettingDraft.set(setting ? this.clone(setting) : null);
+  }
+
+  protected setWarehouseField(
+    draft: StockCardWarehouseSettingsDto,
+    key: string,
+    value: boolean
+  ): void {
+    (draft as unknown as EditableRecord)[key] = value;
+    this.warehouseSettingDraft.set(this.clone(draft));
+  }
+
+  protected resetWarehouseDraft(): void {
+    const original = this.selectedWarehouseSetting();
+    this.warehouseSettingDraft.set(original ? this.clone(original) : null);
+  }
+
+  protected saveWarehouseSetting(resetToGlobal = false): void {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    const original = this.selectedWarehouseSetting();
+    const draft = this.warehouseSettingDraft();
+
+    if (!stockCode || !original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    const request = (
+      resetToGlobal
+        ? { resetToGlobal: true }
+        : this.buildPatch(original, draft, STOCK_CARD_WAREHOUSE_FIELDS)
+    ) as StockCardWarehousePatchHttpRequest;
+
+    if (!resetToGlobal && !Object.keys(request).length) {
+      this.setInfo('Değişiklik yok', 'Seçili depo için kaydedilecek bir değişiklik bulunmuyor.');
+      return;
+    }
+
+    this.warehouseBusyAction.set('save');
+    this.feedback.set(null);
+    this.service
+      .updateStockCardWarehouseSettings(stockCode, original.warehouseNo, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.warehouseBusyAction.set(null))
+      )
+      .subscribe({
+        next: (response: StockCardWarehouseUpdateResponse) => {
+          const updated = response.warehouseSettings;
+          this.stockCardWarehouseSettings.update((rows) =>
+            rows.map((row) => (row.warehouseNo === updated.warehouseNo ? updated : row))
+          );
+          this.selectWarehouseSetting(updated);
+          this.feedback.set({
+            tone: 'success',
+            title: resetToGlobal ? 'Global ayarlara dönüldü' : 'Depo ayarı güncellendi',
+            message: `${updated.warehouseNo} - ${updated.warehouseName} için ayarlar kaydedildi.`
+          });
+        },
+        error: (error: unknown) =>
+          this.handleError(error, 'Stok kartının depo bazlı ayarı güncellenemedi.')
+      });
+  }
+
   protected resetStockMovement(): void {
     const original = this.stockMovement();
     this.stockMovementDraft.set(original ? this.prepareStockMovement(original) : null);
@@ -513,6 +644,10 @@ export class MikroEvrakDuzenlemeListComponent {
 
   protected trackByStockCode = (_index: number, row: StockCardListItemDto): string =>
     row.stockCode;
+  protected trackByWarehouseNo = (
+    _index: number,
+    row: StockCardWarehouseSettingsDto
+  ): number => row.warehouseNo;
   protected trackByGuid = (
     _index: number,
     row: StockMovementDocumentLineDto | CustomerMovementDocumentLineDto

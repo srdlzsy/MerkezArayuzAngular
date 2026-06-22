@@ -351,6 +351,19 @@ button:disabled {
   font-size: 0.86rem;
 }
 
+.section-note {
+  color: var(--muted);
+  font-size: 0.78rem;
+  line-height: 1.45;
+}
+
+.warning-note {
+  border-left: 3px solid #f59e0b;
+  padding: 0.45rem 0.55rem;
+  color: #854d0e;
+  background: #fffbeb;
+}
+
 .form-grid {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr));
@@ -363,6 +376,179 @@ button:disabled {
 
 .toggle-grid {
   padding-top: 0.2rem;
+}
+
+.warehouse-settings-section {
+  background: #fafaff;
+}
+
+.warehouse-section-head,
+.warehouse-editor-head,
+.warehouse-actions,
+.warehouse-filter {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+}
+
+.warehouse-section-head,
+.warehouse-editor-head {
+  justify-content: space-between;
+}
+
+.warehouse-section-head > div:first-child {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.warehouse-filter {
+  align-items: end;
+}
+
+.warehouse-filter .field {
+  width: 110px;
+}
+
+.warehouse-layout {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.38fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+}
+
+.warehouse-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 360px;
+  overflow: auto;
+}
+
+.warehouse-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.12rem 0.45rem;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0.52rem;
+  color: var(--ink);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.warehouse-row:hover,
+.warehouse-row.is-selected {
+  border-color: #a78bfa;
+  background: #f5f3ff;
+}
+
+.warehouse-code {
+  grid-row: 1 / span 2;
+  color: var(--accent-dark);
+  font-family: Consolas, monospace;
+  font-size: 0.8rem;
+  font-weight: 900;
+}
+
+.warehouse-row strong,
+.warehouse-row small {
+  grid-column: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.warehouse-row small,
+.warehouse-editor-head small {
+  color: var(--muted);
+  font-size: 0.7rem;
+}
+
+.override-badge {
+  grid-column: 3;
+  grid-row: 1 / span 2;
+  border-radius: 999px;
+  padding: 0.26rem 0.45rem;
+  color: #475467;
+  background: #eef1f5;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+.override-badge.has-override {
+  color: #9a3412;
+  background: #ffedd5;
+}
+
+.warehouse-empty {
+  border: 1px dashed var(--line);
+  border-radius: 9px;
+  padding: 0.8rem;
+  color: var(--muted);
+  font-size: 0.78rem;
+  text-align: center;
+}
+
+.warehouse-editor {
+  display: grid;
+  gap: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: #fff;
+}
+
+.warehouse-editor-head > div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.global-value-grid {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  gap: 0.35rem;
+}
+
+.global-value-grid span {
+  display: grid;
+  gap: 0.08rem;
+  border-radius: 8px;
+  padding: 0.42rem;
+  color: var(--muted);
+  background: var(--soft);
+  font-size: 0.68rem;
+}
+
+.global-value-grid strong {
+  color: var(--ink);
+  font-size: 0.76rem;
+}
+
+.warehouse-toggle-grid {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.warehouse-toggle {
+  min-height: 2.25rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.45rem 0.55rem;
+  background: #fff;
+}
+
+.warehouse-actions {
+  justify-content: flex-end;
+  border-top: 1px solid var(--line);
+  padding-top: 0.55rem;
+}
+
+.reset-global-action {
+  border-color: #fdba74;
+  color: #9a3412;
+  background: #fff7ed;
 }
 
 .editor-actions {
@@ -507,6 +693,14 @@ button:disabled {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .warehouse-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .global-value-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .result-list {
     max-height: 320px;
   }
@@ -529,6 +723,24 @@ button:disabled {
 
   .field-wide {
     grid-column: auto;
+  }
+
+  .warehouse-section-head,
+  .warehouse-filter,
+  .warehouse-actions {
+    align-items: stretch;
+    flex-direction: column;
+  }
+
+  .warehouse-filter .field,
+  .warehouse-filter .secondary-action,
+  .warehouse-actions button {
+    width: 100%;
+  }
+
+  .global-value-grid,
+  .warehouse-toggle-grid {
+    grid-template-columns: 1fr;
   }
 
   .editor-actions .primary-action,

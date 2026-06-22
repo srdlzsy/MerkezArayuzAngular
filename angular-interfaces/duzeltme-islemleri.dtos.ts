@@ -85,6 +85,39 @@ export interface StockCardUpdateResponse {
   stockCard: Partial<StockCardDetailDto> & Pick<StockCardDetailDto, 'stockCode'>;
 }
 
+export interface StockCardWarehouseSettingsDto {
+  stockCode: string;
+  warehouseNo: number;
+  warehouseName: string;
+  hasWarehouseDetail: boolean;
+  hasAnyOverride: boolean;
+  globalSalesStopped: boolean;
+  globalOrderStopped: boolean;
+  globalReceivingStopped: boolean;
+  globalIsPassive: boolean;
+  globalDiscountDisabled: boolean;
+  salesStopped: boolean;
+  orderStopped: boolean;
+  receivingStopped: boolean;
+  isPassive: boolean;
+  discountDisabled: boolean;
+  lastUpdatedAt: string | null;
+}
+
+export interface StockCardWarehousePatchHttpRequest {
+  salesStopped?: boolean | null;
+  orderStopped?: boolean | null;
+  receivingStopped?: boolean | null;
+  isPassive?: boolean | null;
+  discountDisabled?: boolean | null;
+  resetToGlobal?: boolean | null;
+}
+
+export interface StockCardWarehouseUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  warehouseSettings: StockCardWarehouseSettingsDto;
+}
+
 export interface StockMovementDocumentLookupHttpRequest {
   documentSerie: string;
   documentOrderNo: number;

@@ -7,10 +7,11 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
       id: 'mikro-evrak-duzenleme',
       title: 'Mikro Evrak Duzenleme',
       subtitle:
-        'Mikro stok kartlarini, stok hareket evraklarini ve cari hareket evraklarini kontrollu olarak duzeltir.',
+        'Mikro stok kartlarini, depo bazli stok ayarlarini, stok ve cari hareket evraklarini kontrollu olarak duzeltir.',
       baseRouteOrFile: '/api/duzeltme-islemleri/mikro-evrak-duzenleme',
       highlights: [
         'Stok karti arama, detay ve alan bazli guncelleme',
+        'Global karti etkilemeden depo bazli satis, siparis ve kabul bloklari',
         'Seri-sira ile stok ve cari hareket evraki bulma',
         'Stok hareketinde sevk deposu duzenleme',
         'movementGuid korumali satir guncelleme',
@@ -22,7 +23,7 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
         {
           name: 'MikroEvrakDuzenlemeController',
           description:
-            'STOKLAR, STOK_HAREKETLERI ve CARI_HESAP_HAREKETLERI kayitlarinin whitelist alanlarini gunceller.',
+            'STOKLAR, STOK_DEPO_DETAYLARI, STOK_HAREKETLERI ve CARI_HESAP_HAREKETLERI kayitlarinin whitelist alanlarini gunceller.',
           endpoints: [
             {
               method: 'GET',
@@ -39,6 +40,17 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
               path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}',
               description: 'Stok kartinin degisen whitelist alanlarini gunceller',
               payload: 'StockCardPatchHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar',
+              description: 'Stok kartinin aktif depolardaki global ve nihai ayarlarini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar/{warehouseNo}',
+              description: 'Yalniz secili deponun stok karti blok/pasif/iskonto ayarlarini gunceller',
+              payload: 'StockCardWarehousePatchHttpRequest'
             },
             {
               method: 'GET',

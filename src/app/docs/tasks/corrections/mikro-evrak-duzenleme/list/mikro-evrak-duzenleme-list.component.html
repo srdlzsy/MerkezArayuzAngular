@@ -144,6 +144,10 @@
 
           <div class="form-section">
             <h4>Teknik ve vergi alanları</h4>
+            <p class="section-note warning-note">
+              Bu bölüm global STOKLAR kaydını değiştirir ve tüm depoları etkileyebilir.
+              Yalnızca belirli bir depoyu kapatmak için aşağıdaki depo ayarlarını kullanın.
+            </p>
             <div class="form-grid">
               <label
                 *ngFor="let field of stockCardNumberFields; trackBy: trackByField"
@@ -174,6 +178,129 @@
             </div>
           </div>
 
+          <div class="form-section warehouse-settings-section">
+            <div class="warehouse-section-head">
+              <div>
+                <p class="panel-kicker">STOK_DEPO_DETAYLARI</p>
+                <h4>Depo bazlı stok ayarları</h4>
+                <p class="section-note">
+                  Buradaki değişiklikler yalnızca seçili depoyu etkiler; global stok kartı değişmez.
+                </p>
+              </div>
+              <div class="warehouse-filter">
+                <label class="field">
+                  <span>Depo No</span>
+                  <input
+                    type="number"
+                    min="1"
+                    [(ngModel)]="warehouseFilterNo"
+                    [ngModelOptions]="{ standalone: true }"
+                    placeholder="Tümü"
+                    (keyup.enter)="loadStockCardWarehouseSettings()"
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="secondary-action"
+                  [disabled]="warehouseBusyAction() === 'load'"
+                  (click)="loadStockCardWarehouseSettings()"
+                >
+                  {{ warehouseBusyAction() === 'load' ? 'Yükleniyor...' : 'Depoları Getir' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="warehouse-layout">
+              <div class="warehouse-list">
+                <button
+                  *ngFor="let setting of stockCardWarehouseSettings(); trackBy: trackByWarehouseNo"
+                  type="button"
+                  class="warehouse-row"
+                  [class.is-selected]="selectedWarehouseSetting()?.warehouseNo === setting.warehouseNo"
+                  (click)="selectWarehouseSetting(setting)"
+                >
+                  <span class="warehouse-code">{{ setting.warehouseNo }}</span>
+                  <strong>{{ setting.warehouseName }}</strong>
+                  <small>
+                    {{ setting.hasAnyOverride ? 'Depo özel ayarı var' : 'Global ayarlar geçerli' }}
+                  </small>
+                  <span class="override-badge" [class.has-override]="setting.hasAnyOverride">
+                    {{ setting.hasAnyOverride ? 'Override' : 'Global' }}
+                  </span>
+                </button>
+
+                <div
+                  class="warehouse-empty"
+                  *ngIf="!stockCardWarehouseSettings().length && warehouseBusyAction() !== 'load'"
+                >
+                  Aktif depo kaydı bulunamadı.
+                </div>
+              </div>
+
+              <div class="warehouse-editor" *ngIf="warehouseSettingDraft() as warehouseDraft">
+                <div class="warehouse-editor-head">
+                  <div>
+                    <strong>{{ warehouseDraft.warehouseNo }} · {{ warehouseDraft.warehouseName }}</strong>
+                    <small>
+                      {{ warehouseDraft.hasWarehouseDetail ? 'Depo detay kaydı mevcut' : 'İlk değişiklikte kayıt oluşturulur' }}
+                    </small>
+                  </div>
+                  <span class="change-badge">{{ changedWarehouseFieldCount() }} değişiklik</span>
+                </div>
+
+                <div class="global-value-grid">
+                  <span>Satış: <strong>{{ warehouseDraft.globalSalesStopped ? 'Kapalı' : 'Açık' }}</strong></span>
+                  <span>Sipariş: <strong>{{ warehouseDraft.globalOrderStopped ? 'Kapalı' : 'Açık' }}</strong></span>
+                  <span>Kabul: <strong>{{ warehouseDraft.globalReceivingStopped ? 'Kapalı' : 'Açık' }}</strong></span>
+                  <span>Kart: <strong>{{ warehouseDraft.globalIsPassive ? 'Pasif' : 'Aktif' }}</strong></span>
+                  <span>İskonto: <strong>{{ warehouseDraft.globalDiscountDisabled ? 'Kapalı' : 'Açık' }}</strong></span>
+                </div>
+
+                <div class="toggle-grid warehouse-toggle-grid">
+                  <label
+                    *ngFor="let field of stockCardWarehouseFields; trackBy: trackByField"
+                    class="toggle-field warehouse-toggle"
+                  >
+                    <input
+                      type="checkbox"
+                      [ngModel]="fieldValue(warehouseDraft, field.key)"
+                      [ngModelOptions]="{ standalone: true }"
+                      (ngModelChange)="setWarehouseField(warehouseDraft, field.key, $event)"
+                    />
+                    <span>{{ field.label }}</span>
+                  </label>
+                </div>
+
+                <div class="warehouse-actions">
+                  <button
+                    type="button"
+                    class="secondary-action"
+                    [disabled]="warehouseBusyAction() === 'save'"
+                    (click)="resetWarehouseDraft()"
+                  >
+                    Geri Al
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary-action reset-global-action"
+                    [disabled]="!canUpdate() || !warehouseDraft.hasAnyOverride || warehouseBusyAction() === 'save'"
+                    (click)="saveWarehouseSetting(true)"
+                  >
+                    Global Ayarlara Dön
+                  </button>
+                  <button
+                    type="button"
+                    class="primary-action"
+                    [disabled]="!canUpdate() || !changedWarehouseFieldCount() || warehouseBusyAction() === 'save'"
+                    (click)="saveWarehouseSetting()"
+                  >
+                    {{ warehouseBusyAction() === 'save' ? 'Kaydediliyor...' : 'Depo Ayarını Kaydet' }}
+                  </button>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="editor-actions">
             <button type="button" class="secondary-action" (click)="resetStockCard()">
               Değişiklikleri Geri Al
@@ -184,7 +311,7 @@
               [disabled]="!canUpdate() || !changedStockCardFieldCount() || isBusy('stock-save')"
               (click)="saveStockCard()"
             >
-              {{ isBusy('stock-save') ? 'Kaydediliyor...' : 'Stok Kartını Güncelle' }}
+              {{ isBusy('stock-save') ? 'Kaydediliyor...' : 'Global Stok Kartını Güncelle' }}
             </button>
           </div>
         </ng-container>

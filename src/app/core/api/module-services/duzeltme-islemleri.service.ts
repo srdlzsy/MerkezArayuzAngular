@@ -9,6 +9,9 @@ import type {
   StockCardPatchHttpRequest,
   StockCardSearchHttpRequest,
   StockCardUpdateResponse,
+  StockCardWarehousePatchHttpRequest,
+  StockCardWarehouseSettingsDto,
+  StockCardWarehouseUpdateResponse,
   StockMovementDocumentDto,
   StockMovementDocumentLookupHttpRequest,
   StockMovementDocumentUpdateResponse,
@@ -40,6 +43,27 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   ): Observable<StockCardUpdateResponse> {
     return this.put<StockCardUpdateResponse, StockCardPatchHttpRequest>(
       `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}`,
+      request
+    );
+  }
+
+  getStockCardWarehouseSettings(
+    stockCode: string,
+    warehouseNo?: number | null
+  ): Observable<StockCardWarehouseSettingsDto[]> {
+    return this.getWithQuery<StockCardWarehouseSettingsDto[]>(
+      `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/depolar`,
+      { warehouseNo: warehouseNo ?? undefined }
+    );
+  }
+
+  updateStockCardWarehouseSettings(
+    stockCode: string,
+    warehouseNo: number,
+    request: StockCardWarehousePatchHttpRequest
+  ): Observable<StockCardWarehouseUpdateResponse> {
+    return this.put<StockCardWarehouseUpdateResponse, StockCardWarehousePatchHttpRequest>(
+      `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/depolar/${warehouseNo}`,
       request
     );
   }
