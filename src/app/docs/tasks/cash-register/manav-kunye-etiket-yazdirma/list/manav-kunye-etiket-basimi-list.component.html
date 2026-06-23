@@ -1,7 +1,19 @@
-<section class="container-fluid">
-  <div class="manav-kunye-screen">
-    <div class="row align-items-end search-row">
-      <label class="field col-lg-3 col-md-4">
+<section class="task-page" *ngIf="page as current">
+  <article class="surface-card manav-kunye-screen">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Kasa Islemleri</span>
+        <h2>{{ current.title }}</h2>
+      </div>
+
+      <div class="selection-pill" [class.has-selection]="selectedCount() > 0">
+        <span>Baskiya Hazir</span>
+        <strong>{{ selectedCount() }}</strong>
+      </div>
+    </header>
+
+    <section class="scope-bar">
+      <label class="field">
         <span>Depo No</span>
         <input
           type="number"
@@ -11,19 +23,19 @@
         />
       </label>
 
-      <label class="field col-lg-3 col-md-4">
-        <span>Sevk Tarihi (opsiyonel)</span>
+      <label class="field">
+        <span>Sevk Tarihi</span>
         <input type="date" [ngModel]="selectedDate()" (ngModelChange)="onDateChange($event)" />
       </label>
 
-      <div class="col-lg-6 action-buttons">
-        <button type="button" class="btn primary" (click)="loadTags()" [disabled]="isLoading()">
-          {{ isLoading() ? 'Sorgulaniyor' : 'Yenile' }}
+      <div class="scope-actions">
+        <button type="button" class="task-action task-action-primary" (click)="loadTags()" [disabled]="isLoading()">
+          {{ isLoading() ? 'Sorgulaniyor...' : 'Etiketleri Getir' }}
         </button>
 
         <button
           type="button"
-          class="btn primary"
+          class="task-action task-action-secondary"
           (click)="clearDate()"
           [disabled]="isLoading() || !selectedDate()"
         >
@@ -32,95 +44,156 @@
 
         <button
           type="button"
-          class="btn accent"
-          (click)="printSelected()"
-          [disabled]="!selectedCount() || printState() === 'preparing'"
+          class="task-action task-action-danger"
+          (click)="clearList()"
+          [disabled]="isLoading() || (!tags().length && !selectedCount())"
         >
-          Yazdir
-        </button>
-
-        <button type="button" class="btn warn" (click)="selection.clear(); tags.set([]); selectedCount.set(0); selectedTags.set([])">
           Temizle
         </button>
       </div>
-    </div>
+    </section>
 
-    <div class="list-message" *ngIf="isLoading()">Etiketler yukleniyor...</div>
+    <section class="metric-strip">
+      <article class="metric-card">
+        <span>Toplam Etiket</span>
+        <strong>{{ tags().length }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Secili</span>
+        <strong>{{ selectedCount() }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Depo</span>
+        <strong>{{ warehouseNo() || '-' }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Filtre</span>
+        <strong>{{ selectedDate() || 'Son 1 Ay' }}</strong>
+      </article>
+    </section>
 
-    <div
-      class="list-message"
+    <article class="state-card state-card-info" *ngIf="isLoading()">
+      <h3>Etiketler yukleniyor</h3>
+      <p>Depo ve tarih filtresine gore manav kunye etiketleri aliniyor.</p>
+    </article>
+
+    <article
+      class="state-card"
       *ngIf="feedback() as currentFeedback"
-      [class.error]="currentFeedback.tone === 'error'"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
     >
-      {{ currentFeedback.message }}
-    </div>
+      <h3>{{ currentFeedback.tone === 'error' ? 'Hata' : 'Bilgi' }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
 
-    <div class="summary-row" *ngIf="!isLoading()">
-      <div class="summary-item">
-        <span class="summary-label">Toplam Etiket</span>
-        <span class="summary-value">{{ tags().length }}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Secili</span>
-        <span class="summary-value">{{ selectedCount() }}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Depo</span>
-        <span class="summary-value">{{ warehouseNo() || '-' }}</span>
-      </div>
-      <div class="summary-item">
-        <span class="summary-label">Filtre</span>
-        <span class="summary-value">{{ selectedDate() || 'Son 1 Ay' }}</span>
-      </div>
-    </div>
+    <section class="data-panel">
+      <div class="data-head">
+        <div class="title-block">
+          <span class="section-kicker">Etiket Listesi</span>
+          <h3>{{ filteredTags().length }} / {{ tags().length }} kayit</h3>
+        </div>
 
-    <div class="table-wrapper" *ngIf="tags().length > 0">
-      <table class="col-md-12">
-        <thead>
-          <tr>
-            <th class="selector-cell">
-              <input
-                type="checkbox"
-                [checked]="selection.hasValue() && isAllSelected()"
-                [indeterminate]="selection.hasValue() && !isAllSelected()"
-                (change)="masterToggle()"
-              />
-            </th>
-            <th>Stok Kodu</th>
-            <th>Urun</th>
-            <th>Satis Fiyati</th>
-            <th>Birim</th>
-            <th>Miktar</th>
-            <th>Sevk Tarihi</th>
-            <th>Kunye No</th>
-          </tr>
-        </thead>
-        <tbody>
-          <tr
-            *ngFor="let tag of tags(); trackBy: trackByTag"
-            [class.selected-row]="selection.isSelected(tag)"
-            (click)="toggleRow(tag)"
-          >
-            <td class="selector-cell">
-              <input
-                type="checkbox"
-                (click)="$event.stopPropagation()"
-                (change)="toggleRow(tag)"
-                [checked]="selection.isSelected(tag)"
-              />
-            </td>
-            <td>{{ tag.stockCode }}</td>
-            <td>{{ tag.stockName || tag.productName }}</td>
-            <td>{{ (tag.salesPrice || 0) | number:'1.2-2' }} TL</td>
-            <td>{{ tag.productUnit || 'KG' }}</td>
-            <td>{{ (tag.quantity || 0) | number:'1.2-2' }}</td>
-            <td>{{ tag.shippingDate | date:'dd.MM.yyyy' }}</td>
-            <td>{{ tag.takenTag }}</td>
-          </tr>
-        </tbody>
-      </table>
-    </div>
-  </div>
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="printSelected()"
+          [disabled]="!selectedCount() || printState() === 'preparing'"
+        >
+          {{ printState() === 'preparing' ? 'Hazirlaniyor...' : 'Yazdir (' + selectedCount() + ')' }}
+        </button>
+      </div>
+
+      <div class="table-tools">
+        <label class="field search-field">
+          <span>Liste Icinde Ara</span>
+          <input
+            type="search"
+            placeholder="Urun, stok kodu, kunye no veya uretici"
+            [ngModel]="searchTerm()"
+            (ngModelChange)="onSearchChange($event)"
+          />
+        </label>
+
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="clearSearch()"
+          [disabled]="!searchTerm()"
+        >
+          Aramayi Temizle
+        </button>
+      </div>
+
+      <div class="table-wrap" *ngIf="filteredTags().length > 0; else emptyTags">
+        <table class="data-table">
+          <thead>
+            <tr>
+              <th class="selector-cell">
+                <input
+                  type="checkbox"
+                  [checked]="selection.hasValue() && isAllSelected()"
+                  [indeterminate]="selection.hasValue() && !isAllSelected()"
+                  (change)="masterToggle()"
+                  [disabled]="!filteredTags().length"
+                />
+              </th>
+              <th>Stok Kodu</th>
+              <th>Urun</th>
+              <th class="align-right">Satis Fiyati</th>
+              <th>Birim</th>
+              <th class="align-right">Miktar</th>
+              <th>Sevk Tarihi</th>
+              <th>Kunye No</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let tag of filteredTags(); trackBy: trackByTag"
+              [class.selected-row]="selection.isSelected(tag)"
+              (click)="toggleRow(tag)"
+            >
+              <td class="selector-cell">
+                <input
+                  type="checkbox"
+                  (click)="$event.stopPropagation()"
+                  (change)="toggleRow(tag)"
+                  [checked]="selection.isSelected(tag)"
+                />
+              </td>
+              <td>{{ tag.stockCode }}</td>
+              <td>
+                <strong>{{ tag.stockName || tag.productName }}</strong>
+                <div class="table-meta">{{ tag.goodsGenus || '-' }}</div>
+              </td>
+              <td class="align-right cell-strong">{{ (tag.salesPrice || 0) | number:'1.2-2' }} TL</td>
+              <td>{{ tag.productUnit || 'KG' }}</td>
+              <td class="align-right">{{ (tag.quantity || 0) | number:'1.2-2' }}</td>
+              <td>{{ tag.shippingDate | date:'dd.MM.yyyy' }}</td>
+              <td>{{ tag.takenTag }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #emptyTags>
+        <ng-container *ngIf="!isLoading()">
+          <article class="state-card empty-state" *ngIf="tags().length && searchTerm(); else emptyListState">
+            <h3>Aramaya uygun kayit bulunamadi</h3>
+            <p>Arama metnini temizleyip listeyi tekrar gosterin.</p>
+          </article>
+
+          <ng-template #emptyListState>
+            <article class="state-card empty-state">
+              <h3>Etiket listesi bos</h3>
+              <p>Depo no ve sevk tarihi filtresini kullanarak manav kunye etiketlerini getirin.</p>
+            </article>
+          </ng-template>
+        </ng-container>
+      </ng-template>
+    </section>
+  </article>
 
   <div id="printSection" class="kunye-print-root">
     <app-manav-kunye-etiket-print [tags]="selectedTags()"></app-manav-kunye-etiket-print>

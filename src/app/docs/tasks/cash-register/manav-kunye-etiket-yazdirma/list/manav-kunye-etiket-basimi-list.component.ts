@@ -1,6 +1,6 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ViewChild, signal } from '@angular/core';
+import { Component, OnInit, ViewChild, computed, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import type { IManavKunyeTag } from '@interfaces';
 
@@ -32,10 +32,36 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   protected readonly feedback = signal<FeedbackState | null>(null);
   protected readonly printState = signal<'idle' | 'preparing'>('idle');
   protected readonly selectedDate = signal('');
+  protected readonly searchTerm = signal('');
   protected readonly warehouseNo = signal<number | null>(null);
   protected readonly selection = new SelectionModel<IManavKunyeTag>(true, []);
   protected readonly selectedCount = signal(0);
   protected readonly selectedTags = signal<IManavKunyeTag[]>([]);
+  protected readonly filteredTags = computed(() => {
+    const term = this.normalizeSearch(this.searchTerm());
+
+    if (!term) {
+      return this.tags();
+    }
+
+    return this.tags().filter((tag) =>
+      [
+        tag.stockCode,
+        tag.stockName,
+        tag.productName,
+        tag.goodsGenus,
+        tag.goodsType,
+        tag.productUnit,
+        tag.takenTag,
+        tag.productionCity,
+        tag.productionDistrict,
+        tag.manufacturer,
+        tag.buyer
+      ]
+        .map((value) => this.normalizeSearch(value))
+        .some((value) => value.includes(term))
+    );
+  });
 
   constructor(
     private readonly authService: AuthService,
@@ -57,6 +83,10 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
 
   protected onDateChange(value: string): void {
     this.selectedDate.set(value);
+  }
+
+  protected onSearchChange(value: string): void {
+    this.searchTerm.set(value);
   }
 
   protected loadTags(): void {
@@ -99,26 +129,37 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
     this.loadTags();
   }
 
+  protected clearSearch(): void {
+    this.searchTerm.set('');
+  }
+
+  protected clearList(): void {
+    this.tags.set([]);
+    this.selection.clear();
+    this.clearSearch();
+    this.feedback.set(null);
+    this.syncSelectionCount();
+  }
+
   protected masterToggle(): void {
+    const visibleTags = this.filteredTags();
+
     this.isAllSelected()
-      ? this.selection.clear()
-      : this.tags().forEach((row) => this.selection.select(row));
+      ? visibleTags.forEach((row) => this.selection.deselect(row))
+      : visibleTags.forEach((row) => this.selection.select(row));
     this.syncSelectionCount();
   }
 
   protected isAllSelected(): boolean {
-    const numSelected = this.selection.selected.length;
-    const numRows = this.tags().length;
+    const visibleTags = this.filteredTags();
+    const numSelected = visibleTags.filter((tag) => this.selection.isSelected(tag)).length;
+    const numRows = visibleTags.length;
     return numSelected === numRows && numRows > 0;
   }
 
   protected toggleRow(tag: IManavKunyeTag): void {
     this.selection.toggle(tag);
     this.syncSelectionCount();
-  }
-
-  protected hasData(): boolean {
-    return this.tags().length > 0;
   }
 
   protected printSelected(): void {
@@ -134,25 +175,6 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
     }, 420);
   }
 
-  protected formatDateTime(value: string | null | undefined): string {
-    const textValue = value?.trim() ?? '';
-
-    if (!textValue) {
-      return '-';
-    }
-
-    const date = new Date(textValue);
-
-    if (Number.isNaN(date.getTime())) {
-      return textValue;
-    }
-
-    return new Intl.DateTimeFormat('tr-TR', {
-      dateStyle: 'short',
-      timeStyle: 'short'
-    }).format(date);
-  }
-
   protected readonly trackByTag = (_index: number, tag: IManavKunyeTag): string =>
     `${tag.stockCode}-${tag.takenTag}`;
 
@@ -163,6 +185,12 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   private syncSelectionCount(): void {
     this.selectedCount.set(this.selection.selected.length);
     this.selectedTags.set([...this.selection.selected]);
+  }
+
+  private normalizeSearch(value: unknown): string {
+    return String(value ?? '')
+      .toLocaleLowerCase('tr-TR')
+      .trim();
   }
 
   private printWithStylesheet(stylesheetHref: string): void {
