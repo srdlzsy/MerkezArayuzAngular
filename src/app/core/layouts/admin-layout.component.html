@@ -80,7 +80,7 @@
   <div class="menu-label">MENU</div>
 
   <nav class="sidebar-nav">
-    <section class="menu-group" *ngFor="let group of menuGroups()">
+    <section class="menu-group" *ngFor="let group of menuGroups(); let groupIndex = index">
       <button
         type="button"
         class="menu-group-toggle"
@@ -88,7 +88,7 @@
         [attr.aria-expanded]="isSectionOpen(group.id)"
       >
         <span class="group-label">
-          <i [class]="getGroupIcon(group)"></i>
+          <i [class]="getGroupIcon(group, groupIndex)"></i>
           <span>{{ group.label }}</span>
         </span>
         <span class="chevron">{{ isSectionOpen(group.id) ? '-' : '+' }}</span>

@@ -116,6 +116,8 @@ describe('AuthService', () => {
       permissions: [],
       displayName: 'Test User'
     });
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toContain('access-token');
+    expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
   });
 
   it('uses embedded currentUser from login response when provided', () => {
@@ -350,6 +352,39 @@ describe('AuthService', () => {
     expect(service.isAuthenticated()).toBeFalse();
     expect(service.currentUser()).toBeNull();
     expect(service.getAccessToken()).toBe('');
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
+  });
+
+  it('hydrates old sessionStorage sessions into localStorage for new-tab support', () => {
+    sessionStorage.setItem(
+      AUTH_STORAGE_KEY,
+      JSON.stringify({
+        tokenType: 'Bearer',
+        accessToken: 'session-token',
+        refreshToken: 'session-refresh',
+        expiresIn: 3600,
+        currentUser: null
+      })
+    );
+
+    TestBed.resetTestingModule();
+    TestBed.configureTestingModule({
+      providers: [
+        provideHttpClient(),
+        provideHttpClientTesting(),
+        {
+          provide: API_BASE_URL,
+          useValue: 'http://api.test'
+        }
+      ]
+    });
+
+    service = TestBed.inject(AuthService);
+    httpMock = TestBed.inject(HttpTestingController);
+
+    expect(service.isAuthenticated()).toBeTrue();
+    expect(service.getAccessToken()).toBe('session-token');
+    expect(localStorage.getItem(AUTH_STORAGE_KEY)).toContain('session-token');
     expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
   });
 

@@ -89,8 +89,9 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 
 type FeedbackTone = 'success' | 'error' | 'info';
-type AxataQueueMovementType = 'C01' | 'C02' | 'C03' | 'C4';
+type AxataQueueMovementType = 'C02' | 'C03' | 'C4';
 type AuditInsightTone = 'success' | 'warn' | 'danger' | 'neutral';
+type AxataFlowAction = 'products' | 'manual' | 'incoming' | 'queue' | 'technical';
 
 interface PageFeedback {
   tone: FeedbackTone;
@@ -102,6 +103,15 @@ interface AuditInsightCard {
   label: string;
   value: string;
   detail: string;
+  tone: AuditInsightTone;
+}
+
+interface AxataFlowCard {
+  title: string;
+  label: string;
+  description: string;
+  actionText: string;
+  action: AxataFlowAction;
   tone: AuditInsightTone;
 }
 
@@ -160,12 +170,8 @@ const DOCUMENT_TASK_CODES = new Set([
 export class AxataSenkronizasyonuListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['axata-senkronizasyonu'];
   protected readonly executionModes: readonly IAxataExecutionMode[] = ['DryRun', 'Outbox'];
-  protected readonly productExecutionModes: readonly IAxataExecutionMode[] = [
-    'DryRun',
-    'Outbox',
-    'Live'
-  ];
-  protected readonly queueMovementTypes = ['C01', 'C02', 'C03', 'C4'] as const;
+  protected readonly productExecutionModes: readonly IAxataExecutionMode[] = ['DryRun', 'Outbox'];
+  protected readonly queueMovementTypes = ['C02', 'C03', 'C4'] as const;
   protected readonly overview = signal<AxataSynchronizationOverviewDto | null>(null);
   protected readonly health = signal<AxataSynchronizationHealthDto | null>(null);
   protected readonly fetchProfiles = signal<AxataSynchronizationFetchProfilesOverviewDto | null>(null);
@@ -626,6 +632,53 @@ export class AxataSenkronizasyonuListComponent {
 
     return notes.filter((note, index, items) => items.indexOf(note) === index);
   });
+  protected readonly primaryFlowCards = computed<AxataFlowCard[]>(() => [
+    {
+      title: 'Urun master',
+      label: 'Mikro -> AXATA',
+      description:
+        'Once urunleri onizle, sonra tek urun veya secili kodlari canli AXATA addSKUMaster operasyonuna gonder.',
+      actionText: 'Urunleri Ac',
+      action: 'products',
+      tone: 'success'
+    },
+    {
+      title: 'Evrak kurtarma',
+      label: 'Mikro -> AXATA',
+      description:
+        'Aday evragi bul, payloadi onizle, gercek gonderim gerekiyorsa dispatch ile AXATAya yaz.',
+      actionText: 'Adaylari Ac',
+      action: 'manual',
+      tone: 'warn'
+    },
+    {
+      title: 'C01 sevk aktarimi',
+      label: 'AXATA -> Mikro',
+      description:
+        'C01 teslimatlarini onizle, uygun kayitlari Mikro sevk fisine isle ve acknowledge kararini acik sec.',
+      actionText: 'Mikroya Isle',
+      action: 'incoming',
+      tone: 'danger'
+    },
+    {
+      title: 'C02/C03/C4 kuyruklari',
+      label: 'Sadece kontrol',
+      description:
+        'Bu profillerde sadece bekleyen AXATA sevklerini goruntule; Mikro yazma veya AXATA ack aksiyonu yok.',
+      actionText: 'Kuyrugu Gor',
+      action: 'queue',
+      tone: 'neutral'
+    },
+    {
+      title: 'Manuel JSON araclari',
+      label: 'Operasyon destegi',
+      description:
+        'Ham body ile import/gonderim araclari normal akis degil, kurtarma ve teknik destek icin gelismis alandadir.',
+      actionText: 'Teknik Alani Ac',
+      action: 'technical',
+      tone: 'neutral'
+    }
+  ]);
   protected readonly currentIncomingWarehouseReference = computed(() => {
     const detail = this.incomingWarehouseReceivingDetail();
     const header = detail?.header;
@@ -1101,6 +1154,67 @@ export class AxataSenkronizasyonuListComponent {
     this.form.controls.taskCode.setValue('product-master-sync');
     this.selectedTaskCode.set('product-master-sync');
     this.selectedTab.set('tasks');
+  }
+
+  protected openManualDispatchFlow(): void {
+    const documentTask =
+      this.tasks().find(
+        (task: IAxataSynchronizationTaskApiDto) =>
+          task.code === 'issued-warehouse-order-sync' && task.supportsManualDocuments
+      ) ??
+      this.tasks().find(
+        (task: IAxataSynchronizationTaskApiDto) => task.supportsManualDocuments
+      );
+
+    if (!documentTask) {
+      this.openTaskOverview();
+      this.feedback.set({
+        tone: 'info',
+        title: 'Manuel evrak taski yok',
+        message: 'Mikro -> AXATA manuel kurtarma icin once supportsManualDocuments olan bir task gelmeli.'
+      });
+      return;
+    }
+
+    this.form.controls.taskCode.setValue(documentTask.code);
+    this.selectedTaskCode.set(documentTask.code);
+    this.selectedTab.set('manual');
+  }
+
+  protected openAxataIncomingFlow(): void {
+    this.selectedTab.set('incoming');
+  }
+
+  protected openQueuePreviewFlow(): void {
+    this.queuePreviewForm.controls.movementType.setValue('C02', { emitEvent: false });
+    this.selectedTab.set('incoming');
+  }
+
+  protected openTechnicalFlow(): void {
+    this.selectedTab.set('incoming');
+  }
+
+  protected openPrimaryFlow(action: AxataFlowAction): void {
+    switch (action) {
+      case 'products':
+        this.openProductSynchronization();
+        break;
+      case 'manual':
+        this.openManualDispatchFlow();
+        break;
+      case 'incoming':
+        this.openAxataIncomingFlow();
+        break;
+      case 'queue':
+        this.openQueuePreviewFlow();
+        break;
+      case 'technical':
+        this.openTechnicalFlow();
+        break;
+      default:
+        this.openTaskOverview();
+        break;
+    }
   }
 
   protected loadCandidates(): void {
@@ -3671,7 +3785,7 @@ export class AxataSenkronizasyonuListComponent {
       return normalizedValue as AxataQueueMovementType;
     }
 
-    return 'C01';
+    return 'C02';
   }
 
   private normalizeAxataStatus(value: string | null | undefined): string | null {

@@ -57,6 +57,21 @@
     </button>
   </nav>
 
+  <section class="flow-strip">
+    <button
+      type="button"
+      class="flow-card operation-card"
+      *ngFor="let flow of primaryFlowCards()"
+      [ngClass]="'flow-card-' + flow.tone"
+      (click)="openPrimaryFlow(flow.action)"
+    >
+      <span>{{ flow.label }}</span>
+      <strong>{{ flow.title }}</strong>
+      <p>{{ flow.description }}</p>
+      <small>{{ flow.actionText }}</small>
+    </button>
+  </section>
+
   <section class="tab-content" *ngIf="selectedTab() === 'tasks'">
     <div class="section-grid">
       <div class="section-block">
@@ -113,16 +128,16 @@
               {{ previewLoading() ? 'Kontrol ediliyor...' : 'Önizle' }}
             </button>
             <button type="button" class="btn secondary" (click)="executeSelectedTask()" [disabled]="executeLoading()">
-              {{ executeLoading() ? 'Çalışıyor...' : 'Çalıştır' }}
+              {{ executeLoading() ? 'Hazırlanıyor...' : 'Dosya Hazırla' }}
             </button>
           </div>
         </form>
 
         <details class="advanced-panel">
-          <summary>Gelişmiş seçenekler</summary>
+          <summary>Gelişmiş teknik seçenekler</summary>
           <div class="advanced-panel-body">
             <button type="button" class="btn secondary" (click)="executeSelectedTaskViaJobsEndpoint()" [disabled]="genericJobLoading()">
-              {{ genericJobLoading() ? 'Kuyruğa alınıyor...' : 'Job Olarak Çalıştır' }}
+              {{ genericJobLoading() ? 'Kuyruğa alınıyor...' : 'Genel Job Endpointi' }}
             </button>
             <div class="pill-row">
               <span class="status-pill" *ngFor="let item of selectedTaskCapabilities()">{{ item }}</span>
@@ -171,7 +186,7 @@
               (click)="previewProductSynchronization()"
               [disabled]="productPreviewLoading()"
             >
-              {{ productPreviewLoading() ? 'Onizleniyor...' : 'Urun Preview' }}
+              {{ productPreviewLoading() ? 'Onizleniyor...' : 'Urunleri Onizle' }}
             </button>
             <button
               type="button"
@@ -179,7 +194,7 @@
               (click)="dispatchSingleProduct()"
               [disabled]="productDispatchLoading()"
             >
-              Tek Urunu Gonder
+              Tek Urunu AXATA'ya Gonder
             </button>
             <button
               type="button"
@@ -187,7 +202,7 @@
               (click)="dispatchSelectedProducts()"
               [disabled]="productDispatchLoading()"
             >
-              Secili Kodlari Gonder
+              Secili Kodlari AXATA'ya Gonder
             </button>
             <button
               type="button"
@@ -195,7 +210,7 @@
               (click)="dispatchProductBatch()"
               [disabled]="productDispatchLoading()"
             >
-              Ilk {{ productSynchronizationForm.controls.take.value }} Urunu Gonder
+              Ilk {{ productSynchronizationForm.controls.take.value }} Urunu AXATA'ya Gonder
             </button>
           </div>
         </form>
@@ -245,14 +260,14 @@
                   (click)="dispatchProductCode(item.productCode)"
                   [disabled]="productDispatchLoading()"
                 >
-                  Canli Gonder
+                  AXATA'ya Gonder
                 </button>
               </span>
             </div>
           </div>
 
           <details class="json-details">
-            <summary>Urun Preview Payload</summary>
+            <summary>Teknik urun payloadi</summary>
             <pre>{{ productSynchronizationPreviewJson() }}</pre>
           </details>
         </ng-container>
@@ -303,7 +318,7 @@
           </div>
 
           <details class="json-details">
-            <summary>Canli Dispatch JSON</summary>
+            <summary>AXATA gonderim JSON</summary>
             <pre>{{ productSynchronizationResultJson() }}</pre>
           </details>
         </ng-container>
@@ -1202,13 +1217,13 @@
 
         <div class="button-group">
           <button type="button" class="btn primary" (click)="previewManualDocument()" [disabled]="manualLoading()">
-            Preview
+            Onizle
           </button>
           <button type="button" class="btn secondary" (click)="executeManualDocument()" [disabled]="manualLoading()">
-            DryRun / Outbox
+            Dosya Hazirla
           </button>
           <button type="button" class="btn secondary" (click)="dispatchManualDocument()" [disabled]="dispatchLoading() || !supportsLiveDispatch()">
-            Canli Dispatch
+            AXATA'ya Gonder
           </button>
         </div>
 
@@ -1217,18 +1232,18 @@
             Batch Listesine Ekle
           </button>
           <button type="button" class="btn secondary" (click)="previewManualDocumentBatch()" [disabled]="batchLoading() || selectedBatchCount() === 0">
-            Batch Preview ({{ selectedBatchCount() }})
+            Toplu Onizle ({{ selectedBatchCount() }})
           </button>
           <button type="button" class="btn secondary" (click)="executeManualDocumentBatch()" [disabled]="batchLoading() || selectedBatchCount() === 0">
-            Batch Execute
+            Toplu Dosya Hazirla
           </button>
           <button type="button" class="btn secondary" (click)="dispatchManualDocumentBatch()" [disabled]="dispatchLoading() || selectedBatchCount() === 0 || !supportsLiveDispatch()">
-            Batch Dispatch
+            Toplu AXATA'ya Gonder
           </button>
         </div>
 
         <p class="section-desc" *ngIf="selectedTaskLiveOperationName() as operation">
-          Canli dispatch operasyonu: {{ operation }}
+          AXATA'ya yazan canli operasyon: {{ operation }}
         </p>
 
         <div class="pill-row" *ngIf="selectedBatchDocuments().length">
@@ -1243,21 +1258,21 @@
 
     <div class="section-grid">
       <div class="section-block">
-        <h2 class="section-title">Manual Sonuc</h2>
+        <h2 class="section-title">Manuel Islem Sonucu</h2>
         <details class="json-details" *ngIf="manualDocumentResult()">
-          <summary>Preview / Execute JSON</summary>
+          <summary>Onizleme / dosya hazirlama JSON</summary>
           <pre>{{ manualResultJson() }}</pre>
         </details>
         <details class="json-details" *ngIf="manualDispatchResult() as dispatchResult">
-          <summary>Canli Dispatch JSON</summary>
+          <summary>AXATA gonderim JSON</summary>
           <pre>{{ formatJson(dispatchResult) }}</pre>
         </details>
         <details class="json-details" *ngIf="manualDispatchBatchResult() as dispatchBatch">
-          <summary>Canli Dispatch Batch JSON</summary>
+          <summary>Toplu AXATA gonderim JSON</summary>
           <pre>{{ formatJson(dispatchBatch) }}</pre>
         </details>
         <details class="json-details" *ngIf="batchResult() as result">
-          <summary>Batch Preview / Execute JSON</summary>
+          <summary>Toplu onizleme / dosya hazirlama JSON</summary>
           <pre>{{ formatJson(result) }}</pre>
         </details>
         <div class="empty-msg" *ngIf="!manualDocumentResult() && !manualDispatchResult() && !manualDispatchBatchResult() && !batchResult()">
@@ -1270,6 +1285,10 @@
   <section class="tab-content" *ngIf="selectedTab() === 'incoming'">
     <div class="section-block">
       <h2 class="section-title">Bekleyen AXATA Sevkleri</h2>
+      <p class="section-desc">
+        C02, C03 ve C4 kuyruklari karar destegi icin sadece goruntulenir; bu bolum Mikro'ya
+        yazmaz ve AXATA acknowledge yapmaz.
+      </p>
 
       <form class="compact-form form-grid" [formGroup]="queuePreviewForm">
         <label class="form-row">
@@ -1288,7 +1307,7 @@
 
       <div class="button-group">
         <button type="button" class="btn primary" (click)="loadOutboundDeliveryQueuePreview()" [disabled]="queuePreviewLoading()">
-          {{ queuePreviewLoading() ? 'Sevkler getiriliyor...' : 'Bekleyenleri Getir' }}
+          {{ queuePreviewLoading() ? 'Sevkler getiriliyor...' : 'Kuyrugu Onizle' }}
         </button>
       </div>
 
@@ -1333,7 +1352,7 @@
               <small>{{ item.lineCount }} satir</small>
             </span>
             <span class="status-pill" [class.status-pill-success]="item.hasLiveImport" [class.status-pill-warn]="!item.hasLiveImport && !!item.warning" [class.status-pill-neutral]="!item.hasLiveImport && !item.warning">
-              {{ item.hasLiveImport ? 'Import destekli' : item.currentHandling }}
+              {{ item.hasLiveImport ? 'Kontrol et' : item.currentHandling }}
             </span>
           </div>
         </div>
@@ -1342,7 +1361,7 @@
         </ng-template>
 
         <details class="json-details">
-          <summary>Kuyruk Preview JSON</summary>
+          <summary>Teknik kuyruk JSON</summary>
           <pre>{{ queuePreviewJson() }}</pre>
         </details>
       </ng-container>
@@ -1431,6 +1450,10 @@
 
     <div class="section-block">
       <h2 class="section-title">AXATA Sevki Mikro'ya Aktar</h2>
+      <p class="section-desc">
+        C01 akisi once uygun teslimatlari kontrol eder, sonra secili limitle Mikro sevk fisi
+        olusturur. Acknowledge secimi AXATA tarafinda kaydi tamamlanmis isaretler.
+      </p>
 
       <form class="compact-form form-grid" [formGroup]="c01ImportForm">
         <label class="form-row">
@@ -1452,14 +1475,14 @@
           {{ c01PreviewLoading() ? 'Kontrol ediliyor...' : 'Önizle' }}
         </button>
         <button type="button" class="btn secondary" (click)="executeC01OutboundDeliveryImport()" [disabled]="c01ImportLoading()">
-          {{ c01ImportLoading() ? 'Aktarılıyor...' : 'Mikro\'ya Aktar' }}
+          {{ c01ImportLoading() ? 'Isleniyor...' : 'Mikro\'ya Isle' }}
         </button>
       </div>
 
       <ng-container *ngIf="c01OutboundDeliveryPreview() as c01Preview">
         <div class="status-grid">
           <div class="status-card">
-            <span>Fetched</span>
+            <span>Bulunan</span>
             <strong>{{ c01Preview.returnedDocumentCount }}/{{ c01Preview.totalFetchedDocumentCount }}</strong>
           </div>
           <div class="status-card">
@@ -1484,13 +1507,13 @@
             <span>{{ item.documentSerie }}.{{ item.documentOrderNo }}</span>
             <span>{{ item.axataQuantity | number:'1.0-2' }}</span>
             <span class="status-pill" [class.status-pill-success]="item.canImport" [class.status-pill-warn]="!item.canImport">
-              {{ item.canImport ? 'Import edilebilir' : (item.warning || 'Kontrol gerekli') }}
+              {{ item.canImport ? 'Mikro\'ya islenebilir' : (item.warning || 'Kontrol gerekli') }}
             </span>
           </div>
         </div>
 
         <details class="json-details">
-          <summary>C01 Preview JSON</summary>
+          <summary>C01 teknik onizleme JSON</summary>
           <pre>{{ c01PreviewJson() }}</pre>
         </details>
       </ng-container>
@@ -1515,13 +1538,13 @@
           </div>
         </div>
         <details class="json-details">
-          <summary>C01 Import JSON</summary>
+          <summary>C01 Mikro isleme JSON</summary>
           <pre>{{ c01ImportJson() }}</pre>
         </details>
       </ng-container>
 
       <div class="section-block nested-flat">
-        <h3 class="section-subtitle">C01 Belge Bazli Rescue</h3>
+        <h3 class="section-subtitle">C01 Belge Bazli Kurtarma</h3>
         <form class="compact-form form-grid" [formGroup]="c01DocumentRescueForm">
           <label class="form-row">
             <span>Seri</span>
@@ -1547,17 +1570,17 @@
 
         <div class="button-group">
           <button type="button" class="btn primary" (click)="previewC01DocumentRescue()" [disabled]="c01DocumentRescueLoading()">
-            Belge Preview
+            Belge Onizle
           </button>
           <button type="button" class="btn secondary" (click)="executeC01DocumentRescue()" [disabled]="c01DocumentRescueLoading()">
-            Belge Import
+            Belgeyi Mikro'ya Isle
           </button>
         </div>
 
         <ng-container *ngIf="c01DocumentRescuePreview() as rescuePreview">
           <div class="status-grid">
             <div class="status-card">
-              <span>Fetched</span>
+              <span>Bulunan</span>
               <strong>{{ rescuePreview.returnedDocumentCount }}/{{ rescuePreview.totalFetchedDocumentCount }}</strong>
             </div>
             <div class="status-card">
@@ -1570,7 +1593,7 @@
             </div>
           </div>
           <details class="json-details">
-            <summary>Belge Rescue Preview JSON</summary>
+            <summary>Belge kurtarma onizleme JSON</summary>
             <pre>{{ c01DocumentRescuePreviewJson() }}</pre>
           </details>
         </ng-container>
@@ -1591,7 +1614,7 @@
             </div>
           </div>
           <details class="json-details">
-            <summary>Belge Rescue Import JSON</summary>
+            <summary>Belge Mikro isleme JSON</summary>
             <pre>{{ c01DocumentRescueImportJson() }}</pre>
           </details>
         </ng-container>

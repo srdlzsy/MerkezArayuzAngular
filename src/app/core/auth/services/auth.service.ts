@@ -43,7 +43,7 @@ export class AuthService {
   private readonly http = inject(HttpClient);
   private readonly apiBaseUrl = inject(API_BASE_URL);
   private readonly kullaniciIslemleriService = inject(KullaniciIslemleriService);
-  private readonly storage = sessionStorage;
+  private readonly storage = localStorage;
   private readonly storedSession = this.readStoredSession();
   private readonly sessionSignal = signal<AuthSession | null>(this.storedSession);
   private hydrationRequest$: Observable<CurrentUser | null> | null = null;
@@ -386,9 +386,9 @@ export class AuthService {
   }
 
   private readStoredSession(): AuthSession | null {
-    localStorage.removeItem(AUTH_STORAGE_KEY);
-
-    const raw = this.storage.getItem(AUTH_STORAGE_KEY);
+    const raw = this.storage.getItem(AUTH_STORAGE_KEY) ?? sessionStorage.getItem(AUTH_STORAGE_KEY);
+    const shouldMigrateSessionStorage =
+      !this.storage.getItem(AUTH_STORAGE_KEY) && !!sessionStorage.getItem(AUTH_STORAGE_KEY);
 
     if (!raw) {
       return null;
@@ -402,13 +402,20 @@ export class AuthService {
         return null;
       }
 
-      return {
+      const nextSession = {
         tokenType: session.tokenType || 'Bearer',
         accessToken: session.accessToken,
         refreshToken: session.refreshToken ?? null,
         expiresIn: session.expiresIn ?? null,
         currentUser: session.currentUser ?? null
       };
+
+      if (shouldMigrateSessionStorage) {
+        this.storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
+        sessionStorage.removeItem(AUTH_STORAGE_KEY);
+      }
+
+      return nextSession;
     } catch {
       this.clearStoredSession();
       return null;
@@ -423,6 +430,6 @@ export class AuthService {
 
   private clearStoredSession(): void {
     this.storage.removeItem(AUTH_STORAGE_KEY);
-    localStorage.removeItem(AUTH_STORAGE_KEY);
+    sessionStorage.removeItem(AUTH_STORAGE_KEY);
   }
 }

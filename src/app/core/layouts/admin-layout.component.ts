@@ -113,36 +113,53 @@ export class AdminLayoutComponent {
     }));
   }
 
-  protected getGroupIcon(group: DocsMenuSection): string {
+  protected getGroupIcon(group: DocsMenuSection, index = 0): string {
     const groupKey = normalizeDocsAccessKey(group.label || group.id);
 
     switch (groupKey) {
       case 'kasa-islemleri':
-        return 'fas fa-cog';
+        return 'fas fa-cash-register';
       case 'mal-kabul-islemleri':
-        return 'fas fa-truck-loading';
+        return 'fas fa-dolly';
       case 'siparis-islemleri':
-        return 'fas fa-shopping-cart';
+        return 'fas fa-cart-shopping';
       case 'iade-islemleri':
-        return 'fas fa-arrow-up';
+        return 'fas fa-rotate-left';
       case 'stok-sayim-islemleri':
       case 'sayim-islemleri':
-        return 'far fa-file-alt';
+        return 'fas fa-clipboard-check';
       case 'stok-giris-islemleri':
+        return 'fas fa-box-open';
       case 'stok-cikis-islemleri':
-        return 'fas fa-boxes';
+        return 'fas fa-box';
+      case 'stok-islemleri':
+        return 'fas fa-boxes-stacked';
       case 'stok-virman-islemleri':
-        return 'fas fa-exchange-alt';
+        return 'fas fa-right-left';
       case 'kullanici-islemleri':
-        return 'fas fa-user';
+        return 'fas fa-user-gear';
       case 'sevk-islemleri':
         return 'fas fa-truck';
       case 'operasyon-islemleri':
-        return 'fas fa-gears';
+        return 'fas fa-screwdriver-wrench';
       case 'entegrasyon-islemleri':
-        return 'fas fa-plug';
+        return 'fas fa-network-wired';
+      case 'fatura-islemleri':
+        return 'fas fa-file-invoice';
+      case 'rapor-islemleri':
+        return 'fas fa-chart-line';
+      case 'arama-islemleri':
+        return 'fas fa-magnifying-glass';
+      case 'ayar-islemleri':
+        return 'fas fa-sliders';
+      case 'ortak-islemler':
+        return 'fas fa-comments';
+      case 'duzeltme-islemleri':
+        return 'fas fa-pen-to-square';
+      case 'green-grocer':
+        return 'fas fa-seedling';
       default:
-        return 'fas fa-circle';
+        return this.getFallbackGroupIcon(index);
     }
   }
 
@@ -184,6 +201,25 @@ export class AdminLayoutComponent {
     const route = this.getDeepestActiveRoute();
     const taskId = (route?.snapshot?.data?.['taskId'] as string | undefined) ?? null;
     this.activeTaskId.set(taskId);
+  }
+
+  private getFallbackGroupIcon(index: number): string {
+    const fallbackIcons = [
+      'fas fa-layer-group',
+      'fas fa-folder-tree',
+      'fas fa-table-cells-large',
+      'fas fa-diagram-project',
+      'fas fa-list-check',
+      'fas fa-compass',
+      'fas fa-cubes',
+      'fas fa-briefcase',
+      'fas fa-warehouse',
+      'fas fa-gauge-high',
+      'fas fa-file-lines',
+      'fas fa-building'
+    ];
+
+    return fallbackIcons[index % fallbackIcons.length];
   }
 
   private getDeepestActiveRoute(): ActivatedRoute | null {

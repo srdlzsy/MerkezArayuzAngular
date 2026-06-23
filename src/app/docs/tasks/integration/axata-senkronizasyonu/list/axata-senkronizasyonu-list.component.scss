@@ -202,6 +202,47 @@
   }
 }
 
+.flow-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(180px, 1fr));
+  gap: 0.75rem;
+}
+
+.flow-card {
+  border-left: 4px solid var(--axata-blue);
+  text-align: left;
+  cursor: pointer;
+  font: inherit;
+
+  span {
+    color: var(--axata-text-secondary);
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  small {
+    color: var(--axata-blue);
+    font-size: 0.78rem;
+    font-weight: 800;
+  }
+}
+
+.flow-card-success {
+  border-left-color: var(--axata-success);
+}
+
+.flow-card-warn {
+  border-left-color: var(--axata-amber);
+}
+
+.flow-card-danger {
+  border-left-color: var(--axata-danger);
+}
+
+.flow-card-neutral {
+  border-left-color: var(--axata-muted);
+}
+
 // ==================== TAB CONTENT ====================
 .tab-content {
   display: flex;
