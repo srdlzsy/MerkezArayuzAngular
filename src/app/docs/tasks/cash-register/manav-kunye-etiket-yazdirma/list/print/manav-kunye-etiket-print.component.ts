@@ -1,8 +1,24 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewChecked, Component, Input, OnChanges, SimpleChanges } from '@angular/core';
-import type { IManavKunyeTag } from '@interfaces';
+import {
+  AfterViewInit,
+  Component,
+  ElementRef,
+  Input,
+  OnChanges,
+  QueryList,
+  SimpleChanges,
+  ViewChildren
+} from '@angular/core';
 
+import type { IManavKunyeTag } from '@interfaces';
 import { renderQrSvg } from '../../../kunye-etiket-yazdirma/kunye-qr.util';
+
+interface ManavKunyePrintPage {
+  items: readonly IManavKunyeTag[];
+  pageNumber: number;
+}
+
+type PriceSizeClass = 'price-size-sm' | 'price-size-md' | 'price-size-lg' | 'price-size-xl';
 
 @Component({
   selector: 'app-manav-kunye-etiket-print',
@@ -11,83 +27,147 @@ import { renderQrSvg } from '../../../kunye-etiket-yazdirma/kunye-qr.util';
   templateUrl: './manav-kunye-etiket-print.component.html',
   styleUrl: './manav-kunye-etiket-print.component.scss'
 })
-export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewChecked {
+export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit {
   @Input() tags: IManavKunyeTag[] = [];
-  private qrRendered = false;
+  protected pages: readonly ManavKunyePrintPage[] = [];
+
+  @ViewChildren('qrEl')
+  qrElements!: QueryList<ElementRef<SVGSVGElement>>;
+
+  private renderScheduled = false;
+  private static readonly LABOR_RATE = 0.115;
+  private static readonly STORE_EXPENSE_RATE = 0.065;
+  private static readonly LOGISTICS_RATE = 0.055;
+  private static readonly WASTE_RATE = 0.049;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['tags']) {
-      this.qrRendered = false;
+      this.pages = this.buildPages(this.tags);
+      this.scheduleRender();
     }
   }
 
-  ngAfterViewChecked(): void {
-    if (!this.qrRendered && this.tags.length) {
-      this.qrRendered = true;
-      setTimeout(() => this.renderQrs(), 50);
-    }
+  ngAfterViewInit(): void {
+    this.scheduleRender();
   }
 
-  public forceRenderBarcodes(): void {
-    if (!this.tags.length) {
+  public async prepareForPrint(): Promise<void> {
+    await this.waitForNextPaint();
+    this.renderBarcodesNow();
+    await this.waitForNextPaint();
+  }
+
+  public renderBarcodesNow(): void {
+    this.renderQrs();
+  }
+
+  private scheduleRender(): void {
+    if (this.renderScheduled) {
       return;
     }
 
-    this.qrRendered = false;
-    setTimeout(() => this.renderQrs(), 50);
-  }
-
-  protected isLast(index: number): boolean {
-    return index === this.tags.length - 1;
-  }
-
-  protected calculateCostTotal(tag: IManavKunyeTag): number {
-    const buyingPrice = tag.buyingPrice || 0;
-
-    return (
-      buyingPrice +
-      buyingPrice * 0.115 +
-      buyingPrice * 0.065 +
-      buyingPrice * 0.055 +
-      buyingPrice * 0.049 +
-      buyingPrice +
-      buyingPrice
-    );
+    this.renderScheduled = true;
+    void this.waitForNextPaint()
+      .then(() => this.renderQrs())
+      .finally(() => {
+        this.renderScheduled = false;
+      });
   }
 
   private renderQrs(): void {
-    const tryRender = (): boolean => {
-      let needsRetry = false;
+    const elements = this.qrElements?.toArray() ?? [];
 
-      this.tags.forEach((tag, index) => {
-        const value = (tag.takenTag ?? '').toString().trim();
-        if (!value) {
-          return;
-        }
-
-        const el = document.querySelector(`#manav-qr-${index}`) as SVGSVGElement | null;
-        if (!el) {
-          needsRetry = true;
-          return;
-        }
-
-        renderQrSvg(el, value);
-
-        if (!el.childNodes.length) {
-          needsRetry = true;
-        }
-      });
-
-      return needsRetry;
-    };
-
-    const attempt = (remaining: number) => {
-      const retry = tryRender();
-      if (retry && remaining > 0) {
-        setTimeout(() => attempt(remaining - 1), 180);
+    elements.forEach((elRef, index) => {
+      const tag = this.tags?.[index];
+      if (!tag) {
+        elRef.nativeElement.replaceChildren();
+        return;
       }
-    };
 
-    attempt(3);
+      renderQrSvg(elRef.nativeElement, String(tag.takenTag ?? '').trim());
+    });
+  }
+
+  protected calculateLaborCost(tag: IManavKunyeTag): number {
+    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.LABOR_RATE;
+  }
+
+  protected calculateStoreExpense(tag: IManavKunyeTag): number {
+    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.STORE_EXPENSE_RATE;
+  }
+
+  protected calculateLogisticsCost(tag: IManavKunyeTag): number {
+    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.LOGISTICS_RATE;
+  }
+
+  protected calculateWasteCost(tag: IManavKunyeTag): number {
+    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.WASTE_RATE;
+  }
+
+  protected getCustomTax(tag: IManavKunyeTag): number {
+    return tag.customTax ?? this.getBuyingPrice(tag);
+  }
+
+  protected getVat(tag: IManavKunyeTag): number {
+    return tag.vat ?? this.getBuyingPrice(tag);
+  }
+
+  protected getPriceSizeClass(price: number | null | undefined): PriceSizeClass {
+    const absolutePrice = Math.abs(Number(price) || 0);
+
+    if (absolutePrice >= 10_000) {
+      return 'price-size-sm';
+    }
+
+    if (absolutePrice >= 1_000) {
+      return 'price-size-md';
+    }
+
+    if (absolutePrice >= 100) {
+      return 'price-size-lg';
+    }
+
+    return 'price-size-xl';
+  }
+
+  protected calculateCostTotal(tag: IManavKunyeTag): number {
+    return this.getBuyingPrice(tag)
+      + this.calculateLaborCost(tag)
+      + this.calculateStoreExpense(tag)
+      + this.calculateLogisticsCost(tag)
+      + this.calculateWasteCost(tag)
+      + this.getCustomTax(tag)
+      + this.getVat(tag);
+  }
+
+  protected readonly trackByPage = (_index: number, page: ManavKunyePrintPage): number =>
+    page.pageNumber;
+
+  protected readonly trackByTag = (index: number, tag: IManavKunyeTag): string =>
+    `${tag.stockCode}-${tag.takenTag}-${index}`;
+
+  private buildPages(tags: readonly IManavKunyeTag[]): readonly ManavKunyePrintPage[] {
+    const pages: ManavKunyePrintPage[] = [];
+
+    for (let index = 0; index < tags.length; index += 2) {
+      pages.push({
+        items: tags.slice(index, index + 2),
+        pageNumber: pages.length + 1
+      });
+    }
+
+    return pages;
+  }
+
+  private getBuyingPrice(tag: IManavKunyeTag): number {
+    return Number.isFinite(tag.buyingPrice) ? tag.buyingPrice : 0;
+  }
+
+  private waitForNextPaint(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
   }
 }

@@ -22,6 +22,7 @@ import { ETIKET_TIPLERI, IEtiketTipiConfig } from '../etiket-basimi.config';
 import { PrintChangePrice } from '../print-change-price/print-change-price';
 import { RafEtiketA5Component } from '../raf-etiket-a5/raf-etiket-a5.component';
 import { RafetiketiComponent } from '../raf-etiketi/rafetiketi.component';
+import { A5IkiliAyinUrunuFiyatEtiketi } from '../a5-ikili-ayin-urunu-fiyat-etiketi/a5-ikili-ayin-urunu-fiyat-etiketi';
 
 type PreviewMode = 'labels' | 'price-changes';
 
@@ -41,6 +42,7 @@ type ProductListFilter = 'all' | 'promotions' | 'price-changes' | 'missing-barco
     ReactiveFormsModule,
     FiyatetiketComponent,
     A5IkiliFiyatEtiketiComponent,
+    A5IkiliAyinUrunuFiyatEtiketi,
     RafetiketiComponent,
     RafEtiketA5Component,
     A5IkiliAyinEtiketiComponent,
@@ -503,7 +505,7 @@ export class EtiketBasimiListComponent {
     }
 
     this.previewMode.set('labels');
-    this.printWithStylesheet(selectedEtiket.ozelCss);
+    void this.printWithStylesheet(selectedEtiket.ozelCss);
   }
 
   protected printPriceChanges(): void {
@@ -517,7 +519,7 @@ export class EtiketBasimiListComponent {
     }
 
     this.previewMode.set('price-changes');
-    this.printWithStylesheet('/assets/price-change-list-print.css');
+    void this.printWithStylesheet('/assets/price-change-list-print.css');
   }
 
   protected readonly trackByProduct = (
@@ -739,7 +741,7 @@ export class EtiketBasimiListComponent {
     }
   }
 
-  private printWithStylesheet(stylesheetHref: string): void {
+  private async printWithStylesheet(stylesheetHref: string): Promise<void> {
     this.printState.set('preparing');
 
     const existingLink = document.getElementById('etiket-basimi-print-style');
@@ -757,6 +759,18 @@ export class EtiketBasimiListComponent {
     shellStyle.id = 'etiket-basimi-print-shell';
     shellStyle.textContent = `
       @media print {
+        html,
+        body,
+        app-root,
+        .admin-layout,
+        .content-wrapper,
+        .etiket-print-root,
+        .preview-stage,
+        app-a5-ikili-ayin-urunu-fiyat-etiketi {
+          background: #fff !important;
+          color: #000 !important;
+        }
+
         .app-sidebar,
         .topbar,
         .topbar-mobile,
@@ -767,6 +781,8 @@ export class EtiketBasimiListComponent {
 
         .content-wrapper {
           padding: 0 !important;
+          margin: 0 !important;
+          min-height: 0 !important;
         }
 
         .etiket-print-root {
@@ -774,25 +790,95 @@ export class EtiketBasimiListComponent {
           padding: 0 !important;
           border: 0 !important;
           box-shadow: none !important;
-          background: transparent !important;
+          background: #fff !important;
+        }
+
+        .preview-stage {
+          margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          box-shadow: none !important;
         }
       }
     `;
 
+    let cleanedUp = false;
+    let cleanupTimer: number | undefined;
+
     const cleanup = () => {
+      if (cleanedUp) {
+        return;
+      }
+
+      cleanedUp = true;
+      if (cleanupTimer !== undefined) {
+        window.clearTimeout(cleanupTimer);
+      }
       link.remove();
       shellStyle.remove();
       this.printState.set('idle');
       window.removeEventListener('afterprint', cleanup);
     };
 
-    document.head.appendChild(link);
     document.head.appendChild(shellStyle);
     window.addEventListener('afterprint', cleanup);
 
-    window.setTimeout(() => {
+    try {
+      await this.appendPrintStylesheet(link);
+      await this.waitForFonts();
+      await this.waitForNextPaint();
+
+      cleanupTimer = window.setTimeout(cleanup, 60_000);
       window.print();
-    }, 120);
+    } catch {
+      cleanup();
+      this.setFeedback(
+        'error',
+        'Baski hazirlanamadi',
+        'Etiket baski stili yuklenemedi. Lutfen tekrar deneyin.'
+      );
+    }
+  }
+
+  private appendPrintStylesheet(link: HTMLLinkElement): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        reject(new Error(`Baski stili zamaninda yuklenemedi: ${link.href}`));
+      }, 5_000);
+
+      link.addEventListener(
+        'load',
+        () => {
+          window.clearTimeout(timeoutId);
+          resolve();
+        },
+        { once: true }
+      );
+      link.addEventListener(
+        'error',
+        () => {
+          window.clearTimeout(timeoutId);
+          reject(new Error(`Baski stili yuklenemedi: ${link.href}`));
+        },
+        { once: true }
+      );
+
+      document.head.appendChild(link);
+    });
+  }
+
+  private async waitForFonts(): Promise<void> {
+    if ('fonts' in document) {
+      await document.fonts.ready;
+    }
+  }
+
+  private waitForNextPaint(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
   }
 
   private setFeedback(

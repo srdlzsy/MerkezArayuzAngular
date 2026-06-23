@@ -1,356 +1,351 @@
-<section class="task-page" *ngIf="page as current">
-  <header class="hero etiket-print-hidden">
-    <div class="hero-copy">
-      <div class="hero-inline hero-inline-single">
-        <div class="hero-titleline">
-          <p class="eyebrow">Kasa Islemleri</p>
-          <div class="welcome-box">
-            <h2>{{ current.title }}</h2>
-          </div>
-        </div>
-        <span class="status-pill" [class.is-busy]="isBusy()">
-          {{ busyLabel() }}
-        </span>
-      </div>
-    </div>
-  </header>
-
-  <section class="info-grid etiket-print-hidden">
-    <article class="info-card emphasis-card">
-      <h3>Depo</h3>
-      <p>{{ branchLabel() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Yuklu Urun</h3>
-      <p>{{ products().length }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Baskiya Hazir</h3>
-      <p>{{ previewProducts().length }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Barkod Eksik</h3>
-      <p>{{ missingBarcodeProducts().length }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Koli Bilgisi</h3>
-      <p>{{ packageFactorProducts().length }}</p>
-    </article>
-  </section>
-
-  <section class="quick-actions etiket-print-hidden">
-    <div class="quick-summary">
-      <span class="quick-chip">{{ selectedEtiket()?.etiketIsmi || 'Etiket secilmedi' }}</span>
-      <span class="quick-chip">Baski: {{ previewProducts().length }}</span>
-      <span class="quick-chip">Fiyat degisen: {{ priceChangeProducts().length }}</span>
+<section class="label-workspace" *ngIf="page as current">
+  <header class="page-header etiket-print-hidden">
+    <div class="page-heading">
+      <span class="page-kicker">Kasa İşlemleri</span>
+      <h2>{{ current.title }}</h2>
+      <p>Ürünleri yükleyin, etiket türünü seçin ve baskıya hazırlayın.</p>
     </div>
 
-    <div class="quick-actions-buttons">
+    <div class="header-actions">
+      <span class="status-badge" [class.is-busy]="isBusy()">
+        <span class="status-dot"></span>
+        {{ busyLabel() }}
+      </span>
+
       <button
         type="button"
-        class="action-button action-button-secondary"
+        class="button button-secondary"
         [disabled]="!canPrintPriceChanges() || printState() === 'preparing'"
         (click)="printPriceChanges()"
       >
-        Degisim Dokumunu Yazdir
+        Değişim Dökümü
       </button>
+
       <button
         type="button"
-        class="action-button action-button-primary"
+        class="button button-primary"
         [disabled]="!canPrintLabels() || printState() === 'preparing'"
         (click)="printLabels()"
       >
-        Etiketleri Yazdir
+        {{ printState() === 'preparing' ? 'Baskı hazırlanıyor...' : 'Etiketleri Yazdır' }}
       </button>
     </div>
-  </section>
+  </header>
 
-  <section class="task-block etiket-print-hidden">
-    <div class="control-grid" [formGroup]="filtersForm">
-      <article class="control-card">
-        <div class="control-card-head">
-          <div class="task-title">Etiket Ayarlari</div>
-        </div>
-        <div class="compact-controls compact-controls-primary">
-          <label class="field compact-field">
-            <span>Etiket tipi</span>
-            <select formControlName="labelType">
-              <option *ngFor="let tip of etiketTipleri" [value]="tip.etiketTipi">
-                {{ tip.etiketIsmi }}
-              </option>
-            </select>
-          </label>
-
-          <label class="field compact-field start-date-field">
-            <span>Baslangic tarihi</span>
-            <input class="datetime-field" type="datetime-local" formControlName="startDate" step="1" />
-          </label>
-
-          <div class="inline-actions compact-actions">
-            <button
-              type="button"
-              class="action-button action-button-primary"
-              [disabled]="!canLoadByDate()"
-              (click)="loadByDate()"
-            >
-              Tarihe Gore Getir
-            </button>
-            <button
-              type="button"
-              class="action-button action-button-secondary"
-              [disabled]="isBusy()"
-              (click)="openAddProductDialog()"
-            >
-              Manuel Urun Ekle
-            </button>
-          </div>
-        </div>
-      </article>
-
-      <article class="control-card">
-        <div class="control-card-head">
-          <div class="task-title">Belge Islemleri</div>
-        </div>
-        <div class="compact-controls compact-controls-docs">
-          <label class="field compact-field">
-            <span>Son 10 belge</span>
-            <select formControlName="documentId">
-              <option [ngValue]="null">Belge secin</option>
-              <option *ngFor="let item of recentDocuments()" [ngValue]="item.documentId">
-                #{{ item.documentId }} - {{ formatDocumentDate(item.createDate) }}
-              </option>
-            </select>
-          </label>
-
-          <label class="field compact-field">
-            <span>Belge no ara</span>
-            <input type="text" formControlName="documentSearch" placeholder="Orn. 10452" />
-          </label>
-
-          <div class="inline-actions compact-actions">
-            <button
-              type="button"
-              class="action-button action-button-primary"
-              [disabled]="isBusy() || !filtersForm.controls.documentId.value"
-              (click)="loadSelectedDocument()"
-            >
-              Belgeyi Yukle
-            </button>
-            <button
-              type="button"
-              class="action-button action-button-secondary"
-              [disabled]="!canSearchDocument()"
-              (click)="searchDocument()"
-            >
-              Belgeyi Ara
-            </button>
-            <button
-              type="button"
-              class="action-button action-button-ghost"
-              [disabled]="isBusy() || !canLoadDocuments()"
-              (click)="refreshRecentDocuments()"
-            >
-              Belgeleri Yenile
-            </button>
-            <button
-              type="button"
-              class="action-button action-button-ghost"
-              [disabled]="isBusy()"
-              (click)="clearList()"
-            >
-              Listeyi Temizle
-            </button>
-          </div>
-        </div>
-      </article>
-    </div>
-
-    <!-- <article
-      class="state-card feedback-card"
-      *ngIf="feedback() as currentFeedback"
-      [class.state-card-success]="currentFeedback.tone === 'success'"
-      [class.state-card-error]="currentFeedback.tone === 'error'"
-      [class.state-card-info]="currentFeedback.tone === 'info'"
-    >
-      <h3>{{ currentFeedback.title }}</h3>
-      <p>{{ currentFeedback.message }}</p>
-    </article> -->
-
-    <article class="data-shell">
-      <div class="data-shell-head">
-        <div>
-          <div class="task-title">Etiket Listesi</div>
-          <p>{{ pageStartIndex() }} - {{ pageEndIndex() }} / {{ visibleProducts().length }} kayit</p>
-        </div>
-        <span class="status-pill" [class.is-busy]="isBusy()">
-          {{ busyLabel() }}
-        </span>
-      </div>
-
-      <div class="table-toolbar">
-        <label class="field field-grow">
-          <span>Liste icinde ara</span>
-          <input
-            type="text"
-            [formControl]="filtersForm.controls.productSearch"
-            placeholder="Urun, barkod veya koli bilgisi"
-          />
-        </label>
-
-        <div class="filter-pills">
-          <button
-            type="button"
-            class="filter-pill"
-            [class.is-active]="productTableFilter() === 'all'"
-            (click)="setProductTableFilter('all')"
-          >
-            Tum Urunler
-            <strong>{{ products().length }}</strong>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.is-active]="productTableFilter() === 'promotions'"
-            (click)="setProductTableFilter('promotions')"
-          >
-            Promosyonlu
-            <strong>{{ promotionProducts().length }}</strong>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.is-active]="productTableFilter() === 'price-changes'"
-            (click)="setProductTableFilter('price-changes')"
-          >
-            Fiyat Degisen
-            <strong>{{ priceChangeProducts().length }}</strong>
-          </button>
-          <button
-            type="button"
-            class="filter-pill"
-            [class.is-active]="productTableFilter() === 'missing-barcode'"
-            (click)="setProductTableFilter('missing-barcode')"
-          >
-            Barkod Eksik
-            <strong>{{ missingBarcodeProducts().length }}</strong>
-          </button>
-        </div>
-
-        <button
-          type="button"
-          class="action-button action-button-ghost compact-button"
-          *ngIf="hasActiveTableTools()"
-          (click)="clearProductTableTools()"
-        >
-          Temizle
-        </button>
-      </div>
-
-      <div class="table-wrap" *ngIf="visibleProducts().length; else emptyProducts">
-        <table>
-          <thead>
-            <tr>
-              <th>Urun Kodu</th>
-              <th>Urun Adi</th>
-              <th>Barkod</th>
-              <th>Fiyat</th>
-              <th>Eski Fiyat</th>
-              <th>Promosyon</th>
-              <th>Koli</th>
-              <th>Degisiklik</th>
-              <th></th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let product of paginatedProducts(); trackBy: trackByProduct">
-              <td>{{ product.productCode || '-' }}</td>
-              <td>{{ product.productName || '-' }}</td>
-              <td>{{ product.barcode || '-' }}</td>
-              <td>{{ product.price | number:'1.2-2' }}</td>
-              <td>{{ product.oldPrice | number:'1.2-2' }}</td>
-              <td>
-                {{
-                  product.promotionPrice && product.promotionPrice > 0
-                    ? 'Evet'
-                    : 'Hayir'
-                }}
-              </td>
-              <td>{{ product.packageFactor }}</td>
-              <td>{{ product.priceChangeDate || '-' }}</td>
-              <td class="table-action-cell">
-                <button type="button" class="row-action" (click)="removeProduct(product)">
-                  Kaldir
-                </button>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
-
-      <div class="table-footer" *ngIf="visibleProducts().length">
-        <div class="table-footer-info">
-          <span>Toplam {{ visibleProducts().length }} kayit</span>
-          <span>Sayfa {{ currentPageSafe() }} / {{ totalPages() }}</span>
-        </div>
-
-        <div class="pagination-controls">
-          <label class="page-size-field">
-            <span>Sayfa boyutu</span>
-            <select [value]="pageSize()" (change)="setPageSize(+$any($event.target).value)">
-              <option *ngFor="let option of readonlyPageSizeOptions" [value]="option">
-                {{ option }}
-              </option>
-            </select>
-          </label>
-
-          <button
-            type="button"
-            class="action-button action-button-ghost compact-button"
-            [disabled]="!canGoToPreviousPage()"
-            (click)="goToPreviousPage()"
-          >
-            Onceki
-          </button>
-
-          <button
-            type="button"
-            class="action-button action-button-ghost compact-button"
-            [disabled]="!canGoToNextPage()"
-            (click)="goToNextPage()"
-          >
-            Sonraki
-          </button>
-        </div>
-      </div>
-
-      <ng-template #emptyProducts>
-        <ng-container *ngIf="products().length && hasActiveTableTools(); else emptyListState">
-          <article class="state-card empty-card">
-            <h3>Filtreye uygun kayit bulunamadi</h3>
-            <p>Arama veya filtreyi temizleyip listeyi tekrar gosterin.</p>
-            <div class="inline-actions">
-              <button
-                type="button"
-                class="action-button action-button-ghost compact-button"
-                (click)="clearProductTableTools()"
-              >
-                Tumunu Goster
-              </button>
-            </div>
-          </article>
-        </ng-container>
-
-        <ng-template #emptyListState>
-          <article class="state-card empty-card">
-            <h3>Urun listesi bos</h3>
-            <p>Tarihe gore veri cekin, belge yukleyin veya manuel urun ekleyin.</p>
-          </article>
-        </ng-template>
-      </ng-template>
+  <section class="summary-grid etiket-print-hidden" aria-label="Etiket özeti">
+    <article class="summary-card summary-card-accent">
+      <span>Depo</span>
+      <strong>{{ branchLabel() }}</strong>
+    </article>
+    <article class="summary-card">
+      <span>Yüklenen ürün</span>
+      <strong>{{ products().length }}</strong>
+    </article>
+    <article class="summary-card">
+      <span>Baskıya hazır</span>
+      <strong>{{ previewProducts().length }}</strong>
+    </article>
+    <article class="summary-card" [class.has-warning]="missingBarcodeProducts().length > 0">
+      <span>Barkodu eksik</span>
+      <strong>{{ missingBarcodeProducts().length }}</strong>
     </article>
   </section>
 
-  <section class="preview-shell preview-shell-hidden etiket-print-root" aria-hidden="true">
+  <section class="setup-section etiket-print-hidden" [formGroup]="filtersForm">
+    <article class="setup-card">
+      <header class="section-heading">
+        <div>
+          <span class="step-number">1</span>
+          <h3>Etiket ve ürün kaynağı</h3>
+        </div>
+        <p>Tarih aralığından ürün getirin veya listeye manuel ürün ekleyin.</p>
+      </header>
+
+      <div class="form-layout form-layout-source">
+        <label class="field">
+          <span>Etiket türü</span>
+          <select formControlName="labelType">
+            <option *ngFor="let tip of etiketTipleri" [value]="tip.etiketTipi">
+              {{ tip.etiketIsmi }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Başlangıç tarihi</span>
+          <input type="datetime-local" formControlName="startDate" step="1" />
+        </label>
+
+        <div class="button-group">
+          <button
+            type="button"
+            class="button button-primary"
+            [disabled]="!canLoadByDate()"
+            (click)="loadByDate()"
+          >
+            Tarihe Göre Getir
+          </button>
+          <button
+            type="button"
+            class="button button-secondary"
+            [disabled]="isBusy()"
+            (click)="openAddProductDialog()"
+          >
+            Manuel Ürün Ekle
+          </button>
+        </div>
+      </div>
+    </article>
+
+    <article class="setup-card">
+      <header class="section-heading">
+        <div>
+          <span class="step-number">2</span>
+          <h3>Belgeden ürün yükle</h3>
+        </div>
+        <p>Son belgelerden seçim yapın veya belge numarasıyla doğrudan arayın.</p>
+      </header>
+
+      <div class="form-layout form-layout-document">
+        <label class="field">
+          <span>Son 10 belge</span>
+          <select formControlName="documentId">
+            <option [ngValue]="null">Belge seçin</option>
+            <option *ngFor="let item of recentDocuments()" [ngValue]="item.documentId">
+              #{{ item.documentId }} · {{ formatDocumentDate(item.createDate) }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Belge numarası</span>
+          <input type="text" formControlName="documentSearch" placeholder="Örn. 10452" />
+        </label>
+
+        <div class="button-group">
+          <button
+            type="button"
+            class="button button-primary"
+            [disabled]="isBusy() || !filtersForm.controls.documentId.value"
+            (click)="loadSelectedDocument()"
+          >
+            Belgeyi Yükle
+          </button>
+          <button
+            type="button"
+            class="button button-secondary"
+            [disabled]="!canSearchDocument()"
+            (click)="searchDocument()"
+          >
+            Belgeyi Ara
+          </button>
+        </div>
+      </div>
+
+      <div class="sub-actions">
+        <button
+          type="button"
+          class="text-button"
+          [disabled]="isBusy() || !canLoadDocuments()"
+          (click)="refreshRecentDocuments()"
+        >
+          Belgeleri yenile
+        </button>
+        <button
+          type="button"
+          class="text-button text-button-danger"
+          [disabled]="isBusy() || !products().length"
+          (click)="clearList()"
+        >
+          Listeyi temizle
+        </button>
+      </div>
+    </article>
+  </section>
+
+  <article
+    class="feedback etiket-print-hidden"
+    *ngIf="feedback() as currentFeedback"
+    [class.feedback-success]="currentFeedback.tone === 'success'"
+    [class.feedback-error]="currentFeedback.tone === 'error'"
+    [class.feedback-info]="currentFeedback.tone === 'info'"
+  >
+    <strong>{{ currentFeedback.title }}</strong>
+    <span>{{ currentFeedback.message }}</span>
+  </article>
+
+  <section class="product-panel etiket-print-hidden">
+    <header class="product-panel-header">
+      <div>
+        <span class="page-kicker">Ürün listesi</span>
+        <h3>{{ visibleProducts().length }} ürün görüntüleniyor</h3>
+        <p *ngIf="visibleProducts().length">
+          {{ pageStartIndex() }}–{{ pageEndIndex() }} arası kayıtlar
+        </p>
+      </div>
+
+      <div class="selected-label">
+        <span>Seçili şablon</span>
+        <strong>{{ selectedEtiket()?.etiketIsmi || 'Etiket seçilmedi' }}</strong>
+      </div>
+    </header>
+
+    <div class="product-tools">
+      <label class="field search-field">
+        <span>Ürün ara</span>
+        <input
+          type="search"
+          [formControl]="filtersForm.controls.productSearch"
+          placeholder="Ürün adı, kodu, barkod veya koli bilgisi"
+        />
+      </label>
+
+      <div class="filter-tabs" role="group" aria-label="Ürün listesi filtreleri">
+        <button
+          type="button"
+          class="filter-tab"
+          [class.is-active]="productTableFilter() === 'all'"
+          (click)="setProductTableFilter('all')"
+        >
+          Tümü <strong>{{ products().length }}</strong>
+        </button>
+        <button
+          type="button"
+          class="filter-tab"
+          [class.is-active]="productTableFilter() === 'promotions'"
+          (click)="setProductTableFilter('promotions')"
+        >
+          Promosyonlu <strong>{{ promotionProducts().length }}</strong>
+        </button>
+        <button
+          type="button"
+          class="filter-tab"
+          [class.is-active]="productTableFilter() === 'price-changes'"
+          (click)="setProductTableFilter('price-changes')"
+        >
+          Fiyat değişen <strong>{{ priceChangeProducts().length }}</strong>
+        </button>
+        <button
+          type="button"
+          class="filter-tab"
+          [class.is-active]="productTableFilter() === 'missing-barcode'"
+          (click)="setProductTableFilter('missing-barcode')"
+        >
+          Barkod eksik <strong>{{ missingBarcodeProducts().length }}</strong>
+        </button>
+      </div>
+
+      <button
+        type="button"
+        class="text-button"
+        *ngIf="hasActiveTableTools()"
+        (click)="clearProductTableTools()"
+      >
+        Filtreyi temizle
+      </button>
+    </div>
+
+    <div class="table-container" *ngIf="visibleProducts().length; else emptyProducts">
+      <table>
+        <thead>
+          <tr>
+            <th>Ürün</th>
+            <th>Barkod</th>
+            <th>Fiyat</th>
+            <th>Durum</th>
+            <th>Koli</th>
+            <th>Değişiklik</th>
+            <th><span class="visually-hidden">İşlem</span></th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let product of paginatedProducts(); trackBy: trackByProduct">
+            <td data-label="Ürün">
+              <strong class="product-name">{{ product.productName || '-' }}</strong>
+              <span class="product-code">{{ product.productCode || '-' }}</span>
+            </td>
+            <td data-label="Barkod">{{ product.barcode || '-' }}</td>
+            <td data-label="Fiyat">
+              <strong>{{ product.price | number:'1.2-2' }} TL</strong>
+              <span class="old-price" *ngIf="product.oldPrice && product.oldPrice !== product.price">
+                Önceki: {{ product.oldPrice | number:'1.2-2' }} TL
+              </span>
+            </td>
+            <td data-label="Durum">
+              <span
+                class="table-badge"
+                [class.table-badge-success]="product.promotionPrice && product.promotionPrice > 0"
+              >
+                {{
+                  product.promotionPrice && product.promotionPrice > 0
+                    ? 'Promosyonlu'
+                    : 'Standart'
+                }}
+              </span>
+            </td>
+            <td data-label="Koli">{{ product.packageFactor || '-' }}</td>
+            <td data-label="Değişiklik">{{ product.priceChangeDate || '-' }}</td>
+            <td class="row-actions" data-label="İşlem">
+              <button type="button" class="remove-button" (click)="removeProduct(product)">
+                Kaldır
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </div>
+
+    <footer class="product-footer" *ngIf="visibleProducts().length">
+      <span>Sayfa {{ currentPageSafe() }} / {{ totalPages() }}</span>
+
+      <div class="pagination">
+        <label>
+          <span>Sayfa boyutu</span>
+          <select [value]="pageSize()" (change)="setPageSize(+$any($event.target).value)">
+            <option *ngFor="let option of readonlyPageSizeOptions" [value]="option">
+              {{ option }}
+            </option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          class="pagination-button"
+          [disabled]="!canGoToPreviousPage()"
+          (click)="goToPreviousPage()"
+        >
+          Önceki
+        </button>
+        <button
+          type="button"
+          class="pagination-button"
+          [disabled]="!canGoToNextPage()"
+          (click)="goToNextPage()"
+        >
+          Sonraki
+        </button>
+      </div>
+    </footer>
+
+    <ng-template #emptyProducts>
+      <article class="empty-state" *ngIf="products().length && hasActiveTableTools(); else emptyList">
+        <h3>Filtreye uygun ürün bulunamadı</h3>
+        <p>Arama metnini veya aktif filtreyi temizleyerek tekrar deneyin.</p>
+        <button type="button" class="button button-secondary" (click)="clearProductTableTools()">
+          Tüm ürünleri göster
+        </button>
+      </article>
+
+      <ng-template #emptyList>
+        <article class="empty-state">
+          <h3>Henüz ürün yüklenmedi</h3>
+          <p>Tarihe göre ürün getirin, bir belge yükleyin veya manuel ürün ekleyin.</p>
+        </article>
+      </ng-template>
+    </ng-template>
+  </section>
+
+  <section class="preview-shell-hidden etiket-print-root" aria-hidden="true">
     <div class="preview-stage">
       <ng-container *ngIf="previewMode() === 'labels'; else priceChangePreview">
         <ng-container *ngIf="selectedEtiket()?.kullanimaHazir && previewProducts().length">
@@ -378,6 +373,11 @@
             *ngIf="selectedEtiket()?.sunumTipi === 'a5_pricelabel_advantage'"
             [productsToPrint]="previewProducts()"
           ></app-a5-ikili-ayin-etiketi>
+
+          <app-a5-ikili-ayin-urunu-fiyat-etiketi
+            *ngIf="selectedEtiket()?.sunumTipi === 'a5_pricelabel_advantage_product'"
+            [productsToPrint]="previewProducts()"
+          ></app-a5-ikili-ayin-urunu-fiyat-etiketi>
         </ng-container>
       </ng-container>
 

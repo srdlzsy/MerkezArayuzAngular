@@ -1,0 +1,35 @@
+<section
+  class="a5-page"
+  *ngFor="let chunk of productsToPrintChunks; trackBy: trackByPage"
+>
+  <div class="etiket-grid">
+    <article
+      class="etiket"
+      *ngFor="let product of chunk; trackBy: trackByProduct"
+    >
+      <div class="etiket-baslik">AYIN ÜRÜNÜ</div>
+
+      <div class="etiket-icerik">
+        <div class="urun-adi">{{ product.productName }}</div>
+
+        <div class="fiyat" [ngClass]="getPriceSizeClass(product)">
+          <span class="fiyat-degeri">
+            {{ displayPrice(product) | number:'1.2-2' }}
+          </span>
+          <span class="para-birimi">TL</span>
+        </div>
+
+        <div class="urun-bilgisi">
+          <span>{{ product.productCode }}</span>
+          <span *ngIf="product.unitName">{{ product.unitName }}</span>
+        </div>
+      </div>
+    </article>
+
+    <article
+      class="etiket etiket-bos"
+      *ngIf="chunk.length === 1"
+      aria-hidden="true"
+    ></article>
+  </div>
+</section>

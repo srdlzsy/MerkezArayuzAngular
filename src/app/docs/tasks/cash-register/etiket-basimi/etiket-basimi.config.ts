@@ -8,6 +8,7 @@ export interface IEtiketTipiConfig {
     | 'a4_pricelabel'
     | 'a5_pricelabel'
     | 'a5_pricelabel_advantage'
+    | 'a5_pricelabel_advantage_product'
     | 'unsupported';
   veriKumesi?: 'tum-urunler' | 'promosyonlu-urunler';
   kullanimaHazir: boolean;
@@ -62,12 +63,12 @@ export const ETIKET_TIPLERI: readonly IEtiketTipiConfig[] = [
   },
   {
     etiketIsmi: 'A5 Ikili Ayin Urunu Fiyat Etiketi',
-    etiketTipi: 'a5_pricelabel_advantage',
-    ozelCss: '/assets/a5-advantage-print.css',
-    sunumTipi: 'a5_pricelabel_advantage',
-    veriKumesi: 'promosyonlu-urunler',
+    etiketTipi: 'a5_pricelabel_advantage_product',
+    ozelCss: '/assets/a5-advantage-print_product.css',
+    sunumTipi: 'a5_pricelabel_advantage_product',
+    veriKumesi: 'tum-urunler',
     kullanimaHazir: true,
-    aciklama: 'Promosyonlu urunler icin avantaj etiketi baskisi.'
+    aciklama: 'A5 ikili ayin urunu fiyat etiketi sabloni.'
   },
   {
     etiketIsmi: 'A5 Ikili Furpara Kart Etiketi',

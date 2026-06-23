@@ -1,0 +1,21 @@
+@page {
+  size: A5 landscape;
+  margin: 0;
+}
+
+@media print {
+  html,
+  body,
+  #printSection,
+  .etiket-print-root,
+  .preview-stage,
+  app-a5-ikili-ayin-urunu-fiyat-etiketi {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
+  }
+}
+
+* {
+  box-sizing: border-box;
+}

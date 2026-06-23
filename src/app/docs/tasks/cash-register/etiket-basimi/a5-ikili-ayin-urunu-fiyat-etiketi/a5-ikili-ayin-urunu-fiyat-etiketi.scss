@@ -1,0 +1,174 @@
+:host {
+  display: block;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: #000;
+  font-family: Arial, Helvetica, sans-serif;
+}
+
+.a5-page {
+  width: 210mm;
+  height: 148mm;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0;
+  padding: 6mm;
+  overflow: hidden;
+  background: #fff;
+  break-after: page;
+  page-break-after: always;
+}
+
+.a5-page:last-child {
+  break-after: auto;
+  page-break-after: auto;
+}
+
+.etiket-grid {
+  width: 100%;
+  height: 100%;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 6mm;
+  align-items: center;
+  justify-content: center;
+}
+
+.etiket {
+  width: 100%;
+  height: 100%;
+  min-width: 0;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  align-items: stretch;
+  justify-content: flex-start;
+  overflow: hidden;
+  border: 0.6mm solid #000;
+  background: #fff;
+  break-inside: avoid;
+  page-break-inside: avoid;
+}
+
+.etiket-baslik {
+  min-height: 22mm;
+  box-sizing: border-box;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 3mm;
+  background: #000;
+  color: #fff;
+  text-align: center;
+  font-size: 22pt;
+  font-weight: 900;
+  line-height: 1;
+  letter-spacing: 0.8mm;
+  -webkit-print-color-adjust: exact;
+  print-color-adjust: exact;
+}
+
+.etiket-icerik {
+  min-height: 0;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: 7mm;
+  box-sizing: border-box;
+  padding: 6mm;
+  text-align: center;
+}
+
+.urun-adi {
+  width: 100%;
+  max-height: 29mm;
+  overflow: hidden;
+  display: -webkit-box;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  overflow-wrap: anywhere;
+  font-size: 25pt;
+  font-weight: 900;
+  line-height: 1.05;
+  text-transform: uppercase;
+}
+
+.fiyat {
+  width: 100%;
+  min-width: 0;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  gap: 2.5mm;
+  font-weight: 900;
+  line-height: 0.85;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.fiyat-degeri {
+  min-width: 0;
+}
+
+.para-birimi {
+  padding-bottom: 1.5mm;
+  font-weight: 900;
+}
+
+.fiyat.price-large .fiyat-degeri {
+  font-size: 61pt;
+}
+
+.fiyat.price-large .para-birimi {
+  font-size: 25pt;
+}
+
+.fiyat.price-medium .fiyat-degeri {
+  font-size: 50pt;
+}
+
+.fiyat.price-medium .para-birimi {
+  font-size: 22pt;
+}
+
+.fiyat.price-small .fiyat-degeri {
+  font-size: 40pt;
+}
+
+.fiyat.price-small .para-birimi {
+  font-size: 19pt;
+}
+
+.urun-bilgisi {
+  width: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 3mm;
+  color: #222;
+  font-size: 10pt;
+  font-weight: 700;
+}
+
+.urun-bilgisi span + span::before {
+  content: '•';
+  margin-right: 3mm;
+}
+
+.etiket-bos {
+  border-color: transparent;
+  visibility: hidden;
+}
+
+@media print {
+  :host,
+  .a5-page {
+    background: #fff !important;
+  }
+}

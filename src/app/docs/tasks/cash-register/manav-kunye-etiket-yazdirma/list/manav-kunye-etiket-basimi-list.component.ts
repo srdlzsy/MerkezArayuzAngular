@@ -162,17 +162,24 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
     this.syncSelectionCount();
   }
 
-  protected printSelected(): void {
+  protected async printSelected(): Promise<void> {
+    if (this.printState() === 'preparing') {
+      return;
+    }
+
     if (!this.selectedCount()) {
       this.setFeedback('info', 'Yazdirilacak etiket secilmedi.');
       return;
     }
 
-    this.printComponent?.forceRenderBarcodes();
-    window.setTimeout(() => {
-      this.printComponent?.forceRenderBarcodes();
-      this.printWithStylesheet('/assets/manav-kunye-a5.css');
-    }, 420);
+    try {
+      await this.printWithStylesheet('/assets/manav-kunye-a5.css');
+    } catch {
+      this.setFeedback(
+        'error',
+        'Baski hazirlanamadi. Lutfen tarayicinin yazdirma iznini ve baglantinizi kontrol edip tekrar deneyin.'
+      );
+    }
   }
 
   protected readonly trackByTag = (_index: number, tag: IManavKunyeTag): string =>
@@ -184,7 +191,7 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
 
   private syncSelectionCount(): void {
     this.selectedCount.set(this.selection.selected.length);
-    this.selectedTags.set([...this.selection.selected]);
+    this.selectedTags.set(this.tags().filter((tag) => this.selection.isSelected(tag)));
   }
 
   private normalizeSearch(value: unknown): string {
@@ -193,7 +200,7 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
       .trim();
   }
 
-  private printWithStylesheet(stylesheetHref: string): void {
+  private async printWithStylesheet(stylesheetHref: string): Promise<void> {
     this.printState.set('preparing');
 
     const existingLink = document.getElementById('kunye-print-style');
@@ -239,10 +246,21 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
     `;
 
     const beforePrint = () => {
-      this.printComponent?.forceRenderBarcodes();
+      this.printComponent?.renderBarcodesNow();
     };
 
+    let cleanedUp = false;
+    let cleanupTimer: number | undefined;
+
     const cleanup = () => {
+      if (cleanedUp) {
+        return;
+      }
+
+      cleanedUp = true;
+      if (cleanupTimer !== undefined) {
+        window.clearTimeout(cleanupTimer);
+      }
       link.remove();
       shellStyle.remove();
       this.printState.set('idle');
@@ -250,14 +268,62 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
       window.removeEventListener('afterprint', cleanup);
     };
 
-    document.head.appendChild(link);
     document.head.appendChild(shellStyle);
     window.addEventListener('beforeprint', beforePrint);
     window.addEventListener('afterprint', cleanup);
 
-    window.setTimeout(() => {
-      this.printComponent?.forceRenderBarcodes();
+    try {
+      await this.appendStylesheet(link);
+      await this.printComponent?.prepareForPrint();
+      await this.waitForFonts();
+      await this.waitForNextPaint();
+
+      cleanupTimer = window.setTimeout(cleanup, 60_000);
       window.print();
-    }, 420);
+    } catch (error) {
+      cleanup();
+      throw error;
+    }
+  }
+
+  private appendStylesheet(link: HTMLLinkElement): Promise<void> {
+    return new Promise<void>((resolve, reject) => {
+      const timeoutId = window.setTimeout(() => {
+        reject(new Error(`Baski stili zamaninda yuklenemedi: ${link.href}`));
+      }, 5_000);
+
+      link.addEventListener(
+        'load',
+        () => {
+          window.clearTimeout(timeoutId);
+          resolve();
+        },
+        { once: true }
+      );
+      link.addEventListener(
+        'error',
+        () => {
+          window.clearTimeout(timeoutId);
+          reject(new Error(`Baski stili yuklenemedi: ${link.href}`));
+        },
+        { once: true }
+      );
+
+      document.head.appendChild(link);
+    });
+  }
+
+  private async waitForFonts(): Promise<void> {
+    if ('fonts' in document) {
+      await document.fonts.ready;
+    }
+  }
+
+  private waitForNextPaint(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
   }
 }

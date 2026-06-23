@@ -325,10 +325,11 @@
 }
 
 .kunye-print-root {
-  position: absolute;
-  left: -10000px;
+  position: fixed;
   top: 0;
+  left: -10000px;
   visibility: hidden;
+  pointer-events: none;
 }
 
 @media (max-width: 1180px) {

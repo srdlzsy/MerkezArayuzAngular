@@ -1,89 +1,76 @@
-@media print {
-  @page {
-    size: A4 portrait;
-    margin: 10mm;
-  }
-
-  html,
-  body {
-    margin: 0 !important;
-    padding: 0 !important;
-    width: 210mm;
-    height: 297mm;
-    background: #fff !important;
-    -webkit-print-color-adjust: exact !important;
-    print-color-adjust: exact !important;
-  }
-
-  .manav-kunye-screen {
-    display: none !important;
-  }
-
-  #printSection {
-    display: block !important;
-    position: fixed !important;
-    top: 4mm !important;
-    left: 4mm !important;
-    width: 210mm;
-    height: 297mm;
-    margin: 0 !important;
-    padding: 0 !important;
-    background: #fff !important;
-    overflow: visible !important;
-  }
-
-  .manav-a5-page {
-    transform: scale(1.25);
-    transform-origin: top left;
-  }
-
-  .manav-a5-page:nth-child(even) {
-    transform: translateY(45mm) scale(1.25);
-  }
+@page {
+  size: A4 portrait;
+  margin: 10mm;
 }
 
+html,
 body {
+  margin: 0 !important;
+  padding: 0 !important;
+  background: #fff !important;
+  -webkit-print-color-adjust: exact !important;
+  print-color-adjust: exact !important;
+}
+
+#printSection {
+  width: 210mm;
+  margin: 0;
+  padding: 0;
+  background: #fff;
+  color: #000;
   font-family: 'Times New Roman', Times, serif;
+}
+
+.manav-a4-sheet {
+  width: 210mm;
+  height: 297mm;
+  margin: 0;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+  background: #fff;
+  break-after: page;
+  page-break-after: always;
+}
+
+.manav-a4-sheet:last-child {
+  break-after: auto;
+  page-break-after: auto;
 }
 
 .manav-a5-page {
   width: 210mm;
   height: 148.5mm;
+  min-height: 148.5mm;
   box-sizing: border-box;
-  border: 0.7mm solid #345c91;
+  display: grid;
+  grid-template-columns: 110mm 90mm;
+  justify-content: center;
+  align-items: center;
+  flex: 0 0 148.5mm;
+  overflow: hidden;
+  border: 0.7mm solid #000;
   background: #fff;
   color: #000;
-  padding: 3mm 2mm 0mm 0mm;
-  display: flex;
-  flex-direction: row;
-  gap: 6mm;
-  margin: 0;
-  page-break-after: auto;
-  break-after: auto;
-  overflow: hidden;
+  break-inside: avoid;
+  page-break-inside: avoid;
 }
 
-.manav-a5-page:nth-child(2n) {
-  page-break-after: always;
-  break-after: page;
-}
-
-.manav-a5-page.last-page {
-  page-break-after: auto;
-  break-after: auto;
+.manav-a5-page + .manav-a5-page {
+  border-top-width: 0;
 }
 
 .price-side {
-  width: 112mm;
-  height: 100%;
+  width: 110mm;
+  height: 140.5mm;
   box-sizing: border-box;
-  font-family: Arial, Helvetica, sans-serif;
+  padding: 11mm 0 7mm;
   display: flex;
   flex-direction: column;
   justify-content: center;
   gap: 11mm;
-  padding-top: 11mm;
-  padding-bottom: 7mm;
+  font-family: Arial, Helvetica, sans-serif;
 }
 
 .product-name {
@@ -93,7 +80,7 @@ body {
   font-weight: 700;
   line-height: 1.25;
   letter-spacing: 2mm;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .product-unit {
@@ -101,74 +88,105 @@ body {
   text-align: center;
   font-size: 29pt;
   font-weight: 400;
-  letter-spacing: 2mm;
   line-height: 1.1;
+  letter-spacing: 2mm;
 }
 
 .price-area {
   width: 100%;
-  border-bottom: none;
-  text-align: center;
   padding-bottom: 2mm;
+  text-align: center;
 }
 
 .big-price {
-  font-size: 68pt;
   font-weight: 900;
   line-height: 0.95;
-  letter-spacing: 0.2mm;
+  letter-spacing: 0;
   white-space: nowrap;
+  font-variant-numeric: tabular-nums;
 }
 
 .big-price span {
-  font-size: 38pt;
-  font-weight: 900;
   margin-left: 0.5mm;
+  font-weight: 900;
+}
+
+.big-price.price-size-xl {
+  font-size: 68pt;
+}
+
+.big-price.price-size-xl span {
+  font-size: 38pt;
+}
+
+.big-price.price-size-lg {
+  font-size: 58pt;
+}
+
+.big-price.price-size-lg span {
+  font-size: 32pt;
+}
+
+.big-price.price-size-md {
+  font-size: 48pt;
+}
+
+.big-price.price-size-md span {
+  font-size: 27pt;
+}
+
+.big-price.price-size-sm {
+  font-size: 39pt;
+}
+
+.big-price.price-size-sm span {
+  font-size: 22pt;
 }
 
 .kunye-card {
-  width: 89mm;
-  height: 100%;
+  width: 90mm;
+  height: 140.5mm;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
   border: 0.35mm solid #222;
   background: #fff;
   color: #111;
   font-family: 'Times New Roman', Times, serif;
-  display: flex;
-  flex-direction: column;
-  overflow: hidden;
 }
 
 .kunye-title {
   height: 11mm;
   box-sizing: border-box;
-  padding: 2.6mm 2mm 1mm 2mm;
+  padding: 2.6mm 2mm 1mm;
+  overflow: hidden;
   text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
   font-size: 10.4pt;
   font-weight: 900;
   line-height: 1.1;
-  text-transform: uppercase;
-  white-space: nowrap;
-  overflow: hidden;
-  text-overflow: ellipsis;
 }
 
 .kunye-type {
   height: 10mm;
-  margin: 0 2.5mm 3mm 2.5mm;
+  margin: 0 2.5mm 3mm;
   box-sizing: border-box;
-  background: #555;
-  color: #fff;
   display: flex;
   align-items: center;
   justify-content: center;
+  overflow: hidden;
+  background: #555;
+  color: #fff;
   text-align: center;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
   font-size: 10pt;
   font-weight: 900;
   letter-spacing: 0.2mm;
-  text-transform: uppercase;
-  -webkit-print-color-adjust: exact;
-  print-color-adjust: exact;
 }
 
 .qr-cost-area {
@@ -176,32 +194,27 @@ body {
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
-  padding: 3.6mm 2.5mm 2.5mm 2.5mm;
+  padding: 3.6mm 2.5mm 2.5mm;
   border-bottom: 0.35mm solid #111;
 }
 
 .qr-area {
   width: 31mm;
   flex: 0 0 31mm;
-  text-align: center;
   box-sizing: border-box;
   padding-top: 2mm;
+  text-align: center;
+}
+
+.qr-box,
+.qr-box svg {
+  width: 24mm;
+  height: 24mm;
+  display: block;
 }
 
 .qr-box {
-  width: 24mm;
-  height: 24mm;
   margin: 0 auto;
-}
-
-.qr-box ngx-qrcode,
-.qr-box ngx-qrcode canvas,
-.qr-box ngx-qrcode img,
-.qr-box ngx-qrcode svg,
-.qr-box svg {
-  width: 24mm !important;
-  height: 24mm !important;
-  display: block !important;
 }
 
 .kunye-no {
@@ -209,32 +222,36 @@ body {
   font-size: 7.5pt;
   font-weight: 900;
   line-height: 1.05;
-  word-break: break-all;
+  overflow-wrap: anywhere;
 }
 
 .cost-area {
-  flex: 1 1 auto;
   min-width: 0;
-  padding-left: 3mm;
+  flex: 1 1 auto;
   box-sizing: border-box;
+  padding-left: 3mm;
 }
 
 .cost-title {
+  margin-bottom: 2mm;
   text-align: center;
   font-size: 7.3pt;
   font-weight: 900;
-  margin-bottom: 2mm;
   letter-spacing: 0.1mm;
 }
 
-.cost-row {
+.cost-row,
+.cost-total {
   display: grid;
-  grid-template-columns: 1fr auto;
+  grid-template-columns: minmax(0, 1fr) auto;
   column-gap: 1mm;
-  font-size: 7pt;
-  font-weight: 900;
-  line-height: 1.43;
   white-space: nowrap;
+  font-weight: 900;
+}
+
+.cost-row {
+  font-size: 7pt;
+  line-height: 1.43;
 }
 
 .cost-row span:first-child {
@@ -242,63 +259,71 @@ body {
   text-overflow: ellipsis;
 }
 
-.cost-row span:last-child {
+.cost-row span:last-child,
+.cost-total span:last-child {
   text-align: right;
-  white-space: nowrap;
 }
 
 .cost-line {
+  margin: 2mm 0 1.4mm;
   border-top: 0.5mm solid #000;
-  margin: 2mm 0 1.4mm 0;
 }
 
 .cost-total {
-  display: grid;
-  grid-template-columns: 1fr auto;
-  column-gap: 1mm;
   font-size: 7.2pt;
-  font-weight: 900;
-  white-space: nowrap;
 }
 
 .info-row {
-  display: flex;
-  flex-direction: row;
   height: 10.5mm;
   min-height: 10.5mm;
-  border-bottom: 0.35mm solid #111;
   box-sizing: border-box;
+  display: flex;
+  flex-direction: row;
+  border-bottom: 0.35mm solid #111;
   font-size: 7.9pt;
   line-height: 1.12;
 }
 
-.info-label {
-  width: 36%;
+.info-label,
+.info-value {
   box-sizing: border-box;
-  padding: 1.7mm 1mm 1.4mm 2.5mm;
-  font-weight: 900;
-  text-transform: uppercase;
   display: flex;
   align-items: center;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.info-label {
+  width: 36%;
+  padding: 1.7mm 1mm 1.4mm 2.5mm;
 }
 
 .info-value {
   width: 64%;
-  box-sizing: border-box;
   padding: 1.7mm 1mm 1.4mm 1mm;
-  font-weight: 900;
-  text-transform: uppercase;
-  display: flex;
-  align-items: center;
-  word-break: break-word;
+  overflow-wrap: anywhere;
 }
 
 .footer-note {
   margin-top: auto;
+  box-sizing: border-box;
+  padding: 1.3mm 2mm 1.5mm;
   text-align: center;
   font-size: 6.5pt;
   font-weight: 700;
   line-height: 1.12;
-  padding: 1.3mm 2mm 1.5mm 2mm;
-  box-sizing: border-box;
+}
+
+@media print {
+  #printSection {
+    display: block !important;
+    position: static !important;
+    width: 210mm !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    overflow: visible !important;
+    visibility: visible !important;
+    pointer-events: auto !important;
+  }
 }
