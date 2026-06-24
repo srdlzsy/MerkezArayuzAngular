@@ -233,7 +233,7 @@ export class TaslakService extends BaseApiService {
   }
 
   private getRangeToken() {
-    return getDefaultDateRange(180);
+    return getDefaultDateRange(30);
   }
 
   private matchesText(left: string | null | undefined, right: string | null | undefined): boolean {
