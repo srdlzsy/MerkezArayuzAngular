@@ -7,11 +7,12 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
       id: 'mikro-evrak-duzenleme',
       title: 'Mikro Evrak Duzenleme',
       subtitle:
-        'Mikro stok kartlarini, depo bazli stok ayarlarini, stok ve cari hareket evraklarini kontrollu olarak duzeltir.',
+        'Mikro stok kartlarini, depo bazli stok ayarlarini, satis fiyatlarini, stok ve cari hareket evraklarini kontrollu olarak duzeltir.',
       baseRouteOrFile: '/api/duzeltme-islemleri/mikro-evrak-duzenleme',
       highlights: [
         'Stok karti arama, detay ve alan bazli guncelleme',
         'Global karti etkilemeden depo bazli satis, siparis ve kabul bloklari',
+        'Depo bazli stok satis fiyatlarini listeleme ve upsert etme',
         'Seri-sira ile stok ve cari hareket evraki bulma',
         'Stok hareketinde sevk deposu duzenleme',
         'movementGuid korumali satir guncelleme',
@@ -51,6 +52,17 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
               path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar/{warehouseNo}',
               description: 'Yalniz secili deponun stok karti blok/pasif/iskonto ayarlarini gunceller',
               payload: 'StockCardWarehousePatchHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari',
+              description: 'Stok kartinin aktif depo satis fiyatlarini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari/{warehouseNo}',
+              description: 'Secili depoda stok satis fiyatini olusturur veya gunceller',
+              payload: 'StockSalesPriceUpsertHttpRequest'
             },
             {
               method: 'GET',

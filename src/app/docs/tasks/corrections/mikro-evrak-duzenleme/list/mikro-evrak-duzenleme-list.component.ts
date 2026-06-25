@@ -16,6 +16,9 @@ import type {
   StockCardWarehousePatchHttpRequest,
   StockCardWarehouseSettingsDto,
   StockCardWarehouseUpdateResponse,
+  StockSalesPriceDto,
+  StockSalesPriceUpsertHttpRequest,
+  StockSalesPriceUpsertResponse,
   StockMovementDocumentDto,
   StockMovementDocumentLineDto,
   StockMovementDocumentLookupHttpRequest,
@@ -35,6 +38,8 @@ type BusyAction =
   | 'stock-search'
   | 'stock-detail'
   | 'stock-save'
+  | 'sales-price-load'
+  | 'sales-price-save'
   | 'movement-load'
   | 'movement-save'
   | 'customer-load'
@@ -96,6 +101,15 @@ const STOCK_CARD_WAREHOUSE_FIELDS: readonly FieldDefinition[] = [
   { key: 'receivingStopped', label: 'Mal Kabul Durduruldu' },
   { key: 'isPassive', label: 'Pasif' },
   { key: 'discountDisabled', label: 'İskonto Kapalı' }
+];
+
+const STOCK_SALES_PRICE_FIELDS: readonly FieldDefinition[] = [
+  { key: 'priceListNo', label: 'Fiyat Liste No', type: 'number' },
+  { key: 'paymentPlanNo', label: 'Odeme Plani', type: 'number' },
+  { key: 'unitPointer', label: 'Birim Ptr', type: 'number' },
+  { key: 'price', label: 'Fiyat', type: 'number' },
+  { key: 'currencyType', label: 'Doviz Tipi', type: 'number' },
+  { key: 'changeReason', label: 'Degisim Nedeni', type: 'number' }
 ];
 
 const STOCK_HEADER_FIELDS: readonly FieldDefinition[] = [
@@ -205,6 +219,7 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockCardNumberFields = STOCK_CARD_NUMBER_FIELDS;
   protected readonly stockCardBooleanFields = STOCK_CARD_BOOLEAN_FIELDS;
   protected readonly stockCardWarehouseFields = STOCK_CARD_WAREHOUSE_FIELDS;
+  protected readonly stockSalesPriceFields = STOCK_SALES_PRICE_FIELDS;
   protected readonly stockHeaderFields = STOCK_HEADER_FIELDS;
   protected readonly stockLineFields = STOCK_LINE_FIELDS;
   protected readonly customerHeaderFields = CUSTOMER_HEADER_FIELDS;
@@ -224,6 +239,9 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly selectedWarehouseSetting = signal<StockCardWarehouseSettingsDto | null>(null);
   protected readonly warehouseSettingDraft = signal<StockCardWarehouseSettingsDto | null>(null);
   protected readonly warehouseBusyAction = signal<'load' | 'save' | null>(null);
+  protected readonly stockSalesPrices = signal<StockSalesPriceDto[]>([]);
+  protected readonly selectedSalesPrice = signal<StockSalesPriceDto | null>(null);
+  protected readonly salesPriceDraft = signal<StockSalesPriceDto | null>(null);
   protected readonly stockMovement = signal<StockMovementDocumentDto | null>(null);
   protected readonly stockMovementDraft = signal<StockMovementDocumentDto | null>(null);
   protected readonly customerMovement = signal<CustomerMovementDocumentDto | null>(null);
@@ -235,6 +253,16 @@ export class MikroEvrakDuzenlemeListComponent {
     take: 50
   };
   protected warehouseFilterNo: number | null = null;
+  protected salesPriceFilterWarehouseNo: number | null = null;
+  protected newSalesPrice = {
+    warehouseNo: this.authService.currentUser()?.depoNo ?? null,
+    priceListNo: 1,
+    paymentPlanNo: 0,
+    unitPointer: 1,
+    price: null as number | null,
+    currencyType: 0,
+    changeReason: 4
+  };
   protected stockLookup: StockMovementDocumentLookupHttpRequest = {
     documentSerie: '',
     documentOrderNo: 0,
@@ -284,6 +312,9 @@ export class MikroEvrakDuzenlemeListComponent {
       this.warehouseSettingDraft(),
       STOCK_CARD_WAREHOUSE_FIELDS
     )
+  );
+  protected readonly changedSalesPriceFieldCount = computed(() =>
+    this.countChanges(this.selectedSalesPrice(), this.salesPriceDraft(), STOCK_SALES_PRICE_FIELDS)
   );
   protected readonly changedCustomerMovementCount = computed(() =>
     this.countDocumentChanges(
@@ -336,6 +367,8 @@ export class MikroEvrakDuzenlemeListComponent {
     this.feedback.set(null);
     this.stockCardWarehouseSettings.set([]);
     this.selectWarehouseSetting(null);
+    this.stockSalesPrices.set([]);
+    this.selectSalesPrice(null);
     this.service
       .getStockCard(stockCode)
       .pipe(
@@ -346,6 +379,7 @@ export class MikroEvrakDuzenlemeListComponent {
         next: (card: StockCardDetailDto) => {
           this.applyStockCard(card);
           this.loadStockCardWarehouseSettings();
+          this.loadStockSalesPrices();
         },
         error: (error: unknown) => this.handleError(error, 'Stok kartı detayı getirilemedi.')
       });
@@ -621,6 +655,94 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
+  protected loadStockSalesPrices(): void {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    if (!stockCode || !this.canDetail()) {
+      return;
+    }
+
+    const warehouseNo = this.toPositiveNumber(this.salesPriceFilterWarehouseNo);
+
+    this.busyAction.set('sales-price-load');
+    this.service
+      .getStockSalesPrices(stockCode, warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (rows: StockSalesPriceDto[]) => {
+          this.stockSalesPrices.set(rows ?? []);
+          const selectedGuid = this.selectedSalesPrice()?.priceGuid;
+          const selected =
+            rows?.find((row) => row.priceGuid === selectedGuid) ?? rows?.[0] ?? null;
+          this.selectSalesPrice(selected);
+        },
+        error: (error: unknown) => {
+          this.stockSalesPrices.set([]);
+          this.selectSalesPrice(null);
+          this.handleError(error, 'Stok satis fiyatlari getirilemedi.');
+        }
+      });
+  }
+
+  protected selectSalesPrice(price: StockSalesPriceDto | null): void {
+    this.selectedSalesPrice.set(price ? this.clone(price) : null);
+    this.salesPriceDraft.set(price ? this.clone(price) : null);
+  }
+
+  protected resetSalesPriceDraft(): void {
+    const original = this.selectedSalesPrice();
+    this.salesPriceDraft.set(original ? this.clone(original) : null);
+  }
+
+  protected saveSalesPrice(): void {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    const original = this.selectedSalesPrice();
+    const draft = this.salesPriceDraft();
+
+    if (!stockCode || !original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    if (!this.changedSalesPriceFieldCount()) {
+      this.setInfo('Degisiklik yok', 'Kaydedilecek satis fiyati degisikligi bulunmuyor.');
+      return;
+    }
+
+    const request = this.buildSalesPriceRequest(draft);
+    if (!this.validateSalesPriceRequest(original.warehouseNo, request)) {
+      return;
+    }
+
+    this.upsertSalesPrice(stockCode, original.warehouseNo, request);
+  }
+
+  protected saveNewSalesPrice(): void {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    const warehouseNo = this.toPositiveNumber(this.newSalesPrice.warehouseNo);
+
+    if (!stockCode || !warehouseNo || !this.canUpdate()) {
+      this.setInfo('Depo no gerekli', 'Fiyat olusturmak veya guncellemek icin depo no girin.');
+      return;
+    }
+
+    const request: StockSalesPriceUpsertHttpRequest = {
+      priceListNo: this.toPositiveNumber(this.newSalesPrice.priceListNo) ?? 1,
+      paymentPlanNo: this.toNonNegativeNumber(this.newSalesPrice.paymentPlanNo) ?? 0,
+      unitPointer: this.toPositiveNumber(this.newSalesPrice.unitPointer) ?? 1,
+      price: Number(this.newSalesPrice.price),
+      currencyType: this.toNonNegativeNumber(this.newSalesPrice.currencyType) ?? 0,
+      changeReason: this.toNonNegativeNumber(this.newSalesPrice.changeReason) ?? 4
+    };
+
+    if (!this.validateSalesPriceRequest(warehouseNo, request)) {
+      return;
+    }
+
+    this.upsertSalesPrice(stockCode, warehouseNo, request);
+  }
+
   protected resetStockMovement(): void {
     const original = this.stockMovement();
     this.stockMovementDraft.set(original ? this.prepareStockMovement(original) : null);
@@ -638,8 +760,16 @@ export class MikroEvrakDuzenlemeListComponent {
   protected setField(target: object, key: string, value: unknown): void {
     (target as EditableRecord)[key] = value;
     this.stockCardDraft.update((draft) => (draft ? this.clone(draft) : null));
+    this.salesPriceDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.stockMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.customerMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
+  }
+
+  protected sameSalesPriceForTemplate(
+    left: StockSalesPriceDto | null,
+    right: StockSalesPriceDto | null
+  ): boolean {
+    return !!left && !!right && this.sameSalesPrice(left, right);
   }
 
   protected trackByStockCode = (_index: number, row: StockCardListItemDto): string =>
@@ -648,11 +778,101 @@ export class MikroEvrakDuzenlemeListComponent {
     _index: number,
     row: StockCardWarehouseSettingsDto
   ): number => row.warehouseNo;
+  protected trackBySalesPrice = (_index: number, row: StockSalesPriceDto): string =>
+    row.priceGuid ?? `${row.stockCode}-${row.priceListNo}-${row.warehouseNo}-${row.unitPointer}-${row.paymentPlanNo}`;
   protected trackByGuid = (
     _index: number,
     row: StockMovementDocumentLineDto | CustomerMovementDocumentLineDto
   ): string => row.movementGuid;
   protected trackByField = (_index: number, field: FieldDefinition): string => field.key;
+
+  private upsertSalesPrice(
+    stockCode: string,
+    warehouseNo: number,
+    request: StockSalesPriceUpsertHttpRequest
+  ): void {
+    this.busyAction.set('sales-price-save');
+    this.feedback.set(null);
+    this.service
+      .upsertStockSalesPrice(stockCode, warehouseNo, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: StockSalesPriceUpsertResponse) => {
+          const updated = response.salesPrice;
+          this.stockSalesPrices.update((rows) => {
+            const index = rows.findIndex((row) => this.sameSalesPrice(row, updated));
+            if (index < 0) {
+              return [updated, ...rows];
+            }
+
+            return rows.map((row, rowIndex) => (rowIndex === index ? updated : row));
+          });
+          this.selectSalesPrice(updated);
+          this.feedback.set({
+            tone: 'success',
+            title: response.created ? 'Satis fiyati olusturuldu' : 'Satis fiyati guncellendi',
+            message:
+              response.previousPrice == null
+                ? `${updated.warehouseNo} deposunda fiyat ${updated.price} olarak kaydedildi.`
+                : `${updated.warehouseNo} deposunda fiyat ${response.previousPrice} -> ${updated.price} olarak guncellendi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Stok satis fiyati kaydedilemedi.')
+      });
+  }
+
+  private buildSalesPriceRequest(price: StockSalesPriceDto): StockSalesPriceUpsertHttpRequest {
+    return {
+      priceListNo: this.toPositiveNumber(price.priceListNo) ?? 1,
+      paymentPlanNo: this.toNonNegativeNumber(price.paymentPlanNo) ?? 0,
+      unitPointer: this.toPositiveNumber(price.unitPointer) ?? 1,
+      price: Number(price.price),
+      currencyType: this.toNonNegativeNumber(price.currencyType) ?? 0,
+      changeReason: this.toNonNegativeNumber(price.changeReason) ?? 4
+    };
+  }
+
+  private validateSalesPriceRequest(
+    warehouseNo: number,
+    request: StockSalesPriceUpsertHttpRequest
+  ): boolean {
+    if (!Number.isFinite(warehouseNo) || warehouseNo <= 0) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Depo no gecersiz',
+        message: 'Satis fiyati icin sifirdan buyuk bir depo no girin.'
+      });
+      return false;
+    }
+
+    if (!Number.isFinite(request.price) || request.price <= 0) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Fiyat gecersiz',
+        message: 'Satis fiyati sifirdan buyuk olmalidir.'
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  private sameSalesPrice(left: StockSalesPriceDto, right: StockSalesPriceDto): boolean {
+    if (left.priceGuid && right.priceGuid) {
+      return left.priceGuid === right.priceGuid;
+    }
+
+    return (
+      left.stockCode === right.stockCode &&
+      left.priceListNo === right.priceListNo &&
+      left.warehouseNo === right.warehouseNo &&
+      left.unitPointer === right.unitPointer &&
+      left.paymentPlanNo === right.paymentPlanNo
+    );
+  }
 
   private applyStockCard(card: StockCardDetailDto): void {
     this.selectedStockCard.set(this.clone(card));
@@ -847,6 +1067,16 @@ export class MikroEvrakDuzenlemeListComponent {
 
   private toDateInput(value: string): string {
     return value?.slice(0, 10) ?? '';
+  }
+
+  private toPositiveNumber(value: unknown): number | undefined {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : undefined;
+  }
+
+  private toNonNegativeNumber(value: unknown): number | undefined {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : undefined;
   }
 
   private clone<T>(value: T): T {

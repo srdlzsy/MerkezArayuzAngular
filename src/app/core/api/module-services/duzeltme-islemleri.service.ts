@@ -12,6 +12,9 @@ import type {
   StockCardWarehousePatchHttpRequest,
   StockCardWarehouseSettingsDto,
   StockCardWarehouseUpdateResponse,
+  StockSalesPriceDto,
+  StockSalesPriceUpsertHttpRequest,
+  StockSalesPriceUpsertResponse,
   StockMovementDocumentDto,
   StockMovementDocumentLookupHttpRequest,
   StockMovementDocumentUpdateResponse,
@@ -64,6 +67,27 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   ): Observable<StockCardWarehouseUpdateResponse> {
     return this.put<StockCardWarehouseUpdateResponse, StockCardWarehousePatchHttpRequest>(
       `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/depolar/${warehouseNo}`,
+      request
+    );
+  }
+
+  getStockSalesPrices(
+    stockCode: string,
+    warehouseNo?: number | null
+  ): Observable<StockSalesPriceDto[]> {
+    return this.getWithQuery<StockSalesPriceDto[]>(
+      `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/satis-fiyatlari`,
+      { warehouseNo: warehouseNo ?? undefined }
+    );
+  }
+
+  upsertStockSalesPrice(
+    stockCode: string,
+    warehouseNo: number,
+    request: StockSalesPriceUpsertHttpRequest
+  ): Observable<StockSalesPriceUpsertResponse> {
+    return this.put<StockSalesPriceUpsertResponse, StockSalesPriceUpsertHttpRequest>(
+      `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/satis-fiyatlari/${warehouseNo}`,
       request
     );
   }

@@ -301,6 +301,200 @@
             </div>
           </div>
 
+          <div class="form-section sales-price-section">
+            <div class="warehouse-section-head">
+              <div>
+                <p class="panel-kicker">STOK_SATIS_FIYAT_LISTELERI</p>
+                <h4>Depo bazli satis fiyatlari</h4>
+                <p class="section-note">
+                  Fiyat kaydi stok kodu, fiyat liste no, depo no, birim pointer ve odeme plani
+                  ile bulunur; yoksa backend ayni anahtarla yeni kayit olusturur.
+                </p>
+              </div>
+              <div class="warehouse-filter">
+                <label class="field">
+                  <span>Depo No</span>
+                  <input
+                    type="number"
+                    min="1"
+                    [(ngModel)]="salesPriceFilterWarehouseNo"
+                    [ngModelOptions]="{ standalone: true }"
+                    placeholder="Tumu"
+                    (keyup.enter)="loadStockSalesPrices()"
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="secondary-action"
+                  [disabled]="isBusy('sales-price-load')"
+                  (click)="loadStockSalesPrices()"
+                >
+                  {{ isBusy('sales-price-load') ? 'Yukleniyor...' : 'Fiyatlari Getir' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="sales-price-layout">
+              <div class="sales-price-list">
+                <button
+                  *ngFor="let price of stockSalesPrices(); trackBy: trackBySalesPrice"
+                  type="button"
+                  class="sales-price-row"
+                  [class.is-selected]="sameSalesPriceForTemplate(selectedSalesPrice(), price)"
+                  (click)="selectSalesPrice(price)"
+                >
+                  <span class="warehouse-code">{{ price.warehouseNo }}</span>
+                  <strong>{{ price.price | number: '1.2-2' }} {{ price.unitName || '' }}</strong>
+                  <small>{{ price.warehouseName || '-' }} / Liste {{ price.priceListNo }}</small>
+                  <span class="override-badge">{{ price.currencyType }}</span>
+                </button>
+
+                <div
+                  class="warehouse-empty"
+                  *ngIf="!stockSalesPrices().length && !isBusy('sales-price-load')"
+                >
+                  Aktif satis fiyati bulunamadi.
+                </div>
+              </div>
+
+              <div class="sales-price-editor">
+                <div *ngIf="salesPriceDraft() as priceDraft" class="sales-price-edit-card">
+                  <div class="warehouse-editor-head">
+                    <div>
+                      <strong>{{ priceDraft.warehouseNo }} - {{ priceDraft.warehouseName }}</strong>
+                      <small>
+                        Liste {{ priceDraft.priceListNo }} / Birim {{ priceDraft.unitPointer }} /
+                        Odeme {{ priceDraft.paymentPlanNo }}
+                      </small>
+                    </div>
+                    <span class="change-badge">{{ changedSalesPriceFieldCount() }} degisiklik</span>
+                  </div>
+
+                  <div class="form-grid">
+                    <label
+                      *ngFor="let field of stockSalesPriceFields; trackBy: trackByField"
+                      class="field"
+                    >
+                      <span>{{ field.label }}</span>
+                      <input
+                        type="number"
+                        [ngModel]="fieldValue(priceDraft, field.key)"
+                        [ngModelOptions]="{ standalone: true }"
+                        (ngModelChange)="setField(priceDraft, field.key, $event)"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="warehouse-actions">
+                    <button
+                      type="button"
+                      class="secondary-action"
+                      [disabled]="isBusy('sales-price-save')"
+                      (click)="resetSalesPriceDraft()"
+                    >
+                      Geri Al
+                    </button>
+                    <button
+                      type="button"
+                      class="primary-action"
+                      [disabled]="!canUpdate() || !changedSalesPriceFieldCount() || isBusy('sales-price-save')"
+                      (click)="saveSalesPrice()"
+                    >
+                      {{ isBusy('sales-price-save') ? 'Kaydediliyor...' : 'Secili Fiyati Kaydet' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="sales-price-edit-card">
+                  <div class="warehouse-editor-head">
+                    <div>
+                      <strong>Yeni fiyat / upsert</strong>
+                      <small>Minimum olarak depo no ve sifirdan buyuk fiyat girin.</small>
+                    </div>
+                  </div>
+
+                  <div class="form-grid">
+                    <label class="field">
+                      <span>Depo No</span>
+                      <input
+                        type="number"
+                        min="1"
+                        [(ngModel)]="newSalesPrice.warehouseNo"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Fiyat Liste No</span>
+                      <input
+                        type="number"
+                        min="1"
+                        [(ngModel)]="newSalesPrice.priceListNo"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Odeme Plani</span>
+                      <input
+                        type="number"
+                        min="0"
+                        [(ngModel)]="newSalesPrice.paymentPlanNo"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Birim Ptr</span>
+                      <input
+                        type="number"
+                        min="1"
+                        [(ngModel)]="newSalesPrice.unitPointer"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Fiyat</span>
+                      <input
+                        type="number"
+                        min="0.01"
+                        step="0.01"
+                        [(ngModel)]="newSalesPrice.price"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Doviz Tipi</span>
+                      <input
+                        type="number"
+                        min="0"
+                        [(ngModel)]="newSalesPrice.currencyType"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </label>
+                    <label class="field">
+                      <span>Degisim Nedeni</span>
+                      <input
+                        type="number"
+                        min="0"
+                        [(ngModel)]="newSalesPrice.changeReason"
+                        [ngModelOptions]="{ standalone: true }"
+                      />
+                    </label>
+                  </div>
+
+                  <div class="warehouse-actions">
+                    <button
+                      type="button"
+                      class="primary-action"
+                      [disabled]="!canUpdate() || isBusy('sales-price-save')"
+                      (click)="saveNewSalesPrice()"
+                    >
+                      {{ isBusy('sales-price-save') ? 'Kaydediliyor...' : 'Fiyat Olustur / Guncelle' }}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
           <div class="editor-actions">
             <button type="button" class="secondary-action" (click)="resetStockCard()">
               Değişiklikleri Geri Al

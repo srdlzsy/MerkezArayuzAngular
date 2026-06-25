@@ -217,12 +217,6 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     this.kalemler.clear();
   }
 
-  protected closeOrderResults(): void {
-    this.availableOrders.set([]);
-    this.selectedOrderKeys.set([]);
-    this.orderError.set('');
-  }
-
   protected loadOrdersFromWarehouse(): void {
     if (this.orderLoading()) {
       return;
@@ -725,4 +719,3 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     return fallback;
   }
 }
-

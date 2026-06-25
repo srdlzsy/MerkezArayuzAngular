@@ -118,6 +118,39 @@ export interface StockCardWarehouseUpdateResponse {
   warehouseSettings: StockCardWarehouseSettingsDto;
 }
 
+export interface StockSalesPriceDto {
+  priceGuid: string | null;
+  stockCode: string;
+  priceListNo: number;
+  priceListName: string;
+  warehouseNo: number;
+  warehouseName: string;
+  paymentPlanNo: number;
+  unitPointer: number;
+  unitName: string;
+  price: number;
+  currencyType: number;
+  changeReason: number;
+  createdAt: string | null;
+  lastUpdatedAt: string | null;
+}
+
+export interface StockSalesPriceUpsertHttpRequest {
+  priceListNo?: number | null;
+  paymentPlanNo?: number | null;
+  unitPointer?: number | null;
+  price: number;
+  currencyType?: number | null;
+  changeReason?: number | null;
+}
+
+export interface StockSalesPriceUpsertResponse {
+  summary: MikroUpdateSummaryDto;
+  created: boolean;
+  previousPrice: number | null;
+  salesPrice: StockSalesPriceDto;
+}
+
 export interface StockMovementDocumentLookupHttpRequest {
   documentSerie: string;
   documentOrderNo: number;

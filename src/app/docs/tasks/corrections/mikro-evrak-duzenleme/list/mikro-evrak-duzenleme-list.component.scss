@@ -382,6 +382,10 @@ button:disabled {
   background: #fafaff;
 }
 
+.sales-price-section {
+  background: #f8fbff;
+}
+
 .warehouse-section-head,
 .warehouse-editor-head,
 .warehouse-actions,
@@ -417,10 +421,28 @@ button:disabled {
   align-items: start;
 }
 
+.sales-price-layout {
+  display: grid;
+  grid-template-columns: minmax(240px, 0.32fr) minmax(0, 1fr);
+  gap: 0.65rem;
+  align-items: start;
+}
+
 .warehouse-list {
   display: grid;
   gap: 0.35rem;
   max-height: 360px;
+  overflow: auto;
+}
+
+.sales-price-list,
+.sales-price-editor {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.sales-price-list {
+  max-height: 420px;
   overflow: auto;
 }
 
@@ -442,6 +464,39 @@ button:disabled {
 .warehouse-row.is-selected {
   border-color: #a78bfa;
   background: #f5f3ff;
+}
+
+.sales-price-row {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr) auto;
+  gap: 0.12rem 0.45rem;
+  align-items: center;
+  border: 1px solid var(--line);
+  border-radius: 9px;
+  padding: 0.52rem;
+  color: var(--ink);
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.sales-price-row:hover,
+.sales-price-row.is-selected {
+  border-color: #60a5fa;
+  background: #eff6ff;
+}
+
+.sales-price-row strong,
+.sales-price-row small {
+  grid-column: 2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sales-price-row small {
+  color: var(--muted);
+  font-size: 0.7rem;
 }
 
 .warehouse-code {
@@ -492,6 +547,15 @@ button:disabled {
 }
 
 .warehouse-editor {
+  display: grid;
+  gap: 0.6rem;
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.65rem;
+  background: #fff;
+}
+
+.sales-price-edit-card {
   display: grid;
   gap: 0.6rem;
   border: 1px solid var(--line);
@@ -694,6 +758,10 @@ button:disabled {
   }
 
   .warehouse-layout {
+    grid-template-columns: 1fr;
+  }
+
+  .sales-price-layout {
     grid-template-columns: 1fr;
   }
 
