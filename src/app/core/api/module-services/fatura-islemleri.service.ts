@@ -20,6 +20,7 @@ import type {
   IInvoiceViewingPrintedStateRequestApiDto,
   IInvoiceViewingPrintedStateResponseApiDto,
   IUpdateInvoiceReturnReferenceRequestApiDto,
+  IValidateInvoiceDocumentsResponseApiDto,
   ISendInvoiceDocumentsRequestApiDto,
   ISendInvoiceDocumentsResponseApiDto
 } from '@interfaces';
@@ -27,6 +28,7 @@ import type {
 import { BaseApiService } from '../base-api.service';
 
 type InvoiceSendingScenarioBodyValue = 0 | 1;
+type InvoiceRenderProfileBodyValue = 0 | 1 | 2;
 
 export type InvoiceViewingListItemDto = IInvoiceViewingListItemApiDto;
 export type InvoiceViewingListResponseDto = IInvoiceViewingListResponseApiDto;
@@ -50,6 +52,7 @@ export type InvoiceReturnReferenceCandidatesResponseDto =
 export type UpdateInvoiceReturnReferenceRequestDto =
   IUpdateInvoiceReturnReferenceRequestApiDto;
 export type SendInvoiceDocumentsRequestDto = ISendInvoiceDocumentsRequestApiDto;
+export type ValidateInvoiceDocumentsResponseDto = IValidateInvoiceDocumentsResponseApiDto;
 export type SendInvoiceDocumentsResponseDto = ISendInvoiceDocumentsResponseApiDto;
 
 @Injectable({
@@ -91,7 +94,8 @@ export class FaturaIslemleriService extends BaseApiService {
   ) {
     const body: InvoiceSendingRenderRequestDto = {
       ...request,
-      scenario: this.toInvoiceSendingScenarioBodyValue(request.scenario)
+      scenario: this.toInvoiceSendingScenarioBodyValue(request.scenario),
+      profile: this.toInvoiceRenderProfileBodyValue(request.profile)
     };
 
     return this.post<InvoiceSendingDetailDto, InvoiceSendingRenderRequestDto>(
@@ -137,6 +141,18 @@ export class FaturaIslemleriService extends BaseApiService {
 
     return this.post<SendInvoiceDocumentsResponseDto, SendInvoiceDocumentsRequestDto>(
       'fatura-islemleri/fatura-gonderimi/send',
+      body
+    );
+  }
+
+  validateInvoiceDocuments(request: SendInvoiceDocumentsRequestDto) {
+    const body: SendInvoiceDocumentsRequestDto = {
+      ...request,
+      scenario: this.toInvoiceSendingScenarioBodyValue(request.scenario)
+    };
+
+    return this.post<ValidateInvoiceDocumentsResponseDto, SendInvoiceDocumentsRequestDto>(
+      'fatura-islemleri/fatura-gonderimi/validate',
       body
     );
   }
@@ -198,9 +214,14 @@ export class FaturaIslemleriService extends BaseApiService {
     documentId: string,
     request: InvoiceViewingRenderRequestDto
   ) {
+    const body: InvoiceViewingRenderRequestDto = {
+      ...request,
+      profile: this.toInvoiceRenderProfileBodyValue(request.profile)
+    };
+
     return this.post<InvoiceViewingDetailDto, InvoiceViewingRenderRequestDto>(
       `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}/render`,
-      request
+      body
     );
   }
 
@@ -215,9 +236,14 @@ export class FaturaIslemleriService extends BaseApiService {
   }
 
   previewInvoiceDocument(request: InvoicePreviewRequestDto) {
+    const body: InvoicePreviewRequestDto = {
+      ...request,
+      profile: this.toInvoiceRenderProfileBodyValue(request.profile)
+    };
+
     return this.post<InvoiceRenderedDocumentDto, InvoicePreviewRequestDto>(
       'fatura-islemleri/fatura-gonderimi/preview',
-      request
+      body
     );
   }
 
@@ -242,5 +268,36 @@ export class FaturaIslemleriService extends BaseApiService {
     }
 
     return normalizedValue.includes('arsiv') || normalizedValue.includes('archive') ? 1 : 0;
+  }
+
+  private toInvoiceRenderProfileBodyValue(
+    value: string | number | null | undefined
+  ): InvoiceRenderProfileBodyValue | undefined {
+    if (value === 0 || value === 1 || value === 2) {
+      return value;
+    }
+
+    if (typeof value === 'number') {
+      return value <= 0 ? 0 : value === 1 ? 1 : 2;
+    }
+
+    const normalizedValue = (value ?? '')
+      .trim()
+      .replace(/[^a-zA-Z0-9]+/g, '')
+      .toLocaleLowerCase('tr-TR');
+
+    if (!normalizedValue) {
+      return undefined;
+    }
+
+    if (normalizedValue.includes('arsiv') || normalizedValue.includes('archive')) {
+      return 2;
+    }
+
+    if (normalizedValue.includes('fatura') || normalizedValue.includes('invoice')) {
+      return 1;
+    }
+
+    return 0;
   }
 }

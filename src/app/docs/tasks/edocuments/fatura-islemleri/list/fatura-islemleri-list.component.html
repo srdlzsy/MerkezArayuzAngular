@@ -23,8 +23,18 @@
     [class.is-error]="currentFeedback.tone === 'error'"
     [class.is-info]="currentFeedback.tone === 'info'"
   >
-    <h3>{{ currentFeedback.title }}</h3>
-    <p>{{ currentFeedback.message }}</p>
+    <div class="feedback-content">
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </div>
+    <button
+      type="button"
+      class="feedback-close"
+      aria-label="Bildirimi kapat"
+      (click)="dismissFeedback()"
+    >
+      x
+    </button>
   </article>
 
   <div class="empty-state" *ngIf="availableWorkspaces().length === 0">
@@ -470,7 +480,7 @@
     <ng-template #sendingWorkspace>
       <section class="workspace-grid sending-primary-grid">
         <div class="workspace-stack">
-          <article class="panel panel-soft">
+          <article class="panel panel-soft sending-filter-panel">
             <div class="panel-head">
               <div>
                 <p class="section-kicker">Filtreler</p>
@@ -485,7 +495,7 @@
             </div>
 
             <ng-container *ngIf="canSendList()">
-              <form class="filter-grid" [formGroup]="sendingFilterForm">
+              <form class="filter-grid sending-filter-grid" [formGroup]="sendingFilterForm">
                 <label class="field">
                   <span>Baslangic</span>
                   <input type="date" formControlName="startDate" />
@@ -512,7 +522,7 @@
                 </label>
               </form>
 
-              <div class="action-row">
+              <div class="action-row toolbar-actions">
                 <button
                   type="button"
                   class="primary-button"
@@ -529,7 +539,7 @@
             </ng-container>
           </article>
 
-          <article class="panel">
+          <article class="panel sending-list-panel">
             <div class="panel-head">
               <div>
                 <p class="section-kicker">Liste</p>
@@ -538,7 +548,36 @@
               <span class="panel-badge">{{ filteredSendingItems().length }} kayit</span>
             </div>
 
-            <label class="field" *ngIf="sendingList()">
+            <section class="operation-strip" *ngIf="sendingList()">
+              <div class="operation-metrics">
+                <span>Toplam: {{ filteredSendingItems().length }}</span>
+                <span>Bekleyen: {{ filteredUnsentSendingItems().length }}</span>
+                <span>Secilen: {{ selectedSendingItems().length }}</span>
+                <span [class.is-danger]="filteredAttentionSendingItems().length > 0">
+                  Dikkat: {{ filteredAttentionSendingItems().length }}
+                </span>
+              </div>
+              <div class="action-row" *ngIf="canSendCreate()">
+                <button
+                  type="button"
+                  class="secondary-button compact-button"
+                  (click)="selectFilteredUnsentInvoices()"
+                  [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                >
+                  Bu Filtredeki Bekleyenleri Sec
+                </button>
+                <button
+                  type="button"
+                  class="ghost-button compact-button"
+                  (click)="clearSendingSelection()"
+                  [disabled]="selectedSendingItems().length === 0"
+                >
+                  Secimi Temizle
+                </button>
+              </div>
+            </section>
+
+            <label class="field quick-filter-field" *ngIf="sendingList()">
               <span>Bu sayfada hizli filtre</span>
               <input
                 type="text"
@@ -557,13 +596,25 @@
               <div class="action-row" *ngIf="canSendCreate()">
                 <button
                   type="button"
+                  class="secondary-button"
+                  (click)="validateSelectedInvoices()"
+                  [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                >
+                  {{
+                    sendingValidateLoading()
+                      ? 'Kontrol ediliyor...'
+                      : selectedSendingItems().length + ' Belgeyi Kontrol Et'
+                  }}
+                </button>
+                <button
+                  type="button"
                   class="primary-button"
                   (click)="sendSelectedInvoices()"
-                  [disabled]="sendingRequestLoading()"
+                  [disabled]="sendingValidateLoading() || sendingRequestLoading()"
                 >
                   {{
                     sendingRequestLoading()
-                      ? 'Gonderiliyor...'
+                      ? 'Kontrol / gonderim suruyor...'
                       : selectedSendingItems().length + ' Belgeyi Gonder'
                   }}
                 </button>
@@ -609,13 +660,41 @@
                 <thead>
                   <tr>
                     <th class="table-check-cell">Sec</th>
-                    <th>Fatura No</th>
-                    <th>Musteri</th>
-                    <th>Tarih</th>
-                    <th>Durum</th>
-                    <th>Senaryo</th>
-                    <th>Iade Ref</th>
-                    <th class="amount-column">Tutar</th>
+                    <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('invoiceId')">
+                        Fatura No{{ getSendingSortIndicator('invoiceId') }}
+                      </button>
+                    </th>
+                    <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('customerTitle')">
+                        Musteri{{ getSendingSortIndicator('customerTitle') }}
+                      </button>
+                    </th>
+                    <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('documentDate')">
+                        Tarih{{ getSendingSortIndicator('documentDate') }}
+                      </button>
+                    </th>
+                    <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('isSent')">
+                        Durum{{ getSendingSortIndicator('isSent') }}
+                      </button>
+                    </th>
+                    <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('scenario')">
+                        Senaryo{{ getSendingSortIndicator('scenario') }}
+                      </button>
+                    </th>
+                    <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('returnReference')">
+                        Iade Ref{{ getSendingSortIndicator('returnReference') }}
+                      </button>
+                    </th>
+                    <th class="amount-column">
+                      <button type="button" class="sort-header sort-header-right" (click)="changeSendingSort('payableTotal')">
+                        Tutar{{ getSendingSortIndicator('payableTotal') }}
+                      </button>
+                    </th>
                     <th class="action-column">Islem</th>
                   </tr>
                 </thead>
@@ -624,9 +703,11 @@
                     *ngFor="let item of filteredSendingItems(); trackBy: trackBySendingInvoice"
                     [class.is-selected]="isSendingCardSelected(item)"
                     [class.is-queued]="isSendingItemSelected(item)"
-                    tabindex="0"
-                    (click)="openSendingDetail(item)"
-                    (keydown.enter)="openSendingDetail(item)"
+                    [class.is-attention]="
+                      !item.isSent &&
+                      ((isReturnInvoice(item) && !hasReturnReference(item)) ||
+                        !hasReceiverAddress(item))
+                    "
                   >
                     <td class="table-check-cell">
                       <input
@@ -645,6 +726,11 @@
                     <td>
                       <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
                       <small>{{ item.customerCode || item.customerTcknVkn || '-' }}</small>
+                      <small
+                        [class.table-warning-text]="!hasReceiverAddress(item) && !item.isSent"
+                      >
+                        {{ getReceiverAddressLabel(item) }}
+                      </small>
                     </td>
                     <td>{{ item.documentDate | date: 'dd.MM.yyyy' }}</td>
                     <td>
@@ -689,9 +775,18 @@
                           class="primary-button compact-button"
                           *ngIf="canSendCreate() && !item.isSent"
                           (click)="$event.stopPropagation(); sendCurrentInvoice(item)"
-                          [disabled]="sendingRequestLoading()"
+                          [disabled]="sendingValidateLoading() || sendingRequestLoading()"
                         >
                           Gonder
+                        </button>
+                        <button
+                          type="button"
+                          class="secondary-button compact-button"
+                          *ngIf="canSendCreate() && !item.isSent"
+                          (click)="$event.stopPropagation(); validateCurrentInvoice(item)"
+                          [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                        >
+                          Kontrol
                         </button>
                       </div>
                     </td>
@@ -701,7 +796,59 @@
             </div>
           </article>
 
-          <article class="panel" *ngIf="lastSendResponse() as response">
+          <article class="panel sending-response-panel" *ngIf="lastValidateResponse() as response">
+            <div class="panel-head">
+              <div>
+                <p class="section-kicker">Kontrol</p>
+                <h3>Gonderim oncesi validate cevabi</h3>
+              </div>
+              <span class="panel-badge">{{ getScenarioLabel(response.scenario) }}</span>
+            </div>
+
+            <section class="summary-grid compact-summary-grid">
+              <article
+                class="summary-card"
+                *ngFor="let metric of validateResponseMetrics(); trackBy: trackByResponseMetric"
+              >
+                <span>{{ metric.label }}</span>
+                <strong>{{ metric.value }}</strong>
+              </article>
+            </section>
+
+            <div class="invoice-list send-result-list">
+              <article
+                class="invoice-row result-row"
+                *ngFor="let item of response.items; trackBy: trackByValidateResponseItem"
+                [class.is-success-row]="item.isValid"
+                [class.is-error-row]="!item.isValid"
+              >
+                <div class="invoice-row-main">
+                  <div class="invoice-title-row">
+                    <div>
+                      <strong>{{ item.invoiceId || (item.documentSerie + '/' + item.documentOrderNo) }}</strong>
+                      <span>{{ item.customerTitle || 'Musteri bilgisi donmedi' }}</span>
+                    </div>
+                    <span
+                      class="status-pill"
+                      [class.status-pill-success]="item.isValid"
+                      [class.status-pill-danger]="!item.isValid"
+                    >
+                      {{ item.isValid ? 'Gecerli' : 'Gecersiz' }}
+                    </span>
+                  </div>
+
+                  <div class="meta-strip">
+                    <span>{{ item.documentSerie }} / {{ item.documentOrderNo }}</span>
+                    <span>{{ item.customerCode || 'Cari kod yok' }}</span>
+                  </div>
+
+                  <p class="result-message">{{ item.message || 'Mesaj donmedi.' }}</p>
+                </div>
+              </article>
+            </div>
+          </article>
+
+          <article class="panel sending-response-panel" *ngIf="lastSendResponse() as response">
             <div class="panel-head">
               <div>
                 <p class="section-kicker">Sonuc</p>
@@ -761,7 +908,7 @@
           (click)="closeSendingDetailDialog()"
         >
           <article
-            class="panel detail-panel detail-dialog"
+            class="panel detail-panel detail-dialog sending-detail-dialog"
             role="dialog"
             aria-modal="true"
             (click)="$event.stopPropagation()"
@@ -769,7 +916,7 @@
           <div class="panel-head">
             <div>
               <p class="section-kicker">Belge</p>
-              <h3>UBL ve gonderim aksiyonlari</h3>
+              <h3>Onizleme</h3>
             </div>
             <div class="dialog-head-actions">
               <span class="panel-badge" *ngIf="selectedSendingSummary()">
@@ -882,9 +1029,18 @@
                 class="primary-button"
                 *ngIf="canSendCreate() && !summary.isSent"
                 (click)="sendCurrentInvoice(summary)"
-                [disabled]="sendingRequestLoading()"
+                [disabled]="sendingValidateLoading() || sendingRequestLoading()"
               >
-                {{ sendingRequestLoading() ? 'Gonderiliyor...' : 'Bu Faturayi Gonder' }}
+                {{ sendingRequestLoading() ? 'Kontrol / gonderim suruyor...' : 'Bu Faturayi Gonder' }}
+              </button>
+              <button
+                type="button"
+                class="secondary-button"
+                *ngIf="canSendCreate() && !summary.isSent"
+                (click)="validateCurrentInvoice(summary)"
+                [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+              >
+                {{ sendingValidateLoading() ? 'Kontrol ediliyor...' : 'Gonderim Oncesi Kontrol' }}
               </button>
             </div>
 
@@ -1080,7 +1236,6 @@
               <div class="preview-head">
                 <div>
                   <h4>Belge Gorunumu</h4>
-                  <p>Backend HTML'i tek kez gosterilir; karekod secilen XSLT tarafindan uretilir.</p>
                 </div>
               </div>
               <iframe
@@ -1115,124 +1270,6 @@
         </div>
       </section>
 
-      <details class="advanced-shell technical-tools">
-        <summary class="section-heading">
-          <div>
-            <p class="section-kicker">Teknik</p>
-            <h3>Manuel XML preview</h3>
-          </div>
-        </summary>
-
-        <section class="workspace-grid sending-grid">
-          <div class="workspace-stack">
-            <article class="panel">
-              <div class="panel-head">
-                <div>
-                  <p class="section-kicker">4. XML Preview</p>
-                  <h3>Ham XML gorunumu</h3>
-                  <p>XML iceriginden sadece HTML onizleme uret.</p>
-                </div>
-                <span class="panel-badge">POST preview</span>
-              </div>
-
-              <div class="empty-state compact-empty" *ngIf="!canSendCreate()">
-                <h4>Preview yetkisi gerekli</h4>
-                <p>`fatura-gonderimi.create` yetkisi olmadan XML preview kullanilamaz.</p>
-              </div>
-
-              <ng-container *ngIf="canSendCreate()">
-                <form class="request-form" [formGroup]="previewForm">
-                  <label class="field">
-                    <span>Invoice Referansi</span>
-                    <input type="text" formControlName="invoiceId" placeholder="Opsiyonel referans" />
-                  </label>
-                  <label class="field">
-                    <span>Profil</span>
-                    <select formControlName="profile">
-                      <option *ngFor="let profile of profileOptions" [ngValue]="profile">
-                        {{ profile }}
-                      </option>
-                    </select>
-                  </label>
-                  <label class="toggle-field toggle-field-wide">
-                    <input type="checkbox" formControlName="preferEmbeddedXslt" />
-                    <span>Varsa gomulu XSLT tercih edilsin</span>
-                  </label>
-                  <label class="field">
-                    <span>XML Content</span>
-                    <textarea class="xml-editor" formControlName="xmlContent"></textarea>
-                  </label>
-                </form>
-
-                <div class="action-row">
-                  <button
-                    type="button"
-                    class="primary-button"
-                    (click)="previewInvoiceXml()"
-                    [disabled]="previewLoading()"
-                  >
-                    {{ previewLoading() ? 'Preview uretiliyor...' : 'Preview Al' }}
-                  </button>
-                  <button type="button" class="ghost-button" (click)="clearPreviewXml()">
-                    XML Temizle
-                  </button>
-                </div>
-              </ng-container>
-
-              <div class="empty-state" *ngIf="previewLoading()">
-                <h4>Preview uretiliyor</h4>
-                <p>XML icerigi isleniyor.</p>
-              </div>
-
-              <div class="empty-state" *ngIf="!previewLoading() && !previewDocument()">
-                <h4>Preview henuz yok</h4>
-                <p>XML gonderildiginde HTML sonucu burada gorunur.</p>
-              </div>
-
-              <ng-container *ngIf="previewDocument() as document">
-                <section class="summary-grid compact-summary-grid">
-                  <article class="summary-card">
-                    <span>Invoice Referansi</span>
-                    <strong>{{ document.invoiceId || '-' }}</strong>
-                  </article>
-                  <article class="summary-card">
-                    <span>Profil</span>
-                    <strong>{{ document.profile || '-' }}</strong>
-                  </article>
-                  <article class="summary-card">
-                    <span>XSLT</span>
-                    <strong>{{ document.appliedXsltName || '-' }}</strong>
-                  </article>
-                  <article class="summary-card">
-                    <span>Tasarim</span>
-                    <strong>{{ document.usedEmbeddedXslt ? 'Gomulu XSLT' : 'Genel XSLT' }}</strong>
-                  </article>
-                </section>
-
-                <div class="document-preview-shell" *ngIf="document.htmlContent; else noPreviewHtml">
-                  <div class="preview-head">
-                    <div>
-                      <h4>Preview Gorunumu</h4>
-                      <p>Preview endpointinden gelen HTML sonucu.</p>
-                    </div>
-                  </div>
-                  <iframe
-                    class="document-frame"
-                    sandbox="allow-scripts"
-                    [src]="getDocumentPreviewUrl(document.htmlContent)"
-                  ></iframe>
-                </div>
-
-                <ng-template #noPreviewHtml>
-                  <div class="empty-state compact-empty">
-                    <p>Preview sonucunda HTML bulunmuyor.</p>
-                  </div>
-                </ng-template>
-              </ng-container>
-            </article>
-          </div>
-        </section>
-      </details>
     </ng-template>
   </ng-container>
 </section>

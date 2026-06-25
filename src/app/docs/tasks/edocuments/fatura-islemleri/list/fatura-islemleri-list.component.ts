@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormControl,
@@ -16,7 +16,7 @@ import type {
   IInvoiceStateFilterApiDto,
   IInvoiceViewingSearchFieldApiDto
 } from '@interfaces';
-import { finalize } from 'rxjs';
+import { finalize, of, switchMap } from 'rxjs';
 
 import {
   getDefaultDateRange,
@@ -24,7 +24,6 @@ import {
 } from '../../../../../core/api/furpa-merkez-api.utils';
 import {
   FaturaIslemleriService,
-  type InvoicePreviewRequestDto,
   type InvoiceRenderedDocumentDto,
   type InvoiceReturnReferenceCandidatesResponseDto,
   type InvoiceReturnReferenceDto,
@@ -40,12 +39,23 @@ import {
   type InvoiceViewingPrintedStateRequestDto,
   type InvoiceViewingPrintedStateResponseDto,
   type UpdateInvoiceReturnReferenceRequestDto,
+  type SendInvoiceDocumentsRequestDto,
+  type ValidateInvoiceDocumentsResponseDto,
   type SendInvoiceDocumentsResponseDto
 } from '../../../../../core/api/module-services/fatura-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 
 type WorkspaceMode = 'viewing' | 'sending';
 type FeedbackTone = 'success' | 'error' | 'info';
+type SortDirection = 'asc' | 'desc';
+type SendingSortKey =
+  | 'invoiceId'
+  | 'customerTitle'
+  | 'documentDate'
+  | 'isSent'
+  | 'scenario'
+  | 'returnReference'
+  | 'payableTotal';
 
 interface PageFeedback {
   tone: FeedbackTone;
@@ -65,6 +75,11 @@ interface SummaryMetric {
 
 interface ResponseMetric extends SummaryMetric {
   tone: string;
+}
+
+interface SendingSortState {
+  key: SendingSortKey;
+  direction: SortDirection;
 }
 
 interface ViewingSearchFieldOption {
@@ -94,8 +109,6 @@ const VIEWING_UPDATE_PERMISSION = 'fatura-islemleri.fatura-goruntuleme.update';
 const SENDING_LIST_PERMISSION = 'fatura-islemleri.fatura-gonderimi.list';
 const SENDING_DETAIL_PERMISSION = 'fatura-islemleri.fatura-gonderimi.detail';
 const SENDING_CREATE_PERMISSION = 'fatura-islemleri.fatura-gonderimi.create';
-const DEFAULT_PREVIEW_XML =
-  '<Invoice><!-- UBL XML icerigini buraya yapistirin --></Invoice>';
 
 @Component({
   selector: 'app-fatura-islemleri-list',
@@ -112,6 +125,7 @@ export class FaturaIslemleriListComponent {
   private readonly faturaIslemleriService = inject(FaturaIslemleriService);
   private readonly previewObjectUrlCache = new Map<string, string>();
   private readonly previewResourceUrlCache = new Map<string, SafeResourceUrl>();
+  private feedbackDismissTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly initialWorkspace =
     ((this.activatedRoute.snapshot.data['workspace'] as WorkspaceMode | undefined) ??
@@ -218,6 +232,10 @@ export class FaturaIslemleriListComponent {
 
   protected readonly viewingQuickFilter = signal('');
   protected readonly sendingQuickFilter = signal('');
+  protected readonly sendingSort = signal<SendingSortState>({
+    key: 'documentDate',
+    direction: 'desc'
+  });
 
   protected readonly viewingList = signal<InvoiceViewingListResponseDto | null>(null);
   protected readonly viewingDetailDialogOpen = signal(false);
@@ -240,7 +258,9 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingRenderLoading = signal(false);
   protected readonly sendingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly selectedSendingKeys = signal<string[]>([]);
+  protected readonly sendingValidateLoading = signal(false);
   protected readonly sendingRequestLoading = signal(false);
+  protected readonly lastValidateResponse = signal<ValidateInvoiceDocumentsResponseDto | null>(null);
   protected readonly lastSendResponse = signal<SendInvoiceDocumentsResponseDto | null>(null);
   protected readonly returnReferencePanelOpen = signal(false);
   protected readonly returnReferenceInvoiceContext = signal<InvoiceSendingListItemDto | null>(null);
@@ -248,9 +268,6 @@ export class FaturaIslemleriListComponent {
     signal<InvoiceReturnReferenceCandidatesResponseDto | null>(null);
   protected readonly returnReferenceLoading = signal(false);
   protected readonly returnReferenceSavingKey = signal<string | null>(null);
-
-  protected readonly previewDocument = signal<InvoiceRenderedDocumentDto | null>(null);
-  protected readonly previewLoading = signal(false);
 
   protected readonly viewingFilterForm = new FormGroup({
     startDate: new FormControl<string>(this.defaultDateRange().startDate, {
@@ -316,21 +333,6 @@ export class FaturaIslemleriListComponent {
     }),
     preferEmbeddedXslt: new FormControl<boolean | null>(null),
     fallbackToGeneral: new FormControl<boolean>(true, {
-      nonNullable: true
-    })
-  });
-  protected readonly previewForm = new FormGroup({
-    invoiceId: new FormControl<string>('', {
-      nonNullable: true
-    }),
-    xmlContent: new FormControl<string>(DEFAULT_PREVIEW_XML, {
-      nonNullable: true,
-      validators: [Validators.required]
-    }),
-    profile: new FormControl<IInvoiceRenderProfileApiDto>('Auto', {
-      nonNullable: true
-    }),
-    preferEmbeddedXslt: new FormControl<boolean>(true, {
       nonNullable: true
     })
   });
@@ -440,32 +442,31 @@ export class FaturaIslemleriListComponent {
   protected readonly filteredSendingItems = computed(() => {
     const items = this.sendingList()?.items ?? [];
     const filter = this.normalizeText(this.sendingQuickFilter());
+    const filteredItems = !filter
+      ? items
+      : items.filter((item) =>
+          [
+            item.documentSerie,
+            `${item.documentOrderNo}`,
+            item.invoiceId,
+            item.customerCode,
+            item.customerTitle,
+            item.customerTcknVkn,
+            item.targetAlias,
+            item.invoiceProfileId,
+            item.invoiceTypeCode,
+            item.scenario,
+            item.shipmentDocumentNo,
+            item.returnInvoiceNo,
+            item.returnInvoiceDate,
+            item.sentDocumentNo,
+            item.warehouseName,
+            item.description,
+            `${item.payableTotal}`
+          ].some((value) => this.normalizeText(value).includes(filter))
+        );
 
-    if (!filter) {
-      return items;
-    }
-
-    return items.filter((item) =>
-      [
-        item.documentSerie,
-        `${item.documentOrderNo}`,
-        item.invoiceId,
-        item.customerCode,
-        item.customerTitle,
-        item.customerTcknVkn,
-        item.targetAlias,
-        item.invoiceProfileId,
-        item.invoiceTypeCode,
-        item.scenario,
-        item.shipmentDocumentNo,
-        item.returnInvoiceNo,
-        item.returnInvoiceDate,
-        item.sentDocumentNo,
-        item.warehouseName,
-        item.description,
-        `${item.payableTotal}`
-      ].some((value) => this.normalizeText(value).includes(filter))
-    );
+    return this.sortSendingItems(filteredItems, this.sendingSort());
   });
   protected readonly viewingMetrics = computed<SummaryMetric[]>(() => {
     const response = this.viewingList();
@@ -545,6 +546,47 @@ export class FaturaIslemleriListComponent {
       keys.has(this.buildSendingKey(item.documentSerie, item.documentOrderNo))
     );
   });
+  protected readonly filteredUnsentSendingItems = computed(() =>
+    this.filteredSendingItems().filter((item) => !item.isSent)
+  );
+  protected readonly filteredAttentionSendingItems = computed(() =>
+    this.filteredSendingItems().filter(
+      (item) =>
+        !item.isSent &&
+        ((this.isReturnInvoice(item) && !this.hasReturnReference(item)) ||
+          !this.hasReceiverAddress(item))
+    )
+  );
+  protected readonly validateResponseMetrics = computed<ResponseMetric[]>(() => {
+    const response = this.lastValidateResponse();
+
+    if (!response) {
+      return [];
+    }
+
+    return [
+      {
+        label: 'Senaryo',
+        value: this.getScenarioLabel(response.scenario),
+        tone: 'status-pill-neutral'
+      },
+      {
+        label: 'Istenen',
+        value: `${response.requestedCount}`,
+        tone: 'status-pill-neutral'
+      },
+      {
+        label: 'Gecerli',
+        value: `${response.validCount}`,
+        tone: 'status-pill-success'
+      },
+      {
+        label: 'Gecersiz',
+        value: `${response.invalidCount}`,
+        tone: response.invalidCount > 0 ? 'status-pill-danger' : 'status-pill-neutral'
+      }
+    ];
+  });
   protected readonly sendResponseMetrics = computed<ResponseMetric[]>(() => {
     const response = this.lastSendResponse();
 
@@ -576,7 +618,12 @@ export class FaturaIslemleriListComponent {
     ];
   });
   constructor() {
-    this.destroyRef.onDestroy(() => this.releasePreviewUrls());
+    effect(() => this.scheduleFeedbackDismiss(this.feedback()));
+
+    this.destroyRef.onDestroy(() => {
+      this.clearFeedbackDismissTimer();
+      this.releasePreviewUrls();
+    });
 
     if (this.activeWorkspace() === 'viewing' && this.canViewList()) {
       this.loadViewingList();
@@ -978,6 +1025,7 @@ export class FaturaIslemleriListComponent {
       this.selectedSendingKey.set(null);
       this.sendingDetail.set(null);
       this.selectedSendingKeys.set([]);
+      this.lastValidateResponse.set(null);
       this.lastSendResponse.set(null);
       this.returnReferencePanelOpen.set(false);
       this.returnReferenceInvoiceContext.set(null);
@@ -1020,6 +1068,8 @@ export class FaturaIslemleriListComponent {
           this.selectedSendingKey.set(null);
           this.sendingDetail.set(null);
           this.selectedSendingKeys.set([]);
+          this.lastValidateResponse.set(null);
+          this.lastSendResponse.set(null);
           this.returnReferencePanelOpen.set(false);
           this.returnReferenceInvoiceContext.set(null);
           this.returnReferenceCandidates.set(null);
@@ -1047,6 +1097,7 @@ export class FaturaIslemleriListComponent {
     });
     this.sendingQuickFilter.set('');
     this.clearSendingSelection();
+    this.lastValidateResponse.set(null);
     this.lastSendResponse.set(null);
     this.returnReferencePanelOpen.set(false);
     this.returnReferenceInvoiceContext.set(null);
@@ -1056,6 +1107,27 @@ export class FaturaIslemleriListComponent {
 
   protected setSendingQuickFilter(event: Event): void {
     this.sendingQuickFilter.set((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
+  protected dismissFeedback(): void {
+    this.feedback.set(null);
+  }
+
+  protected changeSendingSort(key: SendingSortKey): void {
+    this.sendingSort.update((current) => ({
+      key,
+      direction: current.key === key && current.direction === 'asc' ? 'desc' : 'asc'
+    }));
+  }
+
+  protected getSendingSortIndicator(key: SendingSortKey): string {
+    const sort = this.sendingSort();
+
+    if (sort.key !== key) {
+      return '';
+    }
+
+    return sort.direction === 'asc' ? ' ^' : ' v';
   }
 
   protected openSendingDetail(item: InvoiceSendingListItemDto): void {
@@ -1186,8 +1258,46 @@ export class FaturaIslemleriListComponent {
     this.selectedSendingKeys.set([]);
   }
 
+  protected selectFilteredUnsentInvoices(): void {
+    if (!this.canSendCreate()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Secim yetkisi gerekli',
+        message: 'Toplu gonderim kuyrugu icin create yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const keys = this.filteredUnsentSendingItems().map((item) =>
+      this.buildSendingKey(item.documentSerie, item.documentOrderNo)
+    );
+
+    if (keys.length === 0) {
+      this.feedback.set({
+        tone: 'info',
+        title: 'Secilecek bekleyen belge yok',
+        message: 'Mevcut filtrede gonderilmemis fatura bulunmuyor.'
+      });
+      return;
+    }
+
+    this.selectedSendingKeys.set(keys);
+  }
+
+  protected validateSelectedInvoices(): void {
+    this.validateSendingDocuments(this.selectedSendingItems());
+  }
+
   protected sendSelectedInvoices(): void {
     this.submitSendingDocuments(this.selectedSendingItems());
+  }
+
+  protected validateCurrentInvoice(summary: InvoiceSendingListItemDto | null): void {
+    if (!summary) {
+      return;
+    }
+
+    this.validateSendingDocuments([summary]);
   }
 
   protected sendCurrentInvoice(summary: InvoiceSendingListItemDto | null): void {
@@ -1336,64 +1446,6 @@ export class FaturaIslemleriListComponent {
     );
   }
 
-  protected previewInvoiceXml(): void {
-    if (!this.canSendCreate()) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'XML preview yetkisi yok',
-        message: 'Preview endpointini kullanmak icin create yetkisi gerekli.'
-      });
-      return;
-    }
-
-    if (this.previewForm.invalid) {
-      this.previewForm.markAllAsTouched();
-      return;
-    }
-
-    const rawValue = this.previewForm.getRawValue();
-    const request: InvoicePreviewRequestDto = {
-      invoiceId: rawValue.invoiceId.trim() || null,
-      xmlContent: rawValue.xmlContent.trim(),
-      profile: rawValue.profile,
-      preferEmbeddedXslt: rawValue.preferEmbeddedXslt
-    };
-
-    this.previewLoading.set(true);
-    this.previewDocument.set(null);
-
-    this.faturaIslemleriService
-      .previewInvoiceDocument(request)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.previewLoading.set(false))
-      )
-      .subscribe({
-        next: (document: InvoiceRenderedDocumentDto) => {
-          this.previewDocument.set(document);
-          this.feedback.set({
-            tone: 'success',
-            title: 'XML preview hazir',
-            message: `${document.invoiceId || request.invoiceId || 'Secili XML'} icin HTML sonucu uretildi.`
-          });
-        },
-        error: (error: HttpErrorResponse) => {
-          this.feedback.set({
-            tone: 'error',
-            title: 'XML preview alinamadi',
-            message: this.resolveErrorMessage(
-              error,
-              'Preview endpointi XML icerigini render edemedi.'
-            )
-          });
-        }
-      });
-  }
-
-  protected clearPreviewXml(): void {
-    this.previewForm.controls.xmlContent.setValue('');
-  }
-
   protected getDocumentPreviewUrl(htmlContent: string | null | undefined): SafeResourceUrl | null {
     const normalizedHtml = typeof htmlContent === 'string' ? htmlContent : '';
 
@@ -1501,6 +1553,14 @@ export class FaturaIslemleriListComponent {
 
   protected hasReturnReference(item: InvoiceSendingListItemDto | null | undefined): boolean {
     return !!item?.returnInvoiceNo?.trim();
+  }
+
+  protected hasReceiverAddress(item: InvoiceSendingListItemDto | null | undefined): boolean {
+    return !!item?.targetAlias?.trim();
+  }
+
+  protected getReceiverAddressLabel(item: InvoiceSendingListItemDto | null | undefined): string {
+    return item?.targetAlias?.trim() || 'Alici yok';
   }
 
   protected getReturnReferenceLabel(item: InvoiceSendingListItemDto): string {
@@ -1613,6 +1673,10 @@ export class FaturaIslemleriListComponent {
     _index: number,
     metric: ResponseMetric
   ): string => metric.label;
+  protected readonly trackByValidateResponseItem = (
+    _index: number,
+    item: ValidateInvoiceDocumentsResponseDto['items'][number]
+  ): string => this.buildSendingKey(item.documentSerie, item.documentOrderNo);
   protected readonly trackBySendResponseItem = (
     _index: number,
     item: SendInvoiceDocumentsResponseDto['items'][number]
@@ -1821,6 +1885,62 @@ export class FaturaIslemleriListComponent {
       });
   }
 
+  private validateSendingDocuments(documents: InvoiceSendingListItemDto[]): void {
+    if (!this.canSendCreate()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Kontrol yetkisi gerekli',
+        message: 'Gonderim oncesi kontrol icin create yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const request = this.buildSendingDocumentsRequest(documents);
+
+    if (!request) {
+      this.feedback.set({
+        tone: 'info',
+        title: 'Kontrol edilecek belge secilmedi',
+        message: 'Gonderim oncesi kontrol icin en az bir gonderilmemis belge secmelisin.'
+      });
+      return;
+    }
+
+    this.sendingValidateLoading.set(true);
+    this.lastValidateResponse.set(null);
+    this.lastSendResponse.set(null);
+
+    this.faturaIslemleriService
+      .validateInvoiceDocuments(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.sendingValidateLoading.set(false))
+      )
+      .subscribe({
+        next: (response: ValidateInvoiceDocumentsResponseDto) => {
+          this.lastValidateResponse.set(response);
+          this.feedback.set({
+            tone: response.invalidCount > 0 ? 'info' : 'success',
+            title:
+              response.invalidCount > 0
+                ? 'Kontrol tamamlandi, gecersiz belge var'
+                : 'Gonderim oncesi kontrol basarili',
+            message: `${response.validCount} gecerli, ${response.invalidCount} gecersiz sonuc dondu.`
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Gonderim oncesi kontrol calismadi',
+            message: this.resolveErrorMessage(
+              error,
+              'Secili bekleyen faturalar icin validate endpointi calismadi.'
+            )
+          });
+        }
+      });
+  }
+
   private submitSendingDocuments(documents: InvoiceSendingListItemDto[]): void {
     if (!this.canSendCreate()) {
       this.feedback.set({
@@ -1861,23 +1981,42 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
-    const scenario = this.resolveSendingScenario(unsentDocuments[0].scenario);
+    const request = this.buildSendingDocumentsRequest(unsentDocuments);
+
+    if (!request) {
+      return;
+    }
+
     this.sendingRequestLoading.set(true);
+    this.lastValidateResponse.set(null);
+    this.lastSendResponse.set(null);
 
     this.faturaIslemleriService
-      .sendInvoiceDocuments({
-        scenario,
-        documents: unsentDocuments.map((item) => ({
-          documentSerie: item.documentSerie,
-          documentOrderNo: item.documentOrderNo
-        }))
-      })
+      .validateInvoiceDocuments(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
+        switchMap((validationResponse: ValidateInvoiceDocumentsResponseDto) => {
+          this.lastValidateResponse.set(validationResponse);
+
+          if (validationResponse.invalidCount > 0) {
+            this.feedback.set({
+              tone: 'error',
+              title: 'Gonderim durduruldu',
+              message: `${validationResponse.invalidCount} belge validate kontrolunden gecemedi. Canli gonderim baslatilmadi.`
+            });
+            return of(null);
+          }
+
+          return this.faturaIslemleriService.sendInvoiceDocuments(request);
+        }),
         finalize(() => this.sendingRequestLoading.set(false))
       )
       .subscribe({
-        next: (response: SendInvoiceDocumentsResponseDto) => {
+        next: (response: SendInvoiceDocumentsResponseDto | null) => {
+          if (!response) {
+            return;
+          }
+
           this.lastSendResponse.set(response);
           this.mergeSendResponse(response);
           this.feedback.set({
@@ -1900,6 +2039,24 @@ export class FaturaIslemleriListComponent {
           });
         }
       });
+  }
+
+  private buildSendingDocumentsRequest(
+    documents: InvoiceSendingListItemDto[]
+  ): SendInvoiceDocumentsRequestDto | null {
+    const unsentDocuments = documents.filter((item) => !item.isSent);
+
+    if (unsentDocuments.length === 0) {
+      return null;
+    }
+
+    return {
+      scenario: this.resolveSendingScenario(unsentDocuments[0].scenario),
+      documents: unsentDocuments.map((item) => ({
+        documentSerie: item.documentSerie,
+        documentOrderNo: item.documentOrderNo
+      }))
+    };
   }
 
   private buildViewingSynchronizationRequest(): InvoiceViewingSynchronizationRequestDto | null {
@@ -2080,6 +2237,78 @@ export class FaturaIslemleriListComponent {
     );
   }
 
+  private sortSendingItems(
+    items: InvoiceSendingListItemDto[],
+    sort: SendingSortState
+  ): InvoiceSendingListItemDto[] {
+    const direction = sort.direction === 'asc' ? 1 : -1;
+
+    return [...items].sort((left, right) => {
+      const result = this.compareSendingSortValue(
+        this.getSendingSortValue(left, sort.key),
+        this.getSendingSortValue(right, sort.key)
+      );
+
+      if (result !== 0) {
+        return result * direction;
+      }
+
+      return this.compareSendingSortValue(left.invoiceId, right.invoiceId);
+    });
+  }
+
+  private getSendingSortValue(
+    item: InvoiceSendingListItemDto,
+    key: SendingSortKey
+  ): string | number | boolean | null {
+    switch (key) {
+      case 'invoiceId':
+        return item.invoiceId;
+      case 'customerTitle':
+        return item.customerTitle;
+      case 'documentDate':
+        return item.documentDate ? new Date(item.documentDate).getTime() : null;
+      case 'isSent':
+        return item.isSent;
+      case 'scenario':
+        return this.getScenarioLabel(item.scenario);
+      case 'returnReference':
+        return this.isReturnInvoice(item) ? this.getReturnReferenceLabel(item) : '';
+      case 'payableTotal':
+        return item.payableTotal;
+    }
+  }
+
+  private compareSendingSortValue(
+    left: string | number | boolean | null | undefined,
+    right: string | number | boolean | null | undefined
+  ): number {
+    if (left === right) {
+      return 0;
+    }
+
+    if (left === null || left === undefined || left === '') {
+      return 1;
+    }
+
+    if (right === null || right === undefined || right === '') {
+      return -1;
+    }
+
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left - right;
+    }
+
+    if (typeof left === 'boolean' && typeof right === 'boolean') {
+      return Number(left) - Number(right);
+    }
+
+    return String(left).localeCompare(String(right), 'tr-TR', {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
   private buildSendingKey(documentSerie: string, documentOrderNo: number): string {
     return `${documentSerie}|${documentOrderNo}`;
   }
@@ -2122,6 +2351,31 @@ export class FaturaIslemleriListComponent {
     if (this.feedback()?.tone === 'info') {
       this.feedback.set(null);
     }
+  }
+
+  private scheduleFeedbackDismiss(feedback: PageFeedback | null): void {
+    this.clearFeedbackDismissTimer();
+
+    if (!feedback) {
+      return;
+    }
+
+    const timeoutMs = feedback.tone === 'error' ? 8000 : 5000;
+
+    this.feedbackDismissTimer = setTimeout(() => {
+      if (this.feedback() === feedback) {
+        this.feedback.set(null);
+      }
+    }, timeoutMs);
+  }
+
+  private clearFeedbackDismissTimer(): void {
+    if (!this.feedbackDismissTimer) {
+      return;
+    }
+
+    clearTimeout(this.feedbackDismissTimer);
+    this.feedbackDismissTimer = null;
   }
 
   private normalizeText(value: unknown): string {

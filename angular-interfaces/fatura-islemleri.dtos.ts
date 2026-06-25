@@ -6,6 +6,7 @@ import type { IUyumsoftOperationResponseApiDto } from './entegrasyon-islemleri.d
 
 export type IInvoiceStateFilterApiDto = -1 | 0 | 1;
 export type IInvoiceRenderProfileApiDto = 'Auto' | 'EFatura' | 'EArsiv';
+export type IInvoiceRenderProfileValueApiDto = IInvoiceRenderProfileApiDto | 0 | 1 | 2;
 export type IInvoiceSendingScenarioApiDto = 'EFatura' | 'EArsiv';
 export type IInvoiceSendingScenarioValueApiDto = IInvoiceSendingScenarioApiDto | 0 | 1;
 export type IInvoiceSendingScenarioBodyApiDto = IInvoiceSendingScenarioValueApiDto;
@@ -59,7 +60,7 @@ export interface IInvoiceRenderedDocumentApiDto {
   source: string;
   documentId?: string | null;
   invoiceId: string | null;
-  profile: IInvoiceRenderProfileApiDto | string;
+  profile: IInvoiceRenderProfileValueApiDto | string;
   appliedXsltName: string | null;
   xsltSource: string | null;
   usedEmbeddedXslt: boolean;
@@ -80,7 +81,7 @@ export interface IInvoiceViewingSynchronizationRequestApiDto {
 }
 
 export interface IInvoiceViewingRenderRequestApiDto {
-  profile?: IInvoiceRenderProfileApiDto | null;
+  profile?: IInvoiceRenderProfileValueApiDto | null;
   preferEmbeddedXslt?: boolean | null;
   fallbackToGeneral?: boolean | null;
 }
@@ -179,7 +180,7 @@ export interface IUpdateInvoiceReturnReferenceRequestApiDto {
 
 export interface IInvoiceSendingRenderRequestApiDto {
   scenario?: IInvoiceSendingScenarioBodyApiDto | null;
-  profile?: IInvoiceRenderProfileApiDto | null;
+  profile?: IInvoiceRenderProfileValueApiDto | null;
   preferEmbeddedXslt?: boolean | null;
   fallbackToGeneral?: boolean | null;
 }
@@ -192,6 +193,22 @@ export interface IInvoiceSendingDocumentKeyApiDto {
 export interface ISendInvoiceDocumentsRequestApiDto {
   scenario?: IInvoiceSendingScenarioBodyApiDto | null;
   documents: IInvoiceSendingDocumentKeyApiDto[];
+}
+
+export interface IValidateInvoiceDocumentResultApiDto extends IInvoiceSendingDocumentKeyApiDto {
+  invoiceId: string | null;
+  customerCode: string | null;
+  customerTitle: string | null;
+  isValid: boolean;
+  message: string | null;
+}
+
+export interface IValidateInvoiceDocumentsResponseApiDto {
+  scenario: IInvoiceSendingScenarioValueApiDto;
+  requestedCount: number;
+  validCount: number;
+  invalidCount: number;
+  items: IValidateInvoiceDocumentResultApiDto[];
 }
 
 export interface ISendInvoiceDocumentResultApiDto extends IInvoiceSendingDocumentKeyApiDto {
@@ -215,6 +232,6 @@ export interface ISendInvoiceDocumentsResponseApiDto {
 export interface IInvoicePreviewRequestApiDto {
   invoiceId?: string | null;
   xmlContent: string;
-  profile?: IInvoiceRenderProfileApiDto | null;
+  profile?: IInvoiceRenderProfileValueApiDto | null;
   preferEmbeddedXslt?: boolean | null;
 }
