@@ -54,6 +54,9 @@ type SendingSortKey =
   | 'documentDate'
   | 'isSent'
   | 'scenario'
+  | 'profile'
+  | 'sourceLine'
+  | 'taxRate'
   | 'returnReference'
   | 'payableTotal';
 
@@ -2285,6 +2288,12 @@ export class FaturaIslemleriListComponent {
         return item.isSent;
       case 'scenario':
         return this.getScenarioLabel(item.scenario);
+      case 'profile':
+        return item.invoiceProfileId;
+      case 'sourceLine':
+        return item.sourceLineCount ?? item.sourceLineSummary ?? null;
+      case 'taxRate':
+        return item.taxRateSummary ?? null;
       case 'returnReference':
         return this.isReturnInvoice(item) ? this.getReturnReferenceLabel(item) : '';
       case 'payableTotal':

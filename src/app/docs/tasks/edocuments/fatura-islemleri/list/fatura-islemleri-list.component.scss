@@ -388,6 +388,7 @@
   position: sticky;
   top: 0;
   z-index: 8;
+  overflow-x: auto;
   padding: 0.48rem 0.55rem;
   background: #ffffff;
 }
@@ -401,13 +402,24 @@
 }
 
 .sending-filter-grid {
-  grid-template-columns: repeat(4, minmax(128px, 1fr));
+  grid-template-columns: minmax(132px, 0.7fr) minmax(132px, 0.7fr) minmax(136px, 0.8fr) minmax(150px, 0.85fr) max-content;
   align-items: end;
   gap: 0.45rem;
+  min-width: 850px;
 }
 
-.sending-filter-panel .toolbar-actions {
-  margin-top: 0.45rem;
+.sending-filter-actions {
+  display: flex;
+  flex-wrap: nowrap;
+  align-items: end;
+  justify-content: flex-end;
+  gap: 0.38rem;
+  white-space: nowrap;
+}
+
+.sending-filter-actions .primary-button,
+.sending-filter-actions .secondary-button {
+  width: auto;
 }
 
 .sending-list-panel {
@@ -551,7 +563,7 @@
 }
 
 .sending-table {
-  min-width: 1180px;
+  min-width: 1280px;
 }
 
 .invoice-table th,
@@ -1156,7 +1168,6 @@
     grid-column: auto;
   }
 
-  .sending-filter-grid,
   .queue-banner {
     grid-template-columns: 1fr;
   }
