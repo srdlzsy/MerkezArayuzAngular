@@ -685,6 +685,8 @@
                         Senaryo{{ getSendingSortIndicator('scenario') }}
                       </button>
                     </th>
+                    <th>Kaynak</th>
+                    <th>KDV</th>
                     <th>
                       <button type="button" class="sort-header" (click)="changeSendingSort('returnReference')">
                         Iade Ref{{ getSendingSortIndicator('returnReference') }}
@@ -743,6 +745,13 @@
                       </span>
                     </td>
                     <td>{{ getScenarioLabel(item.scenario) }}</td>
+                    <td>
+                      <span class="table-main-text">{{ getSourceLineCountLabel(item) }}</span>
+                      <small>{{ item.sourceLineSummary || '-' }}</small>
+                    </td>
+                    <td>
+                      <span class="table-main-text">{{ item.taxRateSummary || '-' }}</span>
+                    </td>
                     <td>
                       <ng-container *ngIf="isReturnInvoice(item); else noReturnReference">
                         <span
@@ -975,6 +984,17 @@
               <article class="summary-card">
                 <span>Profil</span>
                 <strong>{{ summary.invoiceProfileId || '-' }}</strong>
+              </article>
+              <article class="summary-card">
+                <span>Kaynak Satir</span>
+                <strong>{{ getSourceLineCountLabel(summary) }}</strong>
+                <small *ngIf="summary.sourceLineSummary">
+                  {{ summary.sourceLineSummary }}
+                </small>
+              </article>
+              <article class="summary-card">
+                <span>KDV Ozeti</span>
+                <strong>{{ summary.taxRateSummary || '-' }}</strong>
               </article>
               <article class="summary-card">
                 <span>Gonderim Durumu</span>

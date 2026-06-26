@@ -462,6 +462,9 @@ export class FaturaIslemleriListComponent {
             item.sentDocumentNo,
             item.warehouseName,
             item.description,
+            item.sourceLineSummary,
+            item.taxRateSummary,
+            `${item.sourceLineCount ?? ''}`,
             `${item.payableTotal}`
           ].some((value) => this.normalizeText(value).includes(filter))
         );
@@ -1569,6 +1572,16 @@ export class FaturaIslemleriListComponent {
     }
 
     return item.returnInvoiceNo?.trim() || 'Referans gerekli';
+  }
+
+  protected getSourceLineCountLabel(item: InvoiceSendingListItemDto): string {
+    const count = item.sourceLineCount ?? null;
+
+    if (count === null || count === undefined) {
+      return '-';
+    }
+
+    return `${count} satir`;
   }
 
   protected getReturnReferenceCandidates(

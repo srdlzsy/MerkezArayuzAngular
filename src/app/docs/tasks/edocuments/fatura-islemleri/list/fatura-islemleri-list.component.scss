@@ -550,6 +550,10 @@
   table-layout: fixed;
 }
 
+.sending-table {
+  min-width: 1180px;
+}
+
 .invoice-table th,
 .invoice-table td {
   padding: 0.52rem 0.68rem;

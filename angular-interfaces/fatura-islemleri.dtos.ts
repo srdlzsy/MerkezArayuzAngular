@@ -129,6 +129,9 @@ export interface IInvoiceSendingListItemApiDto {
   returnInvoiceDate: string | null;
   warehouseName: string | null;
   description: string | null;
+  sourceLineCount?: number | null;
+  sourceLineSummary?: string | null;
+  taxRateSummary?: string | null;
 }
 
 export interface IInvoiceSendingListResponseApiDto {
