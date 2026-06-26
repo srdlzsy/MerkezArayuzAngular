@@ -34,6 +34,12 @@
           <div class="summary-badges" *ngIf="lineCount()">
             <span class="badge">{{ lineCount() }} Kalem</span>
             <span class="total-badge">Toplam: {{ totalQuantity() }}</span>
+            <span class="badge" *ngIf="hasExpandedVirmanLines()">
+              Mikro satir: {{ effectiveLineCount() }}
+            </span>
+            <span class="total-badge" *ngIf="hasExpandedVirmanLines()">
+              Mikro toplam: {{ effectiveTotalQuantity() }}
+            </span>
           </div>
         </div>
 
@@ -169,7 +175,7 @@
                 <select formControlName="movementType">
                   <option [ngValue]="0">0 - Giris</option>
                   <option [ngValue]="1">1 - Cikis</option>
-                  <option [ngValue]="2">2 - Virman</option>
+                  <option [ngValue]="2">2 - Virman (giris + cikis)</option>
                 </select>
               </label>
 

@@ -709,7 +709,7 @@
 }
 
 .audit-flow {
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
 }
 
 .audit-kpi,
@@ -763,7 +763,8 @@
 
 .flow-step {
   span,
-  strong {
+  strong,
+  small {
     display: block;
   }
 
@@ -783,6 +784,13 @@
     margin: 0.2rem 0 0 0;
     color: var(--a-sub);
     font-size: 0.8rem;
+  }
+
+  small {
+    margin-top: 0.35rem;
+    color: var(--axata-muted);
+    font-size: 0.72rem;
+    font-weight: 700;
   }
 }
 

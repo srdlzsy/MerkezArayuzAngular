@@ -161,6 +161,33 @@ export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
     );
   }
 
+  protected effectiveLineCount(): number {
+    if (!this.usesVirmanFields()) {
+      return this.lineCount();
+    }
+
+    return this.lines.controls.reduce(
+      (total, control) => total + (this.isExpandedVirmanLine(control) ? 2 : 1),
+      0
+    );
+  }
+
+  protected effectiveTotalQuantity(): number {
+    if (!this.usesVirmanFields()) {
+      return this.totalQuantity();
+    }
+
+    return this.lines.controls.reduce((total, control) => {
+      const quantity = this.normalizeNumber(control.controls.quantity.value);
+
+      return total + quantity * (this.isExpandedVirmanLine(control) ? 2 : 1);
+    }, 0);
+  }
+
+  protected hasExpandedVirmanLines(): boolean {
+    return this.usesVirmanFields() && this.lines.controls.some((line) => this.isExpandedVirmanLine(line));
+  }
+
   protected searchStock(): void {
     const query = this.stockQuery.value.trim();
 
@@ -414,6 +441,10 @@ export abstract class StockDocumentCreateBase extends DocsTaskDialogBase {
   private normalizeNumber(value: number | null | undefined): number {
     const normalizedValue = Number(value ?? 0);
     return Number.isFinite(normalizedValue) ? normalizedValue : 0;
+  }
+
+  private isExpandedVirmanLine(control: StockDocumentLineFormGroup): boolean {
+    return this.normalizeNumber(control.controls.movementType.value) === 2;
   }
 
   private createClientRequestId(): string {

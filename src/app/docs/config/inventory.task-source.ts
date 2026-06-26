@@ -136,7 +136,7 @@ export const INVENTORY_TASK_SOURCE = {
       baseRouteOrFile: '/api/stok-islemleri/virmanlar',
       highlights: [
         'warehouseNo body icinden alinmaz; JWT icindeki kullanici deposu kullanilir',
-        'movementType satir bazinda sth_tip kolonuna yazilir',
+        'movementType satir bazinda sth_tip kolonuna yazilir; 2 gonderilirse backend giris ve cikis olarak iki stok hareketi acar',
         'giris ve cikis depo no eski yapiya uygun olarak kullanici deposuna yazilir',
         'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
       ],

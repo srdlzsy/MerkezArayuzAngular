@@ -535,15 +535,16 @@
           </div>
         </div>
 
-        <div
-          class="order-lifecycle-list"
-          *ngIf="auditModel.orderLifecycles?.length; else noOrderLifecycles"
-        >
-          <details
-            class="order-lifecycle-card"
-            *ngFor="let item of auditModel.orderLifecycles; trackBy: trackByOrderLifecycle"
-            [open]="item.recommendedAction.requiresManualAction"
+        <ng-container *ngIf="auditModel.orderLifecycles as orderLifecycles; else noOrderLifecycles">
+          <div
+            class="order-lifecycle-list"
+            *ngIf="orderLifecycles.length; else noOrderLifecycles"
           >
+            <details
+              class="order-lifecycle-card"
+              *ngFor="let item of orderLifecycles; trackBy: trackByOrderLifecycle"
+              [open]="item.recommendedAction.requiresManualAction"
+            >
             <summary>
               <span class="lifecycle-document">
                 <strong>{{ item.documentSerie }}.{{ item.documentOrderNo }}</strong>
@@ -626,60 +627,157 @@
               </div>
             </div>
           </details>
-        </div>
+          </div>
+        </ng-container>
 
         <ng-template #noOrderLifecycles>
           <div class="empty-msg">Secili filtrelerde siparis yasam dongusu kaydi donmedi.</div>
         </ng-template>
       </ng-container>
 
-      <div class="audit-flow">
-        <div
-          class="flow-step"
-          [class.success]="auditModel.summary.unsentWarehouseOrderDocumentCount === 0"
-          [class.warn]="auditModel.summary.unsentWarehouseOrderDocumentCount > 0"
-        >
-          <span>1. Mikro Siparis</span>
-          <strong>{{ auditModel.summary.sentWarehouseOrderDocumentCount }}/{{ auditModel.summary.mikroWarehouseOrderDocumentCount }}</strong>
-          <p>{{ auditModel.summary.unsentWarehouseOrderDocumentCount }} belge AXATA gonderiminde eksik</p>
+      <ng-container *ngIf="auditModel.flowOverview as flowOverview; else legacyAuditFlow">
+        <section class="section-block">
+          <div class="audit-section-head">
+            <div>
+              <span class="audit-eyebrow">Mikro -> AXATA -> Mikro</span>
+              <h2 class="section-title">{{ flowOverview.title || 'Akis Ozeti' }}</h2>
+              <p class="section-desc">
+                {{ flowOverview.description || 'Siparisin AXATAya gidisi, sevkin AXATAdan donusu ve Mikro baglantisi tek akista izlenir.' }}
+              </p>
+            </div>
+            <span [class]="auditModel.isInSync ? 'status-pill-success' : 'status-pill-danger'">
+              {{ auditModel.isInSync ? 'Sorunsuz' : 'Aksiyon gerekli' }}
+            </span>
+          </div>
+
+          <div class="operation-grid" *ngIf="flowOverview.steps.length">
+            <article
+              class="operation-card"
+              *ngFor="let step of flowOverview.steps; trackBy: trackByFlowOverviewStep"
+              [ngClass]="getAuditInsightClass(getFlowOverviewTone(step))"
+            >
+              <div class="operation-card-head">
+                <span>{{ step.order }}. {{ step.label || step.code }}</span>
+                <strong>{{ step.title }}</strong>
+                <span [class]="getAuditOperationTone({ state: step.state || step.severity || '', severity: step.severity || '' })">
+                  {{ formatFlowOverviewState(step) }}
+                </span>
+              </div>
+              <p>{{ step.description || formatFlowOverviewMetric(step) }}</p>
+              <div class="operation-metrics">
+                <span>{{ step.documentCount }} belge</span>
+                <span *ngIf="step.lineCount !== null && step.lineCount !== undefined">
+                  {{ step.lineCount | number:'1.0-0' }} satir
+                </span>
+                <span *ngIf="step.quantity !== null && step.quantity !== undefined">
+                  {{ step.quantity | number:'1.0-2' }} miktar
+                </span>
+              </div>
+            </article>
+          </div>
+
+          <div class="audit-section-head" *ngIf="flowOverview.actionGroups.length">
+            <div>
+              <h2 class="section-title">Siradaki Aksiyonlar</h2>
+              <p class="section-desc">Backendin grupladigi belgeler ve onerilen hareketler.</p>
+            </div>
+            <span class="status-pill">{{ flowOverview.actionGroups.length }} grup</span>
+          </div>
+
+          <div class="operation-grid" *ngIf="flowOverview.actionGroups.length">
+            <article
+              class="operation-card"
+              *ngFor="let group of flowOverview.actionGroups; trackBy: trackByFlowOverviewActionGroup"
+              [ngClass]="getAuditInsightClass(getFlowOverviewTone(group))"
+            >
+              <div class="operation-card-head">
+                <span>{{ group.code }}</span>
+                <strong>{{ group.title }}</strong>
+                <span [class]="getAuditOperationTone({ state: group.state || group.severity || '', severity: group.severity || '' })">
+                  {{ formatFlowOverviewState(group) }}
+                </span>
+              </div>
+              <p>{{ group.description || formatFlowOverviewMetric(group) }}</p>
+
+              <div class="operation-metrics">
+                <span>{{ group.documentCount }} belge</span>
+                <span *ngIf="group.canExecute !== null && group.canExecute !== undefined">
+                  {{ group.canExecute ? 'Butonla islenebilir' : 'Sadece izleme' }}
+                </span>
+                <span>{{ formatFlowOverviewShortMetric(group) }}</span>
+              </div>
+
+              <div class="compact-table" *ngIf="group.documents.length">
+                <div
+                  class="table-row three-col"
+                  *ngFor="let document of group.documents | slice:0:5; trackBy: trackByFlowOverviewActionDocument"
+                >
+                  <span>
+                    <strong>{{ formatFlowOverviewDocument(document) }}</strong>
+                    <small>{{ formatFlowOverviewDocumentMeta(document) }}</small>
+                  </span>
+                  <span>{{ document.reason || '-' }}</span>
+                  <span>{{ document.state || document.status || '-' }}</span>
+                </div>
+              </div>
+
+              <div class="metric-line" *ngIf="group.documents.length > 5">
+                +{{ group.documents.length - 5 }} belge daha
+              </div>
+            </article>
+          </div>
+        </section>
+      </ng-container>
+
+      <ng-template #legacyAuditFlow>
+        <div class="audit-flow">
+          <div
+            class="flow-step"
+            [class.success]="auditModel.summary.unsentWarehouseOrderDocumentCount === 0"
+            [class.warn]="auditModel.summary.unsentWarehouseOrderDocumentCount > 0"
+          >
+            <span>1. Mikro Siparis</span>
+            <strong>{{ auditModel.summary.sentWarehouseOrderDocumentCount }}/{{ auditModel.summary.mikroWarehouseOrderDocumentCount }}</strong>
+            <p>{{ auditModel.summary.unsentWarehouseOrderDocumentCount }} belge AXATA gonderiminde eksik</p>
+          </div>
+          <div
+            class="flow-step"
+            [class.success]="auditModel.summary.pendingOutboundDeliveryDocumentCount === 0"
+            [class.warn]="auditModel.summary.pendingOutboundDeliveryDocumentCount > 0"
+          >
+            <span>2. AXATA Sevkleri</span>
+            <strong>
+              {{ auditModel.summary.axataOutboundDeliveryDocumentCount }}
+            </strong>
+            <p>
+              {{ auditModel.summary.pendingOutboundDeliveryDocumentCount }} pending /
+              {{ auditModel.summary.axataCompletedOutboundDeliveryDocumentCount }} tamamlanan
+            </p>
+          </div>
+          <div
+            class="flow-step"
+            [class.success]="auditModel.summary.sentWarehouseOrderMissingMikroShipmentDocumentCount === 0"
+            [class.danger]="auditModel.summary.sentWarehouseOrderMissingMikroShipmentDocumentCount > 0"
+          >
+            <span>3. Mikro Sevk Linki</span>
+            <strong>{{ auditModel.summary.sentWarehouseOrderMissingMikroShipmentDocumentCount }}</strong>
+            <p>{{ auditModel.summary.sentWarehouseOrderMissingMikroShipmentLineCount | number:'1.0-0' }} satir link bekliyor</p>
+          </div>
+          <div
+            class="flow-step"
+            [class.success]="auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount === 0"
+            [class.warn]="auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount > 0"
+          >
+            <span>4. Kismi Fark</span>
+            <strong>{{ auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount }}</strong>
+            <p>
+              {{ auditModel.summary.sentWarehouseOrderShipmentDifferenceLineCount | number:'1.0-0' }}
+              satir / {{ auditModel.summary.sentWarehouseOrderShipmentDifferenceQuantity | number:'1.0-2' }}
+              miktar fark
+            </p>
+          </div>
         </div>
-        <div
-          class="flow-step"
-          [class.success]="auditModel.summary.pendingOutboundDeliveryDocumentCount === 0"
-          [class.warn]="auditModel.summary.pendingOutboundDeliveryDocumentCount > 0"
-        >
-          <span>2. AXATA Sevkleri</span>
-          <strong>
-            {{ auditModel.summary.axataOutboundDeliveryDocumentCount }}
-          </strong>
-          <p>
-            {{ auditModel.summary.pendingOutboundDeliveryDocumentCount }} pending /
-            {{ auditModel.summary.axataCompletedOutboundDeliveryDocumentCount }} tamamlanan
-          </p>
-        </div>
-        <div
-          class="flow-step"
-          [class.success]="auditModel.summary.sentWarehouseOrderMissingMikroShipmentDocumentCount === 0"
-          [class.danger]="auditModel.summary.sentWarehouseOrderMissingMikroShipmentDocumentCount > 0"
-        >
-          <span>3. Mikro Sevk Linki</span>
-          <strong>{{ auditModel.summary.sentWarehouseOrderMissingMikroShipmentDocumentCount }}</strong>
-          <p>{{ auditModel.summary.sentWarehouseOrderMissingMikroShipmentLineCount | number:'1.0-0' }} satir link bekliyor</p>
-        </div>
-        <div
-          class="flow-step"
-          [class.success]="auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount === 0"
-          [class.warn]="auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount > 0"
-        >
-          <span>4. Kismi Fark</span>
-          <strong>{{ auditModel.summary.sentWarehouseOrderShipmentDifferenceDocumentCount }}</strong>
-          <p>
-            {{ auditModel.summary.sentWarehouseOrderShipmentDifferenceLineCount | number:'1.0-0' }}
-            satir / {{ auditModel.summary.sentWarehouseOrderShipmentDifferenceQuantity | number:'1.0-2' }}
-            miktar fark
-          </p>
-        </div>
-      </div>
+      </ng-template>
 
       <div class="section-block" *ngIf="auditModel.operations.length">
         <div class="audit-section-head">
@@ -931,7 +1029,7 @@
           </p>
           <div
             class="compact-table audit-delivery-table"
-            *ngIf="auditModel.axataOutboundDeliveries?.length; else noAxataAuditDeliveries"
+            *ngIf="auditModel.axataOutboundDeliveries.length; else noAxataAuditDeliveries"
           >
             <div class="table-row table-head">
               <span>AXATA / Belge</span>

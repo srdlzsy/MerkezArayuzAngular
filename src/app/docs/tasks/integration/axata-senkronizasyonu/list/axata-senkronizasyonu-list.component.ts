@@ -20,6 +20,9 @@ import type {
   IAxataInboundAtfCompanyReceivingRequestApiDto,
   IAxataIntegrationAuditOperationApiDto,
   IAxataAuditOutboundDeliveryApiDto,
+  IAxataFlowOverviewActionDocumentApiDto,
+  IAxataFlowOverviewActionGroupApiDto,
+  IAxataFlowOverviewStepApiDto,
   IAxataOrderLifecycleApiDto,
   IAxataOrderRecommendedActionApiDto,
   IAxataManualIncomingCompanyReceivingBatchRequestApiDto,
@@ -2949,7 +2952,7 @@ export class AxataSenkronizasyonuListComponent {
   }
 
   protected getAuditOperationTone(
-    operation: IAxataIntegrationAuditOperationApiDto
+    operation: Pick<IAxataIntegrationAuditOperationApiDto, 'severity' | 'state'>
   ): string {
     const normalizedSeverity = operation.severity?.trim().toLocaleLowerCase('tr-TR') ?? '';
     const normalizedState = operation.state?.trim().toLocaleLowerCase('tr-TR') ?? '';
@@ -2994,6 +2997,139 @@ export class AxataSenkronizasyonuListComponent {
       default:
         return 'audit-card-neutral';
     }
+  }
+
+  protected getFlowOverviewTone(
+    item: Pick<IAxataFlowOverviewStepApiDto, 'severity' | 'state'>
+  ): AuditInsightTone {
+    const severity = item.severity?.trim().toLocaleLowerCase('tr-TR') ?? '';
+    const state = item.state?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (
+      severity === 'critical' ||
+      severity === 'error' ||
+      severity === 'danger' ||
+      state.includes('manual') ||
+      state.includes('missing') ||
+      state.includes('blocked')
+    ) {
+      return 'danger';
+    }
+
+    if (
+      severity === 'warning' ||
+      severity === 'warn' ||
+      state.includes('pending') ||
+      state.includes('waiting')
+    ) {
+      return 'warn';
+    }
+
+    if (
+      severity === 'success' ||
+      severity === 'ok' ||
+      state === 'ok' ||
+      state.includes('sync') ||
+      state.includes('complete')
+    ) {
+      return 'success';
+    }
+
+    return 'neutral';
+  }
+
+  protected getFlowOverviewClass(
+    item: Pick<IAxataFlowOverviewStepApiDto, 'severity' | 'state'>
+  ): string {
+    return `flow-step ${this.getFlowOverviewTone(item)}`;
+  }
+
+  protected formatFlowOverviewState(
+    item: Pick<IAxataFlowOverviewStepApiDto, 'severity' | 'state'>
+  ): string {
+    const tone = this.getFlowOverviewTone(item);
+    const state = item.state?.trim();
+    const severity = item.severity?.trim();
+
+    if (tone === 'danger') {
+      return 'Mudahale gerekli';
+    }
+
+    if (tone === 'warn') {
+      return 'Kontrol bekliyor';
+    }
+
+    if (tone === 'success') {
+      return 'Tamam';
+    }
+
+    return this.formatAuditState(state || severity);
+  }
+
+  protected formatFlowOverviewMetric(
+    item: Pick<IAxataFlowOverviewStepApiDto, 'documentCount' | 'lineCount' | 'quantity'>
+  ): string {
+    const parts = [`${item.documentCount} belge`];
+
+    if (typeof item.lineCount === 'number') {
+      parts.push(`${item.lineCount.toLocaleString('tr-TR')} satir`);
+    }
+
+    if (typeof item.quantity === 'number') {
+      parts.push(`${item.quantity.toLocaleString('tr-TR')} miktar`);
+    }
+
+    return parts.join(' / ');
+  }
+
+  protected formatFlowOverviewShortMetric(
+    item: Pick<IAxataFlowOverviewStepApiDto, 'documentCount' | 'lineCount' | 'quantity'>
+  ): string {
+    if (typeof item.quantity === 'number') {
+      return `${item.quantity.toLocaleString('tr-TR')} miktar`;
+    }
+
+    if (typeof item.lineCount === 'number') {
+      return `${item.lineCount.toLocaleString('tr-TR')} satir`;
+    }
+
+    return `${item.documentCount} belge`;
+  }
+
+  protected formatFlowOverviewDocument(
+    item: IAxataFlowOverviewActionDocumentApiDto
+  ): string {
+    const serie = item.documentSerie?.trim();
+    const orderNo = item.documentOrderNo;
+    const documentNo = item.documentNo?.trim();
+
+    if (serie && orderNo) {
+      return `${serie}.${orderNo}`;
+    }
+
+    return documentNo || '-';
+  }
+
+  protected formatFlowOverviewDocumentMeta(
+    item: IAxataFlowOverviewActionDocumentApiDto
+  ): string {
+    const parts: string[] = [];
+
+    if (item.sourceWarehouseNo || item.targetWarehouseNo) {
+      parts.push(`${item.sourceWarehouseNo ?? '-'} -> ${item.targetWarehouseNo ?? '-'}`);
+    } else if (item.warehouseNo) {
+      parts.push(`Depo ${item.warehouseNo}`);
+    }
+
+    if (item.documentDate) {
+      parts.push(this.formatTimestamp(item.documentDate));
+    }
+
+    if (item.quantity !== null && item.quantity !== undefined) {
+      parts.push(`${item.quantity.toLocaleString('tr-TR')} miktar`);
+    }
+
+    return parts.join(' / ') || '-';
   }
 
   protected formatAuditState(value: string | null | undefined): string {
@@ -3350,6 +3486,19 @@ export class AxataSenkronizasyonuListComponent {
   ): string => item.code;
   protected trackByAuditInsightCard = (_index: number, item: AuditInsightCard): string =>
     item.label;
+  protected trackByFlowOverviewStep = (
+    _index: number,
+    item: IAxataFlowOverviewStepApiDto
+  ): string => `${item.order}|${item.code}`;
+  protected trackByFlowOverviewActionGroup = (
+    _index: number,
+    item: IAxataFlowOverviewActionGroupApiDto
+  ): string => item.code;
+  protected trackByFlowOverviewActionDocument = (
+    index: number,
+    item: IAxataFlowOverviewActionDocumentApiDto
+  ): string =>
+    `${item.documentSerie ?? ''}|${item.documentOrderNo ?? ''}|${item.documentNo ?? ''}|${index}`;
   protected trackByMissingShipmentWarehouseGroup = (
     _index: number,
     item: MissingShipmentWarehouseGroup

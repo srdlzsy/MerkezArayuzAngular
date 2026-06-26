@@ -200,6 +200,7 @@ export interface IAxataIntegrationAuditApiDto {
   warehouseNo: number | null;
   summary: IAxataIntegrationAuditSummaryApiDto;
   workflowSummary?: IAxataOrderWorkflowSummaryApiDto;
+  flowOverview?: IAxataFlowOverviewApiDto | null;
   orderLifecycles?: IAxataOrderLifecycleApiDto[];
   outboundDeliverySummaries: IAxataOutboundDeliveryMovementSummaryApiDto[];
   unsyncedWarehouseOrders: IAxataUnsyncedWarehouseOrderApiDto[];
@@ -210,6 +211,53 @@ export interface IAxataIntegrationAuditApiDto {
   interventionCandidates: IAxataPendingOutboundDeliveryApiDto[];
   operations: IAxataIntegrationAuditOperationApiDto[];
   notes: string[];
+}
+
+export interface IAxataFlowOverviewApiDto {
+  title?: string | null;
+  description?: string | null;
+  steps: IAxataFlowOverviewStepApiDto[];
+  actionGroups: IAxataFlowOverviewActionGroupApiDto[];
+}
+
+export interface IAxataFlowOverviewStepApiDto {
+  order: number;
+  code: string;
+  title: string;
+  label?: string | null;
+  description?: string | null;
+  state?: string | null;
+  severity?: string | null;
+  documentCount: number;
+  lineCount?: number | null;
+  quantity?: number | null;
+}
+
+export interface IAxataFlowOverviewActionGroupApiDto {
+  code: string;
+  title: string;
+  description?: string | null;
+  state?: string | null;
+  severity?: string | null;
+  canExecute?: boolean;
+  documentCount: number;
+  lineCount?: number | null;
+  quantity?: number | null;
+  documents: IAxataFlowOverviewActionDocumentApiDto[];
+}
+
+export interface IAxataFlowOverviewActionDocumentApiDto {
+  documentSerie?: string | null;
+  documentOrderNo?: number | null;
+  documentNo?: string | null;
+  documentDate?: string | null;
+  warehouseNo?: number | null;
+  sourceWarehouseNo?: number | null;
+  targetWarehouseNo?: number | null;
+  status?: string | null;
+  state?: string | null;
+  reason?: string | null;
+  quantity?: number | null;
 }
 
 export interface IAxataIntegrationAuditSummaryApiDto {
