@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  CustomerCardDetailDto,
+  CustomerCardListItemDto,
+  CustomerCardPatchHttpRequest,
+  CustomerCardSearchHttpRequest,
+  CustomerCardUpdateResponse,
   CustomerMovementDocumentDto,
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
@@ -19,7 +24,12 @@ import type {
   StockMovementDocumentLookupHttpRequest,
   StockMovementDocumentUpdateResponse,
   UpdateCustomerMovementDocumentHttpRequest,
-  UpdateStockMovementDocumentHttpRequest
+  UpdateStockMovementDocumentHttpRequest,
+  WarehouseCardDetailDto,
+  WarehouseCardListItemDto,
+  WarehouseCardPatchHttpRequest,
+  WarehouseCardSearchHttpRequest,
+  WarehouseCardUpdateResponse
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
@@ -46,6 +56,48 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   ): Observable<StockCardUpdateResponse> {
     return this.put<StockCardUpdateResponse, StockCardPatchHttpRequest>(
       `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}`,
+      request
+    );
+  }
+
+  searchWarehouseCards(
+    query: WarehouseCardSearchHttpRequest
+  ): Observable<WarehouseCardListItemDto[]> {
+    return this.getWithQuery<WarehouseCardListItemDto[]>(`${ROOT}/depolar`, query);
+  }
+
+  getWarehouseCard(warehouseNo: number): Observable<WarehouseCardDetailDto> {
+    return this.get<WarehouseCardDetailDto>(`${ROOT}/depolar/${warehouseNo}`);
+  }
+
+  updateWarehouseCard(
+    warehouseNo: number,
+    request: WarehouseCardPatchHttpRequest
+  ): Observable<WarehouseCardUpdateResponse> {
+    return this.put<WarehouseCardUpdateResponse, WarehouseCardPatchHttpRequest>(
+      `${ROOT}/depolar/${warehouseNo}`,
+      request
+    );
+  }
+
+  searchCustomerCards(
+    query: CustomerCardSearchHttpRequest
+  ): Observable<CustomerCardListItemDto[]> {
+    return this.getWithQuery<CustomerCardListItemDto[]>(`${ROOT}/cariler`, query);
+  }
+
+  getCustomerCard(customerCode: string): Observable<CustomerCardDetailDto> {
+    return this.get<CustomerCardDetailDto>(
+      `${ROOT}/cariler/${encodeURIComponent(customerCode)}`
+    );
+  }
+
+  updateCustomerCard(
+    customerCode: string,
+    request: CustomerCardPatchHttpRequest
+  ): Observable<CustomerCardUpdateResponse> {
+    return this.put<CustomerCardUpdateResponse, CustomerCardPatchHttpRequest>(
+      `${ROOT}/cariler/${encodeURIComponent(customerCode)}`,
       request
     );
   }

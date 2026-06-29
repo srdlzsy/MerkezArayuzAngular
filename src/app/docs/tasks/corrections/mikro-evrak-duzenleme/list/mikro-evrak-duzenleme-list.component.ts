@@ -5,6 +5,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import type {
+  CustomerCardDetailDto,
+  CustomerCardListItemDto,
+  CustomerCardPatchHttpRequest,
+  CustomerCardUpdateResponse,
   CustomerMovementDocumentDto,
   CustomerMovementDocumentLineDto,
   CustomerMovementDocumentLookupHttpRequest,
@@ -24,7 +28,11 @@ import type {
   StockMovementDocumentLookupHttpRequest,
   StockMovementDocumentUpdateResponse,
   UpdateCustomerMovementDocumentHttpRequest,
-  UpdateStockMovementDocumentHttpRequest
+  UpdateStockMovementDocumentHttpRequest,
+  WarehouseCardDetailDto,
+  WarehouseCardListItemDto,
+  WarehouseCardPatchHttpRequest,
+  WarehouseCardUpdateResponse
 } from '@interfaces';
 
 import { DuzeltmeIslemleriService } from '../../../../../core/api/module-services/duzeltme-islemleri.service';
@@ -33,11 +41,22 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 
-type EditorTab = 'stock-card' | 'stock-movement' | 'customer-movement';
+type EditorTab =
+  | 'stock-card'
+  | 'warehouse-card'
+  | 'customer-card'
+  | 'stock-movement'
+  | 'customer-movement';
 type BusyAction =
   | 'stock-search'
   | 'stock-detail'
   | 'stock-save'
+  | 'warehouse-card-search'
+  | 'warehouse-card-detail'
+  | 'warehouse-card-save'
+  | 'customer-card-search'
+  | 'customer-card-detail'
+  | 'customer-card-save'
   | 'sales-price-load'
   | 'sales-price-save'
   | 'movement-load'
@@ -110,6 +129,108 @@ const STOCK_SALES_PRICE_FIELDS: readonly FieldDefinition[] = [
   { key: 'price', label: 'Fiyat', type: 'number' },
   { key: 'currencyType', label: 'Doviz Tipi', type: 'number' },
   { key: 'changeReason', label: 'Degisim Nedeni', type: 'number' }
+];
+
+const WAREHOUSE_CARD_TEXT_FIELDS: readonly FieldDefinition[] = [
+  { key: 'name', label: 'Depo Adi', wide: true },
+  { key: 'groupCode', label: 'Grup Kodu' },
+  { key: 'accountingCode', label: 'Muhasebe Kodu' },
+  { key: 'responsibilityCenter', label: 'Sorumluluk Merkezi' },
+  { key: 'projectCode', label: 'Proje Kodu' },
+  { key: 'regionCode', label: 'Bolge Kodu' },
+  { key: 'street', label: 'Cadde/Sokak', wide: true },
+  { key: 'neighborhood', label: 'Mahalle' },
+  { key: 'avenue', label: 'Bulvar' },
+  { key: 'quarter', label: 'Semt' },
+  { key: 'apartmentNo', label: 'Bina No' },
+  { key: 'apartmentUnitNo', label: 'Daire No' },
+  { key: 'postalCode', label: 'Posta Kodu' },
+  { key: 'district', label: 'Ilce' },
+  { key: 'city', label: 'Il' },
+  { key: 'country', label: 'Ulke' },
+  { key: 'addressCode', label: 'Adres Kodu' },
+  { key: 'authorizedEmail', label: 'Yetkili E-posta', wide: true },
+  { key: 'phoneCountryCode', label: 'Tel Ulke' },
+  { key: 'phoneAreaCode', label: 'Tel Alan' },
+  { key: 'phoneNo1', label: 'Telefon 1' },
+  { key: 'phoneNo2', label: 'Telefon 2' },
+  { key: 'faxNo', label: 'Faks' }
+];
+
+const WAREHOUSE_CARD_NUMBER_FIELDS: readonly FieldDefinition[] = [
+  { key: 'warehouseType', label: 'Depo Tipi', type: 'number' },
+  { key: 'movementType', label: 'Hareket Tipi', type: 'number' },
+  { key: 'shipmentAutoPriceType', label: 'Sevk Oto Fiyat', type: 'number' },
+  { key: 'shipmentAppliedPriceNo', label: 'Sevk Fiyat No', type: 'number' },
+  { key: 'latitude', label: 'Enlem', type: 'number' },
+  { key: 'longitude', label: 'Boylam', type: 'number' },
+  { key: 'detailTrackingType', label: 'Detay Takip', type: 'number' }
+];
+
+const WAREHOUSE_CARD_DATE_FIELDS: readonly FieldDefinition[] = [
+  { key: 'lockDate', label: 'Kilit Tarihi', type: 'date' }
+];
+
+const WAREHOUSE_CARD_BOOLEAN_FIELDS: readonly FieldDefinition[] = [
+  { key: 'excludedFromInventory', label: 'Envanter Disi' },
+  { key: 'outgoingEDespatchEnabled', label: 'Giden E-Irsaliye' },
+  { key: 'incomingEDespatchEnabled', label: 'Gelen E-Irsaliye' },
+  { key: 'isPassive', label: 'Pasif' },
+  { key: 'isHidden', label: 'Gizli' },
+  { key: 'isLocked', label: 'Kilitli' }
+];
+
+const CUSTOMER_CARD_TEXT_FIELDS: readonly FieldDefinition[] = [
+  { key: 'title1', label: 'Unvan 1', wide: true },
+  { key: 'title2', label: 'Unvan 2', wide: true },
+  { key: 'accountingCode', label: 'Muhasebe Kodu' },
+  { key: 'accountingCode1', label: 'Muhasebe Kodu 1' },
+  { key: 'accountingCode2', label: 'Muhasebe Kodu 2' },
+  { key: 'taxOffice', label: 'Vergi Dairesi' },
+  { key: 'taxOfficeNo', label: 'Vergi Daire No' },
+  { key: 'registryNo', label: 'Sicil No' },
+  { key: 'taxNo', label: 'Vergi No' },
+  { key: 'taxOfficeCode', label: 'Vergi Daire Kodu' },
+  { key: 'parentCustomerCode', label: 'Ana Cari Kodu' },
+  { key: 'sectorCode', label: 'Sektor' },
+  { key: 'regionCode', label: 'Bolge' },
+  { key: 'groupCode', label: 'Grup' },
+  { key: 'representativeCode', label: 'Temsilci' },
+  { key: 'website', label: 'Web Sitesi' },
+  { key: 'email', label: 'E-posta', wide: true },
+  { key: 'mobilePhone', label: 'Cep Telefonu' },
+  { key: 'kepAddress', label: 'KEP Adresi', wide: true },
+  { key: 'reconciliationEmail', label: 'Mutabakat E-posta', wide: true },
+  { key: 'mersisNo', label: 'Mersis No' }
+];
+
+const CUSTOMER_CARD_NUMBER_FIELDS: readonly FieldDefinition[] = [
+  { key: 'movementType', label: 'Hareket Tipi', type: 'number' },
+  { key: 'connectionType', label: 'Baglanti Tipi', type: 'number' },
+  { key: 'purchaseStockType', label: 'Alis Stok Tipi', type: 'number' },
+  { key: 'salesStockType', label: 'Satis Stok Tipi', type: 'number' },
+  { key: 'currencyType', label: 'Doviz Tipi', type: 'number' },
+  { key: 'currencyType1', label: 'Doviz Tipi 1', type: 'number' },
+  { key: 'currencyType2', label: 'Doviz Tipi 2', type: 'number' },
+  { key: 'salesPriceListNo', label: 'Satis Fiyat Listesi', type: 'number' },
+  { key: 'paymentType', label: 'Odeme Tipi', type: 'number' },
+  { key: 'paymentDay', label: 'Odeme Gunu', type: 'number' },
+  { key: 'paymentPlanNo', label: 'Odeme Plani', type: 'number' },
+  { key: 'optionDay', label: 'Opsiyon Gunu', type: 'number' },
+  { key: 'invoiceAddressNo', label: 'Fatura Adres No', type: 'number' },
+  { key: 'shippingAddressNo', label: 'Sevk Adres No', type: 'number' },
+  { key: 'defaultEInvoiceType', label: 'Vars. E-Fatura Tipi', type: 'number' },
+  { key: 'defaultEDespatchType', label: 'Vars. E-Irsaliye Tipi', type: 'number' },
+  { key: 'defaultInputWarehouseNo', label: 'Vars. Giris Depo', type: 'number' },
+  { key: 'defaultOutputWarehouseNo', label: 'Vars. Cikis Depo', type: 'number' }
+];
+
+const CUSTOMER_CARD_BOOLEAN_FIELDS: readonly FieldDefinition[] = [
+  { key: 'isClosed', label: 'Kapali' },
+  { key: 'isLocked', label: 'Kilitli' },
+  { key: 'eInvoiceEnabled', label: 'E-Fatura' },
+  { key: 'eDespatchEnabled', label: 'E-Irsaliye' },
+  { key: 'retailCustomer', label: 'Perakende Cari' }
 ];
 
 const STOCK_HEADER_FIELDS: readonly FieldDefinition[] = [
@@ -212,6 +333,8 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['mikro-evrak-duzenleme'];
   protected readonly tabs = [
     { id: 'stock-card' as const, label: 'Stok Kartı', icon: 'fa-box' },
+    { id: 'warehouse-card' as const, label: 'Depo Karti', icon: 'fa-warehouse' },
+    { id: 'customer-card' as const, label: 'Cari Karti', icon: 'fa-address-card' },
     { id: 'stock-movement' as const, label: 'Stok Hareketi', icon: 'fa-right-left' },
     { id: 'customer-movement' as const, label: 'Cari Hareketi', icon: 'fa-receipt' }
   ];
@@ -220,6 +343,13 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockCardBooleanFields = STOCK_CARD_BOOLEAN_FIELDS;
   protected readonly stockCardWarehouseFields = STOCK_CARD_WAREHOUSE_FIELDS;
   protected readonly stockSalesPriceFields = STOCK_SALES_PRICE_FIELDS;
+  protected readonly warehouseCardTextFields = WAREHOUSE_CARD_TEXT_FIELDS;
+  protected readonly warehouseCardNumberFields = WAREHOUSE_CARD_NUMBER_FIELDS;
+  protected readonly warehouseCardDateFields = WAREHOUSE_CARD_DATE_FIELDS;
+  protected readonly warehouseCardBooleanFields = WAREHOUSE_CARD_BOOLEAN_FIELDS;
+  protected readonly customerCardTextFields = CUSTOMER_CARD_TEXT_FIELDS;
+  protected readonly customerCardNumberFields = CUSTOMER_CARD_NUMBER_FIELDS;
+  protected readonly customerCardBooleanFields = CUSTOMER_CARD_BOOLEAN_FIELDS;
   protected readonly stockHeaderFields = STOCK_HEADER_FIELDS;
   protected readonly stockLineFields = STOCK_LINE_FIELDS;
   protected readonly customerHeaderFields = CUSTOMER_HEADER_FIELDS;
@@ -242,12 +372,28 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockSalesPrices = signal<StockSalesPriceDto[]>([]);
   protected readonly selectedSalesPrice = signal<StockSalesPriceDto | null>(null);
   protected readonly salesPriceDraft = signal<StockSalesPriceDto | null>(null);
+  protected readonly warehouseCards = signal<WarehouseCardListItemDto[]>([]);
+  protected readonly selectedWarehouseCard = signal<WarehouseCardDetailDto | null>(null);
+  protected readonly warehouseCardDraft = signal<WarehouseCardDetailDto | null>(null);
+  protected readonly customerCards = signal<CustomerCardListItemDto[]>([]);
+  protected readonly selectedCustomerCard = signal<CustomerCardDetailDto | null>(null);
+  protected readonly customerCardDraft = signal<CustomerCardDetailDto | null>(null);
   protected readonly stockMovement = signal<StockMovementDocumentDto | null>(null);
   protected readonly stockMovementDraft = signal<StockMovementDocumentDto | null>(null);
   protected readonly customerMovement = signal<CustomerMovementDocumentDto | null>(null);
   protected readonly customerMovementDraft = signal<CustomerMovementDocumentDto | null>(null);
 
   protected stockSearch = {
+    searchText: '',
+    includePassive: false,
+    take: 50
+  };
+  protected warehouseCardSearch = {
+    searchText: '',
+    includePassive: false,
+    take: 50
+  };
+  protected customerCardSearch = {
     searchText: '',
     includePassive: false,
     take: 50
@@ -315,6 +461,21 @@ export class MikroEvrakDuzenlemeListComponent {
   );
   protected readonly changedSalesPriceFieldCount = computed(() =>
     this.countChanges(this.selectedSalesPrice(), this.salesPriceDraft(), STOCK_SALES_PRICE_FIELDS)
+  );
+  protected readonly changedWarehouseCardFieldCount = computed(() =>
+    this.countChanges(this.selectedWarehouseCard(), this.warehouseCardDraft(), [
+      ...WAREHOUSE_CARD_TEXT_FIELDS,
+      ...WAREHOUSE_CARD_NUMBER_FIELDS,
+      ...WAREHOUSE_CARD_DATE_FIELDS,
+      ...WAREHOUSE_CARD_BOOLEAN_FIELDS
+    ])
+  );
+  protected readonly changedCustomerCardFieldCount = computed(() =>
+    this.countChanges(this.selectedCustomerCard(), this.customerCardDraft(), [
+      ...CUSTOMER_CARD_TEXT_FIELDS,
+      ...CUSTOMER_CARD_NUMBER_FIELDS,
+      ...CUSTOMER_CARD_BOOLEAN_FIELDS
+    ])
   );
   protected readonly changedCustomerMovementCount = computed(() =>
     this.countDocumentChanges(
@@ -425,6 +586,189 @@ export class MikroEvrakDuzenlemeListComponent {
           });
         },
         error: (error: unknown) => this.handleError(error, 'Stok kartı güncellenemedi.')
+      });
+  }
+
+  protected searchWarehouseCards(): void {
+    if (!this.canList()) {
+      return;
+    }
+
+    this.busyAction.set('warehouse-card-search');
+    this.feedback.set(null);
+    this.service
+      .searchWarehouseCards(this.warehouseCardSearch)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (rows: WarehouseCardListItemDto[]) => {
+          this.warehouseCards.set(rows ?? []);
+          if (!rows?.length) {
+            this.setInfo('Kayit bulunamadi', 'Arama olcutlerine uygun depo karti bulunamadi.');
+          }
+        },
+        error: (error: unknown) => this.handleError(error, 'Depo kartlari getirilemedi.')
+      });
+  }
+
+  protected loadWarehouseCard(warehouseNo: number): void {
+    if (!this.canDetail()) {
+      return;
+    }
+
+    this.busyAction.set('warehouse-card-detail');
+    this.feedback.set(null);
+    this.service
+      .getWarehouseCard(warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (card: WarehouseCardDetailDto) => this.applyWarehouseCard(card),
+        error: (error: unknown) => this.handleError(error, 'Depo karti detayi getirilemedi.')
+      });
+  }
+
+  protected saveWarehouseCard(): void {
+    const original = this.selectedWarehouseCard();
+    const draft = this.warehouseCardDraft();
+    if (!original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    if (!this.validateWarehouseCard(draft)) {
+      return;
+    }
+
+    const request = this.buildPatch(
+      original,
+      draft,
+      [
+        ...WAREHOUSE_CARD_TEXT_FIELDS,
+        ...WAREHOUSE_CARD_NUMBER_FIELDS,
+        ...WAREHOUSE_CARD_DATE_FIELDS,
+        ...WAREHOUSE_CARD_BOOLEAN_FIELDS
+      ]
+    ) as WarehouseCardPatchHttpRequest;
+
+    if (!Object.keys(request).length) {
+      this.setInfo('Degisiklik yok', 'Kaydedilecek bir depo karti degisikligi bulunmuyor.');
+      return;
+    }
+
+    this.busyAction.set('warehouse-card-save');
+    this.feedback.set(null);
+    this.service
+      .updateWarehouseCard(original.warehouseNo, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: WarehouseCardUpdateResponse) => {
+          this.applyWarehouseCard({
+            ...draft,
+            ...response.warehouseCard
+          });
+          this.feedback.set({
+            tone: 'success',
+            title: 'Depo karti guncellendi',
+            message: `${response.summary.updatedRowCount} kayit guncellendi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Depo karti guncellenemedi.')
+      });
+  }
+
+  protected searchCustomerCards(): void {
+    if (!this.canList()) {
+      return;
+    }
+
+    this.busyAction.set('customer-card-search');
+    this.feedback.set(null);
+    this.service
+      .searchCustomerCards(this.customerCardSearch)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (rows: CustomerCardListItemDto[]) => {
+          this.customerCards.set(rows ?? []);
+          if (!rows?.length) {
+            this.setInfo('Kayit bulunamadi', 'Arama olcutlerine uygun cari karti bulunamadi.');
+          }
+        },
+        error: (error: unknown) => this.handleError(error, 'Cari kartlari getirilemedi.')
+      });
+  }
+
+  protected loadCustomerCard(customerCode: string): void {
+    if (!this.canDetail()) {
+      return;
+    }
+
+    this.busyAction.set('customer-card-detail');
+    this.feedback.set(null);
+    this.service
+      .getCustomerCard(customerCode)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (card: CustomerCardDetailDto) => this.applyCustomerCard(card),
+        error: (error: unknown) => this.handleError(error, 'Cari karti detayi getirilemedi.')
+      });
+  }
+
+  protected saveCustomerCard(): void {
+    const original = this.selectedCustomerCard();
+    const draft = this.customerCardDraft();
+    if (!original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    const request = this.buildPatch(
+      original,
+      draft,
+      [
+        ...CUSTOMER_CARD_TEXT_FIELDS,
+        ...CUSTOMER_CARD_NUMBER_FIELDS,
+        ...CUSTOMER_CARD_BOOLEAN_FIELDS
+      ]
+    ) as CustomerCardPatchHttpRequest;
+
+    if (!Object.keys(request).length) {
+      this.setInfo('Degisiklik yok', 'Kaydedilecek bir cari karti degisikligi bulunmuyor.');
+      return;
+    }
+
+    this.busyAction.set('customer-card-save');
+    this.feedback.set(null);
+    this.service
+      .updateCustomerCard(original.customerCode, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: CustomerCardUpdateResponse) => {
+          this.applyCustomerCard({
+            ...draft,
+            ...response.customerCard
+          });
+          this.feedback.set({
+            tone: 'success',
+            title: 'Cari karti guncellendi',
+            message: `${response.summary.updatedRowCount} kayit guncellendi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Cari karti guncellenemedi.')
       });
   }
 
@@ -552,6 +896,16 @@ export class MikroEvrakDuzenlemeListComponent {
   protected resetStockCard(): void {
     const original = this.selectedStockCard();
     this.stockCardDraft.set(original ? this.clone(original) : null);
+  }
+
+  protected resetWarehouseCard(): void {
+    const original = this.selectedWarehouseCard();
+    this.warehouseCardDraft.set(original ? this.prepareWarehouseCard(original) : null);
+  }
+
+  protected resetCustomerCard(): void {
+    const original = this.selectedCustomerCard();
+    this.customerCardDraft.set(original ? this.clone(original) : null);
   }
 
   protected loadStockCardWarehouseSettings(): void {
@@ -761,6 +1115,8 @@ export class MikroEvrakDuzenlemeListComponent {
     (target as EditableRecord)[key] = value;
     this.stockCardDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.salesPriceDraft.update((draft) => (draft ? this.clone(draft) : null));
+    this.warehouseCardDraft.update((draft) => (draft ? this.clone(draft) : null));
+    this.customerCardDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.stockMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.customerMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
   }
@@ -774,6 +1130,10 @@ export class MikroEvrakDuzenlemeListComponent {
 
   protected trackByStockCode = (_index: number, row: StockCardListItemDto): string =>
     row.stockCode;
+  protected trackByWarehouseCardNo = (_index: number, row: WarehouseCardListItemDto): number =>
+    row.warehouseNo;
+  protected trackByCustomerCode = (_index: number, row: CustomerCardListItemDto): string =>
+    row.customerCode;
   protected trackByWarehouseNo = (
     _index: number,
     row: StockCardWarehouseSettingsDto
@@ -879,6 +1239,17 @@ export class MikroEvrakDuzenlemeListComponent {
     this.stockCardDraft.set(this.clone(card));
   }
 
+  private applyWarehouseCard(card: WarehouseCardDetailDto): void {
+    const prepared = this.prepareWarehouseCard(card);
+    this.selectedWarehouseCard.set(this.clone(prepared));
+    this.warehouseCardDraft.set(this.clone(prepared));
+  }
+
+  private applyCustomerCard(card: CustomerCardDetailDto): void {
+    this.selectedCustomerCard.set(this.clone(card));
+    this.customerCardDraft.set(this.clone(card));
+  }
+
   private applyStockMovement(document: StockMovementDocumentDto): void {
     const prepared = this.prepareStockMovement(document);
     this.stockLookup = {
@@ -920,6 +1291,12 @@ export class MikroEvrakDuzenlemeListComponent {
     const clone = this.clone(document);
     clone.header.movementDate = this.toDateInput(clone.header.movementDate);
     clone.header.documentDate = this.toDateInput(clone.header.documentDate);
+    return clone;
+  }
+
+  private prepareWarehouseCard(card: WarehouseCardDetailDto): WarehouseCardDetailDto {
+    const clone = this.clone(card);
+    clone.lockDate = clone.lockDate ? this.toDateInput(clone.lockDate) : null;
     return clone;
   }
 
@@ -1024,6 +1401,33 @@ export class MikroEvrakDuzenlemeListComponent {
     return true;
   }
 
+  private validateWarehouseCard(card: WarehouseCardDetailDto): boolean {
+    const latitude = this.toNullableNumber((card as unknown as EditableRecord)['latitude']);
+    const longitude = this.toNullableNumber((card as unknown as EditableRecord)['longitude']);
+
+    if (latitude != null && (!Number.isFinite(latitude) || latitude < -90 || latitude > 90)) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Enlem gecersiz',
+        message: 'Depo kartinda latitude -90 ile 90 arasinda olmalidir.'
+      });
+      return false;
+    }
+
+    if (longitude != null && (!Number.isFinite(longitude) || longitude < -180 || longitude > 180)) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Boylam gecersiz',
+        message: 'Depo kartinda longitude -180 ile 180 arasinda olmalidir.'
+      });
+      return false;
+    }
+
+    card.latitude = latitude;
+    card.longitude = longitude;
+    return true;
+  }
+
   private cleanLookup<T extends object>(lookup: T): T {
     return Object.fromEntries(
       Object.entries(lookup).filter(
@@ -1077,6 +1481,10 @@ export class MikroEvrakDuzenlemeListComponent {
   private toNonNegativeNumber(value: unknown): number | undefined {
     const numberValue = Number(value);
     return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : undefined;
+  }
+
+  private toNullableNumber(value: unknown): number | null {
+    return value === null || value === undefined || value === '' ? null : Number(value);
   }
 
   private clone<T>(value: T): T {

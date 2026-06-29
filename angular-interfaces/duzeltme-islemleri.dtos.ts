@@ -85,6 +85,222 @@ export interface StockCardUpdateResponse {
   stockCard: Partial<StockCardDetailDto> & Pick<StockCardDetailDto, 'stockCode'>;
 }
 
+export interface WarehouseCardSearchHttpRequest {
+  searchText?: string | null;
+  includePassive?: boolean | null;
+  take?: number | null;
+}
+
+export interface WarehouseCardListItemDto {
+  warehouseNo: number;
+  name: string;
+  groupCode: string;
+  warehouseType: number;
+  city: string;
+  district: string;
+  isPassive: boolean;
+  isHidden: boolean;
+  lastUpdatedAt: string | null;
+}
+
+export interface WarehouseCardDetailDto extends WarehouseCardListItemDto {
+  warehouseGuid: string;
+  shipmentAutoPriceType: number;
+  movementType: number;
+  accountingCode: string;
+  responsibilityCenter: string;
+  projectCode: string;
+  shipmentAppliedPriceNo: number;
+  lockDate: string | null;
+  street: string;
+  neighborhood: string;
+  avenue: string;
+  quarter: string;
+  apartmentNo: string;
+  apartmentUnitNo: string;
+  postalCode: string;
+  country: string;
+  addressCode: string;
+  latitude: number | null;
+  longitude: number | null;
+  authorizedEmail: string;
+  phoneCountryCode: string;
+  phoneAreaCode: string;
+  phoneNo1: string;
+  phoneNo2: string;
+  faxNo: string;
+  excludedFromInventory: boolean;
+  detailTrackingType: number;
+  regionCode: string;
+  outgoingEDespatchEnabled: boolean;
+  incomingEDespatchEnabled: boolean;
+  isLocked: boolean;
+  createdAt: string | null;
+}
+
+export type WarehouseCardPatchHttpRequest = Partial<
+  Pick<
+    WarehouseCardDetailDto,
+    | 'name'
+    | 'groupCode'
+    | 'warehouseType'
+    | 'movementType'
+    | 'shipmentAutoPriceType'
+    | 'shipmentAppliedPriceNo'
+    | 'accountingCode'
+    | 'responsibilityCenter'
+    | 'projectCode'
+    | 'regionCode'
+    | 'street'
+    | 'neighborhood'
+    | 'avenue'
+    | 'quarter'
+    | 'apartmentNo'
+    | 'apartmentUnitNo'
+    | 'postalCode'
+    | 'district'
+    | 'city'
+    | 'country'
+    | 'addressCode'
+    | 'latitude'
+    | 'longitude'
+    | 'authorizedEmail'
+    | 'phoneCountryCode'
+    | 'phoneAreaCode'
+    | 'phoneNo1'
+    | 'phoneNo2'
+    | 'faxNo'
+    | 'excludedFromInventory'
+    | 'detailTrackingType'
+    | 'outgoingEDespatchEnabled'
+    | 'incomingEDespatchEnabled'
+    | 'isPassive'
+    | 'isHidden'
+    | 'isLocked'
+    | 'lockDate'
+  >
+>;
+
+export interface WarehouseCardUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  warehouseCard: Partial<WarehouseCardDetailDto> & Pick<WarehouseCardDetailDto, 'warehouseNo'>;
+}
+
+export interface CustomerCardSearchHttpRequest {
+  searchText?: string | null;
+  includePassive?: boolean | null;
+  take?: number | null;
+}
+
+export interface CustomerCardListItemDto {
+  customerCode: string;
+  title1: string;
+  title2: string;
+  taxOffice: string;
+  taxNo: string;
+  groupCode: string;
+  regionCode: string;
+  representativeCode: string;
+  isClosed: boolean;
+  isLocked: boolean;
+  lastUpdatedAt: string | null;
+}
+
+export interface CustomerCardDetailDto extends CustomerCardListItemDto {
+  customerGuid: string;
+  movementType: number;
+  connectionType: number;
+  purchaseStockType: number;
+  salesStockType: number;
+  accountingCode: string;
+  accountingCode1: string;
+  accountingCode2: string;
+  currencyType: number;
+  currencyType1: number;
+  currencyType2: number;
+  taxOfficeNo: string;
+  registryNo: string;
+  salesPriceListNo: number;
+  paymentType: number;
+  paymentDay: number;
+  paymentPlanNo: number;
+  optionDay: number;
+  invoiceAddressNo: number;
+  shippingAddressNo: number;
+  parentCustomerCode: string;
+  sectorCode: string;
+  eInvoiceEnabled: boolean;
+  defaultEInvoiceType: number;
+  eDespatchEnabled: boolean;
+  defaultEDespatchType: number;
+  website: string;
+  email: string;
+  mobilePhone: string;
+  defaultInputWarehouseNo: number | null;
+  defaultOutputWarehouseNo: number | null;
+  kepAddress: string;
+  reconciliationEmail: string;
+  mersisNo: string;
+  taxOfficeCode: string;
+  retailCustomer: boolean;
+  createdAt: string | null;
+}
+
+export type CustomerCardPatchHttpRequest = Partial<
+  Pick<
+    CustomerCardDetailDto,
+    | 'title1'
+    | 'title2'
+    | 'movementType'
+    | 'connectionType'
+    | 'purchaseStockType'
+    | 'salesStockType'
+    | 'accountingCode'
+    | 'accountingCode1'
+    | 'accountingCode2'
+    | 'currencyType'
+    | 'currencyType1'
+    | 'currencyType2'
+    | 'taxOffice'
+    | 'taxOfficeNo'
+    | 'registryNo'
+    | 'taxNo'
+    | 'taxOfficeCode'
+    | 'salesPriceListNo'
+    | 'paymentType'
+    | 'paymentDay'
+    | 'paymentPlanNo'
+    | 'optionDay'
+    | 'invoiceAddressNo'
+    | 'shippingAddressNo'
+    | 'parentCustomerCode'
+    | 'sectorCode'
+    | 'regionCode'
+    | 'groupCode'
+    | 'representativeCode'
+    | 'eInvoiceEnabled'
+    | 'defaultEInvoiceType'
+    | 'eDespatchEnabled'
+    | 'defaultEDespatchType'
+    | 'website'
+    | 'email'
+    | 'mobilePhone'
+    | 'kepAddress'
+    | 'reconciliationEmail'
+    | 'defaultInputWarehouseNo'
+    | 'defaultOutputWarehouseNo'
+    | 'mersisNo'
+    | 'retailCustomer'
+    | 'isClosed'
+    | 'isLocked'
+  >
+>;
+
+export interface CustomerCardUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  customerCard: Partial<CustomerCardDetailDto> & Pick<CustomerCardDetailDto, 'customerCode'>;
+}
+
 export interface StockCardWarehouseSettingsDto {
   stockCode: string;
   warehouseNo: number;

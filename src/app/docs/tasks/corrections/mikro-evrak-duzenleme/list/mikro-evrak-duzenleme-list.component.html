@@ -520,6 +520,342 @@
       </main>
     </section>
 
+    <section *ngSwitchCase="'warehouse-card'" class="workspace card-workspace">
+      <aside class="lookup-panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">DEPOLAR</p>
+            <h3>Depo karti ara</h3>
+          </div>
+          <span>{{ warehouseCards().length }} sonuc</span>
+        </div>
+
+        <label class="field">
+          <span>No, ad, grup, il veya ilce</span>
+          <input
+            type="search"
+            [(ngModel)]="warehouseCardSearch.searchText"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Orn. 110 veya Kestel"
+            (keyup.enter)="searchWarehouseCards()"
+          />
+        </label>
+
+        <div class="compact-row">
+          <label class="field">
+            <span>Sonuc Limiti</span>
+            <input
+              type="number"
+              min="1"
+              max="200"
+              [(ngModel)]="warehouseCardSearch.take"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="check-field">
+            <input
+              type="checkbox"
+              [(ngModel)]="warehouseCardSearch.includePassive"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <span>Pasifleri dahil et</span>
+          </label>
+        </div>
+
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canList() || isBusy('warehouse-card-search')"
+          (click)="searchWarehouseCards()"
+        >
+          <i class="fa-solid fa-magnifying-glass"></i>
+          {{ isBusy('warehouse-card-search') ? 'Araniyor...' : 'Depo Kartlarini Ara' }}
+        </button>
+
+        <div class="result-list">
+          <button
+            *ngFor="let row of warehouseCards(); trackBy: trackByWarehouseCardNo"
+            type="button"
+            class="result-row"
+            [class.is-selected]="selectedWarehouseCard()?.warehouseNo === row.warehouseNo"
+            [disabled]="isBusy('warehouse-card-detail')"
+            (click)="loadWarehouseCard(row.warehouseNo)"
+          >
+            <span class="result-code">{{ row.warehouseNo }}</span>
+            <strong>{{ row.name }}</strong>
+            <small>{{ row.city || '-' }} / {{ row.district || '-' }} · {{ row.groupCode || 'Grupsuz' }}</small>
+            <span class="status-dot" [class.is-passive]="row.isPassive || row.isHidden">
+              {{ row.isPassive || row.isHidden ? 'Pasif' : 'Aktif' }}
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="editor-panel">
+        <ng-container *ngIf="warehouseCardDraft() as draft; else noWarehouseCard">
+          <div class="editor-head">
+            <div>
+              <p class="panel-kicker">DEPO KARTI</p>
+              <h3>{{ draft.warehouseNo }} · {{ draft.name }}</h3>
+              <p>
+                Olusturma: {{ draft.createdAt ? (draft.createdAt | date: 'dd.MM.yyyy HH:mm') : '-' }}
+                · Son guncelleme:
+                {{ draft.lastUpdatedAt ? (draft.lastUpdatedAt | date: 'dd.MM.yyyy HH:mm') : '-' }}
+              </p>
+            </div>
+            <span class="change-badge">{{ changedWarehouseCardFieldCount() }} degisiklik</span>
+          </div>
+
+          <div class="form-section">
+            <h4>Tanim, organizasyon ve adres</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of warehouseCardTextFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  type="text"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Teknik, konum ve durum</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of warehouseCardNumberFields; trackBy: trackByField"
+                class="field"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  type="number"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+              <label
+                *ngFor="let field of warehouseCardDateFields; trackBy: trackByField"
+                class="field"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  type="date"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+            </div>
+            <div class="toggle-grid">
+              <label
+                *ngFor="let field of warehouseCardBooleanFields; trackBy: trackByField"
+                class="toggle-field"
+              >
+                <input
+                  type="checkbox"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+                <span>{{ field.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetWarehouseCard()">
+              Degisiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedWarehouseCardFieldCount() || isBusy('warehouse-card-save')"
+              (click)="saveWarehouseCard()"
+            >
+              {{ isBusy('warehouse-card-save') ? 'Kaydediliyor...' : 'Depo Kartini Guncelle' }}
+            </button>
+          </div>
+        </ng-container>
+
+        <ng-template #noWarehouseCard>
+          <div class="empty-state">
+            <i class="fa-solid fa-warehouse"></i>
+            <h3>Duzenlenecek depo kartini secin</h3>
+            <p>Soldaki arama alanindan bir depo karti bulup detayini acin.</p>
+          </div>
+        </ng-template>
+      </main>
+    </section>
+
+    <section *ngSwitchCase="'customer-card'" class="workspace card-workspace">
+      <aside class="lookup-panel">
+        <div class="panel-head">
+          <div>
+            <p class="panel-kicker">CARI_HESAPLAR</p>
+            <h3>Cari karti ara</h3>
+          </div>
+          <span>{{ customerCards().length }} sonuc</span>
+        </div>
+
+        <label class="field">
+          <span>Kod, unvan veya vergi no</span>
+          <input
+            type="search"
+            [(ngModel)]="customerCardSearch.searchText"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Orn. 120.01 veya firma"
+            (keyup.enter)="searchCustomerCards()"
+          />
+        </label>
+
+        <div class="compact-row">
+          <label class="field">
+            <span>Sonuc Limiti</span>
+            <input
+              type="number"
+              min="1"
+              max="200"
+              [(ngModel)]="customerCardSearch.take"
+              [ngModelOptions]="{ standalone: true }"
+            />
+          </label>
+          <label class="check-field">
+            <input
+              type="checkbox"
+              [(ngModel)]="customerCardSearch.includePassive"
+              [ngModelOptions]="{ standalone: true }"
+            />
+            <span>Pasifleri dahil et</span>
+          </label>
+        </div>
+
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canList() || isBusy('customer-card-search')"
+          (click)="searchCustomerCards()"
+        >
+          <i class="fa-solid fa-magnifying-glass"></i>
+          {{ isBusy('customer-card-search') ? 'Araniyor...' : 'Cari Kartlarini Ara' }}
+        </button>
+
+        <div class="result-list">
+          <button
+            *ngFor="let row of customerCards(); trackBy: trackByCustomerCode"
+            type="button"
+            class="result-row"
+            [class.is-selected]="selectedCustomerCard()?.customerCode === row.customerCode"
+            [disabled]="isBusy('customer-card-detail')"
+            (click)="loadCustomerCard(row.customerCode)"
+          >
+            <span class="result-code">{{ row.customerCode }}</span>
+            <strong>{{ row.title1 }}</strong>
+            <small>{{ row.taxNo || '-' }} · {{ row.groupCode || 'Grupsuz' }}</small>
+            <span class="status-dot" [class.is-passive]="row.isClosed || row.isLocked">
+              {{ row.isClosed || row.isLocked ? 'Kapali' : 'Aktif' }}
+            </span>
+          </button>
+        </div>
+      </aside>
+
+      <main class="editor-panel">
+        <ng-container *ngIf="customerCardDraft() as draft; else noCustomerCard">
+          <div class="editor-head">
+            <div>
+              <p class="panel-kicker">CARI KARTI</p>
+              <h3>{{ draft.customerCode }} · {{ draft.title1 }}</h3>
+              <p>
+                Olusturma: {{ draft.createdAt ? (draft.createdAt | date: 'dd.MM.yyyy HH:mm') : '-' }}
+                · Son guncelleme:
+                {{ draft.lastUpdatedAt ? (draft.lastUpdatedAt | date: 'dd.MM.yyyy HH:mm') : '-' }}
+              </p>
+            </div>
+            <span class="change-badge">{{ changedCustomerCardFieldCount() }} degisiklik</span>
+          </div>
+
+          <div class="form-section">
+            <h4>Tanim, vergi ve iletisim</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of customerCardTextFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  type="text"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <h4>Finans, adres ve durum</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of customerCardNumberFields; trackBy: trackByField"
+                class="field"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  type="number"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+            </div>
+            <div class="toggle-grid">
+              <label
+                *ngFor="let field of customerCardBooleanFields; trackBy: trackByField"
+                class="toggle-field"
+              >
+                <input
+                  type="checkbox"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+                <span>{{ field.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetCustomerCard()">
+              Degisiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedCustomerCardFieldCount() || isBusy('customer-card-save')"
+              (click)="saveCustomerCard()"
+            >
+              {{ isBusy('customer-card-save') ? 'Kaydediliyor...' : 'Cari Kartini Guncelle' }}
+            </button>
+          </div>
+        </ng-container>
+
+        <ng-template #noCustomerCard>
+          <div class="empty-state">
+            <i class="fa-solid fa-address-card"></i>
+            <h3>Duzenlenecek cari kartini secin</h3>
+            <p>Soldaki arama alanindan bir cari karti bulup detayini acin.</p>
+          </div>
+        </ng-template>
+      </main>
+    </section>
+
     <section *ngSwitchCase="'stock-movement'" class="document-workspace">
       <article class="lookup-bar">
         <div class="lookup-title">
