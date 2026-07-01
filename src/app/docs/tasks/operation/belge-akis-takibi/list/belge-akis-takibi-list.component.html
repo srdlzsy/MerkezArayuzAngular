@@ -1,0 +1,270 @@
+<section class="flow-page">
+  <article class="flow-workspace">
+    <header class="workspace-head">
+      <div class="title-block">
+        <span class="section-kicker">Operasyon Islemleri</span>
+        <h2>{{ page.title }}</h2>
+        <p>{{ page.subtitle }}</p>
+      </div>
+
+      <div class="permission-strip">
+        <span [class.is-active]="canList()">Liste</span>
+        <span [class.is-active]="canDetail()">Detay</span>
+        <span [class.is-active]="isAdminUser()">Admin Depo Filtresi</span>
+      </div>
+    </header>
+
+    <article class="tracking-warning" *ngIf="!trackingEnabled()">
+      <strong>Takip kaydi kapali</strong>
+      <span>Yeni akis kaydi olusturulmuyor, mevcut kayitlar goruntuleniyor.</span>
+    </article>
+
+    <section class="filter-panel">
+      <div class="filters-grid">
+        <label class="field" *ngIf="isAdminUser()">
+          <span>Depo No</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [(ngModel)]="filters.warehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Tum depolar"
+            (keyup.enter)="loadFlows()"
+          />
+        </label>
+
+        <label class="field">
+          <span>Baslangic</span>
+          <input
+            type="date"
+            [(ngModel)]="filters.startDate"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+
+        <label class="field">
+          <span>Bitis</span>
+          <input
+            type="date"
+            [(ngModel)]="filters.endDate"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+
+        <label class="field">
+          <span>Belge Tipi</span>
+          <select
+            [(ngModel)]="filters.documentType"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option
+              *ngFor="let option of documentTypeOptions; trackBy: trackByOption"
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Durum</span>
+          <select
+            [(ngModel)]="filters.status"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option
+              *ngFor="let option of statusOptions; trackBy: trackByOption"
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field search-field">
+          <span>Arama</span>
+          <input
+            type="search"
+            [(ngModel)]="filters.search"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Belge no, e-belge no veya UUID"
+            (keyup.enter)="loadFlows()"
+          />
+        </label>
+
+        <label class="field limit-field">
+          <span>Limit</span>
+          <input
+            type="number"
+            min="1"
+            max="500"
+            [(ngModel)]="filters.take"
+            [ngModelOptions]="{ standalone: true }"
+            (keyup.enter)="loadFlows()"
+          />
+        </label>
+
+        <div class="filter-actions">
+          <button type="button" class="ghost-action" (click)="clearFilters()" [disabled]="isLoading()">
+            Temizle
+          </button>
+          <button
+            type="button"
+            class="primary-action"
+            (click)="loadFlows()"
+            [disabled]="isLoading() || !canList()"
+          >
+            {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+          </button>
+        </div>
+      </div>
+
+      <code class="request-preview">{{ buildRequestPreview() }}</code>
+    </section>
+
+    <section class="metric-strip">
+      <article
+        class="metric-card"
+        *ngFor="let metric of metrics(); trackBy: trackByMetric"
+        [class.metric-danger]="metric.tone === 'danger'"
+        [class.metric-success]="metric.tone === 'success'"
+        [class.metric-warn]="metric.tone === 'warn'"
+      >
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+      </article>
+    </section>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as error">
+      <h3>Liste Yuklenemedi</h3>
+      <p>{{ error }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Akislar Yukleniyor</h3>
+      <p>Secilen filtreler icin belge akis kayitlari okunuyor.</p>
+    </article>
+
+    <div class="table-context" *ngIf="rows().length">
+      <span>{{ totalCount() }} kayit</span>
+      <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
+      <span>{{ isAdminUser() ? 'Admin kapsami' : 'JWT depo kapsami' }}</span>
+    </div>
+
+    <section class="content-grid">
+      <div class="table-shell">
+        <app-api-list-table
+          *ngIf="!isLoading() && rows().length"
+          [rows]="rows()"
+          [columns]="columns"
+          actionLabel="Timeline"
+          filterPlaceholder="Belge tipi, depo, belge no, e-belge veya hata ara"
+          (rowAction)="openDetail($event)"
+        ></app-api-list-table>
+
+        <article
+          class="state-card empty-state"
+          *ngIf="!isLoading() && !errorMessage() && !rows().length"
+        >
+          <h3>Kayit Bulunamadi</h3>
+          <p>Secilen filtreler icin belge akis kaydi donmedi.</p>
+        </article>
+      </div>
+
+      <aside class="detail-panel">
+        <ng-container *ngIf="selectedDetail() as detail; else detailState">
+          <header class="detail-head">
+            <div>
+              <span class="section-kicker">{{ resolveDocumentTypeLabel(detail.documentType) }}</span>
+              <h3>{{ detail.documentNo || detail.documentSerie + ' / ' + detail.documentOrderNo }}</h3>
+              <p>
+                {{ detail.sourceWarehouseNo }}
+                <ng-container *ngIf="detail.targetWarehouseNo">
+                  -> {{ detail.targetWarehouseNo }}
+                </ng-container>
+              </p>
+            </div>
+            <span class="status-badge" [ngClass]="statusTone(detail.status)">
+              {{ resolveStatusLabel(detail.status) }}
+            </span>
+          </header>
+
+          <dl class="detail-facts">
+            <div>
+              <dt>Son Adim</dt>
+              <dd>{{ resolveStepLabel(detail.currentStep) }}</dd>
+            </div>
+            <div>
+              <dt>Olusturma</dt>
+              <dd>{{ formatDate(detail.createdAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>Guncelleme</dt>
+              <dd>{{ formatDate(detail.updatedAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>E-Belge</dt>
+              <dd>{{ detail.externalDocumentNo || '-' }}</dd>
+            </div>
+          </dl>
+
+          <article class="error-box" *ngIf="detail.lastError">
+            <div>
+              <strong>Son hata</strong>
+              <p>{{ detail.lastError }}</p>
+            </div>
+            <button type="button" class="ghost-action compact" (click)="copyText(detail.lastError)">
+              Kopyala
+            </button>
+          </article>
+
+          <section class="timeline" aria-label="Belge akis timeline">
+            <article
+              class="timeline-item"
+              *ngFor="let event of detail.events; trackBy: trackByEvent"
+              [class.is-error]="event.status === 'Failed'"
+            >
+              <div class="timeline-dot"></div>
+              <div class="timeline-body">
+                <div class="timeline-title">
+                  <strong>{{ resolveStepLabel(event.step) }}</strong>
+                  <span class="status-badge small" [ngClass]="statusTone(event.status)">
+                    {{ resolveStatusLabel(event.status) }}
+                  </span>
+                </div>
+                <p>{{ event.message || '-' }}</p>
+                <small>
+                  {{ formatDate(event.occurredAtUtc) }} - {{ formatUser(event.changedByUserId) }}
+                </small>
+                <article class="event-error" *ngIf="event.error">
+                  <span>{{ event.error }}</span>
+                  <button type="button" class="ghost-action compact" (click)="copyText(event.error)">
+                    Kopyala
+                  </button>
+                </article>
+              </div>
+            </article>
+          </section>
+        </ng-container>
+
+        <ng-template #detailState>
+          <article class="state-card" *ngIf="detailLoading()">
+            <h3>Timeline Yukleniyor</h3>
+            <p>Secili belge akisinin olay kayitlari okunuyor.</p>
+          </article>
+
+          <article class="state-card state-card-error" *ngIf="detailErrorMessage() as detailError">
+            <h3>Detay Yuklenemedi</h3>
+            <p>{{ detailError }}</p>
+          </article>
+
+          <article class="state-card empty-state" *ngIf="!detailLoading() && !detailErrorMessage()">
+            <h3>Timeline Secilmedi</h3>
+            <p>Listeden bir akis secildiginde olay gecmisi burada gorunur.</p>
+          </article>
+        </ng-template>
+      </aside>
+    </section>
+  </article>
+</section>

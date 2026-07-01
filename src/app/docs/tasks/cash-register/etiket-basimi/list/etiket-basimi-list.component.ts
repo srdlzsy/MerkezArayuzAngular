@@ -423,15 +423,20 @@ export class EtiketBasimiListComponent {
           this.setFeedback(
             'info',
             'Urun zaten listede',
-            `${product.productName} listede bulundugu icin yeniden eklenmedi.`
+            `${this.getProductDisplayName(product)} listede bulundugu icin yeniden eklenmedi.`
           );
           return;
         }
+
+        this.products.update((items) => [...items, product]);
+        this.previewMode.set('labels');
+        this.clearProductTableTools();
+        this.currentPage.set(this.totalPages());
         this.lastLoadedSource.set('Manuel urun ekleme');
         this.setFeedback(
           'success',
           'Urun eklendi',
-          `${product.productName} etiket listesine eklendi.`
+          `${this.getProductDisplayName(product)} etiket listesine eklendi.`
         );
       });
   }
@@ -446,7 +451,7 @@ export class EtiketBasimiListComponent {
     this.setFeedback(
       'info',
       'Urun kaldirildi',
-      `${product.productName} etiket listesinden kaldirildi.`
+      `${this.getProductDisplayName(product)} etiket listesinden kaldirildi.`
     );
   }
 
@@ -690,6 +695,10 @@ export class EtiketBasimiListComponent {
 
   private getProductKey(product: IEtiketBasimProduct): string {
     return `${product.productCode}|${product.barcode}|${product.pluNo}|${product.productName}`;
+  }
+
+  private getProductDisplayName(product: IEtiketBasimProduct): string {
+    return product.productName?.trim() || product.productCode?.trim() || product.barcode?.trim() || 'Urun';
   }
 
   private dedupeProducts(products: readonly IEtiketBasimProduct[]): {

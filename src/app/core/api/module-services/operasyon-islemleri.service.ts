@@ -1,5 +1,9 @@
 import { Injectable } from '@angular/core';
+import { Observable } from 'rxjs';
 import type {
+  DocumentFlowDetailDto,
+  DocumentFlowListHttpRequest,
+  DocumentFlowListResponse,
   IAuthorizationFileItemDto,
   IOperationJobDetailDto,
   IOperationJobDto,
@@ -53,6 +57,19 @@ export class OperasyonIslemleriService extends BaseApiService {
     return this.post<void, ISaveAuthorizationFileRequestApiDto[]>(
       'operations/authorization-files',
       request
+    );
+  }
+
+  getDocumentFlows(request: DocumentFlowListHttpRequest): Observable<DocumentFlowListResponse> {
+    return this.getWithQuery<DocumentFlowListResponse, DocumentFlowListHttpRequest>(
+      'operasyon-islemleri/belge-akis-takibi',
+      request
+    );
+  }
+
+  getDocumentFlowDetail(id: string): Observable<DocumentFlowDetailDto> {
+    return this.get<DocumentFlowDetailDto>(
+      `operasyon-islemleri/belge-akis-takibi/${encodeURIComponent(id)}`
     );
   }
 }

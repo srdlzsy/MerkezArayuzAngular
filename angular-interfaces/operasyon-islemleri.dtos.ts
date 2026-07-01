@@ -100,3 +100,71 @@ export interface SaveAuthorizationFileHttpRequest {
   r: boolean;
   x: boolean;
 }
+
+// ============================================================================
+// Belge Akis Takibi Modelleri
+// ============================================================================
+
+export type DocumentFlowType =
+  | 'CompanyShipment'
+  | 'InterWarehouseShipment'
+  | 'CompanyReturn'
+  | 'WarehouseReturn'
+  | 'CompanyReceiving'
+  | 'IssuedCompanyOrder'
+  | 'IssuedWarehouseOrder';
+
+export type DocumentFlowStatus = 'Succeeded' | 'Failed';
+
+export type DocumentFlowStep =
+  | 'DocumentCreated'
+  | 'OrderCreated'
+  | 'EDespatchSubmission'
+  | 'WarehouseReceivingAccepted';
+
+export interface DocumentFlowListHttpRequest {
+  warehouseNo?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  documentType?: DocumentFlowType | string | null;
+  status?: DocumentFlowStatus | string | null;
+  search?: string | null;
+  take?: number | null;
+}
+
+export interface DocumentFlowListResponse {
+  trackingEnabled: boolean;
+  totalCount: number;
+  items: DocumentFlowListItemDto[];
+}
+
+export interface DocumentFlowListItemDto {
+  id: string;
+  documentType: DocumentFlowType | string;
+  sourceWarehouseNo: number;
+  targetWarehouseNo: number | null;
+  documentSerie: string;
+  documentOrderNo: number;
+  documentNo: string | null;
+  externalDocumentNo: string | null;
+  externalUuid: string | null;
+  status: DocumentFlowStatus | string;
+  currentStep: DocumentFlowStep | string;
+  lastError: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string;
+}
+
+export interface DocumentFlowDetailDto extends DocumentFlowListItemDto {
+  events: DocumentFlowEventDto[];
+}
+
+export interface DocumentFlowEventDto {
+  id: string;
+  step: DocumentFlowStep | string;
+  status: DocumentFlowStatus | string;
+  message: string;
+  error: string | null;
+  changedByUserId: string | null;
+  occurredAtUtc: string;
+}
