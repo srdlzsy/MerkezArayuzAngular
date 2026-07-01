@@ -236,6 +236,7 @@ const CUSTOMER_CARD_BOOLEAN_FIELDS: readonly FieldDefinition[] = [
 const STOCK_HEADER_FIELDS: readonly FieldDefinition[] = [
   { key: 'movementDate', label: 'Hareket Tarihi', type: 'date' },
   { key: 'documentDate', label: 'Belge Tarihi', type: 'date' },
+  { key: 'goodsAcceptanceDate', label: 'Mal Kabul Tarihi', type: 'date' },
   { key: 'documentNo', label: 'Belge No' },
   { key: 'customerCode', label: 'Cari Kodu' },
   { key: 'inputWarehouseNo', label: 'Giriş Depo', type: 'number' },
@@ -1291,6 +1292,7 @@ export class MikroEvrakDuzenlemeListComponent {
     const clone = this.clone(document);
     clone.header.movementDate = this.toDateInput(clone.header.movementDate);
     clone.header.documentDate = this.toDateInput(clone.header.documentDate);
+    clone.header.goodsAcceptanceDate = this.toDateInput(clone.header.goodsAcceptanceDate);
     return clone;
   }
 

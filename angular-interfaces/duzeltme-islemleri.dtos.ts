@@ -386,6 +386,7 @@ export interface StockMovementDocumentHeaderDto {
   normalReturn: number;
   movementDate: string;
   documentDate: string;
+  goodsAcceptanceDate: string;
   documentNo: string;
   customerCode: string;
   customerTitle: string;
@@ -518,6 +519,7 @@ export interface CustomerMovementDocumentHeaderDto {
 export interface CustomerMovementDocumentLineDto {
   movementGuid: string;
   rowNo: number;
+  goodsAcceptanceDate: string;
   customerCode: string;
   turnoverCustomerCode: string;
   customerTitle: string;
