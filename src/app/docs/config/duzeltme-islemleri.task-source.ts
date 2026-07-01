@@ -14,7 +14,7 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
         'Global karti etkilemeden depo bazli satis, siparis ve kabul bloklari',
         'Depo bazli stok satis fiyatlarini listeleme ve upsert etme',
         'Seri-sira ile stok ve cari hareket evraki bulma',
-        'Stok hareketinde sevk deposu duzenleme',
+        'Stok hareketinde sevk deposu ve mal kabul tarihi duzenleme',
         'movementGuid korumali satir guncelleme',
         'Yalniz degisen alanlari gonderen patch semantigi',
         '409 Conflict durumunda filtre daraltma rehberi'
@@ -98,11 +98,13 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
     "normalReturn": 0
   },
   "header": {
+    "goodsAcceptanceDate": "2026-04-21",
     "description": "Duzeltilen aciklama"
   },
   "lines": [
     {
       "movementGuid": "d7f6a8ec-9c2b-4e1e-bb1c-6da6cb4a5f67",
+      "goodsAcceptanceDate": "2026-04-21",
       "quantity": 3
     }
   ]

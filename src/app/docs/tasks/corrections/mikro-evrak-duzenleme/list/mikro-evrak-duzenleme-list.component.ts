@@ -253,6 +253,7 @@ const STOCK_HEADER_FIELDS: readonly FieldDefinition[] = [
 
 const STOCK_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'rowNo', label: 'Satır', type: 'number' },
+  { key: 'goodsAcceptanceDate', label: 'Mal Kabul Tarihi', type: 'date' },
   { key: 'stockCode', label: 'Stok Kodu' },
   { key: 'unitPointer', label: 'Birim Ptr', type: 'number' },
   { key: 'quantity', label: 'Miktar', type: 'number' },
@@ -1293,6 +1294,9 @@ export class MikroEvrakDuzenlemeListComponent {
     clone.header.movementDate = this.toDateInput(clone.header.movementDate);
     clone.header.documentDate = this.toDateInput(clone.header.documentDate);
     clone.header.goodsAcceptanceDate = this.toDateInput(clone.header.goodsAcceptanceDate);
+    clone.lines.forEach((line) => {
+      line.goodsAcceptanceDate = this.toDateInput(line.goodsAcceptanceDate);
+    });
     return clone;
   }
 

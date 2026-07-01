@@ -411,6 +411,7 @@ export interface StockMovementDocumentHeaderDto {
 export interface StockMovementDocumentLineDto {
   movementGuid: string;
   rowNo: number;
+  goodsAcceptanceDate: string;
   stockCode: string;
   stockName: string;
   unitPointer: number;
@@ -453,6 +454,7 @@ export type StockMovementHeaderPatchHttpRequest = Partial<
     StockMovementDocumentHeaderDto,
     | 'movementDate'
     | 'documentDate'
+    | 'goodsAcceptanceDate'
     | 'documentNo'
     | 'customerCode'
     | 'inputWarehouseNo'
@@ -519,7 +521,6 @@ export interface CustomerMovementDocumentHeaderDto {
 export interface CustomerMovementDocumentLineDto {
   movementGuid: string;
   rowNo: number;
-  goodsAcceptanceDate: string;
   customerCode: string;
   turnoverCustomerCode: string;
   customerTitle: string;
