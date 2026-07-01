@@ -1,0 +1,225 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="suggested-workspace company-suggested">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Siparis Islemleri</span>
+        <h2>{{ current.title }}</h2>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Satir</span>
+          <strong>{{ lines().length }}</strong>
+        </article>
+        <article>
+          <span>Secili</span>
+          <strong>{{ selectedCount() }}</strong>
+        </article>
+        <article>
+          <span>Ihtiyac</span>
+          <strong>{{ formatNumber(totalNeed()) }}</strong>
+        </article>
+        <article>
+          <span>Tutar</span>
+          <strong>{{ formatCurrency(selectedAmount()) }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <section class="selection-panel compact-panel">
+      <div class="query-grid">
+        <label class="field">
+          <span>Tedarikci Ara</span>
+          <input [formControl]="supplierQuery" placeholder="Kod veya unvan" />
+        </label>
+
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="searchSupplier()"
+          [disabled]="isSupplierLoading()"
+        >
+          {{ isSupplierLoading() ? 'Araniyor...' : 'Ara' }}
+        </button>
+
+        <label class="field">
+          <span>Secili Kod</span>
+          <input [formControl]="filterForm.controls.supplierCode" placeholder="Zorunlu" />
+        </label>
+      </div>
+
+      <p class="state-card state-card-info" *ngIf="supplierFeedback()">
+        {{ supplierFeedback() }}
+      </p>
+
+      <div class="search-results" *ngIf="supplierResults().length">
+        <button
+          type="button"
+          class="result-button"
+          *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier"
+          (click)="selectSupplier(supplier)"
+        >
+          <strong>{{ getSupplierLabel(supplier) }}</strong>
+          <span class="table-meta">{{ supplier.taxNumber || '-' }} {{ supplier.representativeName || '' }}</span>
+        </button>
+      </div>
+    </section>
+
+    <form class="query-card compact-panel" [formGroup]="filterForm" (ngSubmit)="loadSuggestions()" novalidate>
+      <div class="query-grid">
+        <label class="field">
+          <span>Geri Gun</span>
+          <input type="number" min="1" max="365" formControlName="lookbackDays" />
+        </label>
+
+        <label class="field">
+          <span>Oneri Gun</span>
+          <input type="number" min="1" max="60" formControlName="fallbackRecommendedDay" />
+        </label>
+
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading()">
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+        <button type="button" class="task-action task-action-secondary" (click)="selectAll()">
+          Tumunu Sec
+        </button>
+      </div>
+
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid">
+      <div class="list-panel">
+        <article class="state-card" *ngIf="isLoading()">
+          <h3>Liste yukleniyor</h3>
+        </article>
+
+        <div class="table-wrap" *ngIf="!isLoading() && lines().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th class="select-cell">Sec</th>
+                <th>Stok</th>
+                <th>Mevcut</th>
+                <th>Acik Siparis</th>
+                <th>Ihtiyac</th>
+                <th>Alis</th>
+                <th>Oneri</th>
+                <th>Miktar</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let line of lines(); trackBy: trackByLine"
+                [class.is-selected]="line.selected"
+              >
+                <td class="select-cell">
+                  <input
+                    type="checkbox"
+                    [checked]="line.selected"
+                    (change)="setLineSelected(line.item.stockCode, line.item.supplierCode, $any($event.target).checked)"
+                  />
+                </td>
+                <td>
+                  <strong>{{ line.item.stockCode }}</strong>
+                  <div class="table-meta">{{ line.item.stockName }}</div>
+                  <div class="table-meta">{{ line.item.supplierCode }} {{ line.item.supplierName || '' }}</div>
+                </td>
+                <td>{{ formatNumber(line.item.targetOnHand) }}</td>
+                <td>{{ formatNumber(line.item.openCompanyOrderQuantity) }}</td>
+                <td>
+                  <span [class.warning-text]="line.item.needQuantity > 0">
+                    {{ formatNumber(line.item.needQuantity) }}
+                  </span>
+                </td>
+                <td>{{ formatCurrency(line.item.purchasePrice) }}</td>
+                <td>{{ formatNumber(line.item.suggestedOrderQuantity) }}</td>
+                <td>
+                  <input
+                    class="quantity-input"
+                    type="number"
+                    min="0"
+                    step="0.01"
+                    [value]="line.quantity"
+                    (input)="updateQuantity(line.item.stockCode, line.item.supplierCode, $any($event.target).value)"
+                  />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading() && !lines().length">
+          <h3>Satir yok</h3>
+        </article>
+      </div>
+
+      <aside class="side-panel">
+        <h3>Siparise Cevir</h3>
+
+        <div class="summary-grid">
+          <article class="summary-card">
+            <span class="mini-label">Secili Satir</span>
+            <strong class="summary-value">{{ selectedCount() }}</strong>
+          </article>
+          <article class="summary-card">
+            <span class="mini-label">Secili Miktar</span>
+            <strong class="summary-value">{{ formatNumber(selectedQuantity()) }}</strong>
+          </article>
+          <article class="summary-card">
+            <span class="mini-label">Tedarikci</span>
+            <strong class="summary-value">{{ selectedSupplierCodes().length || '-' }}</strong>
+          </article>
+          <article class="summary-card">
+            <span class="mini-label">Tutar</span>
+            <strong class="summary-value">{{ formatCurrency(selectedAmount()) }}</strong>
+          </article>
+        </div>
+
+        <label class="field">
+          <span>Siparis Tarihi</span>
+          <input type="date" [formControl]="filterForm.controls.orderDate" />
+        </label>
+
+        <label class="field">
+          <span>Teslim Tarihi</span>
+          <input type="date" [formControl]="filterForm.controls.deliveryDate" />
+        </label>
+
+        <label class="field">
+          <span>Aciklama</span>
+          <input maxlength="250" [formControl]="filterForm.controls.description1" />
+        </label>
+
+        <div class="side-actions">
+          <button type="button" class="task-action task-action-secondary" (click)="clearSelection()">
+            Secimi Temizle
+          </button>
+          <button
+            type="button"
+            class="task-action task-action-primary"
+            (click)="convertToOrder()"
+            [disabled]="isConverting() || selectedCount() === 0"
+          >
+            {{ isConverting() ? 'Olusturuluyor...' : 'Siparis Olustur' }}
+          </button>
+        </div>
+
+        <article class="state-card state-card-success" *ngIf="lastResponse() as response">
+          <h3>{{ response.documentSerie }}-{{ response.documentOrderNo }}</h3>
+          <p>{{ response.lineCount }} satir, {{ formatNumber(response.totalQuantity) }} miktar.</p>
+        </article>
+      </aside>
+    </section>
+  </article>
+</section>

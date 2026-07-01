@@ -1,9 +1,11 @@
 import { Injectable } from '@angular/core';
-import { Observable, throwError } from 'rxjs';
+import { Observable, map } from 'rxjs';
 
 import type {
   CompanyOrderDetailDto,
   CompanyOrderListItemDto,
+  ConvertSuggestedCompanyOrderHttpRequest,
+  ConvertSuggestedWarehouseOrderHttpRequest,
   CreateIssuedCompanyOrderHttpRequest,
   CreateIssuedCompanyOrderLineHttpRequest,
   CreateIssuedCompanyOrderResponse,
@@ -11,13 +13,16 @@ import type {
   CreateIssuedWarehouseOrderLineHttpRequest,
   CreateIssuedWarehouseOrderResponse,
   IssuedCompanyOrderListHttpRequest,
+  SuggestedCompanyOrderListHttpRequest,
+  SuggestedCompanyOrderListItemDto,
+  SuggestedWarehouseOrderListHttpRequest,
+  SuggestedWarehouseOrderListItemDto,
   WarehouseOrderDetailDto,
   WarehouseOrderListItemDto,
   WarehouseOrderDateRangeHttpRequest
 } from '@interfaces';
 
 import {
-  buildProblemError,
   getDefaultDateRange,
   parseDateRangeToken
 } from '../furpa-merkez-api.utils';
@@ -109,6 +114,29 @@ export class SiparisIslemleriService extends BaseApiService {
     );
   }
 
+  listSuggestedWarehouseOrders(
+    request: SuggestedWarehouseOrderListHttpRequest
+  ): Observable<SuggestedWarehouseOrderListItemDto[]> {
+    return this.getWithQuery<SuggestedWarehouseOrderListItemDto[]>(
+      'siparis-islemleri/onerilen-depo-siparisleri',
+      {
+        SourceWarehouseNo: request.sourceWarehouseNo,
+        TargetWarehouseNo: request.targetWarehouseNo,
+        LookbackDays: request.lookbackDays,
+        FallbackRecommendedDay: request.fallbackRecommendedDay
+      }
+    );
+  }
+
+  convertSuggestedWarehouseOrder(
+    request: ConvertSuggestedWarehouseOrderHttpRequest
+  ): Observable<CreateIssuedWarehouseOrderResponse> {
+    return this.post<CreateIssuedWarehouseOrderResponse, ConvertSuggestedWarehouseOrderHttpRequest>(
+      'siparis-islemleri/onerilen-depo-siparisleri/convert-to-order',
+      request
+    );
+  }
+
   listIssuedCompanyOrders(
     request: IssuedCompanyOrderListHttpRequest
   ): Observable<CompanyOrderListItemDto[]> {
@@ -187,6 +215,31 @@ export class SiparisIslemleriService extends BaseApiService {
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.post<CreateIssuedCompanyOrderResponse, CreateIssuedCompanyOrderHttpRequest>(
       'siparis-islemleri/alinan-firma-siparisleri',
+      request
+    );
+  }
+
+  listSuggestedCompanyOrders(
+    request: SuggestedCompanyOrderListHttpRequest
+  ): Observable<SuggestedCompanyOrderListItemDto[]> {
+    const supplierCode = request.supplierCode.trim();
+
+    return this.getWithQuery<SuggestedCompanyOrderListItemDto[]>(
+      'siparis-islemleri/onerilen-firma-siparisleri',
+      {
+        WarehouseNo: request.warehouseNo,
+        SupplierCode: supplierCode,
+        LookbackDays: request.lookbackDays,
+        FallbackRecommendedDay: request.fallbackRecommendedDay
+      }
+    );
+  }
+
+  convertSuggestedCompanyOrder(
+    request: ConvertSuggestedCompanyOrderHttpRequest
+  ): Observable<CreateIssuedCompanyOrderResponse> {
+    return this.post<CreateIssuedCompanyOrderResponse, ConvertSuggestedCompanyOrderHttpRequest>(
+      'siparis-islemleri/onerilen-firma-siparisleri/convert-to-order',
       request
     );
   }
@@ -354,21 +407,43 @@ export class SiparisIslemleriService extends BaseApiService {
   }
 
   getFirmaIcinOnerilenSiparisKalemleri(
-    _customerCode: string
+    customerCode: string
   ): Observable<CreateIssuedCompanyOrderLineHttpRequest[]> {
-    return throwError(() =>
-      buildProblemError(
-        'Dokumanda verilen firma siparisi olusturma icin onerilen kalem endpointi tanimli degil.'
+    return this.listSuggestedCompanyOrders({ supplierCode: customerCode }).pipe(
+      map((items: SuggestedCompanyOrderListItemDto[]) =>
+        (items ?? []).map((item: SuggestedCompanyOrderListItemDto) => ({
+          stockCode: item.stockCode,
+          quantity: item.suggestedOrderQuantity,
+          recommendedQuantity: item.suggestedOrderQuantity,
+          unitPrice: item.purchasePrice,
+          unitPointer: 1,
+          description1: '',
+          description2: '',
+          packageCode: '',
+          projectCode: '',
+          customerResponsibilityCenter: '',
+          productResponsibilityCenter: ''
+        }))
       )
     );
   }
 
   getDepoIcinOnerilenSiparisKalemleri(
-    _warehouseNo: number
+    warehouseNo: number
   ): Observable<CreateIssuedWarehouseOrderLineHttpRequest[]> {
-    return throwError(() =>
-      buildProblemError(
-        'Dokumanda verilen depo siparisi olusturma icin onerilen kalem endpointi tanimli degil.'
+    return this.listSuggestedWarehouseOrders({ sourceWarehouseNo: warehouseNo }).pipe(
+      map((items: SuggestedWarehouseOrderListItemDto[]) =>
+        (items ?? []).map((item: SuggestedWarehouseOrderListItemDto) => ({
+          stockCode: item.stockCode,
+          quantity: item.suggestedOrderQuantity,
+          recommendedQuantity: item.suggestedOrderQuantity,
+          unitPrice: 0,
+          unitPointer: 1,
+          description: '',
+          packageCode: '',
+          projectCode: '',
+          responsibilityCenter: ''
+        }))
       )
     );
   }

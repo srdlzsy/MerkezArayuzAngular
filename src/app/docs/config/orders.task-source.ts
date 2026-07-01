@@ -166,5 +166,99 @@ export const ORDERS_TASK_SOURCE = {
       import(
         '../tasks/orders/alinan-depo-siparisleri/list/alinan-depo-siparisleri-list.component'
       ).then((m) => m.AlinanDepoSiparisleriListComponent)
+  ),
+  'onerilen-depo-siparisleri': singleRouteTask(
+    {
+      id: 'onerilen-depo-siparisleri',
+      title: 'Onerilen Depo Siparisleri',
+      subtitle:
+        'Kaynak depodaki stok ve satis gecmisine gore onerilen depo siparisi satirlarini listeler ve secilenleri siparise cevirir.',
+      baseRouteOrFile: '/api/siparis-islemleri/onerilen-depo-siparisleri',
+      highlights: [
+        'Kaynak depo zorunludur',
+        'Hedef depo verilmezse JWT deposu kullanilir',
+        'Acik gelen depo siparisleri ihtiyactan dusulur',
+        'Secilen satirlar convert-to-order endpointiyle siparise cevrilir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'OnerilenDepoSiparisleriController',
+          description: 'Depo siparisi icin kaynak depo bazli read-only oneriler ve convert akisi.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/siparis-islemleri/onerilen-depo-siparisleri?SourceWarehouseNo=...',
+              description: 'Kaynak depo stok durumuna gore onerilen depo siparisi satirlarini listeler'
+            },
+            {
+              method: 'POST',
+              path: '/api/siparis-islemleri/onerilen-depo-siparisleri/convert-to-order',
+              description: 'Secili onerileri verilen depo siparisine cevirir',
+              payload: 'ConvertSuggestedWarehouseOrderHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "sourceWarehouseNo": 50,
+  "orderDate": "2026-07-01",
+  "deliveryDate": "2026-07-01",
+  "description": "Onerilen siparisten olustu",
+  "lines": []
+}`
+    },
+    () =>
+      import(
+        '../tasks/orders/onerilen-depo-siparisleri/list/onerilen-depo-siparisleri-list.component'
+      ).then((m) => m.OnerilenDepoSiparisleriListComponent),
+    { accessKeyAliases: ['siparis-islemleri.onerilen-depo-siparisleri'] }
+  ),
+  'onerilen-firma-siparisleri': singleRouteTask(
+    {
+      id: 'onerilen-firma-siparisleri',
+      title: 'Onerilen Firma Siparisleri',
+      subtitle:
+        'Tedarikci ve depo kapsaminda onerilen firma siparisi satirlarini listeler, miktar duzenleyerek siparise cevirir.',
+      baseRouteOrFile: '/api/siparis-islemleri/onerilen-firma-siparisleri',
+      highlights: [
+        'Tedarikci secimi zorunludur',
+        'Depo backend tarafinda JWT deposundan alinir',
+        'Acik firma siparisleri ihtiyactan dusulur',
+        'Secilen satirlar tek tedarikciye aitse siparise cevrilir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'OnerilenFirmaSiparisleriController',
+          description: 'Firma siparisi icin tedarikci bazli read-only oneriler ve convert akisi.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/siparis-islemleri/onerilen-firma-siparisleri?SupplierCode=...',
+              description: 'Tedarikci ve depo kapsaminda onerilen firma siparisi satirlarini listeler'
+            },
+            {
+              method: 'POST',
+              path: '/api/siparis-islemleri/onerilen-firma-siparisleri/convert-to-order',
+              description: 'Secili onerileri verilen firma siparisine cevirir',
+              payload: 'ConvertSuggestedCompanyOrderHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "supplierCode": "32000999",
+  "orderDate": "2026-07-01",
+  "deliveryDate": "2026-07-02",
+  "description1": "Onerilen siparisten olustu",
+  "lines": []
+}`
+    },
+    () =>
+      import(
+        '../tasks/orders/onerilen-firma-siparisleri/list/onerilen-firma-siparisleri-list.component'
+      ).then((m) => m.OnerilenFirmaSiparisleriListComponent),
+    { accessKeyAliases: ['siparis-islemleri.onerilen-firma-siparisleri'] }
   )
 } as const satisfies Record<string, DocsTaskSource>;

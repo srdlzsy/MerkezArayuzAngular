@@ -8,9 +8,13 @@ import type {
   CompanyOrderHeaderDto,
   CompanyOrderLineItemDto,
   CompanyOrderListItemDto,
+  ConvertSuggestedCompanyOrderHttpRequest,
+  ConvertSuggestedCompanyOrderLineHttpRequest,
   CreateIssuedCompanyOrderHttpRequest,
   CreateIssuedCompanyOrderLineHttpRequest,
-  CreateIssuedCompanyOrderResponse
+  CreateIssuedCompanyOrderResponse,
+  SuggestedCompanyOrderListHttpRequest,
+  SuggestedCompanyOrderListItemDto
 } from './siparis-islemleri.dtos';
 
 export type IFurpaCompanyOrderListItemApiDto = CompanyOrderListItemDto;
@@ -20,3 +24,9 @@ export type IFurpaCompanyOrderDetailApiDto = CompanyOrderDetailDto;
 export type IFurpaCreateCompanyOrderLineRequestApiDto = CreateIssuedCompanyOrderLineHttpRequest;
 export type IFurpaCreateCompanyOrderRequestApiDto = CreateIssuedCompanyOrderHttpRequest;
 export type IFurpaCreateCompanyOrderResponseApiDto = CreateIssuedCompanyOrderResponse;
+export type IFurpaSuggestedCompanyOrderListItemApiDto = SuggestedCompanyOrderListItemDto;
+export type IFurpaSuggestedCompanyOrderListRequestApiDto = SuggestedCompanyOrderListHttpRequest;
+export type IFurpaConvertSuggestedCompanyOrderRequestApiDto =
+  ConvertSuggestedCompanyOrderHttpRequest;
+export type IFurpaConvertSuggestedCompanyOrderLineRequestApiDto =
+  ConvertSuggestedCompanyOrderLineHttpRequest;

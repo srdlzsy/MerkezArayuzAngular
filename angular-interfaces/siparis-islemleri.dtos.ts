@@ -105,6 +105,51 @@ export interface CreateIssuedWarehouseOrderResponse {
   writeConnectionName: string;
 }
 
+export interface SuggestedWarehouseOrderListItemDto {
+  stockCode: string;
+  stockName: string;
+  modelCode: string;
+  barcode: string;
+  targetOnHand: number;
+  sourceOnHand: number;
+  salesQuantity: number;
+  openIncomingOrderQuantity: number;
+  packageFactor: number;
+  minDay: number;
+  recommendedDay: number;
+  maxDay: number;
+  recommendedStockQuantity: number;
+  needQuantity: number;
+  suggestedOrderQuantity: number;
+}
+
+export interface SuggestedWarehouseOrderListHttpRequest {
+  targetWarehouseNo?: number;
+  sourceWarehouseNo: number;
+  lookbackDays?: number;
+  fallbackRecommendedDay?: number;
+}
+
+export interface ConvertSuggestedWarehouseOrderHttpRequest {
+  sourceWarehouseNo: number;
+  orderDate: string;
+  deliveryDate: string;
+  description: string;
+  lines: ConvertSuggestedWarehouseOrderLineHttpRequest[];
+}
+
+export interface ConvertSuggestedWarehouseOrderLineHttpRequest {
+  stockCode: string;
+  quantity: number;
+  recommendedQuantity: number;
+  unitPrice: number;
+  unitPointer: number;
+  description: string;
+  packageCode: string;
+  projectCode: string;
+  responsibilityCenter: string;
+}
+
 // ============================================================================
 // Firma Siparişi Modelleri
 // ============================================================================
@@ -231,4 +276,58 @@ export interface CreateIssuedCompanyOrderResponse {
   totalQuantity: number;
   totalAmount: number;
   writeConnectionName: string;
+}
+
+export interface SuggestedCompanyOrderListItemDto {
+  supplierCode: string;
+  supplierName: string;
+  stockCode: string;
+  stockName: string;
+  modelCode: string;
+  barcode: string;
+  targetOnHand: number;
+  salesQuantity: number;
+  openCompanyOrderQuantity: number;
+  packageFactor: number;
+  minDay: number;
+  recommendedDay: number;
+  maxDay: number;
+  recommendedStockQuantity: number;
+  needQuantity: number;
+  suggestedOrderQuantity: number;
+  purchasePrice: number;
+  minimumPurchaseQuantity: number;
+  deliveryDay: number | null;
+}
+
+export interface SuggestedCompanyOrderListHttpRequest {
+  warehouseNo?: number;
+  supplierCode: string;
+  lookbackDays?: number;
+  fallbackRecommendedDay?: number;
+}
+
+export interface ConvertSuggestedCompanyOrderHttpRequest {
+  supplierCode: string;
+  orderDate: string;
+  deliveryDate: string;
+  description1: string;
+  description2: string;
+  deliverer: string;
+  receiver: string;
+  lines: ConvertSuggestedCompanyOrderLineHttpRequest[];
+}
+
+export interface ConvertSuggestedCompanyOrderLineHttpRequest {
+  stockCode: string;
+  quantity: number;
+  recommendedQuantity: number;
+  unitPrice: number;
+  unitPointer: number;
+  description1: string;
+  description2: string;
+  packageCode: string;
+  projectCode: string;
+  customerResponsibilityCenter: string;
+  productResponsibilityCenter: string;
 }
