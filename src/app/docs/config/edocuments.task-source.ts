@@ -12,6 +12,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
       highlights: [
         'POST senkronize ile cache guncelleme',
         'invoiceDate bazli tam liste',
+        'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
         'documentId teknik UUID ile application/pdf dosyasi',
         'HTML detay /detail endpointinden alinir',
         'POST render override',
@@ -28,13 +29,13 @@ export const EDOCUMENTS_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&SearchField=Any&SearchText=INV-2026',
-              description: 'Lokal cache uzerinden invoiceDate bazli, arama destekli tam fatura listesini getirir; PageSize kabul edilir ama sonucu kesmez'
+              path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&invoiceId=KEF2026&page=1&PageSize=50',
+              description: 'Lokal cache uzerinden invoiceDate bazli listeyi getirir; invoiceId, despatchId, customerTitle, customerTcknVkn, documentId ve benzeri net filtrelerle genis aday setini backend tarafinda daraltir'
             },
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize',
-              description: 'Secili tarih araligini Uyumsoft GetInboxInvoiceList ile cache tabloya senkronize eder'
+              description: 'Secili tarih araligini Uyumsoft GetInboxInvoices ile cache tabloya senkronize eder'
             },
             {
               method: 'GET',

@@ -145,6 +145,9 @@
             </div>
             <div class="viewing-list-meta">
               <span class="panel-badge">{{ filteredViewingItems().length }} kayit</span>
+              <span class="panel-badge" *ngIf="filteredViewingItems().length > 0">
+                {{ viewingPageStart() }}-{{ viewingPageEnd() }}
+              </span>
               <span class="panel-badge" *ngIf="viewingList() as response">
                 Toplam {{ response.totalCount }}
               </span>
@@ -199,6 +202,15 @@
                 (input)="setViewingAmountMaxFilter($event)"
                 placeholder="999999"
               />
+            </label>
+
+            <label class="field page-size-field">
+              <span>Sayfada</span>
+              <select [value]="viewingPageSize()" (change)="setViewingPageSize($any($event.target).value)">
+                <option *ngFor="let option of viewingPageSizeOptions" [value]="option">
+                  {{ option }}
+                </option>
+              </select>
             </label>
 
             <button
@@ -269,7 +281,7 @@
                       [disabled]="selectableViewingItems().length === 0 || viewingBulkPrintLoading()"
                       (click)="$event.stopPropagation()"
                       (change)="toggleAllVisibleViewingSelection($any($event.target).checked)"
-                      aria-label="Tum yazdirilmamis faturalar"
+                      aria-label="Bu sayfadaki yazdirilmamis faturalar"
                     />
                   </th>
                   <th>
@@ -312,7 +324,7 @@
               </thead>
               <tbody>
                 <tr
-                  *ngFor="let item of filteredViewingItems(); trackBy: trackByInvoice"
+                  *ngFor="let item of paginatedViewingItems(); trackBy: trackByInvoice"
                   [class.is-selected]="isViewingItemSelected(item)"
                   [class.is-selection-disabled]="item.isPrinted || viewingBulkPrintLoading()"
                   tabindex="0"
@@ -425,6 +437,45 @@
                 </tr>
               </tbody>
             </table>
+          </div>
+
+          <div class="viewing-pagination-row" *ngIf="filteredViewingItems().length > viewingPageSize()">
+            <span>{{ viewingPageStart() }}-{{ viewingPageEnd() }} / {{ filteredViewingItems().length }} kayit</span>
+            <div class="candidate-strip">
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                (click)="goToViewingPage(1)"
+                [disabled]="effectiveViewingPageNumber() <= 1"
+              >
+                Ilk
+              </button>
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                (click)="goToViewingPage(effectiveViewingPageNumber() - 1)"
+                [disabled]="effectiveViewingPageNumber() <= 1"
+              >
+                Onceki
+              </button>
+              <span class="panel-badge">{{ effectiveViewingPageNumber() }} / {{ viewingPageCount() }}</span>
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                (click)="goToViewingPage(effectiveViewingPageNumber() + 1)"
+                [disabled]="effectiveViewingPageNumber() >= viewingPageCount()"
+              >
+                Sonraki
+              </button>
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                (click)="goToViewingPage(viewingPageCount())"
+                [disabled]="effectiveViewingPageNumber() >= viewingPageCount()"
+              >
+                Son
+              </button>
+            </div>
           </div>
 
         </article>

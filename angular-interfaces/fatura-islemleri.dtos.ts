@@ -11,6 +11,7 @@ export type IInvoiceSendingScenarioBodyApiDto = IInvoiceSendingScenarioValueApiD
 export type IInvoiceViewingSearchFieldApiDto =
   | 'InvoiceDate'
   | 'InvoiceId'
+  | 'DocumentId'
   | 'CustomerTitle'
   | 'CustomerTcknVkn'
   | 'InvoiceTotal'
@@ -29,6 +30,21 @@ export interface IInvoiceViewingListQueryApiDto {
   processedState?: IInvoiceStateFilterApiDto | null;
   isPrinted?: IInvoiceStateFilterApiDto | null;
   printedState?: IInvoiceStateFilterApiDto | null;
+  invoiceId?: string | null;
+  invoiceNo?: string | null;
+  despatchId?: string | null;
+  despatchNo?: string | null;
+  customerTitle?: string | null;
+  customerTcknVkn?: string | null;
+  tcknVkn?: string | null;
+  documentId?: string | null;
+  ettn?: string | null;
+  orderDocumentId?: string | null;
+  status?: string | null;
+  invoiceType?: string | null;
+  minInvoiceTotal?: number | null;
+  maxInvoiceTotal?: number | null;
+  hasDespatchId?: boolean | null;
   searchField?: IInvoiceViewingSearchFieldApiDto | null;
   searchText?: string | null;
   page?: number | null;
