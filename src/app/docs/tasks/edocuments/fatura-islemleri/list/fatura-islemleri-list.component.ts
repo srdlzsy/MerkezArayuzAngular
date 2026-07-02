@@ -311,6 +311,7 @@ export class FaturaIslemleriListComponent {
   protected readonly activeWorkspace = signal<WorkspaceMode>(this.initialWorkspace);
   protected readonly feedback = signal<PageFeedback | null>(null);
 
+  protected viewingQuickFilterInput = '';
   protected readonly viewingQuickFilter = signal('');
   protected readonly viewingTableStateFilter = signal('all');
   protected readonly viewingTableTypeFilter = signal('');
@@ -366,6 +367,7 @@ export class FaturaIslemleriListComponent {
     signal<InvoiceReturnReferenceCandidatesResponseDto | null>(null);
   protected readonly returnReferenceLoading = signal(false);
   protected readonly returnReferenceSavingKey = signal<string | null>(null);
+  private viewingQuickFilterTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly viewingFilterForm = new FormGroup({
     startDate: new FormControl<string>(this.defaultDateRange().startDate, {
@@ -838,6 +840,7 @@ export class FaturaIslemleriListComponent {
 
     this.destroyRef.onDestroy(() => {
       this.clearFeedbackDismissTimer();
+      this.clearViewingQuickFilterTimer();
       this.releasePreviewUrls();
       this.releaseViewingPdfUrl();
     });
@@ -993,13 +996,21 @@ export class FaturaIslemleriListComponent {
       searchText: ''
     });
     this.clearViewingTableFilters();
-    this.viewingQuickFilter.set('');
     this.viewingPageNumber.set(1);
   }
 
   protected setViewingQuickFilter(event: Event): void {
-    this.viewingQuickFilter.set((event.target as HTMLInputElement | null)?.value ?? '');
-    this.viewingPageNumber.set(1);
+    const value = (event.target as HTMLInputElement | null)?.value ?? '';
+
+    this.viewingQuickFilterInput = value;
+    this.clearViewingQuickFilterTimer();
+
+    this.viewingQuickFilterTimer = setTimeout(() => {
+      const trimmedValue = value.trim();
+      this.viewingQuickFilter.set(trimmedValue.length >= 3 ? value : '');
+      this.viewingPageNumber.set(1);
+      this.viewingQuickFilterTimer = null;
+    }, 400);
   }
 
   protected setViewingTableStateFilter(event: Event): void {
@@ -1023,6 +1034,8 @@ export class FaturaIslemleriListComponent {
   }
 
   protected clearViewingTableFilters(): void {
+    this.clearViewingQuickFilterTimer();
+    this.viewingQuickFilterInput = '';
     this.viewingQuickFilter.set('');
     this.viewingTableStateFilter.set('all');
     this.viewingTableTypeFilter.set('');
@@ -3036,6 +3049,15 @@ export class FaturaIslemleriListComponent {
 
     clearTimeout(this.feedbackDismissTimer);
     this.feedbackDismissTimer = null;
+  }
+
+  private clearViewingQuickFilterTimer(): void {
+    if (!this.viewingQuickFilterTimer) {
+      return;
+    }
+
+    clearTimeout(this.viewingQuickFilterTimer);
+    this.viewingQuickFilterTimer = null;
   }
 
   private normalizeText(value: unknown): string {

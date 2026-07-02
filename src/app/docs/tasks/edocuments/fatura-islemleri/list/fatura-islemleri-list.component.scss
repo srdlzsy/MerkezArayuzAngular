@@ -953,13 +953,60 @@
 
 .viewing-table .table-actions {
   flex-wrap: nowrap;
-  gap: 0.18rem;
+  gap: 0.24rem;
 }
 
 .viewing-table .compact-button {
   min-height: 1.54rem;
   padding: 0.16rem 0.3rem;
   font-size: 0.66rem;
+}
+
+.viewing-table .invoice-action-button {
+  min-width: 3.25rem;
+  min-height: 1.72rem;
+  gap: 0.26rem;
+  justify-content: center;
+  border-radius: 6px;
+  box-shadow: none;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.viewing-table .invoice-action-button i {
+  width: 0.78rem;
+  font-size: 0.72rem;
+  text-align: center;
+}
+
+.viewing-table .invoice-action-button.ghost-button {
+  border-color: #c8d7d1;
+  background: #f8fbfa;
+  color: #315048;
+}
+
+.viewing-table .invoice-action-button.primary-button {
+  border-color: #0f766e;
+  background: #0f766e;
+  color: #fff;
+}
+
+.viewing-table .invoice-action-button.secondary-button {
+  border-color: #b9c8c2;
+  background: #eef4f1;
+  color: #243c35;
+}
+
+.viewing-table .invoice-action-button:hover:not(:disabled) {
+  transform: translateY(-1px);
+  box-shadow: 0 6px 14px rgba(15, 82, 72, 0.12);
+}
+
+.viewing-table .invoice-action-button:disabled {
+  transform: none;
+  box-shadow: none;
 }
 
 .sending-table .table-actions {

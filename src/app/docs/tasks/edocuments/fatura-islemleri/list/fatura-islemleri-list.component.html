@@ -1,20 +1,5 @@
 <section class="invoice-console" [class.is-viewing-workspace]="activeWorkspace() === 'viewing'">
-  <header class="hero-card">
-    <div class="hero-copy">
-      <p class="eyebrow">Fatura Islemleri</p>
-      <h2>
-        {{ activeWorkspace() === 'viewing' ? 'Fatura Goruntuleme' : 'Fatura Gonderimi' }}
-      </h2>
-      <p class="subtitle">
-        {{
-          activeWorkspace() === 'viewing'
-            ? 'Faturalari tablo uzerinden takip et, belgeyi ac ve yazdirildi durumunu yonet.'
-            : 'Giden faturalari tablo uzerinden takip et, onizle ve gonderilmemisleri Uyumsofta gonder.'
-        }}
-      </p>
-    </div>
 
-  </header>
 
   <article
     class="feedback-card"
@@ -159,9 +144,9 @@
               <span>Gelen faturada ara</span>
               <input
                 type="text"
-                [value]="viewingQuickFilter()"
+                [value]="viewingQuickFilterInput"
                 (input)="setViewingQuickFilter($event)"
-                placeholder="no, musteri, VKN, irsaliye, siparis, zarf, mesaj"
+                placeholder="en az 3 karakter: no, musteri, VKN, irsaliye, siparis, zarf, mesaj"
               />
             </label>
 
@@ -399,24 +384,29 @@
                     <div class="table-actions">
                       <button
                         type="button"
-                        class="ghost-button compact-button"
+                        class="ghost-button compact-button invoice-action-button"
+                        title="Fatura detayini ac"
                         (click)="$event.stopPropagation(); openViewingDetail(item)"
                       >
-                        Ac
+                        <i class="fa-solid fa-eye"></i>
+                        <span>Ac</span>
                       </button>
                       <button
                         type="button"
-                        class="primary-button compact-button"
+                        class="primary-button compact-button invoice-action-button"
                         *ngIf="canViewDetail()"
+                        title="PDF goruntule"
                         (click)="$event.stopPropagation(); openViewingPdf(item)"
                         [disabled]="viewingPdfLoading()"
                       >
-                        PDF
+                        <i class="fa-solid fa-file-pdf"></i>
+                        <span>PDF</span>
                       </button>
                       <button
                         type="button"
-                        class="secondary-button compact-button"
+                        class="secondary-button compact-button invoice-action-button"
                         *ngIf="canUpdatePrinted()"
+                        [title]="item.isPrinted ? 'Fatura yazdirildi' : 'Faturayi yazdir'"
                         (click)="$event.stopPropagation(); printViewingInvoice(item)"
                         [disabled]="
                           item.isPrinted ||
@@ -425,6 +415,18 @@
                           viewingBulkPrintLoading()
                         "
                       >
+                        <i
+                          class="fa-solid"
+                          [ngClass]="
+                            viewingPrintDocumentId() === item.documentId ||
+                            isPrintedStateUpdating(item.documentId)
+                              ? 'fa-circle-notch fa-spin'
+                              : item.isPrinted
+                                ? 'fa-check'
+                                : 'fa-print'
+                          "
+                        ></i>
+                        <span>
                         {{
                           viewingPrintDocumentId() === item.documentId ||
                           isPrintedStateUpdating(item.documentId)
@@ -433,6 +435,7 @@
                               ? 'Yazildi'
                               : 'Yazdir'
                         }}
+                        </span>
                       </button>
                     </div>
                   </td>
