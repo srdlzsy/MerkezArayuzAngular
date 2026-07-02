@@ -41,12 +41,14 @@ export const OPERATION_TASK_SOURCE = {
   "items": [
     {
       "id": "11111111-1111-1111-1111-111111111111",
+      "flowKey": "CompanyShipment:1:FRM2026:101",
       "documentType": "CompanyShipment",
       "sourceWarehouseNo": 1,
       "targetWarehouseNo": null,
       "documentNo": "FRM2026000000101",
       "status": "Succeeded",
-      "currentStep": "EDespatchSubmission"
+      "currentStep": "EDespatchSubmission",
+      "lastChangedByUserId": null
     }
   ]
 }`

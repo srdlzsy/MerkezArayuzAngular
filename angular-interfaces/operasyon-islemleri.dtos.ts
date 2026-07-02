@@ -156,6 +156,8 @@ export interface DocumentFlowListItemDto {
 }
 
 export interface DocumentFlowDetailDto extends DocumentFlowListItemDto {
+  flowKey: string;
+  lastChangedByUserId: string | null;
   events: DocumentFlowEventDto[];
 }
 

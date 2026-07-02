@@ -34,7 +34,6 @@ import {
   type InvoiceViewingDetailDto,
   type InvoiceViewingListItemDto,
   type InvoiceViewingListResponseDto,
-  type InvoiceViewingPdfResponseDto,
   type InvoiceViewingRenderRequestDto,
   type InvoiceViewingSynchronizationRequestDto,
   type InvoiceViewingPrintedStateRequestDto,
@@ -51,6 +50,7 @@ type FeedbackTone = 'success' | 'error' | 'info';
 type SortDirection = 'asc' | 'desc';
 type ViewingSortKey =
   | 'invoiceId'
+  | 'despatchId'
   | 'customerTitle'
   | 'invoiceDate'
   | 'invoiceType'
@@ -95,8 +95,8 @@ interface SendingSortState {
 }
 
 interface ViewingSortState {
-  key: ViewingSortKey;
-  direction: SortDirection;
+  key: ViewingSortKey | null;
+  direction: SortDirection | null;
 }
 
 interface ViewingSearchFieldOption {
@@ -215,6 +215,12 @@ export class FaturaIslemleriListComponent {
   ];
   protected readonly viewingSearchFieldOptions: ReadonlyArray<ViewingSearchFieldOption> = [
     {
+      value: 'Any',
+      label: 'Genel Arama',
+      placeholder: 'no, musteri, durum, zarf, mesaj',
+      hint: 'Temel metin alanlari, tarih ve tutar uzerinde genel arama yapar.'
+    },
+    {
       value: 'InvoiceDate',
       label: 'Fatura Tarihi',
       placeholder: '2026-05-05',
@@ -249,6 +255,36 @@ export class FaturaIslemleriListComponent {
       label: 'Irsaliye No',
       placeholder: 'DSP-2026-0007',
       hint: 'Irsaliye numarasi icinde arama yapar.'
+    },
+    {
+      value: 'Status',
+      label: 'Durum',
+      placeholder: '1000 veya Onaylandi',
+      hint: 'Durum aciklamasi, status code veya envelope status code icinde arama yapar.'
+    },
+    {
+      value: 'InvoiceType',
+      label: 'Fatura Tipi',
+      placeholder: 'Temel',
+      hint: 'Fatura tipi alaninda arama yapar.'
+    },
+    {
+      value: 'EnvelopeIdentifier',
+      label: 'Envelope',
+      placeholder: 'urn:mail:...',
+      hint: 'Envelope identifier icinde arama yapar.'
+    },
+    {
+      value: 'OrderDocumentId',
+      label: 'Siparis / Irsaliye',
+      placeholder: 'IRS202600001',
+      hint: 'Order document id icinde arama yapar.'
+    },
+    {
+      value: 'Message',
+      label: 'Mesaj',
+      placeholder: 'Uyumsoft mesaj metni',
+      hint: 'Uyumsoft mesaj alaninda arama yapar.'
     }
   ];
 
@@ -328,14 +364,6 @@ export class FaturaIslemleriListComponent {
     }),
     searchText: new FormControl<string>('', {
       nonNullable: true
-    }),
-    pageNumber: new FormControl<number>(1, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(1)]
-    }),
-    pageSize: new FormControl<number>(100, {
-      nonNullable: true,
-      validators: [Validators.required, Validators.min(1)]
     })
   });
   protected readonly sendingFilterForm = new FormGroup({
@@ -475,10 +503,21 @@ export class FaturaIslemleriListComponent {
         item.invoiceType,
         item.statusCode,
         item.status,
+        item.envelopeIdentifier,
+        item.envelopeStatusCode,
+        item.message,
+        item.orderDocumentId,
+        item.documentCurrencyCode,
+        item.invoiceTipType,
         item.despatchId,
         item.isStandard ? 'standart' : 'ozel tasarim',
         item.isProcessed ? 'islendi' : 'bekliyor',
         item.isPrinted ? 'yazdirildi' : 'yazdirilmadi',
+        item.isArchived ? 'arsiv' : '',
+        item.isSeen === true ? 'goruldu' : item.isSeen === false ? 'gorulmedi' : '',
+        `${item.taxTotal}`,
+        `${item.taxExclusiveAmount}`,
+        `${item.exchangeRate}`,
         `${item.invoiceTotal}`
         ].some((value) => this.normalizeText(value).includes(filter));
 
@@ -591,8 +630,8 @@ export class FaturaIslemleriListComponent {
         value: `${response?.totalCount ?? 0}`
       },
       {
-        label: 'Sayfa',
-        value: response ? `${response.pageNumber} / ${this.getPageCount(response)}` : '-'
+        label: 'Liste Boyutu',
+        value: `${items.length}`
       },
       {
         label: 'Islenen',
@@ -763,7 +802,6 @@ export class FaturaIslemleriListComponent {
   }
 
   protected applyViewingFilters(): void {
-    this.viewingFilterForm.controls.pageNumber.setValue(1);
     this.loadViewingList();
   }
 
@@ -799,14 +837,6 @@ export class FaturaIslemleriListComponent {
             message: `${request.startDate} - ${request.endDate} araligindaki Uyumsoft inbox kayitlari cache'e alindi.`
           });
 
-          if (
-            this.viewingFilterForm.controls.pageNumber.invalid ||
-            this.viewingFilterForm.controls.pageSize.invalid
-          ) {
-            return;
-          }
-
-          this.viewingFilterForm.controls.pageNumber.setValue(1);
           this.loadViewingList();
         },
         error: (error: HttpErrorResponse) => {
@@ -840,7 +870,7 @@ export class FaturaIslemleriListComponent {
     const rawValue = this.viewingFilterForm.getRawValue();
     const searchText = rawValue.searchText.trim();
     const searchField = rawValue.searchField || null;
-    const hasSearch = !!searchField && !!searchText;
+    const hasSearch = !!searchText;
 
     if (!keepSelection) {
       this.viewingDetailDialogOpen.set(false);
@@ -859,10 +889,7 @@ export class FaturaIslemleriListComponent {
         isPrinted: rawValue.printedState,
         printedState: rawValue.printedState,
         searchField: hasSearch ? searchField : null,
-        searchText: hasSearch ? searchText : null,
-        page: rawValue.pageNumber,
-        pageNumber: rawValue.pageNumber,
-        pageSize: rawValue.pageSize
+        searchText: hasSearch ? searchText : null
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -909,9 +936,7 @@ export class FaturaIslemleriListComponent {
       processedState: -1,
       printedState: -1,
       searchField: '',
-      searchText: '',
-      pageNumber: 1,
-      pageSize: 100
+      searchText: ''
     });
     this.clearViewingTableFilters();
     this.viewingQuickFilter.set('');
@@ -946,13 +971,26 @@ export class FaturaIslemleriListComponent {
   }
 
   protected setViewingSort(key: ViewingSortKey): void {
-    this.viewingSort.update((currentSort) => ({
-      key,
-      direction:
-        currentSort.key === key && currentSort.direction === 'asc'
-          ? 'desc'
-          : 'asc'
-    }));
+    this.viewingSort.update((currentSort) => {
+      if (currentSort.key !== key) {
+        return {
+          key,
+          direction: 'asc'
+        };
+      }
+
+      if (currentSort.direction === 'asc') {
+        return {
+          key,
+          direction: 'desc'
+        };
+      }
+
+      return {
+        key: null,
+        direction: null
+      };
+    });
   }
 
   protected getViewingSortIndicator(key: ViewingSortKey): string {
@@ -1036,8 +1074,8 @@ export class FaturaIslemleriListComponent {
         finalize(() => this.viewingPdfLoading.set(false))
       )
       .subscribe({
-        next: (response: InvoiceViewingPdfResponseDto) => {
-          this.openPdfBlobInDialog(this.createPdfBlobFromOperationResponse(response), summary.invoiceId);
+        next: (blob: Blob) => {
+          this.openPdfBlobInDialog(blob, summary.invoiceId);
 
           this.feedback.set({
             tone: 'success',
@@ -1287,21 +1325,6 @@ export class FaturaIslemleriListComponent {
 
   protected clearViewingSelection(): void {
     this.selectedViewingDocumentIds.set([]);
-  }
-
-  protected goToViewingPage(pageNumber: number): void {
-    if (!this.viewingList()) {
-      return;
-    }
-
-    const totalPageCount = this.getPageCount(this.viewingList() as InvoiceViewingListResponseDto);
-
-    if (pageNumber < 1 || pageNumber > totalPageCount) {
-      return;
-    }
-
-    this.viewingFilterForm.controls.pageNumber.setValue(pageNumber);
-    this.loadViewingList(true);
   }
 
   protected applySendingFilters(): void {
@@ -1958,14 +1981,6 @@ export class FaturaIslemleriListComponent {
     return JSON.stringify(value, null, 2);
   }
 
-  protected getPageCount(response: InvoiceViewingListResponseDto | null): number {
-    if (!response || !response.pageSize) {
-      return 1;
-    }
-
-    return Math.max(1, Math.ceil(response.totalCount / response.pageSize));
-  }
-
   protected isViewingCardSelected(item: InvoiceViewingListItemDto): boolean {
     return item.documentId === this.selectedViewingDocumentId();
   }
@@ -2046,106 +2061,6 @@ export class FaturaIslemleriListComponent {
     this.viewingPdfDialogOpen.set(true);
   }
 
-  private createPdfBlobFromOperationResponse(response: InvoiceViewingPdfResponseDto): Blob {
-    if (!response?.isSucceeded) {
-      throw new Error(response?.message?.trim() || 'PDF operasyonu basarisiz dondu.');
-    }
-
-    const base64Pdf = this.findPdfBase64InOperationResponse(response);
-
-    if (!base64Pdf) {
-      throw new Error('PDF verisi API cevabinda bulunamadi.');
-    }
-
-    const binaryText = atob(base64Pdf);
-    const bytes = new Uint8Array(binaryText.length);
-
-    for (let index = 0; index < binaryText.length; index += 1) {
-      bytes[index] = binaryText.charCodeAt(index);
-    }
-
-    return new Blob([bytes], {
-      type: 'application/pdf'
-    });
-  }
-
-  private findPdfBase64InOperationResponse(
-    response: InvoiceViewingPdfResponseDto
-  ): string | null {
-    const candidates: string[] = [];
-
-    this.collectPdfStringCandidates(response.scalarValue, candidates);
-    this.collectPdfStringCandidates(response.responsePayloadJson, candidates);
-    this.collectPdfStringCandidates(response.resultAttributes, candidates);
-    this.collectPdfStringCandidates(response.nodes, candidates);
-
-    return candidates.find((candidate) => candidate.startsWith('JVBERi0')) ?? null;
-  }
-
-  private collectPdfStringCandidates(value: unknown, candidates: string[]): void {
-    if (value === null || value === undefined) {
-      return;
-    }
-
-    if (typeof value === 'string') {
-      const normalizedValue = value.trim();
-
-      if (!normalizedValue) {
-        return;
-      }
-
-      const directBase64 = this.normalizePdfBase64(normalizedValue);
-
-      if (directBase64) {
-        candidates.push(directBase64);
-      }
-
-      const embeddedMatch = normalizedValue.match(/JVBERi0[A-Za-z0-9+/=\r\n\s]+/);
-
-      if (embeddedMatch?.[0]) {
-        const embeddedBase64 = this.normalizePdfBase64(embeddedMatch[0]);
-
-        if (embeddedBase64) {
-          candidates.push(embeddedBase64);
-        }
-      }
-
-      if (
-        (normalizedValue.startsWith('{') && normalizedValue.endsWith('}')) ||
-        (normalizedValue.startsWith('[') && normalizedValue.endsWith(']'))
-      ) {
-        try {
-          this.collectPdfStringCandidates(JSON.parse(normalizedValue), candidates);
-        } catch {
-          return;
-        }
-      }
-
-      return;
-    }
-
-    if (Array.isArray(value)) {
-      for (const item of value) {
-        this.collectPdfStringCandidates(item, candidates);
-      }
-
-      return;
-    }
-
-    if (typeof value === 'object') {
-      for (const nestedValue of Object.values(value as Record<string, unknown>)) {
-        this.collectPdfStringCandidates(nestedValue, candidates);
-      }
-    }
-  }
-
-  private normalizePdfBase64(value: string): string | null {
-    const withoutDataPrefix = value.replace(/^data:application\/pdf;base64,/i, '');
-    const compactValue = withoutDataPrefix.replace(/\s+/g, '');
-
-    return compactValue.startsWith('JVBERi0') ? compactValue : null;
-  }
-
   private async printAndMarkViewingInvoice(
     item: InvoiceViewingListItemDto,
     source: string
@@ -2156,10 +2071,9 @@ export class FaturaIslemleriListComponent {
       throw new Error('Satirin teknik Uyumsoft UUID bilgisi bulunamadi.');
     }
 
-    const pdfResponse = await firstValueFrom(
+    const blob = await firstValueFrom(
       this.faturaIslemleriService.getInvoiceViewingPdf(invoiceUuid)
     );
-    const blob = this.createPdfBlobFromOperationResponse(pdfResponse);
 
     await this.printPdfBlob(blob, item.invoiceId);
 
@@ -2806,12 +2720,17 @@ export class FaturaIslemleriListComponent {
     items: InvoiceViewingListItemDto[],
     sort: ViewingSortState
   ): InvoiceViewingListItemDto[] {
+    if (!sort.key || !sort.direction) {
+      return [...items];
+    }
+
+    const sortKey = sort.key;
     const direction = sort.direction === 'asc' ? 1 : -1;
 
     return [...items].sort((left, right) => {
       const result = this.compareSendingSortValue(
-        this.getViewingSortValue(left, sort.key),
-        this.getViewingSortValue(right, sort.key)
+        this.getViewingSortValue(left, sortKey),
+        this.getViewingSortValue(right, sortKey)
       );
 
       if (result !== 0) {
@@ -2829,6 +2748,8 @@ export class FaturaIslemleriListComponent {
     switch (key) {
       case 'invoiceId':
         return item.invoiceId;
+      case 'despatchId':
+        return item.despatchId;
       case 'customerTitle':
         return item.customerTitle;
       case 'invoiceDate':

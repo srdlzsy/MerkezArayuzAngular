@@ -1,4 +1,4 @@
-<section class="invoice-console">
+<section class="invoice-console" [class.is-viewing-workspace]="activeWorkspace() === 'viewing'">
   <header class="hero-card">
     <div class="hero-copy">
       <p class="eyebrow">Fatura Islemleri</p>
@@ -91,7 +91,7 @@
               <label class="field">
                 <span>Arama Alani</span>
                 <select formControlName="searchField">
-                  <option [ngValue]="''">Sec</option>
+                  <option [ngValue]="''">Genel</option>
                   <option *ngFor="let option of viewingSearchFieldOptions" [ngValue]="option.value">
                     {{ option.label }}
                   </option>
@@ -104,14 +104,6 @@
                   formControlName="searchText"
                   [placeholder]="getSelectedViewingSearchOption()?.placeholder || 'Arama girin'"
                 />
-              </label>
-              <label class="field">
-                <span>Sayfa</span>
-                <input type="number" min="1" formControlName="pageNumber" />
-              </label>
-              <label class="field">
-                <span>Kayit Sayisi</span>
-                <input type="number" min="1" formControlName="pageSize" />
               </label>
             </form>
 
@@ -154,7 +146,7 @@
             <div class="viewing-list-meta">
               <span class="panel-badge">{{ filteredViewingItems().length }} kayit</span>
               <span class="panel-badge" *ngIf="viewingList() as response">
-                Sayfa {{ response.pageNumber }} / {{ getPageCount(response) }}
+                Toplam {{ response.totalCount }}
               </span>
             </div>
           </div>
@@ -166,7 +158,7 @@
                 type="text"
                 [value]="viewingQuickFilter()"
                 (input)="setViewingQuickFilter($event)"
-                placeholder="no, musteri, VKN, irsaliye, durum"
+                placeholder="no, musteri, VKN, zarf, siparis, mesaj"
               />
             </label>
 
@@ -286,6 +278,11 @@
                     </button>
                   </th>
                   <th>
+                    <button type="button" class="sort-header" (click)="setViewingSort('despatchId')">
+                      Irsaliye {{ getViewingSortIndicator('despatchId') }}
+                    </button>
+                  </th>
+                  <th>
                     <button type="button" class="sort-header" (click)="setViewingSort('customerTitle')">
                       Musteri {{ getViewingSortIndicator('customerTitle') }}
                     </button>
@@ -333,7 +330,10 @@
                   <td class="invoice-id-cell">
                     <strong>{{ item.invoiceId }}</strong>
                     <small>Doc: {{ item.documentId | slice: 0 : 8 }}</small>
-                    <small *ngIf="item.despatchId">Irs: {{ item.despatchId }}</small>
+                    <small *ngIf="item.orderDocumentId">Ref: {{ item.orderDocumentId }}</small>
+                  </td>
+                  <td class="despatch-cell">
+                    <strong>{{ item.despatchId || '-' }}</strong>
                   </td>
                   <td class="customer-cell">
                     <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
@@ -344,7 +344,8 @@
                     <small>{{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}</small>
                   </td>
                   <td class="type-cell">
-                    <strong>{{ item.invoiceType || '-' }}</strong>
+                    <strong>{{ item.invoiceTipType || item.invoiceType || '-' }}</strong>
+                    <small>{{ item.documentCurrencyCode || 'TRY' }} / {{ item.exchangeRate || 1 }}</small>
                     <small>{{ item.isStandard ? 'Standart' : 'Ozel tasarim' }}</small>
                   </td>
                   <td>
@@ -366,10 +367,17 @@
                       <small class="status-code-line">
                         {{ item.statusCode || '-' }} {{ item.status || '' }}
                       </small>
+                      <small
+                        class="status-code-line"
+                        *ngIf="item.envelopeStatusCode || item.isSeen === true || item.isSeen === false"
+                      >
+                        Zarf {{ item.envelopeStatusCode || '-' }} / {{ item.isSeen ? 'Goruldu' : 'Gorulmedi' }}
+                      </small>
                     </div>
                   </td>
                   <td class="amount-column">
                     <strong>{{ item.invoiceTotal | number: '1.2-2' }} TL</strong>
+                    <small>KDV {{ item.taxTotal | number: '1.2-2' }}</small>
                   </td>
                   <td>
                     <div class="table-actions">
@@ -417,25 +425,6 @@
             </table>
           </div>
 
-          <div class="pagination-row" *ngIf="viewingList() as response">
-            <button
-              type="button"
-              class="ghost-button compact-button"
-              (click)="goToViewingPage(response.pageNumber - 1)"
-              [disabled]="response.pageNumber <= 1 || viewingListLoading()"
-            >
-              Onceki
-            </button>
-            <span>Sayfa {{ response.pageNumber }} / {{ getPageCount(response) }}</span>
-            <button
-              type="button"
-              class="ghost-button compact-button"
-              (click)="goToViewingPage(response.pageNumber + 1)"
-              [disabled]="response.pageNumber >= getPageCount(response) || viewingListLoading()"
-            >
-              Sonraki
-            </button>
-          </div>
         </article>
       </div>
 
@@ -502,7 +491,14 @@
           <section class="summary-grid viewing-summary-grid">
             <article class="summary-card">
               <span>Toplam</span>
-              <strong>{{ summary.invoiceTotal | number: '1.2-2' }} TL</strong>
+              <strong>{{ summary.invoiceTotal | number: '1.2-2' }} {{ summary.documentCurrencyCode || 'TL' }}</strong>
+            </article>
+            <article class="summary-card">
+              <span>Matrah / KDV</span>
+              <strong>
+                {{ summary.taxExclusiveAmount | number: '1.2-2' }} /
+                {{ summary.taxTotal | number: '1.2-2' }}
+              </strong>
             </article>
             <article class="summary-card">
               <span>Fatura Tarihi</span>
@@ -516,7 +512,21 @@
               <span>Durum</span>
               <strong>{{ summary.statusCode || '-' }} {{ summary.status || 'Bilinmiyor' }}</strong>
             </article>
+            <article class="summary-card">
+              <span>Zarf</span>
+              <strong>{{ summary.envelopeStatusCode || '-' }}</strong>
+            </article>
+            <article class="summary-card">
+              <span>Siparis / Irsaliye</span>
+              <strong>{{ summary.orderDocumentId || summary.despatchId || '-' }}</strong>
+            </article>
           </section>
+
+          <article class="message-card" *ngIf="summary.envelopeIdentifier || summary.message">
+            <span>Uyumsoft Cache</span>
+            <p>{{ summary.envelopeIdentifier || 'Envelope yok' }}</p>
+            <p *ngIf="summary.message">{{ summary.message }}</p>
+          </article>
 
           <div class="action-row viewing-detail-actions">
             <button

@@ -200,6 +200,10 @@
 
           <dl class="detail-facts">
             <div>
+              <dt>Akis Anahtari</dt>
+              <dd>{{ detail.flowKey || '-' }}</dd>
+            </div>
+            <div>
               <dt>Son Adim</dt>
               <dd>{{ resolveStepLabel(detail.currentStep) }}</dd>
             </div>
@@ -214,6 +218,10 @@
             <div>
               <dt>E-Belge</dt>
               <dd>{{ detail.externalDocumentNo || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Son Degistiren</dt>
+              <dd>{{ formatUser(detail.lastChangedByUserId) }}</dd>
             </div>
           </dl>
 

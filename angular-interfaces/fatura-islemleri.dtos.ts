@@ -2,8 +2,6 @@
  * Fatura Islemleri DTOs
  */
 
-import type { IUyumsoftOperationResponseApiDto } from './entegrasyon-islemleri.dtos';
-
 export type IInvoiceStateFilterApiDto = -1 | 0 | 1;
 export type IInvoiceRenderProfileApiDto = 'Auto' | 'EFatura' | 'EArsiv';
 export type IInvoiceRenderProfileValueApiDto = IInvoiceRenderProfileApiDto | 0 | 1 | 2;
@@ -16,7 +14,13 @@ export type IInvoiceViewingSearchFieldApiDto =
   | 'CustomerTitle'
   | 'CustomerTcknVkn'
   | 'InvoiceTotal'
-  | 'DespatchId';
+  | 'DespatchId'
+  | 'Any'
+  | 'Status'
+  | 'InvoiceType'
+  | 'EnvelopeIdentifier'
+  | 'OrderDocumentId'
+  | 'Message';
 
 export interface IInvoiceViewingListQueryApiDto {
   startDate: string;
@@ -47,6 +51,18 @@ export interface IInvoiceViewingListItemApiDto {
   isStandard: boolean;
   statusCode: string | null;
   status: string | null;
+  envelopeIdentifier: string | null;
+  envelopeStatusCode: string | null;
+  message: string | null;
+  taxTotal: number;
+  taxExclusiveAmount: number;
+  documentCurrencyCode: string | null;
+  exchangeRate: number;
+  orderDocumentId: string | null;
+  isArchived: boolean;
+  invoiceTipType: string | null;
+  invoiceTipTypeCode: number;
+  isSeen: boolean | null;
 }
 
 export interface IInvoiceViewingListResponseApiDto {
@@ -73,7 +89,7 @@ export interface IInvoiceViewingDetailApiDto {
   document: IInvoiceRenderedDocumentApiDto;
 }
 
-export type IInvoiceViewingPdfResponseApiDto = IUyumsoftOperationResponseApiDto;
+export type IInvoiceViewingPdfResponseApiDto = Blob;
 
 export interface IInvoiceViewingSynchronizationRequestApiDto {
   startDate: string;

@@ -11,12 +11,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
         'POST senkronize ile cache guncelleme',
-        'invoiceDate bazli liste',
-        'documentId teknik UUID ile direkt PDF dosyasi',
+        'invoiceDate bazli tam liste',
+        'documentId teknik UUID ile application/pdf dosyasi',
         'HTML detay /detail endpointinden alinir',
         'POST render override',
         'Yazdirildi komutu ayri endpoint',
-        'Varsayilan belge acma Uyumsoft GetInboxInvoicePdf kullanir'
+        'Envelope, siparis, vergi, doviz, arsiv ve goruldu bilgileri cache listesinden okunur'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -27,8 +27,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&SearchField=InvoiceId&SearchText=INV-2026&page=1&PageSize=50',
-              description: 'Lokal cache uzerinden invoiceDate bazli, arama destekli sayfali fatura listesini getirir'
+              path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&SearchField=Any&SearchText=INV-2026',
+              description: 'Lokal cache uzerinden invoiceDate bazli, arama destekli tam fatura listesini getirir; PageSize kabul edilir ama sonucu kesmez'
             },
             {
               method: 'POST',
@@ -38,17 +38,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}',
-              description: 'Secili evragin resmi PDF datasini Uyumsoft GetInboxInvoicePdf ile getirir'
+              description: 'Secili evragin resmi PDF dosyasini application/pdf olarak getirir'
             },
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}/pdf',
-              description: 'PDF acma endpoint aliasi'
-            },
-            {
-              method: 'GET',
-              path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/{documentId}/pdf-file',
-              description: 'Liste satirindaki teknik documentId UUID ile inbox PDF dosyasini application/pdf olarak getirir'
+              description: 'Secili evragin resmi PDF dosyasini application/pdf olarak getirir'
             },
             {
               method: 'GET',

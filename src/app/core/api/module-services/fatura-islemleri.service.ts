@@ -172,8 +172,7 @@ export class FaturaIslemleriService extends BaseApiService {
         isPrinted,
         PrintedState: isPrinted,
         SearchField: request.searchField ?? undefined,
-        SearchText:
-          request.searchField && request.searchText?.trim() ? request.searchText.trim() : undefined,
+        SearchText: request.searchText?.trim() || undefined,
         page,
         PageNumber: page,
         PageSize: request.pageSize ?? undefined
@@ -182,14 +181,8 @@ export class FaturaIslemleriService extends BaseApiService {
   }
 
   getInvoiceViewingPdf(documentId: string) {
-    return this.get<InvoiceViewingPdfResponseDto>(
-      `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}/pdf`
-    );
-  }
-
-  getUyumsoftEInvoiceInboxPdfFile(invoiceUuid: string) {
     return this.getBlob(
-      `entegrasyon-islemleri/uyumsoft/e-fatura/inbox/invoices/${encodeURIComponent(invoiceUuid)}/pdf-file`
+      `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}/pdf`
     );
   }
 
