@@ -7840,14 +7840,27 @@ Request body:
 }
 ```
 
-Response:
+Response `200 OK`:
 
-- `204 NoContent`
+```json
+{
+  "startDate": "2026-05-01T00:00:00",
+  "endDate": "2026-05-05T00:00:00",
+  "sourceTotalCount": 29,
+  "fetchedCount": 29,
+  "insertedCount": 29,
+  "updatedCount": 0
+}
+```
 
 Davranis:
 
 - secilen tarih araligini Uyumsoft `GetInboxInvoices` ile okur
+- Uyumsoft sayfalari `PageIndex = 0, 1, 2...` ve `PageSize = 20` ile `TotalPages` tamamlanana kadar okunur
+- tum sayfalar eksiksiz alindiktan sonra DB upsert/save yapilir; eksik veya tekrar eden sayfada yarim senkron basarili sayilmaz
 - gelen sonuc `uyumsoft_inbox_invoices` cache tablosuna upsert edilir
+- `sourceTotalCount` Uyumsoft'un bildirdigi toplam kayit, `fetchedCount` tum sayfalardan gercekten okunan kayit sayisidir
+- Uyumsoft cagrisi basarisiz olursa endpoint sessiz `204` donmez; hata response'u doner
 - tekrar eden veya degisiklik icermeyen sayfalar icin koruma vardir; sonsuz donguye girmez
 - sync tamamlandiktan sonra UI ayni tarih araligiyla `GET /api/fatura-islemleri/fatura-goruntuleme` cagirip DB sonucunu alabilir
 

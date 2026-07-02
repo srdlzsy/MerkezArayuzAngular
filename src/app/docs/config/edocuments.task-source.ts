@@ -10,7 +10,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Manuel inbox senkronizasyonu, cache listeleme, teknik documentId ile PDF acma, HTML detay/render ve yazdirildi durumunu ayri komutla guncelleme akislarini yeni API uzerinden sunar.',
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
-        'POST senkronize ile cache guncelleme',
+        'POST senkronize ile tum Uyumsoft sayfalarini okuyup cache guncelleme ve sonuc sayaclarini alma',
         'invoiceDate bazli tam liste',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
         'documentId teknik UUID ile application/pdf dosyasi',
@@ -35,7 +35,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize',
-              description: 'Secili tarih araligini Uyumsoft GetInboxInvoices ile cache tabloya senkronize eder'
+              description: 'Secili tarih araligindaki tum Uyumsoft GetInboxInvoices sayfalarini cache tabloya senkronize eder; kaynak, okunan, eklenen ve guncellenen kayit sayilarini dondurur'
             },
             {
               method: 'GET',

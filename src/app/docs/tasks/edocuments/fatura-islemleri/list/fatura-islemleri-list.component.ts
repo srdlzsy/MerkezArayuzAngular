@@ -36,6 +36,7 @@ import {
   type InvoiceViewingListResponseDto,
   type InvoiceViewingRenderRequestDto,
   type InvoiceViewingSynchronizationRequestDto,
+  type InvoiceViewingSynchronizationResponseDto,
   type InvoiceViewingPrintedStateRequestDto,
   type InvoiceViewingPrintedStateResponseDto,
   type UpdateInvoiceReturnReferenceRequestDto,
@@ -880,11 +881,11 @@ export class FaturaIslemleriListComponent {
         finalize(() => this.viewingSyncLoading.set(false))
       )
       .subscribe({
-        next: () => {
+        next: (result: InvoiceViewingSynchronizationResponseDto) => {
           this.feedback.set({
             tone: 'success',
             title: 'Senkronizasyon tamamlandi',
-            message: `${request.startDate} - ${request.endDate} araligindaki Uyumsoft inbox kayitlari cache'e alindi.`
+            message: `Uyumsoft'ta ${result.sourceTotalCount} kayit bulundu; ${result.fetchedCount} kayit okundu, ${result.insertedCount} yeni kayit eklendi ve ${result.updatedCount} kayit guncellendi.`
           });
 
           this.loadViewingList();

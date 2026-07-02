@@ -112,6 +112,15 @@ export interface IInvoiceViewingSynchronizationRequestApiDto {
   endDate: string;
 }
 
+export interface IInvoiceViewingSynchronizationResponseApiDto {
+  startDate: string;
+  endDate: string;
+  sourceTotalCount: number;
+  fetchedCount: number;
+  insertedCount: number;
+  updatedCount: number;
+}
+
 export interface IInvoiceViewingRenderRequestApiDto {
   profile?: IInvoiceRenderProfileValueApiDto | null;
   preferEmbeddedXslt?: boolean | null;
