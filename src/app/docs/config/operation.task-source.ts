@@ -2,6 +2,47 @@ import type { DocsTaskSource } from './docs-task-source.helpers';
 import { singleRouteTask } from './docs-task-source.helpers';
 
 export const OPERATION_TASK_SOURCE = {
+  'depo-operasyon-paneli': singleRouteTask(
+    {
+      id: 'depo-operasyon-paneli',
+      title: 'Depo Operasyon Paneli',
+      subtitle:
+        'Aktif depolarin gunluk sevk, mal kabul, bekleyen islem ve e-irsaliye hata durumlarini tek ekranda izler.',
+      baseRouteOrFile: '/api/operasyon-islemleri/depo-operasyon-paneli',
+      highlights: [
+        'Yalnizca Furpa Merkez API tarafindan kaydedilen belge akislarini sayar',
+        'Secilen gun icin sevk, mal kabul ve tamamlanmamis operasyon ozetini sunar',
+        'Depo sagligini Healthy, Warning ve Critical seviyelerinde gosterir',
+        'Depo satirindan filtreli belge akis listesine gecis saglar'
+      ],
+      listTitle: 'Endpoint',
+      items: [
+        {
+          name: 'WarehouseOperationDashboardController',
+          description:
+            'Mikro DEPOLAR listesini Auth DB belge akis metrikleriyle birlestirerek merkez yonetim panelini dondurur.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/operasyon-islemleri/depo-operasyon-paneli?date=2026-07-02',
+              description: 'Secilen gunun depo operasyon ozetini ve depo bazli saglik metriklerini getirir'
+            }
+          ]
+        }
+      ]
+    },
+    () =>
+      import('../tasks/operation/depo-operasyon-paneli/list/depo-operasyon-paneli-list.component').then(
+        (m) => m.DepoOperasyonPaneliListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'operasyon-islemleri.depo-operasyon-paneli',
+        'DepoOperasyonPaneli',
+        'WarehouseOperationDashboard'
+      ]
+    }
+  ),
   'belge-akis-takibi': singleRouteTask(
     {
       id: 'belge-akis-takibi',

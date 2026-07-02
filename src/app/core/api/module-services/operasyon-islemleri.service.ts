@@ -4,6 +4,8 @@ import type {
   DocumentFlowDetailDto,
   DocumentFlowListHttpRequest,
   DocumentFlowListResponse,
+  WarehouseOperationPanelHttpRequest,
+  WarehouseOperationPanelResponse,
   IAuthorizationFileItemDto,
   IOperationJobDetailDto,
   IOperationJobDto,
@@ -70,6 +72,15 @@ export class OperasyonIslemleriService extends BaseApiService {
   getDocumentFlowDetail(id: string): Observable<DocumentFlowDetailDto> {
     return this.get<DocumentFlowDetailDto>(
       `operasyon-islemleri/belge-akis-takibi/${encodeURIComponent(id)}`
+    );
+  }
+
+  getWarehouseOperationPanel(
+    request: WarehouseOperationPanelHttpRequest
+  ): Observable<WarehouseOperationPanelResponse> {
+    return this.getWithQuery<WarehouseOperationPanelResponse, WarehouseOperationPanelHttpRequest>(
+      'operasyon-islemleri/depo-operasyon-paneli',
+      request
     );
   }
 }

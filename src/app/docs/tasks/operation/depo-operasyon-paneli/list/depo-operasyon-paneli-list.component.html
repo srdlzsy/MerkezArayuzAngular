@@ -1,0 +1,174 @@
+<section class="operations-page">
+  <header class="page-head">
+    <div>
+      <span class="eyebrow">Operasyon Islemleri</span>
+      <h1>{{ page.title }}</h1>
+      <p>{{ page.subtitle }}</p>
+    </div>
+
+    <div class="head-actions">
+      <label class="date-field">
+        <span>Panel Tarihi</span>
+        <input
+          type="date"
+          [ngModel]="selectedDate()"
+          (ngModelChange)="setSelectedDate($event)"
+          (keyup.enter)="loadPanel()"
+        />
+      </label>
+      <button
+        type="button"
+        class="refresh-button"
+        title="Paneli yenile"
+        [disabled]="loading() || !canList()"
+        (click)="loadPanel()"
+      >
+        <i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i>
+        <span>{{ loading() ? 'Yukleniyor' : 'Yenile' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="alert alert-error" *ngIf="errorMessage() as error">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <span>{{ error }}</span>
+  </div>
+
+  <ng-container *ngIf="response() as panel">
+    <div class="alert alert-warning" *ngIf="!panel.trackingEnabled">
+      <i class="fa-solid fa-pause"></i>
+      <span>Yeni belge akisi yazimi kapali. Panel mevcut eski kayitlardan hesaplanmaya devam ediyor.</span>
+    </div>
+
+    <section class="summary-grid" aria-label="Operasyon ozeti">
+      <article
+        class="metric"
+        *ngFor="let metric of summaryMetrics; trackBy: trackByMetric"
+        [class]="'metric tone-' + metric.tone"
+      >
+        <div class="metric-icon"><i class="fa-solid" [ngClass]="metric.icon"></i></div>
+        <div>
+          <span>{{ metric.label }}</span>
+          <strong>{{ metricValue(metric.key) | number: '1.0-0' }}</strong>
+        </div>
+      </article>
+    </section>
+
+    <section class="insight-band">
+      <div class="insight">
+        <i class="fa-solid fa-arrow-trend-up"></i>
+        <div>
+          <span>En Yogun Depo</span>
+          <strong>{{ panel.busiestWarehouse?.warehouseName || '-' }}</strong>
+          <small *ngIf="panel.busiestWarehouse as busiest">
+            #{{ busiest.warehouseNo }} · {{ busiest.value | number: '1.0-0' }} sevk + kabul
+          </small>
+        </div>
+      </div>
+      <div class="insight">
+        <i class="fa-solid fa-clock"></i>
+        <div>
+          <span>En Yavas Mal Kabul</span>
+          <strong>{{ panel.slowestWarehouse?.warehouseName || '-' }}</strong>
+          <small *ngIf="panel.slowestWarehouse as slowest">
+            #{{ slowest.warehouseNo }} · {{ formatMinutes(slowest.value) }} ortalama
+          </small>
+        </div>
+      </div>
+      <div class="health-overview">
+        <span><b class="critical-dot"></b>{{ criticalCount() }} kritik</span>
+        <span><b class="warning-dot"></b>{{ warningCount() }} uyari</span>
+        <small>Uretim: {{ formatGeneratedAt(panel.generatedAtUtc) }}</small>
+      </div>
+    </section>
+
+    <section class="warehouse-section">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Depo Bazli Durum</span>
+          <h2>Operasyon dagilimi</h2>
+        </div>
+        <div class="table-tools">
+          <label class="search-field">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <input
+              type="search"
+              placeholder="Depo no veya adi"
+              [ngModel]="searchText()"
+              (ngModelChange)="setSearchText($event)"
+            />
+          </label>
+          <select
+            aria-label="Saglik durumu"
+            [ngModel]="healthFilter()"
+            (ngModelChange)="setHealthFilter($event)"
+          >
+            <option value="All">Tum Durumlar</option>
+            <option value="Critical">Kritik</option>
+            <option value="Warning">Uyari</option>
+            <option value="Healthy">Saglikli</option>
+          </select>
+          <span class="result-count">{{ filteredWarehouses().length }} depo</span>
+        </div>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th><button type="button" (click)="setSort('warehouseNo')">Depo <i class="fa-solid" [ngClass]="sortIcon('warehouseNo')"></i></button></th>
+              <th><button type="button" (click)="setSort('todayShipmentCount')">Sevk <i class="fa-solid" [ngClass]="sortIcon('todayShipmentCount')"></i></button></th>
+              <th><button type="button" (click)="setSort('todayReceivingCount')">Kabul <i class="fa-solid" [ngClass]="sortIcon('todayReceivingCount')"></i></button></th>
+              <th><button type="button" (click)="setSort('pendingReceivingCount')">Bekleyen <i class="fa-solid" [ngClass]="sortIcon('pendingReceivingCount')"></i></button></th>
+              <th><button type="button" (click)="setSort('incompleteOperationCount')">Eksik <i class="fa-solid" [ngClass]="sortIcon('incompleteOperationCount')"></i></button></th>
+              <th><button type="button" (click)="setSort('failedEDespatchCount')">E-Irsaliye <i class="fa-solid" [ngClass]="sortIcon('failedEDespatchCount')"></i></button></th>
+              <th><button type="button" (click)="setSort('averageReceivingMinutes')">Ort. Kabul <i class="fa-solid" [ngClass]="sortIcon('averageReceivingMinutes')"></i></button></th>
+              <th><button type="button" (click)="setSort('healthStatus')">Durum <i class="fa-solid" [ngClass]="sortIcon('healthStatus')"></i></button></th>
+              <th class="action-column"><span class="sr-only">Islem</span></th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let warehouse of filteredWarehouses(); trackBy: trackByWarehouse"
+              tabindex="0"
+              (click)="openWarehouseFlows(warehouse)"
+              (keyup.enter)="openWarehouseFlows(warehouse)"
+            >
+              <td>
+                <div class="warehouse-cell">
+                  <span>#{{ warehouse.warehouseNo }}</span>
+                  <strong>{{ warehouse.warehouseName }}</strong>
+                </div>
+              </td>
+              <td>{{ warehouse.todayShipmentCount | number }}</td>
+              <td>{{ warehouse.todayReceivingCount | number }}</td>
+              <td [class.attention-value]="warehouse.pendingReceivingCount > 0">{{ warehouse.pendingReceivingCount | number }}</td>
+              <td [class.attention-value]="warehouse.incompleteOperationCount > 0">{{ warehouse.incompleteOperationCount | number }}</td>
+              <td [class.danger-value]="warehouse.failedEDespatchCount > 0">{{ warehouse.failedEDespatchCount | number }}</td>
+              <td>{{ formatMinutes(warehouse.averageReceivingMinutes) }}</td>
+              <td><span class="health-badge" [ngClass]="healthClass(warehouse.healthStatus)">{{ healthLabel(warehouse.healthStatus) }}</span></td>
+              <td class="action-column">
+                <button
+                  type="button"
+                  class="open-button"
+                  title="Belge akislarini ac"
+                  (click)="$event.stopPropagation(); openWarehouseFlows(warehouse)"
+                >
+                  <i class="fa-solid fa-arrow-right"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="filteredWarehouses().length === 0">
+              <td colspan="9" class="empty-state">Secili filtrelerle eslesen depo bulunamadi.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+
+  <div class="loading-state" *ngIf="loading() && !response()">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <span>Depo operasyonlari yukleniyor...</span>
+  </div>
+</section>

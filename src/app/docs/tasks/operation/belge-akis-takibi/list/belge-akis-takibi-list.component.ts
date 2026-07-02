@@ -10,6 +10,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import type {
   DocumentFlowDetailDto,
@@ -189,6 +190,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
+  private readonly activatedRoute = inject(ActivatedRoute);
   private readonly operasyonIslemleriService = inject(OperasyonIslemleriService);
   private activeListRequestId = 0;
   private activeDetailRequestId = 0;
@@ -227,8 +229,25 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.applyRouteFilters();
+
     if (this.canList()) {
       this.loadFlows();
+    }
+  }
+
+  private applyRouteFilters(): void {
+    const query = this.activatedRoute.snapshot.queryParamMap;
+    const warehouseNo = query.get('warehouseNo')?.trim() ?? '';
+    const date = query.get('date')?.trim() ?? '';
+
+    if (this.isAdminUser() && /^\d+$/.test(warehouseNo) && Number(warehouseNo) > 0) {
+      this.filters.warehouseNo = warehouseNo;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
+      this.filters.startDate = date;
+      this.filters.endDate = date;
     }
   }
 

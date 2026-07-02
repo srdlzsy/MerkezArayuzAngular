@@ -170,3 +170,50 @@ export interface DocumentFlowEventDto {
   changedByUserId: string | null;
   occurredAtUtc: string;
 }
+
+// ============================================================================
+// Depo Operasyon Paneli Modelleri
+// ============================================================================
+
+export type WarehouseOperationHealthStatus = 'Critical' | 'Warning' | 'Healthy';
+
+export interface WarehouseOperationPanelHttpRequest {
+  date?: string | null;
+}
+
+export interface WarehouseOperationPanelSummaryDto {
+  warehouseCount: number;
+  todayShipmentCount: number;
+  todayReceivingCount: number;
+  pendingReceivingCount: number;
+  incompleteOperationCount: number;
+  failedEDespatchCount: number;
+}
+
+export interface WarehouseOperationHighlightDto {
+  warehouseNo: number;
+  warehouseName: string;
+  value: number;
+}
+
+export interface WarehouseOperationPanelItemDto {
+  warehouseNo: number;
+  warehouseName: string;
+  todayShipmentCount: number;
+  todayReceivingCount: number;
+  pendingReceivingCount: number;
+  incompleteOperationCount: number;
+  failedEDespatchCount: number;
+  averageReceivingMinutes: number;
+  healthStatus: WarehouseOperationHealthStatus | string;
+}
+
+export interface WarehouseOperationPanelResponse {
+  date: string;
+  generatedAtUtc: string;
+  trackingEnabled: boolean;
+  summary: WarehouseOperationPanelSummaryDto;
+  busiestWarehouse: WarehouseOperationHighlightDto | null;
+  slowestWarehouse: WarehouseOperationHighlightDto | null;
+  warehouses: WarehouseOperationPanelItemDto[];
+}
