@@ -11,13 +11,13 @@ export const EDOCUMENTS_TASK_SOURCE = {
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
         'POST senkronize ile tum Uyumsoft sayfalarini okuyup cache guncelleme ve sonuc sayaclarini alma',
-        'invoiceDate bazli tam liste',
+        'Fatura Tarihi UBL IssueDate alanindan, kayit tarihi CreateDateUtc alanindan okunur',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
         'documentId teknik UUID ile application/pdf dosyasi',
         'HTML detay /detail endpointinden alinir',
         'POST render override',
         'Yazdirildi komutu ayri endpoint',
-        'Irsaliye despatchId alanindan, siparis/order referansi orderDocumentId alanindan okunur',
+        'Irsaliye GetInboxInvoices despatchId alanindan, siparis/order referansi orderDocumentId alanindan okunur',
         'Envelope, vergi, doviz, arsiv ve goruldu bilgileri cache listesinden okunur'
       ],
       listTitle: 'Endpointler',
@@ -30,12 +30,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&invoiceId=KEF2026&page=1&PageSize=50',
-              description: 'Lokal cache uzerinden invoiceDate bazli listeyi getirir; invoiceId, despatchId, customerTitle, customerTcknVkn, documentId ve benzeri net filtrelerle genis aday setini backend tarafinda daraltir'
+              description: 'Lokal cache uzerinden Fatura Tarihi bazli listeyi getirir; invoiceDate yoksa createDate kullanir ve invoiceId, despatchId, customerTitle, customerTcknVkn, documentId gibi filtreleri backend tarafinda uygular'
             },
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize',
-              description: 'Secili tarih araligindaki tum Uyumsoft GetInboxInvoices sayfalarini cache tabloya senkronize eder; kaynak, okunan, eklenen ve guncellenen kayit sayilarini dondurur'
+              description: 'Tum Uyumsoft GetInboxInvoices sayfalarini okuyup IssueDate degeri secili Fatura Tarihi araliginda kalan belgeleri cache tabloya yazar; satir basina ek detay cagrisi yapmadan sonuc sayaclarini dondurur'
             },
             {
               method: 'GET',

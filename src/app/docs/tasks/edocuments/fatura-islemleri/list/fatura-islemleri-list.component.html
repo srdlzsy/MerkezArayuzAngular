@@ -65,11 +65,11 @@
           <ng-container *ngIf="canViewList()">
             <form class="filter-grid" [formGroup]="viewingFilterForm">
               <label class="field">
-                <span>Baslangic</span>
+                <span>Fatura Tarihi Baslangic</span>
                 <input type="date" formControlName="startDate" />
               </label>
               <label class="field">
-                <span>Bitis</span>
+                <span>Fatura Tarihi Bitis</span>
                 <input type="date" formControlName="endDate" />
               </label>
               <label class="field">
@@ -301,7 +301,7 @@
                   </th>
                   <th>
                     <button type="button" class="sort-header" (click)="setViewingSort('invoiceDate')">
-                      Tarih {{ getViewingSortIndicator('invoiceDate') }}
+                      Fatura Tarihi {{ getViewingSortIndicator('invoiceDate') }}
                     </button>
                   </th>
                   <th>
@@ -355,7 +355,9 @@
                   </td>
                   <td class="date-cell">
                     <strong>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</strong>
-                    <small>{{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}</small>
+                    <small>
+                      Kayit: {{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}
+                    </small>
                   </td>
                   <td class="type-cell">
                     <strong>{{ item.invoiceTipType || item.invoiceType || '-' }}</strong>
