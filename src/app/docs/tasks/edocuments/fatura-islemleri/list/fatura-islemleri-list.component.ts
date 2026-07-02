@@ -16,7 +16,7 @@ import type {
   IInvoiceStateFilterApiDto,
   IInvoiceViewingSearchFieldApiDto
 } from '@interfaces';
-import { finalize, of, switchMap } from 'rxjs';
+import { finalize, firstValueFrom, of, switchMap } from 'rxjs';
 
 import {
   getDefaultDateRange,
@@ -34,6 +34,7 @@ import {
   type InvoiceViewingDetailDto,
   type InvoiceViewingListItemDto,
   type InvoiceViewingListResponseDto,
+  type InvoiceViewingPdfResponseDto,
   type InvoiceViewingRenderRequestDto,
   type InvoiceViewingSynchronizationRequestDto,
   type InvoiceViewingPrintedStateRequestDto,
@@ -48,6 +49,14 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 type WorkspaceMode = 'viewing' | 'sending';
 type FeedbackTone = 'success' | 'error' | 'info';
 type SortDirection = 'asc' | 'desc';
+type ViewingSortKey =
+  | 'invoiceId'
+  | 'customerTitle'
+  | 'invoiceDate'
+  | 'invoiceType'
+  | 'status'
+  | 'invoiceTotal'
+  | 'isPrinted';
 type SendingSortKey =
   | 'invoiceId'
   | 'customerTitle'
@@ -85,6 +94,11 @@ interface SendingSortState {
   direction: SortDirection;
 }
 
+interface ViewingSortState {
+  key: ViewingSortKey;
+  direction: SortDirection;
+}
+
 interface ViewingSearchFieldOption {
   value: IInvoiceViewingSearchFieldApiDto;
   label: string;
@@ -96,6 +110,11 @@ interface EmbeddedPreferenceOption {
   value: boolean | null;
   label: string;
   hint: string;
+}
+
+interface ViewingTableFilterOption {
+  value: string;
+  label: string;
 }
 
 interface SendingScenarioOption {
@@ -128,6 +147,9 @@ export class FaturaIslemleriListComponent {
   private readonly faturaIslemleriService = inject(FaturaIslemleriService);
   private readonly previewObjectUrlCache = new Map<string, string>();
   private readonly previewResourceUrlCache = new Map<string, SafeResourceUrl>();
+  private viewingPdfObjectUrl: string | null = null;
+  private printFrame: HTMLIFrameElement | null = null;
+  private printObjectUrl: string | null = null;
   private feedbackDismissTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly initialWorkspace =
@@ -234,7 +256,15 @@ export class FaturaIslemleriListComponent {
   protected readonly feedback = signal<PageFeedback | null>(null);
 
   protected readonly viewingQuickFilter = signal('');
+  protected readonly viewingTableStateFilter = signal('all');
+  protected readonly viewingTableTypeFilter = signal('');
+  protected readonly viewingAmountMinFilter = signal<number | null>(null);
+  protected readonly viewingAmountMaxFilter = signal<number | null>(null);
   protected readonly sendingQuickFilter = signal('');
+  protected readonly viewingSort = signal<ViewingSortState>({
+    key: 'invoiceDate',
+    direction: 'desc'
+  });
   protected readonly sendingSort = signal<SendingSortState>({
     key: 'documentDate',
     direction: 'desc'
@@ -248,9 +278,15 @@ export class FaturaIslemleriListComponent {
   protected readonly viewingSyncLoading = signal(false);
   protected readonly viewingDetailLoading = signal(false);
   protected readonly viewingPdfLoading = signal(false);
+  protected readonly viewingPdfDialogOpen = signal(false);
+  protected readonly viewingPdfTitle = signal<string | null>(null);
+  protected readonly viewingPdfUrl = signal<SafeResourceUrl | null>(null);
   protected readonly viewingRenderLoading = signal(false);
   protected readonly viewingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly printedStateUpdatingDocumentId = signal<string | null>(null);
+  protected readonly viewingPrintDocumentId = signal<string | null>(null);
+  protected readonly viewingBulkPrintLoading = signal(false);
+  protected readonly selectedViewingDocumentIds = signal<string[]>([]);
 
   protected readonly sendingList = signal<InvoiceSendingListResponseDto | null>(null);
   protected readonly sendingDetailDialogOpen = signal(false);
@@ -297,9 +333,9 @@ export class FaturaIslemleriListComponent {
       nonNullable: true,
       validators: [Validators.required, Validators.min(1)]
     }),
-    pageSize: new FormControl<number>(50, {
+    pageSize: new FormControl<number>(100, {
       nonNullable: true,
-      validators: [Validators.required, Validators.min(1), Validators.max(500)]
+      validators: [Validators.required, Validators.min(1)]
     })
   });
   protected readonly sendingFilterForm = new FormGroup({
@@ -423,13 +459,15 @@ export class FaturaIslemleriListComponent {
   protected readonly filteredViewingItems = computed(() => {
     const items = this.viewingList()?.items ?? [];
     const filter = this.normalizeText(this.viewingQuickFilter());
+    const stateFilter = this.viewingTableStateFilter();
+    const typeFilter = this.normalizeText(this.viewingTableTypeFilter());
+    const minAmount = this.viewingAmountMinFilter();
+    const maxAmount = this.viewingAmountMaxFilter();
 
-    if (!filter) {
-      return items;
-    }
-
-    return items.filter((item) =>
-      [
+    const filteredItems = items.filter((item) => {
+      const matchesSearch =
+        !filter ||
+        [
         item.documentId,
         item.invoiceId,
         item.customerTitle,
@@ -438,10 +476,79 @@ export class FaturaIslemleriListComponent {
         item.statusCode,
         item.status,
         item.despatchId,
+        item.isStandard ? 'standart' : 'ozel tasarim',
+        item.isProcessed ? 'islendi' : 'bekliyor',
+        item.isPrinted ? 'yazdirildi' : 'yazdirilmadi',
         `${item.invoiceTotal}`
-      ].some((value) => this.normalizeText(value).includes(filter))
+        ].some((value) => this.normalizeText(value).includes(filter));
+
+      if (!matchesSearch) {
+        return false;
+      }
+
+      if (typeFilter && this.normalizeText(item.invoiceType) !== typeFilter) {
+        return false;
+      }
+
+      if (minAmount !== null && item.invoiceTotal < minAmount) {
+        return false;
+      }
+
+      if (maxAmount !== null && item.invoiceTotal > maxAmount) {
+        return false;
+      }
+
+      switch (stateFilter) {
+        case 'processed':
+          return item.isProcessed;
+        case 'waiting':
+          return !item.isProcessed;
+        case 'printed':
+          return item.isPrinted;
+        case 'not-printed':
+          return !item.isPrinted;
+        case 'standard':
+          return item.isStandard;
+        case 'custom':
+          return !item.isStandard;
+        default:
+          return true;
+      }
+    });
+
+    return this.sortViewingItems(filteredItems, this.viewingSort());
+  });
+  protected readonly viewingTableStateOptions: ReadonlyArray<ViewingTableFilterOption> = [
+    { value: 'all', label: 'Tum durumlar' },
+    { value: 'processed', label: 'Islenenler' },
+    { value: 'waiting', label: 'Bekleyenler' },
+    { value: 'printed', label: 'Yazdirilanlar' },
+    { value: 'not-printed', label: 'Yazdirilmayanlar' },
+    { value: 'standard', label: 'Standart' },
+    { value: 'custom', label: 'Ozel tasarim' }
+  ];
+  protected readonly viewingTypeOptions = computed(() => {
+    const types = new Set(
+      (this.viewingList()?.items ?? [])
+        .map((item) => item.invoiceType?.trim())
+        .filter((value): value is string => !!value)
+    );
+
+    return Array.from(types).sort((left, right) =>
+      left.localeCompare(right, 'tr-TR', {
+        numeric: true,
+        sensitivity: 'base'
+      })
     );
   });
+  protected readonly hasViewingTableFilters = computed(
+    () =>
+      !!this.viewingQuickFilter() ||
+      this.viewingTableStateFilter() !== 'all' ||
+      !!this.viewingTableTypeFilter() ||
+      this.viewingAmountMinFilter() !== null ||
+      this.viewingAmountMaxFilter() !== null
+  );
   protected readonly filteredSendingItems = computed(() => {
     const items = this.sendingList()?.items ?? [];
     const filter = this.normalizeText(this.sendingQuickFilter());
@@ -540,6 +647,20 @@ export class FaturaIslemleriListComponent {
         ?.items.find((item) => item.documentId === this.selectedViewingDocumentId()) ??
       null
   );
+  protected readonly selectedViewingItems = computed(() => {
+    const selectedIds = new Set(this.selectedViewingDocumentIds());
+
+    return this.filteredViewingItems().filter((item) => selectedIds.has(item.documentId));
+  });
+  protected readonly selectableViewingItems = computed(() =>
+    this.filteredViewingItems().filter((item) => !item.isPrinted)
+  );
+  protected readonly allVisibleViewingItemsSelected = computed(() => {
+    const selectedIds = new Set(this.selectedViewingDocumentIds());
+    const items = this.selectableViewingItems();
+
+    return items.length > 0 && items.every((item) => selectedIds.has(item.documentId));
+  });
   protected readonly selectedSendingSummary = computed(
     () =>
       this.sendingDetail()?.summary ??
@@ -629,6 +750,7 @@ export class FaturaIslemleriListComponent {
     this.destroyRef.onDestroy(() => {
       this.clearFeedbackDismissTimer();
       this.releasePreviewUrls();
+      this.releaseViewingPdfUrl();
     });
 
     if (this.activeWorkspace() === 'viewing' && this.canViewList()) {
@@ -749,6 +871,7 @@ export class FaturaIslemleriListComponent {
       .subscribe({
         next: (response: InvoiceViewingListResponseDto) => {
           this.viewingList.set(response);
+          this.pruneViewingSelection(response);
 
           const selectedId = this.selectedViewingDocumentId();
 
@@ -788,13 +911,58 @@ export class FaturaIslemleriListComponent {
       searchField: '',
       searchText: '',
       pageNumber: 1,
-      pageSize: 50
+      pageSize: 100
     });
+    this.clearViewingTableFilters();
     this.viewingQuickFilter.set('');
   }
 
   protected setViewingQuickFilter(event: Event): void {
     this.viewingQuickFilter.set((event.target as HTMLInputElement | null)?.value ?? '');
+  }
+
+  protected setViewingTableStateFilter(event: Event): void {
+    this.viewingTableStateFilter.set((event.target as HTMLSelectElement | null)?.value || 'all');
+  }
+
+  protected setViewingTableTypeFilter(event: Event): void {
+    this.viewingTableTypeFilter.set((event.target as HTMLSelectElement | null)?.value || '');
+  }
+
+  protected setViewingAmountMinFilter(event: Event): void {
+    this.viewingAmountMinFilter.set(this.readNullableNumber(event));
+  }
+
+  protected setViewingAmountMaxFilter(event: Event): void {
+    this.viewingAmountMaxFilter.set(this.readNullableNumber(event));
+  }
+
+  protected clearViewingTableFilters(): void {
+    this.viewingQuickFilter.set('');
+    this.viewingTableStateFilter.set('all');
+    this.viewingTableTypeFilter.set('');
+    this.viewingAmountMinFilter.set(null);
+    this.viewingAmountMaxFilter.set(null);
+  }
+
+  protected setViewingSort(key: ViewingSortKey): void {
+    this.viewingSort.update((currentSort) => ({
+      key,
+      direction:
+        currentSort.key === key && currentSort.direction === 'asc'
+          ? 'desc'
+          : 'asc'
+    }));
+  }
+
+  protected getViewingSortIndicator(key: ViewingSortKey): string {
+    const sort = this.viewingSort();
+
+    if (sort.key !== key) {
+      return '';
+    }
+
+    return sort.direction === 'asc' ? '^' : 'v';
   }
 
   protected openViewingDetail(item: InvoiceViewingListItemDto): void {
@@ -819,6 +987,13 @@ export class FaturaIslemleriListComponent {
     this.viewingDetailDialogOpen.set(false);
   }
 
+  protected closeViewingPdfDialog(): void {
+    this.viewingPdfDialogOpen.set(false);
+    this.viewingPdfTitle.set(null);
+    this.viewingPdfUrl.set(null);
+    this.releaseViewingPdfUrl();
+  }
+
   protected reloadViewingDetail(): void {
     const documentId = this.selectedViewingDocumentId();
 
@@ -841,9 +1016,9 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
-    const invoiceUuid = summary.documentId?.trim();
+    const documentId = summary.documentId?.trim();
 
-    if (!invoiceUuid) {
+    if (!documentId) {
       this.feedback.set({
         tone: 'error',
         title: 'PDF anahtari yok',
@@ -855,21 +1030,19 @@ export class FaturaIslemleriListComponent {
     this.viewingPdfLoading.set(true);
 
     this.faturaIslemleriService
-      .getUyumsoftEInvoiceInboxPdfFile(invoiceUuid)
+      .getInvoiceViewingPdf(documentId)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.viewingPdfLoading.set(false))
       )
       .subscribe({
-        next: (blob: Blob) => {
-          const opened = this.openPdfBlob(blob);
+        next: (response: InvoiceViewingPdfResponseDto) => {
+          this.openPdfBlobInDialog(this.createPdfBlobFromOperationResponse(response), summary.invoiceId);
 
           this.feedback.set({
-            tone: opened ? 'success' : 'info',
-            title: opened ? 'PDF acildi' : 'PDF cevabi alindi',
-            message: opened
-              ? `${summary.invoiceId} resmi PDF olarak acildi.`
-              : 'Uyumsoft PDF dosyasi alindi ancak tarayici yeni sekmeyi acamadi.'
+            tone: 'success',
+            title: 'PDF hazirlandi',
+            message: `${summary.invoiceId} resmi PDF olarak fatura goruntuleme endpointinden acildi.`
           });
         },
         error: (error: HttpErrorResponse) => {
@@ -987,6 +1160,133 @@ export class FaturaIslemleriListComponent {
           });
         }
       });
+  }
+
+  protected handleViewingPrintedAction(item: InvoiceViewingListItemDto): void {
+    if (item.isPrinted) {
+      this.updateInvoicePrintedState(item, false, 'detail-panel');
+      return;
+    }
+
+    void this.printViewingInvoice(item);
+  }
+
+  protected async printViewingInvoice(item: InvoiceViewingListItemDto | null): Promise<void> {
+    if (!item || item.isPrinted) {
+      return;
+    }
+
+    if (!this.canViewDetail() || !this.canUpdatePrinted()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki gerekli',
+        message: 'Faturayi yazdirip isaretlemek icin detail ve update yetkileri gerekiyor.'
+      });
+      return;
+    }
+
+    this.viewingPrintDocumentId.set(item.documentId);
+    this.printedStateUpdatingDocumentId.set(item.documentId);
+
+    try {
+      await this.printAndMarkViewingInvoice(item, 'direct-print-single');
+      this.feedback.set({
+        tone: 'success',
+        title: 'Yazdirma kuyruguna gonderildi',
+        message: `${item.invoiceId} yazdirildi olarak isaretlendi.`
+      });
+    } catch (error) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirma tamamlanamadi',
+        message: this.resolveErrorMessage(error, `${item.invoiceId} icin PDF yazdirilamadi.`)
+      });
+    } finally {
+      this.viewingPrintDocumentId.set(null);
+      this.printedStateUpdatingDocumentId.set(null);
+    }
+  }
+
+  protected async printSelectedViewingInvoices(): Promise<void> {
+    const items = this.selectedViewingItems().filter((item) => !item.isPrinted);
+
+    if (!items.length || this.viewingBulkPrintLoading()) {
+      return;
+    }
+
+    if (!this.canViewDetail() || !this.canUpdatePrinted()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki gerekli',
+        message: 'Toplu yazdirma icin detail ve update yetkileri gerekiyor.'
+      });
+      return;
+    }
+
+    this.viewingBulkPrintLoading.set(true);
+
+    const failedInvoices: string[] = [];
+
+    for (const item of items) {
+      this.viewingPrintDocumentId.set(item.documentId);
+      this.printedStateUpdatingDocumentId.set(item.documentId);
+
+      try {
+        await this.printAndMarkViewingInvoice(item, 'direct-print-bulk');
+      } catch {
+        failedInvoices.push(item.invoiceId || item.documentId);
+      }
+    }
+
+    this.viewingPrintDocumentId.set(null);
+    this.printedStateUpdatingDocumentId.set(null);
+    this.viewingBulkPrintLoading.set(false);
+
+    if (failedInvoices.length) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Toplu yazdirma eksik tamamladi',
+        message: `${items.length - failedInvoices.length}/${items.length} fatura yazdirildi. Hata: ${failedInvoices.join(', ')}`
+      });
+      return;
+    }
+
+    this.clearViewingSelection();
+    this.feedback.set({
+      tone: 'success',
+      title: 'Toplu yazdirma tamamlandi',
+      message: `${items.length} fatura yazdirildi olarak isaretlendi.`
+    });
+  }
+
+  protected toggleViewingItemSelection(
+    item: InvoiceViewingListItemDto,
+    checked: boolean
+  ): void {
+    const currentSelection = new Set(this.selectedViewingDocumentIds());
+
+    if (checked) {
+      currentSelection.add(item.documentId);
+    } else {
+      currentSelection.delete(item.documentId);
+    }
+
+    this.selectedViewingDocumentIds.set(Array.from(currentSelection));
+  }
+
+  protected toggleAllVisibleViewingSelection(checked: boolean): void {
+    if (!checked) {
+      this.selectedViewingDocumentIds.set([]);
+      return;
+    }
+
+    this.selectedViewingDocumentIds.set(
+      this.selectableViewingItems().map((item) => item.documentId)
+    );
+  }
+
+  protected clearViewingSelection(): void {
+    this.selectedViewingDocumentIds.set([]);
   }
 
   protected goToViewingPage(pageNumber: number): void {
@@ -1670,6 +1970,10 @@ export class FaturaIslemleriListComponent {
     return item.documentId === this.selectedViewingDocumentId();
   }
 
+  protected isViewingItemSelected(item: InvoiceViewingListItemDto): boolean {
+    return this.selectedViewingDocumentIds().includes(item.documentId);
+  }
+
   protected readonly trackByInvoice = (
     _index: number,
     item: InvoiceViewingListItemDto
@@ -1725,19 +2029,248 @@ export class FaturaIslemleriListComponent {
       });
   }
 
-  private openPdfBlob(blob: Blob): boolean {
+  private openPdfBlobInDialog(blob: Blob, invoiceId: string): void {
     const pdfBlob =
       blob.type === 'application/pdf'
         ? blob
         : new Blob([blob], {
             type: 'application/pdf'
           });
+
+    this.releaseViewingPdfUrl();
+
     const objectUrl = URL.createObjectURL(pdfBlob);
-    const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
+    this.viewingPdfObjectUrl = objectUrl;
+    this.viewingPdfTitle.set(invoiceId?.trim() || 'Fatura PDF');
+    this.viewingPdfUrl.set(this.sanitizer.bypassSecurityTrustResourceUrl(objectUrl));
+    this.viewingPdfDialogOpen.set(true);
+  }
 
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+  private createPdfBlobFromOperationResponse(response: InvoiceViewingPdfResponseDto): Blob {
+    if (!response?.isSucceeded) {
+      throw new Error(response?.message?.trim() || 'PDF operasyonu basarisiz dondu.');
+    }
 
-    return !!openedWindow;
+    const base64Pdf = this.findPdfBase64InOperationResponse(response);
+
+    if (!base64Pdf) {
+      throw new Error('PDF verisi API cevabinda bulunamadi.');
+    }
+
+    const binaryText = atob(base64Pdf);
+    const bytes = new Uint8Array(binaryText.length);
+
+    for (let index = 0; index < binaryText.length; index += 1) {
+      bytes[index] = binaryText.charCodeAt(index);
+    }
+
+    return new Blob([bytes], {
+      type: 'application/pdf'
+    });
+  }
+
+  private findPdfBase64InOperationResponse(
+    response: InvoiceViewingPdfResponseDto
+  ): string | null {
+    const candidates: string[] = [];
+
+    this.collectPdfStringCandidates(response.scalarValue, candidates);
+    this.collectPdfStringCandidates(response.responsePayloadJson, candidates);
+    this.collectPdfStringCandidates(response.resultAttributes, candidates);
+    this.collectPdfStringCandidates(response.nodes, candidates);
+
+    return candidates.find((candidate) => candidate.startsWith('JVBERi0')) ?? null;
+  }
+
+  private collectPdfStringCandidates(value: unknown, candidates: string[]): void {
+    if (value === null || value === undefined) {
+      return;
+    }
+
+    if (typeof value === 'string') {
+      const normalizedValue = value.trim();
+
+      if (!normalizedValue) {
+        return;
+      }
+
+      const directBase64 = this.normalizePdfBase64(normalizedValue);
+
+      if (directBase64) {
+        candidates.push(directBase64);
+      }
+
+      const embeddedMatch = normalizedValue.match(/JVBERi0[A-Za-z0-9+/=\r\n\s]+/);
+
+      if (embeddedMatch?.[0]) {
+        const embeddedBase64 = this.normalizePdfBase64(embeddedMatch[0]);
+
+        if (embeddedBase64) {
+          candidates.push(embeddedBase64);
+        }
+      }
+
+      if (
+        (normalizedValue.startsWith('{') && normalizedValue.endsWith('}')) ||
+        (normalizedValue.startsWith('[') && normalizedValue.endsWith(']'))
+      ) {
+        try {
+          this.collectPdfStringCandidates(JSON.parse(normalizedValue), candidates);
+        } catch {
+          return;
+        }
+      }
+
+      return;
+    }
+
+    if (Array.isArray(value)) {
+      for (const item of value) {
+        this.collectPdfStringCandidates(item, candidates);
+      }
+
+      return;
+    }
+
+    if (typeof value === 'object') {
+      for (const nestedValue of Object.values(value as Record<string, unknown>)) {
+        this.collectPdfStringCandidates(nestedValue, candidates);
+      }
+    }
+  }
+
+  private normalizePdfBase64(value: string): string | null {
+    const withoutDataPrefix = value.replace(/^data:application\/pdf;base64,/i, '');
+    const compactValue = withoutDataPrefix.replace(/\s+/g, '');
+
+    return compactValue.startsWith('JVBERi0') ? compactValue : null;
+  }
+
+  private async printAndMarkViewingInvoice(
+    item: InvoiceViewingListItemDto,
+    source: string
+  ): Promise<void> {
+    const invoiceUuid = item.documentId?.trim();
+
+    if (!invoiceUuid) {
+      throw new Error('Satirin teknik Uyumsoft UUID bilgisi bulunamadi.');
+    }
+
+    const pdfResponse = await firstValueFrom(
+      this.faturaIslemleriService.getInvoiceViewingPdf(invoiceUuid)
+    );
+    const blob = this.createPdfBlobFromOperationResponse(pdfResponse);
+
+    await this.printPdfBlob(blob, item.invoiceId);
+
+    const response = await firstValueFrom(
+      this.faturaIslemleriService.updateInvoiceViewingPrintedState(item.documentId, {
+        isPrinted: true,
+        source
+      })
+    );
+
+    this.mergeViewingSummary(response.summary);
+  }
+
+  private printPdfBlob(blob: Blob, invoiceId: string): Promise<void> {
+    const pdfBlob =
+      blob.type === 'application/pdf'
+        ? blob
+        : new Blob([blob], {
+            type: 'application/pdf'
+          });
+
+    this.releasePrintFrame();
+
+    const objectUrl = URL.createObjectURL(pdfBlob);
+    const frame = document.createElement('iframe');
+    this.printObjectUrl = objectUrl;
+    this.printFrame = frame;
+
+    frame.title = invoiceId?.trim() || 'Fatura PDF';
+    frame.style.position = 'fixed';
+    frame.style.left = '-10000px';
+    frame.style.top = '0';
+    frame.style.width = '1px';
+    frame.style.height = '1px';
+    frame.style.border = '0';
+    frame.style.opacity = '0';
+    frame.src = objectUrl;
+
+    return new Promise<void>((resolve, reject) => {
+      let settled = false;
+      let fallbackTimer = 0;
+      let printDelayTimer = 0;
+      let loadTimeoutTimer = 0;
+      const cleanup = () => {
+        frame.onload = null;
+        window.clearTimeout(fallbackTimer);
+        window.clearTimeout(printDelayTimer);
+        window.clearTimeout(loadTimeoutTimer);
+        window.removeEventListener('afterprint', handleAfterPrint);
+      };
+      const finish = () => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        resolve();
+      };
+      const handleAfterPrint = () => finish();
+
+      loadTimeoutTimer = window.setTimeout(() => {
+        if (settled) {
+          return;
+        }
+
+        settled = true;
+        cleanup();
+        reject(new Error('PDF yazdirma alani zamaninda yuklenemedi.'));
+      }, 15000);
+
+      frame.onload = () => {
+        printDelayTimer = window.setTimeout(() => {
+          try {
+            window.addEventListener('afterprint', handleAfterPrint, { once: true });
+            frame.contentWindow?.focus();
+            frame.contentWindow?.print();
+            fallbackTimer = window.setTimeout(finish, 2500);
+          } catch (error) {
+            cleanup();
+            reject(error);
+          }
+        }, 650);
+      };
+
+      document.body.appendChild(frame);
+    }).finally(() => {
+      window.setTimeout(() => this.releasePrintFrame(), 1500);
+    });
+  }
+
+  private releasePrintFrame(): void {
+    if (this.printFrame?.parentNode) {
+      this.printFrame.parentNode.removeChild(this.printFrame);
+    }
+
+    this.printFrame = null;
+
+    if (this.printObjectUrl) {
+      URL.revokeObjectURL(this.printObjectUrl);
+      this.printObjectUrl = null;
+    }
+  }
+
+  private releaseViewingPdfUrl(): void {
+    if (!this.viewingPdfObjectUrl) {
+      return;
+    }
+
+    URL.revokeObjectURL(this.viewingPdfObjectUrl);
+    this.viewingPdfObjectUrl = null;
   }
 
   private loadReturnReferenceCandidates(summary: InvoiceSendingListItemDto): void {
@@ -2109,6 +2642,12 @@ export class FaturaIslemleriListComponent {
   }
 
   private mergeViewingSummary(summary: InvoiceViewingListItemDto): void {
+    if (summary.isPrinted) {
+      this.selectedViewingDocumentIds.set(
+        this.selectedViewingDocumentIds().filter((documentId) => documentId !== summary.documentId)
+      );
+    }
+
     const currentList = this.viewingList();
 
     if (currentList) {
@@ -2253,6 +2792,58 @@ export class FaturaIslemleriListComponent {
     );
   }
 
+  private pruneViewingSelection(response: InvoiceViewingListResponseDto): void {
+    const validIds = new Set(
+      response.items.filter((item) => !item.isPrinted).map((item) => item.documentId)
+    );
+
+    this.selectedViewingDocumentIds.set(
+      this.selectedViewingDocumentIds().filter((documentId) => validIds.has(documentId))
+    );
+  }
+
+  private sortViewingItems(
+    items: InvoiceViewingListItemDto[],
+    sort: ViewingSortState
+  ): InvoiceViewingListItemDto[] {
+    const direction = sort.direction === 'asc' ? 1 : -1;
+
+    return [...items].sort((left, right) => {
+      const result = this.compareSendingSortValue(
+        this.getViewingSortValue(left, sort.key),
+        this.getViewingSortValue(right, sort.key)
+      );
+
+      if (result !== 0) {
+        return result * direction;
+      }
+
+      return this.compareSendingSortValue(left.invoiceId, right.invoiceId);
+    });
+  }
+
+  private getViewingSortValue(
+    item: InvoiceViewingListItemDto,
+    key: ViewingSortKey
+  ): string | number | boolean | null {
+    switch (key) {
+      case 'invoiceId':
+        return item.invoiceId;
+      case 'customerTitle':
+        return item.customerTitle;
+      case 'invoiceDate':
+        return item.invoiceDate ? new Date(item.invoiceDate).getTime() : null;
+      case 'invoiceType':
+        return item.invoiceType;
+      case 'status':
+        return `${item.isProcessed ? '1' : '0'}|${item.statusCode ?? ''}|${item.status ?? ''}`;
+      case 'invoiceTotal':
+        return item.invoiceTotal;
+      case 'isPrinted':
+        return item.isPrinted;
+    }
+  }
+
   private sortSendingItems(
     items: InvoiceSendingListItemDto[],
     sort: SendingSortState
@@ -2329,6 +2920,18 @@ export class FaturaIslemleriListComponent {
       numeric: true,
       sensitivity: 'base'
     });
+  }
+
+  private readNullableNumber(event: Event): number | null {
+    const rawValue = (event.target as HTMLInputElement | null)?.value.trim() ?? '';
+
+    if (!rawValue) {
+      return null;
+    }
+
+    const parsedValue = Number(rawValue.replace(',', '.'));
+
+    return Number.isFinite(parsedValue) ? parsedValue : null;
   }
 
   private buildSendingKey(documentSerie: string, documentOrderNo: number): string {
@@ -2472,13 +3075,19 @@ export class FaturaIslemleriListComponent {
     this.previewResourceUrlCache.clear();
   }
 
-  private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
+  private resolveErrorMessage(error: unknown, fallback: string): string {
+    if (error instanceof Error && error.message.trim()) {
+      return error.message;
     }
 
-    if (typeof error.error === 'object' && error.error !== null) {
-      const problem = error.error as Record<string, unknown>;
+    const httpError = error as HttpErrorResponse;
+
+    if (typeof httpError.error === 'string' && httpError.error.trim()) {
+      return httpError.error;
+    }
+
+    if (typeof httpError.error === 'object' && httpError.error !== null) {
+      const problem = httpError.error as Record<string, unknown>;
       const message = problem['message'] ?? problem['detail'] ?? problem['title'];
       const correlationId = problem['correlationId'] ?? problem['traceId'];
 

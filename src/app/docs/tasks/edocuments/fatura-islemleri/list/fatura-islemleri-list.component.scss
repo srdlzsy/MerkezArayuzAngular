@@ -51,6 +51,98 @@
   background: #ffffff;
 }
 
+.viewing-grid {
+  gap: 0.4rem;
+}
+
+.viewing-grid .workspace-stack {
+  gap: 0.42rem;
+}
+
+.viewing-filter-panel,
+.viewing-list-panel {
+  padding: 0.48rem 0.55rem;
+}
+
+.viewing-filter-panel .panel-head,
+.viewing-list-panel .panel-head {
+  min-height: 0;
+}
+
+.viewing-filter-panel .panel-head h3,
+.viewing-list-panel .panel-head h3 {
+  font-size: 0.92rem;
+}
+
+.viewing-filter-panel .panel-head p,
+.viewing-list-panel .panel-head p {
+  display: none;
+}
+
+.viewing-filter-panel .filter-grid {
+  grid-template-columns:
+    minmax(116px, 0.72fr)
+    minmax(116px, 0.72fr)
+    minmax(96px, 0.5fr)
+    minmax(104px, 0.54fr)
+    minmax(122px, 0.66fr)
+    minmax(190px, 1fr)
+    minmax(68px, 0.28fr)
+    minmax(86px, 0.34fr);
+  gap: 0.38rem;
+  align-items: end;
+}
+
+.viewing-filter-panel .field-wide {
+  grid-column: auto;
+}
+
+.viewing-filter-panel .action-row {
+  gap: 0.34rem;
+  padding-top: 0.05rem;
+}
+
+.viewing-filter-panel .primary-button,
+.viewing-filter-panel .secondary-button,
+.viewing-filter-panel .ghost-button {
+  min-height: 1.9rem;
+  padding: 0.3rem 0.52rem;
+  font-size: 0.76rem;
+}
+
+.viewing-list-panel {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.viewing-list-meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.32rem;
+  justify-content: flex-end;
+}
+
+.viewing-table-tools {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) minmax(132px, 0.42fr) minmax(120px, 0.38fr) minmax(86px, 0.24fr) minmax(86px, 0.24fr) auto;
+  gap: 0.32rem;
+  align-items: end;
+  padding: 0.38rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.viewing-table-tools .compact-button {
+  min-height: 1.92rem;
+  padding: 0.28rem 0.5rem;
+  font-size: 0.72rem;
+}
+
+.amount-filter-field {
+  min-width: 76px;
+}
+
 .hero-copy,
 .workspace-stack,
 .workspace-grid,
@@ -358,6 +450,12 @@
   background: var(--primary-soft);
 }
 
+.viewing-grid .panel-badge,
+.viewing-grid .status-pill {
+  padding: 0.18rem 0.44rem;
+  font-size: 0.66rem;
+}
+
 .token {
   background: var(--surface-muted);
   color: var(--neutral-text);
@@ -515,6 +613,21 @@
   padding: 0.42rem 0.55rem;
 }
 
+.viewing-grid .field {
+  gap: 0.12rem;
+}
+
+.viewing-grid .field span {
+  font-size: 0.68rem;
+}
+
+.viewing-grid .field input,
+.viewing-grid .field select {
+  min-height: 1.92rem;
+  padding: 0.3rem 0.46rem;
+  font-size: 0.78rem;
+}
+
 .field input:focus,
 .field select:focus,
 .xml-editor:focus {
@@ -550,6 +663,11 @@
   background: #ffffff;
 }
 
+.viewing-table-shell {
+  height: calc(100vh - 218px);
+  min-height: 620px;
+}
+
 .sending-list-panel .invoice-table-shell {
   height: calc(100vh - 214px);
   min-height: 560px;
@@ -560,6 +678,10 @@
   min-width: 960px;
   border-collapse: collapse;
   table-layout: fixed;
+}
+
+.viewing-table {
+  min-width: 1220px;
 }
 
 .sending-table {
@@ -573,6 +695,12 @@
   color: var(--text);
   text-align: left;
   vertical-align: middle;
+}
+
+.viewing-table th,
+.viewing-table td {
+  padding: 0.28rem 0.42rem;
+  font-size: 0.78rem;
 }
 
 .sending-table th,
@@ -690,6 +818,65 @@
   white-space: nowrap;
 }
 
+.viewing-table td small {
+  margin-top: 0.06rem;
+  font-size: 0.68rem;
+  line-height: 1.22;
+}
+
+.viewing-table .invoice-id-cell {
+  width: 18%;
+}
+
+.viewing-print-banner {
+  align-items: center;
+  grid-template-columns: minmax(0, 1fr) auto;
+  padding: 0.42rem 0.5rem;
+}
+
+.viewing-print-banner strong {
+  color: var(--text);
+  font-size: 0.82rem;
+}
+
+.select-column {
+  width: 2.3rem;
+  min-width: 2.3rem;
+  max-width: 2.3rem;
+  text-align: center;
+}
+
+.select-column input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--primary);
+}
+
+.viewing-table .customer-cell {
+  width: 22%;
+}
+
+.viewing-table .date-cell {
+  width: 12%;
+  white-space: nowrap;
+}
+
+.viewing-table .type-cell {
+  width: 12%;
+}
+
+.viewing-table .amount-column {
+  width: 11%;
+}
+
+.viewing-table .action-column {
+  width: 210px;
+}
+
+.status-code-line {
+  max-width: 100%;
+}
+
 .invoice-table td small.table-warning-text {
   color: var(--danger-text);
   font-weight: 800;
@@ -726,9 +913,25 @@
   gap: 0.42rem;
 }
 
+.compact-statuses {
+  align-items: center;
+  gap: 0.2rem;
+}
+
 .table-actions {
   gap: 0.28rem;
   justify-content: flex-end;
+}
+
+.viewing-table .table-actions {
+  flex-wrap: nowrap;
+  gap: 0.18rem;
+}
+
+.viewing-table .compact-button {
+  min-height: 1.54rem;
+  padding: 0.16rem 0.3rem;
+  font-size: 0.66rem;
 }
 
 .sending-table .table-actions {
@@ -874,6 +1077,60 @@
   overflow: auto;
 }
 
+.detail-dialog > .panel-head {
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.viewing-detail-hero {
+  background: linear-gradient(180deg, #ffffff 0%, #f6fbfa 100%);
+}
+
+.viewing-summary-grid {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.viewing-detail-actions {
+  align-items: center;
+  padding: 0.55rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.viewing-detail-actions .primary-button,
+.viewing-detail-actions .secondary-button,
+.viewing-detail-actions .ghost-button {
+  width: auto;
+}
+
+.pdf-dialog-backdrop {
+  z-index: 60;
+}
+
+.pdf-dialog {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  gap: 0.55rem;
+  width: min(1180px, calc(100vw - 1.4rem));
+  height: min(92vh, 920px);
+  padding: 0.65rem;
+}
+
+.pdf-dialog .panel-head {
+  padding-bottom: 0.42rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.pdf-frame {
+  width: 100%;
+  height: 100%;
+  min-height: 0;
+  border: 1px solid var(--line-strong);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
 .sending-detail-dialog {
   width: min(1380px, calc(100vw - 1.4rem));
   gap: 0.5rem;
@@ -961,6 +1218,15 @@
 .document-preview-shell,
 .message-card {
   padding: 1rem;
+}
+
+.detail-dialog .document-preview-shell {
+  padding: 0.65rem;
+}
+
+.detail-dialog .preview-head {
+  padding-bottom: 0.45rem;
+  border-bottom: 1px solid var(--line);
 }
 
 .document-preview-shell,
@@ -1147,6 +1413,11 @@
     grid-template-columns: 1fr;
   }
 
+  .viewing-filter-panel .filter-grid,
+  .viewing-table-tools {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
   .document-frame {
     min-height: 560px;
   }
@@ -1192,6 +1463,10 @@
     min-height: 460px;
   }
 
+  .viewing-summary-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .invoice-table-shell {
     height: calc(100vh - 245px);
     min-height: 360px;
@@ -1204,6 +1479,10 @@
 
   .detail-dialog {
     max-height: 94vh;
+  }
+
+  .pdf-dialog {
+    height: 94vh;
   }
 
   .reference-card {
@@ -1233,6 +1512,9 @@
   .metric-grid,
   .summary-grid,
   .compact-summary-grid,
+  .viewing-summary-grid,
+  .viewing-filter-panel .filter-grid,
+  .viewing-table-tools,
   .filter-grid,
   .attribute-grid,
   .sending-row-actions {

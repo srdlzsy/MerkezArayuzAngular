@@ -48,7 +48,7 @@
       *ngIf="activeWorkspace() === 'viewing'; else sendingWorkspace"
     >
       <div class="workspace-stack">
-        <article class="panel panel-soft">
+        <article class="panel panel-soft viewing-filter-panel">
           <div class="panel-head">
             <div>
               <p class="section-kicker">Filtreler</p>
@@ -111,7 +111,7 @@
               </label>
               <label class="field">
                 <span>Kayit Sayisi</span>
-                <input type="number" min="1" max="500" formControlName="pageSize" />
+                <input type="number" min="1" formControlName="pageSize" />
               </label>
             </form>
 
@@ -145,24 +145,79 @@
           </ng-container>
         </article>
 
-        <article class="panel">
+        <article class="panel viewing-list-panel">
           <div class="panel-head">
             <div>
               <p class="section-kicker">Liste</p>
               <h3>Belge listesi</h3>
             </div>
-            <span class="panel-badge">{{ filteredViewingItems().length }} kayit</span>
+            <div class="viewing-list-meta">
+              <span class="panel-badge">{{ filteredViewingItems().length }} kayit</span>
+              <span class="panel-badge" *ngIf="viewingList() as response">
+                Sayfa {{ response.pageNumber }} / {{ getPageCount(response) }}
+              </span>
+            </div>
           </div>
 
-          <label class="field" *ngIf="viewingList()">
-            <span>Bu sayfada hizli filtre</span>
-            <input
-              type="text"
-              [value]="viewingQuickFilter()"
-              (input)="setViewingQuickFilter($event)"
-              placeholder="fatura no, musteri veya tutar"
-            />
-          </label>
+          <div class="viewing-table-tools" *ngIf="viewingList()">
+            <label class="field quick-filter-field">
+              <span>Gelen faturada ara</span>
+              <input
+                type="text"
+                [value]="viewingQuickFilter()"
+                (input)="setViewingQuickFilter($event)"
+                placeholder="no, musteri, VKN, irsaliye, durum"
+              />
+            </label>
+
+            <label class="field">
+              <span>Durum</span>
+              <select [value]="viewingTableStateFilter()" (change)="setViewingTableStateFilter($event)">
+                <option *ngFor="let option of viewingTableStateOptions" [value]="option.value">
+                  {{ option.label }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field">
+              <span>Tip</span>
+              <select [value]="viewingTableTypeFilter()" (change)="setViewingTableTypeFilter($event)">
+                <option value="">Tum tipler</option>
+                <option *ngFor="let type of viewingTypeOptions()" [value]="type">
+                  {{ type }}
+                </option>
+              </select>
+            </label>
+
+            <label class="field amount-filter-field">
+              <span>Min</span>
+              <input
+                type="number"
+                [value]="viewingAmountMinFilter() ?? ''"
+                (input)="setViewingAmountMinFilter($event)"
+                placeholder="0"
+              />
+            </label>
+
+            <label class="field amount-filter-field">
+              <span>Max</span>
+              <input
+                type="number"
+                [value]="viewingAmountMaxFilter() ?? ''"
+                (input)="setViewingAmountMaxFilter($event)"
+                placeholder="999999"
+              />
+            </label>
+
+            <button
+              type="button"
+              class="ghost-button compact-button"
+              *ngIf="hasViewingTableFilters()"
+              (click)="clearViewingTableFilters()"
+            >
+              Temizle
+            </button>
+          </div>
 
           <div class="empty-state" *ngIf="viewingListLoading()">
             <h4>Liste yukleniyor</h4>
@@ -182,15 +237,79 @@
             <p>Secili filtrelerle gosterilecek satir yok.</p>
           </div>
 
-          <div class="invoice-table-shell" *ngIf="filteredViewingItems().length > 0">
-            <table class="invoice-table">
+          <div class="queue-banner viewing-print-banner" *ngIf="selectedViewingItems().length > 0">
+            <div>
+              <strong>{{ selectedViewingItems().length }} fatura secildi</strong>
+              <p>Secilen PDF'ler yazdirma kuyruguna gonderilip yazdirildi olarak isaretlenecek.</p>
+            </div>
+            <div class="candidate-strip">
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                (click)="clearViewingSelection()"
+                [disabled]="viewingBulkPrintLoading()"
+              >
+                Secimi Temizle
+              </button>
+              <button
+                type="button"
+                class="primary-button compact-button"
+                (click)="printSelectedViewingInvoices()"
+                [disabled]="viewingBulkPrintLoading() || viewingPdfLoading()"
+              >
+                {{
+                  viewingBulkPrintLoading()
+                    ? 'Yazdiriliyor...'
+                    : selectedViewingItems().length + ' Faturayi Yazdir'
+                }}
+              </button>
+            </div>
+          </div>
+
+          <div class="invoice-table-shell viewing-table-shell" *ngIf="filteredViewingItems().length > 0">
+            <table class="invoice-table viewing-table">
               <thead>
                 <tr>
-                  <th>Fatura No</th>
-                  <th>Musteri</th>
-                  <th>Tarih</th>
-                  <th>Durum</th>
-                  <th class="amount-column">Tutar</th>
+                  <th class="select-column">
+                    <input
+                      type="checkbox"
+                      [checked]="allVisibleViewingItemsSelected()"
+                      [disabled]="selectableViewingItems().length === 0 || viewingBulkPrintLoading()"
+                      (click)="$event.stopPropagation()"
+                      (change)="toggleAllVisibleViewingSelection($any($event.target).checked)"
+                      aria-label="Tum yazdirilmamis faturalar"
+                    />
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" (click)="setViewingSort('invoiceId')">
+                      Fatura No {{ getViewingSortIndicator('invoiceId') }}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" (click)="setViewingSort('customerTitle')">
+                      Musteri {{ getViewingSortIndicator('customerTitle') }}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" (click)="setViewingSort('invoiceDate')">
+                      Tarih {{ getViewingSortIndicator('invoiceDate') }}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" (click)="setViewingSort('invoiceType')">
+                      Tip {{ getViewingSortIndicator('invoiceType') }}
+                    </button>
+                  </th>
+                  <th>
+                    <button type="button" class="sort-header" (click)="setViewingSort('status')">
+                      Durum {{ getViewingSortIndicator('status') }}
+                    </button>
+                  </th>
+                  <th class="amount-column">
+                    <button type="button" class="sort-header sort-header-right" (click)="setViewingSort('invoiceTotal')">
+                      Tutar {{ getViewingSortIndicator('invoiceTotal') }}
+                    </button>
+                  </th>
                   <th class="action-column">Islem</th>
                 </tr>
               </thead>
@@ -202,14 +321,32 @@
                   (click)="openViewingDetail(item)"
                   (keydown.enter)="openViewingDetail(item)"
                 >
-                  <td>
-                    <strong>{{ item.invoiceId }}</strong>
+                  <td class="select-column" (click)="$event.stopPropagation()">
+                    <input
+                      type="checkbox"
+                      [checked]="isViewingItemSelected(item)"
+                      [disabled]="item.isPrinted || viewingBulkPrintLoading()"
+                      (change)="toggleViewingItemSelection(item, $any($event.target).checked)"
+                      [attr.aria-label]="item.invoiceId + ' sec'"
+                    />
                   </td>
-                  <td>
+                  <td class="invoice-id-cell">
+                    <strong>{{ item.invoiceId }}</strong>
+                    <small>Doc: {{ item.documentId | slice: 0 : 8 }}</small>
+                    <small *ngIf="item.despatchId">Irs: {{ item.despatchId }}</small>
+                  </td>
+                  <td class="customer-cell">
                     <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
                     <small>{{ item.customerTcknVkn || '-' }}</small>
                   </td>
-                  <td>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</td>
+                  <td class="date-cell">
+                    <strong>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</strong>
+                    <small>{{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}</small>
+                  </td>
+                  <td class="type-cell">
+                    <strong>{{ item.invoiceType || '-' }}</strong>
+                    <small>{{ item.isStandard ? 'Standart' : 'Ozel tasarim' }}</small>
+                  </td>
                   <td>
                     <div class="compact-statuses">
                       <span
@@ -226,6 +363,9 @@
                       >
                         {{ item.isPrinted ? 'Yazdirildi' : 'Yazdirilmadi' }}
                       </span>
+                      <small class="status-code-line">
+                        {{ item.statusCode || '-' }} {{ item.status || '' }}
+                      </small>
                     </div>
                   </td>
                   <td class="amount-column">
@@ -248,6 +388,27 @@
                         [disabled]="viewingPdfLoading()"
                       >
                         PDF
+                      </button>
+                      <button
+                        type="button"
+                        class="secondary-button compact-button"
+                        *ngIf="canUpdatePrinted()"
+                        (click)="$event.stopPropagation(); printViewingInvoice(item)"
+                        [disabled]="
+                          item.isPrinted ||
+                          isPrintedStateUpdating(item.documentId) ||
+                          viewingPrintDocumentId() === item.documentId ||
+                          viewingBulkPrintLoading()
+                        "
+                      >
+                        {{
+                          viewingPrintDocumentId() === item.documentId ||
+                          isPrintedStateUpdating(item.documentId)
+                            ? '...'
+                            : item.isPrinted
+                              ? 'Yazildi'
+                              : 'Yazdir'
+                        }}
                       </button>
                     </div>
                   </td>
@@ -291,8 +452,8 @@
         >
         <div class="panel-head">
           <div>
-            <p class="section-kicker">Belge</p>
-            <h3>Onizleme ve aksiyonlar</h3>
+            <p class="section-kicker">Fatura Goruntuleme</p>
+            <h3>Fatura Detayi</h3>
           </div>
           <div class="dialog-head-actions">
             <span class="panel-badge" *ngIf="selectedViewingSummary()">
@@ -324,7 +485,7 @@
         </div>
 
         <ng-container *ngIf="selectedViewingSummary() as summary">
-          <section class="detail-hero">
+          <section class="detail-hero viewing-detail-hero">
             <div class="detail-copy">
               <p class="section-kicker">Secili Fatura</p>
               <h3>{{ summary.invoiceId }}</h3>
@@ -338,10 +499,14 @@
             </div>
           </section>
 
-          <section class="summary-grid">
+          <section class="summary-grid viewing-summary-grid">
             <article class="summary-card">
               <span>Toplam</span>
               <strong>{{ summary.invoiceTotal | number: '1.2-2' }} TL</strong>
+            </article>
+            <article class="summary-card">
+              <span>Fatura Tarihi</span>
+              <strong>{{ summary.invoiceDate | date: 'dd.MM.yyyy' }}</strong>
             </article>
             <article class="summary-card">
               <span>Yazdirildi</span>
@@ -353,7 +518,7 @@
             </article>
           </section>
 
-          <div class="action-row">
+          <div class="action-row viewing-detail-actions">
             <button
               type="button"
               class="primary-button"
@@ -365,83 +530,41 @@
             </button>
             <button
               type="button"
-              class="ghost-button"
+              class="secondary-button"
               *ngIf="canViewDetail()"
               (click)="reloadViewingDetail()"
               [disabled]="viewingDetailLoading()"
             >
-              HTML Detay
+              HTML Onizlemeyi Yenile
             </button>
             <button
               type="button"
-              class="primary-button"
+              class="ghost-button"
               *ngIf="canUpdatePrinted()"
-              (click)="updateInvoicePrintedState(summary, !summary.isPrinted, 'detail-panel')"
-              [disabled]="isPrintedStateUpdating(summary.documentId)"
+              (click)="handleViewingPrintedAction(summary)"
+              [disabled]="
+                isPrintedStateUpdating(summary.documentId) ||
+                viewingPrintDocumentId() === summary.documentId ||
+                viewingBulkPrintLoading()
+              "
             >
               {{
-                isPrintedStateUpdating(summary.documentId)
+                isPrintedStateUpdating(summary.documentId) ||
+                viewingPrintDocumentId() === summary.documentId
                   ? 'Guncelleniyor...'
                   : summary.isPrinted
                     ? 'Yazdirildi Kaydini Geri Al'
-                    : 'Yazdirildi Say'
+                    : 'Yazdir'
               }}
             </button>
           </div>
         </ng-container>
 
         <ng-container *ngIf="viewingDetail() as detail">
-          <details class="advanced-panel" *ngIf="canViewDetail()">
-            <summary>Gelistirilmis render ayarlari</summary>
-
-            <form class="request-form" [formGroup]="viewingRenderForm">
-              <label class="field">
-                <span>Profil</span>
-                <select formControlName="profile">
-                  <option *ngFor="let profile of profileOptions" [ngValue]="profile">
-                    {{ profile }}
-                  </option>
-                </select>
-              </label>
-
-              <label class="field">
-                <span>Embedded XSLT</span>
-                <select formControlName="preferEmbeddedXslt">
-                  <option
-                    *ngFor="let option of embeddedPreferenceOptions"
-                    [ngValue]="option.value"
-                  >
-                    {{ option.label }}
-                  </option>
-                </select>
-                <small class="field-hint">
-                  {{
-                    getEmbeddedPreferenceLabel(viewingRenderForm.controls.preferEmbeddedXslt.value)
-                  }}
-                </small>
-              </label>
-
-              <label class="toggle-field toggle-field-wide">
-                <input type="checkbox" formControlName="fallbackToGeneral" />
-                <span>Embedded bulunamazsa genel XSLT fallback kullanilsin</span>
-              </label>
-            </form>
-
-            <div class="action-row">
-              <button
-                type="button"
-                class="primary-button"
-                (click)="renderViewingDetailWithOverrides()"
-                [disabled]="viewingRenderLoading()"
-              >
-                {{ viewingRenderLoading() ? 'Render aliniyor...' : 'Yeniden Render Et' }}
-              </button>
-            </div>
-          </details>
-
           <div class="document-preview-shell" *ngIf="detail.document.htmlContent; else noViewingHtml">
             <div class="preview-head">
               <div>
+                <p class="section-kicker">HTML Onizleme</p>
                 <h4>Belge Gorunumu</h4>
               </div>
             </div>
@@ -458,21 +581,40 @@
               <p>Bu cevapta gosterilecek HTML icerigi bulunmuyor.</p>
             </div>
           </ng-template>
-
-          <details class="advanced-panel">
-            <summary>Ham icerik</summary>
-            <section class="code-grid">
-              <details class="code-block">
-                <summary>XML Content</summary>
-                <pre>{{ detail.document.xmlContent || '-' }}</pre>
-              </details>
-              <details class="code-block">
-                <summary>HTML Content</summary>
-                <pre>{{ detail.document.htmlContent || '-' }}</pre>
-              </details>
-            </section>
-          </details>
         </ng-container>
+        </article>
+      </div>
+
+      <div
+        class="detail-dialog-backdrop pdf-dialog-backdrop"
+        *ngIf="viewingPdfDialogOpen()"
+        (click)="closeViewingPdfDialog()"
+      >
+        <article
+          class="panel pdf-dialog"
+          role="dialog"
+          aria-modal="true"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Resmi PDF</p>
+              <h3>{{ viewingPdfTitle() || 'Fatura PDF' }}</h3>
+            </div>
+            <button
+              type="button"
+              class="ghost-button compact-button"
+              (click)="closeViewingPdfDialog()"
+            >
+              Kapat
+            </button>
+          </div>
+
+          <iframe
+            class="pdf-frame"
+            *ngIf="viewingPdfUrl() as pdfUrl"
+            [src]="pdfUrl"
+          ></iframe>
         </article>
       </div>
     </section>

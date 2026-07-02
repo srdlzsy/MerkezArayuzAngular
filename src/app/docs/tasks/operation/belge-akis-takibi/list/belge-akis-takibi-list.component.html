@@ -20,6 +20,14 @@
     </article>
 
     <section class="filter-panel">
+      <div class="filter-head">
+        <div>
+          <span class="section-kicker">Filtreler</span>
+          <strong>Belge akis sorgusu</strong>
+        </div>
+        <span class="record-count">{{ totalCount() }} kayit</span>
+      </div>
+
       <div class="filters-grid">
         <label class="field" *ngIf="isAdminUser()">
           <span>Depo No</span>
@@ -147,7 +155,7 @@
     </article>
 
     <div class="table-context" *ngIf="rows().length">
-      <span>{{ totalCount() }} kayit</span>
+      <span class="record-count compact-count">{{ totalCount() }} kayit</span>
       <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
       <span>{{ isAdminUser() ? 'Admin kapsami' : 'JWT depo kapsami' }}</span>
     </div>

@@ -183,7 +183,7 @@ export class FaturaIslemleriService extends BaseApiService {
 
   getInvoiceViewingPdf(documentId: string) {
     return this.get<InvoiceViewingPdfResponseDto>(
-      `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}`
+      `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}/pdf`
     );
   }
 
