@@ -2,6 +2,74 @@ import type { DocsTaskSource } from './docs-task-source.helpers';
 import { singleRouteTask } from './docs-task-source.helpers';
 
 export const INVENTORY_TASK_SOURCE = {
+  'stok-anomali-merkezi': singleRouteTask(
+    {
+      id: 'stok-anomali-merkezi',
+      title: 'Stok Anomali Merkezi',
+      subtitle:
+        'Mikro stok hareketlerini tarayip supheli stok, belge ve transfer durumlarini izler.',
+      baseRouteOrFile: '/api/stok-islemleri/stok-anomali-merkezi',
+      highlights: [
+        'Mikro verisine yazma yapmaz; anomalileri Auth veritabaninda takip eder',
+        'Admin tum depolari, depo kullanicisi kendi deposunu gorur',
+        'Negatif stok, duplicate belge, kabul farki, yuksek miktar, hareketsiz stok ve bekleyen transferleri yakalar',
+        'Satir detayinda evidence/events gorulur ve durum Acknowledged, Resolved veya Ignored yapilir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'StockAnomalyCenterController',
+          description: 'Stok anomalilerini listeler, tarar, detay ve durum guncelleme akisini sunar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/stok-anomali-merkezi?status=Open&take=100',
+              description: 'Anomali listesini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/stok-anomali-merkezi/{id}',
+              description: 'Anomali detayini ve olay gecmisini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/stok-islemleri/stok-anomali-merkezi/tara',
+              description: 'Mikro verisini tarar ve anomali kayitlarini acar veya gunceller',
+              payload: 'StockAnomalyScanHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/stok-islemleri/stok-anomali-merkezi/{id}/durum',
+              description: 'Anomali durumunu gunceller',
+              payload: 'StockAnomalyStatusUpdateHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "warehouseNo": 110,
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-02",
+  "dormantDays": 90,
+  "pendingTransferHours": 24,
+  "highQuantityLookbackDays": 30,
+  "highQuantityMultiplier": 3,
+  "highQuantityMinimum": 100,
+  "takePerRule": 250
+}`
+    },
+    () =>
+      import(
+        '../tasks/inventory/stok-anomali-merkezi/list/stok-anomali-merkezi-list.component'
+      ).then((m) => m.StokAnomaliMerkeziListComponent),
+    {
+      accessKeyAliases: [
+        'stok-islemleri.stok-anomali-merkezi',
+        'StokAnomaliMerkezi',
+        'StockAnomalyCenter'
+      ]
+    }
+  ),
   'masraf-fisleri': singleRouteTask(
     {
       id: 'masraf-fisleri',

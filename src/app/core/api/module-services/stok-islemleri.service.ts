@@ -24,7 +24,13 @@ import {
   LabelDocumentListItemDto,
   VirmanListItemDto,
   CreateInventoryCountHttpRequest,
-  CreateVirmanHttpRequest
+  CreateVirmanHttpRequest,
+  StockAnomalyDetailDto,
+  StockAnomalyListHttpRequest,
+  StockAnomalyListResponse,
+  StockAnomalyScanHttpRequest,
+  StockAnomalyScanResponse,
+  StockAnomalyStatusUpdateHttpRequest
 } from '@interfaces';
 
 import {
@@ -264,6 +270,40 @@ export class StokIslemleriService extends BaseApiService {
     request: CreateVirmanHttpRequest
   ): Observable<any> {
     return this.post('stok-islemleri/virmanlar', request);
+  }
+
+  getStockAnomalies(
+    request: StockAnomalyListHttpRequest
+  ): Observable<StockAnomalyListResponse> {
+    return this.getWithQuery<StockAnomalyListResponse, StockAnomalyListHttpRequest>(
+      'stok-islemleri/stok-anomali-merkezi',
+      request
+    );
+  }
+
+  getStockAnomalyDetail(id: string): Observable<StockAnomalyDetailDto> {
+    return this.get<StockAnomalyDetailDto>(
+      `stok-islemleri/stok-anomali-merkezi/${encodeURIComponent(id)}`
+    );
+  }
+
+  scanStockAnomalies(
+    request: StockAnomalyScanHttpRequest
+  ): Observable<StockAnomalyScanResponse> {
+    return this.post<StockAnomalyScanResponse, StockAnomalyScanHttpRequest>(
+      'stok-islemleri/stok-anomali-merkezi/tara',
+      request
+    );
+  }
+
+  updateStockAnomalyStatus(
+    id: string,
+    request: StockAnomalyStatusUpdateHttpRequest
+  ): Observable<StockAnomalyDetailDto> {
+    return this.post<StockAnomalyDetailDto, StockAnomalyStatusUpdateHttpRequest>(
+      `stok-islemleri/stok-anomali-merkezi/${encodeURIComponent(id)}/durum`,
+      request
+    );
   }
 
 }

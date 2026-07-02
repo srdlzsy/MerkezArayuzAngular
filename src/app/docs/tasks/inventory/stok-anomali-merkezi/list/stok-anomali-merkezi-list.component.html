@@ -1,0 +1,310 @@
+<section class="anomaly-page">
+  <header class="page-head">
+    <div>
+      <span class="eyebrow">Stok Islemleri</span>
+      <h1>{{ page.title }}</h1>
+      <p>{{ page.subtitle }}</p>
+    </div>
+
+    <div class="head-actions">
+      <button
+        type="button"
+        class="primary-button"
+        [disabled]="loading() || !canList()"
+        (click)="loadAnomalies()"
+      >
+        <i class="fa-solid fa-rotate" [class.fa-spin]="loading()"></i>
+        <span>{{ loading() ? 'Yukleniyor' : 'Listele' }}</span>
+      </button>
+      <button
+        type="button"
+        class="scan-button"
+        [disabled]="scanning() || !canScan()"
+        (click)="scanAnomalies()"
+      >
+        <i class="fa-solid fa-radar" [class.fa-spin]="scanning()"></i>
+        <span>{{ scanning() ? 'Taraniyor' : 'Tara' }}</span>
+      </button>
+    </div>
+  </header>
+
+  <div class="alert alert-error" *ngIf="errorMessage() as error">
+    <i class="fa-solid fa-circle-exclamation"></i>
+    <span>{{ error }}</span>
+  </div>
+
+  <div class="alert alert-info" *ngIf="infoMessage() as info">
+    <i class="fa-solid fa-circle-info"></i>
+    <span>{{ info }}</span>
+  </div>
+
+  <section class="filter-band">
+    <label>
+      <span>Depo</span>
+      <input
+        type="number"
+        min="1"
+        placeholder="Tum depolar"
+        [disabled]="!isAdminUser()"
+        [ngModel]="warehouseNoInput()"
+        (ngModelChange)="setWarehouseNo($event)"
+      />
+      <small *ngIf="!isAdminUser()">{{ currentWarehouseLabel() }}</small>
+    </label>
+
+    <label>
+      <span>Durum</span>
+      <select [ngModel]="statusFilter()" (ngModelChange)="setStatusFilter($event)">
+        <option value="All">Tum Durumlar</option>
+        <option *ngFor="let status of statusOptions" [value]="status">
+          {{ statusLabel(status) }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      <span>Tip</span>
+      <select [ngModel]="typeFilter()" (ngModelChange)="setTypeFilter($event)">
+        <option value="All">Tum Tipler</option>
+        <option *ngFor="let type of typeOptions" [value]="type">
+          {{ typeLabel(type) }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      <span>Seviye</span>
+      <select [ngModel]="severityFilter()" (ngModelChange)="setSeverityFilter($event)">
+        <option value="All">Tum Seviyeler</option>
+        <option *ngFor="let severity of severityOptions" [value]="severity">
+          {{ severityLabel(severity) }}
+        </option>
+      </select>
+    </label>
+
+    <label>
+      <span>Baslangic</span>
+      <input type="date" [ngModel]="startDate()" (ngModelChange)="setStartDate($event)" />
+    </label>
+
+    <label>
+      <span>Bitis</span>
+      <input type="date" [ngModel]="endDate()" (ngModelChange)="setEndDate($event)" />
+    </label>
+
+    <label class="search-field">
+      <span>Arama</span>
+      <input
+        type="search"
+        placeholder="Stok, belge veya mesaj"
+        [ngModel]="searchText()"
+        (ngModelChange)="setSearchText($event)"
+      />
+    </label>
+
+    <label>
+      <span>Limit</span>
+      <input
+        type="number"
+        min="1"
+        max="500"
+        [ngModel]="takeInput()"
+        (ngModelChange)="setTake($event)"
+      />
+    </label>
+  </section>
+
+  <section class="scan-options">
+    <label>
+      <span>Hareketsiz Gun</span>
+      <input type="number" min="1" [ngModel]="dormantDaysInput()" (ngModelChange)="setScanNumber('dormantDays', $event)" />
+    </label>
+    <label>
+      <span>Bekleyen Saat</span>
+      <input type="number" min="1" [ngModel]="pendingTransferHoursInput()" (ngModelChange)="setScanNumber('pendingTransferHours', $event)" />
+    </label>
+    <label>
+      <span>Lookback Gun</span>
+      <input type="number" min="1" [ngModel]="highQuantityLookbackDaysInput()" (ngModelChange)="setScanNumber('highQuantityLookbackDays', $event)" />
+    </label>
+    <label>
+      <span>Carpan</span>
+      <input type="number" min="1" [ngModel]="highQuantityMultiplierInput()" (ngModelChange)="setScanNumber('highQuantityMultiplier', $event)" />
+    </label>
+    <label>
+      <span>Min. Miktar</span>
+      <input type="number" min="1" [ngModel]="highQuantityMinimumInput()" (ngModelChange)="setScanNumber('highQuantityMinimum', $event)" />
+    </label>
+    <label>
+      <span>Kural Limiti</span>
+      <input type="number" min="1" max="500" [ngModel]="takePerRuleInput()" (ngModelChange)="setScanNumber('takePerRule', $event)" />
+    </label>
+  </section>
+
+  <ng-container *ngIf="response() as list">
+    <section class="summary-grid" aria-label="Anomali ozeti">
+      <article
+        class="metric"
+        *ngFor="let card of summaryCards; trackBy: trackBySummary"
+        [class]="'metric tone-' + card.tone"
+      >
+        <i class="fa-solid" [ngClass]="card.icon"></i>
+        <span>{{ card.label }}</span>
+        <strong>{{ summaryValue(card.key) | number }}</strong>
+      </article>
+    </section>
+
+    <section class="scan-result" *ngIf="scanResponse() as scan">
+      <div>
+        <strong>{{ scan.detectedCount | number }} sonuc</strong>
+        <span>{{ formatDate(scan.startedAtUtc) }} - {{ formatDate(scan.finishedAtUtc) }}</span>
+      </div>
+      <span *ngFor="let rule of scan.rules; trackBy: trackByRule">
+        {{ typeLabel(rule.type) }}: {{ rule.detectedCount | number }}
+      </span>
+    </section>
+
+    <div class="content-grid">
+      <section class="table-section">
+        <div class="section-head">
+          <div>
+            <span class="eyebrow">Anomali Listesi</span>
+            <h2>{{ list.totalCount | number }} kayit</h2>
+          </div>
+          <span>{{ rows().length | number }} satir gosteriliyor</span>
+        </div>
+
+        <div class="table-scroll">
+          <table>
+            <thead>
+              <tr>
+                <th><button type="button" (click)="setSort('severity')">Seviye <i class="fa-solid" [ngClass]="sortIcon('severity')"></i></button></th>
+                <th><button type="button" (click)="setSort('status')">Durum <i class="fa-solid" [ngClass]="sortIcon('status')"></i></button></th>
+                <th>Tip</th>
+                <th><button type="button" (click)="setSort('warehouseNo')">Depo <i class="fa-solid" [ngClass]="sortIcon('warehouseNo')"></i></button></th>
+                <th><button type="button" (click)="setSort('productCode')">Stok <i class="fa-solid" [ngClass]="sortIcon('productCode')"></i></button></th>
+                <th>Belge</th>
+                <th><button type="button" (click)="setSort('quantity')">Miktar <i class="fa-solid" [ngClass]="sortIcon('quantity')"></i></button></th>
+                <th>Mesaj</th>
+                <th><button type="button" (click)="setSort('lastDetectedAtUtc')">Son Tespit <i class="fa-solid" [ngClass]="sortIcon('lastDetectedAtUtc')"></i></button></th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let item of rows(); trackBy: trackById"
+                [class.selected-row]="selectedItem()?.id === item.id"
+                tabindex="0"
+                (click)="openDetail(item)"
+                (keyup.enter)="openDetail(item)"
+              >
+                <td><span class="badge" [ngClass]="toneClass('severity', item.severity)">{{ severityLabel(item.severity) }}</span></td>
+                <td><span class="badge" [ngClass]="toneClass('status', item.status)">{{ statusLabel(item.status) }}</span></td>
+                <td>{{ typeLabel(item.type) }}</td>
+                <td>
+                  <strong>#{{ item.warehouseNo }}</strong>
+                  <small>{{ item.warehouseName || '-' }}</small>
+                </td>
+                <td>
+                  <strong>{{ item.productCode || '-' }}</strong>
+                  <small>{{ item.productName || '-' }}</small>
+                </td>
+                <td>{{ documentLabel(item) }}</td>
+                <td>{{ formatNumber(item.quantity) }}</td>
+                <td class="message-cell">{{ item.message }}</td>
+                <td>{{ formatDate(item.lastDetectedAtUtc) }}</td>
+              </tr>
+              <tr *ngIf="rows().length === 0">
+                <td colspan="9" class="empty-state">Secili filtrelerle anomali bulunamadi.</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <aside class="detail-panel">
+        <ng-container *ngIf="selectedItem() as selected; else emptyDetail">
+          <div class="detail-head">
+            <div>
+              <span class="eyebrow">{{ typeLabel(selected.type) }}</span>
+              <h2>{{ selected.productCode || selected.documentNo || 'Anomali Detayi' }}</h2>
+            </div>
+            <span class="badge" [ngClass]="toneClass('severity', selected.severity)">
+              {{ severityLabel(selected.severity) }}
+            </span>
+          </div>
+
+          <div class="loading-detail" *ngIf="detailLoading()">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            <span>Detay yukleniyor...</span>
+          </div>
+
+          <ng-container *ngIf="detail() as detail">
+            <p class="detail-message">{{ detail.message }}</p>
+
+            <dl class="detail-list">
+              <div *ngFor="let pair of detailPairs(detail); trackBy: trackByPair">
+                <dt>{{ pair.label }}</dt>
+                <dd>{{ pair.value }}</dd>
+              </div>
+            </dl>
+
+            <section class="evidence-section" *ngIf="evidenceBlocks(detail).length > 0">
+              <h3>Evidence</h3>
+              <article *ngFor="let block of evidenceBlocks(detail)">
+                <div *ngFor="let pair of objectEntries(block); trackBy: trackByPair">
+                  <span>{{ pair.label }}</span>
+                  <strong>{{ pair.value }}</strong>
+                </div>
+              </article>
+            </section>
+
+            <section class="events-section" *ngIf="detail.events?.length">
+              <h3>Olay Gecmisi</h3>
+              <article *ngFor="let event of detail.events">
+                <strong>{{ statusLabel(event.status || '') }}</strong>
+                <span>{{ formatDate(event.createdAtUtc || '') }}</span>
+                <p>{{ event.note || '-' }}</p>
+              </article>
+            </section>
+
+            <section class="status-form" *ngIf="canUpdate()">
+              <h3>Durum Guncelle</h3>
+              <select [ngModel]="nextStatus()" (ngModelChange)="setNextStatus($event)">
+                <option *ngFor="let status of updateStatusOptions" [value]="status">
+                  {{ statusLabel(status) }}
+                </option>
+              </select>
+              <textarea
+                rows="3"
+                placeholder="Not"
+                [ngModel]="statusNote()"
+                (ngModelChange)="setStatusNote($event)"
+              ></textarea>
+              <button
+                type="button"
+                class="primary-button"
+                [disabled]="updatingStatus()"
+                (click)="updateStatus()"
+              >
+                <i class="fa-solid fa-floppy-disk" [class.fa-spin]="updatingStatus()"></i>
+                <span>{{ updatingStatus() ? 'Kaydediliyor' : 'Kaydet' }}</span>
+              </button>
+            </section>
+          </ng-container>
+        </ng-container>
+
+        <ng-template #emptyDetail>
+          <div class="empty-detail">
+            <i class="fa-solid fa-arrow-pointer"></i>
+            <span>Detay icin tablodan bir anomali sec.</span>
+          </div>
+        </ng-template>
+      </aside>
+    </div>
+  </ng-container>
+
+  <div class="loading-state" *ngIf="loading() && !response()">
+    <i class="fa-solid fa-circle-notch fa-spin"></i>
+    <span>Stok anomalileri yukleniyor...</span>
+  </div>
+</section>

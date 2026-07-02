@@ -369,3 +369,118 @@ export interface CreateVirmanResponse {
   totalAmount: number;
   writeConnectionName: string;
 }
+
+// ============================================================================
+// Stok Anomali Merkezi Modelleri
+// ============================================================================
+
+export type StockAnomalyType =
+  | 'NegativeStock'
+  | 'DuplicateDocument'
+  | 'ReceivingDifference'
+  | 'HighQuantity'
+  | 'DormantStock'
+  | 'PendingInterWarehouseTransfer';
+
+export type StockAnomalyStatus = 'Open' | 'Acknowledged' | 'Resolved' | 'Ignored';
+export type StockAnomalySeverity = 'Low' | 'Medium' | 'High' | 'Critical';
+
+export interface StockAnomalyListHttpRequest {
+  warehouseNo?: number | null;
+  type?: StockAnomalyType | null;
+  status?: StockAnomalyStatus | null;
+  severity?: StockAnomalySeverity | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  search?: string | null;
+  take?: number | null;
+}
+
+export interface StockAnomalySummaryDto {
+  openCount: number;
+  acknowledgedCount: number;
+  resolvedCount: number;
+  ignoredCount: number;
+  criticalCount: number;
+  highCount: number;
+}
+
+export interface StockAnomalyListItemDto {
+  id: string;
+  type: StockAnomalyType | string;
+  severity: StockAnomalySeverity | string;
+  status: StockAnomalyStatus | string;
+  warehouseNo: number;
+  relatedWarehouseNo: number | null;
+  warehouseName: string | null;
+  relatedWarehouseName: string | null;
+  productCode: string | null;
+  productName: string | null;
+  documentSerie: string | null;
+  documentOrderNo: number | null;
+  documentNo: string | null;
+  quantity: number | null;
+  expectedQuantity: number | null;
+  actualQuantity: number | null;
+  averageQuantity: number | null;
+  occurredAtUtc: string | null;
+  message: string;
+  firstDetectedAtUtc: string;
+  lastDetectedAtUtc: string;
+}
+
+export interface StockAnomalyListResponse {
+  totalCount: number;
+  summary: StockAnomalySummaryDto;
+  items: StockAnomalyListItemDto[];
+}
+
+export interface StockAnomalyEvidenceDto {
+  title?: string | null;
+  description?: string | null;
+  fields?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}
+
+export interface StockAnomalyEventDto {
+  id?: string | null;
+  status?: StockAnomalyStatus | string | null;
+  note?: string | null;
+  createdAtUtc?: string | null;
+  createdBy?: string | null;
+  [key: string]: unknown;
+}
+
+export interface StockAnomalyDetailDto extends StockAnomalyListItemDto {
+  evidence?: StockAnomalyEvidenceDto[] | Record<string, unknown> | null;
+  events?: StockAnomalyEventDto[];
+}
+
+export interface StockAnomalyScanHttpRequest {
+  warehouseNo?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  dormantDays?: number | null;
+  pendingTransferHours?: number | null;
+  highQuantityLookbackDays?: number | null;
+  highQuantityMultiplier?: number | null;
+  highQuantityMinimum?: number | null;
+  takePerRule?: number | null;
+}
+
+export interface StockAnomalyScanRuleResultDto {
+  type: StockAnomalyType | string;
+  detectedCount: number;
+}
+
+export interface StockAnomalyScanResponse {
+  startedAtUtc: string;
+  finishedAtUtc: string;
+  detectedCount: number;
+  rules: StockAnomalyScanRuleResultDto[];
+}
+
+export interface StockAnomalyStatusUpdateHttpRequest {
+  status: Exclude<StockAnomalyStatus, 'Open'>;
+  note?: string | null;
+}
