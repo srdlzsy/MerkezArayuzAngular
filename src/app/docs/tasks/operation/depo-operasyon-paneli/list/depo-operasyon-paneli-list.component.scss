@@ -1,13 +1,21 @@
 :host {
   display: block;
   min-width: 0;
+  --ops-line: #d7e2dc;
+  --ops-soft: #f6faf8;
+  --ops-panel: #fff;
+  --ops-ink: #17211b;
+  --ops-muted: #647067;
+  --ops-accent: #246c45;
 }
 
 .operations-page {
   display: grid;
   gap: 1rem;
   min-width: 0;
-  color: #17211b;
+  padding: 0.75rem;
+  color: var(--ops-ink);
+  background: linear-gradient(180deg, #f8fbf9 0%, #fff 34%);
 }
 
 .page-head,
@@ -22,8 +30,11 @@
 .page-head {
   justify-content: space-between;
   gap: 1.5rem;
-  padding-bottom: 1rem;
-  border-bottom: 1px solid #d9e0db;
+  border: 1px solid var(--ops-line);
+  border-radius: 8px;
+  padding: 1rem;
+  background: var(--ops-panel);
+  box-shadow: 0 10px 22px rgba(23, 33, 27, 0.05);
 }
 
 .page-head h1,
@@ -102,6 +113,7 @@ select:focus {
   background: #246c45;
   color: #fff;
   cursor: pointer;
+  box-shadow: 0 8px 18px rgba(36, 108, 69, 0.16);
 }
 
 .refresh-button:disabled {
@@ -115,6 +127,7 @@ select:focus {
   gap: 0.6rem;
   padding: 0.75rem 0.9rem;
   border-left: 3px solid;
+  border-radius: 8px;
   font-size: 0.84rem;
 }
 
@@ -133,10 +146,11 @@ select:focus {
 .summary-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(130px, 1fr));
-  border: 1px solid #d9e0db;
+  border: 1px solid var(--ops-line);
   border-radius: 8px;
   overflow: hidden;
-  background: #fff;
+  background: var(--ops-panel);
+  box-shadow: 0 8px 18px rgba(23, 33, 27, 0.04);
 }
 
 .metric {
@@ -146,6 +160,10 @@ select:focus {
   min-width: 0;
   padding: 0.85rem;
   border-right: 1px solid #e4e9e5;
+}
+
+.metric:hover {
+  background: #fbfdfc;
 }
 
 .metric:last-child {
@@ -188,9 +206,10 @@ select:focus {
 .insight-band {
   justify-content: stretch;
   gap: 0;
-  border: 1px solid #d9e0db;
+  border: 1px solid var(--ops-line);
   border-radius: 8px;
-  background: #f8faf8;
+  background: var(--ops-panel);
+  box-shadow: 0 8px 18px rgba(23, 33, 27, 0.04);
 }
 
 .insight,
@@ -261,8 +280,11 @@ select:focus {
 
 .warehouse-section {
   min-width: 0;
-  border-top: 1px solid #d9e0db;
-  padding-top: 0.9rem;
+  border: 1px solid var(--ops-line);
+  border-radius: 8px;
+  padding: 0.9rem;
+  background: var(--ops-panel);
+  box-shadow: 0 8px 18px rgba(23, 33, 27, 0.04);
 }
 
 .section-head {
@@ -310,7 +332,7 @@ select:focus {
 .table-scroll {
   max-height: min(58vh, 620px);
   overflow: auto;
-  border: 1px solid #d9e0db;
+  border: 1px solid var(--ops-line);
   border-radius: 8px;
   background: #fff;
 }
@@ -362,8 +384,12 @@ tbody tr {
 
 tbody tr:hover,
 tbody tr:focus-visible {
-  background: #f4f8f5;
+  background: #eef8f2;
   outline: none;
+}
+
+tbody tr:focus-visible {
+  box-shadow: inset 3px 0 0 var(--ops-accent);
 }
 
 .warehouse-cell {
@@ -457,6 +483,10 @@ tbody tr:focus-visible {
 }
 
 @media (max-width: 760px) {
+  .operations-page {
+    padding: 0.5rem;
+  }
+
   .page-head,
   .section-head,
   .insight-band {
@@ -480,6 +510,7 @@ tbody tr:focus-visible {
   .refresh-button { justify-content: center; margin-top: 1rem; }
   .insight { border-right: 0; border-bottom: 1px solid #dfe5e0; }
   .health-overview { min-width: 0; }
+  .warehouse-section { padding: 0.7rem; }
 }
 
 @media (max-width: 520px) {

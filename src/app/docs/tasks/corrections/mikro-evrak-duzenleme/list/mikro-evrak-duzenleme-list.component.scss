@@ -108,7 +108,8 @@ p {
 
 .tab-button,
 .primary-action,
-.secondary-action {
+.secondary-action,
+.danger-action {
   display: inline-flex;
   min-height: 2.2rem;
   align-items: center;
@@ -143,6 +144,18 @@ p {
 .secondary-action {
   color: #475467;
   background: #fff;
+}
+
+.danger-action {
+  border-color: #fecdd3;
+  color: #9f1239;
+  background: #fff1f2;
+}
+
+.danger-action:hover:not(:disabled) {
+  border-color: #fda4af;
+  color: #881337;
+  background: #ffe4e6;
 }
 
 button:disabled {
@@ -812,7 +825,8 @@ button:disabled {
   }
 
   .editor-actions .primary-action,
-  .editor-actions .secondary-action {
+  .editor-actions .secondary-action,
+  .editor-actions .danger-action {
     width: 100%;
   }
 }

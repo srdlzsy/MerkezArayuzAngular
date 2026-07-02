@@ -13,6 +13,7 @@ import type {
   CustomerMovementDocumentLineDto,
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
+  MikroDocumentDeleteResponse,
   StockCardDetailDto,
   StockCardListItemDto,
   StockCardPatchHttpRequest,
@@ -21,6 +22,7 @@ import type {
   StockCardWarehouseSettingsDto,
   StockCardWarehouseUpdateResponse,
   StockSalesPriceDto,
+  StockSalesPriceDeleteHttpRequest,
   StockSalesPriceUpsertHttpRequest,
   StockSalesPriceUpsertResponse,
   StockMovementDocumentDto,
@@ -59,10 +61,13 @@ type BusyAction =
   | 'customer-card-save'
   | 'sales-price-load'
   | 'sales-price-save'
+  | 'sales-price-delete'
   | 'movement-load'
   | 'movement-save'
+  | 'movement-delete'
   | 'customer-load'
-  | 'customer-save';
+  | 'customer-save'
+  | 'customer-delete';
 type EditableRecord = Record<string, unknown>;
 
 interface Feedback {
@@ -370,7 +375,7 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockCardWarehouseSettings = signal<StockCardWarehouseSettingsDto[]>([]);
   protected readonly selectedWarehouseSetting = signal<StockCardWarehouseSettingsDto | null>(null);
   protected readonly warehouseSettingDraft = signal<StockCardWarehouseSettingsDto | null>(null);
-  protected readonly warehouseBusyAction = signal<'load' | 'save' | null>(null);
+  protected readonly warehouseBusyAction = signal<'load' | 'save' | 'delete' | null>(null);
   protected readonly stockSalesPrices = signal<StockSalesPriceDto[]>([]);
   protected readonly selectedSalesPrice = signal<StockSalesPriceDto | null>(null);
   protected readonly salesPriceDraft = signal<StockSalesPriceDto | null>(null);
@@ -438,6 +443,9 @@ export class MikroEvrakDuzenlemeListComponent {
   );
   protected readonly canUpdate = computed(() =>
     this.hasPermission('duzeltme-islemleri.mikro-evrak-duzenleme.update')
+  );
+  protected readonly canDelete = computed(() =>
+    this.hasPermission('duzeltme-islemleri.mikro-evrak-duzenleme.delete')
   );
   protected readonly changedStockCardFieldCount = computed(() =>
     this.countChanges(this.selectedStockCard(), this.stockCardDraft(), [
@@ -834,6 +842,35 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
+  protected deleteStockMovement(): void {
+    const document = this.stockMovement();
+    if (!document || !this.canDelete() || !this.validateLookup(this.stockLookup)) {
+      return;
+    }
+
+    const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
+    if (!window.confirm(`${label} stok hareket evraki soft-delete yapilsin mi?`)) {
+      return;
+    }
+
+    this.busyAction.set('movement-delete');
+    this.feedback.set(null);
+    this.service
+      .deleteStockMovementDocument(this.cleanLookup(this.stockLookup))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: MikroDocumentDeleteResponse) => {
+          this.stockMovement.set(null);
+          this.stockMovementDraft.set(null);
+          this.setDeleteFeedback('Stok hareket evraki silindi', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Stok hareket evraki silinemedi.')
+      });
+  }
+
   protected loadCustomerMovement(): void {
     if (!this.canDetail() || !this.validateLookup(this.customerLookup)) {
       return;
@@ -892,6 +929,35 @@ export class MikroEvrakDuzenlemeListComponent {
           });
         },
         error: (error: unknown) => this.handleError(error, 'Cari hareket güncellenemedi.')
+      });
+  }
+
+  protected deleteCustomerMovement(): void {
+    const document = this.customerMovement();
+    if (!document || !this.canDelete() || !this.validateLookup(this.customerLookup)) {
+      return;
+    }
+
+    const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
+    if (!window.confirm(`${label} cari hareket evraki soft-delete yapilsin mi?`)) {
+      return;
+    }
+
+    this.busyAction.set('customer-delete');
+    this.feedback.set(null);
+    this.service
+      .deleteCustomerMovementDocument(this.cleanLookup(this.customerLookup))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: MikroDocumentDeleteResponse) => {
+          this.customerMovement.set(null);
+          this.customerMovementDraft.set(null);
+          this.setDeleteFeedback('Cari hareket evraki silindi', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Cari hareket evraki silinemedi.')
       });
   }
 
@@ -1011,6 +1077,40 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
+  protected deleteWarehouseSetting(): void {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    const setting = this.selectedWarehouseSetting();
+
+    if (!stockCode || !setting || !setting.hasWarehouseDetail || !this.canDelete()) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `${setting.warehouseNo} - ${setting.warehouseName} depo ozel stok ayari silinsin mi?`
+      )
+    ) {
+      return;
+    }
+
+    this.warehouseBusyAction.set('delete');
+    this.feedback.set(null);
+    this.service
+      .deleteStockCardWarehouseSettings(stockCode, setting.warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.warehouseBusyAction.set(null))
+      )
+      .subscribe({
+        next: (response: MikroDocumentDeleteResponse) => {
+          this.selectWarehouseSetting(null);
+          this.loadStockCardWarehouseSettings();
+          this.setDeleteFeedback('Depo ozel stok ayari silindi', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Depo ozel stok ayari silinemedi.')
+      });
+  }
+
   protected loadStockSalesPrices(): void {
     const stockCode = this.selectedStockCard()?.stockCode;
     if (!stockCode || !this.canDetail()) {
@@ -1072,6 +1172,48 @@ export class MikroEvrakDuzenlemeListComponent {
     }
 
     this.upsertSalesPrice(stockCode, original.warehouseNo, request);
+  }
+
+  protected deleteSalesPrice(): void {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    const price = this.selectedSalesPrice();
+
+    if (!stockCode || !price || !this.canDelete()) {
+      return;
+    }
+
+    if (
+      !window.confirm(
+        `${price.warehouseNo} deposundaki ${price.priceListNo}/${price.unitPointer} satis fiyati silinsin mi?`
+      )
+    ) {
+      return;
+    }
+
+    const request: StockSalesPriceDeleteHttpRequest = {
+      priceListNo: price.priceListNo,
+      paymentPlanNo: price.paymentPlanNo,
+      unitPointer: price.unitPointer
+    };
+
+    this.busyAction.set('sales-price-delete');
+    this.feedback.set(null);
+    this.service
+      .deleteStockSalesPrice(stockCode, price.warehouseNo, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: MikroDocumentDeleteResponse) => {
+          this.stockSalesPrices.update((rows) =>
+            rows.filter((row) => !this.sameSalesPrice(row, price))
+          );
+          this.selectSalesPrice(null);
+          this.setDeleteFeedback('Stok satis fiyati silindi', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Stok satis fiyati silinemedi.')
+      });
   }
 
   protected saveNewSalesPrice(): void {
@@ -1469,6 +1611,14 @@ export class MikroEvrakDuzenlemeListComponent {
 
   private setInfo(title: string, message: string): void {
     this.feedback.set({ tone: 'info', title, message });
+  }
+
+  private setDeleteFeedback(title: string, response: MikroDocumentDeleteResponse): void {
+    this.feedback.set({
+      tone: 'success',
+      title,
+      message: `${response.deletedRowCount} satir silindi (${response.deletionMode}).`
+    });
   }
 
   private valuesEqual(left: unknown, right: unknown): boolean {

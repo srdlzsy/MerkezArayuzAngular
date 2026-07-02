@@ -301,6 +301,14 @@ export interface CustomerCardUpdateResponse {
   customerCard: Partial<CustomerCardDetailDto> & Pick<CustomerCardDetailDto, 'customerCode'>;
 }
 
+export interface MikroDocumentDeleteResponse {
+  target: string;
+  deletedRowCount: number;
+  deletedAt: string;
+  deleteUser: number | null;
+  deletionMode: string;
+}
+
 export interface StockCardWarehouseSettingsDto {
   stockCode: string;
   warehouseNo: number;
@@ -365,6 +373,12 @@ export interface StockSalesPriceUpsertResponse {
   created: boolean;
   previousPrice: number | null;
   salesPrice: StockSalesPriceDto;
+}
+
+export interface StockSalesPriceDeleteHttpRequest {
+  priceListNo?: number | null;
+  paymentPlanNo?: number | null;
+  unitPointer?: number | null;
 }
 
 export interface StockMovementDocumentLookupHttpRequest {

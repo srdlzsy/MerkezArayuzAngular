@@ -9,6 +9,7 @@ import type {
   CustomerMovementDocumentDto,
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
+  MikroDocumentDeleteResponse,
   StockCardDetailDto,
   StockCardListItemDto,
   StockCardPatchHttpRequest,
@@ -18,6 +19,7 @@ import type {
   StockCardWarehouseSettingsDto,
   StockCardWarehouseUpdateResponse,
   StockSalesPriceDto,
+  StockSalesPriceDeleteHttpRequest,
   StockSalesPriceUpsertHttpRequest,
   StockSalesPriceUpsertResponse,
   StockMovementDocumentDto,
@@ -123,6 +125,15 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     );
   }
 
+  deleteStockCardWarehouseSettings(
+    stockCode: string,
+    warehouseNo: number
+  ): Observable<MikroDocumentDeleteResponse> {
+    return this.delete<MikroDocumentDeleteResponse>(
+      `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/depolar/${warehouseNo}`
+    );
+  }
+
   getStockSalesPrices(
     stockCode: string,
     warehouseNo?: number | null
@@ -144,6 +155,21 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     );
   }
 
+  deleteStockSalesPrice(
+    stockCode: string,
+    warehouseNo: number,
+    request: StockSalesPriceDeleteHttpRequest
+  ): Observable<MikroDocumentDeleteResponse> {
+    return this.http.delete<MikroDocumentDeleteResponse>(
+      this.buildUrl(
+        `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/satis-fiyatlari/${warehouseNo}`
+      ),
+      {
+        params: this.buildParams(request)
+      }
+    );
+  }
+
   getStockMovementDocument(
     query: StockMovementDocumentLookupHttpRequest
   ): Observable<StockMovementDocumentDto> {
@@ -159,6 +185,17 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     >(`${ROOT}/stok-hareketleri`, request);
   }
 
+  deleteStockMovementDocument(
+    query: StockMovementDocumentLookupHttpRequest
+  ): Observable<MikroDocumentDeleteResponse> {
+    return this.http.delete<MikroDocumentDeleteResponse>(
+      this.buildUrl(`${ROOT}/stok-hareketleri`),
+      {
+        params: this.buildParams(query)
+      }
+    );
+  }
+
   getCustomerMovementDocument(
     query: CustomerMovementDocumentLookupHttpRequest
   ): Observable<CustomerMovementDocumentDto> {
@@ -172,5 +209,16 @@ export class DuzeltmeIslemleriService extends BaseApiService {
       CustomerMovementDocumentUpdateResponse,
       UpdateCustomerMovementDocumentHttpRequest
     >(`${ROOT}/cari-hareketleri`, request);
+  }
+
+  deleteCustomerMovementDocument(
+    query: CustomerMovementDocumentLookupHttpRequest
+  ): Observable<MikroDocumentDeleteResponse> {
+    return this.http.delete<MikroDocumentDeleteResponse>(
+      this.buildUrl(`${ROOT}/cari-hareketleri`),
+      {
+        params: this.buildParams(query)
+      }
+    );
   }
 }

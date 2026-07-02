@@ -159,8 +159,13 @@
         <strong>{{ scan.detectedCount | number }} sonuc</strong>
         <span>{{ formatDate(scan.startedAtUtc) }} - {{ formatDate(scan.finishedAtUtc) }}</span>
       </div>
-      <span *ngFor="let rule of scan.rules; trackBy: trackByRule">
+      <span
+        *ngFor="let rule of scan.rules; trackBy: trackByRule"
+        [class.rule-error]="rule.error"
+        [title]="rule.error || ''"
+      >
         {{ typeLabel(rule.type) }}: {{ rule.detectedCount | number }}
+        <small *ngIf="rule.error">{{ rule.error }}</small>
       </span>
     </section>
 

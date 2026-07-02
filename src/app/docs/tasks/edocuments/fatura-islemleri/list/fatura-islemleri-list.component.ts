@@ -3120,7 +3120,7 @@ export class FaturaIslemleriListComponent {
   }
 
   private defaultDateRange(): FurpaDateRange {
-    return getDefaultDateRange(1);
+    return getDefaultDateRange(0);
   }
 
   private releasePreviewUrls(): void {

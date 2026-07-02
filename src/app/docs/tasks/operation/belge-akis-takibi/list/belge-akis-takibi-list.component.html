@@ -115,7 +115,8 @@
 
         <div class="filter-actions">
           <button type="button" class="ghost-action" (click)="clearFilters()" [disabled]="isLoading()">
-            Temizle
+            <i class="fa-solid fa-eraser"></i>
+            <span>Temizle</span>
           </button>
           <button
             type="button"
@@ -123,7 +124,8 @@
             (click)="loadFlows()"
             [disabled]="isLoading() || !canList()"
           >
-            {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+            <i class="fa-solid" [ngClass]="isLoading() ? 'fa-circle-notch fa-spin' : 'fa-magnifying-glass'"></i>
+            <span>{{ isLoading() ? 'Yukleniyor...' : 'Listele' }}</span>
           </button>
         </div>
       </div>
@@ -231,7 +233,8 @@
               <p>{{ detail.lastError }}</p>
             </div>
             <button type="button" class="ghost-action compact" (click)="copyText(detail.lastError)">
-              Kopyala
+              <i class="fa-solid fa-copy"></i>
+              <span>Kopyala</span>
             </button>
           </article>
 
@@ -256,7 +259,8 @@
                 <article class="event-error" *ngIf="event.error">
                   <span>{{ event.error }}</span>
                   <button type="button" class="ghost-action compact" (click)="copyText(event.error)">
-                    Kopyala
+                    <i class="fa-solid fa-copy"></i>
+                    <span>Kopyala</span>
                   </button>
                 </article>
               </div>

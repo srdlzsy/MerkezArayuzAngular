@@ -471,6 +471,7 @@ export interface StockAnomalyScanHttpRequest {
 export interface StockAnomalyScanRuleResultDto {
   type: StockAnomalyType | string;
   detectedCount: number;
+  error: string | null;
 }
 
 export interface StockAnomalyScanResponse {

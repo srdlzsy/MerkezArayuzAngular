@@ -290,6 +290,14 @@
                   </button>
                   <button
                     type="button"
+                    class="danger-action"
+                    [disabled]="!canDelete() || !warehouseDraft.hasWarehouseDetail || warehouseBusyAction() === 'delete'"
+                    (click)="deleteWarehouseSetting()"
+                  >
+                    {{ warehouseBusyAction() === 'delete' ? 'Siliniyor...' : 'Depo Ozel Ayarini Sil' }}
+                  </button>
+                  <button
+                    type="button"
                     class="primary-action"
                     [disabled]="!canUpdate() || !changedWarehouseFieldCount() || warehouseBusyAction() === 'save'"
                     (click)="saveWarehouseSetting()"
@@ -401,6 +409,14 @@
                       (click)="saveSalesPrice()"
                     >
                       {{ isBusy('sales-price-save') ? 'Kaydediliyor...' : 'Secili Fiyati Kaydet' }}
+                    </button>
+                    <button
+                      type="button"
+                      class="danger-action"
+                      [disabled]="!canDelete() || isBusy('sales-price-delete')"
+                      (click)="deleteSalesPrice()"
+                    >
+                      {{ isBusy('sales-price-delete') ? 'Siliniyor...' : 'Secili Fiyati Sil' }}
                     </button>
                   </div>
                 </div>
@@ -1007,6 +1023,14 @@
             >
               {{ isBusy('movement-save') ? 'Kaydediliyor...' : 'Stok Hareketini Güncelle' }}
             </button>
+            <button
+              type="button"
+              class="danger-action"
+              [disabled]="!canDelete() || isBusy('movement-delete')"
+              (click)="deleteStockMovement()"
+            >
+              {{ isBusy('movement-delete') ? 'Siliniyor...' : 'Stok Hareketini Sil' }}
+            </button>
           </div>
         </article>
       </ng-container>
@@ -1170,6 +1194,14 @@
               (click)="saveCustomerMovement()"
             >
               {{ isBusy('customer-save') ? 'Kaydediliyor...' : 'Cari Hareketi Güncelle' }}
+            </button>
+            <button
+              type="button"
+              class="danger-action"
+              [disabled]="!canDelete() || isBusy('customer-delete')"
+              (click)="deleteCustomerMovement()"
+            >
+              {{ isBusy('customer-delete') ? 'Siliniyor...' : 'Cari Hareketi Sil' }}
             </button>
           </div>
         </article>
