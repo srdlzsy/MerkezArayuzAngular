@@ -158,7 +158,7 @@
                 type="text"
                 [value]="viewingQuickFilter()"
                 (input)="setViewingQuickFilter($event)"
-                placeholder="no, musteri, VKN, zarf, siparis, mesaj"
+                placeholder="no, musteri, VKN, irsaliye, siparis, zarf, mesaj"
               />
             </label>
 
@@ -313,10 +313,12 @@
               <tbody>
                 <tr
                   *ngFor="let item of filteredViewingItems(); trackBy: trackByInvoice"
-                  [class.is-selected]="isViewingCardSelected(item)"
+                  [class.is-selected]="isViewingItemSelected(item)"
+                  [class.is-selection-disabled]="item.isPrinted || viewingBulkPrintLoading()"
                   tabindex="0"
-                  (click)="openViewingDetail(item)"
-                  (keydown.enter)="openViewingDetail(item)"
+                  (click)="toggleViewingRowSelection(item)"
+                  (keydown.enter)="toggleViewingRowSelection(item)"
+                  (keydown.space)="$event.preventDefault(); toggleViewingRowSelection(item)"
                 >
                   <td class="select-column" (click)="$event.stopPropagation()">
                     <input
@@ -330,7 +332,7 @@
                   <td class="invoice-id-cell">
                     <strong>{{ item.invoiceId }}</strong>
                     <small>Doc: {{ item.documentId | slice: 0 : 8 }}</small>
-                    <small *ngIf="item.orderDocumentId">Ref: {{ item.orderDocumentId }}</small>
+                    <small *ngIf="item.orderDocumentId">Sip: {{ item.orderDocumentId }}</small>
                   </td>
                   <td class="despatch-cell">
                     <strong>{{ item.despatchId || '-' }}</strong>
@@ -517,8 +519,12 @@
               <strong>{{ summary.envelopeStatusCode || '-' }}</strong>
             </article>
             <article class="summary-card">
-              <span>Siparis / Irsaliye</span>
-              <strong>{{ summary.orderDocumentId || summary.despatchId || '-' }}</strong>
+              <span>Irsaliye</span>
+              <strong>{{ summary.despatchId || '-' }}</strong>
+            </article>
+            <article class="summary-card">
+              <span>Siparis / Order</span>
+              <strong>{{ summary.orderDocumentId || '-' }}</strong>
             </article>
           </section>
 

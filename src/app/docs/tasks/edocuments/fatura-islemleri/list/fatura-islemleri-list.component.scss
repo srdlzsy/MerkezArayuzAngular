@@ -775,6 +775,14 @@
   cursor: default;
 }
 
+.viewing-table tbody tr {
+  cursor: pointer;
+}
+
+.viewing-table tbody tr.is-selection-disabled {
+  cursor: not-allowed;
+}
+
 .sending-table button,
 .sending-table input {
   cursor: pointer;

@@ -16,7 +16,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'HTML detay /detail endpointinden alinir',
         'POST render override',
         'Yazdirildi komutu ayri endpoint',
-        'Envelope, siparis, vergi, doviz, arsiv ve goruldu bilgileri cache listesinden okunur'
+        'Irsaliye despatchId alanindan, siparis/order referansi orderDocumentId alanindan okunur',
+        'Envelope, vergi, doviz, arsiv ve goruldu bilgileri cache listesinden okunur'
       ],
       listTitle: 'Endpointler',
       items: [

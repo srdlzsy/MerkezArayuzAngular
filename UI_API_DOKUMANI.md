@@ -7763,7 +7763,8 @@ Liste davranisi:
 - `customerTitle` response'a buyuk harfe cevrilmis gelir
 - DB tarafindaki kolon `isStandart` olsa da API response'unda alan `isStandard` olarak gelir
 - `statusCode` ham DB degeridir; `status` ise UI'de direkt gosterebileceginiz aciklama metnidir
-- `despatchId` Uyumsoft liste cevabinda dogrudan irsaliye alani gelirse onu tasir; bos gelirse `orderDocumentId` fallback'i ile doldurulur
+- `despatchId` Uyumsoft liste cevabinda dogrudan irsaliye alani gelirse onu tasir; liste cevabinda bos kalirsa backend `GetInboxInvoice` full UBL detayindan `DespatchDocumentReference/ID` okuyup cache'i zenginlestirir
+- `orderDocumentId` ayri siparis/order referansi alanidir; irsaliye numarasi gibi kullanilmamalidir
 - `orderDocumentId`, `envelopeIdentifier`, `message`, vergi toplam/tutar, doviz, arsiv ve goruldu bilgileri Uyumsoft inbox cache tablosunda ayrica saklanir
 - `status` mapping'i:
   - `1000` -> `Onaylandi`

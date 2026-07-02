@@ -276,9 +276,9 @@ export class FaturaIslemleriListComponent {
     },
     {
       value: 'OrderDocumentId',
-      label: 'Siparis / Irsaliye',
+      label: 'Siparis / Order',
       placeholder: 'IRS202600001',
-      hint: 'Order document id icinde arama yapar.'
+      hint: 'Siparis veya order referansi icinde arama yapar; irsaliye numarasi yerine kullanilmaz.'
     },
     {
       value: 'Message',
@@ -1310,6 +1310,14 @@ export class FaturaIslemleriListComponent {
     }
 
     this.selectedViewingDocumentIds.set(Array.from(currentSelection));
+  }
+
+  protected toggleViewingRowSelection(item: InvoiceViewingListItemDto): void {
+    if (item.isPrinted || this.viewingBulkPrintLoading()) {
+      return;
+    }
+
+    this.toggleViewingItemSelection(item, !this.isViewingItemSelected(item));
   }
 
   protected toggleAllVisibleViewingSelection(checked: boolean): void {
