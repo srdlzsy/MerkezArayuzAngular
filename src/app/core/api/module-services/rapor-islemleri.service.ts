@@ -14,6 +14,10 @@ import type {
   SalesAnalysisAmountDto,
   SalesAnalysisDateRangeHttpRequest,
   SalesAnalysisFoodCheckTotalKind,
+  SupplierPerformanceDetailDto,
+  SupplierPerformanceDetailHttpRequest,
+  SupplierPerformanceHttpRequest,
+  SupplierPerformanceReportDto,
   ValorPaymentSummaryReportDto,
   ZReportBankAnalysisItemDto
 } from '@interfaces';
@@ -25,6 +29,7 @@ import { BaseApiService } from '../base-api.service';
 })
 export class RaporIslemleriService extends BaseApiService {
   private readonly salesAnalysisBasePath = 'rapor-islemleri/satis-analizleri';
+  private readonly supplierPerformancePath = 'rapor-islemleri/tedarikci-performans-karnesi';
   private readonly foodCheckTotalPaths: Record<SalesAnalysisFoodCheckTotalKind, string> = {
     metropol: 'metropol-toplam',
     multinet: 'multinet-toplam',
@@ -135,6 +140,25 @@ export class RaporIslemleriService extends BaseApiService {
     request: SalesAnalysisDateRangeHttpRequest
   ): Observable<MissingTurnoverBranchItemDto[]> {
     return this.getSalesAnalysis<MissingTurnoverBranchItemDto[]>('eksik-cirolar', request);
+  }
+
+  getSupplierPerformanceReport(
+    request: SupplierPerformanceHttpRequest
+  ): Observable<SupplierPerformanceReportDto> {
+    return this.getWithQuery<SupplierPerformanceReportDto, SupplierPerformanceHttpRequest>(
+      this.supplierPerformancePath,
+      request
+    );
+  }
+
+  getSupplierPerformanceDetail(
+    customerCode: string,
+    request: SupplierPerformanceDetailHttpRequest
+  ): Observable<SupplierPerformanceDetailDto> {
+    return this.getWithQuery<SupplierPerformanceDetailDto, SupplierPerformanceDetailHttpRequest>(
+      `${this.supplierPerformancePath}/${encodeURIComponent(customerCode)}`,
+      request
+    );
   }
 
   private getSalesAnalysis<T>(

@@ -1,0 +1,220 @@
+<section class="supplier-page">
+  <article class="supplier-workspace">
+    <header class="workspace-head">
+      <div>
+        <span class="section-kicker">Rapor Islemleri</span>
+        <h2>{{ page.title }}</h2>
+        <p>{{ page.subtitle }}</p>
+      </div>
+      <div class="permission-strip">
+        <span [class.is-active]="canList()">Liste</span>
+        <span [class.is-active]="canDetail()">Detay</span>
+      </div>
+    </header>
+
+    <section class="filter-panel">
+      <label class="field">
+        <span>Baslangic</span>
+        <input type="date" [ngModel]="startDate()" (ngModelChange)="updateStartDate($event)" />
+      </label>
+
+      <label class="field">
+        <span>Bitis</span>
+        <input type="date" [ngModel]="endDate()" (ngModelChange)="updateEndDate($event)" />
+      </label>
+
+      <div class="scope-switch" aria-label="Depo kapsami">
+        <button type="button" [class.is-active]="scope() === 'all'" (click)="selectScope('all')">
+          Tum Depolar
+        </button>
+        <button type="button" [class.is-active]="scope() === 'current'" (click)="selectScope('current')">
+          Aktif Depo
+        </button>
+        <button type="button" [class.is-active]="scope() === 'manual'" (click)="selectScope('manual')">
+          Manuel
+        </button>
+      </div>
+
+      <label class="field" *ngIf="scope() === 'manual'">
+        <span>Depo No</span>
+        <input
+          type="number"
+          min="1"
+          [ngModel]="manualWarehouseNo()"
+          (ngModelChange)="updateManualWarehouseNo($event)"
+          (keyup.enter)="loadReport()"
+        />
+      </label>
+
+      <label class="field search-field">
+        <span>Tedarikci Kodu</span>
+        <input
+          type="search"
+          placeholder="Opsiyonel"
+          [ngModel]="customerCode()"
+          (ngModelChange)="updateCustomerCode($event)"
+          (keyup.enter)="loadReport()"
+        />
+      </label>
+
+      <label class="field small-field">
+        <span>Limit</span>
+        <input
+          type="number"
+          min="1"
+          max="500"
+          [ngModel]="take()"
+          (ngModelChange)="updateTake($event)"
+          (keyup.enter)="loadReport()"
+        />
+      </label>
+
+      <button type="button" class="primary-action" [disabled]="isLoading() || !canList()" (click)="loadReport()">
+        <i class="fa-solid" [ngClass]="isLoading() ? 'fa-circle-notch fa-spin' : 'fa-chart-line'"></i>
+        <span>{{ isLoading() ? 'Yukleniyor...' : 'Karneyi Getir' }}</span>
+      </button>
+    </section>
+
+    <div class="request-line">
+      <span>{{ selectedDateRangeLabel() }}</span>
+      <span>{{ scopeLabel() }}</span>
+      <code>{{ requestPreview() }}</code>
+    </div>
+
+    <section class="metric-strip" *ngIf="metrics().length">
+      <article
+        *ngFor="let metric of metrics(); trackBy: trackByMetric"
+        class="metric-card"
+        [class.metric-danger]="metric.tone === 'danger'"
+        [class.metric-warning]="metric.tone === 'warning'"
+        [class.metric-success]="metric.tone === 'success'"
+      >
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+      </article>
+    </section>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as error">
+      <h3>Rapor Yuklenemedi</h3>
+      <p>{{ error }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Tedarikci Karnesi Yukleniyor</h3>
+      <p>Siparis, mal kabul, iade, zayiat ve fatura ozetleri okunuyor.</p>
+    </article>
+
+    <div class="table-context" *ngIf="rows().length">
+      <span>{{ rows().length | number }} tedarikci</span>
+      <span>{{ scopeLabel() }}</span>
+      <span *ngIf="report()?.summary?.invoiceMetricsState as state">Fatura: {{ state }}</span>
+      <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
+    </div>
+
+    <section class="content-grid">
+      <div class="table-shell" *ngIf="!isLoading() && rows().length">
+        <app-api-list-table
+          [rows]="rows()"
+          [columns]="columns"
+          actionLabel="Detay"
+          filterPlaceholder="Tedarikci, risk, skor, fatura veya miktar ara"
+          (rowAction)="openDetail($event)"
+        ></app-api-list-table>
+      </div>
+
+      <aside class="detail-panel" *ngIf="selectedCustomerCode() || detailLoading() || detailErrorMessage()">
+        <ng-container *ngIf="detail() as currentDetail; else detailState">
+          <header class="detail-head">
+            <div>
+              <span class="section-kicker">Tedarikci Detayi</span>
+              <h3>{{ currentDetail.card.customerTitle }}</h3>
+              <p>{{ currentDetail.card.customerCode }} - {{ currentDetail.card.taxNoOrTckn || '-' }}</p>
+            </div>
+            <button type="button" class="icon-action" title="Kapat" (click)="clearDetail()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </header>
+
+          <section class="score-panel">
+            <div>
+              <span>Skor</span>
+              <strong>{{ formatNumber(currentDetail.card.score) }}</strong>
+            </div>
+            <div>
+              <span>Not</span>
+              <strong>{{ currentDetail.card.grade }}</strong>
+            </div>
+            <div>
+              <span>Risk</span>
+              <strong class="risk-badge" [ngClass]="riskClass(currentDetail.card.riskLevel)">
+                {{ riskLabel(currentDetail.card.riskLevel) }}
+              </strong>
+            </div>
+          </section>
+
+          <section class="breakdown-grid">
+            <div>
+              <span>Teslimat Cezasi</span>
+              <strong>{{ formatNumber(currentDetail.card.scoreBreakdown.deliveryPenalty) }}</strong>
+            </div>
+            <div>
+              <span>Fark Cezasi</span>
+              <strong>{{ formatNumber(currentDetail.card.scoreBreakdown.differencePenalty) }}</strong>
+            </div>
+            <div>
+              <span>Iade Cezasi</span>
+              <strong>{{ formatNumber(currentDetail.card.scoreBreakdown.returnPenalty) }}</strong>
+            </div>
+            <div>
+              <span>Zayiat Cezasi</span>
+              <strong>{{ formatNumber(currentDetail.card.scoreBreakdown.outagePenalty) }}</strong>
+            </div>
+          </section>
+
+          <article class="invoice-note" *ngIf="currentDetail.card.invoices.note">
+            <strong>Fatura ozeti</strong>
+            <p>{{ currentDetail.card.invoices.note }}</p>
+          </article>
+
+          <section class="events">
+            <h4>Olay Gecmisi</h4>
+            <article
+              class="event-card"
+              *ngFor="let event of currentDetail.events; trackBy: trackByEvent"
+            >
+              <span class="event-type">{{ eventTypeLabel(event.type) }}</span>
+              <strong>{{ formatEventTitle(event) }}</strong>
+              <p>{{ event.message || event.source || '-' }}</p>
+              <div class="event-meta">
+                <span>{{ formatDate(eventDate(event)) }}</span>
+                <span *ngIf="event.warehouseNo">Depo {{ event.warehouseNo }}</span>
+                <span *ngIf="event.quantity !== null && event.quantity !== undefined">
+                  {{ formatNumber(event.quantity) }} miktar
+                </span>
+                <span *ngIf="event.amount !== null && event.amount !== undefined">
+                  {{ formatMoney(event.amount) }}
+                </span>
+              </div>
+            </article>
+          </section>
+        </ng-container>
+
+        <ng-template #detailState>
+          <article class="state-card" *ngIf="detailLoading()">
+            <h3>Detay Yukleniyor</h3>
+            <p>Secili tedarikcinin kaynak olaylari okunuyor.</p>
+          </article>
+          <article class="state-card state-card-error" *ngIf="detailErrorMessage() as detailError">
+            <h3>Detay Yuklenemedi</h3>
+            <p>{{ detailError }}</p>
+          </article>
+        </ng-template>
+      </aside>
+    </section>
+
+    <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
+      <h3>Kayit Bulunamadi</h3>
+      <p>Secilen tarih ve kapsama uygun tedarikci performans kaydi donmedi.</p>
+    </article>
+  </article>
+</section>

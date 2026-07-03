@@ -166,3 +166,156 @@ export type SalesAnalysisFoodCheckTotalKind =
   | 'ticket-kupon'
   | 'ticket-pos'
   | 'genel';
+
+export type SupplierPerformanceRiskLevel = 'Healthy' | 'Warning' | 'Critical';
+export type SupplierPerformanceGrade = 'A' | 'B' | 'C' | 'D' | 'E';
+export type SupplierPerformanceInvoiceMetricsState = 'summary-only' | string;
+export type SupplierPerformanceEventType =
+  | 'Order'
+  | 'OpenLateOrder'
+  | 'ReceivingDifference'
+  | 'CompanyReturn'
+  | 'OutageImpact'
+  | 'ExpenseImpact'
+  | 'IssuedInvoice'
+  | 'IncomingInvoice'
+  | string;
+
+export interface SupplierPerformanceHttpRequest {
+  startDate: string;
+  endDate: string;
+  warehouseNo?: number | null;
+  customerCode?: string | null;
+  take?: number | null;
+}
+
+export interface SupplierPerformanceDetailHttpRequest {
+  startDate: string;
+  endDate: string;
+  warehouseNo?: number | null;
+  eventTake?: number | null;
+}
+
+export interface SupplierPerformanceSummaryDto {
+  supplierCount: number;
+  averageScore: number;
+  criticalSupplierCount: number;
+  warningSupplierCount: number;
+  totalOrderedQuantity: number;
+  totalReceivedQuantity: number;
+  totalReturnedQuantity: number;
+  totalMissingQuantity: number;
+  totalExcessQuantity: number;
+  totalOutageImpactQuantity: number;
+  totalIssuedInvoiceAmount: number;
+  totalIncomingInvoiceAmount: number;
+  totalInvoiceDifferenceAmount: number;
+  invoiceMetricsState: SupplierPerformanceInvoiceMetricsState;
+}
+
+export interface SupplierPerformanceOrderMetricsDto {
+  documentCount: number;
+  lineCount: number;
+  orderedQuantity: number;
+  deliveredQuantity: number;
+  remainingQuantity: number;
+  deliveryRate: number;
+  lateDeliveredLineCount: number;
+  openLateLineCount: number;
+  averageLateDays: number;
+}
+
+export interface SupplierPerformanceReceivingMetricsDto {
+  documentCount: number;
+  lineCount: number;
+  receivedQuantity: number;
+  receivedAmount: number;
+  differenceLineCount: number;
+  missingQuantity: number;
+  excessQuantity: number;
+  differenceRate: number;
+}
+
+export interface SupplierPerformanceReturnMetricsDto {
+  documentCount: number;
+  lineCount: number;
+  returnedQuantity: number;
+  returnedAmount: number;
+  returnRate: number;
+}
+
+export interface SupplierPerformanceOutageImpactMetricsDto {
+  documentCount: number;
+  lineCount: number;
+  quantity: number;
+  amount: number;
+  quantityRate: number;
+  attribution: string;
+}
+
+export interface SupplierPerformanceInvoiceMetricsDto {
+  issuedInvoiceCount: number;
+  issuedInvoiceAmount: number;
+  incomingInvoiceCount: number;
+  incomingInvoiceAmount: number;
+  invoiceDifferenceAmount: number;
+  invoiceDifferenceRate: number;
+  state: SupplierPerformanceInvoiceMetricsState;
+  note: string | null;
+}
+
+export interface SupplierPerformanceScoreBreakdownDto {
+  deliveryPenalty: number;
+  differencePenalty: number;
+  returnPenalty: number;
+  outagePenalty: number;
+  invoicePenalty: number;
+  totalPenalty: number;
+}
+
+export interface SupplierPerformanceCardDto {
+  customerCode: string;
+  customerTitle: string;
+  taxNoOrTckn: string | null;
+  score: number;
+  grade: SupplierPerformanceGrade | string;
+  riskLevel: SupplierPerformanceRiskLevel | string;
+  orders: SupplierPerformanceOrderMetricsDto;
+  receiving: SupplierPerformanceReceivingMetricsDto;
+  returns: SupplierPerformanceReturnMetricsDto;
+  outageImpact: SupplierPerformanceOutageImpactMetricsDto;
+  invoices: SupplierPerformanceInvoiceMetricsDto;
+  scoreBreakdown: SupplierPerformanceScoreBreakdownDto;
+}
+
+export interface SupplierPerformanceReportDto {
+  warehouseNo: number | null;
+  startDate: string;
+  endDate: string;
+  generatedAtUtc: string;
+  summary: SupplierPerformanceSummaryDto;
+  items: SupplierPerformanceCardDto[];
+}
+
+export interface SupplierPerformanceEventDto {
+  type: SupplierPerformanceEventType;
+  occurredAtUtc?: string | null;
+  documentDate?: string | null;
+  documentSerie?: string | null;
+  documentOrderNo?: number | null;
+  documentNo?: string | null;
+  warehouseNo?: number | null;
+  warehouseName?: string | null;
+  stockCode?: string | null;
+  stockName?: string | null;
+  quantity?: number | null;
+  amount?: number | null;
+  message?: string | null;
+  source?: string | null;
+  [key: string]: unknown;
+}
+
+export interface SupplierPerformanceDetailDto {
+  card: SupplierPerformanceCardDto;
+  events: SupplierPerformanceEventDto[];
+}

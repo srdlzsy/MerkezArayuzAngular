@@ -2,6 +2,60 @@ import type { DocsTaskSource } from './docs-task-source.helpers';
 import { singleRouteTask } from './docs-task-source.helpers';
 
 export const RAPOR_ISLEMLERI_TASK_SOURCE = {
+  'tedarikci-performans-karnesi': singleRouteTask(
+    {
+      id: 'tedarikci-performans-karnesi',
+      title: 'Tedarikci Performans Karnesi',
+      subtitle:
+        'Tedarikciyi siparis, mal kabul, iade, zayiat etkisi ve fatura ozetleriyle tek performans kartinda degerlendirir.',
+      baseRouteOrFile: '/api/rapor-islemleri/tedarikci-performans-karnesi',
+      highlights: [
+        'Liste endpointi SupplierPerformanceHttpRequest query modelini kullanir',
+        'Detay endpointi tedarikci kodu ile kaynak olay zaman cizelgesini getirir',
+        'Fatura metrikleri ilk fazda summary-only olarak toplam fark seviyesinde gosterilir',
+        'Skor 100 uzerinden hesaplanir; risk seviyesi Healthy, Warning veya Critical olur'
+      ],
+      listTitle: 'Tedarikci Performans Endpointleri',
+      items: [
+        {
+          name: 'SupplierPerformanceController',
+          description:
+            'Tedarikci karnesi icin siparis, mal kabul, iade, zayiat ve fatura ozetlerini tek ekranda toplar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/tedarikci-performans-karnesi?startDate=2026-07-01&endDate=2026-07-03&warehouseNo=110&take=100',
+              description: 'Tedarikci performans karnesi listesini ve genel ozet metriklerini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/tedarikci-performans-karnesi/120.01.03106?startDate=2026-07-01&endDate=2026-07-03&warehouseNo=110&eventTake=100',
+              description: 'Secili tedarikci kartini ve kaynak olay zaman cizelgesini getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-03",
+  "warehouseNo": 110,
+  "take": 100
+}`
+    },
+    () =>
+      import(
+        '../tasks/reports/tedarikci-performans-karnesi/list/tedarikci-performans-karnesi-list.component'
+      ).then((m) => m.TedarikciPerformansKarnesiListComponent),
+    {
+      accessKeyAliases: [
+        'rapor-islemleri.tedarikci-performans-karnesi.list',
+        'rapor-islemleri.tedarikci-performans-karnesi.detail',
+        'rapor-islemleri.tedarikci-performans-karnesi',
+        'TedarikciPerformansKarnesi',
+        'Tedarikci Performans Karnesi'
+      ]
+    }
+  ),
   'satis-analizleri': singleRouteTask(
     {
       id: 'satis-analizleri',
