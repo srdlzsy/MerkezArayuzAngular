@@ -842,21 +842,24 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
-  protected deleteStockMovement(): void {
+  protected deleteStockMovement(hardDelete = false): void {
     const document = this.stockMovement();
     if (!document || !this.canDelete() || !this.validateLookup(this.stockLookup)) {
       return;
     }
 
     const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
-    if (!window.confirm(`${label} stok hareket evraki soft-delete yapilsin mi?`)) {
+    if (!this.confirmMovementDelete('stok hareket evraki', label, hardDelete)) {
       return;
     }
 
     this.busyAction.set('movement-delete');
     this.feedback.set(null);
     this.service
-      .deleteStockMovementDocument(this.cleanLookup(this.stockLookup))
+      .deleteStockMovementDocument({
+        ...this.cleanLookup(this.stockLookup),
+        hardDelete: hardDelete || null
+      })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busyAction.set(null))
@@ -932,21 +935,24 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
-  protected deleteCustomerMovement(): void {
+  protected deleteCustomerMovement(hardDelete = false): void {
     const document = this.customerMovement();
     if (!document || !this.canDelete() || !this.validateLookup(this.customerLookup)) {
       return;
     }
 
     const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
-    if (!window.confirm(`${label} cari hareket evraki soft-delete yapilsin mi?`)) {
+    if (!this.confirmMovementDelete('cari hareket evraki', label, hardDelete)) {
       return;
     }
 
     this.busyAction.set('customer-delete');
     this.feedback.set(null);
     this.service
-      .deleteCustomerMovementDocument(this.cleanLookup(this.customerLookup))
+      .deleteCustomerMovementDocument({
+        ...this.cleanLookup(this.customerLookup),
+        hardDelete: hardDelete || null
+      })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busyAction.set(null))
@@ -1619,6 +1625,18 @@ export class MikroEvrakDuzenlemeListComponent {
       title,
       message: `${response.deletedRowCount} satir silindi (${response.deletionMode}).`
     });
+  }
+
+  private confirmMovementDelete(kind: string, label: string, hardDelete: boolean): boolean {
+    if (!hardDelete) {
+      return window.confirm(`${label} ${kind} soft-delete yapilsin mi?`);
+    }
+
+    const confirmation = window.prompt(
+      `${label} ${kind} FIZIKSEL olarak silinecek. Bu islem geri alinamaz.\nOnay icin evrak anahtarini yazin: ${label}`
+    );
+
+    return confirmation?.trim() === label;
   }
 
   private valuesEqual(left: unknown, right: unknown): boolean {

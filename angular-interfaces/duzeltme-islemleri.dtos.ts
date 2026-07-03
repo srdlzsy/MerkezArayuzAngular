@@ -391,6 +391,11 @@ export interface StockMovementDocumentLookupHttpRequest {
   warehouseNo?: number | null;
 }
 
+export interface StockMovementDocumentDeleteHttpRequest
+  extends StockMovementDocumentLookupHttpRequest {
+  hardDelete?: boolean | null;
+}
+
 export interface StockMovementDocumentHeaderDto {
   documentSerie: string;
   documentOrderNo: number;
@@ -507,6 +512,11 @@ export interface CustomerMovementDocumentLookupHttpRequest {
   movementKind?: number | null;
   normalReturn?: number | null;
   customerCode?: string | null;
+}
+
+export interface CustomerMovementDocumentDeleteHttpRequest
+  extends CustomerMovementDocumentLookupHttpRequest {
+  hardDelete?: boolean | null;
 }
 
 export interface CustomerMovementDocumentHeaderDto {

@@ -162,27 +162,37 @@
       <span>{{ isAdminUser() ? 'Admin kapsami' : 'JWT depo kapsami' }}</span>
     </div>
 
-    <section class="content-grid">
-      <div class="table-shell">
-        <app-api-list-table
-          *ngIf="!isLoading() && rows().length"
-          [rows]="rows()"
-          [columns]="columns"
-          actionLabel="Timeline"
-          filterPlaceholder="Belge tipi, depo, belge no, e-belge veya hata ara"
-          (rowAction)="openDetail($event)"
-        ></app-api-list-table>
+    <section class="table-shell">
+      <app-api-list-table
+        *ngIf="!isLoading() && rows().length"
+        [rows]="rows()"
+        [columns]="columns"
+        actionLabel="Timeline"
+        filterPlaceholder="Belge tipi, depo, belge no, e-belge veya hata ara"
+        (rowAction)="openDetail($event)"
+      ></app-api-list-table>
 
-        <article
-          class="state-card empty-state"
-          *ngIf="!isLoading() && !errorMessage() && !rows().length"
-        >
-          <h3>Kayit Bulunamadi</h3>
-          <p>Secilen filtreler icin belge akis kaydi donmedi.</p>
-        </article>
-      </div>
+      <article
+        class="state-card empty-state"
+        *ngIf="!isLoading() && !errorMessage() && !rows().length"
+      >
+        <h3>Kayit Bulunamadi</h3>
+        <p>Secilen filtreler icin belge akis kaydi donmedi.</p>
+      </article>
+    </section>
 
-      <aside class="detail-panel">
+    <div
+      class="detail-dialog-backdrop"
+      *ngIf="selectedId() || detailLoading() || detailErrorMessage()"
+      (click)="closeDetail()"
+    >
+      <aside
+        class="detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Belge akis timeline"
+        (click)="$event.stopPropagation()"
+      >
         <ng-container *ngIf="selectedDetail() as detail; else detailState">
           <header class="detail-head">
             <div>
@@ -195,9 +205,14 @@
                 </ng-container>
               </p>
             </div>
-            <span class="status-badge" [ngClass]="statusTone(detail.status)">
-              {{ resolveStatusLabel(detail.status) }}
-            </span>
+            <div class="detail-head-actions">
+              <span class="status-badge" [ngClass]="statusTone(detail.status)">
+                {{ resolveStatusLabel(detail.status) }}
+              </span>
+              <button type="button" class="icon-action" title="Kapat" (click)="closeDetail()">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
           </header>
 
           <dl class="detail-facts">
@@ -270,12 +285,22 @@
 
         <ng-template #detailState>
           <article class="state-card" *ngIf="detailLoading()">
-            <h3>Timeline Yukleniyor</h3>
+            <div class="state-head">
+              <h3>Timeline Yukleniyor</h3>
+              <button type="button" class="icon-action" title="Kapat" (click)="closeDetail()">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
             <p>Secili belge akisinin olay kayitlari okunuyor.</p>
           </article>
 
           <article class="state-card state-card-error" *ngIf="detailErrorMessage() as detailError">
-            <h3>Detay Yuklenemedi</h3>
+            <div class="state-head">
+              <h3>Detay Yuklenemedi</h3>
+              <button type="button" class="icon-action" title="Kapat" (click)="closeDetail()">
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
             <p>{{ detailError }}</p>
           </article>
 
@@ -285,6 +310,6 @@
           </article>
         </ng-template>
       </aside>
-    </section>
+    </div>
   </article>
 </section>

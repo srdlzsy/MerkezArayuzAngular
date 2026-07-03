@@ -25,8 +25,7 @@
 }
 
 .workspace-head,
-.filters-grid,
-.content-grid {
+.filters-grid {
   display: grid;
   gap: 0.62rem;
 }
@@ -111,7 +110,7 @@
 .tracking-warning,
 .filter-panel,
 .state-card,
-.detail-panel {
+.detail-dialog {
   border: 1px solid var(--flow-border);
   border-radius: 8px;
   background: #fff;
@@ -383,27 +382,33 @@
   background: #e9f8f5;
 }
 
-.content-grid {
-  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.42fr);
-  align-items: start;
-  gap: 0.75rem;
-}
-
 .table-shell {
   min-width: 0;
   border: 1px solid var(--flow-border);
   border-radius: 8px;
   padding: 0.55rem;
   background: #fff;
+  overflow: hidden;
 }
 
-.detail-panel {
-  position: sticky;
-  top: 0.7rem;
+.detail-dialog-backdrop {
+  position: fixed;
+  z-index: 1000;
+  inset: 0;
   display: grid;
-  gap: 0.6rem;
-  padding: 0.68rem;
-  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.04);
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.52);
+}
+
+.detail-dialog {
+  display: grid;
+  gap: 0.68rem;
+  width: min(980px, 100%);
+  max-height: min(86vh, 760px);
+  overflow: auto;
+  padding: 0.72rem;
+  box-shadow: 0 22px 58px rgba(15, 23, 42, 0.28);
 }
 
 .detail-head {
@@ -415,6 +420,33 @@
 
 .detail-head h3 {
   font-size: 0.98rem;
+}
+
+.detail-head-actions,
+.state-head {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  justify-content: space-between;
+}
+
+.icon-action {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 2rem;
+  height: 2rem;
+  place-items: center;
+  border: 1px solid var(--flow-border);
+  border-radius: 8px;
+  color: var(--flow-muted);
+  background: #fff;
+  cursor: pointer;
+}
+
+.icon-action:hover {
+  border-color: #94a3b8;
+  color: var(--flow-ink);
+  background: #f8fafc;
 }
 
 .status-badge.is-success {
@@ -552,8 +584,7 @@
 }
 
 @media (max-width: 1240px) {
-  .workspace-head,
-  .content-grid {
+  .workspace-head {
     grid-template-columns: 1fr;
   }
 
@@ -567,10 +598,6 @@
 
   .filter-actions {
     grid-column: span 1;
-  }
-
-  .detail-panel {
-    position: static;
   }
 
   .permission-strip {
@@ -619,6 +646,24 @@
 
   .table-shell {
     padding: 0.35rem;
+  }
+
+  .detail-dialog-backdrop {
+    align-items: stretch;
+    padding: 0.5rem;
+  }
+
+  .detail-dialog {
+    width: 100%;
+    max-height: calc(100dvh - 1rem);
+  }
+
+  .detail-head {
+    flex-direction: column;
+  }
+
+  .detail-head-actions {
+    width: 100%;
   }
 }
 

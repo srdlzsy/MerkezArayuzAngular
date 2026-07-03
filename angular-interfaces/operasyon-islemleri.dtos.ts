@@ -112,7 +112,13 @@ export type DocumentFlowType =
   | 'WarehouseReturn'
   | 'CompanyReceiving'
   | 'IssuedCompanyOrder'
-  | 'IssuedWarehouseOrder';
+  | 'IssuedWarehouseOrder'
+  | 'StockCard'
+  | 'WarehouseCard'
+  | 'CustomerCard'
+  | 'StockSalesPrice'
+  | 'StockMovementDocument'
+  | 'CustomerMovementDocument';
 
 export type DocumentFlowStatus = 'Succeeded' | 'Failed';
 
@@ -120,7 +126,9 @@ export type DocumentFlowStep =
   | 'DocumentCreated'
   | 'OrderCreated'
   | 'EDespatchSubmission'
-  | 'WarehouseReceivingAccepted';
+  | 'WarehouseReceivingAccepted'
+  | 'DocumentUpdated'
+  | 'DocumentDeleted';
 
 export interface DocumentFlowListHttpRequest {
   warehouseNo?: number | null;

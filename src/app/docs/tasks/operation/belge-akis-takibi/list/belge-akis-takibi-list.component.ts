@@ -60,7 +60,13 @@ const DOCUMENT_TYPE_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: 'WarehouseReturn', label: 'Depo Iadesi' },
   { value: 'CompanyReceiving', label: 'Firma Mal Kabul' },
   { value: 'IssuedCompanyOrder', label: 'Verilen Firma Siparisi' },
-  { value: 'IssuedWarehouseOrder', label: 'Verilen Depo Siparisi' }
+  { value: 'IssuedWarehouseOrder', label: 'Verilen Depo Siparisi' },
+  { value: 'StockCard', label: 'Stok Karti' },
+  { value: 'WarehouseCard', label: 'Depo Karti' },
+  { value: 'CustomerCard', label: 'Cari Karti' },
+  { value: 'StockSalesPrice', label: 'Stok Satis Fiyati' },
+  { value: 'StockMovementDocument', label: 'Stok Hareket Evraki' },
+  { value: 'CustomerMovementDocument', label: 'Cari Hareket Evraki' }
 ];
 
 const STATUS_OPTIONS: readonly DocumentFlowFilterOption[] = [
@@ -127,6 +133,18 @@ function resolveDocumentTypeLabel(value: string | null | undefined): string {
       return 'Verilen Firma Siparisi';
     case 'IssuedWarehouseOrder':
       return 'Verilen Depo Siparisi';
+    case 'StockCard':
+      return 'Stok Karti';
+    case 'WarehouseCard':
+      return 'Depo Karti';
+    case 'CustomerCard':
+      return 'Cari Karti';
+    case 'StockSalesPrice':
+      return 'Stok Satis Fiyati';
+    case 'StockMovementDocument':
+      return 'Stok Hareket Evraki';
+    case 'CustomerMovementDocument':
+      return 'Cari Hareket Evraki';
     default:
       return value?.trim() || '-';
   }
@@ -142,6 +160,10 @@ function resolveStepLabel(value: string | null | undefined): string {
       return 'E-Irsaliye Gonderimi';
     case 'WarehouseReceivingAccepted':
       return 'Depo Kabul Edildi';
+    case 'DocumentUpdated':
+      return 'Belge Guncellendi';
+    case 'DocumentDeleted':
+      return 'Belge Silindi';
     default:
       return value?.trim() || '-';
   }
@@ -354,6 +376,14 @@ export class BelgeAkisTakibiListComponent implements OnInit {
           );
         }
       });
+  }
+
+  protected closeDetail(): void {
+    this.activeDetailRequestId++;
+    this.selectedId.set(null);
+    this.selectedDetail.set(null);
+    this.detailErrorMessage.set(null);
+    this.detailLoading.set(false);
   }
 
   protected clearFilters(): void {

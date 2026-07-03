@@ -1031,6 +1031,14 @@
             >
               {{ isBusy('movement-delete') ? 'Siliniyor...' : 'Stok Hareketini Sil' }}
             </button>
+            <button
+              type="button"
+              class="hard-danger-action"
+              [disabled]="!canDelete() || isBusy('movement-delete')"
+              (click)="deleteStockMovement(true)"
+            >
+              Fiziksel Sil
+            </button>
           </div>
         </article>
       </ng-container>
@@ -1202,6 +1210,14 @@
               (click)="deleteCustomerMovement()"
             >
               {{ isBusy('customer-delete') ? 'Siliniyor...' : 'Cari Hareketi Sil' }}
+            </button>
+            <button
+              type="button"
+              class="hard-danger-action"
+              [disabled]="!canDelete() || isBusy('customer-delete')"
+              (click)="deleteCustomerMovement(true)"
+            >
+              Fiziksel Sil
             </button>
           </div>
         </article>

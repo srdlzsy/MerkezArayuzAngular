@@ -109,7 +109,8 @@ p {
 .tab-button,
 .primary-action,
 .secondary-action,
-.danger-action {
+.danger-action,
+.hard-danger-action {
   display: inline-flex;
   min-height: 2.2rem;
   align-items: center;
@@ -156,6 +157,17 @@ p {
   border-color: #fda4af;
   color: #881337;
   background: #ffe4e6;
+}
+
+.hard-danger-action {
+  border-color: #b91c1c;
+  color: #fff;
+  background: #b91c1c;
+}
+
+.hard-danger-action:hover:not(:disabled) {
+  border-color: #991b1b;
+  background: #991b1b;
 }
 
 button:disabled {
@@ -826,7 +838,8 @@ button:disabled {
 
   .editor-actions .primary-action,
   .editor-actions .secondary-action,
-  .editor-actions .danger-action {
+  .editor-actions .danger-action,
+  .editor-actions .hard-danger-action {
     width: 100%;
   }
 }

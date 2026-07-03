@@ -7,6 +7,7 @@ import type {
   CustomerCardSearchHttpRequest,
   CustomerCardUpdateResponse,
   CustomerMovementDocumentDto,
+  CustomerMovementDocumentDeleteHttpRequest,
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
   MikroDocumentDeleteResponse,
@@ -23,6 +24,7 @@ import type {
   StockSalesPriceUpsertHttpRequest,
   StockSalesPriceUpsertResponse,
   StockMovementDocumentDto,
+  StockMovementDocumentDeleteHttpRequest,
   StockMovementDocumentLookupHttpRequest,
   StockMovementDocumentUpdateResponse,
   UpdateCustomerMovementDocumentHttpRequest,
@@ -186,7 +188,7 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   }
 
   deleteStockMovementDocument(
-    query: StockMovementDocumentLookupHttpRequest
+    query: StockMovementDocumentDeleteHttpRequest
   ): Observable<MikroDocumentDeleteResponse> {
     return this.http.delete<MikroDocumentDeleteResponse>(
       this.buildUrl(`${ROOT}/stok-hareketleri`),
@@ -212,7 +214,7 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   }
 
   deleteCustomerMovementDocument(
-    query: CustomerMovementDocumentLookupHttpRequest
+    query: CustomerMovementDocumentDeleteHttpRequest
   ): Observable<MikroDocumentDeleteResponse> {
     return this.http.delete<MikroDocumentDeleteResponse>(
       this.buildUrl(`${ROOT}/cari-hareketleri`),
