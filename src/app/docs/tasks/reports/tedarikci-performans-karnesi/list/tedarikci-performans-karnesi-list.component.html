@@ -6,9 +6,10 @@
         <h2>{{ page.title }}</h2>
         <p>{{ page.subtitle }}</p>
       </div>
-      <div class="permission-strip">
-        <span [class.is-active]="canList()">Liste</span>
-        <span [class.is-active]="canDetail()">Detay</span>
+      <div class="head-summary">
+        <span class="scope-chip">{{ selectedDateRangeLabel() }}</span>
+        <span class="scope-chip">{{ scopeLabel() }}</span>
+        <span class="scope-chip">{{ selectedSupplierLabel() }}</span>
       </div>
     </header>
 
@@ -46,16 +47,46 @@
         />
       </label>
 
-      <label class="field search-field">
-        <span>Tedarikci Kodu</span>
-        <input
-          type="search"
-          placeholder="Opsiyonel"
-          [ngModel]="customerCode()"
-          (ngModelChange)="updateCustomerCode($event)"
-          (keyup.enter)="loadReport()"
-        />
-      </label>
+      <div class="field search-field supplier-search">
+        <span>Tedarikci Ara</span>
+        <div class="search-box">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input
+            type="search"
+            placeholder="Kod, unvan veya vergi no"
+            [ngModel]="supplierSearchText()"
+            (ngModelChange)="updateSupplierSearch($event)"
+            (keyup.enter)="loadReport()"
+          />
+          <button
+            type="button"
+            class="clear-search"
+            title="Tedarikci filtresini temizle"
+            *ngIf="customerCode() || supplierSearchText()"
+            (click)="clearSupplierFilter()"
+          >
+            <i class="fa-solid fa-xmark"></i>
+          </button>
+        </div>
+        <div class="supplier-suggestions" *ngIf="supplierSuggestions().length || supplierSearchLoading() || supplierSearchMessage()">
+          <div class="suggestion-state" *ngIf="supplierSearchLoading()">
+            <i class="fa-solid fa-circle-notch fa-spin"></i>
+            Araniyor...
+          </div>
+          <button
+            *ngFor="let supplier of supplierSuggestions(); trackBy: trackBySupplier"
+            type="button"
+            class="supplier-option"
+            (click)="selectSupplier(supplier)"
+          >
+            <strong>{{ supplier.customerDisplayName || supplier.customerTitle || supplier.customerName }}</strong>
+            <span>{{ supplier.customerCode }} - {{ supplier.taxNumber || '-' }}</span>
+          </button>
+          <div class="suggestion-state" *ngIf="!supplierSearchLoading() && supplierSearchMessage()">
+            {{ supplierSearchMessage() }}
+          </div>
+        </div>
+      </div>
 
       <label class="field small-field">
         <span>Limit</span>
@@ -78,7 +109,7 @@
     <div class="request-line">
       <span>{{ selectedDateRangeLabel() }}</span>
       <span>{{ scopeLabel() }}</span>
-      <code>{{ requestPreview() }}</code>
+      <span>{{ selectedSupplierLabel() }}</span>
     </div>
 
     <section class="metric-strip" *ngIf="metrics().length">
@@ -111,18 +142,28 @@
       <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
     </div>
 
-    <section class="content-grid">
-      <div class="table-shell" *ngIf="!isLoading() && rows().length">
-        <app-api-list-table
-          [rows]="rows()"
-          [columns]="columns"
-          actionLabel="Detay"
-          filterPlaceholder="Tedarikci, risk, skor, fatura veya miktar ara"
-          (rowAction)="openDetail($event)"
-        ></app-api-list-table>
-      </div>
+    <section class="table-shell" *ngIf="!isLoading() && rows().length">
+      <app-api-list-table
+        [rows]="rows()"
+        [columns]="columns"
+        actionLabel="Detay"
+        filterPlaceholder="Tedarikci, risk, skor, fatura veya miktar ara"
+        (rowAction)="openDetail($event)"
+      ></app-api-list-table>
+    </section>
 
-      <aside class="detail-panel" *ngIf="selectedCustomerCode() || detailLoading() || detailErrorMessage()">
+    <div
+      class="detail-dialog-backdrop"
+      *ngIf="selectedCustomerCode() || detailLoading() || detailErrorMessage()"
+      (click)="clearDetail()"
+    >
+      <aside
+        class="detail-dialog"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Tedarikci performans detayi"
+        (click)="$event.stopPropagation()"
+      >
         <ng-container *ngIf="detail() as currentDetail; else detailState">
           <header class="detail-head">
             <div>
@@ -210,7 +251,7 @@
           </article>
         </ng-template>
       </aside>
-    </section>
+    </div>
 
     <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
       <h3>Kayit Bulunamadi</h3>

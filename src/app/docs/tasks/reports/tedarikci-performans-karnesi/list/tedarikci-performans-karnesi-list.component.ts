@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  OnDestroy,
   OnInit,
   computed,
   inject,
@@ -12,6 +13,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import type {
+  CustomerLookupItemDto,
   SupplierPerformanceCardDto,
   SupplierPerformanceDetailDto,
   SupplierPerformanceDetailHttpRequest,
@@ -20,6 +22,7 @@ import type {
   SupplierPerformanceReportDto
 } from '@interfaces';
 
+import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { RaporIslemleriService } from '../../../../../core/api/module-services/rapor-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -180,7 +183,7 @@ const TABLE_COLUMNS: readonly ApiListTableColumn<SupplierPerformanceCardDto>[] =
   styleUrl: './tedarikci-performans-karnesi-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class TedarikciPerformansKarnesiListComponent implements OnInit {
+export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestroy {
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
   protected readonly columns = TABLE_COLUMNS;
   protected readonly startDate = signal(this.getDefaultStartDate());
@@ -188,6 +191,10 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit {
   protected readonly scope = signal<SupplierPerformanceScope>('all');
   protected readonly manualWarehouseNo = signal('');
   protected readonly customerCode = signal('');
+  protected readonly supplierSearchText = signal('');
+  protected readonly supplierSuggestions = signal<readonly CustomerLookupItemDto[]>([]);
+  protected readonly supplierSearchLoading = signal(false);
+  protected readonly supplierSearchMessage = signal<string | null>(null);
   protected readonly take = signal(100);
   protected readonly eventTake = signal(100);
   protected readonly report = signal<SupplierPerformanceReportDto | null>(null);
@@ -202,9 +209,12 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
+  private readonly aramaService = inject(AramaService);
   private readonly raporIslemleriService = inject(RaporIslemleriService);
   private activeRequestId = 0;
   private activeDetailRequestId = 0;
+  private supplierSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private activeSupplierSearchId = 0;
 
   protected readonly canList = computed(() => this.hasPermission('list'));
   protected readonly canDetail = computed(() => this.hasPermission('detail') || this.canList());
@@ -224,23 +234,10 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit {
         return 'Tum Depolar';
     }
   });
-  protected readonly requestPreview = computed(() => {
-    const request = this.buildListRequest();
-    const query = new URLSearchParams({
-      startDate: request.startDate,
-      endDate: request.endDate,
-      take: String(request.take ?? 100)
-    });
-
-    if (request.warehouseNo) {
-      query.set('warehouseNo', String(request.warehouseNo));
-    }
-
-    if (request.customerCode) {
-      query.set('customerCode', request.customerCode);
-    }
-
-    return `/api/rapor-islemleri/tedarikci-performans-karnesi?${query.toString()}`;
+  protected readonly selectedSupplierLabel = computed(() => {
+    const selectedText = this.supplierSearchText().trim();
+    const selectedCode = this.customerCode().trim();
+    return selectedCode ? `Tedarikci: ${selectedText || selectedCode}` : 'Tum tedarikciler';
   });
   protected readonly metrics = computed<readonly SupplierPerformanceMetric[]>(() => {
     const summary = this.report()?.summary;
@@ -268,6 +265,12 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit {
   ngOnInit(): void {
     if (this.canList()) {
       this.loadReport();
+    }
+  }
+
+  ngOnDestroy(): void {
+    if (this.supplierSearchTimer) {
+      clearTimeout(this.supplierSearchTimer);
     }
   }
 
@@ -375,8 +378,48 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit {
     this.endDate.set(value);
   }
 
-  protected updateCustomerCode(value: string): void {
-    this.customerCode.set(value);
+  protected updateSupplierSearch(value: string): void {
+    this.supplierSearchText.set(value);
+    this.customerCode.set(value.trim());
+    this.supplierSearchMessage.set(null);
+
+    if (this.supplierSearchTimer) {
+      clearTimeout(this.supplierSearchTimer);
+    }
+
+    const query = value.trim();
+
+    if (query.length < 2) {
+      this.supplierSuggestions.set([]);
+      this.supplierSearchLoading.set(false);
+      return;
+    }
+
+    this.supplierSearchLoading.set(true);
+    this.supplierSearchTimer = setTimeout(() => this.searchSuppliers(query), 350);
+  }
+
+  protected selectSupplier(supplier: CustomerLookupItemDto): void {
+    this.customerCode.set(supplier.customerCode);
+    this.supplierSearchText.set(
+      `${supplier.customerCode} - ${supplier.customerDisplayName || supplier.customerTitle || supplier.customerName}`
+    );
+    this.supplierSuggestions.set([]);
+    this.supplierSearchMessage.set(null);
+    this.loadReport();
+  }
+
+  protected clearSupplierFilter(): void {
+    if (this.supplierSearchTimer) {
+      clearTimeout(this.supplierSearchTimer);
+      this.supplierSearchTimer = null;
+    }
+
+    this.customerCode.set('');
+    this.supplierSearchText.set('');
+    this.supplierSuggestions.set([]);
+    this.supplierSearchMessage.set(null);
+    this.supplierSearchLoading.set(false);
   }
 
   protected updateManualWarehouseNo(value: string): void {
@@ -447,6 +490,41 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit {
     metric.label;
   protected trackByEvent = (_index: number, event: SupplierPerformanceEventDto): string =>
     `${event.type}-${this.eventDate(event)}-${event.documentSerie ?? ''}-${event.documentOrderNo ?? ''}-${event.stockCode ?? ''}`;
+  protected trackBySupplier = (_index: number, supplier: CustomerLookupItemDto): string =>
+    supplier.customerCode;
+
+  private searchSuppliers(query: string): void {
+    const requestId = ++this.activeSupplierSearchId;
+
+    this.aramaService
+      .searchCustomers(query, 8)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.activeSupplierSearchId) {
+            this.supplierSearchLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (items: CustomerLookupItemDto[]) => {
+          if (requestId !== this.activeSupplierSearchId) {
+            return;
+          }
+
+          this.supplierSuggestions.set(items ?? []);
+          this.supplierSearchMessage.set(items?.length ? null : 'Tedarikci bulunamadi.');
+        },
+        error: (error: unknown) => {
+          if (requestId !== this.activeSupplierSearchId) {
+            return;
+          }
+
+          this.supplierSuggestions.set([]);
+          this.supplierSearchMessage.set(getErrorMessage(error, 'Tedarikci aramasi yapilamadi.'));
+        }
+      });
+  }
 
   private buildListRequest(): SupplierPerformanceHttpRequest {
     return {
