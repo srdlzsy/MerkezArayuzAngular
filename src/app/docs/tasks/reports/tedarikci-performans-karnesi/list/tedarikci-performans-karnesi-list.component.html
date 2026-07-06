@@ -146,6 +146,7 @@
       <app-api-list-table
         [rows]="rows()"
         [columns]="columns"
+        [fitToWidth]="true"
         actionLabel="Detay"
         filterPlaceholder="Tedarikci, risk, skor, fatura veya miktar ara"
         (rowAction)="openDetail($event)"
@@ -209,6 +210,19 @@
             <div>
               <span>Zayiat Cezasi</span>
               <strong>{{ formatNumber(currentDetail.card.scoreBreakdown.outagePenalty) }}</strong>
+            </div>
+          </section>
+
+          <section class="invoice-summary" aria-label="Fatura ozeti">
+            <div>
+              <span>Bizim Kestigimiz</span>
+              <strong>{{ formatMoney(currentDetail.card.invoices.issuedInvoiceAmount) }}</strong>
+              <small>{{ formatNumber(currentDetail.card.invoices.issuedInvoiceCount) }} fatura</small>
+            </div>
+            <div>
+              <span>Gelen Fatura</span>
+              <strong>{{ formatMoney(currentDetail.card.invoices.incomingInvoiceAmount) }}</strong>
+              <small>{{ formatNumber(currentDetail.card.invoices.incomingInvoiceCount) }} fatura</small>
             </div>
           </section>
 

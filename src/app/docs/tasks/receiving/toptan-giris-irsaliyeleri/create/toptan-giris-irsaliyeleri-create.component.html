@@ -155,17 +155,7 @@
               Zorunlu
             </small>
           </div>
-          <div class="contact-field">
-            <label>Hareket Tarihi *</label>
-            <input type="date" formControlName="movementDate" />
-          </div>
-          <div class="contact-field">
-            <label>Belge Tarihi *</label>
-            <input type="date" formControlName="documentDate" />
-            <small class="field-error" *ngIf="isDocumentDateInvalid()">
-              Belge tarihi hareket tarihinden once olamaz.
-            </small>
-          </div>
+       
         </div>
 
         <div class="contact-row">
@@ -187,12 +177,6 @@
           </div>
         </div>
 
-        <div class="contact-row">
-          <div class="contact-field">
-            <label>Aciklama</label>
-            <input type="text" formControlName="description" placeholder="Opsiyonel" />
-          </div>
-        </div>
 
         <div class="contact-row">
           <label class="contact-field" style="justify-content: center;">
@@ -205,9 +189,6 @@
           </label>
         </div>
 
-        <p class="helper-text">
-          Sofor, plaka ve e-irsaliye bilgileri create asamasinda degil, sonraki operasyon aksiyonlarinda alinmalidir.
-        </p>
       </section>
 
       <section class="panel kalem-panel">

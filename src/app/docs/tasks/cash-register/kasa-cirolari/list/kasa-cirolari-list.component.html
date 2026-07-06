@@ -1,9 +1,10 @@
 <section class="task-page" *ngIf="page as current">
-  <article class="surface-card cash-workspace">
-    <header class="filter-bar">
+  <article class="cash-workspace">
+    <header class="cash-header">
       <div class="title-block">
         <span class="section-kicker">Kasa Islemleri</span>
         <h2>{{ current.title }}</h2>
+        <p>{{ selectedDateRangeLabel() }} / {{ currentWarehouseLabel() }}</p>
       </div>
 
       <div class="source-tabs" aria-label="Kasa kaynagi">
@@ -36,7 +37,7 @@
         </button>
       </div>
 
-      <div class="filters-grid">
+      <div class="filters-grid" aria-label="Tarih filtreleri">
         <label class="field">
           <span>Baslangic</span>
           <input
@@ -66,12 +67,36 @@
       </div>
     </header>
 
-    <div class="table-context" *ngIf="rows().length">
-      <span>{{ selectedDateRangeLabel() }}</span>
-      <span>{{ selectedSourceLabel() }}</span>
-      <span>{{ currentWarehouseLabel() }}</span>
-      <strong>{{ totalCount() }} kayit</strong>
-      <strong>{{ totalNetCollection() | number:'1.2-2' }} TL net</strong>
+    <section class="metric-strip" aria-label="Kasa ciro hizli ozet">
+      <article class="metric-item metric-item-primary">
+        <span>Net Tahsilat</span>
+        <strong>{{ totalNetCollection() | number:'1.2-2' }} TL</strong>
+      </article>
+      <article class="metric-item">
+        <span>Satis Tutari</span>
+        <strong>{{ totalSalesAmount() | number:'1.2-2' }} TL</strong>
+      </article>
+      <article class="metric-item">
+        <span>Kayit / Odeme</span>
+        <strong>{{ totalCount() }} / {{ totalPaymentLineCount() }}</strong>
+      </article>
+      <article class="metric-item">
+        <span>Ortalama Net</span>
+        <strong>{{ averageNetCollection() | number:'1.2-2' }} TL</strong>
+      </article>
+      <article class="metric-item">
+        <span>Tahsilat Orani</span>
+        <strong>{{ collectionRate() | number:'1.2-2' }}%</strong>
+      </article>
+    </section>
+
+    <div class="table-context">
+      <div class="context-cluster">
+        <span>{{ selectedSourceLabel() }}</span>
+        <span>{{ sourceDistributionLabel() }}</span>
+        <span>{{ totalPaymentLineCount() }} odeme satiri</span>
+      </div>
+      <strong>{{ salesCollectionGap() | number:'1.2-2' }} TL satis/net farki</strong>
     </div>
 
     <article class="state-card state-card-error" *ngIf="errorMessage() as currentError">
@@ -103,6 +128,7 @@
         <div class="title-block">
           <span class="section-kicker">Sube Ozeti</span>
           <h3>Kasa ozeti ve sube toplamlari</h3>
+          <p>{{ overviewScopeLabel() }} / {{ selectedSourceLabel() }}</p>
         </div>
 
         <div class="overview-actions">
@@ -168,6 +194,10 @@
             <article class="summary-item">
               <span>Ort. Sepet</span>
               <strong>{{ currentOverview.averageBasketAmount | number:'1.2-2' }} TL</strong>
+            </article>
+            <article class="summary-item">
+              <span>Nakit / Kredi</span>
+              <strong>{{ overviewCashRate() | number:'1.0-0' }}% / {{ overviewCreditRate() | number:'1.0-0' }}%</strong>
             </article>
           </div>
 

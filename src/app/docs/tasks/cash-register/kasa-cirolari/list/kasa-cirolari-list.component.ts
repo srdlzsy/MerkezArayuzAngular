@@ -203,6 +203,18 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   protected readonly totalPaymentLineCount = computed(() =>
     this.rows().reduce((total, row) => total + this.toSafeNumber(row.paymentLineCount), 0)
   );
+  protected readonly salesCollectionGap = computed(() =>
+    this.totalSalesAmount() - this.totalNetCollection()
+  );
+  protected readonly collectionRate = computed(() => {
+    const salesAmount = this.totalSalesAmount();
+
+    if (!salesAmount) {
+      return 0;
+    }
+
+    return (this.totalNetCollection() / salesAmount) * 100;
+  });
   protected readonly sourceDistributionLabel = computed(
     () => `${this.newRowCount()} yeni / ${this.oldRowCount()} eski`
   );

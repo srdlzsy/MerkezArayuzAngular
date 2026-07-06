@@ -169,9 +169,14 @@ const TABLE_COLUMNS: readonly ApiListTableColumn<SupplierPerformanceCardDto>[] =
     resolveValue: (row) => formatNumber(row.outageImpact?.quantity)
   },
   {
-    key: 'invoices.invoiceDifferenceAmount',
-    label: 'Fatura Farki',
-    resolveValue: (row) => formatMoney(row.invoices?.invoiceDifferenceAmount)
+    key: 'invoices.issuedInvoiceAmount',
+    label: 'Bizim Kestigimiz',
+    resolveValue: (row) => formatMoney(row.invoices?.issuedInvoiceAmount)
+  },
+  {
+    key: 'invoices.incomingInvoiceAmount',
+    label: 'Gelen Fatura',
+    resolveValue: (row) => formatMoney(row.invoices?.incomingInvoiceAmount)
   }
 ];
 
@@ -258,7 +263,8 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
       { label: 'Kabul', value: formatNumber(summary.totalReceivedQuantity) },
       { label: 'Iade', value: formatNumber(summary.totalReturnedQuantity), tone: 'warning' },
       { label: 'Eksik/Fazla', value: `${formatNumber(summary.totalMissingQuantity)} / ${formatNumber(summary.totalExcessQuantity)}` },
-      { label: 'Fatura Farki', value: formatMoney(summary.totalInvoiceDifferenceAmount) }
+      { label: 'Bizim Kestigimiz', value: formatMoney(summary.totalIssuedInvoiceAmount) },
+      { label: 'Gelen Fatura', value: formatMoney(summary.totalIncomingInvoiceAmount) }
     ];
   });
 

@@ -1,35 +1,41 @@
 :host {
   display: block;
   height: 100%;
+  min-width: 0;
 }
 
 .dialog-page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: min(800px, calc(100vh - 1.25rem));
+  width: min(1120px, 100%);
+  max-width: 100%;
+  height: min(840px, calc(100dvh - 1rem));
   background: #f8fafc;
 }
 
 .dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.75rem;
+  gap: 0.55rem;
   align-items: center;
-  padding: 0.72rem 1rem;
+  padding: 0.48rem 0.72rem;
   background: #fff;
   border-bottom: 1px solid #e2e8f0;
 }
 
 .dialog-heading {
   display: grid;
-  gap: 0.26rem;
+  gap: 0.12rem;
   min-width: 0;
 }
 
 .eyebrow {
   margin: 0;
   color: #0f766e;
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -38,26 +44,29 @@
 .dialog-heading h2 {
   margin: 0;
   color: #0f172a;
-  font-size: clamp(1.02rem, 1.45vw, 1.38rem);
+  font-size: 1.02rem;
   line-height: 1.18;
+  overflow-wrap: anywhere;
 }
 
 .subtitle {
   margin: 0;
   color: #526579;
-  font-size: 0.82rem;
-  line-height: 1.35;
+  font-size: 0.74rem;
+  line-height: 1.25;
 }
 
 .close-button {
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 34px;
+  width: 5.2rem;
+  min-height: 30px;
   border: 1px solid #d7e1ec;
   border-radius: 8px;
-  padding: 0.45rem 0.78rem;
+  padding: 0.32rem 0.56rem;
   color: #0f172a;
+  font-size: 0.78rem;
   font-weight: 700;
   background: #f8fafc;
   cursor: pointer;
@@ -72,19 +81,20 @@
 
 .dialog-body {
   display: grid;
-  gap: 0.7rem;
-  padding: 0.85rem 1rem 1rem;
+  align-content: start;
+  gap: 0.52rem;
+  padding: 0.58rem 0.72rem 0.72rem;
   overflow: auto;
 }
 
 .info-grid,
 .summary-grid {
   display: grid;
-  gap: 0.62rem;
+  gap: 0.42rem;
 }
 
 .info-grid {
-  grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
 }
 
 .summary-grid {
@@ -97,9 +107,10 @@
 .task-item,
 .sample {
   display: grid;
-  gap: 0.28rem;
+  align-content: start;
+  gap: 0.18rem;
   min-width: 0;
-  padding: 0.68rem 0.78rem;
+  padding: 0.46rem 0.58rem;
   background: #fff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
@@ -112,7 +123,7 @@
 .sample h3 {
   margin: 0;
   color: #64748b;
-  font-size: 0.64rem;
+  font-size: 0.58rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -123,8 +134,9 @@
 .state-card p {
   margin: 0;
   color: #0f172a;
-  font-size: 0.84rem;
-  line-height: 1.38;
+  font-size: 0.8rem;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
 }
 
 .emphasis-card {
@@ -138,7 +150,9 @@
 
 .task-block {
   display: grid;
-  gap: 0.62rem;
+  gap: 0.42rem;
+  min-width: 0;
+  min-height: 0;
 }
 
 .task-title {
@@ -146,9 +160,9 @@
   align-items: center;
   width: fit-content;
   max-width: 100%;
-  padding: 0.4rem 0.62rem;
+  padding: 0.26rem 0.5rem;
   color: #0f172a;
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   font-weight: 700;
   border: 1px solid #dbe5f1;
   border-radius: 8px;
@@ -158,11 +172,12 @@
 
 .task-list {
   display: grid;
-  gap: 0.75rem;
+  gap: 0.46rem;
+  min-width: 0;
 }
 
 .task-item {
-  gap: 0.75rem;
+  gap: 0.5rem;
 }
 
 .task-item-head h4 {
@@ -188,9 +203,9 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-width: 88px;
-  padding: 0.3rem 0.58rem;
-  font-size: 0.74rem;
+  min-width: 78px;
+  padding: 0.22rem 0.48rem;
+  font-size: 0.7rem;
   font-weight: 700;
   border-radius: 999px;
 }
@@ -250,7 +265,8 @@
 }
 
 .table-wrap {
-  overflow-x: auto;
+  max-height: min(64vh, 640px);
+  overflow: auto;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #fff;
@@ -266,7 +282,7 @@ table {
 
 th,
 td {
-  padding: 0.55rem 0.62rem;
+  padding: 0.46rem 0.55rem;
   text-align: left;
   border-bottom: 1px solid #eef2f7;
   vertical-align: top;
@@ -274,13 +290,17 @@ td {
 
 td {
   color: #0f172a;
-  font-size: 0.82rem;
-  line-height: 1.4;
+  font-size: 0.8rem;
+  line-height: 1.32;
+  overflow-wrap: anywhere;
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
   color: #475569;
-  font-size: 0.64rem;
+  font-size: 0.6rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -320,7 +340,7 @@ code {
 
 @media (max-width: 700px) {
   .dialog-page {
-    height: calc(100vh - 1rem);
+    height: calc(100dvh - 1rem);
   }
 
   .dialog-header {
@@ -349,6 +369,6 @@ code {
   }
 
   table {
-    min-width: 640px;
+    min-width: 700px;
   }
 }

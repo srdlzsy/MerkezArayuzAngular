@@ -7,13 +7,13 @@ export const COMMON_TASK_SOURCE = {
       id: 'sikayet-oneri',
       title: 'Sikayet Oneri',
       subtitle:
-        'Home uzerinden acilan sikayet ve onerileri depo/yetki kapsamina gore izler, okundu ve durum aksiyonlarini yonetir.',
+        'Home uzerinden acilan sikayet ve onerileri rol kapsamina gore izler; admin aksiyonlarini ayri yonetir.',
       baseRouteOrFile: '/api/ortak-islemler/sikayet-oneri',
       highlights: [
         'Home endpointleri login olan her kullanici icin aciktir',
-        'Yonetim listesi list veya list-all yetkisiyle acilir',
-        'list-all olmayan kullanicilar backend tarafinda JWT deposuna sinirlanir',
-        'Okundu ve durum degisimi ayri PATCH endpointleriyle yapilir'
+        'Admin/Administrator tum kayitlari ve depo filtresini kullanir',
+        'Admin olmayan kullanici sadece kendi actigi kayitlari salt okunur gorur',
+        'Okundu ve durum/admin notu aksiyonlari sadece Admin/Administrator icin aciktir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -35,12 +35,12 @@ export const COMMON_TASK_SOURCE = {
             {
               method: 'PATCH',
               path: '/api/ortak-islemler/sikayet-oneri/{id}/okundu',
-              description: 'Kaydi okundu olarak isaretler'
+              description: 'Admin kaydi okundu olarak isaretler'
             },
             {
               method: 'PATCH',
               path: '/api/ortak-islemler/sikayet-oneri/{id}/durum',
-              description: 'Kaydin durumunu ve yonetim notunu gunceller',
+              description: 'Admin kaydin durumunu ve yonetim notunu gunceller',
               payload: 'ChangeFeedbackStatusHttpRequest'
             }
           ]

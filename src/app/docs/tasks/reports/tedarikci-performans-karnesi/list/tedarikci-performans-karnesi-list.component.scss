@@ -299,7 +299,7 @@ p {
 
 .metric-strip {
   display: grid;
-  grid-template-columns: repeat(8, minmax(110px, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 0.45rem;
 }
 
@@ -391,7 +391,8 @@ p {
 }
 
 .score-panel,
-.breakdown-grid {
+.breakdown-grid,
+.invoice-summary {
   display: grid;
   gap: 0.45rem;
 }
@@ -412,6 +413,31 @@ p {
 
 .breakdown-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.invoice-summary {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.invoice-summary div {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  border: 1px solid var(--supplier-border);
+  border-radius: 8px;
+  padding: 0.55rem;
+  background: #f8fafc;
+}
+
+.invoice-summary span,
+.invoice-summary small {
+  color: var(--supplier-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.invoice-summary strong {
+  overflow-wrap: anywhere;
 }
 
 .invoice-note {
@@ -493,6 +519,17 @@ p {
   }
 }
 
+@media (max-width: 960px) {
+  .filter-panel,
+  .metric-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .supplier-search {
+    grid-column: span 2;
+  }
+}
+
 @media (max-width: 720px) {
   .supplier-page {
     padding: 0.5rem;
@@ -501,7 +538,8 @@ p {
   .filter-panel,
   .metric-strip,
   .score-panel,
-  .breakdown-grid {
+  .breakdown-grid,
+  .invoice-summary {
     grid-template-columns: 1fr;
   }
 

@@ -114,6 +114,46 @@
   background: #fff;
 }
 
+.fit-to-width {
+  overflow: hidden;
+}
+
+.fit-to-width .data-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.fit-to-width .data-table th,
+.fit-to-width .data-table td {
+  padding: 0.62rem 0.5rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.fit-to-width .data-table th:first-child,
+.fit-to-width .data-table td:first-child {
+  width: 18%;
+}
+
+.fit-to-width .data-table th:last-child,
+.fit-to-width .data-table td:last-child {
+  width: 7%;
+}
+
+.fit-to-width .sort-button {
+  gap: 0.2rem;
+  line-height: 1.25;
+}
+
+.fit-to-width .action-cell {
+  min-width: 0;
+}
+
+.fit-to-width .row-action {
+  width: 100%;
+  padding-inline: 0.4rem;
+}
+
 .data-table th,
 .data-table td {
   padding: 0.74rem 0.8rem;
@@ -293,6 +333,58 @@
   .table-controls {
     flex-wrap: wrap;
   }
+
+  .fit-to-width .data-table,
+  .fit-to-width .data-table tbody {
+    display: block;
+  }
+
+  .fit-to-width .data-table thead {
+    display: none;
+  }
+
+  .fit-to-width .data-table tbody {
+    padding: 0.5rem;
+  }
+
+  .fit-to-width .data-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0;
+    margin-bottom: 0.5rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 8px;
+    background: #fff;
+  }
+
+  .fit-to-width .data-table tbody tr:last-child {
+    margin-bottom: 0;
+  }
+
+  .fit-to-width .data-table td {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0.18rem;
+    min-width: 0;
+    border-right: 1px solid #eef2f7;
+  }
+
+  .fit-to-width .data-table td:first-child,
+  .fit-to-width .data-table td:last-child {
+    width: auto;
+  }
+
+  .fit-to-width .data-table td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.64rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .fit-to-width .action-cell {
+    align-content: end;
+  }
 }
 
 @media (max-width: 700px) {
@@ -325,5 +417,17 @@
   .control-field-size {
     min-width: 0;
     width: 100%;
+  }
+
+  .fit-to-width .data-table {
+    min-width: 0;
+  }
+
+  .fit-to-width .data-table tbody tr {
+    grid-template-columns: 1fr;
+  }
+
+  .fit-to-width .data-table td {
+    border-right: 0;
   }
 }

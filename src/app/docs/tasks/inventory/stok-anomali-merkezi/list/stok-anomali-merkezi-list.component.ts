@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  HostListener,
   OnInit,
   computed,
   inject,
@@ -114,7 +115,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   protected readonly typeFilter = signal<OptionalFilter<StockAnomalyType>>('All');
   protected readonly statusFilter = signal<OptionalFilter<StockAnomalyStatus>>('Open');
   protected readonly severityFilter = signal<OptionalFilter<StockAnomalySeverity>>('All');
-  protected readonly startDate = signal('');
+  protected readonly startDate = signal(this.getDaysAgo(7));
   protected readonly endDate = signal(this.getToday());
   protected readonly searchText = signal('');
   protected readonly takeInput = signal('100');
@@ -132,6 +133,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   protected readonly scanResponse = signal<StockAnomalyScanResponse | null>(null);
   protected readonly loading = signal(false);
   protected readonly detailLoading = signal(false);
+  protected readonly detailDialogOpen = signal(false);
   protected readonly scanning = signal(false);
   protected readonly updatingStatus = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
@@ -218,6 +220,10 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   }
 
   protected scanAnomalies(): void {
+    if (this.scanning()) {
+      return;
+    }
+
     if (!this.canScan()) {
       this.errorMessage.set('Stok anomalisi tarama yetkisi bulunamadi.');
       return;
@@ -250,6 +256,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   protected openDetail(item: StockAnomalyListItemDto): void {
     this.selectedItem.set(item);
     this.detail.set(null);
+    this.detailDialogOpen.set(true);
     this.detailLoading.set(true);
     this.errorMessage.set(null);
     this.statusNote.set('');
@@ -266,6 +273,21 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
         error: (error: unknown) =>
           this.errorMessage.set(getErrorMessage(error, 'Anomali detayi yuklenemedi.'))
       });
+  }
+
+  protected closeDetail(): void {
+    this.detailDialogOpen.set(false);
+    this.selectedItem.set(null);
+    this.detail.set(null);
+    this.detailLoading.set(false);
+    this.statusNote.set('');
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeDetailOnEscape(): void {
+    if (this.detailDialogOpen()) {
+      this.closeDetail();
+    }
   }
 
   protected updateStatus(): void {
@@ -392,6 +414,10 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
 
   protected summaryValue(key: keyof StockAnomalyListResponse['summary']): number {
     return this.response()?.summary[key] ?? 0;
+  }
+
+  protected scanRuleErrorCount(scan: StockAnomalyScanResponse): number {
+    return scan.rules.filter((rule) => !!rule.error).length;
   }
 
   protected typeLabel(value: string | null | undefined): string {
@@ -614,8 +640,17 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   }
 
   private getToday(): string {
-    const now = new Date();
-    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    return this.toLocalDate(new Date());
+  }
+
+  private getDaysAgo(days: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() - days);
+    return this.toLocalDate(date);
+  }
+
+  private toLocalDate(date: Date): string {
+    const localDate = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
     return localDate.toISOString().slice(0, 10);
   }
 }

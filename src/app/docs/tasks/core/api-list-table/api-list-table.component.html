@@ -41,7 +41,7 @@
   </article>
 
   <ng-container *ngIf="filteredCount() > 0">
-    <div class="table-wrap">
+    <div class="table-wrap" [class.fit-to-width]="fitToWidth()">
       <table class="data-table">
         <thead>
           <tr>
@@ -64,7 +64,10 @@
         </thead>
         <tbody>
           <tr *ngFor="let row of pagedRows(); trackBy: trackByRow">
-            <td *ngFor="let column of columns(); trackBy: trackByColumn">
+            <td
+              *ngFor="let column of columns(); trackBy: trackByColumn"
+              [attr.data-label]="column.label"
+            >
               <ng-container [ngSwitch]="column.type ?? 'text'">
                 <span
                   *ngSwitchCase="'status'"
@@ -81,7 +84,11 @@
                 </ng-container>
               </ng-container>
             </td>
-            <td class="action-cell" *ngIf="showRowAction() || additionalActions().length">
+            <td
+              class="action-cell"
+              data-label="Islem"
+              *ngIf="showRowAction() || additionalActions().length"
+            >
               <div class="row-actions">
                 <button
                   *ngIf="showRowAction()"

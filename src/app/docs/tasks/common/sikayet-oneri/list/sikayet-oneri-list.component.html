@@ -194,10 +194,16 @@
             </div>
           </dl>
 
-          <form class="status-form" [formGroup]="statusForm" (ngSubmit)="changeStatus()" novalidate>
+          <form
+            class="status-form"
+            *ngIf="canUpdate(); else readonlyDetail"
+            [formGroup]="statusForm"
+            (ngSubmit)="changeStatus()"
+            novalidate
+          >
             <label class="field">
               <span>Durum</span>
-              <select formControlName="status" [disabled]="!canUpdate()">
+              <select formControlName="status">
                 <option *ngFor="let option of updateStatusOptions" [ngValue]="option.value">
                   {{ option.label }}
                 </option>
@@ -206,7 +212,7 @@
 
             <label class="field">
               <span>Admin Notu</span>
-              <textarea formControlName="adminNote" rows="6" maxlength="1000" [disabled]="!canUpdate()"></textarea>
+              <textarea formControlName="adminNote" rows="6" maxlength="1000"></textarea>
             </label>
 
             <div class="detail-actions">
@@ -214,19 +220,26 @@
                 type="button"
                 class="task-action task-action-secondary"
                 (click)="markAsRead()"
-                [disabled]="!canUpdate() || !!updatingAction()"
+                [disabled]="!!updatingAction()"
               >
                 {{ updatingAction() === 'read' ? 'Isaretleniyor...' : 'Okundu' }}
               </button>
               <button
                 type="submit"
                 class="task-action task-action-primary"
-                [disabled]="!canUpdate() || !!updatingAction()"
+                [disabled]="!!updatingAction()"
               >
                 {{ updatingAction() === 'status' ? 'Guncelleniyor...' : 'Durumu Kaydet' }}
               </button>
             </div>
           </form>
+
+          <ng-template #readonlyDetail>
+            <article class="state-card readonly-note">
+              <h3>Salt okunur</h3>
+              <p>Admin olmayan kullanici sadece kendi actigi kayitlari gorur; okundu, durum ve admin notu aksiyonlari kapali.</p>
+            </article>
+          </ng-template>
         </ng-container>
 
         <ng-template #noSelection>

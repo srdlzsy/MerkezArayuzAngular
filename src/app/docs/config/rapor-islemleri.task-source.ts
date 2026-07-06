@@ -12,7 +12,7 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       highlights: [
         'Liste endpointi SupplierPerformanceHttpRequest query modelini kullanir',
         'Detay endpointi tedarikci kodu ile kaynak olay zaman cizelgesini getirir',
-        'Fatura metrikleri ilk fazda summary-only olarak toplam fark seviyesinde gosterilir',
+        'Fatura metrikleri summary-only olarak gelen ve bizim kestigimiz toplamlar halinde ayri gosterilir',
         'Skor 100 uzerinden hesaplanir; risk seviyesi Healthy, Warning veya Critical olur'
       ],
       listTitle: 'Tedarikci Performans Endpointleri',

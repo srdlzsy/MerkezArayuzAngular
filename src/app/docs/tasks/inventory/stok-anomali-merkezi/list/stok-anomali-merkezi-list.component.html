@@ -154,9 +154,14 @@
       </article>
     </section>
 
-    <section class="scan-result" *ngIf="scanResponse() as scan">
+    <section class="scan-result" [class.has-rule-errors]="scanRuleErrorCount(scan) > 0" *ngIf="scanResponse() as scan">
       <div>
-        <strong>{{ scan.detectedCount | number }} sonuc</strong>
+        <strong>
+          {{ scan.detectedCount | number }} sonuc
+          <ng-container *ngIf="scanRuleErrorCount(scan) > 0">
+            / {{ scanRuleErrorCount(scan) }} kural uyarisi
+          </ng-container>
+        </strong>
         <span>{{ formatDate(scan.startedAtUtc) }} - {{ formatDate(scan.finishedAtUtc) }}</span>
       </div>
       <span
@@ -169,111 +174,147 @@
       </span>
     </section>
 
-    <div class="content-grid">
-      <section class="table-section">
-        <div class="section-head">
+    <section class="table-section">
+      <div class="section-head">
+        <div>
+          <span class="eyebrow">Anomali Listesi</span>
+          <h2>{{ list.totalCount | number }} kayit</h2>
+        </div>
+        <span>{{ rows().length | number }} satir gosteriliyor</span>
+      </div>
+
+      <div class="table-scroll">
+        <table>
+          <thead>
+            <tr>
+              <th><button type="button" (click)="setSort('severity')">Seviye <i class="fa-solid" [ngClass]="sortIcon('severity')"></i></button></th>
+              <th><button type="button" (click)="setSort('status')">Durum <i class="fa-solid" [ngClass]="sortIcon('status')"></i></button></th>
+              <th>Tip</th>
+              <th><button type="button" (click)="setSort('warehouseNo')">Depo <i class="fa-solid" [ngClass]="sortIcon('warehouseNo')"></i></button></th>
+              <th><button type="button" (click)="setSort('productCode')">Stok <i class="fa-solid" [ngClass]="sortIcon('productCode')"></i></button></th>
+              <th>Belge</th>
+              <th><button type="button" (click)="setSort('quantity')">Miktar <i class="fa-solid" [ngClass]="sortIcon('quantity')"></i></button></th>
+              <th>Mesaj</th>
+              <th><button type="button" (click)="setSort('lastDetectedAtUtc')">Son Tespit <i class="fa-solid" [ngClass]="sortIcon('lastDetectedAtUtc')"></i></button></th>
+              <th class="action-column">Islem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let item of rows(); trackBy: trackById"
+              [class.selected-row]="selectedItem()?.id === item.id"
+              tabindex="0"
+              (click)="openDetail(item)"
+              (keyup.enter)="openDetail(item)"
+            >
+              <td><span class="badge" [ngClass]="toneClass('severity', item.severity)">{{ severityLabel(item.severity) }}</span></td>
+              <td><span class="badge" [ngClass]="toneClass('status', item.status)">{{ statusLabel(item.status) }}</span></td>
+              <td>{{ typeLabel(item.type) }}</td>
+              <td>
+                <strong>#{{ item.warehouseNo }}</strong>
+                <small>{{ item.warehouseName || '-' }}</small>
+              </td>
+              <td>
+                <strong>{{ item.productCode || '-' }}</strong>
+                <small>{{ item.productName || '-' }}</small>
+              </td>
+              <td>{{ documentLabel(item) }}</td>
+              <td>{{ formatNumber(item.quantity) }}</td>
+              <td class="message-cell">{{ item.message }}</td>
+              <td>{{ formatDate(item.lastDetectedAtUtc) }}</td>
+              <td class="action-cell">
+                <button
+                  type="button"
+                  class="row-action"
+                  title="Detay"
+                  (click)="openDetail(item); $event.stopPropagation()"
+                >
+                  <i class="fa-solid fa-up-right-from-square"></i>
+                </button>
+              </td>
+            </tr>
+            <tr *ngIf="rows().length === 0">
+              <td colspan="10" class="empty-state">Secili filtrelerle anomali bulunamadi.</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </ng-container>
+
+  <div
+    class="detail-dialog-backdrop"
+    *ngIf="detailDialogOpen()"
+    (click)="closeDetail()"
+  >
+    <aside
+      class="detail-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-label="Stok anomalisi detayi"
+      (click)="$event.stopPropagation()"
+    >
+      <ng-container *ngIf="selectedItem() as selected">
+        <header class="detail-head">
           <div>
-            <span class="eyebrow">Anomali Listesi</span>
-            <h2>{{ list.totalCount | number }} kayit</h2>
+            <span class="eyebrow">{{ typeLabel(selected.type) }}</span>
+            <h2>{{ selected.productCode || selected.documentNo || 'Anomali Detayi' }}</h2>
+            <p>{{ selected.message }}</p>
           </div>
-          <span>{{ rows().length | number }} satir gosteriliyor</span>
-        </div>
-
-        <div class="table-scroll">
-          <table>
-            <thead>
-              <tr>
-                <th><button type="button" (click)="setSort('severity')">Seviye <i class="fa-solid" [ngClass]="sortIcon('severity')"></i></button></th>
-                <th><button type="button" (click)="setSort('status')">Durum <i class="fa-solid" [ngClass]="sortIcon('status')"></i></button></th>
-                <th>Tip</th>
-                <th><button type="button" (click)="setSort('warehouseNo')">Depo <i class="fa-solid" [ngClass]="sortIcon('warehouseNo')"></i></button></th>
-                <th><button type="button" (click)="setSort('productCode')">Stok <i class="fa-solid" [ngClass]="sortIcon('productCode')"></i></button></th>
-                <th>Belge</th>
-                <th><button type="button" (click)="setSort('quantity')">Miktar <i class="fa-solid" [ngClass]="sortIcon('quantity')"></i></button></th>
-                <th>Mesaj</th>
-                <th><button type="button" (click)="setSort('lastDetectedAtUtc')">Son Tespit <i class="fa-solid" [ngClass]="sortIcon('lastDetectedAtUtc')"></i></button></th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let item of rows(); trackBy: trackById"
-                [class.selected-row]="selectedItem()?.id === item.id"
-                tabindex="0"
-                (click)="openDetail(item)"
-                (keyup.enter)="openDetail(item)"
-              >
-                <td><span class="badge" [ngClass]="toneClass('severity', item.severity)">{{ severityLabel(item.severity) }}</span></td>
-                <td><span class="badge" [ngClass]="toneClass('status', item.status)">{{ statusLabel(item.status) }}</span></td>
-                <td>{{ typeLabel(item.type) }}</td>
-                <td>
-                  <strong>#{{ item.warehouseNo }}</strong>
-                  <small>{{ item.warehouseName || '-' }}</small>
-                </td>
-                <td>
-                  <strong>{{ item.productCode || '-' }}</strong>
-                  <small>{{ item.productName || '-' }}</small>
-                </td>
-                <td>{{ documentLabel(item) }}</td>
-                <td>{{ formatNumber(item.quantity) }}</td>
-                <td class="message-cell">{{ item.message }}</td>
-                <td>{{ formatDate(item.lastDetectedAtUtc) }}</td>
-              </tr>
-              <tr *ngIf="rows().length === 0">
-                <td colspan="9" class="empty-state">Secili filtrelerle anomali bulunamadi.</td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </section>
-
-      <aside class="detail-panel">
-        <ng-container *ngIf="selectedItem() as selected; else emptyDetail">
-          <div class="detail-head">
-            <div>
-              <span class="eyebrow">{{ typeLabel(selected.type) }}</span>
-              <h2>{{ selected.productCode || selected.documentNo || 'Anomali Detayi' }}</h2>
-            </div>
+          <div class="detail-head-actions">
             <span class="badge" [ngClass]="toneClass('severity', selected.severity)">
               {{ severityLabel(selected.severity) }}
             </span>
+            <span class="badge" [ngClass]="toneClass('status', selected.status)">
+              {{ statusLabel(selected.status) }}
+            </span>
+            <button type="button" class="icon-button" title="Kapat" (click)="closeDetail()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
           </div>
+        </header>
 
-          <div class="loading-detail" *ngIf="detailLoading()">
-            <i class="fa-solid fa-circle-notch fa-spin"></i>
-            <span>Detay yukleniyor...</span>
-          </div>
+        <div class="loading-detail" *ngIf="detailLoading()">
+          <i class="fa-solid fa-circle-notch fa-spin"></i>
+          <span>Detay yukleniyor...</span>
+        </div>
 
-          <ng-container *ngIf="detail() as detail">
-            <p class="detail-message">{{ detail.message }}</p>
+        <ng-container *ngIf="detail() as detail">
+          <p class="detail-message">{{ detail.message }}</p>
 
-            <dl class="detail-list">
-              <div *ngFor="let pair of detailPairs(detail); trackBy: trackByPair">
-                <dt>{{ pair.label }}</dt>
-                <dd>{{ pair.value }}</dd>
-              </div>
-            </dl>
+          <dl class="detail-list">
+            <div *ngFor="let pair of detailPairs(detail); trackBy: trackByPair">
+              <dt>{{ pair.label }}</dt>
+              <dd>{{ pair.value }}</dd>
+            </div>
+          </dl>
 
-            <section class="evidence-section" *ngIf="evidenceBlocks(detail).length > 0">
-              <h3>Evidence</h3>
+          <section class="evidence-section" *ngIf="evidenceBlocks(detail).length > 0">
+            <h3>Evidence</h3>
+            <div class="detail-card-grid">
               <article *ngFor="let block of evidenceBlocks(detail)">
                 <div *ngFor="let pair of objectEntries(block); trackBy: trackByPair">
                   <span>{{ pair.label }}</span>
                   <strong>{{ pair.value }}</strong>
                 </div>
               </article>
-            </section>
+            </div>
+          </section>
 
-            <section class="events-section" *ngIf="detail.events?.length">
-              <h3>Olay Gecmisi</h3>
+          <section class="events-section" *ngIf="detail.events?.length">
+            <h3>Olay Gecmisi</h3>
+            <div class="detail-card-grid">
               <article *ngFor="let event of detail.events">
                 <strong>{{ statusLabel(event.status || '') }}</strong>
                 <span>{{ formatDate(event.createdAtUtc || '') }}</span>
                 <p>{{ event.note || '-' }}</p>
               </article>
-            </section>
+            </div>
+          </section>
 
-            <section class="status-form" *ngIf="canUpdate()">
-              <h3>Durum Guncelle</h3>
+          <section class="status-form" *ngIf="canUpdate()">
+            <h3>Durum Guncelle</h3>
+            <div class="status-controls">
               <select [ngModel]="nextStatus()" (ngModelChange)="setNextStatus($event)">
                 <option *ngFor="let status of updateStatusOptions" [value]="status">
                   {{ statusLabel(status) }}
@@ -294,19 +335,12 @@
                 <i class="fa-solid fa-floppy-disk" [class.fa-spin]="updatingStatus()"></i>
                 <span>{{ updatingStatus() ? 'Kaydediliyor' : 'Kaydet' }}</span>
               </button>
-            </section>
-          </ng-container>
+            </div>
+          </section>
         </ng-container>
-
-        <ng-template #emptyDetail>
-          <div class="empty-detail">
-            <i class="fa-solid fa-arrow-pointer"></i>
-            <span>Detay icin tablodan bir anomali sec.</span>
-          </div>
-        </ng-template>
-      </aside>
-    </div>
-  </ng-container>
+      </ng-container>
+    </aside>
+  </div>
 
   <div class="loading-state" *ngIf="loading() && !response()">
     <i class="fa-solid fa-circle-notch fa-spin"></i>

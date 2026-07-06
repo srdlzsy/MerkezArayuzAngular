@@ -92,27 +92,9 @@ export class SikayetOneriListComponent {
   protected readonly isDetailLoading = signal(false);
   protected readonly updatingAction = signal<'read' | 'status' | null>(null);
 
-  protected readonly canViewAll = computed(() => {
-    const user = this.authService.currentUser();
-
-    return (
-      this.hasRole('Administrator') ||
-      (user?.permissions ?? []).includes('ortak-islemler.sikayet-oneri.list-all') ||
-      this.authService
-        .getTaskPermissionCodes('sikayet-oneri')
-        .includes('ortak-islemler.sikayet-oneri.list-all')
-    );
-  });
-  protected readonly canUpdate = computed(
-    () =>
-      this.hasRole('Administrator') ||
-      (this.authService.currentUser()?.permissions ?? []).includes(
-        'ortak-islemler.sikayet-oneri.update'
-      ) ||
-      this.authService
-        .getTaskPermissionCodes('sikayet-oneri')
-        .includes('ortak-islemler.sikayet-oneri.update')
-  );
+  protected readonly isAdminUser = computed(() => this.hasRole('Admin') || this.hasRole('Administrator'));
+  protected readonly canViewAll = computed(() => this.isAdminUser());
+  protected readonly canUpdate = computed(() => this.isAdminUser());
   protected readonly openCount = computed(
     () => this.rows().filter((row) => !this.isFinalStatus(row.status)).length
   );
@@ -128,13 +110,7 @@ export class SikayetOneriListComponent {
       return warehouseNo ? `Depo ${warehouseNo}` : 'Tum Depolar';
     }
 
-    const user = this.authService.currentUser();
-
-    if (user?.depoIsmi && user.depoNo) {
-      return `${user.depoIsmi} (${user.depoNo})`;
-    }
-
-    return user?.depoNo ? `Depo ${user.depoNo}` : 'JWT Deposu';
+    return 'Kendi Kayitlarim';
   });
 
   constructor() {

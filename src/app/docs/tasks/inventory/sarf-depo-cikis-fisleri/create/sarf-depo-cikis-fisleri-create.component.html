@@ -1,66 +1,161 @@
-<section class="dialog-page" *ngIf="page as current">
+<section class="dialog-page stock-create-expense" *ngIf="page as current">
   <header class="dialog-header">
     <div class="dialog-heading">
-      <p class="eyebrow">{{ screenTitle }}</p>
-      <h2>{{ current.title }}</h2>
-      <p class="subtitle">{{ current.subtitle }}</p>
+      <p class="eyebrow">MASRAF FISI</p>
+      <h2>Masraf Fisi Olustur</h2>
+      <p class="subtitle">Ic tuketim ve magaza masrafi kalemlerini depo cikisi olarak kaydet.</p>
     </div>
 
-    <button type="button" class="close-button" (click)="close()">Kapat</button>
+    <div class="header-actions">
+      <button type="button" class="ghost-button" (click)="close()">Kapat</button>
+      <button
+        type="submit"
+        class="primary-button"
+        form="masraf-create-form"
+        [disabled]="submitting()"
+      >
+        {{ submitting() ? 'Kaydediliyor...' : 'Masraf Fisini Kaydet' }}
+      </button>
+    </div>
   </header>
 
   <div class="dialog-body">
-    <section class="info-grid">
-      <article class="info-card emphasis-card">
-        <h3>Ekran</h3>
-        <p>{{ screenNote }}</p>
-      </article>
-      <article class="info-card">
-        <h3>Kaynak</h3>
-        <p>{{ current.baseRouteOrFile }}</p>
-      </article>
-      <article class="info-card" *ngFor="let item of current.highlights">
-        <h3>Not</h3>
-        <p>{{ item }}</p>
-      </article>
-    </section>
+    <form
+      id="masraf-create-form"
+      class="form-shell"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+    >
+      <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
 
-    <section class="task-block">
-      <div class="task-title">{{ current.listTitle }}</div>
-      <div class="task-list">
-        <article class="task-item" *ngFor="let item of current.items">
-          <div class="task-item-head">
-            <h4>{{ item.name }}</h4>
-            <p>{{ item.description }}</p>
+      <section class="panel">
+        <div class="panel-head">
+          <h3>Masraf Ust Bilgileri</h3>
+          <div class="summary-badges" *ngIf="lineCount()">
+            <span class="badge">{{ lineCount() }} Kalem</span>
+            <span class="total-badge">Toplam: {{ totalQuantity() }}</span>
           </div>
+        </div>
 
-          <div class="table-wrap" *ngIf="item.endpoints?.length">
-            <table>
-              <thead>
-                <tr>
-                  <th>Method</th>
-                  <th>Path</th>
-                  <th>Aciklama</th>
-                  <th>Payload</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let endpoint of item.endpoints">
-                  <td>{{ endpoint.method }}</td>
-                  <td>{{ endpoint.path }}</td>
-                  <td>{{ endpoint.description }}</td>
-                  <td>{{ endpoint.payload || '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
-        </article>
-      </div>
-    </section>
+        <div class="form-grid">
+          <label class="field">
+            <span>Masrafi Giren *</span>
+            <input type="text" formControlName="creator" placeholder="VARDIYA-2" />
+          </label>
 
-    <section class="sample" *ngIf="current.codeSample">
-      <h3>Ornek</h3>
-      <pre><code>{{ current.codeSample }}</code></pre>
-    </section>
+          <label class="field">
+            <span>Onaylayan / Teslim Alan *</span>
+            <input type="text" formControlName="acceptor" placeholder="SEF-02" />
+          </label>
+
+        
+
+
+          <label class="field field-wide">
+            <span>Masraf Aciklamasi</span>
+            <input type="text" formControlName="description" placeholder="Ic tuketim masrafi" />
+          </label>
+        </div>
+      </section>
+
+      <section class="panel search-panel">
+        <div class="panel-head">
+          <h3>Masraf Stogu Ekle</h3>
+        </div>
+
+        <div class="search-row">
+          <input
+            type="text"
+            [formControl]="stockQuery"
+            placeholder="Masraf stogu, kodu veya barkod"
+            (keydown.enter)="$event.preventDefault(); searchStock()"
+          />
+          <button type="button" class="small-btn" [disabled]="stockLoading()" (click)="searchStock()">
+            {{ stockLoading() ? 'Araniyor...' : 'Ara' }}
+          </button>
+          <button type="button" class="small-btn secondary" (click)="addManualLine()">
+            Manuel Masraf Satiri
+          </button>
+        </div>
+
+        <div class="feedback feedback-error compact" *ngIf="stockError()">{{ stockError() }}</div>
+
+        <div class="search-results" *ngIf="stockResults().length">
+          <button
+            type="button"
+            class="result-item"
+            *ngFor="let stock of stockResults(); trackBy: trackByStock"
+            (click)="addStockLine(stock)"
+          >
+            <strong>{{ stock.stockName }}</strong>
+            <span>{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
+          </button>
+        </div>
+      </section>
+
+      <section class="panel kalem-panel">
+        <div class="panel-head">
+          <h3>Masraf Kalemleri</h3>
+        </div>
+
+        <div class="empty-state" *ngIf="!lineCount()">
+          Masraf fisine yazilacak stoklari arama alanindan sec veya manuel satir ekle.
+        </div>
+
+        <div class="line-list" formArrayName="lines" *ngIf="lineCount()">
+          <article
+            class="line-row"
+            *ngFor="let line of lines.controls; let i = index; trackBy: trackByLine"
+            [formGroupName]="i"
+          >
+            <div class="line-main">
+              <label class="field">
+                <span>Stok Kodu *</span>
+                <input type="text" formControlName="stockCode" />
+              </label>
+
+              <label class="field">
+                <span>Stok Adi</span>
+                <input type="text" formControlName="stockName" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Miktar *</span>
+                <input type="number" min="0.001" step="0.001" formControlName="quantity" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Birim *</span>
+                <input type="number" min="1" step="1" formControlName="unitPointer" />
+              </label>
+            </div>
+
+            <div class="line-extra">
+              <label class="field">
+                <span>Kalem Aciklamasi</span>
+                <input type="text" formControlName="description" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Parti</span>
+                <input type="text" formControlName="partyCode" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Lot</span>
+                <input type="number" min="0" step="1" formControlName="lotNo" />
+              </label>
+
+              <label class="field compact-field">
+                <span>Proje</span>
+                <input type="text" formControlName="projectCode" />
+              </label>
+            </div>
+
+            <button type="button" class="remove-btn" (click)="removeLine(i)">Sil</button>
+          </article>
+        </div>
+      </section>
+    </form>
   </div>
 </section>

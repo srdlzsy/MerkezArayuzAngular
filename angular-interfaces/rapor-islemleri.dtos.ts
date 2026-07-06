@@ -209,7 +209,6 @@ export interface SupplierPerformanceSummaryDto {
   totalOutageImpactQuantity: number;
   totalIssuedInvoiceAmount: number;
   totalIncomingInvoiceAmount: number;
-  totalInvoiceDifferenceAmount: number;
   invoiceMetricsState: SupplierPerformanceInvoiceMetricsState;
 }
 
@@ -258,8 +257,6 @@ export interface SupplierPerformanceInvoiceMetricsDto {
   issuedInvoiceAmount: number;
   incomingInvoiceCount: number;
   incomingInvoiceAmount: number;
-  invoiceDifferenceAmount: number;
-  invoiceDifferenceRate: number;
   state: SupplierPerformanceInvoiceMetricsState;
   note: string | null;
 }
