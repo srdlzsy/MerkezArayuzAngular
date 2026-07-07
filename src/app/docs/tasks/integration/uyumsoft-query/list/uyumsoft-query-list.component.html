@@ -110,9 +110,15 @@
     <div class="empty-result" *ngIf="executeLoading()">Sonuc bekleniyor...</div>
 
     <div class="pdf-result" *ngIf="openedPdfInvoiceId() as invoiceId">
-      {{ invoiceId }} PDF dosyasi yeni sekmede acildi.
+      {{ invoiceId }} PDF dosyasi dialog icinde acildi.
     </div>
 
     <pre *ngIf="operationResponse()">{{ responseJson() }}</pre>
   </section>
 </section>
+
+<app-pdf-preview-dialog
+  [blob]="pdfPreviewBlob()"
+  [title]="openedPdfInvoiceId() || 'Uyumsoft Fatura PDF'"
+  (closed)="closePdfPreview()"
+/>

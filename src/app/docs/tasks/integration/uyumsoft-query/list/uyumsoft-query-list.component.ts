@@ -20,6 +20,7 @@ import {
   UyumsoftOperationDefinitionDto,
   UyumsoftOperationResponseDto
 } from '../../../../../core/api/module-services/entegrasyon-islemleri.service';
+import { PdfPreviewDialogComponent } from '../../../core/pdf-preview-dialog/pdf-preview-dialog.component';
 
 type UyumsoftMode = 'invoice' | 'despatch';
 type FeedbackTone = 'success' | 'error';
@@ -42,7 +43,7 @@ interface OperationParameterDefinition {
 @Component({
   selector: 'app-uyumsoft-query-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PdfPreviewDialogComponent],
   templateUrl: './uyumsoft-query-list.component.html',
   styleUrl: './uyumsoft-query-list.component.scss'
 })
@@ -65,6 +66,7 @@ export class UyumsoftQueryListComponent {
   protected readonly executeLoading = signal(false);
   protected readonly selectedOperationName = signal('');
   protected readonly openedPdfInvoiceId = signal<string | null>(null);
+  protected readonly pdfPreviewBlob = signal<Blob | null>(null);
 
   protected readonly requestForm = new FormGroup({
     operationName: new FormControl('', {
@@ -98,6 +100,7 @@ export class UyumsoftQueryListComponent {
         this.createParameterInputs(operationName);
         this.operationResponse.set(null);
         this.openedPdfInvoiceId.set(null);
+        this.pdfPreviewBlob.set(null);
         this.feedback.set(null);
       });
 
@@ -175,6 +178,7 @@ export class UyumsoftQueryListComponent {
     this.executeLoading.set(true);
     this.operationResponse.set(null);
     this.openedPdfInvoiceId.set(null);
+    this.pdfPreviewBlob.set(null);
     this.feedback.set(null);
 
     if (this.isInvoicePdfOperation(operationName)) {
@@ -238,12 +242,6 @@ export class UyumsoftQueryListComponent {
     }
 
     const direction = operationName === 'GetInboxInvoicePdf' ? 'inbox' : 'outbox';
-    const previewWindow = window.open('', '_blank');
-
-    if (previewWindow) {
-      previewWindow.document.title = 'PDF yukleniyor';
-      previewWindow.document.body.textContent = 'PDF yukleniyor...';
-    }
 
     this.entegrasyonIslemleriService
       .getUyumsoftEInvoicePdfFile(invoiceId, direction)
@@ -253,23 +251,7 @@ export class UyumsoftQueryListComponent {
       )
       .subscribe({
         next: (blob: Blob) => {
-          const pdfBlob =
-            blob.type === 'application/pdf'
-              ? blob
-              : new Blob([blob], { type: 'application/pdf' });
-          const pdfUrl = URL.createObjectURL(pdfBlob);
-
-          if (previewWindow) {
-            previewWindow.location.replace(pdfUrl);
-          } else {
-            const link = document.createElement('a');
-            link.href = pdfUrl;
-            link.target = '_blank';
-            link.rel = 'noopener noreferrer';
-            link.click();
-          }
-
-          window.setTimeout(() => URL.revokeObjectURL(pdfUrl), 300_000);
+          this.pdfPreviewBlob.set(blob);
           this.openedPdfInvoiceId.set(invoiceId);
           this.feedback.set({
             tone: 'success',
@@ -277,13 +259,16 @@ export class UyumsoftQueryListComponent {
           });
         },
         error: () => {
-          previewWindow?.close();
           this.feedback.set({
             tone: 'error',
             message: `${invoiceId} icin gercek PDF dosyasi alinamadi.`
           });
         }
       });
+  }
+
+  protected closePdfPreview(): void {
+    this.pdfPreviewBlob.set(null);
   }
 
   private getParameterValue(parameterName: string): string {

@@ -8,6 +8,7 @@ import type {
   IInvoiceSendingListItemApiDto,
   IInvoiceSendingListQueryApiDto,
   IInvoiceSendingListResponseApiDto,
+  IInvoiceSendingPdfResponseApiDto,
   IInvoiceSendingRenderRequestApiDto,
   IInvoiceSendingScenarioApiDto,
   IInvoiceViewingDetailApiDto,
@@ -48,6 +49,7 @@ export type InvoiceSendingScenarioDto = IInvoiceSendingScenarioApiDto;
 export type InvoiceSendingListItemDto = IInvoiceSendingListItemApiDto;
 export type InvoiceSendingListResponseDto = IInvoiceSendingListResponseApiDto;
 export type InvoiceSendingDetailDto = IInvoiceSendingDetailApiDto;
+export type InvoiceSendingPdfResponseDto = IInvoiceSendingPdfResponseApiDto;
 export type InvoiceSendingRenderRequestDto = IInvoiceSendingRenderRequestApiDto;
 export type InvoiceReturnReferenceDto = IInvoiceReturnReferenceApiDto;
 export type InvoiceReturnReferenceCandidatesResponseDto =
@@ -84,6 +86,19 @@ export class FaturaIslemleriService extends BaseApiService {
   ) {
     return this.getWithQuery<InvoiceSendingDetailDto>(
       `fatura-islemleri/fatura-gonderimi/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
+      {
+        scenario
+      }
+    );
+  }
+
+  getInvoiceSendingPdf(
+    documentSerie: string,
+    documentOrderNo: number,
+    scenario: IInvoiceSendingScenarioApiDto
+  ) {
+    return this.getBlobWithQuery(
+      `fatura-islemleri/fatura-gonderimi/${encodeURIComponent(documentSerie)}/${documentOrderNo}/pdf`,
       {
         scenario
       }

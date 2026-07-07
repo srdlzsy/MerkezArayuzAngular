@@ -82,11 +82,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
       id: 'fatura-gonderimi',
       title: 'Fatura Gonderimi',
       subtitle:
-        'Giden Mikro faturalarini listeleme, tek lokal HTML onizleme, canli gonderim ve manuel XML preview akislarini tek modulde toplar.',
+        'Giden Mikro faturalarini listeleme, bekleyenler icin lokal HTML onizleme, gonderilenler icin Uyumsoft outbox PDF, canli gonderim ve manuel XML preview akislarini tek modulde toplar.',
       baseRouteOrFile: '/api/fatura-islemleri/fatura-gonderimi',
       highlights: [
         'Giden fatura listesi',
-        'Gonderilmemis ve gonderilmis satirlar icin lokal HTML onizleme',
+        'Gonderilmemis satirlar icin lokal HTML onizleme',
+        'Gonderilmis satirlar icin Uyumsoft resmi outbox PDF',
         'Iade fatura referansi secimi',
         'Canli SendInvoice gonderimi',
         'Karekodun tek kaynagi embedded veya fallback XSLT',
@@ -97,7 +98,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         {
           name: 'InvoiceSendingController',
           description:
-            'Mikro giden faturalarini listeler, gonderim durumundan bagimsiz olarak lokal render eder, gonderilmemisleri Uyumsofta gonderir ve manuel XML preview sunar.',
+            'Mikro giden faturalarini listeler, gonderilmemisleri lokal render eder, gonderilmislerin Uyumsoft outbox PDF dosyasini acar, bekleyenleri Uyumsofta gonderir ve manuel XML preview sunar.',
           endpoints: [
             {
               method: 'GET',
@@ -107,7 +108,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}?scenario=EFatura',
-              description: 'Secili giden fatura icin UBL ve HTML lokal onizleme detayini getirir; isSent degerinden bagimsizdir'
+              description: 'Secili gonderilmemis giden fatura icin UBL ve HTML lokal onizleme detayini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/pdf?scenario=EFatura',
+              description: 'Secili gonderilmis giden faturanin resmi PDF dosyasini Uyumsoft outbox servisinden application/pdf olarak getirir'
             },
             {
               method: 'POST',

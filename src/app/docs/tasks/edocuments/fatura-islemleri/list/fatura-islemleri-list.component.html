@@ -1010,8 +1010,13 @@
                           type="button"
                           class="ghost-button compact-button"
                           (click)="$event.stopPropagation(); openSendingDetail(item)"
+                          [disabled]="isSendingPdfLoading(item)"
                         >
-                          Onizle
+                          {{
+                            item.isSent
+                              ? (isSendingPdfLoading(item) ? 'PDF Aciliyor...' : 'Resmi PDF')
+                              : 'Onizle'
+                          }}
                         </button>
                         <button
                           type="button"
@@ -1523,6 +1528,39 @@
           </article>
         </div>
       </section>
+
+      <div
+        class="detail-dialog-backdrop pdf-dialog-backdrop"
+        *ngIf="viewingPdfDialogOpen()"
+        (click)="closeViewingPdfDialog()"
+      >
+        <article
+          class="panel pdf-dialog"
+          role="dialog"
+          aria-modal="true"
+          (click)="$event.stopPropagation()"
+        >
+          <div class="panel-head">
+            <div>
+              <p class="section-kicker">Uyumsoft Outbox PDF</p>
+              <h3>{{ viewingPdfTitle() || 'Fatura PDF' }}</h3>
+            </div>
+            <button
+              type="button"
+              class="ghost-button compact-button"
+              (click)="closeViewingPdfDialog()"
+            >
+              Kapat
+            </button>
+          </div>
+
+          <iframe
+            class="pdf-frame"
+            *ngIf="viewingPdfUrl() as pdfUrl"
+            [src]="pdfUrl"
+          ></iframe>
+        </article>
+      </div>
 
     </ng-template>
   </ng-container>

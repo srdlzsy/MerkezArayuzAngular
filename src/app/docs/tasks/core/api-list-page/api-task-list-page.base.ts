@@ -12,6 +12,10 @@ import {
   ApiListTableRowAction
 } from '../api-list-table/api-list-table.types';
 import { openDocsTaskDialog } from '../task-dialog.config';
+import {
+  PdfPreviewDialogComponent,
+  PdfPreviewDialogData
+} from '../pdf-preview-dialog/pdf-preview-dialog.component';
 
 @Directive()
 export abstract class ApiTaskListPageBase<
@@ -274,13 +278,11 @@ export abstract class ApiTaskListPageBase<
   protected readonly trackByRow = (index: number, row: Row): string | number =>
     this.getTrackId(index, row);
 
-  protected openBlobInNewTab(blob: Blob): boolean {
-    const objectUrl = URL.createObjectURL(blob);
-    const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
-
-    setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
-
-    return !!openedWindow;
+  protected openBlobInDialog(blob: Blob, title = 'PDF Onizleme'): void {
+    this.dialog.open<void, PdfPreviewDialogData>(PdfPreviewDialogComponent, {
+      data: { blob, title },
+      hasBackdrop: false
+    });
   }
 
   protected resolveHttpErrorMessage(error: unknown, fallback: string): string {

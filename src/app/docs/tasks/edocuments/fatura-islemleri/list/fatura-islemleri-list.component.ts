@@ -354,6 +354,7 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingDetail = signal<InvoiceSendingDetailDto | null>(null);
   protected readonly sendingListLoading = signal(false);
   protected readonly sendingDetailLoading = signal(false);
+  protected readonly sendingPdfLoadingKey = signal<string | null>(null);
   protected readonly sendingRenderLoading = signal(false);
   protected readonly sendingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly selectedSendingKeys = signal<string[]>([]);
@@ -1587,6 +1588,11 @@ export class FaturaIslemleriListComponent {
   }
 
   protected openSendingDetail(item: InvoiceSendingListItemDto): void {
+    if (item.isSent) {
+      this.openSendingPdf(item);
+      return;
+    }
+
     this.selectedSendingKey.set(this.buildSendingKey(item.documentSerie, item.documentOrderNo));
     this.sendingDetailDialogOpen.set(true);
     this.sendingRenderMode.set('default');
@@ -1606,6 +1612,14 @@ export class FaturaIslemleriListComponent {
     }
 
     this.fetchSendingDetail(item.documentSerie, item.documentOrderNo, item.scenario);
+  }
+
+  protected isSendingPdfLoading(item: InvoiceSendingListItemDto): boolean {
+    return (
+      item.isSent &&
+      this.sendingPdfLoadingKey() ===
+        this.buildSendingKey(item.documentSerie, item.documentOrderNo)
+    );
   }
 
   protected closeSendingDetailDialog(): void {
@@ -2469,6 +2483,62 @@ export class FaturaIslemleriListComponent {
             message: this.resolveErrorMessage(
               error,
               'Secilen giden fatura icin UBL onizleme getirilemedi.'
+            )
+          });
+        }
+      });
+  }
+
+  private openSendingPdf(item: InvoiceSendingListItemDto): void {
+    if (!this.canSendDetail()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Detay yetkisi gerekli',
+        message: 'Gonderilmis faturanin resmi PDF dosyasini acmak icin detail yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const scenario = this.getInvoiceScenario(item.scenario);
+
+    if (!scenario) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Fatura senaryosu gecersiz',
+        message: `${item.documentSerie}/${item.documentOrderNo} icin PDF senaryosu belirlenemedi.`
+      });
+      return;
+    }
+
+    const itemKey = this.buildSendingKey(item.documentSerie, item.documentOrderNo);
+    this.sendingPdfLoadingKey.set(itemKey);
+
+    this.faturaIslemleriService
+      .getInvoiceSendingPdf(item.documentSerie, item.documentOrderNo, scenario)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (this.sendingPdfLoadingKey() === itemKey) {
+            this.sendingPdfLoadingKey.set(null);
+          }
+        })
+      )
+      .subscribe({
+        next: (blob: Blob) => {
+          this.openPdfBlobInDialog(blob, item.sentDocumentNo || item.invoiceId);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Resmi PDF hazirlandi',
+            message: `${item.sentDocumentNo || item.invoiceId} Uyumsoft outbox PDF olarak acildi.`
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Resmi PDF alinamadi',
+            message: this.resolveErrorMessage(
+              error,
+              'Gonderilmis fatura icin Uyumsoft resmi PDF dosyasi getirilemedi.'
             )
           });
         }

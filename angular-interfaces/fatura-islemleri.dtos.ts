@@ -185,6 +185,8 @@ export interface IInvoiceSendingDetailApiDto {
   document: IInvoiceRenderedDocumentApiDto;
 }
 
+export type IInvoiceSendingPdfResponseApiDto = Blob;
+
 export interface IInvoiceReturnReferenceApiDto {
   sourceDocumentSerie: string | null;
   sourceDocumentOrderNo: number | null;

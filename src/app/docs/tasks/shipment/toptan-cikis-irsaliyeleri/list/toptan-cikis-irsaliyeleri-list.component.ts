@@ -72,11 +72,7 @@ export class ToptanCikisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (blob: Blob) => {
-            const opened = this.openBlobInNewTab(blob);
-
-            if (!opened) {
-              this.errorMessage.set('PDF yeni sekmede acilamadi. Tarayici popup engelliyor olabilir.');
-            }
+            this.openBlobInDialog(blob, row.documentNo || `${row.documentSerie}/${row.documentOrderNo}`);
           },
           error: (error: unknown) => {
             this.errorMessage.set(

@@ -165,3 +165,9 @@
     </div>
   </section>
 </section>
+
+<app-pdf-preview-dialog
+  [blob]="pdfPreviewBlob()"
+  [title]="response()?.eDespatchDocumentNo || row.belgeNo || 'E-Irsaliye PDF'"
+  (closed)="closePdfPreview()"
+/>

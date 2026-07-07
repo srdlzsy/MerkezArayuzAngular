@@ -11,6 +11,7 @@ import { Observable, finalize } from 'rxjs';
 import { IadeIslemleriService } from '../../../../core/api/module-services/iade-islemleri.service';
 import { SevkIslemleriService } from '../../../../core/api/module-services/sevk-islemleri.service';
 import { DocsTaskDialogBase } from '../task-dialog.base';
+import { PdfPreviewDialogComponent } from '../pdf-preview-dialog/pdf-preview-dialog.component';
 
 export type EDespatchDialogKind =
   | 'company-shipment'
@@ -37,7 +38,7 @@ export interface EDespatchDialogData {
 @Component({
   selector: 'app-e-irsaliye-dialog',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, PdfPreviewDialogComponent],
   templateUrl: './e-irsaliye-dialog.component.html',
   styleUrl: './e-irsaliye-dialog.component.scss'
 })
@@ -62,6 +63,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   protected readonly pdfLoading = signal(false);
   protected readonly submitError = signal('');
   protected readonly pdfError = signal('');
+  protected readonly pdfPreviewBlob = signal<Blob | null>(null);
   protected readonly response = signal<IFurpaSendEDespatchResponseApiDto | null>(null);
   protected readonly pageTitle = this.dialogData.pageTitle;
   protected readonly row = this.dialogData.row;
@@ -129,14 +131,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
       .pipe(finalize(() => this.pdfLoading.set(false)))
       .subscribe({
         next: (blob: Blob) => {
-          const objectUrl = URL.createObjectURL(blob);
-          const openedWindow = window.open(objectUrl, '_blank', 'noopener,noreferrer');
-
-          if (!openedWindow) {
-            this.pdfError.set('PDF yeni sekmede acilamadi. Tarayici popup engelliyor olabilir.');
-          }
-
-          setTimeout(() => URL.revokeObjectURL(objectUrl), 60_000);
+          this.pdfPreviewBlob.set(blob);
         },
         error: (error: HttpErrorResponse) => {
           this.pdfError.set(
@@ -147,6 +142,10 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
           );
         }
       });
+  }
+
+  protected closePdfPreview(): void {
+    this.pdfPreviewBlob.set(null);
   }
 
   protected closeDialog(): void {

@@ -1,0 +1,29 @@
+<div
+  class="pdf-dialog-backdrop"
+  *ngIf="effectiveBlob()"
+  role="presentation"
+  (click)="close()"
+>
+  <article
+    class="pdf-dialog"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-label]="effectiveTitle()"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="pdf-dialog-header">
+      <div>
+        <p>PDF ONIZLEME</p>
+        <h2>{{ effectiveTitle() }}</h2>
+      </div>
+      <button type="button" (click)="close()">Kapat</button>
+    </header>
+
+    <iframe
+      *ngIf="resourceUrl() as pdfUrl"
+      class="pdf-frame"
+      [src]="pdfUrl"
+      [title]="effectiveTitle()"
+    ></iframe>
+  </article>
+</div>
