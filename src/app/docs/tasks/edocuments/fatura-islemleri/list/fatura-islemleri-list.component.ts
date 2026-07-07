@@ -16,7 +16,7 @@ import type {
   IInvoiceStateFilterApiDto,
   IInvoiceViewingSearchFieldApiDto
 } from '@interfaces';
-import { finalize, firstValueFrom, of, switchMap } from 'rxjs';
+import { finalize, firstValueFrom } from 'rxjs';
 
 import {
   getDefaultDateRange,
@@ -2589,8 +2589,8 @@ export class FaturaIslemleriListComponent {
     if (!request) {
       this.feedback.set({
         tone: 'info',
-        title: 'Kontrol edilecek belge secilmedi',
-        message: 'Gonderim oncesi kontrol icin en az bir gonderilmemis belge secmelisin.'
+        title: 'Kontrol edilecek belge hazir degil',
+        message: 'Gonderim oncesi kontrol icin en az bir gonderilmemis belge ve gecerli scenario bilgisi gerekiyor.'
       });
       return;
     }
@@ -2673,6 +2673,11 @@ export class FaturaIslemleriListComponent {
     const request = this.buildSendingDocumentsRequest(unsentDocuments);
 
     if (!request) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Fatura senaryosu zorunlu',
+        message: 'Canli gonderim icin secili satirin EFatura veya EArsiv scenario bilgisi bulunmali.'
+      });
       return;
     }
 
@@ -2681,31 +2686,13 @@ export class FaturaIslemleriListComponent {
     this.lastSendResponse.set(null);
 
     this.faturaIslemleriService
-      .validateInvoiceDocuments(request)
+      .sendInvoiceDocuments(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        switchMap((validationResponse: ValidateInvoiceDocumentsResponseDto) => {
-          this.lastValidateResponse.set(validationResponse);
-
-          if (validationResponse.invalidCount > 0) {
-            this.feedback.set({
-              tone: 'error',
-              title: 'Gonderim durduruldu',
-              message: `${validationResponse.invalidCount} belge validate kontrolunden gecemedi. Canli gonderim baslatilmadi.`
-            });
-            return of(null);
-          }
-
-          return this.faturaIslemleriService.sendInvoiceDocuments(request);
-        }),
         finalize(() => this.sendingRequestLoading.set(false))
       )
       .subscribe({
-        next: (response: SendInvoiceDocumentsResponseDto | null) => {
-          if (!response) {
-            return;
-          }
-
+        next: (response: SendInvoiceDocumentsResponseDto) => {
           this.lastSendResponse.set(response);
           this.mergeSendResponse(response);
           this.feedback.set({
@@ -2754,6 +2741,11 @@ export class FaturaIslemleriListComponent {
     const request = this.buildRetryDocumentsRequest(sentDocuments);
 
     if (!request) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Fatura senaryosu zorunlu',
+        message: 'Tekrar gonderim icin secili satirin EFatura veya EArsiv scenario bilgisi bulunmali.'
+      });
       return;
     }
 
@@ -2808,8 +2800,14 @@ export class FaturaIslemleriListComponent {
       return null;
     }
 
+    const scenario = this.getInvoiceScenario(unsentDocuments[0].scenario);
+
+    if (!scenario) {
+      return null;
+    }
+
     return {
-      scenario: this.resolveSendingScenario(unsentDocuments[0].scenario),
+      scenario,
       documents: unsentDocuments.map((item) => ({
         documentSerie: item.documentSerie,
         documentOrderNo: item.documentOrderNo
@@ -2826,8 +2824,14 @@ export class FaturaIslemleriListComponent {
       return null;
     }
 
+    const scenario = this.getInvoiceScenario(sentDocuments[0].scenario);
+
+    if (!scenario) {
+      return null;
+    }
+
     return {
-      scenario: this.resolveSendingScenario(sentDocuments[0].scenario),
+      scenario,
       documents: sentDocuments.map((item) => ({
         documentSerie: item.documentSerie,
         documentOrderNo: item.documentOrderNo

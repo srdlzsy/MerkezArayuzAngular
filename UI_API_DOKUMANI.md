@@ -8133,6 +8133,7 @@ Mevcut API'yi kullanarak ilerleyecekseniz akisi su sekilde okuyun:
 4. Kullanici gonderilmis (`isSent = true`) giden fatura satirini actiginda `GET /api/fatura-islemleri/fatura-gonderimi/{documentSerie}/{documentOrderNo}/pdf?scenario=...` cagrilir ve `application/pdf` response blob olarak gosterilir.
 5. Secilen gonderilmemis faturalarin gonderime hazir olup olmadigini canli gonderim yapmadan kontrol etmek icin `POST /api/fatura-islemleri/fatura-gonderimi/validate`
 6. Kontrol sonucu uygunsa secilen gonderilmemis faturalari canli Uyumsoft'a gondermek icin `POST /api/fatura-islemleri/fatura-gonderimi/send`
+   - `send` endpoint'i hiz icin `/validate` kontrolunu tekrar calistirmaz; UI "Kontrol Et" butonunu ayri aksiyon olarak sunmalidir
    - daha once Uyumsoft'a gonderilmis fakat yeniden kuyruğa alinmasi gereken faturalar icin ayri olarak `POST /api/fatura-islemleri/fatura-gonderimi/retry` kullanilir
 7. Gelen/inbox faturalari icin secilen tarih araligini Uyumsoft'tan cache tabloya almak gerekirse `POST /api/fatura-islemleri/fatura-goruntuleme/senkronize`
 8. Gelen/inbox cache listesini okumak icin `GET /api/fatura-islemleri/fatura-goruntuleme`
@@ -9109,12 +9110,14 @@ Request `send` endpoint'i ile aynidir.
 
 Davranis:
 
+- `scenario` zorunludur: `0 = EFatura`, `1 = EArsiv`; UI secili satirin `scenario` alanini aynen gondermelidir
 - secilen belgeler tekillestirilir
 - Mikro verisinden UBL XML uretilir
 - iade referansi gerekiyorsa fallback sadece simule edilir, Mikro'ya yazilmaz
 - UBL-TR is kurali ve XSD dogrulamalari calistirilir
 - Uyumsoft'a fatura gonderilmez
 - Mikro `cha_belge_no`, `cha_kilitli` veya baska alanlar guncellenmez
+- bu endpoint UI'daki "Kontrol Et" butonunun karsiligidir; `send` hiz icin bu dogrulamalari tekrar calistirmaz
 
 Response `ValidateInvoiceDocumentsResponse`:
 
@@ -9173,6 +9176,8 @@ Request:
 }
 ```
 
+Not: `scenario` zorunludur. UI e-Arsiv satiri icin `1`, e-Fatura satiri icin `0` gondermelidir; alan bos birakilirsa backend artik varsayilan EFatura kabul etmez.
+
 Response `SendInvoiceDocumentsResponse`:
 
 ```json
@@ -9213,6 +9218,7 @@ Davranis:
 - secimler duplicate ise backend tekilleştirir
 - gonderim Uyumsoft WCF client ile fatura bazli tek tek yapilir; boylece basarili/hatali kayitlar response icinde ayri ayri gorulur
 - her belge icin UBL invoice uretilir ve Uyumsoft `SendInvoice` operasyonu cagrilir
+- hiz icin UBL-TR is kurali ve XSD dogrulamalari burada tekrar calistirilmaz; bu kontroller icin kullanici once `/validate` endpoint'ini cagirir
 - basarili donuste `serviceDocumentNumber` Mikro `cha_belge_no` alanina yazilir
 - `serviceDocumentId` Uyumsoft'un teknik id'sidir; basarili gonderimde Mikro `cha_uuid` alanina yazilir, servis id bos donerse faturanin lokal UUID degeri fallback olarak saklanir
 - sonraki liste ekraninda gonderilmis fatura PDF ve tekrar gonderim aksiyonlari backend tarafinda bu UUID uzerinden cozulur; UI teknik UUID gondermek zorunda degildir

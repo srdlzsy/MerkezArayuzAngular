@@ -89,6 +89,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Gonderilmemis satirlar icin lokal HTML onizleme',
         'Gonderilmis satirlar icin Uyumsoft resmi outbox PDF',
         'Iade fatura referansi secimi',
+        'Ayrı validate kontrolu',
         'Canli SendInvoice gonderimi',
         'Gonderilmis faturalar icin Uyumsoft retry gonderimi',
         'Karekodun tek kaynagi embedded veya fallback XSLT',
@@ -136,7 +137,13 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-gonderimi/send',
-              description: 'Secili gonderilmemis faturalari Uyumsoft SendInvoice ile canli ortama gonderir',
+              description: 'Secili gonderilmemis faturalari Uyumsoft SendInvoice ile canli ortama gonderir; validate kontrolunu tekrar calistirmaz',
+              payload: 'SendInvoiceDocumentsRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/fatura-islemleri/fatura-gonderimi/validate',
+              description: 'Secili gonderilmemis faturalari canli gonderim yapmadan UBL-TR is kurallari ve XSD kontrollerinden gecirir',
               payload: 'SendInvoiceDocumentsRequest'
             },
             {

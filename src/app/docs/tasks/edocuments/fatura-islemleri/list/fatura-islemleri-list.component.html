@@ -832,7 +832,7 @@
                 >
                   {{
                     sendingRequestLoading()
-                      ? 'Kontrol / gonderim suruyor...'
+                      ? 'Gonderim suruyor...'
                       : selectedSendingItems().length + ' Belgeyi Gonder'
                   }}
                 </button>
@@ -1299,7 +1299,7 @@
                 (click)="sendCurrentInvoice(summary)"
                 [disabled]="sendingValidateLoading() || sendingRequestLoading()"
               >
-                {{ sendingRequestLoading() ? 'Kontrol / gonderim suruyor...' : 'Bu Faturayi Gonder' }}
+                {{ sendingRequestLoading() ? 'Gonderim suruyor...' : 'Bu Faturayi Gonder' }}
               </button>
               <button
                 type="button"
