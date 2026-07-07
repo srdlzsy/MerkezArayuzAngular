@@ -13,6 +13,7 @@ export const INVENTORY_TASK_SOURCE = {
         'Mikro verisine yazma yapmaz; anomalileri Auth veritabaninda takip eder',
         'Admin tum depolari, depo kullanicisi kendi deposunu gorur',
         'Negatif stok, duplicate belge, kabul farki, yuksek miktar, hareketsiz stok ve bekleyen transferleri yakalar',
+        'Anomaliler satin almaci kodu/adi ve atanmis/atanmamis filtresiyle izlenebilir',
         'Satir detayinda evidence/events gorulur ve durum Acknowledged, Resolved veya Ignored yapilir'
       ],
       listTitle: 'Endpointler',
@@ -25,6 +26,11 @@ export const INVENTORY_TASK_SOURCE = {
               method: 'GET',
               path: '/api/stok-islemleri/stok-anomali-merkezi?status=Open&take=100',
               description: 'Anomali listesini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/stok-islemleri/stok-anomali-merkezi/satin-almacilar?warehouseNo=110&status=Open',
+              description: 'Anomalilerdeki satin almacilari ve anomali sayilarini getirir'
             },
             {
               method: 'GET',

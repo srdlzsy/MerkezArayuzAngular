@@ -366,7 +366,7 @@
                         {{ item.isPrinted ? 'Yazdirildi' : 'Yazdirilmadi' }}
                       </span>
                       <small class="status-code-line">
-                        {{ item.statusCode || '-' }} {{ item.status || '' }}
+                        {{ getViewingStatusText(item) }}
                       </small>
                       <small
                         class="status-code-line"
@@ -542,7 +542,7 @@
             <div class="detail-tags">
               <span class="token">{{ summary.invoiceDate | date: 'dd.MM.yyyy' }}</span>
               <span class="token">{{ summary.invoiceType || '-' }}</span>
-              <span class="token">{{ summary.status || 'Durum yok' }}</span>
+              <span class="token">{{ getViewingStatusText(summary) }}</span>
             </div>
           </section>
 
@@ -568,7 +568,7 @@
             </article>
             <article class="summary-card">
               <span>Durum</span>
-              <strong>{{ summary.statusCode || '-' }} {{ summary.status || 'Bilinmiyor' }}</strong>
+              <strong>{{ getViewingStatusText(summary) }}</strong>
             </article>
             <article class="summary-card">
               <span>Zarf</span>
@@ -1030,6 +1030,15 @@
                         <button
                           type="button"
                           class="secondary-button compact-button"
+                          *ngIf="canSendCreate() && item.isSent"
+                          (click)="$event.stopPropagation(); retryCurrentInvoice(item)"
+                          [disabled]="sendingRequestLoading() || isSendingRetryLoading(item)"
+                        >
+                          {{ isSendingRetryLoading(item) ? 'Tekrar...' : 'Tekrar Gonder' }}
+                        </button>
+                        <button
+                          type="button"
+                          class="secondary-button compact-button"
                           *ngIf="canSendCreate() && !item.isSent"
                           (click)="$event.stopPropagation(); validateCurrentInvoice(item)"
                           [disabled]="sendingValidateLoading() || sendingRequestLoading()"
@@ -1291,6 +1300,15 @@
                 [disabled]="sendingValidateLoading() || sendingRequestLoading()"
               >
                 {{ sendingRequestLoading() ? 'Kontrol / gonderim suruyor...' : 'Bu Faturayi Gonder' }}
+              </button>
+              <button
+                type="button"
+                class="primary-button"
+                *ngIf="canSendCreate() && summary.isSent"
+                (click)="retryCurrentInvoice(summary)"
+                [disabled]="sendingRequestLoading() || isSendingRetryLoading(summary)"
+              >
+                {{ isSendingRetryLoading(summary) ? 'Tekrar gonderiliyor...' : 'Tekrar Gonder' }}
               </button>
               <button
                 type="button"

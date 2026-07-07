@@ -28,6 +28,8 @@ import {
   StockAnomalyDetailDto,
   StockAnomalyListHttpRequest,
   StockAnomalyListResponse,
+  StockAnomalyProductManagerLookupDto,
+  StockAnomalyProductManagerLookupHttpRequest,
   StockAnomalyScanHttpRequest,
   StockAnomalyScanResponse,
   StockAnomalyStatusUpdateHttpRequest
@@ -279,6 +281,15 @@ export class StokIslemleriService extends BaseApiService {
       'stok-islemleri/stok-anomali-merkezi',
       request
     );
+  }
+
+  getStockAnomalyProductManagers(
+    request: StockAnomalyProductManagerLookupHttpRequest
+  ): Observable<StockAnomalyProductManagerLookupDto[]> {
+    return this.getWithQuery<
+      StockAnomalyProductManagerLookupDto[],
+      StockAnomalyProductManagerLookupHttpRequest
+    >('stok-islemleri/stok-anomali-merkezi/satin-almacilar', request);
   }
 
   getStockAnomalyDetail(id: string): Observable<StockAnomalyDetailDto> {

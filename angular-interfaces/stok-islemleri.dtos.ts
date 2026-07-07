@@ -390,10 +390,17 @@ export interface StockAnomalyListHttpRequest {
   type?: StockAnomalyType | null;
   status?: StockAnomalyStatus | null;
   severity?: StockAnomalySeverity | null;
+  productManagerCode?: string | null;
+  hasProductManager?: boolean | null;
   startDate?: string | null;
   endDate?: string | null;
   search?: string | null;
   take?: number | null;
+}
+
+export interface StockAnomalyProductManagerLookupHttpRequest {
+  warehouseNo?: number | null;
+  status?: StockAnomalyStatus | null;
 }
 
 export interface StockAnomalySummaryDto {
@@ -416,6 +423,8 @@ export interface StockAnomalyListItemDto {
   relatedWarehouseName: string | null;
   productCode: string | null;
   productName: string | null;
+  productManagerCode: string | null;
+  productManagerName: string | null;
   documentSerie: string | null;
   documentOrderNo: number | null;
   documentNo: string | null;
@@ -433,6 +442,13 @@ export interface StockAnomalyListResponse {
   totalCount: number;
   summary: StockAnomalySummaryDto;
   items: StockAnomalyListItemDto[];
+}
+
+export interface StockAnomalyProductManagerLookupDto {
+  code: string;
+  name: string;
+  anomalyCount: number;
+  isAssigned: boolean;
 }
 
 export interface StockAnomalyEvidenceDto {

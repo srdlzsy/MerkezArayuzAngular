@@ -21,6 +21,7 @@ import type {
   IInvoiceViewingSynchronizationResponseApiDto,
   IInvoiceViewingPrintedStateRequestApiDto,
   IInvoiceViewingPrintedStateResponseApiDto,
+  IRetryInvoiceDocumentsResponseApiDto,
   IUpdateInvoiceReturnReferenceRequestApiDto,
   IValidateInvoiceDocumentsResponseApiDto,
   ISendInvoiceDocumentsRequestApiDto,
@@ -59,6 +60,7 @@ export type UpdateInvoiceReturnReferenceRequestDto =
 export type SendInvoiceDocumentsRequestDto = ISendInvoiceDocumentsRequestApiDto;
 export type ValidateInvoiceDocumentsResponseDto = IValidateInvoiceDocumentsResponseApiDto;
 export type SendInvoiceDocumentsResponseDto = ISendInvoiceDocumentsResponseApiDto;
+export type RetryInvoiceDocumentsResponseDto = IRetryInvoiceDocumentsResponseApiDto;
 
 @Injectable({
   providedIn: 'root'
@@ -159,6 +161,18 @@ export class FaturaIslemleriService extends BaseApiService {
 
     return this.post<SendInvoiceDocumentsResponseDto, SendInvoiceDocumentsRequestDto>(
       'fatura-islemleri/fatura-gonderimi/send',
+      body
+    );
+  }
+
+  retryInvoiceDocuments(request: SendInvoiceDocumentsRequestDto) {
+    const body: SendInvoiceDocumentsRequestDto = {
+      ...request,
+      scenario: this.toInvoiceSendingScenarioBodyValue(request.scenario)
+    };
+
+    return this.post<RetryInvoiceDocumentsResponseDto, SendInvoiceDocumentsRequestDto>(
+      'fatura-islemleri/fatura-gonderimi/retry',
       body
     );
   }

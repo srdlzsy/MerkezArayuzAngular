@@ -83,6 +83,20 @@
     </label>
 
     <label>
+      <span>Satin Almaci</span>
+      <select [ngModel]="productManagerFilter()" (ngModelChange)="setProductManagerFilter($event)">
+        <option value="All">Tumu</option>
+        <option
+          *ngFor="let manager of productManagers(); trackBy: trackByProductManager"
+          [value]="manager.isAssigned ? manager.code : '__unassigned__'"
+        >
+          {{ manager.name }} ({{ manager.anomalyCount | number }})
+        </option>
+      </select>
+      <small *ngIf="productManagersLoading()">Yukleniyor...</small>
+    </label>
+
+    <label>
       <span>Baslangic</span>
       <input type="date" [ngModel]="startDate()" (ngModelChange)="setStartDate($event)" />
     </label>
@@ -192,6 +206,7 @@
               <th>Tip</th>
               <th><button type="button" (click)="setSort('warehouseNo')">Depo <i class="fa-solid" [ngClass]="sortIcon('warehouseNo')"></i></button></th>
               <th><button type="button" (click)="setSort('productCode')">Stok <i class="fa-solid" [ngClass]="sortIcon('productCode')"></i></button></th>
+              <th><button type="button" (click)="setSort('productManagerCode')">Satin Almaci <i class="fa-solid" [ngClass]="sortIcon('productManagerCode')"></i></button></th>
               <th>Belge</th>
               <th><button type="button" (click)="setSort('quantity')">Miktar <i class="fa-solid" [ngClass]="sortIcon('quantity')"></i></button></th>
               <th>Mesaj</th>
@@ -218,6 +233,10 @@
                 <strong>{{ item.productCode || '-' }}</strong>
                 <small>{{ item.productName || '-' }}</small>
               </td>
+              <td>
+                <strong>{{ item.productManagerCode || '-' }}</strong>
+                <small>{{ item.productManagerName || 'ATANMAMIS' }}</small>
+              </td>
               <td>{{ documentLabel(item) }}</td>
               <td>{{ formatNumber(item.quantity) }}</td>
               <td class="message-cell">{{ item.message }}</td>
@@ -234,7 +253,7 @@
               </td>
             </tr>
             <tr *ngIf="rows().length === 0">
-              <td colspan="10" class="empty-state">Secili filtrelerle anomali bulunamadi.</td>
+              <td colspan="11" class="empty-state">Secili filtrelerle anomali bulunamadi.</td>
             </tr>
           </tbody>
         </table>

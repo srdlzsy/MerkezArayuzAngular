@@ -275,6 +275,21 @@ export interface ISendInvoiceDocumentsResponseApiDto {
   items: ISendInvoiceDocumentResultApiDto[];
 }
 
+export interface IRetryInvoiceDocumentResultApiDto extends IInvoiceSendingDocumentKeyApiDto {
+  invoiceId: string | null;
+  serviceInvoiceId: string | null;
+  isSucceeded: boolean;
+  message: string | null;
+}
+
+export interface IRetryInvoiceDocumentsResponseApiDto {
+  scenario: IInvoiceSendingScenarioValueApiDto;
+  requestedCount: number;
+  succeededCount: number;
+  failedCount: number;
+  items: IRetryInvoiceDocumentResultApiDto[];
+}
+
 export interface IInvoicePreviewRequestApiDto {
   invoiceId?: string | null;
   xmlContent: string;

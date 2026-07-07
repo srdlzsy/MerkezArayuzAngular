@@ -17,6 +17,8 @@ import type {
   StockAnomalyListHttpRequest,
   StockAnomalyListItemDto,
   StockAnomalyListResponse,
+  StockAnomalyProductManagerLookupDto,
+  StockAnomalyProductManagerLookupHttpRequest,
   StockAnomalyScanHttpRequest,
   StockAnomalyScanResponse,
   StockAnomalySeverity,
@@ -32,12 +34,14 @@ import type { DocsContentPage } from '../../../../models/docs.models';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 
 type OptionalFilter<T extends string> = 'All' | T;
+type ProductManagerFilter = 'All' | '__unassigned__' | string;
 type SortDirection = 'asc' | 'desc';
 type SortKey =
   | 'severity'
   | 'status'
   | 'warehouseNo'
   | 'productCode'
+  | 'productManagerCode'
   | 'quantity'
   | 'firstDetectedAtUtc'
   | 'lastDetectedAtUtc';
@@ -115,6 +119,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   protected readonly typeFilter = signal<OptionalFilter<StockAnomalyType>>('All');
   protected readonly statusFilter = signal<OptionalFilter<StockAnomalyStatus>>('Open');
   protected readonly severityFilter = signal<OptionalFilter<StockAnomalySeverity>>('All');
+  protected readonly productManagerFilter = signal<ProductManagerFilter>('All');
   protected readonly startDate = signal(this.getDaysAgo(7));
   protected readonly endDate = signal(this.getToday());
   protected readonly searchText = signal('');
@@ -128,10 +133,12 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   protected readonly takePerRuleInput = signal('250');
 
   protected readonly response = signal<StockAnomalyListResponse | null>(null);
+  protected readonly productManagers = signal<StockAnomalyProductManagerLookupDto[]>([]);
   protected readonly selectedItem = signal<StockAnomalyListItemDto | null>(null);
   protected readonly detail = signal<StockAnomalyDetailDto | null>(null);
   protected readonly scanResponse = signal<StockAnomalyScanResponse | null>(null);
   protected readonly loading = signal(false);
+  protected readonly productManagersLoading = signal(false);
   protected readonly detailLoading = signal(false);
   protected readonly detailDialogOpen = signal(false);
   protected readonly scanning = signal(false);
@@ -198,6 +205,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     this.loading.set(true);
     this.errorMessage.set(null);
     this.infoMessage.set(null);
+    this.loadProductManagers();
 
     this.stokIslemleriService
       .getStockAnomalies(request)
@@ -215,6 +223,37 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
           this.selectedItem.set(null);
           this.detail.set(null);
           this.errorMessage.set(getErrorMessage(error, 'Stok anomalileri yuklenemedi.'));
+        }
+      });
+  }
+
+  protected loadProductManagers(): void {
+    if (!this.canList()) {
+      return;
+    }
+
+    const status = this.statusFilter();
+    const request: StockAnomalyProductManagerLookupHttpRequest = {
+      warehouseNo: this.resolveWarehouseNo(),
+      status: status === 'All' ? null : status
+    };
+
+    this.productManagersLoading.set(true);
+
+    this.stokIslemleriService
+      .getStockAnomalyProductManagers(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.productManagersLoading.set(false))
+      )
+      .subscribe({
+        next: (items: StockAnomalyProductManagerLookupDto[]) => {
+          this.productManagers.set(items);
+          this.pruneProductManagerFilter(items);
+        },
+        error: () => {
+          this.productManagers.set([]);
+          this.pruneProductManagerFilter([]);
         }
       });
   }
@@ -343,6 +382,16 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     this.severityFilter.set(this.toOption(value, SEVERITY_OPTIONS));
   }
 
+  protected setProductManagerFilter(value: string): void {
+    if (value === 'All' || value === '__unassigned__') {
+      this.productManagerFilter.set(value);
+      return;
+    }
+
+    const hasManager = this.productManagers().some((manager) => manager.code === value);
+    this.productManagerFilter.set(hasManager ? value : 'All');
+  }
+
   protected setStartDate(value: string): void {
     this.startDate.set(value);
   }
@@ -455,6 +504,16 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     return value ? labels[value] ?? value : '-';
   }
 
+  protected productManagerLabel(
+    value: Pick<StockAnomalyListItemDto, 'productManagerCode' | 'productManagerName'>
+  ): string {
+    if (!value.productManagerCode && !value.productManagerName) {
+      return 'ATANMAMIS';
+    }
+
+    return [value.productManagerCode, value.productManagerName].filter(Boolean).join(' - ');
+  }
+
   protected toneClass(kind: 'status' | 'severity', value: string | null | undefined): string {
     return `${kind}-${this.normalize(value) || 'empty'}`;
   }
@@ -487,6 +546,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
       { label: 'Depo', value: `${detail.warehouseName || 'Depo'} (${detail.warehouseNo})` },
       { label: 'Iliskili Depo', value: detail.relatedWarehouseNo ? `${detail.relatedWarehouseName || 'Depo'} (${detail.relatedWarehouseNo})` : '-' },
       { label: 'Stok', value: [detail.productCode, detail.productName].filter(Boolean).join(' - ') || '-' },
+      { label: 'Satin Almaci', value: this.productManagerLabel(detail) },
       { label: 'Belge', value: this.documentLabel(detail) },
       { label: 'Miktar', value: this.formatNumber(detail.quantity) },
       { label: 'Beklenen', value: this.formatNumber(detail.expectedQuantity) },
@@ -517,17 +577,25 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   protected trackBySummary = (_index: number, item: SummaryCard): string => item.key;
   protected trackByRule = (_index: number, item: { type: string }): string => item.type;
   protected trackByPair = (_index: number, item: DetailPair): string => item.label;
+  protected trackByProductManager = (
+    _index: number,
+    item: StockAnomalyProductManagerLookupDto
+  ): string => item.isAssigned ? item.code : '__unassigned__';
 
   private buildListRequest(): StockAnomalyListHttpRequest {
     const type = this.typeFilter();
     const status = this.statusFilter();
     const severity = this.severityFilter();
+    const productManager = this.productManagerFilter();
 
     return {
       warehouseNo: this.resolveWarehouseNo(),
       type: type === 'All' ? null : type,
       status: status === 'All' ? null : status,
       severity: severity === 'All' ? null : severity,
+      productManagerCode:
+        productManager === 'All' || productManager === '__unassigned__' ? null : productManager,
+      hasProductManager: productManager === '__unassigned__' ? false : null,
       startDate: this.validDateOrNull(this.startDate()),
       endDate: this.validDateOrNull(this.endDate()),
       search: this.searchText().trim() || null,
@@ -570,6 +638,25 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
 
     if (!nextSelected) {
       this.detail.set(null);
+    }
+  }
+
+  private pruneProductManagerFilter(items: StockAnomalyProductManagerLookupDto[]): void {
+    const selectedFilter = this.productManagerFilter();
+
+    if (selectedFilter === 'All') {
+      return;
+    }
+
+    if (selectedFilter === '__unassigned__') {
+      if (!items.some((item) => !item.isAssigned)) {
+        this.productManagerFilter.set('All');
+      }
+      return;
+    }
+
+    if (!items.some((item) => item.code === selectedFilter)) {
+      this.productManagerFilter.set('All');
     }
   }
 

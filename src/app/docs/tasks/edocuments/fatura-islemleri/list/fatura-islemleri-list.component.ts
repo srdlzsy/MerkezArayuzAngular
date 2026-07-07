@@ -31,6 +31,7 @@ import {
   type InvoiceSendingListItemDto,
   type InvoiceSendingListResponseDto,
   type InvoiceSendingRenderRequestDto,
+  type RetryInvoiceDocumentsResponseDto,
   type InvoiceViewingDetailDto,
   type InvoiceViewingListItemDto,
   type InvoiceViewingListResponseDto,
@@ -360,6 +361,7 @@ export class FaturaIslemleriListComponent {
   protected readonly selectedSendingKeys = signal<string[]>([]);
   protected readonly sendingValidateLoading = signal(false);
   protected readonly sendingRequestLoading = signal(false);
+  protected readonly sendingRetryLoadingKey = signal<string | null>(null);
   protected readonly lastValidateResponse = signal<ValidateInvoiceDocumentsResponseDto | null>(null);
   protected readonly lastSendResponse = signal<SendInvoiceDocumentsResponseDto | null>(null);
   protected readonly returnReferencePanelOpen = signal(false);
@@ -529,6 +531,7 @@ export class FaturaIslemleriListComponent {
         item.invoiceType,
         item.statusCode,
         item.status,
+        this.getViewingStatusText(item),
         item.envelopeIdentifier,
         item.envelopeStatusCode,
         item.message,
@@ -1778,6 +1781,21 @@ export class FaturaIslemleriListComponent {
     this.submitSendingDocuments([summary]);
   }
 
+  protected retryCurrentInvoice(summary: InvoiceSendingListItemDto | null): void {
+    if (!summary) {
+      return;
+    }
+
+    this.retrySendingDocuments([summary]);
+  }
+
+  protected isSendingRetryLoading(item: InvoiceSendingListItemDto): boolean {
+    return (
+      this.sendingRetryLoadingKey() ===
+      this.buildSendingKey(item.documentSerie, item.documentOrderNo)
+    );
+  }
+
   protected openReturnReferencePanel(summary: InvoiceSendingListItemDto): void {
     if (!this.isReturnInvoice(summary)) {
       return;
@@ -1957,6 +1975,17 @@ export class FaturaIslemleriListComponent {
 
   protected getScenarioLabel(value: unknown): string {
     return this.resolveSendingScenario(value) === 'EArsiv' ? 'E-Arsiv' : 'E-Fatura';
+  }
+
+  protected getViewingStatusText(item: InvoiceViewingListItemDto | null | undefined): string {
+    if (!item) {
+      return '-';
+    }
+
+    const status = item.status?.trim() || this.mapInvoiceStatusCode(item.statusCode);
+    const code = item.statusCode?.trim();
+
+    return [code, status].filter(Boolean).join(' ') || '-';
   }
 
   protected getEmbeddedPreferenceLabel(value: boolean | null | undefined): string {
@@ -2701,6 +2730,75 @@ export class FaturaIslemleriListComponent {
       });
   }
 
+  private retrySendingDocuments(documents: InvoiceSendingListItemDto[]): void {
+    if (!this.canSendCreate()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Tekrar gonderim yetkisi gerekli',
+        message: 'Uyumsoft tekrar gonderim islemi icin create yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const sentDocuments = documents.filter((item) => item.isSent);
+
+    if (sentDocuments.length === 0) {
+      this.feedback.set({
+        tone: 'info',
+        title: 'Tekrar gonderilecek belge yok',
+        message: 'Tekrar gonderim yalnizca daha once gonderilmis faturalar icin kullanilir.'
+      });
+      return;
+    }
+
+    const request = this.buildRetryDocumentsRequest(sentDocuments);
+
+    if (!request) {
+      return;
+    }
+
+    const loadingKey =
+      sentDocuments.length === 1
+        ? this.buildSendingKey(sentDocuments[0].documentSerie, sentDocuments[0].documentOrderNo)
+        : '__batch__';
+
+    this.sendingRetryLoadingKey.set(loadingKey);
+    this.lastValidateResponse.set(null);
+    this.lastSendResponse.set(null);
+
+    this.faturaIslemleriService
+      .retryInvoiceDocuments(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.sendingRetryLoadingKey.set(null))
+      )
+      .subscribe({
+        next: (response: RetryInvoiceDocumentsResponseDto) => {
+          const normalizedResponse = this.normalizeRetryResponse(response);
+          this.lastSendResponse.set(normalizedResponse);
+          this.mergeSendResponse(normalizedResponse);
+          this.feedback.set({
+            tone: response.failedCount > 0 ? 'info' : 'success',
+            title:
+              response.failedCount > 0
+                ? 'Tekrar gonderim tamamlandi, bazi kayitlar reddedildi'
+                : 'Tekrar gonderim istegi kabul edildi',
+            message: `${response.succeededCount} basarili, ${response.failedCount} hatali sonuc dondu.`
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Tekrar gonderim calismadi',
+            message: this.resolveErrorMessage(
+              error,
+              'Secili gonderilmis fatura icin Uyumsoft retry islemi baslatilamadi.'
+            )
+          });
+        }
+      });
+  }
+
   private buildSendingDocumentsRequest(
     documents: InvoiceSendingListItemDto[]
   ): SendInvoiceDocumentsRequestDto | null {
@@ -2713,6 +2811,24 @@ export class FaturaIslemleriListComponent {
     return {
       scenario: this.resolveSendingScenario(unsentDocuments[0].scenario),
       documents: unsentDocuments.map((item) => ({
+        documentSerie: item.documentSerie,
+        documentOrderNo: item.documentOrderNo
+      }))
+    };
+  }
+
+  private buildRetryDocumentsRequest(
+    documents: InvoiceSendingListItemDto[]
+  ): SendInvoiceDocumentsRequestDto | null {
+    const sentDocuments = documents.filter((item) => item.isSent).slice(0, 20);
+
+    if (sentDocuments.length === 0) {
+      return null;
+    }
+
+    return {
+      scenario: this.resolveSendingScenario(sentDocuments[0].scenario),
+      documents: sentDocuments.map((item) => ({
         documentSerie: item.documentSerie,
         documentOrderNo: item.documentOrderNo
       }))
@@ -2822,6 +2938,28 @@ export class FaturaIslemleriListComponent {
         }
       });
     }
+  }
+
+  private normalizeRetryResponse(
+    response: RetryInvoiceDocumentsResponseDto
+  ): SendInvoiceDocumentsResponseDto {
+    return {
+      scenario: response.scenario,
+      requestedCount: response.requestedCount,
+      succeededCount: response.succeededCount,
+      failedCount: response.failedCount,
+      items: response.items.map((item) => ({
+        documentSerie: item.documentSerie,
+        documentOrderNo: item.documentOrderNo,
+        invoiceId: item.invoiceId,
+        customerCode: null,
+        customerTitle: null,
+        isSucceeded: item.isSucceeded,
+        serviceDocumentId: item.serviceInvoiceId,
+        serviceDocumentNumber: null,
+        message: item.message
+      }))
+    };
   }
 
   private mergeSendResponse(response: SendInvoiceDocumentsResponseDto): void {
@@ -2954,12 +3092,44 @@ export class FaturaIslemleriListComponent {
       case 'invoiceType':
         return item.invoiceType;
       case 'status':
-        return `${item.isProcessed ? '1' : '0'}|${item.statusCode ?? ''}|${item.status ?? ''}`;
+        return `${item.isProcessed ? '1' : '0'}|${this.getViewingStatusText(item)}`;
       case 'invoiceTotal':
         return item.invoiceTotal;
       case 'isPrinted':
         return item.isPrinted;
     }
+  }
+
+  private mapInvoiceStatusCode(value: string | null | undefined): string {
+    const normalizedValue = (value ?? '').trim();
+
+    if (!normalizedValue) {
+      return '';
+    }
+
+    const labels: Record<string, string> = {
+      NotPrepared: 'Hazirlanmadi',
+      NotSend: 'Gonderilmedi',
+      Draft: 'Taslak',
+      Canceled: 'Iptal Edildi',
+      Queued: 'Kuyrukta',
+      Processing: 'Isleniyor',
+      SentToGib: "GIB'e Gonderildi",
+      Approved: 'Onaylandi',
+      WaitingForAprovement: 'Onay Bekliyor',
+      Declined: 'Reddedildi',
+      Return: 'Iade Edildi',
+      EArchivedCanceled: 'E-Arsiv Iptal',
+      Error: 'Hata',
+      '1000': 'Onaylandi',
+      '1100': 'Onay Bekliyor',
+      '1200': 'Reddedildi',
+      '1300': 'Iade Edildi',
+      '1400': 'E-Arsiv Iptal',
+      '2000': 'Hata'
+    };
+
+    return labels[normalizedValue] ?? '';
   }
 
   private sortSendingItems(
