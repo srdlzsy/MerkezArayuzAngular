@@ -845,11 +845,11 @@
                 <span
                   class="candidate-chip"
                   *ngFor="let item of selectedSendingItems(); trackBy: trackBySendingInvoice"
-                  [class.is-danger]="isReturnInvoice(item) && !hasReturnReference(item)"
+                  [class.is-danger]="isReturnReferenceKnownMissing(item)"
                 >
                   {{ item.invoiceId }}
                   <ng-container *ngIf="isReturnInvoice(item) && !hasReturnReference(item)">
-                    - iade ref yok
+                    - iade ref detayda kontrol
                   </ng-container>
                 </span>
               </div>
@@ -937,9 +937,7 @@
                     [class.is-selected]="isSendingCardSelected(item)"
                     [class.is-queued]="isSendingItemSelected(item)"
                     [class.is-attention]="
-                      !item.isSent &&
-                      ((isReturnInvoice(item) && !hasReturnReference(item)) ||
-                        !hasReceiverAddress(item))
+                      !item.isSent && !hasReceiverAddress(item)
                     "
                   >
                     <td class="table-check-cell">
@@ -991,7 +989,8 @@
                         <span
                           class="status-pill"
                           [class.status-pill-success]="hasReturnReference(item)"
-                          [class.status-pill-danger]="!hasReturnReference(item)"
+                          [class.status-pill-danger]="isReturnReferenceKnownMissing(item)"
+                          [class.status-pill-neutral]="!hasReturnReference(item) && !isReturnReferenceKnownMissing(item)"
                         >
                           {{ getReturnReferenceLabel(item) }}
                         </span>
@@ -1251,7 +1250,7 @@
               <article
                 class="summary-card"
                 *ngIf="isReturnInvoice(summary)"
-                [class.summary-card-alert]="!hasReturnReference(summary)"
+                [class.summary-card-alert]="isReturnReferenceKnownMissing(summary)"
               >
                 <span>Iade Referansi</span>
                 <strong>{{ getReturnReferenceLabel(summary) }}</strong>

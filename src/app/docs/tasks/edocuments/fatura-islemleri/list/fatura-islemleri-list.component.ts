@@ -726,8 +726,8 @@ export class FaturaIslemleriListComponent {
         value: `${this.selectedSendingItems().length}`
       },
       {
-        label: 'Iade Ref Eksik',
-        value: `${items.filter((item) => this.isReturnInvoice(item) && !this.hasReturnReference(item)).length}`
+        label: 'Iade Faturasi',
+        value: `${items.filter((item) => this.isReturnInvoice(item)).length}`
       },
       {
         label: 'Senaryo',
@@ -773,10 +773,7 @@ export class FaturaIslemleriListComponent {
   );
   protected readonly filteredAttentionSendingItems = computed(() =>
     this.filteredSendingItems().filter(
-      (item) =>
-        !item.isSent &&
-        ((this.isReturnInvoice(item) && !this.hasReturnReference(item)) ||
-          !this.hasReceiverAddress(item))
+      (item) => !item.isSent && !this.hasReceiverAddress(item)
     )
   );
   protected readonly validateResponseMetrics = computed<ResponseMetric[]>(() => {
@@ -2053,6 +2050,25 @@ export class FaturaIslemleriListComponent {
     return !!item?.returnInvoiceNo?.trim();
   }
 
+  protected isReturnReferenceKnownMissing(
+    item: InvoiceSendingListItemDto | null | undefined
+  ): boolean {
+    if (!this.isReturnInvoice(item) || this.hasReturnReference(item)) {
+      return false;
+    }
+
+    const detailSummary = this.sendingDetail()?.summary;
+
+    if (!item || !detailSummary) {
+      return false;
+    }
+
+    return (
+      this.buildSendingKey(item.documentSerie, item.documentOrderNo) ===
+      this.buildSendingKey(detailSummary.documentSerie, detailSummary.documentOrderNo)
+    );
+  }
+
   protected hasReceiverAddress(item: InvoiceSendingListItemDto | null | undefined): boolean {
     return !!item?.targetAlias?.trim();
   }
@@ -2066,7 +2082,10 @@ export class FaturaIslemleriListComponent {
       return '-';
     }
 
-    return item.returnInvoiceNo?.trim() || 'Referans gerekli';
+    return (
+      item.returnInvoiceNo?.trim() ||
+      (this.isReturnReferenceKnownMissing(item) ? 'Referans gerekli' : 'Detayda kontrol')
+    );
   }
 
   protected getSourceLineCountLabel(item: InvoiceSendingListItemDto): string {
@@ -2646,25 +2665,6 @@ export class FaturaIslemleriListComponent {
         tone: 'info',
         title: 'Gonderilecek belge secilmedi',
         message: 'Canli gonderim icin en az bir gonderilmemis belge secmelisin.'
-      });
-      return;
-    }
-
-    const missingReturnReference = unsentDocuments.find(
-      (item) => this.isReturnInvoice(item) && !this.hasReturnReference(item)
-    );
-
-    if (missingReturnReference) {
-      this.openSendingDetail(missingReturnReference);
-
-      if (this.canSendDetail()) {
-        this.openReturnReferencePanel(missingReturnReference);
-      }
-
-      this.feedback.set({
-        tone: 'error',
-        title: 'Iade referansi zorunlu',
-        message: `${missingReturnReference.invoiceId} iade faturasi gonderilmeden once iadeye konu fatura referansi secilmeli.`
       });
       return;
     }
