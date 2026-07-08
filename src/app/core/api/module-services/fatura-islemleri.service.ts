@@ -75,8 +75,7 @@ export class FaturaIslemleriService extends BaseApiService {
         StartDate: request.startDate,
         EndDate: request.endDate,
         Scenario: request.scenario ?? undefined,
-        isSent,
-        SentState: isSent
+        isSent
       }
     );
   }

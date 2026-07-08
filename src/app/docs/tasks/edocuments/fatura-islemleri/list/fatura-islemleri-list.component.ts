@@ -1500,8 +1500,7 @@ export class FaturaIslemleriListComponent {
         startDate: rawValue.startDate,
         endDate: rawValue.endDate,
         scenario: rawValue.scenario,
-        isSent: rawValue.sentState,
-        sentState: rawValue.sentState
+        isSent: rawValue.sentState
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -2701,7 +2700,10 @@ export class FaturaIslemleriListComponent {
               response.failedCount > 0
                 ? 'Gonderim tamamlandi, bazi kayitlar hata verdi'
                 : 'Gonderim basariyla tamamlandi',
-            message: `${response.succeededCount} basarili, ${response.failedCount} hatali sonuc dondu.`
+            message:
+              response.failedCount > 0
+                ? `${response.succeededCount} basarili, ${response.failedCount} hatali sonuc dondu. Satir mesajlarini kontrol edip ayni belge icin suren ilk istegin sonucunu bekleyin.`
+                : `${response.succeededCount} basarili, ${response.failedCount} hatali sonuc dondu.`
           });
         },
         error: (error: HttpErrorResponse) => {
