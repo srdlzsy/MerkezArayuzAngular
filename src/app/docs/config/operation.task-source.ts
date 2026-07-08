@@ -52,6 +52,8 @@ export const OPERATION_TASK_SOURCE = {
       baseRouteOrFile: '/api/operasyon-islemleri/belge-akis-takibi',
       highlights: [
         'Auth DB document_flows ve document_flow_events kayitlarini okur',
+        'Mikro API teknik yazma audit kayitlari bu ekrandaki belge akislarindan ayridir',
+        'mikro_api_write_audits icin UI endpointi yayinlanana kadar audit alanlari bu response modelinde beklenmez',
         'Depo kullanicisi yalnizca kendi deposuyla iliskili akislarini gorur',
         'Admin kullanicilar warehouseNo filtresiyle tum depolari sorgulayabilir',
         'trackingEnabled false ise eski kayitlar okunur ama yeni akis yazimi kapali demektir'

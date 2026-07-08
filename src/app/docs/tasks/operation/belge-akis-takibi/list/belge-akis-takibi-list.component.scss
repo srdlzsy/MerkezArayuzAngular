@@ -108,6 +108,7 @@
 }
 
 .tracking-warning,
+.audit-scope-note,
 .filter-panel,
 .state-card,
 .detail-dialog {
@@ -132,6 +133,41 @@
 .tracking-warning span {
   color: var(--flow-muted);
   font-size: 0.82rem;
+}
+
+.audit-scope-note {
+  display: flex;
+  gap: 0.58rem;
+  align-items: flex-start;
+  padding: 0.62rem 0.68rem;
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.audit-scope-note > i {
+  margin-top: 0.14rem;
+  color: #2563eb;
+}
+
+.audit-scope-note div {
+  display: grid;
+  gap: 0.12rem;
+}
+
+.audit-scope-note strong {
+  color: #1e3a8a;
+  font-size: 0.82rem;
+}
+
+.audit-scope-note span {
+  color: #475569;
+  font-size: 0.8rem;
+  line-height: 1.45;
+}
+
+.audit-scope-note code {
+  color: #1e40af;
+  font-size: 0.76rem;
 }
 
 .filter-panel {
