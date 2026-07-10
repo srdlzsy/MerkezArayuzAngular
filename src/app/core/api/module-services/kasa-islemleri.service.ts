@@ -72,7 +72,13 @@ import {
   UpdateCashSummaryBanknotesResponse,
   DeleteCashSummaryResponse,
   CashSummaryDateHttpRequest,
-  WarehouseOrderDateRangeHttpRequest
+  WarehouseOrderDateRangeHttpRequest,
+  YeniKasaAnalizHttpRequest,
+  YeniKasaAnomalyItemDto,
+  YeniKasaCiroOzetItemDto,
+  YeniKasaFisMutabakatItemDto,
+  YeniKasaKasaOzetItemDto,
+  YeniKasaPaymentMethodItemDto
 } from '@interfaces';
 
 import {
@@ -718,6 +724,51 @@ export class KasaIslemleriService extends BaseApiService {
       cashierCode,
       warehouseNo
     }, source);
+  }
+
+  getYeniKasaCiroOzeti(
+    request: YeniKasaAnalizHttpRequest
+  ): Observable<YeniKasaCiroOzetItemDto[]> {
+    return this.getWithQuery<YeniKasaCiroOzetItemDto[], YeniKasaAnalizHttpRequest>(
+      'kasa-islemleri/yeni-kasa-analizleri/ciro-ozeti',
+      request
+    );
+  }
+
+  getYeniKasaKasaOzeti(
+    request: YeniKasaAnalizHttpRequest
+  ): Observable<YeniKasaKasaOzetItemDto[]> {
+    return this.getWithQuery<YeniKasaKasaOzetItemDto[], YeniKasaAnalizHttpRequest>(
+      'kasa-islemleri/yeni-kasa-analizleri/kasa-ozeti',
+      request
+    );
+  }
+
+  getYeniKasaFisMutabakat(
+    request: YeniKasaAnalizHttpRequest
+  ): Observable<YeniKasaFisMutabakatItemDto[]> {
+    return this.getWithQuery<YeniKasaFisMutabakatItemDto[], YeniKasaAnalizHttpRequest>(
+      'kasa-islemleri/yeni-kasa-analizleri/fis-mutabakat',
+      request
+    );
+  }
+
+  getYeniKasaAnomaliler(
+    request: YeniKasaAnalizHttpRequest
+  ): Observable<YeniKasaAnomalyItemDto[]> {
+    return this.getWithQuery<YeniKasaAnomalyItemDto[], YeniKasaAnalizHttpRequest>(
+      'kasa-islemleri/yeni-kasa-analizleri/anomaliler',
+      request
+    );
+  }
+
+  getYeniKasaOdemeTipleri(
+    request: YeniKasaAnalizHttpRequest
+  ): Observable<YeniKasaPaymentMethodItemDto[]> {
+    return this.getWithQuery<YeniKasaPaymentMethodItemDto[], YeniKasaAnalizHttpRequest>(
+      'kasa-islemleri/yeni-kasa-analizleri/odeme-tipleri',
+      request
+    );
   }
 
   private getCashTurnoverListPath(source: CashTurnoverRouteSource): string {

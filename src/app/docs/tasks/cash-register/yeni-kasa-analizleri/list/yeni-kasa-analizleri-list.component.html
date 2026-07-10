@@ -1,0 +1,126 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="analysis-workspace">
+    <header class="analysis-header">
+      <div class="title-block">
+        <span class="section-kicker">Kasa Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p>{{ activeTabDefinition().summary }}</p>
+      </div>
+
+      <form class="filters-grid" [formGroup]="filterForm" (ngSubmit)="loadRows()">
+        <label class="field">
+          <span>Baslangic</span>
+          <input type="date" formControlName="startDate" />
+        </label>
+
+        <label class="field">
+          <span>Bitis</span>
+          <input type="date" formControlName="endDate" />
+        </label>
+
+        <label class="field">
+          <span>Depo</span>
+          <input type="number" formControlName="warehouseNo" min="1" inputmode="numeric" />
+        </label>
+
+        <label class="field">
+          <span>Kasa</span>
+          <input type="text" formControlName="cashRegisterNo" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span>Kasiyer</span>
+          <input type="text" formControlName="cashierCode" autocomplete="off" />
+        </label>
+
+        <label class="field">
+          <span>Take</span>
+          <input type="number" formControlName="take" min="1" max="2000" inputmode="numeric" />
+        </label>
+
+        <label class="toggle-field">
+          <input type="checkbox" formControlName="onlyProblematic" />
+          <span>Sadece problemli</span>
+        </label>
+
+        <div class="filter-actions">
+          <button type="button" class="task-action task-action-secondary" (click)="clearFilters()">
+            Temizle
+          </button>
+          <button type="submit" class="task-action task-action-primary" [disabled]="isLoading()">
+            {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+          </button>
+        </div>
+      </form>
+    </header>
+
+    <nav class="analysis-tabs" aria-label="Yeni kasa analiz sekmeleri">
+      <button
+        type="button"
+        class="analysis-tab"
+        *ngFor="let tab of tabs"
+        [class.is-active]="activeTab() === tab.id"
+        (click)="selectTab(tab.id)"
+      >
+        <span>{{ tab.label }}</span>
+        <strong>{{ getTabCount(tab.id) }}</strong>
+      </button>
+    </nav>
+
+    <section class="metric-strip" aria-label="Analiz ozeti">
+      <article class="metric-item metric-item-primary">
+        <span>Kayit</span>
+        <strong>{{ activeRows().length }}</strong>
+      </article>
+      <article class="metric-item">
+        <span>Satis</span>
+        <strong>{{ totalSale() | number:'1.2-2' }} TL</strong>
+      </article>
+      <article class="metric-item">
+        <span>Odeme</span>
+        <strong>{{ totalPayment() | number:'1.2-2' }} TL</strong>
+      </article>
+      <article class="metric-item">
+        <span>Fark</span>
+        <strong>{{ totalDifference() | number:'1.2-2' }} TL</strong>
+      </article>
+      <article class="metric-item">
+        <span>Problem</span>
+        <strong>{{ problemCount() }}</strong>
+      </article>
+    </section>
+
+    <div class="table-context">
+      <div class="context-cluster">
+        <span>{{ activeTabDefinition().label }}</span>
+        <span>{{ scopeLabel() }}</span>
+        <span *ngIf="lastLoadedAt()">Son yukleme: {{ lastLoadedAt() }}</span>
+      </div>
+      <strong>{{ filterForm.getRawValue().startDate }} - {{ filterForm.getRawValue().endDate }}</strong>
+    </div>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as currentError">
+      <h3>Liste yuklenemedi</h3>
+      <p>{{ currentError }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Analiz yukleniyor</h3>
+      <p>{{ activeTabDefinition().label }} kayitlari getiriliyor.</p>
+    </article>
+
+    <div class="table-shell" *ngIf="!isLoading() && activeRows().length">
+      <app-api-list-table
+        [rows]="activeRows()"
+        [columns]="activeColumns()"
+        [showRowAction]="false"
+        [filterPlaceholder]="getSearchPlaceholder()"
+      ></app-api-list-table>
+    </div>
+
+    <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !activeRows().length">
+      <h3>Kayit bulunamadi</h3>
+      <p>Secilen filtrelerde {{ activeTabDefinition().label }} icin sonuc donmedi.</p>
+    </article>
+  </article>
+</section>

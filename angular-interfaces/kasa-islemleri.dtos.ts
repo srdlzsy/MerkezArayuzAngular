@@ -145,6 +145,108 @@ export interface CashTurnoverOverviewDto {
 }
 
 // ============================================================================
+// Yeni Kasa Analizleri Modelleri
+// ============================================================================
+
+export interface YeniKasaAnalizHttpRequest {
+  warehouseNo?: number | null;
+  startDate: string;
+  endDate: string;
+  cashRegisterNo?: string | null;
+  cashierCode?: string | null;
+  take?: number | null;
+  onlyProblematic?: boolean | null;
+}
+
+export interface YeniKasaCiroOzetItemDto {
+  businessDate: string;
+  warehouseNo: number;
+  warehouseName: string;
+  cashRegisterNo: string;
+  cashierCode: string;
+  cashierName: string;
+  saleRowCount: number;
+  receiptCount: number;
+  productLineCount: number;
+  productQuantity: number;
+  saleTotal: number;
+  paymentLineCount: number;
+  paymentTotal: number;
+  difference: number;
+  firstSaleAt: string | null;
+  lastSaleAt: string | null;
+}
+
+export interface YeniKasaKasaOzetItemDto {
+  businessDate: string;
+  warehouseNo: number;
+  warehouseName: string;
+  cashRegisterNo: string;
+  saleRowCount: number;
+  receiptCount: number;
+  saleTotal: number;
+  paymentTotal: number;
+  cashTotal: number;
+  creditCardTotal: number;
+  giftCardTotal: number;
+  otherPaymentTotal: number;
+  unknownPaymentTotal: number;
+  difference: number;
+  cashierCount: number;
+  lastSaleAt: string | null;
+}
+
+export interface YeniKasaFisMutabakatItemDto {
+  businessDate: string;
+  warehouseNo: number;
+  warehouseName: string;
+  cashRegisterNo: string;
+  cashierCode: string;
+  cashierName: string;
+  uuid: string;
+  receiptNumber: string;
+  saleRowCount: number;
+  productLineCount: number;
+  paymentLineCount: number;
+  saleTotal: number;
+  productLineTotal: number;
+  paymentTotal: number;
+  salePaymentDifference: number;
+  saleLineDifference: number;
+  status: string;
+  issues: string[];
+  receivedAt: string | null;
+}
+
+export interface YeniKasaAnomalyItemDto {
+  type: string;
+  severity: string;
+  businessDate: string | null;
+  warehouseNo: number;
+  warehouseName: string;
+  cashRegisterNo: string;
+  cashierCode: string;
+  uuid: string;
+  receiptNumber: string;
+  saleTotal: number;
+  paymentTotal: number;
+  difference: number;
+  description: string;
+}
+
+export interface YeniKasaPaymentMethodItemDto {
+  paymentMethodCode: string;
+  paymentMethodName: string;
+  category: string;
+  paymentMethodId: number | null;
+  pavoMediator: number | null;
+  pavoType: number | null;
+  paymentLineCount: number;
+  amount: number;
+  isKnown: boolean;
+}
+
+// ============================================================================
 // Kasa Ciro Aktarimi Modelleri
 // ============================================================================
 

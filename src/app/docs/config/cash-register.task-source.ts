@@ -517,6 +517,77 @@ export const CASH_REGISTER_TASK_SOURCE = {
         (m) => m.KasaCirolariListComponent
       )
   ),
+  'yeni-kasa-analizleri': singleRouteTask(
+    {
+      id: 'yeni-kasa-analizleri',
+      title: 'Yeni Kasa Analizleri',
+      subtitle:
+        'ShopigoCiroConnection kaynagindan yeni kasa satislarini ciro, kasa, fis mutabakat, anomali ve odeme tipi sekmeleriyle denetler.',
+      baseRouteOrFile: '/api/kasa-islemleri/yeni-kasa-analizleri',
+      highlights: [
+        'Yalniz yeni kasa Shopigo kaynagini kullanir',
+        'startDate ve endDate zorunludur',
+        'warehouseNo, cashRegisterNo, cashierCode, take ve onlyProblematic filtreleri desteklenir',
+        'Fis mutabakatinda duplicate, eksik odeme, satir toplam farki ve teknik alan sorunlari gorunur',
+        'Odeme tipleri payment_methods eslesmesi ve kategori bilgisini gosterir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'YeniKasaAnalizleriController',
+          description:
+            'Yeni kasa satislarini operasyonel denetim, mutabakat ve veri kalitesi analizleri icin listeler.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/yeni-kasa-analizleri/ciro-ozeti?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110',
+              description: 'Sube, kasa ve kasiyer bazinda satis/odeme ciro ozetini verir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/yeni-kasa-analizleri/kasa-ozeti?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110',
+              description: 'Kasa bazinda gunluk odeme kategori kirilimini verir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/yeni-kasa-analizleri/fis-mutabakat?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110&onlyProblematic=true&take=200',
+              description: 'Fis header, urun satiri ve odeme toplamini karsilastirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/yeni-kasa-analizleri/anomaliler?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110&take=200',
+              description: 'Fis mutabakat ve odeme tipi anomalilerini tek listede dondurur'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/yeni-kasa-analizleri/odeme-tipleri?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110',
+              description: 'Yeni kasa odeme kodlari, kategori ve eslesme bilgisini listeler'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "startDate": "2026-07-08",
+  "endDate": "2026-07-08",
+  "warehouseNo": 110,
+  "cashRegisterNo": "1",
+  "cashierCode": "1001",
+  "take": 500,
+  "onlyProblematic": true
+}`
+    },
+    () =>
+      import('../tasks/cash-register/yeni-kasa-analizleri/list/yeni-kasa-analizleri-list.component').then(
+        (m) => m.YeniKasaAnalizleriListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'YeniKasaAnalizleri',
+        'kasa-islemleri.yeni-kasa-analizleri',
+        'kasa-islemleri.yeni-kasa-analizleri.list'
+      ]
+    }
+  ),
   'kasa-ciro-aktarimi': singleRouteTask(
     {
       id: 'kasa-ciro-aktarimi',
