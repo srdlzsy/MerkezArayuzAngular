@@ -246,6 +246,87 @@ export interface YeniKasaPaymentMethodItemDto {
   isKnown: boolean;
 }
 
+export interface YeniKasaSaglikOzetItemDto {
+  businessDate: string;
+  warehouseNo: number;
+  warehouseName: string;
+  cashRegisterNo: string;
+  receiptCount: number;
+  problemReceiptCount: number;
+  criticalProblemCount: number;
+  saleTotal: number;
+  paymentTotal: number;
+  differenceTotal: number;
+  lastSaleAt: string | null;
+  riskLevel: string;
+  topIssues: string[];
+}
+
+export interface YeniKasaFisDetayHttpRequest {
+  uuid?: string | null;
+  businessDate?: string | null;
+  warehouseNo?: number | null;
+  cashRegisterNo?: string | null;
+  receiptNumber?: string | null;
+}
+
+export interface YeniKasaFisDetayDto {
+  uuid: string;
+  receiptNumber: string;
+  businessDate: string | null;
+  warehouseNo: number;
+  warehouseName: string;
+  cashRegisterNo: string;
+  cashierCode: string;
+  cashierName: string;
+  saleTotal: number;
+  productLineTotal: number;
+  paymentTotal: number;
+  salePaymentDifference: number;
+  saleLineDifference: number;
+  status: string;
+  issues: string[];
+  reconciliationItems: YeniKasaFisMutabakatItemDto[];
+  saleRows: YeniKasaFisSatisSatiriDto[];
+  productLines: YeniKasaFisUrunSatiriDto[];
+  payments: YeniKasaFisOdemeSatiriDto[];
+}
+
+export interface YeniKasaFisSatisSatiriDto {
+  id: number;
+  uuid: string;
+  receiptNumber: string;
+  receivedAt: string;
+  warehouseNo: number;
+  warehouseCode: string;
+  cashRegisterNo: string;
+  cashierCode: string;
+  saleTotal: number;
+  remainingAmount: number;
+  marketId: string;
+  status: string;
+}
+
+export interface YeniKasaFisUrunSatiriDto {
+  id: number;
+  saleUuid: string;
+  quantity: number;
+  totalPrice: number;
+}
+
+export interface YeniKasaFisOdemeSatiriDto {
+  id: number;
+  saleUuid: string;
+  paymentMethodCode: string;
+  paymentMethodName: string;
+  category: string;
+  paymentMethodId: number | null;
+  pavoMediator: number | null;
+  pavoType: number | null;
+  amount: number;
+  isIncludedInTotals: boolean;
+}
+
 // ============================================================================
 // Kasa Ciro Aktarimi Modelleri
 // ============================================================================

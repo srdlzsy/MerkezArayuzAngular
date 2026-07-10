@@ -562,6 +562,16 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/kasa-islemleri/yeni-kasa-analizleri/odeme-tipleri?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110',
               description: 'Yeni kasa odeme kodlari, kategori ve eslesme bilgisini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/yeni-kasa-analizleri/saglik-ozeti?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110',
+              description: 'Sube ve kasa bazinda fis sagligi risk ozetini verir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/yeni-kasa-analizleri/fis-detay?uuid=3f0f6f4a-74d4-4f8f-84f1-2e8d2f2d1d11',
+              description: 'Secili fisin ust bilgi, mutabakat, satis, urun ve odeme satirlarini getirir'
             }
           ]
         }

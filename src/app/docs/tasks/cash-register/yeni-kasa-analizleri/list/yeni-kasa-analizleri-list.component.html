@@ -90,6 +90,25 @@
       </article>
     </section>
 
+    <section class="risk-strip" *ngIf="activeTab() === 'saglik-ozeti'" aria-label="Risk ozeti">
+      <article class="risk-card risk-card-critical">
+        <span>Kritik Kasa</span>
+        <strong>{{ criticalCount() }}</strong>
+      </article>
+      <article class="risk-card risk-card-warning">
+        <span>Uyari</span>
+        <strong>{{ warningCount() }}</strong>
+      </article>
+      <article class="risk-card risk-card-healthy">
+        <span>Saglikli</span>
+        <strong>{{ healthyCount() }}</strong>
+      </article>
+      <article class="risk-card">
+        <span>Problemli Fis</span>
+        <strong>{{ problemReceiptCount() }}</strong>
+      </article>
+    </section>
+
     <div class="table-context">
       <div class="context-cluster">
         <span>{{ activeTabDefinition().label }}</span>
@@ -113,8 +132,11 @@
       <app-api-list-table
         [rows]="activeRows()"
         [columns]="activeColumns()"
-        [showRowAction]="false"
+        [fitToWidth]="true"
+        [showRowAction]="showReceiptAction()"
+        actionLabel="Fis Detay"
         [filterPlaceholder]="getSearchPlaceholder()"
+        (rowAction)="openReceiptDetail($event)"
       ></app-api-list-table>
     </div>
 
@@ -122,5 +144,158 @@
       <h3>Kayit bulunamadi</h3>
       <p>Secilen filtrelerde {{ activeTabDefinition().label }} icin sonuc donmedi.</p>
     </article>
+
+  </article>
+</section>
+
+<section
+  class="dialog-backdrop"
+  *ngIf="receiptDialogOpen()"
+  role="presentation"
+  (click)="closeReceiptDetail()"
+>
+  <article
+    class="receipt-dialog"
+    role="dialog"
+    aria-modal="true"
+    aria-labelledby="receipt-dialog-title"
+    (click)="$event.stopPropagation()"
+  >
+    <article class="state-card state-card-error" *ngIf="receiptDetailError() as detailError">
+      <h3>Fis detayi acilamadi</h3>
+      <p>{{ detailError }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="receiptDetailLoading()">
+      <h3>Fis detayi yukleniyor</h3>
+      <p>Secili fisin satis, urun ve odeme satirlari getiriliyor.</p>
+    </article>
+
+    <section class="receipt-detail-panel" *ngIf="selectedReceiptDetail() as detail">
+      <header class="receipt-detail-head">
+        <div>
+          <span class="section-kicker">Fis Detay</span>
+          <h3 id="receipt-dialog-title">{{ detail.receiptNumber || detail.uuid || 'Fis' }}</h3>
+          <p>{{ detail.warehouseName }} ({{ detail.warehouseNo }}) / Kasa {{ detail.cashRegisterNo }} / {{ detail.cashierName || detail.cashierCode || '-' }}</p>
+        </div>
+        <button type="button" class="task-action task-action-secondary" (click)="closeReceiptDetail()">
+          Kapat
+        </button>
+      </header>
+
+      <div class="receipt-summary-grid">
+        <article>
+          <span>Durum</span>
+          <strong>{{ detail.status }}</strong>
+        </article>
+        <article>
+          <span>Satis</span>
+          <strong>{{ detail.saleTotal | number:'1.2-2' }} TL</strong>
+        </article>
+        <article>
+          <span>Urun Toplami</span>
+          <strong>{{ detail.productLineTotal | number:'1.2-2' }} TL</strong>
+        </article>
+        <article>
+          <span>Odeme</span>
+          <strong>{{ detail.paymentTotal | number:'1.2-2' }} TL</strong>
+        </article>
+        <article>
+          <span>Odeme Farki</span>
+          <strong>{{ detail.salePaymentDifference | number:'1.2-2' }} TL</strong>
+        </article>
+        <article>
+          <span>Satir Farki</span>
+          <strong>{{ detail.saleLineDifference | number:'1.2-2' }} TL</strong>
+        </article>
+      </div>
+
+      <div class="issue-list" *ngIf="detail.issues.length">
+        <span *ngFor="let issue of detail.issues">{{ issue }}</span>
+      </div>
+
+      <div class="detail-grid">
+        <section class="detail-table-card">
+          <div class="detail-table-head">
+            <strong>Satis Satirlari</strong>
+            <span>{{ detail.saleRows.length }}</span>
+          </div>
+          <div class="mini-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Id</th>
+                  <th>Alinma</th>
+                  <th>Market</th>
+                  <th class="align-right">Tutar</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of detail.saleRows">
+                  <td>{{ row.id }}</td>
+                  <td>{{ row.receivedAt }}</td>
+                  <td>{{ row.marketId || row.warehouseCode }}</td>
+                  <td class="align-right">{{ row.saleTotal | number:'1.2-2' }}</td>
+                  <td>{{ row.status }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="detail-table-card">
+          <div class="detail-table-head">
+            <strong>Urun Satirlari</strong>
+            <span>{{ detail.productLines.length }}</span>
+          </div>
+          <div class="mini-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Id</th>
+                  <th class="align-right">Miktar</th>
+                  <th class="align-right">Toplam</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of detail.productLines">
+                  <td>{{ row.id }}</td>
+                  <td class="align-right">{{ row.quantity | number:'1.2-2' }}</td>
+                  <td class="align-right">{{ row.totalPrice | number:'1.2-2' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <section class="detail-table-card">
+          <div class="detail-table-head">
+            <strong>Odeme Satirlari</strong>
+            <span>{{ detail.payments.length }}</span>
+          </div>
+          <div class="mini-table-wrap">
+            <table>
+              <thead>
+                <tr>
+                  <th>Odeme</th>
+                  <th>Kategori</th>
+                  <th class="align-right">Tutar</th>
+                  <th>Toplam</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of detail.payments">
+                  <td>{{ row.paymentMethodName || row.paymentMethodCode }}</td>
+                  <td>{{ row.category }}</td>
+                  <td class="align-right">{{ row.amount | number:'1.2-2' }}</td>
+                  <td>{{ row.isIncludedInTotals ? 'Dahil' : 'Haric' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </div>
+    </section>
   </article>
 </section>

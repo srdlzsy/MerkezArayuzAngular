@@ -76,9 +76,12 @@ import {
   YeniKasaAnalizHttpRequest,
   YeniKasaAnomalyItemDto,
   YeniKasaCiroOzetItemDto,
+  YeniKasaFisDetayDto,
+  YeniKasaFisDetayHttpRequest,
   YeniKasaFisMutabakatItemDto,
   YeniKasaKasaOzetItemDto,
-  YeniKasaPaymentMethodItemDto
+  YeniKasaPaymentMethodItemDto,
+  YeniKasaSaglikOzetItemDto
 } from '@interfaces';
 
 import {
@@ -767,6 +770,24 @@ export class KasaIslemleriService extends BaseApiService {
   ): Observable<YeniKasaPaymentMethodItemDto[]> {
     return this.getWithQuery<YeniKasaPaymentMethodItemDto[], YeniKasaAnalizHttpRequest>(
       'kasa-islemleri/yeni-kasa-analizleri/odeme-tipleri',
+      request
+    );
+  }
+
+  getYeniKasaSaglikOzeti(
+    request: YeniKasaAnalizHttpRequest
+  ): Observable<YeniKasaSaglikOzetItemDto[]> {
+    return this.getWithQuery<YeniKasaSaglikOzetItemDto[], YeniKasaAnalizHttpRequest>(
+      'kasa-islemleri/yeni-kasa-analizleri/saglik-ozeti',
+      request
+    );
+  }
+
+  getYeniKasaFisDetay(
+    request: YeniKasaFisDetayHttpRequest
+  ): Observable<YeniKasaFisDetayDto> {
+    return this.getWithQuery<YeniKasaFisDetayDto, YeniKasaFisDetayHttpRequest>(
+      'kasa-islemleri/yeni-kasa-analizleri/fis-detay',
       request
     );
   }

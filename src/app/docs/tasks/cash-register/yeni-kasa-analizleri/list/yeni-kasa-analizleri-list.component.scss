@@ -236,6 +236,12 @@
   gap: 0.52rem;
 }
 
+.risk-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.52rem;
+}
+
 .metric-item {
   display: grid;
   gap: 0.16rem;
@@ -272,6 +278,59 @@
 .metric-item-primary strong {
   color: var(--analysis-accent-deep);
   font-size: 1rem;
+}
+
+.risk-card {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  padding: 0.64rem 0.7rem;
+  border: 1px solid var(--analysis-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.risk-card span,
+.receipt-summary-grid span,
+.detail-table-head span {
+  color: var(--analysis-muted);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.risk-card strong {
+  color: var(--analysis-ink);
+  font-size: 1.06rem;
+  line-height: 1.2;
+}
+
+.risk-card-critical {
+  border-color: #f0b5b5;
+  background: #fff6f6;
+}
+
+.risk-card-critical strong {
+  color: #b42318;
+}
+
+.risk-card-warning {
+  border-color: #efd38a;
+  background: #fff9eb;
+}
+
+.risk-card-warning strong {
+  color: #9a6700;
+}
+
+.risk-card-healthy {
+  border-color: rgba(15, 118, 110, 0.28);
+  background: #effaf7;
+}
+
+.risk-card-healthy strong {
+  color: var(--analysis-accent-deep);
 }
 
 .table-context {
@@ -312,6 +371,173 @@
   background: #fff7f7;
 }
 
+.dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1000;
+  display: grid;
+  align-items: center;
+  justify-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.45);
+}
+
+.receipt-dialog {
+  width: min(1180px, 100%);
+  max-height: min(88vh, 860px);
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.6);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.28);
+}
+
+.receipt-detail-panel {
+  display: grid;
+  gap: 0.58rem;
+  padding: 0.68rem;
+  max-height: min(88vh, 860px);
+  overflow-y: auto;
+  overflow-x: hidden;
+  background: #fbfdfc;
+}
+
+.receipt-detail-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.7rem;
+}
+
+.receipt-detail-head h3,
+.receipt-detail-head p {
+  margin: 0;
+}
+
+.receipt-detail-head h3 {
+  color: var(--analysis-ink);
+  font-size: 1rem;
+  line-height: 1.2;
+}
+
+.receipt-detail-head p {
+  margin-top: 0.12rem;
+  color: var(--analysis-muted);
+  font-size: 0.78rem;
+  font-weight: 750;
+  line-height: 1.35;
+}
+
+.receipt-summary-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.receipt-summary-grid article {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid var(--analysis-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.receipt-summary-grid strong {
+  overflow: hidden;
+  color: var(--analysis-ink);
+  font-size: 0.86rem;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.issue-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+}
+
+.issue-list span {
+  padding: 0.2rem 0.44rem;
+  border: 1px solid #efd38a;
+  border-radius: 999px;
+  background: #fff9eb;
+  color: #7c4d00;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.detail-grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1.1fr) minmax(0, 0.8fr) minmax(0, 1fr);
+  gap: 0.52rem;
+}
+
+.detail-table-card {
+  min-width: 0;
+  overflow: hidden;
+  border: 1px solid var(--analysis-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.detail-table-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.48rem 0.56rem;
+  border-bottom: 1px solid var(--analysis-border);
+  background: var(--analysis-soft);
+}
+
+.detail-table-head strong {
+  color: var(--analysis-ink);
+  font-size: 0.8rem;
+}
+
+.mini-table-wrap {
+  max-height: 260px;
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+.mini-table-wrap table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+  border-collapse: collapse;
+}
+
+.mini-table-wrap th,
+.mini-table-wrap td {
+  padding: 0.42rem 0.5rem;
+  border-bottom: 1px solid #edf2ef;
+  color: var(--analysis-ink);
+  font-size: 0.75rem;
+  text-align: left;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.mini-table-wrap th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  color: var(--analysis-muted);
+  font-size: 0.62rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  background: var(--analysis-soft);
+}
+
+.align-right {
+  text-align: right !important;
+}
+
 :host ::ng-deep app-api-list-table .api-list-table {
   gap: 0.42rem;
 }
@@ -333,15 +559,67 @@
 
 :host ::ng-deep app-api-list-table .table-wrap {
   max-height: calc(100vh - 330px);
-  overflow: auto;
+  overflow-y: auto;
+  overflow-x: hidden;
   border: 1px solid var(--analysis-border);
   border-radius: 0 0 8px 8px;
   box-shadow: none;
 }
 
+:host ::ng-deep app-api-list-table .table-wrap.fit-to-width {
+  overflow-y: auto;
+  overflow-x: hidden;
+}
+
+:host ::ng-deep app-api-list-table .fit-to-width .data-table {
+  width: 100%;
+  min-width: 0;
+  table-layout: fixed;
+}
+
 :host ::ng-deep app-api-list-table .data-table th,
 :host ::ng-deep app-api-list-table .data-table td {
-  padding: 0.48rem 0.6rem;
+  padding: 0.42rem 0.46rem;
+  overflow-wrap: anywhere;
+  white-space: normal;
+  word-break: normal;
+}
+
+:host ::ng-deep app-api-list-table .data-table th {
+  font-size: 0.58rem;
+  letter-spacing: 0.04em;
+}
+
+:host ::ng-deep app-api-list-table .data-table td {
+  font-size: 0.72rem;
+  line-height: 1.25;
+}
+
+:host ::ng-deep app-api-list-table .sort-button {
+  gap: 0.14rem;
+  line-height: 1.2;
+}
+
+:host ::ng-deep app-api-list-table .sort-indicator {
+  min-width: 0.7rem;
+  font-size: 0.58rem;
+}
+
+:host ::ng-deep app-api-list-table .status-pill {
+  min-width: 0;
+  padding: 0.24rem 0.36rem;
+  font-size: 0.66rem;
+  white-space: normal;
+}
+
+:host ::ng-deep app-api-list-table .action-cell {
+  min-width: 0;
+}
+
+:host ::ng-deep app-api-list-table .row-action {
+  width: 100%;
+  padding: 0.32rem 0.34rem;
+  white-space: normal;
 }
 
 :host ::ng-deep app-api-list-table .data-table tbody tr:hover {
@@ -360,11 +638,20 @@
   .filters-grid {
     grid-template-columns: repeat(4, minmax(120px, 1fr));
   }
+
+  .receipt-summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .detail-grid {
+    grid-template-columns: 1fr;
+  }
 }
 
 @media (max-width: 920px) {
   .analysis-tabs,
-  .metric-strip {
+  .metric-strip,
+  .risk-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -379,6 +666,18 @@
   .filter-actions .task-action {
     flex: 1;
   }
+
+  .receipt-detail-head {
+    display: grid;
+  }
+
+  .receipt-dialog {
+    max-height: 92vh;
+  }
+
+  .receipt-detail-panel {
+    max-height: 92vh;
+  }
 }
 
 @media (max-width: 620px) {
@@ -388,7 +687,9 @@
 
   .analysis-tabs,
   .filters-grid,
-  .metric-strip {
+  .metric-strip,
+  .risk-strip,
+  .receipt-summary-grid {
     grid-template-columns: 1fr;
   }
 
@@ -404,6 +705,10 @@
   }
 
   .metric-item strong {
+    white-space: normal;
+  }
+
+  .receipt-summary-grid strong {
     white-space: normal;
   }
 }

@@ -7,9 +7,11 @@ import type {
   YeniKasaAnalizHttpRequest,
   YeniKasaAnomalyItemDto,
   YeniKasaCiroOzetItemDto,
+  YeniKasaFisDetayDto,
   YeniKasaFisMutabakatItemDto,
   YeniKasaKasaOzetItemDto,
-  YeniKasaPaymentMethodItemDto
+  YeniKasaPaymentMethodItemDto,
+  YeniKasaSaglikOzetItemDto
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -20,6 +22,7 @@ import { ApiListTableComponent } from '../../../core/api-list-table/api-list-tab
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
 
 type YeniKasaAnalizTab =
+  | 'saglik-ozeti'
   | 'ciro-ozeti'
   | 'kasa-ozeti'
   | 'fis-mutabakat'
@@ -27,6 +30,7 @@ type YeniKasaAnalizTab =
   | 'odeme-tipleri';
 
 type YeniKasaAnalizRow =
+  | YeniKasaSaglikOzetItemDto
   | YeniKasaCiroOzetItemDto
   | YeniKasaKasaOzetItemDto
   | YeniKasaFisMutabakatItemDto
@@ -42,6 +46,7 @@ interface TabDefinition {
 type RowsByTab = Record<YeniKasaAnalizTab, YeniKasaAnalizRow[]>;
 
 const EMPTY_ROWS_BY_TAB: RowsByTab = {
+  'saglik-ozeti': [],
   'ciro-ozeti': [],
   'kasa-ozeti': [],
   'fis-mutabakat': [],
@@ -105,6 +110,21 @@ function buildWarehouseLabel(row: { warehouseNo?: number; warehouseName?: string
 
   return Number.isFinite(warehouseNo) ? String(warehouseNo) : '-';
 }
+
+const SAGLIK_OZETI_COLUMNS: readonly ApiListTableColumn<YeniKasaSaglikOzetItemDto>[] = [
+  { key: 'riskLevel', label: 'Risk', type: 'status', resolveValue: (row) => getRiskLabel(row.riskLevel) },
+  { key: 'businessDate', label: 'Tarih', resolveValue: (row) => formatDateOnly(row.businessDate) },
+  { key: 'warehouseName', label: 'Depo', resolveValue: (row) => buildWarehouseLabel(row) },
+  { key: 'cashRegisterNo', label: 'Kasa' },
+  { key: 'receiptCount', label: 'Fis' },
+  { key: 'problemReceiptCount', label: 'Problemli Fis' },
+  { key: 'criticalProblemCount', label: 'Kritik' },
+  { key: 'saleTotal', label: 'Satis', resolveValue: (row) => formatNumber(row.saleTotal) },
+  { key: 'paymentTotal', label: 'Odeme', resolveValue: (row) => formatNumber(row.paymentTotal) },
+  { key: 'differenceTotal', label: 'Fark', resolveValue: (row) => formatNumber(row.differenceTotal) },
+  { key: 'topIssues', label: 'Baskin Sorunlar', resolveValue: (row) => row.topIssues?.join(', ') || '-' },
+  { key: 'lastSaleAt', label: 'Son Satis', resolveValue: (row) => formatDateTime(row.lastSaleAt) }
+];
 
 const CIRO_OZETI_COLUMNS: readonly ApiListTableColumn<YeniKasaCiroOzetItemDto>[] = [
   { key: 'businessDate', label: 'Tarih', resolveValue: (row) => formatDateOnly(row.businessDate) },
@@ -181,6 +201,19 @@ const ODEME_TIPI_COLUMNS: readonly ApiListTableColumn<YeniKasaPaymentMethodItemD
   { key: 'isKnown', label: 'Eslesme', resolveValue: (row) => (row.isKnown ? 'Biliniyor' : 'Bilinmiyor') }
 ];
 
+function getRiskLabel(riskLevel: string | null | undefined): string {
+  switch (riskLevel) {
+    case 'Critical':
+      return 'Kritik';
+    case 'Warning':
+      return 'Uyari';
+    case 'Healthy':
+      return 'Saglikli';
+    default:
+      return riskLevel?.trim() || '-';
+  }
+}
+
 @Component({
   selector: 'app-yeni-kasa-analizleri-list',
   standalone: true,
@@ -192,6 +225,11 @@ const ODEME_TIPI_COLUMNS: readonly ApiListTableColumn<YeniKasaPaymentMethodItemD
 export class YeniKasaAnalizleriListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['yeni-kasa-analizleri'];
   protected readonly tabs: readonly TabDefinition[] = [
+    {
+      id: 'saglik-ozeti',
+      label: 'Saglik',
+      summary: 'Sube ve kasa bazinda risk, problemli fis ve baskin sorun ozeti'
+    },
     {
       id: 'ciro-ozeti',
       label: 'Ciro Ozeti',
@@ -242,15 +280,21 @@ export class YeniKasaAnalizleriListComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
 
-  protected readonly activeTab = signal<YeniKasaAnalizTab>('ciro-ozeti');
+  protected readonly activeTab = signal<YeniKasaAnalizTab>('saglik-ozeti');
   protected readonly rowsByTab = signal<RowsByTab>({ ...EMPTY_ROWS_BY_TAB });
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastLoadedAt = signal<string | null>(null);
+  protected readonly selectedReceiptDetail = signal<YeniKasaFisDetayDto | null>(null);
+  protected readonly receiptDetailLoading = signal(false);
+  protected readonly receiptDetailError = signal<string | null>(null);
+  protected readonly receiptDialogOpen = signal(false);
 
   protected readonly activeRows = computed(() => this.rowsByTab()[this.activeTab()]);
   protected readonly activeColumns = computed<readonly ApiListTableColumn[]>(() => {
     switch (this.activeTab()) {
+      case 'saglik-ozeti':
+        return SAGLIK_OZETI_COLUMNS;
       case 'kasa-ozeti':
         return KASA_OZETI_COLUMNS;
       case 'fis-mutabakat':
@@ -274,10 +318,35 @@ export class YeniKasaAnalizleriListComponent {
     this.activeRows().reduce((total, row) => total + this.toSafeNumber(this.readRowNumber(row, 'paymentTotal')), 0)
   );
   protected readonly totalDifference = computed(() =>
-    this.activeRows().reduce((total, row) => total + this.toSafeNumber(this.readRowNumber(row, 'difference')), 0)
+    this.activeRows().reduce(
+      (total, row) =>
+        total +
+        this.toSafeNumber(
+          this.readFirstRowNumber(row, ['difference', 'differenceTotal'])
+        ),
+      0
+    )
   );
   protected readonly problemCount = computed(() =>
     this.activeRows().filter((row) => this.isProblemRow(row)).length
+  );
+  protected readonly criticalCount = computed(
+    () => this.activeRows().filter((row) => this.readRowText(row, 'riskLevel') === 'Critical').length
+  );
+  protected readonly warningCount = computed(
+    () => this.activeRows().filter((row) => this.readRowText(row, 'riskLevel') === 'Warning').length
+  );
+  protected readonly healthyCount = computed(
+    () => this.activeRows().filter((row) => this.readRowText(row, 'riskLevel') === 'Healthy').length
+  );
+  protected readonly problemReceiptCount = computed(() =>
+    this.activeRows().reduce(
+      (total, row) => total + this.toSafeNumber(this.readRowNumber(row, 'problemReceiptCount')),
+      0
+    )
+  );
+  protected readonly showReceiptAction = computed(
+    () => this.activeTab() === 'fis-mutabakat' || this.activeTab() === 'anomaliler'
   );
   protected readonly scopeLabel = computed(() => {
     const warehouseNo = this.toOptionalNumber(this.filterForm.controls.warehouseNo.value);
@@ -354,6 +423,49 @@ export class YeniKasaAnalizleriListComponent {
       });
   }
 
+  protected openReceiptDetail(row: YeniKasaAnalizRow): void {
+    const request = this.buildReceiptDetailRequest(row);
+
+    this.receiptDialogOpen.set(true);
+    this.selectedReceiptDetail.set(null);
+
+    if (!request) {
+      this.receiptDetailError.set('Fis detayi icin uuid veya tarih/depo/kasa/fis no bilgisi bulunamadi.');
+      return;
+    }
+
+    this.receiptDetailLoading.set(true);
+    this.receiptDetailError.set(null);
+
+    this.kasaIslemleriService
+      .getYeniKasaFisDetay(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.receiptDetailLoading.set(false))
+      )
+      .subscribe({
+        next: (detail: YeniKasaFisDetayDto) => {
+          this.selectedReceiptDetail.set(detail);
+        },
+        error: (error: unknown) => {
+          this.selectedReceiptDetail.set(null);
+          this.receiptDetailError.set(
+            this.getErrorMessage(error, 'Fis detayi getirilemedi.')
+          );
+        }
+      });
+  }
+
+  protected closeReceiptDetail(): void {
+    if (this.receiptDetailLoading()) {
+      return;
+    }
+
+    this.receiptDialogOpen.set(false);
+    this.selectedReceiptDetail.set(null);
+    this.receiptDetailError.set(null);
+  }
+
   protected clearFilters(): void {
     this.filterForm.reset({
       startDate: this.getRelativeDate(0),
@@ -376,6 +488,8 @@ export class YeniKasaAnalizleriListComponent {
     switch (this.activeTab()) {
       case 'odeme-tipleri':
         return 'Odeme kodu, ad veya kategori ara';
+      case 'saglik-ozeti':
+        return 'Risk, depo, kasa veya sorun ara';
       case 'anomaliler':
         return 'Seviye, tip, fis, depo veya aciklama ara';
       case 'fis-mutabakat':
@@ -410,6 +524,8 @@ export class YeniKasaAnalizleriListComponent {
     request: YeniKasaAnalizHttpRequest
   ): Observable<YeniKasaAnalizRow[]> {
     switch (tab) {
+      case 'saglik-ozeti':
+        return this.kasaIslemleriService.getYeniKasaSaglikOzeti(request);
       case 'kasa-ozeti':
         return this.kasaIslemleriService.getYeniKasaKasaOzeti(request);
       case 'fis-mutabakat':
@@ -427,19 +543,48 @@ export class YeniKasaAnalizleriListComponent {
   private isProblemRow(row: YeniKasaAnalizRow): boolean {
     const status = this.readRowText(row, 'status').toLocaleLowerCase('tr-TR');
     const severity = this.readRowText(row, 'severity').toLocaleLowerCase('tr-TR');
+    const riskLevel = this.readRowText(row, 'riskLevel');
     const issues = (row as Partial<YeniKasaFisMutabakatItemDto>).issues ?? [];
     const difference = this.toSafeNumber(this.readRowNumber(row, 'difference'));
     const salePaymentDifference = this.toSafeNumber(this.readRowNumber(row, 'salePaymentDifference'));
     const saleLineDifference = this.toSafeNumber(this.readRowNumber(row, 'saleLineDifference'));
+    const problemReceiptCount = this.toSafeNumber(this.readRowNumber(row, 'problemReceiptCount'));
 
     return (
       status.includes('problem') ||
       !!severity ||
+      riskLevel === 'Warning' ||
+      riskLevel === 'Critical' ||
       issues.length > 0 ||
+      problemReceiptCount > 0 ||
       Math.abs(difference) > 0.004 ||
       Math.abs(salePaymentDifference) > 0.004 ||
       Math.abs(saleLineDifference) > 0.004
     );
+  }
+
+  private buildReceiptDetailRequest(row: YeniKasaAnalizRow) {
+    const uuid = this.readRowText(row, 'uuid').trim();
+
+    if (uuid) {
+      return { uuid };
+    }
+
+    const businessDate = this.readRowText(row, 'businessDate').trim();
+    const warehouseNo = this.readRowNumber(row, 'warehouseNo');
+    const cashRegisterNo = this.readRowText(row, 'cashRegisterNo').trim();
+    const receiptNumber = this.readRowText(row, 'receiptNumber').trim();
+
+    if (!businessDate || !warehouseNo || !cashRegisterNo || !receiptNumber) {
+      return null;
+    }
+
+    return {
+      businessDate: formatDateOnly(businessDate),
+      warehouseNo,
+      cashRegisterNo,
+      receiptNumber
+    };
   }
 
   private readRowText(row: YeniKasaAnalizRow, key: string): string {
@@ -452,6 +597,18 @@ export class YeniKasaAnalizleriListComponent {
     const value = (row as unknown as Record<string, unknown>)[key];
 
     return typeof value === 'number' ? value : null;
+  }
+
+  private readFirstRowNumber(row: YeniKasaAnalizRow, keys: readonly string[]): number | null {
+    for (const key of keys) {
+      const value = this.readRowNumber(row, key);
+
+      if (typeof value === 'number') {
+        return value;
+      }
+    }
+
+    return null;
   }
 
   private toSafeNumber(value: number | null | undefined): number {
