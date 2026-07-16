@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   FormArray,
   FormControl,
@@ -21,6 +21,12 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 type ZayiatLineFormGroup = FormGroup<{
   stockCode: FormControl<string>;
@@ -54,6 +60,10 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
   private stockRequestId = 0;
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
 
   protected readonly form = new FormGroup({
     creator: new FormControl(this.authService.currentUser()?.displayName || '', {
@@ -74,6 +84,7 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
     }),
     documentNo: new FormControl('', { nonNullable: true }),
     description: new FormControl('Gun sonu zayiat', { nonNullable: true }),
+    adminWarehouseNo: new FormControl<number | null>(null),
     lines: new FormArray<ZayiatLineFormGroup>([])
   });
 
@@ -204,6 +215,7 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
 
     return {
+      warehouseNo: this.resolveRequestWarehouseNo(),
       creator: rawValue.creator.trim(),
       acceptor: rawValue.acceptor.trim(),
       movementDate: rawValue.movementDate,
@@ -261,6 +273,16 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private normalizeNumber(value: number | null | undefined): number {
     const normalizedValue = Number(value ?? 0);
     return Number.isFinite(normalizedValue) ? normalizedValue : 0;
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const adminWarehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.form.controls.adminWarehouseNo.value)
+      : null;
+
+    return adminWarehouseNo
+      ?? getCurrentWarehouseNo(this.authService.currentUser())
+      ?? undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

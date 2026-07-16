@@ -24,7 +24,7 @@
         <input type="date" [ngModel]="endDate()" (ngModelChange)="updateEndDate($event)" />
       </label>
 
-      <div class="scope-switch" aria-label="Depo kapsami">
+      <div class="scope-switch" *ngIf="isAdminUser(); else fixedWarehouseScope" aria-label="Depo kapsami">
         <button type="button" [class.is-active]="scope() === 'all'" (click)="selectScope('all')">
           Tum Depolar
         </button>
@@ -35,8 +35,14 @@
           Manuel
         </button>
       </div>
+      <ng-template #fixedWarehouseScope>
+        <div class="scope-readonly" aria-label="Depo kapsami">
+          <span>Depo Kapsami</span>
+          <strong>{{ currentWarehouseLabel() }}</strong>
+        </div>
+      </ng-template>
 
-      <label class="field" *ngIf="scope() === 'manual'">
+      <label class="field" *ngIf="isAdminUser() && scope() === 'manual'">
         <span>Depo No</span>
         <input
           type="number"

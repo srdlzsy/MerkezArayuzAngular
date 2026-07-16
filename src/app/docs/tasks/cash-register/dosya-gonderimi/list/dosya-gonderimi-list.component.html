@@ -35,9 +35,63 @@
           Durumu bu ekrandan canli olarak takip edebilirsin.
         </p>
       </div>
-      <div class="control-indicator" [class.is-busy]="isBusy()">
-        <span class="control-dot"></span>
-        <span>{{ isBusy() ? 'Islem takip ediliyor' : 'Sistem hazir' }}</span>
+      <div class="control-tools">
+        <div class="control-indicator" [class.is-busy]="isBusy()">
+          <span class="control-dot"></span>
+          <span>{{ isBusy() ? 'Islem takip ediliyor' : 'Sistem hazir' }}</span>
+        </div>
+
+        <article class="warehouse-scope-card">
+          <div>
+            <span>Hedef Depo</span>
+            <strong>{{ selectedWarehouseScopeLabel() }}</strong>
+          </div>
+
+          <ng-container *ngIf="isAdminUser(); else userWarehouseScope">
+            <div class="warehouse-segment" role="group" aria-label="Hedef depo kapsami">
+              <button
+                type="button"
+                [class.is-active]="warehouseScope() === 'current'"
+                [disabled]="isBusy()"
+                (click)="selectWarehouseScope('current')"
+              >
+                Aktif
+              </button>
+              <button
+                type="button"
+                [class.is-active]="warehouseScope() === 'all'"
+                [disabled]="isBusy()"
+                (click)="selectWarehouseScope('all')"
+              >
+                Tum
+              </button>
+              <button
+                type="button"
+                [class.is-active]="warehouseScope() === 'manual'"
+                [disabled]="isBusy()"
+                (click)="selectWarehouseScope('manual')"
+              >
+                Sec
+              </button>
+            </div>
+
+            <label class="warehouse-input" *ngIf="warehouseScope() === 'manual'">
+              <span>Depo No</span>
+              <input
+                type="number"
+                min="1"
+                placeholder="110"
+                [disabled]="isBusy()"
+                [value]="adminWarehouseNoInput()"
+                (input)="adminWarehouseNoInput.set($any($event.target).value)"
+              />
+            </label>
+          </ng-container>
+
+          <ng-template #userWarehouseScope>
+            <span class="warehouse-locked">JWT deposu</span>
+          </ng-template>
+        </article>
       </div>
     </article>
 

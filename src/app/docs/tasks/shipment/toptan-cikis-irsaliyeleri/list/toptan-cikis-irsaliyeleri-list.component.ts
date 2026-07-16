@@ -52,8 +52,8 @@ export class ToptanCikisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.sevkIslemleriService.getToptanCikisIrsaliyeleri(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.sevkIslemleriService.getToptanCikisIrsaliyeleri(zamanlama, warehouseNo);
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaCompanyMovementListItemApiDto>[] {

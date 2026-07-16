@@ -28,7 +28,7 @@
   <section class="task-block">
     <article class="query-card">
       <div class="query-grid">
-        <label class="field">
+        <label class="field date-field start-date-field">
           <span>Baslangic Tarihi</span>
           <input
             type="date"
@@ -37,7 +37,7 @@
           />
         </label>
 
-        <label class="field">
+        <label class="field date-field end-date-field">
           <span>Bitis Tarihi</span>
           <input
             type="date"
@@ -45,6 +45,25 @@
             (input)="updateEndDate($any($event.target).value ?? '')"
           />
         </label>
+
+        <label class="field warehouse-field" *ngIf="isAdminUser(); else lockedWarehouse">
+          <span>Depo No</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [value]="adminWarehouseNo()"
+            placeholder="Tum"
+            (input)="updateAdminWarehouseNo($any($event.target).value ?? '')"
+          />
+        </label>
+
+        <ng-template #lockedWarehouse>
+          <div class="warehouse-scope-pill" title="JWT deposu">
+            <span>Depo</span>
+            <strong>{{ selectedWarehouseLabel() }}</strong>
+          </div>
+        </ng-template>
 
         <button type="button" class="task-action task-action-secondary query-create" *ngIf="canCreate" (click)="openCreate()">
           {{ getCreateButtonLabel() }}

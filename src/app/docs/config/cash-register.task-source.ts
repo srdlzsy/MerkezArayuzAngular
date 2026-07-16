@@ -17,6 +17,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Queue tabanli export',
         'Job polling',
         'Authorization file grid',
+        'Admin icin opsiyonel warehouseNo query destegi',
         'Promofile queue/polling destegi'
       ],
       listTitle: 'Endpointler',
@@ -28,23 +29,23 @@ export const CASH_REGISTER_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/operations/scalesfile',
-              description: 'Terazi export isini kuyruga alir'
+              path: '/api/operations/scalesfile?warehouseNo=110',
+              description: 'Terazi export isini kuyruga alir; warehouseNo yalniz admin depo secimi icindir'
             },
             {
               method: 'GET',
-              path: '/api/operations/productbarcodeplunofile',
-              description: 'Urun/barcode/PLU export isini kuyruga alir'
+              path: '/api/operations/productbarcodeplunofile?warehouseNo=110',
+              description: 'Urun/barcode/PLU export isini kuyruga alir; warehouseNo yalniz admin depo secimi icindir'
             },
             {
               method: 'GET',
-              path: '/api/operations/cashierfile',
-              description: 'Kasiyer export isini kuyruga alir'
+              path: '/api/operations/cashierfile?warehouseNo=110',
+              description: 'Kasiyer export isini kuyruga alir; warehouseNo yalniz admin depo secimi icindir'
             },
             {
               method: 'GET',
-              path: '/api/operations/promofile',
-              description: 'Promosyon ve yardimci POS dosyalari isini kuyruga alir'
+              path: '/api/operations/promofile?warehouseNo=110',
+              description: 'Promosyon ve yardimci POS dosyalari isini kuyruga alir; warehouseNo yalniz admin depo secimi icindir'
             },
             {
               method: 'GET',
@@ -79,7 +80,12 @@ export const CASH_REGISTER_TASK_SOURCE = {
       subtitle:
         'Tarih, belge ve manuel urun ekleme kaynaklarini kullanarak etiket onizleme ve baski alma gorevi.',
       baseRouteOrFile: '/api/kasa-islemleri/etiket-belgeleri',
-      highlights: ['Tarihe gore urun etiketi', 'Belge bazli yukleme', 'Baski onizleme ve yazdirma'],
+      highlights: [
+        'Tarihe gore urun etiketi',
+        'Admin icin opsiyonel warehouseNo query destegi',
+        'Belge bazli yukleme',
+        'Baski onizleme ve yazdirma'
+      ],
       listTitle: 'Etiket Basim Islem Akisi',
       items: [
         {
@@ -89,8 +95,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler?dateTimeFilter=...',
-              description: 'Belirli zamandan sonra fiyati degisen urunleri getirir'
+              path: '/api/kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler?dateTimeFilter=...&warehouseNo=110',
+              description: 'Belirli zamandan sonra fiyati degisen urunleri getirir; warehouseNo admin icin opsiyoneldir'
             },
             {
               method: 'GET',
@@ -104,8 +110,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-belgeleri/etiketler?dateToGet=...',
-              description: 'Secilen gun icin kunye/tag kayitlarini getirir'
+              path: '/api/kasa-islemleri/etiket-belgeleri/etiketler?dateToGet=...&warehouseNo=110',
+              description: 'Secilen gun icin kunye/tag kayitlarini getirir; warehouseNo admin icin opsiyoneldir'
             }
           ]
         }

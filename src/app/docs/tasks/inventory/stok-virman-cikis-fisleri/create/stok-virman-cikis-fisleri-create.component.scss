@@ -198,6 +198,29 @@ button:disabled {
   grid-column: span 2;
 }
 
+.warehouse-note {
+  display: grid;
+  gap: 0.16rem;
+  min-height: 32px;
+  padding: 0.34rem 0.5rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.warehouse-note span {
+  color: #64748b;
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.warehouse-note strong {
+  color: #0f172a;
+  font-size: 0.78rem;
+  line-height: 1.15;
+}
+
 .field span {
   color: #64748b;
   font-size: 0.58rem;

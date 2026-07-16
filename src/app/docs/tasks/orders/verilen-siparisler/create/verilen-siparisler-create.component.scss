@@ -396,6 +396,33 @@
   color: var(--danger);
 }
 
+.helper-inline {
+  color: #64748b;
+  font-size: 0.6rem;
+  line-height: 1.25;
+}
+
+.warehouse-note {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.38rem 0.55rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.warehouse-note span {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.warehouse-note strong {
+  color: var(--text);
+  font-size: 0.72rem;
+}
+
 .kalem-panel {
   flex: 1;
   display: flex;

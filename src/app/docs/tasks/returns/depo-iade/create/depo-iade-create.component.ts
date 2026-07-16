@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   FormArray,
   FormControl,
@@ -18,9 +18,16 @@ import { finalize } from 'rxjs';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
 import { IadeIslemleriService } from '../../../../../core/api/module-services/iade-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 interface KalemFormValue {
   stokKodu: string;
@@ -58,6 +65,7 @@ interface DepoIadeCreateDialogData {
   styleUrl: './depo-iade-create.component.scss'
 })
 export class DepoIadeCreateComponent extends DocsTaskDialogBase {
+  private readonly authService = inject(AuthService);
   private readonly aramaService = inject(AramaService);
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
   private readonly today = formatDateOnly(new Date());
@@ -65,6 +73,10 @@ export class DepoIadeCreateComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage =
     DOCS_PAGES[((this.data as DepoIadeCreateDialogData | null)?.pageId ?? 'giden-depo-iadeleri')] ??
     DOCS_PAGES['giden-depo-iadeleri'];
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly warehouseQuery = new FormControl('', { nonNullable: true });
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   protected readonly warehouseResults = signal<IFurpaWarehouseSearchItemApiDto[]>([]);
@@ -96,6 +108,7 @@ export class DepoIadeCreateComponent extends DocsTaskDialogBase {
       nonNullable: true,
       validators: [Validators.required]
     }),
+    adminWarehouseNo: new FormControl<number | null>(null),
     documentNo: new FormControl('', { nonNullable: true }),
     description: new FormControl('', { nonNullable: true }),
     kalemler: new FormArray<KalemFormGroup>([])
@@ -365,6 +378,7 @@ export class DepoIadeCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
 
     return {
+      sourceWarehouseNo: this.resolveRequestWarehouseNo(),
       targetWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       transitWarehouseNo: rawValue.transitWarehouseNo ?? 60,
       movementDate: rawValue.movementDate,
@@ -429,6 +443,16 @@ export class DepoIadeCreateComponent extends DocsTaskDialogBase {
   private normalizeOptionalText(value: string): string | null {
     const normalizedValue = value.trim();
     return normalizedValue ? normalizedValue : null;
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const adminWarehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value)
+      : null;
+
+    return adminWarehouseNo
+      ?? getCurrentWarehouseNo(this.authService.currentUser())
+      ?? undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

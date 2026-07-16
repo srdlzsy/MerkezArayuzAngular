@@ -26,8 +26,8 @@ export class DepolarArasiNakliyeMalKabulFisleriListComponent extends ApiTaskList
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisleri(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisleri(zamanlama, warehouseNo);
   }
 
   protected override getCreateButtonLabel(): string {

@@ -5,7 +5,10 @@
         <p class="eyebrow">Kasa Islemleri</p>
         <h2>{{ current.title }}</h2>
         <p class="header-meta">
-          {{ currentWarehouseLabel() }} - {{ generatedSeriePreview() }}
+          <ng-container *ngIf="isAdminUser(); else seriePreview">
+            {{ currentWarehouseLabel() }} - {{ generatedSeriePreview() }}
+          </ng-container>
+          <ng-template #seriePreview>{{ generatedSeriePreview() }}</ng-template>
         </p>
       </div>
 

@@ -43,8 +43,8 @@ export class SayimSonuclariListComponent extends ApiTaskListPageBase<
     return counters.size;
   });
 
-  protected override fetchRows(zamanlama: string) {
-    return this.sayimIslemleriService.getSayimSonuclariListe(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.sayimIslemleriService.getSayimSonuclariListe(zamanlama, warehouseNo);
   }
 
   protected override buildDetailData(row: IFurpaInventoryCountListItemApiDto): SayimSonuclariDetailDialogData {

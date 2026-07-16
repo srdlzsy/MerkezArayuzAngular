@@ -44,7 +44,11 @@
         </div>
 
         <div class="form-grid">
-       
+          <label class="field" *ngIf="isAdminUser()">
+            <span>Depo No</span>
+            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+          </label>
+
           <label class="field field-wide">
             <span>Virman Aciklamasi</span>
             <input type="text" formControlName="description" placeholder="Reyon duzenleme virmani" />

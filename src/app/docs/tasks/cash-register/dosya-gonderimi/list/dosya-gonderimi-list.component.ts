@@ -10,6 +10,7 @@ import {
   OperationJobDto,
   OperasyonIslemleriService
 } from '../../../../../core/api/module-services/operasyon-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 
@@ -18,6 +19,8 @@ type DosyaGonderimKey =
   | 'urun'
   | 'kasiyer'
   | 'promosyon';
+
+type OperationWarehouseScope = 'current' | 'all' | 'manual';
 
 interface DosyaGonderimAction {
   key: DosyaGonderimKey;
@@ -81,8 +84,11 @@ export class DosyaGonderimiListComponent {
   ];
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly authService = inject(AuthService);
   private readonly operasyonIslemleriService = inject(OperasyonIslemleriService);
 
+  protected readonly warehouseScope = signal<OperationWarehouseScope>('current');
+  protected readonly adminWarehouseNoInput = signal('');
   protected readonly activeAction = signal<DosyaGonderimKey | null>(null);
   protected readonly lastTriggeredAction = signal<DosyaGonderimKey | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
@@ -93,6 +99,33 @@ export class DosyaGonderimiListComponent {
   protected readonly authorizationSaving = signal(false);
   protected readonly authorizationHasChanges = signal(false);
   protected readonly isBusy = computed(() => this.activeAction() !== null);
+  protected readonly isAdminUser = computed(() => this.hasRole('Admin') || this.hasRole('Administrator'));
+  protected readonly currentWarehouseLabel = computed(() => {
+    const user = this.authService.currentUser();
+
+    if (user?.depoIsmi && user.depoNo !== null && user.depoNo !== undefined) {
+      return `${user.depoIsmi} (${user.depoNo})`;
+    }
+
+    return user?.depoNo !== null && user?.depoNo !== undefined ? `Depo ${user.depoNo}` : 'JWT deposu';
+  });
+  protected readonly selectedWarehouseScopeLabel = computed(() => {
+    if (!this.isAdminUser()) {
+      return this.currentWarehouseLabel();
+    }
+
+    switch (this.warehouseScope()) {
+      case 'manual': {
+        const warehouseNo = this.getManualWarehouseNo();
+        return warehouseNo ? `Depo ${warehouseNo}` : 'Depo no bekleniyor';
+      }
+      case 'all':
+        return 'Tum depolar';
+      case 'current':
+      default:
+        return this.currentWarehouseLabel();
+    }
+  });
   protected readonly activeActionCount = computed(
     () => this.actions.filter((action) => action.enabled).length
   );
@@ -156,6 +189,15 @@ export class DosyaGonderimiListComponent {
 
   protected triggerAction(key: DosyaGonderimKey): void {
     this.executeAction(key);
+  }
+
+  protected selectWarehouseScope(scope: OperationWarehouseScope): void {
+    if (!this.isAdminUser()) {
+      this.warehouseScope.set('current');
+      return;
+    }
+
+    this.warehouseScope.set(scope);
   }
 
   protected loadAuthorizationFiles(): void {
@@ -357,15 +399,17 @@ export class DosyaGonderimiListComponent {
   }
 
   private resolveRequest(key: DosyaGonderimKey): Observable<OperationJobDto> {
+    const warehouseNo = this.getAdminWarehouseNo();
+
     switch (key) {
       case 'terazi':
-        return this.operasyonIslemleriService.createScalesFileJob();
+        return this.operasyonIslemleriService.createScalesFileJob(warehouseNo);
       case 'urun':
-        return this.operasyonIslemleriService.createProductBarcodePluFileJob();
+        return this.operasyonIslemleriService.createProductBarcodePluFileJob(warehouseNo);
       case 'kasiyer':
-        return this.operasyonIslemleriService.createCashierFileJob();
+        return this.operasyonIslemleriService.createCashierFileJob(warehouseNo);
       case 'promosyon':
-        return this.operasyonIslemleriService.createPromoFileJob();
+        return this.operasyonIslemleriService.createPromoFileJob(warehouseNo);
     }
   }
 
@@ -431,6 +475,38 @@ export class DosyaGonderimiListComponent {
       errorMessage: null,
       files: []
     };
+  }
+
+  private getAdminWarehouseNo(): number | null {
+    if (!this.isAdminUser()) {
+      return null;
+    }
+
+    if (this.warehouseScope() === 'all') {
+      return null;
+    }
+
+    if (this.warehouseScope() === 'current') {
+      return this.currentWarehouseNo();
+    }
+
+    return this.getManualWarehouseNo();
+  }
+
+  private getManualWarehouseNo(): number | null {
+    const value = Number(this.adminWarehouseNoInput());
+    return Number.isFinite(value) && value > 0 ? value : null;
+  }
+
+  private currentWarehouseNo(): number | null {
+    const warehouseNo = this.authService.currentUser()?.depoNo;
+    return Number.isFinite(warehouseNo) ? Number(warehouseNo) : null;
+  }
+
+  private hasRole(role: string): boolean {
+    return (this.authService.currentUser()?.roller ?? []).some(
+      (value) => value.toLocaleLowerCase('tr-TR') === role.toLocaleLowerCase('tr-TR')
+    );
   }
 }
 

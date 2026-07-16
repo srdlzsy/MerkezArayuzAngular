@@ -145,39 +145,52 @@ export class MalKabulIslemleriService extends BaseApiService {
     );
   }
 
-  getToptanGirisIrsaliyeleri(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+  getToptanGirisIrsaliyeleri(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
-    return this.listCompanyReceipts({ startDate: range.startDate, endDate: range.endDate })
+    return this.listCompanyReceipts({ warehouseNo, startDate: range.startDate, endDate: range.endDate });
   }
 
-  getToptanGirisFaturalari(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
-    return this.getToptanGirisIrsaliyeleri(zamanlama);
+  getToptanGirisFaturalari(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+    return this.getToptanGirisIrsaliyeleri(zamanlama, warehouseNo);
   }
 
-  getPerakendeGirisFaturalari(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
-    return this.getToptanGirisIrsaliyeleri(zamanlama);
+  getPerakendeGirisFaturalari(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+    return this.getToptanGirisIrsaliyeleri(zamanlama, warehouseNo);
   }
 
   getDepoDagitimMalKabulFisleri(
-    zamanlama: string
+    zamanlama: string,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseReceiptListItemApiDto[]> {
-    return this.getDepolarArasiNakliyeMalKabulFisleri(zamanlama);
+    return this.getDepolarArasiNakliyeMalKabulFisleri(zamanlama, warehouseNo);
   }
 
   getDepolarArasiNakliyeMalKabulFisleri(
-    zamanlama: string
+    zamanlama: string,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseReceiptListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
-    return this.listWarehouseReceipts({ startDate: range.startDate, endDate: range.endDate });
+    return this.listWarehouseReceipts({ warehouseNo, startDate: range.startDate, endDate: range.endDate });
   }
 
   getMalKabulFarklari(
     zamanlama: string,
-    scope: IFurpaGoodsAcceptanceDifferenceScopeApiDto = 'accepted'
+    scope: IFurpaGoodsAcceptanceDifferenceScopeApiDto = 'accepted',
+    warehouseNo?: number
   ): Observable<IFurpaGoodsAcceptanceDifferenceApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
 
     return this.listGoodsAcceptanceDifferences({
+      warehouseNo,
       startDate: range.startDate,
       endDate: range.endDate,
       scope
@@ -186,23 +199,26 @@ export class MalKabulIslemleriService extends BaseApiService {
 
   getDepoDagitimMalKabulFisDetay(
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseReceiptDetailApiDto> {
-    return this.getDepolarArasiNakliyeMalKabulFisDetay(seri, sira);
+    return this.getDepolarArasiNakliyeMalKabulFisDetay(seri, sira, warehouseNo);
   }
 
   getDepolarArasiNakliyeMalKabulFisDetay(
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseReceiptDetailApiDto> {
-    return this.getWarehouseReceiptDetail(seri, sira);
+    return this.getWarehouseReceiptDetail(seri, sira, warehouseNo);
   }
 
   getDepolarArasiNakliyeMalKabulFisDetayApi(
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseReceiptDetailApiDto> {
-    return this.getDepolarArasiNakliyeMalKabulFisDetay(seri, sira);
+    return this.getDepolarArasiNakliyeMalKabulFisDetay(seri, sira, warehouseNo);
   }
 
   kabulEtDepoDagitimMalKabulFisi(
@@ -221,8 +237,11 @@ export class MalKabulIslemleriService extends BaseApiService {
     return this.acceptWarehouseReceipt(seri, sira, request);
   }
 
-  getGiderPusulasiGirisFisleri(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
-    return this.getToptanGirisIrsaliyeleri(zamanlama)
+  getGiderPusulasiGirisFisleri(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+    return this.getToptanGirisIrsaliyeleri(zamanlama, warehouseNo);
   }
 
   getGiderPusulasiGirisFisDetay(
@@ -232,8 +251,11 @@ export class MalKabulIslemleriService extends BaseApiService {
     return this.getCompanyReceiptDetail(seri, sira);
   }
 
-  getHaldenAlisGirisFaturalari(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
-    return this.getToptanGirisIrsaliyeleri(zamanlama);
+  getHaldenAlisGirisFaturalari(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+    return this.getToptanGirisIrsaliyeleri(zamanlama, warehouseNo);
   }
 
   createToptanGirisIrsaliyesi(

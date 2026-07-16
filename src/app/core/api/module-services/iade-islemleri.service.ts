@@ -99,17 +99,32 @@ export class IadeIslemleriService extends BaseApiService {
   }
 
   getFirmaIadeleri(
-    ...args: [number, string, string] | [string]
+    warehouseNo: number,
+    startDate: string,
+    endDate: string
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]>;
+  getFirmaIadeleri(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]>;
+  getFirmaIadeleri(
+    arg1: number | string,
+    arg2?: string | number,
+    arg3?: string
   ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
-    if (args.length === 1) {
-      const range = parseDateRangeToken(args[0]) ?? getDefaultDateRange();
-      return this.listCompanyReturns({ startDate: range.startDate, endDate: range.endDate });
+    if (typeof arg1 === 'string') {
+      const range = parseDateRangeToken(arg1) ?? getDefaultDateRange();
+      return this.listCompanyReturns({
+        warehouseNo: typeof arg2 === 'number' ? arg2 : undefined,
+        startDate: range.startDate,
+        endDate: range.endDate
+      });
     }
 
     return this.listCompanyReturns({
-      warehouseNo: args[0],
-      startDate: args[1],
-      endDate: args[2]
+      warehouseNo: arg1,
+      startDate: String(arg2 ?? ''),
+      endDate: String(arg3 ?? '')
     });
   }
 
@@ -129,7 +144,8 @@ export class IadeIslemleriService extends BaseApiService {
 
   getDepoIadeleri(
     zamanlama: string,
-    direction?: DepoIadeDirection
+    direction?: DepoIadeDirection,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseReturnListItemApiDto[]>;
   getDepoIadeleri(
     warehouseNo: number,
@@ -139,13 +155,16 @@ export class IadeIslemleriService extends BaseApiService {
   getDepoIadeleri(
     arg1: number | string,
     arg2?: string | DepoIadeDirection,
-    arg3?: string
+    arg3?: string | number,
+    arg4?: number
   ): Observable<IFurpaWarehouseReturnListItemApiDto[]> {
     if (typeof arg1 === 'string') {
       const range = parseDateRangeToken(arg1) ?? getDefaultDateRange();
       const direction: DepoIadeDirection = arg2 === 'gelen' ? 'gelen' : 'giden';
+      const warehouseNo = typeof arg3 === 'number' ? arg3 : arg4;
 
       return this.listWarehouseReturns(direction, {
+        warehouseNo,
         startDate: range.startDate,
         endDate: range.endDate
       });

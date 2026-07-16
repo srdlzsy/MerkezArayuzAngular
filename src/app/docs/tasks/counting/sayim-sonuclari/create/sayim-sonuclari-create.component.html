@@ -47,6 +47,11 @@
             <span>Sayim Tarihi *</span>
             <input type="date" formControlName="documentDate" />
           </label>
+
+          <label class="field" *ngIf="isAdminUser()">
+            <span>Depo No</span>
+            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+          </label>
         </div>
       </section>
 

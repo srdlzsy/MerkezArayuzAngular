@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   AbstractControl,
   FormArray,
@@ -28,6 +28,12 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { MalKabulIslemleriService, TaslakService } from '@core/api/module-services';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 interface KalemFormValue {
   taslakGuid: string;
@@ -96,6 +102,10 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   private readonly clientRequestId = generateClientRequestId();
 
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-mal-kabulleri'];
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly customerQuery = new FormControl('', { nonNullable: true });
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   protected readonly customerResults = signal<IFurpaCustomerSearchItemApiDto[]>([]);
@@ -145,6 +155,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     description: new FormControl('', { nonNullable: true }),
     allowOrderOverReceiving: new FormControl(false, { nonNullable: true }),
     autoCreateReturnForPartialAcceptance: new FormControl(true, { nonNullable: true }),
+    adminWarehouseNo: new FormControl<number | null>(null),
     kalemler: new FormArray<KalemFormGroup>([])
   };
   protected readonly form = new FormGroup(this.controls, { validators: [documentDateValidator] });
@@ -285,7 +296,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    const depoNo = this.authService.currentUser()?.depoNo;
+    const depoNo = this.resolveRequestWarehouseNo();
     if (depoNo === null || depoNo === undefined) {
       this.orderError.set('Aktif depo bilgisi bulunamadi.');
       return;
@@ -701,6 +712,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
 
     return {
       clientRequestId: this.clientRequestId,
+      warehouseNo: this.resolveRequestWarehouseNo(),
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       movementDate: rawValue.movementDate,
       documentDate: rawValue.documentDate,
@@ -808,6 +820,16 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   private normalizeOptionalText(value: string): string | null {
     const normalizedValue = value.trim();
     return normalizedValue ? normalizedValue : null;
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const adminWarehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value)
+      : null;
+
+    return adminWarehouseNo
+      ?? getCurrentWarehouseNo(this.authService.currentUser())
+      ?? undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

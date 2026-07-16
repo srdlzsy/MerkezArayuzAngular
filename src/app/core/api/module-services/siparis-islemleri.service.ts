@@ -245,16 +245,38 @@ export class SiparisIslemleriService extends BaseApiService {
   }
 
   getVerilenDepoSiparisleri(
-    ...args: [number, string, string] | [string]
+    warehouseNo: number,
+    startDate: string,
+    endDate: string
+  ): Observable<WarehouseOrderListItemDto[]>;
+  getVerilenDepoSiparisleri(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<WarehouseOrderListItemDto[]>;
+  getVerilenDepoSiparisleri(
+    arg1: number | string,
+    arg2?: string | number,
+    arg3?: string
   ): Observable<WarehouseOrderListItemDto[]> {
-    const request = this.resolveRangeRequest(args);
+    const request = this.resolveRangeRequest(arg1, arg2, arg3);
     return this.listIssuedWarehouseOrders(request);
   }
 
   getAlinanDepoSiparisleri(
-    ...args: [number, string, string] | [string]
+    warehouseNo: number,
+    startDate: string,
+    endDate: string
+  ): Observable<WarehouseOrderListItemDto[]>;
+  getAlinanDepoSiparisleri(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<WarehouseOrderListItemDto[]>;
+  getAlinanDepoSiparisleri(
+    arg1: number | string,
+    arg2?: string | number,
+    arg3?: string
   ): Observable<WarehouseOrderListItemDto[]> {
-    const request = this.resolveRangeRequest(args);
+    const request = this.resolveRangeRequest(arg1, arg2, arg3);
     return this.listReceivedWarehouseOrders(request);
   }
 
@@ -294,17 +316,25 @@ export class SiparisIslemleriService extends BaseApiService {
     return this.createReceivedWarehouseOrder(request);
   }
 
-  getVerilenSiparisler(zamanlama: string): Observable<CompanyOrderListItemDto[]> {
+  getVerilenSiparisler(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<CompanyOrderListItemDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
     return this.listIssuedCompanyOrders({
+      warehouseNo,
       startDate: range.startDate,
       endDate: range.endDate
     });
   }
 
-  getAlinanSiparisler(zamanlama: string): Observable<CompanyOrderListItemDto[]> {
+  getAlinanSiparisler(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<CompanyOrderListItemDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
     return this.listReceivedCompanyOrders({
+      warehouseNo,
       startDate: range.startDate,
       endDate: range.endDate
     });
@@ -407,9 +437,10 @@ export class SiparisIslemleriService extends BaseApiService {
   }
 
   getFirmaIcinOnerilenSiparisKalemleri(
-    customerCode: string
+    customerCode: string,
+    warehouseNo?: number
   ): Observable<CreateIssuedCompanyOrderLineHttpRequest[]> {
-    return this.listSuggestedCompanyOrders({ supplierCode: customerCode }).pipe(
+    return this.listSuggestedCompanyOrders({ supplierCode: customerCode, warehouseNo }).pipe(
       map((items: SuggestedCompanyOrderListItemDto[]) =>
         (items ?? []).map((item: SuggestedCompanyOrderListItemDto) => ({
           stockCode: item.stockCode,
@@ -429,9 +460,10 @@ export class SiparisIslemleriService extends BaseApiService {
   }
 
   getDepoIcinOnerilenSiparisKalemleri(
-    warehouseNo: number
+    warehouseNo: number,
+    targetWarehouseNo?: number
   ): Observable<CreateIssuedWarehouseOrderLineHttpRequest[]> {
-    return this.listSuggestedWarehouseOrders({ sourceWarehouseNo: warehouseNo }).pipe(
+    return this.listSuggestedWarehouseOrders({ sourceWarehouseNo: warehouseNo, targetWarehouseNo }).pipe(
       map((items: SuggestedWarehouseOrderListItemDto[]) =>
         (items ?? []).map((item: SuggestedWarehouseOrderListItemDto) => ({
           stockCode: item.stockCode,
@@ -449,20 +481,23 @@ export class SiparisIslemleriService extends BaseApiService {
   }
 
   private resolveRangeRequest(
-    args: [number, string, string] | [string]
+    arg1: number | string,
+    arg2?: string | number,
+    arg3?: string
   ): WarehouseOrderDateRangeHttpRequest {
-    if (args.length === 1) {
-      const range = parseDateRangeToken(args[0]) ?? getDefaultDateRange();
+    if (typeof arg1 === 'string') {
+      const range = parseDateRangeToken(arg1) ?? getDefaultDateRange();
       return {
+        warehouseNo: typeof arg2 === 'number' ? arg2 : undefined,
         startDate: range.startDate,
         endDate: range.endDate
       };
     }
 
     return {
-      warehouseNo: args[0],
-      startDate: args[1],
-      endDate: args[2]
+      warehouseNo: arg1,
+      startDate: String(arg2 ?? ''),
+      endDate: String(arg3 ?? '')
     };
   }
 }

@@ -48,7 +48,10 @@
             <input type="text" formControlName="acceptor" placeholder="SEF-02" />
           </label>
 
-        
+          <label class="field" *ngIf="isAdminUser()">
+            <span>Depo No</span>
+            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+          </label>
 
 
           <label class="field field-wide">

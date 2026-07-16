@@ -31,20 +31,23 @@ export function isOperationJobTerminalStatus(status: string | null | undefined):
   providedIn: 'root'
 })
 export class OperasyonIslemleriService extends BaseApiService {
-  createScalesFileJob() {
-    return this.get<OperationJobDto>('operations/scalesfile');
+  createScalesFileJob(warehouseNo?: number | null) {
+    return this.getWithOptionalWarehouse<OperationJobDto>('operations/scalesfile', warehouseNo);
   }
 
-  createProductBarcodePluFileJob() {
-    return this.get<OperationJobDto>('operations/productbarcodeplunofile');
+  createProductBarcodePluFileJob(warehouseNo?: number | null) {
+    return this.getWithOptionalWarehouse<OperationJobDto>(
+      'operations/productbarcodeplunofile',
+      warehouseNo
+    );
   }
 
-  createCashierFileJob() {
-    return this.get<OperationJobDto>('operations/cashierfile');
+  createCashierFileJob(warehouseNo?: number | null) {
+    return this.getWithOptionalWarehouse<OperationJobDto>('operations/cashierfile', warehouseNo);
   }
 
-  createPromoFileJob() {
-    return this.get<OperationJobDto>('operations/promofile');
+  createPromoFileJob(warehouseNo?: number | null) {
+    return this.getWithOptionalWarehouse<OperationJobDto>('operations/promofile', warehouseNo);
   }
 
   getJobDetail(jobId: string) {
@@ -82,6 +85,21 @@ export class OperasyonIslemleriService extends BaseApiService {
       'operasyon-islemleri/depo-operasyon-paneli',
       request
     );
+  }
+
+  private getWithOptionalWarehouse<TResponse>(
+    endpoint: string,
+    warehouseNo?: number | null
+  ): Observable<TResponse> {
+    const normalizedWarehouseNo = this.toOptionalWarehouseNo(warehouseNo);
+
+    return normalizedWarehouseNo === undefined
+      ? this.get<TResponse>(endpoint)
+      : this.getWithQuery<TResponse>(endpoint, { warehouseNo: normalizedWarehouseNo });
+  }
+
+  private toOptionalWarehouseNo(value?: number | null): number | undefined {
+    return typeof value === 'number' && Number.isFinite(value) && value > 0 ? value : undefined;
   }
 }
 

@@ -79,12 +79,14 @@ export class DepoIadeListComponent extends ApiTaskListPageBase<
       return `${baseRoute}?StartDate=YYYY-MM-DD&EndDate=YYYY-MM-DD`;
     }
 
-    return `${baseRoute}?StartDate=${startDate}&EndDate=${endDate}`;
+    const warehouseNo = this.resolveListWarehouseNo();
+    const warehouseQuery = warehouseNo ? `&WarehouseNo=${warehouseNo}` : '';
+    return `${baseRoute}?StartDate=${startDate}&EndDate=${endDate}${warehouseQuery}`;
   });
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.iadeIslemleriService.getDepoIadeleri(zamanlama, this.direction);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.iadeIslemleriService.getDepoIadeleri(zamanlama, this.direction, warehouseNo);
   }
 
   protected override buildDetailData(row: IFurpaWarehouseReturnListItemApiDto): DepoIadeDetailDialogData {

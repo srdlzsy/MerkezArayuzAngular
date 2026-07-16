@@ -51,8 +51,8 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.sevkIslemleriService.getDepolarArasiNakliyeSevkFisleri(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.sevkIslemleriService.getDepolarArasiNakliyeSevkFisleri(zamanlama, warehouseNo);
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaWarehouseShippingListItemApiDto>[] {

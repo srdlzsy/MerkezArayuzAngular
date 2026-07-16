@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   FormArray,
   FormControl,
@@ -18,9 +18,16 @@ import { finalize } from 'rxjs';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
 import { SiparisIslemleriService } from '../../../../../core/api/module-services/siparis-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 interface KalemFormValue {
   stokKodu: string;
@@ -56,6 +63,7 @@ type KalemFormGroup = FormGroup<{
 export class AlinanSiparislerCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
+  private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
 
   protected readonly page: DocsContentPage = DOCS_PAGES['alinan-firma-siparisleri'];
@@ -70,6 +78,10 @@ export class AlinanSiparislerCreateComponent extends DocsTaskDialogBase {
   protected readonly stockError = signal('');
   protected readonly submitError = signal('');
   protected readonly submitting = signal(false);
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   private customerRequestId = 0;
   private stockRequestId = 0;
 
@@ -98,6 +110,7 @@ export class AlinanSiparislerCreateComponent extends DocsTaskDialogBase {
     description2: new FormControl('', { nonNullable: true }),
     deliverer: new FormControl('', { nonNullable: true }),
     receiver: new FormControl('', { nonNullable: true }),
+    adminWarehouseNo: new FormControl<number | null>(null),
     kalemler: new FormArray<KalemFormGroup>([])
   };
   protected readonly form = new FormGroup(this.controls);
@@ -369,6 +382,7 @@ export class AlinanSiparislerCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
 
     return {
+      warehouseNo: this.resolveRequestWarehouseNo(),
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       orderDate: rawValue.orderDate,
       deliveryDate: rawValue.deliveryDate,
@@ -429,6 +443,16 @@ export class AlinanSiparislerCreateComponent extends DocsTaskDialogBase {
     return Array.from(uniqueStocks.values()).sort((left, right) =>
       (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr')
     );
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const adminWarehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value)
+      : null;
+
+    return adminWarehouseNo
+      ?? getCurrentWarehouseNo(this.authService.currentUser())
+      ?? undefined;
   }
 
   private normalizeOptionalText(value: string): string | null {

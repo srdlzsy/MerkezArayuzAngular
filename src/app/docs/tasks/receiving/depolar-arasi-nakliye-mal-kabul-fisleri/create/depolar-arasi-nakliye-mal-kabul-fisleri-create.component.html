@@ -53,6 +53,12 @@
             </small>
           </label>
 
+          <label class="field" *ngIf="isAdminUser()">
+            <span>Depo No</span>
+            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+            <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
+          </label>
+
           <button type="button" class="secondary-button fetch-button" [disabled]="loadingDetail()" (click)="loadReceiptDetail()">
             {{ loadingDetail() ? 'Evrak Yukleniyor...' : 'Evraki Getir' }}
           </button>

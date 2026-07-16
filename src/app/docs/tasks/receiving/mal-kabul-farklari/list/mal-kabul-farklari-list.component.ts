@@ -59,13 +59,16 @@ export class MalKabulFarklariListComponent extends ApiTaskListPageBase<
     const startDate = this.startDate().trim() || 'YYYY-MM-DD';
     const endDate = this.endDate().trim() || 'YYYY-MM-DD';
 
-    return `${this.page.baseRouteOrFile}?StartDate=${startDate}&EndDate=${endDate}&scope=${this.scope()}`;
+    const warehouseNo = this.resolveListWarehouseNo();
+    const warehouseQuery = warehouseNo ? `&WarehouseNo=${warehouseNo}` : '';
+
+    return `${this.page.baseRouteOrFile}?StartDate=${startDate}&EndDate=${endDate}&scope=${this.scope()}${warehouseQuery}`;
   });
 
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.malKabulIslemleriService.getMalKabulFarklari(zamanlama, this.scope());
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.malKabulIslemleriService.getMalKabulFarklari(zamanlama, this.scope(), warehouseNo);
   }
 
   protected updateScope(value: IFurpaGoodsAcceptanceDifferenceScopeApiDto): void {

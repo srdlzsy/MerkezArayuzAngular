@@ -113,6 +113,12 @@
               Zorunlu
             </small>
           </div>
+
+          <div class="contact-field" *ngIf="isAdminUser()">
+            <label>Depo No</label>
+            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+            <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
+          </div>
         </div>
 
 
@@ -170,4 +176,3 @@
     </form>
   </div>
 </section>
-

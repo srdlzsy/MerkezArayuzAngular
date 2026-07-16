@@ -175,36 +175,50 @@ export class SevkIslemleriService extends BaseApiService {
         );
   }
 
-  getToptanCikisIrsaliyeleri(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+  getToptanCikisIrsaliyeleri(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
-    return this.getGidenFirmaSevkleri(undefined, range.startDate, range.endDate);
+    return this.getGidenFirmaSevkleri(warehouseNo, range.startDate, range.endDate);
   }
 
-  getToptanCikisFaturalari(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+  getToptanCikisFaturalari(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
-    return this.getGelenFirmaSevkleri(undefined, range.startDate, range.endDate);
+    return this.getGelenFirmaSevkleri(warehouseNo, range.startDate, range.endDate);
   }
 
-  getPerakendeCikisIrsaliyeleri(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
-    return this.getToptanCikisIrsaliyeleri(zamanlama);
+  getPerakendeCikisIrsaliyeleri(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+    return this.getToptanCikisIrsaliyeleri(zamanlama, warehouseNo);
   }
 
-  getPerakendeCikisFaturalari(zamanlama: string): Observable<IFurpaCompanyMovementListItemApiDto[]> {
-    return this.getToptanCikisFaturalari(zamanlama);
+  getPerakendeCikisFaturalari(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaCompanyMovementListItemApiDto[]> {
+    return this.getToptanCikisFaturalari(zamanlama, warehouseNo);
   }
 
   getDepolarArasiNakliyeSevkFisleri(
-    zamanlama: string
+    zamanlama: string,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseShippingListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
-    return this.getGidenDepolarArasiSevkler(undefined, range.startDate, range.endDate);
+    return this.getGidenDepolarArasiSevkler(warehouseNo, range.startDate, range.endDate);
   }
 
   getDepoDagitimSevkFisleri(
-    zamanlama: string
+    zamanlama: string,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseShippingListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
-    return this.getGelenDepolarArasiSevkler(undefined, range.startDate, range.endDate);
+    return this.getGelenDepolarArasiSevkler(warehouseNo, range.startDate, range.endDate);
   }
 
   getDepolarArasiNakliyeSevkFisDetay(

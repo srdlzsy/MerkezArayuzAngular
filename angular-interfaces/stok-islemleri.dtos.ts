@@ -71,6 +71,7 @@ export interface StockReceiptDetailDto {
 }
 
 export interface CreateStockReceiptHttpRequest {
+  warehouseNo?: number;
   creator: string;
   acceptor: string;
   movementDate: string;
@@ -151,6 +152,7 @@ export interface InventoryCountDetailDto {
 }
 
 export interface CreateInventoryCountHttpRequest {
+  warehouseNo?: number;
   clientRequestId?: string;
   name: string;
   documentDate: string;
@@ -253,6 +255,16 @@ export interface LabelTagDto {
   manufacturer: string;
 }
 
+export interface LabelTagListHttpRequest {
+  warehouseNo?: number;
+  dateToGet: string;
+}
+
+export interface LabelPriceChangedProductListHttpRequest {
+  warehouseNo?: number;
+  dateTimeFilter: string;
+}
+
 export interface KunyeLabelTagDto extends LabelTagDto {
   stockCode: string;
   stockName: string;
@@ -261,6 +273,7 @@ export interface KunyeLabelTagDto extends LabelTagDto {
 }
 
 export interface CreateLabelDocumentHttpRequest {
+  warehouseNo?: number;
   lines: CreateLabelDocumentLineHttpRequest[];
 }
 
@@ -338,6 +351,7 @@ export interface VirmanDetailDto {
 }
 
 export interface CreateVirmanHttpRequest {
+  warehouseNo?: number;
   movementDate: string;
   documentDate: string;
   documentNo: string;

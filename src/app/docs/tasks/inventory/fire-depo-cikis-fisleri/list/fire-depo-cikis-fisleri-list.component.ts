@@ -25,8 +25,8 @@ export class FireDepoCikisFisleriListComponent extends ApiTaskListPageBase<IFurp
   protected readonly createComponent = FireDepoCikisFisleriCreateComponent;
   private readonly stokIslemleriService = inject(StokIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.stokIslemleriService.getSubeIciListe('FireDepoCikisFisleri', zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.stokIslemleriService.getSubeIciListe('FireDepoCikisFisleri', zamanlama, warehouseNo);
   }
 }
 

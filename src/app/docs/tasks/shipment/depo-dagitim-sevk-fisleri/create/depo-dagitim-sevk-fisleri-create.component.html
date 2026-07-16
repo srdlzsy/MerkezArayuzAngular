@@ -110,6 +110,11 @@
             <label>Hareket Tarihi *</label>
             <input type="date" formControlName="movementDate" />
           </div>
+          <div class="contact-field" *ngIf="isAdminUser()">
+            <label>Kaynak Depo No</label>
+            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+            <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
+          </div>
         </div>
 
         <div class="contact-row">

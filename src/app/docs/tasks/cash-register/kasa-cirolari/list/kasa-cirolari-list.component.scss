@@ -108,7 +108,7 @@
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(128px, 1fr)) minmax(104px, auto);
+  grid-template-columns: repeat(2, minmax(128px, 1fr)) minmax(108px, 0.62fr) minmax(104px, auto);
   align-items: end;
 }
 
@@ -174,6 +174,35 @@
   display: grid;
   gap: 0.18rem;
   min-width: 0;
+}
+
+.warehouse-chip {
+  display: grid;
+  gap: 0.14rem;
+  min-height: 2.12rem;
+  min-width: 128px;
+  padding: 0.32rem 0.5rem;
+  border: 1px solid var(--cash-border);
+  border-radius: 8px;
+  background: var(--cash-soft);
+  box-sizing: border-box;
+}
+
+.warehouse-chip span {
+  color: var(--cash-muted);
+  font-size: 0.58rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.warehouse-chip strong {
+  overflow: hidden;
+  color: var(--cash-ink);
+  font-size: 0.74rem;
+  line-height: 1.12;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .field input {
@@ -453,7 +482,7 @@
   }
 
   .filters-grid {
-    grid-template-columns: repeat(2, minmax(130px, 1fr)) auto;
+    grid-template-columns: repeat(2, minmax(130px, 1fr)) minmax(110px, 0.7fr) auto;
   }
 
   .metric-strip,

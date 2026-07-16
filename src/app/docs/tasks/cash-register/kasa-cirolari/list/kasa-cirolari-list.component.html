@@ -4,7 +4,7 @@
       <div class="title-block">
         <span class="section-kicker">Kasa Islemleri</span>
         <h2>{{ current.title }}</h2>
-        <p>{{ selectedDateRangeLabel() }} / {{ currentWarehouseLabel() }}</p>
+        <p>{{ selectedDateRangeLabel() }} / {{ selectedWarehouseLabel() }}</p>
       </div>
 
       <div class="source-tabs" aria-label="Kasa kaynagi">
@@ -55,6 +55,25 @@
             (input)="updateEndDate($any($event.target).value ?? '')"
           />
         </label>
+
+        <label class="field" *ngIf="isAdminUser(); else lockedWarehouse">
+          <span>Depo No</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [value]="adminWarehouseNo()"
+            placeholder="Tum"
+            (input)="updateAdminWarehouseNo($any($event.target).value ?? '')"
+          />
+        </label>
+
+        <ng-template #lockedWarehouse>
+          <div class="warehouse-chip" title="JWT deposu">
+            <span>Depo</span>
+            <strong>{{ selectedWarehouseLabel() }}</strong>
+          </div>
+        </ng-template>
 
         <button
           type="button"
@@ -134,6 +153,7 @@
         <div class="overview-actions">
           <div class="scope-switch" *ngIf="overviewPanelOpen()">
             <button
+              *ngIf="isAdminUser()"
               type="button"
               class="scope-pill"
               [class.is-active]="overviewScope() === 'all'"

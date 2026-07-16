@@ -52,8 +52,8 @@ export class FirmaIadeListComponent extends ApiTaskListPageBase<IFurpaCompanyMov
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.iadeIslemleriService.getFirmaIadeleri(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.iadeIslemleriService.getFirmaIadeleri(zamanlama, warehouseNo);
   }
 
   protected override getInitialStartDate(): string {

@@ -27,8 +27,8 @@ export class DepoDagitimSevkFisleriListComponent extends ApiTaskListPageBase<IFu
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.sevkIslemleriService.getDepoDagitimSevkFisleri(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.sevkIslemleriService.getDepoDagitimSevkFisleri(zamanlama, warehouseNo);
   }
 }
 

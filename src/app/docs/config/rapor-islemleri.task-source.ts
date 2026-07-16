@@ -11,6 +11,7 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       baseRouteOrFile: '/api/rapor-islemleri/tedarikci-performans-karnesi',
       highlights: [
         'Liste endpointi SupplierPerformanceHttpRequest query modelini kullanir',
+        'Normal kullanici aktif JWT deposuyla sinirlanir; Tum Depolar yalniz Admin/Administrator icindir',
         'Detay endpointi tedarikci kodu ile kaynak olay zaman cizelgesini getirir',
         'Fatura metrikleri summary-only olarak gelen ve bizim kestigimiz toplamlar halinde ayri gosterilir',
         'Skor 100 uzerinden hesaplanir; risk seviyesi Healthy, Warning veya Critical olur'

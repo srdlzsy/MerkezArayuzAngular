@@ -48,7 +48,8 @@ import { BaseApiService } from '../base-api.service';
 export class StokIslemleriService extends BaseApiService {
   getSubeIciListe(
     controllerName: string,
-    zamanlama: string
+    zamanlama: string,
+    warehouseNo?: number
   ): Observable<IFurpaStockReceiptListItemApiDto[]> {
     const endpoint = this.resolveSubeIciEndpoint(controllerName);
 
@@ -61,6 +62,7 @@ export class StokIslemleriService extends BaseApiService {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
 
     return this.getWithQuery<IFurpaStockReceiptListItemApiDto[]>(endpoint, {
+      WarehouseNo: warehouseNo,
       StartDate: range.startDate,
       EndDate: range.endDate
     });
@@ -100,10 +102,15 @@ export class StokIslemleriService extends BaseApiService {
     );
   }
 
-  getVirmanListe(_controllerName: string, zamanlama: string): Observable<IFurpaVirmanListItemApiDto[]> {
+  getVirmanListe(
+    _controllerName: string,
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaVirmanListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
 
     return this.getWithQuery<IFurpaVirmanListItemApiDto[]>('stok-islemleri/virmanlar', {
+      WarehouseNo: warehouseNo,
       StartDate: range.startDate,
       EndDate: range.endDate
     });
@@ -127,10 +134,14 @@ export class StokIslemleriService extends BaseApiService {
     );
   }
 
-  getSayimSonuclari(zamanlama: string): Observable<IFurpaInventoryCountListItemApiDto[]> {
+  getSayimSonuclari(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaInventoryCountListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
 
     return this.getWithQuery<IFurpaInventoryCountListItemApiDto[]>('stok-islemleri/sayim-sonuclari', {
+      WarehouseNo: warehouseNo,
       StartDate: range.startDate,
       EndDate: range.endDate
     });

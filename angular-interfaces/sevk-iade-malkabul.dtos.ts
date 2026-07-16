@@ -76,6 +76,7 @@ export interface WarehouseShippingDetailDto {
 }
 
 export interface CreateInterWarehouseShipmentHttpRequest {
+  sourceWarehouseNo?: number;
   targetWarehouseNo: number;
   transitWarehouseNo?: number;
   movementDate: string;
@@ -215,6 +216,7 @@ export interface CompanyMovementDetailDto {
 }
 
 export interface CreateCompanyMovementHttpRequest {
+  warehouseNo?: number;
   customerCode: string;
   movementDate: string;
   documentDate: string;
@@ -255,6 +257,7 @@ export interface CreateCompanyMovementResponse {
 // ============================================================================
 
 export interface CreateWarehouseReturnHttpRequest {
+  sourceWarehouseNo?: number;
   targetWarehouseNo: number;
   transitWarehouseNo?: number;
   movementDate: string;
@@ -297,6 +300,7 @@ export interface CreateWarehouseReturnResponse {
 // ============================================================================
 
 export interface AcceptWarehouseReceivingHttpRequest {
+  warehouseNo?: number;
   allowDiscrepancy: boolean;
   lines: AcceptWarehouseReceivingLineHttpRequest[];
 }
@@ -373,6 +377,7 @@ export interface GoodsAcceptanceDifferenceDto {
 // ============================================================================
 
 export interface CreateCompanyReceivingHttpRequest {
+  warehouseNo?: number;
   clientRequestId?: string;
   customerCode: string;
   movementDate: string;

@@ -68,6 +68,14 @@
   line-height: 1.5;
 }
 
+.control-tools {
+  display: flex;
+  flex: 0 0 auto;
+  align-items: stretch;
+  justify-content: flex-end;
+  gap: 0.6rem;
+}
+
 .control-indicator {
   display: inline-flex;
   align-items: center;
@@ -77,6 +85,101 @@
   border: 1px solid #d8e1ec;
   border-radius: 999px;
   background: #f8fafc;
+}
+
+.warehouse-scope-card {
+  display: grid;
+  grid-template-columns: minmax(140px, 1fr) auto;
+  gap: 0.5rem;
+  min-width: 330px;
+  align-items: center;
+  border: 1px solid #d8e1ec;
+  border-radius: 12px;
+  padding: 0.5rem;
+  background: #fff;
+}
+
+.warehouse-scope-card > div:first-child {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.warehouse-scope-card span,
+.warehouse-input span {
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.warehouse-scope-card strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.warehouse-segment {
+  display: inline-grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.18rem;
+  border: 1px solid #d8e1ec;
+  border-radius: 10px;
+  padding: 0.18rem;
+  background: #f8fafc;
+}
+
+.warehouse-segment button {
+  min-height: 1.9rem;
+  border: 0;
+  border-radius: 8px;
+  padding: 0.2rem 0.5rem;
+  color: #475569;
+  background: transparent;
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.warehouse-segment button.is-active {
+  color: #0f766e;
+  background: #e8f7f4;
+}
+
+.warehouse-segment button:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.warehouse-input {
+  grid-column: 1 / -1;
+  display: grid;
+  gap: 0.22rem;
+}
+
+.warehouse-input input {
+  width: 100%;
+  min-height: 2.35rem;
+  padding: 0.52rem 0.65rem;
+  border: 1px solid #d8e1ec;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #0f172a;
+  font: inherit;
+}
+
+.warehouse-locked {
+  justify-self: end;
+  border-radius: 999px;
+  padding: 0.34rem 0.56rem;
+  color: #0f766e;
+  background: #e8f7f4;
+  font-size: 0.74rem;
+  font-weight: 900;
 }
 
 .control-indicator.is-busy {
@@ -459,6 +562,16 @@
     align-items: start;
   }
 
+  .control-tools {
+    width: 100%;
+    flex-wrap: wrap;
+    justify-content: flex-start;
+  }
+
+  .warehouse-scope-card {
+    min-width: min(100%, 360px);
+  }
+
   .authorization-head {
     flex-direction: column;
   }
@@ -474,5 +587,15 @@
 
   .action-grid {
     grid-template-columns: 1fr;
+  }
+
+  .control-tools,
+  .warehouse-scope-card {
+    display: grid;
+    width: 100%;
+  }
+
+  .warehouse-scope-card {
+    min-width: 0;
   }
 }

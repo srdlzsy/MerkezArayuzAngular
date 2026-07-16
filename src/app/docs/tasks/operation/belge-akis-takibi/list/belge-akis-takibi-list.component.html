@@ -7,10 +7,19 @@
         <p>{{ page.subtitle }}</p>
       </div>
 
-      <div class="permission-strip">
-        <span [class.is-active]="canList()">Liste</span>
-        <span [class.is-active]="canDetail()">Detay</span>
-        <span [class.is-active]="isAdminUser()">Admin Depo Filtresi</span>
+      <div class="permission-strip" aria-label="Belge akis ozeti">
+        <article>
+          <span>Kapsam</span>
+          <strong>{{ flowScopeLabel() }}</strong>
+        </article>
+        <article>
+          <span>Yetki</span>
+          <strong>{{ isAdminUser() ? 'Admin' : 'Kullanici' }}</strong>
+        </article>
+        <article>
+          <span>Takip</span>
+          <strong>{{ trackingEnabled() ? 'Aktif' : 'Kapali' }}</strong>
+        </article>
       </div>
     </header>
 
@@ -22,12 +31,8 @@
     <article class="audit-scope-note" aria-label="Mikro API yazma audit kapsami">
       <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
       <div>
-        <strong>Mikro API teknik audit kayitlari ayri tutulur</strong>
-        <span>
-          Bu ekran is surecindeki belge akislarini gosterir. Mikro HTTP yazma sonuclari
-          <code>mikro_api_write_audits</code> tablosunda izlenir; henuz UI liste veya detay
-          endpointi olmadigi icin bu ekranda audit alani gosterilmez.
-        </span>
+        <strong>Mikro API audit</strong>
+        <span><code>mikro_api_write_audits</code> kayitlari teknik izleme tarafinda tutulur.</span>
       </div>
     </article>
 
@@ -53,6 +58,11 @@
             (keyup.enter)="loadFlows()"
           />
         </label>
+
+        <div class="scope-readonly" *ngIf="!isAdminUser()">
+          <span>Depo Kapsami</span>
+          <strong>{{ currentWarehouseLabel() }}</strong>
+        </div>
 
         <label class="field">
           <span>Baslangic</span>

@@ -14,10 +14,14 @@ import {
   providedIn: 'root'
 })
 export class SayimIslemleriService extends BaseApiService {
-  getSayimSonuclariListe(zamanlama: string): Observable<IFurpaInventoryCountListItemApiDto[]> {
+  getSayimSonuclariListe(
+    zamanlama: string,
+    warehouseNo?: number
+  ): Observable<IFurpaInventoryCountListItemApiDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
 
     return this.getWithQuery<IFurpaInventoryCountListItemApiDto[]>('stok-islemleri/sayim-sonuclari', {
+      WarehouseNo: warehouseNo,
       StartDate: range.startDate,
       EndDate: range.endDate
     });

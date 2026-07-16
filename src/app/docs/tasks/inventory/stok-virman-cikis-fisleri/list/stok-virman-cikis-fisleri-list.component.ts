@@ -25,8 +25,8 @@ export class StokVirmanCikisFisleriListComponent extends ApiTaskListPageBase<IFu
   protected readonly createComponent = StokVirmanCikisFisleriCreateComponent;
   private readonly stokIslemleriService = inject(StokIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.stokIslemleriService.getVirmanListe('StokVirmanCikisFisleri', zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.stokIslemleriService.getVirmanListe('StokVirmanCikisFisleri', zamanlama, warehouseNo);
   }
 }
 

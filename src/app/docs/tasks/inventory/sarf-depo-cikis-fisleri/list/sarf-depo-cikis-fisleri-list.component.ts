@@ -25,8 +25,8 @@ export class SarfDepoCikisFisleriListComponent extends ApiTaskListPageBase<IFurp
   protected readonly createComponent = SarfDepoCikisFisleriCreateComponent;
   private readonly stokIslemleriService = inject(StokIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.stokIslemleriService.getSubeIciListe('SarfDepoCikisFisleri', zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.stokIslemleriService.getSubeIciListe('SarfDepoCikisFisleri', zamanlama, warehouseNo);
   }
 }
 

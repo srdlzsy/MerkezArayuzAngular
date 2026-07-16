@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   FormArray,
   FormControl,
@@ -17,9 +17,16 @@ import { finalize } from 'rxjs';
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { SayimIslemleriService } from '../../../../../core/api/module-services/sayim-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 type SayimLineFormGroup = FormGroup<{
   stockCode: FormControl<string>;
@@ -47,8 +54,13 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
 
   private readonly aramaService = inject(AramaService);
   private readonly sayimIslemleriService = inject(SayimIslemleriService);
+  private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
   private stockRequestId = 0;
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
 
   protected readonly form = new FormGroup({
     name: new FormControl('', {
@@ -59,6 +71,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
       nonNullable: true,
       validators: [Validators.required]
     }),
+    adminWarehouseNo: new FormControl<number | null>(null),
     lines: new FormArray<SayimLineFormGroup>([])
   });
 
@@ -189,6 +202,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
 
     return {
+      warehouseNo: this.resolveRequestWarehouseNo(),
       name: rawValue.name.trim(),
       documentDate: rawValue.documentDate,
       lines: rawValue.lines.map((line) => ({
@@ -236,6 +250,16 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   private normalizeNumber(value: number | null | undefined): number {
     const normalizedValue = Number(value ?? 0);
     return Number.isFinite(normalizedValue) ? normalizedValue : 0;
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const adminWarehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.form.controls.adminWarehouseNo.value)
+      : null;
+
+    return adminWarehouseNo
+      ?? getCurrentWarehouseNo(this.authService.currentUser())
+      ?? undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

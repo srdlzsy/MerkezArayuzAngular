@@ -25,7 +25,7 @@ export class VerilenDepoSiparisleriListComponent extends ApiTaskListPageBase<IFu
   protected readonly createComponent = VerilenDepoSiparisleriCreateComponent;
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.siparisIslemleriService.getVerilenDepoSiparisleri(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.siparisIslemleriService.getVerilenDepoSiparisleri(zamanlama, warehouseNo);
   }
 }

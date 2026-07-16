@@ -27,6 +27,7 @@ import { KasaIslemleriService } from '../../../../../core/api/module-services/ka
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { currentUserIsAdmin } from '../../../core/admin-warehouse.helpers';
 
 type BanknoteLineFormGroup = FormGroup<{
   banknoteType: FormControl<number | null>;
@@ -105,6 +106,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected readonly page: DocsContentPage = DOCS_PAGES['kasa-sayimlari'];
   protected readonly endpointPath = '/api/kasa-islemleri/kasa-sayimlari';
   protected readonly payloadName = 'CreateCashSummaryHttpRequest';
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
   );

@@ -7,12 +7,13 @@ export const COMMON_TASK_SOURCE = {
       id: 'sikayet-oneri',
       title: 'Sikayet Oneri',
       subtitle:
-        'Home uzerinden acilan sikayet ve onerileri rol kapsamina gore izler; admin aksiyonlarini ayri yonetir.',
+        'Home veya yonetim ekranindan acilan sikayet ve onerileri rol kapsamina gore izler; yeni kayit ve admin aksiyonlarini ayri yonetir.',
       baseRouteOrFile: '/api/ortak-islemler/sikayet-oneri',
       highlights: [
         'Home endpointleri login olan her kullanici icin aciktir',
+        'Yeni sikayet/oneri kaydi home veya yonetim ekranindan olusturulabilir',
         'Admin/Administrator tum kayitlari ve depo filtresini kullanir',
-        'Admin olmayan kullanici sadece kendi actigi kayitlari salt okunur gorur',
+        'Admin olmayan kullanici kendi actigi kayitlari gorur; okundu/durum/admin notu aksiyonlari salt okunurdur',
         'Okundu ve durum/admin notu aksiyonlari sadece Admin/Administrator icin aciktir'
       ],
       listTitle: 'Endpointler',
@@ -42,6 +43,12 @@ export const COMMON_TASK_SOURCE = {
               path: '/api/ortak-islemler/sikayet-oneri/{id}/durum',
               description: 'Admin kaydin durumunu ve yonetim notunu gunceller',
               payload: 'ChangeFeedbackStatusHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/home/sikayet-oneri',
+              description: 'Home veya yonetim ekranindan yeni sikayet/oneri kaydi olusturur',
+              payload: 'CreateFeedbackItemHttpRequest'
             }
           ]
         }

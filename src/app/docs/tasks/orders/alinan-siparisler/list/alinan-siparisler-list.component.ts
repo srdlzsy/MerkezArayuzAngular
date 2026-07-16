@@ -26,8 +26,8 @@ export class AlinanSiparislerListComponent extends ApiTaskListPageBase<IFurpaCom
   protected override readonly canCreate = false;
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.siparisIslemleriService.getAlinanSiparisler(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.siparisIslemleriService.getAlinanSiparisler(zamanlama, warehouseNo);
   }
 
   protected override getInitialStartDate(): string {

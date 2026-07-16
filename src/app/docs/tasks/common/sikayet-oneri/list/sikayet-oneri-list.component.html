@@ -23,6 +23,11 @@
           <span>Final</span>
           <strong>{{ finalCount() }}</strong>
         </article>
+        <article>
+          <button type="button" class="task-action task-action-primary" (click)="openCreateModal()">
+            Yeni Sikayet/Oneri
+          </button>
+        </article>
       </div>
     </header>
 
@@ -251,4 +256,82 @@
       </aside>
     </section>
   </article>
-</section>
+
+  <section class="modal-backdrop" *ngIf="createModalOpen()" (click)="closeCreateModal()">
+    <form
+      class="feedback-modal"
+      [formGroup]="feedbackForm"
+      (click)="$event.stopPropagation()"
+      (ngSubmit)="submitCreateForm()"
+      novalidate
+    >
+      <header class="feedback-head">
+        <div>
+          <span class="section-kicker">Yeni Kayit</span>
+          <h3>Sikayet / Oneri Gonder</h3>
+        </div>
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="closeCreateModal()"
+          [disabled]="submittingFeedback()"
+        >
+          Kapat
+        </button>
+      </header>
+
+      <div class="modal-grid">
+        <label class="field">
+          <span>Tip</span>
+          <select formControlName="type">
+            <option *ngFor="let option of feedbackTypeOptions" [ngValue]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Oncelik</span>
+          <select formControlName="priority">
+            <option *ngFor="let option of feedbackPriorityOptions" [ngValue]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field field-wide">
+          <span>Baslik</span>
+          <input type="text" formControlName="title" maxlength="120" autocomplete="off" />
+        </label>
+
+        <label class="field field-wide">
+          <span>Mesaj</span>
+          <textarea formControlName="message" maxlength="2000" rows="7"></textarea>
+        </label>
+      </div>
+
+      <article
+        class="feedback-message"
+        *ngIf="createModelMessage() as currentMessage"
+        [class.message-error]="currentMessage.tone === 'error'"
+        [class.message-success]="currentMessage.tone === 'success'"
+      >
+        <strong>{{ currentMessage.title }}</strong>
+        <span>{{ currentMessage.message }}</span>
+      </article>
+
+      <div class="modal-actions">
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="closeCreateModal()"
+          [disabled]="submittingFeedback()"
+        >
+          Vazgec
+        </button>
+        <button type="submit" class="task-action task-action-primary" [disabled]="submittingFeedback()">
+          {{ submittingFeedback() ? 'Gonderiliyor...' : 'Gonder' }}
+        </button>
+      </div>
+    </form>
+  </section>

@@ -26,7 +26,7 @@ export class ToptanGirisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
 
-  protected override fetchRows(zamanlama: string) {
-    return this.malKabulIslemleriService.getToptanGirisIrsaliyeleri(zamanlama);
+  protected override fetchRows(zamanlama: string, warehouseNo?: number) {
+    return this.malKabulIslemleriService.getToptanGirisIrsaliyeleri(zamanlama, warehouseNo);
   }
 }

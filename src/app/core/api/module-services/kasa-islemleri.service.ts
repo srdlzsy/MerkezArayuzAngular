@@ -72,6 +72,8 @@ import {
   UpdateCashSummaryBanknotesResponse,
   DeleteCashSummaryResponse,
   CashSummaryDateHttpRequest,
+  LabelPriceChangedProductListHttpRequest,
+  LabelTagListHttpRequest,
   WarehouseOrderDateRangeHttpRequest,
   YeniKasaAnalizHttpRequest,
   YeniKasaAnomalyItemDto,
@@ -97,25 +99,34 @@ import { BaseApiService } from '../base-api.service';
   providedIn: 'root'
 })
 export class KasaIslemleriService extends BaseApiService {
-  getUrunEtiketleri(zamanlama: string): Observable<IEtiketBasimProduct[]> {
+  getUrunEtiketleri(
+    zamanlama: string,
+    warehouseNo?: number | null
+  ): Observable<IEtiketBasimProduct[]> {
     const dateTimeFilter = formatDateTimeFilter(zamanlama);
 
     if (!dateTimeFilter) {
       return of([]);
     }
 
-    return this.getWithQuery<IFurpaLabelDocumentProductApiDto[]>('kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler', {
-      dateTimeFilter
-    });
+    const request: LabelPriceChangedProductListHttpRequest = {
+      dateTimeFilter,
+      warehouseNo: warehouseNo ?? undefined
+    };
+
+    return this.getWithQuery<
+      IFurpaLabelDocumentProductApiDto[],
+      LabelPriceChangedProductListHttpRequest
+    >('kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler', request);
   }
 
   getEtiketBelgesi(docId: number): Observable<IEtiketBasimProduct[]> {
     return this.get<IFurpaLabelDocumentProductApiDto[]>(`kasa-islemleri/etiket-belgeleri/${docId}`);
   }
 
-  getEklenenSonOnEtiketBelgesi(warehouseNo: number): Observable<ILabelDocument[]> {
+  getEklenenSonOnEtiketBelgesi(warehouseNo?: number | null): Observable<ILabelDocument[]> {
     return this.getWithQuery<IFurpaLabelDocumentListItemApiDto[]>('kasa-islemleri/etiket-belgeleri/son', {
-      warehouseNo,
+      warehouseNo: warehouseNo ?? undefined,
       take: 10
     });
   }
@@ -124,10 +135,16 @@ export class KasaIslemleriService extends BaseApiService {
     return of([]);
   }
 
-  getKunyeler(tarih: string): Observable<IKunyeTag[]> {
-    return this.getWithQuery<IFurpaLabelTagApiDto[]>('kasa-islemleri/kunye-etiket-yazdirma', {
-      dateToGet: tarih.slice(0, 10)
-    });
+  getKunyeler(tarih: string, warehouseNo?: number | null): Observable<IKunyeTag[]> {
+    const request: LabelTagListHttpRequest = {
+      dateToGet: tarih.slice(0, 10),
+      warehouseNo: warehouseNo ?? undefined
+    };
+
+    return this.getWithQuery<IFurpaLabelTagApiDto[], LabelTagListHttpRequest>(
+      'kasa-islemleri/kunye-etiket-yazdirma',
+      request
+    );
   }
 
   getManavKunyeEtiketleri(

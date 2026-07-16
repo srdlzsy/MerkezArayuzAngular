@@ -77,6 +77,7 @@ p {
 
 .head-summary,
 .scope-switch,
+.scope-readonly,
 .primary-action,
 .request-line,
 .table-context,
@@ -242,6 +243,32 @@ p {
   border-radius: 8px;
   padding: 0.25rem;
   background: #fff;
+}
+
+.scope-readonly {
+  min-height: 2.1rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border: 1px solid var(--supplier-border);
+  border-radius: 8px;
+  padding: 0.25rem 0.55rem;
+  background: #fff;
+}
+
+.scope-readonly span {
+  color: var(--supplier-muted);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scope-readonly strong {
+  overflow: hidden;
+  color: var(--supplier-ink);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .scope-switch button,

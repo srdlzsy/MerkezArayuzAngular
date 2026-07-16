@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, inject, signal } from '@angular/core';
+import { Component, computed, inject, signal } from '@angular/core';
 import {
   FormArray,
   FormControl,
@@ -17,9 +17,16 @@ import type {
 import { Observable, finalize } from 'rxjs';
 
 import { MalKabulIslemleriService } from '../../../../../core/api/module-services/mal-kabul-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 interface MalKabulDialogData {
   seri?: string;
@@ -48,8 +55,13 @@ type KabulKalemFormGroup = FormGroup<{
 })
 export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskDialogBase<MalKabulDialogData> {
   protected readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
+  private readonly authService = inject(AuthService);
 
   protected readonly page: DocsContentPage = DOCS_PAGES['depo-mal-kabulleri'];
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly loadingDetail = signal(false);
   protected readonly submitting = signal(false);
   protected readonly loadError = signal('');
@@ -64,6 +76,7 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
     sira: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(0)]
     }),
+    adminWarehouseNo: new FormControl<number | null>(null),
     allowDiscrepancy: new FormControl(false, { nonNullable: true }),
     lines: new FormArray<KabulKalemFormGroup>([])
   };
@@ -270,7 +283,11 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
     seri: string,
     sira: number
   ): Observable<IFurpaWarehouseReceiptDetailApiDto> {
-    return this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisDetayApi(seri, sira);
+    return this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisDetayApi(
+      seri,
+      sira,
+      this.resolveRequestWarehouseNo()
+    );
   }
 
   protected acceptReceiptRequest(
@@ -313,6 +330,7 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
     const rawValue = this.form.getRawValue();
 
     return {
+      warehouseNo: this.resolveRequestWarehouseNo(),
       allowDiscrepancy: rawValue.allowDiscrepancy,
       lines: rawValue.lines.map((line) => ({
         movementGuid: line.movementGuid.trim(),
@@ -339,6 +357,16 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
 
   private roundQuantity(value: number): number {
     return Math.round((value + Number.EPSILON) * 1000) / 1000;
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const adminWarehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value)
+      : null;
+
+    return adminWarehouseNo
+      ?? getCurrentWarehouseNo(this.authService.currentUser())
+      ?? undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

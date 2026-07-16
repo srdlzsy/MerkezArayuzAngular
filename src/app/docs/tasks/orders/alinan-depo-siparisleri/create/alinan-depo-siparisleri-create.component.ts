@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, effect, inject, signal } from '@angular/core';
+import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   FormArray,
   FormControl,
@@ -22,6 +22,12 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 interface KalemFormValue {
   stokKodu: string;
@@ -61,6 +67,10 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   private readonly today = formatDateOnly(new Date());
 
   protected readonly page: DocsContentPage = DOCS_PAGES['alinan-depo-siparisleri'];
+  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly warehouseQuery = new FormControl('', { nonNullable: true });
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   protected readonly warehouseResults = signal<IFurpaWarehouseSearchItemApiDto[]>([]);
@@ -94,6 +104,7 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       validators: [Validators.required]
     }),
     description: new FormControl('', { nonNullable: true }),
+    adminWarehouseNo: new FormControl<number | null>(null),
     kalemler: new FormArray<KalemFormGroup>([])
   };
   protected readonly form = new FormGroup(this.controls);
@@ -360,6 +371,7 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
 
     return {
+      inWarehouseNo: this.resolveRequestWarehouseNo(),
       outWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       orderDate: rawValue.orderDate,
       deliveryDate: rawValue.deliveryDate,
@@ -422,6 +434,16 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
   private getCurrentDisplayName(): string {
     return this.authService.currentUser()?.displayName?.trim() || 'Kullanici';
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const adminWarehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value)
+      : null;
+
+    return adminWarehouseNo
+      ?? getCurrentWarehouseNo(this.authService.currentUser())
+      ?? undefined;
   }
 
   private normalizeOptionalText(value: string): string | null {

@@ -6,6 +6,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, finalize } from 'rxjs';
 
 import { DocsContentPage } from '../../../models/docs.models';
+import { AuthService } from '../../../../core/auth/services/auth.service';
 import {
   ApiListTableActionEvent,
   ApiListTableColumn,
@@ -16,6 +17,12 @@ import {
   PdfPreviewDialogComponent,
   PdfPreviewDialogData
 } from '../pdf-preview-dialog/pdf-preview-dialog.component';
+import {
+  currentUserIsAdmin,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../admin-warehouse.helpers';
 
 @Directive()
 export abstract class ApiTaskListPageBase<
@@ -31,14 +38,30 @@ export abstract class ApiTaskListPageBase<
 
   protected readonly dialog = inject(Dialog);
   protected readonly destroyRef = inject(DestroyRef);
+  private readonly listAuthService = inject(AuthService);
   private activeRequestId = 0;
 
   protected readonly startDate = signal(this.getdayoffsetfromtoday(-0));
   protected readonly endDate = signal(this.getInitialEndDate());
+  protected readonly adminWarehouseNo = signal('');
   protected readonly rows = signal<Row[]>([]);
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastLoadedAt = signal<string | null>(null);
+  protected readonly isAdminUser = computed(() =>
+    currentUserIsAdmin(this.listAuthService.currentUser())
+  );
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.listAuthService.currentUser())
+  );
+  protected readonly selectedWarehouseLabel = computed(() => {
+    if (!this.isAdminUser()) {
+      return this.currentWarehouseLabel();
+    }
+
+    const warehouseNo = this.getAdminWarehouseNo();
+    return warehouseNo ? `Depo ${warehouseNo}` : 'Tum Depolar';
+  });
   protected readonly zamanlama = computed(() => {
     const startDate = this.startDate().trim();
     const endDate = this.endDate().trim();
@@ -77,7 +100,7 @@ export abstract class ApiTaskListPageBase<
     this.loadRows();
   }
 
-  protected abstract fetchRows(zamanlama: string): Observable<Row[]>;
+  protected abstract fetchRows(zamanlama: string, warehouseNo?: number): Observable<Row[]>;
 
   protected getInitialStartDate(): string {
     return this.getFirstDayOfMonthOffset(-2);
@@ -207,8 +230,21 @@ export abstract class ApiTaskListPageBase<
     this.endDate.set(value);
   }
 
+  protected updateAdminWarehouseNo(value: string): void {
+    this.adminWarehouseNo.set(value);
+  }
+
+  protected resolveListWarehouseNo(): number | undefined {
+    if (this.isAdminUser()) {
+      return this.getAdminWarehouseNo() ?? undefined;
+    }
+
+    return getCurrentWarehouseNo(this.listAuthService.currentUser()) ?? undefined;
+  }
+
   protected loadRows(): void {
     const zamanlama = this.zamanlama().trim();
+    const warehouseNo = this.resolveListWarehouseNo();
 
     if (!zamanlama) {
       this.rows.set([]);
@@ -227,7 +263,7 @@ export abstract class ApiTaskListPageBase<
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.fetchRows(zamanlama)
+    this.fetchRows(zamanlama, warehouseNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
@@ -356,7 +392,9 @@ export abstract class ApiTaskListPageBase<
       );
 
     if (listEndpoint) {
-      return this.populateRequestPreview(listEndpoint.path, startDate, endDate, zamanlama);
+      return this.appendWarehousePreviewQuery(
+        this.populateRequestPreview(listEndpoint.path, startDate, endDate, zamanlama)
+      );
     }
 
     if (!this.page.baseRouteOrFile.startsWith('/api/')) {
@@ -364,7 +402,9 @@ export abstract class ApiTaskListPageBase<
     }
 
     const separator = this.page.baseRouteOrFile.includes('?') ? '&' : '?';
-    return `${this.page.baseRouteOrFile}${separator}StartDate=${startDate}&EndDate=${endDate}`;
+    return this.appendWarehousePreviewQuery(
+      `${this.page.baseRouteOrFile}${separator}StartDate=${startDate}&EndDate=${endDate}`
+    );
   }
 
   private populateRequestPreview(
@@ -380,5 +420,20 @@ export abstract class ApiTaskListPageBase<
       .replace(/dateToGet=\.\.\./g, `dateToGet=${endDate}`)
       .replace(/dateTimeFilter=\.\.\./g, `dateTimeFilter=${startDate}T00:00:00`)
       .replace(/documentDate=\.\.\./g, `documentDate=${startDate}`);
+  }
+
+  private appendWarehousePreviewQuery(path: string): string {
+    const warehouseNo = this.resolveListWarehouseNo();
+
+    if (!warehouseNo) {
+      return path;
+    }
+
+    const separator = path.includes('?') ? '&' : '?';
+    return `${path}${separator}WarehouseNo=${warehouseNo}`;
+  }
+
+  private getAdminWarehouseNo(): number | null {
+    return toPositiveWarehouseNo(this.adminWarehouseNo());
   }
 }

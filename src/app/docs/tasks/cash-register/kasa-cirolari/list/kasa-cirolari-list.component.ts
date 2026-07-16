@@ -139,14 +139,14 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   protected readonly createComponent = KasaCirolariDetailComponent;
   protected override readonly canCreate = false;
   protected readonly selectedSource = signal<CashTurnoverRouteSource>('new');
-  protected readonly overviewScope = signal<'all' | 'current'>('all');
+  protected readonly overviewScope = signal<'all' | 'current'>('current');
   protected readonly overviewPanelOpen = signal(false);
 
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private overviewRequestId = 0;
 
-  protected readonly currentWarehouseLabel = computed(() => {
+  protected override readonly currentWarehouseLabel = computed(() => {
     const user = this.authService.currentUser();
 
     if (!user) {
@@ -246,13 +246,13 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
     return (this.toSafeNumber(overview.dailyCreditCardPayment) / this.toSafeNumber(overview.dailyTotal)) * 100;
   });
 
-  protected override fetchRows(_zamanlama: string) {
+  protected override fetchRows(_zamanlama: string, warehouseNo?: number) {
     if (this.overviewPanelOpen()) {
       this.loadOverview();
     }
 
     return this.kasaIslemleriService.getKasaCirolari({
-      warehouseNo: this.authService.currentUser()?.depoNo ?? undefined,
+      warehouseNo,
       startDate: this.startDate().trim(),
       endDate: this.endDate().trim()
     }, this.selectedSource());
@@ -272,6 +272,10 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   }
 
   protected selectOverviewScope(scope: 'all' | 'current'): void {
+    if (!this.isAdminUser() && scope === 'all') {
+      scope = 'current';
+    }
+
     if (this.overviewScope() === scope) {
       return;
     }
@@ -348,9 +352,9 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
           startDate: this.startDate().trim(),
           endDate: this.endDate().trim(),
           warehouseNo:
-            this.overviewScope() === 'current'
-              ? this.authService.currentUser()?.depoNo ?? undefined
-              : undefined
+            this.isAdminUser() && this.overviewScope() === 'all'
+              ? undefined
+              : this.resolveListWarehouseNo()
         },
         this.selectedSource()
       )

@@ -74,6 +74,7 @@ export interface WarehouseOrderDetailDto {
 }
 
 export interface CreateIssuedWarehouseOrderHttpRequest {
+  inWarehouseNo?: number;
   outWarehouseNo: number;
   orderDate: string;
   deliveryDate: string;
@@ -131,6 +132,7 @@ export interface SuggestedWarehouseOrderListHttpRequest {
 }
 
 export interface ConvertSuggestedWarehouseOrderHttpRequest {
+  targetWarehouseNo?: number;
   sourceWarehouseNo: number;
   orderDate: string;
   deliveryDate: string;
@@ -241,6 +243,7 @@ export interface IssuedCompanyOrderListHttpRequest {
 }
 
 export interface CreateIssuedCompanyOrderHttpRequest {
+  warehouseNo?: number;
   customerCode: string;
   orderDate: string;
   deliveryDate: string;
@@ -308,6 +311,7 @@ export interface SuggestedCompanyOrderListHttpRequest {
 }
 
 export interface ConvertSuggestedCompanyOrderHttpRequest {
+  warehouseNo?: number;
   supplierCode: string;
   orderDate: string;
   deliveryDate: string;

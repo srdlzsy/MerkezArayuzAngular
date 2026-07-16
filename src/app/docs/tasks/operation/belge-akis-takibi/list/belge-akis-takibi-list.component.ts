@@ -411,6 +411,15 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     return `/api/operasyon-islemleri/belge-akis-takibi${queryText ? `?${queryText}` : ''}`;
   }
 
+  protected flowScopeLabel(): string {
+    if (this.isAdminUser()) {
+      const warehouseNo = this.filters.warehouseNo.trim();
+      return warehouseNo ? `Depo ${warehouseNo}` : 'Tum Depolar';
+    }
+
+    return this.currentWarehouseLabel();
+  }
+
   protected resolveDocumentTypeLabel(value: string | null | undefined): string {
     return resolveDocumentTypeLabel(value);
   }
@@ -446,6 +455,16 @@ export class BelgeAkisTakibiListComponent implements OnInit {
 
   protected formatUser(value: string | null | undefined): string {
     return value?.trim() || 'Sistem';
+  }
+
+  protected currentWarehouseLabel(): string {
+    const user = this.authService.currentUser();
+
+    if (user?.depoIsmi && user.depoNo !== null && user.depoNo !== undefined) {
+      return `${user.depoIsmi} (${user.depoNo})`;
+    }
+
+    return user?.depoNo !== null && user?.depoNo !== undefined ? `Depo ${user.depoNo}` : 'JWT deposu';
   }
 
   protected copyText(value: string | null | undefined): void {

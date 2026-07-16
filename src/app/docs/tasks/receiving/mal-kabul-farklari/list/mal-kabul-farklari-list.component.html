@@ -46,6 +46,25 @@
           />
         </label>
 
+        <label class="field warehouse-field" *ngIf="isAdminUser(); else lockedWarehouse">
+          <span>Depo No</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [value]="adminWarehouseNo()"
+            placeholder="Tum"
+            (input)="updateAdminWarehouseNo($any($event.target).value ?? '')"
+          />
+        </label>
+
+        <ng-template #lockedWarehouse>
+          <div class="warehouse-scope-pill" title="JWT deposu">
+            <span>Depo</span>
+            <strong>{{ selectedWarehouseLabel() }}</strong>
+          </div>
+        </ng-template>
+
         <div class="scope-field">
           <span>Kapsam</span>
           <div class="scope-segmented" role="group" aria-label="Mal kabul farklari kapsami">

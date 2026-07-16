@@ -5,6 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { finalize } from 'rxjs';
 import type {
   ChangeFeedbackStatusHttpRequest,
+  CreateFeedbackItemHttpRequest,
   FeedbackItemDto,
   FeedbackItemType,
   FeedbackManagementListHttpRequest,
@@ -16,6 +17,11 @@ import { OrtakIslemlerService } from '../../../../../core/api/module-services/or
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+
+interface FeedbackOption<T extends string> {
+  value: T;
+  label: string;
+}
 
 interface Option<T extends string> {
   value: T | '';
@@ -63,8 +69,8 @@ export class SikayetOneriListComponent {
     status: new FormControl<FeedbackStatus | ''>('', { nonNullable: true }),
     type: new FormControl<FeedbackItemType | ''>('', { nonNullable: true }),
     warehouseNo: new FormControl<number | null>(null),
-    startDate: new FormControl<string>('', { nonNullable: true }),
-    endDate: new FormControl<string>('', { nonNullable: true }),
+    startDate: new FormControl<string>(new Date().toISOString().split('T')[0], { nonNullable: true }),
+    endDate: new FormControl<string>(new Date().toISOString().split('T')[0], { nonNullable: true }),
     take: new FormControl<number>(100, {
       nonNullable: true,
       validators: [Validators.min(1), Validators.max(500)]
@@ -88,6 +94,9 @@ export class SikayetOneriListComponent {
   protected readonly rows = signal<FeedbackItemDto[]>([]);
   protected readonly selectedItem = signal<FeedbackItemDto | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
+  protected readonly createModalOpen = signal(false);
+  protected readonly createModelMessage = signal<ActionFeedback | null>(null);
+  protected readonly submittingFeedback = signal(false);
   protected readonly isLoading = signal(false);
   protected readonly isDetailLoading = signal(false);
   protected readonly updatingAction = signal<'read' | 'status' | null>(null);
@@ -113,6 +122,35 @@ export class SikayetOneriListComponent {
     return 'Kendi Kayitlarim';
   });
 
+  protected readonly feedbackTypeOptions: readonly FeedbackOption<FeedbackItemType>[] = [
+    { value: 'Complaint', label: 'Sikayet' },
+    { value: 'Suggestion', label: 'Oneri' }
+  ];
+  protected readonly feedbackPriorityOptions: readonly FeedbackOption<FeedbackPriority>[] = [
+    { value: 'Normal', label: 'Normal' },
+    { value: 'High', label: 'Yuksek' },
+    { value: 'Low', label: 'Dusuk' }
+  ];
+
+  protected readonly feedbackForm = new FormGroup({
+    type: new FormControl<FeedbackItemType>('Complaint', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    priority: new FormControl<FeedbackPriority>('Normal', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    title: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(120)]
+    }),
+    message: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(2000)]
+    })
+  });
+
   constructor() {
     if (!this.canViewAll()) {
       this.filterForm.controls.warehouseNo.disable({ emitEvent: false });
@@ -121,7 +159,7 @@ export class SikayetOneriListComponent {
     this.loadRows();
   }
 
-  protected loadRows(): void {
+  protected loadRows(clearFeedback = true): void {
     const request = this.buildListRequest();
 
     if (!request) {
@@ -129,7 +167,9 @@ export class SikayetOneriListComponent {
     }
 
     this.isLoading.set(true);
-    this.feedback.set(null);
+    if (clearFeedback) {
+      this.feedback.set(null);
+    }
 
     this.ortakIslemlerService
       .getFeedbackManagementItems(request)
@@ -143,7 +183,7 @@ export class SikayetOneriListComponent {
           this.selectedItem.set(rows?.[0] ?? null);
           this.patchStatusForm(rows?.[0] ?? null);
 
-          if (!rows?.length) {
+          if (!rows?.length && clearFeedback) {
             this.feedback.set({
               tone: 'info',
               title: 'Kayit bulunamadi',
@@ -196,6 +236,87 @@ export class SikayetOneriListComponent {
             tone: 'error',
             title: 'Detay yuklenemedi',
             message: this.getErrorMessage(error, 'Kayit detayi alinirken hata olustu.')
+          });
+        }
+      });
+  }
+
+  protected openCreateModal(): void {
+    this.createModalOpen.set(true);
+    this.createModelMessage.set(null);
+  }
+
+  protected closeCreateModal(): void {
+    if (this.submittingFeedback()) {
+      return;
+    }
+
+    this.createModalOpen.set(false);
+    this.createModelMessage.set(null);
+  }
+
+  protected submitCreateForm(): void {
+    if (this.feedbackForm.invalid) {
+      this.feedbackForm.markAllAsTouched();
+      this.createModelMessage.set({
+        tone: 'error',
+        title: 'Form hatali',
+        message: 'Lutfen tum zorunlu alanlari doldurunuz.'
+      });
+      return;
+    }
+
+    const formValue = this.feedbackForm.getRawValue();
+    const title = formValue.title.trim();
+    const message = formValue.message.trim();
+
+    if (!title || !message) {
+      this.feedbackForm.markAllAsTouched();
+      this.createModelMessage.set({
+        tone: 'error',
+        title: 'Form hatali',
+        message: 'Baslik ve mesaj alanlari bos birakilamaz.'
+      });
+      return;
+    }
+
+    const request: CreateFeedbackItemHttpRequest = {
+      type: formValue.type,
+      priority: formValue.priority,
+      title,
+      message
+    };
+
+    this.submittingFeedback.set(true);
+    this.createModelMessage.set(null);
+
+    this.ortakIslemlerService
+      .createFeedbackItem(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submittingFeedback.set(false))
+      )
+      .subscribe({
+        next: (created: FeedbackItemDto) => {
+          this.feedbackForm.reset({
+            type: 'Complaint',
+            priority: 'Normal',
+            title: '',
+            message: ''
+          });
+          this.createModalOpen.set(false);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Kayit olusturuldu',
+            message: `${created.typeName || 'Kayit'} ${created.statusName || 'Yeni'} durumunda acildi.`
+          });
+          this.loadRows(false);
+        },
+        error: (error: unknown) => {
+          this.createModelMessage.set({
+            tone: 'error',
+            title: 'Kayit olusturulamadi',
+            message: this.getErrorMessage(error, 'Sikayet/oneri kaydi olusturulurken hata olustu.')
           });
         }
       });
