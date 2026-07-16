@@ -30,6 +30,14 @@ export class DepolarArasiNakliyeMalKabulFisleriListComponent extends ApiTaskList
     return this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisleri(zamanlama, warehouseNo);
   }
 
+  protected override resolveDetailWarehouseNo(
+    row: IFurpaWarehouseReceiptListItemApiDto
+  ): number | undefined {
+    return Number.isFinite(row.targetWarehouseNo) && row.targetWarehouseNo > 0
+      ? row.targetWarehouseNo
+      : super.resolveDetailWarehouseNo(row);
+  }
+
   protected override getCreateButtonLabel(): string {
     return 'Kabul Et';
   }

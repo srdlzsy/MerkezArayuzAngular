@@ -27,9 +27,10 @@ export class SayimIslemleriService extends BaseApiService {
     });
   }
 
-  getSayimSonucuDetay(evrakNo: number, _depoNo: number, tarih: string): Observable<IFurpaInventoryCountDetailApiDto> {
+  getSayimSonucuDetay(evrakNo: number, warehouseNo: number, tarih: string): Observable<IFurpaInventoryCountDetailApiDto> {
     return this.getWithQuery<IFurpaInventoryCountDetailApiDto>(`stok-islemleri/sayim-sonuclari/${evrakNo}`, {
-      documentDate: tarih
+      documentDate: tarih,
+      warehouseNo
     });
   }
 

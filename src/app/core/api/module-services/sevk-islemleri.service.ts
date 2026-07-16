@@ -223,28 +223,31 @@ export class SevkIslemleriService extends BaseApiService {
 
   getDepolarArasiNakliyeSevkFisDetay(
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseShippingDetailApiDto> {
-    return this.getGidenDepolarArasiSevkDetay(seri, sira);
+    return this.getGidenDepolarArasiSevkDetay(seri, sira, warehouseNo);
   }
 
   getDepoDagitimSevkFisDetay(
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseShippingDetailApiDto> {
-    return this.getGelenDepolarArasiSevkDetay(seri, sira);
+    return this.getGelenDepolarArasiSevkDetay(seri, sira, warehouseNo);
   }
 
   getSevkDetay(
     controllerName: string,
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaCompanyMovementDetailApiDto> {
     const direction = this.resolveCompanyDirection(controllerName);
     const request =
       direction === 'giden'
-        ? this.getGidenFirmaSevkDetay(seri, sira)
-        : this.getGelenFirmaSevkDetay(seri, sira);
+        ? this.getGidenFirmaSevkDetay(seri, sira, warehouseNo)
+        : this.getGelenFirmaSevkDetay(seri, sira, warehouseNo);
 
     return request;
   }

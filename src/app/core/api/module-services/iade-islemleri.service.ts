@@ -180,10 +180,11 @@ export class IadeIslemleriService extends BaseApiService {
   getDepoIadeDetay(
     documentSerie: string,
     documentOrderNo: number,
-    directionOrWarehouseNo?: DepoIadeDirection | number
+    directionOrWarehouseNo?: DepoIadeDirection | number,
+    warehouseNo?: number
   ): Observable<IFurpaWarehouseReturnDetailApiDto> {
     if (directionOrWarehouseNo === 'gelen' || directionOrWarehouseNo === 'giden') {
-      return this.getWarehouseReturnDetail(directionOrWarehouseNo, documentSerie, documentOrderNo);
+      return this.getWarehouseReturnDetail(directionOrWarehouseNo, documentSerie, documentOrderNo, warehouseNo);
     }
 
     return this.getWarehouseReturnDetail('giden', documentSerie, documentOrderNo, directionOrWarehouseNo);

@@ -21,7 +21,8 @@ export class FirmaIadeDetailComponent extends KalemliTaskDetailBase<IFurpaCompan
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.iadeIslemleriService.getFirmaIadeDetay(seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.iadeIslemleriService.getFirmaIadeDetay(seri, sira, warehouseNo),
       'Detay icin gerekli iade anahtari bulunamadi.',
       'Firma iade detayi yuklenemedi. Lutfen tekrar deneyin.'
     );

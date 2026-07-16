@@ -21,7 +21,8 @@ export class DepolarArasiNakliyeMalKabulFisleriDetailComponent extends KalemliTa
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisDetay(seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisDetay(seri, sira, warehouseNo),
       'Detay icin gerekli fis anahtari bulunamadi.',
       'Mal kabul fisi detayi yuklenemedi. Lutfen tekrar deneyin.'
     );

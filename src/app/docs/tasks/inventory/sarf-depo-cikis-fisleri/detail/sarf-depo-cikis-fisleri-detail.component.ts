@@ -21,7 +21,8 @@ export class SarfDepoCikisFisleriDetailComponent extends KalemliTaskDetailBase<I
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.stokIslemleriService.getSubeIciDetay('SarfDepoCikisFisleri', seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.stokIslemleriService.getSubeIciDetay('SarfDepoCikisFisleri', seri, sira, warehouseNo),
       'Detay icin gerekli fis anahtari bulunamadi.',
       `${this.page.title} detayi yuklenemedi. Lutfen tekrar deneyin.`
     );

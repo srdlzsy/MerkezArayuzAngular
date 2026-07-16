@@ -21,7 +21,8 @@ export class ToptanGirisIrsaliyeleriDetailComponent extends KalemliTaskDetailBas
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.malKabulIslemleriService.getCompanyReceiptDetail(seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.malKabulIslemleriService.getCompanyReceiptDetail(seri, sira, warehouseNo),
       'Detay icin gerekli irsaliye anahtari bulunamadi.',
       'Toptan giris irsaliyesi detayi yuklenemedi. Lutfen tekrar deneyin.'
     );

@@ -21,7 +21,8 @@ export class ToptanCikisFaturalariDetailComponent extends KalemliTaskDetailBase<
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.sevkIslemleriService.getSevkDetay('ToptanCikisFaturalari', seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.sevkIslemleriService.getSevkDetay('ToptanCikisFaturalari', seri, sira, warehouseNo),
       'Detay icin gerekli fatura anahtari bulunamadi.',
       'Toptan cikis faturasi detayi yuklenemedi. Lutfen tekrar deneyin.'
     );

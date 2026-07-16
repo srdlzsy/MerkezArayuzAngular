@@ -71,7 +71,8 @@ export class StokIslemleriService extends BaseApiService {
   getSubeIciDetay(
     controllerName: string,
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaStockReceiptDetailApiDto> {
     const endpoint = this.resolveSubeIciEndpoint(controllerName);
 
@@ -81,7 +82,10 @@ export class StokIslemleriService extends BaseApiService {
       );
     }
 
-    return this.get<IFurpaStockReceiptDetailApiDto>(`${endpoint}/${encodeURIComponent(seri)}/${sira}`);
+    return this.getWithQuery<IFurpaStockReceiptDetailApiDto>(
+      `${endpoint}/${encodeURIComponent(seri)}/${sira}`,
+      { warehouseNo }
+    );
   }
 
   createSubeIci(
@@ -119,9 +123,13 @@ export class StokIslemleriService extends BaseApiService {
   getVirmanDetay(
     _controllerName: string,
     seri: string,
-    sira: number
+    sira: number,
+    warehouseNo?: number
   ): Observable<IFurpaVirmanDetailApiDto> {
-    return this.get<IFurpaVirmanDetailApiDto>(`stok-islemleri/virmanlar/${encodeURIComponent(seri)}/${sira}`);
+    return this.getWithQuery<IFurpaVirmanDetailApiDto>(
+      `stok-islemleri/virmanlar/${encodeURIComponent(seri)}/${sira}`,
+      { warehouseNo }
+    );
   }
 
   createVirman(
@@ -147,9 +155,14 @@ export class StokIslemleriService extends BaseApiService {
     });
   }
 
-  getSayimSonucuDetay(evrakNo: number, tarih: string): Observable<IFurpaInventoryCountDetailApiDto> {
+  getSayimSonucuDetay(
+    evrakNo: number,
+    tarih: string,
+    warehouseNo?: number
+  ): Observable<IFurpaInventoryCountDetailApiDto> {
     return this.getWithQuery<IFurpaInventoryCountDetailApiDto>('stok-islemleri/sayim-sonuclari/' + evrakNo, {
-      documentDate: tarih
+      documentDate: tarih,
+      warehouseNo
     });
   }
 

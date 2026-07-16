@@ -161,7 +161,7 @@
 
 .reference-grid {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) auto;
+  grid-template-columns: minmax(120px, 1fr) minmax(120px, 1fr) minmax(160px, 1fr) auto;
   gap: 0.7rem;
   align-items: end;
 }
@@ -200,6 +200,34 @@
 .field-error {
   font-size: 0.6rem;
   color: var(--danger);
+}
+
+.helper-inline {
+  color: #64748b;
+  font-size: 0.6rem;
+  line-height: 1.25;
+}
+
+.warehouse-note {
+  display: grid;
+  gap: 0.18rem;
+  padding: 0.42rem 0.55rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.warehouse-note span {
+  color: var(--muted);
+  font-size: 0.6rem;
+  font-weight: 800;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.warehouse-note strong {
+  color: var(--text);
+  font-size: 0.72rem;
 }
 
 .helper-text {

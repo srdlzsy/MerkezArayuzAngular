@@ -178,11 +178,33 @@ export abstract class ApiTaskListPageBase<
     const record = row as Record<string, unknown>;
     const seri = record['seri'] ?? record['documentSerie'] ?? '';
     const sira = record['sira'] ?? record['documentOrderNo'] ?? Number.NaN;
+    const warehouseNo = this.resolveDetailWarehouseNo(row);
 
-    return {
+    const detailData: Record<string, unknown> = {
       seri: String(seri),
       sira: Number(sira)
-    } as DetailData;
+    };
+
+    if (warehouseNo !== undefined) {
+      detailData['warehouseNo'] = warehouseNo;
+    }
+
+    return detailData as DetailData;
+  }
+
+  protected resolveDetailWarehouseNo(row: Row): number | undefined {
+    const record = row as Record<string, unknown>;
+
+    return (
+      this.getPositiveRowNumber(record, 'warehouseNo') ??
+      this.getPositiveRowNumber(record, 'sourceWarehouseNo') ??
+      this.getPositiveRowNumber(record, 'inWarehouseNo') ??
+      this.getPositiveRowNumber(record, 'targetWarehouseNo') ??
+      this.getPositiveRowNumber(record, 'outWarehouseNo') ??
+      this.getPositiveRowNumber(record, 'shippingWarehouseNo') ??
+      this.getPositiveRowNumber(record, 'relatedWarehouseNo') ??
+      undefined
+    );
   }
 
   protected getTrackId(index: number, row: Row): string | number {
@@ -435,5 +457,16 @@ export abstract class ApiTaskListPageBase<
 
   private getAdminWarehouseNo(): number | null {
     return toPositiveWarehouseNo(this.adminWarehouseNo());
+  }
+
+  private getPositiveRowNumber(record: Record<string, unknown>, key: string): number | null {
+    const value = record[key];
+
+    return typeof value === 'string' ||
+      typeof value === 'number' ||
+      value === null ||
+      value === undefined
+      ? toPositiveWarehouseNo(value)
+      : null;
   }
 }

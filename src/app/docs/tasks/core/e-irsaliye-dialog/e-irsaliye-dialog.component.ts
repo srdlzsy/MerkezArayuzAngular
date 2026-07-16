@@ -22,6 +22,7 @@ export type EDespatchDialogKind =
 export interface EDespatchDialogRowSummary {
   seri: string;
   sira: number;
+  warehouseNo?: number;
   belgeNo: string;
   muhatap: string;
   tarih: string;
@@ -175,25 +176,29 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
         return this.sevkIslemleriService.sendGidenDepolarArasiSevkEirsaliye(
           this.row.seri,
           this.row.sira,
-          request
+          request,
+          this.row.warehouseNo
         );
       case 'company-return':
         return this.iadeIslemleriService.sendFirmaIadeEirsaliye(
           this.row.seri,
           this.row.sira,
-          request
+          request,
+          this.row.warehouseNo
         );
       case 'warehouse-return':
         return this.iadeIslemleriService.sendDepoIadeEirsaliye(
           this.row.seri,
           this.row.sira,
-          request
+          request,
+          this.row.warehouseNo
         );
       default:
         return this.sevkIslemleriService.sendGidenFirmaSevkEirsaliye(
           this.row.seri,
           this.row.sira,
-          request
+          request,
+          this.row.warehouseNo
         );
     }
   }
@@ -203,16 +208,26 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
       case 'warehouse-shipment':
         return this.sevkIslemleriService.getGidenDepolarArasiSevkEirsaliyePdf(
           this.row.seri,
-          this.row.sira
+          this.row.sira,
+          this.row.warehouseNo
         );
       case 'company-return':
-        return this.iadeIslemleriService.getFirmaIadeEirsaliyePdf(this.row.seri, this.row.sira);
+        return this.iadeIslemleriService.getFirmaIadeEirsaliyePdf(
+          this.row.seri,
+          this.row.sira,
+          this.row.warehouseNo
+        );
       case 'warehouse-return':
-        return this.iadeIslemleriService.getDepoIadeEirsaliyePdf(this.row.seri, this.row.sira);
+        return this.iadeIslemleriService.getDepoIadeEirsaliyePdf(
+          this.row.seri,
+          this.row.sira,
+          this.row.warehouseNo
+        );
       default:
         return this.sevkIslemleriService.getGidenFirmaSevkEirsaliyePdf(
           this.row.seri,
-          this.row.sira
+          this.row.sira,
+          this.row.warehouseNo
         );
     }
   }

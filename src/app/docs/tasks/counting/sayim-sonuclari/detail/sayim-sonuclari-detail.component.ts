@@ -14,6 +14,7 @@ import { ApiTaskDetailBase } from '../../../core/api-detail-page/api-task-detail
 interface SayimSonuclariDetailDialogData {
   evrakNo: number ;
   tarih: string;
+  warehouseNo?: number;
 }
 
 @Component({
@@ -33,12 +34,17 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
   private readonly sayimIslemleriService = inject(SayimIslemleriService);
 
   protected readonly activeDepoNo = computed(() => this.authService.currentUser()?.depoNo);
+  protected readonly requestWarehouseNo = computed(() => {
+    const rowWarehouseNo = this.data?.warehouseNo;
+
+    return Number.isFinite(rowWarehouseNo) ? Number(rowWarehouseNo) : this.activeDepoNo();
+  });
   protected readonly kalemler = computed(() => this.detail()?.items ?? []);
   protected readonly kalemCount = computed(() => this.kalemler().length);
   protected readonly currentDetail = computed(() => this.detail()?.header ?? null);
   protected readonly requestIdentity = computed(() => {
     const payload = this.data;
-    const depoNo = this.activeDepoNo();
+    const depoNo = this.requestWarehouseNo();
 
     if (!payload?.evrakNo || !payload.tarih || depoNo === null || depoNo === undefined) {
       return '-';
@@ -60,7 +66,9 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
   }
 
   protected override loadDetail(): void {
-    if (this.activeDepoNo() === null || this.activeDepoNo() === undefined) {
+    const warehouseNo = this.requestWarehouseNo();
+
+    if (warehouseNo === null || warehouseNo === undefined) {
       this.errorMessage.set('Aktif kullanici depo bilgisi bulunamadigi icin detay getirilemedi.');
       return;
     }
@@ -72,7 +80,7 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
       requestFactory: (payload: SayimSonuclariDetailDialogData) =>
         this.sayimIslemleriService.getSayimSonucuDetay(
           payload.evrakNo,
-          this.activeDepoNo() as number,
+          warehouseNo,
           payload.tarih
         ),
       missingKeyMessage: 'Detay icin gerekli sayim anahtari bulunamadi.',

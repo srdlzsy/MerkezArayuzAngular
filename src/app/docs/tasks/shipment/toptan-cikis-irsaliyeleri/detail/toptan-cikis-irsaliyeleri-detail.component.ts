@@ -21,7 +21,8 @@ export class ToptanCikisIrsaliyeleriDetailComponent extends KalemliTaskDetailBas
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.sevkIslemleriService.getSevkDetay('ToptanCikisIrsaliyeleri', seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.sevkIslemleriService.getSevkDetay('ToptanCikisIrsaliyeleri', seri, sira, warehouseNo),
       'Detay icin gerekli irsaliye anahtari bulunamadi.',
       'Toptan cikis irsaliyesi detayi yuklenemedi. Lutfen tekrar deneyin.'
     );

@@ -68,7 +68,7 @@ export class ToptanCikisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
       this.sevkIslemleriService
-        .getGidenFirmaSevkEirsaliyePdf(row.documentSerie, row.documentOrderNo)
+        .getGidenFirmaSevkEirsaliyePdf(row.documentSerie, row.documentOrderNo, row.warehouseNo)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (blob: Blob) => {
@@ -110,6 +110,7 @@ export class ToptanCikisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
       row: {
         seri: row.documentSerie,
         sira: row.documentOrderNo,
+        warehouseNo: row.warehouseNo,
         belgeNo: row.documentNo,
         muhatap: row.customerDisplayName || joinTruthy([row.customerName, row.customerTitle]),
         tarih: row.documentDate || row.movementDate || '',

@@ -8,6 +8,7 @@ import { ApiTaskDetailBase } from './api-task-detail.base';
 interface SeriSiraPayload {
   seri: string;
   sira: number;
+  warehouseNo?: number;
 }
 
 @Directive()
@@ -34,14 +35,15 @@ export abstract class KalemliTaskDetailBase<
   protected abstract override loadDetail(): void;
 
   protected loadDetailRequest(
-    requestFactory: (seri: string, sira: number) => Observable<TDetail>,
+    requestFactory: (seri: string, sira: number, warehouseNo?: number) => Observable<TDetail>,
     missingKeyMessage: string,
     loadErrorMessage: string
   ): void {
     this.runDetailRequest({
       validatePayload: (payload: SeriSiraPayload | null): payload is SeriSiraPayload =>
         !!payload?.seri && payload.sira !== null && payload.sira !== undefined,
-      requestFactory: (payload: SeriSiraPayload) => requestFactory(payload.seri, payload.sira),
+      requestFactory: (payload: SeriSiraPayload) =>
+        requestFactory(payload.seri, payload.sira, payload.warehouseNo),
       missingKeyMessage,
       loadErrorMessage
     });

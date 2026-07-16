@@ -21,7 +21,8 @@ export class DepolarArasiNakliyeSevkFisleriDetailComponent extends KalemliTaskDe
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.sevkIslemleriService.getDepolarArasiNakliyeSevkFisDetay(seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.sevkIslemleriService.getDepolarArasiNakliyeSevkFisDetay(seri, sira, warehouseNo),
       'Detay icin gerekli fis anahtari bulunamadi.',
       'Depolar arasi nakliye sevk fisi detayi yuklenemedi. Lutfen tekrar deneyin.'
     );

@@ -72,7 +72,7 @@ export class FirmaIadeListComponent extends ApiTaskListPageBase<IFurpaCompanyMov
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
       this.iadeIslemleriService
-        .getFirmaIadeEirsaliyePdf(row.documentSerie, row.documentOrderNo)
+        .getFirmaIadeEirsaliyePdf(row.documentSerie, row.documentOrderNo, row.warehouseNo)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (blob: Blob) => {
@@ -114,6 +114,7 @@ export class FirmaIadeListComponent extends ApiTaskListPageBase<IFurpaCompanyMov
       row: {
         seri: row.documentSerie,
         sira: row.documentOrderNo,
+        warehouseNo: row.warehouseNo,
         belgeNo: row.documentNo,
         muhatap: row.customerDisplayName || joinTruthy([row.customerName, row.customerTitle]),
         tarih: row.documentDate || row.movementDate || '',

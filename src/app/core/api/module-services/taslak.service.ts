@@ -148,7 +148,8 @@ export class TaslakService extends BaseApiService {
               this.sevkIslemleriService.getSevkDetay(
                 'ToptanCikisIrsaliyeleri',
                 item.documentSerie,
-                item.documentOrderNo
+                item.documentOrderNo,
+                item.warehouseNo || depoNo
               )
           )
         )
@@ -174,7 +175,11 @@ export class TaslakService extends BaseApiService {
               this.matchesText(item.customerCode, firmaCariKod)
             ),
             (item: IFurpaCompanyMovementListItemApiDto) =>
-              this.malKabulIslemleriService.getCompanyReceiptDetail(item.documentSerie, item.documentOrderNo)
+              this.malKabulIslemleriService.getCompanyReceiptDetail(
+                item.documentSerie,
+                item.documentOrderNo,
+                item.warehouseNo || depoNo
+              )
           )
         )
       );
@@ -197,7 +202,8 @@ export class TaslakService extends BaseApiService {
             (item: IFurpaWarehouseShippingListItemApiDto) =>
               this.sevkIslemleriService.getDepolarArasiNakliyeSevkFisDetay(
                 item.documentSerie,
-                item.documentOrderNo
+                item.documentOrderNo,
+                item.sourceWarehouseNo || depoNo
               )
           )
         )
@@ -225,7 +231,8 @@ export class TaslakService extends BaseApiService {
             (item: IFurpaWarehouseReceiptListItemApiDto) =>
               this.malKabulIslemleriService.getDepolarArasiNakliyeMalKabulFisDetay(
                 item.documentSerie,
-                item.documentOrderNo
+                item.documentOrderNo,
+                item.targetWarehouseNo || depoNo
               )
           )
         )
@@ -286,6 +293,5 @@ export class TaslakService extends BaseApiService {
     );
   }
 }
-
 
 

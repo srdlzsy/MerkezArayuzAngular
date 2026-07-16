@@ -14,6 +14,7 @@ import { SayimSonuclariDetailComponent } from '../detail/sayim-sonuclari-detail.
 interface SayimSonuclariDetailDialogData {
   evrakNo: number;
   tarih: string;
+  warehouseNo?: number;
 }
 
 @Component({
@@ -50,7 +51,8 @@ export class SayimSonuclariListComponent extends ApiTaskListPageBase<
   protected override buildDetailData(row: IFurpaInventoryCountListItemApiDto): SayimSonuclariDetailDialogData {
     return {
       evrakNo: row.documentNo,
-      tarih: row.documentDate || ''
+      tarih: row.documentDate || '',
+      warehouseNo: row.warehouseNo
     };
   }
 

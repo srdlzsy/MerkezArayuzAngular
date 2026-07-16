@@ -21,7 +21,8 @@ export class StokVirmanCikisFisleriDetailComponent extends KalemliTaskDetailBase
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) => this.stokIslemleriService.getVirmanDetay('StokVirmanCikisFisleri', seri, sira),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.stokIslemleriService.getVirmanDetay('StokVirmanCikisFisleri', seri, sira, warehouseNo),
       'Detay icin gerekli fis anahtari bulunamadi.',
       `${this.page.title} detayi yuklenemedi. Lutfen tekrar deneyin.`
     );

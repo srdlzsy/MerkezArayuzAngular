@@ -30,5 +30,13 @@ export class DepoDagitimSevkFisleriListComponent extends ApiTaskListPageBase<IFu
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.sevkIslemleriService.getDepoDagitimSevkFisleri(zamanlama, warehouseNo);
   }
+
+  protected override resolveDetailWarehouseNo(
+    row: IFurpaWarehouseShippingListItemApiDto
+  ): number | undefined {
+    return Number.isFinite(row.targetWarehouseNo) && row.targetWarehouseNo > 0
+      ? row.targetWarehouseNo
+      : super.resolveDetailWarehouseNo(row);
+  }
 }
 

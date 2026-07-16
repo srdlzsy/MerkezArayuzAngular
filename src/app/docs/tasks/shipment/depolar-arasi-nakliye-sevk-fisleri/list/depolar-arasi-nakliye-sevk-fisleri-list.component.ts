@@ -67,7 +67,11 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
       this.sevkIslemleriService
-        .getGidenDepolarArasiSevkEirsaliyePdf(row.documentSerie, row.documentOrderNo)
+        .getGidenDepolarArasiSevkEirsaliyePdf(
+          row.documentSerie,
+          row.documentOrderNo,
+          row.sourceWarehouseNo
+        )
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (blob: Blob) => {
@@ -109,6 +113,7 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
       row: {
         seri: row.documentSerie,
         sira: row.documentOrderNo,
+        warehouseNo: row.sourceWarehouseNo,
         belgeNo: row.documentNo,
         muhatap: row.targetWarehouse,
         tarih: row.documentDate || row.movementDate || '',

@@ -28,6 +28,7 @@ import { DepoIadeDetailComponent } from '../detail/depo-iade-detail.component';
 interface DepoIadeDetailDialogData {
   seri: string;
   sira: number;
+  warehouseNo?: number;
   direction: DepoIadeDirection;
   pageId: string;
 }
@@ -99,6 +100,16 @@ export class DepoIadeListComponent extends ApiTaskListPageBase<
     };
   }
 
+  protected override resolveDetailWarehouseNo(
+    row: IFurpaWarehouseReturnListItemApiDto
+  ): number | undefined {
+    const warehouseNo = this.direction === 'gelen' ? row.targetWarehouseNo : row.sourceWarehouseNo;
+
+    return Number.isFinite(warehouseNo) && warehouseNo > 0
+      ? warehouseNo
+      : super.resolveDetailWarehouseNo(row);
+  }
+
   protected override openCreate(): void {
     openDocsTaskDialog(this.dialog, this.createComponent, {
       data: {
@@ -132,7 +143,7 @@ export class DepoIadeListComponent extends ApiTaskListPageBase<
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
       this.iadeIslemleriService
-        .getDepoIadeEirsaliyePdf(row.documentSerie, row.documentOrderNo)
+        .getDepoIadeEirsaliyePdf(row.documentSerie, row.documentOrderNo, row.sourceWarehouseNo)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (blob: Blob) => {
@@ -178,6 +189,7 @@ export class DepoIadeListComponent extends ApiTaskListPageBase<
       row: {
         seri: row.documentSerie,
         sira: row.documentOrderNo,
+        warehouseNo: row.sourceWarehouseNo,
         belgeNo: row.documentNo,
         muhatap: this.direction === 'gelen' ? row.sourceWarehouse : row.targetWarehouse,
         tarih: row.documentDate || row.movementDate || '',

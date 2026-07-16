@@ -10,6 +10,7 @@ import { ApiTaskDetailBase } from '../../../core/api-detail-page/api-task-detail
 interface SeriSiraPayload {
   seri: string;
   sira: number;
+  warehouseNo?: number;
 }
 
 @Component({
@@ -42,7 +43,11 @@ export class VerilenSiparislerDetailComponent extends ApiTaskDetailBase<
       validatePayload: (payload: SeriSiraPayload | null): payload is SeriSiraPayload =>
         !!payload?.seri && payload.sira !== null && payload.sira !== undefined,
       requestFactory: (payload: SeriSiraPayload) =>
-        this.siparisIslemleriService.getVerilenSiparisDetay(payload.seri, payload.sira),
+        this.siparisIslemleriService.getVerilenSiparisDetay(
+          payload.seri,
+          payload.sira,
+          payload.warehouseNo
+        ),
       missingKeyMessage: 'Detay icin gerekli siparis anahtari bulunamadi.',
       loadErrorMessage: 'Verilen siparis detayi yuklenemedi. Lutfen tekrar deneyin.'
     });

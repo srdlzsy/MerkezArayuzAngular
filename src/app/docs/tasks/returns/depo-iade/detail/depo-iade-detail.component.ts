@@ -33,8 +33,8 @@ export class DepoIadeDetailComponent extends KalemliTaskDetailBase<IFurpaWarehou
 
   protected override loadDetail(): void {
     this.loadDetailRequest(
-      (seri: string, sira: number) =>
-        this.iadeIslemleriService.getDepoIadeDetay(seri, sira, this.resolveDirection()),
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.iadeIslemleriService.getDepoIadeDetay(seri, sira, this.resolveDirection(), warehouseNo),
       'Detay icin gerekli iade anahtari bulunamadi.',
       'Depo iade detayi yuklenemedi. Lutfen tekrar deneyin.'
     );
