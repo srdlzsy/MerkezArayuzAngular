@@ -200,3 +200,73 @@ button:disabled {
     width: 100%;
   }
 }
+
+.uyumsoft-page {
+  gap: 0.5rem;
+}
+
+.page-header,
+.panel,
+.feedback,
+.operation-hint,
+.empty-parameters,
+.empty-result,
+.pdf-result {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.page-header,
+.panel,
+.feedback,
+.operation-hint,
+.empty-parameters,
+.empty-result,
+.pdf-result {
+  padding: 0.5rem 0.58rem;
+}
+
+.page-header p,
+.field-hint,
+.inline-note {
+  display: none;
+}
+
+.page-header h2,
+.parameter-head h3,
+.result-head h3 {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.request-form,
+.parameter-list,
+.result-panel,
+.actions,
+.parameter-head,
+.result-head {
+  gap: 0.42rem;
+}
+
+.field input,
+.field select {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.52rem;
+  font-size: 0.78rem;
+}
+
+.primary-button,
+.secondary-button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.74rem;
+  box-shadow: none;
+}
+
+.parameter-name {
+  border-radius: 6px;
+  padding: 0.44rem 0.52rem;
+  font-size: 0.76rem;
+}

@@ -562,3 +562,150 @@
     white-space: pre-wrap;
   }
 }
+
+// Operation-first compact refinement
+.transfer-workspace {
+  gap: 0.45rem;
+  padding: 0.55rem;
+}
+
+.surface-card {
+  box-shadow: none;
+}
+
+.page-head {
+  align-items: center;
+  padding-bottom: 0.42rem;
+  border-bottom: 1px solid var(--transfer-border);
+}
+
+.section-kicker {
+  display: none;
+}
+
+.title-block h2 {
+  font-size: 1rem;
+}
+
+.task-tabs,
+.mode-tabs {
+  gap: 0.25rem;
+  padding: 0.18rem;
+}
+
+.task-tab,
+.mode-tab,
+.task-action,
+.check-field {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.58rem;
+  font-size: 0.74rem;
+}
+
+.scope-bar {
+  grid-template-columns: minmax(180px, 0.55fr) minmax(150px, 0.4fr) auto minmax(190px, 0.6fr);
+  gap: 0.42rem;
+  padding: 0.45rem;
+}
+
+.field input,
+.field select {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.5rem;
+  font-size: 0.78rem;
+}
+
+.scope-summary,
+.metric-card,
+.summary-item,
+.result-card,
+.action-card,
+.procedure-result,
+.state-card,
+.range-card,
+.panel-main {
+  border-radius: 6px;
+  box-shadow: none;
+}
+
+.metric-strip,
+.summary-strip,
+.result-grid,
+.action-grid,
+.tab-panel {
+  gap: 0.35rem;
+}
+
+.metric-card,
+.summary-item,
+.result-card {
+  padding: 0.38rem 0.48rem;
+}
+
+.panel-grid {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.panel-main {
+  gap: 0.45rem;
+  padding: 0.5rem;
+}
+
+.form-grid {
+  gap: 0.42rem;
+}
+
+.technical-field {
+  display: none;
+}
+
+.toggle-row {
+  gap: 0.35rem;
+}
+
+.request-inline,
+.request-card {
+  display: none;
+}
+
+.report-toolbar {
+  grid-template-columns: minmax(150px, 0.32fr) auto;
+  gap: 0.42rem;
+  padding: 0.45rem;
+}
+
+.range-card {
+  grid-template-columns: minmax(150px, 0.7fr) minmax(130px, 0.45fr) minmax(130px, 0.45fr) auto;
+  gap: 0.42rem;
+  padding: 0.5rem;
+}
+
+.action-card {
+  gap: 0.32rem;
+  padding: 0.5rem;
+}
+
+.action-card p {
+  display: none;
+}
+
+.table-wrap {
+  max-height: calc(100vh - 285px);
+  border-radius: 6px;
+}
+
+.data-table th,
+.data-table td {
+  padding: 0.42rem 0.5rem;
+  font-size: 0.76rem;
+}
+
+@media (max-width: 1180px) {
+  .scope-bar,
+  .report-toolbar,
+  .range-card {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}

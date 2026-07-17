@@ -843,3 +843,89 @@ button:disabled {
     width: 100%;
   }
 }
+
+.correction-page {
+  gap: 0.5rem;
+}
+
+.page-head,
+.workspace,
+.document-summary,
+.lookup-bar,
+.editor-panel,
+.lookup-panel,
+.feedback,
+.empty-state {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.page-head,
+.workspace,
+.document-summary,
+.lookup-bar,
+.editor-panel,
+.lookup-panel,
+.feedback,
+.empty-state {
+  padding: 0.5rem 0.58rem;
+}
+
+.subtitle,
+.section-note,
+.editor-head p,
+.field-hint,
+.inline-note {
+  display: none;
+}
+
+.page-head h2,
+.editor-head h3,
+.lookup-panel h3 {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.eyebrow,
+.panel-kicker,
+.field > span {
+  font-size: 0.58rem;
+  letter-spacing: 0;
+}
+
+.permission-strip,
+.tab-strip,
+.summary-metrics,
+.editor-actions,
+.compact-row,
+.toggle-grid,
+.form-grid {
+  gap: 0.42rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.52rem;
+  font-size: 0.78rem;
+}
+
+.tab-button,
+.primary-action,
+.secondary-action,
+.danger-action,
+.hard-danger-action {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.74rem;
+  box-shadow: none;
+}
+
+th,
+td {
+  padding: 0.44rem 0.52rem;
+  font-size: 0.76rem;
+}

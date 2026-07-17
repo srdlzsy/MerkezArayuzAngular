@@ -666,3 +666,78 @@ dd,
     justify-content: flex-start;
   }
 }
+
+.anomaly-page {
+  gap: 0.5rem;
+  padding: 0.55rem;
+}
+
+.page-head,
+.filter-band,
+.scan-options,
+.metric,
+.scan-result,
+.table-section,
+.detail-dialog {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.page-head,
+.filter-band,
+.scan-options,
+.metric,
+.scan-result,
+.table-section {
+  padding: 0.5rem 0.58rem;
+}
+
+.page-head p {
+  display: none;
+}
+
+.page-head h1,
+.section-head h2,
+.detail-head h2 {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.eyebrow {
+  font-size: 0.58rem;
+  letter-spacing: 0;
+}
+
+.filter-band,
+.scan-options,
+.head-actions,
+.summary-grid,
+.section-head,
+.scan-result {
+  gap: 0.42rem;
+}
+
+input,
+select,
+textarea {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.52rem;
+  font-size: 0.78rem;
+}
+
+button,
+.primary-button,
+.scan-button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.74rem;
+  box-shadow: none;
+}
+
+th,
+td {
+  padding: 0.44rem 0.52rem;
+  font-size: 0.76rem;
+}

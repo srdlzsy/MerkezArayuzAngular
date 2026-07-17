@@ -188,3 +188,66 @@ th {
     overflow-x: auto;
   }
 }
+
+.kunye-page {
+  gap: 0.5rem;
+}
+
+.kunye-header,
+.filters,
+.table-shell,
+.feedback {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.kunye-header,
+.filters,
+.feedback {
+  padding: 0.5rem 0.58rem;
+}
+
+.subtitle,
+.field-hint,
+.inline-note {
+  display: none;
+}
+
+.kunye-header h2 {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.eyebrow {
+  margin: 0;
+  font-size: 0.58rem;
+  letter-spacing: 0;
+}
+
+.actions,
+.filters,
+.status {
+  gap: 0.42rem;
+}
+
+.field input,
+.field select {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.52rem;
+  font-size: 0.78rem;
+}
+
+.primary-button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.74rem;
+  box-shadow: none;
+}
+
+th,
+td {
+  padding: 0.44rem 0.52rem;
+  font-size: 0.76rem;
+}

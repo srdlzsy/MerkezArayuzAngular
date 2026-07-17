@@ -786,3 +786,303 @@ tbody tr:hover {
     pointer-events: auto;
   }
 }
+
+.label-workspace {
+  gap: 0.5rem;
+}
+
+.page-header,
+.setup-card,
+.product-panel,
+.feedback,
+.summary-card {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.page-header,
+.setup-card,
+.product-panel,
+.feedback {
+  padding: 0.5rem 0.58rem;
+}
+
+.page-heading p,
+.section-heading p,
+.product-panel-header p,
+.page-kicker {
+  display: none;
+}
+
+.page-heading h2,
+.product-panel-header h3,
+.section-heading h3 {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.setup-section,
+.form-layout,
+.product-tools,
+.header-actions,
+.button-group,
+.filter-tabs,
+.pagination {
+  gap: 0.42rem;
+}
+
+.summary-grid {
+  gap: 0.42rem;
+}
+
+.summary-card {
+  padding: 0.42rem 0.55rem;
+}
+
+.field input,
+.field select,
+.field textarea {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.52rem;
+  font-size: 0.78rem;
+}
+
+.button,
+.text-button,
+.filter-tab,
+.remove-button,
+.page-button {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.74rem;
+  box-shadow: none;
+}
+
+th,
+td {
+  padding: 0.44rem 0.52rem;
+  font-size: 0.76rem;
+}
+
+.page-header {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto auto;
+  align-items: center;
+  border-left-width: 3px;
+}
+
+.header-metrics {
+  display: grid;
+  grid-template-columns: repeat(4, max-content);
+  gap: 0.32rem;
+  align-items: center;
+}
+
+.header-metrics span {
+  display: inline-grid;
+  grid-template-columns: auto auto;
+  gap: 0.28rem;
+  align-items: baseline;
+  min-height: 30px;
+  padding: 0.26rem 0.44rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: var(--surface-soft);
+  white-space: nowrap;
+}
+
+.header-metrics span.has-warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.header-metrics b {
+  color: var(--muted);
+  font-size: 0.58rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.header-metrics strong {
+  color: var(--text);
+  font-size: 0.8rem;
+}
+
+.setup-section {
+  display: grid;
+  grid-template-columns:
+    minmax(140px, 0.62fr)
+    minmax(180px, 0.72fr)
+    max-content
+    minmax(230px, 1fr)
+    minmax(140px, 0.55fr)
+    max-content;
+  grid-template-areas:
+    "labelType startDate sourceActions recentDocument documentSearch documentActions"
+    "utilityActions utilityActions utilityActions utilityActions utilityActions utilityActions";
+  align-items: end;
+  column-gap: 0.42rem;
+  row-gap: 0.34rem;
+  padding: 0.5rem 0.58rem;
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.filter-group {
+  display: contents;
+}
+
+.section-heading {
+  display: none;
+}
+
+.form-layout-source {
+  display: contents;
+}
+
+.form-layout-document {
+  display: contents;
+}
+
+.form-layout .button-group {
+  grid-column: auto;
+  align-self: end;
+  flex-wrap: nowrap;
+}
+
+.setup-section .field {
+  min-width: 0;
+}
+
+.setup-section .button-group,
+.sub-actions {
+  flex-wrap: nowrap;
+  white-space: nowrap;
+}
+
+.filter-field-label-type {
+  grid-area: labelType;
+}
+
+.filter-field-start-date {
+  grid-area: startDate;
+}
+
+.filter-field-recent-document {
+  grid-area: recentDocument;
+}
+
+.filter-field-document-search {
+  grid-area: documentSearch;
+}
+
+.source-actions {
+  grid-area: sourceActions;
+}
+
+.document-actions {
+  grid-area: documentActions;
+}
+
+.sub-actions {
+  grid-area: utilityActions;
+  align-self: end;
+  justify-self: end;
+  justify-content: flex-end;
+  gap: 0.3rem;
+}
+
+.product-panel {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.product-panel-header {
+  display: grid;
+  grid-template-columns: minmax(180px, 1fr) auto;
+  align-items: center;
+  gap: 0.42rem;
+  padding-bottom: 0.4rem;
+  border-bottom: 1px solid var(--line);
+}
+
+.product-tools {
+  display: grid;
+  grid-template-columns: minmax(260px, 1fr) auto;
+  align-items: end;
+  padding: 0.42rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: var(--surface-soft);
+}
+
+.search-field {
+  min-width: 260px;
+}
+
+.filter-tabs {
+  justify-content: flex-end;
+  gap: 0.28rem;
+}
+
+.filter-tab {
+  border: 1px solid #d7e1ec;
+  background: #fff;
+}
+
+.filter-tab.is-active {
+  border-color: #0f766e;
+  background: #e8f7f4;
+  color: #0f766e;
+}
+
+@media (max-width: 1120px) {
+  .page-header,
+  .product-tools {
+    grid-template-columns: 1fr;
+  }
+
+  .header-metrics,
+  .header-actions,
+  .filter-tabs,
+  .sub-actions {
+    justify-content: flex-start;
+  }
+}
+
+@media (max-width: 900px) {
+  .setup-section {
+    grid-template-columns: 1fr;
+    overflow-x: visible;
+  }
+
+  .filter-group {
+    display: grid;
+    gap: 0.42rem;
+    min-width: 0;
+  }
+
+  .form-layout-source,
+  .form-layout-document {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .form-layout .button-group {
+    grid-column: 1 / -1;
+  }
+
+  .filter-field-label-type,
+  .filter-field-start-date,
+  .filter-field-recent-document,
+  .filter-field-document-search,
+  .source-actions,
+  .document-actions,
+  .utility-actions {
+    grid-area: auto;
+  }
+}

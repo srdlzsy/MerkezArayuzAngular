@@ -7,19 +7,28 @@
         <p>{{ page.subtitle }}</p>
       </div>
 
-      <div class="permission-strip" aria-label="Belge akis ozeti">
-        <article>
-          <span>Kapsam</span>
+      <div class="flow-summary-strip" aria-label="Belge akis ozeti">
+        <span>
+          <b>Kapsam</b>
           <strong>{{ flowScopeLabel() }}</strong>
-        </article>
-        <article>
-          <span>Yetki</span>
+        </span>
+        <span>
+          <b>Yetki</b>
           <strong>{{ isAdminUser() ? 'Admin' : 'Kullanici' }}</strong>
-        </article>
-        <article>
-          <span>Takip</span>
+        </span>
+        <span>
+          <b>Takip</b>
           <strong>{{ trackingEnabled() ? 'Aktif' : 'Kapali' }}</strong>
-        </article>
+        </span>
+        <span
+          *ngFor="let metric of metrics(); trackBy: trackByMetric"
+          [class.is-danger]="metric.tone === 'danger'"
+          [class.is-success]="metric.tone === 'success'"
+          [class.is-warning]="metric.tone === 'warn'"
+        >
+          <b>{{ metric.label }}</b>
+          <strong>{{ metric.value }}</strong>
+        </span>
       </div>
     </header>
 
@@ -37,14 +46,6 @@
     </article>
 
     <section class="filter-panel">
-      <div class="filter-head">
-        <div>
-          <span class="section-kicker">Filtreler</span>
-          <strong>Belge akis sorgusu</strong>
-        </div>
-        <span class="record-count">{{ totalCount() }} kayit</span>
-      </div>
-
       <div class="filters-grid">
         <label class="field" *ngIf="isAdminUser()">
           <span>Depo No</span>
@@ -151,21 +152,6 @@
           </button>
         </div>
       </div>
-
-      <code class="request-preview">{{ buildRequestPreview() }}</code>
-    </section>
-
-    <section class="metric-strip">
-      <article
-        class="metric-card"
-        *ngFor="let metric of metrics(); trackBy: trackByMetric"
-        [class.metric-danger]="metric.tone === 'danger'"
-        [class.metric-success]="metric.tone === 'success'"
-        [class.metric-warn]="metric.tone === 'warn'"
-      >
-        <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
-      </article>
     </section>
 
     <article class="state-card state-card-error" *ngIf="errorMessage() as error">

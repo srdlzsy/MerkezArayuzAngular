@@ -1588,3 +1588,94 @@
     min-height: 0;
   }
 }
+
+.invoice-console {
+  gap: 0.5rem;
+}
+
+.hero-card,
+.panel,
+.feedback-card,
+.empty-state,
+.queue-banner,
+.detail-hero,
+.message-card {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.hero-card,
+.panel,
+.feedback-card,
+.empty-state,
+.queue-banner,
+.detail-hero,
+.message-card {
+  padding: 0.5rem 0.58rem;
+}
+
+.hero-copy p,
+.panel-head p,
+.field-hint,
+.inline-note,
+.viewing-print-banner p {
+  display: none;
+}
+
+.hero-copy h2,
+.panel-head h3,
+.panel-head h4,
+.detail-copy h3 {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.section-kicker,
+.eyebrow {
+  font-size: 0.58rem;
+  letter-spacing: 0;
+}
+
+.workspace-grid,
+.workspace-stack,
+.filter-grid,
+.action-row,
+.panel-head,
+.summary-grid,
+.compact-summary-grid,
+.code-grid,
+.queue-banner {
+  gap: 0.42rem;
+}
+
+.field input,
+.field select,
+.field textarea,
+.search-box input {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.52rem;
+  font-size: 0.78rem;
+}
+
+.primary-button,
+.secondary-button,
+.ghost-button,
+.compact-button,
+.candidate-chip {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.74rem;
+  box-shadow: none;
+}
+
+.invoice-table th,
+.invoice-table td,
+.viewing-table th,
+.viewing-table td,
+.sending-table th,
+.sending-table td {
+  padding: 0.44rem 0.52rem;
+  font-size: 0.76rem;
+}

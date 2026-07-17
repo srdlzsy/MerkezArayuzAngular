@@ -597,3 +597,85 @@ p {
     max-height: calc(100dvh - 1rem);
   }
 }
+
+.supplier-page {
+  padding: 0.55rem;
+}
+
+.supplier-workspace,
+.workspace-head,
+.filter-panel,
+.metric-card,
+.state-card,
+.table-shell,
+.score-panel,
+.invoice-summary {
+  border-radius: 8px;
+  box-shadow: none;
+}
+
+.supplier-workspace,
+.workspace-head,
+.filter-panel,
+.metric-card,
+.state-card,
+.table-shell,
+.score-panel,
+.invoice-summary {
+  padding: 0.5rem 0.58rem;
+}
+
+.supplier-workspace,
+.workspace-head,
+.filter-panel,
+.metric-strip,
+.detail-head {
+  gap: 0.42rem;
+}
+
+.workspace-head p,
+.field-hint,
+.inline-note,
+.metric-card p {
+  display: none;
+}
+
+.workspace-head h2,
+.detail-head h3 {
+  font-size: 1rem;
+  line-height: 1.18;
+}
+
+.section-kicker,
+.field span,
+.metric-card span,
+.request-line span,
+.table-context span {
+  font-size: 0.58rem;
+  letter-spacing: 0;
+}
+
+.field input,
+.field select,
+.field textarea,
+.search-box input {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.52rem;
+  font-size: 0.78rem;
+}
+
+button,
+.primary-action {
+  min-height: 32px;
+  border-radius: 6px;
+  padding: 0.34rem 0.62rem;
+  font-size: 0.74rem;
+  box-shadow: none;
+}
+
+th,
+td {
+  padding: 0.44rem 0.52rem;
+  font-size: 0.76rem;
+}

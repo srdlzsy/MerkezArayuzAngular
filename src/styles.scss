@@ -20,26 +20,446 @@ a {
 }
 
 .docs-task-dialog-backdrop {
-  background: rgba(15, 23, 42, 0.52);
-  backdrop-filter: blur(4px);
+  background: rgba(15, 23, 42, 0.38);
+  backdrop-filter: blur(2px);
 }
 
 .docs-task-dialog-panel .cdk-dialog-container {
-  width: min(980px, calc(100vw - 1.5rem));
-  max-width: 980px;
-  max-height: calc(100vh - 1.5rem);
+  width: min(1080px, calc(100vw - 1.25rem));
+  max-width: 1080px;
+  max-height: calc(100dvh - 0.5rem);
   overflow: hidden;
-  border: 0;
-  border-radius: 28px;
-  background: linear-gradient(180deg, #f6f9fe, #edf3fb);
-  box-shadow: 0 28px 80px rgba(15, 23, 42, 0.28);
+  border: 1px solid #dbe5f1;
+  border-radius: 10px;
+  background: #f8fafc;
+  box-shadow: 0 18px 52px rgba(15, 23, 42, 0.22);
+}
+
+.docs-task-dialog-panel {
+  --op-border: #dbe5f1;
+  --op-border-soft: #e8eef6;
+  --op-surface: #ffffff;
+  --op-muted: #64748b;
+  --op-text: #0f172a;
+  --op-accent: #0f766e;
+}
+
+.docs-task-dialog-panel .dialog-page {
+  width: 100% !important;
+  height: auto !important;
+  max-height: calc(100dvh - 0.5rem) !important;
+  min-height: 0 !important;
+  border-radius: 0 !important;
+  background: #f8fafc !important;
+  overflow: hidden !important;
+}
+
+.docs-task-dialog-panel .dialog-header {
+  gap: 0.5rem !important;
+  padding: 0.42rem 0.62rem !important;
+  background: var(--op-surface) !important;
+  border-bottom: 1px solid var(--op-border) !important;
+}
+
+.docs-task-dialog-panel .dialog-heading {
+  gap: 0.06rem !important;
+}
+
+.docs-task-dialog-panel .eyebrow {
+  margin: 0 !important;
+  color: var(--op-accent) !important;
+  font-size: 0.56rem !important;
+  letter-spacing: 0 !important;
+}
+
+.docs-task-dialog-panel .dialog-heading h2 {
+  margin: 0 !important;
+  color: var(--op-text) !important;
+  font-size: 0.96rem !important;
+  line-height: 1.18 !important;
+}
+
+.docs-task-dialog-panel .subtitle,
+.docs-task-dialog-panel .helper-text,
+.docs-task-dialog-panel .query-path,
+.docs-task-dialog-panel .request-path,
+.docs-task-dialog-panel .request-preview,
+.docs-task-dialog-panel .request-card,
+.docs-task-dialog-panel .request-inline,
+.docs-task-dialog-panel .route-strip,
+.docs-task-dialog-panel .field-preview,
+.docs-task-dialog-panel .sample,
+.docs-task-dialog-panel .json-block,
+.docs-task-dialog-panel .json-details,
+.docs-task-dialog-panel .task-item .table-wrap,
+.docs-task-dialog-panel .request-line code,
+.docs-task-dialog-panel .task-item-head p {
+  display: none !important;
+}
+
+.docs-task-dialog-panel .dialog-body {
+  gap: 0.48rem !important;
+  max-height: calc(100dvh - 3.6rem) !important;
+  padding: 0.48rem 0.58rem 0.58rem !important;
+  overflow: auto !important;
+}
+
+.docs-task-dialog-panel .form-shell,
+.docs-task-dialog-panel .task-block,
+.docs-task-dialog-panel .task-list {
+  gap: 0.48rem !important;
+}
+
+.docs-task-dialog-panel .panel,
+.docs-task-dialog-panel .query-card,
+.docs-task-dialog-panel .state-card,
+.docs-task-dialog-panel .info-card,
+.docs-task-dialog-panel .summary-card,
+.docs-task-dialog-panel .task-item {
+  border: 1px solid var(--op-border) !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  background: var(--op-surface) !important;
+}
+
+.docs-task-dialog-panel .panel,
+.docs-task-dialog-panel .query-card,
+.docs-task-dialog-panel .task-item {
+  padding: 0.48rem 0.56rem !important;
+}
+
+.docs-task-dialog-panel .state-card,
+.docs-task-dialog-panel .info-card,
+.docs-task-dialog-panel .summary-card {
+  padding: 0.4rem 0.52rem !important;
+}
+
+.docs-task-dialog-panel .panel-head {
+  min-height: 0 !important;
+  margin-bottom: 0.38rem !important;
+  padding-bottom: 0.28rem !important;
+  border-bottom: 1px solid var(--op-border-soft) !important;
+}
+
+.docs-task-dialog-panel .panel-head h3,
+.docs-task-dialog-panel .state-card h3,
+.docs-task-dialog-panel .info-card h3,
+.docs-task-dialog-panel .summary-card h3 {
+  margin: 0 !important;
+  color: #475569 !important;
+  font-size: 0.62rem !important;
+  line-height: 1.15 !important;
+  letter-spacing: 0 !important;
+  text-transform: uppercase !important;
+}
+
+.docs-task-dialog-panel .state-card p,
+.docs-task-dialog-panel .info-card p,
+.docs-task-dialog-panel .summary-card p {
+  margin: 0 !important;
+  font-size: 0.76rem !important;
+  line-height: 1.25 !important;
+}
+
+.docs-task-dialog-panel .dual-search,
+.docs-task-dialog-panel .contact-row,
+.docs-task-dialog-panel .create-grid,
+.docs-task-dialog-panel .query-grid {
+  gap: 0.46rem !important;
+}
+
+.docs-task-dialog-panel .search-label,
+.docs-task-dialog-panel .field span,
+.docs-task-dialog-panel .contact-field label {
+  margin: 0 !important;
+  color: var(--op-muted) !important;
+  font-size: 0.58rem !important;
+  line-height: 1.1 !important;
+  letter-spacing: 0 !important;
+  text-transform: uppercase !important;
+}
+
+.docs-task-dialog-panel input,
+.docs-task-dialog-panel select,
+.docs-task-dialog-panel textarea {
+  min-height: 30px !important;
+  padding: 0.32rem 0.48rem !important;
+  border: 1px solid #cfd9e7 !important;
+  border-radius: 6px !important;
+  font-size: 0.74rem !important;
+  background: #fff !important;
+}
+
+.docs-task-dialog-panel textarea {
+  min-height: 72px !important;
+}
+
+.docs-task-dialog-panel .ghost-button,
+.docs-task-dialog-panel .primary-button,
+.docs-task-dialog-panel .secondary-button,
+.docs-task-dialog-panel .small-btn,
+.docs-task-dialog-panel .task-action,
+.docs-task-dialog-panel .row-action,
+.docs-task-dialog-panel .close-button {
+  min-height: 30px !important;
+  border-radius: 6px !important;
+  padding: 0.32rem 0.62rem !important;
+  font-size: 0.72rem !important;
+  font-weight: 700 !important;
+  box-shadow: none !important;
+}
+
+.docs-task-dialog-panel .table-wrap {
+  border-radius: 8px !important;
+  box-shadow: none !important;
+}
+
+.docs-task-dialog-panel table {
+  min-width: 720px !important;
+}
+
+.docs-task-dialog-panel th,
+.docs-task-dialog-panel td {
+  padding: 0.38rem 0.48rem !important;
+  font-size: 0.74rem !important;
+  line-height: 1.25 !important;
+}
+
+.docs-task-dialog-panel th {
+  color: #475569 !important;
+  font-size: 0.58rem !important;
+  letter-spacing: 0 !important;
+}
+
+.docs-task-dialog-panel .kalem-table-head,
+.docs-task-dialog-panel .kalem-row {
+  gap: 0.36rem !important;
+}
+
+.docs-task-dialog-panel .kalem-row {
+  padding: 0.4rem 0.48rem !important;
+}
+
+.docs-task-dialog-panel .empty-state,
+.docs-task-dialog-panel .feedback,
+.docs-task-dialog-panel .feedback-error {
+  padding: 0.42rem 0.52rem !important;
+  border-radius: 8px !important;
+  font-size: 0.74rem !important;
+}
+
+body .task-page .subtitle,
+body .create-page .subtitle,
+body .lookup-page .subtitle,
+body .task-page .helper-text,
+body .create-page .helper-text,
+body .lookup-page .helper-text,
+body .task-page .field-help,
+body .create-page .field-help,
+body .lookup-page .field-help,
+body .task-page .query-path,
+body .create-page .query-path,
+body .lookup-page .query-path,
+body .task-page .request-path,
+body .create-page .request-path,
+body .lookup-page .request-path,
+body .task-page .request-preview,
+body .create-page .request-preview,
+body .lookup-page .request-preview,
+body .task-page .request-card,
+body .create-page .request-card,
+body .lookup-page .request-card,
+body .task-page .request-inline,
+body .create-page .request-inline,
+body .lookup-page .request-inline,
+body .task-page .route-strip,
+body .create-page .route-strip,
+body .lookup-page .route-strip,
+body .task-page .json-block,
+body .create-page .json-block,
+body .lookup-page .json-block,
+body .task-page .json-details,
+body .create-page .json-details,
+body .lookup-page .json-details,
+body .dialog-page .task-item .table-wrap,
+body .task-page .task-list .task-item .table-wrap,
+body .dialog-page .sample,
+body .task-page .sample,
+body .create-page .sample,
+body .lookup-page .sample,
+body .task-page > .info-grid,
+body .create-page > .info-grid,
+body .task-page .field-preview,
+body .create-page .field-preview,
+body .task-page .panel-copy,
+body .task-page .notes-shell,
+body .task-page .note-card,
+body .task-page .highlight-strip,
+body .task-page .card-description,
+body .create-page .form-head p,
+body .create-page .helper-card,
+body .task-page .result-note,
+body .task-page .request-line code,
+body .create-page .request-line code,
+body .lookup-page .request-line code,
+body .axata-compact .json-details,
+body .uyumsoft-page pre {
+  display: none !important;
+}
+
+body .task-page .page-head,
+body .task-page .hero,
+body .create-page .hero,
+body .lookup-page .page-head {
+  gap: 0.5rem !important;
+  margin-bottom: 0.45rem !important;
+  padding: 0 !important;
+  border: 0 !important;
+  border-radius: 0 !important;
+  background: transparent !important;
+  box-shadow: none !important;
+}
+
+body .task-page h2,
+body .create-page h2,
+body .lookup-page h2 {
+  margin: 0 !important;
+  font-size: 1.14rem !important;
+  line-height: 1.18 !important;
+  letter-spacing: 0 !important;
+}
+
+body .task-page .eyebrow,
+body .create-page .eyebrow,
+body .lookup-page .eyebrow {
+  margin: 0 !important;
+  font-size: 0.58rem !important;
+  letter-spacing: 0 !important;
+}
+
+body .task-page .query-card,
+body .task-page .filter-panel,
+body .task-page .form-panel,
+body .task-page .surface-card,
+body .task-page .panel,
+body .task-page .action-card,
+body .task-page .range-card,
+body .task-page .selection-panel,
+body .task-page .compact-panel,
+body .task-page .side-panel,
+body .task-page .state-card,
+body .task-page .summary-card,
+body .task-page .info-card,
+body .task-page .status-card,
+body .task-page .metric-card,
+body .task-page .setup-card,
+body .task-page .job-card,
+body .task-page .result-card,
+body .task-page .write-card,
+body .task-page .metric-strip article,
+body .create-page .form-card,
+body .create-page .info-card,
+body .create-page .state-card,
+body .lookup-page .query-panel,
+body .lookup-page .product-card,
+body .lookup-page .state-card,
+body .lookup-page .metric-card,
+body .lookup-page .summary-card {
+  border: 1px solid #dbe5f1 !important;
+  border-radius: 8px !important;
+  box-shadow: none !important;
+  background: #fff !important;
+}
+
+body .task-page .query-card,
+body .task-page .filter-panel,
+body .task-page .form-panel,
+body .task-page .surface-card,
+body .task-page .panel,
+body .task-page .action-card,
+body .task-page .range-card,
+body .task-page .selection-panel,
+body .task-page .compact-panel,
+body .task-page .side-panel,
+body .task-page .state-card,
+body .task-page .summary-card,
+body .task-page .status-card,
+body .task-page .metric-card,
+body .create-page .form-card,
+body .lookup-page .query-panel,
+body .lookup-page .product-card,
+body .lookup-page .state-card,
+body .lookup-page .metric-card {
+  padding: 0.48rem 0.56rem !important;
+}
+
+body .task-page .metric-strip,
+body .task-page .metrics-grid,
+body .task-page .summary-grid,
+body .task-page .query-grid,
+body .task-page .workspace-grid,
+body .create-page,
+body .create-page .form-grid,
+body .lookup-page .result-grid,
+body .lookup-page .query-panel {
+  gap: 0.42rem !important;
+}
+
+body .task-page input,
+body .task-page select,
+body .task-page textarea,
+body .create-page input,
+body .create-page select,
+body .create-page textarea,
+body .lookup-page input,
+body .lookup-page select,
+body .lookup-page textarea {
+  min-height: 32px !important;
+  border-radius: 6px !important;
+  font-size: 0.78rem !important;
+  padding: 0.34rem 0.52rem !important;
+}
+
+body .task-page .task-action,
+body .task-page .primary-action,
+body .task-page .ghost-action,
+body .task-page .action-button,
+body .create-page .primary-button,
+body .create-page .secondary-button,
+body .create-page .ghost-button,
+body .lookup-page .primary-action,
+body .lookup-page .ghost-action {
+  min-height: 32px !important;
+  border-radius: 6px !important;
+  padding: 0.34rem 0.62rem !important;
+  font-size: 0.74rem !important;
+  box-shadow: none !important;
+}
+
+body .task-page th,
+body .task-page td,
+body .lookup-page th,
+body .lookup-page td {
+  padding: 0.44rem 0.52rem !important;
+  font-size: 0.76rem !important;
+}
+
+body .task-page .metric-card p,
+body .task-page .setup-card p,
+body .task-page .action-card p,
+body .lookup-page .metric-card p {
+  display: none !important;
 }
 
 @media (max-width: 700px) {
   .docs-task-dialog-panel .cdk-dialog-container {
-    width: calc(100vw - 1rem);
-    max-height: calc(100vh - 1rem);
-    border-radius: 22px;
+    width: calc(100vw - 0.75rem);
+    max-height: calc(100dvh - 0.4rem);
+    border-radius: 8px;
+  }
+
+  .docs-task-dialog-panel .dialog-header {
+    grid-template-columns: 1fr !important;
   }
 }
 

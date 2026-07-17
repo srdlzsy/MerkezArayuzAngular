@@ -3,32 +3,39 @@
     <div class="welcome-box">
       <h2>{{ current.title }}</h2>
     </div>
+    <div class="banknote-metrics" aria-label="Banknot takip ozeti">
+      <span>
+        <b>Depo</b>
+        <strong>{{ selectedWarehouseLabel() }}</strong>
+      </span>
+      <span>
+        <b>Gun</b>
+        <strong>{{ lastLoadedDate() }}</strong>
+      </span>
+      <span>
+        <b>Kayit</b>
+        <strong>{{ totalCount() }}</strong>
+      </span>
+      <span>
+        <b>Toplam</b>
+        <strong>{{ formatCurrency(totalAmount()) }}</strong>
+      </span>
+      <span>
+        <b>Teslim</b>
+        <strong>{{ formatCurrency(deliveryTotalAmount()) }}</strong>
+      </span>
+      <span>
+        <b>Fark</b>
+        <strong
+          [class.amount-negative]="differenceTotalAmount() < 0"
+          [class.amount-positive]="differenceTotalAmount() > 0"
+        >
+          {{ formatCurrency(differenceTotalAmount()) }}
+        </strong>
+      </span>
+    </div>
     <p class="subtitle">{{ current.subtitle }}</p>
   </header>
-
-  <section class="info-grid">
-    <article class="info-card">
-      <h3>Depo</h3>
-      <p>{{ selectedWarehouseLabel() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Gun</h3>
-      <p>{{ lastLoadedDate() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Toplam Kayit</h3>
-      <p>{{ totalCount() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Fark</h3>
-      <p
-        [class.amount-negative]="differenceTotalAmount() < 0"
-        [class.amount-positive]="differenceTotalAmount() > 0"
-      >
-        {{ formatCurrency(differenceTotalAmount()) }}
-      </p>
-    </article>
-  </section>
 
   <section class="task-block">
     <form class="query-card banknote-query" [formGroup]="filtersForm" (ngSubmit)="loadTracks()" novalidate>
@@ -68,21 +75,6 @@
 
       <p class="query-path">{{ requestPath() }}</p>
     </form>
-
-    <section class="banknote-totals">
-      <article class="info-card">
-        <h3>Toplam</h3>
-        <p>{{ formatCurrency(totalAmount()) }}</p>
-      </article>
-      <article class="info-card">
-        <h3>Teslim</h3>
-        <p>{{ formatCurrency(deliveryTotalAmount()) }}</p>
-      </article>
-      <article class="info-card">
-        <h3>Fark Dagilimi</h3>
-        <p>{{ differenceSummaryLabel() }}</p>
-      </article>
-    </section>
 
     <article
       class="state-card feedback-card"

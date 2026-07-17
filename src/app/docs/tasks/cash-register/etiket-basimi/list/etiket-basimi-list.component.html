@@ -6,6 +6,25 @@
       <p>Ürünleri yükleyin, etiket türünü seçin ve baskıya hazırlayın.</p>
     </div>
 
+    <div class="header-metrics" aria-label="Etiket özeti">
+      <span>
+        <b>Depo</b>
+        <strong>{{ branchLabel() }}</strong>
+      </span>
+      <span>
+        <b>Ürün</b>
+        <strong>{{ products().length }}</strong>
+      </span>
+      <span>
+        <b>Hazır</b>
+        <strong>{{ previewProducts().length }}</strong>
+      </span>
+      <span [class.has-warning]="missingBarcodeProducts().length > 0">
+        <b>Eksik</b>
+        <strong>{{ missingBarcodeProducts().length }}</strong>
+      </span>
+    </div>
+
     <div class="header-actions">
       <span class="status-badge" [class.is-busy]="isBusy()">
         <span class="status-dot"></span>
@@ -32,27 +51,8 @@
     </div>
   </header>
 
-  <section class="summary-grid etiket-print-hidden" aria-label="Etiket özeti">
-    <article class="summary-card summary-card-accent">
-      <span>Depo</span>
-      <strong>{{ branchLabel() }}</strong>
-    </article>
-    <article class="summary-card">
-      <span>Yüklenen ürün</span>
-      <strong>{{ products().length }}</strong>
-    </article>
-    <article class="summary-card">
-      <span>Baskıya hazır</span>
-      <strong>{{ previewProducts().length }}</strong>
-    </article>
-    <article class="summary-card" [class.has-warning]="missingBarcodeProducts().length > 0">
-      <span>Barkodu eksik</span>
-      <strong>{{ missingBarcodeProducts().length }}</strong>
-    </article>
-  </section>
-
   <section class="setup-section etiket-print-hidden" [formGroup]="filtersForm">
-    <article class="setup-card">
+    <div class="filter-group filter-group-source">
       <header class="section-heading">
         <div>
           <span class="step-number">1</span>
@@ -62,7 +62,7 @@
       </header>
 
       <div class="form-layout form-layout-source">
-        <label class="field">
+        <label class="field filter-field-label-type">
           <span>Etiket türü</span>
           <select formControlName="labelType">
             <option *ngFor="let tip of etiketTipleri" [value]="tip.etiketTipi">
@@ -71,12 +71,12 @@
           </select>
         </label>
 
-        <label class="field">
+        <label class="field filter-field-start-date">
           <span>Başlangıç tarihi</span>
           <input type="datetime-local" formControlName="startDate" step="1" />
         </label>
 
-        <div class="button-group">
+        <div class="button-group source-actions">
           <button
             type="button"
             class="button button-primary"
@@ -95,9 +95,9 @@
           </button>
         </div>
       </div>
-    </article>
+    </div>
 
-    <article class="setup-card">
+    <div class="filter-group filter-group-document">
       <header class="section-heading">
         <div>
           <span class="step-number">2</span>
@@ -107,7 +107,7 @@
       </header>
 
       <div class="form-layout form-layout-document">
-        <label class="field">
+        <label class="field filter-field-recent-document">
           <span>Son 10 belge</span>
           <select formControlName="documentId">
             <option [ngValue]="null">Belge seçin</option>
@@ -117,12 +117,12 @@
           </select>
         </label>
 
-        <label class="field">
+        <label class="field filter-field-document-search">
           <span>Belge numarası</span>
           <input type="text" formControlName="documentSearch" placeholder="Örn. 10452" />
         </label>
 
-        <div class="button-group">
+        <div class="button-group document-actions">
           <button
             type="button"
             class="button button-primary"
@@ -142,7 +142,7 @@
         </div>
       </div>
 
-      <div class="sub-actions">
+      <div class="sub-actions utility-actions">
         <button
           type="button"
           class="text-button"
@@ -160,7 +160,7 @@
           Listeyi temizle
         </button>
       </div>
-    </article>
+    </div>
   </section>
 
   <article

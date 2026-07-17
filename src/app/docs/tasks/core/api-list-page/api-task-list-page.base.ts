@@ -226,7 +226,7 @@ export abstract class ApiTaskListPageBase<
 
   protected openDetail(row: Row): void {
     openDocsTaskDialog(this.dialog, this.detailComponent, {
-      width: 'min(1180px, 96vw)',
+      width: 'min(1120px, 96vw)',
       maxWidth: '96vw',
       data: this.buildDetailData(row)
     });

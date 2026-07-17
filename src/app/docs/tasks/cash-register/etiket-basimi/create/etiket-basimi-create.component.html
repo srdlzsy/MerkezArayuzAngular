@@ -10,21 +10,6 @@
   </header>
 
   <div class="dialog-body">
-    <section class="info-grid">
-      <article class="info-card emphasis-card">
-        <h3>Ekran</h3>
-        <p>{{ screenNote }}</p>
-      </article>
-      <article class="info-card">
-        <h3>Kaynak</h3>
-        <p>{{ current.baseRouteOrFile }}</p>
-      </article>
-      <article class="info-card" *ngFor="let item of current.highlights">
-        <h3>Not</h3>
-        <p>{{ item }}</p>
-      </article>
-    </section>
-
     <section class="task-block">
       <div class="task-title">{{ current.listTitle }}</div>
       <div class="task-list">
@@ -56,11 +41,6 @@
           </div>
         </article>
       </div>
-    </section>
-
-    <section class="sample" *ngIf="current.codeSample">
-      <h3>Ornek</h3>
-      <pre><code>{{ current.codeSample }}</code></pre>
     </section>
   </div>
 </section>

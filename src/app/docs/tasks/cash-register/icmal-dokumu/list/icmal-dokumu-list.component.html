@@ -8,6 +8,11 @@
       <p class="subtitle">Gun sec, icmali getir, listeden satir detayina gec.</p>
     </div>
 
+    <div class="hero-actions">
+      <button type="button" class="action-button action-button-primary" (click)="openCreate()">
+        Yeni Kasa Sayimi
+      </button>
+    </div>
   </header>
 
   <section class="info-grid">
@@ -27,11 +32,6 @@
       <h3>Toplam</h3>
       <p>{{ totalAmount() | number:'1.2-2' }} TL</p>
     </article>
-       <div class="hero-actions" style="margin-left: auto;" >
-      <button type="button" class="action-button action-button-primary" (click)="openCreate()">
-        Yeni Kasa Sayimi
-      </button>
-    </div>
   </section>
 
   <section class="task-block">
