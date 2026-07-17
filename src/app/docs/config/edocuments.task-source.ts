@@ -10,10 +10,10 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Manuel inbox senkronizasyonu, cache listeleme, teknik documentId ile PDF acma, HTML detay/render ve yazdirildi durumunu ayri komutla guncelleme akislarini yeni API uzerinden sunar.',
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
-        'POST senkronize varsayilan hizli modda calisir; includeStatuses=true ile durum/log cachei de yenilenir',
-        'Progress endpointi senkronizasyon sirasinda sayfa, okunan, eslesen ve upsert sayaclarini dondurur',
+        'POST senkronize isi arka plana alir ve 202 Accepted doner; includeStatuses=true ile durum/log cachei de yenilenir',
+        'Progress endpointi queued/running/completed/failed durumunu, sayfa, okunan, eslesen ve upsert sayaclarini dondurur',
         'Uyumsoft kaynak sorgusu ExecutionStartDate/ExecutionEndDate ile calisir, bitis tarihinden ileri bakar ve cache kapsami invoiceDate/Fatura Tarihi ile daraltilir',
-        'Uyumsoft zaman asiminda endpoint 504 doner; onceki sayfalardaki eslesen kayitlar cachee yazilmis olabilir',
+        'Uyumsoft zaman asiminda progress failed olur; onceki sayfalardaki eslesen kayitlar cachee yazilmis olabilir',
         'Fatura Tarihi UBL IssueDate alanindan, kayit tarihi CreateDateUtc alanindan okunur',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
         'documentId teknik UUID ile application/pdf dosyasi',
@@ -38,13 +38,13 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize',
-              description: 'GetInboxInvoices sayfalarini ExecutionStartDate/ExecutionEndDate ile okur, bitis tarihinden konfigurasyon kadar ileri bakar, her sayfadaki kayitlari invoiceDate/Fatura Tarihi araligina gore daraltip hemen cache tabloya yazar; response sourceTotalCount, fetchedCount ve matchedCount sayaclarini dondurur; Uyumsoft timeout durumunda 504 doner ve ayni aralik tekrar calistirildiginda cachedeki onceki sayfalar korunur',
+              description: 'GetInboxInvoices senkronizasyonunu arka plana alir ve 202 Accepted ile ilk progress bilgisini dondurur; UI bu cevaptan sonra /senkronize/progress endpointini poll eder, tamamlanan sayaclari completed progress cevabindan okur',
               payload: 'InvoiceViewingSynchronizationRequest'
             },
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize/progress',
-              description: 'Aktif veya son senkronizasyonun running/completed/failed durumunu, progressPercent, sayfa ve matched/upsert sayaclariyla getirir'
+              description: 'Aktif veya son senkronizasyonun queued/running/completed/failed durumunu, progressPercent, sayfa ve matched/upsert sayaclariyla getirir; API yeniden baslarsa idle donebilir'
             },
             {
               method: 'GET',

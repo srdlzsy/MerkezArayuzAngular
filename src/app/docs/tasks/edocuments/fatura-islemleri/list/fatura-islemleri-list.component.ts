@@ -38,7 +38,6 @@ import {
   type InvoiceViewingRenderRequestDto,
   type InvoiceViewingSynchronizationProgressResponseDto,
   type InvoiceViewingSynchronizationRequestDto,
-  type InvoiceViewingSynchronizationResponseDto,
   type InvoiceViewingPrintedStateRequestDto,
   type InvoiceViewingPrintedStateResponseDto,
   type UpdateInvoiceReturnReferenceRequestDto,
@@ -886,60 +885,18 @@ export class FaturaIslemleriListComponent {
 
     this.viewingSyncLoading.set(true);
     this.viewingSyncProgress.set(null);
-    this.startViewingSyncProgressPolling();
+    this.clearViewingSyncProgressTimer();
 
     this.faturaIslemleriService
       .synchronizeInvoiceViewing(request)
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => {
-          this.viewingSyncLoading.set(false);
-          this.clearViewingSyncProgressTimer();
-        })
-      )
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (result: InvoiceViewingSynchronizationResponseDto) => {
-          const includeStatuses = result.includeStatuses ?? request.includeStatuses ?? false;
-          const matchedCount = result.matchedCount ?? result.fetchedCount;
-
-          this.viewingSyncProgress.set({
-            isRunning: false,
-            status: 'completed',
-            startDate: result.startDate,
-            endDate: result.endDate,
-            includeStatuses,
-            queryStartDate: null,
-            queryEndDate: null,
-            pageIndex: null,
-            pageNumber: null,
-            pageSize: null,
-            totalCount: result.sourceTotalCount,
-            totalPage: 0,
-            fetchedCount: result.fetchedCount,
-            matchedCount,
-            insertedCount: result.insertedCount,
-            updatedCount: result.updatedCount,
-            lastPageItemCount: 0,
-            lastPageMatchedCount: 0,
-            lastPageInsertedCount: 0,
-            lastPageUpdatedCount: 0,
-            progressPercent: 100,
-            startedAtUtc: null,
-            lastUpdatedAtUtc: null,
-            finishedAtUtc: null,
-            elapsedMs: null,
-            message: 'Senkronizasyon tamamlandi.'
-          });
-
-          this.feedback.set({
-            tone: 'success',
-            title: 'Senkronizasyon tamamlandi',
-            message: `Uyumsoft'ta ${result.sourceTotalCount} kaynak kayit bulundu; ${result.fetchedCount} kayit okundu, ${matchedCount} kayit Fatura Tarihi araligiyla eslesti, ${result.insertedCount} yeni kayit eklendi ve ${result.updatedCount} kayit guncellendi.`
-          });
-
-          this.loadViewingList();
+        next: (progress: InvoiceViewingSynchronizationProgressResponseDto) => {
+          this.handleViewingSyncProgress(progress);
         },
         error: (error: HttpErrorResponse) => {
+          this.viewingSyncLoading.set(false);
+          this.clearViewingSyncProgressTimer();
           this.markViewingSyncProgressFailed();
           this.feedback.set(
             this.resolveViewingSynchronizationFeedback(error, request.includeStatuses ?? false)
@@ -3385,11 +3342,6 @@ export class FaturaIslemleriListComponent {
     this.viewingQuickFilterTimer = null;
   }
 
-  private startViewingSyncProgressPolling(): void {
-    this.clearViewingSyncProgressTimer();
-    this.pollViewingSyncProgress();
-  }
-
   private pollViewingSyncProgress(): void {
     if (!this.viewingSyncLoading()) {
       return;
@@ -3400,14 +3352,7 @@ export class FaturaIslemleriListComponent {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (progress: InvoiceViewingSynchronizationProgressResponseDto) => {
-          this.viewingSyncProgress.set(progress);
-
-          const isTerminalProgress =
-            progress.status === 'completed' || progress.status === 'failed';
-
-          if (this.viewingSyncLoading() && !isTerminalProgress) {
-            this.scheduleViewingSyncProgressPoll();
-          }
+          this.handleViewingSyncProgress(progress);
         },
         error: () => {
           if (this.viewingSyncLoading()) {
@@ -3448,6 +3393,72 @@ export class FaturaIslemleriListComponent {
       progressPercent: currentProgress.progressPercent ?? 100,
       message: currentProgress.message?.trim() || 'Senkronizasyon hata ile durdu.'
     });
+  }
+
+  private handleViewingSyncProgress(
+    progress: InvoiceViewingSynchronizationProgressResponseDto
+  ): void {
+    this.viewingSyncProgress.set(progress);
+
+    const status = this.normalizeViewingSyncStatus(progress.status);
+
+    if (status === 'completed') {
+      this.viewingSyncLoading.set(false);
+      this.clearViewingSyncProgressTimer();
+      this.feedback.set(this.buildViewingSyncCompletedFeedback(progress));
+      this.loadViewingList();
+      return;
+    }
+
+    if (status === 'failed' || status === 'idle') {
+      this.viewingSyncLoading.set(false);
+      this.clearViewingSyncProgressTimer();
+      this.feedback.set(this.buildViewingSyncStoppedFeedback(progress, status));
+      return;
+    }
+
+    if (this.viewingSyncLoading()) {
+      this.scheduleViewingSyncProgressPoll();
+    }
+  }
+
+  private normalizeViewingSyncStatus(status: string | null | undefined): string {
+    return (status ?? '').trim().toLocaleLowerCase('tr-TR');
+  }
+
+  private buildViewingSyncCompletedFeedback(
+    progress: InvoiceViewingSynchronizationProgressResponseDto
+  ): PageFeedback {
+    return {
+      tone: 'success',
+      title: 'Senkronizasyon tamamlandi',
+      message: `Uyumsoft'ta ${progress.totalCount} kaynak kayit bulundu; ${progress.fetchedCount} kayit okundu, ${progress.matchedCount} kayit Fatura Tarihi araligiyla eslesti, ${progress.insertedCount} yeni kayit eklendi ve ${progress.updatedCount} kayit guncellendi.`
+    };
+  }
+
+  private buildViewingSyncStoppedFeedback(
+    progress: InvoiceViewingSynchronizationProgressResponseDto,
+    status: string
+  ): PageFeedback {
+    const message = progress.message?.trim();
+
+    if (status === 'idle') {
+      return {
+        tone: 'error',
+        title: 'Senkronizasyon izlenemiyor',
+        message:
+          message ||
+          'API process hafizasinda aktif senkronizasyon bulunamadi. API yeniden baslamis olabilir; ayni araligi tekrar calistirin.'
+      };
+    }
+
+    return {
+      tone: 'error',
+      title: 'Senkronizasyon hata ile durdu',
+      message:
+        message ||
+        'Uyumsoft inbox senkronizasyonu tamamlanamadi. Onceki sayfalardan eslesen kayitlar cachee yazilmis olabilir; daha kucuk tarih araligi deneyin.'
+    };
   }
 
   private normalizeText(value: unknown): string {

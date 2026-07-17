@@ -8796,7 +8796,8 @@ Liste davranisi:
 Yeni eklendi:
 
 - bu endpoint listeyi donmez; yalnizca secilen tarih araligini Uyumsoft'tan cache tabloya senkronize eder
-- UI tarafinda tipik akis `POST /senkronize` sonra `GET /fatura-goruntuleme` seklinde olmalidir
+- UI tarafinda tipik akis `POST /senkronize`, `GET /senkronize/progress` ile izleme, tamamlaninca `GET /fatura-goruntuleme` seklinde olmalidir
+- `POST /senkronize` uzun HTTP istegi olarak beklemez; isi arka plana alir ve hemen `202 Accepted` doner
 
 `POST /api/fatura-islemleri/fatura-goruntuleme/senkronize`
 
@@ -8816,18 +8817,36 @@ Request body:
 
 Not: `includeStatuses` gonderilmezse varsayilan `false` kabul edilir.
 
-Response `200 OK`:
+Response `202 Accepted`:
 
 ```json
 {
+  "isRunning": true,
+  "status": "queued",
   "startDate": "2026-05-01T00:00:00",
   "endDate": "2026-05-05T00:00:00",
   "includeStatuses": false,
-  "sourceTotalCount": 29,
-  "fetchedCount": 29,
-  "matchedCount": 29,
-  "insertedCount": 29,
-  "updatedCount": 0
+  "queryStartDate": null,
+  "queryEndDate": null,
+  "pageIndex": 0,
+  "pageNumber": 0,
+  "pageSize": 20,
+  "totalCount": 0,
+  "totalPage": 0,
+  "fetchedCount": 0,
+  "matchedCount": 0,
+  "insertedCount": 0,
+  "updatedCount": 0,
+  "lastPageItemCount": 0,
+  "lastPageMatchedCount": 0,
+  "lastPageInsertedCount": 0,
+  "lastPageUpdatedCount": 0,
+  "progressPercent": 0,
+  "startedAtUtc": "2026-07-17T12:30:00Z",
+  "lastUpdatedAtUtc": "2026-07-17T12:30:00Z",
+  "finishedAtUtc": null,
+  "elapsedMs": 0,
+  "message": "Senkronizasyon siraya alindi."
 }
 ```
 
@@ -8874,10 +8893,11 @@ Response `200 OK`:
 
 UI akis onerisi:
 
-- `POST /senkronize` istegi devam ederken ekranda loading/progress paneli acilir
+- `POST /senkronize` `202 Accepted` donunce ekranda loading/progress paneli acilir
 - UI her 1-2 saniyede bir `GET /senkronize/progress` cagirir
-- `status=running` iken `progressPercent`, `pageNumber/totalPage`, `fetchedCount`, `matchedCount`, `insertedCount`, `updatedCount` gosterilebilir
+- `status=queued` veya `status=running` iken `progressPercent`, `pageNumber/totalPage`, `fetchedCount`, `matchedCount`, `insertedCount`, `updatedCount` gosterilebilir
 - `status=completed` veya `status=failed` oldugunda polling durdurulur
+- final `sourceTotalCount/fetchedCount/matchedCount/insertedCount/updatedCount` bilgisi artik progress response'undaki `completed` durumunda okunur
 - progress bilgisi API process hafizasinda tutulur; API yeniden baslarsa `idle` durumuna doner
 
 Davranis:
@@ -8891,12 +8911,12 @@ Davranis:
 - `includeStatuses=false` hizli modunda mevcut cache kaydindaki `statusCode`, `status`, `envelopeStatusCode`, `envelopeIdentifier` ve `message` alanlari bos veriyle ezilmez
 - `includeStatuses=true` ise her 20 kayitlik sayfa icin fatura durumlari tek toplu `GetInboxInvoiceStatusWithLogs` istegiyle okunur; fatura basina ayri durum cagrisi yapilmaz
 - `includeStatuses=true` iken `statusCode`, `status`, `envelopeStatusCode` ve durum mesaji bu toplu durum cevabiyla cache'e yazilir; daha once bos kaydedilmis durumlar sonraki senkronizasyonda guncellenir
-- tum sayfalar eksiksiz alindiginda response basarili doner; Uyumsoft timeout olursa endpoint hata doner ama onceki sayfalarda Fatura Tarihi araligina uyan kayitlar cache'e yazilmis olabilir
-- `includeStatuses=true` iken Uyumsoft bir faturaya ait durum bilgisini dondurmezse senkronizasyon eksik veriyi basarili saymaz ve hata response'u doner
+- tum sayfalar eksiksiz alindiginda progress `status=completed` olur; Uyumsoft timeout olursa progress `status=failed` olur ama onceki sayfalarda Fatura Tarihi araligina uyan kayitlar cache'e yazilmis olabilir
+- `includeStatuses=true` iken Uyumsoft bir faturaya ait durum bilgisini dondurmezse senkronizasyon eksik veriyi basarili saymaz ve progress `status=failed` olur
 - gelen sonuc `uyumsoft_inbox_invoices` cache tablosuna upsert edilir
 - `sourceTotalCount` Uyumsoft'un genisletilmis execution penceresinde bildirdigi toplam kayit, `fetchedCount` tum sayfalardan gercekten okunan kayit sayisi, `matchedCount` ise secilen Fatura Tarihi araligina uyup cache'e aday olan tekil kayit sayisidir
-- Uyumsoft cagrisi basarisiz olursa endpoint sessiz `204` donmez; hata response'u doner
-- Uyumsoft zaman asiminda endpoint 500 yerine `504 Gateway Timeout` problem response doner; UI kullaniciya daha kucuk tarih araligi denemesini onermelidir
+- Uyumsoft cagrisi basarisiz olursa progress `status=failed` olur; sessiz basarili sayilmaz
+- Uyumsoft zaman asiminda progress `status=failed` olur; UI kullaniciya daha kucuk tarih araligi denemesini onermelidir
 - Uyumsoft e-fatura WCF timeout degeri `EInvoice:TimeoutSeconds` konfigurasyonuyla yonetilir; varsayilan appsettings degeri `180` saniyedir
 - backend her Uyumsoft sayfasi icin page index, page size, item count, total count, total page ve sure bilgisini loglar; ayrica Fatura Tarihi araligina uyan `MatchedItems` / `MatchedTotal` ve sayfa upsert sayilari loglanir
 - timeout durumunda ayni tarih araligiyla tekrar `POST /senkronize` calistirilirse onceki denemede cache'e yazilmis sayfalar korunur, eksik kalan sayfalardan gelen kayitlar guncellenerek devam eder

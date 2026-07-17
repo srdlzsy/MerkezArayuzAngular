@@ -113,16 +113,8 @@ export interface IInvoiceViewingSynchronizationRequestApiDto {
   includeStatuses?: boolean | null;
 }
 
-export interface IInvoiceViewingSynchronizationResponseApiDto {
-  startDate: string;
-  endDate: string;
-  includeStatuses: boolean;
-  sourceTotalCount: number;
-  fetchedCount: number;
-  matchedCount: number;
-  insertedCount: number;
-  updatedCount: number;
-}
+export type IInvoiceViewingSynchronizationResponseApiDto =
+  IInvoiceViewingSynchronizationProgressResponseApiDto;
 
 export interface IInvoiceViewingSynchronizationProgressResponseApiDto {
   isRunning: boolean;
