@@ -50,6 +50,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 type WorkspaceMode = 'viewing' | 'sending';
 type FeedbackTone = 'success' | 'error' | 'info';
 type SortDirection = 'asc' | 'desc';
+type ViewingPageSizeOption = 50 | 100 | 250 | 500 | 1000;
 type ViewingSortKey =
   | 'invoiceId'
   | 'despatchId'
@@ -119,6 +120,14 @@ interface ViewingBackendSearch {
   invoiceType?: string;
   searchField?: IInvoiceViewingSearchFieldApiDto | null;
   searchText?: string | null;
+}
+
+interface ViewingIndexedRow {
+  item: InvoiceViewingListItemDto;
+  invoiceDateTime: number | null;
+  invoiceTypeText: string;
+  searchText: string;
+  statusSortText: string;
 }
 
 interface EmbeddedPreferenceOption {
@@ -321,7 +330,13 @@ export class FaturaIslemleriListComponent {
   protected readonly viewingAmountMaxFilter = signal<number | null>(null);
   protected readonly viewingPageNumber = signal(1);
   protected readonly viewingPageSize = signal(100);
-  protected readonly viewingPageSizeOptions = [50, 100, 250, 500] as const;
+  protected readonly viewingPageSizeOptions: readonly ViewingPageSizeOption[] = [
+    50,
+    100,
+    250,
+    500,
+    1000
+  ];
   protected readonly sendingQuickFilter = signal('');
   protected readonly viewingSort = signal<ViewingSortState>({
     key: 'invoiceDate',
@@ -518,49 +533,25 @@ export class FaturaIslemleriListComponent {
           }
         ]
   );
-  protected readonly filteredViewingItems = computed(() => {
-    const items = this.viewingList()?.items ?? [];
+  protected readonly viewingIndexedRows = computed(() =>
+    (this.viewingList()?.items ?? []).map((item) => this.createViewingIndexedRow(item))
+  );
+  protected readonly filteredViewingRows = computed(() => {
+    const rows = this.viewingIndexedRows();
     const filter = this.normalizeText(this.viewingQuickFilter());
     const stateFilter = this.viewingTableStateFilter();
     const typeFilter = this.normalizeText(this.viewingTableTypeFilter());
     const minAmount = this.viewingAmountMinFilter();
     const maxAmount = this.viewingAmountMaxFilter();
 
-    const filteredItems = items.filter((item) => {
-      const matchesSearch =
-        !filter ||
-        [
-        item.documentId,
-        item.invoiceId,
-        item.customerTitle,
-        item.customerTcknVkn,
-        item.invoiceType,
-        item.statusCode,
-        item.status,
-        this.getViewingStatusText(item),
-        item.envelopeIdentifier,
-        item.envelopeStatusCode,
-        item.message,
-        item.orderDocumentId,
-        item.documentCurrencyCode,
-        item.invoiceTipType,
-        item.despatchId,
-        item.isStandard ? 'standart' : 'ozel tasarim',
-        item.isProcessed ? 'islendi' : 'bekliyor',
-        item.isPrinted ? 'yazdirildi' : 'yazdirilmadi',
-        item.isArchived ? 'arsiv' : '',
-        item.isSeen === true ? 'goruldu' : item.isSeen === false ? 'gorulmedi' : '',
-        `${item.taxTotal}`,
-        `${item.taxExclusiveAmount}`,
-        `${item.exchangeRate}`,
-        `${item.invoiceTotal}`
-        ].some((value) => this.normalizeText(value).includes(filter));
+    const filteredRows = rows.filter((row) => {
+      const item = row.item;
 
-      if (!matchesSearch) {
+      if (filter && !row.searchText.includes(filter)) {
         return false;
       }
 
-      if (typeFilter && this.normalizeText(item.invoiceType) !== typeFilter) {
+      if (typeFilter && row.invoiceTypeText !== typeFilter) {
         return false;
       }
 
@@ -590,10 +581,11 @@ export class FaturaIslemleriListComponent {
       }
     });
 
-    return this.sortViewingItems(filteredItems, this.viewingSort());
+    return this.sortViewingRows(filteredRows, this.viewingSort());
   });
+  protected readonly filteredViewingCount = computed(() => this.filteredViewingRows().length);
   protected readonly viewingPageCount = computed(() => {
-    const totalCount = this.filteredViewingItems().length;
+    const totalCount = this.filteredViewingCount();
 
     return Math.max(1, Math.ceil(totalCount / this.viewingPageSize()));
   });
@@ -604,10 +596,12 @@ export class FaturaIslemleriListComponent {
     const pageSize = this.viewingPageSize();
     const startIndex = (this.effectiveViewingPageNumber() - 1) * pageSize;
 
-    return this.filteredViewingItems().slice(startIndex, startIndex + pageSize);
+    return this.filteredViewingRows()
+      .slice(startIndex, startIndex + pageSize)
+      .map((row) => row.item);
   });
   protected readonly viewingPageStart = computed(() => {
-    const totalCount = this.filteredViewingItems().length;
+    const totalCount = this.filteredViewingCount();
 
     return totalCount === 0
       ? 0
@@ -616,7 +610,7 @@ export class FaturaIslemleriListComponent {
   protected readonly viewingPageEnd = computed(() =>
     Math.min(
       this.effectiveViewingPageNumber() * this.viewingPageSize(),
-      this.filteredViewingItems().length
+      this.filteredViewingCount()
     )
   );
   protected readonly viewingTableStateOptions: ReadonlyArray<ViewingTableFilterOption> = [
@@ -630,8 +624,8 @@ export class FaturaIslemleriListComponent {
   ];
   protected readonly viewingTypeOptions = computed(() => {
     const types = new Set(
-      (this.viewingList()?.items ?? [])
-        .map((item) => item.invoiceType?.trim())
+      this.viewingIndexedRows()
+        .map((row) => row.item.invoiceType?.trim())
         .filter((value): value is string => !!value)
     );
 
@@ -751,7 +745,9 @@ export class FaturaIslemleriListComponent {
   protected readonly selectedViewingItems = computed(() => {
     const selectedIds = new Set(this.selectedViewingDocumentIds());
 
-    return this.filteredViewingItems().filter((item) => selectedIds.has(item.documentId));
+    return this.filteredViewingRows()
+      .filter((row) => selectedIds.has(row.item.documentId))
+      .map((row) => row.item);
   });
   protected readonly selectableViewingItems = computed(() =>
     this.paginatedViewingItems().filter((item) => !item.isPrinted)
@@ -1116,7 +1112,7 @@ export class FaturaIslemleriListComponent {
   protected setViewingPageSize(value: string | number): void {
     const pageSize = Number(value);
 
-    if (!this.viewingPageSizeOptions.includes(pageSize as 50 | 100 | 250 | 500)) {
+    if (!this.viewingPageSizeOptions.includes(pageSize as ViewingPageSizeOption)) {
       return;
     }
 
@@ -3093,18 +3089,58 @@ export class FaturaIslemleriListComponent {
     );
   }
 
-  private sortViewingItems(
-    items: InvoiceViewingListItemDto[],
+  private createViewingIndexedRow(item: InvoiceViewingListItemDto): ViewingIndexedRow {
+    const statusText = this.getViewingStatusText(item);
+
+    return {
+      item,
+      invoiceDateTime: item.invoiceDate ? Date.parse(item.invoiceDate) : null,
+      invoiceTypeText: this.normalizeText(item.invoiceType),
+      searchText: [
+        item.documentId,
+        item.invoiceId,
+        item.customerTitle,
+        item.customerTcknVkn,
+        item.invoiceType,
+        item.statusCode,
+        item.status,
+        statusText,
+        item.envelopeIdentifier,
+        item.envelopeStatusCode,
+        item.message,
+        item.orderDocumentId,
+        item.documentCurrencyCode,
+        item.invoiceTipType,
+        item.despatchId,
+        item.isStandard ? 'standart' : 'ozel tasarim',
+        item.isProcessed ? 'islendi' : 'bekliyor',
+        item.isPrinted ? 'yazdirildi' : 'yazdirilmadi',
+        item.isArchived ? 'arsiv' : '',
+        item.isSeen === true ? 'goruldu' : item.isSeen === false ? 'gorulmedi' : '',
+        `${item.taxTotal}`,
+        `${item.taxExclusiveAmount}`,
+        `${item.exchangeRate}`,
+        `${item.invoiceTotal}`
+      ]
+        .map((value) => this.normalizeText(value))
+        .filter(Boolean)
+        .join('|'),
+      statusSortText: `${item.isProcessed ? '1' : '0'}|${statusText}`
+    };
+  }
+
+  private sortViewingRows(
+    rows: ViewingIndexedRow[],
     sort: ViewingSortState
-  ): InvoiceViewingListItemDto[] {
+  ): ViewingIndexedRow[] {
     if (!sort.key || !sort.direction) {
-      return [...items];
+      return [...rows];
     }
 
     const sortKey = sort.key;
     const direction = sort.direction === 'asc' ? 1 : -1;
 
-    return [...items].sort((left, right) => {
+    return [...rows].sort((left, right) => {
       const result = this.compareSendingSortValue(
         this.getViewingSortValue(left, sortKey),
         this.getViewingSortValue(right, sortKey)
@@ -3114,14 +3150,16 @@ export class FaturaIslemleriListComponent {
         return result * direction;
       }
 
-      return this.compareSendingSortValue(left.invoiceId, right.invoiceId);
+      return this.compareSendingSortValue(left.item.invoiceId, right.item.invoiceId);
     });
   }
 
   private getViewingSortValue(
-    item: InvoiceViewingListItemDto,
+    row: ViewingIndexedRow,
     key: ViewingSortKey
   ): string | number | boolean | null {
+    const item = row.item;
+
     switch (key) {
       case 'invoiceId':
         return item.invoiceId;
@@ -3130,11 +3168,11 @@ export class FaturaIslemleriListComponent {
       case 'customerTitle':
         return item.customerTitle;
       case 'invoiceDate':
-        return item.invoiceDate ? new Date(item.invoiceDate).getTime() : null;
+        return row.invoiceDateTime;
       case 'invoiceType':
         return item.invoiceType;
       case 'status':
-        return `${item.isProcessed ? '1' : '0'}|${this.getViewingStatusText(item)}`;
+        return row.statusSortText;
       case 'invoiceTotal':
         return item.invoiceTotal;
       case 'isPrinted':

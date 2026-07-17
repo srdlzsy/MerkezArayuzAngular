@@ -165,8 +165,8 @@
               <h3>Belge listesi</h3>
             </div>
             <div class="viewing-list-meta">
-              <span class="panel-badge">{{ filteredViewingItems().length }} kayit</span>
-              <span class="panel-badge" *ngIf="filteredViewingItems().length > 0">
+              <span class="panel-badge">{{ filteredViewingCount() }} kayit</span>
+              <span class="panel-badge" *ngIf="filteredViewingCount() > 0">
                 {{ viewingPageStart() }}-{{ viewingPageEnd() }}
               </span>
               <span class="panel-badge" *ngIf="viewingList() as response">
@@ -256,7 +256,7 @@
 
           <div
             class="empty-state"
-            *ngIf="!viewingListLoading() && viewingList() && filteredViewingItems().length === 0"
+            *ngIf="!viewingListLoading() && viewingList() && filteredViewingCount() === 0"
           >
             <h4>Kayit bulunamadi</h4>
             <p>Secili filtrelerle gosterilecek satir yok.</p>
@@ -291,7 +291,7 @@
             </div>
           </div>
 
-          <div class="invoice-table-shell viewing-table-shell" *ngIf="filteredViewingItems().length > 0">
+          <div class="invoice-table-shell viewing-table-shell" *ngIf="filteredViewingCount() > 0">
             <table class="invoice-table viewing-table">
               <thead>
                 <tr>
@@ -480,8 +480,8 @@
             </table>
           </div>
 
-          <div class="viewing-pagination-row" *ngIf="filteredViewingItems().length > viewingPageSize()">
-            <span>{{ viewingPageStart() }}-{{ viewingPageEnd() }} / {{ filteredViewingItems().length }} kayit</span>
+          <div class="viewing-pagination-row" *ngIf="filteredViewingCount() > viewingPageSize()">
+            <span>{{ viewingPageStart() }}-{{ viewingPageEnd() }} / {{ filteredViewingCount() }} kayit</span>
             <div class="candidate-strip">
               <button
                 type="button"
