@@ -900,14 +900,9 @@ export class FaturaIslemleriListComponent {
           this.loadViewingList();
         },
         error: (error: HttpErrorResponse) => {
-          this.feedback.set({
-            tone: 'error',
-            title: 'Senkronizasyon calismadi',
-            message: this.resolveErrorMessage(
-              error,
-              'Secilen tarih araligi icin Uyumsoft inbox senkronizasyonu tamamlanamadi.'
-            )
-          });
+          this.feedback.set(
+            this.resolveViewingSynchronizationFeedback(error, request.includeStatuses ?? false)
+          );
         }
       });
   }
@@ -3393,6 +3388,30 @@ export class FaturaIslemleriListComponent {
 
     this.previewObjectUrlCache.clear();
     this.previewResourceUrlCache.clear();
+  }
+
+  private resolveViewingSynchronizationFeedback(
+    error: HttpErrorResponse,
+    includeStatuses: boolean
+  ): PageFeedback {
+    if (error.status === 504) {
+      return {
+        tone: 'error',
+        title: 'Uyumsoft zaman asimi',
+        message: includeStatuses
+          ? 'Uyumsoft durum/log yenilemesi zaman asimina dustu. Onceki sayfalardan Fatura Tarihi araligina uyan kayitlar cachee yazilmis olabilir; ayni araligi Hizli modda ya da daha kucuk tarih araligiyla tekrar calistirin.'
+          : 'Uyumsoft inbox senkronizasyonu zaman asimina dustu. Onceki sayfalardan Fatura Tarihi araligina uyan kayitlar cachee yazilmis olabilir; ayni araligi tekrar calistirin veya daha kucuk tarih araligi secin.'
+      };
+    }
+
+    return {
+      tone: 'error',
+      title: 'Senkronizasyon calismadi',
+      message: this.resolveErrorMessage(
+        error,
+        'Secilen tarih araligi icin Uyumsoft inbox senkronizasyonu tamamlanamadi.'
+      )
+    };
   }
 
   private resolveErrorMessage(error: unknown, fallback: string): string {

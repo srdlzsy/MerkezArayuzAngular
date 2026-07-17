@@ -11,6 +11,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
         'POST senkronize varsayilan hizli modda calisir; includeStatuses=true ile durum/log cachei de yenilenir',
+        'Uyumsoft kaynak sorgusu ExecutionStartDate/ExecutionEndDate ile calisir, cache kapsami invoiceDate/Fatura Tarihi ile daraltilir',
+        'Uyumsoft zaman asiminda endpoint 504 doner; onceki sayfalardaki eslesen kayitlar cachee yazilmis olabilir',
         'Fatura Tarihi UBL IssueDate alanindan, kayit tarihi CreateDateUtc alanindan okunur',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
         'documentId teknik UUID ile application/pdf dosyasi',
@@ -35,7 +37,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize',
-              description: 'Tum Uyumsoft GetInboxInvoices sayfalarini okuyup secili tarih araligini cache tabloya yazar; includeStatuses=false hizli moddur, includeStatuses=true sayfa bazli durum/log sorgularini da calistirir',
+              description: 'GetInboxInvoices sayfalarini ExecutionStartDate/ExecutionEndDate ile okur, her sayfadaki kayitlari invoiceDate/Fatura Tarihi araligina gore daraltip hemen cache tabloya yazar; includeStatuses=false hizli moddur, includeStatuses=true sayfa bazli durum/log sorgularini da calistirir; Uyumsoft timeout durumunda 504 doner ve ayni aralik tekrar calistirildiginda cachedeki onceki sayfalar korunur',
               payload: 'InvoiceViewingSynchronizationRequest'
             },
             {
