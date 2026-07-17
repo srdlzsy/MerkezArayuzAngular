@@ -90,6 +90,13 @@
                   [placeholder]="getSelectedViewingSearchOption()?.placeholder || 'Arama girin'"
                 />
               </label>
+              <label class="field">
+                <span>Senkron Modu</span>
+                <select formControlName="includeStatuses">
+                  <option [ngValue]="false">Hizli</option>
+                  <option [ngValue]="true">Durum/Log</option>
+                </select>
+              </label>
             </form>
 
             <div class="action-row">
@@ -107,7 +114,7 @@
                 (click)="synchronizeViewingInvoices()"
                 [disabled]="viewingSyncLoading() || viewingListLoading()"
               >
-                {{ viewingSyncLoading() ? 'Senkronize ediliyor...' : 'Uyumsofttan Senkronize Et' }}
+                {{ getViewingSyncButtonLabel() }}
               </button>
               <button
                 type="button"

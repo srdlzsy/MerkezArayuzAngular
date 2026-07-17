@@ -71,6 +71,8 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       baseRouteOrFile: '/api/ayar-islemleri/sube-ayarlari',
       highlights: [
         'Sube ayarlari branchNo asc siralanir',
+        'Terazi tipi ve kasa tipi secimleri /sube-ayarlari/secenekler lookup endpointinden gelir',
+        'scalesType yalniz 0=CAS 16 veya 1=CAS 500 olarak gonderilir',
         'Create akisi ilk kasa tanimlarini cashRegisters listesiyle alabilir',
         'Update akisi yalniz sube ayar alanlarini gunceller'
       ],
@@ -80,6 +82,11 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
           name: 'AyarIslemleri Sube Ayarlari',
           description: 'Sube ayar kayitlarini ve subeye bagli kasa tanimlarini sunar.',
           endpoints: [
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/sube-ayarlari/secenekler',
+              description: 'Terazi tipi ve kasa tipi lookup kataloglarini getirir'
+            },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/sube-ayarlari',
@@ -131,9 +138,10 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'Sube kasa kayitlarini, POS terminal detaylarini ve MESAJ dosyasi durumlarini yonetir.',
       baseRouteOrFile: '/api/ayar-islemleri/kasa-pos-terminalleri',
       highlights: [
+        'Kasa tipi secimi /kasa-pos-terminalleri/secenekler lookup endpointinden gelir',
         'branchNo + cashNo duplicate ise backend 409 doner',
         'Terminal silme islemi sube ve terminalNo ile branch scoped calisir',
-        'Mesaj durumlari POSKON MESAJ.xxx dosyalarindan hesaplanir'
+        'Mesaj durumlari POSKON MESAJ.xxx dosyalarindan stateName metniyle hesaplanir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -141,6 +149,11 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
           name: 'AyarIslemleri Kasa POS Terminalleri',
           description: 'Kasa, terminal ve POSKON mesaj durumlarini yonetir.',
           endpoints: [
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/secenekler',
+              description: 'Kasa tipi lookup kataloglarini getirir'
+            },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/kasalar/{cashNo}/terminaller',

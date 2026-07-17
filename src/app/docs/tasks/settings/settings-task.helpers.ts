@@ -1,10 +1,45 @@
 import { AuthService } from '../../../core/auth/services/auth.service';
+import type { SettingsTypeOptionDto } from '@interfaces';
 
 export interface ActionFeedback {
   tone: 'error' | 'info' | 'success';
   title: string;
   message: string;
 }
+
+export const FALLBACK_SCALE_TYPE_OPTIONS: readonly SettingsTypeOptionDto[] = [
+  {
+    value: 0,
+    code: 'cas-16',
+    name: 'CAS 16',
+    description: 'Terazi.plu formatinda CAS 16 terazi dosyasi uretir.',
+    isKnown: true
+  },
+  {
+    value: 1,
+    code: 'cas-500',
+    name: 'CAS 500',
+    description: 'ART_STM.txt formatinda CAS 500 terazi dosyasi uretir.',
+    isKnown: true
+  }
+];
+
+export const FALLBACK_CASH_TYPE_OPTIONS: readonly SettingsTypeOptionDto[] = [
+  {
+    value: 0,
+    code: 'cash-type-0',
+    name: 'Kasa Tipi 0',
+    description: 'Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.',
+    isKnown: false
+  },
+  {
+    value: 1,
+    code: 'cash-type-1',
+    name: 'Kasa Tipi 1',
+    description: 'Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.',
+    isKnown: false
+  }
+];
 
 export function getErrorMessage(error: unknown, fallback: string): string {
   if (typeof error !== 'object' || error === null) {

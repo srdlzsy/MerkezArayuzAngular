@@ -1109,6 +1109,16 @@ Onemli alan ayrimi:
 
 Kasiyer listelerinde sifre donmez. Yeni kasiyer olusturma ve sifre sifirlama response'lari uretilen sifreyi tek seferlik `generatedPassword` alaninda dondurur.
 
+UI icin tip/lookup kullanimi:
+
+- Sube ayarlari ekrani acilirken `GET /api/ayar-islemleri/sube-ayarlari/secenekler` cagrilip `scalesTypes` ve `cashTypes` dropdown'lari doldurulabilir.
+- Kasa/POS terminal ekrani acilirken `GET /api/ayar-islemleri/kasa-pos-terminalleri/secenekler` cagrilip `cashTypes` dropdown'i doldurulabilir.
+- Cihaz tipi dropdown'i icin mevcut `GET /api/ayar-islemleri/cihazlar/tipler` endpoint'i kullanilir.
+- Numeric alanlar geriye uyumluluk icin korunur; response'larda yanina `scalesTypeName`, `cashTypeName`, `stateName` ve aciklama alanlari eklenir.
+- `ScalesType` desteklenen kesin katalogdur: `0 = CAS 16`, `1 = CAS 500`.
+- `CashType` is kurali adi eski veri sozlugunde netlesmedigi icin simdilik merkezi ve notr adlarla (`Kasa Tipi 0`, `Kasa Tipi 1`) doner. Dogru is adlari teyit edilince sadece servis katalogu guncellenmelidir.
+- Lookup endpointleri sabit kataloglari ve veritabaninda mevcut tanimsiz degerleri birlikte dondurur; tanimsiz degerlerde `isKnown=false` gelir.
+
 Yetki kodlari:
 
 ```text
@@ -1143,11 +1153,13 @@ Endpoint ozeti:
 | `GET /api/ayar-islemleri/cihazlar/subeler/{branchNo}/durum` | path | `branchNo: int` | `DeviceStatusDto[]` | `cihazlar.list` |
 | `POST /api/ayar-islemleri/cihazlar` | body | `CreateDeviceHttpRequest` | `DeviceDto` | `cihazlar.create` |
 | `DELETE /api/ayar-islemleri/cihazlar/{id}` | path | `id: int` | - | `cihazlar.update` |
+| `GET /api/ayar-islemleri/sube-ayarlari/secenekler` | - | - | `BranchSettingsLookupsDto` | `sube-ayarlari.list` |
 | `GET /api/ayar-islemleri/sube-ayarlari` | - | - | `BranchDetailDto[]` | `sube-ayarlari.list` |
 | `GET /api/ayar-islemleri/sube-ayarlari/{branchNo}` | path | `branchNo: int` | `BranchDetailDto` | `sube-ayarlari.detail` |
 | `GET /api/ayar-islemleri/sube-ayarlari/{branchNo}/kasalar` | path | `branchNo: int` | `CashRegistryDto[]` | `sube-ayarlari.detail` |
 | `POST /api/ayar-islemleri/sube-ayarlari` | body | `CreateBranchSettingsHttpRequest` | `BranchDetailDto` | `sube-ayarlari.create` |
 | `PUT /api/ayar-islemleri/sube-ayarlari/{branchNo}` | body + path | `UpdateBranchSettingsHttpRequest` | `BranchDetailDto` | `sube-ayarlari.update` |
+| `GET /api/ayar-islemleri/kasa-pos-terminalleri/secenekler` | - | - | `CashRegisterSettingsLookupsDto` | `kasa-pos-terminalleri.list` |
 | `GET /api/ayar-islemleri/kasa-pos-terminalleri/kasalar/{cashNo}/terminaller` | path | `cashNo: int` | `CashRegisterTerminalDto[]` | `kasa-pos-terminalleri.list` |
 | `GET /api/ayar-islemleri/kasa-pos-terminalleri/mevcut-sube/mesaj-durumlari` | JWT | - | `CashRegisterMessageStatusDto[]` | `kasa-pos-terminalleri.list` |
 | `GET /api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/mesaj-durumlari` | path | `branchNo: int` | `CashRegisterMessageStatusDto[]` | `kasa-pos-terminalleri.list` |
@@ -1244,6 +1256,49 @@ Response:
 
 ### Sube Ayarlari
 
+`GET /api/ayar-islemleri/sube-ayarlari/secenekler`
+
+Sube ayarlari formundaki terazi tipi ve kasa tipi secimlerinin dropdown kaynagidir.
+
+Response:
+
+```json
+{
+  "scalesTypes": [
+    {
+      "value": 0,
+      "code": "cas-16",
+      "name": "CAS 16",
+      "description": "Terazi.plu formatinda CAS 16 terazi dosyasi uretir.",
+      "isKnown": true
+    },
+    {
+      "value": 1,
+      "code": "cas-500",
+      "name": "CAS 500",
+      "description": "ART_STM.txt formatinda CAS 500 terazi dosyasi uretir.",
+      "isKnown": true
+    }
+  ],
+  "cashTypes": [
+    {
+      "value": 0,
+      "code": "cash-type-0",
+      "name": "Kasa Tipi 0",
+      "description": "Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.",
+      "isKnown": false
+    },
+    {
+      "value": 1,
+      "code": "cash-type-1",
+      "name": "Kasa Tipi 1",
+      "description": "Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.",
+      "isKnown": false
+    }
+  ]
+}
+```
+
 `GET /api/ayar-islemleri/sube-ayarlari`
 
 Sube ayarlari listesidir. `branchNo asc` siralanir.
@@ -1257,6 +1312,8 @@ Response:
     "branchIpAddress": "192.168.1.5",
     "branchScalesFolderPath": "TERAZI",
     "scalesType": 1,
+    "scalesTypeName": "CAS 500",
+    "scalesTypeDescription": "ART_STM.txt formatinda CAS 500 terazi dosyasi uretir.",
     "poskonFolderPath": "POSKON",
     "posGenelFolderPath": "POSGENEL"
   }
@@ -1275,7 +1332,9 @@ Response:
     "detailId": 1,
     "branchNo": 110,
     "cashNo": 1,
-    "cashType": 1
+    "cashType": 1,
+    "cashTypeName": "Kasa Tipi 1",
+    "cashTypeDescription": "Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi."
   }
 ]
 ```
@@ -1304,6 +1363,7 @@ Body:
 Notlar:
 
 - Duplicate `branchNo` `409 Conflict` doner.
+- `scalesType` sadece `0` veya `1` olabilir; diger degerler `400 Bad Request` doner.
 - `cashRegisters` bos olabilir.
 - Kasa satirlarinda duplicate `cashNo` varsa `409 Conflict` doner.
 
@@ -1322,6 +1382,33 @@ Body `CreateBranchSettingsHttpRequest` ile ayni sube alanlarini alir; `cashRegis
 ```
 
 ### Kasa / POS Terminalleri
+
+`GET /api/ayar-islemleri/kasa-pos-terminalleri/secenekler`
+
+Kasa/POS terminal ekleme formundaki kasa tipi seciminin dropdown kaynagidir.
+
+Response:
+
+```json
+{
+  "cashTypes": [
+    {
+      "value": 0,
+      "code": "cash-type-0",
+      "name": "Kasa Tipi 0",
+      "description": "Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.",
+      "isKnown": false
+    },
+    {
+      "value": 1,
+      "code": "cash-type-1",
+      "name": "Kasa Tipi 1",
+      "description": "Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.",
+      "isKnown": false
+    }
+  ]
+}
+```
 
 `POST /api/ayar-islemleri/kasa-pos-terminalleri`
 
@@ -1352,6 +1439,8 @@ Response `201 Created`:
   "branchNo": 110,
   "cashNo": 1,
   "cashType": 1,
+  "cashTypeName": "Kasa Tipi 1",
+  "cashTypeDescription": "Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.",
   "terminals": [
     {
       "id": 15,
@@ -1399,7 +1488,10 @@ Response:
     "branchNo": 110,
     "cashNo": 1,
     "cashType": 1,
+    "cashTypeName": "Kasa Tipi 1",
+    "cashTypeDescription": "Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.",
     "state": 0,
+    "stateName": "1071 bulundu",
     "filePath": "\\\\192.168.1.5\\POSKON\\MESAJ.001",
     "error": null
   }
@@ -1411,6 +1503,7 @@ Durum hesabi:
 - Dosyanin ilk satiri `1071` icerirse `state = 0`
 - Diger durumlarda `state = 1`
 - Dosya yoksa veya yetki/path hatasi varsa satir `state = null`, `error = hata mesaji` ile doner
+- `stateName` UI icin metinsel karsiliktir; hata durumunda `null` gelir.
 
 ### Kasiyerler
 
@@ -8645,7 +8738,7 @@ Liste davranisi:
 - `ProcessedState` ve `PrintedState` legacy WinForms'taki gibi tri-state filtre davranisi saglar
 - `customerTitle` response'a buyuk harfe cevrilmis gelir
 - DB tarafindaki kolon `isStandart` olsa da API response'unda alan `isStandard` olarak gelir
-- `statusCode`, `status`, `envelopeStatusCode` ve durum `message` alani senkronizasyon sirasinda Uyumsoft `GetInboxInvoiceStatusWithLogs` cevabindan cache'e yazilir
+- `statusCode`, `status`, `envelopeStatusCode` ve durum `message` alani `includeStatuses=true` senkronizasyonunda Uyumsoft `GetInboxInvoiceStatusWithLogs` cevabindan cache'e yazilir
 - `statusCode` ham Uyumsoft durum kodudur; `status` ise Uyumsoft durum enum'undan Turkce UI metnine cevrilir ve ekranda direkt gosterilebilir
 - `despatchId` yalnizca Uyumsoft `GetInboxInvoices` full UBL cevabindaki `Invoice.DespatchDocumentReference[].ID` alanindan okunur; senkron sirasinda kayit basina ek `GetInboxInvoice` cagrisi yapilmaz
 - `orderDocumentId` ayri siparis/order referansi alanidir; irsaliye numarasi gibi kullanilmamalidir
@@ -8715,9 +8808,12 @@ Request body:
 ```json
 {
   "startDate": "2026-05-01",
-  "endDate": "2026-05-05"
+  "endDate": "2026-05-05",
+  "includeStatuses": false
 }
 ```
+
+Not: `includeStatuses` gonderilmezse varsayilan `false` kabul edilir.
 
 Response `200 OK`:
 
@@ -8725,6 +8821,7 @@ Response `200 OK`:
 {
   "startDate": "2026-05-01T00:00:00",
   "endDate": "2026-05-05T00:00:00",
+  "includeStatuses": false,
   "sourceTotalCount": 29,
   "fetchedCount": 29,
   "insertedCount": 29,
@@ -8736,16 +8833,18 @@ Davranis:
 
 - secilen tarih araligini Uyumsoft `GetInboxInvoices` ile okur
 - Uyumsoft sayfalari `PageIndex = 0, 1, 2...` ve `PageSize = 20` ile `TotalPages` tamamlanana kadar okunur
-- her 20 kayitlik sayfa icin fatura durumlari tek toplu `GetInboxInvoiceStatusWithLogs` istegiyle okunur; fatura basina ayri durum cagrisi yapilmaz
-- `statusCode`, `status`, `envelopeStatusCode` ve durum mesaji bu toplu durum cevabiyla cache'e yazilir; daha once bos kaydedilmis durumlar sonraki senkronizasyonda guncellenir
+- `includeStatuses=false` ise hizli mod kullanilir; sayfa basina ek `GetInboxInvoiceStatusWithLogs` cagrisi yapilmaz
+- `includeStatuses=false` hizli modunda mevcut cache kaydindaki `statusCode`, `status`, `envelopeStatusCode`, `envelopeIdentifier` ve `message` alanlari bos veriyle ezilmez
+- `includeStatuses=true` ise her 20 kayitlik sayfa icin fatura durumlari tek toplu `GetInboxInvoiceStatusWithLogs` istegiyle okunur; fatura basina ayri durum cagrisi yapilmaz
+- `includeStatuses=true` iken `statusCode`, `status`, `envelopeStatusCode` ve durum mesaji bu toplu durum cevabiyla cache'e yazilir; daha once bos kaydedilmis durumlar sonraki senkronizasyonda guncellenir
 - tum sayfalar eksiksiz alindiktan sonra DB upsert/save yapilir; eksik veya tekrar eden sayfada yarim senkron basarili sayilmaz
-- Uyumsoft bir faturaya ait durum bilgisini dondurmezse senkronizasyon eksik veriyi basarili saymaz ve hata response'u doner
+- `includeStatuses=true` iken Uyumsoft bir faturaya ait durum bilgisini dondurmezse senkronizasyon eksik veriyi basarili saymaz ve hata response'u doner
 - gelen sonuc `uyumsoft_inbox_invoices` cache tablosuna upsert edilir
 - `sourceTotalCount` Uyumsoft'un bildirdigi toplam kayit, `fetchedCount` tum sayfalardan gercekten okunan kayit sayisidir
 - Uyumsoft cagrisi basarisiz olursa endpoint sessiz `204` donmez; hata response'u doner
 - tekrar eden veya degisiklik icermeyen sayfalar icin koruma vardir; sonsuz donguye girmez
 - sync tamamlandiktan sonra UI ayni tarih araligiyla `GET /api/fatura-islemleri/fatura-goruntuleme` cagirip DB sonucunu alabilir
-- durum sorgulari nedeniyle senkronizasyon yalnizca `GetInboxInvoices` kullanan onceki akistan daha uzun surebilir; UI `POST /senkronize` tamamlanana kadar loading/progress durumunu korumalidir
+- hizli liste yenileme icin UI `includeStatuses=false` kullanmali; kesin durum/log yenilemesi gereken aksiyonlarda `includeStatuses=true` tercih edilmelidir
 
 ### Fatura Goruntuleme PDF
 
@@ -13430,6 +13529,20 @@ public sealed record MissingTurnoverBranchItemDto(
 ### Ayar Modelleri
 
 ```csharp
+public sealed record SettingsTypeOptionDto(
+    byte Value,
+    string Code,
+    string Name,
+    string Description,
+    bool IsKnown);
+
+public sealed record BranchSettingsLookupsDto(
+    IReadOnlyCollection<SettingsTypeOptionDto> ScalesTypes,
+    IReadOnlyCollection<SettingsTypeOptionDto> CashTypes);
+
+public sealed record CashRegisterSettingsLookupsDto(
+    IReadOnlyCollection<SettingsTypeOptionDto> CashTypes);
+
 public sealed record DeviceTypeDto(
     int Id,
     string DeviceName);
@@ -13457,6 +13570,8 @@ public sealed record BranchDetailDto(
     string BranchIpAddress,
     string BranchScalesFolderPath,
     byte ScalesType,
+    string ScalesTypeName,
+    string ScalesTypeDescription,
     string PoskonFolderPath,
     string PosGenelFolderPath);
 
@@ -13464,12 +13579,16 @@ public sealed record CashRegistryDto(
     int DetailId,
     int BranchNo,
     int CashNo,
-    byte CashType);
+    byte CashType,
+    string CashTypeName,
+    string CashTypeDescription);
 
 public sealed record CashRegisterResponse(
     int BranchNo,
     int CashNo,
     byte CashType,
+    string CashTypeName,
+    string CashTypeDescription,
     IReadOnlyCollection<CashRegisterTerminalDto> Terminals);
 
 public sealed record CashRegisterTerminalDto(
@@ -13484,7 +13603,10 @@ public sealed record CashRegisterMessageStatusDto(
     int BranchNo,
     int CashNo,
     byte CashType,
+    string CashTypeName,
+    string CashTypeDescription,
     int? State,
+    string? StateName,
     string FilePath,
     string? Error);
 
@@ -14720,8 +14842,8 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 ### Ayar Request Modelleri
 
 - `CreateDeviceHttpRequest`: `BranchNo`, `DeviceTypeId`, `IpAddress`, `Description`
-- `CreateBranchSettingsHttpRequest`: `BranchNo`, `BranchIpAddress`, `BranchScalesFolderPath`, `ScalesType`, `PoskonFolderPath`, `PosGenelFolderPath`, `CashRegisters`
-- `UpdateBranchSettingsHttpRequest`: `BranchIpAddress`, `BranchScalesFolderPath`, `ScalesType`, `PoskonFolderPath`, `PosGenelFolderPath`
+- `CreateBranchSettingsHttpRequest`: `BranchNo`, `BranchIpAddress`, `BranchScalesFolderPath`, `ScalesType` (`0=CAS 16`, `1=CAS 500`), `PoskonFolderPath`, `PosGenelFolderPath`, `CashRegisters`
+- `UpdateBranchSettingsHttpRequest`: `BranchIpAddress`, `BranchScalesFolderPath`, `ScalesType` (`0=CAS 16`, `1=CAS 500`), `PoskonFolderPath`, `PosGenelFolderPath`
 - `CreateCashRegistryHttpRequest`: `CashNo`, `CashType`
 - `CreateCashRegisterHttpRequest`: `BranchNo`, `CashNo`, `CashType`, `Terminals`
 - `CreateCashRegisterTerminalHttpRequest`: `TerminalNo`, `Bank`, `TerminalId`, `MerchantNo`

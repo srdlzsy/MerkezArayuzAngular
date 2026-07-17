@@ -110,11 +110,13 @@ export type IInvoiceViewingPdfResponseApiDto = Blob;
 export interface IInvoiceViewingSynchronizationRequestApiDto {
   startDate: string;
   endDate: string;
+  includeStatuses?: boolean | null;
 }
 
 export interface IInvoiceViewingSynchronizationResponseApiDto {
   startDate: string;
   endDate: string;
+  includeStatuses: boolean;
   sourceTotalCount: number;
   fetchedCount: number;
   insertedCount: number;

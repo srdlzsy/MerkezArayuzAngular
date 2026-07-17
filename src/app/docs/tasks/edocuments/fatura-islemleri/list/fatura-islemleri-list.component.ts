@@ -392,6 +392,9 @@ export class FaturaIslemleriListComponent {
     }),
     searchText: new FormControl<string>('', {
       nonNullable: true
+    }),
+    includeStatuses: new FormControl<boolean>(false, {
+      nonNullable: true
     })
   });
   protected readonly sendingFilterForm = new FormGroup({
@@ -886,10 +889,12 @@ export class FaturaIslemleriListComponent {
       )
       .subscribe({
         next: (result: InvoiceViewingSynchronizationResponseDto) => {
+          const includeStatuses = result.includeStatuses ?? request.includeStatuses ?? false;
+
           this.feedback.set({
             tone: 'success',
             title: 'Senkronizasyon tamamlandi',
-            message: `Uyumsoft'ta ${result.sourceTotalCount} kayit bulundu; ${result.fetchedCount} kayit okundu, ${result.insertedCount} yeni kayit eklendi ve ${result.updatedCount} kayit guncellendi.`
+            message: `Uyumsoft'ta ${result.sourceTotalCount} kayit bulundu; ${result.fetchedCount} kayit ${includeStatuses ? 'durum/log dahil' : 'hizli modda'} okundu, ${result.insertedCount} yeni kayit eklendi ve ${result.updatedCount} kayit guncellendi.`
           });
 
           this.loadViewingList();
@@ -994,10 +999,21 @@ export class FaturaIslemleriListComponent {
       processedState: -1,
       printedState: -1,
       searchField: '',
-      searchText: ''
+      searchText: '',
+      includeStatuses: false
     });
     this.clearViewingTableFilters();
     this.viewingPageNumber.set(1);
+  }
+
+  protected getViewingSyncButtonLabel(): string {
+    const includeStatuses = this.viewingFilterForm.controls.includeStatuses.value;
+
+    if (this.viewingSyncLoading()) {
+      return includeStatuses ? 'Durumlar yenileniyor...' : 'Hizli senkronize ediliyor...';
+    }
+
+    return includeStatuses ? 'Durumlu Senkronize Et' : 'Hizli Senkronize Et';
   }
 
   protected setViewingQuickFilter(event: Event): void {
@@ -2842,7 +2858,7 @@ export class FaturaIslemleriListComponent {
   }
 
   private buildViewingSynchronizationRequest(): InvoiceViewingSynchronizationRequestDto | null {
-    const { startDate, endDate } = this.viewingFilterForm.controls;
+    const { startDate, endDate, includeStatuses } = this.viewingFilterForm.controls;
 
     startDate.markAsTouched();
     endDate.markAsTouched();
@@ -2853,7 +2869,8 @@ export class FaturaIslemleriListComponent {
 
     return {
       startDate: startDate.value,
-      endDate: endDate.value
+      endDate: endDate.value,
+      includeStatuses: includeStatuses.value
     };
   }
 

@@ -112,7 +112,10 @@
               >
                 <td>{{ cash.branchNo }}</td>
                 <td><strong>{{ cash.cashNo }}</strong></td>
-                <td>{{ cash.cashType }}</td>
+                <td>
+                  <strong>{{ getCashTypeLabel(cash) }}</strong>
+                  <span class="table-meta">{{ getCashTypeDescription(cash) }}</span>
+                </td>
                 <td>
                   <button
                     type="button"
@@ -211,7 +214,14 @@
 
           <label class="field">
             <span>Kasa Tipi</span>
-            <input type="number" min="0" max="255" formControlName="cashType" />
+            <select formControlName="cashType" [disabled]="lookupsLoading()">
+              <option
+                *ngFor="let option of cashTypeOptions(); trackBy: trackBySettingsOption"
+                [ngValue]="option.value"
+              >
+                {{ getSettingsOptionSelectLabel(option) }}
+              </option>
+            </select>
           </label>
 
           <button
@@ -290,7 +300,9 @@
                 <td>{{ status.branchNo }}/{{ status.cashNo }}</td>
                 <td>
                   <strong>{{ status.filePath }}</strong>
-                  <span class="table-meta">{{ status.error || 'State ' + status.state }}</span>
+                  <span class="table-meta">
+                    {{ status.error || getCashTypeLabel(status) + ' / State ' + status.state }}
+                  </span>
                 </td>
               </tr>
             </tbody>

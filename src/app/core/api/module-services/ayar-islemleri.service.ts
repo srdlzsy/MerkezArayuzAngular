@@ -2,10 +2,12 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
   BranchDetailDto,
+  BranchSettingsLookupsDto,
   CashierDto,
   CashierPasswordMutationDto,
   CashRegisterMessageStatusDto,
   CashRegisterResponse,
+  CashRegisterSettingsLookupsDto,
   CashRegisterTerminalDto,
   CashRegistryDto,
   CreateBranchSettingsHttpRequest,
@@ -59,6 +61,10 @@ export class AyarIslemleriService extends BaseApiService {
     return this.get<BranchDetailDto[]>('ayar-islemleri/sube-ayarlari');
   }
 
+  getBranchSettingsLookups(): Observable<BranchSettingsLookupsDto> {
+    return this.get<BranchSettingsLookupsDto>('ayar-islemleri/sube-ayarlari/secenekler');
+  }
+
   getBranchSetting(branchNo: number): Observable<BranchDetailDto> {
     return this.get<BranchDetailDto>(`ayar-islemleri/sube-ayarlari/${branchNo}`);
   }
@@ -91,6 +97,12 @@ export class AyarIslemleriService extends BaseApiService {
   getCashRegisterTerminals(cashNo: number): Observable<CashRegisterTerminalDto[]> {
     return this.get<CashRegisterTerminalDto[]>(
       `ayar-islemleri/kasa-pos-terminalleri/kasalar/${cashNo}/terminaller`
+    );
+  }
+
+  getCashRegisterSettingsLookups(): Observable<CashRegisterSettingsLookupsDto> {
+    return this.get<CashRegisterSettingsLookupsDto>(
+      'ayar-islemleri/kasa-pos-terminalleri/secenekler'
     );
   }
 

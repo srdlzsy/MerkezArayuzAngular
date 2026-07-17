@@ -93,7 +93,10 @@
                 </td>
                 <td>{{ branch.branchIpAddress || '-' }}</td>
                 <td>{{ branch.branchScalesFolderPath || '-' }}</td>
-                <td>{{ branch.scalesType }}</td>
+                <td>
+                  <strong>{{ getScalesTypeLabel(branch) }}</strong>
+                  <span class="table-meta">{{ getScalesTypeDescription(branch) }}</span>
+                </td>
                 <td>{{ branch.poskonFolderPath || '-' }}</td>
                 <td>{{ branch.posGenelFolderPath || '-' }}</td>
               </tr>
@@ -142,8 +145,15 @@
           </label>
 
           <label class="field">
-            <span>Scales Type</span>
-            <input type="number" min="0" formControlName="scalesType" />
+            <span>Terazi Tipi</span>
+            <select formControlName="scalesType" [disabled]="lookupsLoading()">
+              <option
+                *ngFor="let option of scalesTypeOptions(); trackBy: trackBySettingsOption"
+                [ngValue]="option.value"
+              >
+                {{ getSettingsOptionSelectLabel(option) }}
+              </option>
+            </select>
           </label>
 
           <label class="field">
@@ -183,7 +193,8 @@
             <div class="draft-row" *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry">
               <div>
                 <strong>Kasa {{ cash.cashNo }}</strong>
-                <span>Tip {{ cash.cashType }} / Detay {{ cash.detailId }}</span>
+                <span>{{ getCashTypeLabel(cash) }} / Detay {{ cash.detailId }}</span>
+                <span class="table-meta">{{ getCashTypeDescription(cash) }}</span>
               </div>
             </div>
           </div>
@@ -210,7 +221,14 @@
 
             <label class="field">
               <span>Kasa Tipi</span>
-              <input type="number" min="0" max="255" formControlName="cashType" />
+              <select formControlName="cashType" [disabled]="lookupsLoading()">
+                <option
+                  *ngFor="let option of cashTypeOptions(); trackBy: trackBySettingsOption"
+                  [ngValue]="option.value"
+                >
+                  {{ getSettingsOptionSelectLabel(option) }}
+                </option>
+              </select>
             </label>
 
             <button type="submit" class="task-action task-action-secondary full-field">
@@ -223,7 +241,7 @@
             <div class="draft-row" *ngFor="let draft of cashDrafts(); trackBy: trackByCashDraft">
               <div>
                 <strong>Kasa {{ draft.cashNo }}</strong>
-                <span>Tip {{ draft.cashType }}</span>
+                <span>{{ getCashTypeLabel(draft) }}</span>
               </div>
               <button type="button" class="task-action task-action-danger" (click)="removeCashDraft(draft)">
                 <i class="fa-solid fa-trash"></i>

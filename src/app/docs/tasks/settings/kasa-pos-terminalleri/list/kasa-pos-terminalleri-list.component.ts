@@ -6,9 +6,11 @@ import { finalize } from 'rxjs';
 import type {
   CashRegisterMessageStatusDto,
   CashRegisterResponse,
+  CashRegisterSettingsLookupsDto,
   CashRegisterTerminalDto,
   CashRegistryDto,
-  CreateCashRegisterHttpRequest
+  CreateCashRegisterHttpRequest,
+  SettingsTypeOptionDto
 } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
@@ -17,6 +19,7 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import {
   ActionFeedback,
+  FALLBACK_CASH_TYPE_OPTIONS,
   getErrorMessage,
   getOptionalText,
   hasSettingsPermission,
@@ -30,6 +33,10 @@ interface TerminalDraft {
   terminalId: string;
   merchantNo: string;
 }
+
+const DEFAULT_CASH_REGISTER_LOOKUPS: CashRegisterSettingsLookupsDto = {
+  cashTypes: [...FALLBACK_CASH_TYPE_OPTIONS]
+};
 
 type PosAction = 'cash' | 'terminals' | 'messages' | 'create' | 'delete';
 
@@ -82,9 +89,13 @@ export class KasaPosTerminalleriListComponent {
   protected readonly terminals = signal<CashRegisterTerminalDto[]>([]);
   protected readonly messageStatuses = signal<CashRegisterMessageStatusDto[]>([]);
   protected readonly terminalDrafts = signal<TerminalDraft[]>([]);
+  protected readonly cashRegisterLookups = signal<CashRegisterSettingsLookupsDto>(
+    DEFAULT_CASH_REGISTER_LOOKUPS
+  );
   protected readonly selectedCashRegistry = signal<CashRegistryDto | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly loadingAction = signal<PosAction | null>(null);
+  protected readonly lookupsLoading = signal(false);
 
   protected readonly canCreate = computed(() =>
     hasSettingsPermission(
@@ -106,16 +117,47 @@ export class KasaPosTerminalleriListComponent {
   protected readonly readyMessageCount = computed(
     () => this.messageStatuses().filter((status) => status.state === 0 && !status.error).length
   );
+  protected readonly cashTypeOptions = computed(() =>
+    this.mergeLookupOptions(
+      this.cashRegisterLookups().cashTypes,
+      FALLBACK_CASH_TYPE_OPTIONS
+    )
+  );
 
   constructor() {
     const branchNo = this.authService.currentUser()?.depoNo ?? null;
     this.scopeForm.patchValue({ branchNo });
     this.cashRegisterForm.patchValue({ branchNo });
+    this.loadLookups();
 
     if (branchNo) {
       this.loadCashRegistries();
       this.loadMessageStatuses();
     }
+  }
+
+  protected loadLookups(): void {
+    this.lookupsLoading.set(true);
+
+    this.ayarIslemleriService
+      .getCashRegisterSettingsLookups()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.lookupsLoading.set(false))
+      )
+      .subscribe({
+        next: (lookups: CashRegisterSettingsLookupsDto) => {
+          this.cashRegisterLookups.set({
+            cashTypes: this.mergeLookupOptions(
+              lookups?.cashTypes ?? [],
+              FALLBACK_CASH_TYPE_OPTIONS
+            )
+          });
+        },
+        error: () => {
+          this.cashRegisterLookups.set(DEFAULT_CASH_REGISTER_LOOKUPS);
+        }
+      });
   }
 
   protected loadCashRegistries(): void {
@@ -349,7 +391,18 @@ export class KasaPosTerminalleriListComponent {
                 detailId: response.cashNo,
                 branchNo: response.branchNo,
                 cashNo: response.cashNo,
-                cashType: response.cashType
+                cashType: response.cashType,
+                cashTypeName:
+                  response.cashTypeName?.trim() ||
+                  this.getSettingsOptionLabel(
+                    this.cashTypeOptions(),
+                    response.cashType,
+                    'Kasa Tipi'
+                  ),
+                cashTypeDescription:
+                  response.cashTypeDescription?.trim() ||
+                  this.getSettingsOptionDescription(this.cashTypeOptions(), response.cashType) ||
+                  ''
               }
             ])
           );
@@ -457,11 +510,36 @@ export class KasaPosTerminalleriListComponent {
   }
 
   protected getMessageStatusLabel(status: CashRegisterMessageStatusDto): string {
+    if (status.stateName?.trim()) {
+      return status.stateName;
+    }
+
     if (status.error || status.state === null) {
       return 'Hata';
     }
 
     return status.state === 0 ? 'Hazir' : 'Bekliyor';
+  }
+
+  protected getCashTypeLabel(cash: CashRegistryDto | CashRegisterMessageStatusDto): string {
+    return (
+      cash.cashTypeName?.trim() ||
+      this.getSettingsOptionLabel(this.cashTypeOptions(), cash.cashType, 'Kasa Tipi')
+    );
+  }
+
+  protected getCashTypeDescription(
+    cash: CashRegistryDto | CashRegisterMessageStatusDto
+  ): string {
+    return (
+      cash.cashTypeDescription?.trim() ||
+      this.getSettingsOptionDescription(this.cashTypeOptions(), cash.cashType) ||
+      `Tip ${cash.cashType}`
+    );
+  }
+
+  protected getSettingsOptionSelectLabel(option: SettingsTypeOptionDto): string {
+    return option.isKnown ? option.name : `${option.name} (tanimsiz)`;
   }
 
   protected getMessageStatusClass(status: CashRegisterMessageStatusDto): string {
@@ -486,6 +564,10 @@ export class KasaPosTerminalleriListComponent {
     _index: number,
     status: CashRegisterMessageStatusDto
   ): string => `${status.branchNo}-${status.cashNo}-${status.filePath}`;
+  protected readonly trackBySettingsOption = (
+    _index: number,
+    option: SettingsTypeOptionDto
+  ): number => option.value;
 
   private buildCreateRequest(): CreateCashRegisterHttpRequest {
     const formValue = this.cashRegisterForm.getRawValue();
@@ -523,5 +605,39 @@ export class KasaPosTerminalleriListComponent {
         left.cashNo - right.cashNo ||
         left.filePath.localeCompare(right.filePath, 'tr')
     );
+  }
+
+  private mergeLookupOptions(
+    values: readonly SettingsTypeOptionDto[],
+    fallbackValues: readonly SettingsTypeOptionDto[]
+  ): SettingsTypeOptionDto[] {
+    const optionsByValue = new Map<number, SettingsTypeOptionDto>();
+
+    for (const option of fallbackValues) {
+      optionsByValue.set(option.value, option);
+    }
+
+    for (const option of values) {
+      optionsByValue.set(option.value, option);
+    }
+
+    return [...optionsByValue.values()].sort((left, right) => left.value - right.value);
+  }
+
+  private getSettingsOptionLabel(
+    options: readonly SettingsTypeOptionDto[],
+    value: number,
+    fallbackPrefix: string
+  ): string {
+    const option = options.find((item) => item.value === value);
+
+    return option?.name?.trim() || `${fallbackPrefix} ${value}`;
+  }
+
+  private getSettingsOptionDescription(
+    options: readonly SettingsTypeOptionDto[],
+    value: number
+  ): string | null {
+    return options.find((item) => item.value === value)?.description?.trim() || null;
   }
 }

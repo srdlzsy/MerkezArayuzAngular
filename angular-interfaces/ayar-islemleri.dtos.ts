@@ -23,11 +23,30 @@ export interface DeviceStatusDto {
   error: string | null;
 }
 
+export interface SettingsTypeOptionDto {
+  value: number;
+  code: string;
+  name: string;
+  description: string;
+  isKnown: boolean;
+}
+
+export interface BranchSettingsLookupsDto {
+  scalesTypes: SettingsTypeOptionDto[];
+  cashTypes: SettingsTypeOptionDto[];
+}
+
+export interface CashRegisterSettingsLookupsDto {
+  cashTypes: SettingsTypeOptionDto[];
+}
+
 export interface BranchDetailDto {
   branchNo: number;
   branchIpAddress: string;
   branchScalesFolderPath: string;
   scalesType: number;
+  scalesTypeName: string;
+  scalesTypeDescription: string;
   poskonFolderPath: string;
   posGenelFolderPath: string;
 }
@@ -37,12 +56,16 @@ export interface CashRegistryDto {
   branchNo: number;
   cashNo: number;
   cashType: number;
+  cashTypeName: string;
+  cashTypeDescription: string;
 }
 
 export interface CashRegisterResponse {
   branchNo: number;
   cashNo: number;
   cashType: number;
+  cashTypeName: string;
+  cashTypeDescription: string;
   terminals: CashRegisterTerminalDto[];
 }
 
@@ -59,7 +82,10 @@ export interface CashRegisterMessageStatusDto {
   branchNo: number;
   cashNo: number;
   cashType: number;
+  cashTypeName: string;
+  cashTypeDescription: string;
   state: number | null;
+  stateName: string | null;
   filePath: string;
   error: string | null;
 }

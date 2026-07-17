@@ -10,7 +10,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Manuel inbox senkronizasyonu, cache listeleme, teknik documentId ile PDF acma, HTML detay/render ve yazdirildi durumunu ayri komutla guncelleme akislarini yeni API uzerinden sunar.',
       baseRouteOrFile: '/api/fatura-islemleri/fatura-goruntuleme',
       highlights: [
-        'POST senkronize ile tum Uyumsoft sayfalarini okuyup cache guncelleme ve sonuc sayaclarini alma',
+        'POST senkronize varsayilan hizli modda calisir; includeStatuses=true ile durum/log cachei de yenilenir',
         'Fatura Tarihi UBL IssueDate alanindan, kayit tarihi CreateDateUtc alanindan okunur',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
         'documentId teknik UUID ile application/pdf dosyasi',
@@ -35,7 +35,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize',
-              description: 'Tum Uyumsoft GetInboxInvoices sayfalarini okuyup IssueDate degeri secili Fatura Tarihi araliginda kalan belgeleri cache tabloya yazar; satir basina ek detay cagrisi yapmadan sonuc sayaclarini dondurur'
+              description: 'Tum Uyumsoft GetInboxInvoices sayfalarini okuyup secili tarih araligini cache tabloya yazar; includeStatuses=false hizli moddur, includeStatuses=true sayfa bazli durum/log sorgularini da calistirir',
+              payload: 'InvoiceViewingSynchronizationRequest'
             },
             {
               method: 'GET',
@@ -65,7 +66,12 @@ export const EDOCUMENTS_TASK_SOURCE = {
             }
           ]
         }
-      ]
+      ],
+      codeSample: `{
+  "startDate": "2026-05-01",
+  "endDate": "2026-05-05",
+  "includeStatuses": false
+}`
     },
     () =>
       import('../tasks/edocuments/fatura-islemleri/list/fatura-islemleri-list.component').then(

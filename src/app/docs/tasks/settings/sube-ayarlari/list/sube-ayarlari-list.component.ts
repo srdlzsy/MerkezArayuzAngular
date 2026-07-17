@@ -5,8 +5,10 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { finalize } from 'rxjs';
 import type {
   BranchDetailDto,
+  BranchSettingsLookupsDto,
   CashRegistryDto,
   CreateBranchSettingsHttpRequest,
+  SettingsTypeOptionDto,
   UpdateBranchSettingsHttpRequest
 } from '@interfaces';
 
@@ -16,6 +18,8 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import {
   ActionFeedback,
+  FALLBACK_CASH_TYPE_OPTIONS,
+  FALLBACK_SCALE_TYPE_OPTIONS,
   getErrorMessage,
   getOptionalText,
   hasSettingsPermission,
@@ -27,6 +31,11 @@ interface CashRegisterDraft {
   cashNo: number;
   cashType: number;
 }
+
+const DEFAULT_BRANCH_SETTINGS_LOOKUPS: BranchSettingsLookupsDto = {
+  scalesTypes: [...FALLBACK_SCALE_TYPE_OPTIONS],
+  cashTypes: [...FALLBACK_CASH_TYPE_OPTIONS]
+};
 
 type BranchAction = 'load' | 'detail' | 'save' | 'cash';
 
@@ -52,7 +61,11 @@ export class SubeAyarlariListComponent {
       nonNullable: true,
       validators: [Validators.maxLength(260)]
     }),
-    scalesType: new FormControl<number | null>(1, [Validators.required, Validators.min(0)]),
+    scalesType: new FormControl<number | null>(1, [
+      Validators.required,
+      Validators.min(0),
+      Validators.max(1)
+    ]),
     poskonFolderPath: new FormControl<string>('', {
       nonNullable: true,
       validators: [Validators.maxLength(260)]
@@ -78,9 +91,13 @@ export class SubeAyarlariListComponent {
   protected readonly branchSettings = signal<BranchDetailDto[]>([]);
   protected readonly cashRegistries = signal<CashRegistryDto[]>([]);
   protected readonly cashDrafts = signal<CashRegisterDraft[]>([]);
+  protected readonly branchLookups = signal<BranchSettingsLookupsDto>(
+    DEFAULT_BRANCH_SETTINGS_LOOKUPS
+  );
   protected readonly selectedBranch = signal<BranchDetailDto | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly loadingAction = signal<BranchAction | null>(null);
+  protected readonly lookupsLoading = signal(false);
 
   protected readonly canCreate = computed(() =>
     hasSettingsPermission(
@@ -108,9 +125,44 @@ export class SubeAyarlariListComponent {
   protected readonly totalCashCount = computed(
     () => this.cashRegistries().length + this.cashDrafts().length
   );
+  protected readonly scalesTypeOptions = computed(() =>
+    this.mergeLookupOptions(this.branchLookups().scalesTypes, FALLBACK_SCALE_TYPE_OPTIONS)
+  );
+  protected readonly cashTypeOptions = computed(() =>
+    this.mergeLookupOptions(this.branchLookups().cashTypes, FALLBACK_CASH_TYPE_OPTIONS)
+  );
 
   constructor() {
+    this.loadLookups();
     this.loadRows();
+  }
+
+  protected loadLookups(): void {
+    this.lookupsLoading.set(true);
+
+    this.ayarIslemleriService
+      .getBranchSettingsLookups()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.lookupsLoading.set(false))
+      )
+      .subscribe({
+        next: (lookups: BranchSettingsLookupsDto) => {
+          this.branchLookups.set({
+            scalesTypes: this.mergeLookupOptions(
+              lookups?.scalesTypes ?? [],
+              FALLBACK_SCALE_TYPE_OPTIONS
+            ),
+            cashTypes: this.mergeLookupOptions(
+              lookups?.cashTypes ?? [],
+              FALLBACK_CASH_TYPE_OPTIONS
+            )
+          });
+        },
+        error: () => {
+          this.branchLookups.set(DEFAULT_BRANCH_SETTINGS_LOOKUPS);
+        }
+      });
   }
 
   protected loadRows(): void {
@@ -296,12 +348,52 @@ export class SubeAyarlariListComponent {
     return this.selectedBranch() ? 'Guncelle' : 'Olustur';
   }
 
+  protected getScalesTypeLabel(branch: BranchDetailDto): string {
+    return (
+      branch.scalesTypeName?.trim() ||
+      this.getSettingsOptionLabel(this.scalesTypeOptions(), branch.scalesType, 'Tip')
+    );
+  }
+
+  protected getScalesTypeDescription(branch: BranchDetailDto): string {
+    return (
+      branch.scalesTypeDescription?.trim() ||
+      this.getSettingsOptionDescription(this.scalesTypeOptions(), branch.scalesType) ||
+      `Tip ${branch.scalesType}`
+    );
+  }
+
+  protected getCashTypeLabel(cash: CashRegistryDto | CashRegisterDraft): string {
+    const responseName = 'cashTypeName' in cash ? cash.cashTypeName?.trim() : '';
+
+    return (
+      responseName ||
+      this.getSettingsOptionLabel(this.cashTypeOptions(), cash.cashType, 'Kasa Tipi')
+    );
+  }
+
+  protected getCashTypeDescription(cash: CashRegistryDto): string {
+    return (
+      cash.cashTypeDescription?.trim() ||
+      this.getSettingsOptionDescription(this.cashTypeOptions(), cash.cashType) ||
+      `Tip ${cash.cashType}`
+    );
+  }
+
+  protected getSettingsOptionSelectLabel(option: SettingsTypeOptionDto): string {
+    return option.isKnown ? option.name : `${option.name} (tanimsiz)`;
+  }
+
   protected readonly trackByBranch = (_index: number, branch: BranchDetailDto): number =>
     branch.branchNo;
   protected readonly trackByCashRegistry = (_index: number, cash: CashRegistryDto): number =>
     cash.detailId;
   protected readonly trackByCashDraft = (_index: number, draft: CashRegisterDraft): string =>
     draft.id;
+  protected readonly trackBySettingsOption = (
+    _index: number,
+    option: SettingsTypeOptionDto
+  ): number => option.value;
 
   private loadCashRegistries(branchNo: number): void {
     this.loadingAction.set('cash');
@@ -370,5 +462,39 @@ export class SubeAyarlariListComponent {
 
   private sortCashRegistries(rows: CashRegistryDto[]): CashRegistryDto[] {
     return [...rows].sort((left, right) => left.cashNo - right.cashNo);
+  }
+
+  private mergeLookupOptions(
+    values: readonly SettingsTypeOptionDto[],
+    fallbackValues: readonly SettingsTypeOptionDto[]
+  ): SettingsTypeOptionDto[] {
+    const optionsByValue = new Map<number, SettingsTypeOptionDto>();
+
+    for (const option of fallbackValues) {
+      optionsByValue.set(option.value, option);
+    }
+
+    for (const option of values) {
+      optionsByValue.set(option.value, option);
+    }
+
+    return [...optionsByValue.values()].sort((left, right) => left.value - right.value);
+  }
+
+  private getSettingsOptionLabel(
+    options: readonly SettingsTypeOptionDto[],
+    value: number,
+    fallbackPrefix: string
+  ): string {
+    const option = options.find((item) => item.value === value);
+
+    return option?.name?.trim() || `${fallbackPrefix} ${value}`;
+  }
+
+  private getSettingsOptionDescription(
+    options: readonly SettingsTypeOptionDto[],
+    value: number
+  ): string | null {
+    return options.find((item) => item.value === value)?.description?.trim() || null;
   }
 }
