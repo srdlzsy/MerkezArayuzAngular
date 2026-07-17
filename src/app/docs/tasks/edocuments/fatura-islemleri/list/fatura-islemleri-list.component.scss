@@ -128,6 +128,70 @@
   font-size: 0.76rem;
 }
 
+.sync-progress-card {
+  display: grid;
+  gap: 0.32rem;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.sync-progress-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.55rem;
+}
+
+.sync-progress-head div {
+  display: grid;
+  gap: 0.04rem;
+  min-width: 0;
+}
+
+.sync-progress-head strong {
+  overflow: hidden;
+  color: var(--text);
+  font-size: 0.78rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sync-progress-head span,
+.sync-progress-grid span {
+  color: var(--muted);
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.sync-progress-track {
+  overflow: hidden;
+  height: 0.38rem;
+  border-radius: 999px;
+  background: var(--surface-muted);
+}
+
+.sync-progress-track span {
+  display: block;
+  height: 100%;
+  border-radius: inherit;
+  background: var(--primary);
+  transition: width 0.2s ease;
+}
+
+.sync-progress-grid {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  gap: 0.28rem;
+}
+
+.sync-progress-grid span {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .viewing-list-panel {
   display: grid;
   gap: 0.38rem;

@@ -119,8 +119,38 @@ export interface IInvoiceViewingSynchronizationResponseApiDto {
   includeStatuses: boolean;
   sourceTotalCount: number;
   fetchedCount: number;
+  matchedCount: number;
   insertedCount: number;
   updatedCount: number;
+}
+
+export interface IInvoiceViewingSynchronizationProgressResponseApiDto {
+  isRunning: boolean;
+  status: string;
+  startDate: string | null;
+  endDate: string | null;
+  includeStatuses: boolean;
+  queryStartDate: string | null;
+  queryEndDate: string | null;
+  pageIndex: number | null;
+  pageNumber: number | null;
+  pageSize: number | null;
+  totalCount: number;
+  totalPage: number;
+  fetchedCount: number;
+  matchedCount: number;
+  insertedCount: number;
+  updatedCount: number;
+  lastPageItemCount: number;
+  lastPageMatchedCount: number;
+  lastPageInsertedCount: number;
+  lastPageUpdatedCount: number;
+  progressPercent: number | null;
+  startedAtUtc: string | null;
+  lastUpdatedAtUtc: string | null;
+  finishedAtUtc: string | null;
+  elapsedMs: number | null;
+  message: string | null;
 }
 
 export interface IInvoiceViewingRenderRequestApiDto {

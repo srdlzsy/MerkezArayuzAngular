@@ -36,6 +36,7 @@ import {
   type InvoiceViewingListItemDto,
   type InvoiceViewingListResponseDto,
   type InvoiceViewingRenderRequestDto,
+  type InvoiceViewingSynchronizationProgressResponseDto,
   type InvoiceViewingSynchronizationRequestDto,
   type InvoiceViewingSynchronizationResponseDto,
   type InvoiceViewingPrintedStateRequestDto,
@@ -166,6 +167,7 @@ export class FaturaIslemleriListComponent {
   private printFrame: HTMLIFrameElement | null = null;
   private printObjectUrl: string | null = null;
   private feedbackDismissTimer: ReturnType<typeof setTimeout> | null = null;
+  private viewingSyncProgressTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly initialWorkspace =
     ((this.activatedRoute.snapshot.data['workspace'] as WorkspaceMode | undefined) ??
@@ -337,6 +339,8 @@ export class FaturaIslemleriListComponent {
   protected readonly viewingDetail = signal<InvoiceViewingDetailDto | null>(null);
   protected readonly viewingListLoading = signal(false);
   protected readonly viewingSyncLoading = signal(false);
+  protected readonly viewingSyncProgress =
+    signal<InvoiceViewingSynchronizationProgressResponseDto | null>(null);
   protected readonly viewingDetailLoading = signal(false);
   protected readonly viewingPdfLoading = signal(false);
   protected readonly viewingPdfDialogOpen = signal(false);
@@ -845,6 +849,7 @@ export class FaturaIslemleriListComponent {
     this.destroyRef.onDestroy(() => {
       this.clearFeedbackDismissTimer();
       this.clearViewingQuickFilterTimer();
+      this.clearViewingSyncProgressTimer();
       this.releasePreviewUrls();
       this.releaseViewingPdfUrl();
     });
@@ -880,26 +885,62 @@ export class FaturaIslemleriListComponent {
     }
 
     this.viewingSyncLoading.set(true);
+    this.viewingSyncProgress.set(null);
+    this.startViewingSyncProgressPolling();
 
     this.faturaIslemleriService
       .synchronizeInvoiceViewing(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.viewingSyncLoading.set(false))
+        finalize(() => {
+          this.viewingSyncLoading.set(false);
+          this.clearViewingSyncProgressTimer();
+        })
       )
       .subscribe({
         next: (result: InvoiceViewingSynchronizationResponseDto) => {
           const includeStatuses = result.includeStatuses ?? request.includeStatuses ?? false;
+          const matchedCount = result.matchedCount ?? result.fetchedCount;
+
+          this.viewingSyncProgress.set({
+            isRunning: false,
+            status: 'completed',
+            startDate: result.startDate,
+            endDate: result.endDate,
+            includeStatuses,
+            queryStartDate: null,
+            queryEndDate: null,
+            pageIndex: null,
+            pageNumber: null,
+            pageSize: null,
+            totalCount: result.sourceTotalCount,
+            totalPage: 0,
+            fetchedCount: result.fetchedCount,
+            matchedCount,
+            insertedCount: result.insertedCount,
+            updatedCount: result.updatedCount,
+            lastPageItemCount: 0,
+            lastPageMatchedCount: 0,
+            lastPageInsertedCount: 0,
+            lastPageUpdatedCount: 0,
+            progressPercent: 100,
+            startedAtUtc: null,
+            lastUpdatedAtUtc: null,
+            finishedAtUtc: null,
+            elapsedMs: null,
+            message: 'Senkronizasyon tamamlandi.'
+          });
 
           this.feedback.set({
             tone: 'success',
             title: 'Senkronizasyon tamamlandi',
-            message: `Uyumsoft'ta ${result.sourceTotalCount} kayit bulundu; ${result.fetchedCount} kayit ${includeStatuses ? 'durum/log dahil' : 'hizli modda'} okundu, ${result.insertedCount} yeni kayit eklendi ve ${result.updatedCount} kayit guncellendi.`
+            message: `Uyumsoft'ta ${result.sourceTotalCount} kaynak kayit bulundu; ${result.fetchedCount} kayit okundu, ${matchedCount} kayit Fatura Tarihi araligiyla eslesti, ${result.insertedCount} yeni kayit eklendi ve ${result.updatedCount} kayit guncellendi.`
           });
 
           this.loadViewingList();
         },
         error: (error: HttpErrorResponse) => {
+          this.markViewingSyncProgressFailed();
           this.feedback.set(
             this.resolveViewingSynchronizationFeedback(error, request.includeStatuses ?? false)
           );
@@ -1009,6 +1050,32 @@ export class FaturaIslemleriListComponent {
     }
 
     return includeStatuses ? 'Durumlu Senkronize Et' : 'Hizli Senkronize Et';
+  }
+
+  protected getViewingSyncProgressPercent(
+    progress: InvoiceViewingSynchronizationProgressResponseDto
+  ): number {
+    const value = progress.progressPercent ?? 0;
+
+    if (!Number.isFinite(value)) {
+      return 0;
+    }
+
+    return Math.min(100, Math.max(0, value));
+  }
+
+  protected getViewingSyncProgressLabel(
+    progress: InvoiceViewingSynchronizationProgressResponseDto
+  ): string {
+    if (progress.message?.trim()) {
+      return progress.message;
+    }
+
+    if (progress.totalPage > 0 && progress.pageNumber !== null) {
+      return `Sayfa ${progress.pageNumber}/${progress.totalPage}`;
+    }
+
+    return this.viewingSyncLoading() ? 'Senkronizasyon izleniyor.' : 'Hazir.';
   }
 
   protected setViewingQuickFilter(event: Event): void {
@@ -3316,6 +3383,71 @@ export class FaturaIslemleriListComponent {
 
     clearTimeout(this.viewingQuickFilterTimer);
     this.viewingQuickFilterTimer = null;
+  }
+
+  private startViewingSyncProgressPolling(): void {
+    this.clearViewingSyncProgressTimer();
+    this.pollViewingSyncProgress();
+  }
+
+  private pollViewingSyncProgress(): void {
+    if (!this.viewingSyncLoading()) {
+      return;
+    }
+
+    this.faturaIslemleriService
+      .getInvoiceViewingSynchronizationProgress()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (progress: InvoiceViewingSynchronizationProgressResponseDto) => {
+          this.viewingSyncProgress.set(progress);
+
+          const isTerminalProgress =
+            progress.status === 'completed' || progress.status === 'failed';
+
+          if (this.viewingSyncLoading() && !isTerminalProgress) {
+            this.scheduleViewingSyncProgressPoll();
+          }
+        },
+        error: () => {
+          if (this.viewingSyncLoading()) {
+            this.scheduleViewingSyncProgressPoll();
+          }
+        }
+      });
+  }
+
+  private scheduleViewingSyncProgressPoll(): void {
+    this.clearViewingSyncProgressTimer();
+    this.viewingSyncProgressTimer = setTimeout(() => {
+      this.viewingSyncProgressTimer = null;
+      this.pollViewingSyncProgress();
+    }, 1500);
+  }
+
+  private clearViewingSyncProgressTimer(): void {
+    if (!this.viewingSyncProgressTimer) {
+      return;
+    }
+
+    clearTimeout(this.viewingSyncProgressTimer);
+    this.viewingSyncProgressTimer = null;
+  }
+
+  private markViewingSyncProgressFailed(): void {
+    const currentProgress = this.viewingSyncProgress();
+
+    if (!currentProgress) {
+      return;
+    }
+
+    this.viewingSyncProgress.set({
+      ...currentProgress,
+      isRunning: false,
+      status: 'failed',
+      progressPercent: currentProgress.progressPercent ?? 100,
+      message: currentProgress.message?.trim() || 'Senkronizasyon hata ile durdu.'
+    });
   }
 
   private normalizeText(value: unknown): string {

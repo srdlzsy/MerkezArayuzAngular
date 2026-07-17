@@ -126,6 +126,35 @@
               </button>
             </div>
 
+            <article class="sync-progress-card" *ngIf="viewingSyncProgress() as progress">
+              <div class="sync-progress-head">
+                <div>
+                  <strong>{{ getViewingSyncProgressLabel(progress) }}</strong>
+                  <span>
+                    {{ progress.status || 'idle' }} /
+                    {{ progress.includeStatuses ? 'Durum/Log' : 'Hizli' }}
+                  </span>
+                </div>
+                <strong>{{ getViewingSyncProgressPercent(progress) | number: '1.0-1' }}%</strong>
+              </div>
+              <div class="sync-progress-track" aria-hidden="true">
+                <span [style.width.%]="getViewingSyncProgressPercent(progress)"></span>
+              </div>
+              <div class="sync-progress-grid">
+                <span>Sayfa {{ progress.pageNumber ?? '-' }}/{{ progress.totalPage || '-' }}</span>
+                <span>Okunan {{ progress.fetchedCount }}</span>
+                <span>Eslesti {{ progress.matchedCount }}</span>
+                <span>Yeni {{ progress.insertedCount }}</span>
+                <span>Guncel {{ progress.updatedCount }}</span>
+                <span>
+                  Sorgu
+                  {{ progress.queryStartDate ? (progress.queryStartDate | date: 'dd.MM HH:mm') : '-' }}
+                  -
+                  {{ progress.queryEndDate ? (progress.queryEndDate | date: 'dd.MM HH:mm') : '-' }}
+                </span>
+              </div>
+            </article>
+
           </ng-container>
         </article>
 

@@ -17,6 +17,7 @@ import type {
   IInvoiceViewingListResponseApiDto,
   IInvoiceViewingPdfResponseApiDto,
   IInvoiceViewingRenderRequestApiDto,
+  IInvoiceViewingSynchronizationProgressResponseApiDto,
   IInvoiceViewingSynchronizationRequestApiDto,
   IInvoiceViewingSynchronizationResponseApiDto,
   IInvoiceViewingPrintedStateRequestApiDto,
@@ -41,6 +42,8 @@ export type InvoiceViewingSynchronizationRequestDto =
   IInvoiceViewingSynchronizationRequestApiDto;
 export type InvoiceViewingSynchronizationResponseDto =
   IInvoiceViewingSynchronizationResponseApiDto;
+export type InvoiceViewingSynchronizationProgressResponseDto =
+  IInvoiceViewingSynchronizationProgressResponseApiDto;
 export type InvoiceViewingRenderRequestDto = IInvoiceViewingRenderRequestApiDto;
 export type InvoiceRenderedDocumentDto = IInvoiceRenderedDocumentApiDto;
 export type InvoicePreviewRequestDto = IInvoicePreviewRequestApiDto;
@@ -249,6 +252,12 @@ export class FaturaIslemleriService extends BaseApiService {
     >(
       'fatura-islemleri/fatura-goruntuleme/senkronize',
       request
+    );
+  }
+
+  getInvoiceViewingSynchronizationProgress() {
+    return this.get<InvoiceViewingSynchronizationProgressResponseDto>(
+      'fatura-islemleri/fatura-goruntuleme/senkronize/progress'
     );
   }
 
