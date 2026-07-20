@@ -3,27 +3,7 @@
     <div class="welcome-box">
       <h2>{{ current.title }}</h2>
     </div>
-    <p class="subtitle">{{ current.subtitle }}</p>
   </header>
-
-  <section class="info-grid">
-    <article class="info-card">
-      <h3>Kaynak</h3>
-      <p>{{ current.baseRouteOrFile }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Kapsam</h3>
-      <p>{{ selectedScopeDescription() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Eksik</h3>
-      <p>{{ getMissingCount() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Fazla</h3>
-      <p>{{ getExcessCount() }}</p>
-    </article>
-  </section>
 
   <section class="task-block">
     <article class="query-card">
@@ -90,16 +70,7 @@
           {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
         </button>
       </div>
-
-      <p class="query-path">{{ farkRequestPath() }}</p>
     </article>
-
-    <section class="status-strip" *ngIf="statusSummary().length">
-      <article class="status-card" *ngFor="let status of statusSummary()">
-        <strong>{{ status.count }}</strong>
-        <span>{{ status.label }}</span>
-      </article>
-    </section>
 
     <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
       <h3>{{ getErrorTitle() }}</h3>
@@ -124,10 +95,5 @@
       <h3>{{ getEmptyTitle() }}</h3>
       <p>{{ getEmptyMessage() }}</p>
     </article>
-  </section>
-
-  <section class="sample" *ngIf="current.codeSample">
-    <h3>Ornek</h3>
-    <pre><code>{{ current.codeSample }}</code></pre>
   </section>
 </section>

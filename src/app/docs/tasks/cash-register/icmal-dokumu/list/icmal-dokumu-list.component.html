@@ -15,25 +15,6 @@
     </div>
   </header>
 
-  <section class="info-grid">
-    <article class="info-card emphasis-card">
-      <h3>Depo</h3>
-      <p>{{ branchLabel() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Yuklu Kayit</h3>
-      <p>{{ summaries().length }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Gorunen</h3>
-      <p>{{ filteredSummaries().length }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Toplam</h3>
-      <p>{{ totalAmount() | number:'1.2-2' }} TL</p>
-    </article>
-  </section>
-
   <section class="task-block">
     <form class="query-card lookup-shell" [formGroup]="filtersForm" (ngSubmit)="loadSummaries()" novalidate>
       <div class="lookup-head">

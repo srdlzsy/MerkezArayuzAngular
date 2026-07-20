@@ -34,7 +34,6 @@
         </strong>
       </span>
     </div>
-    <p class="subtitle">{{ current.subtitle }}</p>
   </header>
 
   <section class="task-block">
@@ -59,11 +58,6 @@
           <input type="number" min="1" formControlName="customWarehouseNo" placeholder="110" />
         </label>
 
-        <div class="field field-preview">
-          <span>Gonderilecek Deger</span>
-          <code>{{ requestPath() }}</code>
-        </div>
-
         <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
           {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
         </button>
@@ -72,8 +66,6 @@
           Yeni
         </button>
       </div>
-
-      <p class="query-path">{{ requestPath() }}</p>
     </form>
 
     <article

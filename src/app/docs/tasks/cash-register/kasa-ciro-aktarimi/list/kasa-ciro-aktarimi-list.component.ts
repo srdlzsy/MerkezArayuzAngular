@@ -46,7 +46,6 @@ export class KasaCiroAktarimiListComponent {
     startDate: new FormControl<string>(this.getRelativeDate(6), { nonNullable: true }),
     endDate: new FormControl<string>(this.getToday(), { nonNullable: true }),
     branches: new FormControl<number[]>([], { nonNullable: true }),
-    movementRootPath: new FormControl<string>('', { nonNullable: true }),
     dryRun: new FormControl<boolean>(true, { nonNullable: true })
   });
 
@@ -79,11 +78,6 @@ export class KasaCiroAktarimiListComponent {
     this.formVersion();
 
     return this.importForm.controls.dryRun.value ? 'Onizleme' : 'Canli Aktarim';
-  });
-  protected readonly requestPreview = computed(() => {
-    this.formVersion();
-
-    return this.formatJson(this.buildImportRequest(false));
   });
   protected readonly resultTotalRows = computed(() => {
     const result = this.importResult();
@@ -251,7 +245,7 @@ export class KasaCiroAktarimiListComponent {
       startDate,
       endDate,
       branches: [...this.importForm.controls.branches.value],
-      movementRootPath: this.getOptionalText(this.importForm.controls.movementRootPath.value),
+      movementRootPath: null,
       dryRun: this.importForm.controls.dryRun.value
     };
   }
@@ -299,17 +293,8 @@ export class KasaCiroAktarimiListComponent {
     return branch ? this.getBranchLabel(branch) : `Sube ${branchNo}`;
   }
 
-  private getOptionalText(value: string | null | undefined): string | null {
-    const trimmedValue = value?.trim() ?? '';
-    return trimmedValue || null;
-  }
-
   private toSafeNumber(value: number | null | undefined): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
-  }
-
-  private formatJson(value: unknown): string {
-    return JSON.stringify(value, null, 2);
   }
 
   private getToday(): string {

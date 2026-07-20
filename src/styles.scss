@@ -1,22 +1,171 @@
 html,
 body {
   margin: 0;
+  min-width: 320px;
   min-height: 100%;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
   background: #fff !important;
+  overflow-x: hidden;
+  text-size-adjust: 100%;
+  -webkit-text-size-adjust: 100%;
 }
 
 * {
   box-sizing: border-box;
 }
 
+:root {
+  --app-content-max-width: 1880px;
+}
+
 body {
   color: #0f172a;
+}
+
+app-root {
+  display: block;
+  min-width: 0;
+}
+
+img,
+svg,
+canvas,
+video {
+  max-width: 100%;
 }
 
 button,
 a {
   font: inherit;
+}
+
+body :where(
+  .main-content,
+  .content-wrapper,
+  .task-page,
+  .create-page,
+  .lookup-page,
+  .dialog-page,
+  .detail-page,
+  .invoice-console,
+  .operations-page,
+  .flow-page,
+  .correction-page,
+  .label-workspace,
+  .kunye-page,
+  .cash-count-page,
+  .axata-compact,
+  .uyumsoft-page
+) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body .content-wrapper > * {
+  width: 100%;
+}
+
+body :where(
+  .task-page,
+  .create-page,
+  .lookup-page,
+  .dialog-page,
+  .detail-page,
+  .invoice-console,
+  .operations-page,
+  .flow-page,
+  .correction-page,
+  .label-workspace,
+  .kunye-page,
+  .cash-count-page,
+  .axata-compact,
+  .uyumsoft-page
+) :where(
+  .hero,
+  .page-head,
+  .panel,
+  .query-card,
+  .filter-panel,
+  .form-panel,
+  .surface-card,
+  .summary-card,
+  .metric-card,
+  .state-card,
+  .workspace-grid,
+  .workspace-stack,
+  .content-grid,
+  .split-grid,
+  .summary-grid,
+  .metric-strip,
+  .metrics-grid,
+  .query-grid,
+  .filter-grid,
+  .form-grid,
+  .request-form,
+  .table-wrap,
+  .table-shell,
+  .invoice-table-shell,
+  .list-card,
+  .data-panel,
+  .result-panel,
+  .result-grid,
+  .control-shell,
+  .control-tools,
+  .detail-grid
+) {
+  min-width: 0;
+  max-width: 100%;
+}
+
+body :where(
+  .query-grid,
+  .filter-grid,
+  .form-grid,
+  .workspace-grid,
+  .content-grid,
+  .split-grid,
+  .summary-grid,
+  .metrics-grid,
+  .metric-strip,
+  .result-grid,
+  .control-tools,
+  .detail-grid,
+  .row-actions
+) > * {
+  min-width: 0;
+}
+
+body :where(
+  .table-wrap,
+  .table-shell,
+  .invoice-table-shell,
+  .table-container,
+  .data-panel,
+  .list-card
+) {
+  max-width: 100%;
+  overflow-x: auto;
+  overscroll-behavior-x: contain;
+}
+
+body :where(
+  .task-page,
+  .create-page,
+  .lookup-page,
+  .dialog-page,
+  .detail-page,
+  .invoice-console,
+  .operations-page,
+  .flow-page,
+  .correction-page,
+  .label-workspace,
+  .kunye-page,
+  .cash-count-page,
+  .axata-compact,
+  .uyumsoft-page
+) :where(h1, h2, h3, h4, p, small, strong, td, th, .page-title) {
+  min-width: 0;
+  overflow-wrap: anywhere;
 }
 
 .docs-task-dialog-backdrop {
@@ -27,7 +176,8 @@ a {
 .docs-task-dialog-panel .cdk-dialog-container {
   width: min(1080px, calc(100vw - 1.25rem));
   max-width: 1080px;
-  max-height: calc(100dvh - 0.5rem);
+  height: min(860px, 86dvh);
+  max-height: calc(100dvh - 1rem);
   overflow: hidden;
   border: 1px solid #dbe5f1;
   border-radius: 10px;
@@ -46,8 +196,8 @@ a {
 
 .docs-task-dialog-panel .dialog-page {
   width: 100% !important;
-  height: auto !important;
-  max-height: calc(100dvh - 0.5rem) !important;
+  height: 100% !important;
+  max-height: 100% !important;
   min-height: 0 !important;
   border-radius: 0 !important;
   background: #f8fafc !important;
@@ -99,7 +249,8 @@ a {
 
 .docs-task-dialog-panel .dialog-body {
   gap: 0.48rem !important;
-  max-height: calc(100dvh - 3.6rem) !important;
+  max-height: none !important;
+  min-height: 0 !important;
   padding: 0.48rem 0.58rem 0.58rem !important;
   overflow: auto !important;
 }
@@ -248,65 +399,6 @@ a {
   font-size: 0.74rem !important;
 }
 
-body .task-page .subtitle,
-body .create-page .subtitle,
-body .lookup-page .subtitle,
-body .task-page .helper-text,
-body .create-page .helper-text,
-body .lookup-page .helper-text,
-body .task-page .field-help,
-body .create-page .field-help,
-body .lookup-page .field-help,
-body .task-page .query-path,
-body .create-page .query-path,
-body .lookup-page .query-path,
-body .task-page .request-path,
-body .create-page .request-path,
-body .lookup-page .request-path,
-body .task-page .request-preview,
-body .create-page .request-preview,
-body .lookup-page .request-preview,
-body .task-page .request-card,
-body .create-page .request-card,
-body .lookup-page .request-card,
-body .task-page .request-inline,
-body .create-page .request-inline,
-body .lookup-page .request-inline,
-body .task-page .route-strip,
-body .create-page .route-strip,
-body .lookup-page .route-strip,
-body .task-page .json-block,
-body .create-page .json-block,
-body .lookup-page .json-block,
-body .task-page .json-details,
-body .create-page .json-details,
-body .lookup-page .json-details,
-body .dialog-page .task-item .table-wrap,
-body .task-page .task-list .task-item .table-wrap,
-body .dialog-page .sample,
-body .task-page .sample,
-body .create-page .sample,
-body .lookup-page .sample,
-body .task-page > .info-grid,
-body .create-page > .info-grid,
-body .task-page .field-preview,
-body .create-page .field-preview,
-body .task-page .panel-copy,
-body .task-page .notes-shell,
-body .task-page .note-card,
-body .task-page .highlight-strip,
-body .task-page .card-description,
-body .create-page .form-head p,
-body .create-page .helper-card,
-body .task-page .result-note,
-body .task-page .request-line code,
-body .create-page .request-line code,
-body .lookup-page .request-line code,
-body .axata-compact .json-details,
-body .uyumsoft-page pre {
-  display: none !important;
-}
-
 body .task-page .page-head,
 body .task-page .hero,
 body .create-page .hero,
@@ -444,17 +536,11 @@ body .lookup-page td {
   font-size: 0.76rem !important;
 }
 
-body .task-page .metric-card p,
-body .task-page .setup-card p,
-body .task-page .action-card p,
-body .lookup-page .metric-card p {
-  display: none !important;
-}
-
 @media (max-width: 700px) {
   .docs-task-dialog-panel .cdk-dialog-container {
     width: calc(100vw - 0.75rem);
-    max-height: calc(100dvh - 0.4rem);
+    height: min(780px, calc(100dvh - 0.75rem));
+    max-height: calc(100dvh - 0.75rem);
     border-radius: 8px;
   }
 

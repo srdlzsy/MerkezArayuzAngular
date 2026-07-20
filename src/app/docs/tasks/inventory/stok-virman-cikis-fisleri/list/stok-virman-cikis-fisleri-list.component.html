@@ -3,19 +3,7 @@
     <div class="welcome-box">
       <h2>{{ current.title }}</h2>
     </div>
-    <p class="subtitle">{{ current.subtitle }}</p>
   </header>
-
-  <section class="info-grid">
-    <article class="info-card">
-      <h3>Kaynak</h3>
-      <p>{{ current.baseRouteOrFile }}</p>
-    </article>
-    <article class="info-card" *ngFor="let item of current.highlights">
-      <h3>Not</h3>
-      <p>{{ item }}</p>
-    </article>
-  </section>
 
   <section class="task-block">
     <div class="task-toolbar">
@@ -30,7 +18,6 @@
       <article class="task-item" *ngFor="let item of current.items">
         <div class="task-item-head">
           <h4>{{ item.name }}</h4>
-          <p>{{ item.description }}</p>
         </div>
 
         <div class="table-wrap" *ngIf="item.endpoints?.length">
@@ -55,10 +42,5 @@
         </div>
       </article>
     </div>
-  </section>
-
-  <section class="sample" *ngIf="current.codeSample">
-    <h3>Ornek</h3>
-    <pre><code>{{ current.codeSample }}</code></pre>
   </section>
 </section>

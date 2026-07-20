@@ -3,31 +3,7 @@
     <div class="welcome-box">
       <h2>{{ current.title }}</h2>
     </div>
-    <p class="subtitle">{{ current.subtitle }}</p>
   </header>
-
-  <section class="info-grid">
-    <article class="info-card">
-      <h3>Gun</h3>
-      <p>{{ lastLoadedDate() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Urun</h3>
-      <p>{{ summaryItems().length }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Evrak</h3>
-      <p>{{ branchDocumentCount() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Sube</h3>
-      <p>{{ branchCount() }}</p>
-    </article>
-    <article class="info-card">
-      <h3>Yesillik</h3>
-      <p>{{ formatQuantity(greenTotalQuantity()) }}</p>
-    </article>
-  </section>
 
   <section class="task-block">
     <form class="query-card green-query" [formGroup]="filtersForm" (ngSubmit)="loadReports()" novalidate>
@@ -37,17 +13,10 @@
           <input type="date" formControlName="targetDate" [max]="maxTargetDate" />
         </label>
 
-        <div class="field field-preview">
-          <span>Endpoint</span>
-          <code>{{ requestPath() }}</code>
-        </div>
-
         <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
           {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
         </button>
       </div>
-
-      <p class="query-path">{{ requestPath() }}</p>
     </form>
 
     <article class="state-card state-card-error" *ngIf="!canViewReports()">
