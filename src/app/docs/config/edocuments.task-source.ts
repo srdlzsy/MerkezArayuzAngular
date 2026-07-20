@@ -12,7 +12,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
       highlights: [
         'POST senkronize isi arka plana alir ve 202 Accepted doner; includeStatuses=true ile durum/log cachei de yenilenir',
         'Progress endpointi queued/running/completed/failed durumunu, sayfa, okunan, eslesen ve upsert sayaclarini dondurur',
-        'Uyumsoft kaynak sorgusu ExecutionStartDate/ExecutionEndDate ile calisir, bitis tarihinden ileri bakar ve cache kapsami invoiceDate/Fatura Tarihi ile daraltilir',
+        'Uyumsoft kaynak sorgusunda ExecutionEndDate, endDate + look-ahead gun sonu ile API sunucusunun su anki zamani arasinda kucuk olan degerdir; cache kapsami invoiceDate/Fatura Tarihi ile daraltilir',
         'Uyumsoft zaman asiminda progress failed olur; onceki sayfalardaki eslesen kayitlar cachee yazilmis olabilir',
         'Fatura Tarihi UBL IssueDate alanindan, kayit tarihi CreateDateUtc alanindan okunur',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
@@ -38,7 +38,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize',
-              description: 'GetInboxInvoices senkronizasyonunu arka plana alir ve 202 Accepted ile ilk progress bilgisini dondurur; UI bu cevaptan sonra /senkronize/progress endpointini poll eder, tamamlanan sayaclari completed progress cevabindan okur',
+              description: 'GetInboxInvoices senkronizasyonunu arka plana alir ve 202 Accepted ile ilk progress bilgisini dondurur; API Uyumsoft execution bitisini endDate + look-ahead gun sonu ve API sunucu zamani kuralina gore hesaplar; UI bu cevaptan sonra /senkronize/progress endpointini poll eder',
               payload: 'InvoiceViewingSynchronizationRequest'
             },
             {

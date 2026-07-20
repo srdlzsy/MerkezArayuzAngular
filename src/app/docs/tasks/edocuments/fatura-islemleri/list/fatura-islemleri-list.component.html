@@ -147,11 +147,12 @@
                 <span>Yeni {{ progress.insertedCount }}</span>
                 <span>Guncel {{ progress.updatedCount }}</span>
                 <span>
-                  Sorgu
+                  Uyumsoft sorgu
                   {{ progress.queryStartDate ? (progress.queryStartDate | date: 'dd.MM HH:mm') : '-' }}
                   -
                   {{ progress.queryEndDate ? (progress.queryEndDate | date: 'dd.MM HH:mm') : '-' }}
                 </span>
+                <span>Bitis: look-ahead gun sonu / API saati</span>
               </div>
             </article>
 
@@ -166,9 +167,6 @@
             </div>
             <div class="viewing-list-meta">
               <span class="panel-badge">{{ filteredViewingCount() }} kayit</span>
-              <span class="panel-badge" *ngIf="filteredViewingCount() > 0">
-                {{ viewingPageStart() }}-{{ viewingPageEnd() }}
-              </span>
               <span class="panel-badge" *ngIf="viewingList() as response">
                 Toplam {{ response.totalCount }}
               </span>
@@ -223,15 +221,6 @@
                 (input)="setViewingAmountMaxFilter($event)"
                 placeholder="999999"
               />
-            </label>
-
-            <label class="field page-size-field">
-              <span>Sayfada</span>
-              <select [value]="viewingPageSize()" (change)="setViewingPageSize($any($event.target).value)">
-                <option *ngFor="let option of viewingPageSizeOptions" [value]="option">
-                  {{ option }}
-                </option>
-              </select>
             </label>
 
             <button
@@ -292,230 +281,219 @@
           </div>
 
           <div class="invoice-table-shell viewing-table-shell" *ngIf="filteredViewingCount() > 0">
-            <table class="invoice-table viewing-table">
-              <thead>
-                <tr>
-                  <th class="select-column">
-                    <input
-                      type="checkbox"
-                      [checked]="allVisibleViewingItemsSelected()"
-                      [disabled]="selectableViewingItems().length === 0 || viewingBulkPrintLoading()"
-                      (click)="$event.stopPropagation()"
-                      (change)="toggleAllVisibleViewingSelection($any($event.target).checked)"
-                      aria-label="Bu sayfadaki yazdirilmamis faturalar"
-                    />
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" (click)="setViewingSort('invoiceId')">
-                      Fatura No {{ getViewingSortIndicator('invoiceId') }}
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" (click)="setViewingSort('despatchId')">
-                      Irsaliye {{ getViewingSortIndicator('despatchId') }}
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" (click)="setViewingSort('customerTitle')">
-                      Musteri {{ getViewingSortIndicator('customerTitle') }}
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" (click)="setViewingSort('invoiceDate')">
-                      Fatura Tarihi {{ getViewingSortIndicator('invoiceDate') }}
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" (click)="setViewingSort('invoiceType')">
-                      Tip {{ getViewingSortIndicator('invoiceType') }}
-                    </button>
-                  </th>
-                  <th>
-                    <button type="button" class="sort-header" (click)="setViewingSort('status')">
-                      Durum {{ getViewingSortIndicator('status') }}
-                    </button>
-                  </th>
-                  <th class="amount-column">
-                    <button type="button" class="sort-header sort-header-right" (click)="setViewingSort('invoiceTotal')">
-                      Tutar {{ getViewingSortIndicator('invoiceTotal') }}
-                    </button>
-                  </th>
-                  <th class="action-column">Islem</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr
-                  *ngFor="let item of paginatedViewingItems(); trackBy: trackByInvoice"
-                  [class.is-selected]="isViewingItemSelected(item)"
-                  [class.is-selection-disabled]="item.isPrinted || viewingBulkPrintLoading()"
-                  tabindex="0"
-                  (click)="toggleViewingRowSelection(item)"
-                  (keydown.enter)="toggleViewingRowSelection(item)"
-                  (keydown.space)="$event.preventDefault(); toggleViewingRowSelection(item)"
-                >
-                  <td class="select-column" (click)="$event.stopPropagation()">
-                    <input
-                      type="checkbox"
-                      [checked]="isViewingItemSelected(item)"
-                      [disabled]="item.isPrinted || viewingBulkPrintLoading()"
-                      (change)="toggleViewingItemSelection(item, $any($event.target).checked)"
-                      [attr.aria-label]="item.invoiceId + ' sec'"
-                    />
-                  </td>
-                  <td class="invoice-id-cell">
-                    <strong>{{ item.invoiceId }}</strong>
-                    <small>Doc: {{ item.documentId | slice: 0 : 8 }}</small>
-                    <small *ngIf="item.orderDocumentId">Sip: {{ item.orderDocumentId }}</small>
-                  </td>
-                  <td class="despatch-cell">
-                    <strong>{{ item.despatchId || '-' }}</strong>
-                  </td>
-                  <td class="customer-cell">
-                    <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
-                    <small>{{ item.customerTcknVkn || '-' }}</small>
-                  </td>
-                  <td class="date-cell">
-                    <strong>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</strong>
-                    <small>
-                      Kayit: {{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}
-                    </small>
-                  </td>
-                  <td class="type-cell">
-                    <strong>{{ item.invoiceTipType || item.invoiceType || '-' }}</strong>
-                    <small>{{ item.documentCurrencyCode || 'TRY' }} / {{ item.exchangeRate || 1 }}</small>
-                    <small>{{ item.isStandard ? 'Standart' : 'Ozel tasarim' }}</small>
-                  </td>
-                  <td>
-                    <div class="compact-statuses">
-                      <span
-                        class="status-pill"
-                        [class.status-pill-success]="item.isProcessed"
-                        [class.status-pill-neutral]="!item.isProcessed"
-                      >
-                        {{ item.isProcessed ? 'Islendi' : 'Bekliyor' }}
-                      </span>
-                      <span
-                        class="status-pill"
-                        [class.status-pill-success]="item.isPrinted"
-                        [class.status-pill-neutral]="!item.isPrinted"
-                      >
-                        {{ item.isPrinted ? 'Yazdirildi' : 'Yazdirilmadi' }}
-                      </span>
-                      <small class="status-code-line">
-                        {{ getViewingStatusText(item) }}
-                      </small>
-                      <small
-                        class="status-code-line"
-                        *ngIf="item.envelopeStatusCode || item.isSeen === true || item.isSeen === false"
-                      >
-                        Zarf {{ item.envelopeStatusCode || '-' }} / {{ item.isSeen ? 'Goruldu' : 'Gorulmedi' }}
-                      </small>
+            <div class="viewing-virtual-table-scroll">
+              <div
+                class="invoice-table viewing-table viewing-virtual-table"
+                role="table"
+                [attr.aria-rowcount]="filteredViewingCount()"
+              >
+                <div class="viewing-table-head" role="rowgroup">
+                  <div class="viewing-table-row viewing-table-header-row" role="row">
+                    <div class="viewing-table-cell select-column" role="columnheader">
+                      <input
+                        type="checkbox"
+                        [checked]="allVisibleViewingItemsSelected()"
+                        [disabled]="selectableViewingItems().length === 0 || viewingBulkPrintLoading()"
+                        (click)="$event.stopPropagation()"
+                        (change)="toggleAllVisibleViewingSelection($any($event.target).checked)"
+                        aria-label="Bu listedeki yazdirilmamis faturalar"
+                      />
                     </div>
-                  </td>
-                  <td class="amount-column">
-                    <strong>{{ item.invoiceTotal | number: '1.2-2' }} TL</strong>
-                    <small>KDV {{ item.taxTotal | number: '1.2-2' }}</small>
-                  </td>
-                  <td>
-                    <div class="table-actions">
-                      <button
-                        type="button"
-                        class="ghost-button compact-button invoice-action-button"
-                        title="Fatura detayini ac"
-                        (click)="$event.stopPropagation(); openViewingDetail(item)"
-                      >
-                        <i class="fa-solid fa-eye"></i>
-                        <span>Ac</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="primary-button compact-button invoice-action-button"
-                        *ngIf="canViewDetail()"
-                        title="PDF goruntule"
-                        (click)="$event.stopPropagation(); openViewingPdf(item)"
-                        [disabled]="viewingPdfLoading()"
-                      >
-                        <i class="fa-solid fa-file-pdf"></i>
-                        <span>PDF</span>
-                      </button>
-                      <button
-                        type="button"
-                        class="secondary-button compact-button invoice-action-button"
-                        *ngIf="canUpdatePrinted()"
-                        [title]="item.isPrinted ? 'Fatura yazdirildi' : 'Faturayi yazdir'"
-                        (click)="$event.stopPropagation(); printViewingInvoice(item)"
-                        [disabled]="
-                          item.isPrinted ||
-                          isPrintedStateUpdating(item.documentId) ||
-                          viewingPrintDocumentId() === item.documentId ||
-                          viewingBulkPrintLoading()
-                        "
-                      >
-                        <i
-                          class="fa-solid"
-                          [ngClass]="
-                            viewingPrintDocumentId() === item.documentId ||
-                            isPrintedStateUpdating(item.documentId)
-                              ? 'fa-circle-notch fa-spin'
-                              : item.isPrinted
-                                ? 'fa-check'
-                                : 'fa-print'
-                          "
-                        ></i>
-                        <span>
-                        {{
-                          viewingPrintDocumentId() === item.documentId ||
-                          isPrintedStateUpdating(item.documentId)
-                            ? '...'
-                            : item.isPrinted
-                              ? 'Yazildi'
-                              : 'Yazdir'
-                        }}
-                        </span>
+                    <div class="viewing-table-cell" role="columnheader">
+                      <button type="button" class="sort-header" (click)="setViewingSort('invoiceId')">
+                        Fatura No {{ getViewingSortIndicator('invoiceId') }}
                       </button>
                     </div>
-                  </td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
+                    <div class="viewing-table-cell" role="columnheader">
+                      <button type="button" class="sort-header" (click)="setViewingSort('despatchId')">
+                        Irsaliye {{ getViewingSortIndicator('despatchId') }}
+                      </button>
+                    </div>
+                    <div class="viewing-table-cell" role="columnheader">
+                      <button type="button" class="sort-header" (click)="setViewingSort('customerTitle')">
+                        Musteri {{ getViewingSortIndicator('customerTitle') }}
+                      </button>
+                    </div>
+                    <div class="viewing-table-cell" role="columnheader">
+                      <button type="button" class="sort-header" (click)="setViewingSort('invoiceDate')">
+                        Fatura Tarihi {{ getViewingSortIndicator('invoiceDate') }}
+                      </button>
+                    </div>
+                    <div class="viewing-table-cell" role="columnheader">
+                      <button type="button" class="sort-header" (click)="setViewingSort('invoiceType')">
+                        Tip {{ getViewingSortIndicator('invoiceType') }}
+                      </button>
+                    </div>
+                    <div class="viewing-table-cell" role="columnheader">
+                      <button type="button" class="sort-header" (click)="setViewingSort('status')">
+                        Durum {{ getViewingSortIndicator('status') }}
+                      </button>
+                    </div>
+                    <div class="viewing-table-cell amount-column" role="columnheader">
+                      <button
+                        type="button"
+                        class="sort-header sort-header-right"
+                        (click)="setViewingSort('invoiceTotal')"
+                      >
+                        Tutar {{ getViewingSortIndicator('invoiceTotal') }}
+                      </button>
+                    </div>
+                    <div class="viewing-table-cell action-column" role="columnheader">Islem</div>
+                  </div>
+                </div>
 
-          <div class="viewing-pagination-row" *ngIf="filteredViewingCount() > viewingPageSize()">
-            <span>{{ viewingPageStart() }}-{{ viewingPageEnd() }} / {{ filteredViewingCount() }} kayit</span>
-            <div class="candidate-strip">
-              <button
-                type="button"
-                class="ghost-button compact-button"
-                (click)="goToViewingPage(1)"
-                [disabled]="effectiveViewingPageNumber() <= 1"
-              >
-                Ilk
-              </button>
-              <button
-                type="button"
-                class="ghost-button compact-button"
-                (click)="goToViewingPage(effectiveViewingPageNumber() - 1)"
-                [disabled]="effectiveViewingPageNumber() <= 1"
-              >
-                Onceki
-              </button>
-              <span class="panel-badge">{{ effectiveViewingPageNumber() }} / {{ viewingPageCount() }}</span>
-              <button
-                type="button"
-                class="ghost-button compact-button"
-                (click)="goToViewingPage(effectiveViewingPageNumber() + 1)"
-                [disabled]="effectiveViewingPageNumber() >= viewingPageCount()"
-              >
-                Sonraki
-              </button>
-              <button
-                type="button"
-                class="ghost-button compact-button"
-                (click)="goToViewingPage(viewingPageCount())"
-                [disabled]="effectiveViewingPageNumber() >= viewingPageCount()"
-              >
-                Son
-              </button>
+                <div
+                  #viewingVirtualViewport
+                  class="viewing-virtual-viewport"
+                  role="rowgroup"
+                  (scroll)="syncViewingVirtualScroll($event)"
+                >
+                  <div
+                    class="viewing-virtual-spacer"
+                    [style.height.px]="viewingVirtualTopPadding()"
+                    aria-hidden="true"
+                  ></div>
+                  <div
+                    class="viewing-table-row viewing-table-body-row"
+                    role="row"
+                    *ngFor="let item of visibleVirtualViewingItems(); trackBy: trackByInvoice"
+                    [class.is-selected]="isViewingItemSelected(item)"
+                    [class.is-selection-disabled]="item.isPrinted || viewingBulkPrintLoading()"
+                    tabindex="0"
+                    (click)="toggleViewingRowSelection(item)"
+                    (keydown.enter)="toggleViewingRowSelection(item)"
+                    (keydown.space)="$event.preventDefault(); toggleViewingRowSelection(item)"
+                  >
+                    <div class="viewing-table-cell select-column" role="cell" (click)="$event.stopPropagation()">
+                      <input
+                        type="checkbox"
+                        [checked]="isViewingItemSelected(item)"
+                        [disabled]="item.isPrinted || viewingBulkPrintLoading()"
+                        (change)="toggleViewingItemSelection(item, $any($event.target).checked)"
+                        [attr.aria-label]="item.invoiceId + ' sec'"
+                      />
+                    </div>
+                    <div class="viewing-table-cell invoice-id-cell" role="cell">
+                      <strong>{{ item.invoiceId }}</strong>
+                      <small>Doc: {{ item.documentId | slice: 0 : 8 }}</small>
+                      <small *ngIf="item.orderDocumentId">Sip: {{ item.orderDocumentId }}</small>
+                    </div>
+                    <div class="viewing-table-cell despatch-cell" role="cell">
+                      <strong>{{ item.despatchId || '-' }}</strong>
+                    </div>
+                    <div class="viewing-table-cell customer-cell" role="cell">
+                      <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
+                      <small>{{ item.customerTcknVkn || '-' }}</small>
+                    </div>
+                    <div class="viewing-table-cell date-cell" role="cell">
+                      <strong>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</strong>
+                      <small>
+                        Kayit: {{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}
+                      </small>
+                    </div>
+                    <div class="viewing-table-cell type-cell" role="cell">
+                      <strong>{{ item.invoiceTipType || item.invoiceType || '-' }}</strong>
+                      <small>{{ item.documentCurrencyCode || 'TRY' }} / {{ item.exchangeRate || 1 }}</small>
+                      <small>{{ item.isStandard ? 'Standart' : 'Ozel tasarim' }}</small>
+                    </div>
+                    <div class="viewing-table-cell status-cell" role="cell">
+                      <div class="compact-statuses">
+                        <span
+                          class="status-pill"
+                          [class.status-pill-success]="item.isProcessed"
+                          [class.status-pill-neutral]="!item.isProcessed"
+                        >
+                          {{ item.isProcessed ? 'Islendi' : 'Bekliyor' }}
+                        </span>
+                        <span
+                          class="status-pill"
+                          [class.status-pill-success]="item.isPrinted"
+                          [class.status-pill-neutral]="!item.isPrinted"
+                        >
+                          {{ item.isPrinted ? 'Yazdirildi' : 'Yazdirilmadi' }}
+                        </span>
+                        <small class="status-code-line">
+                          {{ getViewingStatusText(item) }}
+                        </small>
+                        <small
+                          class="status-code-line"
+                          *ngIf="item.envelopeStatusCode || item.isSeen === true || item.isSeen === false"
+                        >
+                          Zarf {{ item.envelopeStatusCode || '-' }} / {{ item.isSeen ? 'Goruldu' : 'Gorulmedi' }}
+                        </small>
+                      </div>
+                    </div>
+                    <div class="viewing-table-cell amount-column" role="cell">
+                      <strong>{{ item.invoiceTotal | number: '1.2-2' }} TL</strong>
+                      <small>KDV {{ item.taxTotal | number: '1.2-2' }}</small>
+                    </div>
+                    <div class="viewing-table-cell action-cell" role="cell">
+                      <div class="table-actions">
+                        <button
+                          type="button"
+                          class="ghost-button compact-button invoice-action-button"
+                          title="Fatura detayini ac"
+                          (click)="$event.stopPropagation(); openViewingDetail(item)"
+                        >
+                          <i class="fa-solid fa-eye"></i>
+                          <span>Ac</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="primary-button compact-button invoice-action-button"
+                          *ngIf="canViewDetail()"
+                          title="PDF goruntule"
+                          (click)="$event.stopPropagation(); openViewingPdf(item)"
+                          [disabled]="viewingPdfLoading()"
+                        >
+                          <i class="fa-solid fa-file-pdf"></i>
+                          <span>PDF</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="secondary-button compact-button invoice-action-button"
+                          *ngIf="canUpdatePrinted()"
+                          [title]="item.isPrinted ? 'Fatura yazdirildi' : 'Faturayi yazdir'"
+                          (click)="$event.stopPropagation(); printViewingInvoice(item)"
+                          [disabled]="
+                            item.isPrinted ||
+                            isPrintedStateUpdating(item.documentId) ||
+                            viewingPrintDocumentId() === item.documentId ||
+                            viewingBulkPrintLoading()
+                          "
+                        >
+                          <i
+                            class="fa-solid"
+                            [ngClass]="
+                              viewingPrintDocumentId() === item.documentId ||
+                              isPrintedStateUpdating(item.documentId)
+                                ? 'fa-circle-notch fa-spin'
+                                : item.isPrinted
+                                  ? 'fa-check'
+                                  : 'fa-print'
+                            "
+                          ></i>
+                          <span>
+                            {{
+                              viewingPrintDocumentId() === item.documentId ||
+                              isPrintedStateUpdating(item.documentId)
+                                ? '...'
+                                : item.isPrinted
+                                  ? 'Yazildi'
+                                  : 'Yazdir'
+                            }}
+                          </span>
+                        </button>
+                      </div>
+                    </div>
+                  </div>
+                  <div
+                    class="viewing-virtual-spacer"
+                    [style.height.px]="viewingVirtualBottomPadding()"
+                    aria-hidden="true"
+                  ></div>
+                </div>
+              </div>
             </div>
           </div>
 
