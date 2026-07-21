@@ -21,10 +21,13 @@ import type {
   NotSoldProductReportItemDto,
   ProducerStockOnHandHttpRequest,
   ProductWarehouseStockDto,
+  ProductWarehouseStockByPathHttpRequest,
   ProductWarehouseStockHttpRequest,
   ProfitabilityReportHttpRequest,
   ProfitabilityReportItemDto,
   PromotionBranchPerformanceItemDto,
+  PromotionBulletinOptionDto,
+  PromotionBulletinOptionHttpRequest,
   PromotionBulletinListHttpRequest,
   PromotionBulletinListItemDto,
   PromotionPerformanceHttpRequest,
@@ -36,6 +39,8 @@ import type {
   SalesAnalysisDateRangeHttpRequest,
   SalesAnalysisFoodCheckTotalKind,
   StockCardDetailDto,
+  StockCategoryOptionDto,
+  StockCategoryOptionHttpRequest,
   StockMovementReportHttpRequest,
   StockMovementReportItemDto,
   StockOnHandReportDto,
@@ -220,6 +225,15 @@ export class RaporIslemleriService extends BaseApiService {
     );
   }
 
+  getStockCategoryOptions(
+    request: StockCategoryOptionHttpRequest
+  ): Observable<StockCategoryOptionDto[]> {
+    return this.getStockReport<StockCategoryOptionDto[], StockCategoryOptionHttpRequest>(
+      'kategori-secenekleri',
+      request
+    );
+  }
+
   getProducerStockOnHandReport(
     request: ProducerStockOnHandHttpRequest
   ): Observable<StockOnHandReportDto> {
@@ -247,11 +261,30 @@ export class RaporIslemleriService extends BaseApiService {
     );
   }
 
+  getProductWarehouseStockByPath(
+    stockCodeOrBarcode: string,
+    request: ProductWarehouseStockByPathHttpRequest
+  ): Observable<ProductWarehouseStockDto[]> {
+    return this.getStockReport<ProductWarehouseStockDto[], ProductWarehouseStockByPathHttpRequest>(
+      `urun/${encodeURIComponent(stockCodeOrBarcode)}/depo-durum`,
+      request
+    );
+  }
+
   getReportStockCards(
     request: ReportStockCardDetailHttpRequest
   ): Observable<StockCardDetailDto[]> {
     return this.getStockReport<StockCardDetailDto[], ReportStockCardDetailHttpRequest>(
       'stok-kartlari',
+      request
+    );
+  }
+
+  searchReportStockCards(
+    request: ReportStockCardDetailHttpRequest
+  ): Observable<StockCardDetailDto[]> {
+    return this.getStockReport<StockCardDetailDto[], ReportStockCardDetailHttpRequest>(
+      'urun-ara',
       request
     );
   }
@@ -351,6 +384,15 @@ export class RaporIslemleriService extends BaseApiService {
   ): Observable<PromotionBulletinListItemDto[]> {
     return this.getPromotionReport<PromotionBulletinListItemDto[], PromotionBulletinListHttpRequest>(
       'bultenler',
+      request
+    );
+  }
+
+  getPromotionBulletinOptions(
+    request: PromotionBulletinOptionHttpRequest
+  ): Observable<PromotionBulletinOptionDto[]> {
+    return this.getPromotionReport<PromotionBulletinOptionDto[], PromotionBulletinOptionHttpRequest>(
+      'bulten-secenekleri',
       request
     );
   }

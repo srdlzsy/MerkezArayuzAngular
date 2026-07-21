@@ -7,6 +7,12 @@
         <p>{{ selectedDefinition().description }}</p>
       </div>
 
+      <div class="workspace-summary">
+        <span>Aktif Rapor</span>
+        <strong>{{ selectedDefinition().label }}</strong>
+        <small>{{ selectedDateLabel() }} · {{ scopeLabel() }}</small>
+      </div>
+
       <div class="report-tabs" aria-label="Promosyon raporlari">
         <button
           *ngFor="let report of reportDefinitions; trackBy: trackByReport"
@@ -105,11 +111,21 @@
           <div class="input-with-action">
             <input
               type="search"
+              list="promotion-bulletin-options"
               placeholder="Opsiyonel kod"
               [value]="promotionCode()"
               (input)="updatePromotionCode($any($event.target).value ?? '')"
               (keyup.enter)="loadRows()"
             />
+            <button
+              type="button"
+              class="icon-action"
+              title="Promosyon listesini yenile"
+              [disabled]="isBulletinOptionsLoading()"
+              (click)="loadBulletinOptions()"
+            >
+              <i class="fa-solid" [ngClass]="isBulletinOptionsLoading() ? 'fa-circle-notch fa-spin' : 'fa-rotate'"></i>
+            </button>
             <button
               type="button"
               class="icon-action"
@@ -120,6 +136,14 @@
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
+          <datalist id="promotion-bulletin-options">
+            <option
+              *ngFor="let option of bulletinOptions(); trackBy: trackByBulletinOption"
+              [value]="option.promotionCode || ''"
+            >
+              {{ formatPromotionOption(option) }}
+            </option>
+          </datalist>
         </label>
 
         <label class="field">
@@ -169,6 +193,7 @@
         <span>{{ selectedDefinition().label }}</span>
         <span>{{ selectedDateLabel() }}</span>
         <span>{{ scopeLabel() }}</span>
+        <span *ngIf="bulletinOptionsError()">{{ bulletinOptionsError() }}</span>
         <code>{{ requestPreview() }}</code>
       </div>
     </section>

@@ -180,6 +180,12 @@ export interface CategoryStockOnHandHttpRequest
   categoryCode: string;
 }
 
+export interface StockCategoryOptionHttpRequest {
+  search?: string | null;
+  onlyActive?: boolean | null;
+  take?: number | null;
+}
+
 export interface ProducerStockOnHandHttpRequest
   extends Omit<StockOnHandReportHttpRequest, 'producerCode'> {
   producerCode: string;
@@ -192,6 +198,9 @@ export interface ProductWarehouseStockHttpRequest {
   onlyWithStock?: boolean | null;
   take?: number | null;
 }
+
+export interface ProductWarehouseStockByPathHttpRequest
+  extends Omit<ProductWarehouseStockHttpRequest, 'stockCodeOrBarcode'> {}
 
 export interface ReportStockCardDetailHttpRequest {
   warehouseNo?: number | null;
@@ -317,6 +326,13 @@ export interface ProductWarehouseStockDto {
   salesPrice?: number | null;
   salesValue?: number | null;
   lastMovementDate?: string | null;
+}
+
+export interface StockCategoryOptionDto {
+  categoryCode?: string | null;
+  categoryName?: string | null;
+  productCount?: number | null;
+  isActive?: boolean | null;
 }
 
 export interface WarehouseMissingStockDto {
@@ -468,16 +484,30 @@ export interface PromotionBulletinListHttpRequest {
   take?: number | null;
 }
 
+export interface PromotionBulletinOptionHttpRequest extends PromotionBulletinListHttpRequest {}
+
 export interface PromotionPerformanceHttpRequest {
   warehouseNo?: number | null;
-  startDate: string;
-  endDate: string;
+  startDate?: string | null;
+  endDate?: string | null;
   promotionCode?: string | null;
   search?: string | null;
   take?: number | null;
 }
 
 export interface PromotionBulletinListItemDto {
+  promotionCode?: string | null;
+  promotionName?: string | null;
+  description?: string | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  isActive?: boolean | null;
+  branchCount?: number | null;
+  warehouseNo?: number | null;
+  warehouseName?: string | null;
+}
+
+export interface PromotionBulletinOptionDto {
   promotionCode?: string | null;
   promotionName?: string | null;
   description?: string | null;

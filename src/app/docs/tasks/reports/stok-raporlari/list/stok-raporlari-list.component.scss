@@ -24,7 +24,7 @@
 
 .workspace-head {
   display: grid;
-  grid-template-columns: minmax(230px, 0.36fr) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 0.32fr) minmax(160px, 0.18fr) minmax(0, 1fr);
   gap: 0.62rem;
   align-items: start;
 }
@@ -59,7 +59,8 @@ p {
 .request-line span,
 .table-context span,
 .scope-readonly span,
-.toggle-field span {
+.toggle-field span,
+.workspace-summary span {
   color: var(--report-muted);
   font-size: 0.6rem;
   font-weight: 900;
@@ -67,11 +68,40 @@ p {
   text-transform: uppercase;
 }
 
+.workspace-summary {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.workspace-summary strong,
+.workspace-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-summary strong {
+  color: var(--report-ink);
+  font-size: 0.88rem;
+}
+
+.workspace-summary small {
+  color: var(--report-muted);
+  font-size: 0.72rem;
+}
+
 .report-tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(126px, 1fr));
   gap: 0.34rem;
-  justify-content: flex-end;
+  max-height: 10.6rem;
+  overflow: auto;
+  padding-right: 0.12rem;
 }
 
 .report-tab,
@@ -92,7 +122,7 @@ p {
 .report-tab {
   display: grid;
   gap: 0.04rem;
-  min-width: 128px;
+  min-width: 0;
   text-align: left;
 }
 
@@ -119,7 +149,7 @@ p {
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(120px, 0.13fr)) minmax(250px, 0.38fr) repeat(4, minmax(110px, 0.14fr)) auto;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
   gap: 0.42rem;
   align-items: end;
 }
@@ -163,7 +193,8 @@ p {
 .toggle-field,
 .task-action,
 .request-line,
-.table-context {
+.table-context,
+.input-with-action {
   display: flex;
   align-items: center;
 }
@@ -193,6 +224,51 @@ p {
   font-size: 0.76rem;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.category-field {
+  min-width: min(100%, 230px);
+}
+
+.input-with-action {
+  min-width: 0;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.input-with-action:focus-within {
+  border-color: var(--report-accent);
+  outline: 2px solid rgba(15, 118, 110, 0.15);
+}
+
+.input-with-action input {
+  border: 0;
+  outline: 0;
+}
+
+.icon-action {
+  display: inline-grid;
+  flex: 0 0 auto;
+  width: 1.9rem;
+  height: 1.9rem;
+  margin-right: 0.12rem;
+  place-items: center;
+  border: 0;
+  border-radius: 6px;
+  color: var(--report-muted);
+  background: transparent;
+  cursor: pointer;
+}
+
+.icon-action:hover {
+  color: var(--report-ink);
+  background: var(--report-soft);
+}
+
+.icon-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .toggle-field {
@@ -352,10 +428,6 @@ p {
   .workspace-head,
   .filters-grid {
     grid-template-columns: 1fr;
-  }
-
-  .report-tabs {
-    justify-content: flex-start;
   }
 
   .compact-field,

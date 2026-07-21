@@ -4,6 +4,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, finalize, map } from 'rxjs';
 import type {
   PromotionBranchPerformanceItemDto,
+  PromotionBulletinOptionDto,
+  PromotionBulletinOptionHttpRequest,
   PromotionBulletinListHttpRequest,
   PromotionBulletinListItemDto,
   PromotionPerformanceHttpRequest,
@@ -120,6 +122,18 @@ function formatPromotion(row: {
   }
 
   return name || code || '-';
+}
+
+function formatPromotionOption(option: PromotionBulletinOptionDto): string {
+  const promotion = formatPromotion(option);
+  const dateRange = [formatDateOnly(option.startDate), formatDateOnly(option.endDate)]
+    .filter((value) => value !== '-')
+    .join(' - ');
+  const branchCount = Number.isFinite(option.branchCount)
+    ? ` - ${formatInteger(option.branchCount)} sube`
+    : '';
+
+  return dateRange ? `${promotion} / ${dateRange}${branchCount}` : `${promotion}${branchCount}`;
 }
 
 function formatWarehouse(row: {
@@ -249,6 +263,9 @@ export class PromosyonRaporlariListComponent implements OnInit {
   protected readonly take = signal(250);
   protected readonly rows = signal<readonly object[]>([]);
   protected readonly metrics = signal<readonly PromotionReportMetric[]>([]);
+  protected readonly bulletinOptions = signal<readonly PromotionBulletinOptionDto[]>([]);
+  protected readonly isBulletinOptionsLoading = signal(false);
+  protected readonly bulletinOptionsError = signal<string | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastLoadedAt = signal<string | null>(null);
@@ -258,6 +275,7 @@ export class PromosyonRaporlariListComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly raporIslemleriService = inject(RaporIslemleriService);
   private activeRequestId = 0;
+  private activeBulletinOptionsRequestId = 0;
 
   protected readonly selectedDefinition = computed(
     () =>
@@ -289,7 +307,7 @@ export class PromosyonRaporlariListComponent implements OnInit {
   });
   protected readonly selectedDateLabel = computed(() =>
     this.usesDateRange()
-      ? `${this.startDate() || 'YYYY-MM-DD'} - ${this.endDate() || 'YYYY-MM-DD'}`
+      ? this.formatPerformanceDateLabel()
       : this.activeOn() || 'YYYY-MM-DD'
   );
   protected readonly totalCount = computed(() => this.rows().length);
@@ -308,6 +326,7 @@ export class PromosyonRaporlariListComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.loadBulletinOptions();
     this.loadRows();
   }
 
@@ -320,6 +339,11 @@ export class PromosyonRaporlariListComponent implements OnInit {
     this.rows.set([]);
     this.metrics.set([]);
     this.resultNote.set(null);
+
+    if (this.usesDateRange()) {
+      this.loadBulletinOptions();
+    }
+
     this.loadRows();
   }
 
@@ -340,6 +364,7 @@ export class PromosyonRaporlariListComponent implements OnInit {
 
     this.promotionCode.set(promotionCode);
     this.selectedReport.set('performans');
+    this.loadBulletinOptions();
     this.loadRows();
   }
 
@@ -378,6 +403,41 @@ export class PromosyonRaporlariListComponent implements OnInit {
 
   protected updateTake(value: string | number): void {
     this.take.set(this.toLimitedNumber(value, 1, 1000, 250));
+  }
+
+  protected loadBulletinOptions(): void {
+    const requestId = ++this.activeBulletinOptionsRequestId;
+
+    this.isBulletinOptionsLoading.set(true);
+    this.bulletinOptionsError.set(null);
+
+    this.raporIslemleriService
+      .getPromotionBulletinOptions(this.buildBulletinOptionRequest())
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.activeBulletinOptionsRequestId) {
+            this.isBulletinOptionsLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (options: PromotionBulletinOptionDto[]) => {
+          if (requestId !== this.activeBulletinOptionsRequestId) {
+            return;
+          }
+
+          this.bulletinOptions.set(options ?? []);
+        },
+        error: (error: unknown) => {
+          if (requestId !== this.activeBulletinOptionsRequestId) {
+            return;
+          }
+
+          this.bulletinOptions.set([]);
+          this.bulletinOptionsError.set(getErrorMessage(error, 'Promosyon secenekleri yuklenemedi.'));
+        }
+      });
   }
 
   protected loadRows(): void {
@@ -446,6 +506,11 @@ export class PromosyonRaporlariListComponent implements OnInit {
     report.key;
   protected readonly trackByMetric = (_index: number, metric: PromotionReportMetric): string =>
     metric.label;
+  protected readonly trackByBulletinOption = (
+    _index: number,
+    option: PromotionBulletinOptionDto
+  ): string => option.promotionCode ?? option.promotionName ?? String(_index);
+  protected readonly formatPromotionOption = formatPromotionOption;
 
   private fetchSelectedReport(): Observable<PromotionReportLoadResult> {
     switch (this.selectedReport()) {
@@ -553,11 +618,21 @@ export class PromosyonRaporlariListComponent implements OnInit {
     };
   }
 
+  private buildBulletinOptionRequest(): PromotionBulletinOptionHttpRequest {
+    return {
+      warehouseNo: this.resolveWarehouseNo(),
+      activeOn: this.activeOn() || null,
+      onlyActive: this.onlyActive(),
+      search: this.searchText().trim() || this.promotionCode().trim() || null,
+      take: 75
+    };
+  }
+
   private buildPerformanceRequest(): PromotionPerformanceHttpRequest {
     return {
       warehouseNo: this.resolveWarehouseNo(),
-      startDate: this.startDate(),
-      endDate: this.endDate(),
+      startDate: this.startDate().trim() || null,
+      endDate: this.endDate().trim() || null,
       promotionCode: this.promotionCode().trim() || null,
       search: this.searchText().trim() || null,
       take: this.take()
@@ -571,12 +646,7 @@ export class PromosyonRaporlariListComponent implements OnInit {
     }
 
     if (this.usesDateRange()) {
-      if (!this.startDate().trim() || !this.endDate().trim()) {
-        this.failValidation('Rapor icin baslangic ve bitis tarihi secin.');
-        return false;
-      }
-
-      if (this.startDate().trim() > this.endDate().trim()) {
+      if (this.startDate().trim() && this.endDate().trim() && this.startDate().trim() > this.endDate().trim()) {
         this.failValidation('Baslangic tarihi bitis tarihinden buyuk olamaz.');
         return false;
       }
@@ -613,6 +683,17 @@ export class PromosyonRaporlariListComponent implements OnInit {
 
   private getManualWarehouseNo(): number | null {
     return toPositiveWarehouseNo(this.manualWarehouseNo());
+  }
+
+  private formatPerformanceDateLabel(): string {
+    const startDate = this.startDate().trim();
+    const endDate = this.endDate().trim();
+
+    if (!startDate && !endDate) {
+      return 'Varsayilan aralik';
+    }
+
+    return `${startDate || 'endDate - 30 gun'} - ${endDate || 'Bugun'}`;
   }
 
   private toLimitedNumber(

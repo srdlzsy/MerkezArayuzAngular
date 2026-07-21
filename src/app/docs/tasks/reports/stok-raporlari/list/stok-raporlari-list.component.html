@@ -7,6 +7,12 @@
         <p>{{ selectedDefinition().description }}</p>
       </div>
 
+      <div class="workspace-summary">
+        <span>Aktif Rapor</span>
+        <strong>{{ selectedDefinition().label }}</strong>
+        <small>{{ selectedDateLabel() }} · {{ scopeLabel() }}</small>
+      </div>
+
       <div class="report-tabs" aria-label="Stok raporlari">
         <button
           *ngFor="let report of reportDefinitions; trackBy: trackByReport"
@@ -134,7 +140,47 @@
           />
         </label>
 
-        <label class="field" *ngIf="primaryLabel()">
+        <label class="field category-field" *ngIf="usesCategoryOptions()">
+          <span>Kategori</span>
+          <div class="input-with-action">
+            <input
+              type="search"
+              list="stock-category-options"
+              placeholder="Kategori kodu veya adi"
+              [value]="categoryCode()"
+              (input)="updateCategoryCode($any($event.target).value ?? '')"
+              (keyup.enter)="loadRows()"
+            />
+            <button
+              type="button"
+              class="icon-action"
+              title="Kategori listesini yenile"
+              [disabled]="isCategoryOptionsLoading()"
+              (click)="loadCategoryOptions()"
+            >
+              <i class="fa-solid" [ngClass]="isCategoryOptionsLoading() ? 'fa-circle-notch fa-spin' : 'fa-rotate'"></i>
+            </button>
+            <button
+              type="button"
+              class="icon-action"
+              title="Kategori filtresini temizle"
+              *ngIf="categoryCode()"
+              (click)="clearCategoryCode()"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+          <datalist id="stock-category-options">
+            <option
+              *ngFor="let option of categoryOptions(); trackBy: trackByCategoryOption"
+              [value]="option.categoryCode || ''"
+            >
+              {{ formatCategoryOption(option) }}
+            </option>
+          </datalist>
+        </label>
+
+        <label class="field" *ngIf="usesPrimaryTextInput()">
           <span>{{ primaryLabel() }}</span>
           <input
             type="search"
@@ -230,6 +276,7 @@
         <span>{{ selectedDefinition().label }}</span>
         <span>{{ selectedDateLabel() }}</span>
         <span>{{ scopeLabel() }}</span>
+        <span *ngIf="categoryOptionsError()">{{ categoryOptionsError() }}</span>
         <code>{{ requestPreview() }}</code>
       </div>
     </section>

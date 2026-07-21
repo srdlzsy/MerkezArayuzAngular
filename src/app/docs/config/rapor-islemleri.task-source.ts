@@ -67,8 +67,9 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       highlights: [
         'Tum endpointler query parametreleriyle calisir; body gonderilmez',
         'Tek depo raporlarinda Admin/Administrator depo secmelidir; normal kullanicida backend JWT deposunu uygular',
+        'Kategori filtreleri kategori-secenekleri endpointinden dropdown olarak beslenir',
         'Son stok ve envanter degeri StockOnHandReportDto response modelini kullanir',
-        'Hareket, satis, iade, satmayan urun, karlilik ve sayim raporlari ayni ekranda sekmelerle acilir',
+        'Urun depo durumu icin query endpointi ve urun/{stockCodeOrBarcode}/depo-durum path kisayolu desteklenir',
         'Take tum stok raporlarinda 1-1000 araliginda tutulur'
       ],
       listTitle: 'Stok Rapor Endpointleri',
@@ -85,8 +86,23 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/kategori-secenekleri?search=MEYVE&take=50',
+              description: 'Kategori dropdown seceneklerini urun sayilariyla getirir'
+            },
+            {
+              method: 'GET',
               path: '/api/rapor-islemleri/stok-raporlari/urun-depo-durum?stockCodeOrBarcode=015550&reportDate=2026-07-21',
               description: 'Tek urunun depo/sube bazli stok durumunu getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/urun/8690000000000/depo-durum?onlyWithStock=true',
+              description: 'Barkod veya stok kodu path uzerinden tek urunun depo durumunu getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/urun-ara?stockName=ELMA&take=50',
+              description: 'Stok kartlari icin kolay okunur arama aliasini kullanir'
             },
             {
               method: 'GET',
@@ -136,10 +152,11 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       baseRouteOrFile: '/api/rapor-islemleri/promosyon-raporlari',
       highlights: [
         'Bulten listesi activeOn ve onlyActive filtreleriyle calisir',
+        'Performans filtrelerindeki promosyon dropdownu bulten-secenekleri endpointinden beslenir',
         'Performans ve satis-marj etkisi PromotionPerformanceHttpRequest query modelini kullanir',
+        'Performans startDate ve endDate alanlari opsiyoneldir; backend bos tarihleri varsayilan araliga tamamlar',
         'Sube kirilimi performans/sube endpointinden okunur',
-        'Bulten tanim CRUD islemleri bu ekranda yoktur; ekran salt okunurdur',
-        'Admin/Administrator warehouseNo bos birakinca tum subeler okunabilir'
+        'Bulten tanim CRUD islemleri bu ekranda yoktur; ekran salt okunurdur'
       ],
       listTitle: 'Promosyon Rapor Endpointleri',
       items: [
@@ -155,8 +172,18 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/rapor-islemleri/promosyon-raporlari/bulten-secenekleri?search=12&take=50',
+              description: 'Performans filtresi icin promosyon/bulten seceneklerini getirir'
+            },
+            {
+              method: 'GET',
               path: '/api/rapor-islemleri/promosyon-raporlari/performans?startDate=2026-07-01&endDate=2026-07-21&warehouseNo=110&take=250',
               description: 'Promosyon bazli kullanim, satis, indirim ve marj ozetini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/promosyon-raporlari/performans?promotionCode=1234',
+              description: 'Tek promosyon performansini backend varsayilan tarih araligiyla getirir'
             },
             {
               method: 'GET',

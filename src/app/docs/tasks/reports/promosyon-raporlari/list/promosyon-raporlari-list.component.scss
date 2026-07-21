@@ -24,7 +24,7 @@
 
 .workspace-head {
   display: grid;
-  grid-template-columns: minmax(230px, 0.38fr) minmax(0, 1fr);
+  grid-template-columns: minmax(220px, 0.34fr) minmax(160px, 0.2fr) minmax(0, 1fr);
   gap: 0.62rem;
   align-items: start;
 }
@@ -59,7 +59,8 @@ p {
 .request-line span,
 .table-context span,
 .scope-readonly span,
-.toggle-field span {
+.toggle-field span,
+.workspace-summary span {
   color: var(--promo-muted);
   font-size: 0.6rem;
   font-weight: 900;
@@ -67,11 +68,37 @@ p {
   text-transform: uppercase;
 }
 
+.workspace-summary {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid var(--promo-border);
+  border-radius: 8px;
+  background: var(--promo-soft);
+}
+
+.workspace-summary strong,
+.workspace-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-summary strong {
+  color: var(--promo-ink);
+  font-size: 0.88rem;
+}
+
+.workspace-summary small {
+  color: var(--promo-muted);
+  font-size: 0.72rem;
+}
+
 .report-tabs {
-  display: flex;
-  flex-wrap: wrap;
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 0.34rem;
-  justify-content: flex-end;
 }
 
 .report-tab,
@@ -92,7 +119,7 @@ p {
 .report-tab {
   display: grid;
   gap: 0.04rem;
-  min-width: 132px;
+  min-width: 0;
   text-align: left;
 }
 
@@ -114,7 +141,7 @@ p {
 
 .filters-grid {
   display: grid;
-  grid-template-columns: repeat(2, minmax(120px, 0.14fr)) minmax(245px, 0.32fr) minmax(150px, 0.2fr) minmax(220px, 0.28fr) auto minmax(84px, 0.1fr) auto;
+  grid-template-columns: repeat(auto-fit, minmax(142px, 1fr));
   gap: 0.42rem;
   align-items: end;
 }
@@ -152,7 +179,7 @@ p {
 }
 
 .promotion-code-field {
-  min-width: 180px;
+  min-width: min(100%, 230px);
 }
 
 .scope-switch,
@@ -226,6 +253,11 @@ p {
 .icon-action:hover {
   color: var(--promo-ink);
   background: var(--promo-soft);
+}
+
+.icon-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.62;
 }
 
 .toggle-field {
@@ -385,10 +417,6 @@ p {
   .workspace-head,
   .filters-grid {
     grid-template-columns: 1fr;
-  }
-
-  .report-tabs {
-    justify-content: flex-start;
   }
 
   .compact-field,

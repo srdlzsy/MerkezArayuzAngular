@@ -21,13 +21,15 @@ import type {
   NotSoldProductReportItemDto,
   ProducerStockOnHandHttpRequest,
   ProductWarehouseStockDto,
-  ProductWarehouseStockHttpRequest,
+  ProductWarehouseStockByPathHttpRequest,
   ProfitabilityReportHttpRequest,
   ProfitabilityReportItemDto,
   ReportStockCardDetailHttpRequest,
   ReturnBranchReportHttpRequest,
   ReturnBranchReportItemDto,
   StockCardDetailDto,
+  StockCategoryOptionDto,
+  StockCategoryOptionHttpRequest,
   StockMovementReportHttpRequest,
   StockMovementReportItemDto,
   StockOnHandReportDto,
@@ -203,6 +205,18 @@ function formatStock(row: { stockCode?: string | null; stockName?: string | null
   }
 
   return name || code || '-';
+}
+
+function formatCategoryOption(option: StockCategoryOptionDto): string {
+  const name = option.categoryName?.trim() || '';
+  const code = option.categoryCode?.trim() || '';
+  const count = Number.isFinite(option.productCount) ? ` - ${formatInteger(option.productCount)} urun` : '';
+
+  if (name && code) {
+    return `${name} (${code})${count}`;
+  }
+
+  return `${name || code || 'Kategori'}${count}`;
 }
 
 function sumBy<Row>(rows: readonly Row[], selector: (row: Row) => unknown): number {
@@ -591,6 +605,7 @@ export class StokRaporlariListComponent implements OnInit {
   protected readonly sourceWarehouseNo = signal('');
   protected readonly targetWarehouseNo = signal('');
   protected readonly primaryCode = signal('');
+  protected readonly categoryCode = signal('');
   protected readonly searchText = signal('');
   protected readonly modelCode = signal('');
   protected readonly filterType = signal<(typeof FILTER_TYPES)[number]['value']>('stock');
@@ -600,6 +615,9 @@ export class StokRaporlariListComponent implements OnInit {
   protected readonly take = signal(250);
   protected readonly rows = signal<readonly object[]>([]);
   protected readonly metrics = signal<readonly StockReportMetric[]>([]);
+  protected readonly categoryOptions = signal<readonly StockCategoryOptionDto[]>([]);
+  protected readonly isCategoryOptionsLoading = signal(false);
+  protected readonly categoryOptionsError = signal<string | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastLoadedAt = signal<string | null>(null);
@@ -609,6 +627,7 @@ export class StokRaporlariListComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly raporIslemleriService = inject(RaporIslemleriService);
   private activeRequestId = 0;
+  private activeCategoryOptionsRequestId = 0;
 
   protected readonly selectedDefinition = computed(
     () =>
@@ -633,6 +652,12 @@ export class StokRaporlariListComponent implements OnInit {
   protected readonly usesProfitScope = computed(() => this.selectedReport() === 'karlilik');
   protected readonly usesMissingWarehouseFilters = computed(
     () => this.selectedReport() === 'depoda-var-subede-yok'
+  );
+  protected readonly usesCategoryOptions = computed(() =>
+    ['son-stok', 'kategori-son-stok', 'envanter-degeri'].includes(this.selectedReport())
+  );
+  protected readonly usesPrimaryTextInput = computed(
+    () => Boolean(this.primaryLabel()) && this.selectedReport() !== 'kategori-son-stok'
   );
   protected readonly primaryLabel = computed(() => this.selectedDefinition().primaryLabel ?? '');
   protected readonly primaryPlaceholder = computed(
@@ -681,10 +706,12 @@ export class StokRaporlariListComponent implements OnInit {
     }
 
     const queryText = query.toString();
-    return queryText ? `${this.selectedDefinition().endpoint}?${queryText}` : this.selectedDefinition().endpoint;
+    const endpoint = this.getRequestPreviewEndpoint();
+    return queryText ? `${endpoint}?${queryText}` : endpoint;
   });
 
   ngOnInit(): void {
+    this.loadCategoryOptions();
     this.loadRows();
   }
 
@@ -699,9 +726,18 @@ export class StokRaporlariListComponent implements OnInit {
       this.scope.set('current');
     }
 
+    if (reportKey === 'kategori-son-stok' && !this.primaryCode().trim() && this.categoryCode().trim()) {
+      this.primaryCode.set(this.categoryCode().trim());
+    }
+
     this.rows.set([]);
     this.metrics.set([]);
     this.resultNote.set(null);
+
+    if (this.usesCategoryOptions()) {
+      this.loadCategoryOptions();
+    }
+
     this.loadRows();
   }
 
@@ -747,6 +783,28 @@ export class StokRaporlariListComponent implements OnInit {
 
   protected updatePrimaryCode(value: string): void {
     this.primaryCode.set(value);
+
+    if (this.selectedReport() === 'kategori-son-stok') {
+      this.categoryCode.set(value);
+    }
+  }
+
+  protected updateCategoryCode(value: string): void {
+    this.categoryCode.set(value);
+
+    if (this.selectedReport() === 'kategori-son-stok') {
+      this.primaryCode.set(value);
+    }
+  }
+
+  protected clearCategoryCode(): void {
+    this.categoryCode.set('');
+
+    if (this.selectedReport() === 'kategori-son-stok') {
+      this.primaryCode.set('');
+    }
+
+    this.loadRows();
   }
 
   protected updateSearchText(value: string): void {
@@ -779,6 +837,41 @@ export class StokRaporlariListComponent implements OnInit {
 
   protected updateTake(value: string | number): void {
     this.take.set(this.toLimitedNumber(value, 1, 1000, 250));
+  }
+
+  protected loadCategoryOptions(): void {
+    const requestId = ++this.activeCategoryOptionsRequestId;
+
+    this.isCategoryOptionsLoading.set(true);
+    this.categoryOptionsError.set(null);
+
+    this.raporIslemleriService
+      .getStockCategoryOptions(this.buildCategoryOptionsRequest())
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.activeCategoryOptionsRequestId) {
+            this.isCategoryOptionsLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (options: StockCategoryOptionDto[]) => {
+          if (requestId !== this.activeCategoryOptionsRequestId) {
+            return;
+          }
+
+          this.categoryOptions.set(options ?? []);
+        },
+        error: (error: unknown) => {
+          if (requestId !== this.activeCategoryOptionsRequestId) {
+            return;
+          }
+
+          this.categoryOptions.set([]);
+          this.categoryOptionsError.set(getErrorMessage(error, 'Kategori secenekleri yuklenemedi.'));
+        }
+      });
   }
 
   protected loadRows(): void {
@@ -847,6 +940,9 @@ export class StokRaporlariListComponent implements OnInit {
     report.key;
   protected readonly trackByMetric = (_index: number, metric: StockReportMetric): string =>
     metric.label;
+  protected readonly trackByCategoryOption = (_index: number, option: StockCategoryOptionDto): string =>
+    option.categoryCode ?? option.categoryName ?? String(_index);
+  protected readonly formatCategoryOption = formatCategoryOption;
   protected readonly trackByFilter = (
     _index: number,
     option: (typeof FILTER_TYPES)[number] | (typeof PROFIT_SCOPES)[number]
@@ -876,11 +972,14 @@ export class StokRaporlariListComponent implements OnInit {
           );
       case 'urun-depo-durum':
         return this.raporIslemleriService
-          .getProductWarehouseStockReport(this.buildProductWarehouseRequest())
+          .getProductWarehouseStockByPath(
+            this.primaryCode().trim(),
+            this.buildProductWarehouseByPathRequest()
+          )
           .pipe(map((rows: ProductWarehouseStockDto[]) => this.buildProductWarehouseResult(rows ?? [])));
       case 'stok-kartlari':
         return this.raporIslemleriService
-          .getReportStockCards(this.buildStockCardRequest())
+          .searchReportStockCards(this.buildStockCardRequest())
           .pipe(map((rows: StockCardDetailDto[]) => this.buildStockCardResult(rows ?? [])));
       case 'depoda-var-subede-yok':
         return this.raporIslemleriService
@@ -1098,10 +1197,13 @@ export class StokRaporlariListComponent implements OnInit {
   }
 
   private buildOnHandRequest(): StockOnHandReportHttpRequest {
+    const categoryCode = this.usesCategoryOptions() ? this.resolveCategoryCode() : null;
+
     return {
       warehouseNo: this.resolveWarehouseNo(),
       reportDate: this.reportDate() || null,
       search: this.searchText().trim() || null,
+      categoryCode,
       modelCode: this.modelCode().trim() || null,
       onlyWithStock: this.onlyWithStock(),
       take: this.take()
@@ -1118,7 +1220,7 @@ export class StokRaporlariListComponent implements OnInit {
   private buildCategoryOnHandRequest(): CategoryStockOnHandHttpRequest {
     return {
       ...this.buildOnHandRequest(),
-      categoryCode: this.primaryCode().trim()
+      categoryCode: this.resolveCategoryCode()
     };
   }
 
@@ -1129,13 +1231,20 @@ export class StokRaporlariListComponent implements OnInit {
     };
   }
 
-  private buildProductWarehouseRequest(): ProductWarehouseStockHttpRequest {
+  private buildProductWarehouseByPathRequest(): ProductWarehouseStockByPathHttpRequest {
     return {
       warehouseNo: this.resolveWarehouseNo(),
       reportDate: this.reportDate() || null,
-      stockCodeOrBarcode: this.primaryCode().trim(),
       onlyWithStock: this.onlyWithStock(),
       take: this.take()
+    };
+  }
+
+  private buildCategoryOptionsRequest(): StockCategoryOptionHttpRequest {
+    return {
+      search: this.searchText().trim() || this.categoryCode().trim() || null,
+      onlyActive: true,
+      take: 75
     };
   }
 
@@ -1260,11 +1369,10 @@ export class StokRaporlariListComponent implements OnInit {
         return this.buildFilteredDateRangeRequest();
       case 'urun-depo-durum':
         return this.primaryCode().trim()
-          ? this.buildProductWarehouseRequest()
+          ? this.buildProductWarehouseByPathRequest()
           : {
               warehouseNo: this.resolveWarehouseNo(),
               reportDate: this.reportDate(),
-              stockCodeOrBarcode: 'STOK_KODU_VEYA_BARKOD',
               onlyWithStock: this.onlyWithStock(),
               take: this.take()
             };
@@ -1280,7 +1388,7 @@ export class StokRaporlariListComponent implements OnInit {
       case 'kategori-son-stok':
         return {
           ...this.buildOnHandRequest(),
-          categoryCode: this.primaryCode().trim() || 'KATEGORI_KODU'
+          categoryCode: this.resolveCategoryCode() || 'KATEGORI_KODU'
         };
       case 'uretici-son-stok':
         return {
@@ -1328,12 +1436,17 @@ export class StokRaporlariListComponent implements OnInit {
     }
 
     if (
-      ['tedarikci-son-stok', 'kategori-son-stok', 'uretici-son-stok', 'urun-depo-durum', 'iadeler-subeler'].includes(
+      ['tedarikci-son-stok', 'uretici-son-stok', 'urun-depo-durum', 'iadeler-subeler'].includes(
         this.selectedReport()
       ) &&
       !this.primaryCode().trim()
     ) {
       this.failValidation(`${this.primaryLabel()} zorunludur.`);
+      return false;
+    }
+
+    if (this.selectedReport() === 'kategori-son-stok' && !this.resolveCategoryCode()) {
+      this.failValidation('Kategori Kodu zorunludur.');
       return false;
     }
 
@@ -1370,6 +1483,23 @@ export class StokRaporlariListComponent implements OnInit {
 
   private getManualWarehouseNo(): number | null {
     return toPositiveWarehouseNo(this.manualWarehouseNo());
+  }
+
+  private resolveCategoryCode(): string {
+    return this.categoryCode().trim() || this.primaryCode().trim();
+  }
+
+  private getRequestPreviewEndpoint(): string {
+    if (this.selectedReport() === 'urun-depo-durum') {
+      const stockCodeOrBarcode = this.primaryCode().trim() || 'STOK_KODU_VEYA_BARKOD';
+      return `/api/rapor-islemleri/stok-raporlari/urun/${encodeURIComponent(stockCodeOrBarcode)}/depo-durum`;
+    }
+
+    if (this.selectedReport() === 'stok-kartlari') {
+      return '/api/rapor-islemleri/stok-raporlari/urun-ara';
+    }
+
+    return this.selectedDefinition().endpoint;
   }
 
   private getSourceWarehouseNo(): number | null {
