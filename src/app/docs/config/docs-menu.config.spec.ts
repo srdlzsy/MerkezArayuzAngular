@@ -515,4 +515,66 @@ describe('docs-menu.config', () => {
       ['sikayet-oneri']
     ]);
   });
+
+  it('keeps stock reports task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Rapor Islemleri',
+        sebike: 'RaporIslemleri',
+        gorevler: [
+          {
+            id: 15,
+            isim: 'Stok Raporlari',
+            sebike: 'StokRaporlari',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Listele',
+                sebike: 'rapor-islemleri.stok-raporlari.list'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('stok-raporlari', sorumluluklar)).toBeTrue();
+    expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
+      ['stok-raporlari']
+    ]);
+  });
+
+  it('keeps promotion reports task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Rapor Islemleri',
+        sebike: 'rapor-islemleri',
+        gorevler: [
+          {
+            id: 16,
+            isim: 'Promosyon Raporlari',
+            sebike: 'promosyon-raporlari',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Listele',
+                sebike: 'rapor-islemleri.promosyon-raporlari.list'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('promosyon-raporlari', sorumluluklar)).toBeTrue();
+    expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
+      ['promosyon-raporlari']
+    ]);
+  });
 });

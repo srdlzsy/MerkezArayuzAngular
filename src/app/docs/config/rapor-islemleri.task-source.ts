@@ -57,6 +57,141 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       ]
     }
   ),
+  'stok-raporlari': singleRouteTask(
+    {
+      id: 'stok-raporlari',
+      title: 'Stok Raporlari',
+      subtitle:
+        'Stok, hareket, satis, iade, karlilik ve sayim raporlarini Mikro kaynaklarini degistirmeden listeler.',
+      baseRouteOrFile: '/api/rapor-islemleri/stok-raporlari',
+      highlights: [
+        'Tum endpointler query parametreleriyle calisir; body gonderilmez',
+        'Tek depo raporlarinda Admin/Administrator depo secmelidir; normal kullanicida backend JWT deposunu uygular',
+        'Son stok ve envanter degeri StockOnHandReportDto response modelini kullanir',
+        'Hareket, satis, iade, satmayan urun, karlilik ve sayim raporlari ayni ekranda sekmelerle acilir',
+        'Take tum stok raporlarinda 1-1000 araliginda tutulur'
+      ],
+      listTitle: 'Stok Rapor Endpointleri',
+      items: [
+        {
+          name: 'StockReportsController',
+          description:
+            'WinForms Depo Stok Listeleme raporlarini yeni API sozlesmesine gore salt okunur gridlere tasir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/son-stok?warehouseNo=110&reportDate=2026-07-21&search=ELMA&take=100',
+              description: 'Secili depoda anlik stok ve satis degeri listesini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/urun-depo-durum?stockCodeOrBarcode=015550&reportDate=2026-07-21',
+              description: 'Tek urunun depo/sube bazli stok durumunu getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/hareketler?startDate=2026-07-01&endDate=2026-07-21&stockCode=015550&take=250',
+              description: 'Stok hareketlerini tarih araligi ve opsiyonel stok kodu ile listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/karlilik?startDate=2026-07-01&endDate=2026-07-21&scope=producer&take=250',
+              description: 'Karlilik raporunu secili kirilim ve tarih araliginda getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/sayim-karsilastirma?warehouseNo=110&countDate=2026-07-21&take=500',
+              description: 'Sayim tarihi icin sistem/sayim miktari farklarini getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "warehouseNo": 110,
+  "reportDate": "2026-07-21",
+  "search": "ELMA",
+  "onlyWithStock": true,
+  "take": 100
+}`
+    },
+    () =>
+      import('../tasks/reports/stok-raporlari/list/stok-raporlari-list.component').then(
+        (m) => m.StokRaporlariListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'rapor-islemleri.stok-raporlari.list',
+        'rapor-islemleri.stok-raporlari',
+        'StokRaporlari',
+        'Stok Raporlari'
+      ]
+    }
+  ),
+  'promosyon-raporlari': singleRouteTask(
+    {
+      id: 'promosyon-raporlari',
+      title: 'Promosyon Raporlari',
+      subtitle:
+        'Promosyon bultenlerini ve POS gerceklesen promosyon kullanim, satis, indirim ve marj etkilerini raporlar.',
+      baseRouteOrFile: '/api/rapor-islemleri/promosyon-raporlari',
+      highlights: [
+        'Bulten listesi activeOn ve onlyActive filtreleriyle calisir',
+        'Performans ve satis-marj etkisi PromotionPerformanceHttpRequest query modelini kullanir',
+        'Sube kirilimi performans/sube endpointinden okunur',
+        'Bulten tanim CRUD islemleri bu ekranda yoktur; ekran salt okunurdur',
+        'Admin/Administrator warehouseNo bos birakinca tum subeler okunabilir'
+      ],
+      listTitle: 'Promosyon Rapor Endpointleri',
+      items: [
+        {
+          name: 'PromotionReportsController',
+          description:
+            'Promosyon bultenlerini ve POS promosyon etkilerini rapor/grid ekranlari icin getirir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/promosyon-raporlari/bultenler?warehouseNo=110&onlyActive=true&take=100',
+              description: 'Aktif veya filtrelenen promosyon bultenlerini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/promosyon-raporlari/performans?startDate=2026-07-01&endDate=2026-07-21&warehouseNo=110&take=250',
+              description: 'Promosyon bazli kullanim, satis, indirim ve marj ozetini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/promosyon-raporlari/satis-marj-etkisi?startDate=2026-07-01&endDate=2026-07-21&promotionCode=1234',
+              description: 'Promosyon satis ve marj etkisini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/promosyon-raporlari/performans/sube?startDate=2026-07-01&endDate=2026-07-21&promotionCode=1234',
+              description: 'Promosyon performansini sube kiriliminda listeler'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "startDate": "2026-07-01",
+  "endDate": "2026-07-21",
+  "warehouseNo": 110,
+  "promotionCode": "1234",
+  "take": 250
+}`
+    },
+    () =>
+      import('../tasks/reports/promosyon-raporlari/list/promosyon-raporlari-list.component').then(
+        (m) => m.PromosyonRaporlariListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'rapor-islemleri.promosyon-raporlari.list',
+        'rapor-islemleri.promosyon-raporlari',
+        'PromosyonRaporlari',
+        'Promosyon Raporlari'
+      ]
+    }
+  ),
   'satis-analizleri': singleRouteTask(
     {
       id: 'satis-analizleri',

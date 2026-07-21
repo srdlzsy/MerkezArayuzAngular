@@ -1,0 +1,384 @@
+:host {
+  display: block;
+  --report-border: #d7e3de;
+  --report-soft: #f5faf7;
+  --report-accent: #0f766e;
+  --report-accent-deep: #115e59;
+  --report-ink: #16231e;
+  --report-muted: #63736c;
+}
+
+.task-page {
+  display: block;
+}
+
+.report-workspace {
+  display: grid;
+  gap: 0.58rem;
+  padding: 0.68rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 8px 20px rgba(15, 23, 42, 0.05);
+}
+
+.workspace-head {
+  display: grid;
+  grid-template-columns: minmax(230px, 0.36fr) minmax(0, 1fr);
+  gap: 0.62rem;
+  align-items: start;
+}
+
+.title-block {
+  display: grid;
+  gap: 0.16rem;
+}
+
+h2,
+h3,
+p {
+  margin: 0;
+}
+
+.title-block h2 {
+  color: var(--report-ink);
+  font-size: 1.08rem;
+  line-height: 1.18;
+}
+
+.title-block p {
+  color: var(--report-muted);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.section-kicker,
+.field span,
+.report-tab span,
+.metric-card span,
+.request-line span,
+.table-context span,
+.scope-readonly span,
+.toggle-field span {
+  color: var(--report-muted);
+  font-size: 0.6rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.report-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.34rem;
+  justify-content: flex-end;
+}
+
+.report-tab,
+.scope-pill,
+.task-action {
+  min-height: 2.04rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  padding: 0.34rem 0.56rem;
+  background: #ffffff;
+  color: var(--report-ink);
+  font: inherit;
+  font-size: 0.74rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.report-tab {
+  display: grid;
+  gap: 0.04rem;
+  min-width: 128px;
+  text-align: left;
+}
+
+.report-tab.is-active,
+.scope-pill.is-active {
+  border-color: rgba(15, 118, 110, 0.36);
+  background: #e8f7f3;
+  color: var(--report-accent-deep);
+}
+
+.scope-pill:disabled {
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+.filter-panel {
+  display: grid;
+  gap: 0.44rem;
+  padding: 0.54rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.filters-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(120px, 0.13fr)) minmax(250px, 0.38fr) repeat(4, minmax(110px, 0.14fr)) auto;
+  gap: 0.42rem;
+  align-items: end;
+}
+
+.field {
+  display: grid;
+  gap: 0.16rem;
+  min-width: 0;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  min-height: 2.04rem;
+  padding: 0.34rem 0.48rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+  color: var(--report-ink);
+  box-sizing: border-box;
+  font: inherit;
+  font-size: 0.78rem;
+}
+
+.field input:focus,
+.field select:focus {
+  border-color: var(--report-accent);
+  outline: 2px solid rgba(15, 118, 110, 0.15);
+}
+
+.compact-field {
+  max-width: 168px;
+}
+
+.tiny-field {
+  max-width: 92px;
+}
+
+.scope-switch,
+.scope-readonly,
+.toggle-field,
+.task-action,
+.request-line,
+.table-context {
+  display: flex;
+  align-items: center;
+}
+
+.scope-switch {
+  flex-wrap: wrap;
+  gap: 0.28rem;
+  padding: 0.2rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.scope-readonly {
+  min-height: 2.04rem;
+  justify-content: space-between;
+  gap: 0.5rem;
+  padding: 0.24rem 0.5rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.scope-readonly strong {
+  overflow: hidden;
+  color: var(--report-ink);
+  font-size: 0.76rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.toggle-field {
+  min-height: 2.04rem;
+  gap: 0.35rem;
+  padding: 0.24rem 0.5rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.toggle-field input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--report-accent);
+}
+
+.task-action {
+  justify-content: center;
+  gap: 0.38rem;
+  white-space: nowrap;
+}
+
+.task-action-primary {
+  border-color: var(--report-accent);
+  background: var(--report-accent);
+  color: #ffffff;
+}
+
+.task-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.65;
+}
+
+.request-line,
+.table-context {
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.request-line code {
+  overflow: hidden;
+  max-width: 100%;
+  color: var(--report-accent-deep);
+  font-size: 0.7rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.metric-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.metric-card {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  padding: 0.5rem 0.58rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.metric-card strong {
+  overflow: hidden;
+  color: var(--report-ink);
+  font-size: 0.9rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.table-context {
+  padding: 0.34rem 0.46rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.table-context strong {
+  color: var(--report-ink);
+  font-size: 0.76rem;
+}
+
+.state-card {
+  padding: 0.62rem 0.72rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.state-card h3 {
+  margin-bottom: 0.12rem;
+  color: var(--report-ink);
+  font-size: 0.84rem;
+}
+
+.state-card p {
+  color: var(--report-muted);
+  font-size: 0.8rem;
+  line-height: 1.4;
+}
+
+.state-card-error {
+  border-color: #f1b9b9;
+  background: #fff7f7;
+}
+
+.empty-state {
+  background: var(--report-soft);
+}
+
+.result-note {
+  margin: 0;
+  color: var(--report-muted);
+  font-size: 0.74rem;
+}
+
+:host ::ng-deep app-api-list-table .api-list-table {
+  gap: 0.42rem;
+}
+
+:host ::ng-deep app-api-list-table .table-controls {
+  padding: 0.48rem;
+  border: 1px solid var(--report-border);
+  border-bottom: 0;
+  border-radius: 8px 8px 0 0;
+  background: var(--report-soft);
+  box-shadow: none;
+}
+
+:host ::ng-deep app-api-list-table .control-field input,
+:host ::ng-deep app-api-list-table .control-field select {
+  min-height: 2rem;
+  border-radius: 8px;
+}
+
+:host ::ng-deep app-api-list-table .table-wrap {
+  max-height: calc(100vh - 312px);
+  overflow: auto;
+  border: 1px solid var(--report-border);
+  border-radius: 0 0 8px 8px;
+  box-shadow: none;
+}
+
+:host ::ng-deep app-api-list-table .data-table th,
+:host ::ng-deep app-api-list-table .data-table td {
+  padding: 0.46rem 0.56rem;
+}
+
+:host ::ng-deep app-api-list-table .sort-button.is-active {
+  color: var(--report-accent-deep);
+}
+
+@media (max-width: 1320px) {
+  .workspace-head,
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-tabs {
+    justify-content: flex-start;
+  }
+
+  .compact-field,
+  .tiny-field {
+    max-width: none;
+  }
+}
+
+@media (max-width: 760px) {
+  .metric-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .report-tab,
+  .scope-switch,
+  .scope-readonly,
+  .toggle-field,
+  .task-action {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  :host ::ng-deep app-api-list-table .table-wrap {
+    max-height: calc(100vh - 380px);
+  }
+}

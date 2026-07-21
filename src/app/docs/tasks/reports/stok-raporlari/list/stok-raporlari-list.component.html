@@ -1,0 +1,279 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="report-workspace">
+    <header class="workspace-head">
+      <div class="title-block">
+        <span class="section-kicker">Rapor Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p>{{ selectedDefinition().description }}</p>
+      </div>
+
+      <div class="report-tabs" aria-label="Stok raporlari">
+        <button
+          *ngFor="let report of reportDefinitions; trackBy: trackByReport"
+          type="button"
+          class="report-tab"
+          [class.is-active]="selectedReport() === report.key"
+          (click)="selectReport(report.key)"
+        >
+          <span>{{ report.group }}</span>
+          {{ report.label }}
+        </button>
+      </div>
+    </header>
+
+    <section class="filter-panel">
+      <div class="filters-grid">
+        <ng-container *ngIf="usesDateRange(); else datedSingleFilter">
+          <label class="field">
+            <span>Baslangic</span>
+            <input
+              type="date"
+              [value]="startDate()"
+              (input)="updateStartDate($any($event.target).value ?? '')"
+            />
+          </label>
+
+          <label class="field">
+            <span>Bitis</span>
+            <input
+              type="date"
+              [value]="endDate()"
+              (input)="updateEndDate($any($event.target).value ?? '')"
+            />
+          </label>
+        </ng-container>
+
+        <ng-template #datedSingleFilter>
+          <label class="field" *ngIf="usesSnapshotDate()">
+            <span>Rapor Tarihi</span>
+            <input
+              type="date"
+              [value]="reportDate()"
+              (input)="updateReportDate($any($event.target).value ?? '')"
+            />
+          </label>
+
+          <label class="field" *ngIf="usesCountDate()">
+            <span>Sayim Tarihi</span>
+            <input
+              type="date"
+              [value]="countDate()"
+              (input)="updateCountDate($any($event.target).value ?? '')"
+            />
+          </label>
+        </ng-template>
+
+        <div class="scope-switch" *ngIf="isAdminUser(); else fixedWarehouseScope" aria-label="Depo kapsami">
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="scope() === 'all'"
+            [disabled]="!canSelectAllWarehouses()"
+            (click)="selectScope('all')"
+          >
+            Tum Depolar
+          </button>
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="scope() === 'current'"
+            (click)="selectScope('current')"
+          >
+            Aktif Depo
+          </button>
+          <button
+            type="button"
+            class="scope-pill"
+            [class.is-active]="scope() === 'manual'"
+            (click)="selectScope('manual')"
+          >
+            Manuel
+          </button>
+        </div>
+
+        <ng-template #fixedWarehouseScope>
+          <div class="scope-readonly">
+            <span>Depo Kapsami</span>
+            <strong>{{ currentWarehouseLabel() }}</strong>
+          </div>
+        </ng-template>
+
+        <label class="field compact-field" *ngIf="isAdminUser() && scope() === 'manual'">
+          <span>Depo No</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [value]="manualWarehouseNo()"
+            (input)="updateManualWarehouseNo($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <label class="field compact-field" *ngIf="usesMissingWarehouseFilters()">
+          <span>Kaynak Depo</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [value]="sourceWarehouseNo()"
+            (input)="updateSourceWarehouseNo($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <label class="field compact-field" *ngIf="usesMissingWarehouseFilters()">
+          <span>Hedef Depo</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            [value]="targetWarehouseNo()"
+            (input)="updateTargetWarehouseNo($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <label class="field" *ngIf="primaryLabel()">
+          <span>{{ primaryLabel() }}</span>
+          <input
+            type="search"
+            [placeholder]="primaryPlaceholder()"
+            [value]="primaryCode()"
+            (input)="updatePrimaryCode($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <label class="field" *ngIf="!usesMissingWarehouseFilters()">
+          <span>Arama</span>
+          <input
+            type="search"
+            placeholder="Urun, kod veya aciklama"
+            [value]="searchText()"
+            (input)="updateSearchText($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <label class="field compact-field" *ngIf="usesFilterType()">
+          <span>Filtre Tipi</span>
+          <select [value]="filterType()" (change)="updateFilterType($any($event.target).value ?? '')">
+            <option *ngFor="let option of filterTypes; trackBy: trackByFilter" [value]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field compact-field" *ngIf="usesProfitScope()">
+          <span>Kirilim</span>
+          <select [value]="profitScope()" (change)="updateProfitScope($any($event.target).value ?? '')">
+            <option *ngFor="let option of profitScopes; trackBy: trackByFilter" [value]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field compact-field">
+          <span>{{ usesCountDate() ? 'Paket Kodu' : 'Model / Yardimci' }}</span>
+          <input
+            type="search"
+            [placeholder]="usesCountDate() ? 'Opsiyonel paket' : 'Opsiyonel kod'"
+            [value]="modelCode()"
+            (input)="updateModelCode($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <label class="toggle-field" *ngIf="usesSnapshotDate() || selectedReport() === 'urun-depo-durum'">
+          <input
+            type="checkbox"
+            [checked]="onlyWithStock()"
+            (change)="updateOnlyWithStock($any($event.target).checked)"
+          />
+          <span>Stoklu</span>
+        </label>
+
+        <label class="toggle-field" *ngIf="selectedReport() === 'satmayan-urunler'">
+          <input
+            type="checkbox"
+            [checked]="includeDls()"
+            (change)="updateIncludeDls($any($event.target).checked)"
+          />
+          <span>DLS dahil</span>
+        </label>
+
+        <label class="field tiny-field">
+          <span>Limit</span>
+          <input
+            type="number"
+            min="1"
+            max="1000"
+            [value]="take()"
+            (input)="updateTake($any($event.target).value ?? '')"
+            (keyup.enter)="loadRows()"
+          />
+        </label>
+
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          [disabled]="isLoading()"
+          (click)="loadRows()"
+        >
+          <i class="fa-solid" [ngClass]="isLoading() ? 'fa-circle-notch fa-spin' : 'fa-chart-simple'"></i>
+          <span>{{ isLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}</span>
+        </button>
+      </div>
+
+      <div class="request-line">
+        <span>{{ selectedDefinition().label }}</span>
+        <span>{{ selectedDateLabel() }}</span>
+        <span>{{ scopeLabel() }}</span>
+        <code>{{ requestPreview() }}</code>
+      </div>
+    </section>
+
+    <section class="metric-strip" *ngIf="metrics().length">
+      <article class="metric-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+      </article>
+    </section>
+
+    <div class="table-context" *ngIf="rows().length">
+      <span>{{ selectedDefinition().label }}</span>
+      <span>{{ selectedDateLabel() }}</span>
+      <span>{{ scopeLabel() }}</span>
+      <strong>{{ totalCount() }} kayit</strong>
+      <strong *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</strong>
+    </div>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as currentError">
+      <h3>Rapor Yuklenemedi</h3>
+      <p>{{ currentError }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="isLoading()">
+      <h3>Rapor Yukleniyor</h3>
+      <p>{{ selectedDefinition().label }} icin secilen filtreler okunuyor.</p>
+    </article>
+
+    <div class="table-shell" *ngIf="!isLoading() && rows().length">
+      <app-api-list-table
+        [rows]="rows()"
+        [columns]="tableColumns()"
+        [showRowAction]="false"
+        [fitToWidth]="true"
+        filterPlaceholder="Stok, depo, cari, barkod, belge veya tutar ara"
+      ></app-api-list-table>
+    </div>
+
+    <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
+      <h3>Kayit Bulunamadi</h3>
+      <p>Secilen rapor ve filtreler icin kayit donmedi.</p>
+    </article>
+
+    <p class="result-note" *ngIf="resultNote() as note">{{ note }}</p>
+  </article>
+</section>
