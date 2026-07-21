@@ -6,7 +6,6 @@
 .dialog-page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: min(860px, calc(100vh - 1.5rem));
 }
 
 .dialog-header {
@@ -168,10 +167,6 @@ pre {
 }
 
 @media (max-width: 700px) {
-  .dialog-page {
-    height: calc(100vh - 1rem);
-  }
-
   .dialog-header {
     grid-template-columns: 1fr;
     padding: 1.15rem 1rem 1rem;

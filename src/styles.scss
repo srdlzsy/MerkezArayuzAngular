@@ -16,6 +16,9 @@ body {
 
 :root {
   --app-content-max-width: 1880px;
+  --docs-task-dialog-height: min(780px, calc(100dvh - 4rem));
+  --docs-task-dialog-max-height: calc(100dvh - 2rem);
+  --docs-dialog-page-height: min(760px, calc(100dvh - 4rem));
 }
 
 body {
@@ -176,8 +179,8 @@ body :where(
 .docs-task-dialog-panel .cdk-dialog-container {
   width: min(1080px, calc(100vw - 1.25rem));
   max-width: 1080px;
-  height: min(860px, 86dvh);
-  max-height: calc(100dvh - 1rem);
+  height: var(--docs-task-dialog-height);
+  max-height: var(--docs-task-dialog-max-height);
   overflow: hidden;
   border: 1px solid #dbe5f1;
   border-radius: 10px;
@@ -192,6 +195,10 @@ body :where(
   --op-muted: #64748b;
   --op-text: #0f172a;
   --op-accent: #0f766e;
+}
+
+.dialog-page {
+  height: var(--docs-dialog-page-height);
 }
 
 .docs-task-dialog-panel .dialog-page {
@@ -537,10 +544,14 @@ body .lookup-page td {
 }
 
 @media (max-width: 700px) {
+  :root {
+    --docs-task-dialog-height: min(720px, calc(100dvh - 1.5rem));
+    --docs-task-dialog-max-height: calc(100dvh - 1.5rem);
+    --docs-dialog-page-height: calc(100dvh - 1.5rem);
+  }
+
   .docs-task-dialog-panel .cdk-dialog-container {
     width: calc(100vw - 0.75rem);
-    height: min(780px, calc(100dvh - 0.75rem));
-    max-height: calc(100dvh - 0.75rem);
     border-radius: 8px;
   }
 

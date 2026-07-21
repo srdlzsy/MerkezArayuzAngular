@@ -9,7 +9,6 @@
   grid-template-rows: auto minmax(0, 1fr);
   width: min(1120px, 100%);
   max-width: 100%;
-  height: min(840px, calc(100dvh - 1rem));
   background: #f8fafc;
 }
 
@@ -339,10 +338,6 @@ code {
 }
 
 @media (max-width: 700px) {
-  .dialog-page {
-    height: calc(100dvh - 1rem);
-  }
-
   .dialog-header {
     grid-template-columns: 1fr;
     padding: 0.78rem 0.9rem;

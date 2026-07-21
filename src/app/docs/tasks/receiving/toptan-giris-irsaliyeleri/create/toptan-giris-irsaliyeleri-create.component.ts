@@ -121,6 +121,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly submitting = signal(false);
   protected readonly createdReceiptResult = signal<IFurpaCreateCompanyReceiptResponseApiDto | null>(null);
   protected readonly availableOrders = signal<IFurpaCompanyOrderDetailApiDto[]>([]);
+  protected readonly orderResultsOpen = signal(false);
   protected readonly selectedOrderKeys = signal<string[]>([]);
   private customerRequestId = 0;
   private stockRequestId = 0;
@@ -260,6 +261,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.stockError.set('');
     this.availableOrders.set([]);
+    this.orderResultsOpen.set(false);
     this.selectedOrderKeys.set([]);
     this.orderError.set('');
 
@@ -280,6 +282,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.stockError.set('');
     this.availableOrders.set([]);
+    this.orderResultsOpen.set(false);
     this.selectedOrderKeys.set([]);
     this.orderError.set('');
     this.kalemler.clear();
@@ -306,6 +309,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     this.orderLoading.set(true);
     this.orderError.set('');
     this.availableOrders.set([]);
+    this.orderResultsOpen.set(false);
     this.selectedOrderKeys.set([]);
 
     this.taslakService
@@ -319,6 +323,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
 
           const normalizedOrders = this.normalizeOrders(orders ?? []);
           this.availableOrders.set(normalizedOrders);
+          this.orderResultsOpen.set(normalizedOrders.length > 0);
 
           if (normalizedOrders.length === 0) {
             this.orderError.set('Secilen firma icin verilen siparis bulunamadi.');
@@ -384,6 +389,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
 
     this.orderError.set('');
     this.stockError.set('');
+    this.closeOrderResults();
   }
 
   protected removeSelectedOrdersFromKalemler(): void {
@@ -427,6 +433,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
 
     this.orderError.set('');
     this.stockError.set('');
+    this.closeOrderResults();
   }
 
   protected getOrderDisplay(order: IFurpaCompanyOrderDetailApiDto): string {
@@ -748,6 +755,11 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     return this.availableOrders().filter((order) =>
       this.selectedOrderKeys().includes(this.getOrderKey(order))
     );
+  }
+
+  private closeOrderResults(): void {
+    this.orderResultsOpen.set(false);
+    this.selectedOrderKeys.set([]);
   }
 
   private getOrderKey(order: IFurpaCompanyOrderDetailApiDto): string {

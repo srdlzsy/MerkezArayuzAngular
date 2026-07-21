@@ -94,7 +94,7 @@
             </div>
             <div class="feedback-error mini-error" *ngIf="orderError()">{{ orderError() }}</div>
 
-            <div class="order-results" *ngIf="availableOrders().length">
+            <div class="order-results" *ngIf="orderResultsOpen() && availableOrders().length">
               <label
                 class="order-item"
                 *ngFor="let order of availableOrders(); trackBy: trackByOrder"

@@ -6,7 +6,6 @@
 .dialog-page {
   display: grid;
   grid-template-rows: auto minmax(0, 1fr);
-  height: min(800px, calc(100vh - 1.25rem));
   background: #f8fafc;
 }
 

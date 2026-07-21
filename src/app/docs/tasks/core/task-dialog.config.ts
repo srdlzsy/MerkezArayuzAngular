@@ -3,9 +3,9 @@ import { ComponentType } from '@angular/cdk/portal';
 
 const DOCS_TASK_DIALOG_CONFIG = {
   width: 'min(1080px, calc(100vw - 1.25rem))',
-  height: 'min(860px, 86dvh)',
+  height: 'var(--docs-task-dialog-height)',
   maxWidth: 'calc(100vw - 1.25rem)',
-  maxHeight: 'calc(100dvh - 1rem)',
+  maxHeight: 'var(--docs-task-dialog-max-height)',
   autoFocus: false,
   restoreFocus: false,
   backdropClass: 'docs-task-dialog-backdrop',
