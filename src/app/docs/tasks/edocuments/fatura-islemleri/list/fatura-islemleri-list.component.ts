@@ -746,9 +746,13 @@ export class FaturaIslemleriListComponent {
       null
   );
   protected readonly selectedViewingItems = computed(() => {
-    const selectedIds = new Set(this.selectedViewingDocumentIds());
+    const itemsByDocumentId = new Map(
+      this.filteredViewingItems().map((item) => [item.documentId, item])
+    );
 
-    return this.filteredViewingItems().filter((item) => selectedIds.has(item.documentId));
+    return this.selectedViewingDocumentIds()
+      .map((documentId) => itemsByDocumentId.get(documentId))
+      .filter((item): item is InvoiceViewingListItemDto => !!item);
   });
   protected readonly selectableViewingItems = computed(() =>
     this.filteredViewingItems().filter((item) => !item.isPrinted)

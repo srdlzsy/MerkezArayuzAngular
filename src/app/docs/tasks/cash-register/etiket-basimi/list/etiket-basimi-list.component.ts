@@ -772,12 +772,43 @@ export class EtiketBasimiListComponent {
         body,
         app-root,
         .admin-layout,
+        .main-content,
         .content-wrapper,
+        .label-workspace,
+        .preview-shell-hidden,
         .etiket-print-root,
         .preview-stage,
         app-a5-ikili-ayin-urunu-fiyat-etiketi {
+          width: auto !important;
+          max-width: none !important;
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
           background: #fff !important;
           color: #000 !important;
+        }
+
+        *,
+        *::before,
+        *::after {
+          scrollbar-width: none !important;
+        }
+
+        *::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;
+          display: none !important;
+        }
+
+        app-root,
+        .admin-layout,
+        .main-content,
+        .content-wrapper,
+        .label-workspace {
+          display: block !important;
         }
 
         .app-sidebar,
@@ -788,23 +819,17 @@ export class EtiketBasimiListComponent {
           display: none !important;
         }
 
-        .content-wrapper {
-          padding: 0 !important;
-          margin: 0 !important;
-          min-height: 0 !important;
-        }
-
+        .preview-shell-hidden,
         .etiket-print-root {
-          margin: 0 !important;
-          padding: 0 !important;
+          position: static !important;
+          inset: auto !important;
+          opacity: 1 !important;
+          pointer-events: auto !important;
           border: 0 !important;
           box-shadow: none !important;
-          background: #fff !important;
         }
 
         .preview-stage {
-          margin: 0 !important;
-          padding: 0 !important;
           border: 0 !important;
           box-shadow: none !important;
         }
