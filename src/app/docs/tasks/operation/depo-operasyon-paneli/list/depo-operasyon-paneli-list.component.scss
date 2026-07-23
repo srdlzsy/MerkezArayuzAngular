@@ -738,3 +738,184 @@ tbody tr {
     flex-wrap: wrap;
   }
 }
+
+// Keep the operation table inside its panel without a horizontal scrollbar.
+.table-scroll {
+  overflow-x: hidden;
+  overflow-y: auto;
+}
+
+table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+th,
+td {
+  min-width: 0;
+}
+
+th button,
+th > span {
+  min-width: 0;
+  line-height: 1.12;
+  white-space: normal;
+}
+
+th button i {
+  flex: 0 0 auto;
+  margin-left: auto;
+}
+
+td {
+  overflow: hidden;
+  text-align: right;
+  text-overflow: ellipsis;
+}
+
+th:not(:first-child) button,
+th:not(:first-child) > span {
+  justify-content: flex-end;
+}
+
+th:nth-child(1),
+td:nth-child(1) {
+  width: 24%;
+  text-align: left;
+}
+
+th:nth-child(2),
+td:nth-child(2),
+th:nth-child(3),
+td:nth-child(3) {
+  width: 8%;
+}
+
+th:nth-child(4),
+td:nth-child(4),
+th:nth-child(5),
+td:nth-child(5) {
+  width: 9%;
+}
+
+th:nth-child(6),
+td:nth-child(6),
+th:nth-child(7),
+td:nth-child(7),
+th:nth-child(8),
+td:nth-child(8) {
+  width: 10%;
+}
+
+th:nth-child(9),
+td:nth-child(9),
+.action-column {
+  width: 5%;
+  text-align: center;
+}
+
+.warehouse-cell {
+  min-width: 0;
+}
+
+.health-badge {
+  max-width: 100%;
+  min-width: 0;
+}
+
+@media (max-width: 900px) {
+  .table-scroll {
+    max-height: none;
+    overflow: visible;
+    border: 0;
+    background: transparent;
+  }
+
+  table,
+  thead,
+  tbody,
+  tr,
+  th,
+  td {
+    display: block;
+    width: 100%;
+  }
+
+  th:nth-child(n),
+  td:nth-child(n) {
+    width: 100%;
+  }
+
+  thead {
+    display: none;
+  }
+
+  tbody {
+    display: grid;
+    gap: 0.5rem;
+  }
+
+  tbody tr {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.32rem 0.75rem;
+    height: auto;
+    border: 1px solid var(--ops-line);
+    border-radius: 8px;
+    padding: 0.62rem;
+    background: #fff;
+  }
+
+  td {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: 0.6rem;
+    border-bottom: 0;
+    padding: 0.1rem 0;
+    overflow: visible;
+    text-align: right;
+    white-space: normal;
+  }
+
+  td::before {
+    content: attr(data-label);
+    flex: 0 0 auto;
+    color: var(--ops-muted);
+    font-size: 0.64rem;
+    font-weight: 800;
+    text-align: left;
+    text-transform: uppercase;
+  }
+
+  td:first-child {
+    grid-column: 1 / -1;
+    display: block;
+    text-align: left;
+  }
+
+  td:first-child::before {
+    display: none;
+  }
+
+  .warehouse-cell strong {
+    white-space: normal;
+  }
+
+  .action-column {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
+    width: 100%;
+  }
+
+  .empty-state {
+    display: block;
+    text-align: center;
+  }
+}
+
+@media (max-width: 520px) {
+  tbody tr {
+    grid-template-columns: 1fr;
+  }
+}

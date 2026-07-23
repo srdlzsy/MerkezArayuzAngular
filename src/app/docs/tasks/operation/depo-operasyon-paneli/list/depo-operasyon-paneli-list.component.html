@@ -134,20 +134,20 @@
               (click)="openWarehouseFlows(warehouse)"
               (keyup.enter)="openWarehouseFlows(warehouse)"
             >
-              <td>
+              <td data-label="Depo">
                 <div class="warehouse-cell">
                   <span>#{{ warehouse.warehouseNo }}</span>
                   <strong>{{ warehouse.warehouseName }}</strong>
                 </div>
               </td>
-              <td>{{ warehouse.todayShipmentCount | number }}</td>
-              <td>{{ warehouse.todayReceivingCount | number }}</td>
-              <td [class.attention-value]="warehouse.pendingReceivingCount > 0">{{ warehouse.pendingReceivingCount | number }}</td>
-              <td [class.attention-value]="warehouse.incompleteOperationCount > 0">{{ warehouse.incompleteOperationCount | number }}</td>
-              <td [class.danger-value]="warehouse.failedEDespatchCount > 0">{{ warehouse.failedEDespatchCount | number }}</td>
-              <td>{{ formatMinutes(warehouse.averageReceivingMinutes) }}</td>
-              <td><span class="health-badge" [ngClass]="healthClass(warehouse.healthStatus)">{{ healthLabel(warehouse.healthStatus) }}</span></td>
-              <td class="action-column">
+              <td data-label="Sevk">{{ warehouse.todayShipmentCount | number }}</td>
+              <td data-label="Kabul">{{ warehouse.todayReceivingCount | number }}</td>
+              <td data-label="Bekleyen" [class.attention-value]="warehouse.pendingReceivingCount > 0">{{ warehouse.pendingReceivingCount | number }}</td>
+              <td data-label="Eksik" [class.attention-value]="warehouse.incompleteOperationCount > 0">{{ warehouse.incompleteOperationCount | number }}</td>
+              <td data-label="E-Irsaliye" [class.danger-value]="warehouse.failedEDespatchCount > 0">{{ warehouse.failedEDespatchCount | number }}</td>
+              <td data-label="Ort. Kabul">{{ formatMinutes(warehouse.averageReceivingMinutes) }}</td>
+              <td data-label="Durum"><span class="health-badge" [ngClass]="healthClass(warehouse.healthStatus)">{{ healthLabel(warehouse.healthStatus) }}</span></td>
+              <td class="action-column" data-label="Akis">
                 <button
                   type="button"
                   class="open-button"

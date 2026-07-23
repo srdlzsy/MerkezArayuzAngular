@@ -85,7 +85,35 @@
         </button>
       </div>
 
+      <p class="deduction-note">
+        Acik verilen firma siparisleri, backend ayari acik ve tedarikci guvenilir listedeyse ihtiyactan dusulur.
+      </p>
     </form>
+
+    <section class="selection-toolbar" *ngIf="lines().length">
+      <div class="selection-copy">
+        <span class="section-kicker">Secim Ozeti</span>
+        <strong>{{ selectedCount() }} satir secili</strong>
+        <p>
+          {{ formatNumber(selectedQuantity()) }} miktar,
+          {{ formatCurrency(selectedAmount()) }} tutar siparise cevrilecek.
+        </p>
+      </div>
+
+      <div class="selection-actions">
+        <button type="button" class="task-action task-action-secondary" (click)="clearSelection()">
+          Secimi Temizle
+        </button>
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="openConvertDialog()"
+          [disabled]="selectedCount() === 0"
+        >
+          Siparise Cevir
+        </button>
+      </div>
+    </section>
 
     <article
       class="state-card"
@@ -98,7 +126,7 @@
       <p>{{ currentFeedback.message }}</p>
     </article>
 
-    <section class="content-grid">
+    <section class="content-grid content-grid-wide">
       <div class="list-panel">
         <article class="state-card" *ngIf="isLoading()">
           <h3>Liste yukleniyor</h3>
@@ -163,11 +191,41 @@
           <h3>Satir yok</h3>
         </article>
       </div>
+    </section>
+  </article>
 
-      <aside class="side-panel">
-        <h3>Siparise Cevir</h3>
+  <div class="convert-dialog-backdrop" *ngIf="isConvertDialogOpen()" (click)="closeConvertDialog()">
+    <section
+      class="convert-dialog"
+      role="dialog"
+      aria-modal="true"
+      aria-labelledby="company-convert-title"
+      (click)="$event.stopPropagation()"
+    >
+      <header class="convert-dialog-head">
+        <div>
+          <span class="section-kicker">Onerilen Siparis</span>
+          <h3 id="company-convert-title">Siparise Cevir</h3>
+          <p>{{ selectedCount() }} satir, {{ formatCurrency(selectedAmount()) }} tutar secili.</p>
+        </div>
 
+        <button
+          type="button"
+          class="dialog-close"
+          aria-label="Kapat"
+          (click)="closeConvertDialog()"
+          [disabled]="isConverting()"
+        >
+          &times;
+        </button>
+      </header>
+
+      <div class="convert-dialog-body">
         <div class="summary-grid">
+          <article class="summary-card">
+            <span class="mini-label">Tedarikci</span>
+            <strong class="summary-value">{{ selectedSupplierCodes().length || '-' }}</strong>
+          </article>
           <article class="summary-card">
             <span class="mini-label">Secili Satir</span>
             <strong class="summary-value">{{ selectedCount() }}</strong>
@@ -175,10 +233,6 @@
           <article class="summary-card">
             <span class="mini-label">Secili Miktar</span>
             <strong class="summary-value">{{ formatNumber(selectedQuantity()) }}</strong>
-          </article>
-          <article class="summary-card">
-            <span class="mini-label">Tedarikci</span>
-            <strong class="summary-value">{{ selectedSupplierCodes().length || '-' }}</strong>
           </article>
           <article class="summary-card">
             <span class="mini-label">Tutar</span>
@@ -201,25 +255,41 @@
           <input maxlength="250" [formControl]="filterForm.controls.description1" />
         </label>
 
-        <div class="side-actions">
-          <button type="button" class="task-action task-action-secondary" (click)="clearSelection()">
-            Secimi Temizle
-          </button>
-          <button
-            type="button"
-            class="task-action task-action-primary"
-            (click)="convertToOrder()"
-            [disabled]="isConverting() || selectedCount() === 0"
-          >
-            {{ isConverting() ? 'Olusturuluyor...' : 'Siparis Olustur' }}
-          </button>
-        </div>
+        <article
+          class="state-card"
+          *ngIf="convertFeedback() as currentConvertFeedback"
+          [class.state-card-error]="currentConvertFeedback.tone === 'error'"
+          [class.state-card-success]="currentConvertFeedback.tone === 'success'"
+          [class.state-card-info]="currentConvertFeedback.tone === 'info'"
+        >
+          <h3>{{ currentConvertFeedback.title }}</h3>
+          <p>{{ currentConvertFeedback.message }}</p>
+        </article>
 
         <article class="state-card state-card-success" *ngIf="lastResponse() as response">
           <h3>{{ response.documentSerie }}-{{ response.documentOrderNo }}</h3>
           <p>{{ response.lineCount }} satir, {{ formatNumber(response.totalQuantity) }} miktar.</p>
         </article>
-      </aside>
+      </div>
+
+      <footer class="convert-dialog-actions">
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="closeConvertDialog()"
+          [disabled]="isConverting()"
+        >
+          Vazgec
+        </button>
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="convertToOrder()"
+          [disabled]="isConverting() || selectedCount() === 0"
+        >
+          {{ isConverting() ? 'Olusturuluyor...' : 'Siparis Olustur' }}
+        </button>
+      </footer>
     </section>
-  </article>
+  </div>
 </section>

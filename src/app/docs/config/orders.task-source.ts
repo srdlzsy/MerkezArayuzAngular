@@ -177,7 +177,7 @@ export const ORDERS_TASK_SOURCE = {
       highlights: [
         'Kaynak depo zorunludur',
         'Hedef depo verilmezse JWT deposu kullanilir',
-        'Acik gelen depo siparisleri ihtiyactan dusulur',
+        'Acik gelen depo siparisleri sadece ayar acik ve kaynak depo guvenilir listedeyse ihtiyactan dusulur',
         'Secilen satirlar convert-to-order endpointiyle siparise cevrilir'
       ],
       listTitle: 'Endpointler',
@@ -224,7 +224,7 @@ export const ORDERS_TASK_SOURCE = {
       highlights: [
         'Tedarikci secimi zorunludur',
         'Depo backend tarafinda JWT deposundan alinir',
-        'Acik firma siparisleri ihtiyactan dusulur',
+        'Acik verilen firma siparisleri sadece ayar acik ve tedarikci guvenilir listedeyse ihtiyactan dusulur',
         'Secilen satirlar tek tedarikciye aitse siparise cevrilir'
       ],
       listTitle: 'Endpointler',

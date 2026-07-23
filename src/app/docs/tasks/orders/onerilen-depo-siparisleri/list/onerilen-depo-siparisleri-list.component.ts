@@ -69,8 +69,10 @@ export class OnerilenDepoSiparisleriListComponent {
 
   protected readonly lines = signal<SuggestedWarehouseLineState[]>([]);
   protected readonly feedback = signal<PageFeedback | null>(null);
+  protected readonly convertFeedback = signal<PageFeedback | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly isConverting = signal(false);
+  protected readonly isConvertDialogOpen = signal(false);
   protected readonly lastResponse = signal<CreateIssuedWarehouseOrderResponse | null>(null);
 
   protected readonly selectedLines = computed(() => this.lines().filter((line) => line.selected));
@@ -101,6 +103,7 @@ export class OnerilenDepoSiparisleriListComponent {
 
   protected loadSuggestions(): void {
     this.lastResponse.set(null);
+    this.convertFeedback.set(null);
 
     if (this.filterForm.controls.sourceWarehouseNo.invalid) {
       this.filterForm.controls.sourceWarehouseNo.markAsTouched();
@@ -180,6 +183,41 @@ export class OnerilenDepoSiparisleriListComponent {
       });
   }
 
+  protected openConvertDialog(): void {
+    this.lastResponse.set(null);
+    this.convertFeedback.set(null);
+
+    if (this.filterForm.controls.sourceWarehouseNo.invalid) {
+      this.filterForm.controls.sourceWarehouseNo.markAsTouched();
+      this.feedback.set({
+        tone: 'error',
+        title: 'Kaynak depo eksik',
+        message: 'Siparise cevirmek icin once kaynak depo no girin.'
+      });
+      return;
+    }
+
+    if (!this.selectedLines().filter((line) => this.safeNumber(line.quantity) > 0).length) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Satir secilmedi',
+        message: 'Siparise cevirmek icin en az bir satir secin.'
+      });
+      return;
+    }
+
+    this.isConvertDialogOpen.set(true);
+  }
+
+  protected closeConvertDialog(): void {
+    if (this.isConverting()) {
+      return;
+    }
+
+    this.isConvertDialogOpen.set(false);
+    this.convertFeedback.set(null);
+  }
+
   protected convertToOrder(): void {
     if (this.isConverting()) {
       return;
@@ -187,7 +225,7 @@ export class OnerilenDepoSiparisleriListComponent {
 
     if (this.filterForm.invalid) {
       this.filterForm.markAllAsTouched();
-      this.feedback.set({
+      this.convertFeedback.set({
         tone: 'error',
         title: 'Siparis bilgisi eksik',
         message: 'Kaynak depo, siparis tarihi ve teslim tarihi zorunludur.'
@@ -198,7 +236,7 @@ export class OnerilenDepoSiparisleriListComponent {
     const selectedLines = this.selectedLines().filter((line) => this.safeNumber(line.quantity) > 0);
 
     if (!selectedLines.length) {
-      this.feedback.set({
+      this.convertFeedback.set({
         tone: 'error',
         title: 'Satir secilmedi',
         message: 'Siparise cevirmek icin en az bir satir secin.'
@@ -209,7 +247,7 @@ export class OnerilenDepoSiparisleriListComponent {
     const request = this.buildConvertRequest(selectedLines);
 
     this.isConverting.set(true);
-    this.feedback.set(null);
+    this.convertFeedback.set(null);
     this.lastResponse.set(null);
 
     this.siparisIslemleriService
@@ -221,6 +259,11 @@ export class OnerilenDepoSiparisleriListComponent {
       .subscribe({
         next: (response: CreateIssuedWarehouseOrderResponse) => {
           this.lastResponse.set(response);
+          this.convertFeedback.set({
+            tone: 'success',
+            title: 'Siparis olustu',
+            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`
+          });
           this.feedback.set({
             tone: 'success',
             title: 'Siparis olustu',
@@ -228,7 +271,7 @@ export class OnerilenDepoSiparisleriListComponent {
           });
         },
         error: (error: unknown) => {
-          this.feedback.set({
+          this.convertFeedback.set({
             tone: 'error',
             title: 'Siparis olusturulamadi',
             message: this.resolveErrorMessage(error, 'Oneriler siparise cevrilirken hata olustu.')

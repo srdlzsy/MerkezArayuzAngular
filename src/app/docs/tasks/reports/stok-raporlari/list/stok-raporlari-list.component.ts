@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  OnDestroy,
   OnInit,
   computed,
   inject,
@@ -22,6 +23,7 @@ import type {
   ProducerStockOnHandHttpRequest,
   ProductWarehouseStockDto,
   ProductWarehouseStockByPathHttpRequest,
+  ProductLookupItemDto,
   ProfitabilityReportHttpRequest,
   ProfitabilityReportItemDto,
   ReportStockCardDetailHttpRequest,
@@ -43,6 +45,7 @@ import type {
   YearSalesComparisonItemDto
 } from '@interfaces';
 
+import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { RaporIslemleriService } from '../../../../../core/api/module-services/rapor-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -590,7 +593,7 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
   styleUrl: './stok-raporlari-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class StokRaporlariListComponent implements OnInit {
+export class StokRaporlariListComponent implements OnInit, OnDestroy {
   protected readonly page: DocsContentPage = DOCS_PAGES['stok-raporlari'];
   protected readonly reportDefinitions = REPORT_DEFINITIONS;
   protected readonly filterTypes = FILTER_TYPES;
@@ -615,6 +618,10 @@ export class StokRaporlariListComponent implements OnInit {
   protected readonly take = signal(250);
   protected readonly rows = signal<readonly object[]>([]);
   protected readonly metrics = signal<readonly StockReportMetric[]>([]);
+  protected readonly productSearchText = signal('');
+  protected readonly productSearchResults = signal<readonly ProductLookupItemDto[]>([]);
+  protected readonly isProductSearchLoading = signal(false);
+  protected readonly productSearchMessage = signal<string | null>(null);
   protected readonly categoryOptions = signal<readonly StockCategoryOptionDto[]>([]);
   protected readonly isCategoryOptionsLoading = signal(false);
   protected readonly categoryOptionsError = signal<string | null>(null);
@@ -625,9 +632,12 @@ export class StokRaporlariListComponent implements OnInit {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
+  private readonly aramaService = inject(AramaService);
   private readonly raporIslemleriService = inject(RaporIslemleriService);
   private activeRequestId = 0;
+  private activeProductSearchRequestId = 0;
   private activeCategoryOptionsRequestId = 0;
+  private productSearchTimer: ReturnType<typeof setTimeout> | null = null;
 
   protected readonly selectedDefinition = computed(
     () =>
@@ -658,6 +668,21 @@ export class StokRaporlariListComponent implements OnInit {
   );
   protected readonly usesPrimaryTextInput = computed(
     () => Boolean(this.primaryLabel()) && this.selectedReport() !== 'kategori-son-stok'
+  );
+  protected readonly usesProductLookup = computed(() =>
+    [
+      'son-stok',
+      'envanter-degeri',
+      'urun-depo-durum',
+      'stok-kartlari',
+      'depoda-var-subede-yok',
+      'hareketler',
+      'giris-cikis-karsilastirma',
+      'satis-sube-detay',
+      'satis-yil-karsilastirma',
+      'iadeler-subeler',
+      'karlilik'
+    ].includes(this.selectedReport())
   );
   protected readonly primaryLabel = computed(() => this.selectedDefinition().primaryLabel ?? '');
   protected readonly primaryPlaceholder = computed(
@@ -715,6 +740,12 @@ export class StokRaporlariListComponent implements OnInit {
     this.loadRows();
   }
 
+  ngOnDestroy(): void {
+    if (this.productSearchTimer) {
+      clearTimeout(this.productSearchTimer);
+    }
+  }
+
   protected selectReport(reportKey: StockReportKey): void {
     if (this.selectedReport() === reportKey) {
       return;
@@ -733,6 +764,7 @@ export class StokRaporlariListComponent implements OnInit {
     this.rows.set([]);
     this.metrics.set([]);
     this.resultNote.set(null);
+    this.clearProductSearchState();
 
     if (this.usesCategoryOptions()) {
       this.loadCategoryOptions();
@@ -809,6 +841,112 @@ export class StokRaporlariListComponent implements OnInit {
 
   protected updateSearchText(value: string): void {
     this.searchText.set(value);
+  }
+
+  protected updateProductSearch(value: string): void {
+    this.productSearchText.set(value);
+    this.productSearchMessage.set(null);
+
+    if (this.productSearchTimer) {
+      clearTimeout(this.productSearchTimer);
+      this.productSearchTimer = null;
+    }
+
+    const query = value.trim();
+
+    if (!query) {
+      this.productSearchResults.set([]);
+      this.isProductSearchLoading.set(false);
+      return;
+    }
+
+    if (query.length < 2) {
+      this.productSearchResults.set([]);
+      this.isProductSearchLoading.set(false);
+      this.productSearchMessage.set('Stok aramak icin en az 2 karakter girin.');
+      return;
+    }
+
+    this.isProductSearchLoading.set(true);
+    this.productSearchTimer = setTimeout(() => this.searchProducts(query), 300);
+  }
+
+  protected applyFirstProductSearchResult(): void {
+    const firstProduct = this.productSearchResults()[0];
+
+    if (firstProduct) {
+      this.selectProduct(firstProduct);
+      return;
+    }
+
+    this.loadProductSearch();
+  }
+
+  protected loadProductSearch(): void {
+    const query = this.productSearchText().trim();
+
+    if (this.productSearchTimer) {
+      clearTimeout(this.productSearchTimer);
+      this.productSearchTimer = null;
+    }
+
+    if (query.length < 2) {
+      this.productSearchResults.set([]);
+      this.productSearchMessage.set('Stok aramak icin en az 2 karakter girin.');
+      this.isProductSearchLoading.set(false);
+      return;
+    }
+
+    this.searchProducts(query);
+  }
+
+  protected selectProduct(product: ProductLookupItemDto): void {
+    const stockCode = product.stockCode?.trim();
+
+    if (!stockCode) {
+      this.productSearchMessage.set('Secilen urunde stok kodu bulunamadi.');
+      return;
+    }
+
+    this.productSearchText.set(this.formatProductLookup(product));
+    this.productSearchResults.set([]);
+    this.productSearchMessage.set(null);
+    this.applyProductToCurrentReport(stockCode);
+    this.loadRows();
+  }
+
+  protected clearProductFilter(): void {
+    if (this.productSearchTimer) {
+      clearTimeout(this.productSearchTimer);
+      this.productSearchTimer = null;
+    }
+
+    this.clearProductSearchState();
+
+    switch (this.selectedReport()) {
+      case 'urun-depo-durum':
+      case 'stok-kartlari':
+      case 'hareketler':
+      case 'iadeler-subeler':
+        this.primaryCode.set('');
+        break;
+      case 'giris-cikis-karsilastirma':
+      case 'satis-sube-detay':
+      case 'satis-yil-karsilastirma':
+      case 'karlilik':
+        this.primaryCode.set('');
+        this.searchText.set('');
+        break;
+      case 'depoda-var-subede-yok':
+        this.primaryCode.set('');
+        this.searchText.set('');
+        break;
+      case 'son-stok':
+      case 'envanter-degeri':
+      default:
+        this.searchText.set('');
+        break;
+    }
   }
 
   protected updateModelCode(value: string): void {
@@ -942,7 +1080,28 @@ export class StokRaporlariListComponent implements OnInit {
     metric.label;
   protected readonly trackByCategoryOption = (_index: number, option: StockCategoryOptionDto): string =>
     option.categoryCode ?? option.categoryName ?? String(_index);
+  protected readonly trackByProduct = (_index: number, product: ProductLookupItemDto): string =>
+    product.stockCode?.trim() || product.barcode?.trim() || String(_index);
   protected readonly formatCategoryOption = formatCategoryOption;
+  protected readonly formatProductLookup = (product: ProductLookupItemDto): string => {
+    const stockCode = product.stockCode?.trim() || '';
+    const stockName = product.stockName?.trim() || '';
+
+    if (stockCode && stockName) {
+      return `${stockCode} - ${stockName}`;
+    }
+
+    return stockCode || stockName || product.barcode?.trim() || 'Urun';
+  };
+  protected readonly formatProductLookupMeta = (product: ProductLookupItemDto): string => {
+    const parts = [
+      product.barcode?.trim() ? `Barkod ${product.barcode.trim()}` : '',
+      product.unitName?.trim() || '',
+      Number.isFinite(product.price) ? formatMoney(product.price) : ''
+    ].filter((value): value is string => Boolean(value));
+
+    return parts.join(' / ') || '-';
+  };
   protected readonly trackByFilter = (
     _index: number,
     option: (typeof FILTER_TYPES)[number] | (typeof PROFIT_SCOPES)[number]
@@ -1194,6 +1353,86 @@ export class StokRaporlariListComponent implements OnInit {
         { label: 'Fark Deger', value: formatMoney(sumBy(rows, (row) => row.differenceValue)) }
       ]
     };
+  }
+
+  private searchProducts(query: string): void {
+    const requestId = ++this.activeProductSearchRequestId;
+
+    this.isProductSearchLoading.set(true);
+    this.productSearchMessage.set(null);
+
+    this.aramaService
+      .searchStock(query, 12)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.activeProductSearchRequestId) {
+            this.isProductSearchLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (items: ProductLookupItemDto[]) => {
+          if (requestId !== this.activeProductSearchRequestId) {
+            return;
+          }
+
+          this.productSearchResults.set(items ?? []);
+          this.productSearchMessage.set(items?.length ? null : 'Stok bulunamadi.');
+        },
+        error: (error: unknown) => {
+          if (requestId !== this.activeProductSearchRequestId) {
+            return;
+          }
+
+          this.productSearchResults.set([]);
+          this.productSearchMessage.set(getErrorMessage(error, 'Stok aramasi yapilamadi.'));
+        }
+      });
+  }
+
+  private applyProductToCurrentReport(stockCode: string): void {
+    switch (this.selectedReport()) {
+      case 'urun-depo-durum':
+      case 'stok-kartlari':
+      case 'hareketler':
+      case 'iadeler-subeler':
+        this.primaryCode.set(stockCode);
+        return;
+      case 'giris-cikis-karsilastirma':
+      case 'satis-sube-detay':
+      case 'satis-yil-karsilastirma':
+        this.filterType.set('stock');
+        this.primaryCode.set(stockCode);
+        return;
+      case 'karlilik':
+        this.profitScope.set('stock');
+        this.primaryCode.set(stockCode);
+        return;
+      case 'depoda-var-subede-yok':
+        this.primaryCode.set(stockCode);
+        this.searchText.set(stockCode);
+        return;
+      case 'son-stok':
+      case 'envanter-degeri':
+      default:
+        this.searchText.set(stockCode);
+        return;
+    }
+  }
+
+  private clearProductSearchState(): void {
+    this.activeProductSearchRequestId++;
+
+    if (this.productSearchTimer) {
+      clearTimeout(this.productSearchTimer);
+      this.productSearchTimer = null;
+    }
+
+    this.productSearchText.set('');
+    this.productSearchResults.set([]);
+    this.productSearchMessage.set(null);
+    this.isProductSearchLoading.set(false);
   }
 
   private buildOnHandRequest(): StockOnHandReportHttpRequest {

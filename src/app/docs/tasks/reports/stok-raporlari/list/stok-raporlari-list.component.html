@@ -180,6 +180,61 @@
           </datalist>
         </label>
 
+        <div class="field product-lookup-field" *ngIf="usesProductLookup()">
+          <span>Stok Ara</span>
+          <div class="input-with-action product-search-box">
+            <input
+              type="search"
+              placeholder="Barkod, stok kodu veya ad"
+              [value]="productSearchText()"
+              (input)="updateProductSearch($any($event.target).value ?? '')"
+              (keyup.enter)="applyFirstProductSearchResult()"
+            />
+            <button
+              type="button"
+              class="icon-action"
+              title="Stok ara"
+              [disabled]="isProductSearchLoading()"
+              (click)="loadProductSearch()"
+            >
+              <i class="fa-solid" [ngClass]="isProductSearchLoading() ? 'fa-circle-notch fa-spin' : 'fa-magnifying-glass'"></i>
+            </button>
+            <button
+              type="button"
+              class="icon-action"
+              title="Stok filtresini temizle"
+              *ngIf="productSearchText() || productSearchResults().length || searchText()"
+              (click)="clearProductFilter()"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div
+            class="product-results"
+            *ngIf="productSearchResults().length || isProductSearchLoading() || productSearchMessage()"
+          >
+            <div class="lookup-state" *ngIf="isProductSearchLoading()">
+              <i class="fa-solid fa-circle-notch fa-spin"></i>
+              Araniyor...
+            </div>
+
+            <button
+              type="button"
+              class="product-option"
+              *ngFor="let product of productSearchResults(); trackBy: trackByProduct"
+              (click)="selectProduct(product)"
+            >
+              <strong>{{ formatProductLookup(product) }}</strong>
+              <span>{{ formatProductLookupMeta(product) }}</span>
+            </button>
+
+            <div class="lookup-state" *ngIf="!isProductSearchLoading() && productSearchMessage()">
+              {{ productSearchMessage() }}
+            </div>
+          </div>
+        </div>
+
         <label class="field" *ngIf="usesPrimaryTextInput()">
           <span>{{ primaryLabel() }}</span>
           <input

@@ -88,10 +88,12 @@ export class OnerilenFirmaSiparisleriListComponent {
   protected readonly lines = signal<SuggestedCompanyLineState[]>([]);
   protected readonly supplierResults = signal<CustomerLookupItemDto[]>([]);
   protected readonly feedback = signal<PageFeedback | null>(null);
+  protected readonly convertFeedback = signal<PageFeedback | null>(null);
   protected readonly supplierFeedback = signal<string>('');
   protected readonly isLoading = signal(false);
   protected readonly isSupplierLoading = signal(false);
   protected readonly isConverting = signal(false);
+  protected readonly isConvertDialogOpen = signal(false);
   protected readonly lastResponse = signal<CreateIssuedCompanyOrderResponse | null>(null);
 
   protected readonly selectedLines = computed(() => this.lines().filter((line) => line.selected));
@@ -198,6 +200,7 @@ export class OnerilenFirmaSiparisleriListComponent {
 
   protected loadSuggestions(): void {
     this.lastResponse.set(null);
+    this.convertFeedback.set(null);
 
     if (this.filterForm.invalid) {
       this.filterForm.markAllAsTouched();
@@ -266,20 +269,9 @@ export class OnerilenFirmaSiparisleriListComponent {
       });
   }
 
-  protected convertToOrder(): void {
-    if (this.isConverting()) {
-      return;
-    }
-
-    if (this.filterForm.invalid) {
-      this.filterForm.markAllAsTouched();
-      this.feedback.set({
-        tone: 'error',
-        title: 'Siparis bilgisi eksik',
-        message: 'Siparis tarihi, teslim tarihi ve aciklama alanlarini kontrol edin.'
-      });
-      return;
-    }
+  protected openConvertDialog(): void {
+    this.lastResponse.set(null);
+    this.convertFeedback.set(null);
 
     const selectedLines = this.selectedLines().filter((line) => this.safeNumber(line.quantity) > 0);
     const supplierCode = this.resolveConvertSupplierCode(selectedLines);
@@ -302,10 +294,58 @@ export class OnerilenFirmaSiparisleriListComponent {
       return;
     }
 
+    this.isConvertDialogOpen.set(true);
+  }
+
+  protected closeConvertDialog(): void {
+    if (this.isConverting()) {
+      return;
+    }
+
+    this.isConvertDialogOpen.set(false);
+    this.convertFeedback.set(null);
+  }
+
+  protected convertToOrder(): void {
+    if (this.isConverting()) {
+      return;
+    }
+
+    if (this.filterForm.invalid) {
+      this.filterForm.markAllAsTouched();
+      this.convertFeedback.set({
+        tone: 'error',
+        title: 'Siparis bilgisi eksik',
+        message: 'Siparis tarihi, teslim tarihi ve aciklama alanlarini kontrol edin.'
+      });
+      return;
+    }
+
+    const selectedLines = this.selectedLines().filter((line) => this.safeNumber(line.quantity) > 0);
+    const supplierCode = this.resolveConvertSupplierCode(selectedLines);
+
+    if (!selectedLines.length) {
+      this.convertFeedback.set({
+        tone: 'error',
+        title: 'Satir secilmedi',
+        message: 'Siparise cevirmek icin en az bir satir secin.'
+      });
+      return;
+    }
+
+    if (!supplierCode) {
+      this.convertFeedback.set({
+        tone: 'error',
+        title: 'Tedarikci belirsiz',
+        message: 'Siparise cevrilecek satirlar tek tedarikciye ait olmalidir.'
+      });
+      return;
+    }
+
     const request = this.buildConvertRequest(supplierCode, selectedLines);
 
     this.isConverting.set(true);
-    this.feedback.set(null);
+    this.convertFeedback.set(null);
     this.lastResponse.set(null);
 
     this.siparisIslemleriService
@@ -317,6 +357,11 @@ export class OnerilenFirmaSiparisleriListComponent {
       .subscribe({
         next: (response: CreateIssuedCompanyOrderResponse) => {
           this.lastResponse.set(response);
+          this.convertFeedback.set({
+            tone: 'success',
+            title: 'Siparis olustu',
+            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`
+          });
           this.feedback.set({
             tone: 'success',
             title: 'Siparis olustu',
@@ -324,7 +369,7 @@ export class OnerilenFirmaSiparisleriListComponent {
           });
         },
         error: (error: unknown) => {
-          this.feedback.set({
+          this.convertFeedback.set({
             tone: 'error',
             title: 'Siparis olusturulamadi',
             message: this.resolveErrorMessage(error, 'Oneriler siparise cevrilirken hata olustu.')
