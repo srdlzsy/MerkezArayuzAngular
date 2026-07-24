@@ -141,6 +141,7 @@
                 <th>Mevcut</th>
                 <th>Acik Siparis</th>
                 <th>Ihtiyac</th>
+                <th>Koli</th>
                 <th>Alis</th>
                 <th>Oneri</th>
                 <th>Miktar</th>
@@ -170,6 +171,7 @@
                     {{ formatNumber(line.item.needQuantity) }}
                   </span>
                 </td>
+                <td>{{ formatNumber(line.item.packageFactor) }}</td>
                 <td>{{ formatCurrency(line.item.purchasePrice) }}</td>
                 <td>{{ formatNumber(line.item.suggestedOrderQuantity) }}</td>
                 <td>

@@ -111,6 +111,7 @@
                 <th>Son Satis</th>
                 <th>Acik Siparis</th>
                 <th>Ihtiyac</th>
+                <th>Koli</th>
                 <th>Oneri</th>
                 <th>Miktar</th>
               </tr>
@@ -130,7 +131,6 @@
                 <td>{{ line.item.stockCode }}</td>
                 <td>
                   <strong>{{ line.item.stockName }}</strong>
-                  <div class="table-meta">Paket {{ formatNumber(line.item.packageFactor) }}</div>
                 </td>
                 <td>{{ line.item.barcode || '-' }}</td>
                 <td>{{ line.item.modelCode || '-' }}</td>
@@ -143,6 +143,7 @@
                     {{ formatNumber(line.item.needQuantity) }}
                   </span>
                 </td>
+                <td>{{ formatNumber(line.item.packageFactor) }}</td>
                 <td>{{ formatNumber(line.item.suggestedOrderQuantity) }}</td>
                 <td>
                   <input
