@@ -103,7 +103,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   private readonly today = this.formatAsInputDate(new Date());
   private readonly formRevision = signal(0);
 
-  protected readonly page: DocsContentPage = DOCS_PAGES['kasa-sayimlari'];
+  protected readonly page: DocsContentPage = DOCS_PAGES['icmal-kaydi-girisi'];
   protected readonly endpointPath = '/api/kasa-islemleri/kasa-sayimlari';
   protected readonly payloadName = 'CreateCashSummaryHttpRequest';
   protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
@@ -811,7 +811,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
     if (!this.hasRequiredFinancialLines()) {
       this.submitError.set(
-        'Kaydetmek icin en az bir sayim kartina satir eklemelisin.'
+        'Kaydetmek icin en az bir icmal kartina satir eklemelisin.'
       );
     }
 
@@ -838,7 +838,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
         },
         error: (error: HttpErrorResponse) => {
           this.submitError.set(
-            this.resolveErrorMessage(error, 'Kasa sayimi olusturulurken bir hata olustu.')
+            this.resolveErrorMessage(error, 'Icmal kaydi olusturulurken bir hata olustu.')
           );
         }
       });

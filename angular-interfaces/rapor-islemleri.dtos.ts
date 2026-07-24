@@ -565,9 +565,10 @@ export type SalesAnalysisFoodCheckTotalKind =
   | 'ticket-pos'
   | 'genel';
 
-export type SupplierPerformanceRiskLevel = 'Healthy' | 'Warning' | 'Critical';
+export type SupplierPerformanceRiskLevel = 'NoData' | 'Healthy' | 'Warning' | 'Critical';
 export type SupplierPerformanceGrade = 'A' | 'B' | 'C' | 'D' | 'E';
 export type SupplierPerformanceInvoiceMetricsState = 'summary-only' | string;
+export type SupplierPerformanceSignalSeverity = 'Info' | 'Healthy' | 'Warning' | 'Critical';
 export type SupplierPerformanceEventType =
   | 'Order'
   | 'OpenLateOrder'
@@ -596,6 +597,7 @@ export interface SupplierPerformanceDetailHttpRequest {
 
 export interface SupplierPerformanceSummaryDto {
   supplierCount: number;
+  returnedSupplierCount?: number | null;
   averageScore: number;
   criticalSupplierCount: number;
   warningSupplierCount: number;
@@ -608,6 +610,19 @@ export interface SupplierPerformanceSummaryDto {
   totalIssuedInvoiceAmount: number;
   totalIncomingInvoiceAmount: number;
   invoiceMetricsState: SupplierPerformanceInvoiceMetricsState;
+  overallStatus?: SupplierPerformanceRiskLevel | string | null;
+  headline?: string | null;
+}
+
+export interface SupplierPerformanceSignalDto {
+  code: string;
+  severity: SupplierPerformanceSignalSeverity | string;
+  title: string;
+  description: string;
+}
+
+export interface SupplierPerformanceInsightDto extends SupplierPerformanceSignalDto {
+  customerCode?: string | null;
 }
 
 export interface SupplierPerformanceOrderMetricsDto {
@@ -681,6 +696,7 @@ export interface SupplierPerformanceCardDto {
   outageImpact: SupplierPerformanceOutageImpactMetricsDto;
   invoices: SupplierPerformanceInvoiceMetricsDto;
   scoreBreakdown: SupplierPerformanceScoreBreakdownDto;
+  signals?: SupplierPerformanceSignalDto[];
 }
 
 export interface SupplierPerformanceReportDto {
@@ -689,6 +705,7 @@ export interface SupplierPerformanceReportDto {
   endDate: string;
   generatedAtUtc: string;
   summary: SupplierPerformanceSummaryDto;
+  insights?: SupplierPerformanceInsightDto[];
   items: SupplierPerformanceCardDto[];
 }
 

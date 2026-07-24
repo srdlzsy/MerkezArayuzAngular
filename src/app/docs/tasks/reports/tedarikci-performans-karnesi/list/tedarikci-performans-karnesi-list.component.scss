@@ -117,6 +117,12 @@ p {
   background: #dcfce7;
 }
 
+.risk-nodata,
+.risk-neutral {
+  color: #475569;
+  background: #e2e8f0;
+}
+
 .filter-panel {
   grid-template-columns: repeat(2, minmax(130px, 0.18fr)) minmax(260px, 0.4fr) minmax(130px, 0.18fr) minmax(280px, 0.44fr) minmax(88px, 0.12fr) auto;
   align-items: end;
@@ -328,6 +334,106 @@ p {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(110px, 1fr));
   gap: 0.45rem;
+}
+
+.decision-band {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.7rem;
+  border: 1px solid var(--supplier-border);
+  border-radius: 8px;
+  padding: 0.6rem 0.7rem;
+  background: #fbfcfe;
+}
+
+.decision-band h3 {
+  font-size: 0.95rem;
+  line-height: 1.25;
+}
+
+.insight-grid,
+.signal-strip {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.insight-grid {
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+}
+
+.insight-card,
+.signal-strip article {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  border: 1px solid var(--supplier-border);
+  border-radius: 8px;
+  padding: 0.52rem 0.58rem;
+  background: #fff;
+}
+
+.insight-card span,
+.signal-strip span {
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.insight-card strong,
+.signal-strip strong {
+  color: var(--supplier-ink);
+  font-size: 0.82rem;
+}
+
+.insight-card p,
+.signal-strip p {
+  margin: 0;
+  color: var(--supplier-muted);
+  font-size: 0.78rem;
+  line-height: 1.4;
+}
+
+.insight-card small {
+  color: var(--supplier-muted);
+  font-weight: 800;
+}
+
+.signal-critical {
+  border-color: #fecaca;
+  background: #fff7f7;
+}
+
+.signal-critical span {
+  color: var(--supplier-danger);
+}
+
+.signal-warning {
+  border-color: #fde68a;
+  background: #fffbeb;
+}
+
+.signal-warning span {
+  color: #92400e;
+}
+
+.signal-healthy {
+  border-color: #bbf7d0;
+  background: #f0fdf4;
+}
+
+.signal-healthy span {
+  color: #166534;
+}
+
+.signal-info {
+  border-color: #bfdbfe;
+  background: #eff6ff;
+}
+
+.signal-info span {
+  color: #075985;
 }
 
 .metric-card {

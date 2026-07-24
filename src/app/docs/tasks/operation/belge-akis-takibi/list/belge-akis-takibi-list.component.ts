@@ -262,6 +262,10 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     const query = this.activatedRoute.snapshot.queryParamMap;
     const warehouseNo = query.get('warehouseNo')?.trim() ?? '';
     const date = query.get('date')?.trim() ?? '';
+    const startDate = query.get('startDate')?.trim() ?? '';
+    const endDate = query.get('endDate')?.trim() ?? '';
+    const status = query.get('status')?.trim() ?? '';
+    const documentType = query.get('documentType')?.trim() ?? '';
 
     if (this.isAdminUser() && /^\d+$/.test(warehouseNo) && Number(warehouseNo) > 0) {
       this.filters.warehouseNo = warehouseNo;
@@ -270,6 +274,22 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     if (/^\d{4}-\d{2}-\d{2}$/.test(date)) {
       this.filters.startDate = date;
       this.filters.endDate = date;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      this.filters.startDate = startDate;
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      this.filters.endDate = endDate;
+    }
+
+    if (STATUS_OPTIONS.some((option) => option.value === status)) {
+      this.filters.status = status;
+    }
+
+    if (DOCUMENT_TYPE_OPTIONS.some((option) => option.value === documentType)) {
+      this.filters.documentType = documentType;
     }
   }
 

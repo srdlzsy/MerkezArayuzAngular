@@ -19,6 +19,7 @@ import type {
   SupplierPerformanceDetailHttpRequest,
   SupplierPerformanceEventDto,
   SupplierPerformanceHttpRequest,
+  SupplierPerformanceInsightDto,
   SupplierPerformanceReportDto
 } from '@interfaces';
 
@@ -37,6 +38,13 @@ interface SupplierPerformanceMetric {
   label: string;
   value: string;
   tone?: 'danger' | 'warning' | 'success';
+}
+
+interface SupplierPerformanceSignalLike {
+  code?: string | null;
+  severity?: string | null;
+  title?: string | null;
+  description?: string | null;
 }
 
 const TASK_ID = 'tedarikci-performans-karnesi';
@@ -92,6 +100,8 @@ function formatDate(value: string | null | undefined): string {
 
 function riskLabel(value: string | null | undefined): string {
   switch (value) {
+    case 'NoData':
+      return 'Veri Yok';
     case 'Healthy':
       return 'Saglikli';
     case 'Warning':
@@ -126,6 +136,29 @@ function eventTypeLabel(value: string | null | undefined): string {
   }
 }
 
+function signalSeverityLabel(value: string | null | undefined): string {
+  switch (value) {
+    case 'Critical':
+      return 'Kritik';
+    case 'Warning':
+      return 'Uyari';
+    case 'Healthy':
+      return 'Saglikli';
+    case 'Info':
+      return 'Bilgi';
+    default:
+      return value?.trim() || '-';
+  }
+}
+
+function formatSignals(signals: readonly SupplierPerformanceSignalLike[] | null | undefined): string {
+  const titles = (signals ?? [])
+    .map((signal) => signal.title?.trim() || signal.description?.trim() || signal.code?.trim())
+    .filter((value): value is string => !!value);
+
+  return titles.length ? titles.join(' / ') : '-';
+}
+
 const TABLE_COLUMNS: readonly ApiListTableColumn<SupplierPerformanceCardDto>[] = [
   {
     key: 'customerTitle',
@@ -141,6 +174,11 @@ const TABLE_COLUMNS: readonly ApiListTableColumn<SupplierPerformanceCardDto>[] =
     key: 'riskLevel',
     label: 'Risk',
     resolveValue: (row) => riskLabel(row.riskLevel)
+  },
+  {
+    key: 'signals',
+    label: 'Sinyal',
+    resolveValue: (row) => formatSignals(row.signals)
   },
   {
     key: 'orders.deliveryRate',
@@ -258,6 +296,7 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
 
     return [
       { label: 'Tedarikci', value: formatNumber(summary.supplierCount) },
+      { label: 'Donen Kart', value: formatNumber(summary.returnedSupplierCount ?? this.rows().length) },
       { label: 'Ortalama Skor', value: formatNumber(summary.averageScore), tone: 'success' },
       {
         label: 'Kritik / Uyari',
@@ -272,6 +311,11 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
       { label: 'Gelen Fatura', value: formatMoney(summary.totalIncomingInvoiceAmount) }
     ];
   });
+  protected readonly sortedInsights = computed<readonly SupplierPerformanceInsightDto[]>(() =>
+    [...(this.report()?.insights ?? [])].sort(
+      (left, right) => this.severityOrder(left.severity) - this.severityOrder(right.severity)
+    )
+  );
 
   ngOnInit(): void {
     if (this.canList()) {
@@ -458,6 +502,23 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
     return riskLabel(value);
   }
 
+  protected signalSeverityLabel(value: string | null | undefined): string {
+    return signalSeverityLabel(value);
+  }
+
+  protected signalSeverityClass(value: string | null | undefined): string {
+    return `signal-${(value || 'Info').toLocaleLowerCase('en-US')}`;
+  }
+
+  protected summaryHeadline(): string {
+    const summary = this.report()?.summary;
+    return summary?.headline?.trim() || 'Tedarikci performans ozeti';
+  }
+
+  protected summaryStatusLabel(): string {
+    return riskLabel(this.report()?.summary?.overallStatus ?? null);
+  }
+
   protected eventTypeLabel(value: string | null | undefined): string {
     return eventTypeLabel(value);
   }
@@ -504,6 +565,10 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
 
   protected trackByMetric = (_index: number, metric: SupplierPerformanceMetric): string =>
     metric.label;
+  protected trackByInsight = (_index: number, insight: SupplierPerformanceInsightDto): string =>
+    `${insight.code}-${insight.customerCode ?? ''}-${insight.title}`;
+  protected trackBySignal = (_index: number, signal: SupplierPerformanceSignalLike): string =>
+    `${signal.code ?? ''}-${signal.title ?? ''}`;
   protected trackByEvent = (_index: number, event: SupplierPerformanceEventDto): string =>
     `${event.type}-${this.eventDate(event)}-${event.documentSerie ?? ''}-${event.documentOrderNo ?? ''}-${event.stockCode ?? ''}`;
   protected trackBySupplier = (_index: number, supplier: CustomerLookupItemDto): string =>
@@ -540,6 +605,20 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
           this.supplierSearchMessage.set(getErrorMessage(error, 'Tedarikci aramasi yapilamadi.'));
         }
       });
+  }
+
+  private severityOrder(value: string | null | undefined): number {
+    switch (value) {
+      case 'Critical':
+        return 0;
+      case 'Warning':
+        return 1;
+      case 'Healthy':
+        return 2;
+      case 'Info':
+      default:
+        return 3;
+    }
   }
 
   private buildListRequest(): SupplierPerformanceHttpRequest {

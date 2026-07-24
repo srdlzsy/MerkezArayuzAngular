@@ -199,23 +199,23 @@ export const CASH_REGISTER_TASK_SOURCE = {
       ]
     }
   ),
-  'kasa-sayimlari': multiRouteTask(
+  'kasa-sayimlari': singleRouteTask(
     {
       id: 'kasa-sayimlari',
       title: 'Kasa Sayimlari',
       subtitle:
-        'Kasa sayimi listesi, lookup yardimcilari ve CreateCashSummaryHttpRequest tabanli olusturma akisi.',
+        'Gunluk kasa sayimi ve icmal kayitlarini salt okunur liste, rapor ve detay akisiyla izler.',
       baseRouteOrFile: '/api/kasa-islemleri/kasa-sayimlari | /api/kasa-islemleri/kasa-sayimlari/rapor',
       highlights: [
-        'WarehouseNo body icinde opsiyoneldir ve JWT deposuyla ayni olmali',
-        'En az bir paymentTypes veya storeExpenses satiri zorunludur',
-        'Belge serisi backend tarafinda KS{loginDepoNo} olarak uretilir'
+        'Bu gorev sadece list ve detail yetkileriyle okunur',
+        'Icmal girisi butonu bu ekranda yetki olarak cizilmez',
+        'Yeni kayit ve guncelleme akislari ayri Icmal Kaydi Girisi gorevinde acilir'
       ],
-      listTitle: 'Olusturma ve Liste Endpointleri',
+      listTitle: 'Liste ve Detay Endpointleri',
       items: [
         {
           name: 'KasaSayimlariController',
-          description: 'Gunluk kasa icmal kayitlarini, raporunu, detaylarini ve create akislarini sunar.',
+          description: 'Gunluk kasa icmal kayitlarini, raporunu ve detaylarini salt okunur kapsamdaki UI icin sunar.',
           endpoints: [
             {
               method: 'GET',
@@ -231,11 +231,43 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/detaylar',
               description: 'Icmal odeme detaylarini getirir'
-            },
+            }
+          ]
+        }
+      ]
+    },
+    () =>
+      import('../tasks/cash-register/icmal-dokumu/list/icmal-dokumu-list.component').then(
+        (m) => m.IcmalDokumuListComponent
+      ),
+    {
+      accessKeyAliases: ['KasaSayimlari', 'kasa-islemleri.kasa-sayimlari']
+    }
+  ),
+  'icmal-kaydi-girisi': multiRouteTask(
+    {
+      id: 'icmal-kaydi-girisi',
+      title: 'Icmal Kaydi Girisi',
+      subtitle:
+        'Kasa icmal kaydi olusturma, lookup, Z rapor okuma, detay guncelleme ve silme akislarini ayri gorev olarak yonetir.',
+      baseRouteOrFile: '/api/kasa-islemleri/kasa-sayimlari',
+      highlights: [
+        'Yetki kodlari kasa-islemleri.icmal-kaydi-girisi.* ailesindedir',
+        'WarehouseNo body icinde opsiyoneldir ve JWT deposuyla ayni olmali',
+        'En az bir paymentTypes veya storeExpenses satiri zorunludur',
+        'Belge serisi backend tarafinda KS{loginDepoNo} olarak uretilir',
+        'API route ailesi geriye uyumluluk icin kasa-sayimlari altinda kalir'
+      ],
+      listTitle: 'Giris, Lookup ve Guncelleme Endpointleri',
+      items: [
+        {
+          name: 'KasaSayimlariController',
+          description: 'Icmal kaydi girisi icin create, lookup, update ve delete endpointlerini sunar.',
+          endpoints: [
             {
               method: 'POST',
               path: '/api/kasa-islemleri/kasa-sayimlari',
-              description: 'Yeni kasa sayimi olusturur',
+              description: 'Yeni icmal kaydi olusturur',
               payload: 'CreateCashSummaryHttpRequest'
             },
             {
@@ -253,13 +285,13 @@ export const CASH_REGISTER_TASK_SOURCE = {
             {
               method: 'DELETE',
               path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}',
-              description: 'Kasa sayimi kaydini siler'
+              description: 'Icmal kaydini siler'
             }
           ]
         },
         {
           name: 'Lookup Endpointleri',
-          description: 'Create ekraninda kasiyer, kasa, banknot ve odeme tipi yardimcilari icin kullanilir.',
+          description: 'Icmal giris ekraninda kasiyer, kasa, banknot ve odeme tipi yardimcilari icin kullanilir.',
           endpoints: [
             {
               method: 'GET',
@@ -326,27 +358,28 @@ export const CASH_REGISTER_TASK_SOURCE = {
     },
     [
       route(
+        'docs/api/icmal-kaydi-girisi',
+        () =>
+          import('../tasks/cash-register/icmal-dokumu/create/icmal-dokumu-create.component').then(
+            (m) => m.IcmalDokumuCreateComponent
+          ),
+        {
+          data: { title: 'Icmal Kaydi Girisi' },
+          isPrimary: true
+        }
+      ),
+      route(
         'docs/api/kasa-sayimlari/ekle',
         () =>
           import('../tasks/cash-register/icmal-dokumu/create/icmal-dokumu-create.component').then(
             (m) => m.IcmalDokumuCreateComponent
           ),
         {
-          data: { title: 'Kasa Sayimi Olustur' }
-        }
-      ),
-      route(
-        'docs/api/kasa-sayimlari',
-        () =>
-          import('../tasks/cash-register/icmal-dokumu/list/icmal-dokumu-list.component').then(
-            (m) => m.IcmalDokumuListComponent
-          ),
-        {
-          isPrimary: true
+          data: { title: 'Icmal Kaydi Girisi' }
         }
       )
     ],
-    ['icmal-dokumu']
+    ['IcmalKaydiGirisi', 'icmal-dokumu', 'kasa-islemleri.icmal-kaydi-girisi']
   ),
   'banknot-takipleri': singleRouteTask(
     {

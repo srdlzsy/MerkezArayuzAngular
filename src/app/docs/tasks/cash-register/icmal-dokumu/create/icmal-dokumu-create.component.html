@@ -17,7 +17,7 @@
           Listeye Don
         </button>
         <button type="submit" class="action-button action-button-primary" [disabled]="submitting()">
-          {{ submitting() ? 'Kaydediliyor...' : 'Kasa Sayimini Kaydet' }}
+          {{ submitting() ? 'Kaydediliyor...' : 'Icmal Kaydini Kaydet' }}
         </button>
       </div>
     </header>
@@ -212,7 +212,7 @@
       </div>
     </article>
 
-    <section class="count-board" aria-label="Kasa sayimi kartlari">
+    <section class="count-board" aria-label="Icmal kaydi kartlari">
       <button
         type="button"
         class="count-card"
@@ -230,7 +230,7 @@
 
       <article class="count-card total-card">
         <span class="card-title">Toplam</span>
-        <span class="card-description">Kasa sayimi</span>
+        <span class="card-description">Icmal kaydi</span>
         <span class="card-metrics">
           <span>Z Farki {{ totalDifference() | number:'1.2-2' }} TL</span>
           <strong>{{ drawerGrandTotal() | number:'1.2-2' }} TL</strong>

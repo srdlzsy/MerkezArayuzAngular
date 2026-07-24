@@ -118,6 +118,29 @@
       <span>{{ selectedSupplierLabel() }}</span>
     </div>
 
+    <section class="decision-band" *ngIf="report()?.summary">
+      <div>
+        <span class="section-kicker">Karar Ozeti</span>
+        <h3>{{ summaryHeadline() }}</h3>
+      </div>
+      <strong class="risk-badge" [ngClass]="riskClass(report()?.summary?.overallStatus)">
+        {{ summaryStatusLabel() }}
+      </strong>
+    </section>
+
+    <section class="insight-grid" *ngIf="sortedInsights().length">
+      <article
+        class="insight-card"
+        *ngFor="let insight of sortedInsights(); trackBy: trackByInsight"
+        [ngClass]="signalSeverityClass(insight.severity)"
+      >
+        <span>{{ signalSeverityLabel(insight.severity) }}</span>
+        <strong>{{ insight.title }}</strong>
+        <p>{{ insight.description }}</p>
+        <small *ngIf="insight.customerCode">{{ insight.customerCode }}</small>
+      </article>
+    </section>
+
     <section class="metric-strip" *ngIf="metrics().length">
       <article
         *ngFor="let metric of metrics(); trackBy: trackByMetric"
@@ -142,7 +165,10 @@
     </article>
 
     <div class="table-context" *ngIf="rows().length">
-      <span>{{ rows().length | number }} tedarikci</span>
+      <span>
+        {{ (report()?.summary?.returnedSupplierCount ?? rows().length) | number }}
+        / {{ (report()?.summary?.supplierCount ?? rows().length) | number }} tedarikci
+      </span>
       <span>{{ scopeLabel() }}</span>
       <span *ngIf="report()?.summary?.invoiceMetricsState as state">Fatura: {{ state }}</span>
       <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
@@ -198,6 +224,17 @@
                 {{ riskLabel(currentDetail.card.riskLevel) }}
               </strong>
             </div>
+          </section>
+
+          <section class="signal-strip" *ngIf="currentDetail.card.signals?.length">
+            <article
+              *ngFor="let signal of currentDetail.card.signals; trackBy: trackBySignal"
+              [ngClass]="signalSeverityClass(signal.severity)"
+            >
+              <span>{{ signalSeverityLabel(signal.severity) }}</span>
+              <strong>{{ signal.title }}</strong>
+              <p>{{ signal.description }}</p>
+            </article>
           </section>
 
           <section class="breakdown-grid">

@@ -1,59 +1,181 @@
 <section class="home-shell">
-  <section class="hero">
-    <div class="hero-copy">
-      <span class="eyebrow">Overview</span>
-      <h2>Hosgeldiniz</h2>
-      <p>{{ apiCount() }} gorev sayfasi erisime hazir.</p>
-    </div>
+  <section
+    class="priority-board"
+    [ngClass]="severityClass(warehousePriorities()?.overallStatus)"
+  >
+    <header class="priority-head">
+      <div class="priority-title">
+        <span class="eyebrow">Anasayfa</span>
+        <h2>{{ warehousePriorities()?.headline || 'Bugun neye bakmaliyim?' }}</h2>
+        <p>{{ priorityScopeLabel() }}</p>
+      </div>
 
-    <article class="feedback-card">
-      <div class="feedback-head">
-        <div>
-          <span class="eyebrow">Home</span>
-          <h3>Sikayet / Oneri</h3>
-        </div>
-        <span class="status-badge" [class]="getStatusTone(feedbackSummary()?.latestStatus ?? null)">
-          {{ latestStatusLabel() }}
+      <div class="priority-tools">
+        <label class="compact-field">
+          <span>Tarih</span>
+          <input
+            type="date"
+            [value]="priorityDate()"
+            (change)="setPriorityDate($any($event.target).value)"
+          />
+        </label>
+
+        <label class="compact-field" *ngIf="isAdminUser()">
+          <span>Depo</span>
+          <input
+            type="number"
+            min="1"
+            placeholder="Tumu"
+            [value]="priorityWarehouseNoInput()"
+            (input)="setPriorityWarehouseNo($any($event.target).value)"
+          />
+        </label>
+
+        <button
+          type="button"
+          class="icon-button"
+          title="Oncelikleri yenile"
+          (click)="loadWarehousePriorities()"
+          [disabled]="prioritiesLoading()"
+        >
+          <i
+            class="fa-solid"
+            [ngClass]="prioritiesLoading() ? 'fa-circle-notch fa-spin' : 'fa-rotate'"
+          ></i>
+        </button>
+      </div>
+    </header>
+
+    <article
+      class="state-note"
+      *ngIf="prioritiesMessage() as currentMessage"
+      [class.state-error]="currentMessage.tone === 'error'"
+      [class.state-success]="currentMessage.tone === 'success'"
+    >
+      <strong>{{ currentMessage.title }}</strong>
+      <span>{{ currentMessage.text }}</span>
+    </article>
+
+    <ng-container *ngIf="warehousePriorities() as priorities">
+      <div class="priority-meta">
+        <span>
+          <b>Durum</b>
+          <strong>{{ overallStatusLabel(priorities.overallStatus) }}</strong>
+        </span>
+        <span>
+          <b>Uretim</b>
+          <strong>{{ formatDateTime(priorities.generatedAtUtc) }}</strong>
+        </span>
+        <span>
+          <b>Sayfa</b>
+          <strong>{{ apiCount() }} gorev</strong>
         </span>
       </div>
 
-      <div class="feedback-metrics">
-        <article>
-          <span>Acik</span>
-          <strong>{{ feedbackSummary()?.myOpenCount ?? 0 }}</strong>
-        </article>
-        <article>
-          <span>Cozulen</span>
-          <strong>{{ feedbackSummary()?.myResolvedCount ?? 0 }}</strong>
-        </article>
-        <article>
-          <span>Son Kayit</span>
-          <strong>{{ latestCreatedLabel() }}</strong>
-        </article>
-      </div>
+      <section class="metric-grid" aria-label="Depo oncelik metrikleri">
+        <button
+          type="button"
+          class="metric-card"
+          *ngFor="let metric of priorities.metrics; trackBy: trackPriorityMetric"
+          [ngClass]="severityClass(metric.severity)"
+          [disabled]="!metric.route"
+          (click)="openPriorityRoute(metric.route)"
+        >
+          <span>{{ metric.label }}</span>
+          <strong>{{ metric.value | number }}</strong>
+        </button>
+      </section>
 
-      <article
-        class="feedback-message"
-        *ngIf="feedbackMessage() as currentMessage"
-        [class.message-error]="currentMessage.tone === 'error'"
-        [class.message-success]="currentMessage.tone === 'success'"
-      >
-        <strong>{{ currentMessage.title }}</strong>
-        <span>{{ currentMessage.text }}</span>
-      </article>
+      <section class="content-grid">
+        <article class="priority-list">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Once Bunu Yap</span>
+              <h3>Oncelikler</h3>
+            </div>
+          </div>
 
-      <div class="feedback-actions">
-        <button type="button" class="primary-action" (click)="openFeedbackModal()">
-          Gonder
-        </button>
-        <button type="button" class="secondary-action" (click)="toggleHistory()" [disabled]="historyLoading()">
-          {{ historyOpen() ? 'Gecmisi Kapat' : 'Gecmisim' }}
-        </button>
-        <button type="button" class="icon-action" (click)="loadFeedbackSummary()" [disabled]="summaryLoading()">
-          Yenile
-        </button>
-      </div>
-    </article>
+          <button
+            type="button"
+            class="priority-item"
+            *ngFor="let priority of priorities.priorities; trackBy: trackPriorityItem"
+            [ngClass]="severityClass(priority.severity)"
+            (click)="openPriorityRoute(priority.route)"
+          >
+            <span class="count-pill">{{ priority.count | number }}</span>
+            <span>
+              <strong>{{ priority.title }}</strong>
+              <small>{{ priority.description }}</small>
+            </span>
+          </button>
+
+          <article class="state-note positive-state" *ngIf="!priorities.priorities.length">
+            <strong>{{ priorities.headline || 'Bugun acil oncelik yok' }}</strong>
+            <span>Depo akisi su an sakin gorunuyor.</span>
+          </article>
+
+          <div class="quick-actions" *ngIf="visibleQuickActions().length">
+            <button
+              type="button"
+              class="secondary-action"
+              *ngFor="let action of visibleQuickActions(); trackBy: trackQuickAction"
+              (click)="openPriorityRoute(action.route)"
+            >
+              {{ action.label }}
+            </button>
+          </div>
+        </article>
+
+        <article class="feedback-card">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Home</span>
+              <h3>Sikayet / Oneri</h3>
+            </div>
+            <span class="status-badge" [ngClass]="getStatusTone(feedbackSummary()?.latestStatus ?? null)">
+              {{ latestStatusLabel() }}
+            </span>
+          </div>
+
+          <div class="feedback-metrics">
+            <article>
+              <span>Acik</span>
+              <strong>{{ feedbackSummary()?.myOpenCount ?? 0 }}</strong>
+            </article>
+            <article>
+              <span>Cozulen</span>
+              <strong>{{ feedbackSummary()?.myResolvedCount ?? 0 }}</strong>
+            </article>
+            <article>
+              <span>Son Kayit</span>
+              <strong>{{ latestCreatedLabel() }}</strong>
+            </article>
+          </div>
+
+          <article
+            class="state-note"
+            *ngIf="feedbackMessage() as currentMessage"
+            [class.state-error]="currentMessage.tone === 'error'"
+            [class.state-success]="currentMessage.tone === 'success'"
+          >
+            <strong>{{ currentMessage.title }}</strong>
+            <span>{{ currentMessage.text }}</span>
+          </article>
+
+          <div class="feedback-actions">
+            <button type="button" class="primary-action" (click)="openFeedbackModal()">
+              Gonder
+            </button>
+            <button type="button" class="secondary-action" (click)="toggleHistory()" [disabled]="historyLoading()">
+              {{ historyOpen() ? 'Gecmisi Kapat' : 'Gecmisim' }}
+            </button>
+            <button type="button" class="icon-text-button" (click)="loadFeedbackSummary()" [disabled]="summaryLoading()">
+              Yenile
+            </button>
+          </div>
+        </article>
+      </section>
+    </ng-container>
   </section>
 
   <section class="feedback-history" *ngIf="historyOpen()">
@@ -63,7 +185,7 @@
         <strong>{{ myFeedbackItems().length }} kayit</strong>
       </div>
 
-      <article class="feedback-message" *ngIf="historyLoading()">
+      <article class="state-note" *ngIf="historyLoading()">
         <strong>Yukleniyor</strong>
         <span>Kayitlar getiriliyor.</span>
       </article>
@@ -75,24 +197,24 @@
         [class.is-active]="selectedFeedback()?.id === item.id"
         (click)="selectFeedback(item)"
       >
-        <span class="status-badge" [class]="getStatusTone(item.status)">{{ item.statusName }}</span>
+        <span class="status-badge" [ngClass]="getStatusTone(item.status)">{{ item.statusName }}</span>
         <strong>{{ item.title }}</strong>
         <small>{{ item.typeName }} / {{ item.priorityName }} / {{ formatDateTime(item.createdAtUtc) }}</small>
       </button>
 
-      <article class="feedback-message" *ngIf="!historyLoading() && !myFeedbackItems().length">
+      <article class="state-note" *ngIf="!historyLoading() && !myFeedbackItems().length">
         <strong>Kayit yok</strong>
         <span>Henuz gonderilmis sikayet veya oneri bulunmuyor.</span>
       </article>
     </div>
 
     <article class="history-detail" *ngIf="selectedFeedback() as selected">
-      <div class="feedback-head">
+      <div class="panel-head">
         <div>
           <span class="eyebrow">{{ selected.typeName }}</span>
           <h3>{{ selected.title }}</h3>
         </div>
-        <span class="status-badge" [class]="getStatusTone(selected.status)">
+        <span class="status-badge" [ngClass]="getStatusTone(selected.status)">
           {{ selected.statusName }}
         </span>
       </div>
@@ -102,7 +224,7 @@
       <dl class="detail-grid">
         <div>
           <dt>Oncelik</dt>
-          <dd [class]="getPriorityTone(selected.priority)">{{ selected.priorityName }}</dd>
+          <dd [ngClass]="getPriorityTone(selected.priority)">{{ selected.priorityName }}</dd>
         </div>
         <div>
           <dt>Depo</dt>
@@ -125,7 +247,7 @@
     </article>
   </section>
 
-  <section class="grid">
+  <section class="module-grid">
     <article class="group-card" *ngFor="let group of navGroups()">
       <span class="eyebrow">{{ group.label }}</span>
       <h3>{{ group.label }}</h3>
@@ -147,12 +269,12 @@
     (ngSubmit)="submitFeedback()"
     novalidate
   >
-    <header class="feedback-head">
+    <header class="panel-head">
       <div>
         <span class="eyebrow">Yeni Kayit</span>
         <h3>Sikayet / Oneri Gonder</h3>
       </div>
-      <button type="button" class="icon-action" (click)="closeFeedbackModal()">Kapat</button>
+      <button type="button" class="icon-text-button" (click)="closeFeedbackModal()">Kapat</button>
     </header>
 
     <div class="modal-grid">
@@ -186,10 +308,10 @@
     </div>
 
     <article
-      class="feedback-message"
+      class="state-note"
       *ngIf="feedbackMessage() as currentMessage"
-      [class.message-error]="currentMessage.tone === 'error'"
-      [class.message-success]="currentMessage.tone === 'success'"
+      [class.state-error]="currentMessage.tone === 'error'"
+      [class.state-success]="currentMessage.tone === 'success'"
     >
       <strong>{{ currentMessage.title }}</strong>
       <span>{{ currentMessage.text }}</span>

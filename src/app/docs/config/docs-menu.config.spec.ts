@@ -485,6 +485,37 @@ describe('docs-menu.config', () => {
     ]);
   });
 
+  it('keeps cash summary entry task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Kasa Islemleri',
+        sebike: 'kasa-islemleri',
+        gorevler: [
+          {
+            id: 14,
+            isim: 'Icmal Kaydi Girisi',
+            sebike: 'IcmalKaydiGirisi',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Ekle',
+                sebike: 'kasa-islemleri.icmal-kaydi-girisi.create'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('icmal-kaydi-girisi', sorumluluklar)).toBeTrue();
+    expect(menu.map((section) => section.children.map((item) => item.id))).toEqual([
+      ['icmal-kaydi-girisi']
+    ]);
+  });
+
   it('keeps complaint suggestion management task visible when the backend menu sends it', () => {
     const sorumluluklar: Sorumluluk[] = [
       {

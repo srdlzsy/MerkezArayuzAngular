@@ -3,7 +3,6 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import type { ISummariesCT } from '@interfaces';
 
@@ -41,7 +40,6 @@ export class IcmalDokumuListComponent {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(Dialog);
-  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly searchTerm = signal('');
@@ -194,10 +192,6 @@ export class IcmalDokumuListComponent {
       maxHeight: '96vh',
       panelClass: 'icmal-detail-dialog'
     });
-  }
-
-  protected openCreate(): void {
-    void this.router.navigateByUrl('/docs/api/kasa-sayimlari/ekle');
   }
 
   protected clearSearch(): void {

@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { ActivatedRoute } from '@angular/router';
 import { finalize } from 'rxjs';
 import type {
   StockAnomalyDetailDto,
@@ -151,6 +152,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   protected readonly sortDirection = signal<SortDirection>('desc');
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly activatedRoute = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
   private readonly stokIslemleriService = inject(StokIslemleriService);
 
@@ -188,6 +190,8 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     if (!this.isAdminUser() && this.currentWarehouseNo()) {
       this.warehouseNoInput.set(String(this.currentWarehouseNo()));
     }
+
+    this.applyRouteFilters();
 
     if (this.canList()) {
       this.loadAnomalies();
@@ -581,6 +585,40 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     _index: number,
     item: StockAnomalyProductManagerLookupDto
   ): string => item.isAssigned ? item.code : '__unassigned__';
+
+  private applyRouteFilters(): void {
+    const query = this.activatedRoute.snapshot.queryParamMap;
+    const warehouseNo = query.get('warehouseNo')?.trim() ?? '';
+    const status = query.get('status')?.trim() ?? '';
+    const type = query.get('type')?.trim() ?? '';
+    const severity = query.get('severity')?.trim() ?? '';
+    const startDate = query.get('startDate')?.trim() ?? '';
+    const endDate = query.get('endDate')?.trim() ?? '';
+
+    if (this.isAdminUser() && /^\d+$/.test(warehouseNo) && Number(warehouseNo) > 0) {
+      this.warehouseNoInput.set(warehouseNo);
+    }
+
+    if (STATUS_OPTIONS.includes(status as StockAnomalyStatus)) {
+      this.statusFilter.set(status as StockAnomalyStatus);
+    }
+
+    if (TYPE_OPTIONS.includes(type as StockAnomalyType)) {
+      this.typeFilter.set(type as StockAnomalyType);
+    }
+
+    if (SEVERITY_OPTIONS.includes(severity as StockAnomalySeverity)) {
+      this.severityFilter.set(severity as StockAnomalySeverity);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(startDate)) {
+      this.startDate.set(startDate);
+    }
+
+    if (/^\d{4}-\d{2}-\d{2}$/.test(endDate)) {
+      this.endDate.set(endDate);
+    }
+  }
 
   private buildListRequest(): StockAnomalyListHttpRequest {
     const type = this.typeFilter();

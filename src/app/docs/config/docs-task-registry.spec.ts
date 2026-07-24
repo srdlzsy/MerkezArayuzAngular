@@ -76,12 +76,17 @@ describe('DOCS_TASK_REGISTRY', () => {
     const kasaRegistration = DOCS_TASK_REGISTRY.find(
       (registration) => registration.id === 'kasa-sayimlari'
     );
+    const icmalRegistration = DOCS_TASK_REGISTRY.find(
+      (registration) => registration.id === 'icmal-kaydi-girisi'
+    );
     const kullaniciRoutes =
       DOCS_TASK_SOURCE['kullanicilar']?.routes.map((route) => route.path) ?? [];
     const rolRoutes = DOCS_TASK_SOURCE['roller']?.routes.map((route) => route.path) ?? [];
     const yetkiRoutes = DOCS_TASK_SOURCE['yetkiler']?.routes.map((route) => route.path) ?? [];
     const kasaRoutes =
       DOCS_TASK_SOURCE['kasa-sayimlari']?.routes.map((route) => route.path) ?? [];
+    const icmalRoutes =
+      DOCS_TASK_SOURCE['icmal-kaydi-girisi']?.routes.map((route) => route.path) ?? [];
 
     expect(kullaniciRoutes).toEqual([
       'docs/api/kullanicilar/detay',
@@ -98,14 +103,17 @@ describe('DOCS_TASK_REGISTRY', () => {
       'docs/api/yetkiler/ekle',
       'docs/api/yetkiler'
     ]);
-    expect(kasaRoutes).toEqual(['docs/api/kasa-sayimlari/ekle', 'docs/api/kasa-sayimlari']);
+    expect(kasaRoutes).toEqual(['docs/api/kasa-sayimlari']);
+    expect(icmalRoutes).toEqual(['docs/api/icmal-kaydi-girisi', 'docs/api/kasa-sayimlari/ekle']);
     expect(getPrimaryTaskRoutePath('kullanicilar')).toBe('docs/api/kullanicilar');
     expect(getPrimaryTaskRoutePath('roller')).toBe('docs/api/roller');
     expect(getPrimaryTaskRoutePath('yetkiler')).toBe('docs/api/yetkiler');
     expect(getPrimaryTaskRoutePath('kasa-sayimlari')).toBe('docs/api/kasa-sayimlari');
+    expect(getPrimaryTaskRoutePath('icmal-kaydi-girisi')).toBe('docs/api/icmal-kaydi-girisi');
     expect(kullaniciRegistration?.route).toBe('/docs/api/kullanicilar');
     expect(rolRegistration?.route).toBe('/docs/api/roller');
     expect(yetkiRegistration?.route).toBe('/docs/api/yetkiler');
     expect(kasaRegistration?.route).toBe('/docs/api/kasa-sayimlari');
+    expect(icmalRegistration?.route).toBe('/docs/api/icmal-kaydi-girisi');
   });
 });
