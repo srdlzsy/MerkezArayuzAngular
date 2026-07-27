@@ -4,6 +4,18 @@ import type {
   DocumentFlowDetailDto,
   DocumentFlowListHttpRequest,
   DocumentFlowListResponse,
+  ProductDistributionCenterDto,
+  ProductDistributionDeleteDto,
+  ProductDistributionDetailDto,
+  ProductDistributionFinalizeDto,
+  ProductDistributionFinalizeHttpRequest,
+  ProductDistributionListHttpRequest,
+  ProductDistributionListItemDto,
+  ProductDistributionNotificationDto,
+  ProductDistributionNotifyHttpRequest,
+  ProductDistributionProposalDto,
+  ProductDistributionProposalHttpRequest,
+  ProductDistributionSaveHttpRequest,
   WarehouseOperationPanelHttpRequest,
   WarehouseOperationPanelResponse,
   IAuthorizationFileItemDto,
@@ -84,6 +96,81 @@ export class OperasyonIslemleriService extends BaseApiService {
     return this.getWithQuery<WarehouseOperationPanelResponse, WarehouseOperationPanelHttpRequest>(
       'operasyon-islemleri/depo-operasyon-paneli',
       request
+    );
+  }
+
+  getProductDistributionCenters(): Observable<ProductDistributionCenterDto[]> {
+    return this.get<ProductDistributionCenterDto[]>(
+      'operasyon-islemleri/urun-dagilimlari/dagitim-merkezleri'
+    );
+  }
+
+  createProductDistributionProposal(
+    request: ProductDistributionProposalHttpRequest
+  ): Observable<ProductDistributionProposalDto> {
+    return this.post<ProductDistributionProposalDto, ProductDistributionProposalHttpRequest>(
+      'operasyon-islemleri/urun-dagilimlari/oneri',
+      request
+    );
+  }
+
+  getProductDistributions(
+    request: ProductDistributionListHttpRequest
+  ): Observable<ProductDistributionListItemDto[]> {
+    return this.getWithQuery<ProductDistributionListItemDto[], ProductDistributionListHttpRequest>(
+      'operasyon-islemleri/urun-dagilimlari',
+      request
+    );
+  }
+
+  getProductDistributionDetail(documentNo: string | number): Observable<ProductDistributionDetailDto> {
+    return this.get<ProductDistributionDetailDto>(
+      `operasyon-islemleri/urun-dagilimlari/${encodeURIComponent(String(documentNo))}`
+    );
+  }
+
+  createProductDistribution(
+    request: ProductDistributionSaveHttpRequest
+  ): Observable<ProductDistributionDetailDto> {
+    return this.post<ProductDistributionDetailDto, ProductDistributionSaveHttpRequest>(
+      'operasyon-islemleri/urun-dagilimlari',
+      request
+    );
+  }
+
+  updateProductDistribution(
+    documentNo: string | number,
+    request: ProductDistributionSaveHttpRequest
+  ): Observable<ProductDistributionDetailDto> {
+    return this.put<ProductDistributionDetailDto, ProductDistributionSaveHttpRequest>(
+      `operasyon-islemleri/urun-dagilimlari/${encodeURIComponent(String(documentNo))}`,
+      request
+    );
+  }
+
+  notifyProductDistribution(
+    documentNo: string | number,
+    request: ProductDistributionNotifyHttpRequest
+  ): Observable<ProductDistributionNotificationDto> {
+    return this.post<ProductDistributionNotificationDto, ProductDistributionNotifyHttpRequest>(
+      `operasyon-islemleri/urun-dagilimlari/${encodeURIComponent(String(documentNo))}/bilgilendir`,
+      request
+    );
+  }
+
+  finalizeProductDistribution(
+    documentNo: string | number,
+    request: ProductDistributionFinalizeHttpRequest
+  ): Observable<ProductDistributionFinalizeDto> {
+    return this.post<ProductDistributionFinalizeDto, ProductDistributionFinalizeHttpRequest>(
+      `operasyon-islemleri/urun-dagilimlari/${encodeURIComponent(String(documentNo))}/kesinlestir`,
+      request
+    );
+  }
+
+  deleteProductDistribution(documentNo: string | number): Observable<ProductDistributionDeleteDto> {
+    return this.delete<ProductDistributionDeleteDto>(
+      `operasyon-islemleri/urun-dagilimlari/${encodeURIComponent(String(documentNo))}`
     );
   }
 

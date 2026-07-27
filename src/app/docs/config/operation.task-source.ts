@@ -2,6 +2,96 @@ import type { DocsTaskSource } from './docs-task-source.helpers';
 import { singleRouteTask } from './docs-task-source.helpers';
 
 export const OPERATION_TASK_SOURCE = {
+  'urun-dagilimlari': singleRouteTask(
+    {
+      id: 'urun-dagilimlari',
+      title: 'Urun Dagilimlari',
+      subtitle:
+        'Satis verisine gore sube bazli dagilim onerisi uretir, STOK_DAGILIM kaydini ve kesinlestirme akisini yonetir.',
+      baseRouteOrFile: '/api/operasyon-islemleri/urun-dagilimlari',
+      highlights: [
+        'Dagitim merkezleri acilista yuklenir ve oneri akisi bu depoya gore calisir',
+        'Oneri satirlarinda toplam koli farki sifir olmadan kaydetme aktif olmaz',
+        'Kaydedildi durumunda guncelle, sil ve bolge bilgilendirme aksiyonlari aciktir',
+        'Bilgilendirildi durumunda kesinlestirme ile Mikro depolar arasi siparisleri olusturulur',
+        'API mail gondermez; bolge alici ve ozet bilgisini UI/outbox katmani icin hazirlar'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'ProductDistributionController',
+          description:
+            'Urun dagilim onerisi, STOK_DAGILIM kaydi, bolge bilgilendirme ve Mikro siparis kesinlestirme akisini sunar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/dagitim-merkezleri',
+              description: 'Dagilim cikis deposu olarak kullanilacak dagitim merkezlerini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/oneri',
+              description: 'Stok, dagitim merkezi ve toplam koliye gore sube dagilim onerisi uretir'
+            },
+            {
+              method: 'GET',
+              path: '/api/operasyon-islemleri/urun-dagilimlari?startDate=2026-07-24&endDate=2026-07-24&statusCode=0',
+              description: 'Dagilim kayitlarini filtreli olarak listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/{documentNo}',
+              description: 'Secili dagilim evrakinin satirlarini ve durumunu getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/operasyon-islemleri/urun-dagilimlari',
+              description: 'Dengeli dagilim onerisini STOK_DAGILIM kaydi olarak olusturur'
+            },
+            {
+              method: 'PUT',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/{documentNo}',
+              description: 'Sadece Kaydedildi durumundaki dagilim satirlarini gunceller'
+            },
+            {
+              method: 'POST',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/{documentNo}/bilgilendir',
+              description: 'Bolge bazli alici ve dagilim ozetini hazirlar, statusu Bilgilendirildi yapar'
+            },
+            {
+              method: 'POST',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/{documentNo}/kesinlestir',
+              description: 'Bilgilendirilmis dagilimi Mikro depolar arasi siparislere cevirir'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/{documentNo}',
+              description: 'Sadece Kaydedildi durumundaki dagilim kaydini siler'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "stockCode": "153.01.0001",
+  "distributionCenterWarehouseNo": 50,
+  "totalCaseQuantity": 120,
+  "salesDayCount": 42,
+  "referenceDate": "2026-07-24"
+}`
+    },
+    () =>
+      import('../tasks/operation/urun-dagilimlari/list/urun-dagilimlari-list.component').then(
+        (m) => m.UrunDagilimlariListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'operasyon-islemleri.urun-dagilimlari',
+        'UrunDagilimlari',
+        'ProductDistribution',
+        'FrmDagilim'
+      ]
+    }
+  ),
   'depo-operasyon-paneli': singleRouteTask(
     {
       id: 'depo-operasyon-paneli',

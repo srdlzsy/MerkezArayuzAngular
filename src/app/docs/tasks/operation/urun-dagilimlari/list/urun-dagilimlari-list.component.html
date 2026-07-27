@@ -1,0 +1,669 @@
+<section class="distribution-page">
+  <header class="page-head">
+    <div class="title-block">
+      <span class="eyebrow">Operasyon Islemleri</span>
+      <h1>{{ page.title }}</h1>
+      <p>{{ page.subtitle }}</p>
+    </div>
+
+    <div class="head-tools">
+      <div class="head-stat">
+        <i class="fa-solid fa-warehouse"></i>
+        <span>Merkez</span>
+        <strong>{{ centersLoading() ? 'Yukleniyor' : (centers().length + ' kayit') }}</strong>
+      </div>
+      <div class="head-stat" *ngIf="selectedDetail() as detail">
+        <i class="fa-solid fa-file-signature"></i>
+        <span>Secili Evrak</span>
+        <strong>{{ detail.documentNo }}</strong>
+      </div>
+
+      <div class="mode-tabs" aria-label="Gorunum">
+        <button
+          type="button"
+          title="Kayitlar"
+          [class.active]="viewMode() === 'list'"
+          (click)="setViewMode('list')"
+        >
+          <i class="fa-solid fa-list"></i>
+          <span>Kayitlar</span>
+        </button>
+        <button
+          type="button"
+          title="Oneri"
+          [class.active]="viewMode() === 'proposal'"
+          (click)="setViewMode('proposal')"
+        >
+          <i class="fa-solid fa-chart-pie"></i>
+          <span>Oneri</span>
+        </button>
+      </div>
+    </div>
+  </header>
+
+  <article class="feedback" *ngIf="feedback() as item" [ngClass]="'feedback-' + item.tone">
+    <i
+      class="fa-solid"
+      [ngClass]="{
+        'fa-circle-check': item.tone === 'success',
+        'fa-triangle-exclamation': item.tone === 'warning',
+        'fa-circle-exclamation': item.tone === 'error',
+        'fa-circle-info': item.tone === 'info'
+      }"
+    ></i>
+    <span>{{ item.message }}</span>
+  </article>
+
+  <section class="workspace">
+    <aside class="tool-panel">
+      <section class="panel-block primary-block">
+        <div class="block-head">
+          <div class="block-title">
+            <span class="block-icon"><i class="fa-solid fa-wand-magic-sparkles"></i></span>
+            <div>
+              <span class="eyebrow">Oneri</span>
+              <h2>Dagilim parametreleri</h2>
+            </div>
+          </div>
+        </div>
+
+        <label>
+          <span>Stok Kodu</span>
+          <input
+            type="text"
+            autocomplete="off"
+            placeholder="153.01.0001"
+            [(ngModel)]="proposalForm.stockCode"
+            (keyup.enter)="requestProposal()"
+          />
+        </label>
+
+        <label>
+          <span>Dagitim Merkezi</span>
+          <select
+            [ngModel]="proposalForm.distributionCenterWarehouseNo"
+            (ngModelChange)="setProposalCenter($event)"
+          >
+            <option [ngValue]="null">Seciniz</option>
+            <option
+              *ngFor="let center of centers(); trackBy: trackByCenter"
+              [ngValue]="center.warehouseNo"
+            >
+              {{ center.warehouseNo }} - {{ center.warehouseName }}
+            </option>
+          </select>
+        </label>
+
+        <div class="field-grid">
+          <label>
+            <span>Toplam Koli</span>
+            <input type="number" min="1" step="1" [(ngModel)]="proposalForm.totalCaseQuantity" />
+          </label>
+          <label>
+            <span>Satis Gunu</span>
+            <input type="number" min="1" step="1" [(ngModel)]="proposalForm.salesDayCount" />
+          </label>
+        </div>
+
+        <label>
+          <span>Referans Tarih</span>
+          <input type="date" [(ngModel)]="proposalForm.referenceDate" />
+        </label>
+
+        <label>
+          <span>Dagitan</span>
+          <input type="text" autocomplete="off" [(ngModel)]="proposalForm.distributedBy" />
+        </label>
+
+        <label class="check-row">
+          <input type="checkbox" [(ngModel)]="proposalForm.includeBranchesWithoutSales" />
+          <span>Satissiz subeleri dahil et</span>
+        </label>
+
+        <div
+          class="panel-note"
+          *ngIf="proposalSummary() as summary"
+          [ngClass]="balanceClass(summary)"
+        >
+          <i class="fa-solid" [ngClass]="summary.isBalanced ? 'fa-circle-check' : 'fa-scale-balanced'"></i>
+          <span>{{ balanceMessage(summary) }}</span>
+        </div>
+
+        <button
+          type="button"
+          class="primary-button"
+          [disabled]="proposalLoading() || !canCreate()"
+          (click)="requestProposal()"
+        >
+          <i class="fa-solid fa-wand-magic-sparkles" [class.fa-spin]="proposalLoading()"></i>
+          <span>{{ proposalLoading() ? 'Hazirlaniyor' : 'Oneri Uret' }}</span>
+        </button>
+      </section>
+
+      <section class="panel-block list-filter">
+        <div class="block-head">
+          <div class="block-title">
+            <span class="block-icon muted"><i class="fa-solid fa-filter"></i></span>
+            <div>
+              <span class="eyebrow">Liste</span>
+              <h2>Kayit filtresi</h2>
+            </div>
+          </div>
+        </div>
+
+        <div class="field-grid">
+          <label>
+            <span>Baslangic</span>
+            <input type="date" [(ngModel)]="filters.startDate" />
+          </label>
+          <label>
+            <span>Bitis</span>
+            <input type="date" [(ngModel)]="filters.endDate" />
+          </label>
+        </div>
+
+        <label>
+          <span>Evrak No</span>
+          <input
+            type="text"
+            autocomplete="off"
+            [(ngModel)]="filters.documentNo"
+            (keyup.enter)="loadList()"
+          />
+        </label>
+
+        <label>
+          <span>Stok Kodu</span>
+          <input
+            type="text"
+            autocomplete="off"
+            [(ngModel)]="filters.stockCode"
+            (keyup.enter)="loadList()"
+          />
+        </label>
+
+        <label>
+          <span>Merkez</span>
+          <select [ngModel]="filters.distributionCenterWarehouseNo" (ngModelChange)="setFilterCenter($event)">
+            <option [ngValue]="null">Tumu</option>
+            <option
+              *ngFor="let center of centers(); trackBy: trackByCenter"
+              [ngValue]="center.warehouseNo"
+            >
+              {{ center.warehouseNo }} - {{ center.warehouseName }}
+            </option>
+          </select>
+        </label>
+
+        <div class="field-grid">
+          <label>
+            <span>Durum</span>
+            <select [ngModel]="filters.statusCode" (ngModelChange)="setFilterStatus($event)">
+              <option *ngFor="let status of statusOptions" [ngValue]="status.value">
+                {{ status.label }}
+              </option>
+            </select>
+          </label>
+          <label>
+            <span>Limit</span>
+            <input type="number" min="1" max="500" step="1" [(ngModel)]="filters.take" />
+          </label>
+        </div>
+
+        <button
+          type="button"
+          class="secondary-button"
+          [disabled]="listLoading() || !canList()"
+          (click)="loadList()"
+        >
+          <i class="fa-solid fa-rotate" [class.fa-spin]="listLoading()"></i>
+          <span>{{ listLoading() ? 'Yukleniyor' : 'Listele' }}</span>
+        </button>
+      </section>
+    </aside>
+
+    <main class="main-panel">
+      <ng-container *ngIf="viewMode() === 'list'; else proposalView">
+        <section class="summary-strip" aria-label="Liste ozeti">
+          <article>
+            <i class="fa-solid fa-file-lines"></i>
+            <div>
+              <span>Evrak</span>
+              <strong>{{ listTotals().documentCount | number }}</strong>
+            </div>
+          </article>
+          <article>
+            <i class="fa-solid fa-boxes-stacked"></i>
+            <div>
+              <span>Toplam Koli</span>
+              <strong>{{ listTotals().totalCases | number:'1.0-0' }}</strong>
+            </div>
+          </article>
+          <article>
+            <i class="fa-solid fa-cubes"></i>
+            <div>
+              <span>Toplam Adet</span>
+              <strong>{{ listTotals().totalUnits | number:'1.0-0' }}</strong>
+            </div>
+          </article>
+          <article>
+            <i class="fa-solid fa-clock-rotate-left"></i>
+            <div>
+              <span>Kaydedildi</span>
+              <strong>{{ listTotals().pendingCount | number }}</strong>
+            </div>
+          </article>
+        </section>
+
+        <section class="table-section">
+          <div class="section-head">
+            <div>
+              <span class="eyebrow">STOK_DAGILIM</span>
+              <h2>Urun dagilim kayitlari</h2>
+            </div>
+            <div class="section-tools">
+              <span class="section-count">{{ distributions().length }} kayit</span>
+              <button
+                type="button"
+                class="icon-button"
+                title="Listeyi yenile"
+                [disabled]="listLoading() || !canList()"
+                (click)="loadList()"
+              >
+                <i class="fa-solid fa-rotate" [class.fa-spin]="listLoading()"></i>
+              </button>
+            </div>
+          </div>
+
+          <div class="table-scroll">
+            <table>
+              <thead>
+                <tr>
+                  <th>Evrak</th>
+                  <th>Tarih</th>
+                  <th>Stok</th>
+                  <th>Merkez</th>
+                  <th>Koli</th>
+                  <th>Adet</th>
+                  <th>Satir</th>
+                  <th>Durum</th>
+                  <th class="action-column"><span class="sr-only">Detay</span></th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let row of distributions(); trackBy: trackByDistribution"
+                  tabindex="0"
+                  [class.is-selected]="isSelectedDistribution(row.documentNo)"
+                  (click)="loadDetail(row.documentNo)"
+                  (keyup.enter)="loadDetail(row.documentNo)"
+                >
+                  <td data-label="Evrak">
+                    <strong>{{ row.documentNo }}</strong>
+                    <small>{{ row.distributedBy || '-' }}</small>
+                  </td>
+                  <td data-label="Tarih">{{ formatDate(row.documentDate || row.createdAtUtc) }}</td>
+                  <td data-label="Stok">
+                    <strong>{{ row.stockCode }}</strong>
+                    <small>{{ row.stockName || '-' }}</small>
+                  </td>
+                  <td data-label="Merkez">{{ row.distributionCenterWarehouseName || centerLabel(row.distributionCenterWarehouseNo) }}</td>
+                  <td data-label="Koli">{{ row.totalCaseQuantity | number:'1.0-0' }}</td>
+                  <td data-label="Adet">{{ (row.totalUnitQuantity ?? 0) | number:'1.0-0' }}</td>
+                  <td data-label="Satir">{{ (row.lineCount ?? 0) | number }}</td>
+                  <td data-label="Durum">
+                    <span class="status-pill" [ngClass]="statusClass(row.status)">
+                      {{ statusLabel(row.status) }}
+                    </span>
+                  </td>
+                  <td class="action-column" data-label="Detay">
+                    <button
+                      type="button"
+                      class="icon-button"
+                      title="Detay"
+                      (click)="$event.stopPropagation(); loadDetail(row.documentNo)"
+                    >
+                      <i class="fa-solid fa-arrow-right"></i>
+                    </button>
+                  </td>
+                </tr>
+                <tr *ngIf="!listLoading() && distributions().length === 0">
+                  <td colspan="9" class="empty-cell">Secili filtrelerle kayit bulunamadi.</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+      </ng-container>
+
+      <ng-template #proposalView>
+        <section class="proposal-shell" *ngIf="proposal() as activeProposal; else emptyProposal">
+          <section
+            class="proposal-head"
+            *ngIf="proposalSummary() as summary"
+            [ngClass]="balanceClass(summary)"
+          >
+            <div class="proposal-title">
+              <span class="eyebrow">{{ activeProposal.stock.stockCode }}</span>
+              <h2>{{ activeProposal.stock.stockName || activeProposal.stock.stockCode }}</h2>
+              <small>
+                Koli katsayisi {{ formatNumber(activeProposal.stock.packageFactor, 0) }} -
+                {{ centerLabel(activeProposal.distributionCenter?.warehouseNo || proposalForm.distributionCenterWarehouseNo) }}
+              </small>
+            </div>
+            <div class="balance-wrap">
+              <div class="balance-state">
+                <i
+                  class="fa-solid"
+                  [ngClass]="summary.isBalanced ? 'fa-circle-check' : 'fa-scale-balanced'"
+                ></i>
+                <div>
+                  <span>{{ summary.isBalanced ? 'Kayda hazir' : 'Denge bekliyor' }}</span>
+                  <strong>{{ balanceMessage(summary) }}</strong>
+                </div>
+              </div>
+              <div class="balance-metrics">
+                <span>
+                  Hedef
+                  <strong>{{ summary.totalCaseQuantity | number:'1.0-0' }}</strong>
+                </span>
+                <span>
+                  Dagitilan
+                  <strong>{{ summary.allocatedCaseQuantity | number:'1.0-0' }}</strong>
+                </span>
+                <span>
+                  Fark
+                  <strong>{{ summary.caseDifference | number:'1.0-0' }}</strong>
+                </span>
+              </div>
+            </div>
+          </section>
+
+          <section class="table-section">
+            <div class="section-head">
+              <div>
+                <span class="eyebrow">Oneri Satirlari</span>
+                <h2>Sube koli dagilimi</h2>
+              </div>
+              <button
+                type="button"
+                class="primary-button compact"
+                [disabled]="!canSaveProposal()"
+                (click)="saveProposal()"
+              >
+                <i class="fa-solid fa-floppy-disk"></i>
+                <span>{{ saving() ? 'Kaydediliyor' : 'Kaydet' }}</span>
+              </button>
+            </div>
+
+            <div class="inline-state" *ngIf="proposalSummary() as summary" [ngClass]="balanceClass(summary)">
+              <i class="fa-solid" [ngClass]="summary.isBalanced ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
+              <span>{{ summary.isBalanced ? 'Koli farki sifir, dagilim kaydedilebilir.' : 'Koli alanlarini duzenleyip farki sifirlayin.' }}</span>
+            </div>
+
+            <div class="table-scroll">
+              <table>
+                <thead>
+                  <tr>
+                    <th>Sube</th>
+                    <th>Satis</th>
+                    <th>Stok</th>
+                    <th>Firma Ort.</th>
+                    <th>Sube Ort.</th>
+                    <th>Gerekce</th>
+                    <th>Koli</th>
+                    <th>Adet</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let line of activeProposal.lines; let i = index; trackBy: trackByLine">
+                    <td data-label="Sube">
+                      <strong>{{ line.warehouseNo }}</strong>
+                      <small>{{ line.warehouseName || '-' }}</small>
+                    </td>
+                    <td data-label="Satis">{{ line.lastSalesQuantity | number:'1.0-0' }}</td>
+                    <td data-label="Stok">{{ (line.currentStockQuantity ?? 0) | number:'1.0-0' }}</td>
+                    <td data-label="Firma Ort.">{{ (line.companyAverageDailySales ?? 0) | number:'1.2-2' }}</td>
+                    <td data-label="Sube Ort.">{{ (line.branchAverageDailySales ?? 0) | number:'1.2-2' }}</td>
+                    <td data-label="Gerekce">
+                      <span class="reason-pill">{{ reasonLabel(line.reason) }}</span>
+                    </td>
+                    <td data-label="Koli">
+                      <input
+                        class="case-input"
+                        type="number"
+                        min="0"
+                        step="1"
+                        [ngModel]="line.caseQuantity"
+                        (ngModelChange)="setProposalLineCaseQuantity(i, $event)"
+                      />
+                    </td>
+                    <td data-label="Adet">{{ line.unitQuantity | number:'1.0-0' }}</td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </section>
+        </section>
+
+        <ng-template #emptyProposal>
+          <section class="empty-panel">
+            <i class="fa-solid fa-chart-pie"></i>
+            <h2>Dagilim onerisi yok</h2>
+            <p>Stok, dagitim merkezi ve toplam koli girildiginde oneriler burada gorunur.</p>
+          </section>
+        </ng-template>
+      </ng-template>
+    </main>
+
+    <aside class="detail-panel" [class.has-detail]="!!selectedDetail()">
+      <ng-container *ngIf="selectedDetail() as detail; else emptyDetail">
+        <header class="detail-head">
+          <div>
+            <span class="eyebrow">Detay</span>
+            <h2>{{ detail.documentNo }}</h2>
+          </div>
+          <span class="status-pill" [ngClass]="statusClass(detail.status)">
+            {{ statusLabel(detail.status) }}
+          </span>
+        </header>
+
+        <section class="flow-steps" aria-label="Dagilim sureci">
+          <span
+            [class.is-done]="isStatusStepDone(detail.status, 0)"
+            [class.is-active]="isStatusStepActive(detail.status, 0)"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            Kayit
+          </span>
+          <span
+            [class.is-done]="isStatusStepDone(detail.status, 1)"
+            [class.is-active]="isStatusStepActive(detail.status, 1)"
+          >
+            <i class="fa-solid fa-envelope"></i>
+            Bilgi
+          </span>
+          <span
+            [class.is-done]="isStatusStepDone(detail.status, 2)"
+            [class.is-active]="isStatusStepActive(detail.status, 2)"
+          >
+            <i class="fa-solid fa-check-double"></i>
+            Siparis
+          </span>
+        </section>
+
+        <section class="detail-kpis" *ngIf="detailSummary() as summary" [ngClass]="balanceClass(summary)">
+          <span>
+            Hedef
+            <strong>{{ summary.totalCaseQuantity | number:'1.0-0' }}</strong>
+          </span>
+          <span>
+            Dagitilan
+            <strong>{{ summary.allocatedCaseQuantity | number:'1.0-0' }}</strong>
+          </span>
+          <span>
+            Fark
+            <strong>{{ summary.caseDifference | number:'1.0-0' }}</strong>
+          </span>
+        </section>
+
+        <section class="detail-meta">
+          <div>
+            <span>Stok</span>
+            <strong>{{ detail.stockCode }}</strong>
+            <small>{{ detail.stockName || detail.stock?.stockName || '-' }}</small>
+          </div>
+          <div>
+            <span>Merkez</span>
+            <strong>{{ centerLabel(detail.distributionCenterWarehouseNo) }}</strong>
+            <small>{{ detail.distributionCenterWarehouseName || detail.distributionCenter?.warehouseName || '-' }}</small>
+          </div>
+          <div>
+            <span>Olusturma</span>
+            <strong>{{ formatDateTime(detail.createdAtUtc) }}</strong>
+            <small>{{ detail.distributedBy || '-' }}</small>
+          </div>
+        </section>
+
+        <section class="detail-actions">
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="!canEditSelectedDetail() || saving()"
+            (click)="updateSelectedDetail()"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            <span>Guncelle</span>
+          </button>
+          <button
+            type="button"
+            class="secondary-button"
+            [disabled]="!canNotifySelectedDetail() || actionLoading()"
+            (click)="notifySelectedDetail()"
+          >
+            <i class="fa-solid fa-envelope"></i>
+            <span>Bilgilendir</span>
+          </button>
+          <button
+            type="button"
+            class="primary-button"
+            [disabled]="!canFinalizeSelectedDetail() || actionLoading()"
+            (click)="finalizeSelectedDetail()"
+          >
+            <i class="fa-solid fa-check-double"></i>
+            <span>Kesinlestir</span>
+          </button>
+          <button
+            type="button"
+            class="danger-button"
+            [disabled]="!canDeleteSelectedDetail() || actionLoading()"
+            (click)="deleteSelectedDetail()"
+          >
+            <i class="fa-solid fa-trash"></i>
+            <span>Sil</span>
+          </button>
+        </section>
+
+        <section class="action-form">
+          <label>
+            <span>Bilgilendiren</span>
+            <input type="text" [(ngModel)]="notifyForm.notifyBy" />
+          </label>
+          <label class="check-row">
+            <input type="checkbox" [(ngModel)]="notifyForm.markStockOrderingStopped" />
+            <span>Siparis dursun isaretle</span>
+          </label>
+          <div class="field-grid">
+            <label>
+              <span>Siparis Tarihi</span>
+              <input type="date" [(ngModel)]="finalizeForm.orderDate" />
+            </label>
+            <label>
+              <span>Teslim Tarihi</span>
+              <input type="date" [(ngModel)]="finalizeForm.deliveryDate" />
+            </label>
+          </div>
+          <label>
+            <span>Kesinlestiren</span>
+            <input type="text" [(ngModel)]="finalizeForm.finalizeBy" />
+          </label>
+          <label class="check-row">
+            <input type="checkbox" [(ngModel)]="finalizeForm.allowFinalizeWithoutNotification" />
+            <span>Bilgilendirme olmadan izin ver</span>
+          </label>
+        </section>
+
+        <section class="mini-table">
+          <div class="section-head compact-head">
+            <div>
+              <span class="eyebrow">Satirlar</span>
+              <h2>{{ detail.lines.length }} sube</h2>
+            </div>
+          </div>
+          <div class="mini-table-head">
+            <span>Sube</span>
+            <span>Koli</span>
+            <span>Adet</span>
+          </div>
+          <div
+            class="mini-row"
+            *ngFor="let line of detail.lines; let i = index; trackBy: trackByLine"
+          >
+            <div>
+              <strong>{{ line.warehouseNo }}</strong>
+              <small>{{ line.warehouseName || reasonLabel(line.reason) }}</small>
+            </div>
+            <input
+              class="case-input"
+              type="number"
+              min="0"
+              step="1"
+              [disabled]="!canEditSelectedDetail()"
+              [ngModel]="line.caseQuantity"
+              (ngModelChange)="setDetailLineCaseQuantity(i, $event)"
+            />
+            <span>{{ line.unitQuantity | number:'1.0-0' }}</span>
+          </div>
+        </section>
+
+        <section class="result-list" *ngIf="detail.notification as notification">
+          <div class="section-head compact-head">
+            <div>
+              <span class="eyebrow">Bolge</span>
+              <h2>Bilgilendirme</h2>
+            </div>
+          </div>
+          <article *ngFor="let recipient of notification.recipients; trackBy: trackByRecipient">
+            <strong>{{ recipient.regionName || recipient.regionCode || '-' }}</strong>
+            <span>{{ recipientEmail(recipient) }}</span>
+            <small>
+              {{ recipient.lineCount }} satir - {{ recipient.totalCaseQuantity | number:'1.0-0' }} koli
+            </small>
+          </article>
+        </section>
+
+        <section class="result-list" *ngIf="detail.finalizeResult as result">
+          <div class="section-head compact-head">
+            <div>
+              <span class="eyebrow">Mikro</span>
+              <h2>Siparisler</h2>
+            </div>
+          </div>
+          <article *ngFor="let order of result.orders; trackBy: trackByOrder">
+            <strong>{{ order.documentSerie }}/{{ order.documentOrderNo }}</strong>
+            <span>#{{ order.warehouseNo }} {{ order.warehouseName || '' }}</span>
+            <small>{{ order.alreadyExisted ? 'Mevcut' : 'Yeni' }}</small>
+          </article>
+        </section>
+      </ng-container>
+
+      <ng-template #emptyDetail>
+        <section class="empty-panel compact-empty">
+          <i class="fa-solid fa-file-lines" [class.fa-spin]="detailLoading()"></i>
+          <h2>{{ detailLoading() ? 'Detay yukleniyor' : 'Secili kayit yok' }}</h2>
+          <p *ngIf="!detailLoading()">Listeden bir evrak secince islem adimlari burada acilir.</p>
+        </section>
+      </ng-template>
+    </aside>
+  </section>
+</section>

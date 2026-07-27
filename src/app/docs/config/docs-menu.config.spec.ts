@@ -152,6 +152,35 @@ describe('docs-menu.config', () => {
     expect(menu[0]?.children.map((item) => item.id)).toEqual(['axata-senkronizasyonu']);
   });
 
+  it('keeps product distribution task visible when the backend menu sends it', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Operasyon Islemleri',
+        sebike: 'OperasyonIslemleri',
+        gorevler: [
+          {
+            id: 2,
+            isim: 'Urun Dagilimlari',
+            sebike: 'UrunDagilimlari',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Listele',
+                sebike: 'operasyon-islemleri.urun-dagilimlari.list'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('urun-dagilimlari', sorumluluklar)).toBeTrue();
+    expect(menu[0]?.children.map((item) => item.id)).toEqual(['urun-dagilimlari']);
+  });
+
   it('matches POS accounting task ids from backend menu codes and aliases', () => {
     const sorumluluklar: Sorumluluk[] = [
       {

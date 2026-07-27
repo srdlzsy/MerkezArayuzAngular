@@ -225,3 +225,181 @@ export interface WarehouseOperationPanelResponse {
   slowestWarehouse: WarehouseOperationHighlightDto | null;
   warehouses: WarehouseOperationPanelItemDto[];
 }
+
+// ============================================================================
+// Urun Dagilimlari Modelleri
+// ============================================================================
+
+export interface ProductDistributionCenterDto {
+  warehouseNo: number;
+  warehouseName: string;
+  regionCode?: string | null;
+  regionName?: string | null;
+}
+
+export interface ProductDistributionStockDto {
+  stockCode: string;
+  stockName?: string | null;
+  packageFactor: number;
+  unitName?: string | null;
+  barcode?: string | null;
+}
+
+export interface ProductDistributionStatusDto {
+  code: number;
+  name: string;
+  description?: string | null;
+}
+
+export interface ProductDistributionSummaryDto {
+  totalCaseQuantity: number;
+  allocatedCaseQuantity: number;
+  caseDifference: number;
+  totalUnitQuantity?: number | null;
+  lineCount?: number | null;
+  branchCount?: number | null;
+  salesDayCount?: number | null;
+  referenceDate?: string | null;
+  isBalanced: boolean;
+}
+
+export interface ProductDistributionLineDto {
+  warehouseNo: number;
+  warehouseName?: string | null;
+  regionCode?: string | null;
+  regionName?: string | null;
+  caseQuantity: number;
+  unitQuantity: number;
+  lastSalesQuantity: number;
+  currentStockQuantity?: number | null;
+  companyAverageDailySales?: number | null;
+  branchAverageDailySales?: number | null;
+  salesSharePercent?: number | null;
+  reason?: string | null;
+}
+
+export interface ProductDistributionProposalHttpRequest {
+  stockCode: string;
+  distributionCenterWarehouseNo: number;
+  totalCaseQuantity: number;
+  salesDayCount?: number | null;
+  referenceDate?: string | null;
+  includeBranchesWithoutSales?: boolean | null;
+}
+
+export interface ProductDistributionProposalDto {
+  stock: ProductDistributionStockDto;
+  distributionCenter?: ProductDistributionCenterDto | null;
+  summary: ProductDistributionSummaryDto;
+  lines: ProductDistributionLineDto[];
+  generatedAtUtc?: string | null;
+}
+
+export interface ProductDistributionListHttpRequest {
+  startDate?: string | null;
+  endDate?: string | null;
+  documentNo?: string | number | null;
+  stockCode?: string | null;
+  distributionCenterWarehouseNo?: number | null;
+  statusCode?: number | null;
+  take?: number | null;
+}
+
+export interface ProductDistributionListItemDto {
+  documentNo: string;
+  documentDate?: string | null;
+  stockCode: string;
+  stockName?: string | null;
+  distributionCenterWarehouseNo: number;
+  distributionCenterWarehouseName?: string | null;
+  totalCaseQuantity: number;
+  allocatedCaseQuantity?: number | null;
+  totalUnitQuantity?: number | null;
+  lineCount?: number | null;
+  status: ProductDistributionStatusDto;
+  distributedBy?: string | null;
+  createdAtUtc?: string | null;
+  updatedAtUtc?: string | null;
+  notifiedAtUtc?: string | null;
+  finalizedAtUtc?: string | null;
+}
+
+export interface ProductDistributionDetailDto extends ProductDistributionListItemDto {
+  stock?: ProductDistributionStockDto | null;
+  distributionCenter?: ProductDistributionCenterDto | null;
+  summary?: ProductDistributionSummaryDto | null;
+  lines: ProductDistributionLineDto[];
+  notification?: ProductDistributionNotificationDto | null;
+  finalizeResult?: ProductDistributionFinalizeDto | null;
+}
+
+export interface ProductDistributionSaveLineHttpRequest {
+  warehouseNo: number;
+  caseQuantity: number;
+  unitQuantity?: number | null;
+  lastSalesQuantity?: number | null;
+  companyAverageDailySales?: number | null;
+  branchAverageDailySales?: number | null;
+}
+
+export interface ProductDistributionSaveHttpRequest {
+  stockCode: string;
+  distributionCenterWarehouseNo: number;
+  totalCaseQuantity: number;
+  distributedBy?: string | null;
+  lines: ProductDistributionSaveLineHttpRequest[];
+}
+
+export interface ProductDistributionNotifyHttpRequest {
+  notifyBy?: string | null;
+  markStockOrderingStopped?: boolean | null;
+}
+
+export interface ProductDistributionNotificationRecipientDto {
+  regionCode?: string | null;
+  regionName?: string | null;
+  email?: string | null;
+  recipientEmail?: string | null;
+  lineCount: number;
+  totalCaseQuantity: number;
+  totalUnitQuantity: number;
+}
+
+export interface ProductDistributionNotificationDto {
+  documentNo: string;
+  status?: ProductDistributionStatusDto | null;
+  message?: string | null;
+  recipients: ProductDistributionNotificationRecipientDto[];
+}
+
+export interface ProductDistributionFinalizeHttpRequest {
+  finalizeBy?: string | null;
+  orderDate?: string | null;
+  deliveryDate?: string | null;
+  allowFinalizeWithoutNotification?: boolean | null;
+}
+
+export interface ProductDistributionOrderDto {
+  warehouseNo: number;
+  warehouseName?: string | null;
+  documentSerie: string;
+  documentOrderNo: number;
+  alreadyExisted: boolean;
+  totalCaseQuantity?: number | null;
+  totalUnitQuantity?: number | null;
+}
+
+export interface ProductDistributionFinalizeDto {
+  documentNo: string;
+  status?: ProductDistributionStatusDto | null;
+  message?: string | null;
+  createdDocumentCount: number;
+  existingDocumentCount: number;
+  orders: ProductDistributionOrderDto[];
+}
+
+export interface ProductDistributionDeleteDto {
+  documentNo: string;
+  deleted: boolean;
+  message?: string | null;
+}

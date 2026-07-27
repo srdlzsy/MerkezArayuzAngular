@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { ActivatedRoute, Router, RouterLink } from '@angular/router';
+import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import type {
   CreateFeedbackItemHttpRequest,
@@ -13,15 +13,12 @@ import type {
   FeedbackSummaryDto,
   HomePriorityItemDto,
   HomePriorityMetricDto,
-  HomeQuickActionDto,
   HomeWarehousePrioritiesDto
 } from '@interfaces';
 
 import { HomeService } from '../../../core/api/module-services/home.service';
 import { OrtakIslemlerService } from '../../../core/api/module-services/ortak-islemler.service';
 import { AuthService } from '../../../core/auth/services/auth.service';
-import { DocsTaskItem } from '../../models/docs.models';
-import { DocsNavigationService } from '../../services/docs-navigation.service';
 
 interface FeedbackOption<T extends string> {
   value: T;
@@ -36,6 +33,7 @@ interface FeedbackMessage {
 
 const BACKEND_ROUTE_MAP: Readonly<Record<string, string>> = {
   '/operasyon-islemleri/belge-akis-takibi': '/docs/api/belge-akis-takibi',
+  '/operasyon-islemleri/urun-dagilimlari': '/docs/api/urun-dagilimlari',
   '/stok-islemleri/stok-anomali-merkezi': '/docs/api/stok-anomali-merkezi',
   '/ortak-islemler/sikayet-oneri': '/docs/api/sikayet-oneri',
   '/yonetim/sikayet-oneri': '/docs/api/sikayet-oneri'
@@ -43,20 +41,18 @@ const BACKEND_ROUTE_MAP: Readonly<Record<string, string>> = {
 
 @Component({
   selector: 'app-docs-home-page',
-  imports: [CommonModule, ReactiveFormsModule, RouterLink],
+  imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './docs-home-page.component.html',
   styleUrl: './docs-home-page.component.scss'
 })
 export class DocsHomePageComponent {
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
-  private readonly docsNavigationService = inject(DocsNavigationService);
   private readonly homeService = inject(HomeService);
   private readonly ortakIslemlerService = inject(OrtakIslemlerService);
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
 
-  protected readonly navGroups = this.docsNavigationService.menuGroups;
   protected readonly priorityDate = signal(this.getToday());
   protected readonly priorityWarehouseNoInput = signal('');
   protected readonly warehousePriorities = signal<HomeWarehousePrioritiesDto | null>(null);
@@ -101,9 +97,6 @@ export class DocsHomePageComponent {
   protected readonly historyLoading = signal(false);
   protected readonly submittingFeedback = signal(false);
 
-  protected readonly apiCount = computed(() =>
-    this.navGroups().reduce((total, group) => total + group.children.length, 0)
-  );
   protected readonly latestStatusLabel = computed(() =>
     this.getStatusLabel(this.feedbackSummary()?.latestStatus ?? null)
   );
@@ -128,12 +121,6 @@ export class DocsHomePageComponent {
 
     return this.isAdminUser() ? 'Tum Depolar' : this.currentWarehouseLabel();
   });
-  protected readonly visibleQuickActions = computed(() =>
-    (this.warehousePriorities()?.quickActions ?? []).filter((action) =>
-      this.canShowQuickAction(action)
-    )
-  );
-
   constructor() {
     this.applyHomeQueryActions();
     this.loadWarehousePriorities();
@@ -169,8 +156,7 @@ export class DocsHomePageComponent {
           this.warehousePriorities.set({
             ...priorities,
             metrics: priorities.metrics ?? [],
-            priorities: priorities.priorities ?? [],
-            quickActions: priorities.quickActions ?? []
+            priorities: priorities.priorities ?? []
           });
         },
         error: (error: unknown) => {
@@ -226,23 +212,6 @@ export class DocsHomePageComponent {
     }
 
     void this.router.navigate([targetPath], { queryParams });
-  }
-
-  protected getFirstRoute(items: DocsTaskItem[]): string {
-    const route = items[0]?.route;
-
-    if (route) {
-      return route;
-    }
-
-    return '/dashboard';
-  }
-
-  protected getPreviewLabels(items: DocsTaskItem[]): string[] {
-    return items
-      .slice(0, 6)
-      .map((item) => item.label)
-      .filter((label) => !!label);
   }
 
   protected openFeedbackModal(): void {
@@ -486,10 +455,6 @@ export class DocsHomePageComponent {
     _index: number,
     item: HomePriorityItemDto
   ): string => item.code;
-  protected readonly trackQuickAction = (
-    _index: number,
-    item: HomeQuickActionDto
-  ): string => item.code;
   protected readonly trackFeedback = (_index: number, item: FeedbackItemDto): string => item.id;
 
   private applyHomeQueryActions(): void {
@@ -504,43 +469,6 @@ export class DocsHomePageComponent {
       this.historyOpen.set(true);
       this.loadMyFeedbackItems();
     }
-  }
-
-  private canShowQuickAction(action: HomeQuickActionDto): boolean {
-    if (!action.permissionCode?.trim()) {
-      return true;
-    }
-
-    return this.hasPermissionCode(action.permissionCode);
-  }
-
-  private hasPermissionCode(permissionCode: string): boolean {
-    const expected = this.normalize(permissionCode);
-    const taskId = permissionCode.split('.')[1] ?? '';
-    const permissionValues = this.getAllPermissionValues().map((value) => this.normalize(value));
-
-    return (
-      permissionValues.includes(expected) ||
-      (!!taskId && this.authService.hasTaskAccess(taskId)) ||
-      (!!taskId &&
-        this.authService
-          .getTaskPermissionCodes(taskId)
-          .map((value) => this.normalize(value))
-          .includes(expected))
-    );
-  }
-
-  private getAllPermissionValues(): string[] {
-    const user = this.authService.currentUser();
-
-    return [
-      ...(user?.permissions ?? []),
-      ...((user?.sorumluluklar ?? []).flatMap((responsibility) =>
-        (responsibility.gorevler ?? []).flatMap((task) =>
-          (task.yetkiler ?? []).flatMap((permission) => [permission.sebike, permission.isim])
-        )
-      ) as Array<string | undefined>)
-    ].filter((value): value is string => !!value?.trim());
   }
 
   private currentWarehouseLabel(): string {
