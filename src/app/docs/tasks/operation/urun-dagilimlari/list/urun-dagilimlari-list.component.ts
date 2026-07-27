@@ -130,6 +130,9 @@ export class UrunDagilimlariListComponent implements OnInit {
   protected readonly proposal = signal<ProductDistributionProposalDto | null>(null);
   protected readonly selectedDetail = signal<ProductDistributionDetailDto | null>(null);
   protected readonly viewMode = signal<DistributionViewMode>('list');
+  protected readonly filtersOpen = signal(false);
+  protected readonly proposalDialogOpen = signal(false);
+  protected readonly detailDialogOpen = signal(false);
   protected readonly feedback = signal<DistributionFeedback | null>(null);
   protected readonly centersLoading = signal(false);
   protected readonly listLoading = signal(false);
@@ -301,6 +304,44 @@ export class UrunDagilimlariListComponent implements OnInit {
       });
   }
 
+  protected openFilters(): void {
+    this.filtersOpen.set(true);
+  }
+
+  protected closeFilters(): void {
+    this.filtersOpen.set(false);
+  }
+
+  protected applyFilters(): void {
+    this.loadList();
+    this.filtersOpen.set(false);
+  }
+
+  protected resetFilters(): void {
+    const today = this.getToday();
+
+    this.filters.startDate = today;
+    this.filters.endDate = today;
+    this.filters.documentNo = '';
+    this.filters.stockCode = '';
+    this.filters.distributionCenterWarehouseNo = null;
+    this.filters.statusCode = null;
+    this.filters.take = 100;
+  }
+
+  protected openProposalDialog(): void {
+    this.proposalDialogOpen.set(true);
+    this.detailDialogOpen.set(false);
+  }
+
+  protected closeProposalDialog(): void {
+    this.proposalDialogOpen.set(false);
+  }
+
+  protected closeDetailDialog(): void {
+    this.detailDialogOpen.set(false);
+  }
+
   protected requestProposal(): void {
     if (!this.canCreate()) {
       this.feedback.set({ tone: 'error', message: 'Oneri uretmek icin create yetkisi gerekli.' });
@@ -321,6 +362,7 @@ export class UrunDagilimlariListComponent implements OnInit {
       return;
     }
 
+    this.proposalDialogOpen.set(true);
     this.proposalLoading.set(true);
     this.feedback.set(null);
 
@@ -342,7 +384,8 @@ export class UrunDagilimlariListComponent implements OnInit {
           const normalizedProposal = this.normalizeProposal(proposal, totalCaseQuantity);
           this.proposal.set(normalizedProposal);
           this.selectedDetail.set(null);
-          this.viewMode.set('proposal');
+          this.detailDialogOpen.set(false);
+          this.viewMode.set('list');
           this.feedback.set({
             tone: normalizedProposal.summary.isBalanced ? 'success' : 'warning',
             message: normalizedProposal.summary.isBalanced
@@ -378,6 +421,8 @@ export class UrunDagilimlariListComponent implements OnInit {
         next: (detail: ProductDistributionDetailDto) => {
           this.selectedDetail.set(this.normalizeDetail(detail));
           this.proposal.set(null);
+          this.proposalDialogOpen.set(false);
+          this.detailDialogOpen.set(true);
           this.viewMode.set('list');
           this.loadList();
           this.feedback.set({
@@ -400,6 +445,8 @@ export class UrunDagilimlariListComponent implements OnInit {
     }
 
     const requestId = ++this.detailRequestId;
+    this.detailDialogOpen.set(true);
+    this.proposalDialogOpen.set(false);
     this.detailLoading.set(true);
     this.feedback.set(null);
 
@@ -427,6 +474,7 @@ export class UrunDagilimlariListComponent implements OnInit {
           }
 
           this.selectedDetail.set(null);
+          this.detailDialogOpen.set(false);
           this.feedback.set({
             tone: 'error',
             message: getErrorMessage(error, 'Dagilim detayi yuklenemedi.')
@@ -565,6 +613,7 @@ export class UrunDagilimlariListComponent implements OnInit {
       .subscribe({
         next: (response: ProductDistributionDeleteDto) => {
           this.selectedDetail.set(null);
+          this.detailDialogOpen.set(false);
           this.loadList();
           this.feedback.set({
             tone: response.deleted ? 'success' : 'warning',
@@ -581,6 +630,13 @@ export class UrunDagilimlariListComponent implements OnInit {
 
   protected setViewMode(mode: DistributionViewMode): void {
     this.viewMode.set(mode);
+  }
+
+  protected filterStatusLabel(): string {
+    return (
+      STATUS_OPTIONS.find((status) => status.value === this.filters.statusCode)?.label ??
+      'Tum Durumlar'
+    );
   }
 
   protected setFilterCenter(value: number | null): void {
