@@ -1,4 +1,4 @@
-@use '../../../core/api-list-page/api-list-page.shared';
+﻿@use '../../../core/api-list-page/api-list-page.shared';
 
 .info-grid .info-card:nth-child(1),
 .info-grid .info-card:nth-child(2) {
@@ -386,3 +386,124 @@
     grid-column: auto;
   }
 }
+.banknote-dialog-backdrop {
+  position: fixed;
+  z-index: 1200;
+  inset: 0;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.create-dialog {
+  display: grid;
+  gap: 0.65rem;
+  width: min(100%, 760px);
+  max-height: calc(100dvh - 2rem);
+  overflow: auto;
+  overscroll-behavior: contain;
+  padding: 0.75rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 24px 64px rgba(15, 23, 42, 0.24);
+}
+
+.create-dialog .dialog-head {
+  position: sticky;
+  z-index: 2;
+  top: -0.75rem;
+  margin: -0.75rem -0.75rem 0;
+  padding: 0.75rem 0.75rem 0.58rem;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+.dialog-head-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.42rem;
+}
+
+.dialog-close {
+  display: inline-grid;
+  width: 32px;
+  min-height: 32px;
+  place-items: center;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  color: #475569;
+  background: #fff;
+  cursor: pointer;
+}
+
+.dialog-close:hover {
+  border-color: #94a3b8;
+  background: #f8fafc;
+}
+
+.create-dialog .dialog-feedback {
+  margin: 0;
+  box-shadow: none;
+}
+
+.create-dialog .create-grid {
+  grid-template-columns: minmax(150px, 0.8fr) repeat(2, minmax(160px, 1fr));
+}
+
+.create-dialog .create-grid .field:first-child {
+  grid-column: auto;
+}
+
+.create-dialog .create-grid .field:nth-child(4),
+.create-dialog .create-grid .field:nth-child(5) {
+  grid-column: span 3;
+}
+
+.create-dialog .dialog-actions {
+  position: sticky;
+  z-index: 2;
+  bottom: -0.75rem;
+  margin: 0 -0.75rem -0.75rem;
+  padding: 0.58rem 0.75rem 0.75rem;
+  border-top: 1px solid #e6edf5;
+  background: rgba(255, 255, 255, 0.98);
+}
+
+@media (max-width: 700px) {
+  .banknote-dialog-backdrop {
+    align-items: stretch;
+    padding: 0.5rem;
+  }
+
+  .create-dialog {
+    max-height: calc(100dvh - 1rem);
+    padding: 0.62rem;
+  }
+
+  .create-dialog .dialog-head {
+    top: -0.62rem;
+    margin: -0.62rem -0.62rem 0;
+    padding: 0.62rem 0.62rem 0.5rem;
+  }
+
+  .dialog-head-actions {
+    width: 100%;
+    justify-content: space-between;
+  }
+
+  .create-dialog .create-grid,
+  .create-dialog .create-grid .field:nth-child(4),
+  .create-dialog .create-grid .field:nth-child(5) {
+    grid-template-columns: 1fr;
+    grid-column: auto;
+  }
+
+  .create-dialog .dialog-actions {
+    bottom: -0.62rem;
+    margin: 0 -0.62rem -0.62rem;
+    padding: 0.5rem 0.62rem 0.62rem;
+  }
+}
+

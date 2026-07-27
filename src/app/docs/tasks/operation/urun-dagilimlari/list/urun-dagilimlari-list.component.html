@@ -217,6 +217,23 @@
         </button>
       </header>
 
+      <article
+        class="feedback dialog-feedback"
+        *ngIf="feedback() as item"
+        [ngClass]="'feedback-' + item.tone"
+      >
+        <i
+          class="fa-solid"
+          [ngClass]="{
+            'fa-circle-check': item.tone === 'success',
+            'fa-triangle-exclamation': item.tone === 'warning',
+            'fa-circle-exclamation': item.tone === 'error',
+            'fa-circle-info': item.tone === 'info'
+          }"
+        ></i>
+        <span>{{ item.message }}</span>
+      </article>
+
       <section class="filter-form">
         <div class="field-grid">
           <label>
@@ -316,6 +333,23 @@
           <i class="fa-solid fa-xmark"></i>
         </button>
       </header>
+
+      <article
+        class="feedback dialog-feedback"
+        *ngIf="feedback() as item"
+        [ngClass]="'feedback-' + item.tone"
+      >
+        <i
+          class="fa-solid"
+          [ngClass]="{
+            'fa-circle-check': item.tone === 'success',
+            'fa-triangle-exclamation': item.tone === 'warning',
+            'fa-circle-exclamation': item.tone === 'error',
+            'fa-circle-info': item.tone === 'info'
+          }"
+        ></i>
+        <span>{{ item.message }}</span>
+      </article>
 
       <section class="proposal-layout">
         <section class="panel-block primary-block proposal-form">
@@ -520,6 +554,9 @@
                       </td>
                       <td data-label="Adet">{{ line.unitQuantity | number:'1.0-0' }}</td>
                     </tr>
+                    <tr *ngIf="activeProposal.lines.length === 0">
+                      <td colspan="8" class="empty-cell">Oneri satiri bulunamadi.</td>
+                    </tr>
                   </tbody>
                 </table>
               </div>
@@ -565,6 +602,23 @@
             </button>
           </div>
         </header>
+
+        <article
+          class="feedback dialog-feedback"
+          *ngIf="feedback() as item"
+          [ngClass]="'feedback-' + item.tone"
+        >
+          <i
+            class="fa-solid"
+            [ngClass]="{
+              'fa-circle-check': item.tone === 'success',
+              'fa-triangle-exclamation': item.tone === 'warning',
+              'fa-circle-exclamation': item.tone === 'error',
+              'fa-circle-info': item.tone === 'info'
+            }"
+          ></i>
+          <span>{{ item.message }}</span>
+        </article>
 
         <section class="flow-steps" aria-label="Dagilim sureci">
           <span
@@ -662,6 +716,7 @@
                 />
                 <span>{{ line.unitQuantity | number:'1.0-0' }}</span>
               </div>
+              <div class="mini-empty" *ngIf="detail.lines.length === 0">Satir bulunamadi.</div>
             </section>
           </div>
 
@@ -673,8 +728,8 @@
                 [disabled]="!canEditSelectedDetail() || saving()"
                 (click)="updateSelectedDetail()"
               >
-                <i class="fa-solid fa-floppy-disk"></i>
-                <span>Guncelle</span>
+                <i class="fa-solid fa-floppy-disk" [class.fa-spin]="saving()"></i>
+                <span>{{ saving() ? 'Guncelleniyor' : 'Guncelle' }}</span>
               </button>
               <button
                 type="button"
@@ -741,13 +796,21 @@
                   <h2>Bilgilendirme</h2>
                 </div>
               </div>
-              <article *ngFor="let recipient of notification.recipients; trackBy: trackByRecipient">
+              <article
+                *ngFor="
+                  let recipient of notificationRecipients(notification);
+                  trackBy: trackByRecipient
+                "
+              >
                 <strong>{{ recipient.regionName || recipient.regionCode || '-' }}</strong>
                 <span>{{ recipientEmail(recipient) }}</span>
                 <small>
                   {{ recipient.lineCount }} satir - {{ recipient.totalCaseQuantity | number:'1.0-0' }} koli
                 </small>
               </article>
+              <div class="mini-empty" *ngIf="notificationRecipients(notification).length === 0">
+                Bilgilendirme alicisi bulunamadi.
+              </div>
             </section>
 
             <section class="result-list" *ngIf="detail.finalizeResult as result">
@@ -757,11 +820,14 @@
                   <h2>Siparisler</h2>
                 </div>
               </div>
-              <article *ngFor="let order of result.orders; trackBy: trackByOrder">
+              <article *ngFor="let order of finalizeOrders(result); trackBy: trackByOrder">
                 <strong>{{ order.documentSerie }}/{{ order.documentOrderNo }}</strong>
                 <span>{{ orderWarehouseLabel(order) }}</span>
                 <small>{{ order.alreadyExisted ? 'Mevcut' : 'Yeni' }}</small>
               </article>
+              <div class="mini-empty" *ngIf="finalizeOrders(result).length === 0">
+                Mikro siparis sonucu bulunamadi.
+              </div>
             </section>
           </aside>
         </section>
@@ -777,6 +843,22 @@
             <i class="fa-solid fa-xmark"></i>
           </button>
         </header>
+        <article
+          class="feedback dialog-feedback"
+          *ngIf="feedback() as item"
+          [ngClass]="'feedback-' + item.tone"
+        >
+          <i
+            class="fa-solid"
+            [ngClass]="{
+              'fa-circle-check': item.tone === 'success',
+              'fa-triangle-exclamation': item.tone === 'warning',
+              'fa-circle-exclamation': item.tone === 'error',
+              'fa-circle-info': item.tone === 'info'
+            }"
+          ></i>
+          <span>{{ item.message }}</span>
+        </article>
         <section class="empty-panel compact-empty">
           <i class="fa-solid fa-file-lines" [class.fa-spin]="detailLoading()"></i>
           <h2>{{ detailLoading() ? 'Detay yukleniyor' : 'Secili kayit yok' }}</h2>

@@ -1,4 +1,4 @@
-<section class="task-page banknote-page" *ngIf="page as current">
+﻿<section class="task-page banknote-page" *ngIf="page as current">
   <header class="hero">
     <div class="welcome-box">
       <h2>{{ current.title }}</h2>
@@ -97,7 +97,7 @@
       <p>Secilen gun ve depo kapsami icin banknot takip kaydi bulunmuyor.</p>
     </article>
 
-    <section class="banknote-workspace" [class.has-create-panel]="isCreatePanelOpen()">
+    <section class="banknote-workspace">
       <article class="query-card detail-panel">
         <div class="panel-head">
           <div>
@@ -164,20 +164,40 @@
         </ng-template>
       </article>
 
+    </section>
+    <section class="banknote-dialog-backdrop" *ngIf="isCreatePanelOpen()" (click)="closeCreatePanel()">
       <form
-        class="query-card create-panel"
-        *ngIf="isCreatePanelOpen()"
+        class="query-card create-panel create-dialog"
         [formGroup]="createForm"
         (ngSubmit)="submitCreate()"
+        (click)="$event.stopPropagation()"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Yeni teslim kaydi"
         novalidate
       >
-        <div class="panel-head">
+        <div class="panel-head dialog-head">
           <div>
             <span class="section-kicker">Olustur</span>
             <h3>Yeni Teslim Kaydi</h3>
           </div>
-          <span class="panel-chip">{{ currentWarehouseLabel() }}</span>
+          <div class="dialog-head-actions">
+            <span class="panel-chip">{{ currentWarehouseLabel() }}</span>
+            <button type="button" class="dialog-close" title="Kapat" (click)="closeCreatePanel()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
         </div>
+
+        <article
+          class="state-card feedback-card dialog-feedback"
+          *ngIf="feedback() as currentFeedback"
+          [class.state-card-error]="currentFeedback.tone === 'error'"
+          [class.state-card-success]="currentFeedback.tone === 'success'"
+        >
+          <h3>{{ currentFeedback.title }}</h3>
+          <p>{{ currentFeedback.message }}</p>
+        </article>
 
         <div class="create-grid">
           <label class="field">
@@ -212,7 +232,7 @@
           <p>{{ response.banknoteTrackDate }} - Depo {{ response.warehouseNo }}</p>
         </article>
 
-        <div class="form-actions">
+        <div class="form-actions dialog-actions">
           <button type="submit" class="task-action task-action-primary" [disabled]="isCreating()">
             {{ isCreating() ? 'Kaydediliyor...' : 'Kaydet' }}
           </button>
@@ -224,3 +244,4 @@
     </section>
   </section>
 </section>
+

@@ -3,6 +3,7 @@ import {
   ChangeDetectionStrategy,
   Component,
   DestroyRef,
+  HostListener,
   OnInit,
   computed,
   inject,
@@ -34,7 +35,6 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import type { DocsContentPage } from '../../../../models/docs.models';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 
-type DistributionViewMode = 'list' | 'proposal';
 type FeedbackTone = 'error' | 'info' | 'success' | 'warning';
 type DistributionAction = 'list' | 'detail' | 'create' | 'update' | 'delete';
 
@@ -129,7 +129,6 @@ export class UrunDagilimlariListComponent implements OnInit {
   protected readonly distributions = signal<ProductDistributionListItemDto[]>([]);
   protected readonly proposal = signal<ProductDistributionProposalDto | null>(null);
   protected readonly selectedDetail = signal<ProductDistributionDetailDto | null>(null);
-  protected readonly viewMode = signal<DistributionViewMode>('list');
   protected readonly filtersOpen = signal(false);
   protected readonly proposalDialogOpen = signal(false);
   protected readonly detailDialogOpen = signal(false);
@@ -236,6 +235,23 @@ export class UrunDagilimlariListComponent implements OnInit {
     });
   }
 
+  @HostListener('document:keydown.escape')
+  protected closeTopDialog(): void {
+    if (this.filtersOpen()) {
+      this.closeFilters();
+      return;
+    }
+
+    if (this.proposalDialogOpen()) {
+      this.closeProposalDialog();
+      return;
+    }
+
+    if (this.detailDialogOpen()) {
+      this.closeDetailDialog();
+    }
+  }
+
   protected loadCenters(): void {
     this.centersLoading.set(true);
 
@@ -258,14 +274,14 @@ export class UrunDagilimlariListComponent implements OnInit {
       });
   }
 
-  protected loadList(): void {
+  protected loadList(): boolean {
     if (!this.canList()) {
-      return;
+      return false;
     }
 
     const request = this.buildListRequest();
     if (!request) {
-      return;
+      return false;
     }
 
     const requestId = ++this.listRequestId;
@@ -302,9 +318,14 @@ export class UrunDagilimlariListComponent implements OnInit {
           });
         }
       });
+
+    return true;
   }
 
   protected openFilters(): void {
+    this.proposalDialogOpen.set(false);
+    this.detailDialogOpen.set(false);
+    this.feedback.set(null);
     this.filtersOpen.set(true);
   }
 
@@ -313,8 +334,9 @@ export class UrunDagilimlariListComponent implements OnInit {
   }
 
   protected applyFilters(): void {
-    this.loadList();
-    this.filtersOpen.set(false);
+    if (this.loadList()) {
+      this.filtersOpen.set(false);
+    }
   }
 
   protected resetFilters(): void {
@@ -330,8 +352,10 @@ export class UrunDagilimlariListComponent implements OnInit {
   }
 
   protected openProposalDialog(): void {
+    this.filtersOpen.set(false);
     this.proposalDialogOpen.set(true);
     this.detailDialogOpen.set(false);
+    this.feedback.set(null);
   }
 
   protected closeProposalDialog(): void {
@@ -385,7 +409,6 @@ export class UrunDagilimlariListComponent implements OnInit {
           this.proposal.set(normalizedProposal);
           this.selectedDetail.set(null);
           this.detailDialogOpen.set(false);
-          this.viewMode.set('list');
           this.feedback.set({
             tone: normalizedProposal.summary.isBalanced ? 'success' : 'warning',
             message: normalizedProposal.summary.isBalanced
@@ -423,7 +446,6 @@ export class UrunDagilimlariListComponent implements OnInit {
           this.proposal.set(null);
           this.proposalDialogOpen.set(false);
           this.detailDialogOpen.set(true);
-          this.viewMode.set('list');
           this.loadList();
           this.feedback.set({
             tone: 'success',
@@ -445,6 +467,8 @@ export class UrunDagilimlariListComponent implements OnInit {
     }
 
     const requestId = ++this.detailRequestId;
+    this.selectedDetail.set(null);
+    this.filtersOpen.set(false);
     this.detailDialogOpen.set(true);
     this.proposalDialogOpen.set(false);
     this.detailLoading.set(true);
@@ -474,7 +498,6 @@ export class UrunDagilimlariListComponent implements OnInit {
           }
 
           this.selectedDetail.set(null);
-          this.detailDialogOpen.set(false);
           this.feedback.set({
             tone: 'error',
             message: getErrorMessage(error, 'Dagilim detayi yuklenemedi.')
@@ -626,10 +649,6 @@ export class UrunDagilimlariListComponent implements OnInit {
             message: getErrorMessage(error, 'Dagilim kaydi silinemedi.')
           })
       });
-  }
-
-  protected setViewMode(mode: DistributionViewMode): void {
-    this.viewMode.set(mode);
   }
 
   protected filterStatusLabel(): string {
@@ -834,6 +853,16 @@ export class UrunDagilimlariListComponent implements OnInit {
 
   protected recipientEmail(recipient: ProductDistributionNotificationRecipientDto): string {
     return recipient.email || recipient.recipientEmail || '-';
+  }
+
+  protected notificationRecipients(
+    notification: ProductDistributionNotificationDto
+  ): ProductDistributionNotificationRecipientDto[] {
+    return notification.recipients ?? [];
+  }
+
+  protected finalizeOrders(result: ProductDistributionFinalizeDto): ProductDistributionOrderDto[] {
+    return result.orders ?? [];
   }
 
   protected orderWarehouseLabel(order: ProductDistributionOrderDto): string {

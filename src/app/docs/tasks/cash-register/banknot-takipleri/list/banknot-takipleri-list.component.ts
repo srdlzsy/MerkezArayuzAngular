@@ -1,5 +1,5 @@
-import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+﻿import { CommonModule } from '@angular/common';
+import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -340,6 +340,7 @@ export class BanknotTakipleriListComponent {
   protected openCreatePanel(): void {
     const shouldPrepareNewForm = !this.isCreatePanelOpen() || this.createForm.pristine;
 
+    this.feedback.set(null);
     this.isCreatePanelOpen.set(true);
 
     if (shouldPrepareNewForm) {
@@ -347,6 +348,16 @@ export class BanknotTakipleriListComponent {
     }
   }
 
+  protected closeCreatePanel(): void {
+    this.isCreatePanelOpen.set(false);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeCreatePanelWithEscape(): void {
+    if (this.isCreatePanelOpen()) {
+      this.closeCreatePanel();
+    }
+  }
   protected submitCreate(): void {
     if (this.createForm.invalid) {
       this.createForm.markAllAsTouched();
@@ -373,7 +384,8 @@ export class BanknotTakipleriListComponent {
       .subscribe({
         next: (response: IFurpaCreateBanknoteTrackResponseApiDto) => {
           this.createdResponse.set(response);
-          this.isCreatePanelOpen.set(true);
+          this.feedback.set(null);
+    this.isCreatePanelOpen.set(true);
           this.filtersForm.controls.targetDate.setValue(
             toDateOnly(response.banknoteTrackDate) || this.getToday()
           );
@@ -549,3 +561,5 @@ export class BanknotTakipleriListComponent {
     return `${year}-${month}-${day}`;
   }
 }
+
+

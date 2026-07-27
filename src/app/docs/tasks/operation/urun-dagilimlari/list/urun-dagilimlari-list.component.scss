@@ -1117,6 +1117,7 @@ tbody tr.is-selected {
   width: min(100%, 760px);
   max-height: calc(100dvh - 2rem);
   overflow: auto;
+  overscroll-behavior: contain;
   border: 1px solid var(--dist-border-strong);
   border-radius: 8px;
   padding: 0.78rem;
@@ -1132,10 +1133,15 @@ tbody tr.is-selected {
 }
 
 .dialog-head {
+  position: sticky;
+  z-index: 3;
+  top: -0.78rem;
   justify-content: space-between;
   gap: 0.75rem;
-  padding-bottom: 0.6rem;
+  margin: -0.78rem -0.78rem 0;
+  padding: 0.78rem 0.78rem 0.6rem;
   border-bottom: 1px solid #e5edf4;
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .dialog-title {
@@ -1178,10 +1184,15 @@ tbody tr.is-selected {
 }
 
 .dialog-footer {
+  position: sticky;
+  z-index: 3;
+  bottom: -0.78rem;
   justify-content: flex-end;
   gap: 0.45rem;
-  padding-top: 0.6rem;
+  margin: 0 -0.78rem -0.78rem;
+  padding: 0.6rem 0.78rem 0.78rem;
   border-top: 1px solid #e5edf4;
+  background: rgba(255, 255, 255, 0.98);
 }
 
 .dialog-footer .compact {
@@ -1195,6 +1206,11 @@ tbody tr.is-selected {
 .filter-form {
   display: grid;
   gap: 0.55rem;
+}
+
+.dialog-feedback {
+  margin: 0;
+  box-shadow: none;
 }
 
 .proposal-dialog {
@@ -1251,6 +1267,11 @@ tbody tr.is-selected {
   min-width: 0;
 }
 
+.detail-side {
+  position: sticky;
+  top: 3.7rem;
+}
+
 .detail-dialog .flow-steps {
   border-bottom: 0;
   padding-bottom: 0;
@@ -1288,6 +1309,17 @@ tbody tr.is-selected {
   background: #fff;
 }
 
+.mini-empty {
+  border: 1px dashed var(--dist-border-strong);
+  border-radius: 8px;
+  padding: 1rem;
+  color: var(--dist-muted);
+  background: #f8fafc;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: center;
+}
+
 @media (max-width: 1380px) {
   .workspace {
     grid-template-columns: minmax(0, 1fr);
@@ -1306,6 +1338,10 @@ tbody tr.is-selected {
     position: static;
   }
 
+  .detail-side {
+    position: static;
+  }
+
   .filter-strip .icon-button {
     margin-left: 0;
   }
@@ -1320,6 +1356,18 @@ tbody tr.is-selected {
   .dialog-panel {
     max-height: calc(100dvh - 1rem);
     padding: 0.62rem;
+  }
+
+  .dialog-head {
+    top: -0.62rem;
+    margin: -0.62rem -0.62rem 0;
+    padding: 0.62rem 0.62rem 0.52rem;
+  }
+
+  .dialog-footer {
+    bottom: -0.62rem;
+    margin: 0 -0.62rem -0.62rem;
+    padding: 0.52rem 0.62rem 0.62rem;
   }
 
   .dialog-head,
@@ -1341,5 +1389,143 @@ tbody tr.is-selected {
   .head-tools .compact {
     flex: 1 1 100%;
     width: 100%;
+  }
+}
+
+.proposal-dialog {
+  width: min(100%, 1440px);
+}
+
+.proposal-layout {
+  grid-template-columns: minmax(0, 1fr);
+}
+
+.proposal-form {
+  position: static;
+  grid-template-columns:
+    minmax(160px, 1.1fr)
+    minmax(220px, 1.45fr)
+    minmax(220px, 1.1fr)
+    minmax(140px, 0.85fr)
+    minmax(150px, 0.9fr)
+    minmax(150px, 0.9fr)
+    auto;
+  align-items: end;
+  gap: 0.5rem;
+  padding: 0.58rem;
+}
+
+.proposal-form .block-head,
+.proposal-form .panel-note {
+  grid-column: 1 / -1;
+}
+
+.proposal-form .block-head {
+  padding-bottom: 0.12rem;
+}
+
+.proposal-form .field-grid {
+  grid-template-columns: repeat(2, minmax(92px, 1fr));
+}
+
+.proposal-form .check-row {
+  min-height: 32px;
+  align-self: end;
+  border: 1px solid var(--dist-border);
+  border-radius: 6px;
+  padding: 0.36rem 0.5rem;
+  background: #fbfcfe;
+}
+
+.proposal-form > .primary-button {
+  width: auto;
+  min-width: 132px;
+  align-self: end;
+  justify-self: end;
+  white-space: nowrap;
+}
+
+.proposal-workspace .table-section {
+  padding: 0.58rem;
+}
+
+.proposal-scroll {
+  max-height: min(58vh, 620px);
+}
+
+.proposal-dialog table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.proposal-dialog th,
+.proposal-dialog td {
+  padding: 0.42rem 0.42rem;
+  font-size: 0.72rem;
+}
+
+.proposal-dialog th:nth-child(1),
+.proposal-dialog td:nth-child(1) {
+  width: 21%;
+}
+
+.proposal-dialog th:nth-child(2),
+.proposal-dialog td:nth-child(2),
+.proposal-dialog th:nth-child(3),
+.proposal-dialog td:nth-child(3),
+.proposal-dialog th:nth-child(8),
+.proposal-dialog td:nth-child(8) {
+  width: 9%;
+}
+
+.proposal-dialog th:nth-child(4),
+.proposal-dialog td:nth-child(4),
+.proposal-dialog th:nth-child(5),
+.proposal-dialog td:nth-child(5) {
+  width: 10%;
+}
+
+.proposal-dialog th:nth-child(6),
+.proposal-dialog td:nth-child(6) {
+  width: 14%;
+}
+
+.proposal-dialog th:nth-child(7),
+.proposal-dialog td:nth-child(7) {
+  width: 10%;
+}
+
+.proposal-dialog .case-input {
+  width: 100%;
+  max-width: 78px;
+  min-height: 28px;
+  padding-right: 0.35rem;
+}
+
+@media (max-width: 1180px) {
+  .proposal-form {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .proposal-form > .primary-button {
+    width: 100%;
+  }
+}
+
+@media (max-width: 900px) {
+  .proposal-dialog table {
+    table-layout: auto;
+  }
+
+  .proposal-dialog th:nth-child(n),
+  .proposal-dialog td:nth-child(n) {
+    width: 100%;
+  }
+}
+
+@media (max-width: 640px) {
+  .proposal-form,
+  .proposal-form .field-grid {
+    grid-template-columns: 1fr;
   }
 }
