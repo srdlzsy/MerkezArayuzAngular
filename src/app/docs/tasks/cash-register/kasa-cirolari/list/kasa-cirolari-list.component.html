@@ -4,7 +4,6 @@
       <div class="title-block">
         <span class="section-kicker">Kasa Islemleri</span>
         <h2>{{ current.title }}</h2>
-        <p>{{ selectedDateRangeLabel() }} / {{ selectedWarehouseLabel() }}</p>
       </div>
 
       <div class="source-tabs" aria-label="Kasa kaynagi">
@@ -69,7 +68,7 @@
         </label>
 
         <ng-template #lockedWarehouse>
-          <div class="warehouse-chip" title="JWT deposu">
+          <div class="warehouse-chip" title="Kullanici deposu">
             <span>Depo</span>
             <strong>{{ selectedWarehouseLabel() }}</strong>
           </div>
@@ -125,13 +124,13 @@
 
     <article class="state-card" *ngIf="isLoading()">
       <h3>{{ getLoadingTitle() }}</h3>
-      <p>{{ getLoadingMessage() }}</p>
     </article>
 
     <div class="table-shell" *ngIf="!isLoading() && rows().length">
       <app-api-list-table
         [rows]="rows()"
         [columns]="tableColumns"
+        [fitToWidth]="true"
         [filterPlaceholder]="getTableFilterPlaceholder()"
         (rowAction)="openDetail($event)"
       ></app-api-list-table>
@@ -139,7 +138,6 @@
 
     <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
       <h3>{{ getEmptyTitle() }}</h3>
-      <p>{{ getEmptyMessage() }}</p>
     </article>
 
     <section class="overview-block">
@@ -147,7 +145,6 @@
         <div class="title-block">
           <span class="section-kicker">Sube Ozeti</span>
           <h3>Kasa ozeti ve sube toplamlari</h3>
-          <p>{{ overviewScopeLabel() }} / {{ selectedSourceLabel() }}</p>
         </div>
 
         <div class="overview-actions">
@@ -185,7 +182,6 @@
       <ng-container *ngIf="overviewPanelOpen()">
         <article class="state-card" *ngIf="overviewLoading()">
           <h3>Ozet yukleniyor</h3>
-          <p>Sube bazli ciro ozeti getiriliyor.</p>
         </article>
 
         <article class="state-card state-card-error" *ngIf="overviewError() as currentOverviewError">
@@ -256,7 +252,6 @@
           <ng-template #emptyOverview>
             <article class="state-card empty-state">
               <h3>Ozet bulunamadi</h3>
-              <p>Secilen tarih araliginda sube bazli ciro ozeti bulunmuyor.</p>
             </article>
           </ng-template>
         </ng-container>

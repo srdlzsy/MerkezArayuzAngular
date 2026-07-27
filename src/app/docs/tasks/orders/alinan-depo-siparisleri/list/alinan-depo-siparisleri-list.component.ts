@@ -21,6 +21,7 @@ import { AlinanDepoSiparisleriDetailComponent } from '../detail/alinan-depo-sipa
 export class AlinanDepoSiparisleriListComponent extends ApiTaskListPageBase<IFurpaWarehouseOrderListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['alinan-depo-siparisleri'];
   protected readonly tableColumns = DEPOLAR_ARASI_SIPARIS_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = AlinanDepoSiparisleriDetailComponent;
   protected readonly createComponent = AlinanDepoSiparisleriCreateComponent;
   protected override readonly canCreate = false;

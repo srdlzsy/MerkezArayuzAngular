@@ -43,7 +43,7 @@
         </p>
 
         <ng-template #lockedWarehouse>
-          <div class="warehouse-scope-pill" title="JWT deposu">
+          <div class="warehouse-scope-pill" title="Kullanici deposu">
             <span>Depo</span>
             <strong>{{ selectedWarehouseLabel() }}</strong>
           </div>
@@ -69,10 +69,16 @@
       <p>{{ getLoadingMessage() }}</p>
     </article>
 
+    <article class="state-card state-card-info" *ngIf="activityMessage() as activityMessage">
+      <h3>Islem Suruyor</h3>
+      <p>{{ activityMessage }}</p>
+    </article>
+
     <app-api-list-table
       *ngIf="!isLoading() && rows().length"
       [rows]="rows()"
       [columns]="tableColumns"
+      [fitToWidth]="fitTableToWidth"
       [filterPlaceholder]="getTableFilterPlaceholder()"
       [additionalActions]="getAdditionalRowActions()"
       (rowAction)="openDetail($event)"

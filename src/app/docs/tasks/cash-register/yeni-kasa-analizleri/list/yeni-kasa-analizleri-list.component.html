@@ -4,7 +4,6 @@
       <div class="title-block">
         <span class="section-kicker">Kasa Islemleri</span>
         <h2>{{ current.title }}</h2>
-        <p>{{ activeTabDefinition().summary }}</p>
       </div>
 
       <form class="filters-grid" [formGroup]="filterForm" (ngSubmit)="loadRows()">
@@ -34,7 +33,7 @@
         </label>
 
         <label class="field">
-          <span>Take</span>
+          <span>Limit</span>
           <input type="number" formControlName="take" min="1" max="2000" inputmode="numeric" />
         </label>
 
@@ -125,7 +124,6 @@
 
     <article class="state-card" *ngIf="isLoading()">
       <h3>Analiz yukleniyor</h3>
-      <p>{{ activeTabDefinition().label }} kayitlari getiriliyor.</p>
     </article>
 
     <div class="table-shell" *ngIf="!isLoading() && activeRows().length">
@@ -142,7 +140,6 @@
 
     <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !activeRows().length">
       <h3>Kayit bulunamadi</h3>
-      <p>Secilen filtrelerde {{ activeTabDefinition().label }} icin sonuc donmedi.</p>
     </article>
 
   </article>
@@ -168,7 +165,6 @@
 
     <article class="state-card" *ngIf="receiptDetailLoading()">
       <h3>Fis detayi yukleniyor</h3>
-      <p>Secili fisin satis, urun ve odeme satirlari getiriliyor.</p>
     </article>
 
     <section class="receipt-detail-panel" *ngIf="selectedReceiptDetail() as detail">

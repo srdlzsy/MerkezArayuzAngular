@@ -51,9 +51,8 @@
         </button>
       </div>
 
-      <p class="request-path">{{ requestPath() }}</p>
       <p class="deduction-note">
-        Acik gelen depo siparisleri, backend ayari acik ve kaynak depo guvenilir listedeyse ihtiyactan dusulur.
+        Acik depo siparisleri ihtiyac hesabinda dikkate alinir.
       </p>
     </form>
 
@@ -102,16 +101,9 @@
             <thead>
               <tr>
                 <th class="select-cell">Sec</th>
-                <th>Stok Kodu</th>
-                <th>Stok Adi</th>
-                <th>Barkod</th>
-                <th>Model</th>
-                <th>Hedef Stok</th>
-                <th>Kaynak Stok</th>
-                <th>Son Satis</th>
-                <th>Acik Siparis</th>
+                <th>Stok</th>
+                <th>Stok Durumu</th>
                 <th>Ihtiyac</th>
-                <th>Koli</th>
                 <th>Oneri</th>
                 <th>Miktar</th>
               </tr>
@@ -128,23 +120,36 @@
                     (change)="setLineSelected(line.item.stockCode, $any($event.target).checked)"
                   />
                 </td>
-                <td>{{ line.item.stockCode }}</td>
-                <td>
+                <td class="stacked-cell">
+                  <strong>{{ line.item.stockCode }}</strong>
                   <strong>{{ line.item.stockName }}</strong>
-                </td>
-                <td>{{ line.item.barcode || '-' }}</td>
-                <td>{{ line.item.modelCode || '-' }}</td>
-                <td>{{ formatNumber(line.item.targetOnHand) }}</td>
-                <td>{{ formatNumber(line.item.sourceOnHand) }}</td>
-                <td>{{ formatNumber(line.item.salesQuantity) }}</td>
-                <td>{{ formatNumber(line.item.openIncomingOrderQuantity) }}</td>
-                <td>
-                  <span [class.warning-text]="line.item.needQuantity > 0">
-                    {{ formatNumber(line.item.needQuantity) }}
+                  <span class="table-meta">
+                    {{ line.item.barcode || '-' }} / {{ line.item.modelCode || '-' }}
                   </span>
                 </td>
-                <td>{{ formatNumber(line.item.packageFactor) }}</td>
-                <td>{{ formatNumber(line.item.suggestedOrderQuantity) }}</td>
+                <td>
+                  <div class="metric-lines">
+                    <span>Hedef <strong>{{ formatNumber(line.item.targetOnHand) }}</strong></span>
+                    <span>Kaynak <strong>{{ formatNumber(line.item.sourceOnHand) }}</strong></span>
+                    <span>Satis <strong>{{ formatNumber(line.item.salesQuantity) }}</strong></span>
+                    <span>Acik <strong>{{ formatNumber(line.item.openIncomingOrderQuantity) }}</strong></span>
+                  </div>
+                </td>
+                <td>
+                  <div class="metric-lines">
+                    <span>Ihtiyac <strong [class.warning-text]="line.item.needQuantity > 0">{{ formatNumber(line.item.needQuantity) }}</strong></span>
+                    <span>Min <strong>{{ formatNumber(line.item.minDay) }}</strong></span>
+                    <span>Gun <strong>{{ formatNumber(line.item.recommendedDay) }}</strong></span>
+                    <span>Max <strong>{{ formatNumber(line.item.maxDay) }}</strong></span>
+                  </div>
+                </td>
+                <td>
+                  <div class="metric-lines">
+                    <span>Koli <strong>{{ formatNumber(line.item.packageFactor) }}</strong></span>
+                    <span>Stok <strong>{{ formatNumber(line.item.recommendedStockQuantity) }}</strong></span>
+                    <span>Siparis <strong>{{ formatNumber(line.item.suggestedOrderQuantity) }}</strong></span>
+                  </div>
+                </td>
                 <td>
                   <input
                     class="quantity-input"

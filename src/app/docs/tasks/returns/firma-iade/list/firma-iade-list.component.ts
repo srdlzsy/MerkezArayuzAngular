@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Component, inject } from '@angular/core';
+import { finalize } from 'rxjs';
 
 import { IadeIslemleriService } from '../../../../../core/api/module-services/iade-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -47,6 +48,7 @@ const ROW_ACTIONS: readonly ApiListTableRowAction<IFurpaCompanyMovementListItemA
 export class FirmaIadeListComponent extends ApiTaskListPageBase<IFurpaCompanyMovementListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-iadeleri'];
   protected readonly tableColumns = FIRMA_STOK_HAREKETI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = FirmaIadeDetailComponent;
   protected readonly createComponent = FirmaIadeCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
@@ -61,7 +63,7 @@ export class FirmaIadeListComponent extends ApiTaskListPageBase<IFurpaCompanyMov
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaCompanyMovementListItemApiDto>[] {
-    return ROW_ACTIONS;
+    return this.getPdfLoadingRowActions(ROW_ACTIONS);
   }
 
   protected override handleAdditionalRowAction(
@@ -71,9 +73,15 @@ export class FirmaIadeListComponent extends ApiTaskListPageBase<IFurpaCompanyMov
 
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
+      this.activityMessage.set(
+        `${row.documentNo || `${row.documentSerie}-${row.documentOrderNo}`} PDF yukleniyor.`
+      );
       this.iadeIslemleriService
         .getFirmaIadeEirsaliyePdf(row.documentSerie, row.documentOrderNo, row.warehouseNo)
-        .pipe(takeUntilDestroyed(this.destroyRef))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.activityMessage.set(null))
+        )
         .subscribe({
           next: (blob: Blob) => {
             this.openBlobInDialog(blob, row.documentNo || `${row.documentSerie}/${row.documentOrderNo}`);

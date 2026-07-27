@@ -21,6 +21,7 @@ import { VerilenSiparislerDetailComponent } from '../detail/verilen-siparisler-d
 export class VerilenSiparislerListComponent extends ApiTaskListPageBase<IFurpaCompanyOrderListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['verilen-firma-siparisleri'];
   protected readonly tableColumns = FIRMA_SIPARISI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = VerilenSiparislerDetailComponent;
   protected readonly createComponent = VerilenSiparislerCreateComponent;
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);

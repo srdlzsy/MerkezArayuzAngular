@@ -43,18 +43,17 @@
   display: grid;
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.18rem 0.45rem;
-  min-height: 74px;
-  padding: 0.58rem 0.68rem;
+  min-height: 44px;
+  padding: 0.42rem 0.56rem;
   text-align: left;
   border: 1px solid #dbe5f1;
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fff;
   cursor: pointer;
-  transition: transform 0.16s ease, border-color 0.16s ease, background-color 0.16s ease;
+  transition: border-color 0.16s ease, background-color 0.16s ease;
 }
 
 .report-tab:hover {
-  transform: translateY(-1px);
   border-color: #a7c7d8;
 }
 
@@ -75,13 +74,6 @@
   border-radius: 999px;
   background: #ecfdf5;
   font-size: 0.78rem;
-}
-
-.report-tab small {
-  grid-column: 1 / -1;
-  color: #64748b;
-  font-size: 0.72rem;
-  line-height: 1.3;
 }
 
 .report-tab-active {
@@ -176,7 +168,7 @@ td small {
   min-height: 32px;
   padding: 0.34rem 0.58rem;
   border: 1px solid #dbe5f1;
-  border-radius: 9px;
+  border-radius: 8px;
   background: #fff;
   color: #334155;
   font-size: 0.78rem;
@@ -217,7 +209,7 @@ td small {
   gap: 0.12rem;
   padding: 0.65rem 0.72rem;
   border: 1px solid #e2e8f0;
-  border-radius: 10px;
+  border-radius: 8px;
   background: #f8fafc;
 }
 

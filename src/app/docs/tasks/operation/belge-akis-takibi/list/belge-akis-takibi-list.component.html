@@ -167,7 +167,7 @@
     <div class="table-context" *ngIf="rows().length">
       <span class="record-count compact-count">{{ totalCount() }} kayit</span>
       <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
-      <span>{{ isAdminUser() ? 'Admin kapsami' : 'JWT depo kapsami' }}</span>
+      <span>{{ isAdminUser() ? 'Admin kapsami' : 'Kullanici deposu' }}</span>
     </div>
 
     <section class="table-shell">

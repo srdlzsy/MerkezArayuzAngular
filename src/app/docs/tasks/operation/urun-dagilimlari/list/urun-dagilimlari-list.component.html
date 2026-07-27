@@ -574,6 +574,17 @@
                         <button
                           type="button"
                           class="sort-button"
+                          [class.active]="isProposalSortActive('region')"
+                          (click)="sortProposalLines('region')"
+                        >
+                          <span>Bolge</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('region')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
                           [class.active]="isProposalSortActive('lastSalesQuantity')"
                           (click)="sortProposalLines('lastSalesQuantity')"
                         >
@@ -666,7 +677,11 @@
                     >
                       <td data-label="Sube">
                         <strong>{{ line.warehouseNo }}</strong>
-                        <small>{{ lineBranchMeta(line) }}</small>
+                        <small>{{ lineBranchLabel(line) }}</small>
+                      </td>
+                      <td data-label="Bolge">
+                        <strong>{{ lineRegionLabel(line) }}</strong>
+                        <small *ngIf="lineRegionCodeLabel(line) as regionCode">{{ regionCode }}</small>
                       </td>
                       <td data-label="Satis">
                         <strong>{{ line.lastSalesQuantity | number:'1.0-0' }}</strong>
@@ -723,7 +738,7 @@
                       </td>
                     </tr>
                     <tr *ngIf="activeProposal.lines.length === 0">
-                      <td colspan="9" class="empty-cell">Oneri satiri bulunamadi.</td>
+                      <td colspan="10" class="empty-cell">Oneri satiri bulunamadi.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -986,10 +1001,6 @@
                 <span>Kesinlestiren</span>
                 <input type="text" [(ngModel)]="finalizeForm.finalizeBy" />
               </label>
-              <label class="check-row">
-                <input type="checkbox" [(ngModel)]="finalizeForm.allowFinalizeWithoutNotification" />
-                <span>Bilgilendirme olmadan izin ver</span>
-              </label>
             </section>
 
             <section class="result-list" *ngIf="detail.notification as notification">
@@ -999,6 +1010,27 @@
                   <h2>Bilgilendirme</h2>
                 </div>
               </div>
+              <article class="mail-summary" *ngIf="hasNotificationMailInfo(notification)">
+                <span>{{ notificationMailStateLabel(notification) }}</span>
+                <strong>{{ notification.sentEmailCount ?? 0 }} gonderildi</strong>
+                <small *ngIf="(notification.failedEmailCount ?? 0) > 0">
+                  {{ notification.failedEmailCount ?? 0 }} hata
+                </small>
+              </article>
+              <ng-container *ngIf="notificationMailResults(notification).length; else notificationRecipientsView">
+                <article
+                  *ngFor="
+                    let result of notificationMailResults(notification);
+                    trackBy: trackByMailResult
+                  "
+                  [class.is-failed]="!result.sent"
+                >
+                  <strong>{{ result.managerName || result.regionCode || '-' }}</strong>
+                  <span>{{ result.email || '-' }}</span>
+                  <small>{{ result.sent ? 'Gonderildi' : result.message || 'Gonderilemedi' }}</small>
+                </article>
+              </ng-container>
+              <ng-template #notificationRecipientsView>
               <article
                 *ngFor="
                   let recipient of notificationRecipients(notification);
@@ -1011,7 +1043,14 @@
                   {{ recipient.lineCount }} satir - {{ recipient.totalCaseQuantity | number:'1.0-0' }} koli
                 </small>
               </article>
-              <div class="mini-empty" *ngIf="notificationRecipients(notification).length === 0">
+              </ng-template>
+              <div
+                class="mini-empty"
+                *ngIf="
+                  notificationRecipients(notification).length === 0 &&
+                  notificationMailResults(notification).length === 0
+                "
+              >
                 Bilgilendirme alicisi bulunamadi.
               </div>
             </section>

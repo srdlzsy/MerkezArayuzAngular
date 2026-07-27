@@ -446,6 +446,7 @@ export interface NotSoldProductReportItemDto {
   productManagerCode?: string | null;
   productManagerName?: string | null;
   quantity?: number | null;
+  currentStock?: number | null;
   salesPrice?: number | null;
   salesValue?: number | null;
   lastSaleDate?: string | null;

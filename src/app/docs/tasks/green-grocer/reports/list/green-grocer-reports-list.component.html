@@ -21,7 +21,7 @@
 
     <article class="state-card state-card-error" *ngIf="!canViewReports()">
       <h3>Yetki kontrolu</h3>
-      <p>Bu ekran icin green-grocer.reports.list yetkisi veya GreenGrocer gorev erisimi beklenir.</p>
+      <p>Bu ekran icin yetkiniz bulunmuyor.</p>
     </article>
 
     <article
@@ -36,7 +36,6 @@
 
     <article class="state-card" *ngIf="isLoading()">
       <h3>Raporlar Yukleniyor</h3>
-      <p>{{ filtersForm.controls.targetDate.value }} tarihli manav ve yesillik raporlari getiriliyor.</p>
     </article>
 
     <section class="report-metrics">
@@ -53,7 +52,7 @@
         <p>{{ productRows().length }}</p>
       </article>
       <article class="info-card">
-        <h3>Lazy Sube</h3>
+        <h3>Eksik Sube</h3>
         <p>{{ lazyBranches().length }}</p>
       </article>
     </section>
@@ -68,7 +67,6 @@
       >
         <span>{{ tab.label }}</span>
         <strong>{{ getTabCount(tab.id) }}</strong>
-        <small>{{ tab.description }}</small>
       </button>
     </nav>
 
@@ -108,7 +106,6 @@
         <ng-template #emptySummary>
           <article class="state-card compact-state" *ngIf="!isLoading()">
             <h3>Genel rapor bos</h3>
-            <p>Secilen gun icin urun/tip bazinda manav kaydi bulunmuyor.</p>
           </article>
         </ng-template>
       </section>
@@ -166,14 +163,13 @@
         <ng-template #emptyBranch>
           <article class="state-card compact-state" *ngIf="!isLoading()">
             <h3>Sube raporu bos</h3>
-            <p>Secilen gun icin sube/evrak bazli manav kaydi bulunmuyor.</p>
           </article>
         </ng-template>
 
         <section class="lazy-branches" *ngIf="lazyBranches().length">
           <div class="panel-head">
             <div>
-              <span class="section-kicker">Lazy Branches</span>
+              <span class="section-kicker">Eksik Subeler</span>
               <h3>Siparis girmeyen subeler</h3>
             </div>
             <span class="panel-chip">{{ lazyBranches().length }}</span>
@@ -262,7 +258,6 @@
             <ng-template #emptyProductBreakdown>
               <article class="state-card compact-state">
                 <h3>Kirilim yok</h3>
-                <p>Backend bu urun icin sube/evrak kirilimi donmedi.</p>
               </article>
             </ng-template>
           </article>
@@ -271,7 +266,6 @@
         <ng-template #emptyProduct>
           <article class="state-card compact-state" *ngIf="!isLoading()">
             <h3>Urun raporu bos</h3>
-            <p>Secilen gun icin urun bazli manav kaydi bulunmuyor.</p>
           </article>
         </ng-template>
       </section>
@@ -325,7 +319,6 @@
         <ng-template #emptyGreens>
           <article class="state-card compact-state" *ngIf="!isLoading()">
             <h3>Yesillik raporu bos</h3>
-            <p>Secilen gun icin sto_model_kodu 12 kapsaminda satir bulunmuyor.</p>
           </article>
         </ng-template>
       </section>

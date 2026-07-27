@@ -13,7 +13,7 @@
           [class.is-active]="activeTab() === 'import'"
           (click)="selectTab('import')"
         >
-          Import
+          Dosya Al
         </button>
         <button
           type="button"
@@ -111,7 +111,7 @@
                 [class.is-active]="importForm.controls.importType.value === 'normal'"
                 (click)="selectImportMode('normal')"
               >
-                HR Hareket
+                HR Hareketleri
               </button>
               <button
                 type="button"
@@ -119,7 +119,7 @@
                 [class.is-active]="importForm.controls.importType.value === 'cancel'"
                 (click)="selectImportMode('cancel')"
               >
-                IP Iptal
+                IP Iptalleri
               </button>
               <button
                 type="button"
@@ -151,26 +151,21 @@
                 </label>
 
                 <label class="field">
-                  <span>Add Day</span>
+                  <span>Gun Farki</span>
                   <input type="number" step="1" formControlName="addDay" placeholder="-1" />
                 </label>
               </div>
             </ng-template>
 
-            <label class="field field-wide technical-field">
-              <span>Dosya Root</span>
-              <input type="text" formControlName="fileRootPath" placeholder="Backend konfigurasyonu" />
-            </label>
-
             <div class="toggle-row">
               <label class="check-field">
                 <input type="checkbox" formControlName="skipExisting" />
-                <span>Skip Existing</span>
+                <span>Mevcutlari Atla</span>
               </label>
 
               <label class="check-field">
                 <input type="checkbox" formControlName="dryRun" />
-                <span>Dry Run</span>
+                <span>Sadece Kontrol</span>
               </label>
             </div>
 
@@ -180,18 +175,12 @@
               </button>
             </div>
           </div>
-
-          <aside class="request-card">
-            <span class="section-kicker">Request</span>
-            <pre><code>{{ getImportRequestPreview() }}</code></pre>
-          </aside>
         </form>
 
         <section class="result-grid" *ngIf="lastImportResult() as importResult">
           <article class="result-card result-main">
             <span class="section-kicker">Sonuc</span>
             <h3>{{ importResult.status || 'Durum' }}</h3>
-            <p>{{ importResult.runId || '-' }} / {{ importResult.importType || '-' }}</p>
           </article>
           <article class="result-card">
             <span>Dosya</span>
@@ -260,11 +249,6 @@
           <button type="submit" class="task-action task-action-primary" [disabled]="reportLoading()">
             {{ reportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
           </button>
-
-          <div class="request-inline">
-            <span>Request</span>
-            <code>{{ getReportRequestPreview() }}</code>
-          </div>
         </form>
 
         <section class="summary-strip">
@@ -288,7 +272,6 @@
 
         <article class="state-card" *ngIf="reportLoading()">
           <h3>Rapor yukleniyor</h3>
-          <p>{{ scopeSummary() }} icin {{ reportForm.controls.date.value }} tarihli rapor aliniyor.</p>
         </article>
 
         <div class="table-wrap" *ngIf="!reportLoading() && reportRows().length">
@@ -325,7 +308,6 @@
 
         <article class="state-card empty-state" *ngIf="!reportLoading() && !reportRows().length">
           <h3>Rapor satiri yok</h3>
-          <p>Secilen filtrelerle rapor kaydi bulunmuyor.</p>
         </article>
       </section>
 
@@ -335,17 +317,12 @@
             <span>Islem Tarihi</span>
             <input type="date" formControlName="date" />
           </label>
-
-          <div class="request-inline">
-            <span>Request</span>
-            <code>{{ getMikroRequestPreview() }}</code>
-          </div>
         </form>
 
         <section class="action-grid">
           <article class="action-card">
-            <span class="section-kicker">Staging</span>
-            <h3>Staging Sil</h3>
+            <span class="section-kicker">Hazirlik</span>
+            <h3>Hazirlik Sil</h3>
             <p>{{ scopeSummary() }}</p>
             <button
               type="button"
@@ -353,7 +330,7 @@
               (click)="runProcedure('staging-delete')"
               [disabled]="!!procedureLoadingAction()"
             >
-              {{ isProcedureLoading('staging-delete') ? 'Siliniyor...' : 'Staging Sil' }}
+              {{ isProcedureLoading('staging-delete') ? 'Siliniyor...' : 'Hazirlik Sil' }}
             </button>
           </article>
 
@@ -405,15 +382,10 @@
           <button type="submit" class="task-action task-action-primary" [disabled]="!!procedureLoadingAction()">
             {{ isProcedureLoading('mikro-range-transfer') ? 'Aktariliyor...' : 'Aralik Aktar' }}
           </button>
-
-          <div class="request-inline">
-            <span>Request</span>
-            <code>{{ getMikroRangeRequestPreview() }}</code>
-          </div>
         </form>
 
         <article class="procedure-result" *ngIf="lastProcedureResult() as procedureResult">
-          <span class="section-kicker">Procedure Sonucu</span>
+          <span class="section-kicker">Islem Sonucu</span>
           <h3>{{ procedureResult.procedure || '-' }}</h3>
           <p>{{ procedureResult.message || '-' }}</p>
           <dl>

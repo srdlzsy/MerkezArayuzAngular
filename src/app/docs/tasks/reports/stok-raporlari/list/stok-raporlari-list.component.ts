@@ -375,7 +375,7 @@ const NOT_SOLD_COLUMNS: readonly ApiListTableColumn<NotSoldProductReportItemDto>
     label: 'Satin Almaci',
     resolveValue: (row) => row.productManagerName || row.productManagerCode || '-'
   },
-  { key: 'quantity', label: 'Stok', resolveValue: (row) => formatNumber(row.quantity) },
+  { key: 'quantity', label: 'Stok', resolveValue: (row) => formatNumber(row.currentStock ?? row.quantity) },
   { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
   { key: 'salesValue', label: 'Deger', resolveValue: (row) => formatMoney(row.salesValue) },
   { key: 'lastSaleDate', label: 'Son Satis', resolveValue: (row) => formatDateOnly(row.lastSaleDate) }
@@ -1323,7 +1323,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
       rows,
       metrics: [
         { label: 'Satmayan Urun', value: formatInteger(rows.length) },
-        { label: 'Stok Miktari', value: formatNumber(sumBy(rows, (row) => row.quantity)) },
+        { label: 'Stok Miktari', value: formatNumber(sumBy(rows, (row) => row.currentStock ?? row.quantity)) },
         { label: 'Stok Degeri', value: formatMoney(sumBy(rows, (row) => row.salesValue)) },
         { label: 'Satin Almaci', value: formatInteger(new Set(rows.map((row) => row.productManagerCode)).size) }
       ]
@@ -1528,12 +1528,14 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
   }
 
   private buildFilteredDateRangeRequest(): FilteredDateRangeReportHttpRequest {
+    const filterValue = this.primaryCode().trim() || this.searchText().trim() || null;
+
     return {
       warehouseNo: this.resolveWarehouseNo(),
       startDate: this.startDate(),
       endDate: this.endDate(),
-      filterType: this.filterType(),
-      filterValue: this.primaryCode().trim() || this.searchText().trim() || null,
+      filterType: filterValue ? this.filterType() : null,
+      filterValue,
       take: this.take()
     };
   }

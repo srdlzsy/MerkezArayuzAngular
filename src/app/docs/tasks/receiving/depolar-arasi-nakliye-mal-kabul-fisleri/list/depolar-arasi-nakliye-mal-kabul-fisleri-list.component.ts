@@ -21,6 +21,7 @@ import { DepolarArasiNakliyeMalKabulFisleriDetailComponent } from '../detail/dep
 export class DepolarArasiNakliyeMalKabulFisleriListComponent extends ApiTaskListPageBase<IFurpaWarehouseReceiptListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['depo-mal-kabulleri'];
   protected readonly tableColumns = buildWarehouseMovementListColumns('source');
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = DepolarArasiNakliyeMalKabulFisleriDetailComponent;
   protected readonly createComponent = DepolarArasiNakliyeMalKabulFisleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';

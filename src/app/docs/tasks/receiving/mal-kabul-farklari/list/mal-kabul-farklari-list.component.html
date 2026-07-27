@@ -39,7 +39,7 @@
         </label>
 
         <ng-template #lockedWarehouse>
-          <div class="warehouse-scope-pill" title="JWT deposu">
+          <div class="warehouse-scope-pill" title="Kullanici deposu">
             <span>Depo</span>
             <strong>{{ selectedWarehouseLabel() }}</strong>
           </div>
@@ -86,6 +86,7 @@
       *ngIf="!isLoading() && rows().length"
       [rows]="rows()"
       [columns]="tableColumns"
+      [fitToWidth]="true"
       [actionLabel]="actionLabel"
       [filterPlaceholder]="getTableFilterPlaceholder()"
       (rowAction)="openDetail($event)"

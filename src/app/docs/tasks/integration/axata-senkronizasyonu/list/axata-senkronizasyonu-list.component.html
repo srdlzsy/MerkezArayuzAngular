@@ -137,7 +137,7 @@
           <summary>Gelişmiş teknik seçenekler</summary>
           <div class="advanced-panel-body">
             <button type="button" class="btn secondary" (click)="executeSelectedTaskViaJobsEndpoint()" [disabled]="genericJobLoading()">
-              {{ genericJobLoading() ? 'Kuyruğa alınıyor...' : 'Genel Job Endpointi' }}
+              {{ genericJobLoading() ? 'Kuyruga aliniyor...' : 'Kuyruga Al' }}
             </button>
             <div class="pill-row">
               <span class="status-pill" *ngFor="let item of selectedTaskCapabilities()">{{ item }}</span>
@@ -170,7 +170,7 @@
           </label>
 
           <label class="form-row">
-            <span>Preview / Sirali Aktarim Adedi</span>
+            <span>Onizleme / Sirali Aktarim Adedi</span>
             <input type="number" formControlName="take" min="1" max="100000" />
           </label>
 
@@ -267,7 +267,7 @@
           </div>
 
           <details class="json-details">
-            <summary>Teknik urun payloadi</summary>
+            <summary>Urun Onizleme Detayi</summary>
             <pre>{{ productSynchronizationPreviewJson() }}</pre>
           </details>
         </ng-container>
@@ -318,7 +318,7 @@
           </div>
 
           <details class="json-details">
-            <summary>AXATA gonderim JSON</summary>
+            <summary>AXATA Gonderim Detayi</summary>
             <pre>{{ productSynchronizationResultJson() }}</pre>
           </details>
         </ng-container>
@@ -679,7 +679,7 @@
           <div class="audit-section-head" *ngIf="flowOverview.actionGroups.length">
             <div>
               <h2 class="section-title">Siradaki Aksiyonlar</h2>
-              <p class="section-desc">Backendin grupladigi belgeler ve onerilen hareketler.</p>
+              <p class="section-desc">Sistemin grupladigi belgeler ve onerilen hareketler.</p>
             </div>
             <span class="status-pill">{{ flowOverview.actionGroups.length }} grup</span>
           </div>
@@ -1133,13 +1133,13 @@
       </div>
 
       <details class="json-details">
-        <summary>Audit JSON</summary>
+        <summary>Islem Gecmisi Detayi</summary>
         <pre>{{ auditJson() }}</pre>
       </details>
     </ng-container>
 
     <details class="advanced-panel technical-results">
-      <summary>Teknik sonuçlar ve geçmiş işlemler</summary>
+      <summary>Sonuclar ve Gecmis Islemler</summary>
       <div class="section-grid advanced-panel-body">
       <div class="section-block nested-flat">
         <h2 class="section-title">Önizleme Sonucu</h2>
@@ -1159,7 +1159,7 @@
             </div>
           </div>
           <details class="json-details">
-            <summary>Preview JSON</summary>
+            <summary>Onizleme Detayi</summary>
             <pre>{{ previewJson() }}</pre>
           </details>
         </ng-container>
@@ -1289,15 +1289,15 @@
             <input type="number" formControlName="manualDocumentOrderNo" />
           </label>
           <label class="form-row" *ngIf="isInventoryCountTask()">
-            <span>Document No</span>
+            <span>Belge No</span>
             <input type="number" formControlName="manualDocumentNo" />
           </label>
           <label class="form-row" *ngIf="isInventoryCountTask()">
-            <span>Document Date</span>
+            <span>Belge Tarihi</span>
             <input type="date" formControlName="manualDocumentDate" />
           </label>
           <label class="form-row">
-            <span>Mode</span>
+            <span>Islem Modu</span>
             <select formControlName="executionMode">
               <option *ngFor="let mode of executionModes" [value]="mode">
                 {{ formatExecutionMode(mode) }}
@@ -1358,19 +1358,19 @@
       <div class="section-block">
         <h2 class="section-title">Manuel Islem Sonucu</h2>
         <details class="json-details" *ngIf="manualDocumentResult()">
-          <summary>Onizleme / dosya hazirlama JSON</summary>
+          <summary>Onizleme / Dosya Hazirlama Detayi</summary>
           <pre>{{ manualResultJson() }}</pre>
         </details>
         <details class="json-details" *ngIf="manualDispatchResult() as dispatchResult">
-          <summary>AXATA gonderim JSON</summary>
+          <summary>AXATA Gonderim Detayi</summary>
           <pre>{{ formatJson(dispatchResult) }}</pre>
         </details>
         <details class="json-details" *ngIf="manualDispatchBatchResult() as dispatchBatch">
-          <summary>Toplu AXATA gonderim JSON</summary>
+          <summary>Toplu AXATA Gonderim Detayi</summary>
           <pre>{{ formatJson(dispatchBatch) }}</pre>
         </details>
         <details class="json-details" *ngIf="batchResult() as result">
-          <summary>Toplu onizleme / dosya hazirlama JSON</summary>
+          <summary>Toplu Onizleme / Dosya Hazirlama Detayi</summary>
           <pre>{{ formatJson(result) }}</pre>
         </details>
         <div class="empty-msg" *ngIf="!manualDocumentResult() && !manualDispatchResult() && !manualDispatchBatchResult() && !batchResult()">
@@ -1385,7 +1385,7 @@
       <h2 class="section-title">Bekleyen AXATA Sevkleri</h2>
       <p class="section-desc">
         C02, C03 ve C4 kuyruklari karar destegi icin sadece goruntulenir; bu bolum Mikro'ya
-        yazmaz ve AXATA acknowledge yapmaz.
+        yazmaz ve AXATA tarafinda tamamlandi olarak isaretlemez.
       </p>
 
       <form class="compact-form form-grid" [formGroup]="queuePreviewForm">
@@ -1459,7 +1459,7 @@
         </ng-template>
 
         <details class="json-details">
-          <summary>Teknik kuyruk JSON</summary>
+          <summary>Kuyruk Detayi</summary>
           <pre>{{ queuePreviewJson() }}</pre>
         </details>
       </ng-container>
@@ -1540,7 +1540,7 @@
         </ng-template>
 
         <details class="json-details">
-          <summary>Sevk Tarihi JSON</summary>
+          <summary>Sevk Tarihi Detayi</summary>
           <pre>{{ outboundDeliveriesByDateJson() }}</pre>
         </details>
       </ng-container>
@@ -1611,7 +1611,7 @@
         </div>
 
         <details class="json-details">
-          <summary>C01 teknik onizleme JSON</summary>
+          <summary>C01 Onizleme Detayi</summary>
           <pre>{{ c01PreviewJson() }}</pre>
         </details>
       </ng-container>
@@ -1636,7 +1636,7 @@
           </div>
         </div>
         <details class="json-details">
-          <summary>C01 Mikro isleme JSON</summary>
+          <summary>C01 Mikro Isleme Detayi</summary>
           <pre>{{ c01ImportJson() }}</pre>
         </details>
       </ng-container>
@@ -1653,7 +1653,7 @@
             <input type="number" formControlName="documentOrderNo" />
           </label>
           <label class="form-row">
-            <span>AXATA Status</span>
+            <span>AXATA Durumu</span>
             <select formControlName="status">
               <option value="">Once 0, sonra 1 dene</option>
               <option value="0">0 - Pending</option>
@@ -1662,7 +1662,7 @@
           </label>
           <label class="form-row inline">
             <input type="checkbox" formControlName="acknowledge" />
-            <span>Import sonrasi AXATA ack at</span>
+            <span>Islem sonrasi AXATA'da tamamla</span>
           </label>
         </form>
 
@@ -1691,7 +1691,7 @@
             </div>
           </div>
           <details class="json-details">
-            <summary>Belge kurtarma onizleme JSON</summary>
+            <summary>Belge Kurtarma Onizleme Detayi</summary>
             <pre>{{ c01DocumentRescuePreviewJson() }}</pre>
           </details>
         </ng-container>
@@ -1712,7 +1712,7 @@
             </div>
           </div>
           <details class="json-details">
-            <summary>Belge Mikro isleme JSON</summary>
+            <summary>Belge Mikro Isleme Detayi</summary>
             <pre>{{ c01DocumentRescueImportJson() }}</pre>
           </details>
         </ng-container>
@@ -1720,13 +1720,13 @@
     </div>
 
     <details class="advanced-panel developer-tools">
-      <summary>Gelişmiş JSON İşlemleri</summary>
+      <summary>Gelismis Veri Islemleri</summary>
       <div class="section-grid advanced-panel-body">
       <div class="section-block nested-flat">
         <h2 class="section-title">AXATA Gönderi Verisi → Mikro</h2>
         <form class="compact-form" [formGroup]="axataBridgeForm">
           <label class="form-row">
-            <span>Outbound Delivery JSON</span>
+            <span>Outbound Delivery</span>
             <textarea formControlName="outboundDeliveryJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1736,7 +1736,7 @@
           </div>
 
           <label class="form-row">
-            <span>Outbound Delivery Batch JSON</span>
+            <span>Outbound Delivery Batch</span>
             <textarea formControlName="outboundDeliveryBatchJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1746,7 +1746,7 @@
           </div>
 
           <label class="form-row">
-            <span>Inbound ATF JSON</span>
+            <span>Inbound ATF</span>
             <textarea formControlName="inboundAtfJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1756,7 +1756,7 @@
           </div>
 
           <label class="form-row">
-            <span>Inbound ATF Batch JSON</span>
+            <span>Inbound ATF Batch</span>
             <textarea formControlName="inboundAtfBatchJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1788,7 +1788,7 @@
         <h2 class="section-title">Elle Veri Girişi</h2>
         <form class="compact-form" [formGroup]="incomingJsonForm">
           <label class="form-row">
-            <span>Firma Mal Kabul JSON</span>
+            <span>Firma Mal Kabul</span>
             <textarea formControlName="companyReceivingJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1798,7 +1798,7 @@
           </div>
 
           <label class="form-row">
-            <span>Firma Mal Kabul Batch JSON</span>
+            <span>Firma Mal Kabul Batch</span>
             <textarea formControlName="companyReceivingBatchJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1808,7 +1808,7 @@
           </div>
 
           <label class="form-row">
-            <span>Sayim JSON</span>
+            <span>Sayim</span>
             <textarea formControlName="inventoryCountJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1818,7 +1818,7 @@
           </div>
 
           <label class="form-row">
-            <span>Sayim Batch JSON</span>
+            <span>Sayim Batch</span>
             <textarea formControlName="inventoryCountBatchJson" rows="8"></textarea>
           </label>
           <div class="button-group">
@@ -1941,7 +1941,7 @@
             </button>
           </div>
           <details class="json-details" *ngIf="incomingWarehouseAcceptResult() as result">
-            <summary>Kabul Sonuc JSON</summary>
+            <summary>Kabul Sonuc Detayi</summary>
             <pre>{{ formatJson(result) }}</pre>
           </details>
         </div>
@@ -1964,7 +1964,7 @@
           </button>
         </div>
         <details class="json-details" *ngIf="incomingWarehouseBatchResult() as result">
-          <summary>Batch Kabul Sonuc JSON</summary>
+          <summary>Toplu Kabul Sonuc Detayi</summary>
           <pre>{{ formatJson(result) }}</pre>
         </details>
       </div>

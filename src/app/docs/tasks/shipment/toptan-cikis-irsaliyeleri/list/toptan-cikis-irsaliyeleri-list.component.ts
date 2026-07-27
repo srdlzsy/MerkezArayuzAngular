@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Component, inject } from '@angular/core';
 import type { IFurpaCompanyMovementListItemApiDto } from '@interfaces';
+import { finalize } from 'rxjs';
 
 import { SevkIslemleriService } from '../../../../../core/api/module-services/sevk-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -47,6 +48,7 @@ const ROW_ACTIONS: readonly ApiListTableRowAction<IFurpaCompanyMovementListItemA
 export class ToptanCikisIrsaliyeleriListComponent extends ApiTaskListPageBase<IFurpaCompanyMovementListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['giden-firma-sevkleri'];
   protected readonly tableColumns = FIRMA_STOK_HAREKETI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = ToptanCikisIrsaliyeleriDetailComponent;
   protected readonly createComponent = ToptanCikisIrsaliyeleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
@@ -57,7 +59,7 @@ export class ToptanCikisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaCompanyMovementListItemApiDto>[] {
-    return ROW_ACTIONS;
+    return this.getPdfLoadingRowActions(ROW_ACTIONS);
   }
 
   protected override handleAdditionalRowAction(
@@ -67,9 +69,15 @@ export class ToptanCikisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
 
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
+      this.activityMessage.set(
+        `${row.documentNo || `${row.documentSerie}-${row.documentOrderNo}`} PDF yukleniyor.`
+      );
       this.sevkIslemleriService
         .getGidenFirmaSevkEirsaliyePdf(row.documentSerie, row.documentOrderNo, row.warehouseNo)
-        .pipe(takeUntilDestroyed(this.destroyRef))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.activityMessage.set(null))
+        )
         .subscribe({
           next: (blob: Blob) => {
             this.openBlobInDialog(blob, row.documentNo || `${row.documentSerie}/${row.documentOrderNo}`);

@@ -23,6 +23,7 @@ import type {
   ProductDistributionListHttpRequest,
   ProductDistributionListItemDto,
   ProductDistributionNotificationDto,
+  ProductDistributionNotificationMailResultDto,
   ProductDistributionNotificationRecipientDto,
   ProductDistributionOrderDto,
   ProductDistributionProposalDto,
@@ -44,6 +45,7 @@ type DistributionAction = 'list' | 'detail' | 'create' | 'update' | 'delete';
 
 type ProposalLineSortKey =
   | 'warehouse'
+  | 'region'
   | 'lastSalesQuantity'
   | 'currentStockQuantity'
   | 'companyAverageDailySales'
@@ -88,7 +90,6 @@ interface DistributionFinalizeForm {
   finalizeBy: string;
   orderDate: string;
   deliveryDate: string;
-  allowFinalizeWithoutNotification: boolean;
 }
 
 interface DistributionFeedback {
@@ -142,8 +143,7 @@ export class UrunDagilimlariListComponent implements OnInit {
   protected readonly finalizeForm: DistributionFinalizeForm = {
     finalizeBy: 'MERKEZ',
     orderDate: this.getToday(),
-    deliveryDate: this.getToday(),
-    allowFinalizeWithoutNotification: false
+    deliveryDate: this.getToday()
   };
 
   protected readonly centers = signal<ProductDistributionCenterDto[]>([]);
@@ -257,8 +257,9 @@ export class UrunDagilimlariListComponent implements OnInit {
   });
   protected readonly canFinalizeSelectedDetail = computed(() => {
     const detail = this.selectedDetail();
+    const statusCode = this.resolveStatusCode(detail?.status);
 
-    return !!detail && this.canUpdate() && this.resolveStatusCode(detail.status) === 1;
+    return !!detail && this.canUpdate() && (statusCode === 0 || statusCode === 1);
   });
   protected readonly canDeleteSelectedDetail = computed(() => {
     const detail = this.selectedDetail();
@@ -637,8 +638,8 @@ export class UrunDagilimlariListComponent implements OnInit {
           this.mergeNotification(notification);
           this.loadList();
           this.feedback.set({
-            tone: notification.recipients?.length ? 'success' : 'warning',
-            message: notification.message || 'Bolge bilgilendirme ozeti hazirlandi.'
+            tone: this.notificationFeedbackTone(notification),
+            message: this.notificationFeedbackMessage(notification)
           });
         },
         error: (error: unknown) =>
@@ -663,8 +664,7 @@ export class UrunDagilimlariListComponent implements OnInit {
       .finalizeProductDistribution(detail.documentNo, {
         finalizeBy: this.normalizeText(this.finalizeForm.finalizeBy) || this.getDefaultUserText(),
         orderDate: this.normalizeText(this.finalizeForm.orderDate) || this.getToday(),
-        deliveryDate: this.normalizeText(this.finalizeForm.deliveryDate) || this.getToday(),
-        allowFinalizeWithoutNotification: this.finalizeForm.allowFinalizeWithoutNotification
+        deliveryDate: this.normalizeText(this.finalizeForm.deliveryDate) || this.getToday()
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -1290,6 +1290,21 @@ export class UrunDagilimlariListComponent implements OnInit {
     return parts.length ? parts.join(' - ') : '-';
   }
 
+  protected lineBranchLabel(line: ProductDistributionLineDto): string {
+    return this.normalizeText(line.warehouseName) || '-';
+  }
+
+  protected lineRegionLabel(line: ProductDistributionLineDto): string {
+    return this.normalizeText(line.regionName) || this.normalizeText(line.regionCode) || '-';
+  }
+
+  protected lineRegionCodeLabel(line: ProductDistributionLineDto): string {
+    const regionCode = this.normalizeText(line.regionCode);
+    const regionName = this.normalizeText(line.regionName);
+
+    return regionCode && regionCode !== regionName ? regionCode : '';
+  }
+
   protected quantityUnitLabel(line: ProductDistributionLineDto): string {
     return this.normalizeText(line.quantityUnitName) || 'adet';
   }
@@ -1328,6 +1343,37 @@ export class UrunDagilimlariListComponent implements OnInit {
     return notification.recipients ?? [];
   }
 
+  protected notificationMailResults(
+    notification: ProductDistributionNotificationDto
+  ): ProductDistributionNotificationMailResultDto[] {
+    return notification.mailResults ?? [];
+  }
+
+  protected hasNotificationMailInfo(notification: ProductDistributionNotificationDto): boolean {
+    return (
+      typeof notification.mailSendingEnabled === 'boolean' ||
+      typeof notification.sentEmailCount === 'number' ||
+      typeof notification.failedEmailCount === 'number' ||
+      this.notificationMailResults(notification).length > 0
+    );
+  }
+
+  protected notificationMailStateLabel(notification: ProductDistributionNotificationDto): string {
+    if (notification.mailSendingEnabled === false) {
+      return 'Mail kapali';
+    }
+
+    if (notification.failedEmailCount && notification.failedEmailCount > 0) {
+      return 'Mail uyarisi';
+    }
+
+    if (notification.mailSendingEnabled) {
+      return 'Mail gonderildi';
+    }
+
+    return 'Bilgilendirme hazir';
+  }
+
   protected finalizeOrders(result: ProductDistributionFinalizeDto): ProductDistributionOrderDto[] {
     return result.orders ?? [];
   }
@@ -1360,6 +1406,10 @@ export class UrunDagilimlariListComponent implements OnInit {
     index: number,
     recipient: ProductDistributionNotificationRecipientDto
   ): string => `${recipient.regionCode ?? recipient.regionName ?? recipientEmailKey(recipient)}-${index}`;
+  protected trackByMailResult = (
+    index: number,
+    result: ProductDistributionNotificationMailResultDto
+  ): string => `${result.regionCode ?? result.email ?? result.managerName ?? 'mail'}-${index}`;
   protected trackByOrder = (_index: number, order: ProductDistributionOrderDto): string =>
     `${order.documentSerie}-${order.documentOrderNo}-${this.resolveOrderWarehouseNo(order)}`;
 
@@ -1584,6 +1634,8 @@ export class UrunDagilimlariListComponent implements OnInit {
     switch (key) {
       case 'warehouse':
         return this.toNumber(line.warehouseNo);
+      case 'region':
+        return this.lineRegionLabel(line);
       case 'lastSalesQuantity':
         return this.toNumber(line.lastSalesQuantity);
       case 'currentStockQuantity':
@@ -1749,6 +1801,38 @@ export class UrunDagilimlariListComponent implements OnInit {
       status: notification.status ?? { code: 1, name: 'Bilgilendirildi' },
       notification
     });
+  }
+
+  private notificationFeedbackTone(notification: ProductDistributionNotificationDto): FeedbackTone {
+    if ((notification.failedEmailCount ?? 0) > 0) {
+      return 'warning';
+    }
+
+    if (notification.mailSendingEnabled === false) {
+      return 'info';
+    }
+
+    return notification.recipients?.length || (notification.sentEmailCount ?? 0) > 0 ? 'success' : 'warning';
+  }
+
+  private notificationFeedbackMessage(notification: ProductDistributionNotificationDto): string {
+    if (notification.message) {
+      return notification.message;
+    }
+
+    if (notification.mailSendingEnabled === false) {
+      return 'Bilgilendirme hazirlandi, mail gonderimi kapali.';
+    }
+
+    if ((notification.failedEmailCount ?? 0) > 0) {
+      return `${notification.sentEmailCount ?? 0} mail gonderildi, ${notification.failedEmailCount ?? 0} mail gonderilemedi.`;
+    }
+
+    if ((notification.sentEmailCount ?? 0) > 0) {
+      return `${notification.sentEmailCount ?? 0} mail gonderildi.`;
+    }
+
+    return 'Bolge bilgilendirme ozeti hazirlandi.';
   }
 
   private mergeFinalizeResult(result: ProductDistributionFinalizeDto): void {

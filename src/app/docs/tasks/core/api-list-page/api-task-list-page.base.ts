@@ -34,7 +34,9 @@ export abstract class ApiTaskListPageBase<
   protected abstract readonly detailComponent: ComponentType<unknown>;
   protected abstract readonly createComponent: ComponentType<unknown>;
   protected readonly canCreate: boolean = true;
+  protected readonly fitTableToWidth: boolean = false;
   protected readonly unknownStatusLabel: string | null = null;
+  protected readonly activityMessage = signal<string | null>(null);
 
   protected readonly dialog = inject(Dialog);
   protected readonly destroyRef = inject(DestroyRef);
@@ -182,6 +184,24 @@ export abstract class ApiTaskListPageBase<
 
   protected getAdditionalRowActions(): readonly ApiListTableRowAction<Row>[] {
     return [];
+  }
+
+  protected getPdfLoadingRowActions<TRow extends object>(
+    actions: readonly ApiListTableRowAction<TRow>[]
+  ): readonly ApiListTableRowAction<TRow>[] {
+    const activityMessage = this.activityMessage();
+
+    return actions.map((action) => {
+      if (action.key !== 'show-pdf') {
+        return action;
+      }
+
+      return {
+        ...action,
+        label: activityMessage ? 'PDF Yukleniyor...' : action.label,
+        isDisabled: (row: TRow) => !!activityMessage || (action.isDisabled?.(row) ?? false)
+      };
+    });
   }
 
   protected handleAdditionalRowAction(_event: ApiListTableActionEvent<Row>): void {}

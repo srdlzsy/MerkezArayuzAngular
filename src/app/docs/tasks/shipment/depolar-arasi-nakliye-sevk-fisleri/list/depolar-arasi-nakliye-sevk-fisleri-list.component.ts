@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Component, inject } from '@angular/core';
 import type { IFurpaWarehouseShippingListItemApiDto } from '@interfaces';
+import { finalize } from 'rxjs';
 
 import { SevkIslemleriService } from '../../../../../core/api/module-services/sevk-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -46,6 +47,7 @@ const ROW_ACTIONS: readonly ApiListTableRowAction<IFurpaWarehouseShippingListIte
 export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPageBase<IFurpaWarehouseShippingListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['giden-depolar-arasi-sevkler'];
   protected readonly tableColumns = buildWarehouseMovementListColumns('target');
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = DepolarArasiNakliyeSevkFisleriDetailComponent;
   protected readonly createComponent = DepolarArasiNakliyeSevkFisleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
@@ -56,7 +58,7 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaWarehouseShippingListItemApiDto>[] {
-    return ROW_ACTIONS;
+    return this.getPdfLoadingRowActions(ROW_ACTIONS);
   }
 
   protected override handleAdditionalRowAction(
@@ -66,13 +68,19 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
 
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
+      this.activityMessage.set(
+        `${row.documentNo || `${row.documentSerie}-${row.documentOrderNo}`} PDF yukleniyor.`
+      );
       this.sevkIslemleriService
         .getGidenDepolarArasiSevkEirsaliyePdf(
           row.documentSerie,
           row.documentOrderNo,
           row.sourceWarehouseNo
         )
-        .pipe(takeUntilDestroyed(this.destroyRef))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.activityMessage.set(null))
+        )
         .subscribe({
           next: (blob: Blob) => {
             this.openBlobInDialog(blob, row.documentNo || `${row.documentSerie}/${row.documentOrderNo}`);

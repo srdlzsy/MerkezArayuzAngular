@@ -132,6 +132,38 @@ p {
   background: var(--supplier-soft);
 }
 
+.filter-head {
+  grid-column: 1 / -1;
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.34rem 0.6rem;
+  min-width: 0;
+  padding-bottom: 0.36rem;
+  border-bottom: 1px solid var(--supplier-border);
+}
+
+.filter-head div {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.filter-head strong {
+  overflow: hidden;
+  color: var(--supplier-ink);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-head small {
+  color: var(--supplier-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .field {
   position: relative;
   display: grid;
@@ -784,4 +816,119 @@ th,
 td {
   padding: 0.44rem 0.52rem;
   font-size: 0.76rem;
+}
+/* Responsive usability pass for report task pages. */
+.supplier-page,
+.supplier-workspace,
+.workspace-head,
+.filter-panel,
+.metric-strip,
+.table-shell,
+.detail-dialog {
+  min-width: 0;
+}
+
+.scope-chip,
+.risk-badge,
+.event-type,
+.scope-switch button {
+  min-width: 0;
+}
+
+.metric-card strong,
+.insight-card strong,
+.signal-strip strong,
+.table-context strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+@media (max-width: 980px) {
+  .supplier-workspace,
+  .workspace-head,
+  .filter-panel,
+  .table-shell {
+    padding: 0.5rem;
+  }
+
+  .workspace-head,
+  .filter-panel {
+    grid-template-columns: 1fr;
+  }
+
+  .metric-strip,
+  .insight-grid,
+  .signal-strip {
+    grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  }
+
+  .supplier-search {
+    grid-column: auto;
+  }
+
+  .scope-switch {
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    scrollbar-width: thin;
+  }
+
+  .scope-switch button {
+    flex: 1 0 auto;
+  }
+}
+
+@media (max-width: 560px) {
+  .supplier-page {
+    padding: 0.4rem;
+  }
+
+  .workspace-head p,
+  .request-line {
+    display: none;
+  }
+
+  .workspace-head h2,
+  .detail-head h3 {
+    font-size: 1rem;
+  }
+
+  .filter-panel,
+  .metric-strip,
+  .score-panel,
+  .breakdown-grid,
+  .invoice-summary {
+    grid-template-columns: 1fr;
+  }
+
+  .head-summary,
+  .table-context,
+  .detail-head {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-items: start;
+  }
+
+  .scope-switch,
+  .scope-readonly,
+  .primary-action {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .supplier-suggestions {
+    position: fixed;
+    inset: auto 0.5rem 0.5rem;
+    max-height: 45dvh;
+  }
+
+  .detail-dialog-backdrop {
+    align-items: stretch;
+    padding: 0.45rem;
+  }
+
+  .detail-dialog {
+    max-height: calc(100dvh - 0.9rem);
+  }
 }

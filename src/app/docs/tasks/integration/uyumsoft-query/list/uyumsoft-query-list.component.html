@@ -74,7 +74,7 @@
           (click)="executeSelectedOperation()"
           [disabled]="executeLoading() || operationsLoading()"
         >
-          {{ executeLoading() ? 'Istek gonderiliyor...' : 'Istek Gonder' }}
+          {{ executeLoading() ? 'Calistiriliyor...' : 'Calistir' }}
         </button>
         <button
           type="button"
@@ -104,7 +104,7 @@
       class="empty-result"
       *ngIf="!operationResponse() && !executeLoading() && !openedPdfInvoiceId()"
     >
-      Henuz istek gonderilmedi.
+      Henuz calistirilmadi.
     </div>
 
     <div class="empty-result" *ngIf="executeLoading()">Sonuc bekleniyor...</div>
@@ -113,7 +113,10 @@
       {{ invoiceId }} PDF dosyasi dialog icinde acildi.
     </div>
 
-    <pre *ngIf="operationResponse()">{{ responseJson() }}</pre>
+    <details class="json-block" *ngIf="operationResponse()">
+      <summary>Sonuc Detayi</summary>
+      <pre>{{ responseJson() }}</pre>
+    </details>
   </section>
 </section>
 

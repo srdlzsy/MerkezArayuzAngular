@@ -18,27 +18,6 @@
             <h4>{{ item.name }}</h4>
             <p>{{ item.description }}</p>
           </div>
-
-          <div class="table-wrap" *ngIf="item.endpoints?.length">
-            <table>
-              <thead>
-                <tr>
-                  <th>Method</th>
-                  <th>Path</th>
-                  <th>Aciklama</th>
-                  <th>Payload</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let endpoint of item.endpoints">
-                  <td>{{ endpoint.method }}</td>
-                  <td>{{ endpoint.path }}</td>
-                  <td>{{ endpoint.description }}</td>
-                  <td>{{ endpoint.payload || '-' }}</td>
-                </tr>
-              </tbody>
-            </table>
-          </div>
         </article>
       </div>
     </section>

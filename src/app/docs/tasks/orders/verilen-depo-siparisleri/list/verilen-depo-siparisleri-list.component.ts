@@ -21,6 +21,7 @@ import { VerilenDepoSiparisleriDetailComponent } from '../detail/verilen-depo-si
 export class VerilenDepoSiparisleriListComponent extends ApiTaskListPageBase<IFurpaWarehouseOrderListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['verilen-depo-siparisleri'];
   protected readonly tableColumns = DEPOLAR_ARASI_SIPARIS_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = VerilenDepoSiparisleriDetailComponent;
   protected readonly createComponent = VerilenDepoSiparisleriCreateComponent;
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);

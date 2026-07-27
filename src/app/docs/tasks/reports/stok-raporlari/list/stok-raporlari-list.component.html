@@ -4,13 +4,6 @@
       <div class="title-block">
         <span class="section-kicker">Rapor Islemleri</span>
         <h2>{{ current.title }}</h2>
-        <p>{{ selectedDefinition().description }}</p>
-      </div>
-
-      <div class="workspace-summary">
-        <span>Aktif Rapor</span>
-        <strong>{{ selectedDefinition().label }}</strong>
-        <small>{{ selectedDateLabel() }} · {{ scopeLabel() }}</small>
       </div>
 
       <div class="report-tabs" aria-label="Stok raporlari">
@@ -27,7 +20,15 @@
       </div>
     </header>
 
-    <section class="filter-panel">
+    <section class="filter-panel" aria-label="Rapor filtreleri">
+      <div class="filter-head">
+        <div>
+          <span class="section-kicker">Filtreler</span>
+          <strong>{{ selectedDefinition().label }}</strong>
+        </div>
+        <small>{{ selectedDateLabel() }} - {{ scopeLabel() }}</small>
+      </div>
+
       <div class="filters-grid">
         <ng-container *ngIf="usesDateRange(); else datedSingleFilter">
           <label class="field">
@@ -327,13 +328,6 @@
         </button>
       </div>
 
-      <div class="request-line">
-        <span>{{ selectedDefinition().label }}</span>
-        <span>{{ selectedDateLabel() }}</span>
-        <span>{{ scopeLabel() }}</span>
-        <span *ngIf="categoryOptionsError()">{{ categoryOptionsError() }}</span>
-        <code>{{ requestPreview() }}</code>
-      </div>
     </section>
 
     <section class="metric-strip" *ngIf="metrics().length">

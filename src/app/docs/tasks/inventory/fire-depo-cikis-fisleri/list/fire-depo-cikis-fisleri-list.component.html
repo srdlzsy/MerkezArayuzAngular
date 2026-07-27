@@ -18,27 +18,7 @@
       <article class="task-item" *ngFor="let item of current.items">
         <div class="task-item-head">
           <h4>{{ item.name }}</h4>
-        </div>
-
-        <div class="table-wrap" *ngIf="item.endpoints?.length">
-          <table>
-            <thead>
-              <tr>
-                <th>Method</th>
-                <th>Path</th>
-                <th>Aciklama</th>
-                <th>Payload</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let endpoint of item.endpoints">
-                <td>{{ endpoint.method }}</td>
-                <td>{{ endpoint.path }}</td>
-                <td>{{ endpoint.description }}</td>
-                <td>{{ endpoint.payload || '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
+          <p>{{ item.description }}</p>
         </div>
       </article>
     </div>

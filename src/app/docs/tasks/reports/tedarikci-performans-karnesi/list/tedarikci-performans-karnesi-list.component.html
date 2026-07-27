@@ -4,7 +4,6 @@
       <div>
         <span class="section-kicker">Rapor Islemleri</span>
         <h2>{{ page.title }}</h2>
-        <p>{{ page.subtitle }}</p>
       </div>
       <div class="head-summary">
         <span class="scope-chip">{{ selectedDateRangeLabel() }}</span>
@@ -13,7 +12,15 @@
       </div>
     </header>
 
-    <section class="filter-panel">
+    <section class="filter-panel" aria-label="Karne filtreleri">
+      <div class="filter-head">
+        <div>
+          <span class="section-kicker">Filtreler</span>
+          <strong>Tedarikci karnesi</strong>
+        </div>
+        <small>{{ selectedDateRangeLabel() }} - {{ scopeLabel() }} - {{ selectedSupplierLabel() }}</small>
+      </div>
+
       <label class="field">
         <span>Baslangic</span>
         <input type="date" [ngModel]="startDate()" (ngModelChange)="updateStartDate($event)" />
@@ -111,12 +118,6 @@
         <span>{{ isLoading() ? 'Yukleniyor...' : 'Karneyi Getir' }}</span>
       </button>
     </section>
-
-    <div class="request-line">
-      <span>{{ selectedDateRangeLabel() }}</span>
-      <span>{{ scopeLabel() }}</span>
-      <span>{{ selectedSupplierLabel() }}</span>
-    </div>
 
     <section class="decision-band" *ngIf="report()?.summary">
       <div>

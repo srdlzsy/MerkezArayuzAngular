@@ -24,7 +24,7 @@
 
 .workspace-head {
   display: grid;
-  grid-template-columns: minmax(210px, 0.42fr) minmax(0, 1fr);
+  grid-template-columns: minmax(210px, 0.34fr) minmax(0, 1fr);
   gap: 0.65rem;
   align-items: start;
 }
@@ -53,12 +53,40 @@
 .report-tab span,
 .metric-card span,
 .request-line span,
-.table-context span {
+.table-context span,
+.workspace-summary span {
   color: var(--report-muted);
   font-size: 0.62rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
+}
+
+.workspace-summary {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: var(--report-soft);
+}
+
+.workspace-summary strong,
+.workspace-summary small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.workspace-summary strong {
+  color: var(--report-ink);
+  font-size: 0.88rem;
+}
+
+.workspace-summary small {
+  color: var(--report-muted);
+  font-size: 0.72rem;
 }
 
 .report-tabs {
@@ -106,6 +134,37 @@
   background: var(--report-soft);
 }
 
+.filter-head {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.34rem 0.6rem;
+  min-width: 0;
+  padding-bottom: 0.36rem;
+  border-bottom: 1px solid var(--report-border);
+}
+
+.filter-head div {
+  display: grid;
+  gap: 0.08rem;
+  min-width: 0;
+}
+
+.filter-head strong {
+  overflow: hidden;
+  color: var(--report-ink);
+  font-size: 0.86rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.filter-head small {
+  color: var(--report-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
 .filters-grid {
   display: grid;
   grid-template-columns: repeat(2, minmax(126px, 0.16fr)) minmax(260px, 0.5fr) minmax(116px, 0.16fr) auto;
@@ -147,6 +206,10 @@
 }
 
 .task-action-primary {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.38rem;
   border-color: var(--report-accent);
   background: var(--report-accent);
   color: #ffffff;
@@ -319,5 +382,140 @@
 
   :host ::ng-deep app-api-list-table .table-wrap {
     max-height: calc(100vh - 360px);
+  }
+}
+/* Responsive usability pass for report task pages. */
+.report-workspace,
+.promotion-workspace {
+  min-width: 0;
+}
+
+.workspace-head,
+.filter-panel,
+.filters-grid,
+.metric-strip,
+.table-shell {
+  min-width: 0;
+}
+
+.report-tabs {
+  min-width: 0;
+  scrollbar-width: thin;
+}
+
+.report-tab strong,
+.report-tab span,
+.metric-card strong,
+.table-context strong {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.task-action,
+.scope-pill {
+  min-width: 0;
+}
+
+@media (max-width: 980px) {
+  .report-workspace,
+  .promotion-workspace {
+    padding: 0.52rem;
+  }
+
+  .workspace-head,
+  .filters-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .report-tabs {
+    display: flex;
+    flex-wrap: nowrap;
+    overflow-x: auto;
+    padding-bottom: 0.08rem;
+  }
+
+  .report-tab {
+    flex: 0 0 min(72vw, 220px);
+    min-width: 156px;
+  }
+
+  .metric-strip {
+    grid-template-columns: repeat(auto-fit, minmax(136px, 1fr));
+  }
+
+  .compact-field,
+  .tiny-field,
+  .manual-field,
+  .promotion-code-field,
+  .category-field,
+  .product-lookup-field {
+    max-width: none;
+    min-width: 0;
+  }
+
+  .request-line code {
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  :host ::ng-deep app-api-list-table .table-controls {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.38rem;
+  }
+
+  :host ::ng-deep app-api-list-table .control-field,
+  :host ::ng-deep app-api-list-table .control-field input,
+  :host ::ng-deep app-api-list-table .control-field select {
+    width: 100%;
+    min-width: 0;
+  }
+
+  :host ::ng-deep app-api-list-table .table-wrap {
+    max-height: 62dvh;
+  }
+}
+
+@media (max-width: 560px) {
+  .report-workspace,
+  .promotion-workspace,
+  .filter-panel {
+    padding: 0.44rem;
+  }
+
+  .title-block h2 {
+    font-size: 1rem;
+  }
+
+  .title-block p,
+  .request-line {
+    display: none;
+  }
+
+  .report-tab,
+  .scope-pill,
+  .scope-switch,
+  .scope-readonly,
+  .toggle-field,
+  .task-action {
+    width: 100%;
+    box-sizing: border-box;
+  }
+
+  .metric-strip {
+    grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
+  }
+
+  .table-context {
+    display: grid;
+    grid-template-columns: 1fr;
+    gap: 0.24rem;
+  }
+
+  :host ::ng-deep app-api-list-table .data-table th,
+  :host ::ng-deep app-api-list-table .data-table td {
+    padding: 0.4rem 0.46rem;
   }
 }

@@ -7,7 +7,7 @@
       </div>
 
       <div class="mode-pill" [class.is-live]="!importForm.controls.dryRun.value">
-        <span>Mod</span>
+        <span>Islem</span>
         <strong>{{ importModeLabel() }}</strong>
       </div>
     </header>
@@ -63,7 +63,7 @@
         <div class="transfer-actions">
           <label class="check-field">
             <input type="checkbox" formControlName="dryRun" />
-            <span>Dry Run</span>
+            <span>Sadece Kontrol</span>
           </label>
 
           <button type="submit" class="task-action task-action-primary" [disabled]="importLoading()">
@@ -109,7 +109,6 @@
           <span class="section-kicker">Sonuc</span>
           <h3>{{ result.status || 'Durum' }}</h3>
         </div>
-        <code>{{ result.runId || '-' }}</code>
       </div>
 
       <section class="result-grid">
@@ -133,15 +132,15 @@
 
       <section class="write-grid">
         <article class="write-card">
-          <span>Totals</span>
+          <span>Toplam Kayit</span>
           <strong>{{ formatNumber(result.insertedTotals) }} / {{ formatNumber(result.updatedTotals) }}</strong>
         </article>
         <article class="write-card">
-          <span>Details</span>
+          <span>Detay</span>
           <strong>{{ formatNumber(result.insertedDetails) }} / {{ formatNumber(result.updatedDetails) }}</strong>
         </article>
         <article class="write-card">
-          <span>Discount Cards</span>
+          <span>Indirim Kart</span>
           <strong>
             {{ formatNumber(result.insertedDiscountCards) }} /
             {{ formatNumber(result.updatedDiscountCards) }}

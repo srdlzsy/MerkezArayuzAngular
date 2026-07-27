@@ -2,6 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, computed, inject } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import type { IFurpaWarehouseReturnListItemApiDto } from '@interfaces';
+import { finalize } from 'rxjs';
 
 import {
   DepoIadeDirection,
@@ -67,6 +68,7 @@ export class DepoIadeListComponent extends ApiTaskListPageBase<
   protected readonly tableColumns = buildWarehouseMovementListColumns(
     this.direction === 'gelen' ? 'source' : 'target'
   );
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = DepoIadeDetailComponent;
   protected readonly createComponent = DepoIadeCreateComponent;
   protected override readonly canCreate = this.direction === 'giden';
@@ -128,7 +130,7 @@ export class DepoIadeListComponent extends ApiTaskListPageBase<
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaWarehouseReturnListItemApiDto>[] {
-    return this.direction === 'giden' ? ROW_ACTIONS : [];
+    return this.direction === 'giden' ? this.getPdfLoadingRowActions(ROW_ACTIONS) : [];
   }
 
   protected override handleAdditionalRowAction(
@@ -142,9 +144,15 @@ export class DepoIadeListComponent extends ApiTaskListPageBase<
 
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
+      this.activityMessage.set(
+        `${row.documentNo || `${row.documentSerie}-${row.documentOrderNo}`} PDF yukleniyor.`
+      );
       this.iadeIslemleriService
         .getDepoIadeEirsaliyePdf(row.documentSerie, row.documentOrderNo, row.sourceWarehouseNo)
-        .pipe(takeUntilDestroyed(this.destroyRef))
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.activityMessage.set(null))
+        )
         .subscribe({
           next: (blob: Blob) => {
             this.openBlobInDialog(blob, row.documentNo || `${row.documentSerie}/${row.documentOrderNo}`);

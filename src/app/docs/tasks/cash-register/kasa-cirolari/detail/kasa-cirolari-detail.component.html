@@ -3,10 +3,6 @@
     <div class="dialog-heading">
       <p class="eyebrow">Kasa Ciro Detayi</p>
       <h2>{{ current.title }}</h2>
-      <p class="subtitle" *ngIf="header() as currentHeader">
-        {{ formatBusinessDate(currentHeader.businessDate) }} | Vardiya {{ currentHeader.shiftNo }} |
-        Kasiyer {{ currentHeader.cashierCode }}
-      </p>
 
       <div class="header-chip-row" *ngIf="header() as currentHeader">
         <span class="header-chip">{{ formatWarehouse(currentHeader) }}</span>
@@ -42,7 +38,6 @@
 
     <article class="state-card" *ngIf="isLoading()">
       <h3>Detay Yukleniyor</h3>
-      <p>Secilen kasa ciro kaydinin odeme tipi ve kasa-banka kirilimi getiriliyor.</p>
     </article>
 
     <article
@@ -99,7 +94,7 @@
         <div class="section-head section-head-split">
           <div class="section-copy">
             <span class="section-kicker">Odeme Dagilimi</span>
-            <h3>Odeme tipi ve kasa-banka kirilimi</h3>
+            <h3>Odeme detaylari</h3>
           </div>
         </div>
 
@@ -154,7 +149,6 @@
     <ng-template #noPayments>
       <article class="state-card">
         <h3>Odeme kaydi bulunamadi</h3>
-        <p>Bu kasa ciro kaydi icin odeme tipi kirilimi donmedi.</p>
       </article>
     </ng-template>
   </div>

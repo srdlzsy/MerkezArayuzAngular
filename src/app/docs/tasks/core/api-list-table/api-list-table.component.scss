@@ -153,6 +153,8 @@
 .fit-to-width .row-action {
   width: 100%;
   padding-inline: 0.4rem;
+  line-height: 1.15;
+  white-space: normal;
 }
 
 .data-table th,
@@ -251,6 +253,12 @@
 .row-action:hover,
 .pager-button:hover:not(:disabled) {
   transform: translateY(-1px);
+}
+
+.row-action:disabled {
+  cursor: wait;
+  opacity: 0.68;
+  transform: none;
 }
 
 .row-actions {

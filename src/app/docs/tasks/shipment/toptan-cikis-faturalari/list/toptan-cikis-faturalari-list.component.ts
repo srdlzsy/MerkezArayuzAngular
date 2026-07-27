@@ -21,6 +21,7 @@ import { ToptanCikisFaturalariDetailComponent } from '../detail/toptan-cikis-fat
 export class ToptanCikisFaturalariListComponent extends ApiTaskListPageBase<IFurpaCompanyMovementListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['gelen-firma-sevkleri'];
   protected readonly tableColumns = FIRMA_STOK_HAREKETI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = ToptanCikisFaturalariDetailComponent;
   protected readonly createComponent = ToptanCikisFaturalariCreateComponent;
   protected override readonly canCreate = false;

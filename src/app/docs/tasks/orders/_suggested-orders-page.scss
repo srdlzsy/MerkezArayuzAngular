@@ -270,6 +270,7 @@ h2 {
 .table-wrap {
   max-height: calc(100vh - 310px);
   overflow: auto;
+  scrollbar-width: thin;
   border: 1px solid var(--suggested-border);
   border-radius: 8px;
   background: #fff;
@@ -277,19 +278,22 @@ h2 {
 
 .data-table {
   width: 100%;
-  min-width: 1180px;
+  min-width: 0;
   border-collapse: collapse;
+  table-layout: fixed;
 }
 
 .data-table th,
 .data-table td {
-  padding: 0.5rem 0.6rem;
+  min-width: 0;
+  padding: 0.45rem 0.5rem;
   border-bottom: 1px solid #edf2f7;
   color: var(--suggested-ink);
-  font-size: 0.8rem;
+  font-size: 0.76rem;
   text-align: left;
   vertical-align: middle;
-  white-space: nowrap;
+  white-space: normal;
+  overflow-wrap: anywhere;
 }
 
 .data-table th {
@@ -309,23 +313,70 @@ h2 {
   background: #f0fdfa;
 }
 
-.data-table td:nth-child(3) {
-  max-width: 260px;
+.data-table th:nth-child(1),
+.data-table td:nth-child(1) {
+  width: 42px;
+}
+
+.data-table th:nth-child(2),
+.data-table td:nth-child(2) {
+  width: 28%;
+}
+
+.data-table th:nth-child(6),
+.data-table td:nth-child(6) {
+  width: 92px;
 }
 
 .table-meta {
-  overflow: hidden;
   max-width: 100%;
   margin-top: 0.08rem;
-  text-overflow: ellipsis;
-  white-space: nowrap;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+  white-space: normal;
+}
+
+.stacked-cell {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.metric-lines {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.12rem 0.38rem;
+  min-width: 0;
+}
+
+.metric-lines span {
+  display: flex;
+  min-width: 0;
+  gap: 0.24rem;
+  align-items: baseline;
+  justify-content: space-between;
+  color: var(--suggested-muted);
+  font-size: 0.68rem;
+  line-height: 1.2;
+}
+
+.metric-lines strong {
+  min-width: 0;
+  color: var(--suggested-ink);
+  font-size: 0.72rem;
+}
+
+.metric-lines .warning-text {
+  color: var(--suggested-warn);
 }
 
 .quantity-input {
   width: 86px;
+  max-width: 100%;
   min-height: 1.86rem;
   border: 1px solid var(--suggested-border);
   border-radius: 8px;
+  box-sizing: border-box;
   padding: 0.28rem 0.42rem;
   color: var(--suggested-ink);
   font: inherit;
@@ -528,11 +579,6 @@ h2 {
   overflow-x: hidden;
 }
 
-.company-suggested .data-table {
-  min-width: 0;
-  table-layout: fixed;
-}
-
 .company-suggested .data-table th,
 .company-suggested .data-table td {
   padding: 0.4rem 0.44rem;
@@ -550,37 +596,12 @@ h2 {
 
 .company-suggested .data-table th:nth-child(2),
 .company-suggested .data-table td:nth-child(2) {
-  width: 32%;
-  white-space: normal;
+  width: 30%;
 }
 
-.company-suggested .data-table th:nth-child(3),
-.company-suggested .data-table td:nth-child(3),
-.company-suggested .data-table th:nth-child(4),
-.company-suggested .data-table td:nth-child(4),
-.company-suggested .data-table th:nth-child(5),
-.company-suggested .data-table td:nth-child(5),
 .company-suggested .data-table th:nth-child(6),
-.company-suggested .data-table td:nth-child(6),
-.company-suggested .data-table th:nth-child(8),
-.company-suggested .data-table td:nth-child(8) {
-  width: 8%;
-}
-
-.company-suggested .data-table th:nth-child(7),
-.company-suggested .data-table td:nth-child(7) {
-  width: 12%;
-}
-
-.company-suggested .data-table th:nth-child(9),
-.company-suggested .data-table td:nth-child(9) {
-  width: 76px;
-}
-
-.company-suggested .table-meta {
-  max-width: 100%;
-  white-space: normal;
-  line-height: 1.25;
+.company-suggested .data-table td:nth-child(6) {
+  width: 82px;
 }
 
 .company-suggested .quantity-input {
@@ -633,7 +654,17 @@ h2 {
   }
 
   .company-suggested .table-wrap {
-    overflow-x: auto;
+    overflow-x: hidden;
+  }
+
+  .table-wrap {
+    max-height: calc(100dvh - 280px);
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.44rem 0.48rem;
+    font-size: 0.76rem;
   }
 }
 
@@ -654,6 +685,24 @@ h2 {
   .side-actions,
   .task-action {
     width: 100%;
+  }
+
+  .table-wrap {
+    max-height: 64dvh;
+  }
+
+  .data-table th,
+  .data-table td {
+    padding: 0.38rem 0.42rem;
+    font-size: 0.72rem;
+  }
+
+  .metric-lines {
+    grid-template-columns: 1fr;
+  }
+
+  .quantity-input {
+    width: 72px;
   }
 }
 

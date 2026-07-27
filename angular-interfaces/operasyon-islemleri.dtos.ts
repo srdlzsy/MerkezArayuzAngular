@@ -440,6 +440,14 @@ export interface ProductDistributionNotificationRecipientDto {
   totalUnitQuantity: number;
 }
 
+export interface ProductDistributionNotificationMailResultDto {
+  regionCode?: string | null;
+  managerName?: string | null;
+  email?: string | null;
+  sent: boolean;
+  message?: string | null;
+}
+
 export interface ProductDistributionNotificationDto {
   documentNo: string;
   status?: ProductDistributionStatusDto | null;
@@ -447,6 +455,10 @@ export interface ProductDistributionNotificationDto {
   stockOrderingStopped?: boolean | null;
   subject?: string | null;
   message?: string | null;
+  mailSendingEnabled?: boolean | null;
+  sentEmailCount?: number | null;
+  failedEmailCount?: number | null;
+  mailResults?: ProductDistributionNotificationMailResultDto[] | null;
   recipients: ProductDistributionNotificationRecipientDto[];
 }
 

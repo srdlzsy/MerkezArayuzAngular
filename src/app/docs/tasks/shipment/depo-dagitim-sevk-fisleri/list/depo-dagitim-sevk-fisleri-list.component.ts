@@ -21,6 +21,7 @@ import { DepoDagitimSevkFisleriDetailComponent } from '../detail/depo-dagitim-se
 export class DepoDagitimSevkFisleriListComponent extends ApiTaskListPageBase<IFurpaWarehouseShippingListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['gelen-depolar-arasi-sevkler'];
   protected readonly tableColumns = buildWarehouseMovementListColumns('source');
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = DepoDagitimSevkFisleriDetailComponent;
   protected readonly createComponent = DepoDagitimSevkFisleriCreateComponent;
   protected override readonly canCreate = false;

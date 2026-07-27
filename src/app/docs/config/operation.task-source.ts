@@ -16,9 +16,9 @@ export const OPERATION_TASK_SOURCE = {
         'Oneri ve guncelleme satirlarinda hedef koli farki sifir olmadan kaydetme aktif olmaz',
         'Dengele endpointi kilitli satirlari koruyarak hedef koli farkini kalan satirlara dagitir',
         'Satir miktarlari quantityUnitName, koli alanlari caseUnitName; satis ve koli paylari yuzde olarak gosterilir',
-        'Kaydedildi durumunda guncelle, sil ve bolge bilgilendirme aksiyonlari aciktir',
-        'Bilgilendirildi durumunda kesinlestirme ile Mikro depolar arasi siparisleri olusturulur',
-        'API mail gondermez; bolge alici ve ozet bilgisini UI/outbox katmani icin hazirlar'
+        'Kaydedildi durumunda guncelle, sil, bolge bilgilendirme ve kesinlestirme aksiyonlari aciktir',
+        'Bilgilendirme SMTP aciksa bolge yoneticilerine mail gonderir; kapaliysa eski ozet akisi surer',
+        'Kesinlestirme Kaydedildi veya Bilgilendirildi durumunda Mikro depolar arasi siparisleri olusturur'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -65,12 +65,12 @@ export const OPERATION_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/operasyon-islemleri/urun-dagilimlari/{documentNo}/bilgilendir',
-              description: 'Bolge bazli alici ve dagilim ozetini hazirlar, statusu Bilgilendirildi yapar'
+              description: 'Bolge bazli alici ve dagilim ozetini hazirlar, SMTP aciksa mail sonucunu doner'
             },
             {
               method: 'POST',
               path: '/api/operasyon-islemleri/urun-dagilimlari/{documentNo}/kesinlestir',
-              description: 'Bilgilendirilmis dagilimi Mikro depolar arasi siparislere cevirir'
+              description: 'Kaydedildi veya Bilgilendirildi durumundaki dagilimi Mikro siparislerine cevirir'
             },
             {
               method: 'DELETE',

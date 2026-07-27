@@ -21,6 +21,7 @@ import { ToptanGirisIrsaliyeleriDetailComponent } from '../detail/toptan-giris-i
 export class ToptanGirisIrsaliyeleriListComponent extends ApiTaskListPageBase<IFurpaCompanyMovementListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-mal-kabulleri'];
   protected readonly tableColumns = FIRMA_STOK_HAREKETI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = ToptanGirisIrsaliyeleriDetailComponent;
   protected readonly createComponent = ToptanGirisIrsaliyeleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
@@ -34,7 +35,7 @@ export class ToptanGirisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
   }
 
   protected override getDateRangeHelpText(): string {
-    return 'Tarih araligi documentDate / Mikro sth_belge_tarih alanina uygulanir; hareket olusturma zamani degildir.';
+    return '';
   }
 
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
