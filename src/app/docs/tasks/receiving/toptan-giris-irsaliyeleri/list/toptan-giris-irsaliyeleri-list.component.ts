@@ -24,6 +24,19 @@ export class ToptanGirisIrsaliyeleriListComponent extends ApiTaskListPageBase<IF
   protected readonly detailComponent = ToptanGirisIrsaliyeleriDetailComponent;
   protected readonly createComponent = ToptanGirisIrsaliyeleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
+
+  protected override getStartDateLabel(): string {
+    return 'Belge Baslangic Tarihi';
+  }
+
+  protected override getEndDateLabel(): string {
+    return 'Belge Bitis Tarihi';
+  }
+
+  protected override getDateRangeHelpText(): string {
+    return 'Tarih araligi documentDate / Mikro sth_belge_tarih alanina uygulanir; hareket olusturma zamani degildir.';
+  }
+
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {

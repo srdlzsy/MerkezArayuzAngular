@@ -124,7 +124,7 @@
   display: flex;
   align-items: end;
   gap: 0.38rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .query-grid > .date-field,
@@ -155,6 +155,15 @@
 .query-grid > .query-create {
   order: 5;
   margin-left: auto;
+}
+
+.query-help {
+  flex: 1 1 100%;
+  order: 6;
+  margin: -0.08rem 0 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 700;
 }
 
 .field {

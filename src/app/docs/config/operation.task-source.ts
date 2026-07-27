@@ -13,7 +13,8 @@ export const OPERATION_TASK_SOURCE = {
         'Dagitim merkezleri acilista yuklenir ve oneri akisi bu depoya gore calisir',
         'Veri route ailesi yalniz api/operasyon-islemleri/urun-dagilimlari kokundedir',
         'Liste filtresi status, documentNo, stockCode, distributionCenterWarehouseNo, createdFrom ve createdTo query alanlarini kullanir',
-        'Oneri satirlarinda toplam koli farki sifir olmadan kaydetme aktif olmaz',
+        'Oneri ve guncelleme satirlarinda hedef koli farki sifir olmadan kaydetme aktif olmaz',
+        'Dengele endpointi kilitli satirlari koruyarak hedef koli farkini kalan satirlara dagitir',
         'Kaydedildi durumunda guncelle, sil ve bolge bilgilendirme aksiyonlari aciktir',
         'Bilgilendirildi durumunda kesinlestirme ile Mikro depolar arasi siparisleri olusturulur',
         'API mail gondermez; bolge alici ve ozet bilgisini UI/outbox katmani icin hazirlar'
@@ -33,7 +34,12 @@ export const OPERATION_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/operasyon-islemleri/urun-dagilimlari/oneri',
-              description: 'Stok, dagitim merkezi ve toplam koliye gore sube dagilim onerisi uretir'
+              description: 'Stok, dagitim merkezi ve hedef koliye gore sube dagilim onerisi uretir'
+            },
+            {
+              method: 'POST',
+              path: '/api/operasyon-islemleri/urun-dagilimlari/dengele',
+              description: 'Hedef koli ve kilitli satirlara gore dagilim satirlarini yeniden dengeler'
             },
             {
               method: 'GET',
@@ -76,7 +82,9 @@ export const OPERATION_TASK_SOURCE = {
       codeSample: `{
   "stockCode": "153.01.0001",
   "distributionCenterWarehouseNo": 50,
-  "totalCaseQuantity": 120,
+  "totalCaseQuantity": 2100,
+  "targetCaseQuantity": 2100,
+  "allocatedCaseQuantity": 2100,
   "salesDayCount": 42,
   "referenceDate": "2026-07-24"
 }`

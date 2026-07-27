@@ -9,7 +9,7 @@
     <article class="query-card">
       <div class="query-grid">
         <label class="field date-field start-date-field">
-          <span>Baslangic Tarihi</span>
+          <span>{{ getStartDateLabel() }}</span>
           <input
             type="date"
             [value]="startDate()"
@@ -18,7 +18,7 @@
         </label>
 
         <label class="field date-field end-date-field">
-          <span>Bitis Tarihi</span>
+          <span>{{ getEndDateLabel() }}</span>
           <input
             type="date"
             [value]="endDate()"
@@ -37,6 +37,10 @@
             (input)="updateAdminWarehouseNo($any($event.target).value ?? '')"
           />
         </label>
+
+        <p class="query-help date-range-help" *ngIf="getDateRangeHelpText() as dateRangeHelp">
+          {{ dateRangeHelp }}
+        </p>
 
         <ng-template #lockedWarehouse>
           <div class="warehouse-scope-pill" title="JWT deposu">

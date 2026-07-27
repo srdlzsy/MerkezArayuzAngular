@@ -140,6 +140,18 @@ export abstract class ApiTaskListPageBase<
     return this.unknownStatusLabel;
   }
 
+  protected getStartDateLabel(): string {
+    return 'Baslangic Tarihi';
+  }
+
+  protected getEndDateLabel(): string {
+    return 'Bitis Tarihi';
+  }
+
+  protected getDateRangeHelpText(): string {
+    return '';
+  }
+
   protected getLoadingTitle(): string {
     return 'Liste Yukleniyor';
   }

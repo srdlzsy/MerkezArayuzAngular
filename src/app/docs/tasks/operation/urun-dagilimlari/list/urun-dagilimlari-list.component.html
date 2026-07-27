@@ -69,7 +69,7 @@
         <article>
           <i class="fa-solid fa-boxes-stacked"></i>
           <div>
-            <span>Toplam Koli</span>
+            <span>Hedef Koli</span>
             <strong>{{ listTotals().totalCases | number:'1.0-0' }}</strong>
           </div>
         </article>
@@ -363,16 +363,47 @@
             </div>
           </div>
 
-          <label>
-            <span>Stok Kodu</span>
-            <input
-              type="text"
-              autocomplete="off"
-              placeholder="153.01.0001"
-              [(ngModel)]="proposalForm.stockCode"
-              (keyup.enter)="requestProposal()"
-            />
-          </label>
+          <div class="stock-search-block">
+            <label>
+              <span>Stok Kodu</span>
+              <div class="stock-search-row">
+                <input
+                  type="search"
+                  autocomplete="off"
+                  placeholder="Kod, ad veya barkod ara"
+                  [ngModel]="proposalForm.stockCode"
+                  (ngModelChange)="setProposalStockQuery($event)"
+                  (keydown.enter)="$event.preventDefault(); searchProposalStock()"
+                />
+                <button
+                  type="button"
+                  class="icon-button stock-search-button"
+                  title="Stok ara"
+                  [disabled]="stockSearchLoading()"
+                  (click)="searchProposalStock()"
+                >
+                  <i class="fa-solid fa-magnifying-glass" [class.fa-spin]="stockSearchLoading()"></i>
+                </button>
+              </div>
+            </label>
+
+            <p class="stock-search-message" *ngIf="stockSearchMessage()">
+              {{ stockSearchMessage() }}
+            </p>
+
+            <div class="stock-search-results" *ngIf="stockSearchResults().length">
+              <button
+                type="button"
+                class="stock-search-result"
+                *ngFor="let stock of stockSearchResults(); trackBy: trackByProposalStock"
+                (click)="selectProposalStock(stock)"
+              >
+                <strong>{{ stock.stockName || stock.stockCode }}</strong>
+                <span>{{ stock.stockCode }}</span>
+                <small>{{ stock.barcode || '-' }} - {{ stock.unitName || '-' }}</small>
+              </button>
+            </div>
+          </div>
 
           <label>
             <span>Dagitim Merkezi</span>
@@ -392,7 +423,7 @@
 
           <div class="field-grid">
             <label>
-              <span>Toplam Koli</span>
+              <span>Hedef Koli</span>
               <input type="number" min="1" step="1" [(ngModel)]="proposalForm.totalCaseQuantity" />
             </label>
             <label>
@@ -488,15 +519,26 @@
                   <span class="eyebrow">Oneri Satirlari</span>
                   <h2>Sube koli dagilimi</h2>
                 </div>
-                <button
-                  type="button"
-                  class="primary-button compact"
-                  [disabled]="!canSaveProposal()"
-                  (click)="saveProposal()"
-                >
-                  <i class="fa-solid fa-floppy-disk"></i>
-                  <span>{{ saving() ? 'Kaydediliyor' : 'Kaydet' }}</span>
-                </button>
+                <div class="section-tools">
+                  <button
+                    type="button"
+                    class="secondary-button compact"
+                    [disabled]="!canBalanceProposal()"
+                    (click)="balanceProposalLines()"
+                  >
+                    <i class="fa-solid fa-scale-balanced" [class.fa-spin]="balanceLoading()"></i>
+                    <span>{{ balanceLoading() ? 'Dengeleniyor' : 'Dengele' }}</span>
+                  </button>
+                  <button
+                    type="button"
+                    class="primary-button compact"
+                    [disabled]="!canSaveProposal()"
+                    (click)="saveProposal()"
+                  >
+                    <i class="fa-solid fa-floppy-disk"></i>
+                    <span>{{ saving() ? 'Kaydediliyor' : 'Kaydet' }}</span>
+                  </button>
+                </div>
               </div>
 
               <div
@@ -523,6 +565,7 @@
                       <th>Firma Ort.</th>
                       <th>Sube Ort.</th>
                       <th>Gerekce</th>
+                      <th>Kilit</th>
                       <th>Koli</th>
                       <th>Adet</th>
                     </tr>
@@ -541,6 +584,19 @@
                       <td data-label="Sube Ort.">{{ (line.branchAverageDailySales ?? 0) | number:'1.2-2' }}</td>
                       <td data-label="Gerekce">
                         <span class="reason-pill">{{ reasonLabel(line.reason) }}</span>
+                        <small class="line-delta" *ngIf="line.caseDelta">{{ lineDeltaLabel(line) }}</small>
+                      </td>
+                      <td data-label="Kilit">
+                        <button
+                          type="button"
+                          class="lock-button"
+                          [class.is-locked]="line.isLocked"
+                          [disabled]="!canCreate()"
+                          [title]="line.isLocked ? 'Kilidi ac' : 'Satiri kilitle'"
+                          (click)="toggleProposalLineLock(i)"
+                        >
+                          <i class="fa-solid" [ngClass]="line.isLocked ? 'fa-lock' : 'fa-lock-open'"></i>
+                        </button>
                       </td>
                       <td data-label="Koli">
                         <input
@@ -555,7 +611,7 @@
                       <td data-label="Adet">{{ line.unitQuantity | number:'1.0-0' }}</td>
                     </tr>
                     <tr *ngIf="activeProposal.lines.length === 0">
-                      <td colspan="8" class="empty-cell">Oneri satiri bulunamadi.</td>
+                      <td colspan="9" class="empty-cell">Oneri satiri bulunamadi.</td>
                     </tr>
                   </tbody>
                 </table>
@@ -567,7 +623,7 @@
             <section class="empty-panel">
               <i class="fa-solid fa-chart-pie"></i>
               <h2>Dagilim onerisi yok</h2>
-              <p>Stok, dagitim merkezi ve toplam koli girildiginde oneriler burada gorunur.</p>
+              <p>Stok, dagitim merkezi ve hedef koli girildiginde oneriler burada gorunur.</p>
             </section>
           </ng-template>
         </section>
@@ -651,9 +707,21 @@
               *ngIf="detailSummary() as summary"
               [ngClass]="balanceClass(summary)"
             >
-              <span>
+              <span class="target-kpi">
                 Hedef
-                <strong>{{ summary.totalCaseQuantity | number:'1.0-0' }}</strong>
+                <ng-container *ngIf="canEditSelectedDetail(); else readonlyTargetQuantity">
+                  <input
+                    class="target-case-input"
+                    type="number"
+                    min="0"
+                    step="1"
+                    [ngModel]="summary.totalCaseQuantity"
+                    (ngModelChange)="setDetailTargetCaseQuantity($event)"
+                  />
+                </ng-container>
+                <ng-template #readonlyTargetQuantity>
+                  <strong>{{ summary.totalCaseQuantity | number:'1.0-0' }}</strong>
+                </ng-template>
               </span>
               <span>
                 Dagitilan
@@ -694,6 +762,7 @@
               </div>
               <div class="mini-table-head">
                 <span>Sube</span>
+                <span>Kilit</span>
                 <span>Koli</span>
                 <span>Adet</span>
               </div>
@@ -705,6 +774,16 @@
                   <strong>{{ line.warehouseNo }}</strong>
                   <small>{{ line.warehouseName || reasonLabel(line.reason) }}</small>
                 </div>
+                <button
+                  type="button"
+                  class="lock-button compact-lock"
+                  [class.is-locked]="line.isLocked"
+                  [disabled]="!canEditSelectedDetail()"
+                  [title]="line.isLocked ? 'Kilidi ac' : 'Satiri kilitle'"
+                  (click)="toggleDetailLineLock(i)"
+                >
+                  <i class="fa-solid" [ngClass]="line.isLocked ? 'fa-lock' : 'fa-lock-open'"></i>
+                </button>
                 <input
                   class="case-input"
                   type="number"
@@ -725,7 +804,16 @@
               <button
                 type="button"
                 class="secondary-button"
-                [disabled]="!canEditSelectedDetail() || saving()"
+                [disabled]="!canBalanceSelectedDetail()"
+                (click)="balanceSelectedDetail()"
+              >
+                <i class="fa-solid fa-scale-balanced" [class.fa-spin]="balanceLoading()"></i>
+                <span>{{ balanceLoading() ? 'Dengeleniyor' : 'Dengele' }}</span>
+              </button>
+              <button
+                type="button"
+                class="secondary-button"
+                [disabled]="!canEditSelectedDetail() || saving() || balanceLoading()"
                 (click)="updateSelectedDetail()"
               >
                 <i class="fa-solid fa-floppy-disk" [class.fa-spin]="saving()"></i>

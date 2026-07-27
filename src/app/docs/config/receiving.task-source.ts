@@ -14,7 +14,8 @@ export const RECEIVING_TASK_SOURCE = {
         'Yeni create akisi dispatchQuantity ve acceptedQuantity alanlarini ayri gonderir',
         'Eksik kabul farki icin varsayilan olarak otomatik firma iadesi olusturulur',
         'ETTN endpointi create ekrani icin ust bilgi ve kalem on-dolumu saglar',
-        'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir'
+        'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir',
+        'Liste tarih filtresi documentDate / Mikro sth_belge_tarih uzerinden calisir; movementCreateDate filtre alani degildir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -26,7 +27,7 @@ export const RECEIVING_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/firma-mal-kabulleri?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'Yapilmis firma mal kabul fislerini listeler'
+              description: 'Yapilmis firma mal kabul fislerini belge tarihine gore listeler'
             },
             {
               method: 'GET',

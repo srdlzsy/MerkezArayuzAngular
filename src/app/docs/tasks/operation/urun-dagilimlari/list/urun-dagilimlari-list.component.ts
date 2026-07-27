@@ -13,6 +13,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import type {
+  ProductDistributionBalanceDto,
+  ProductDistributionBalanceHttpRequest,
   ProductDistributionCenterDto,
   ProductDistributionDeleteDto,
   ProductDistributionDetailDto,
@@ -24,11 +26,13 @@ import type {
   ProductDistributionNotificationRecipientDto,
   ProductDistributionOrderDto,
   ProductDistributionProposalDto,
+  ProductLookupItemDto,
   ProductDistributionSaveHttpRequest,
   ProductDistributionStatusDto,
   ProductDistributionSummaryDto
 } from '@interfaces';
 
+import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { OperasyonIslemleriService } from '../../../../../core/api/module-services/operasyon-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -139,12 +143,20 @@ export class UrunDagilimlariListComponent implements OnInit {
   protected readonly detailLoading = signal(false);
   protected readonly saving = signal(false);
   protected readonly actionLoading = signal(false);
+  protected readonly balanceLoading = signal(false);
+  protected readonly stockSearchResults = signal<ProductLookupItemDto[]>([]);
+  protected readonly stockSearchLoading = signal(false);
+  protected readonly stockSearchMessage = signal('');
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
+  private readonly aramaService = inject(AramaService);
   private readonly operasyonIslemleriService = inject(OperasyonIslemleriService);
   private listRequestId = 0;
   private detailRequestId = 0;
+  private proposalRequestId = 0;
+  private stockSearchRequestId = 0;
+  private balanceRequestId = 0;
 
   protected readonly canList = computed(
     () => this.authService.hasTaskAccess(TASK_ID) || this.hasActionPermission('list')
@@ -163,9 +175,11 @@ export class UrunDagilimlariListComponent implements OnInit {
     return this.buildSummary(
       proposal.summary,
       proposal.lines ?? [],
-      this.toPositiveNumber(proposal.summary?.totalCaseQuantity) ??
-        this.toPositiveNumber(this.proposalForm.totalCaseQuantity) ??
-        0,
+      this.resolveTargetCaseQuantity(
+        this.proposalForm.totalCaseQuantity,
+        proposal.summary?.targetCaseQuantity,
+        proposal.summary?.totalCaseQuantity
+      ),
       proposal.stock?.packageFactor
     );
   });
@@ -179,7 +193,12 @@ export class UrunDagilimlariListComponent implements OnInit {
     return this.buildSummary(
       detail.summary ?? null,
       detail.lines ?? [],
-      this.toPositiveNumber(detail.totalCaseQuantity) ?? 0,
+      this.resolveTargetCaseQuantity(
+        detail.targetCaseQuantity,
+        detail.totalCaseQuantity,
+        detail.summary?.targetCaseQuantity,
+        detail.summary?.totalCaseQuantity
+      ),
       detail.stock?.packageFactor
     );
   });
@@ -188,13 +207,28 @@ export class UrunDagilimlariListComponent implements OnInit {
       this.canCreate() &&
       !!this.proposal() &&
       !!this.proposalSummary()?.isBalanced &&
-      !this.saving()
+      !this.saving() &&
+      !this.balanceLoading()
   );
   protected readonly canEditSelectedDetail = computed(() => {
     const detail = this.selectedDetail();
 
     return !!detail && this.canUpdate() && this.resolveStatusCode(detail.status) === 0;
   });
+  protected readonly canBalanceProposal = computed(
+    () =>
+      this.canCreate() &&
+      !!this.proposal() &&
+      !!this.proposal()?.lines.length &&
+      !this.proposalLoading() &&
+      !this.balanceLoading()
+  );
+  protected readonly canBalanceSelectedDetail = computed(
+    () =>
+      this.canEditSelectedDetail() &&
+      !!this.selectedDetail()?.lines.length &&
+      !this.balanceLoading()
+  );
   protected readonly canNotifySelectedDetail = computed(() => {
     const detail = this.selectedDetail();
 
@@ -352,6 +386,7 @@ export class UrunDagilimlariListComponent implements OnInit {
   }
 
   protected openProposalDialog(): void {
+    this.resetProposalDraft();
     this.filtersOpen.set(false);
     this.proposalDialogOpen.set(true);
     this.detailDialogOpen.set(false);
@@ -360,6 +395,8 @@ export class UrunDagilimlariListComponent implements OnInit {
 
   protected closeProposalDialog(): void {
     this.proposalDialogOpen.set(false);
+    this.resetProposalDraft();
+    this.feedback.set(null);
   }
 
   protected closeDetailDialog(): void {
@@ -376,16 +413,20 @@ export class UrunDagilimlariListComponent implements OnInit {
     const distributionCenterWarehouseNo = this.toPositiveNumber(
       this.proposalForm.distributionCenterWarehouseNo
     );
-    const totalCaseQuantity = this.toPositiveNumber(this.proposalForm.totalCaseQuantity);
+    const targetCaseQuantity = this.toPositiveNumber(this.proposalForm.totalCaseQuantity);
 
-    if (!stockCode || !distributionCenterWarehouseNo || !totalCaseQuantity) {
+    if (!stockCode || !distributionCenterWarehouseNo || !targetCaseQuantity) {
       this.feedback.set({
         tone: 'error',
-        message: 'Stok kodu, dagitim merkezi ve toplam koli alanlarini doldurun.'
+        message: 'Stok kodu, dagitim merkezi ve hedef koli alanlarini doldurun.'
       });
       return;
     }
 
+    const requestId = ++this.proposalRequestId;
+    this.stockSearchRequestId++;
+    this.stockSearchResults.set([]);
+    this.stockSearchMessage.set('');
     this.proposalDialogOpen.set(true);
     this.proposalLoading.set(true);
     this.feedback.set(null);
@@ -394,18 +435,28 @@ export class UrunDagilimlariListComponent implements OnInit {
       .createProductDistributionProposal({
         stockCode,
         distributionCenterWarehouseNo,
-        totalCaseQuantity,
+        totalCaseQuantity: targetCaseQuantity,
+        targetCaseQuantity,
+        allocatedCaseQuantity: targetCaseQuantity,
         salesDayCount: this.toPositiveNumber(this.proposalForm.salesDayCount) ?? 42,
         referenceDate: this.normalizeText(this.proposalForm.referenceDate) || this.getToday(),
         includeBranchesWithoutSales: this.proposalForm.includeBranchesWithoutSales
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.proposalLoading.set(false))
+        finalize(() => {
+          if (requestId === this.proposalRequestId) {
+            this.proposalLoading.set(false);
+          }
+        })
       )
       .subscribe({
         next: (proposal: ProductDistributionProposalDto) => {
-          const normalizedProposal = this.normalizeProposal(proposal, totalCaseQuantity);
+          if (requestId !== this.proposalRequestId) {
+            return;
+          }
+
+          const normalizedProposal = this.normalizeProposal(proposal, targetCaseQuantity);
           this.proposal.set(normalizedProposal);
           this.selectedDetail.set(null);
           this.detailDialogOpen.set(false);
@@ -413,14 +464,19 @@ export class UrunDagilimlariListComponent implements OnInit {
             tone: normalizedProposal.summary.isBalanced ? 'success' : 'warning',
             message: normalizedProposal.summary.isBalanced
               ? 'Dagilim onerisi hazir.'
-              : 'Dagilim onerisi hazir, toplam koli farkini sifirlayin.'
+              : 'Dagilim onerisi hazir, hedef koli farkini sifirlayin.'
           });
         },
-        error: (error: unknown) =>
+        error: (error: unknown) => {
+          if (requestId !== this.proposalRequestId) {
+            return;
+          }
+
           this.feedback.set({
             tone: 'error',
             message: getErrorMessage(error, 'Dagilim onerisi uretilemedi.')
-          })
+          });
+        }
       });
   }
 
@@ -670,6 +726,239 @@ export class UrunDagilimlariListComponent implements OnInit {
     this.proposalForm.distributionCenterWarehouseNo = this.toPositiveNumber(value);
   }
 
+  protected setProposalStockQuery(value: string): void {
+    this.proposalForm.stockCode = value;
+    this.stockSearchRequestId++;
+    this.stockSearchResults.set([]);
+    this.stockSearchMessage.set('');
+    this.stockSearchLoading.set(false);
+  }
+
+  protected searchProposalStock(): void {
+    const query = this.normalizeText(this.proposalForm.stockCode);
+
+    if (this.stockSearchLoading()) {
+      return;
+    }
+
+    this.stockSearchResults.set([]);
+    this.stockSearchMessage.set('');
+
+    if (query.length < 2) {
+      this.stockSearchMessage.set('Stok aramak icin en az 2 karakter girin.');
+      return;
+    }
+
+    const requestId = ++this.stockSearchRequestId;
+    this.stockSearchLoading.set(true);
+
+    this.aramaService
+      .searchStock(query, 12)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.stockSearchRequestId) {
+            this.stockSearchLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (results: ProductLookupItemDto[]) => {
+          if (requestId !== this.stockSearchRequestId) {
+            return;
+          }
+
+          const normalizedResults = this.normalizeStockSearchResults(results ?? []);
+          this.stockSearchResults.set(normalizedResults);
+
+          if (normalizedResults.length === 0) {
+            this.stockSearchMessage.set('Aramana uygun stok bulunamadi.');
+          }
+        },
+        error: (error: unknown) => {
+          if (requestId !== this.stockSearchRequestId) {
+            return;
+          }
+
+          this.stockSearchMessage.set(getErrorMessage(error, 'Stok aramasi yapilamadi.'));
+        }
+      });
+  }
+
+  protected selectProposalStock(stock: ProductLookupItemDto): void {
+    const stockCode = this.normalizeText(stock.stockCode);
+
+    if (!stockCode) {
+      return;
+    }
+
+    this.proposalForm.stockCode = stockCode;
+    this.stockSearchRequestId++;
+    this.stockSearchResults.set([]);
+    this.stockSearchLoading.set(false);
+    this.stockSearchMessage.set(stock.stockName ? stock.stockName + ' secildi.' : 'Stok secildi.');
+  }
+
+  protected balanceProposalLines(): void {
+    const proposal = this.proposal();
+    const summary = this.proposalSummary();
+
+    if (!proposal || !summary) {
+      return;
+    }
+
+    const request = this.buildBalanceRequest(
+      proposal.stock?.stockCode || this.proposalForm.stockCode,
+      summary.totalCaseQuantity,
+      proposal.lines,
+      this.proposalForm.salesDayCount,
+      this.proposalForm.referenceDate
+    );
+
+    if (!request) {
+      return;
+    }
+
+    const requestId = ++this.balanceRequestId;
+    this.balanceLoading.set(true);
+    this.feedback.set(null);
+
+    this.operasyonIslemleriService
+      .balanceProductDistribution(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.balanceRequestId) {
+            this.balanceLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (balance: ProductDistributionBalanceDto) => {
+          if (requestId !== this.balanceRequestId) {
+            return;
+          }
+
+          const packageFactor =
+            this.toPositiveNumber(balance.stock?.packageFactor) ??
+            this.toPositiveNumber(proposal.stock?.packageFactor) ??
+            1;
+          const targetCaseQuantity = this.resolveTargetCaseQuantity(
+            balance.summary?.targetCaseQuantity,
+            balance.summary?.totalCaseQuantity,
+            summary.totalCaseQuantity
+          );
+          const lines = this.normalizeBalanceLines(balance.lines ?? [], packageFactor);
+          const nextSummary = this.buildSummary(
+            balance.summary ?? proposal.summary,
+            lines,
+            targetCaseQuantity,
+            packageFactor
+          );
+
+          this.proposalForm.totalCaseQuantity = targetCaseQuantity;
+          this.proposal.set({
+            ...proposal,
+            stock: balance.stock ?? proposal.stock,
+            lines,
+            summary: nextSummary,
+            warnings: balance.warnings ?? proposal.warnings
+          });
+          this.feedback.set({
+            tone: nextSummary.isBalanced ? 'success' : 'warning',
+            message: nextSummary.isBalanced
+              ? 'Dagilim satirlari hedef koliye gore dengelendi.'
+              : 'Dengeleme tamamlandi, kalan farki kontrol edin.'
+          });
+        },
+        error: (error: unknown) =>
+          this.feedback.set({
+            tone: 'error',
+            message: getErrorMessage(error, 'Dagilim satirlari dengelenemedi.')
+          })
+      });
+  }
+
+  protected balanceSelectedDetail(): void {
+    const detail = this.selectedDetail();
+    const summary = this.detailSummary();
+
+    if (!detail || !summary || !this.canBalanceSelectedDetail()) {
+      return;
+    }
+
+    const request = this.buildBalanceRequest(
+      detail.stock?.stockCode || detail.stockCode,
+      summary.totalCaseQuantity,
+      detail.lines,
+      detail.summary?.salesDayCount,
+      detail.summary?.referenceDate
+    );
+
+    if (!request) {
+      return;
+    }
+
+    const requestId = ++this.balanceRequestId;
+    this.balanceLoading.set(true);
+    this.feedback.set(null);
+
+    this.operasyonIslemleriService
+      .balanceProductDistribution(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.balanceRequestId) {
+            this.balanceLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (balance: ProductDistributionBalanceDto) => {
+          if (requestId !== this.balanceRequestId) {
+            return;
+          }
+
+          const packageFactor =
+            this.toPositiveNumber(balance.stock?.packageFactor) ??
+            this.toPositiveNumber(detail.stock?.packageFactor) ??
+            1;
+          const targetCaseQuantity = this.resolveTargetCaseQuantity(
+            balance.summary?.targetCaseQuantity,
+            balance.summary?.totalCaseQuantity,
+            summary.totalCaseQuantity
+          );
+          const lines = this.normalizeBalanceLines(balance.lines ?? [], packageFactor);
+          const nextSummary = this.buildSummary(
+            balance.summary ?? detail.summary,
+            lines,
+            targetCaseQuantity,
+            packageFactor
+          );
+
+          this.selectedDetail.set({
+            ...detail,
+            stock: balance.stock ?? detail.stock,
+            totalCaseQuantity: targetCaseQuantity,
+            targetCaseQuantity,
+            lines,
+            summary: nextSummary
+          });
+          this.feedback.set({
+            tone: nextSummary.isBalanced ? 'success' : 'warning',
+            message: nextSummary.isBalanced
+              ? 'Dagilim detayi hedef koliye gore dengelendi.'
+              : 'Dengeleme tamamlandi, kalan farki kontrol edin.'
+          });
+        },
+        error: (error: unknown) =>
+          this.feedback.set({
+            tone: 'error',
+            message: getErrorMessage(error, 'Dagilim detayi dengelenemedi.')
+          })
+      });
+  }
+
   protected setProposalLineCaseQuantity(index: number, value: number | string): void {
     const proposal = this.proposal();
 
@@ -677,13 +966,14 @@ export class UrunDagilimlariListComponent implements OnInit {
       return;
     }
 
-    const totalCaseQuantity =
-      this.toPositiveNumber(proposal.summary?.totalCaseQuantity) ??
-      this.toPositiveNumber(this.proposalForm.totalCaseQuantity) ??
-      0;
+    const totalCaseQuantity = this.resolveTargetCaseQuantity(
+      this.proposalForm.totalCaseQuantity,
+      proposal.summary?.targetCaseQuantity,
+      proposal.summary?.totalCaseQuantity
+    );
     const packageFactor = this.toPositiveNumber(proposal.stock?.packageFactor) ?? 1;
     const lines = proposal.lines.map((line, lineIndex) =>
-      lineIndex === index ? this.withCaseQuantity(line, value, packageFactor) : line
+      lineIndex === index ? this.withManualCaseQuantity(line, value, packageFactor) : line
     );
 
     this.proposal.set({
@@ -702,14 +992,109 @@ export class UrunDagilimlariListComponent implements OnInit {
 
     const packageFactor = this.toPositiveNumber(detail.stock?.packageFactor) ?? 1;
     const lines = detail.lines.map((line, lineIndex) =>
-      lineIndex === index ? this.withCaseQuantity(line, value, packageFactor) : line
+      lineIndex === index ? this.withManualCaseQuantity(line, value, packageFactor) : line
     );
 
     this.selectedDetail.set({
       ...detail,
       lines,
-      summary: this.buildSummary(detail.summary ?? null, lines, detail.totalCaseQuantity, packageFactor)
+      summary: this.buildSummary(
+        detail.summary ?? null,
+        lines,
+        this.resolveTargetCaseQuantity(
+          detail.targetCaseQuantity,
+          detail.totalCaseQuantity,
+          detail.summary?.targetCaseQuantity,
+          detail.summary?.totalCaseQuantity
+        ),
+        packageFactor
+      )
     });
+  }
+
+  protected setDetailTargetCaseQuantity(value: number | string | null): void {
+    const detail = this.selectedDetail();
+
+    if (!detail || !this.canEditSelectedDetail()) {
+      return;
+    }
+
+    const targetCaseQuantity = Math.max(0, this.roundQuantity(this.toNumber(value)));
+    const packageFactor = this.toPositiveNumber(detail.stock?.packageFactor) ?? 1;
+    const summary = this.buildSummary(
+      detail.summary ?? null,
+      detail.lines,
+      targetCaseQuantity,
+      packageFactor
+    );
+
+    this.selectedDetail.set({
+      ...detail,
+      totalCaseQuantity: targetCaseQuantity,
+      targetCaseQuantity,
+      summary
+    });
+  }
+
+  protected toggleProposalLineLock(index: number): void {
+    const proposal = this.proposal();
+
+    if (!proposal) {
+      return;
+    }
+
+    const lines = proposal.lines.map((line, lineIndex) =>
+      lineIndex === index ? this.withLineLock(line, !line.isLocked) : line
+    );
+    const packageFactor = this.toPositiveNumber(proposal.stock?.packageFactor) ?? 1;
+    const totalCaseQuantity = this.resolveTargetCaseQuantity(
+      this.proposalForm.totalCaseQuantity,
+      proposal.summary?.targetCaseQuantity,
+      proposal.summary?.totalCaseQuantity
+    );
+
+    this.proposal.set({
+      ...proposal,
+      lines,
+      summary: this.buildSummary(proposal.summary, lines, totalCaseQuantity, packageFactor)
+    });
+  }
+
+  protected toggleDetailLineLock(index: number): void {
+    const detail = this.selectedDetail();
+
+    if (!detail || !this.canEditSelectedDetail()) {
+      return;
+    }
+
+    const lines = detail.lines.map((line, lineIndex) =>
+      lineIndex === index ? this.withLineLock(line, !line.isLocked) : line
+    );
+    const packageFactor = this.toPositiveNumber(detail.stock?.packageFactor) ?? 1;
+    const totalCaseQuantity = this.resolveTargetCaseQuantity(
+      detail.targetCaseQuantity,
+      detail.totalCaseQuantity,
+      detail.summary?.targetCaseQuantity,
+      detail.summary?.totalCaseQuantity
+    );
+
+    this.selectedDetail.set({
+      ...detail,
+      lines,
+      summary: this.buildSummary(detail.summary ?? null, lines, totalCaseQuantity, packageFactor)
+    });
+  }
+
+  protected lineDeltaLabel(line: ProductDistributionLineDto): string {
+    const caseDelta = this.toNumber(line.caseDelta);
+
+    if (!caseDelta) {
+      return 'Degisim yok';
+    }
+
+    return caseDelta > 0
+      ? '+' + this.formatNumber(caseDelta, 0) + ' koli'
+      : '-' + this.formatNumber(Math.abs(caseDelta), 0) + ' koli';
   }
 
   protected statusLabel(status: ProductDistributionStatusDto | null | undefined): string {
@@ -811,6 +1196,14 @@ export class UrunDagilimlariListComponent implements OnInit {
         return 'Yuvarlama';
       case 'no-period-sales':
         return 'Satis yok';
+      case 'locked':
+        return 'Kilitli';
+      case 'balanced-up':
+        return 'Denge artisi';
+      case 'balanced-down':
+        return 'Denge azalis';
+      case 'unchanged':
+        return 'Degismedi';
       default:
         return reason?.trim() || '-';
     }
@@ -887,12 +1280,31 @@ export class UrunDagilimlariListComponent implements OnInit {
   ): string => distribution.documentNo;
   protected trackByLine = (index: number, line: ProductDistributionLineDto): string =>
     `${line.warehouseNo}-${index}`;
+  protected trackByProposalStock = (index: number, stock: ProductLookupItemDto): string =>
+    stock.stockCode?.trim() || stock.barcode?.trim() || `${index}`;
   protected trackByRecipient = (
     index: number,
     recipient: ProductDistributionNotificationRecipientDto
   ): string => `${recipient.regionCode ?? recipient.regionName ?? recipientEmailKey(recipient)}-${index}`;
   protected trackByOrder = (_index: number, order: ProductDistributionOrderDto): string =>
     `${order.documentSerie}-${order.documentOrderNo}-${this.resolveOrderWarehouseNo(order)}`;
+
+  private resetProposalDraft(): void {
+    this.proposalRequestId++;
+    this.stockSearchRequestId++;
+    this.proposal.set(null);
+    this.proposalLoading.set(false);
+    this.stockSearchLoading.set(false);
+    this.stockSearchResults.set([]);
+    this.stockSearchMessage.set('');
+    this.proposalForm.stockCode = '';
+    this.proposalForm.distributionCenterWarehouseNo = null;
+    this.proposalForm.totalCaseQuantity = null;
+    this.proposalForm.salesDayCount = 42;
+    this.proposalForm.referenceDate = this.getToday();
+    this.proposalForm.includeBranchesWithoutSales = false;
+    this.proposalForm.distributedBy = this.getDefaultUserText();
+  }
 
   private buildListRequest(): ProductDistributionListHttpRequest | null {
     if (!this.isDateInput(this.filters.startDate) || !this.isDateInput(this.filters.endDate)) {
@@ -908,6 +1320,40 @@ export class UrunDagilimlariListComponent implements OnInit {
       distributionCenterWarehouseNo: this.filters.distributionCenterWarehouseNo,
       status: this.filters.statusCode,
       take: this.toPositiveNumber(this.filters.take) ?? 100
+    };
+  }
+
+  private buildBalanceRequest(
+    stockCode: string,
+    targetCaseQuantity: number,
+    lines: ProductDistributionLineDto[],
+    salesDayCount?: number | null,
+    referenceDate?: string | null
+  ): ProductDistributionBalanceHttpRequest | null {
+    const normalizedStockCode = this.normalizeText(stockCode);
+    const normalizedTargetCaseQuantity = this.roundQuantity(this.toNumber(targetCaseQuantity));
+
+    if (!normalizedStockCode || normalizedTargetCaseQuantity < 0 || !lines.length) {
+      this.feedback.set({ tone: 'error', message: 'Dengeleme icin stok, hedef koli ve satirlar gerekli.' });
+      return null;
+    }
+
+    return {
+      stockCode: normalizedStockCode,
+      targetCaseQuantity: normalizedTargetCaseQuantity,
+      salesDayCount: this.toPositiveNumber(salesDayCount),
+      referenceDate: this.normalizeText(referenceDate) || null,
+      lines: lines.map((line) => ({
+        warehouseNo: line.warehouseNo,
+        warehouseName: line.warehouseName ?? null,
+        regionCode: line.regionCode ?? null,
+        lastSalesQuantity: this.toNumber(line.lastSalesQuantity),
+        currentStockQuantity: this.toNumber(line.currentStockQuantity),
+        companyAverageDailySales: this.toNumber(line.companyAverageDailySales),
+        branchAverageDailySales: this.toNumber(line.branchAverageDailySales),
+        caseQuantity: this.toNumber(line.caseQuantity),
+        isLocked: !!line.isLocked
+      }))
     };
   }
 
@@ -965,7 +1411,7 @@ export class UrunDagilimlariListComponent implements OnInit {
     const normalizedStockCode = this.normalizeText(stockCode);
     const centerNo = this.toPositiveNumber(distributionCenterWarehouseNo);
 
-    if (!normalizedStockCode || !centerNo || totalCaseQuantity <= 0 || !lines.length) {
+    if (!normalizedStockCode || !centerNo || totalCaseQuantity < 0 || !lines.length) {
       this.feedback.set({ tone: 'error', message: 'Dagilim kaydi icin zorunlu alanlar eksik.' });
       return null;
     }
@@ -974,6 +1420,8 @@ export class UrunDagilimlariListComponent implements OnInit {
       stockCode: normalizedStockCode,
       distributionCenterWarehouseNo: centerNo,
       totalCaseQuantity,
+      targetCaseQuantity: totalCaseQuantity,
+      allocatedCaseQuantity: totalCaseQuantity,
       distributedBy: this.normalizeText(distributedBy) || this.getDefaultUserText(),
       lines: lines.map((line) => ({
         warehouseNo: line.warehouseNo,
@@ -984,6 +1432,52 @@ export class UrunDagilimlariListComponent implements OnInit {
         branchAverageDailySales: this.toNullableNumber(line.branchAverageDailySales)
       }))
     };
+  }
+
+  private normalizeStockSearchResults(results: ProductLookupItemDto[]): ProductLookupItemDto[] {
+    const uniqueStocks = new Map<string, ProductLookupItemDto>();
+
+    for (const stock of results) {
+      const stockCode = this.normalizeText(stock.stockCode);
+
+      if (!stockCode) {
+        continue;
+      }
+
+      const key = stockCode.toLocaleUpperCase('tr-TR');
+
+      if (uniqueStocks.has(key)) {
+        continue;
+      }
+
+      uniqueStocks.set(key, {
+        ...stock,
+        stockCode,
+        stockName: this.normalizeText(stock.stockName) || stockCode
+      });
+    }
+
+    return [...uniqueStocks.values()].sort((left, right) =>
+      (left.stockName || left.stockCode).localeCompare(right.stockName || right.stockCode, 'tr')
+    );
+  }
+
+  private normalizeBalanceLines(
+    lines: readonly ProductDistributionLineDto[] | null | undefined,
+    packageFactor: number
+  ): ProductDistributionLineDto[] {
+    return (lines ?? []).map((line) =>
+      this.withCaseQuantity(
+        {
+          ...line,
+          originalCaseQuantity: this.toNumber(line.originalCaseQuantity),
+          caseDelta: this.toNumber(line.caseDelta),
+          isLocked: !!line.isLocked
+        } as ProductDistributionLineDto,
+        line.caseQuantity,
+        packageFactor
+      )
+    );
   }
 
   private normalizeProposal(
@@ -999,7 +1493,11 @@ export class UrunDagilimlariListComponent implements OnInit {
       summary: this.buildSummary(
         proposal.summary,
         lines,
-        this.toPositiveNumber(proposal.summary?.totalCaseQuantity) ?? fallbackTotalCaseQuantity,
+        this.resolveTargetCaseQuantity(
+          proposal.summary?.targetCaseQuantity,
+          proposal.summary?.totalCaseQuantity,
+          fallbackTotalCaseQuantity
+        ),
         packageFactor
       )
     };
@@ -1008,7 +1506,7 @@ export class UrunDagilimlariListComponent implements OnInit {
   private normalizeListItem(row: ProductDistributionListItemDto): ProductDistributionListItemDto {
     const stock = row.stock ?? null;
     const distributionCenter = row.distributionCenter ?? null;
-    const totalCaseQuantity = this.toNumber(row.totalCaseQuantity);
+    const totalCaseQuantity = this.resolveTargetCaseQuantity(row.targetCaseQuantity, row.totalCaseQuantity);
 
     return {
       ...row,
@@ -1021,6 +1519,7 @@ export class UrunDagilimlariListComponent implements OnInit {
       distributionCenterWarehouseName:
         row.distributionCenterWarehouseName ?? distributionCenter?.warehouseName ?? null,
       totalCaseQuantity,
+      targetCaseQuantity: totalCaseQuantity,
       totalUnitQuantity: this.toNumber(row.totalUnitQuantity),
       lineCount: this.toNumber(row.lineCount),
       status: row.status ?? { code: -1, name: '-' },
@@ -1048,7 +1547,13 @@ export class UrunDagilimlariListComponent implements OnInit {
       finalizedAt: detail.finalizedAt ?? header?.finalizedAt ?? null,
       createdAtUtc: detail.createdAtUtc ?? header?.createdAt ?? null,
       finalizedAtUtc: detail.finalizedAtUtc ?? header?.finalizedAt ?? null,
-      totalCaseQuantity: detail.totalCaseQuantity ?? detail.summary?.totalCaseQuantity ?? 0,
+      targetCaseQuantity: detail.targetCaseQuantity ?? detail.summary?.targetCaseQuantity ?? null,
+      totalCaseQuantity:
+        detail.targetCaseQuantity ??
+        detail.totalCaseQuantity ??
+        detail.summary?.targetCaseQuantity ??
+        detail.summary?.totalCaseQuantity ??
+        0,
       totalUnitQuantity: detail.totalUnitQuantity ?? detail.summary?.totalUnitQuantity ?? 0,
       lineCount: detail.lineCount ?? detail.summary?.lineCount ?? detail.lines?.length ?? 0
     } as ProductDistributionListItemDto);
@@ -1056,9 +1561,12 @@ export class UrunDagilimlariListComponent implements OnInit {
     const lines = (detail.lines ?? []).map((line) =>
       this.withCaseQuantity(line, line.caseQuantity, packageFactor)
     );
-    const totalCaseQuantity =
-      this.toNumber(flattenedDetail.totalCaseQuantity) ||
-      this.toNumber(detail.summary?.totalCaseQuantity);
+    const totalCaseQuantity = this.resolveTargetCaseQuantity(
+      flattenedDetail.targetCaseQuantity,
+      flattenedDetail.totalCaseQuantity,
+      detail.summary?.targetCaseQuantity,
+      detail.summary?.totalCaseQuantity
+    );
 
     return {
       ...detail,
@@ -1141,6 +1649,7 @@ export class UrunDagilimlariListComponent implements OnInit {
 
     return {
       totalCaseQuantity,
+      targetCaseQuantity: totalCaseQuantity,
       allocatedCaseQuantity,
       caseDifference,
       totalUnitQuantity,
@@ -1149,6 +1658,21 @@ export class UrunDagilimlariListComponent implements OnInit {
       salesDayCount: originalSummary?.salesDayCount ?? this.proposalForm.salesDayCount,
       referenceDate: originalSummary?.referenceDate ?? this.proposalForm.referenceDate,
       isBalanced: Math.abs(caseDifference) < 0.0001
+    };
+  }
+
+  private withManualCaseQuantity(
+    line: ProductDistributionLineDto,
+    value: number | string,
+    packageFactor: number
+  ): ProductDistributionLineDto {
+    return this.withLineLock(this.withCaseQuantity(line, value, packageFactor), true);
+  }
+
+  private withLineLock(line: ProductDistributionLineDto, isLocked: boolean): ProductDistributionLineDto {
+    return {
+      ...line,
+      isLocked
     };
   }
 
@@ -1218,6 +1742,18 @@ export class UrunDagilimlariListComponent implements OnInit {
     const numericValue = this.toNumber(value);
 
     return numericValue > 0 ? numericValue : null;
+  }
+
+  private resolveTargetCaseQuantity(...values: unknown[]): number {
+    for (const value of values) {
+      const numericValue = this.toNullableNumber(value);
+
+      if (numericValue !== null && numericValue >= 0) {
+        return numericValue;
+      }
+    }
+
+    return 0;
   }
 
   private toNullableNumber(value: unknown): number | null {

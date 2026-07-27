@@ -256,6 +256,7 @@ export interface ProductDistributionStatusDto {
 
 export interface ProductDistributionSummaryDto {
   totalCaseQuantity: number;
+  targetCaseQuantity?: number | null;
   allocatedCaseQuantity: number;
   caseDifference: number;
   totalUnitQuantity?: number | null;
@@ -279,16 +280,54 @@ export interface ProductDistributionLineDto {
   companyAverageDailySales?: number | null;
   branchAverageDailySales?: number | null;
   salesSharePercent?: number | null;
+  originalCaseQuantity?: number | null;
+  caseDelta?: number | null;
+  isLocked?: boolean | null;
   reason?: string | null;
 }
 
 export interface ProductDistributionProposalHttpRequest {
   stockCode: string;
   distributionCenterWarehouseNo: number;
-  totalCaseQuantity: number;
+  totalCaseQuantity?: number | null;
+  targetCaseQuantity?: number | null;
+  allocatedCaseQuantity?: number | null;
   salesDayCount?: number | null;
   referenceDate?: string | null;
   includeBranchesWithoutSales?: boolean | null;
+}
+
+export interface ProductDistributionBalanceLineHttpRequest {
+  warehouseNo: number;
+  warehouseName?: string | null;
+  regionCode?: string | null;
+  lastSalesQuantity: number;
+  currentStockQuantity: number;
+  companyAverageDailySales: number;
+  branchAverageDailySales: number;
+  caseQuantity: number;
+  isLocked: boolean;
+}
+
+export interface ProductDistributionBalanceHttpRequest {
+  stockCode: string;
+  targetCaseQuantity: number;
+  salesDayCount?: number | null;
+  referenceDate?: string | null;
+  lines: ProductDistributionBalanceLineHttpRequest[];
+}
+
+export interface ProductDistributionBalanceLineDto extends ProductDistributionLineDto {
+  originalCaseQuantity: number;
+  caseDelta: number;
+  isLocked: boolean;
+}
+
+export interface ProductDistributionBalanceDto {
+  stock: ProductDistributionStockDto;
+  summary: ProductDistributionSummaryDto;
+  lines: ProductDistributionBalanceLineDto[];
+  warnings?: string[] | null;
 }
 
 export interface ProductDistributionProposalDto {
@@ -321,6 +360,7 @@ export interface ProductDistributionListItemDto {
   distributionCenterWarehouseNo: number;
   distributionCenterWarehouseName?: string | null;
   totalCaseQuantity: number;
+  targetCaseQuantity?: number | null;
   allocatedCaseQuantity?: number | null;
   totalUnitQuantity?: number | null;
   lineCount?: number | null;
@@ -375,6 +415,8 @@ export interface ProductDistributionSaveHttpRequest {
   stockCode: string;
   distributionCenterWarehouseNo: number;
   totalCaseQuantity: number;
+  targetCaseQuantity?: number | null;
+  allocatedCaseQuantity?: number | null;
   distributedBy?: string | null;
   lines: ProductDistributionSaveLineHttpRequest[];
 }

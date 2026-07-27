@@ -4,6 +4,8 @@ import type {
   DocumentFlowDetailDto,
   DocumentFlowListHttpRequest,
   DocumentFlowListResponse,
+  ProductDistributionBalanceDto,
+  ProductDistributionBalanceHttpRequest,
   ProductDistributionCenterDto,
   ProductDistributionDeleteDto,
   ProductDistributionDetailDto,
@@ -110,6 +112,15 @@ export class OperasyonIslemleriService extends BaseApiService {
   ): Observable<ProductDistributionProposalDto> {
     return this.post<ProductDistributionProposalDto, ProductDistributionProposalHttpRequest>(
       'operasyon-islemleri/urun-dagilimlari/oneri',
+      request
+    );
+  }
+
+  balanceProductDistribution(
+    request: ProductDistributionBalanceHttpRequest
+  ): Observable<ProductDistributionBalanceDto> {
+    return this.post<ProductDistributionBalanceDto, ProductDistributionBalanceHttpRequest>(
+      'operasyon-islemleri/urun-dagilimlari/dengele',
       request
     );
   }
