@@ -316,7 +316,7 @@
     </article>
   </section>
 
-  <section class="dialog-backdrop" *ngIf="proposalDialogOpen()" (click)="closeProposalDialog()">
+  <section class="dialog-backdrop" *ngIf="proposalDialogOpen()">
     <article
       class="dialog-panel proposal-dialog"
       role="dialog"
@@ -559,15 +559,105 @@
                 <table>
                   <thead>
                     <tr>
-                      <th>Sube</th>
-                      <th>Satis</th>
-                      <th>Stok</th>
-                      <th>Firma Ort.</th>
-                      <th>Sube Ort.</th>
-                      <th>Gerekce</th>
-                      <th>Kilit</th>
-                      <th>Koli</th>
-                      <th>Adet</th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('warehouse')"
+                          (click)="sortProposalLines('warehouse')"
+                        >
+                          <span>Sube</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('warehouse')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('lastSalesQuantity')"
+                          (click)="sortProposalLines('lastSalesQuantity')"
+                        >
+                          <span>Satis</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('lastSalesQuantity')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('currentStockQuantity')"
+                          (click)="sortProposalLines('currentStockQuantity')"
+                        >
+                          <span>Stok</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('currentStockQuantity')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('companyAverageDailySales')"
+                          (click)="sortProposalLines('companyAverageDailySales')"
+                        >
+                          <span>Firma Ort.</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('companyAverageDailySales')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('branchAverageDailySales')"
+                          (click)="sortProposalLines('branchAverageDailySales')"
+                        >
+                          <span>Sube Ort.</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('branchAverageDailySales')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('reason')"
+                          (click)="sortProposalLines('reason')"
+                        >
+                          <span>Gerekce</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('reason')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button sort-button-center"
+                          [class.active]="isProposalSortActive('isLocked')"
+                          (click)="sortProposalLines('isLocked')"
+                        >
+                          <span>Kilit</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('isLocked')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('caseQuantity')"
+                          (click)="sortProposalLines('caseQuantity')"
+                        >
+                          <span>Koli</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('caseQuantity')"></i>
+                        </button>
+                      </th>
+                      <th>
+                        <button
+                          type="button"
+                          class="sort-button"
+                          [class.active]="isProposalSortActive('unitQuantity')"
+                          (click)="sortProposalLines('unitQuantity')"
+                        >
+                          <span>Adet</span>
+                          <i class="fa-solid" [ngClass]="proposalSortIcon('unitQuantity')"></i>
+                        </button>
+                      </th>
                     </tr>
                   </thead>
                   <tbody>
@@ -576,12 +666,27 @@
                     >
                       <td data-label="Sube">
                         <strong>{{ line.warehouseNo }}</strong>
-                        <small>{{ line.warehouseName || '-' }}</small>
+                        <small>{{ lineBranchMeta(line) }}</small>
                       </td>
-                      <td data-label="Satis">{{ line.lastSalesQuantity | number:'1.0-0' }}</td>
-                      <td data-label="Stok">{{ (line.currentStockQuantity ?? 0) | number:'1.0-0' }}</td>
-                      <td data-label="Firma Ort.">{{ (line.companyAverageDailySales ?? 0) | number:'1.2-2' }}</td>
-                      <td data-label="Sube Ort.">{{ (line.branchAverageDailySales ?? 0) | number:'1.2-2' }}</td>
+                      <td data-label="Satis">
+                        <strong>{{ line.lastSalesQuantity | number:'1.0-0' }}</strong>
+                        <small>
+                          {{ quantityUnitLabel(line) }}
+                          <ng-container *ngIf="hasLineMetric(line.salesSharePercent)">/ {{ formatPercent(line.salesSharePercent) }}</ng-container>
+                        </small>
+                      </td>
+                      <td data-label="Stok">
+                        <strong>{{ (line.currentStockQuantity ?? 0) | number:'1.0-0' }}</strong>
+                        <small>{{ quantityUnitLabel(line) }}</small>
+                      </td>
+                      <td data-label="Firma Ort.">
+                        <strong>{{ (line.companyAverageDailySales ?? 0) | number:'1.2-2' }}</strong>
+                        <small>{{ quantityUnitLabel(line) }}/gun</small>
+                      </td>
+                      <td data-label="Sube Ort.">
+                        <strong>{{ (line.branchAverageDailySales ?? 0) | number:'1.2-2' }}</strong>
+                        <small>{{ quantityUnitLabel(line) }}/gun</small>
+                      </td>
                       <td data-label="Gerekce">
                         <span class="reason-pill">{{ reasonLabel(line.reason) }}</span>
                         <small class="line-delta" *ngIf="line.caseDelta">{{ lineDeltaLabel(line) }}</small>
@@ -607,8 +712,15 @@
                           [ngModel]="line.caseQuantity"
                           (ngModelChange)="setProposalLineCaseQuantity(i, $event)"
                         />
+                        <small>
+                          {{ caseUnitLabel(line) }}
+                          <ng-container *ngIf="hasLineMetric(line.caseSharePercent)">/ {{ formatPercent(line.caseSharePercent) }}</ng-container>
+                        </small>
                       </td>
-                      <td data-label="Adet">{{ line.unitQuantity | number:'1.0-0' }}</td>
+                      <td data-label="Adet">
+                        <strong>{{ line.unitQuantity | number:'1.0-0' }}</strong>
+                        <small>{{ quantityUnitLabel(line) }}</small>
+                      </td>
                     </tr>
                     <tr *ngIf="activeProposal.lines.length === 0">
                       <td colspan="9" class="empty-cell">Oneri satiri bulunamadi.</td>
@@ -772,7 +884,7 @@
               >
                 <div>
                   <strong>{{ line.warehouseNo }}</strong>
-                  <small>{{ line.warehouseName || reasonLabel(line.reason) }}</small>
+                  <small>{{ lineBranchMeta(line) }}</small>
                 </div>
                 <button
                   type="button"
@@ -793,7 +905,10 @@
                   [ngModel]="line.caseQuantity"
                   (ngModelChange)="setDetailLineCaseQuantity(i, $event)"
                 />
-                <span>{{ line.unitQuantity | number:'1.0-0' }}</span>
+                                <span>
+                  <strong>{{ line.unitQuantity | number:'1.0-0' }}</strong>
+                  <small>{{ quantityUnitLabel(line) }}</small>
+                </span>
               </div>
               <div class="mini-empty" *ngIf="detail.lines.length === 0">Satir bulunamadi.</div>
             </section>

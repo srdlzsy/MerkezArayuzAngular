@@ -279,7 +279,10 @@ export interface ProductDistributionLineDto {
   currentStockQuantity?: number | null;
   companyAverageDailySales?: number | null;
   branchAverageDailySales?: number | null;
+  quantityUnitName?: string | null;
+  caseUnitName?: string | null;
   salesSharePercent?: number | null;
+  caseSharePercent?: number | null;
   originalCaseQuantity?: number | null;
   caseDelta?: number | null;
   isLocked?: boolean | null;

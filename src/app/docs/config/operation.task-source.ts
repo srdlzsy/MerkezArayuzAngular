@@ -15,6 +15,7 @@ export const OPERATION_TASK_SOURCE = {
         'Liste filtresi status, documentNo, stockCode, distributionCenterWarehouseNo, createdFrom ve createdTo query alanlarini kullanir',
         'Oneri ve guncelleme satirlarinda hedef koli farki sifir olmadan kaydetme aktif olmaz',
         'Dengele endpointi kilitli satirlari koruyarak hedef koli farkini kalan satirlara dagitir',
+        'Satir miktarlari quantityUnitName, koli alanlari caseUnitName; satis ve koli paylari yuzde olarak gosterilir',
         'Kaydedildi durumunda guncelle, sil ve bolge bilgilendirme aksiyonlari aciktir',
         'Bilgilendirildi durumunda kesinlestirme ile Mikro depolar arasi siparisleri olusturulur',
         'API mail gondermez; bolge alici ve ozet bilgisini UI/outbox katmani icin hazirlar'

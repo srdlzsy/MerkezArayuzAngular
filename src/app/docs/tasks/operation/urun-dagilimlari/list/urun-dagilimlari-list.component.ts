@@ -42,6 +42,23 @@ import { getErrorMessage } from '../../../settings/settings-task.helpers';
 type FeedbackTone = 'error' | 'info' | 'success' | 'warning';
 type DistributionAction = 'list' | 'detail' | 'create' | 'update' | 'delete';
 
+type ProposalLineSortKey =
+  | 'warehouse'
+  | 'lastSalesQuantity'
+  | 'currentStockQuantity'
+  | 'companyAverageDailySales'
+  | 'branchAverageDailySales'
+  | 'reason'
+  | 'isLocked'
+  | 'caseQuantity'
+  | 'unitQuantity';
+type ProposalLineSortDirection = 'asc' | 'desc';
+
+interface ProposalLineSortState {
+  key: ProposalLineSortKey;
+  direction: ProposalLineSortDirection;
+}
+
 interface DistributionFilters {
   startDate: string;
   endDate: string;
@@ -147,6 +164,10 @@ export class UrunDagilimlariListComponent implements OnInit {
   protected readonly stockSearchResults = signal<ProductLookupItemDto[]>([]);
   protected readonly stockSearchLoading = signal(false);
   protected readonly stockSearchMessage = signal('');
+  protected readonly proposalLineSort = signal<ProposalLineSortState>({
+    key: 'warehouse',
+    direction: 'asc'
+  });
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
@@ -277,7 +298,6 @@ export class UrunDagilimlariListComponent implements OnInit {
     }
 
     if (this.proposalDialogOpen()) {
-      this.closeProposalDialog();
       return;
     }
 
@@ -848,7 +868,9 @@ export class UrunDagilimlariListComponent implements OnInit {
             balance.summary?.totalCaseQuantity,
             summary.totalCaseQuantity
           );
-          const lines = this.normalizeBalanceLines(balance.lines ?? [], packageFactor);
+          const lines = this.sortProposalLinesArray(
+            this.normalizeBalanceLines(balance.lines ?? [], packageFactor)
+          );
           const nextSummary = this.buildSummary(
             balance.summary ?? proposal.summary,
             lines,
@@ -1097,6 +1119,29 @@ export class UrunDagilimlariListComponent implements OnInit {
       : '-' + this.formatNumber(Math.abs(caseDelta), 0) + ' koli';
   }
 
+  protected sortProposalLines(key: ProposalLineSortKey): void {
+    const currentSort = this.proposalLineSort();
+    const direction: ProposalLineSortDirection =
+      currentSort.key === key && currentSort.direction === 'asc' ? 'desc' : 'asc';
+
+    this.proposalLineSort.set({ key, direction });
+    this.applyProposalLineSort();
+  }
+
+  protected isProposalSortActive(key: ProposalLineSortKey): boolean {
+    return this.proposalLineSort().key === key;
+  }
+
+  protected proposalSortIcon(key: ProposalLineSortKey): string {
+    const currentSort = this.proposalLineSort();
+
+    if (currentSort.key !== key) {
+      return 'fa-sort';
+    }
+
+    return currentSort.direction === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+  }
+
   protected statusLabel(status: ProductDistributionStatusDto | null | undefined): string {
     const code = this.resolveStatusCode(status);
 
@@ -1235,6 +1280,35 @@ export class UrunDagilimlariListComponent implements OnInit {
     return Number.isNaN(date.getTime())
       ? value
       : new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'short' }).format(date);
+  }
+
+  protected lineBranchMeta(line: ProductDistributionLineDto): string {
+    const parts = [line.warehouseName, line.regionName || line.regionCode]
+      .map((part) => this.normalizeText(part))
+      .filter(Boolean);
+
+    return parts.length ? parts.join(' - ') : '-';
+  }
+
+  protected quantityUnitLabel(line: ProductDistributionLineDto): string {
+    return this.normalizeText(line.quantityUnitName) || 'adet';
+  }
+
+  protected caseUnitLabel(line: ProductDistributionLineDto): string {
+    return this.normalizeText(line.caseUnitName) || 'koli';
+  }
+
+  protected hasLineMetric(value: unknown): boolean {
+    return this.toNullableNumber(value) !== null;
+  }
+
+  protected formatPercent(value: number | null | undefined): string {
+    return (
+      this.toNumber(value).toLocaleString('tr-TR', {
+        minimumFractionDigits: 0,
+        maximumFractionDigits: 1
+      }) + '%'
+    );
   }
 
   protected formatNumber(value: number | null | undefined, digits = 0): string {
@@ -1462,6 +1536,86 @@ export class UrunDagilimlariListComponent implements OnInit {
     );
   }
 
+  private applyProposalLineSort(): void {
+    const proposal = this.proposal();
+
+    if (!proposal) {
+      return;
+    }
+
+    this.proposal.set({
+      ...proposal,
+      lines: this.sortProposalLinesArray(proposal.lines ?? [])
+    });
+  }
+
+  private sortProposalLinesArray(
+    lines: readonly ProductDistributionLineDto[]
+  ): ProductDistributionLineDto[] {
+    const sortState = this.proposalLineSort();
+
+    return [...lines].sort((left, right) => {
+      const sortResult = this.compareProposalLineValues(
+        this.getProposalLineSortValue(left, sortState.key),
+        this.getProposalLineSortValue(right, sortState.key)
+      );
+      const directedResult = sortState.direction === 'asc' ? sortResult : -sortResult;
+
+      if (directedResult !== 0) {
+        return directedResult;
+      }
+
+      const warehouseResult = this.toNumber(left.warehouseNo) - this.toNumber(right.warehouseNo);
+      if (warehouseResult !== 0) {
+        return warehouseResult;
+      }
+
+      return (left.warehouseName || '').localeCompare(right.warehouseName || '', 'tr', {
+        numeric: true,
+        sensitivity: 'base'
+      });
+    });
+  }
+
+  private getProposalLineSortValue(
+    line: ProductDistributionLineDto,
+    key: ProposalLineSortKey
+  ): string | number {
+    switch (key) {
+      case 'warehouse':
+        return this.toNumber(line.warehouseNo);
+      case 'lastSalesQuantity':
+        return this.toNumber(line.lastSalesQuantity);
+      case 'currentStockQuantity':
+        return this.toNumber(line.currentStockQuantity);
+      case 'companyAverageDailySales':
+        return this.toNumber(line.companyAverageDailySales);
+      case 'branchAverageDailySales':
+        return this.toNumber(line.branchAverageDailySales);
+      case 'reason':
+        return this.reasonLabel(line.reason);
+      case 'isLocked':
+        return line.isLocked ? 1 : 0;
+      case 'caseQuantity':
+        return this.toNumber(line.caseQuantity);
+      case 'unitQuantity':
+        return this.toNumber(line.unitQuantity);
+      default:
+        return '';
+    }
+  }
+
+  private compareProposalLineValues(left: string | number, right: string | number): number {
+    if (typeof left === 'number' && typeof right === 'number') {
+      return left - right;
+    }
+
+    return String(left).localeCompare(String(right), 'tr', {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
   private normalizeBalanceLines(
     lines: readonly ProductDistributionLineDto[] | null | undefined,
     packageFactor: number
@@ -1485,7 +1639,11 @@ export class UrunDagilimlariListComponent implements OnInit {
     fallbackTotalCaseQuantity: number
   ): ProductDistributionProposalDto {
     const packageFactor = this.toPositiveNumber(proposal.stock?.packageFactor) ?? 1;
-    const lines = (proposal.lines ?? []).map((line) => this.withCaseQuantity(line, line.caseQuantity, packageFactor));
+    const lines = this.sortProposalLinesArray(
+      (proposal.lines ?? []).map((line) =>
+        this.withCaseQuantity(line, line.caseQuantity, packageFactor)
+      )
+    );
 
     return {
       ...proposal,
