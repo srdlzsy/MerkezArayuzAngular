@@ -237,6 +237,8 @@ export interface ProductDistributionCenterDto {
   regionName?: string | null;
 }
 
+export interface ProductDistributionWarehouseDto extends ProductDistributionCenterDto {}
+
 export interface ProductDistributionStockDto {
   stockCode: string;
   stockName?: string | null;
@@ -249,6 +251,7 @@ export interface ProductDistributionStatusDto {
   code: number;
   name: string;
   description?: string | null;
+  severity?: string | null;
 }
 
 export interface ProductDistributionSummaryDto {
@@ -261,6 +264,7 @@ export interface ProductDistributionSummaryDto {
   salesDayCount?: number | null;
   referenceDate?: string | null;
   isBalanced: boolean;
+  message?: string | null;
 }
 
 export interface ProductDistributionLineDto {
@@ -289,20 +293,24 @@ export interface ProductDistributionProposalHttpRequest {
 
 export interface ProductDistributionProposalDto {
   stock: ProductDistributionStockDto;
-  distributionCenter?: ProductDistributionCenterDto | null;
+  distributionCenter?: ProductDistributionWarehouseDto | null;
   summary: ProductDistributionSummaryDto;
   lines: ProductDistributionLineDto[];
   generatedAtUtc?: string | null;
+  warnings?: string[] | null;
 }
 
 export interface ProductDistributionListHttpRequest {
-  startDate?: string | null;
-  endDate?: string | null;
+  createdFrom?: string | null;
+  createdTo?: string | null;
   documentNo?: string | number | null;
   stockCode?: string | null;
   distributionCenterWarehouseNo?: number | null;
-  statusCode?: number | null;
+  status?: number | null;
   take?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  statusCode?: number | null;
 }
 
 export interface ProductDistributionListItemDto {
@@ -318,17 +326,38 @@ export interface ProductDistributionListItemDto {
   lineCount?: number | null;
   status: ProductDistributionStatusDto;
   distributedBy?: string | null;
+  stock?: ProductDistributionStockDto | null;
+  distributionCenter?: ProductDistributionWarehouseDto | null;
+  createdAt?: string | null;
+  finalizedAt?: string | null;
   createdAtUtc?: string | null;
   updatedAtUtc?: string | null;
   notifiedAtUtc?: string | null;
   finalizedAtUtc?: string | null;
 }
 
+export interface ProductDistributionHeaderDto {
+  documentNo: string;
+  status: ProductDistributionStatusDto;
+  createdAt?: string | null;
+  finalizedAt?: string | null;
+  stock: ProductDistributionStockDto;
+  distributionCenter: ProductDistributionWarehouseDto;
+  distributedBy?: string | null;
+}
+
+export interface ProductDistributionActionDto {
+  code: string;
+  label: string;
+  enabled: boolean;
+  reason?: string | null;
+}
+
 export interface ProductDistributionDetailDto extends ProductDistributionListItemDto {
-  stock?: ProductDistributionStockDto | null;
-  distributionCenter?: ProductDistributionCenterDto | null;
+  header?: ProductDistributionHeaderDto | null;
   summary?: ProductDistributionSummaryDto | null;
   lines: ProductDistributionLineDto[];
+  availableActions?: ProductDistributionActionDto[] | null;
   notification?: ProductDistributionNotificationDto | null;
   finalizeResult?: ProductDistributionFinalizeDto | null;
 }
@@ -358,6 +387,7 @@ export interface ProductDistributionNotifyHttpRequest {
 export interface ProductDistributionNotificationRecipientDto {
   regionCode?: string | null;
   regionName?: string | null;
+  managerName?: string | null;
   email?: string | null;
   recipientEmail?: string | null;
   lineCount: number;
@@ -368,6 +398,9 @@ export interface ProductDistributionNotificationRecipientDto {
 export interface ProductDistributionNotificationDto {
   documentNo: string;
   status?: ProductDistributionStatusDto | null;
+  statusChanged?: boolean | null;
+  stockOrderingStopped?: boolean | null;
+  subject?: string | null;
   message?: string | null;
   recipients: ProductDistributionNotificationRecipientDto[];
 }
@@ -380,21 +413,30 @@ export interface ProductDistributionFinalizeHttpRequest {
 }
 
 export interface ProductDistributionOrderDto {
-  warehouseNo: number;
+  warehouseNo?: number | null;
   warehouseName?: string | null;
   documentSerie: string;
   documentOrderNo: number;
+  inWarehouseNo?: number | null;
+  inWarehouseName?: string | null;
+  outWarehouseNo?: number | null;
+  outWarehouseName?: string | null;
+  lineCount?: number | null;
   alreadyExisted: boolean;
   totalCaseQuantity?: number | null;
   totalUnitQuantity?: number | null;
 }
 
+export type ProductDistributionWarehouseOrderDto = ProductDistributionOrderDto;
+
 export interface ProductDistributionFinalizeDto {
   documentNo: string;
   status?: ProductDistributionStatusDto | null;
   message?: string | null;
+  finalizedAt?: string | null;
   createdDocumentCount: number;
   existingDocumentCount: number;
+  totalUnitQuantity?: number | null;
   orders: ProductDistributionOrderDto[];
 }
 

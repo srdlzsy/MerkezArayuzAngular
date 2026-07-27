@@ -285,7 +285,7 @@ export class UrunDagilimlariListComponent implements OnInit {
             return;
           }
 
-          this.distributions.set(rows ?? []);
+          this.distributions.set((rows ?? []).map((row) => this.normalizeListItem(row)));
         },
         error: (error: unknown) => {
           if (requestId !== this.listRequestId) {
@@ -780,6 +780,20 @@ export class UrunDagilimlariListComponent implements OnInit {
     return recipient.email || recipient.recipientEmail || '-';
   }
 
+  protected orderWarehouseLabel(order: ProductDistributionOrderDto): string {
+    const inWarehouseNo = this.toNullableNumber(order.inWarehouseNo);
+    const outWarehouseNo = this.toNullableNumber(order.outWarehouseNo);
+
+    if (inWarehouseNo || outWarehouseNo) {
+      const inWarehouse = `#${inWarehouseNo ?? '-'} ${order.inWarehouseName ?? ''}`.trim();
+      const outWarehouse = `#${outWarehouseNo ?? '-'} ${order.outWarehouseName ?? ''}`.trim();
+
+      return `${outWarehouse} -> ${inWarehouse}`;
+    }
+
+    return `#${order.warehouseNo ?? '-'} ${order.warehouseName ?? ''}`.trim();
+  }
+
   protected trackByCenter = (_index: number, center: ProductDistributionCenterDto): number =>
     center.warehouseNo;
   protected trackByDistribution = (
@@ -793,7 +807,7 @@ export class UrunDagilimlariListComponent implements OnInit {
     recipient: ProductDistributionNotificationRecipientDto
   ): string => `${recipient.regionCode ?? recipient.regionName ?? recipientEmailKey(recipient)}-${index}`;
   protected trackByOrder = (_index: number, order: ProductDistributionOrderDto): string =>
-    `${order.documentSerie}-${order.documentOrderNo}-${order.warehouseNo}`;
+    `${order.documentSerie}-${order.documentOrderNo}-${this.resolveOrderWarehouseNo(order)}`;
 
   private buildListRequest(): ProductDistributionListHttpRequest | null {
     if (!this.isDateInput(this.filters.startDate) || !this.isDateInput(this.filters.endDate)) {
@@ -802,12 +816,12 @@ export class UrunDagilimlariListComponent implements OnInit {
     }
 
     return {
-      startDate: this.filters.startDate,
-      endDate: this.filters.endDate,
+      createdFrom: this.filters.startDate,
+      createdTo: this.filters.endDate,
       documentNo: this.normalizeText(this.filters.documentNo) || null,
       stockCode: this.normalizeText(this.filters.stockCode) || null,
       distributionCenterWarehouseNo: this.filters.distributionCenterWarehouseNo,
-      statusCode: this.filters.statusCode,
+      status: this.filters.statusCode,
       take: this.toPositiveNumber(this.filters.take) ?? 100
     };
   }
@@ -906,14 +920,69 @@ export class UrunDagilimlariListComponent implements OnInit {
     };
   }
 
+  private normalizeListItem(row: ProductDistributionListItemDto): ProductDistributionListItemDto {
+    const stock = row.stock ?? null;
+    const distributionCenter = row.distributionCenter ?? null;
+    const totalCaseQuantity = this.toNumber(row.totalCaseQuantity);
+
+    return {
+      ...row,
+      documentNo: row.documentNo || '',
+      documentDate: row.documentDate ?? row.createdAt ?? row.createdAtUtc ?? null,
+      stockCode: row.stockCode || stock?.stockCode || '',
+      stockName: row.stockName ?? stock?.stockName ?? null,
+      distributionCenterWarehouseNo:
+        row.distributionCenterWarehouseNo ?? distributionCenter?.warehouseNo ?? 0,
+      distributionCenterWarehouseName:
+        row.distributionCenterWarehouseName ?? distributionCenter?.warehouseName ?? null,
+      totalCaseQuantity,
+      totalUnitQuantity: this.toNumber(row.totalUnitQuantity),
+      lineCount: this.toNumber(row.lineCount),
+      status: row.status ?? { code: -1, name: '-' },
+      stock,
+      distributionCenter,
+      createdAt: row.createdAt ?? row.createdAtUtc ?? null,
+      finalizedAt: row.finalizedAt ?? row.finalizedAtUtc ?? null,
+      createdAtUtc: row.createdAtUtc ?? row.createdAt ?? null,
+      finalizedAtUtc: row.finalizedAtUtc ?? row.finalizedAt ?? null
+    };
+  }
+
   private normalizeDetail(detail: ProductDistributionDetailDto): ProductDistributionDetailDto {
-    const packageFactor = this.toPositiveNumber(detail.stock?.packageFactor) ?? 1;
-    const lines = (detail.lines ?? []).map((line) => this.withCaseQuantity(line, line.caseQuantity, packageFactor));
+    const header = detail.header ?? null;
+    const stock = detail.stock ?? header?.stock ?? null;
+    const distributionCenter = detail.distributionCenter ?? header?.distributionCenter ?? null;
+    const flattenedDetail = this.normalizeListItem({
+      ...detail,
+      documentNo: detail.documentNo || header?.documentNo || '',
+      status: detail.status ?? header?.status ?? { code: -1, name: '-' },
+      stock,
+      distributionCenter,
+      distributedBy: detail.distributedBy ?? header?.distributedBy ?? null,
+      createdAt: detail.createdAt ?? header?.createdAt ?? null,
+      finalizedAt: detail.finalizedAt ?? header?.finalizedAt ?? null,
+      createdAtUtc: detail.createdAtUtc ?? header?.createdAt ?? null,
+      finalizedAtUtc: detail.finalizedAtUtc ?? header?.finalizedAt ?? null,
+      totalCaseQuantity: detail.totalCaseQuantity ?? detail.summary?.totalCaseQuantity ?? 0,
+      totalUnitQuantity: detail.totalUnitQuantity ?? detail.summary?.totalUnitQuantity ?? 0,
+      lineCount: detail.lineCount ?? detail.summary?.lineCount ?? detail.lines?.length ?? 0
+    } as ProductDistributionListItemDto);
+    const packageFactor = this.toPositiveNumber(flattenedDetail.stock?.packageFactor) ?? 1;
+    const lines = (detail.lines ?? []).map((line) =>
+      this.withCaseQuantity(line, line.caseQuantity, packageFactor)
+    );
+    const totalCaseQuantity =
+      this.toNumber(flattenedDetail.totalCaseQuantity) ||
+      this.toNumber(detail.summary?.totalCaseQuantity);
 
     return {
       ...detail,
+      ...flattenedDetail,
+      header,
+      stock: flattenedDetail.stock,
+      distributionCenter: flattenedDetail.distributionCenter,
       lines,
-      summary: this.buildSummary(detail.summary ?? null, lines, detail.totalCaseQuantity, packageFactor)
+      summary: this.buildSummary(detail.summary ?? null, lines, totalCaseQuantity, packageFactor)
     };
   }
 
@@ -941,8 +1010,28 @@ export class UrunDagilimlariListComponent implements OnInit {
     this.selectedDetail.set({
       ...detail,
       status: result.status ?? { code: 2, name: 'Dagilim Yapildi' },
-      finalizeResult: result
+      finalizeResult: this.normalizeFinalizeResult(result)
     });
+  }
+
+  private normalizeFinalizeResult(
+    result: ProductDistributionFinalizeDto
+  ): ProductDistributionFinalizeDto {
+    return {
+      ...result,
+      orders: (result.orders ?? []).map((order) => this.normalizeOrder(order))
+    };
+  }
+
+  private normalizeOrder(order: ProductDistributionOrderDto): ProductDistributionOrderDto {
+    const warehouseNo = order.warehouseNo ?? order.inWarehouseNo ?? order.outWarehouseNo ?? null;
+    const warehouseName = order.warehouseName ?? order.inWarehouseName ?? order.outWarehouseName ?? null;
+
+    return {
+      ...order,
+      warehouseNo,
+      warehouseName
+    };
   }
 
   private buildSummary(
@@ -1026,6 +1115,10 @@ export class UrunDagilimlariListComponent implements OnInit {
 
   private resolveStatusCode(status: ProductDistributionStatusDto | null | undefined): number | null {
     return typeof status?.code === 'number' ? status.code : null;
+  }
+
+  private resolveOrderWarehouseNo(order: ProductDistributionOrderDto): number | string {
+    return order.warehouseNo ?? order.inWarehouseNo ?? order.outWarehouseNo ?? '-';
   }
 
   private isDateInput(value: string): boolean {

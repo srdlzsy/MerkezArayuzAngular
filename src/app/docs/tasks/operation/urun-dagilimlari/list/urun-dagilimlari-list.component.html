@@ -651,7 +651,7 @@
           </div>
           <article *ngFor="let order of result.orders; trackBy: trackByOrder">
             <strong>{{ order.documentSerie }}/{{ order.documentOrderNo }}</strong>
-            <span>#{{ order.warehouseNo }} {{ order.warehouseName || '' }}</span>
+            <span>{{ orderWarehouseLabel(order) }}</span>
             <small>{{ order.alreadyExisted ? 'Mevcut' : 'Yeni' }}</small>
           </article>
         </section>

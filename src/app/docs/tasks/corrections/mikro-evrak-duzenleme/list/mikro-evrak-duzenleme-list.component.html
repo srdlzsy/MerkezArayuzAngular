@@ -1231,5 +1231,375 @@
         </div>
       </ng-template>
     </section>
+
+    <section *ngSwitchCase="'company-order'" class="document-workspace">
+      <article class="lookup-bar order-lookup-bar">
+        <div class="lookup-title">
+          <p class="panel-kicker">SIPARISLER</p>
+          <h3>Firma siparis evrakini bul</h3>
+        </div>
+        <label class="field">
+          <span>Belge Serisi *</span>
+          <input
+            type="text"
+            [(ngModel)]="companyOrderLookup.documentSerie"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Belge Sira *</span>
+          <input
+            type="number"
+            [(ngModel)]="companyOrderLookup.documentOrderNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Siparis Tipi</span>
+          <input
+            type="number"
+            [(ngModel)]="companyOrderLookup.orderType"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="1 verilen / 0 alinan"
+          />
+        </label>
+        <label class="field">
+          <span>Siparis Cinsi</span>
+          <input
+            type="number"
+            [(ngModel)]="companyOrderLookup.orderKind"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Depo No</span>
+          <input
+            type="number"
+            [(ngModel)]="companyOrderLookup.warehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Cari Kodu</span>
+          <input
+            type="text"
+            [(ngModel)]="companyOrderLookup.customerCode"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canDetail() || isBusy('company-order-load')"
+          (click)="loadCompanyOrder()"
+        >
+          {{ isBusy('company-order-load') ? 'Getiriliyor...' : 'Siparisi Getir' }}
+        </button>
+      </article>
+
+      <ng-container *ngIf="companyOrderDraft() as document; else noCompanyOrder">
+        <article class="document-summary">
+          <div>
+            <p class="panel-kicker">SIPARIS OZETI</p>
+            <h3>
+              {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
+              - {{ document.header.customerTitle || document.header.customerCode }}
+            </h3>
+          </div>
+          <div class="summary-metrics">
+            <span><strong>{{ document.header.lineCount }}</strong> satir</span>
+            <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
+            <span><strong>{{ document.header.totalDeliveredQuantity || 0 | number: '1.0-3' }}</strong> teslim</span>
+            <span><strong>{{ document.header.totalAmount | number: '1.2-2' }}</strong> tutar</span>
+            <span class="change-badge">{{ changedCompanyOrderCount() }} degisiklik</span>
+          </div>
+        </article>
+
+        <article class="editor-panel">
+          <div class="form-section">
+            <h4>Siparis ust bilgileri</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of companyOrderHeaderFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  [type]="field.type || 'text'"
+                  [ngModel]="fieldValue(document.header, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(document.header, field.key, $event)"
+                />
+              </label>
+            </div>
+            <div class="toggle-grid">
+              <label
+                *ngFor="let field of companyOrderBooleanFields; trackBy: trackByField"
+                class="toggle-field"
+              >
+                <input
+                  type="checkbox"
+                  [ngModel]="fieldValue(document.header, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(document.header, field.key, $event)"
+                />
+                <span>{{ field.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="line-stack">
+            <details
+              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
+              class="line-card"
+              [open]="document.lines.length === 1"
+            >
+              <summary>
+                <span class="line-index">{{ index + 1 }}</span>
+                <strong>{{ line.stockCode }} - {{ line.stockName }}</strong>
+                <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName || '' }}</span>
+                <code>{{ line.orderGuid }}</code>
+              </summary>
+              <div class="form-grid line-form-grid">
+                <label
+                  *ngFor="let field of companyOrderLineFields; trackBy: trackByField"
+                  class="field"
+                  [class.field-wide]="field.wide"
+                  [class.checkbox-field]="field.type === 'checkbox'"
+                >
+                  <span>{{ field.label }}</span>
+                  <input
+                    [type]="field.type || 'text'"
+                    [ngModel]="fieldValue(line, field.key)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="setField(line, field.key, $event)"
+                  />
+                </label>
+              </div>
+            </details>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetCompanyOrder()">
+              Degisiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedCompanyOrderCount() || isBusy('company-order-save')"
+              (click)="saveCompanyOrder()"
+            >
+              {{ isBusy('company-order-save') ? 'Kaydediliyor...' : 'Firma Siparisini Guncelle' }}
+            </button>
+            <button
+              type="button"
+              class="danger-action"
+              [disabled]="!canDelete() || isBusy('company-order-delete')"
+              (click)="deleteCompanyOrder()"
+            >
+              {{ isBusy('company-order-delete') ? 'Siliniyor...' : 'Firma Siparisini Sil' }}
+            </button>
+            <button
+              type="button"
+              class="hard-danger-action"
+              [disabled]="!canDelete() || isBusy('company-order-delete')"
+              (click)="deleteCompanyOrder(true)"
+            >
+              Fiziksel Sil
+            </button>
+          </div>
+        </article>
+      </ng-container>
+
+      <ng-template #noCompanyOrder>
+        <div class="empty-state">
+          <i class="fa-solid fa-file-invoice"></i>
+          <h3>Seri ve sira ile firma siparisini getirin</h3>
+          <p>Birden fazla eslesme varsa siparis tipi/cinsi, depo no veya cari kodu ile daraltin.</p>
+        </div>
+      </ng-template>
+    </section>
+
+    <section *ngSwitchCase="'warehouse-order'" class="document-workspace">
+      <article class="lookup-bar warehouse-order-lookup-bar">
+        <div class="lookup-title">
+          <p class="panel-kicker">DEPOLAR_ARASI_SIPARISLER</p>
+          <h3>Depo siparis evrakini bul</h3>
+        </div>
+        <label class="field">
+          <span>Belge Serisi *</span>
+          <input
+            type="text"
+            [(ngModel)]="warehouseOrderLookup.documentSerie"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Belge Sira *</span>
+          <input
+            type="number"
+            [(ngModel)]="warehouseOrderLookup.documentOrderNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Depo No</span>
+          <input
+            type="number"
+            [(ngModel)]="warehouseOrderLookup.warehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Giris veya cikis"
+          />
+        </label>
+        <label class="field">
+          <span>Giris Depo</span>
+          <input
+            type="number"
+            [(ngModel)]="warehouseOrderLookup.inWarehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Cikis Depo</span>
+          <input
+            type="number"
+            [(ngModel)]="warehouseOrderLookup.outWarehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canDetail() || isBusy('warehouse-order-load')"
+          (click)="loadWarehouseOrder()"
+        >
+          {{ isBusy('warehouse-order-load') ? 'Getiriliyor...' : 'Siparisi Getir' }}
+        </button>
+      </article>
+
+      <ng-container *ngIf="warehouseOrderDraft() as document; else noWarehouseOrder">
+        <article class="document-summary">
+          <div>
+            <p class="panel-kicker">DEPO SIPARIS OZETI</p>
+            <h3>
+              {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
+              - {{ document.header.outWarehouseNo }} -> {{ document.header.inWarehouseNo }}
+            </h3>
+          </div>
+          <div class="summary-metrics">
+            <span><strong>{{ document.header.lineCount }}</strong> satir</span>
+            <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
+            <span><strong>{{ document.header.totalDeliveredQuantity || 0 | number: '1.0-3' }}</strong> teslim</span>
+            <span><strong>{{ document.header.totalAmount | number: '1.2-2' }}</strong> tutar</span>
+            <span class="change-badge">{{ changedWarehouseOrderCount() }} degisiklik</span>
+          </div>
+        </article>
+
+        <article class="editor-panel">
+          <div class="form-section">
+            <h4>Siparis ust bilgileri</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of warehouseOrderHeaderFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  [type]="field.type || 'text'"
+                  [ngModel]="fieldValue(document.header, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(document.header, field.key, $event)"
+                />
+              </label>
+            </div>
+            <div class="toggle-grid">
+              <label
+                *ngFor="let field of warehouseOrderBooleanFields; trackBy: trackByField"
+                class="toggle-field"
+              >
+                <input
+                  type="checkbox"
+                  [ngModel]="fieldValue(document.header, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(document.header, field.key, $event)"
+                />
+                <span>{{ field.label }}</span>
+              </label>
+            </div>
+          </div>
+
+          <div class="line-stack">
+            <details
+              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
+              class="line-card"
+              [open]="document.lines.length === 1"
+            >
+              <summary>
+                <span class="line-index">{{ index + 1 }}</span>
+                <strong>{{ line.stockCode }} - {{ line.stockName }}</strong>
+                <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName || '' }}</span>
+                <code>{{ line.orderGuid }}</code>
+              </summary>
+              <div class="form-grid line-form-grid">
+                <label
+                  *ngFor="let field of warehouseOrderLineFields; trackBy: trackByField"
+                  class="field"
+                  [class.field-wide]="field.wide"
+                  [class.checkbox-field]="field.type === 'checkbox'"
+                >
+                  <span>{{ field.label }}</span>
+                  <input
+                    [type]="field.type || 'text'"
+                    [ngModel]="fieldValue(line, field.key)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="setField(line, field.key, $event)"
+                  />
+                </label>
+              </div>
+            </details>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetWarehouseOrder()">
+              Degisiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedWarehouseOrderCount() || isBusy('warehouse-order-save')"
+              (click)="saveWarehouseOrder()"
+            >
+              {{ isBusy('warehouse-order-save') ? 'Kaydediliyor...' : 'Depo Siparisini Guncelle' }}
+            </button>
+            <button
+              type="button"
+              class="danger-action"
+              [disabled]="!canDelete() || isBusy('warehouse-order-delete')"
+              (click)="deleteWarehouseOrder()"
+            >
+              {{ isBusy('warehouse-order-delete') ? 'Siliniyor...' : 'Depo Siparisini Sil' }}
+            </button>
+            <button
+              type="button"
+              class="hard-danger-action"
+              [disabled]="!canDelete() || isBusy('warehouse-order-delete')"
+              (click)="deleteWarehouseOrder(true)"
+            >
+              Fiziksel Sil
+            </button>
+          </div>
+        </article>
+      </ng-container>
+
+      <ng-template #noWarehouseOrder>
+        <div class="empty-state">
+          <i class="fa-solid fa-truck-ramp-box"></i>
+          <h3>Seri ve sira ile depo siparisini getirin</h3>
+          <p>Birden fazla eslesme varsa giris/cikis depo filtreleriyle daraltin.</p>
+        </div>
+      </ng-template>
+    </section>
   </ng-container>
 </section>

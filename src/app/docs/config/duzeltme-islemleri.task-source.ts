@@ -7,15 +7,15 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
       id: 'mikro-evrak-duzenleme',
       title: 'Mikro Evrak Duzenleme',
       subtitle:
-        'Mikro stok kartlarini, depo bazli stok ayarlarini, satis fiyatlarini, stok ve cari hareket evraklarini kontrollu olarak duzeltir.',
+        'Mikro stok kartlarini, depo bazli stok ayarlarini, satis fiyatlarini, hareket evraklarini ve siparis evraklarini kontrollu olarak duzeltir.',
       baseRouteOrFile: '/api/duzeltme-islemleri/mikro-evrak-duzenleme',
       highlights: [
         'Stok karti arama, detay ve alan bazli guncelleme',
         'Global karti etkilemeden depo bazli satis, siparis ve kabul bloklari',
         'Depo bazli stok satis fiyatlarini listeleme ve upsert etme',
-        'Seri-sira ile stok ve cari hareket evraki bulma',
+        'Seri-sira ile stok, cari hareket, firma siparisi ve depo siparisi evraki bulma',
         'Stok hareketinde sevk deposu ve mal kabul tarihi duzenleme',
-        'movementGuid korumali satir guncelleme',
+        'movementGuid ve orderGuid korumali satir guncelleme',
         'Yalniz degisen alanlari gonderen patch semantigi',
         '409 Conflict durumunda filtre daraltma rehberi'
       ],
@@ -24,7 +24,7 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
         {
           name: 'MikroEvrakDuzenlemeController',
           description:
-            'STOKLAR, STOK_DEPO_DETAYLARI, STOK_HAREKETLERI ve CARI_HESAP_HAREKETLERI kayitlarinin whitelist alanlarini gunceller.',
+            'STOKLAR, STOK_DEPO_DETAYLARI, STOK_HAREKETLERI, CARI_HESAP_HAREKETLERI, SIPARISLER ve DEPOLAR_ARASI_SIPARISLER kayitlarinin whitelist alanlarini gunceller.',
           endpoints: [
             {
               method: 'GET',
@@ -85,6 +85,46 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
               path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/cari-hareketleri',
               description: 'Cari hareket evraki header ve satirlarini gunceller',
               payload: 'UpdateCustomerMovementDocumentHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/cari-hareketleri',
+              description: 'Cari hareket evrakini soft veya hard delete ile siler',
+              payload: 'CustomerMovementDocumentLookupHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/firma-siparisleri',
+              description: 'Seri-sira ve opsiyonel filtrelerle firma siparis evrakini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/firma-siparisleri',
+              description: 'Firma siparis evraki header ve satirlarini gunceller',
+              payload: 'UpdateCompanyOrderDocumentHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/firma-siparisleri',
+              description: 'Firma siparis evrakini soft veya hard delete ile siler',
+              payload: 'CompanyOrderDocumentLookupHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/depo-siparisleri',
+              description: 'Seri-sira ve depo filtreleriyle depo siparis evrakini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/depo-siparisleri',
+              description: 'Depo siparis evraki header ve satirlarini gunceller',
+              payload: 'UpdateWarehouseOrderDocumentHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/depo-siparisleri',
+              description: 'Depo siparis evrakini soft veya hard delete ile siler',
+              payload: 'WarehouseOrderDocumentLookupHttpRequest'
             }
           ]
         }

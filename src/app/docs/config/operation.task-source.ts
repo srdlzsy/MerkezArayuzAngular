@@ -11,6 +11,8 @@ export const OPERATION_TASK_SOURCE = {
       baseRouteOrFile: '/api/operasyon-islemleri/urun-dagilimlari',
       highlights: [
         'Dagitim merkezleri acilista yuklenir ve oneri akisi bu depoya gore calisir',
+        'Veri route ailesi yalniz api/operasyon-islemleri/urun-dagilimlari kokundedir',
+        'Liste filtresi status, documentNo, stockCode, distributionCenterWarehouseNo, createdFrom ve createdTo query alanlarini kullanir',
         'Oneri satirlarinda toplam koli farki sifir olmadan kaydetme aktif olmaz',
         'Kaydedildi durumunda guncelle, sil ve bolge bilgilendirme aksiyonlari aciktir',
         'Bilgilendirildi durumunda kesinlestirme ile Mikro depolar arasi siparisleri olusturulur',
@@ -35,7 +37,7 @@ export const OPERATION_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/operasyon-islemleri/urun-dagilimlari?startDate=2026-07-24&endDate=2026-07-24&statusCode=0',
+              path: '/api/operasyon-islemleri/urun-dagilimlari?createdFrom=2026-07-24&createdTo=2026-07-24&status=0',
               description: 'Dagilim kayitlarini filtreli olarak listeler'
             },
             {

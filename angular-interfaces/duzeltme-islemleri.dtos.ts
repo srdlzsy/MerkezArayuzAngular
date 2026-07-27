@@ -613,3 +613,235 @@ export interface CustomerMovementDocumentUpdateResponse {
   summary: MikroUpdateSummaryDto;
   document: CustomerMovementDocumentDto;
 }
+
+export interface CompanyOrderDocumentLookupHttpRequest {
+  documentSerie: string;
+  documentOrderNo: number;
+  orderType?: number | null;
+  orderKind?: number | null;
+  warehouseNo?: number | null;
+  customerCode?: string | null;
+}
+
+export interface CompanyOrderDocumentDeleteHttpRequest
+  extends CompanyOrderDocumentLookupHttpRequest {
+  hardDelete?: boolean | null;
+}
+
+export interface CompanyOrderDocumentHeaderDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  orderType: number;
+  orderKind: number;
+  orderDate: string;
+  deliveryDate: string | null;
+  documentDate: string | null;
+  documentNo: string;
+  warehouseNo: number;
+  warehouseName: string;
+  customerCode: string;
+  customerName?: string | null;
+  customerTitle: string;
+  sellerCode?: string | null;
+  description1: string;
+  description2: string;
+  deliveryType?: string | null;
+  addressNo?: number | null;
+  currencyType?: number | null;
+  currencyRate?: number | null;
+  alternativeCurrencyRate?: number | null;
+  canBeCalled?: boolean | null;
+  isClosed: boolean;
+  closeReasonCode?: string | null;
+  projectCode?: string | null;
+  customerResponsibilityCenter?: string | null;
+  stockResponsibilityCenter?: string | null;
+  lineCount: number;
+  totalQuantity: number;
+  totalDeliveredQuantity?: number | null;
+  totalRemainingQuantity?: number | null;
+  totalAmount: number;
+}
+
+export interface CompanyOrderDocumentLineDto {
+  orderGuid: string;
+  rowNo: number;
+  deliveryDate?: string | null;
+  stockCode: string;
+  stockName: string;
+  unitPointer: number;
+  unitName?: string | null;
+  quantity: number;
+  deliveredQuantity?: number | null;
+  remainingQuantity?: number | null;
+  unitPrice: number;
+  amount: number;
+  discount1?: number | null;
+  discount2?: number | null;
+  discount3?: number | null;
+  discount4?: number | null;
+  discount5?: number | null;
+  discount6?: number | null;
+  expense1?: number | null;
+  expense2?: number | null;
+  expense3?: number | null;
+  expense4?: number | null;
+  taxPointer?: number | null;
+  taxAmount?: number | null;
+  description1?: string | null;
+  description2?: string | null;
+  packageCode?: string | null;
+  partyCode?: string | null;
+  lotNo?: number | null;
+  projectCode?: string | null;
+  customerResponsibilityCenter?: string | null;
+  stockResponsibilityCenter?: string | null;
+  canBeCalled?: boolean | null;
+  isClosed?: boolean | null;
+  closeReasonCode?: string | null;
+}
+
+export interface CompanyOrderDocumentDto {
+  header: CompanyOrderDocumentHeaderDto;
+  lines: CompanyOrderDocumentLineDto[];
+}
+
+export type CompanyOrderHeaderPatchHttpRequest = Partial<
+  Pick<
+    CompanyOrderDocumentHeaderDto,
+    | 'orderDate'
+    | 'deliveryDate'
+    | 'documentDate'
+    | 'documentNo'
+    | 'customerCode'
+    | 'warehouseNo'
+    | 'sellerCode'
+    | 'description1'
+    | 'description2'
+    | 'deliveryType'
+    | 'addressNo'
+    | 'currencyType'
+    | 'currencyRate'
+    | 'alternativeCurrencyRate'
+    | 'canBeCalled'
+    | 'isClosed'
+    | 'closeReasonCode'
+    | 'projectCode'
+    | 'customerResponsibilityCenter'
+    | 'stockResponsibilityCenter'
+  >
+>;
+
+export type CompanyOrderLinePatchHttpRequest = Partial<
+  Omit<
+    CompanyOrderDocumentLineDto,
+    'orderGuid' | 'stockName' | 'unitName' | 'remainingQuantity'
+  >
+> & { orderGuid: string };
+
+export interface UpdateCompanyOrderDocumentHttpRequest {
+  lookup: CompanyOrderDocumentLookupHttpRequest;
+  header?: CompanyOrderHeaderPatchHttpRequest;
+  lines?: CompanyOrderLinePatchHttpRequest[];
+}
+
+export interface CompanyOrderDocumentUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  document: CompanyOrderDocumentDto;
+}
+
+export interface WarehouseOrderDocumentLookupHttpRequest {
+  documentSerie: string;
+  documentOrderNo: number;
+  warehouseNo?: number | null;
+  inWarehouseNo?: number | null;
+  outWarehouseNo?: number | null;
+}
+
+export interface WarehouseOrderDocumentDeleteHttpRequest
+  extends WarehouseOrderDocumentLookupHttpRequest {
+  hardDelete?: boolean | null;
+}
+
+export interface WarehouseOrderDocumentHeaderDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  orderDate: string;
+  deliveryDate: string | null;
+  documentDate: string | null;
+  documentNo: string;
+  inWarehouseNo: number;
+  inWarehouseName?: string | null;
+  outWarehouseNo: number;
+  outWarehouseName?: string | null;
+  description: string;
+  isClosed: boolean;
+  closeReasonCode?: string | null;
+  projectCode?: string | null;
+  responsibilityCenter?: string | null;
+  lineCount: number;
+  totalQuantity: number;
+  totalDeliveredQuantity?: number | null;
+  totalRemainingQuantity?: number | null;
+  totalAmount: number;
+}
+
+export interface WarehouseOrderDocumentLineDto {
+  orderGuid: string;
+  rowNo: number;
+  deliveryDate?: string | null;
+  stockCode: string;
+  stockName: string;
+  unitPointer: number;
+  unitName?: string | null;
+  quantity: number;
+  deliveredQuantity?: number | null;
+  remainingQuantity?: number | null;
+  unitPrice: number;
+  amount: number;
+  description?: string | null;
+  inWarehouseNo?: number | null;
+  outWarehouseNo?: number | null;
+  isClosed?: boolean | null;
+  closeReasonCode?: string | null;
+  packageCode?: string | null;
+  projectCode?: string | null;
+  responsibilityCenter?: string | null;
+}
+
+export interface WarehouseOrderDocumentDto {
+  header: WarehouseOrderDocumentHeaderDto;
+  lines: WarehouseOrderDocumentLineDto[];
+}
+
+export type WarehouseOrderHeaderPatchHttpRequest = Partial<
+  Pick<
+    WarehouseOrderDocumentHeaderDto,
+    | 'orderDate'
+    | 'deliveryDate'
+    | 'documentDate'
+    | 'documentNo'
+    | 'inWarehouseNo'
+    | 'outWarehouseNo'
+    | 'description'
+    | 'isClosed'
+    | 'closeReasonCode'
+    | 'projectCode'
+    | 'responsibilityCenter'
+  >
+>;
+
+export type WarehouseOrderLinePatchHttpRequest = Partial<
+  Omit<WarehouseOrderDocumentLineDto, 'orderGuid' | 'stockName' | 'unitName' | 'remainingQuantity'>
+> & { orderGuid: string };
+
+export interface UpdateWarehouseOrderDocumentHttpRequest {
+  lookup: WarehouseOrderDocumentLookupHttpRequest;
+  header?: WarehouseOrderHeaderPatchHttpRequest;
+  lines?: WarehouseOrderLinePatchHttpRequest[];
+}
+
+export interface WarehouseOrderDocumentUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  document: WarehouseOrderDocumentDto;
+}

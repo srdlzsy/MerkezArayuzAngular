@@ -271,6 +271,16 @@ button:disabled {
   border-color: #a78bfa;
 }
 
+.field.checkbox-field {
+  align-content: end;
+}
+
+.field.checkbox-field input {
+  width: 1rem;
+  min-height: 1rem;
+  accent-color: var(--accent);
+}
+
 .compact-row {
   display: grid;
   grid-template-columns: 110px minmax(0, 1fr);
@@ -664,6 +674,14 @@ button:disabled {
   padding: 0.75rem;
 }
 
+.lookup-bar.order-lookup-bar {
+  grid-template-columns: minmax(220px, 1.2fr) repeat(6, minmax(92px, 0.7fr)) auto;
+}
+
+.lookup-bar.warehouse-order-lookup-bar {
+  grid-template-columns: minmax(220px, 1.4fr) repeat(5, minmax(100px, 0.75fr)) auto;
+}
+
 .document-summary {
   padding: 0.75rem 0.85rem;
 }
@@ -757,7 +775,9 @@ button:disabled {
 }
 
 @media (max-width: 1280px) {
-  .lookup-bar {
+  .lookup-bar,
+  .lookup-bar.order-lookup-bar,
+  .lookup-bar.warehouse-order-lookup-bar {
     grid-template-columns: repeat(4, minmax(0, 1fr));
   }
 
@@ -778,7 +798,9 @@ button:disabled {
   }
 
   .form-grid,
-  .lookup-bar {
+  .lookup-bar,
+  .lookup-bar.order-lookup-bar,
+  .lookup-bar.warehouse-order-lookup-bar {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
@@ -810,6 +832,8 @@ button:disabled {
 @media (max-width: 560px) {
   .form-grid,
   .lookup-bar,
+  .lookup-bar.order-lookup-bar,
+  .lookup-bar.warehouse-order-lookup-bar,
   .compact-row {
     grid-template-columns: 1fr;
   }

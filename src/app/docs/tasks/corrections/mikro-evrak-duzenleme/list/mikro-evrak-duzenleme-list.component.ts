@@ -5,6 +5,10 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import type {
+  CompanyOrderDocumentDto,
+  CompanyOrderDocumentLineDto,
+  CompanyOrderDocumentLookupHttpRequest,
+  CompanyOrderDocumentUpdateResponse,
   CustomerCardDetailDto,
   CustomerCardListItemDto,
   CustomerCardPatchHttpRequest,
@@ -29,12 +33,18 @@ import type {
   StockMovementDocumentLineDto,
   StockMovementDocumentLookupHttpRequest,
   StockMovementDocumentUpdateResponse,
+  UpdateCompanyOrderDocumentHttpRequest,
   UpdateCustomerMovementDocumentHttpRequest,
   UpdateStockMovementDocumentHttpRequest,
+  UpdateWarehouseOrderDocumentHttpRequest,
   WarehouseCardDetailDto,
   WarehouseCardListItemDto,
   WarehouseCardPatchHttpRequest,
-  WarehouseCardUpdateResponse
+  WarehouseCardUpdateResponse,
+  WarehouseOrderDocumentDto,
+  WarehouseOrderDocumentLineDto,
+  WarehouseOrderDocumentLookupHttpRequest,
+  WarehouseOrderDocumentUpdateResponse
 } from '@interfaces';
 
 import { DuzeltmeIslemleriService } from '../../../../../core/api/module-services/duzeltme-islemleri.service';
@@ -48,7 +58,9 @@ type EditorTab =
   | 'warehouse-card'
   | 'customer-card'
   | 'stock-movement'
-  | 'customer-movement';
+  | 'customer-movement'
+  | 'company-order'
+  | 'warehouse-order';
 type BusyAction =
   | 'stock-search'
   | 'stock-detail'
@@ -67,7 +79,13 @@ type BusyAction =
   | 'movement-delete'
   | 'customer-load'
   | 'customer-save'
-  | 'customer-delete';
+  | 'customer-delete'
+  | 'company-order-load'
+  | 'company-order-save'
+  | 'company-order-delete'
+  | 'warehouse-order-load'
+  | 'warehouse-order-save'
+  | 'warehouse-order-delete';
 type EditableRecord = Record<string, unknown>;
 
 interface Feedback {
@@ -79,7 +97,7 @@ interface Feedback {
 interface FieldDefinition {
   key: string;
   label: string;
-  type?: 'text' | 'number' | 'date';
+  type?: 'text' | 'number' | 'date' | 'checkbox';
   wide?: boolean;
 }
 
@@ -329,6 +347,102 @@ const CUSTOMER_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'responsibilityCenter', label: 'Sorumluluk Merkezi' }
 ];
 
+const COMPANY_ORDER_HEADER_FIELDS: readonly FieldDefinition[] = [
+  { key: 'orderDate', label: 'Siparis Tarihi', type: 'date' },
+  { key: 'deliveryDate', label: 'Teslim Tarihi', type: 'date' },
+  { key: 'documentDate', label: 'Belge Tarihi', type: 'date' },
+  { key: 'documentNo', label: 'Belge No' },
+  { key: 'customerCode', label: 'Cari Kodu' },
+  { key: 'warehouseNo', label: 'Depo No', type: 'number' },
+  { key: 'sellerCode', label: 'Satici Kodu' },
+  { key: 'description1', label: 'Aciklama 1', wide: true },
+  { key: 'description2', label: 'Aciklama 2', wide: true },
+  { key: 'deliveryType', label: 'Teslim Tipi' },
+  { key: 'addressNo', label: 'Adres No', type: 'number' },
+  { key: 'currencyType', label: 'Doviz Tipi', type: 'number' },
+  { key: 'currencyRate', label: 'Doviz Kuru', type: 'number' },
+  { key: 'alternativeCurrencyRate', label: 'Alternatif Kur', type: 'number' },
+  { key: 'closeReasonCode', label: 'Kapanma Nedeni' },
+  { key: 'projectCode', label: 'Proje Kodu' },
+  { key: 'customerResponsibilityCenter', label: 'Cari Sorumluluk' },
+  { key: 'stockResponsibilityCenter', label: 'Stok Sorumluluk' }
+];
+
+const COMPANY_ORDER_BOOLEAN_FIELDS: readonly FieldDefinition[] = [
+  { key: 'canBeCalled', label: 'Cagrilabilir' },
+  { key: 'isClosed', label: 'Kapali' }
+];
+
+const COMPANY_ORDER_LINE_FIELDS: readonly FieldDefinition[] = [
+  { key: 'rowNo', label: 'Satir', type: 'number' },
+  { key: 'deliveryDate', label: 'Teslim Tarihi', type: 'date' },
+  { key: 'stockCode', label: 'Stok Kodu' },
+  { key: 'unitPointer', label: 'Birim Ptr', type: 'number' },
+  { key: 'quantity', label: 'Miktar', type: 'number' },
+  { key: 'deliveredQuantity', label: 'Teslim Miktari', type: 'number' },
+  { key: 'unitPrice', label: 'Birim Fiyat', type: 'number' },
+  { key: 'amount', label: 'Tutar', type: 'number' },
+  { key: 'discount1', label: 'Iskonto 1', type: 'number' },
+  { key: 'discount2', label: 'Iskonto 2', type: 'number' },
+  { key: 'discount3', label: 'Iskonto 3', type: 'number' },
+  { key: 'discount4', label: 'Iskonto 4', type: 'number' },
+  { key: 'discount5', label: 'Iskonto 5', type: 'number' },
+  { key: 'discount6', label: 'Iskonto 6', type: 'number' },
+  { key: 'expense1', label: 'Masraf 1', type: 'number' },
+  { key: 'expense2', label: 'Masraf 2', type: 'number' },
+  { key: 'expense3', label: 'Masraf 3', type: 'number' },
+  { key: 'expense4', label: 'Masraf 4', type: 'number' },
+  { key: 'taxPointer', label: 'Vergi Ptr', type: 'number' },
+  { key: 'taxAmount', label: 'Vergi Tutari', type: 'number' },
+  { key: 'description1', label: 'Aciklama 1', wide: true },
+  { key: 'description2', label: 'Aciklama 2', wide: true },
+  { key: 'packageCode', label: 'Paket Kodu' },
+  { key: 'partyCode', label: 'Parti Kodu' },
+  { key: 'lotNo', label: 'Lot No', type: 'number' },
+  { key: 'projectCode', label: 'Proje Kodu' },
+  { key: 'customerResponsibilityCenter', label: 'Cari Sorumluluk' },
+  { key: 'stockResponsibilityCenter', label: 'Stok Sorumluluk' },
+  { key: 'canBeCalled', label: 'Cagrilabilir', type: 'checkbox' },
+  { key: 'isClosed', label: 'Kapali', type: 'checkbox' },
+  { key: 'closeReasonCode', label: 'Kapanma Nedeni' }
+];
+
+const WAREHOUSE_ORDER_HEADER_FIELDS: readonly FieldDefinition[] = [
+  { key: 'orderDate', label: 'Siparis Tarihi', type: 'date' },
+  { key: 'deliveryDate', label: 'Teslim Tarihi', type: 'date' },
+  { key: 'documentDate', label: 'Belge Tarihi', type: 'date' },
+  { key: 'documentNo', label: 'Belge No' },
+  { key: 'inWarehouseNo', label: 'Giris Depo', type: 'number' },
+  { key: 'outWarehouseNo', label: 'Cikis Depo', type: 'number' },
+  { key: 'description', label: 'Aciklama', wide: true },
+  { key: 'closeReasonCode', label: 'Kapanma Nedeni' },
+  { key: 'projectCode', label: 'Proje Kodu' },
+  { key: 'responsibilityCenter', label: 'Sorumluluk Merkezi' }
+];
+
+const WAREHOUSE_ORDER_BOOLEAN_FIELDS: readonly FieldDefinition[] = [
+  { key: 'isClosed', label: 'Kapali' }
+];
+
+const WAREHOUSE_ORDER_LINE_FIELDS: readonly FieldDefinition[] = [
+  { key: 'rowNo', label: 'Satir', type: 'number' },
+  { key: 'deliveryDate', label: 'Teslim Tarihi', type: 'date' },
+  { key: 'stockCode', label: 'Stok Kodu' },
+  { key: 'unitPointer', label: 'Birim Ptr', type: 'number' },
+  { key: 'quantity', label: 'Miktar', type: 'number' },
+  { key: 'deliveredQuantity', label: 'Teslim Miktari', type: 'number' },
+  { key: 'unitPrice', label: 'Birim Fiyat', type: 'number' },
+  { key: 'amount', label: 'Tutar', type: 'number' },
+  { key: 'description', label: 'Aciklama', wide: true },
+  { key: 'inWarehouseNo', label: 'Giris Depo', type: 'number' },
+  { key: 'outWarehouseNo', label: 'Cikis Depo', type: 'number' },
+  { key: 'isClosed', label: 'Kapali', type: 'checkbox' },
+  { key: 'closeReasonCode', label: 'Kapanma Nedeni' },
+  { key: 'packageCode', label: 'Paket Kodu' },
+  { key: 'projectCode', label: 'Proje Kodu' },
+  { key: 'responsibilityCenter', label: 'Sorumluluk Merkezi' }
+];
+
 @Component({
   selector: 'app-mikro-evrak-duzenleme-list',
   standalone: true,
@@ -343,7 +457,9 @@ export class MikroEvrakDuzenlemeListComponent {
     { id: 'warehouse-card' as const, label: 'Depo Karti', icon: 'fa-warehouse' },
     { id: 'customer-card' as const, label: 'Cari Karti', icon: 'fa-address-card' },
     { id: 'stock-movement' as const, label: 'Stok Hareketi', icon: 'fa-right-left' },
-    { id: 'customer-movement' as const, label: 'Cari Hareketi', icon: 'fa-receipt' }
+    { id: 'customer-movement' as const, label: 'Cari Hareketi', icon: 'fa-receipt' },
+    { id: 'company-order' as const, label: 'Firma Siparisi', icon: 'fa-file-invoice' },
+    { id: 'warehouse-order' as const, label: 'Depo Siparisi', icon: 'fa-truck-ramp-box' }
   ];
   protected readonly stockCardTextFields = STOCK_CARD_TEXT_FIELDS;
   protected readonly stockCardNumberFields = STOCK_CARD_NUMBER_FIELDS;
@@ -361,6 +477,12 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockLineFields = STOCK_LINE_FIELDS;
   protected readonly customerHeaderFields = CUSTOMER_HEADER_FIELDS;
   protected readonly customerLineFields = CUSTOMER_LINE_FIELDS;
+  protected readonly companyOrderHeaderFields = COMPANY_ORDER_HEADER_FIELDS;
+  protected readonly companyOrderBooleanFields = COMPANY_ORDER_BOOLEAN_FIELDS;
+  protected readonly companyOrderLineFields = COMPANY_ORDER_LINE_FIELDS;
+  protected readonly warehouseOrderHeaderFields = WAREHOUSE_ORDER_HEADER_FIELDS;
+  protected readonly warehouseOrderBooleanFields = WAREHOUSE_ORDER_BOOLEAN_FIELDS;
+  protected readonly warehouseOrderLineFields = WAREHOUSE_ORDER_LINE_FIELDS;
 
   private readonly service = inject(DuzeltmeIslemleriService);
   private readonly authService = inject(AuthService);
@@ -389,6 +511,10 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockMovementDraft = signal<StockMovementDocumentDto | null>(null);
   protected readonly customerMovement = signal<CustomerMovementDocumentDto | null>(null);
   protected readonly customerMovementDraft = signal<CustomerMovementDocumentDto | null>(null);
+  protected readonly companyOrder = signal<CompanyOrderDocumentDto | null>(null);
+  protected readonly companyOrderDraft = signal<CompanyOrderDocumentDto | null>(null);
+  protected readonly warehouseOrder = signal<WarehouseOrderDocumentDto | null>(null);
+  protected readonly warehouseOrderDraft = signal<WarehouseOrderDocumentDto | null>(null);
 
   protected stockSearch = {
     searchText: '',
@@ -433,6 +559,21 @@ export class MikroEvrakDuzenlemeListComponent {
     movementKind: null,
     normalReturn: null,
     customerCode: ''
+  };
+  protected companyOrderLookup: CompanyOrderDocumentLookupHttpRequest = {
+    documentSerie: '',
+    documentOrderNo: 0,
+    orderType: null,
+    orderKind: null,
+    warehouseNo: this.authService.currentUser()?.depoNo ?? null,
+    customerCode: ''
+  };
+  protected warehouseOrderLookup: WarehouseOrderDocumentLookupHttpRequest = {
+    documentSerie: '',
+    documentOrderNo: 0,
+    warehouseNo: this.authService.currentUser()?.depoNo ?? null,
+    inWarehouseNo: null,
+    outWarehouseNo: null
   };
 
   protected readonly canList = computed(() =>
@@ -493,6 +634,24 @@ export class MikroEvrakDuzenlemeListComponent {
       this.customerMovementDraft(),
       CUSTOMER_HEADER_FIELDS,
       CUSTOMER_LINE_FIELDS
+    )
+  );
+  protected readonly changedCompanyOrderCount = computed(() =>
+    this.countDocumentChanges(
+      this.companyOrder(),
+      this.companyOrderDraft(),
+      [...COMPANY_ORDER_HEADER_FIELDS, ...COMPANY_ORDER_BOOLEAN_FIELDS],
+      COMPANY_ORDER_LINE_FIELDS,
+      'orderGuid'
+    )
+  );
+  protected readonly changedWarehouseOrderCount = computed(() =>
+    this.countDocumentChanges(
+      this.warehouseOrder(),
+      this.warehouseOrderDraft(),
+      [...WAREHOUSE_ORDER_HEADER_FIELDS, ...WAREHOUSE_ORDER_BOOLEAN_FIELDS],
+      WAREHOUSE_ORDER_LINE_FIELDS,
+      'orderGuid'
     )
   );
 
@@ -967,6 +1126,192 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
+  protected loadCompanyOrder(): void {
+    if (!this.canDetail() || !this.validateLookup(this.companyOrderLookup)) {
+      return;
+    }
+
+    this.busyAction.set('company-order-load');
+    this.feedback.set(null);
+    this.service
+      .getCompanyOrderDocument(this.cleanLookup(this.companyOrderLookup))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (document: CompanyOrderDocumentDto) => this.applyCompanyOrder(document),
+        error: (error: unknown) => this.handleError(error, 'Firma siparis evraki getirilemedi.')
+      });
+  }
+
+  protected saveCompanyOrder(): void {
+    const original = this.companyOrder();
+    const draft = this.companyOrderDraft();
+    if (!original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    const request = this.buildDocumentRequest(
+      original,
+      draft,
+      this.cleanLookup(this.companyOrderLookup),
+      [...COMPANY_ORDER_HEADER_FIELDS, ...COMPANY_ORDER_BOOLEAN_FIELDS],
+      COMPANY_ORDER_LINE_FIELDS,
+      'orderGuid'
+    ) as UpdateCompanyOrderDocumentHttpRequest;
+
+    if (!request.header && !request.lines?.length) {
+      this.setInfo('Degisiklik yok', 'Kaydedilecek firma siparisi degisikligi bulunmuyor.');
+      return;
+    }
+
+    this.busyAction.set('company-order-save');
+    this.feedback.set(null);
+    this.service
+      .updateCompanyOrderDocument(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: CompanyOrderDocumentUpdateResponse) => {
+          this.applyCompanyOrder(response.document);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Firma siparisi guncellendi',
+            message: `${response.summary.updatedRowCount} satir guncellendi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Firma siparisi guncellenemedi.')
+      });
+  }
+
+  protected deleteCompanyOrder(hardDelete = false): void {
+    const document = this.companyOrder();
+    if (!document || !this.canDelete() || !this.validateLookup(this.companyOrderLookup)) {
+      return;
+    }
+
+    const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
+    if (!this.confirmMovementDelete('firma siparis evraki', label, hardDelete)) {
+      return;
+    }
+
+    this.busyAction.set('company-order-delete');
+    this.feedback.set(null);
+    this.service
+      .deleteCompanyOrderDocument({
+        ...this.cleanLookup(this.companyOrderLookup),
+        hardDelete: hardDelete || null
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: MikroDocumentDeleteResponse) => {
+          this.companyOrder.set(null);
+          this.companyOrderDraft.set(null);
+          this.setDeleteFeedback('Firma siparis evraki silindi', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Firma siparis evraki silinemedi.')
+      });
+  }
+
+  protected loadWarehouseOrder(): void {
+    if (!this.canDetail() || !this.validateLookup(this.warehouseOrderLookup)) {
+      return;
+    }
+
+    this.busyAction.set('warehouse-order-load');
+    this.feedback.set(null);
+    this.service
+      .getWarehouseOrderDocument(this.cleanLookup(this.warehouseOrderLookup))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (document: WarehouseOrderDocumentDto) => this.applyWarehouseOrder(document),
+        error: (error: unknown) => this.handleError(error, 'Depo siparis evraki getirilemedi.')
+      });
+  }
+
+  protected saveWarehouseOrder(): void {
+    const original = this.warehouseOrder();
+    const draft = this.warehouseOrderDraft();
+    if (!original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    const request = this.buildDocumentRequest(
+      original,
+      draft,
+      this.cleanLookup(this.warehouseOrderLookup),
+      [...WAREHOUSE_ORDER_HEADER_FIELDS, ...WAREHOUSE_ORDER_BOOLEAN_FIELDS],
+      WAREHOUSE_ORDER_LINE_FIELDS,
+      'orderGuid'
+    ) as UpdateWarehouseOrderDocumentHttpRequest;
+
+    if (!request.header && !request.lines?.length) {
+      this.setInfo('Degisiklik yok', 'Kaydedilecek depo siparisi degisikligi bulunmuyor.');
+      return;
+    }
+
+    this.busyAction.set('warehouse-order-save');
+    this.feedback.set(null);
+    this.service
+      .updateWarehouseOrderDocument(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: WarehouseOrderDocumentUpdateResponse) => {
+          this.applyWarehouseOrder(response.document);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Depo siparisi guncellendi',
+            message: `${response.summary.updatedRowCount} satir guncellendi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Depo siparisi guncellenemedi.')
+      });
+  }
+
+  protected deleteWarehouseOrder(hardDelete = false): void {
+    const document = this.warehouseOrder();
+    if (!document || !this.canDelete() || !this.validateLookup(this.warehouseOrderLookup)) {
+      return;
+    }
+
+    const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
+    if (!this.confirmMovementDelete('depo siparis evraki', label, hardDelete)) {
+      return;
+    }
+
+    this.busyAction.set('warehouse-order-delete');
+    this.feedback.set(null);
+    this.service
+      .deleteWarehouseOrderDocument({
+        ...this.cleanLookup(this.warehouseOrderLookup),
+        hardDelete: hardDelete || null
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: MikroDocumentDeleteResponse) => {
+          this.warehouseOrder.set(null);
+          this.warehouseOrderDraft.set(null);
+          this.setDeleteFeedback('Depo siparis evraki silindi', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Depo siparis evraki silinemedi.')
+      });
+  }
+
   protected resetStockCard(): void {
     const original = this.selectedStockCard();
     this.stockCardDraft.set(original ? this.clone(original) : null);
@@ -1257,6 +1602,16 @@ export class MikroEvrakDuzenlemeListComponent {
     this.customerMovementDraft.set(original ? this.prepareCustomerMovement(original) : null);
   }
 
+  protected resetCompanyOrder(): void {
+    const original = this.companyOrder();
+    this.companyOrderDraft.set(original ? this.prepareCompanyOrder(original) : null);
+  }
+
+  protected resetWarehouseOrder(): void {
+    const original = this.warehouseOrder();
+    this.warehouseOrderDraft.set(original ? this.prepareWarehouseOrder(original) : null);
+  }
+
   protected fieldValue(target: object, key: string): unknown {
     return (target as EditableRecord)[key];
   }
@@ -1269,6 +1624,8 @@ export class MikroEvrakDuzenlemeListComponent {
     this.customerCardDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.stockMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.customerMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
+    this.companyOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
+    this.warehouseOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
   }
 
   protected sameSalesPriceForTemplate(
@@ -1292,8 +1649,12 @@ export class MikroEvrakDuzenlemeListComponent {
     row.priceGuid ?? `${row.stockCode}-${row.priceListNo}-${row.warehouseNo}-${row.unitPointer}-${row.paymentPlanNo}`;
   protected trackByGuid = (
     _index: number,
-    row: StockMovementDocumentLineDto | CustomerMovementDocumentLineDto
-  ): string => row.movementGuid;
+    row:
+      | StockMovementDocumentLineDto
+      | CustomerMovementDocumentLineDto
+      | CompanyOrderDocumentLineDto
+      | WarehouseOrderDocumentLineDto
+  ): string => 'movementGuid' in row ? row.movementGuid : row.orderGuid;
   protected trackByField = (_index: number, field: FieldDefinition): string => field.key;
 
   private upsertSalesPrice(
@@ -1437,6 +1798,35 @@ export class MikroEvrakDuzenlemeListComponent {
     this.customerMovementDraft.set(this.clone(prepared));
   }
 
+  private applyCompanyOrder(document: CompanyOrderDocumentDto): void {
+    const prepared = this.prepareCompanyOrder(document);
+    this.companyOrderLookup = {
+      ...this.companyOrderLookup,
+      documentSerie: prepared.header.documentSerie,
+      documentOrderNo: prepared.header.documentOrderNo,
+      orderType: prepared.header.orderType,
+      orderKind: prepared.header.orderKind,
+      warehouseNo: prepared.header.warehouseNo,
+      customerCode: prepared.header.customerCode
+    };
+    this.companyOrder.set(this.clone(prepared));
+    this.companyOrderDraft.set(this.clone(prepared));
+  }
+
+  private applyWarehouseOrder(document: WarehouseOrderDocumentDto): void {
+    const prepared = this.prepareWarehouseOrder(document);
+    this.warehouseOrderLookup = {
+      ...this.warehouseOrderLookup,
+      documentSerie: prepared.header.documentSerie,
+      documentOrderNo: prepared.header.documentOrderNo,
+      warehouseNo: this.warehouseOrderLookup.warehouseNo,
+      inWarehouseNo: prepared.header.inWarehouseNo,
+      outWarehouseNo: prepared.header.outWarehouseNo
+    };
+    this.warehouseOrder.set(this.clone(prepared));
+    this.warehouseOrderDraft.set(this.clone(prepared));
+  }
+
   private prepareStockMovement(document: StockMovementDocumentDto): StockMovementDocumentDto {
     const clone = this.clone(document);
     clone.header.movementDate = this.toDateInput(clone.header.movementDate);
@@ -1463,23 +1853,55 @@ export class MikroEvrakDuzenlemeListComponent {
     return clone;
   }
 
+  private prepareCompanyOrder(document: CompanyOrderDocumentDto): CompanyOrderDocumentDto {
+    const clone = this.clone(document);
+    clone.header.orderDate = this.toDateInput(clone.header.orderDate);
+    clone.header.deliveryDate = clone.header.deliveryDate ? this.toDateInput(clone.header.deliveryDate) : null;
+    clone.header.documentDate = clone.header.documentDate ? this.toDateInput(clone.header.documentDate) : null;
+    clone.lines.forEach((line) => {
+      line.deliveryDate = line.deliveryDate ? this.toDateInput(line.deliveryDate) : null;
+    });
+    return clone;
+  }
+
+  private prepareWarehouseOrder(
+    document: WarehouseOrderDocumentDto
+  ): WarehouseOrderDocumentDto {
+    const clone = this.clone(document);
+    clone.header.orderDate = this.toDateInput(clone.header.orderDate);
+    clone.header.deliveryDate = clone.header.deliveryDate ? this.toDateInput(clone.header.deliveryDate) : null;
+    clone.header.documentDate = clone.header.documentDate ? this.toDateInput(clone.header.documentDate) : null;
+    clone.lines.forEach((line) => {
+      line.deliveryDate = line.deliveryDate ? this.toDateInput(line.deliveryDate) : null;
+    });
+    return clone;
+  }
+
   private buildDocumentRequest<TLookup extends object>(
-    original: { header: object; lines: Array<{ movementGuid: string }> },
-    draft: { header: object; lines: Array<{ movementGuid: string }> },
+    original: { header: object; lines: object[] },
+    draft: { header: object; lines: object[] },
     lookup: TLookup,
     headerFields: readonly FieldDefinition[],
-    lineFields: readonly FieldDefinition[]
+    lineFields: readonly FieldDefinition[],
+    lineKey = 'movementGuid'
   ): { lookup: TLookup; header?: EditableRecord; lines?: EditableRecord[] } {
     const header = this.buildPatch(original.header, draft.header, headerFields);
-    const originalLines = new Map(original.lines.map((line) => [line.movementGuid, line]));
+    const originalLines = new Map(
+      original.lines.map((line) => {
+        const record = line as EditableRecord;
+        return [String(record[lineKey] ?? ''), record] as const;
+      })
+    );
     const lines = draft.lines.flatMap((line) => {
-      const originalLine = originalLines.get(line.movementGuid);
+      const record = line as EditableRecord;
+      const lineKeyValue = String(record[lineKey] ?? '');
+      const originalLine = originalLines.get(lineKeyValue);
       if (!originalLine) {
         return [];
       }
 
-      const patch = this.buildPatch(originalLine, line, lineFields);
-      return Object.keys(patch).length ? [{ movementGuid: line.movementGuid, ...patch }] : [];
+      const patch = this.buildPatch(originalLine, record, lineFields);
+      return Object.keys(patch).length ? [{ [lineKey]: lineKeyValue, ...patch }] : [];
     });
 
     return {
@@ -1515,10 +1937,11 @@ export class MikroEvrakDuzenlemeListComponent {
   }
 
   private countDocumentChanges(
-    original: { header: object; lines: Array<{ movementGuid: string }> } | null,
-    draft: { header: object; lines: Array<{ movementGuid: string }> } | null,
+    original: { header: object; lines: object[] } | null,
+    draft: { header: object; lines: object[] } | null,
     headerFields: readonly FieldDefinition[],
-    lineFields: readonly FieldDefinition[]
+    lineFields: readonly FieldDefinition[],
+    lineKey = 'movementGuid'
   ): number {
     if (!original || !draft) {
       return 0;
@@ -1527,12 +1950,18 @@ export class MikroEvrakDuzenlemeListComponent {
     const headerCount = Object.keys(
       this.buildPatch(original.header, draft.header, headerFields)
     ).length;
-    const originalLines = new Map(original.lines.map((line) => [line.movementGuid, line]));
+    const originalLines = new Map(
+      original.lines.map((line) => {
+        const record = line as EditableRecord;
+        return [String(record[lineKey] ?? ''), record] as const;
+      })
+    );
     const lineCount = draft.lines.reduce((count, line) => {
-      const originalLine = originalLines.get(line.movementGuid);
+      const record = line as EditableRecord;
+      const originalLine = originalLines.get(String(record[lineKey] ?? ''));
       return (
         count +
-        (originalLine ? Object.keys(this.buildPatch(originalLine, line, lineFields)).length : 0)
+        (originalLine ? Object.keys(this.buildPatch(originalLine, record, lineFields)).length : 0)
       );
     }, 0);
 
@@ -1605,7 +2034,7 @@ export class MikroEvrakDuzenlemeListComponent {
     const httpError = error as HttpErrorResponse;
     const conflictMessage =
       httpError?.status === 409
-        ? 'Aynı seri-sıra birden fazla evrakla eşleşti. Evrak tipi, hareket tipi, cins veya normal/iade filtresiyle aramayı daraltın.'
+        ? 'Ayni seri-sira birden fazla evrakla eslesti. Evrak/hareket filtreleri, siparis tipi/cinsi veya depo/cari filtreleriyle aramayi daraltin.'
         : null;
 
     this.feedback.set({

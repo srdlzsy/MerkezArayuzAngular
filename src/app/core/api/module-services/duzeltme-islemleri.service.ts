@@ -1,6 +1,10 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  CompanyOrderDocumentDeleteHttpRequest,
+  CompanyOrderDocumentDto,
+  CompanyOrderDocumentLookupHttpRequest,
+  CompanyOrderDocumentUpdateResponse,
   CustomerCardDetailDto,
   CustomerCardListItemDto,
   CustomerCardPatchHttpRequest,
@@ -27,13 +31,19 @@ import type {
   StockMovementDocumentDeleteHttpRequest,
   StockMovementDocumentLookupHttpRequest,
   StockMovementDocumentUpdateResponse,
+  UpdateCompanyOrderDocumentHttpRequest,
   UpdateCustomerMovementDocumentHttpRequest,
   UpdateStockMovementDocumentHttpRequest,
+  UpdateWarehouseOrderDocumentHttpRequest,
   WarehouseCardDetailDto,
   WarehouseCardListItemDto,
   WarehouseCardPatchHttpRequest,
   WarehouseCardSearchHttpRequest,
-  WarehouseCardUpdateResponse
+  WarehouseCardUpdateResponse,
+  WarehouseOrderDocumentDeleteHttpRequest,
+  WarehouseOrderDocumentDto,
+  WarehouseOrderDocumentLookupHttpRequest,
+  WarehouseOrderDocumentUpdateResponse
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
@@ -218,6 +228,58 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   ): Observable<MikroDocumentDeleteResponse> {
     return this.http.delete<MikroDocumentDeleteResponse>(
       this.buildUrl(`${ROOT}/cari-hareketleri`),
+      {
+        params: this.buildParams(query)
+      }
+    );
+  }
+
+  getCompanyOrderDocument(
+    query: CompanyOrderDocumentLookupHttpRequest
+  ): Observable<CompanyOrderDocumentDto> {
+    return this.getWithQuery<CompanyOrderDocumentDto>(`${ROOT}/firma-siparisleri`, query);
+  }
+
+  updateCompanyOrderDocument(
+    request: UpdateCompanyOrderDocumentHttpRequest
+  ): Observable<CompanyOrderDocumentUpdateResponse> {
+    return this.put<CompanyOrderDocumentUpdateResponse, UpdateCompanyOrderDocumentHttpRequest>(
+      `${ROOT}/firma-siparisleri`,
+      request
+    );
+  }
+
+  deleteCompanyOrderDocument(
+    query: CompanyOrderDocumentDeleteHttpRequest
+  ): Observable<MikroDocumentDeleteResponse> {
+    return this.http.delete<MikroDocumentDeleteResponse>(
+      this.buildUrl(`${ROOT}/firma-siparisleri`),
+      {
+        params: this.buildParams(query)
+      }
+    );
+  }
+
+  getWarehouseOrderDocument(
+    query: WarehouseOrderDocumentLookupHttpRequest
+  ): Observable<WarehouseOrderDocumentDto> {
+    return this.getWithQuery<WarehouseOrderDocumentDto>(`${ROOT}/depo-siparisleri`, query);
+  }
+
+  updateWarehouseOrderDocument(
+    request: UpdateWarehouseOrderDocumentHttpRequest
+  ): Observable<WarehouseOrderDocumentUpdateResponse> {
+    return this.put<WarehouseOrderDocumentUpdateResponse, UpdateWarehouseOrderDocumentHttpRequest>(
+      `${ROOT}/depo-siparisleri`,
+      request
+    );
+  }
+
+  deleteWarehouseOrderDocument(
+    query: WarehouseOrderDocumentDeleteHttpRequest
+  ): Observable<MikroDocumentDeleteResponse> {
+    return this.http.delete<MikroDocumentDeleteResponse>(
+      this.buildUrl(`${ROOT}/depo-siparisleri`),
       {
         params: this.buildParams(query)
       }
