@@ -1,5 +1,9 @@
-<div class="admin-layout">
-  <aside class="app-sidebar" [class.app-sidebar-open]="isSidebarOpen()">
+<div class="admin-layout" [class.is-sidebar-collapsed]="isSidebarRailMode()">
+  <aside
+    class="app-sidebar"
+    [class.app-sidebar-open]="isSidebarOpen()"
+    [class.app-sidebar-collapsed]="isSidebarRailMode()"
+  >
     <ng-container *ngTemplateOutlet="sidebarContent"></ng-container>
   </aside>
 
@@ -71,6 +75,16 @@
       x
     </button>
     <h2>FURPA ONLINE<br />SISTEM</h2>
+    <button
+      type="button"
+      class="sidebar-collapse-button"
+      (click)="toggleSidebarCollapsed()"
+      [attr.aria-label]="isSidebarCollapsed() ? 'Menuyu genislet' : 'Menuyu daralt'"
+      [attr.title]="isSidebarCollapsed() ? 'Menuyu genislet' : 'Menuyu daralt'"
+    >
+      <i class="fas" [ngClass]="isSidebarCollapsed() ? 'fa-angles-right' : 'fa-angles-left'"></i>
+      <span>{{ isSidebarCollapsed() ? 'Genislet' : 'Daralt' }}</span>
+    </button>
   </div>
 
   <div class="branch-card">
@@ -80,12 +94,19 @@
   <div class="menu-label">MENU</div>
 
   <nav class="sidebar-nav">
-    <section class="menu-group" *ngFor="let group of menuGroups(); let groupIndex = index">
+    <section
+      class="menu-group"
+      *ngFor="let group of menuGroups(); let groupIndex = index"
+      [class.menu-group-active]="isGroupActive(group)"
+      [class.menu-group-open]="isRailGroupOpen(group.id)"
+    >
       <button
         type="button"
         class="menu-group-toggle"
-        (click)="toggleSection(group.id)"
-        [attr.aria-expanded]="isSectionOpen(group.id)"
+        (click)="toggleSection(group.id, $event)"
+        [attr.aria-expanded]="isSidebarRailMode() ? isRailGroupOpen(group.id) : isSectionOpen(group.id)"
+        [attr.title]="group.label"
+        [attr.aria-label]="group.label"
       >
         <span class="group-label">
           <i [class]="getGroupIcon(group, groupIndex)"></i>
@@ -94,13 +115,19 @@
         <span class="chevron">{{ isSectionOpen(group.id) ? '-' : '+' }}</span>
       </button>
 
-      <div class="menu-tree" *ngIf="isSectionOpen(group.id)">
+      <div
+        class="menu-tree"
+        *ngIf="isSidebarRailMode() ? isRailGroupOpen(group.id) : isSectionOpen(group.id)"
+        [style.top]="isSidebarRailMode() ? getRailMenuTopPx() : null"
+      >
+        <strong class="menu-flyout-title">{{ group.label }}</strong>
         <a
           *ngFor="let item of group.children"
           class="menu-link"
           [routerLink]="item.route"
           routerLinkActive="menu-link-active"
           [routerLinkActiveOptions]="{ exact: true }"
+          [attr.title]="item.label"
           (click)="handleLeafNavigate()"
         >
           {{ item.label }}

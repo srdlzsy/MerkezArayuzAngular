@@ -88,6 +88,7 @@
                   type="text"
                   formControlName="searchText"
                   [placeholder]="getSelectedViewingSearchOption()?.placeholder || 'Arama girin'"
+                  (keydown.enter)="$event.preventDefault(); applyViewingFilters()"
                 />
               </label>
               <label class="field">
