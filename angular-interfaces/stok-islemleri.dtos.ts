@@ -474,15 +474,19 @@ export interface StockAnomalyEvidenceDto {
 
 export interface StockAnomalyEventDto {
   id?: string | null;
+  eventType?: string | null;
   status?: StockAnomalyStatus | string | null;
+  message?: string | null;
   note?: string | null;
+  occurredAtUtc?: string | null;
   createdAtUtc?: string | null;
+  changedByUserId?: string | null;
   createdBy?: string | null;
   [key: string]: unknown;
 }
 
 export interface StockAnomalyDetailDto extends StockAnomalyListItemDto {
-  evidence?: StockAnomalyEvidenceDto[] | Record<string, unknown> | null;
+  evidence?: StockAnomalyEvidenceDto[] | Record<string, unknown> | string | null;
   events?: StockAnomalyEventDto[];
 }
 

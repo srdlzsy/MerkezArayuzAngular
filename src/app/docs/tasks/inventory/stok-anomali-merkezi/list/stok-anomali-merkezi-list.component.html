@@ -308,14 +308,39 @@
             </div>
           </dl>
 
+          <section class="reason-section" *ngIf="reasonCards(detail).length > 0">
+            <h3>Neden Yakalandi?</h3>
+            <div class="reason-grid">
+              <article
+                *ngFor="let card of reasonCards(detail); trackBy: trackByReasonCard"
+                [class]="'reason-card tone-' + card.tone"
+              >
+                <i class="fa-solid" [ngClass]="card.icon"></i>
+                <div>
+                  <span>{{ card.label }}</span>
+                  <strong>{{ card.value }}</strong>
+                  <small>{{ card.hint }}</small>
+                </div>
+              </article>
+            </div>
+          </section>
+
           <section class="evidence-section" *ngIf="evidenceBlocks(detail).length > 0">
-            <h3>Evidence</h3>
-            <div class="detail-card-grid">
-              <article *ngFor="let block of evidenceBlocks(detail)">
-                <div *ngFor="let pair of objectEntries(block); trackBy: trackByPair">
+            <h3>Kanit</h3>
+            <div class="detail-card-grid evidence-grid">
+              <article
+                class="evidence-card"
+                *ngFor="let block of evidenceBlocks(detail); trackBy: trackByEvidenceBlock"
+              >
+                <header>
+                  <strong>{{ block.title }}</strong>
+                  <p *ngIf="block.description">{{ block.description }}</p>
+                </header>
+                <div class="evidence-row" *ngFor="let pair of block.rows; trackBy: trackByPair">
                   <span>{{ pair.label }}</span>
                   <strong>{{ pair.value }}</strong>
                 </div>
+                <p class="evidence-raw" *ngIf="block.rawText">{{ block.rawText }}</p>
               </article>
             </div>
           </section>
@@ -324,9 +349,9 @@
             <h3>Olay Gecmisi</h3>
             <div class="detail-card-grid">
               <article *ngFor="let event of detail.events">
-                <strong>{{ statusLabel(event.status || '') }}</strong>
-                <span>{{ formatDate(event.createdAtUtc || '') }}</span>
-                <p>{{ event.note || '-' }}</p>
+                <strong>{{ eventTitle(event) }}</strong>
+                <span>{{ eventDate(event) }}</span>
+                <p>{{ eventMessage(event) }}</p>
               </article>
             </div>
           </section>

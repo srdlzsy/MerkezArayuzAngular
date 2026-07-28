@@ -60,6 +60,21 @@ interface DetailPair {
   value: string;
 }
 
+interface ReasonCard {
+  label: string;
+  value: string;
+  hint: string;
+  icon: string;
+  tone: 'neutral' | 'warning' | 'danger';
+}
+
+interface EvidenceDisplayBlock {
+  title: string;
+  description: string | null;
+  rows: DetailPair[];
+  rawText: string | null;
+}
+
 const TASK_ID = 'stok-anomali-merkezi';
 const PERMISSION_PREFIX = 'stok-islemleri.stok-anomali-merkezi';
 const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
@@ -550,6 +565,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
       { label: 'Stok', value: [detail.productCode, detail.productName].filter(Boolean).join(' - ') || '-' },
       { label: 'Satin Almaci', value: this.productManagerLabel(detail) },
       { label: 'Belge', value: this.documentLabel(detail) },
+      { label: 'Belge No', value: detail.documentNo || '-' },
       { label: 'Miktar', value: this.formatNumber(detail.quantity) },
       { label: 'Beklenen', value: this.formatNumber(detail.expectedQuantity) },
       { label: 'Gerceklesen', value: this.formatNumber(detail.actualQuantity) },
@@ -559,26 +575,94 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     ];
   }
 
-  protected evidenceBlocks(detail: StockAnomalyDetailDto): Array<Record<string, unknown>> {
+  protected reasonCards(detail: StockAnomalyDetailDto): ReasonCard[] {
+    if (detail.type !== 'HighQuantity') {
+      return [];
+    }
+
+    const quantity = detail.actualQuantity ?? detail.quantity;
+    const average = detail.averageQuantity;
+    const threshold = detail.expectedQuantity;
+
+    if (!this.isFiniteNumber(quantity) || !this.isFiniteNumber(average) || !this.isFiniteNumber(threshold)) {
+      return [];
+    }
+
+    const thresholdDiff = quantity - threshold;
+    const thresholdRatio = threshold > 0 ? quantity / threshold : null;
+    const multiplier = average > 0 ? threshold / average : null;
+
+    return [
+      {
+        label: 'Hareket Miktari',
+        value: this.formatNumber(quantity),
+        hint: 'Belgedeki gerceklesen miktar',
+        icon: 'fa-scale-balanced',
+        tone: 'danger'
+      },
+      {
+        label: '30 Gun Ortalama',
+        value: this.formatNumber(average),
+        hint: 'Ayni stok icin gecmis hareket ortalamasi',
+        icon: 'fa-chart-line',
+        tone: 'neutral'
+      },
+      {
+        label: 'Alarm Esigi',
+        value: this.formatNumber(threshold),
+        hint: multiplier ? `Ortalama x ${this.formatNumber(multiplier)}` : 'Beklenen ust limit',
+        icon: 'fa-bullseye',
+        tone: 'warning'
+      },
+      {
+        label: 'Esik Farki',
+        value: `${thresholdDiff > 0 ? '+' : ''}${this.formatNumber(thresholdDiff)}`,
+        hint: thresholdRatio ? `Esigin ${this.formatNumber(thresholdRatio)} kati` : 'Miktar - esik',
+        icon: 'fa-arrow-trend-up',
+        tone: 'danger'
+      }
+    ];
+  }
+
+  protected evidenceBlocks(detail: StockAnomalyDetailDto): EvidenceDisplayBlock[] {
     const evidence = detail.evidence;
 
     if (!evidence) {
       return [];
     }
 
-    return Array.isArray(evidence) ? evidence : [evidence];
+    return (Array.isArray(evidence) ? evidence : [evidence])
+      .map((block, index) => this.toEvidenceBlock(block, index))
+      .filter((block) => block.rows.length > 0 || !!block.rawText);
   }
 
-  protected objectEntries(value: Record<string, unknown>): DetailPair[] {
-    return Object.entries(value)
-      .filter(([key]) => key !== 'fields')
-      .map(([key, rawValue]) => ({ label: key, value: this.toDisplayValue(rawValue) }));
+  protected eventTitle(event: { eventType?: string | null; status?: string | null }): string {
+    const labels: Record<string, string> = {
+      Detected: 'Tespit Edildi',
+      StatusChanged: 'Durum Degisti',
+      Acknowledged: 'Incelemeye Alindi',
+      Resolved: 'Cozuldu',
+      Ignored: 'Yok Sayildi'
+    };
+
+    return event.eventType ? labels[event.eventType] ?? event.eventType : this.statusLabel(event.status);
+  }
+
+  protected eventDate(event: { occurredAtUtc?: string | null; createdAtUtc?: string | null }): string {
+    return this.formatDate(event.occurredAtUtc || event.createdAtUtc || null);
+  }
+
+  protected eventMessage(event: { message?: string | null; note?: string | null }): string {
+    return event.message || event.note || '-';
   }
 
   protected trackById = (_index: number, item: StockAnomalyListItemDto): string => item.id;
   protected trackBySummary = (_index: number, item: SummaryCard): string => item.key;
   protected trackByRule = (_index: number, item: { type: string }): string => item.type;
   protected trackByPair = (_index: number, item: DetailPair): string => item.label;
+  protected trackByReasonCard = (_index: number, item: ReasonCard): string => item.label;
+  protected trackByEvidenceBlock = (index: number, item: EvidenceDisplayBlock): string =>
+    `${index}-${item.title}`;
   protected trackByProductManager = (
     _index: number,
     item: StockAnomalyProductManagerLookupDto
@@ -737,6 +821,163 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     }
 
     return Math.min(Math.max(Math.trunc(numericValue), min), max);
+  }
+
+  private toEvidenceBlock(value: unknown, index: number): EvidenceDisplayBlock {
+    if (typeof value === 'string') {
+      const rows = this.parseEvidenceText(value);
+
+      return {
+        title: 'Kaynak Verisi',
+        description: null,
+        rows,
+        rawText: rows.length > 0 ? null : value
+      };
+    }
+
+    if (!this.isRecord(value)) {
+      return {
+        title: `Kanit ${index + 1}`,
+        description: null,
+        rows: [{ label: 'Deger', value: this.toDisplayValue(value) }],
+        rawText: null
+      };
+    }
+
+    const title = this.toOptionalDisplayText(value['title']) || 'Kaynak Verisi';
+    const description = this.toOptionalDisplayText(value['description']);
+    const fieldRows = this.evidenceRowsFromValue(value['fields']);
+    const topLevelRows = this.recordEntriesToEvidenceRows(value, ['title', 'description', 'fields']);
+
+    return {
+      title,
+      description,
+      rows: [...fieldRows, ...topLevelRows],
+      rawText: null
+    };
+  }
+
+  private evidenceRowsFromValue(value: unknown): DetailPair[] {
+    if (!value) {
+      return [];
+    }
+
+    if (typeof value === 'string') {
+      const rows = this.parseEvidenceText(value);
+      return rows.length > 0 ? rows : [{ label: 'Aciklama', value }];
+    }
+
+    return this.isRecord(value) ? this.recordEntriesToEvidenceRows(value) : [];
+  }
+
+  private recordEntriesToEvidenceRows(
+    value: Record<string, unknown>,
+    excludedKeys: string[] = []
+  ): DetailPair[] {
+    const excluded = new Set(excludedKeys);
+
+    return Object.entries(value)
+      .filter(([key]) => !excluded.has(key))
+      .map(([key, rawValue]) => ({
+        label: this.evidenceLabel(key),
+        value: this.toEvidenceDisplayValue(key, rawValue)
+      }));
+  }
+
+  private parseEvidenceText(value: string): DetailPair[] {
+    const parts = value
+      .split(';')
+      .map((part) => part.trim())
+      .filter(Boolean);
+
+    const rows = parts
+      .map((part) => {
+        const match = part.match(/^([^=:]+)\s*[=:]\s*(.*)$/);
+
+        if (!match) {
+          return null;
+        }
+
+        const [, key, rawValue] = match;
+        return {
+          label: this.evidenceLabel(key),
+          value: this.toEvidenceDisplayValue(key, rawValue)
+        };
+      })
+      .filter((pair): pair is DetailPair => !!pair);
+
+    return rows.length === parts.length ? rows : [];
+  }
+
+  private evidenceLabel(value: string): string {
+    const labels: Record<string, string> = {
+      sourcekey: 'Kaynak Anahtari',
+      warehouse: 'Ana Depo',
+      warehouseno: 'Ana Depo No',
+      relatedwarehouseno: 'Iliskili Depo No',
+      documentserie: 'Evrak Seri',
+      documentorderno: 'Evrak Sira',
+      documentno: 'Belge No',
+      movementguid: 'Hareket Guid',
+      productcode: 'Stok Kodu',
+      productname: 'Stok Adi',
+      quantity: 'Miktar',
+      actualquantity: 'Gerceklesen',
+      expectedquantity: 'Esik / Beklenen',
+      averagequantity: 'Ortalama',
+      occurredatutc: 'Hareket Tarihi',
+      occurredat: 'Hareket Tarihi',
+      firstdetectedatutc: 'Ilk Tespit',
+      lastdetectedatutc: 'Son Tespit',
+      depo: 'Ana Depo',
+      seri: 'Evrak Seri',
+      sira: 'Evrak Sira',
+      stok: 'Stok Kodu',
+      miktar: 'Miktar',
+      ortalama: 'Ortalama',
+      katsayi: 'Esik Katsayi',
+      coefficient: 'Esik Katsayi',
+      multiplier: 'Esik Katsayi'
+    };
+
+    const normalized = value.replace(/[\s_-]/g, '').toLocaleLowerCase('tr-TR');
+    return labels[normalized] ?? this.humanizeKey(value);
+  }
+
+  private toEvidenceDisplayValue(key: string, value: unknown): string {
+    if (typeof value === 'number') {
+      return this.formatNumber(value);
+    }
+
+    if (typeof value === 'string' && /(?:utc|date|tarih)$/i.test(key.trim())) {
+      return this.formatDate(value);
+    }
+
+    return this.toDisplayValue(value);
+  }
+
+  private toOptionalDisplayText(value: unknown): string | null {
+    if (value === null || value === undefined || value === '') {
+      return null;
+    }
+
+    return this.toDisplayValue(value);
+  }
+
+  private humanizeKey(value: string): string {
+    return value
+      .replace(/([a-z])([A-Z])/g, '$1 $2')
+      .replace(/[_-]+/g, ' ')
+      .trim()
+      .replace(/\b\w/g, (char) => char.toLocaleUpperCase('tr-TR'));
+  }
+
+  private isRecord(value: unknown): value is Record<string, unknown> {
+    return !!value && typeof value === 'object' && !Array.isArray(value);
+  }
+
+  private isFiniteNumber(value: unknown): value is number {
+    return typeof value === 'number' && Number.isFinite(value);
   }
 
   private toDisplayValue(value: unknown): string {
