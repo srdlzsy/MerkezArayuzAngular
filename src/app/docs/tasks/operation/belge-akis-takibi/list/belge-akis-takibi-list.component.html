@@ -14,7 +14,7 @@
         </span>
         <span>
           <b>Yetki</b>
-          <strong>{{ isAdminUser() ? 'Admin' : 'Kullanici' }}</strong>
+          <strong>{{ isAdminUser() ? 'Tum Depo' : 'Kullanici' }}</strong>
         </span>
         <span>
           <b>Takip</b>
@@ -167,7 +167,7 @@
     <div class="table-context" *ngIf="rows().length">
       <span class="record-count compact-count">{{ totalCount() }} kayit</span>
       <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
-      <span>{{ isAdminUser() ? 'Admin kapsami' : 'Kullanici deposu' }}</span>
+      <span>{{ isAdminUser() ? 'Tum depo kapsami' : 'Kullanici deposu' }}</span>
     </div>
 
     <section class="table-shell">

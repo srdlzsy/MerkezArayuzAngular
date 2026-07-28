@@ -19,6 +19,10 @@ import type {
 import { HomeService } from '../../../core/api/module-services/home.service';
 import { OrtakIslemlerService } from '../../../core/api/module-services/ortak-islemler.service';
 import { AuthService } from '../../../core/auth/services/auth.service';
+import {
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../tasks/core/admin-warehouse.helpers';
 
 interface FeedbackOption<T extends string> {
   value: T;
@@ -38,6 +42,7 @@ const BACKEND_ROUTE_MAP: Readonly<Record<string, string>> = {
   '/ortak-islemler/sikayet-oneri': '/docs/api/sikayet-oneri',
   '/yonetim/sikayet-oneri': '/docs/api/sikayet-oneri'
 };
+const HOME_WAREHOUSE_PRIORITIES_PERMISSION = 'home.depo-oncelikleri.all-warehouses';
 
 @Component({
   selector: 'app-docs-home-page',
@@ -103,7 +108,12 @@ export class DocsHomePageComponent {
   protected readonly latestCreatedLabel = computed(() =>
     this.formatDateTime(this.feedbackSummary()?.latestCreatedAtUtc ?? null)
   );
-  protected readonly isAdminUser = computed(() => this.hasRole('Admin') || this.hasRole('Administrator'));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      HOME_WAREHOUSE_PRIORITIES_PERMISSION
+    )
+  );
   protected readonly priorityScopeLabel = computed(() => {
     const priorities = this.warehousePriorities();
 
@@ -472,29 +482,7 @@ export class DocsHomePageComponent {
   }
 
   private currentWarehouseLabel(): string {
-    const user = this.authService.currentUser();
-
-    if (!user) {
-      return 'JWT deposu okunamadi';
-    }
-
-    if (user.depoIsmi?.trim() && user.depoNo !== null && user.depoNo !== undefined) {
-      return `${user.depoIsmi.trim()} (${user.depoNo})`;
-    }
-
-    if (user.depoIsmi?.trim()) {
-      return user.depoIsmi.trim();
-    }
-
-    return user.depoNo !== null && user.depoNo !== undefined
-      ? `Depo ${user.depoNo}`
-      : 'JWT deposu okunamadi';
-  }
-
-  private hasRole(role: string): boolean {
-    return (this.authService.currentUser()?.roller ?? []).some(
-      (value) => value.toLocaleLowerCase('tr-TR') === role.toLocaleLowerCase('tr-TR')
-    );
+    return formatCurrentWarehouseLabel(this.authService.currentUser());
   }
 
   private toOptionalNumber(value: string | number | null | undefined): number | null {

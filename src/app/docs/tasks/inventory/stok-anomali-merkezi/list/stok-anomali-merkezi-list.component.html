@@ -44,7 +44,7 @@
       <input
         type="number"
         min="1"
-        placeholder="Tum depolar"
+        [placeholder]="isAdminUser() ? 'Tum depolar' : currentWarehouseLabel()"
         [disabled]="!isAdminUser()"
         [ngModel]="warehouseNoInput()"
         (ngModelChange)="setWarehouseNo($event)"

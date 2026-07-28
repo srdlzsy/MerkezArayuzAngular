@@ -11,7 +11,7 @@ export const INVENTORY_TASK_SOURCE = {
       baseRouteOrFile: '/api/stok-islemleri/stok-anomali-merkezi',
       highlights: [
         'Mikro verisine yazma yapmaz; anomalileri Auth veritabaninda takip eder',
-        'Admin tum depolari, depo kullanicisi kendi deposunu gorur',
+        'stok-islemleri.stok-anomali-merkezi.all-warehouses yetkisi tum depo kapsamini acar',
         'Negatif stok, duplicate belge, kabul farki, yuksek miktar, hareketsiz stok ve bekleyen transferleri yakalar',
         'Anomaliler satin almaci kodu/adi ve atanmis/atanmamis filtresiyle izlenebilir',
         'Satir detayinda evidence/events gorulur ve durum Acknowledged, Resolved veya Ignored yapilir'
@@ -83,7 +83,7 @@ export const INVENTORY_TASK_SOURCE = {
       subtitle: 'Masraf fisleri icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/stok-islemleri/masraf-fisleri',
       highlights: [
-        'warehouseNo body icinden alinmaz; JWT icindeki kullanici deposu kullanilir',
+        'warehouseNo body icinden all-warehouses yetkisi yoksa alinmaz; backend kullanici deposunu kullanir',
         'sth_isemri_gider_kodu backend tarafinda sabit 0032 yazilir',
         'creator ve acceptor hareket grup kodlarina yazilir',
         'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
@@ -146,7 +146,7 @@ export const INVENTORY_TASK_SOURCE = {
       subtitle: 'Zayiat fisleri icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/stok-islemleri/zayiat-fisleri',
       highlights: [
-        'warehouseNo body icinden alinmaz; JWT icindeki kullanici deposu kullanilir',
+        'warehouseNo body icinden all-warehouses yetkisi yoksa alinmaz; backend kullanici deposunu kullanir',
         'backend STOK_HAREKETLERI icin sth_cins = 4 olarak kayit yazar',
         'creator ve acceptor hareket grup kodlarina yazilir',
         'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
@@ -209,7 +209,7 @@ export const INVENTORY_TASK_SOURCE = {
       subtitle: 'Virmanlar icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/stok-islemleri/virmanlar',
       highlights: [
-        'warehouseNo body icinden alinmaz; JWT icindeki kullanici deposu kullanilir',
+        'warehouseNo body icinden all-warehouses yetkisi yoksa alinmaz; backend kullanici deposunu kullanir',
         'movementType satir bazinda sth_tip kolonuna yazilir; 2 gonderilirse backend giris ve cikis olarak iki stok hareketi acar',
         'giris ve cikis depo no eski yapiya uygun olarak kullanici deposuna yazilir',
         'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'

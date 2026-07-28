@@ -44,7 +44,7 @@
           <input type="date" formControlName="targetDate" [max]="maxTargetDate" />
         </label>
 
-        <label class="field mode-field">
+        <label class="field mode-field" *ngIf="canUseWarehouseScope(); else lockedWarehouseScope">
           <span>Depo Kapsami</span>
           <select [value]="warehouseMode()" (change)="updateWarehouseMode($any($event.target).value ?? '')">
             <option value="current">Aktif Depo</option>
@@ -53,7 +53,14 @@
           </select>
         </label>
 
-        <label class="field custom-warehouse-field">
+        <ng-template #lockedWarehouseScope>
+          <div class="field mode-field locked-scope">
+            <span>Depo</span>
+            <strong>{{ currentWarehouseLabel() }}</strong>
+          </div>
+        </ng-template>
+
+        <label class="field custom-warehouse-field" *ngIf="canUseWarehouseScope() && warehouseMode() === 'custom'">
           <span>Depo No</span>
           <input type="number" min="1" formControlName="customWarehouseNo" placeholder="110" />
         </label>
@@ -203,6 +210,11 @@
           <label class="field">
             <span>Tarih</span>
             <input type="date" formControlName="banknoteTrackDate" [max]="maxTargetDate" />
+          </label>
+
+          <label class="field" *ngIf="canUseWarehouseScope()">
+            <span>Depo No</span>
+            <input type="number" min="1" formControlName="warehouseNo" placeholder="Bos: aktif depo" />
           </label>
 
           <label class="field">

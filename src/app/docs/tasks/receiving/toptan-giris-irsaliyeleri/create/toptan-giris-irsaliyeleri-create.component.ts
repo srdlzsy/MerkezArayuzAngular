@@ -29,7 +29,8 @@ import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { MalKabulIslemleriService, TaslakService } from '@core/api/module-services';
 import {
-  currentUserIsAdmin,
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
@@ -102,7 +103,12 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   private readonly clientRequestId = generateClientRequestId();
 
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-mal-kabulleri'];
-  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
   protected readonly currentWarehouseLabel = computed(() =>
     formatCurrentWarehouseLabel(this.authService.currentUser())
   );

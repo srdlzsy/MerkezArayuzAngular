@@ -15,8 +15,14 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
+import {
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 
 type WarehouseMode = 'current' | 'all' | 'custom';
+
+const ALL_WAREHOUSES_PERMISSION = 'kasa-islemleri.banknot-takipleri.all-warehouses';
 
 interface ActionFeedback {
   tone: 'error' | 'info' | 'success';
@@ -123,6 +129,7 @@ export class BanknotTakipleriListComponent {
       nonNullable: true,
       validators: [Validators.required]
     }),
+    warehouseNo: new FormControl<number | null>(null),
     totalAmount: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(0)]
     }),
@@ -159,24 +166,17 @@ export class BanknotTakipleriListComponent {
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
   );
-  protected readonly currentWarehouseLabel = computed(() => {
-    const currentUser = this.authService.currentUser();
-
-    if (!currentUser) {
-      return 'Depo okunamadi';
-    }
-
-    if (currentUser.depoIsmi?.trim() && currentUser.depoNo !== null) {
-      return `${currentUser.depoIsmi} (${currentUser.depoNo})`;
-    }
-
-    if (currentUser.depoIsmi?.trim()) {
-      return currentUser.depoIsmi;
-    }
-
-    return currentUser.depoNo !== null ? `Depo ${currentUser.depoNo}` : 'Depo okunamadi';
-  });
+  protected readonly canUseWarehouseScope = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly selectedWarehouseLabel = computed(() => {
+    if (!this.canUseWarehouseScope()) {
+      return this.currentWarehouseLabel();
+    }
+
     switch (this.warehouseMode()) {
       case 'all':
         return 'Tum Depolar';
@@ -290,6 +290,11 @@ export class BanknotTakipleriListComponent {
   }
 
   protected updateWarehouseMode(value: string): void {
+    if (!this.canUseWarehouseScope()) {
+      this.selectWarehouseMode('current');
+      return;
+    }
+
     if (value !== 'current' && value !== 'all' && value !== 'custom') {
       return;
     }
@@ -298,6 +303,12 @@ export class BanknotTakipleriListComponent {
   }
 
   protected selectWarehouseMode(mode: WarehouseMode): void {
+    if (!this.canUseWarehouseScope() && mode !== 'current') {
+      this.warehouseMode.set('current');
+      this.setCustomWarehouseControlState();
+      return;
+    }
+
     if (this.warehouseMode() === mode) {
       return;
     }
@@ -412,6 +423,10 @@ export class BanknotTakipleriListComponent {
   protected resetCreateForm(): void {
     this.createForm.reset({
       banknoteTrackDate: this.filtersForm.controls.targetDate.value || this.getToday(),
+      warehouseNo:
+        this.canUseWarehouseScope() && this.warehouseMode() === 'custom'
+          ? this.toOptionalNumber(this.filtersForm.getRawValue().customWarehouseNo) ?? null
+          : null,
       totalAmount: null,
       deliveryTotalAmount: null,
       deliverer: '',
@@ -463,11 +478,18 @@ export class BanknotTakipleriListComponent {
       totalAmount: this.toSafeNumber(rawValue.totalAmount),
       deliveryTotalAmount: this.toSafeNumber(rawValue.deliveryTotalAmount),
       deliverer: rawValue.deliverer.trim(),
-      receiver: rawValue.receiver.trim()
+      receiver: rawValue.receiver.trim(),
+      warehouseNo: this.canUseWarehouseScope()
+        ? this.toOptionalNumber(rawValue.warehouseNo)
+        : undefined
     };
   }
 
   private getRequestedWarehouseNo(): number | undefined {
+    if (!this.canUseWarehouseScope()) {
+      return undefined;
+    }
+
     switch (this.warehouseMode()) {
       case 'all':
         return 1;
@@ -495,7 +517,7 @@ export class BanknotTakipleriListComponent {
   private setCustomWarehouseControlState(): void {
     const control = this.filtersForm.controls.customWarehouseNo;
 
-    if (this.warehouseMode() === 'custom') {
+    if (this.canUseWarehouseScope() && this.warehouseMode() === 'custom') {
       control.enable({ emitEvent: false });
       return;
     }

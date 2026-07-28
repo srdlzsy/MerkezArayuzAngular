@@ -26,6 +26,10 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
+import {
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 
 interface DocumentFlowFilterOption {
@@ -51,6 +55,7 @@ interface DocumentFlowMetric {
 
 const TASK_ID = 'belge-akis-takibi';
 const PERMISSION_PREFIX = 'operasyon-islemleri.belge-akis-takibi';
+const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 
 const DOCUMENT_TYPE_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: '', label: 'Tum Belge Tipleri' },
@@ -217,16 +222,16 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   private activeListRequestId = 0;
   private activeDetailRequestId = 0;
 
-  protected readonly isAdminUser = computed(() => this.hasRole('administrator') || this.hasRole('admin'));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
   protected readonly canList = computed(
     () =>
       !!this.authService.currentUser() &&
-      (this.isAdminUser() ||
-        this.authService.hasTaskAccess(TASK_ID) ||
-        this.hasFlowPermission('list'))
+      (this.authService.hasTaskAccess(TASK_ID) || this.hasFlowPermission('list'))
   );
   protected readonly canDetail = computed(
-    () => this.isAdminUser() || this.hasFlowPermission('detail') || this.hasFlowPermission('list')
+    () => this.hasFlowPermission('detail') || this.hasFlowPermission('list')
   );
   protected readonly trackingEnabled = computed(
     () => this.listResponse()?.trackingEnabled ?? true
@@ -478,13 +483,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   }
 
   protected currentWarehouseLabel(): string {
-    const user = this.authService.currentUser();
-
-    if (user?.depoIsmi && user.depoNo !== null && user.depoNo !== undefined) {
-      return `${user.depoIsmi} (${user.depoNo})`;
-    }
-
-    return user?.depoNo !== null && user?.depoNo !== undefined ? `Depo ${user.depoNo}` : 'JWT deposu';
+    return formatCurrentWarehouseLabel(this.authService.currentUser());
   }
 
   protected copyText(value: string | null | undefined): void {
@@ -549,13 +548,6 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   private toOptionalPositiveInteger(value: string): number | null {
     const parsedValue = Number(value);
     return Number.isInteger(parsedValue) && parsedValue > 0 ? parsedValue : null;
-  }
-
-  private hasRole(roleName: string): boolean {
-    const expectedRole = normalize(roleName);
-    return (this.authService.currentUser()?.roller ?? []).some(
-      (role) => normalize(role) === expectedRole
-    );
   }
 
   private hasFlowPermission(action: 'list' | 'detail'): boolean {

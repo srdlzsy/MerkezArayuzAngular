@@ -26,7 +26,8 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
-  currentUserIsAdmin,
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
@@ -79,7 +80,12 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
   private readonly today = formatDateOnly(new Date());
 
   protected readonly page: DocsContentPage = DOCS_PAGES['giden-depolar-arasi-sevkler'];
-  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
   protected readonly currentWarehouseLabel = computed(() =>
     formatCurrentWarehouseLabel(this.authService.currentUser())
   );

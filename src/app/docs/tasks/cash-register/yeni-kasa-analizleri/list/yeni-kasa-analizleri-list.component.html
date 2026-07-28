@@ -17,10 +17,17 @@
           <input type="date" formControlName="endDate" />
         </label>
 
-        <label class="field">
+        <label class="field" *ngIf="canUseWarehouseScope(); else lockedWarehouseScope">
           <span>Depo</span>
           <input type="number" formControlName="warehouseNo" min="1" inputmode="numeric" />
         </label>
+
+        <ng-template #lockedWarehouseScope>
+          <div class="field locked-scope">
+            <span>Depo</span>
+            <strong>{{ scopeLabel() }}</strong>
+          </div>
+        </ng-template>
 
         <label class="field">
           <span>Kasa</span>

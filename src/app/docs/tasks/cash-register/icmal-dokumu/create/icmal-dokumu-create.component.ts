@@ -27,7 +27,11 @@ import { KasaIslemleriService } from '../../../../../core/api/module-services/ka
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
-import { currentUserIsAdmin } from '../../../core/admin-warehouse.helpers';
+import {
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 
 type BanknoteLineFormGroup = FormGroup<{
   banknoteType: FormControl<number | null>;
@@ -106,23 +110,18 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected readonly page: DocsContentPage = DOCS_PAGES['icmal-kaydi-girisi'];
   protected readonly endpointPath = '/api/kasa-islemleri/kasa-sayimlari';
   protected readonly payloadName = 'CreateCashSummaryHttpRequest';
-  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
   );
-  protected readonly currentWarehouseLabel = computed(() => {
-    const currentUser = this.authService.currentUser();
-
-    if (!currentUser) {
-      return 'JWT deposu okunamadi';
-    }
-
-    if (currentUser.depoIsmi && currentUser.depoNo !== null) {
-      return `${currentUser.depoIsmi} ${currentUser.depoNo}`;
-    }
-
-    return currentUser.depoIsmi || (currentUser.depoNo !== null ? `Depo ${currentUser.depoNo}` : 'JWT deposu okunamadi');
-  });
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly generatedSeriePreview = computed(() => {
     const warehouseNo = this.currentWarehouseNo();
     return warehouseNo ? `KS${warehouseNo}` : 'KS{loginDepoNo}';
@@ -440,7 +439,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       }
 
       if (!warehouseNo) {
-        issues.push('JWT deposu okunamadigi icin kasa lookup listesi bos birakildi.');
+        issues.push('Kullanici deposu okunamadigi icin kasa lookup listesi bos birakildi.');
       }
 
       this.lookupLoading.set(false);
@@ -1119,7 +1118,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       zTotalValue: this.toSafeNumber(rawValue.zTotalValue),
       total: this.toSafeNumber(rawValue.total),
       summaryDate: rawValue.summaryDate,
-      warehouseNo: rawValue.warehouseNo ?? undefined,
+      warehouseNo: this.isAdminUser() ? rawValue.warehouseNo ?? undefined : undefined,
       giftCheckMovements: rawValue.giftCheckMovements.map((line) => ({
         value: this.toSafeNumber(line.value),
         giftCheckType: this.toSafeNumber(line.giftCheckType),
@@ -1159,7 +1158,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       zTotalValue: rawValue.zTotalValue,
       total: rawValue.total,
       summaryDate: rawValue.summaryDate,
-      warehouseNo: rawValue.warehouseNo,
+      warehouseNo: this.isAdminUser() ? rawValue.warehouseNo : undefined,
       giftCheckMovements: rawValue.giftCheckMovements,
       banknoteMovements: rawValue.banknoteMovements,
       paymentTypes: rawValue.paymentTypes,

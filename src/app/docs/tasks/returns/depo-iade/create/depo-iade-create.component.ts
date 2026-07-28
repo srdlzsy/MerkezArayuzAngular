@@ -23,7 +23,8 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
-  currentUserIsAdmin,
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
@@ -73,7 +74,12 @@ export class DepoIadeCreateComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage =
     DOCS_PAGES[((this.data as DepoIadeCreateDialogData | null)?.pageId ?? 'giden-depo-iadeleri')] ??
     DOCS_PAGES['giden-depo-iadeleri'];
-  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
   protected readonly currentWarehouseLabel = computed(() =>
     formatCurrentWarehouseLabel(this.authService.currentUser())
   );

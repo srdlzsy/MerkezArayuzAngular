@@ -28,6 +28,10 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
+import {
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 
 type SalesAnalysisReportKey =
   | 'bank-movements'
@@ -68,6 +72,7 @@ const MONEY_FORMATTER = new Intl.NumberFormat('tr-TR', {
   minimumFractionDigits: 2,
   maximumFractionDigits: 2
 });
+const ALL_WAREHOUSES_PERMISSION = 'rapor-islemleri.satis-analizleri.all-warehouses';
 
 const INTEGER_FORMATTER = new Intl.NumberFormat('tr-TR', {
   maximumFractionDigits: 0
@@ -318,7 +323,7 @@ export class SatisAnalizleriListComponent implements OnInit {
   protected readonly selectedReport = signal<SalesAnalysisReportKey>('bank-movements');
   protected readonly startDate = signal(this.getRelativeDate(-6));
   protected readonly endDate = signal(this.getToday());
-  protected readonly scope = signal<SalesAnalysisScope>('all');
+  protected readonly scope = signal<SalesAnalysisScope>('current');
   protected readonly manualWarehouseNo = signal('');
   protected readonly rows = signal<readonly object[]>([]);
   protected readonly metrics = signal<readonly SalesAnalysisMetric[]>([]);
@@ -342,24 +347,17 @@ export class SatisAnalizleriListComponent implements OnInit {
   protected readonly selectedDateRangeLabel = computed(
     () => `${this.startDate() || 'YYYY-MM-DD'} - ${this.endDate() || 'YYYY-MM-DD'}`
   );
-  protected readonly currentWarehouseLabel = computed(() => {
-    const user = this.authService.currentUser();
-
-    if (!user) {
-      return 'Aktif depo okunamadi';
-    }
-
-    if (user.depoIsmi?.trim() && user.depoNo !== null && user.depoNo !== undefined) {
-      return `${user.depoIsmi} (${user.depoNo})`;
-    }
-
-    if (user.depoNo !== null && user.depoNo !== undefined) {
-      return `Depo ${user.depoNo}`;
-    }
-
-    return 'Aktif depo okunamadi';
-  });
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly scopeLabel = computed(() => {
+    if (!this.isAdminUser()) {
+      return this.currentWarehouseLabel();
+    }
+
     switch (this.scope()) {
       case 'current':
         return this.currentWarehouseLabel();
@@ -403,6 +401,11 @@ export class SatisAnalizleriListComponent implements OnInit {
   }
 
   protected selectScope(scope: SalesAnalysisScope): void {
+    if (!this.isAdminUser() && scope !== 'current') {
+      this.scope.set('current');
+      return;
+    }
+
     if (this.scope() === scope) {
       return;
     }
@@ -739,6 +742,10 @@ export class SatisAnalizleriListComponent implements OnInit {
   }
 
   private resolveWarehouseNo(): number | undefined {
+    if (!this.isAdminUser()) {
+      return undefined;
+    }
+
     if (this.scope() === 'current') {
       return this.authService.currentUser()?.depoNo ?? undefined;
     }

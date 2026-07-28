@@ -22,6 +22,7 @@ import { OperasyonIslemleriService } from '../../../../../core/api/module-servic
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import type { DocsContentPage } from '../../../../models/docs.models';
+import { currentUserCanUseAllWarehouses } from '../../../core/admin-warehouse.helpers';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 
 type HealthFilter = 'All' | 'Critical' | 'Warning' | 'Healthy';
@@ -46,6 +47,7 @@ interface SummaryMetric {
 
 const TASK_ID = 'depo-operasyon-paneli';
 const PERMISSION_PREFIX = 'operasyon-islemleri.depo-operasyon-paneli';
+const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 
 const SUMMARY_METRICS: readonly SummaryMetric[] = [
   { key: 'warehouseCount', label: 'Aktif Depo', icon: 'fa-warehouse', tone: 'neutral' },
@@ -83,7 +85,7 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
   private activeRequestId = 0;
 
   protected readonly isAdminUser = computed(
-    () => this.hasRole('administrator') || this.hasRole('admin')
+    () => currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
   );
   protected readonly canList = computed(
     () =>
@@ -261,13 +263,6 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
     _index: number,
     warehouse: WarehouseOperationPanelItemDto
   ): number => warehouse.warehouseNo;
-
-  private hasRole(roleName: string): boolean {
-    const expected = this.normalize(roleName);
-    return (this.authService.currentUser()?.roller ?? []).some(
-      (role) => this.normalize(role) === expected
-    );
-  }
 
   private hasPanelListPermission(): boolean {
     const permissions = [

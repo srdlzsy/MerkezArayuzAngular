@@ -30,6 +30,11 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
+import {
+  currentUserCanUseAllWarehouses,
+  currentUserHasPermission,
+  normalizePermissionCode
+} from '../../../core/admin-warehouse.helpers';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 
 type SupplierPerformanceScope = 'all' | 'current' | 'manual';
@@ -49,6 +54,7 @@ interface SupplierPerformanceSignalLike {
 
 const TASK_ID = 'tedarikci-performans-karnesi';
 const PERMISSION_PREFIX = 'rapor-islemleri.tedarikci-performans-karnesi';
+const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 
 const NUMBER_FORMATTER = new Intl.NumberFormat('tr-TR', {
   maximumFractionDigits: 2
@@ -261,7 +267,9 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
 
   protected readonly canList = computed(() => this.hasPermission('list'));
   protected readonly canDetail = computed(() => this.hasPermission('detail') || this.canList());
-  protected readonly isAdminUser = computed(() => this.hasRole('Admin') || this.hasRole('Administrator'));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
   protected readonly selectedDateRangeLabel = computed(
     () => `${this.startDate() || 'YYYY-MM-DD'} - ${this.endDate() || 'YYYY-MM-DD'}`
   );
@@ -642,7 +650,7 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
 
   private resolveWarehouseNo(): number | null {
     if (!this.isAdminUser()) {
-      return this.currentWarehouseNo();
+      return null;
     }
 
     if (this.scope() === 'all') {
@@ -668,7 +676,7 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
       return false;
     }
 
-    if (this.scope() === 'current' && !this.resolveWarehouseNo()) {
+    if (this.isAdminUser() && this.scope() === 'current' && !this.resolveWarehouseNo()) {
       this.errorMessage.set('Aktif kullanici depo bilgisi bulunamadi.');
       return false;
     }
@@ -681,12 +689,6 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
     return Number.isFinite(warehouseNo) ? Number(warehouseNo) : null;
   }
 
-  private hasRole(role: string): boolean {
-    return (this.authService.currentUser()?.roller ?? []).some(
-      (value) => value.toLocaleLowerCase('tr-TR') === role.toLocaleLowerCase('tr-TR')
-    );
-  }
-
   private hasPermission(action: 'list' | 'detail'): boolean {
     const user = this.authService.currentUser();
 
@@ -695,12 +697,17 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
     }
 
     const permissionCode = `${PERMISSION_PREFIX}.${action}`;
+    const actionKey = normalizePermissionCode(action);
+    const permissionKeys = [
+      ...this.authService.getTaskPermissionCodes(TASK_ID),
+      ...this.authService.getTaskPermissionKeys(TASK_ID)
+    ].map((permission) => normalizePermissionCode(permission));
+
     return (
-      this.hasRole('Administrator') ||
-      this.hasRole('Admin') ||
-      (user.permissions ?? []).includes(permissionCode) ||
+      currentUserHasPermission(user, permissionCode) ||
       this.authService.hasTaskAccess(TASK_ID) ||
-      this.authService.getTaskPermissionCodes(TASK_ID).includes(permissionCode)
+      permissionKeys.includes(actionKey) ||
+      permissionKeys.includes(normalizePermissionCode(permissionCode))
     );
   }
 

@@ -20,6 +20,10 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
+import {
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 
 type YeniKasaAnalizTab =
   | 'saglik-ozeti'
@@ -28,6 +32,8 @@ type YeniKasaAnalizTab =
   | 'fis-mutabakat'
   | 'anomaliler'
   | 'odeme-tipleri';
+
+const ALL_WAREHOUSES_PERMISSION = 'kasa-islemleri.yeni-kasa-analizleri.all-warehouses';
 
 type YeniKasaAnalizRow =
   | YeniKasaSaglikOzetItemDto
@@ -348,29 +354,24 @@ export class YeniKasaAnalizleriListComponent {
   protected readonly showReceiptAction = computed(
     () => this.activeTab() === 'fis-mutabakat' || this.activeTab() === 'anomaliler'
   );
+  protected readonly canUseWarehouseScope = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
   protected readonly scopeLabel = computed(() => {
+    if (!this.canUseWarehouseScope()) {
+      return formatCurrentWarehouseLabel(this.authService.currentUser());
+    }
+
     const warehouseNo = this.toOptionalNumber(this.filterForm.controls.warehouseNo.value);
 
     if (warehouseNo) {
       return `Depo ${warehouseNo}`;
     }
 
-    const user = this.authService.currentUser();
-
-    if (user?.depoNo) {
-      return `${user.depoIsmi || 'JWT Deposu'} (${user.depoNo})`;
-    }
-
-    return 'Genel kapsam';
+    return 'Tum Depolar';
   });
 
   constructor() {
-    const warehouseNo = this.authService.currentUser()?.depoNo ?? null;
-
-    if (warehouseNo) {
-      this.filterForm.controls.warehouseNo.setValue(warehouseNo, { emitEvent: false });
-    }
-
     this.loadRows();
   }
 
@@ -470,7 +471,7 @@ export class YeniKasaAnalizleriListComponent {
     this.filterForm.reset({
       startDate: this.getRelativeDate(0),
       endDate: this.getRelativeDate(0),
-      warehouseNo: this.authService.currentUser()?.depoNo ?? null,
+      warehouseNo: null,
       cashRegisterNo: '',
       cashierCode: '',
       take: 500,
@@ -511,7 +512,9 @@ export class YeniKasaAnalizleriListComponent {
     return {
       startDate: formValue.startDate.trim(),
       endDate: formValue.endDate.trim(),
-      warehouseNo: this.toOptionalNumber(formValue.warehouseNo),
+      warehouseNo: this.canUseWarehouseScope()
+        ? this.toOptionalNumber(formValue.warehouseNo)
+        : undefined,
       cashRegisterNo: formValue.cashRegisterNo.trim() || null,
       cashierCode: formValue.cashierCode.trim() || null,
       take: this.toOptionalNumber(formValue.take) ?? 500,

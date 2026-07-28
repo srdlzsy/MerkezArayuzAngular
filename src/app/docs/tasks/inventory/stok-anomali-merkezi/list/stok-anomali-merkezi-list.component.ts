@@ -32,6 +32,7 @@ import { StokIslemleriService } from '../../../../../core/api/module-services/st
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import type { DocsContentPage } from '../../../../models/docs.models';
+import { currentUserCanUseAllWarehouses } from '../../../core/admin-warehouse.helpers';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 
 type OptionalFilter<T extends string> = 'All' | T;
@@ -61,6 +62,7 @@ interface DetailPair {
 
 const TASK_ID = 'stok-anomali-merkezi';
 const PERMISSION_PREFIX = 'stok-islemleri.stok-anomali-merkezi';
+const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 
 const TYPE_OPTIONS: readonly StockAnomalyType[] = [
   'NegativeStock',
@@ -171,7 +173,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     return user.depoNo !== null ? `Depo ${user.depoNo}` : 'Depo okunamadi';
   });
   protected readonly isAdminUser = computed(
-    () => this.hasRole('administrator') || this.hasRole('admin')
+    () => currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
   );
   protected readonly canList = computed(
     () => this.authService.hasTaskAccess(TASK_ID) || this.hasActionPermission('list')
@@ -187,10 +189,6 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
   });
 
   ngOnInit(): void {
-    if (!this.isAdminUser() && this.currentWarehouseNo()) {
-      this.warehouseNoInput.set(String(this.currentWarehouseNo()));
-    }
-
     this.applyRouteFilters();
 
     if (this.canList()) {
@@ -657,7 +655,7 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
 
   private resolveWarehouseNo(): number | null {
     if (!this.isAdminUser()) {
-      return this.currentWarehouseNo();
+      return null;
     }
 
     const value = Number(this.warehouseNoInput());
@@ -696,13 +694,6 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     if (!items.some((item) => item.code === selectedFilter)) {
       this.productManagerFilter.set('All');
     }
-  }
-
-  private hasRole(roleName: string): boolean {
-    const expected = this.normalize(roleName);
-    return (this.authService.currentUser()?.roller ?? []).some(
-      (role) => this.normalize(role) === expected
-    );
   }
 
   private hasActionPermission(action: string): boolean {

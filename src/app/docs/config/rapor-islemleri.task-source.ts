@@ -11,7 +11,7 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       baseRouteOrFile: '/api/rapor-islemleri/tedarikci-performans-karnesi',
       highlights: [
         'Liste endpointi SupplierPerformanceHttpRequest query modelini kullanir',
-        'Normal kullanici aktif JWT deposuyla sinirlanir; Tum Depolar yalniz Admin/Administrator icindir',
+        'Tum Depolar secimi ilgili raporun all-warehouses yetkisine baglidir',
         'Detay endpointi tedarikci kodu ile kaynak olay zaman cizelgesini getirir',
         'Fatura metrikleri summary-only olarak gelen ve bizim kestigimiz toplamlar halinde ayri gosterilir',
         'Skor 100 uzerinden hesaplanir; risk seviyesi Healthy, Warning veya Critical olur'
@@ -66,7 +66,7 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       baseRouteOrFile: '/api/rapor-islemleri/stok-raporlari',
       highlights: [
         'Tum endpointler query parametreleriyle calisir; body gonderilmez',
-        'Tek depo raporlarinda Admin/Administrator depo secmelidir; normal kullanicida backend JWT deposunu uygular',
+        'Tek depo raporlarinda all-warehouses yetkili kullanici depo secmelidir; diger kullanicida backend kullanici deposunu uygular',
         'Kategori filtreleri kategori-secenekleri endpointinden dropdown olarak beslenir',
         'Son stok ve envanter degeri StockOnHandReportDto response modelini kullanir',
         'Urun depo durumu icin query endpointi ve urun/{stockCodeOrBarcode}/depo-durum path kisayolu desteklenir',

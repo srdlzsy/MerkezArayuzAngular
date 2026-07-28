@@ -13,6 +13,11 @@ import {
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import {
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 
 type DosyaGonderimKey =
   | 'terazi'
@@ -99,16 +104,15 @@ export class DosyaGonderimiListComponent {
   protected readonly authorizationSaving = signal(false);
   protected readonly authorizationHasChanges = signal(false);
   protected readonly isBusy = computed(() => this.activeAction() !== null);
-  protected readonly isAdminUser = computed(() => this.hasRole('Admin') || this.hasRole('Administrator'));
-  protected readonly currentWarehouseLabel = computed(() => {
-    const user = this.authService.currentUser();
-
-    if (user?.depoIsmi && user.depoNo !== null && user.depoNo !== undefined) {
-      return `${user.depoIsmi} (${user.depoNo})`;
-    }
-
-    return user?.depoNo !== null && user?.depoNo !== undefined ? `Depo ${user.depoNo}` : 'JWT deposu';
-  });
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
   protected readonly selectedWarehouseScopeLabel = computed(() => {
     if (!this.isAdminUser()) {
       return this.currentWarehouseLabel();
@@ -503,10 +507,5 @@ export class DosyaGonderimiListComponent {
     return Number.isFinite(warehouseNo) ? Number(warehouseNo) : null;
   }
 
-  private hasRole(role: string): boolean {
-    return (this.authService.currentUser()?.roller ?? []).some(
-      (value) => value.toLocaleLowerCase('tr-TR') === role.toLocaleLowerCase('tr-TR')
-    );
-  }
 }
 

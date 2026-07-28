@@ -22,7 +22,8 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
-  currentUserIsAdmin,
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
@@ -60,7 +61,12 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
   private stockRequestId = 0;
-  protected readonly isAdminUser = computed(() => currentUserIsAdmin(this.authService.currentUser()));
+  protected readonly isAdminUser = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
   protected readonly currentWarehouseLabel = computed(() =>
     formatCurrentWarehouseLabel(this.authService.currentUser())
   );

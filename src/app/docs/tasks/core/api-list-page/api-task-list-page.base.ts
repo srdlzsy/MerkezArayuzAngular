@@ -18,9 +18,9 @@ import {
   PdfPreviewDialogData
 } from '../pdf-preview-dialog/pdf-preview-dialog.component';
 import {
-  currentUserIsAdmin,
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
-  getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../admin-warehouse.helpers';
 
@@ -50,8 +50,14 @@ export abstract class ApiTaskListPageBase<
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastLoadedAt = signal<string | null>(null);
+  protected readonly allWarehousesPermissionCode = computed(() =>
+    buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+  );
   protected readonly isAdminUser = computed(() =>
-    currentUserIsAdmin(this.listAuthService.currentUser())
+    currentUserCanUseAllWarehouses(
+      this.listAuthService.currentUser(),
+      this.allWarehousesPermissionCode()
+    )
   );
   protected readonly currentWarehouseLabel = computed(() =>
     formatCurrentWarehouseLabel(this.listAuthService.currentUser())
@@ -293,7 +299,7 @@ export abstract class ApiTaskListPageBase<
       return this.getAdminWarehouseNo() ?? undefined;
     }
 
-    return getCurrentWarehouseNo(this.listAuthService.currentUser()) ?? undefined;
+    return undefined;
   }
 
   protected loadRows(): void {

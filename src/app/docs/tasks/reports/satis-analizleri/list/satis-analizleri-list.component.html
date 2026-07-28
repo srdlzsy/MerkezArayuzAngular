@@ -48,7 +48,7 @@
           />
         </label>
 
-        <div class="scope-switch" aria-label="Sube kapsami">
+        <div class="scope-switch" *ngIf="isAdminUser(); else fixedWarehouseScope" aria-label="Sube kapsami">
           <button
             type="button"
             class="scope-pill"
@@ -75,7 +75,13 @@
           </button>
         </div>
 
-        <label class="field manual-field" *ngIf="scope() === 'manual'">
+        <ng-template #fixedWarehouseScope>
+          <div class="scope-switch locked-scope" aria-label="Sube kapsami">
+            <span class="scope-pill is-active">{{ currentWarehouseLabel() }}</span>
+          </div>
+        </ng-template>
+
+        <label class="field manual-field" *ngIf="isAdminUser() && scope() === 'manual'">
           <span>Sube No</span>
           <input
             type="number"

@@ -17,6 +17,7 @@ import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
 import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
+import { formatCurrentWarehouseLabel } from '../../../core/admin-warehouse.helpers';
 import { CashTurnoverDetailDialogData } from '../kasa-cirolari.models';
 import { KasaCirolariDetailComponent } from '../detail/kasa-cirolari-detail.component';
 
@@ -147,25 +148,7 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   private overviewRequestId = 0;
 
   protected override readonly currentWarehouseLabel = computed(() => {
-    const user = this.authService.currentUser();
-
-    if (!user) {
-      return 'JWT deposu okunamadi';
-    }
-
-    if (user.depoIsmi?.trim() && user.depoNo !== null && user.depoNo !== undefined) {
-      return `${user.depoIsmi} (${user.depoNo})`;
-    }
-
-    if (user.depoIsmi?.trim()) {
-      return user.depoIsmi;
-    }
-
-    if (user.depoNo !== null && user.depoNo !== undefined) {
-      return `Depo ${user.depoNo}`;
-    }
-
-    return 'JWT deposu okunamadi';
+    return formatCurrentWarehouseLabel(this.authService.currentUser());
   });
   protected readonly selectedSourceLabel = computed(() =>
     getCashTurnoverSourceLabel(this.selectedSource())
