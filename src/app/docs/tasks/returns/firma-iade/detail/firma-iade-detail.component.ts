@@ -17,6 +17,9 @@ import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-tas
 export class FirmaIadeDetailComponent extends KalemliTaskDetailBase<IFurpaCompanyMovementDetailApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-iadeleri'];
   protected readonly screenTitle = 'Firma Iade Detayi';
+  protected override readonly printDocumentTitle = 'Firma Iade Evraki';
+  protected override readonly printDocumentNoLabel = 'Iade No';
+  protected override readonly printLineTitle = 'Iade Kalemleri';
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
 
   protected override loadDetail(): void {

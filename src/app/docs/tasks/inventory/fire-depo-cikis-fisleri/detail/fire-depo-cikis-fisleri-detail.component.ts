@@ -17,6 +17,9 @@ import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-tas
 export class FireDepoCikisFisleriDetailComponent extends KalemliTaskDetailBase<IFurpaStockReceiptDetailApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['zayiat-fisleri'];
   protected readonly screenTitle = 'Cikis Fisi Detayi';
+  protected override readonly printDocumentTitle = 'Fire Depo Cikis Fisi';
+  protected override readonly printDocumentNoLabel = 'Fis No';
+  protected override readonly printLineTitle = 'Fis Kalemleri';
   private readonly stokIslemleriService = inject(StokIslemleriService);
 
   protected override loadDetail(): void {

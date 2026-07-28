@@ -17,6 +17,9 @@ import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-tas
 export class DepolarArasiNakliyeMalKabulFisleriDetailComponent extends KalemliTaskDetailBase<IFurpaWarehouseReceiptDetailApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['depo-mal-kabulleri'];
   protected readonly screenTitle = 'Mal Kabul Fisi Detayi';
+  protected override readonly printDocumentTitle = 'Depo Mal Kabul Evraki';
+  protected override readonly printDocumentNoLabel = 'Fis No';
+  protected override readonly printLineTitle = 'Fis Kalemleri';
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
 
   protected override loadDetail(): void {

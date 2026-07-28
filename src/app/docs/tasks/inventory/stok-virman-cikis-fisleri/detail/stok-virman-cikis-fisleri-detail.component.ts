@@ -17,6 +17,9 @@ import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-tas
 export class StokVirmanCikisFisleriDetailComponent extends KalemliTaskDetailBase<IFurpaVirmanDetailApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['virmanlar'];
   protected readonly screenTitle = 'Virman Fisi Detayi';
+  protected override readonly printDocumentTitle = 'Stok Virman Cikis Fisi';
+  protected override readonly printDocumentNoLabel = 'Fis No';
+  protected override readonly printLineTitle = 'Virman Kalemleri';
   private readonly stokIslemleriService = inject(StokIslemleriService);
 
   protected override loadDetail(): void {

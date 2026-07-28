@@ -17,6 +17,9 @@ import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-tas
 export class ToptanCikisFaturalariDetailComponent extends KalemliTaskDetailBase<IFurpaCompanyMovementDetailApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['gelen-firma-sevkleri'];
   protected readonly screenTitle = 'Fatura Detayi';
+  protected override readonly printDocumentTitle = 'Toptan Cikis Fatura Evraki';
+  protected override readonly printDocumentNoLabel = 'Fatura No';
+  protected override readonly printLineTitle = 'Fatura Kalemleri';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
 
   protected override loadDetail(): void {

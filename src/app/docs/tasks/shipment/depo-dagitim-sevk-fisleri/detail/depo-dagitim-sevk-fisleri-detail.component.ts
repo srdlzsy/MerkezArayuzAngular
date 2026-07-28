@@ -17,6 +17,9 @@ import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-tas
 export class DepoDagitimSevkFisleriDetailComponent extends KalemliTaskDetailBase<IFurpaWarehouseShippingDetailApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['gelen-depolar-arasi-sevkler'];
   protected readonly screenTitle = 'Sevk Fisi Detayi';
+  protected override readonly printDocumentTitle = 'Depo Dagitim Sevk Evraki';
+  protected override readonly printDocumentNoLabel = 'Fis No';
+  protected override readonly printLineTitle = 'Sevk Kalemleri';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
 
   protected override loadDetail(): void {

@@ -29,6 +29,9 @@ export class DepoIadeDetailComponent extends KalemliTaskDetailBase<IFurpaWarehou
     DOCS_PAGES[this.resolveDialogData().pageId ?? 'giden-depo-iadeleri'] ??
     DOCS_PAGES['giden-depo-iadeleri'];
   protected readonly screenTitle = 'Depo Iade Detayi';
+  protected override readonly printDocumentTitle = 'Depo Iade Evraki';
+  protected override readonly printDocumentNoLabel = 'Iade No';
+  protected override readonly printLineTitle = 'Iade Kalemleri';
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
 
   protected override loadDetail(): void {

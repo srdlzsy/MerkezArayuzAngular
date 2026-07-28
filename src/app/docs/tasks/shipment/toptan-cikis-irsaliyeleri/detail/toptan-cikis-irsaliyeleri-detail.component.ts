@@ -17,6 +17,9 @@ import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-tas
 export class ToptanCikisIrsaliyeleriDetailComponent extends KalemliTaskDetailBase<IFurpaCompanyMovementDetailApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['giden-firma-sevkleri'];
   protected readonly screenTitle = 'Irsaliye Detayi';
+  protected override readonly printDocumentTitle = 'Toptan Cikis Irsaliye Evraki';
+  protected override readonly printDocumentNoLabel = 'Irsaliye No';
+  protected override readonly printLineTitle = 'Irsaliye Kalemleri';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
 
   protected override loadDetail(): void {
