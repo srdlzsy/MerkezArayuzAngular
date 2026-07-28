@@ -21,7 +21,7 @@ const DEFAULT_OPTIONS: Required<BarcodeRenderOptions> = {
 };
 
 function pickBarcodeFormat(value: string): BarcodeFormat {
-  if (/^\d{8}$/.test(value) || /^\d{7}$/.test(value)) {
+  if (/^\d{8}$/.test(value)) {
     return 'EAN8';
   }
 

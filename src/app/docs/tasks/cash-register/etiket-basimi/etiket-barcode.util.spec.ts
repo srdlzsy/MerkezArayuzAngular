@@ -37,6 +37,16 @@ describe('renderBarcodeSvg', () => {
     expect(svg.getAttribute('data-barcode-error')).toBeNull();
   });
 
+  it('renders seven digit short barcodes exactly as CODE128', () => {
+    const svg = createSvg();
+
+    renderBarcodeSvg(svg, '2700226');
+
+    expect(svg.querySelectorAll('rect').length).toBeGreaterThan(0);
+    expect(svg.querySelector('text')?.textContent).toBe('2700226');
+    expect(svg.getAttribute('data-barcode-error')).toBeNull();
+  });
+
   it('does not render a fake barcode for an invalid EAN checksum', () => {
     const svg = createSvg();
 
