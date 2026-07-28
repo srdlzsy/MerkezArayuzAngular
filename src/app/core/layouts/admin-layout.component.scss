@@ -4,8 +4,9 @@
 }
 
 .admin-layout {
+  --sidebar-width: 224px;
   display: grid;
-  grid-template-columns: 224px minmax(0, 1fr);
+  grid-template-columns: var(--sidebar-width) minmax(0, 1fr);
   min-height: 100vh;
   align-items: stretch;
   background: #eceef4;
@@ -357,7 +358,7 @@
 
 @media (max-width: 1280px) {
   .admin-layout {
-    grid-template-columns: 212px minmax(0, 1fr);
+    --sidebar-width: 212px;
   }
 
   .topbar {
@@ -371,6 +372,7 @@
 
 @media (max-width: 960px) {
   .admin-layout {
+    --sidebar-width: 0px;
     grid-template-columns: minmax(0, 1fr);
   }
 
@@ -596,11 +598,13 @@
 
 @media (min-width: 961px) {
   .admin-layout {
-    grid-template-columns: 224px minmax(0, 1fr);
+    --sidebar-width: 224px;
+    background:
+      linear-gradient(90deg, #56648d 0 var(--sidebar-width), #eceef4 var(--sidebar-width) 100%);
   }
 
   .admin-layout.is-sidebar-collapsed {
-    grid-template-columns: 80px minmax(0, 1fr);
+    --sidebar-width: 80px;
   }
 
   .app-sidebar {
@@ -787,6 +791,6 @@
 
 @media (min-width: 961px) and (max-width: 1280px) {
   .admin-layout:not(.is-sidebar-collapsed) {
-    grid-template-columns: 212px minmax(0, 1fr);
+    --sidebar-width: 212px;
   }
 }
