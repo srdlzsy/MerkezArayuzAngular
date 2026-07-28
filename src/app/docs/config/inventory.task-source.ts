@@ -11,7 +11,8 @@ export const INVENTORY_TASK_SOURCE = {
       baseRouteOrFile: '/api/stok-islemleri/stok-anomali-merkezi',
       highlights: [
         'Mikro verisine yazma yapmaz; anomalileri Auth veritabaninda takip eder',
-        'stok-islemleri.stok-anomali-merkezi.all-warehouses yetkisi tum depo kapsamini acar',
+        'all-warehouses yoksa kapsam ana kullanici deposudur; relatedWarehouseNo sadece bilgi alanidir',
+        'stok-islemleri.stok-anomali-merkezi.all-warehouses yetkisi tum ana depo kapsamini acar',
         'Negatif stok, duplicate belge, kabul farki, yuksek miktar, hareketsiz stok ve bekleyen transferleri yakalar',
         'Anomaliler satin almaci kodu/adi ve atanmis/atanmamis filtresiyle izlenebilir',
         'Satir detayinda evidence/events gorulur ve durum Acknowledged, Resolved veya Ignored yapilir'

@@ -163,14 +163,14 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
     const user = this.authService.currentUser();
 
     if (!user) {
-      return 'Depo okunamadi';
+      return 'Ana depo okunamadi';
     }
 
     if (user.depoIsmi && user.depoNo !== null) {
       return `${user.depoIsmi} (${user.depoNo})`;
     }
 
-    return user.depoNo !== null ? `Depo ${user.depoNo}` : 'Depo okunamadi';
+    return user.depoNo !== null ? `Ana depo ${user.depoNo}` : 'Ana depo okunamadi';
   });
   protected readonly isAdminUser = computed(
     () => currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
@@ -545,8 +545,8 @@ export class StokAnomaliMerkeziListComponent implements OnInit {
 
   protected detailPairs(detail: StockAnomalyDetailDto): DetailPair[] {
     return [
-      { label: 'Depo', value: `${detail.warehouseName || 'Depo'} (${detail.warehouseNo})` },
-      { label: 'Iliskili Depo', value: detail.relatedWarehouseNo ? `${detail.relatedWarehouseName || 'Depo'} (${detail.relatedWarehouseNo})` : '-' },
+      { label: 'Ana Depo', value: `${detail.warehouseName || 'Depo'} (${detail.warehouseNo})` },
+      { label: 'Iliskili Depo (bilgi)', value: detail.relatedWarehouseNo ? `${detail.relatedWarehouseName || 'Depo'} (${detail.relatedWarehouseNo})` : '-' },
       { label: 'Stok', value: [detail.productCode, detail.productName].filter(Boolean).join(' - ') || '-' },
       { label: 'Satin Almaci', value: this.productManagerLabel(detail) },
       { label: 'Belge', value: this.documentLabel(detail) },

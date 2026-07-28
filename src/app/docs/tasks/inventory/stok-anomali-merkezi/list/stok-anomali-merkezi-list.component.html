@@ -40,11 +40,11 @@
 
   <section class="filter-band">
     <label>
-      <span>Depo</span>
+      <span>Ana Depo</span>
       <input
         type="number"
         min="1"
-        [placeholder]="isAdminUser() ? 'Tum depolar' : currentWarehouseLabel()"
+        [placeholder]="isAdminUser() ? 'Tum ana depolar' : currentWarehouseLabel()"
         [disabled]="!isAdminUser()"
         [ngModel]="warehouseNoInput()"
         (ngModelChange)="setWarehouseNo($event)"
@@ -204,7 +204,7 @@
               <th><button type="button" (click)="setSort('severity')">Seviye <i class="fa-solid" [ngClass]="sortIcon('severity')"></i></button></th>
               <th><button type="button" (click)="setSort('status')">Durum <i class="fa-solid" [ngClass]="sortIcon('status')"></i></button></th>
               <th>Tip</th>
-              <th><button type="button" (click)="setSort('warehouseNo')">Depo <i class="fa-solid" [ngClass]="sortIcon('warehouseNo')"></i></button></th>
+              <th><button type="button" (click)="setSort('warehouseNo')">Ana Depo <i class="fa-solid" [ngClass]="sortIcon('warehouseNo')"></i></button></th>
               <th><button type="button" (click)="setSort('productCode')">Stok <i class="fa-solid" [ngClass]="sortIcon('productCode')"></i></button></th>
               <th><button type="button" (click)="setSort('productManagerCode')">Satin Almaci <i class="fa-solid" [ngClass]="sortIcon('productManagerCode')"></i></button></th>
               <th>Belge</th>
