@@ -216,9 +216,9 @@ export class KasaIslemleriService extends BaseApiService {
     );
   }
 
-  getBanknotTakipDetayi(banknoteTrackId: number): Observable<IFurpaBanknoteTrackApiDto> {
+  getBanknotTakipDetayi(banknoteTrackId: string): Observable<IFurpaBanknoteTrackApiDto> {
     return this.get<IFurpaBanknoteTrackApiDto>(
-      `kasa-islemleri/banknot-takipleri/${banknoteTrackId}`
+      `kasa-islemleri/banknot-takipleri/${encodeURIComponent(banknoteTrackId)}`
     );
   }
 

@@ -95,6 +95,7 @@
       [rows]="tracks()"
       [columns]="tableColumns"
       actionLabel="Detay"
+      [fitToWidth]="true"
       filterPlaceholder="ID, depo, teslim eden, teslim alan veya tutar ara"
       (rowAction)="openDetail($event)"
     ></app-api-list-table>
@@ -104,14 +105,25 @@
       <p>Secilen gun ve depo kapsami icin banknot takip kaydi bulunmuyor.</p>
     </article>
 
-    <section class="banknote-workspace">
-      <article class="query-card detail-panel">
-        <div class="panel-head">
+    <section class="banknote-dialog-backdrop" *ngIf="isDetailDialogOpen()" (click)="closeDetail()">
+      <article
+        class="query-card detail-panel detail-dialog"
+        (click)="$event.stopPropagation()"
+        role="dialog"
+        aria-modal="true"
+        aria-label="Banknot takip detayi"
+      >
+        <div class="panel-head dialog-head">
           <div>
             <span class="section-kicker">Detay</span>
             <h3>Banknot Takip Kaydi</h3>
           </div>
-          <span class="panel-chip" *ngIf="isDetailLoading()">Yukleniyor</span>
+          <div class="dialog-head-actions">
+            <span class="panel-chip" *ngIf="isDetailLoading()">Yukleniyor</span>
+            <button type="button" class="dialog-close" title="Kapat" (click)="closeDetail()">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
         </div>
 
         <article class="state-card state-card-error compact-state" *ngIf="detailError() as currentDetailError">
@@ -119,7 +131,7 @@
           <p>{{ currentDetailError }}</p>
         </article>
 
-        <ng-container *ngIf="selectedTrackDetail() as detail; else noDetail">
+        <ng-container *ngIf="selectedTrackDetail() as detail">
           <div class="detail-main">
             <span>ID {{ detail.banknoteTrackId }}</span>
             <strong>{{ detail.warehouseName || 'Depo' }}</strong>
@@ -162,15 +174,7 @@
             </div>
           </dl>
         </ng-container>
-
-        <ng-template #noDetail>
-          <div class="empty-copy">
-            <h3>Kayit secilmedi</h3>
-            <p>Tablodan bir kayit acildiginda detay burada gosterilir.</p>
-          </div>
-        </ng-template>
       </article>
-
     </section>
     <section class="banknote-dialog-backdrop" *ngIf="isCreatePanelOpen()" (click)="closeCreatePanel()">
       <form
@@ -207,32 +211,32 @@
         </article>
 
         <div class="create-grid">
-          <label class="field">
+          <label class="field create-date-field">
             <span>Tarih</span>
             <input type="date" formControlName="banknoteTrackDate" [max]="maxTargetDate" />
           </label>
 
-          <label class="field" *ngIf="canUseWarehouseScope()">
+          <label class="field create-warehouse-field" *ngIf="canUseWarehouseScope()">
             <span>Depo No</span>
             <input type="number" min="1" formControlName="warehouseNo" placeholder="Bos: aktif depo" />
           </label>
 
-          <label class="field">
+          <label class="field create-amount-field">
             <span>Toplam Tutar</span>
             <input type="number" min="0" step="0.01" formControlName="totalAmount" placeholder="12000" />
           </label>
 
-          <label class="field">
+          <label class="field create-amount-field">
             <span>Teslim Tutar</span>
             <input type="number" min="0" step="0.01" formControlName="deliveryTotalAmount" placeholder="11850" />
           </label>
 
-          <label class="field">
+          <label class="field create-person-field">
             <span>Teslim Eden</span>
             <input type="text" formControlName="deliverer" maxlength="80" autocomplete="off" />
           </label>
 
-          <label class="field">
+          <label class="field create-person-field">
             <span>Teslim Alan</span>
             <input type="text" formControlName="receiver" maxlength="80" autocomplete="off" />
           </label>

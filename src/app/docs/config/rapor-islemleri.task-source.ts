@@ -152,7 +152,7 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       baseRouteOrFile: '/api/rapor-islemleri/promosyon-raporlari',
       highlights: [
         'Bulten listesi activeOn ve onlyActive filtreleriyle calisir',
-        'Performans filtrelerindeki promosyon dropdownu bulten-secenekleri endpointinden beslenir',
+        'Performans filtrelerindeki promosyon dropdownu bultenler/secenekler endpointinden beslenir',
         'Performans ve satis-marj etkisi PromotionPerformanceHttpRequest query modelini kullanir',
         'Performans startDate ve endDate alanlari opsiyoneldir; backend bos tarihleri varsayilan araliga tamamlar',
         'Sube kirilimi performans/sube endpointinden okunur',
@@ -172,7 +172,7 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/rapor-islemleri/promosyon-raporlari/bulten-secenekleri?search=12&take=50',
+              path: '/api/rapor-islemleri/promosyon-raporlari/bultenler/secenekler?search=12&take=50',
               description: 'Performans filtresi icin promosyon/bulten seceneklerini getirir'
             },
             {

@@ -22,7 +22,11 @@
       </article>
       <article class="hero-stat hero-stat-wide">
         <span>Kullanici Deposu</span>
-        <strong>{{ currentUserWarehouse() ?? '-' }}</strong>
+        <strong>{{ currentWarehouseLabel() }}</strong>
+      </article>
+      <article class="hero-stat hero-stat-wide">
+        <span>Depo Kapsami</span>
+        <strong>{{ canUseWarehouseScope() ? 'Secilebilir / bos: tum subeler' : 'Kullanici deposu' }}</strong>
       </article>
     </aside>
   </header>
@@ -93,7 +97,7 @@
                 <span>Bitis</span>
                 <input type="date" formControlName="endDate" />
               </label>
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Depo No</span>
                 <input type="number" formControlName="warehouseNo" placeholder="110" />
               </label>
@@ -127,7 +131,7 @@
             </div>
 
             <div class="field-row">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Depo No</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -167,7 +171,7 @@
             </div>
 
             <div class="field-row" [formGroup]="transferForm">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Depo No</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -182,7 +186,7 @@
             </div>
 
             <div class="field-row" [formGroup]="deleteForm">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Silme Deposu</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -219,7 +223,7 @@
                 <span>Bitis</span>
                 <input type="date" formControlName="endDate" />
               </label>
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Depo No</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -253,7 +257,7 @@
             </div>
 
             <div class="field-row">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Depo No</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -302,18 +306,10 @@
                 <span>Odeme Tipi</span>
                 <input type="text" formControlName="paymentType" />
               </label>
-              <label class="field">
-                <span>Sube No</span>
-                <input type="number" formControlName="branchNo" />
-              </label>
-              <label class="field field-wide">
-                <span>Aciklama</span>
-                <textarea formControlName="description"></textarea>
-              </label>
             </div>
 
             <div class="field-row" [formGroup]="transferForm">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>ERP Deposu</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -328,7 +324,7 @@
             </div>
 
             <div class="field-row" [formGroup]="deleteForm">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Silme Deposu</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -368,7 +364,7 @@
                 <span>Bitis</span>
                 <input type="date" formControlName="endDate" />
               </label>
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Depo No</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -402,7 +398,7 @@
             </div>
 
             <div class="field-row">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Depo No</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -444,25 +440,17 @@
                 <input type="text" formControlName="documentNo" />
               </label>
               <label class="field">
-                <span>Vergi No</span>
-                <input type="text" formControlName="customerTaxNo" />
-              </label>
-              <label class="field">
                 <span>Odeme Tipi</span>
                 <input type="text" formControlName="paymentType" />
               </label>
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Sube No</span>
                 <input type="number" formControlName="branchNo" />
-              </label>
-              <label class="field field-wide">
-                <span>Aciklama</span>
-                <textarea formControlName="description"></textarea>
               </label>
             </div>
 
             <div class="field-row" [formGroup]="transferForm">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>ERP Deposu</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -477,7 +465,7 @@
             </div>
 
             <div class="field-row" [formGroup]="deleteForm">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Silme Deposu</span>
                 <input type="number" formControlName="warehouseNo" />
               </label>
@@ -509,7 +497,7 @@
             </div>
 
             <div class="field-row">
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Sube No</span>
                 <input type="number" formControlName="branchNo" />
               </label>
@@ -541,17 +529,9 @@
                 <span>Kasa No</span>
                 <input type="text" formControlName="cashRegisterNo" placeholder="CR-01" />
               </label>
-              <label class="field">
+              <label class="field" [hidden]="!canUseWarehouseScope()">
                 <span>Sube No</span>
                 <input type="number" formControlName="branchNo" />
-              </label>
-              <label class="field">
-                <span>Sube Adi</span>
-                <input type="text" formControlName="branchName" />
-              </label>
-              <label class="field field-wide">
-                <span>Aciklama</span>
-                <textarea formControlName="description"></textarea>
               </label>
             </div>
 

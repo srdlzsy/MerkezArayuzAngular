@@ -29,6 +29,12 @@ import {
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import {
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 
 type PosAccountingTabId =
   | 'z-raporlari'
@@ -36,6 +42,8 @@ type PosAccountingTabId =
   | 'gider-pusulalari'
   | 'kasa-eslemeleri';
 type FeedbackTone = 'success' | 'error' | 'info' | 'warning';
+
+const ALL_WAREHOUSES_PERMISSION = 'entegrasyon-islemleri.pos-muhasebe-aktarimi.all-warehouses';
 
 interface PosAccountingTabDefinition {
   id: PosAccountingTabId;
@@ -179,13 +187,14 @@ export class PosMuhasebeAktarimiListComponent {
     'entegrasyon-islemleri.pos-muhasebe-aktarimi.list',
     'entegrasyon-islemleri.pos-muhasebe-aktarimi.detail',
     'entegrasyon-islemleri.pos-muhasebe-aktarimi.create',
-    'entegrasyon-islemleri.pos-muhasebe-aktarimi.update'
+    'entegrasyon-islemleri.pos-muhasebe-aktarimi.update',
+    ALL_WAREHOUSES_PERMISSION
   ] as const;
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly entegrasyonIslemleriService = inject(EntegrasyonIslemleriService);
-  private readonly defaultWarehouseNo = this.authService.currentUser()?.depoNo ?? null;
+  private readonly defaultWarehouseNo = getCurrentWarehouseNo(this.authService.currentUser());
 
   protected readonly activeTab = signal<PosAccountingTabId>('z-raporlari');
   protected readonly overview = signal<IPosAccountingOverviewApiDto | null>(null);
@@ -268,8 +277,14 @@ export class PosMuhasebeAktarimiListComponent {
     description: new FormControl<string>('POS muhasebe esleme denemesi', { nonNullable: true })
   });
 
-  protected readonly currentUserWarehouse = computed(
-    () => this.authService.currentUser()?.depoNo ?? null
+  protected readonly currentUserWarehouse = computed(() =>
+    getCurrentWarehouseNo(this.authService.currentUser())
+  );
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
+  protected readonly canUseWarehouseScope = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
   );
   protected readonly activeTabDefinition = computed(
     () =>
@@ -1093,14 +1108,14 @@ export class PosMuhasebeAktarimiListComponent {
     return {
       startDate: this.rangeForm.controls.startDate.value,
       endDate: this.rangeForm.controls.endDate.value,
-      warehouseNo: this.rangeForm.controls.warehouseNo.value,
+      warehouseNo: this.resolveScopedWarehouseNo(this.rangeForm.controls.warehouseNo.value),
       onlyPending: this.rangeForm.controls.onlyPending.value
     };
   }
 
   private buildZReportImportRequest(): IImportZReportsHttpRequestApiDto {
     return {
-      warehouseNo: this.zReportImportForm.controls.warehouseNo.value,
+      warehouseNo: this.resolveScopedWarehouseNo(this.zReportImportForm.controls.warehouseNo.value),
       businessDate: this.zReportImportForm.controls.businessDate.value || null,
       reportPath: this.normalizeOptionalText(this.zReportImportForm.controls.reportPath.value),
       importMode: this.zReportImportForm.controls.importMode.value.trim() || null,
@@ -1113,7 +1128,7 @@ export class PosMuhasebeAktarimiListComponent {
     const businessDate = this.documentImportForm.controls.businessDate.value || null;
 
     return {
-      warehouseNo: this.documentImportForm.controls.warehouseNo.value,
+      warehouseNo: this.resolveScopedWarehouseNo(this.documentImportForm.controls.warehouseNo.value),
       businessDate,
       dateToGet: businessDate,
       includePreviouslyImported:
@@ -1135,7 +1150,7 @@ export class PosMuhasebeAktarimiListComponent {
     }
 
     return {
-      warehouseNo: this.transferForm.controls.warehouseNo.value,
+      warehouseNo: this.resolveScopedWarehouseNo(this.transferForm.controls.warehouseNo.value),
       ...this.buildSelectedIdPayload(documentIds),
       continueOnError: this.transferForm.controls.continueOnError.value
     };
@@ -1154,7 +1169,7 @@ export class PosMuhasebeAktarimiListComponent {
     }
 
     return {
-      warehouseNo: this.deleteForm.controls.warehouseNo.value,
+      warehouseNo: this.resolveScopedWarehouseNo(this.deleteForm.controls.warehouseNo.value),
       ...this.buildSelectedIdPayload(documentIds)
     };
   }
@@ -1186,18 +1201,24 @@ export class PosMuhasebeAktarimiListComponent {
   }
 
   private buildUpdateRequest(): IUpdatePosAccountingDocumentHttpRequestApiDto {
+    const isInvoiceTab = this.activeTab() === 'pos-faturalar';
+
     return {
       documentNo: this.normalizeOptionalText(this.updateForm.controls.documentNo.value),
-      customerTaxNo: this.normalizeOptionalText(this.updateForm.controls.customerTaxNo.value),
+      customerTaxNo: isInvoiceTab
+        ? this.normalizeOptionalText(this.updateForm.controls.customerTaxNo.value)
+        : null,
       paymentType: this.normalizeOptionalText(this.updateForm.controls.paymentType.value),
-      branchNo: this.updateForm.controls.branchNo.value,
-      description: this.normalizeOptionalText(this.updateForm.controls.description.value)
+      branchNo: isInvoiceTab
+        ? null
+        : this.resolveScopedWarehouseNo(this.updateForm.controls.branchNo.value),
+      description: null
     };
   }
 
   private buildMappingListRequest(): ICashRegisterBranchMappingListHttpRequestApiDto {
     return {
-      branchNo: this.mappingListForm.controls.branchNo.value,
+      branchNo: this.resolveScopedWarehouseNo(this.mappingListForm.controls.branchNo.value),
       cashRegisterNo: this.normalizeOptionalText(
         this.mappingListForm.controls.cashRegisterNo.value
       )
@@ -1214,10 +1235,18 @@ export class PosMuhasebeAktarimiListComponent {
 
     return {
       cashRegisterNo,
-      branchNo: this.mappingForm.controls.branchNo.value,
-      branchName: this.normalizeOptionalText(this.mappingForm.controls.branchName.value),
-      description: this.normalizeOptionalText(this.mappingForm.controls.description.value)
+      branchNo: this.resolveScopedWarehouseNo(this.mappingForm.controls.branchNo.value),
+      branchName: null,
+      description: null
     };
+  }
+
+  private resolveScopedWarehouseNo(value: number | null | undefined): number | null {
+    if (this.canUseWarehouseScope()) {
+      return toPositiveWarehouseNo(value);
+    }
+
+    return this.currentUserWarehouse();
   }
 
   private parseDocumentIds(rawValue: string): number[] | null {

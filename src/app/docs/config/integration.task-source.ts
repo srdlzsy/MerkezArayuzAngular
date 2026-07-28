@@ -255,6 +255,7 @@ export const INTEGRATION_TASK_SOURCE = {
         'Z dosya importu haric aktif backend akislari',
         'Liste / detay / toplu islem ayrimi',
         'Belge tipine gore totalIds / invoiceIds / expenseIds secimi',
+        'Depo secimi pos-muhasebe-aktarimi.all-warehouses yetkisine baglidir',
         'Staging ve ERP kavramlarini ayri tutar'
       ],
       listTitle: 'Endpointler',
@@ -301,7 +302,7 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar',
-              description: 'POS faturalar listesini dondurur; OnlyPending default true kabul edilir',
+              description: 'POS faturalar listesini dondurur; warehouseNo kapsami UI yetkisine gore belirlenir',
               payload: 'PosAccountingDateRangeHttpRequest'
             },
             {
@@ -312,7 +313,7 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/pos-faturalar/ice-aktar',
-              description: 'POS faturalarini staginge alir; dateToGet, businessDate aliasi olarak desteklenir',
+              description: 'POS faturalarini staginge alir; dateToGet businessDate aliasidir, warehouseNo kapsami UI yetkisine gore belirlenir',
               payload: 'ImportPosDocumentsHttpRequest'
             },
             {
@@ -336,7 +337,7 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari',
-              description: 'Gider pusulalari listesini dondurur; OnlyPending default true kabul edilir',
+              description: 'Gider pusulalari listesini dondurur; warehouseNo kapsami UI yetkisine gore belirlenir',
               payload: 'PosAccountingDateRangeHttpRequest'
             },
             {
@@ -347,7 +348,7 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/entegrasyon-islemleri/pos-muhasebe-aktarimi/gider-pusulalari/ice-aktar',
-              description: 'Gider pusulasini staginge alir; dateToGet, businessDate aliasi olarak desteklenir',
+              description: 'Gider pusulasini staginge alir; dateToGet businessDate aliasidir, warehouseNo kapsami UI yetkisine gore belirlenir',
               payload: 'ImportPosDocumentsHttpRequest'
             },
             {

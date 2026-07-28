@@ -490,7 +490,7 @@ export interface BanknoteTypeItemDto {
 }
 
 export interface BanknoteTrackDto {
-  banknoteTrackId: number;
+  banknoteTrackId: string;
   warehouseNo: number;
   warehouseName: string;
   banknoteTrackDate: string;
@@ -710,7 +710,7 @@ export interface CreateBanknoteTrackHttpRequest {
 }
 
 export interface CreateBanknoteTrackResponse {
-  banknoteTrackId: number;
+  banknoteTrackId: string;
   banknoteTrackDate: string;
   warehouseNo: number;
   created: boolean;
@@ -852,7 +852,7 @@ export type IFurpaBanknoteTypeItemApiDto = IFurpaBanknoteMovementItemApiDto;
 export type IFurpaGiftCheckTypeItemApiDto = IFurpaGiftCheckMovementItemApiDto;
 
 export interface IFurpaBanknoteTrackApiDto {
-  banknoteTrackId: number;
+  banknoteTrackId: string;
   warehouseNo: number;
   warehouseName: string;
   banknoteTrackDate: string;
@@ -913,7 +913,7 @@ export interface IFurpaCreateBanknoteTrackRequestApiDto {
 }
 
 export interface IFurpaCreateBanknoteTrackResponseApiDto {
-  banknoteTrackId: number;
+  banknoteTrackId: string;
   banknoteTrackDate: string;
   warehouseNo: number;
   created: boolean;

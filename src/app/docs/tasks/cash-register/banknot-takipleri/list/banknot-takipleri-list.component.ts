@@ -157,11 +157,15 @@ export class BanknotTakipleriListComponent {
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly detailError = signal<string | null>(null);
   protected readonly isCreatePanelOpen = signal(false);
+  protected readonly isDetailDialogOpen = computed(
+    () => !!this.selectedTrackDetail() || !!this.detailError() || this.isDetailLoading()
+  );
   protected readonly isLoading = signal(false);
   protected readonly isDetailLoading = signal(false);
   protected readonly isCreating = signal(false);
   protected readonly lastLoadedDate = signal(this.getToday());
   protected readonly maxTargetDate = this.getToday();
+  private readonly activeDetailTrackId = signal<string | null>(null);
 
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
@@ -256,6 +260,7 @@ export class BanknotTakipleriListComponent {
     this.feedback.set(null);
     this.detailError.set(null);
     this.selectedTrackDetail.set(null);
+    this.activeDetailTrackId.set(null);
     this.isLoading.set(true);
 
     this.kasaIslemleriService
@@ -318,16 +323,23 @@ export class BanknotTakipleriListComponent {
   }
 
   protected openDetail(track: IFurpaBanknoteTrackApiDto): void {
-    const banknoteTrackId = this.toSafeNumber(track.banknoteTrackId);
+    const banknoteTrackId = this.toSafeText(track.banknoteTrackId);
 
-    this.selectedTrackDetail.set(track);
     this.detailError.set(null);
+    this.activeDetailTrackId.set(banknoteTrackId || null);
 
     if (!banknoteTrackId) {
-      this.detailError.set('Detay icin banknoteTrackId alani gerekli.');
+      this.selectedTrackDetail.set(null);
+      this.feedback.set({
+        tone: 'error',
+        title: 'Detay acilamadi',
+        message: 'Secilen kaydin detay anahtari listeden gelmedi.'
+      });
       return;
     }
 
+    this.feedback.set(null);
+    this.selectedTrackDetail.set(track);
     this.isDetailLoading.set(true);
 
     this.kasaIslemleriService
@@ -338,9 +350,17 @@ export class BanknotTakipleriListComponent {
       )
       .subscribe({
         next: (detail: IFurpaBanknoteTrackApiDto) => {
+          if (this.activeDetailTrackId() !== banknoteTrackId) {
+            return;
+          }
+
           this.selectedTrackDetail.set(detail);
         },
         error: (error: unknown) => {
+          if (this.activeDetailTrackId() !== banknoteTrackId) {
+            return;
+          }
+
           this.detailError.set(
             this.getErrorMessage(error, 'Banknot takip detayi alinirken bir hata olustu.')
           );
@@ -363,10 +383,22 @@ export class BanknotTakipleriListComponent {
     this.isCreatePanelOpen.set(false);
   }
 
+  protected closeDetail(): void {
+    this.activeDetailTrackId.set(null);
+    this.selectedTrackDetail.set(null);
+    this.detailError.set(null);
+    this.isDetailLoading.set(false);
+  }
+
   @HostListener('document:keydown.escape')
-  protected closeCreatePanelWithEscape(): void {
+  protected closeActiveDialogWithEscape(): void {
     if (this.isCreatePanelOpen()) {
       this.closeCreatePanel();
+      return;
+    }
+
+    if (this.isDetailDialogOpen()) {
+      this.closeDetail();
     }
   }
   protected submitCreate(): void {
@@ -396,7 +428,7 @@ export class BanknotTakipleriListComponent {
         next: (response: IFurpaCreateBanknoteTrackResponseApiDto) => {
           this.createdResponse.set(response);
           this.feedback.set(null);
-    this.isCreatePanelOpen.set(true);
+          this.isCreatePanelOpen.set(true);
           this.filtersForm.controls.targetDate.setValue(
             toDateOnly(response.banknoteTrackDate) || this.getToday()
           );
@@ -492,7 +524,7 @@ export class BanknotTakipleriListComponent {
 
     switch (this.warehouseMode()) {
       case 'all':
-        return 1;
+        return undefined;
       case 'custom':
         return this.toOptionalNumber(this.filtersForm.getRawValue().customWarehouseNo);
       case 'current':
@@ -510,7 +542,10 @@ export class BanknotTakipleriListComponent {
         return rightDate - leftDate;
       }
 
-      return this.toSafeNumber(right.banknoteTrackId) - this.toSafeNumber(left.banknoteTrackId);
+      return this.toSafeText(right.banknoteTrackId).localeCompare(
+        this.toSafeText(left.banknoteTrackId),
+        'tr-TR'
+      );
     });
   }
 
@@ -545,6 +580,18 @@ export class BanknotTakipleriListComponent {
     const numberValue = this.toSafeNumber(value);
 
     return numberValue > 0 ? numberValue : undefined;
+  }
+
+  private toSafeText(value: unknown): string {
+    if (typeof value === 'string') {
+      return value.trim();
+    }
+
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return `${value}`;
+    }
+
+    return '';
   }
 
   private getErrorMessage(error: unknown, fallback: string): string {

@@ -390,7 +390,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
       baseRouteOrFile: '/api/kasa-islemleri/banknot-takipleri',
       highlights: [
         'Kasa sayimlari altindan ayrilan yeni route ailesidir',
-        'warehouseNo = 1 tum depolari listeler',
+        'warehouseNo bos gonderilirse all-warehouses yetkili kullanici icin tum depolari listeler',
         'differenceAmount deliveryTotalAmount - totalAmount olarak gelir'
       ],
       listTitle: 'Endpointler',
@@ -401,8 +401,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/banknot-takipleri?dateToGet=2026-04-24&warehouseNo=110',
-              description: 'Secilen gun icin banknot takip kayitlarini listeler'
+              path: '/api/kasa-islemleri/banknot-takipleri?dateToGet=2026-04-24',
+              description: 'Secilen gun icin banknot takip kayitlarini listeler; warehouseNo opsiyoneldir'
             },
             {
               method: 'GET',

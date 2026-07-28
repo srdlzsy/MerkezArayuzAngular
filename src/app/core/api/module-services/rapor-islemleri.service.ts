@@ -392,7 +392,7 @@ export class RaporIslemleriService extends BaseApiService {
     request: PromotionBulletinOptionHttpRequest
   ): Observable<PromotionBulletinOptionDto[]> {
     return this.getPromotionReport<PromotionBulletinOptionDto[], PromotionBulletinOptionHttpRequest>(
-      'bulten-secenekleri',
+      'bultenler/secenekler',
       request
     );
   }
