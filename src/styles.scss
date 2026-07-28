@@ -1,3 +1,5 @@
+@use './app/docs/tasks/edocuments/fatura-islemleri/list/fatura-islemleri-viewing-overrides';
+
 html,
 body {
   margin: 0;
@@ -591,7 +593,7 @@ body .lookup-page td {
 .lifecycle-state-grid span,
 .lifecycle-state-grid small {
   color: var(--axata-text-secondary);
-  font-size: 0.7rem;
+  font-size: 0.68rem;
 }
 
 .order-lifecycle-card > summary strong {

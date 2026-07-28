@@ -759,14 +759,13 @@
   display: grid;
   grid-template-columns:
     2rem
-    minmax(0, 1.05fr)
-    minmax(0, 0.62fr)
-    minmax(0, 1.34fr)
-    minmax(0, 0.78fr)
-    minmax(0, 0.72fr)
-    minmax(0, 0.92fr)
-    minmax(0, 0.66fr)
-    minmax(9.8rem, 0.86fr);
+    minmax(12rem, 0.95fr)
+    minmax(9.4rem, 0.7fr)
+    minmax(22rem, 1.55fr)
+    minmax(8.4rem, 0.58fr)
+    minmax(5.8rem, 0.38fr)
+    minmax(7.6rem, 0.48fr)
+    minmax(9.2rem, 0.56fr);
 }
 
 .viewing-table-cell {
@@ -1076,6 +1075,7 @@
   font-weight: 800;
   white-space: nowrap;
 }
+
 
 .sending-table .table-actions {
   flex-wrap: nowrap;

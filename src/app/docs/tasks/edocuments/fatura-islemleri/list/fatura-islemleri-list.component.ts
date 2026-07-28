@@ -324,7 +324,11 @@ export class FaturaIslemleriListComponent {
 
   protected readonly activeWorkspace = signal<WorkspaceMode>(this.initialWorkspace);
   protected readonly feedback = signal<PageFeedback | null>(null);
-  protected readonly viewingVirtualItemSize = 58;
+  protected readonly viewingCompactLayout = signal(false);
+  protected readonly viewingTightCompactLayout = signal(false);
+  protected readonly viewingVirtualItemSize = computed(() =>
+    this.viewingTightCompactLayout() ? 58 : this.viewingCompactLayout() ? 58 : 58
+  );
   protected readonly viewingVirtualWindowSize = 70;
 
   protected viewingQuickFilterInput = '';
@@ -386,6 +390,14 @@ export class FaturaIslemleriListComponent {
   protected readonly returnReferenceLoading = signal(false);
   protected readonly returnReferenceSavingKey = signal<string | null>(null);
   private viewingQuickFilterTimer: ReturnType<typeof setTimeout> | null = null;
+  private viewingCompactMediaQuery: MediaQueryList | null = null;
+  private viewingTightCompactMediaQuery: MediaQueryList | null = null;
+  private readonly viewingCompactMediaQueryListener = (event: MediaQueryListEvent): void => {
+    this.setViewingCompactLayout(event.matches);
+  };
+  private readonly viewingTightCompactMediaQueryListener = (event: MediaQueryListEvent): void => {
+    this.setViewingTightCompactLayout(event.matches);
+  };
 
   protected readonly viewingFilterForm = new FormGroup({
     startDate: new FormControl<string>(this.defaultDateRange().startDate, {
@@ -592,7 +604,7 @@ export class FaturaIslemleriListComponent {
     const totalCount = this.virtualViewingItems().length;
     const maxStartIndex = Math.max(0, totalCount - this.viewingVirtualWindowSize);
     const bufferedStartIndex =
-      Math.floor(this.viewingVirtualScrollTop() / this.viewingVirtualItemSize) - 10;
+      Math.floor(this.viewingVirtualScrollTop() / this.viewingVirtualItemSize()) - 10;
 
     return Math.min(maxStartIndex, Math.max(0, bufferedStartIndex));
   });
@@ -609,12 +621,12 @@ export class FaturaIslemleriListComponent {
     )
   );
   protected readonly viewingVirtualTopPadding = computed(
-    () => this.viewingVirtualStartIndex() * this.viewingVirtualItemSize
+    () => this.viewingVirtualStartIndex() * this.viewingVirtualItemSize()
   );
   protected readonly viewingVirtualBottomPadding = computed(
     () =>
       Math.max(0, this.virtualViewingItems().length - this.viewingVirtualEndIndex()) *
-      this.viewingVirtualItemSize
+      this.viewingVirtualItemSize()
   );
   protected readonly viewingTableStateOptions: ReadonlyArray<ViewingTableFilterOption> = [
     { value: 'all', label: 'Tum durumlar' },
@@ -845,11 +857,13 @@ export class FaturaIslemleriListComponent {
   });
   constructor() {
     effect(() => this.scheduleFeedbackDismiss(this.feedback()));
+    this.initializeViewingCompactLayout();
 
     this.destroyRef.onDestroy(() => {
       this.clearFeedbackDismissTimer();
       this.clearViewingQuickFilterTimer();
       this.clearViewingSyncProgressTimer();
+      this.teardownViewingCompactLayout();
       this.releasePreviewUrls();
       this.releaseViewingPdfUrl();
     });
@@ -1105,6 +1119,59 @@ export class FaturaIslemleriListComponent {
         direction: null
       };
     });
+    this.resetViewingVirtualScroll();
+  }
+
+  private initializeViewingCompactLayout(): void {
+    if (typeof window === 'undefined' || !window.matchMedia) {
+      return;
+    }
+
+    const compactMediaQuery = window.matchMedia('(max-width: 1320px)');
+    const tightCompactMediaQuery = window.matchMedia('(max-width: 760px)');
+    this.viewingCompactMediaQuery = compactMediaQuery;
+    this.viewingTightCompactMediaQuery = tightCompactMediaQuery;
+    this.setViewingCompactLayout(compactMediaQuery.matches);
+    this.setViewingTightCompactLayout(tightCompactMediaQuery.matches);
+    compactMediaQuery.addEventListener('change', this.viewingCompactMediaQueryListener);
+    tightCompactMediaQuery.addEventListener('change', this.viewingTightCompactMediaQueryListener);
+  }
+
+  private teardownViewingCompactLayout(): void {
+    if (!this.viewingCompactMediaQuery) {
+      return;
+    }
+
+    this.viewingCompactMediaQuery.removeEventListener(
+      'change',
+      this.viewingCompactMediaQueryListener
+    );
+    this.viewingCompactMediaQuery = null;
+
+    if (this.viewingTightCompactMediaQuery) {
+      this.viewingTightCompactMediaQuery.removeEventListener(
+        'change',
+        this.viewingTightCompactMediaQueryListener
+      );
+      this.viewingTightCompactMediaQuery = null;
+    }
+  }
+
+  private setViewingCompactLayout(isCompact: boolean): void {
+    if (this.viewingCompactLayout() === isCompact) {
+      return;
+    }
+
+    this.viewingCompactLayout.set(isCompact);
+    this.resetViewingVirtualScroll();
+  }
+
+  private setViewingTightCompactLayout(isTight: boolean): void {
+    if (this.viewingTightCompactLayout() === isTight) {
+      return;
+    }
+
+    this.viewingTightCompactLayout.set(isTight);
     this.resetViewingVirtualScroll();
   }
 

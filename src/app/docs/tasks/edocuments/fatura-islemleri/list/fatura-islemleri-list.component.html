@@ -284,6 +284,8 @@
             <div class="viewing-virtual-table-scroll">
               <div
                 class="invoice-table viewing-table viewing-virtual-table"
+                [class.is-compact-viewing-table]="viewingCompactLayout()"
+                [class.is-tight-viewing-table]="viewingTightCompactLayout()"
                 role="table"
                 [attr.aria-rowcount]="filteredViewingCount()"
               >
@@ -299,34 +301,29 @@
                         aria-label="Bu listedeki yazdirilmamis faturalar"
                       />
                     </div>
-                    <div class="viewing-table-cell" role="columnheader">
+                    <div class="viewing-table-cell invoice-id-cell" role="columnheader">
                       <button type="button" class="sort-header" (click)="setViewingSort('invoiceId')">
                         Fatura No {{ getViewingSortIndicator('invoiceId') }}
                       </button>
                     </div>
-                    <div class="viewing-table-cell" role="columnheader">
+                    <div class="viewing-table-cell despatch-cell" role="columnheader">
                       <button type="button" class="sort-header" (click)="setViewingSort('despatchId')">
                         Irsaliye {{ getViewingSortIndicator('despatchId') }}
                       </button>
                     </div>
-                    <div class="viewing-table-cell" role="columnheader">
+                    <div class="viewing-table-cell customer-cell" role="columnheader">
                       <button type="button" class="sort-header" (click)="setViewingSort('customerTitle')">
                         Musteri {{ getViewingSortIndicator('customerTitle') }}
                       </button>
                     </div>
-                    <div class="viewing-table-cell" role="columnheader">
+                    <div class="viewing-table-cell date-cell" role="columnheader">
                       <button type="button" class="sort-header" (click)="setViewingSort('invoiceDate')">
                         Fatura Tarihi {{ getViewingSortIndicator('invoiceDate') }}
                       </button>
                     </div>
-                    <div class="viewing-table-cell" role="columnheader">
+                    <div class="viewing-table-cell type-cell" role="columnheader">
                       <button type="button" class="sort-header" (click)="setViewingSort('invoiceType')">
                         Tip {{ getViewingSortIndicator('invoiceType') }}
-                      </button>
-                    </div>
-                    <div class="viewing-table-cell" role="columnheader">
-                      <button type="button" class="sort-header" (click)="setViewingSort('status')">
-                        Durum {{ getViewingSortIndicator('status') }}
                       </button>
                     </div>
                     <div class="viewing-table-cell amount-column" role="columnheader">
@@ -373,15 +370,15 @@
                         [attr.aria-label]="item.invoiceId + ' sec'"
                       />
                     </div>
-                    <div class="viewing-table-cell invoice-id-cell" role="cell">
+                    <div class="viewing-table-cell invoice-id-cell" role="cell" [title]="item.invoiceId">
                       <strong>{{ item.invoiceId }}</strong>
                       <small>Doc: {{ item.documentId | slice: 0 : 8 }}</small>
                       <small *ngIf="item.orderDocumentId">Sip: {{ item.orderDocumentId }}</small>
                     </div>
-                    <div class="viewing-table-cell despatch-cell" role="cell">
+                    <div class="viewing-table-cell despatch-cell" role="cell" [title]="item.despatchId || '-'">
                       <strong>{{ item.despatchId || '-' }}</strong>
                     </div>
-                    <div class="viewing-table-cell customer-cell" role="cell">
+                    <div class="viewing-table-cell customer-cell" role="cell" [title]="item.customerTitle || '-'">
                       <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
                       <small>{{ item.customerTcknVkn || '-' }}</small>
                     </div>
@@ -395,33 +392,6 @@
                       <strong>{{ item.invoiceTipType || item.invoiceType || '-' }}</strong>
                       <small>{{ item.documentCurrencyCode || 'TRY' }} / {{ item.exchangeRate || 1 }}</small>
                       <small>{{ item.isStandard ? 'Standart' : 'Ozel tasarim' }}</small>
-                    </div>
-                    <div class="viewing-table-cell status-cell" role="cell">
-                      <div class="compact-statuses">
-                        <span
-                          class="status-pill"
-                          [class.status-pill-success]="item.isProcessed"
-                          [class.status-pill-neutral]="!item.isProcessed"
-                        >
-                          {{ item.isProcessed ? 'Islendi' : 'Bekliyor' }}
-                        </span>
-                        <span
-                          class="status-pill"
-                          [class.status-pill-success]="item.isPrinted"
-                          [class.status-pill-neutral]="!item.isPrinted"
-                        >
-                          {{ item.isPrinted ? 'Yazdirildi' : 'Yazdirilmadi' }}
-                        </span>
-                        <small class="status-code-line">
-                          {{ getViewingStatusText(item) }}
-                        </small>
-                        <small
-                          class="status-code-line"
-                          *ngIf="item.envelopeStatusCode || item.isSeen === true || item.isSeen === false"
-                        >
-                          Zarf {{ item.envelopeStatusCode || '-' }} / {{ item.isSeen ? 'Goruldu' : 'Gorulmedi' }}
-                        </small>
-                      </div>
                     </div>
                     <div class="viewing-table-cell amount-column" role="cell">
                       <strong>{{ item.invoiceTotal | number: '1.2-2' }} TL</strong>

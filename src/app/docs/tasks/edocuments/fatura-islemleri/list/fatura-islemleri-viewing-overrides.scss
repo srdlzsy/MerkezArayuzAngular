@@ -1,0 +1,312 @@
+/* Fatura goruntuleme responsive overrides.
+   Imported from global styles to avoid the component style budget. */
+.invoice-console .viewing-table .despatch-cell {
+  overflow: visible;
+}
+
+.invoice-console .viewing-table .despatch-cell strong {
+  overflow: visible;
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-row {
+  grid-template-columns: 2rem minmax(10.5rem, 0.9fr) minmax(18rem, 1.55fr) minmax(12rem, 0.9fr) minmax(7.8rem, 0.5fr) minmax(5.8rem, 0.36fr);
+  grid-template-areas: 'select invoice customer despatch amount actions';
+  align-items: center;
+  column-gap: 0.36rem;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row {
+  min-height: 1.75rem;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row .viewing-table-cell {
+  padding: 0.14rem 0.08rem;
+  font-size: 0.56rem;
+  line-height: 1;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-body-row {
+  box-sizing: border-box;
+  height: 58px;
+  min-height: 58px;
+  padding: 0.08rem 0.28rem;
+  background: #ffffff;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-cell {
+  padding: 0.02rem 0.08rem;
+  font-size: 0.66rem;
+  line-height: 1.05;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .select-column {
+  grid-area: select;
+  padding: 0;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .invoice-id-cell {
+  grid-area: invoice;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .despatch-cell {
+  grid-area: despatch;
+  flex-direction: row;
+  align-items: center;
+  gap: 0.3rem;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .customer-cell {
+  grid-area: customer;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .amount-column {
+  grid-area: amount;
+  align-items: flex-end;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .action-cell,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .action-column {
+  grid-area: actions;
+  align-items: flex-end;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .date-cell,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .type-cell,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .invoice-id-cell small,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .customer-cell small,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .status-code-line {
+  display: none;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .invoice-id-cell strong,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .despatch-cell strong,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .customer-cell .table-main-text {
+  overflow-wrap: anywhere;
+  text-overflow: clip;
+  white-space: normal;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .invoice-id-cell strong,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .despatch-cell strong {
+  font-size: 0.68rem;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .customer-cell .table-main-text {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .amount-column strong {
+  font-size: 0.72rem;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .amount-column small {
+  display: none;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .table-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 0.14rem;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .invoice-action-button {
+  flex: 0 0 1.62rem;
+  width: 1.62rem;
+  min-height: 1.62rem;
+  padding: 0;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .invoice-action-button span {
+  display: none;
+}
+
+.invoice-console .viewing-virtual-table.is-tight-viewing-table .viewing-table-row {
+  grid-template-columns: 2rem minmax(9rem, 0.85fr) minmax(12rem, 1fr) minmax(7.2rem, 0.5fr) minmax(5rem, 0.34fr);
+  grid-template-areas: 'select invoice despatch amount actions';
+  column-gap: 0.28rem;
+}
+
+.invoice-console .viewing-virtual-table.is-tight-viewing-table .customer-cell {
+  display: none;
+}
+
+.invoice-console .viewing-virtual-table.is-tight-viewing-table .invoice-action-button {
+  flex-basis: 1.44rem;
+  width: 1.44rem;
+  min-height: 1.44rem;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row .invoice-id-cell,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row .customer-cell,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row .despatch-cell {
+  align-items: flex-start;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row .amount-column,
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row .action-column {
+  align-items: flex-end;
+}
+
+.invoice-console .viewing-virtual-table.is-compact-viewing-table .viewing-table-header-row .sort-header {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.invoice-console.is-viewing-workspace {
+  gap: 0.3rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-grid,
+.invoice-console.is-viewing-workspace .workspace-stack,
+.invoice-console.is-viewing-workspace .viewing-list-panel {
+  gap: 0.26rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-panel,
+.invoice-console.is-viewing-workspace .viewing-list-panel {
+  padding: 0.3rem 0.42rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-panel .panel-head,
+.invoice-console.is-viewing-workspace .viewing-list-panel > .panel-head {
+  min-height: 1.08rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-panel .panel-head h3,
+.invoice-console.is-viewing-workspace .viewing-list-panel > .panel-head h3 {
+  font-size: 0.78rem;
+  line-height: 1;
+}
+
+.invoice-console.is-viewing-workspace .viewing-list-meta,
+.invoice-console.is-viewing-workspace .viewing-filter-panel .panel-head,
+.invoice-console.is-viewing-workspace .viewing-list-panel > .panel-head {
+  gap: 0.18rem;
+}
+
+.invoice-console.is-viewing-workspace .panel-badge,
+.invoice-console.is-viewing-workspace .status-pill {
+  padding: 0.08rem 0.28rem;
+  font-size: 0.58rem;
+  line-height: 1;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-panel .filter-grid,
+.invoice-console.is-viewing-workspace .viewing-table-tools {
+  gap: 0.22rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-grid .field,
+.invoice-console.is-viewing-workspace .viewing-table-tools .field {
+  gap: 0.04rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-grid .field span,
+.invoice-console.is-viewing-workspace .viewing-table-tools .field span {
+  font-size: 0.58rem;
+  line-height: 1;
+}
+
+.invoice-console.is-viewing-workspace .viewing-grid .field input,
+.invoice-console.is-viewing-workspace .viewing-grid .field select,
+.invoice-console.is-viewing-workspace .viewing-table-tools .field input,
+.invoice-console.is-viewing-workspace .viewing-table-tools .field select {
+  min-height: 1.52rem;
+  border-radius: 6px;
+  padding: 0.16rem 0.34rem;
+  font-size: 0.7rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-panel .action-row {
+  gap: 0.2rem;
+  padding-top: 0;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-panel .primary-button,
+.invoice-console.is-viewing-workspace .viewing-filter-panel .secondary-button,
+.invoice-console.is-viewing-workspace .viewing-filter-panel .ghost-button,
+.invoice-console.is-viewing-workspace .viewing-table-tools .compact-button {
+  min-height: 1.52rem;
+  border-radius: 6px;
+  padding: 0.14rem 0.38rem;
+  font-size: 0.68rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-table-tools {
+  padding: 0.22rem 0.28rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-table-shell,
+.invoice-console.is-viewing-workspace .viewing-virtual-table-scroll,
+.invoice-console.is-viewing-workspace .viewing-virtual-table,
+.invoice-console.is-viewing-workspace .viewing-virtual-viewport {
+  min-width: 0;
+  max-width: 100%;
+  overflow-x: hidden;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-viewport {
+  overflow-y: auto;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-spacer,
+.invoice-console.is-viewing-workspace .viewing-table-row {
+  width: 100%;
+  min-width: 0;
+  max-width: 100%;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table:not(.is-compact-viewing-table) .viewing-table-row {
+  grid-template-columns:
+    2rem
+    minmax(10rem, 1.02fr)
+    minmax(8.6rem, 0.84fr)
+    minmax(12rem, 1.6fr)
+    minmax(6.6rem, 0.64fr)
+    minmax(4.8rem, 0.44fr)
+    minmax(6.4rem, 0.58fr)
+    minmax(5.1rem, 0.42fr);
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table.is-compact-viewing-table .viewing-table-row {
+  grid-template-columns:
+    1.85rem
+    minmax(8rem, 1fr)
+    minmax(12rem, 1.45fr)
+    minmax(9rem, 1fr)
+    minmax(6.1rem, 0.62fr)
+    minmax(4.85rem, 0.46fr);
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table.is-tight-viewing-table .viewing-table-row {
+  grid-template-columns:
+    1.75rem
+    minmax(0, 1fr)
+    minmax(0, 1.05fr)
+    minmax(5.2rem, 0.68fr)
+    minmax(4.65rem, 0.48fr);
+}
+
+.invoice-console.is-viewing-workspace .viewing-table:not(.is-compact-viewing-table) .table-actions {
+  flex-wrap: nowrap;
+  justify-content: flex-end;
+  gap: 0.12rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-table:not(.is-compact-viewing-table) .invoice-action-button {
+  flex: 0 0 1.56rem;
+  width: 1.56rem;
+  min-height: 1.56rem;
+  padding: 0;
+}
+
+.invoice-console.is-viewing-workspace .viewing-table:not(.is-compact-viewing-table) .invoice-action-button span {
+  display: none;
+}
