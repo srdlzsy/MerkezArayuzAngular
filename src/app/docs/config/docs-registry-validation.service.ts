@@ -49,7 +49,12 @@ function buildMatchKeys(values: Array<string | null | undefined>): string[] {
 const BACKEND_TASKS_WITHOUT_FRONTEND_ROUTE: readonly {
   responsibilityKeys: string[];
   taskKeys: string[];
-}[] = [];
+}[] = [
+  {
+    responsibilityKeys: ['home'],
+    taskKeys: ['depo-oncelikleri']
+  }
+];
 
 function hasAnySharedKey(left: string[], right: string[]): boolean {
   return left.some((value) => right.includes(value));

@@ -126,7 +126,34 @@ describe('docs-registry-validation.service', () => {
     expect(result.unmappedFrontendTasks).toEqual([]);
   });
 
+  it('ignores home feature permissions that intentionally do not have frontend routes', () => {
+    const sorumluluklar: SorumlulukGorevVeYetkiResponseModel[] = [
+      {
+        id: 1,
+        isim: 'Home',
+        sebike: 'home',
+        gorevler: [
+          {
+            id: 1,
+            isim: 'Depo Oncelikleri',
+            sebike: 'depo-oncelikleri',
+            yetkiler: []
+          }
+        ]
+      }
+    ];
+
+    const result = buildDocsRegistryValidationResult(sorumluluklar, []);
+
+    expect(result.unknownBackendTasks).toEqual([]);
+    expect(result.unmappedFrontendTasks).toEqual([]);
+  });
+
   it('ignores arama tasks that intentionally do not have frontend routes', () => {
+    const registrations = [
+      buildRegistration('cari-bul', 'Cari Bul'),
+      buildRegistration('fiyat-gor', 'Fiyat Gor')
+    ];
     const sorumluluklar: SorumlulukGorevVeYetkiResponseModel[] = [
       {
         id: 1,
@@ -155,7 +182,7 @@ describe('docs-registry-validation.service', () => {
       }
     ];
 
-    const result = buildDocsRegistryValidationResult(sorumluluklar, []);
+    const result = buildDocsRegistryValidationResult(sorumluluklar, registrations);
 
     expect(result.unknownBackendTasks).toEqual(['arama-islemleri > urunler']);
     expect(result.unmappedFrontendTasks).toEqual([]);
