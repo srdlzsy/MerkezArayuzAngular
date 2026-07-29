@@ -176,7 +176,7 @@
         </ng-container>
       </article>
     </section>
-    <section class="banknote-dialog-backdrop" *ngIf="isCreatePanelOpen()" (click)="closeCreatePanel()">
+    <section class="banknote-dialog-backdrop" *ngIf="isCreatePanelOpen()">
       <form
         class="query-card create-panel create-dialog"
         [formGroup]="createForm"
@@ -184,17 +184,23 @@
         (click)="$event.stopPropagation()"
         role="dialog"
         aria-modal="true"
-        aria-label="Yeni teslim kaydi"
+        aria-labelledby="banknote-create-title"
         novalidate
       >
         <div class="panel-head dialog-head">
           <div>
             <span class="section-kicker">Olustur</span>
-            <h3>Yeni Teslim Kaydi</h3>
+            <h3 id="banknote-create-title">Yeni Teslim Kaydi</h3>
           </div>
           <div class="dialog-head-actions">
-            <span class="panel-chip">{{ currentWarehouseLabel() }}</span>
-            <button type="button" class="dialog-close" title="Kapat" (click)="closeCreatePanel()">
+            <span class="panel-chip">{{ getCreateScopeLabel() }}</span>
+            <button
+              type="button"
+              class="dialog-close"
+              title="Kapat"
+              [disabled]="isCreating()"
+              (click)="closeCreatePanel()"
+            >
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
@@ -202,61 +208,127 @@
 
         <article
           class="state-card feedback-card dialog-feedback"
-          *ngIf="feedback() as currentFeedback"
+          *ngIf="createFeedback() as currentFeedback"
           [class.state-card-error]="currentFeedback.tone === 'error'"
           [class.state-card-success]="currentFeedback.tone === 'success'"
+          [class.state-card-info]="currentFeedback.tone === 'info'"
         >
           <h3>{{ currentFeedback.title }}</h3>
           <p>{{ currentFeedback.message }}</p>
         </article>
 
-        <div class="create-grid">
-          <label class="field create-date-field">
-            <span>Tarih</span>
-            <input type="date" formControlName="banknoteTrackDate" [max]="maxTargetDate" />
-          </label>
+        <div class="create-dialog-body">
+          <div class="create-form-stack">
+            <div class="create-section">
+              <span class="create-section-title">Kapsam</span>
+              <div class="create-scope-grid">
+                <label class="field create-date-field">
+                  <span>Tarih</span>
+                  <input type="date" formControlName="banknoteTrackDate" [max]="maxTargetDate" />
+                </label>
 
-          <label class="field create-warehouse-field" *ngIf="canUseWarehouseScope()">
-            <span>Depo No</span>
-            <input type="number" min="1" formControlName="warehouseNo" placeholder="Bos: aktif depo" />
-          </label>
+                <label class="field create-warehouse-field" *ngIf="canUseWarehouseScope(); else lockedCreateWarehouse">
+                  <span>Depo No</span>
+                  <input type="number" min="1" formControlName="warehouseNo" placeholder="Aktif depo" />
+                </label>
 
-          <div class="field create-amount-field">
-            <span>Toplam Tutar</span>
-            <div class="field-action-row">
-              <input type="number" min="0" step="0.01" formControlName="totalAmount" placeholder="12000" />
-              <button
-                type="button"
-                class="inline-field-action"
-                (click)="loadCreateSummaryTotal()"
-                [disabled]="isSummaryTotalLoading()"
-              >
-                {{ isSummaryTotalLoading() ? 'Aliniyor' : 'Sayimdan Al' }}
-              </button>
+                <ng-template #lockedCreateWarehouse>
+                  <div class="create-readonly-field">
+                    <span>Depo</span>
+                    <strong>{{ getCreateScopeLabel() }}</strong>
+                  </div>
+                </ng-template>
+              </div>
+            </div>
+
+            <div class="create-section">
+              <span class="create-section-title">Tutar</span>
+              <div class="create-amount-grid">
+                <div class="field create-amount-field">
+                  <span>Sayim Toplami</span>
+                  <div class="field-action-row">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      formControlName="totalAmount"
+                      placeholder="0.00"
+                    />
+                    <button
+                      type="button"
+                      class="inline-field-action"
+                      (click)="loadCreateSummaryTotal()"
+                      [disabled]="isSummaryTotalLoading()"
+                    >
+                      {{ isSummaryTotalLoading() ? 'Aliniyor' : 'Sayimdan Al' }}
+                    </button>
+                  </div>
+                </div>
+
+                <div class="field create-amount-field">
+                  <span>Teslim Tutar</span>
+                  <div class="field-action-row">
+                    <input
+                      type="number"
+                      min="0"
+                      step="0.01"
+                      inputmode="decimal"
+                      formControlName="deliveryTotalAmount"
+                      placeholder="0.00"
+                    />
+                    <button type="button" class="inline-field-action" (click)="copyCreateTotalToDelivery()">
+                      Esitle
+                    </button>
+                  </div>
+                </div>
+              </div>
+            </div>
+
+            <div class="create-section">
+              <span class="create-section-title">Teslim</span>
+              <div class="create-person-grid">
+                <label class="field create-person-field">
+                  <span>Teslim Eden</span>
+                  <input type="text" formControlName="deliverer" maxlength="80" autocomplete="off" />
+                </label>
+
+                <label class="field create-person-field">
+                  <span>Teslim Alan</span>
+                  <input type="text" formControlName="receiver" maxlength="80" autocomplete="off" />
+                </label>
+              </div>
             </div>
           </div>
 
-          <label class="field create-amount-field">
-            <span>Teslim Tutar</span>
-            <input type="number" min="0" step="0.01" formControlName="deliveryTotalAmount" placeholder="11850" />
-          </label>
+          <aside class="create-summary-panel">
+            <div class="create-live-summary" aria-label="Yeni teslim tutar ozeti">
+              <span>
+                <b>Sayim</b>
+                <strong>{{ formatCurrency(getCreateTotalAmount()) }}</strong>
+              </span>
+              <span>
+                <b>Teslim</b>
+                <strong>{{ formatCurrency(getCreateDeliveryTotalAmount()) }}</strong>
+              </span>
+              <span class="difference-summary">
+                <b>Fark</b>
+                <strong
+                  [class.amount-negative]="getCreateDifferenceAmount() < 0"
+                  [class.amount-positive]="getCreateDifferenceAmount() > 0"
+                >
+                  {{ formatCurrency(getCreateDifferenceAmount()) }}
+                </strong>
+              </span>
+            </div>
 
-          <label class="field create-person-field">
-            <span>Teslim Eden</span>
-            <input type="text" formControlName="deliverer" maxlength="80" autocomplete="off" />
-          </label>
-
-          <label class="field create-person-field">
-            <span>Teslim Alan</span>
-            <input type="text" formControlName="receiver" maxlength="80" autocomplete="off" />
-          </label>
+            <article class="create-result" *ngIf="createdResponse() as response">
+              <span>{{ response.created ? 'Yeni kayit' : 'Mevcut kayit' }}</span>
+              <strong>ID {{ response.banknoteTrackId }}</strong>
+              <p>{{ response.banknoteTrackDate }} - Depo {{ response.warehouseNo }}</p>
+            </article>
+          </aside>
         </div>
-
-        <article class="create-result" *ngIf="createdResponse() as response">
-          <span>{{ response.created ? 'Yeni kayit' : 'Mevcut kayit' }}</span>
-          <strong>ID {{ response.banknoteTrackId }}</strong>
-          <p>{{ response.banknoteTrackDate }} - Depo {{ response.warehouseNo }}</p>
-        </article>
 
         <div class="form-actions dialog-actions">
           <button type="submit" class="task-action task-action-primary" [disabled]="isCreating()">
@@ -264,6 +336,9 @@
           </button>
           <button type="button" class="task-action task-action-secondary" (click)="resetCreateForm()" [disabled]="isCreating()">
             Temizle
+          </button>
+          <button type="button" class="task-action task-action-secondary" (click)="closeCreatePanel()" [disabled]="isCreating()">
+            Kapat
           </button>
         </div>
       </form>

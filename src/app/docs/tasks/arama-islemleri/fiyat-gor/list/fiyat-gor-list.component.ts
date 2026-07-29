@@ -7,6 +7,10 @@ import type { ProductLastTagDto, ProductLookupItemDto } from '@interfaces';
 import { finalize } from 'rxjs';
 
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { currentUserCanUseAllWarehouses } from '../../../core/admin-warehouse.helpers';
+
+const ALL_WAREHOUSES_PERMISSION = 'arama-islemleri.fiyat-gor.all-warehouses';
 
 @Component({
   selector: 'app-fiyat-gor-list',
@@ -17,6 +21,7 @@ import { AramaService } from '../../../../../core/api/module-services/arama.serv
 })
 export class FiyatGorListComponent {
   private readonly aramaService = inject(AramaService);
+  private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly results = signal<ProductLookupItemDto[]>([]);
@@ -27,6 +32,9 @@ export class FiyatGorListComponent {
   protected readonly errorMessage = signal('');
   protected readonly lastTagErrorMessage = signal('');
   protected readonly totalCount = computed(() => this.results().length);
+  protected readonly canUseWarehouseScope = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
 
   protected searchQuery = '';
   protected warehouseNo: number | null = null;
@@ -67,6 +75,7 @@ export class FiyatGorListComponent {
 
   protected clear(): void {
     this.searchQuery = '';
+    this.warehouseNo = null;
     this.results.set([]);
     this.lastTags.set({});
     this.lastTagLoadingStockCode.set(null);
@@ -91,7 +100,7 @@ export class FiyatGorListComponent {
     this.lastTagLoadingStockCode.set(stockCode);
 
     this.aramaService
-      .getProductLastTag(stockCode, this.normalizeWarehouseNo() ?? item.warehouseNo)
+      .getProductLastTag(stockCode, this.getLastTagWarehouseNo(item))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.lastTagLoadingStockCode.set(null))
@@ -156,8 +165,20 @@ export class FiyatGorListComponent {
   ): string => item.stockCode?.trim() || item.barcode?.trim() || `${index}`;
 
   private normalizeWarehouseNo(): number | undefined {
+    if (!this.canUseWarehouseScope()) {
+      return undefined;
+    }
+
     const value = Number(this.warehouseNo ?? Number.NaN);
     return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+
+  private getLastTagWarehouseNo(item: ProductLookupItemDto): number | undefined {
+    if (!this.canUseWarehouseScope()) {
+      return undefined;
+    }
+
+    return this.normalizeWarehouseNo() ?? item.warehouseNo;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

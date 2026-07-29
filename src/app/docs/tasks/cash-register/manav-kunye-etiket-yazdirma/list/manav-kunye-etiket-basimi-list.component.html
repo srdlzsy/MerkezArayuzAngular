@@ -13,7 +13,7 @@
     </header>
 
     <section class="scope-bar">
-      <label class="field">
+      <label class="field" *ngIf="canUseWarehouseScope(); else lockedWarehouseScope">
         <span>Depo No</span>
         <input
           type="number"
@@ -22,6 +22,13 @@
           (ngModelChange)="onWarehouseNoChange($event)"
         />
       </label>
+
+      <ng-template #lockedWarehouseScope>
+        <div class="scope-pill">
+          <span>Depo</span>
+          <strong>{{ selectedWarehouseLabel() }}</strong>
+        </div>
+      </ng-template>
 
       <label class="field">
         <span>Sevk Tarihi</span>
@@ -64,7 +71,7 @@
       </article>
       <article class="metric-card">
         <span>Depo</span>
-        <strong>{{ warehouseNo() || '-' }}</strong>
+        <strong>{{ selectedWarehouseLabel() }}</strong>
       </article>
       <article class="metric-card">
         <span>Filtre</span>

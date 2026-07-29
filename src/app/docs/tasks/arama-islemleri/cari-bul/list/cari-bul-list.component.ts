@@ -9,6 +9,10 @@ import {
   AramaService,
   type CariBulResultDto
 } from '../../../../../core/api/module-services/arama.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { currentUserCanUseAllWarehouses } from '../../../core/admin-warehouse.helpers';
+
+const ALL_WAREHOUSES_PERMISSION = 'arama-islemleri.cari-bul.all-warehouses';
 
 @Component({
   selector: 'app-cari-bul-list',
@@ -19,6 +23,7 @@ import {
 })
 export class CariBulListComponent {
   private readonly aramaService = inject(AramaService);
+  private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly result = signal<CariBulResultDto | null>(null);
@@ -26,6 +31,9 @@ export class CariBulListComponent {
   protected readonly hasSearched = signal(false);
   protected readonly errorMessage = signal('');
   protected readonly suggestionCount = computed(() => this.result()?.suggestions?.length ?? 0);
+  protected readonly canUseWarehouseScope = computed(() =>
+    currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
 
   protected barcodeInput = '';
   protected warehouseNo: number | null = null;
@@ -67,6 +75,7 @@ export class CariBulListComponent {
 
   protected clear(): void {
     this.barcodeInput = '';
+    this.warehouseNo = null;
     this.result.set(null);
     this.errorMessage.set('');
     this.hasSearched.set(false);
@@ -96,6 +105,10 @@ export class CariBulListComponent {
   ): string => suggestion.customerCode?.trim() || `${index}`;
 
   private normalizeWarehouseNo(): number | undefined {
+    if (!this.canUseWarehouseScope()) {
+      return undefined;
+    }
+
     const value = Number(this.warehouseNo ?? Number.NaN);
     return Number.isFinite(value) && value > 0 ? value : undefined;
   }

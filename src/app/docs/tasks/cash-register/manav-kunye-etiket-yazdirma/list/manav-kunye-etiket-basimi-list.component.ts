@@ -8,6 +8,11 @@ import { KasaIslemleriService } from '../../../../../core/api/module-services/ka
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import {
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 import { ManavKunyeEtiketPrintComponent } from './print/manav-kunye-etiket-print.component';
 
 interface FeedbackState {
@@ -34,6 +39,23 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   protected readonly selectedDate = signal('');
   protected readonly searchTerm = signal('');
   protected readonly warehouseNo = signal<number | null>(null);
+  protected readonly canUseWarehouseScope = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
+  protected readonly currentWarehouseLabel = computed(() =>
+    formatCurrentWarehouseLabel(this.authService.currentUser())
+  );
+  protected readonly selectedWarehouseLabel = computed(() => {
+    if (!this.canUseWarehouseScope()) {
+      return this.currentWarehouseLabel();
+    }
+
+    const warehouseNo = this.warehouseNo();
+    return warehouseNo ? `Depo ${warehouseNo}` : 'Depo sec';
+  });
   protected readonly selection = new SelectionModel<IManavKunyeTag>(true, []);
   protected readonly selectedCount = signal(0);
   protected readonly selectedTags = signal<IManavKunyeTag[]>([]);
@@ -77,6 +99,11 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   }
 
   protected onWarehouseNoChange(value: number | string | null): void {
+    if (!this.canUseWarehouseScope()) {
+      this.warehouseNo.set(this.authService.currentUser()?.depoNo ?? null);
+      return;
+    }
+
     const numericValue = Number(value);
     this.warehouseNo.set(Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null);
   }
@@ -90,7 +117,7 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   }
 
   protected loadTags(): void {
-    const warehouseNo = this.warehouseNo();
+    const warehouseNo = this.getWarehouseNoForRequest();
 
     if (!warehouseNo || warehouseNo < 1) {
       this.setFeedback('error', 'Manav kunye etiketleri icin depo no zorunludur.');
@@ -122,6 +149,14 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
           this.setFeedback('error', 'Manav kunye etiketleri alinirken hata olustu.');
         }
       });
+  }
+
+  private getWarehouseNoForRequest(): number | null {
+    if (!this.canUseWarehouseScope()) {
+      return this.authService.currentUser()?.depoNo ?? null;
+    }
+
+    return this.warehouseNo();
   }
 
   protected clearDate(): void {

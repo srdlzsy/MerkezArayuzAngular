@@ -156,6 +156,7 @@ export class BanknotTakipleriListComponent {
   protected readonly selectedTrackDetail = signal<IFurpaBanknoteTrackApiDto | null>(null);
   protected readonly createdResponse = signal<IFurpaCreateBanknoteTrackResponseApiDto | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
+  protected readonly createFeedback = signal<ActionFeedback | null>(null);
   protected readonly detailError = signal<string | null>(null);
   protected readonly isCreatePanelOpen = signal(false);
   protected readonly isDetailDialogOpen = computed(
@@ -232,6 +233,9 @@ export class BanknotTakipleriListComponent {
 
   constructor() {
     this.setCustomWarehouseControlState();
+    this.createForm.valueChanges.pipe(takeUntilDestroyed(this.destroyRef)).subscribe(() => {
+      this.createdResponse.set(null);
+    });
     this.loadTracks();
   }
 
@@ -371,18 +375,19 @@ export class BanknotTakipleriListComponent {
   }
 
   protected openCreatePanel(): void {
-    const shouldPrepareNewForm = !this.isCreatePanelOpen() || this.createForm.pristine;
-
     this.feedback.set(null);
+    this.createFeedback.set(null);
+    this.resetCreateForm();
     this.isCreatePanelOpen.set(true);
-
-    if (shouldPrepareNewForm) {
-      this.resetCreateForm();
-    }
   }
 
   protected closeCreatePanel(): void {
+    if (this.isCreating()) {
+      return;
+    }
+
     this.isCreatePanelOpen.set(false);
+    this.resetCreateForm();
   }
 
   protected closeDetail(): void {
@@ -406,7 +411,7 @@ export class BanknotTakipleriListComponent {
   protected submitCreate(): void {
     if (this.createForm.invalid) {
       this.createForm.markAllAsTouched();
-      this.feedback.set({
+      this.createFeedback.set({
         tone: 'error',
         title: 'Form eksik',
         message: 'Yeni kayit icin tarih, tutarlar, teslim eden ve teslim alan alanlari zorunludur.'
@@ -417,6 +422,7 @@ export class BanknotTakipleriListComponent {
     const request = this.buildCreateRequest();
 
     this.feedback.set(null);
+    this.createFeedback.set(null);
     this.createdResponse.set(null);
     this.isCreating.set(true);
 
@@ -429,23 +435,22 @@ export class BanknotTakipleriListComponent {
       .subscribe({
         next: (response: IFurpaCreateBanknoteTrackResponseApiDto) => {
           this.createdResponse.set(response);
-          this.feedback.set(null);
-          this.isCreatePanelOpen.set(true);
-          this.filtersForm.controls.targetDate.setValue(
-            toDateOnly(response.banknoteTrackDate) || this.getToday()
-          );
-          this.feedback.set({
+          this.createFeedback.set({
             tone: response.created ? 'success' : 'info',
             title: response.created ? 'Kayit olusturuldu' : 'Mevcut kayit kullanildi',
             message: response.created
               ? 'Banknot teslim kaydi basariyla olusturuldu.'
-              : 'Ayni depo ve gun icin kayit zaten oldugu icin mevcut kayit dondu.'
+              : 'Ayni depo ve gun icin mevcut kayit dondu.'
           });
+          this.isCreatePanelOpen.set(true);
+          this.filtersForm.controls.targetDate.setValue(
+            toDateOnly(response.banknoteTrackDate) || this.getToday()
+          );
           this.createForm.markAsPristine();
           this.loadTracks();
         },
         error: (error: unknown) => {
-          this.feedback.set({
+          this.createFeedback.set({
             tone: 'error',
             title: 'Kayit olusturulamadi',
             message: this.getErrorMessage(error, 'Banknot teslim kaydi olusturulurken bir hata olustu.')
@@ -467,6 +472,7 @@ export class BanknotTakipleriListComponent {
       receiver: ''
     });
     this.createdResponse.set(null);
+    this.createFeedback.set(null);
   }
 
   protected loadCreateSummaryTotal(): void {
@@ -477,7 +483,7 @@ export class BanknotTakipleriListComponent {
     const dateToGet = this.createForm.controls.banknoteTrackDate.value.trim();
 
     if (!dateToGet) {
-      this.feedback.set({
+      this.createFeedback.set({
         tone: 'error',
         title: 'Tarih gerekli',
         message: 'Sayim toplamini almak icin once teslim gununu secin.'
@@ -485,7 +491,7 @@ export class BanknotTakipleriListComponent {
       return;
     }
 
-    this.feedback.set(null);
+    this.createFeedback.set(null);
     this.isSummaryTotalLoading.set(true);
 
     this.kasaIslemleriService
@@ -496,17 +502,26 @@ export class BanknotTakipleriListComponent {
       )
       .subscribe({
         next: (summary: IFurpaBanknoteTrackDailySummaryTotalApiDto) => {
-          this.createForm.controls.totalAmount.setValue(this.toSafeNumber(summary.totalAmount));
+          const summaryTotal = this.toSafeNumber(summary.totalAmount);
+
+          this.createForm.controls.totalAmount.setValue(summaryTotal);
           this.createForm.controls.totalAmount.markAsDirty();
           this.createForm.controls.totalAmount.markAsTouched();
-          this.feedback.set({
+
+          if (this.toSafeNumber(this.createForm.controls.deliveryTotalAmount.value) === 0) {
+            this.createForm.controls.deliveryTotalAmount.setValue(summaryTotal);
+            this.createForm.controls.deliveryTotalAmount.markAsDirty();
+            this.createForm.controls.deliveryTotalAmount.markAsTouched();
+          }
+
+          this.createFeedback.set({
             tone: 'success',
             title: 'Sayim toplami alindi',
             message: `${formatAmount(summary.totalAmount) || '0.00'} TL forma yazildi.`
           });
         },
         error: (error: unknown) => {
-          this.feedback.set({
+          this.createFeedback.set({
             tone: 'error',
             title: 'Sayim toplami alinamadi',
             message: this.getErrorMessage(error, 'Banknot sayim toplami getirilirken bir hata olustu.')
@@ -534,6 +549,37 @@ export class BanknotTakipleriListComponent {
 
   protected formatCurrency(value: number | null | undefined): string {
     return `${formatAmount(value) || '0.00'} TL`;
+  }
+
+  protected copyCreateTotalToDelivery(): void {
+    const totalAmount = this.toSafeNumber(this.createForm.controls.totalAmount.value);
+
+    this.createForm.controls.deliveryTotalAmount.setValue(totalAmount);
+    this.createForm.controls.deliveryTotalAmount.markAsDirty();
+    this.createForm.controls.deliveryTotalAmount.markAsTouched();
+    this.createFeedback.set(null);
+  }
+
+  protected getCreateScopeLabel(): string {
+    if (!this.canUseWarehouseScope()) {
+      return this.currentWarehouseLabel();
+    }
+
+    const warehouseNo = this.toOptionalNumber(this.createForm.getRawValue().warehouseNo);
+
+    return warehouseNo ? `Depo ${warehouseNo}` : this.currentWarehouseLabel();
+  }
+
+  protected getCreateTotalAmount(): number {
+    return this.toSafeNumber(this.createForm.controls.totalAmount.value);
+  }
+
+  protected getCreateDeliveryTotalAmount(): number {
+    return this.toSafeNumber(this.createForm.controls.deliveryTotalAmount.value);
+  }
+
+  protected getCreateDifferenceAmount(): number {
+    return this.getCreateTotalAmount() - this.getCreateDeliveryTotalAmount();
   }
 
   protected getDifferenceTone(value: number | null | undefined): 'negative' | 'positive' | 'neutral' {

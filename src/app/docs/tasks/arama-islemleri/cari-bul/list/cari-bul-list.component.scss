@@ -76,6 +76,10 @@ h2 {
   padding: 0.7rem;
 }
 
+.query-panel.no-warehouse-filter {
+  grid-template-columns: minmax(240px, 1fr) 92px auto auto;
+}
+
 .field {
   display: grid;
   gap: 0.3rem;

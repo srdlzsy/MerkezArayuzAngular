@@ -93,6 +93,32 @@
   font-size: 0.92rem;
 }
 
+.scope-pill {
+  display: grid;
+  gap: 0.08rem;
+  min-height: 2.08rem;
+  padding: 0.36rem 0.5rem;
+  border: 1px solid var(--kunye-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.scope-pill span {
+  color: var(--kunye-muted);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.scope-pill strong {
+  overflow: hidden;
+  color: var(--kunye-ink);
+  font-size: 0.82rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
 .scope-bar {
   grid-template-columns: minmax(150px, 0.34fr) minmax(160px, 0.4fr) minmax(280px, 1fr);
   align-items: end;
