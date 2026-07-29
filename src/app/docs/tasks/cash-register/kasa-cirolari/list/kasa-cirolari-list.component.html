@@ -122,6 +122,11 @@
       <p>{{ currentError }}</p>
     </article>
 
+    <article class="state-card state-card-error" *ngIf="excelExportErrorMessage() as exportError">
+      <h3>Excel Aktarimi Basarisiz</h3>
+      <p>{{ exportError }}</p>
+    </article>
+
     <article class="state-card" *ngIf="isLoading()">
       <h3>{{ getLoadingTitle() }}</h3>
     </article>
@@ -132,6 +137,9 @@
         [columns]="tableColumns"
         [fitToWidth]="true"
         [filterPlaceholder]="getTableFilterPlaceholder()"
+        [showExport]="true"
+        [exportFileName]="getListExportFileName()"
+        [exportSheetName]="selectedSourceLabel()"
         (rowAction)="openDetail($event)"
       ></app-api-list-table>
     </div>
@@ -176,6 +184,14 @@
           >
             {{ overviewPanelOpen() ? 'Sube Ozetini Kapat' : 'Sube Ozetini Ac' }}
           </button>
+
+          <app-excel-export-button
+            *ngIf="overviewPanelOpen()"
+            [disabled]="overviewLoading() || !overview()"
+            [exporting]="overviewExporting()"
+            [summary]="branchOverviewCount() + 1 + ' kayit'"
+            (exportRequested)="exportOverview()"
+          ></app-excel-export-button>
         </div>
       </div>
 

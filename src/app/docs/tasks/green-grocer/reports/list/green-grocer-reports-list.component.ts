@@ -18,6 +18,12 @@ import { GreenGrocerService } from '../../../../../core/api/module-services/gree
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
+import {
+  ExcelExportColumn,
+  ExcelExportSheet,
+  exportRowsToExcel
+} from '../../../core/excel-export/excel-export.utils';
 
 type ReportTab = 'summary' | 'byBranch' | 'byProduct' | 'greens';
 type FeedbackTone = 'error' | 'info' | 'success';
@@ -50,6 +56,18 @@ interface GreenGrocerReportBundle {
   greens: IFurpaGreenGrocerBranchReportItemApiDto[];
 }
 
+interface ProductBreakdownExportRow {
+  typeLabel: string;
+  typeCode: string;
+  productCode: string;
+  productName: string;
+  orderDate: string | null | undefined;
+  branchNo: number | null | undefined;
+  branchName: string | null | undefined;
+  documentLabel: string;
+  quantity: number;
+}
+
 const TASK_ID = 'green-grocer-reports';
 const LIST_PERMISSION = 'green-grocer.reports.list';
 const UPDATE_PERMISSION = 'green-grocer.reports.update';
@@ -80,7 +98,7 @@ const REPORT_TABS: readonly ReportTabOption[] = [
 @Component({
   selector: 'app-green-grocer-reports-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ExcelExportButtonComponent],
   templateUrl: './green-grocer-reports-list.component.html',
   styleUrl: './green-grocer-reports-list.component.scss'
 })
@@ -115,6 +133,8 @@ export class GreenGrocerReportsListComponent {
   protected readonly deletingKey = signal<string | null>(null);
   protected readonly selectedProductKey = signal<string | null>(null);
   protected readonly lastLoadedDate = signal(this.getToday());
+  protected readonly exportingReport = signal<ReportTab | null>(null);
+  protected readonly exportErrorMessage = signal<string | null>(null);
 
   protected readonly permissionCodes = computed(() =>
     this.uniquePermissionCodes(this.authService.getTaskPermissionCodes(TASK_ID))
@@ -156,6 +176,21 @@ export class GreenGrocerReportsListComponent {
     const rows = this.productRows();
     return rows.find((row) => row.key === this.selectedProductKey()) ?? rows[0] ?? null;
   });
+  protected readonly productBreakdownExportRows = computed<ProductBreakdownExportRow[]>(() =>
+    this.productRows().flatMap((product) =>
+      product.breakdownItems.map((item) => ({
+        typeLabel: this.getTypeLabel(product.typeCode),
+        typeCode: product.typeCode,
+        productCode: product.productCode,
+        productName: product.productName,
+        orderDate: item.orderDate,
+        branchNo: item.branchNo,
+        branchName: item.branchName,
+        documentLabel: this.formatDocument(item),
+        quantity: this.toSafeNumber(item.quantity)
+      }))
+    )
+  );
   protected readonly hasAnyReportData = computed(
     () =>
       this.summaryItems().length > 0 ||
@@ -208,6 +243,60 @@ export class GreenGrocerReportsListComponent {
 
   protected selectProduct(row: ProductReportRow): void {
     this.selectedProductKey.set(row.key);
+  }
+
+  protected isExporting(tab: ReportTab): boolean {
+    return this.exportingReport() === tab;
+  }
+
+  protected exportSummaryReport(): Promise<void> {
+    return this.exportReport('summary', 'Genel Manav Raporu', [
+      {
+        sheetName: 'Genel',
+        rows: this.summaryItems(),
+        columns: this.getSummaryExportColumns()
+      }
+    ]);
+  }
+
+  protected exportBranchReport(): Promise<void> {
+    return this.exportReport('byBranch', 'Sube Evrak Manav Raporu', [
+      {
+        sheetName: 'Evrak Satirlari',
+        rows: this.branchItems(),
+        columns: this.getBranchExportColumns(true)
+      },
+      {
+        sheetName: 'Eksik Subeler',
+        rows: this.lazyBranches(),
+        columns: this.getLazyBranchExportColumns()
+      }
+    ]);
+  }
+
+  protected exportProductReport(): Promise<void> {
+    return this.exportReport('byProduct', 'Urun Bazli Manav Raporu', [
+      {
+        sheetName: 'Urun Toplamlari',
+        rows: this.productRows(),
+        columns: this.getProductExportColumns()
+      },
+      {
+        sheetName: 'Urun Kirilimi',
+        rows: this.productBreakdownExportRows(),
+        columns: this.getProductBreakdownExportColumns()
+      }
+    ]);
+  }
+
+  protected exportGreensReport(): Promise<void> {
+    return this.exportReport('greens', 'Yesillik Raporu', [
+      {
+        sheetName: 'Yesillik',
+        rows: this.greenItems(),
+        columns: this.getBranchExportColumns(false)
+      }
+    ]);
   }
 
   protected deleteOrder(item: IFurpaGreenGrocerBranchReportItemApiDto): void {
@@ -683,5 +772,97 @@ export class GreenGrocerReportsListComponent {
     const day = String(date.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  private async exportReport(
+    tab: ReportTab,
+    reportName: string,
+    sheets: readonly ExcelExportSheet<any>[]
+  ): Promise<void> {
+    const exportSheets = sheets.filter((sheet) => sheet.rows.length > 0);
+
+    if (!exportSheets.length || this.exportingReport()) {
+      return;
+    }
+
+    this.exportingReport.set(tab);
+    this.exportErrorMessage.set(null);
+
+    try {
+      await exportRowsToExcel({
+        fileName: `${reportName} ${this.lastLoadedDate()}`,
+        sheets: exportSheets
+      });
+    } catch {
+      this.exportErrorMessage.set('Excel dosyasi olusturulamadi.');
+    } finally {
+      this.exportingReport.set(null);
+    }
+  }
+
+  private getSummaryExportColumns(): readonly ExcelExportColumn<IFurpaGreenGrocerSummaryReportItemApiDto>[] {
+    return [
+      { label: 'Tip', value: (row) => this.getTypeLabel(row.typeCode) },
+      { label: 'Tip Kodu', value: 'typeCode' },
+      { label: 'Urun Kodu', value: 'productCode' },
+      { label: 'Urun', value: 'productName' },
+      { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' }
+    ];
+  }
+
+  private getBranchExportColumns(
+    includeType: boolean
+  ): readonly ExcelExportColumn<IFurpaGreenGrocerBranchReportItemApiDto>[] {
+    return [
+      { label: 'Tarih', value: 'orderDate', type: 'datetime' },
+      { label: 'Sube No', value: 'branchNo', type: 'number' },
+      { label: 'Sube', value: 'branchName' },
+      { label: 'Evrak', value: (row) => this.formatDocument(row) },
+      ...(includeType
+        ? [
+            {
+              label: 'Tip',
+              value: (row: IFurpaGreenGrocerBranchReportItemApiDto) =>
+                this.getTypeLabel(row.typeCode)
+            }
+          ]
+        : []),
+      { label: 'Urun Kodu', value: 'productCode' },
+      { label: 'Urun', value: 'productName' },
+      { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' }
+    ];
+  }
+
+  private getLazyBranchExportColumns(): readonly ExcelExportColumn<IFurpaGreenGrocerLazyBranchApiDto>[] {
+    return [
+      { label: 'Sube No', value: 'branchNo', type: 'number' },
+      { label: 'Sube', value: 'branchName' },
+      { label: 'Bolge', value: 'regionCode' }
+    ];
+  }
+
+  private getProductExportColumns(): readonly ExcelExportColumn<ProductReportRow>[] {
+    return [
+      { label: 'Tip', value: (row) => this.getTypeLabel(row.typeCode) },
+      { label: 'Tip Kodu', value: 'typeCode' },
+      { label: 'Urun Kodu', value: 'productCode' },
+      { label: 'Urun', value: 'productName' },
+      { label: 'Toplam Miktar', value: 'quantity', type: 'number' },
+      { label: 'Kirilim Satiri', value: (row) => row.breakdownItems.length, type: 'number' }
+    ];
+  }
+
+  private getProductBreakdownExportColumns(): readonly ExcelExportColumn<ProductBreakdownExportRow>[] {
+    return [
+      { label: 'Tip', value: 'typeLabel' },
+      { label: 'Tip Kodu', value: 'typeCode' },
+      { label: 'Urun Kodu', value: 'productCode' },
+      { label: 'Urun', value: 'productName' },
+      { label: 'Tarih', value: 'orderDate', type: 'datetime' },
+      { label: 'Sube No', value: 'branchNo', type: 'number' },
+      { label: 'Sube', value: 'branchName' },
+      { label: 'Evrak', value: 'documentLabel' },
+      { label: 'Miktar', value: 'quantity', type: 'number' }
+    ];
   }
 }

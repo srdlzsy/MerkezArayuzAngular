@@ -49,6 +49,11 @@
       <p>{{ currentFeedback.message }}</p>
     </article>
 
+    <article class="state-card state-card-error" *ngIf="excelExportErrorMessage() as exportError">
+      <h3>Excel Aktarimi Basarisiz</h3>
+      <p>{{ exportError }}</p>
+    </article>
+
     <ng-container *ngIf="header() as currentHeader">
       <section class="detail-section">
         <div class="section-head">
@@ -96,6 +101,11 @@
             <span class="section-kicker">Odeme Dagilimi</span>
             <h3>Odeme detaylari</h3>
           </div>
+          <app-excel-export-button
+            [exporting]="excelExporting()"
+            [summary]="currentDetail.payments.length + 1 + ' kayit'"
+            (exportRequested)="exportDetail(currentDetail)"
+          ></app-excel-export-button>
         </div>
 
         <section class="summary-grid compact-grid" *ngIf="currentDetail.payments.length">

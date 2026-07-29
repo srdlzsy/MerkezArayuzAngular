@@ -17,6 +17,11 @@ import type {
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
+import {
+  ExcelExportColumn,
+  exportRowsToExcel
+} from '../../../core/excel-export/excel-export.utils';
 
 type KasaHareketTab = 'import' | 'rapor' | 'mikro';
 type KasaHareketImportMode = 'normal' | 'cancel' | 'scheduled';
@@ -40,7 +45,7 @@ interface ImportIssueRow extends KasaHareketImportIssueDto {
 @Component({
   selector: 'app-kasa-hareket-aktarimi-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ExcelExportButtonComponent],
   templateUrl: './kasa-hareket-aktarimi-list.component.html',
   styleUrl: './kasa-hareket-aktarimi-list.component.scss'
 })
@@ -59,6 +64,8 @@ export class KasaHareketAktarimiListComponent {
   protected readonly lastImportResult = signal<KasaHareketImportResultDto | null>(null);
   protected readonly lastProcedureResult = signal<KasaHareketProcedureResultDto | null>(null);
   protected readonly reportRows = signal<KasaHareketReportRowDto[]>([]);
+  protected readonly reportExporting = signal(false);
+  protected readonly excelExportErrorMessage = signal<string | null>(null);
 
   protected readonly scopeForm = new FormGroup({
     branchNo: new FormControl<number | null>(null),
@@ -430,6 +437,30 @@ export class KasaHareketAktarimiListComponent {
     }).format(date);
   }
 
+  protected async exportReportRows(): Promise<void> {
+    const rows = this.reportRows();
+
+    if (!rows.length || this.reportExporting()) {
+      return;
+    }
+
+    this.reportExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    try {
+      await exportRowsToExcel({
+        fileName: `Kasa Hareket Raporu ${this.reportForm.controls.date.value} ${this.scopeSummary()}`,
+        sheetName: 'Kasa Hareket Raporu',
+        rows,
+        columns: this.getReportExportColumns()
+      });
+    } catch {
+      this.excelExportErrorMessage.set('Excel dosyasi olusturulamadi.');
+    } finally {
+      this.reportExporting.set(false);
+    }
+  }
+
   protected readonly trackByBranch = (_index: number, branch: KasaHareketBranchDto): number =>
     branch.branchNo;
 
@@ -711,5 +742,18 @@ export class KasaHareketAktarimiListComponent {
     }
 
     return fallback;
+  }
+
+  private getReportExportColumns(): readonly ExcelExportColumn<KasaHareketReportRowDto>[] {
+    return [
+      { label: 'Tarih', value: 'date', type: 'date' },
+      { label: 'Sube No', value: 'branchNo', type: 'number' },
+      { label: 'Sube', value: 'branchName' },
+      { label: 'Kasa', value: 'cashRegisterNo', type: 'number' },
+      { label: 'Net', value: 'netAmount', type: 'currency' },
+      { label: 'Masraf', value: 'expense', type: 'currency' },
+      { label: 'Cek', value: 'checkAmount', type: 'currency' },
+      { label: 'Fark', value: 'difference', type: 'currency' }
+    ];
   }
 }

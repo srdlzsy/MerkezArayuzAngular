@@ -7,6 +7,11 @@ import {
   ApiListTableRowAction,
   ApiListTableRowActionTone
 } from './api-list-table.types';
+import { ExcelExportButtonComponent } from '../excel-export/excel-export-button.component';
+import {
+  ExcelExportColumn,
+  exportRowsToExcel
+} from '../excel-export/excel-export.utils';
 
 type ApiListRow = object;
 type SortDirection = 'asc' | 'desc' | null;
@@ -14,7 +19,7 @@ type SortDirection = 'asc' | 'desc' | null;
 @Component({
   selector: 'app-api-list-table',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ExcelExportButtonComponent],
   templateUrl: './api-list-table.component.html',
   styleUrl: './api-list-table.component.scss'
 })
@@ -26,6 +31,9 @@ export class ApiListTableComponent {
   readonly fitToWidth = input(false);
   readonly additionalActions = input<readonly ApiListTableRowAction[]>([]);
   readonly filterPlaceholder = input('Seri, sira, firma, depo veya durum ara');
+  readonly showExport = input(false);
+  readonly exportFileName = input('rapor');
+  readonly exportSheetName = input('Rapor');
   readonly rowAction = output<any>();
   readonly additionalRowAction = output<ApiListTableActionEvent>();
 
@@ -35,6 +43,8 @@ export class ApiListTableComponent {
   protected readonly currentPageIndex = signal(1);
   protected readonly sortKey = signal<string | null>(null);
   protected readonly sortDirection = signal<SortDirection>(null);
+  protected readonly isExporting = signal(false);
+  protected readonly exportErrorMessage = signal<string | null>(null);
 
   protected readonly totalCount = computed(() => this.rows().length);
   protected readonly hasActiveFilter = computed(() => this.filterTerm().trim().length > 0);
@@ -107,6 +117,11 @@ export class ApiListTableComponent {
     }
 
     return Math.min(currentPage * this.pageSize(), this.filteredCount());
+  });
+
+  protected readonly exportSummary = computed(() => {
+    const count = this.filteredCount();
+    return count ? `${count} kayit` : 'Kayit yok';
   });
 
   protected updateFilter(value: string): void {
@@ -283,6 +298,37 @@ export class ApiListTableComponent {
         return 'row-action-success';
       default:
         return 'row-action-primary';
+    }
+  }
+
+  protected async exportToExcel(): Promise<void> {
+    const rows = this.sortedRows();
+
+    if (!rows.length || this.isExporting()) {
+      return;
+    }
+
+    this.isExporting.set(true);
+    this.exportErrorMessage.set(null);
+
+    try {
+      const columns = this.columns();
+      const exportColumns: ExcelExportColumn<ApiListRow>[] = columns.map((column) => ({
+        label: column.label,
+        value: (row) => this.resolveCellValue(row, column),
+        type: column.type === 'date' ? 'datetime' : 'text'
+      }));
+
+      await exportRowsToExcel({
+        fileName: this.exportFileName(),
+        sheetName: this.exportSheetName(),
+        rows,
+        columns: exportColumns
+      });
+    } catch {
+      this.exportErrorMessage.set('Excel dosyasi olusturulamadi.');
+    } finally {
+      this.isExporting.set(false);
     }
   }
 

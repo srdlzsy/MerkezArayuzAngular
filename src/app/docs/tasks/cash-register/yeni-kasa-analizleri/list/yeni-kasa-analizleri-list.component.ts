@@ -20,6 +20,12 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
+import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
+import {
+  ExcelExportColumn,
+  ExcelExportSheet,
+  exportRowsToExcel
+} from '../../../core/excel-export/excel-export.utils';
 import {
   currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel
@@ -50,6 +56,9 @@ interface TabDefinition {
 }
 
 type RowsByTab = Record<YeniKasaAnalizTab, YeniKasaAnalizRow[]>;
+type YeniKasaSaleRow = NonNullable<YeniKasaFisDetayDto['saleRows']>[number];
+type YeniKasaProductLineRow = NonNullable<YeniKasaFisDetayDto['productLines']>[number];
+type YeniKasaPaymentRow = NonNullable<YeniKasaFisDetayDto['payments']>[number];
 
 const EMPTY_ROWS_BY_TAB: RowsByTab = {
   'saglik-ozeti': [],
@@ -223,7 +232,7 @@ function getRiskLabel(riskLevel: string | null | undefined): string {
 @Component({
   selector: 'app-yeni-kasa-analizleri-list',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ApiListTableComponent],
+  imports: [CommonModule, ReactiveFormsModule, ApiListTableComponent, ExcelExportButtonComponent],
   templateUrl: './yeni-kasa-analizleri-list.component.html',
   styleUrl: './yeni-kasa-analizleri-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -295,6 +304,8 @@ export class YeniKasaAnalizleriListComponent {
   protected readonly receiptDetailLoading = signal(false);
   protected readonly receiptDetailError = signal<string | null>(null);
   protected readonly receiptDialogOpen = signal(false);
+  protected readonly receiptDetailExporting = signal(false);
+  protected readonly excelExportErrorMessage = signal<string | null>(null);
 
   protected readonly activeRows = computed(() => this.rowsByTab()[this.activeTab()]);
   protected readonly activeColumns = computed<readonly ApiListTableColumn[]>(() => {
@@ -500,6 +511,44 @@ export class YeniKasaAnalizleriListComponent {
     }
   }
 
+  protected getExportFileName(): string {
+    const formValue = this.filterForm.getRawValue();
+
+    return [
+      'Yeni Kasa',
+      this.activeTabDefinition().label,
+      `${formValue.startDate} - ${formValue.endDate}`,
+      this.scopeLabel()
+    ].join(' ');
+  }
+
+  protected exportReceiptDetail(detail: YeniKasaFisDetayDto): Promise<void> {
+    const receiptLabel = detail.receiptNumber || detail.uuid || 'Fis';
+
+    return this.exportDetailWorkbook(`Yeni Kasa Fis Detay ${receiptLabel}`, [
+      {
+        sheetName: 'Ozet',
+        rows: [detail],
+        columns: this.getReceiptSummaryExportColumns()
+      },
+      {
+        sheetName: 'Satis Satirlari',
+        rows: detail.saleRows ?? [],
+        columns: this.getSaleRowExportColumns()
+      },
+      {
+        sheetName: 'Urun Satirlari',
+        rows: detail.productLines ?? [],
+        columns: this.getProductLineExportColumns()
+      },
+      {
+        sheetName: 'Odeme Satirlari',
+        rows: detail.payments ?? [],
+        columns: this.getPaymentExportColumns()
+      }
+    ]);
+  }
+
   private buildRequest(): YeniKasaAnalizHttpRequest | null {
     if (this.filterForm.invalid) {
       this.filterForm.markAllAsTouched();
@@ -664,5 +713,74 @@ export class YeniKasaAnalizleriListComponent {
     }
 
     return fallback;
+  }
+
+  private async exportDetailWorkbook(
+    fileName: string,
+    sheets: readonly ExcelExportSheet<any>[]
+  ): Promise<void> {
+    if (this.receiptDetailExporting()) {
+      return;
+    }
+
+    this.receiptDetailExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    try {
+      await exportRowsToExcel({
+        fileName,
+        sheets: sheets.filter((sheet) => sheet.rows.length > 0)
+      });
+    } catch {
+      this.excelExportErrorMessage.set('Excel dosyasi olusturulamadi.');
+    } finally {
+      this.receiptDetailExporting.set(false);
+    }
+  }
+
+  private getReceiptSummaryExportColumns(): readonly ExcelExportColumn<YeniKasaFisDetayDto>[] {
+    return [
+      { label: 'Fis No', value: 'receiptNumber' },
+      { label: 'Uuid', value: 'uuid' },
+      { label: 'Depo No', value: 'warehouseNo', type: 'number' },
+      { label: 'Depo', value: 'warehouseName' },
+      { label: 'Kasa', value: 'cashRegisterNo' },
+      { label: 'Kasiyer Kodu', value: 'cashierCode' },
+      { label: 'Kasiyer', value: 'cashierName' },
+      { label: 'Durum', value: 'status' },
+      { label: 'Satis', value: 'saleTotal', type: 'currency' },
+      { label: 'Urun Toplami', value: 'productLineTotal', type: 'currency' },
+      { label: 'Odeme', value: 'paymentTotal', type: 'currency' },
+      { label: 'Odeme Farki', value: 'salePaymentDifference', type: 'currency' },
+      { label: 'Satir Farki', value: 'saleLineDifference', type: 'currency' },
+      { label: 'Sorunlar', value: (row) => row.issues?.join(', ') || '-' }
+    ];
+  }
+
+  private getSaleRowExportColumns(): readonly ExcelExportColumn<YeniKasaSaleRow>[] {
+    return [
+      { label: 'Id', value: 'id', type: 'number' },
+      { label: 'Alinma', value: 'receivedAt', type: 'datetime' },
+      { label: 'Market', value: (row) => row.marketId || row.warehouseCode || '-' },
+      { label: 'Tutar', value: 'saleTotal', type: 'currency' },
+      { label: 'Durum', value: 'status' }
+    ];
+  }
+
+  private getProductLineExportColumns(): readonly ExcelExportColumn<YeniKasaProductLineRow>[] {
+    return [
+      { label: 'Id', value: 'id', type: 'number' },
+      { label: 'Miktar', value: 'quantity', type: 'number' },
+      { label: 'Toplam', value: 'totalPrice', type: 'currency' }
+    ];
+  }
+
+  private getPaymentExportColumns(): readonly ExcelExportColumn<YeniKasaPaymentRow>[] {
+    return [
+      { label: 'Odeme', value: (row) => row.paymentMethodName || row.paymentMethodCode || '-' },
+      { label: 'Kategori', value: 'category' },
+      { label: 'Tutar', value: 'amount', type: 'currency' },
+      { label: 'Toplam', value: (row) => (row.isIncludedInTotals ? 'Dahil' : 'Haric') }
+    ];
   }
 }

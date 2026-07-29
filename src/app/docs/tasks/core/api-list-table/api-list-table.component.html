@@ -20,6 +20,14 @@
         Filtreyi Temizle
       </button>
 
+      <app-excel-export-button
+        *ngIf="showExport()"
+        [disabled]="filteredCount() === 0"
+        [exporting]="isExporting()"
+        [summary]="exportSummary()"
+        (exportRequested)="exportToExcel()"
+      ></app-excel-export-button>
+
       <label class="control-field control-field-size">
         <span>Sayfa Boyutu</span>
         <select [value]="pageSize()" (change)="updatePageSize($any($event.target).value ?? pageSize())">
@@ -28,6 +36,11 @@
       </label>
     </div>
   </div>
+
+  <article class="state-card state-card-error" *ngIf="exportErrorMessage() as errorMessage">
+    <h3>Excel Aktarimi Basarisiz</h3>
+    <p>{{ errorMessage }}</p>
+  </article>
 
   <article class="state-card state-card-neutral" *ngIf="filteredCount() === 0">
     <h3>Filtre Sonucu Bos</h3>

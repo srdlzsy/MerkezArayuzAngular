@@ -137,6 +137,9 @@
         [columns]="tableColumns()"
         [showRowAction]="false"
         [fitToWidth]="true"
+        [showExport]="true"
+        [exportFileName]="selectedDefinition().label + ' ' + selectedDateRangeLabel() + ' ' + scopeLabel()"
+        [exportSheetName]="selectedDefinition().label"
         filterPlaceholder="Sube, banka, belge, terminal, kart veya tutar ara"
       ></app-api-list-table>
     </div>

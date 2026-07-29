@@ -428,6 +428,14 @@
   line-height: 1.35;
 }
 
+.receipt-head-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+}
+
 .receipt-summary-grid {
   display: grid;
   grid-template-columns: repeat(6, minmax(0, 1fr));
@@ -669,6 +677,10 @@
 
   .receipt-detail-head {
     display: grid;
+  }
+
+  .receipt-head-actions {
+    justify-content: stretch;
   }
 
   .receipt-dialog {

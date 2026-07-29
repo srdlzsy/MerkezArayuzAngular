@@ -361,6 +361,9 @@
         [columns]="tableColumns()"
         [showRowAction]="false"
         [fitToWidth]="true"
+        [showExport]="true"
+        [exportFileName]="selectedDefinition().label + ' ' + selectedDateLabel() + ' ' + scopeLabel()"
+        [exportSheetName]="selectedDefinition().label"
         filterPlaceholder="Stok, depo, cari, barkod, belge veya tutar ara"
       ></app-api-list-table>
     </div>

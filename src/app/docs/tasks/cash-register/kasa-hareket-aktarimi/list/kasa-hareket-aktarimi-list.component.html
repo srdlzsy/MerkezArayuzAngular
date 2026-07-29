@@ -100,6 +100,11 @@
       <p>{{ currentFeedback.message }}</p>
     </article>
 
+    <article class="state-card state-card-error" *ngIf="excelExportErrorMessage() as exportError">
+      <h3>Excel Aktarimi Basarisiz</h3>
+      <p>{{ exportError }}</p>
+    </article>
+
     <ng-container [ngSwitch]="activeTab()">
       <section class="tab-panel" *ngSwitchCase="'import'">
         <form class="panel-grid import-panel" [formGroup]="importForm" (ngSubmit)="runImport()" novalidate>
@@ -249,6 +254,13 @@
           <button type="submit" class="task-action task-action-primary" [disabled]="reportLoading()">
             {{ reportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
           </button>
+
+          <app-excel-export-button
+            [disabled]="!reportRows().length"
+            [exporting]="reportExporting()"
+            [summary]="reportRows().length + ' kayit'"
+            (exportRequested)="exportReportRows()"
+          ></app-excel-export-button>
         </form>
 
         <section class="summary-strip">

@@ -129,6 +129,11 @@
       <p>{{ currentError }}</p>
     </article>
 
+    <article class="state-card state-card-error" *ngIf="excelExportErrorMessage() as exportError">
+      <h3>Excel Aktarimi Basarisiz</h3>
+      <p>{{ exportError }}</p>
+    </article>
+
     <article class="state-card" *ngIf="isLoading()">
       <h3>Analiz yukleniyor</h3>
     </article>
@@ -141,6 +146,9 @@
         [showRowAction]="showReceiptAction()"
         actionLabel="Fis Detay"
         [filterPlaceholder]="getSearchPlaceholder()"
+        [showExport]="true"
+        [exportFileName]="getExportFileName()"
+        [exportSheetName]="activeTabDefinition().label"
         (rowAction)="openReceiptDetail($event)"
       ></app-api-list-table>
     </div>
@@ -170,6 +178,11 @@
       <p>{{ detailError }}</p>
     </article>
 
+    <article class="state-card state-card-error" *ngIf="excelExportErrorMessage() as exportError">
+      <h3>Excel Aktarimi Basarisiz</h3>
+      <p>{{ exportError }}</p>
+    </article>
+
     <article class="state-card" *ngIf="receiptDetailLoading()">
       <h3>Fis detayi yukleniyor</h3>
     </article>
@@ -181,9 +194,18 @@
           <h3 id="receipt-dialog-title">{{ detail.receiptNumber || detail.uuid || 'Fis' }}</h3>
           <p>{{ detail.warehouseName }} ({{ detail.warehouseNo }}) / Kasa {{ detail.cashRegisterNo }} / {{ detail.cashierName || detail.cashierCode || '-' }}</p>
         </div>
-        <button type="button" class="task-action task-action-secondary" (click)="closeReceiptDetail()">
-          Kapat
-        </button>
+        <div class="receipt-head-actions">
+          <app-excel-export-button
+            [exporting]="receiptDetailExporting()"
+            [summary]="
+              detail.saleRows.length + detail.productLines.length + detail.payments.length + 1 + ' kayit'
+            "
+            (exportRequested)="exportReceiptDetail(detail)"
+          ></app-excel-export-button>
+          <button type="button" class="task-action task-action-secondary" (click)="closeReceiptDetail()">
+            Kapat
+          </button>
+        </div>
       </header>
 
       <div class="receipt-summary-grid">

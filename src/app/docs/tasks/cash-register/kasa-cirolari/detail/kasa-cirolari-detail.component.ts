@@ -11,6 +11,11 @@ import type {
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
+import {
+  ExcelExportColumn,
+  exportRowsToExcel
+} from '../../../core/excel-export/excel-export.utils';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { CashTurnoverDetailDialogData } from '../kasa-cirolari.models';
 
@@ -19,6 +24,8 @@ interface DetailFeedback {
   title: string;
   message: string;
 }
+
+type CashTurnoverPaymentRow = NonNullable<CashTurnoverDetailDto['payments']>[number];
 
 function toDateOnly(value: string | null | undefined): string {
   const normalizedValue = value?.trim() ?? '';
@@ -41,7 +48,7 @@ function isCashTurnoverDetailDialogData(
 @Component({
   selector: 'app-kasa-cirolari-detail',
   standalone: true,
-  imports: [CommonModule],
+  imports: [CommonModule, ExcelExportButtonComponent],
   templateUrl: './kasa-cirolari-detail.component.html',
   styleUrl: './kasa-cirolari-detail.component.scss'
 })
@@ -64,6 +71,8 @@ export class KasaCirolariDetailComponent
   protected readonly isLoading = signal(false);
   protected readonly feedback = signal<DetailFeedback | null>(null);
   protected readonly detail = signal<CashTurnoverDetailDto | null>(null);
+  protected readonly excelExporting = signal(false);
+  protected readonly excelExportErrorMessage = signal<string | null>(null);
 
   protected readonly header = computed(() => this.detail()?.header ?? this.summary ?? null);
   protected readonly cashierDisplayLabel = computed(() => {
@@ -147,6 +156,44 @@ export class KasaCirolariDetailComponent
     }
 
     return Number.isFinite(header.warehouseNo) ? String(header.warehouseNo) : '-';
+  }
+
+  protected async exportDetail(currentDetail: CashTurnoverDetailDto): Promise<void> {
+    const currentHeader = this.header();
+
+    if (!currentHeader || this.excelExporting()) {
+      return;
+    }
+
+    this.excelExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    try {
+      await exportRowsToExcel({
+        fileName: [
+          'Kasa Ciro Detayi',
+          this.formatBusinessDate(currentHeader.businessDate),
+          this.formatWarehouse(currentHeader),
+          this.cashierDisplayLabel()
+        ].join(' '),
+        sheets: [
+          {
+            sheetName: 'Vardiya Ozeti',
+            rows: [currentHeader],
+            columns: this.getHeaderExportColumns()
+          },
+          {
+            sheetName: 'Odeme Dagilimi',
+            rows: currentDetail.payments ?? [],
+            columns: this.getPaymentExportColumns()
+          }
+        ]
+      });
+    } catch {
+      this.excelExportErrorMessage.set('Excel dosyasi olusturulamadi.');
+    } finally {
+      this.excelExporting.set(false);
+    }
   }
 
   private loadDetail(): void {
@@ -245,5 +292,35 @@ export class KasaCirolariDetailComponent
     }
 
     return 0;
+  }
+
+  private getHeaderExportColumns(): readonly ExcelExportColumn<CashTurnoverListItemDto>[] {
+    return [
+      { label: 'Tarih', value: 'businessDate', type: 'date' },
+      { label: 'Depo No', value: 'warehouseNo', type: 'number' },
+      { label: 'Depo', value: (row) => this.formatWarehouse(row) },
+      { label: 'Kasiyer Kodu', value: 'cashierCode' },
+      { label: 'Kasiyer', value: 'cashierName' },
+      { label: 'Vardiya', value: 'shiftNo', type: 'number' },
+      { label: 'Urun Satiri', value: 'productLineCount', type: 'number' },
+      { label: 'Satis Miktari', value: 'totalSalesQuantity', type: 'number' },
+      { label: 'Satis Tutari', value: 'totalSalesAmount', type: 'currency' },
+      { label: 'Tahsilat', value: 'totalCollectionAmount', type: 'currency' },
+      { label: 'Komisyon', value: 'totalCustomerCommission', type: 'currency' },
+      { label: 'Net Tahsilat', value: 'netCollectionAmount', type: 'currency' }
+    ];
+  }
+
+  private getPaymentExportColumns(): readonly ExcelExportColumn<CashTurnoverPaymentRow>[] {
+    return [
+      { label: 'Odeme Tipi No', value: 'paymentTypeNo', type: 'number' },
+      { label: 'Odeme Tipi', value: 'paymentTypeName' },
+      { label: 'Kasa Banka Kodu', value: 'cashBankCode' },
+      { label: 'Kasa Banka', value: 'cashBankName' },
+      { label: 'Satir', value: 'paymentLineCount', type: 'number' },
+      { label: 'Tutar', value: 'amount', type: 'currency' },
+      { label: 'Komisyon', value: 'customerCommission', type: 'currency' },
+      { label: 'Net', value: 'netAmount', type: 'currency' }
+    ];
   }
 }

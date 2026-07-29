@@ -671,7 +671,7 @@
 }
 
 .report-toolbar {
-  grid-template-columns: minmax(150px, 0.32fr) auto;
+  grid-template-columns: minmax(150px, 0.32fr) auto auto;
   gap: 0.42rem;
   padding: 0.45rem;
 }

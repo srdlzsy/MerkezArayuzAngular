@@ -38,6 +38,11 @@
       <h3>Raporlar Yukleniyor</h3>
     </article>
 
+    <article class="state-card state-card-error" *ngIf="exportErrorMessage() as exportError">
+      <h3>Excel Aktarimi Basarisiz</h3>
+      <p>{{ exportError }}</p>
+    </article>
+
     <section class="report-metrics">
       <article class="info-card">
         <h3>Genel Miktar</h3>
@@ -77,7 +82,15 @@
             <span class="section-kicker">Genel Manav Raporu</span>
             <h3>Urun ve Tip Toplamlari</h3>
           </div>
-          <span class="panel-chip">{{ formatQuantity(summaryTotalQuantity()) }}</span>
+          <div class="panel-actions">
+            <span class="panel-chip">{{ formatQuantity(summaryTotalQuantity()) }}</span>
+            <app-excel-export-button
+              [disabled]="!summaryItems().length"
+              [exporting]="isExporting('summary')"
+              [summary]="summaryItems().length + ' kayit'"
+              (exportRequested)="exportSummaryReport()"
+            ></app-excel-export-button>
+          </div>
         </div>
 
         <div class="table-wrap" *ngIf="summaryItems().length; else emptySummary">
@@ -116,7 +129,15 @@
             <span class="section-kicker">Sube / Evrak Bazli Manav Raporu</span>
             <h3>Evrak Satirlari</h3>
           </div>
-          <span class="panel-chip">{{ branchDocumentCount() }} evrak</span>
+          <div class="panel-actions">
+            <span class="panel-chip">{{ branchDocumentCount() }} evrak</span>
+            <app-excel-export-button
+              [disabled]="!branchItems().length && !lazyBranches().length"
+              [exporting]="isExporting('byBranch')"
+              [summary]="branchItems().length + lazyBranches().length + ' kayit'"
+              (exportRequested)="exportBranchReport()"
+            ></app-excel-export-button>
+          </div>
         </div>
 
         <div class="table-wrap" *ngIf="branchItems().length; else emptyBranch">
@@ -191,7 +212,15 @@
             <span class="section-kicker">Urun Bazli Manav Raporu</span>
             <h3>Urun Toplamlari</h3>
           </div>
-          <span class="panel-chip">{{ productRows().length }} urun</span>
+          <div class="panel-actions">
+            <span class="panel-chip">{{ productRows().length }} urun</span>
+            <app-excel-export-button
+              [disabled]="!productRows().length"
+              [exporting]="isExporting('byProduct')"
+              [summary]="productRows().length + productBreakdownExportRows().length + ' kayit'"
+              (exportRequested)="exportProductReport()"
+            ></app-excel-export-button>
+          </div>
         </div>
 
         <section class="product-workspace" *ngIf="productRows().length; else emptyProduct">
@@ -276,7 +305,15 @@
             <span class="section-kicker">Yesillik Raporu</span>
             <h3>Tip 12 Evrak Satirlari</h3>
           </div>
-          <span class="panel-chip">{{ formatQuantity(greenTotalQuantity()) }}</span>
+          <div class="panel-actions">
+            <span class="panel-chip">{{ formatQuantity(greenTotalQuantity()) }}</span>
+            <app-excel-export-button
+              [disabled]="!greenItems().length"
+              [exporting]="isExporting('greens')"
+              [summary]="greenItems().length + ' kayit'"
+              (exportRequested)="exportGreensReport()"
+            ></app-excel-export-button>
+          </div>
         </div>
 
         <div class="table-wrap" *ngIf="greenItems().length; else emptyGreens">

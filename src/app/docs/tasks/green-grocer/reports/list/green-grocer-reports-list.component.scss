@@ -99,6 +99,14 @@
   font-size: 0.95rem;
 }
 
+.panel-actions {
+  display: inline-flex;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.42rem;
+  flex-wrap: wrap;
+}
+
 .section-kicker {
   color: #64748b;
   font-size: 0.62rem;
@@ -263,5 +271,9 @@ td small {
 
   .panel-head {
     display: grid;
+  }
+
+  .panel-actions {
+    justify-content: stretch;
   }
 }

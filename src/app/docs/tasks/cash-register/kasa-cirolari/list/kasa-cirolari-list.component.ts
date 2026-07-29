@@ -18,6 +18,12 @@ import { ApiListTableComponent } from '../../../core/api-list-table/api-list-tab
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
 import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
 import { formatCurrentWarehouseLabel } from '../../../core/admin-warehouse.helpers';
+import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
+import {
+  ExcelExportColumn,
+  ExcelExportSheet,
+  exportRowsToExcel
+} from '../../../core/excel-export/excel-export.utils';
 import { CashTurnoverDetailDialogData } from '../kasa-cirolari.models';
 import { KasaCirolariDetailComponent } from '../detail/kasa-cirolari-detail.component';
 
@@ -125,7 +131,7 @@ const CASH_TURNOVER_LIST_COLUMNS: readonly ApiListTableColumn<CashTurnoverListIt
 @Component({
   selector: 'app-kasa-cirolari-list',
   standalone: true,
-  imports: [CommonModule, ApiListTableComponent],
+  imports: [CommonModule, ApiListTableComponent, ExcelExportButtonComponent],
   templateUrl: './kasa-cirolari-list.component.html',
   styleUrl: './kasa-cirolari-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -142,6 +148,8 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   protected readonly selectedSource = signal<CashTurnoverRouteSource>('new');
   protected readonly overviewScope = signal<'all' | 'current'>('current');
   protected readonly overviewPanelOpen = signal(false);
+  protected readonly overviewExporting = signal(false);
+  protected readonly excelExportErrorMessage = signal<string | null>(null);
 
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
@@ -303,6 +311,55 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
     return 'Tarih, kaynak, depo, vardiya, kasiyer veya tutar ara';
   }
 
+  protected getListExportFileName(): string {
+    return [
+      'Kasa Cirolari',
+      this.selectedSourceLabel(),
+      this.selectedDateRangeLabel(),
+      this.selectedWarehouseLabel()
+    ].join(' ');
+  }
+
+  protected async exportOverview(): Promise<void> {
+    const overview = this.overview();
+
+    if (!overview || this.overviewExporting()) {
+      return;
+    }
+
+    const sheets: ExcelExportSheet<any>[] = [
+      {
+        sheetName: 'Gunluk Ozet',
+        rows: [overview],
+        columns: this.getOverviewSummaryExportColumns()
+      },
+      {
+        sheetName: 'Sube Toplamlari',
+        rows: this.branchOverviewRows(),
+        columns: this.getBranchOverviewExportColumns()
+      }
+    ];
+
+    this.overviewExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    try {
+      await exportRowsToExcel({
+        fileName: [
+          'Kasa Ciro Ozeti',
+          this.selectedSourceLabel(),
+          this.selectedDateRangeLabel(),
+          this.overviewScopeLabel()
+        ].join(' '),
+        sheets: sheets.filter((sheet) => sheet.rows.length > 0)
+      });
+    } catch {
+      this.excelExportErrorMessage.set('Excel dosyasi olusturulamadi.');
+    } finally {
+      this.overviewExporting.set(false);
+    }
+  }
+
   protected override buildDetailData(row: CashTurnoverListItemDto): CashTurnoverDetailDialogData {
     return {
       summary: row,
@@ -387,5 +444,34 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
     }
 
     return 0;
+  }
+
+  private getOverviewSummaryExportColumns(): readonly ExcelExportColumn<CashTurnoverOverviewDto>[] {
+    return [
+      { label: 'Kaynak', value: () => this.selectedSourceLabel() },
+      { label: 'Kapsam', value: () => this.overviewScopeLabel() },
+      { label: 'Tarih Araligi', value: () => this.selectedDateRangeLabel() },
+      { label: 'Gunluk Toplam', value: 'dailyTotal', type: 'currency' },
+      { label: 'Musteri', value: 'dailyCustomerCount', type: 'number' },
+      { label: 'Nakit', value: 'dailyCashPayment', type: 'currency' },
+      { label: 'Kredi', value: 'dailyCreditCardPayment', type: 'currency' },
+      { label: 'Ort. Sepet', value: 'averageBasketAmount', type: 'currency' },
+      { label: 'Nakit Orani', value: () => this.overviewCashRate(), type: 'number' },
+      { label: 'Kredi Orani', value: () => this.overviewCreditRate(), type: 'number' }
+    ];
+  }
+
+  private getBranchOverviewExportColumns(): readonly ExcelExportColumn<CashTurnoverOverviewBranchDto>[] {
+    return [
+      { label: 'Sube No', value: 'branchNo', type: 'number' },
+      { label: 'Sube', value: 'branchName' },
+      { label: 'Bolge', value: 'region' },
+      { label: 'Musteri', value: 'customerCount', type: 'number' },
+      { label: 'Son Fis', value: 'lastBillTime' },
+      { label: 'Nakit', value: 'cashTotal', type: 'currency' },
+      { label: 'Kredi', value: 'creditTotal', type: 'currency' },
+      { label: 'Toplam', value: 'overallTotal', type: 'currency' },
+      { label: 'Ort. Sepet', value: 'averageBasketAmount', type: 'currency' }
+    ];
   }
 }
