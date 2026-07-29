@@ -8,7 +8,7 @@ export const RETURNS_TASK_SOURCE = {
       title: 'Firma Iadeleri',
       subtitle: 'Firma iadeleri icin yeni iade API route’lariyla liste, detay ve create akisi sunulur.',
       baseRouteOrFile: '/api/iade-islemleri/firma-iadeleri',
-      highlights: ['Iade', 'Firma', 'Liste ve detay', 'Create endpointi aktif'],
+      highlights: ['Iade', 'Firma', 'Liste ve detay', 'Create endpointi aktif', 'E-irsaliye gonderim ve PDF route aktif'],
       listTitle: 'Endpointler',
       items: [
         {
@@ -29,6 +29,16 @@ export const RETURNS_TASK_SOURCE = {
               method: 'POST',
               path: '/api/iade-islemleri/firma-iadeleri',
               description: 'Yeni firma iadesi olusturur'
+            },
+            {
+              method: 'POST',
+              path: '/api/iade-islemleri/firma-iadeleri/{seri}/{sira}/e-irsaliye',
+              description: 'Firma iadesi e-irsaliye gonderimini baslatir'
+            },
+            {
+              method: 'GET',
+              path: '/api/iade-islemleri/firma-iadeleri/{seri}/{sira}/e-irsaliye/pdf',
+              description: 'Firma iadesi e-irsaliye PDF dosyasini getirir'
             }
           ]
         }
@@ -51,7 +61,8 @@ export const RETURNS_TASK_SOURCE = {
         'Depo',
         'Giden yon',
         'Yazma yolu MikroWriteRouting:WarehouseReturn ile Database veya MikroApi olur',
-        'Otomatik depo siparisi aciksa backend iade satirini olusan siparis GUIDine baglar'
+        'Otomatik depo siparisi aciksa backend iade satirini olusan siparis GUIDine baglar',
+        'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -73,6 +84,16 @@ export const RETURNS_TASK_SOURCE = {
               method: 'POST',
               path: '/api/iade-islemleri/depo-iadeleri/giden',
               description: 'Yeni giden depo iadesi olusturur'
+            },
+            {
+              method: 'POST',
+              path: '/api/iade-islemleri/depo-iadeleri/giden/{seri}/{sira}/e-irsaliye',
+              description: 'Giden depo iadesi e-irsaliye gonderimini baslatir'
+            },
+            {
+              method: 'GET',
+              path: '/api/iade-islemleri/depo-iadeleri/giden/{seri}/{sira}/e-irsaliye/pdf',
+              description: 'Giden depo iadesi e-irsaliye PDF dosyasini getirir'
             }
           ]
         }

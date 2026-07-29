@@ -165,6 +165,66 @@ function formatSignals(signals: readonly SupplierPerformanceSignalLike[] | null 
   return titles.length ? titles.join(' / ') : '-';
 }
 
+function formatOrderSnapshot(row: SupplierPerformanceCardDto): string {
+  const orders = row.orders;
+
+  if (!orders) {
+    return '-';
+  }
+
+  return `${formatNumber(orders.orderedQuantity)} / ${formatNumber(orders.deliveredQuantity)} / ${formatNumber(orders.remainingQuantity)}`;
+}
+
+function formatDeliveryStatus(row: SupplierPerformanceCardDto): string {
+  const orders = row.orders;
+
+  if (!orders) {
+    return '-';
+  }
+
+  return `${formatPercent(orders.deliveryRate)} - gec acik ${formatNumber(orders.openLateLineCount)}`;
+}
+
+function formatReceivingDifference(row: SupplierPerformanceCardDto): string {
+  const receiving = row.receiving;
+
+  if (!receiving) {
+    return '-';
+  }
+
+  return `${formatNumber(receiving.missingQuantity)} / ${formatNumber(receiving.excessQuantity)} - ${formatPercent(receiving.differenceRate)}`;
+}
+
+function formatReturnImpact(row: SupplierPerformanceCardDto): string {
+  const returns = row.returns;
+
+  if (!returns) {
+    return '-';
+  }
+
+  return `${formatNumber(returns.returnedQuantity)} - ${formatPercent(returns.returnRate)}`;
+}
+
+function formatOutageImpact(row: SupplierPerformanceCardDto): string {
+  const outage = row.outageImpact;
+
+  if (!outage) {
+    return '-';
+  }
+
+  return `${formatNumber(outage.quantity)} / ${formatMoney(outage.amount)}`;
+}
+
+function formatInvoiceSnapshot(row: SupplierPerformanceCardDto): string {
+  const invoices = row.invoices;
+
+  if (!invoices) {
+    return '-';
+  }
+
+  return `Biz ${formatMoney(invoices.issuedInvoiceAmount)} (${formatNumber(invoices.issuedInvoiceCount)}) / Gelen ${formatMoney(invoices.incomingInvoiceAmount)} (${formatNumber(invoices.incomingInvoiceCount)})`;
+}
+
 const TABLE_COLUMNS: readonly ApiListTableColumn<SupplierPerformanceCardDto>[] = [
   {
     key: 'customerTitle',
@@ -188,39 +248,33 @@ const TABLE_COLUMNS: readonly ApiListTableColumn<SupplierPerformanceCardDto>[] =
   },
   {
     key: 'orders.deliveryRate',
-    label: 'Teslimat',
-    resolveValue: (row) => formatPercent(row.orders?.deliveryRate)
+    label: 'Siparis/Kabul/Kalan',
+    resolveValue: (row) => formatOrderSnapshot(row)
   },
   {
     key: 'orders.openLateLineCount',
-    label: 'Gec Acik',
-    resolveValue: (row) => formatNumber(row.orders?.openLateLineCount)
+    label: 'Teslimat',
+    resolveValue: (row) => formatDeliveryStatus(row)
   },
   {
     key: 'receiving.missingQuantity',
     label: 'Eksik/Fazla',
-    resolveValue: (row) =>
-      `${formatNumber(row.receiving?.missingQuantity)} / ${formatNumber(row.receiving?.excessQuantity)}`
+    resolveValue: (row) => formatReceivingDifference(row)
   },
   {
     key: 'returns.returnedQuantity',
     label: 'Iade',
-    resolveValue: (row) => formatNumber(row.returns?.returnedQuantity)
+    resolveValue: (row) => formatReturnImpact(row)
   },
   {
     key: 'outageImpact.quantity',
     label: 'Zayiat',
-    resolveValue: (row) => formatNumber(row.outageImpact?.quantity)
+    resolveValue: (row) => formatOutageImpact(row)
   },
   {
     key: 'invoices.issuedInvoiceAmount',
-    label: 'Bizim Kestigimiz',
-    resolveValue: (row) => formatMoney(row.invoices?.issuedInvoiceAmount)
-  },
-  {
-    key: 'invoices.incomingInvoiceAmount',
-    label: 'Gelen Fatura',
-    resolveValue: (row) => formatMoney(row.invoices?.incomingInvoiceAmount)
+    label: 'Fatura',
+    resolveValue: (row) => formatInvoiceSnapshot(row)
   }
 ];
 

@@ -1048,6 +1048,34 @@ export class FaturaIslemleriListComponent {
     return this.viewingSyncLoading() ? 'Senkronizasyon izleniyor.' : 'Hazir.';
   }
 
+  protected hasViewingBackendSearch(): boolean {
+    return this.viewingFilterForm.controls.searchText.value.trim().length > 0;
+  }
+
+  protected getViewingSyncSkippedCount(
+    progress: InvoiceViewingSynchronizationProgressResponseDto
+  ): number {
+    return (
+      (progress.skippedInvoiceDateOutOfRangeCount ?? 0) +
+      (progress.skippedDuplicateDocumentCount ?? 0)
+    );
+  }
+
+  protected getViewingSyncSchedulerLabel(
+    progress: InvoiceViewingSynchronizationProgressResponseDto
+  ): string {
+    const status = progress.schedulerStatus?.trim();
+    const nextSlot = progress.schedulerNextSlot?.trim();
+    const enabled = progress.automaticSynchronizationEnabled;
+
+    if (!status && !nextSlot && enabled == null) {
+      return '';
+    }
+
+    const state = enabled === false ? 'kapali' : status || 'hazir';
+    return nextSlot ? `${state} / sonraki ${nextSlot}` : state;
+  }
+
   protected setViewingQuickFilter(event: Event): void {
     const value = (event.target as HTMLInputElement | null)?.value ?? '';
 
@@ -3526,10 +3554,12 @@ export class FaturaIslemleriListComponent {
   private buildViewingSyncCompletedFeedback(
     progress: InvoiceViewingSynchronizationProgressResponseDto
   ): PageFeedback {
+    const skippedCount = this.getViewingSyncSkippedCount(progress);
+
     return {
       tone: 'success',
       title: 'Senkronizasyon tamamlandi',
-      message: `Uyumsoft'ta ${progress.totalCount} kaynak kayit bulundu; ${progress.fetchedCount} kayit okundu, ${progress.matchedCount} kayit Fatura Tarihi araligiyla eslesti, ${progress.insertedCount} yeni kayit eklendi ve ${progress.updatedCount} kayit guncellendi.`
+      message: `Uyumsoft'ta ${progress.totalCount} kaynak kayit bulundu; ${progress.fetchedCount} kayit okundu, ${progress.matchedCount} kayit Fatura Tarihi araligiyla eslesti, ${progress.insertedCount} yeni kayit eklendi, ${progress.updatedCount} kayit guncellendi, ${skippedCount} kayit atlandi.`
     };
   }
 

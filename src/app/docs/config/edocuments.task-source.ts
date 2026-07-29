@@ -16,6 +16,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Uyumsoft zaman asiminda progress failed olur; onceki sayfalardaki eslesen kayitlar cachee yazilmis olabilir',
         'Fatura Tarihi UBL IssueDate alanindan, kayit tarihi CreateDateUtc alanindan okunur',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
+        'Arama metni veya net arama parametresi doluysa liste tum cache icinde aranir; tarih filtresi uygulanmaz',
         'documentId teknik UUID ile application/pdf dosyasi',
         'HTML detay /detail endpointinden alinir',
         'POST render override',
@@ -33,7 +34,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&invoiceId=KEF2026&page=1&PageSize=50',
-              description: 'Lokal cache uzerinden Fatura Tarihi bazli listeyi getirir; invoiceDate yoksa createDate kullanir ve invoiceId, despatchId, customerTitle, customerTcknVkn, documentId gibi filtreleri backend tarafinda uygular'
+              description: 'Lokal cache uzerinden listeyi getirir; arama kriteri bossa Fatura Tarihi araligini kullanir, arama kriteri doluysa tum cache icinde invoiceId, despatchId, customerTitle, customerTcknVkn, documentId gibi filtreleri uygular'
             },
             {
               method: 'POST',
@@ -44,7 +45,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme/senkronize/progress',
-              description: 'Aktif veya son senkronizasyonun queued/running/completed/failed durumunu, progressPercent, sayfa ve matched/upsert sayaclariyla getirir; API yeniden baslarsa idle donebilir'
+              description: 'Aktif veya son senkronizasyonun queued/running/completed/failed durumunu, progressPercent, sayfa, matched/upsert, skipped ve otomatik scheduler alanlariyla getirir; API yeniden baslarsa idle donebilir'
             },
             {
               method: 'GET',

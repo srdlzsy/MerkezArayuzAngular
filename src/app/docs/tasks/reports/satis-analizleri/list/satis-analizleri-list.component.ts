@@ -121,6 +121,30 @@ function formatBranch(row: { branchName?: string; branchNo?: number }): string {
   return Number.isFinite(row.branchNo) ? `Sube ${row.branchNo}` : '-';
 }
 
+function formatDocument(row: {
+  documentSerie?: string | null;
+  documentOrderNo?: number | null;
+  documentNo?: string | null;
+}): string {
+  const documentNo = row.documentNo?.trim() ?? '';
+  const serieOrder = [row.documentSerie, row.documentOrderNo].filter(Boolean).join(' / ');
+
+  if (documentNo && serieOrder && documentNo !== serieOrder) {
+    return `${documentNo} (${serieOrder})`;
+  }
+
+  return documentNo || serieOrder || '-';
+}
+
+function formatDescriptions(row: {
+  description1?: string | null;
+  description2?: string | null;
+}): string {
+  return [row.description1?.trim(), row.description2?.trim()]
+    .filter((value): value is string => Boolean(value))
+    .join(' / ') || '-';
+}
+
 function sumBy<Row>(rows: readonly Row[], selector: (row: Row) => unknown): number {
   return rows.reduce((total, row) => total + toSafeNumber(selector(row)), 0);
 }
@@ -178,8 +202,9 @@ const FOOD_CHECK_COLUMNS: readonly ApiListTableColumn<FoodCheckReportItemDto>[] 
 const MARKETYO_COLUMNS: readonly ApiListTableColumn<MyoSalesReportItemDto>[] = [
   { key: 'documentDate', label: 'Tarih', type: 'date' },
   { key: 'branchName', label: 'Sube', resolveValue: (row) => formatBranch(row) },
-  { key: 'documentNo', label: 'Belge No' },
+  { key: 'documentNo', label: 'Evrak', resolveValue: (row) => formatDocument(row) },
   { key: 'customerCode', label: 'Cari Kod' },
+  { key: 'description1', label: 'Aciklama', resolveValue: (row) => formatDescriptions(row) },
   { key: 'paymentDescription', label: 'Odeme' },
   { key: 'subTotal', label: 'Ara Toplam', resolveValue: (row) => formatMoney(row.subTotal) },
   { key: 'discountTotal', label: 'Indirim', resolveValue: (row) => formatMoney(row.discountTotal) },

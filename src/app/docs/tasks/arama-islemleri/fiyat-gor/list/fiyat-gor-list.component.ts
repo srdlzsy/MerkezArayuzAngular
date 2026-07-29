@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import type { ProductLookupItemDto } from '@interfaces';
+import type { ProductLastTagDto, ProductLookupItemDto } from '@interfaces';
 import { finalize } from 'rxjs';
 
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
@@ -21,8 +21,11 @@ export class FiyatGorListComponent {
 
   protected readonly results = signal<ProductLookupItemDto[]>([]);
   protected readonly isLoading = signal(false);
+  protected readonly lastTagLoadingStockCode = signal<string | null>(null);
+  protected readonly lastTags = signal<Record<string, ProductLastTagDto | null>>({});
   protected readonly hasSearched = signal(false);
   protected readonly errorMessage = signal('');
+  protected readonly lastTagErrorMessage = signal('');
   protected readonly totalCount = computed(() => this.results().length);
 
   protected searchQuery = '';
@@ -52,6 +55,8 @@ export class FiyatGorListComponent {
       .subscribe({
         next: (results: ProductLookupItemDto[]) => {
           this.results.set(results ?? []);
+          this.lastTags.set({});
+          this.lastTagErrorMessage.set('');
         },
         error: (error: HttpErrorResponse) => {
           this.results.set([]);
@@ -63,8 +68,55 @@ export class FiyatGorListComponent {
   protected clear(): void {
     this.searchQuery = '';
     this.results.set([]);
+    this.lastTags.set({});
+    this.lastTagLoadingStockCode.set(null);
+    this.lastTagErrorMessage.set('');
     this.errorMessage.set('');
     this.hasSearched.set(false);
+  }
+
+  protected loadLastTag(item: ProductLookupItemDto): void {
+    const stockCode = item.stockCode?.trim();
+
+    if (!stockCode) {
+      this.lastTagErrorMessage.set('Son kunye icin stok kodu okunamadi.');
+      return;
+    }
+
+    if (this.lastTagLoadingStockCode() === stockCode) {
+      return;
+    }
+
+    this.lastTagErrorMessage.set('');
+    this.lastTagLoadingStockCode.set(stockCode);
+
+    this.aramaService
+      .getProductLastTag(stockCode, this.normalizeWarehouseNo() ?? item.warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.lastTagLoadingStockCode.set(null))
+      )
+      .subscribe({
+        next: (tag: ProductLastTagDto | null) => {
+          this.lastTags.update((current) => ({
+            ...current,
+            [stockCode]: tag
+          }));
+        },
+        error: (error: HttpErrorResponse) => {
+          this.lastTagErrorMessage.set(this.resolveErrorMessage(error, 'Son kunye bilgisi alinamadi.'));
+        }
+      });
+  }
+
+  protected getLastTag(item: ProductLookupItemDto): ProductLastTagDto | null | undefined {
+    const stockCode = item.stockCode?.trim();
+    return stockCode ? this.lastTags()[stockCode] : undefined;
+  }
+
+  protected hasLastTagResult(item: ProductLookupItemDto): boolean {
+    const stockCode = item.stockCode?.trim();
+    return !!stockCode && Object.prototype.hasOwnProperty.call(this.lastTags(), stockCode);
   }
 
   protected formatPrice(value: number | null | undefined): string {
@@ -80,6 +132,22 @@ export class FiyatGorListComponent {
       item.isOrderBlocked ? 'Siparis Engelli' : '',
       item.isGoodsAcceptanceBlocked ? 'Mal Kabul Engelli' : ''
     ].filter((label): label is string => !!label);
+  }
+
+  protected formatDate(value: string | null | undefined): string {
+    if (!value) {
+      return '-';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'short'
+    }).format(date);
   }
 
   protected readonly trackByProduct = (

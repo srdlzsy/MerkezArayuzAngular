@@ -46,6 +46,10 @@
     {{ errorMessage() }}
   </article>
 
+  <article class="feedback feedback-error" *ngIf="lastTagErrorMessage()">
+    {{ lastTagErrorMessage() }}
+  </article>
+
   <article class="state-card" *ngIf="isLoading()">
     <h3>Fiyat sorgusu yapiliyor</h3>
     <p>Secilen kriterlerle fiyat bilgisi getiriliyor.</p>
@@ -58,7 +62,17 @@
           <h3>{{ item.stockName || item.stockCode }}</h3>
           <p>{{ item.stockCode }} / {{ item.barcode || '-' }}</p>
         </div>
-        <strong class="price">{{ formatPrice(item.price) }} TL</strong>
+        <div class="price-actions">
+          <strong class="price">{{ formatPrice(item.price) }} TL</strong>
+          <button
+            type="button"
+            class="secondary-action"
+            [disabled]="lastTagLoadingStockCode() === item.stockCode"
+            (click)="loadLastTag(item)"
+          >
+            {{ lastTagLoadingStockCode() === item.stockCode ? 'Aliniyor...' : 'Son Kunye' }}
+          </button>
+        </div>
       </div>
 
       <div class="detail-grid">
@@ -74,6 +88,21 @@
         <span class="danger-badge" *ngFor="let label of getBlockedLabels(item)">
           {{ label }}
         </span>
+      </div>
+
+      <ng-container *ngIf="getLastTag(item) as tag">
+        <div class="last-tag-panel">
+          <span>Kunye: <strong>{{ tag.takenTag || '-' }}</strong></span>
+          <span>Urun: <strong>{{ tag.productName || tag.stockName || '-' }}</strong></span>
+          <span>Cins: <strong>{{ tag.goodsType || '-' }} / {{ tag.goodsGenus || '-' }}</strong></span>
+          <span>Miktar: <strong>{{ tag.quantity }} {{ tag.productUnit || '' }}</strong></span>
+          <span>Uretici: <strong>{{ tag.manufacturer || '-' }}</strong></span>
+          <span>Sevk: <strong>{{ formatDate(tag.shippingDate) }}</strong></span>
+        </div>
+      </ng-container>
+
+      <div class="last-tag-empty" *ngIf="hasLastTagResult(item) && getLastTag(item) === null">
+        Son kunye kaydi bulunamadi.
       </div>
     </article>
   </section>

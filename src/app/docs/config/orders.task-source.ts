@@ -27,6 +27,11 @@ export const ORDERS_TASK_SOURCE = {
               description: 'Verilen firma siparisi detayini getirir'
             },
             {
+              method: 'GET',
+              path: '/api/siparis-islemleri/verilen-firma-siparisleri/key/{documentKey}',
+              description: 'Document key ile verilen firma siparisi detayini getirir'
+            },
+            {
               method: 'POST',
               path: '/api/siparis-islemleri/verilen-firma-siparisleri',
               description: 'Yeni verilen firma siparisi olusturur',
@@ -108,6 +113,11 @@ export const ORDERS_TASK_SOURCE = {
               method: 'GET',
               path: '/api/siparis-islemleri/verilen-depo-siparisleri/{seri}/{sira}',
               description: 'Verilen depo siparisi detayini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/siparis-islemleri/verilen-depo-siparisleri/key/{documentKey}',
+              description: 'Document key ile verilen depo siparisi detayini getirir'
             },
             {
               method: 'POST',

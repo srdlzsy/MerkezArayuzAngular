@@ -82,6 +82,27 @@ export interface ProductCustomerSuggestionsDto {
   suggestions: ProductCustomerSuggestionItemDto[];
 }
 
+export interface ProductLastTagDto {
+  branchNo: number;
+  branchName: string | null;
+  productionCity: string | null;
+  stockCode: string;
+  stockName: string | null;
+  salesPrice: number;
+  productionDistrict: string | null;
+  productName: string | null;
+  goodsType: string | null;
+  goodsGenus: string | null;
+  quantity: number;
+  takenTag: string | null;
+  buyer: string | null;
+  productionDate: string | null;
+  buyingPrice: number;
+  shippingDate: string | null;
+  manufacturer: string | null;
+  productUnit: string | null;
+}
+
 // ============================================================================
 // Cari/Müşteri Arama
 // ============================================================================

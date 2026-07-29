@@ -8,7 +8,7 @@ export const SHIPMENT_TASK_SOURCE = {
       title: 'Giden Firma Sevkleri',
       subtitle: 'Giden firma sevkleri icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/sevk-islemleri/firma-sevkleri/giden',
-      highlights: ['Sevk', 'Liste', 'Detay'],
+      highlights: ['Sevk', 'Liste', 'Detay', 'E-irsaliye gonderim ve PDF alias route ailesi aktif'],
       listTitle: 'Controller',
       items: [
         {
@@ -76,7 +76,8 @@ export const SHIPMENT_TASK_SOURCE = {
         'Depolar arasi',
         'Sevk',
         'Yazma yolu MikroWriteRouting:InterWarehouseShipment ile Database veya MikroApi olur',
-        'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir'
+        'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir',
+        'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
       ],
       listTitle: 'Controller',
       items: [

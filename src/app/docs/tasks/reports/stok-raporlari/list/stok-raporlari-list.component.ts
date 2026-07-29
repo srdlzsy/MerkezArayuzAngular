@@ -211,6 +211,88 @@ function formatStock(row: { stockCode?: string | null; stockName?: string | null
   return name || code || '-';
 }
 
+function formatPair(label: string, value: string | number | null | undefined): string {
+  const textValue = `${value ?? ''}`.trim();
+  return textValue ? `${label}: ${textValue}` : '';
+}
+
+function formatClassification(row: {
+  producerName?: string | null;
+  producerCode?: string | null;
+  productManagerName?: string | null;
+  productManagerCode?: string | null;
+  modelName?: string | null;
+  modelCode?: string | null;
+  supplierName?: string | null;
+  supplierCode?: string | null;
+  categoryName?: string | null;
+  categoryCode?: string | null;
+}): string {
+  const parts = [
+    row.producerName || row.producerCode ? `Uretici: ${row.producerName || row.producerCode}` : '',
+    row.productManagerName || row.productManagerCode
+      ? `Satin: ${row.productManagerName || row.productManagerCode}`
+      : '',
+    row.modelName || row.modelCode ? `Model: ${row.modelName || row.modelCode}` : '',
+    row.supplierName || row.supplierCode ? `Ted: ${row.supplierName || row.supplierCode}` : '',
+    row.categoryName || row.categoryCode ? `Kat: ${row.categoryName || row.categoryCode}` : ''
+  ].filter((value): value is string => Boolean(value));
+
+  return parts.join(' / ') || '-';
+}
+
+function formatDocument(row: {
+  documentSerie?: string | null;
+  documentOrderNo?: number | null;
+  documentNo?: string | null;
+}): string {
+  const serieOrder = [row.documentSerie, row.documentOrderNo].filter(Boolean).join(' / ');
+  const documentNo = row.documentNo?.trim() ?? '';
+
+  if (serieOrder && documentNo && documentNo !== serieOrder) {
+    return `${serieOrder} - ${documentNo}`;
+  }
+
+  return serieOrder || documentNo || '-';
+}
+
+function formatWarehouseFlow(row: {
+  inputWarehouseNo?: number | null;
+  outputWarehouseNo?: number | null;
+}): string {
+  const input = formatPair('Giris', row.inputWarehouseNo);
+  const output = formatPair('Cikis', row.outputWarehouseNo);
+
+  return [input, output].filter(Boolean).join(' / ') || '-';
+}
+
+function formatStockCardUnits(row: StockCardDetailDto): string {
+  return [row.unit1Name, row.unit2Name, row.unit3Name, row.unit4Name]
+    .map((unit) => unit?.trim())
+    .filter((unit): unit is string => Boolean(unit))
+    .join(' / ') || '-';
+}
+
+function formatStockCardCodes(row: StockCardDetailDto): string {
+  return [
+    formatPair('Marka', row.brandCode),
+    formatPair('Uretici', row.manufacturerCode),
+    formatPair('Rayon', row.rayonCode),
+    formatPair('Raf', row.shelfCode)
+  ].filter(Boolean).join(' / ') || '-';
+}
+
+function formatStockCardFlags(row: StockCardDetailDto): string {
+  const flags = [
+    row.salesStopped ? 'Satis kapali' : '',
+    row.orderStopped ? 'Siparis kapali' : '',
+    row.receivingStopped ? 'Kabul kapali' : '',
+    row.discountDisabled ? 'Iskonto kapali' : ''
+  ].filter((value): value is string => Boolean(value));
+
+  return flags.join(' / ') || 'Acik';
+}
+
 function formatCategoryOption(option: StockCategoryOptionDto): string {
   const name = option.categoryName?.trim() || '';
   const code = option.categoryCode?.trim() || '';
@@ -248,6 +330,17 @@ const ON_HAND_COLUMNS: readonly ApiListTableColumn<StockOnHandReportItemDto>[] =
     key: 'categoryName',
     label: 'Kategori',
     resolveValue: (row) => row.categoryName || row.categoryCode || '-'
+  },
+  {
+    key: 'producerName',
+    label: 'Sinif',
+    resolveValue: (row) => formatClassification(row)
+  },
+  {
+    key: 'returnedQuantity',
+    label: 'Iade',
+    resolveValue: (row) =>
+      `${formatNumber(row.returnedQuantity)} / ${formatInteger(row.returnedCount)} belge`
   }
 ];
 
@@ -270,7 +363,16 @@ const STOCK_CARD_COLUMNS: readonly ApiListTableColumn<StockCardDetailDto>[] = [
   { key: 'categoryCode', label: 'Kategori' },
   { key: 'mainGroupCode', label: 'Ana Grup' },
   { key: 'subGroupCode', label: 'Alt Grup' },
-  { key: 'unit1Name', label: 'Birim' },
+  { key: 'unit1Name', label: 'Birimler', resolveValue: (row) => formatStockCardUnits(row) },
+  { key: 'brandCode', label: 'Kodlar', resolveValue: (row) => formatStockCardCodes(row) },
+  {
+    key: 'retailTaxPointer',
+    label: 'Vergi',
+    resolveValue: (row) =>
+      `${formatPair('Per', row.retailTaxPointer)} / ${formatPair('Top', row.wholesaleTaxPointer)}`
+  },
+  { key: 'salesStopped', label: 'Kisit', resolveValue: (row) => formatStockCardFlags(row) },
+  { key: 'lastUpdatedAt', label: 'Guncelleme', resolveValue: (row) => formatDateOnly(row.lastUpdatedAt) },
   {
     key: 'isPassive',
     label: 'Durum',
@@ -296,6 +398,7 @@ const MISSING_STOCK_COLUMNS: readonly ApiListTableColumn<WarehouseMissingStockDt
   },
   { key: 'sourceQuantity', label: 'Kaynak Miktar', resolveValue: (row) => formatNumber(row.sourceQuantity) },
   { key: 'targetQuantity', label: 'Hedef Miktar', resolveValue: (row) => formatNumber(row.targetQuantity) },
+  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
   { key: 'salesValue', label: 'Deger', resolveValue: (row) => formatMoney(row.salesValue) },
   { key: 'modelName', label: 'Model', resolveValue: (row) => row.modelName || row.modelCode || '-' }
 ];
@@ -316,11 +419,12 @@ const MOVEMENT_COLUMNS: readonly ApiListTableColumn<StockMovementReportItemDto>[
   {
     key: 'documentSerie',
     label: 'Evrak',
-    resolveValue: (row) => [row.documentSerie, row.documentOrderNo].filter(Boolean).join(' / ') || row.documentNo || '-'
+    resolveValue: (row) => formatDocument(row)
   },
   { key: 'warehouseName', label: 'Depo', resolveValue: (row) => formatWarehouse(row) },
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
   { key: 'customerName', label: 'Cari', resolveValue: (row) => row.customerName || row.customerCode || '-' },
+  { key: 'inputWarehouseNo', label: 'Depo Akis', resolveValue: (row) => formatWarehouseFlow(row) },
   { key: 'movementName', label: 'Hareket Tipi', resolveValue: (row) => row.movementName || row.movementType || '-' },
   { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
   { key: 'amount', label: 'Tutar', resolveValue: (row) => formatMoney(row.amount) }
@@ -400,6 +504,7 @@ const COUNTING_COLUMNS: readonly ApiListTableColumn<CountingComparisonReportItem
   { key: 'systemQuantity', label: 'Sistem', resolveValue: (row) => formatNumber(row.systemQuantity) },
   { key: 'countedQuantity', label: 'Sayim', resolveValue: (row) => formatNumber(row.countedQuantity) },
   { key: 'differenceQuantity', label: 'Fark', resolveValue: (row) => formatNumber(row.differenceQuantity) },
+  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
   { key: 'differenceValue', label: 'Fark Deger', resolveValue: (row) => formatMoney(row.differenceValue) }
 ];
 

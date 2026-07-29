@@ -131,10 +131,14 @@ export interface IInvoiceViewingSynchronizationProgressResponseApiDto {
   totalPage: number;
   fetchedCount: number;
   matchedCount: number;
+  skippedInvoiceDateOutOfRangeCount?: number | null;
+  skippedDuplicateDocumentCount?: number | null;
   insertedCount: number;
   updatedCount: number;
   lastPageItemCount: number;
   lastPageMatchedCount: number;
+  lastPageSkippedInvoiceDateOutOfRangeCount?: number | null;
+  lastPageSkippedDuplicateDocumentCount?: number | null;
   lastPageInsertedCount: number;
   lastPageUpdatedCount: number;
   progressPercent: number | null;
@@ -143,6 +147,19 @@ export interface IInvoiceViewingSynchronizationProgressResponseApiDto {
   finishedAtUtc: string | null;
   elapsedMs: number | null;
   message: string | null;
+  automaticSynchronizationEnabled?: boolean | null;
+  schedulerLastCheckedAtUtc?: string | null;
+  schedulerLastCheckedLocal?: string | null;
+  schedulerStatus?: string | null;
+  schedulerMessage?: string | null;
+  schedulerCurrentSlot?: string | null;
+  schedulerNextSlot?: string | null;
+  schedulerLastQueuedSlot?: string | null;
+  schedulerLastQueuedAtUtc?: string | null;
+  schedulerLastSkippedSlot?: string | null;
+  schedulerLastSkippedAtUtc?: string | null;
+  schedulerLastMissedSlot?: string | null;
+  schedulerLastMissedAtUtc?: string | null;
 }
 
 export interface IInvoiceViewingRenderRequestApiDto {

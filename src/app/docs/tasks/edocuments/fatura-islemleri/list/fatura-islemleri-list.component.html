@@ -100,6 +100,10 @@
               </label>
             </form>
 
+            <div class="inline-note" *ngIf="hasViewingBackendSearch()">
+              Arama doluyken backend tum cache icinde arar; tarih araligi uygulanmaz.
+            </div>
+
             <div class="action-row">
               <button
                 type="button"
@@ -145,8 +149,12 @@
                 <span>Sayfa {{ progress.pageNumber ?? '-' }}/{{ progress.totalPage || '-' }}</span>
                 <span>Okunan {{ progress.fetchedCount }}</span>
                 <span>Eslesti {{ progress.matchedCount }}</span>
+                <span>Atlanan {{ getViewingSyncSkippedCount(progress) }}</span>
                 <span>Yeni {{ progress.insertedCount }}</span>
                 <span>Guncel {{ progress.updatedCount }}</span>
+                <span *ngIf="getViewingSyncSchedulerLabel(progress)">
+                  Plan {{ getViewingSyncSchedulerLabel(progress) }}
+                </span>
                 <span>
                   Uyumsoft sorgu
                   {{ progress.queryStartDate ? (progress.queryStartDate | date: 'dd.MM HH:mm') : '-' }}

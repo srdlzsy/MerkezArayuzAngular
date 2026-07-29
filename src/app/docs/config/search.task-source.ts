@@ -71,6 +71,7 @@ export const SEARCH_TASK_SOURCE = {
         'Barkod ile fiyat sorgusu',
         'Stok kodu ile fiyat arama',
         'Urun adi ile arama',
+        'Stok kodundan son kunye bilgisi',
         'Mikro fiyat proseduru'
       ],
       listTitle: 'Endpointler',
@@ -98,6 +99,11 @@ export const SEARCH_TASK_SOURCE = {
               method: 'GET',
               path: '/api/arama-islemleri/barkodlar/8690000000000/fiyat?warehouseNo=110&take=20',
               description: 'Barkod odakli alias; fiyat bilgisini dondurur'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/urunler/016201/son-kunye?warehouseNo=110',
+              description: 'Secili stok ve depo icin son sevk tarihli kunye bilgisini ve Mikro satis fiyatini getirir'
             }
           ]
         }

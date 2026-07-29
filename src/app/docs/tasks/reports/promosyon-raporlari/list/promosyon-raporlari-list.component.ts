@@ -157,6 +157,29 @@ function formatWarehouse(row: {
   return Number.isFinite(no) ? `Sube ${no}` : '-';
 }
 
+function formatBranchCoverage(row: {
+  branchCount?: number | null;
+  warehouseName?: string | null;
+  warehouseNo?: number | null;
+  branchName?: string | null;
+  branchNo?: number | null;
+}): string {
+  const warehouse = formatWarehouse(row);
+
+  if (warehouse !== '-') {
+    return warehouse;
+  }
+
+  return Number.isFinite(row.branchCount) ? `${formatInteger(row.branchCount)} sube` : '-';
+}
+
+function formatGrossCost(row: {
+  grossSalesAmount?: number | null;
+  estimatedCostAmount?: number | null;
+}): string {
+  return `${formatMoney(row.grossSalesAmount)} / ${formatMoney(row.estimatedCostAmount)}`;
+}
+
 function sumBy<Row>(rows: readonly Row[], selector: (row: Row) => unknown): number {
   return rows.reduce((total, row) => total + toSafeNumber(selector(row)), 0);
 }
@@ -179,6 +202,7 @@ const BULLETIN_COLUMNS: readonly ApiListTableColumn<PromotionBulletinListItemDto
 
 const PERFORMANCE_COLUMNS: readonly ApiListTableColumn<PromotionPerformanceItemDto>[] = [
   { key: 'promotionName', label: 'Promosyon', resolveValue: (row) => formatPromotion(row) },
+  { key: 'branchCount', label: 'Kapsam', resolveValue: (row) => formatBranchCoverage(row) },
   { key: 'usageCount', label: 'Kullanim', resolveValue: (row) => formatInteger(row.usageCount) },
   { key: 'receiptCount', label: 'Fis', resolveValue: (row) => formatInteger(row.receiptCount) },
   { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
@@ -197,6 +221,7 @@ const BRANCH_PERFORMANCE_COLUMNS: readonly ApiListTableColumn<PromotionBranchPer
   { key: 'receiptCount', label: 'Fis', resolveValue: (row) => formatInteger(row.receiptCount) },
   { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
   { key: 'netSalesAmount', label: 'Net Satis', resolveValue: (row) => formatMoney(row.netSalesAmount) },
+  { key: 'grossSalesAmount', label: 'Brut/Maliyet', resolveValue: (row) => formatGrossCost(row) },
   { key: 'discountAmount', label: 'Indirim', resolveValue: (row) => formatMoney(row.discountAmount) },
   { key: 'marginAmount', label: 'Marj', resolveValue: (row) => formatMoney(row.marginAmount) },
   { key: 'marginPercent', label: 'Marj %', resolveValue: (row) => formatPercent(row.marginPercent) }

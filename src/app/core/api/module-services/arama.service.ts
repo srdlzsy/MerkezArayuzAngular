@@ -7,6 +7,7 @@ import {
   IEtiketBasimProduct,
   IFurpaProductSearchItemApiDto,
   ProductCustomerSuggestionsDto,
+  ProductLastTagDto,
   ProductLookupItemDto,
   ProductSearchHttpRequest,
   WarehouseLookupItemDto,
@@ -288,6 +289,15 @@ export class AramaService extends BaseApiService {
       `arama-islemleri/urunler/${encodeURIComponent(stockCode.trim())}/cari-onerileri`,
       {
         take: Math.min(Math.max(take, 1), 25)
+      }
+    );
+  }
+
+  getProductLastTag(stockCode: string, warehouseNo?: number): Observable<ProductLastTagDto | null> {
+    return this.getWithQuery<ProductLastTagDto | null>(
+      `arama-islemleri/urunler/${encodeURIComponent(stockCode.trim())}/son-kunye`,
+      {
+        warehouseNo
       }
     );
   }
