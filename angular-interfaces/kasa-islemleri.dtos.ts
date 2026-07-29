@@ -504,6 +504,12 @@ export interface BanknoteTrackDto {
 
 export type BanknoteTrackItemDto = BanknoteTrackDto;
 
+export interface BanknoteTrackDailySummaryTotalDto {
+  dateToGet: string;
+  warehouseNo: number;
+  totalAmount: number;
+}
+
 // ============================================================================
 // Hediye Çeki Modelleri
 // ============================================================================
@@ -756,7 +762,7 @@ export interface BankPaymentTypeHttpRequest {
 
 export interface ZReportValueHttpRequest {
   warehouseNo: number;
-  documentSerie: string;
+  documentSerie?: string;
   zReportNo: number;
   cashNo: number;
 }
@@ -865,6 +871,7 @@ export interface IFurpaBanknoteTrackApiDto {
 }
 
 export type IFurpaBanknoteTrackItemApiDto = IFurpaBanknoteTrackApiDto;
+export type IFurpaBanknoteTrackDailySummaryTotalApiDto = BanknoteTrackDailySummaryTotalDto;
 
 export interface IFurpaCashierLookupItemApiDto {
   cashierCode: number;

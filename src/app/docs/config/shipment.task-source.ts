@@ -71,7 +71,13 @@ export const SHIPMENT_TASK_SOURCE = {
       title: 'Giden Depolar Arasi Sevkler',
       subtitle: 'Kaynak depo perspektifinden depolar arasi giden sevk liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/sevk-islemleri/depolar-arasi-sevkler/giden',
-      highlights: ['Nakliye', 'Depolar arasi', 'Sevk'],
+      highlights: [
+        'Nakliye',
+        'Depolar arasi',
+        'Sevk',
+        'Yazma yolu MikroWriteRouting:InterWarehouseShipment ile Database veya MikroApi olur',
+        'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir'
+      ],
       listTitle: 'Controller',
       items: [
         {

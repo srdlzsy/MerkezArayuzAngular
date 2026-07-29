@@ -46,7 +46,13 @@ export const RETURNS_TASK_SOURCE = {
       title: 'Giden Depo Iadeleri',
       subtitle: 'Kaynak sube perspektifinden depo iade listesi, detay ve olusturma ekrani.',
       baseRouteOrFile: '/api/iade-islemleri/depo-iadeleri/giden',
-      highlights: ['Iade', 'Depo', 'Giden yon'],
+      highlights: [
+        'Iade',
+        'Depo',
+        'Giden yon',
+        'Yazma yolu MikroWriteRouting:WarehouseReturn ile Database veya MikroApi olur',
+        'Otomatik depo siparisi aciksa backend iade satirini olusan siparis GUIDine baglar'
+      ],
       listTitle: 'Endpointler',
       items: [
         {

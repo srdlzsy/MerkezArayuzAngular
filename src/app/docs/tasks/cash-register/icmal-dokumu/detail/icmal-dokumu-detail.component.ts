@@ -83,7 +83,7 @@ export class IcmalDokumuDetailComponent
     this.summariesDetails().filter((item) => item.paymentTypeID === 100)
   );
   protected readonly storeExpenses = computed(() =>
-    this.summariesDetails().filter((item) => item.paymentTypeID >= 110 && item.paymentTypeID < 600)
+    this.summariesDetails().filter((item) => item.paymentTypeID >= 110 && item.paymentTypeID < 500)
   );
   protected readonly onlineSales = computed(() =>
     this.summariesDetails().filter((item) => item.paymentTypeID >= 600)

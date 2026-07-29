@@ -92,6 +92,8 @@ interface CashDrawerCard {
   tone: string;
 }
 
+const BACKEND_CASH_PAYMENT_TYPE_NO = 500;
+
 @Component({
   selector: 'app-icmal-dokumu-create',
   standalone: true,
@@ -188,7 +190,14 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected readonly paymentTypesTotal = computed(() => {
     this.formRevision();
-    return this.sumFormArray(this.paymentTypes, (group) => group.controls.amountValue.value);
+    return this.roundCurrency(
+      this.paymentTypes.controls
+        .filter((group) => !this.isBackendGeneratedCashPaymentGroup(group))
+        .reduce(
+          (total, group) => total + this.toSafeNumber(group.controls.amountValue.value),
+          0
+        )
+    );
   });
   protected readonly storeExpensesTotal = computed(() => {
     this.formRevision();
@@ -229,10 +238,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected readonly hasRequiredFinancialLines = computed(() => {
     this.formRevision();
     return (
-      this.paymentTypes.length > 0 ||
+      this.hasWritablePaymentTypeLines() ||
       this.storeExpenses.length > 0 ||
-      this.banknoteMovements.length > 0 ||
-      this.giftCheckMovements.length > 0
+      this.banknoteMovements.length > 0
     );
   });
   protected readonly summaryCards = computed<CashDrawerCard[]>(() => {
@@ -416,7 +424,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected hasPaymentTypeSource(source: CashDrawerPaymentSource): boolean {
     this.formRevision();
-    return this.paymentTypes.controls.some((group) => group.controls.source.value === source);
+    return this.paymentTypes.controls.some(
+      (group) =>
+        group.controls.source.value === source &&
+        !this.isBackendGeneratedCashPaymentGroup(group)
+    );
   }
 
   protected loadLookupData(): void {
@@ -955,14 +967,22 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   private hasPaymentTypeSourceValue(source: CashDrawerPaymentSource): boolean {
-    return this.paymentTypes.controls.some((group) => group.controls.source.value === source);
+    return this.paymentTypes.controls.some(
+      (group) =>
+        group.controls.source.value === source &&
+        !this.isBackendGeneratedCashPaymentGroup(group)
+    );
   }
 
   private paymentTotalBySource(source: CashDrawerPaymentSource): number {
     this.formRevision();
     return this.roundCurrency(
       this.paymentTypes.controls
-        .filter((group) => group.controls.source.value === source)
+        .filter(
+          (group) =>
+            group.controls.source.value === source &&
+            !this.isBackendGeneratedCashPaymentGroup(group)
+        )
         .reduce(
           (total, group) => total + this.toSafeNumber(group.controls.amountValue.value),
           0
@@ -973,7 +993,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
   private paymentSlipCountBySource(source: CashDrawerPaymentSource): number {
     this.formRevision();
     const sourceControls = this.paymentTypes.controls.filter(
-      (group) => group.controls.source.value === source
+      (group) =>
+        group.controls.source.value === source &&
+        !this.isBackendGeneratedCashPaymentGroup(group)
     );
     const slipTotal = sourceControls.reduce(
       (total, group) => total + this.toSafeNumber(group.controls.slipNumber.value),
@@ -993,8 +1015,43 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   private paymentLineCountBySource(source: CashDrawerPaymentSource): number {
     this.formRevision();
-    return this.paymentTypes.controls.filter((group) => group.controls.source.value === source)
-      .length;
+    return this.paymentTypes.controls.filter(
+      (group) =>
+        group.controls.source.value === source &&
+        !this.isBackendGeneratedCashPaymentGroup(group)
+    ).length;
+  }
+
+  private hasWritablePaymentTypeLines(): boolean {
+    return this.paymentTypes.controls.some(
+      (group) => !this.isBackendGeneratedCashPaymentGroup(group)
+    );
+  }
+
+  private isBackendGeneratedCashPaymentGroup(group: PaymentTypeLineFormGroup): boolean {
+    return this.isBackendGeneratedCashPaymentLine(group.getRawValue());
+  }
+
+  private isBackendGeneratedCashPaymentLine(line: {
+    paymentName?: string | null;
+    paymentTypeNo?: number | string | null;
+  }): boolean {
+    const paymentTypeNo = this.toSafeNumber(line.paymentTypeNo);
+    const paymentName = this.normalizePaymentName(line.paymentName);
+
+    return (
+      paymentTypeNo === BACKEND_CASH_PAYMENT_TYPE_NO ||
+      paymentName === 'nakit' ||
+      paymentName === 'nakit-toplam'
+    );
+  }
+
+  private normalizePaymentName(value: string | null | undefined): string {
+    return (value ?? '')
+      .trim()
+      .toLowerCase()
+      .replace(/[^a-z0-9]+/g, '-')
+      .replace(/^-+|-+$/g, '');
   }
 
   private refreshComputedFormState(): void {
@@ -1131,14 +1188,16 @@ export class IcmalDokumuCreateComponent implements OnInit {
         total: this.toSafeNumber(line.total),
         value: this.toSafeNumber(line.value)
       })),
-      paymentTypes: rawValue.paymentTypes.map((line) => ({
-        paymentName: line.paymentName.trim(),
-        paymentTypeNo: this.toSafeNumber(line.paymentTypeNo),
-        accountCode: line.accountCode.trim(),
-        terminalId: line.terminalId.trim(),
-        slipNumber: this.toSafeNumber(line.slipNumber),
-        amountValue: this.toSafeNumber(line.amountValue)
-      })),
+      paymentTypes: rawValue.paymentTypes
+        .filter((line) => !this.isBackendGeneratedCashPaymentLine(line))
+        .map((line) => ({
+          paymentName: line.paymentName.trim(),
+          paymentTypeNo: this.toSafeNumber(line.paymentTypeNo),
+          accountCode: line.accountCode.trim(),
+          terminalId: line.terminalId.trim(),
+          slipNumber: this.toSafeNumber(line.slipNumber),
+          amountValue: this.toSafeNumber(line.amountValue)
+        })),
       storeExpenses: rawValue.storeExpenses.map((line) => ({
         storeExpensesType: this.toSafeNumber(line.storeExpensesType),
         description: line.description.trim(),
@@ -1161,7 +1220,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
       warehouseNo: this.isAdminUser() ? rawValue.warehouseNo : undefined,
       giftCheckMovements: rawValue.giftCheckMovements,
       banknoteMovements: rawValue.banknoteMovements,
-      paymentTypes: rawValue.paymentTypes,
+      paymentTypes: rawValue.paymentTypes.filter(
+        (line) => !this.isBackendGeneratedCashPaymentLine(line)
+      ),
       storeExpenses: rawValue.storeExpenses
     };
   }

@@ -5,6 +5,7 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { finalize } from 'rxjs';
 import type {
   IFurpaBanknoteTrackApiDto,
+  IFurpaBanknoteTrackDailySummaryTotalApiDto,
   IFurpaCreateBanknoteTrackRequestApiDto,
   IFurpaCreateBanknoteTrackResponseApiDto
 } from '@interfaces';
@@ -163,6 +164,7 @@ export class BanknotTakipleriListComponent {
   protected readonly isLoading = signal(false);
   protected readonly isDetailLoading = signal(false);
   protected readonly isCreating = signal(false);
+  protected readonly isSummaryTotalLoading = signal(false);
   protected readonly lastLoadedDate = signal(this.getToday());
   protected readonly maxTargetDate = this.getToday();
   private readonly activeDetailTrackId = signal<string | null>(null);
@@ -467,6 +469,52 @@ export class BanknotTakipleriListComponent {
     this.createdResponse.set(null);
   }
 
+  protected loadCreateSummaryTotal(): void {
+    if (this.isSummaryTotalLoading()) {
+      return;
+    }
+
+    const dateToGet = this.createForm.controls.banknoteTrackDate.value.trim();
+
+    if (!dateToGet) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Tarih gerekli',
+        message: 'Sayim toplamini almak icin once teslim gununu secin.'
+      });
+      return;
+    }
+
+    this.feedback.set(null);
+    this.isSummaryTotalLoading.set(true);
+
+    this.kasaIslemleriService
+      .getBanknotSayimToplami(dateToGet, this.getCreateWarehouseNo())
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSummaryTotalLoading.set(false))
+      )
+      .subscribe({
+        next: (summary: IFurpaBanknoteTrackDailySummaryTotalApiDto) => {
+          this.createForm.controls.totalAmount.setValue(this.toSafeNumber(summary.totalAmount));
+          this.createForm.controls.totalAmount.markAsDirty();
+          this.createForm.controls.totalAmount.markAsTouched();
+          this.feedback.set({
+            tone: 'success',
+            title: 'Sayim toplami alindi',
+            message: `${formatAmount(summary.totalAmount) || '0.00'} TL forma yazildi.`
+          });
+        },
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Sayim toplami alinamadi',
+            message: this.getErrorMessage(error, 'Banknot sayim toplami getirilirken bir hata olustu.')
+          });
+        }
+      });
+  }
+
   protected formatDateTime(value: string | null | undefined): string {
     if (!value) {
       return '-';
@@ -515,6 +563,14 @@ export class BanknotTakipleriListComponent {
         ? this.toOptionalNumber(rawValue.warehouseNo)
         : undefined
     };
+  }
+
+  private getCreateWarehouseNo(): number | undefined {
+    if (!this.canUseWarehouseScope()) {
+      return undefined;
+    }
+
+    return this.toOptionalNumber(this.createForm.getRawValue().warehouseNo);
   }
 
   private getRequestedWarehouseNo(): number | undefined {

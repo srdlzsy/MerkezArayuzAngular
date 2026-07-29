@@ -13,6 +13,8 @@ export const RECEIVING_TASK_SOURCE = {
         'DocumentNo bos, prefix veya seri + 9 haneli sira formatinda olabilir',
         'Yeni create akisi dispatchQuantity ve acceptedQuantity alanlarini ayri gonderir',
         'Eksik kabul farki icin varsayilan olarak otomatik firma iadesi olusturulur',
+        'Yazma yolu MikroWriteRouting:CompanyReceiving ile Database veya MikroApi olur',
+        'MikroApi modunda siparis teslim etkisi Mikro API tarafina birakilir',
         'ETTN endpointi create ekrani icin ust bilgi ve kalem on-dolumu saglar',
         'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir'
       ],

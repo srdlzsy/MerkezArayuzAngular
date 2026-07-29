@@ -72,6 +72,7 @@ import {
   UpdateCashSummaryBanknotesResponse,
   DeleteCashSummaryResponse,
   CashSummaryDateHttpRequest,
+  BanknoteTrackDailySummaryTotalDto,
   LabelPriceChangedProductListHttpRequest,
   LabelTagListHttpRequest,
   WarehouseOrderDateRangeHttpRequest,
@@ -222,6 +223,19 @@ export class KasaIslemleriService extends BaseApiService {
     );
   }
 
+  getBanknotSayimToplami(
+    dateToGet: string,
+    warehouseNo?: number | null
+  ): Observable<BanknoteTrackDailySummaryTotalDto> {
+    return this.getWithQuery<BanknoteTrackDailySummaryTotalDto, CashSummaryDateHttpRequest>(
+      'kasa-islemleri/banknot-takipleri/sayim-toplami',
+      {
+        dateToGet,
+        warehouseNo: warehouseNo ?? undefined
+      }
+    );
+  }
+
   getHediyeCekiHareketDetaylari(
     documentSerie: string,
     documentOrderNo: number
@@ -259,13 +273,13 @@ export class KasaIslemleriService extends BaseApiService {
   }
 
   getZRaporuToplamDeger(
-    documentSerie: string,
+    documentSerie: string | null | undefined,
     warehouseNo: number,
     zNo: number,
     cashNo: number
   ): Observable<number | null> {
     return this.getWithQuery<unknown>('kasa-islemleri/kasa-sayimlari/z-rapor-toplam', {
-      documentSerie,
+      documentSerie: documentSerie?.trim() || undefined,
       warehouseNo,
       zReportNo: zNo,
       cashNo

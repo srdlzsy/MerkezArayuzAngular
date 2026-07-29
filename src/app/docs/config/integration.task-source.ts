@@ -14,6 +14,7 @@ export const INTEGRATION_TASK_SOURCE = {
           'Fetch profile explorer',
           'AXATA SQL tabanli live audit, status evreni ve queue preview',
           'Mikro siparisten AXATA siparis/sevk ve Mikro linkine evrak bazli yasam dongusu',
+          'issued-warehouse-order-sync basarili dispatch sonrasi ssip_special1 bayragini routing moduna gore yazar',
           'Mikro urun, tum barkod ve birimleriyle AXATA addSKUMaster canli aktarimi',
           'AXATA sevk tarihi listesi',
           'Preview, route-based execute ve POST /jobs',
@@ -84,7 +85,7 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c01/import',
-              description: 'Uygun C01 teslimatlarini Mikro sevk fisine cevirir; acknowledge true ise AXATA ack atar',
+              description: 'Uygun C01 teslimatlarini Mikro sevk fisine cevirir; siparis link ve teslim etkisi Mikro tarafinda islenir',
               payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
             },
             {
@@ -141,7 +142,7 @@ export const INTEGRATION_TASK_SOURCE = {
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/manual/tasks/{taskCode}/documents/dispatch',
-                description: 'Secili tek evraki eski AXATA worker kontratina uygun WCF client ile canli gonderir',
+                description: 'Secili tek evraki WCF client ile gonderir; issued siparislerde ssip_special1 bayragi routing moduna gore yazilir',
                 payload: 'AxataSynchronizationManualDocumentHttpRequest'
               },
               {

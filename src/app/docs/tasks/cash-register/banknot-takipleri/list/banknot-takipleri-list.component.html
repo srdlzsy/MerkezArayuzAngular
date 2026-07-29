@@ -221,10 +221,20 @@
             <input type="number" min="1" formControlName="warehouseNo" placeholder="Bos: aktif depo" />
           </label>
 
-          <label class="field create-amount-field">
+          <div class="field create-amount-field">
             <span>Toplam Tutar</span>
-            <input type="number" min="0" step="0.01" formControlName="totalAmount" placeholder="12000" />
-          </label>
+            <div class="field-action-row">
+              <input type="number" min="0" step="0.01" formControlName="totalAmount" placeholder="12000" />
+              <button
+                type="button"
+                class="inline-field-action"
+                (click)="loadCreateSummaryTotal()"
+                [disabled]="isSummaryTotalLoading()"
+              >
+                {{ isSummaryTotalLoading() ? 'Aliniyor' : 'Sayimdan Al' }}
+              </button>
+            </div>
+          </div>
 
           <label class="field create-amount-field">
             <span>Teslim Tutar</span>

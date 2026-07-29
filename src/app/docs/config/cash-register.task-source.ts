@@ -254,7 +254,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
       highlights: [
         'Yetki kodlari kasa-islemleri.icmal-kaydi-girisi.* ailesindedir',
         'WarehouseNo body icinde opsiyoneldir ve JWT deposuyla ayni olmali',
-        'En az bir paymentTypes veya storeExpenses satiri zorunludur',
+        'En az bir paymentTypes, storeExpenses veya banknoteMovements satiri zorunludur',
+        'Nakit toplam paymentTypes icinden gonderilmez; backend banknot hareketlerinden 500 satirini uretir',
         'Belge serisi backend tarafinda KS{loginDepoNo} olarak uretilir',
         'API route ailesi geriye uyumluluk icin kasa-sayimlari altinda kalir'
       ],
@@ -320,7 +321,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/kasa-sayimlari/z-rapor-toplam?documentSerie=KS110&warehouseNo=110&zReportNo=125&cashNo=1',
+              path: '/api/kasa-islemleri/kasa-sayimlari/z-rapor-toplam?warehouseNo=110&zReportNo=125&cashNo=1',
               description: 'Paylasim klasorundeki Z raporundan NET CIRO degerini okumaya calisir'
             }
           ]
@@ -331,8 +332,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
   "zReportNo": 125,
   "cashierNo": 1001,
   "managerNo": 1002,
-  "zTotalValue": 15340.5,
-  "total": 15340.5,
+  "zTotalValue": 6500,
+  "total": 6500,
   "summaryDate": "2026-04-24",
   "giftCheckMovements": [],
   "banknoteMovements": [
@@ -345,12 +346,12 @@ export const CASH_REGISTER_TASK_SOURCE = {
   ],
   "paymentTypes": [
     {
-      "paymentName": "Nakit",
+      "paymentName": "Akbank POS",
       "paymentTypeNo": 1,
-      "accountCode": "",
-      "terminalId": "",
-      "slipNumber": 0,
-      "amountValue": 11340.5
+      "accountCode": "POS-AKBANK",
+      "terminalId": "TERM-01",
+      "slipNumber": 12,
+      "amountValue": 2500
     }
   ],
   "storeExpenses": []
@@ -391,6 +392,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
       highlights: [
         'Kasa sayimlari altindan ayrilan yeni route ailesidir',
         'warehouseNo bos gonderilirse all-warehouses yetkili kullanici icin tum depolari listeler',
+        'Yeni teslim kaydinda totalAmount sayim-toplami endpointinden doldurulabilir',
         'differenceAmount deliveryTotalAmount - totalAmount olarak gelir'
       ],
       listTitle: 'Endpointler',
@@ -408,6 +410,11 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/kasa-islemleri/banknot-takipleri/{banknoteTrackId}',
               description: 'Banknot takip kaydinin detayini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/banknot-takipleri/sayim-toplami?dateToGet=2026-04-24&warehouseNo=110',
+              description: 'Teslim formu icin banknot sayim toplam tutarini getirir'
             },
             {
               method: 'POST',
