@@ -17,6 +17,7 @@
 
 .priority-board,
 .feedback-card,
+.announcement-card,
 .priority-list,
 .feedback-history,
 .feedback-modal {
@@ -194,12 +195,13 @@
 }
 
 .content-grid {
-  grid-template-columns: minmax(0, 1.12fr) minmax(320px, 0.88fr);
+  grid-template-columns: minmax(0, 1.08fr) minmax(280px, 0.76fr) minmax(280px, 0.76fr);
   align-items: stretch;
 }
 
 .priority-list,
-.feedback-card {
+.feedback-card,
+.announcement-card {
   display: grid;
   align-content: start;
   gap: 0.58rem;
@@ -254,13 +256,15 @@
   font-weight: 900;
 }
 
-.feedback-metrics {
+.feedback-metrics,
+.announcement-metrics {
   display: grid;
   grid-template-columns: 0.6fr 0.6fr 1fr;
   gap: 0.35rem;
 }
 
-.feedback-metrics article {
+.feedback-metrics article,
+.announcement-metrics article {
   display: grid;
   gap: 0.1rem;
   min-width: 0;
@@ -270,7 +274,8 @@
   background: var(--home-soft);
 }
 
-.feedback-metrics strong {
+.feedback-metrics strong,
+.announcement-metrics strong {
   overflow: hidden;
   color: var(--home-ink);
   font-size: 0.88rem;
@@ -623,4 +628,62 @@
   .icon-button {
     width: 100%;
   }
+}
+
+.announcement-list {
+  display: grid;
+  gap: 0.38rem;
+}
+
+.announcement-row {
+  display: grid;
+  gap: 0.14rem;
+  width: 100%;
+  border: 1px solid var(--home-border);
+  border-left-width: 4px;
+  border-radius: 8px;
+  padding: 0.52rem;
+  color: inherit;
+  background: #fff;
+  text-align: left;
+  cursor: pointer;
+}
+
+.announcement-row span {
+  color: var(--home-muted);
+  font-size: 0.64rem;
+  font-weight: 900;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+}
+
+.announcement-row strong {
+  overflow: hidden;
+  color: var(--home-ink);
+  font-size: 0.84rem;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.announcement-row small {
+  display: -webkit-box;
+  overflow: hidden;
+  color: var(--home-muted);
+  line-height: 1.35;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.announcement-row.priority-high {
+  border-left-color: var(--home-danger);
+  background: #fff7f7;
+}
+
+.announcement-row.priority-important {
+  border-left-color: var(--home-warning);
+  background: #fffdf4;
+}
+
+.announcement-row.priority-normal {
+  border-left-color: var(--home-accent);
 }

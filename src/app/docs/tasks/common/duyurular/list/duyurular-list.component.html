@@ -1,0 +1,357 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="surface-card announcement-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ortak Islemler</span>
+        <h2>{{ current.title }}</h2>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Kayit</span>
+          <strong>{{ rows().length }}</strong>
+        </article>
+        <article>
+          <span>Yayinda</span>
+          <strong>{{ publishedCount() }}</strong>
+        </article>
+        <article>
+          <span>Acil</span>
+          <strong>{{ urgentCount() }}</strong>
+        </article>
+        <article>
+          <span>Arsiv</span>
+          <strong>{{ archivedCount() }}</strong>
+        </article>
+        <article>
+          <button
+            type="button"
+            class="task-action task-action-primary"
+            (click)="openCreateModal()"
+            [disabled]="!canCreate()"
+          >
+            Yeni Duyuru
+          </button>
+        </article>
+      </div>
+    </header>
+
+    <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="loadRows()" novalidate>
+      <label class="field">
+        <span>Durum</span>
+        <select formControlName="status">
+          <option *ngFor="let option of statusOptions" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Hedef</span>
+        <select formControlName="targetType">
+          <option *ngFor="let option of targetTypeOptions" [ngValue]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Hedef Depo</span>
+        <input type="number" min="1" formControlName="targetWarehouseNo" placeholder="110" />
+      </label>
+
+      <label class="field field-user">
+        <span>Hedef Kullanici Id</span>
+        <input type="text" formControlName="targetUserId" autocomplete="off" />
+      </label>
+
+      <label class="field">
+        <span>Baslangic</span>
+        <input type="date" formControlName="startDate" />
+      </label>
+
+      <label class="field">
+        <span>Bitis</span>
+        <input type="date" formControlName="endDate" />
+      </label>
+
+      <label class="field take-field">
+        <span>Take</span>
+        <input type="number" min="1" max="500" formControlName="take" />
+      </label>
+
+      <label class="check-field">
+        <input type="checkbox" formControlName="includeArchived" />
+        <span>Arsiv dahil</span>
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading()">
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+        <button type="button" class="task-action task-action-secondary" (click)="clearFilters()">
+          Temizle
+        </button>
+      </div>
+
+      <div class="scope-chip">
+        <span>Kapsam</span>
+        <strong>{{ selectedScopeLabel() }}</strong>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid">
+      <div class="list-panel">
+        <article class="state-card" *ngIf="isLoading()">
+          <h3>Liste yukleniyor</h3>
+          <p>{{ selectedScopeLabel() }} kapsamindaki duyurular getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap" *ngIf="!isLoading() && rows().length">
+          <table class="data-table">
+            <thead>
+              <tr>
+                <th>Durum</th>
+                <th>Oncelik</th>
+                <th>Baslik</th>
+                <th>Hedef</th>
+                <th>Baslangic</th>
+                <th>Bitis</th>
+                <th>Olusturan</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let item of rows(); trackBy: trackByAnnouncement"
+                [class.is-selected]="selectedItem()?.id === item.id"
+                (click)="openDetail(item)"
+              >
+                <td>
+                  <span class="status-badge" [class]="getStatusTone(item.status)">
+                    {{ item.statusName || item.status }}
+                  </span>
+                </td>
+                <td>
+                  <span [class]="getPriorityTone(item.priority)">
+                    {{ item.priorityName || item.priority }}
+                  </span>
+                </td>
+                <td>
+                  <strong>{{ item.title }}</strong>
+                  <div class="table-meta">{{ item.message }}</div>
+                </td>
+                <td>{{ targetSummary(item) }}</td>
+                <td>{{ formatDateTime(item.startsAtUtc || item.publishedAtUtc) }}</td>
+                <td>{{ formatDateTime(item.expiresAtUtc) }}</td>
+                <td>{{ item.createdByFullName || item.createdByUsername || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading() && !rows().length">
+          <h3>Duyuru yok</h3>
+          <p>Secilen filtrelerle gosterilecek duyuru bulunmuyor.</p>
+        </article>
+      </div>
+
+      <aside class="detail-panel">
+        <ng-container *ngIf="selectedItem() as selected; else noSelection">
+          <div class="detail-head">
+            <div>
+              <span class="section-kicker">{{ selected.priorityName || selected.priority }}</span>
+              <h3>{{ selected.title }}</h3>
+            </div>
+            <span class="status-badge" [class]="getStatusTone(selected.status)">
+              {{ selected.statusName || selected.status }}
+            </span>
+          </div>
+
+          <article class="state-card compact-state" *ngIf="isDetailLoading()">
+            <h3>Detay yukleniyor</h3>
+            <p>Secili duyuru yenileniyor.</p>
+          </article>
+
+          <p class="message-body">{{ selected.message }}</p>
+
+          <dl class="detail-grid">
+            <div>
+              <dt>Oncelik</dt>
+              <dd [class]="getPriorityTone(selected.priority)">{{ selected.priorityName || selected.priority }}</dd>
+            </div>
+            <div>
+              <dt>Hedef</dt>
+              <dd>{{ targetSummary(selected) }}</dd>
+            </div>
+            <div>
+              <dt>Yayin</dt>
+              <dd>{{ formatDateTime(selected.publishedAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>Baslangic</dt>
+              <dd>{{ formatDateTime(selected.startsAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>Bitis</dt>
+              <dd>{{ formatDateTime(selected.expiresAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>Okundu</dt>
+              <dd>{{ formatDateTime(selected.readAtUtc) }}</dd>
+            </div>
+            <div>
+              <dt>Olusturan</dt>
+              <dd>{{ selected.createdByFullName || selected.createdByUsername || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Arsiv</dt>
+              <dd>{{ formatDateTime(selected.archivedAtUtc) }}</dd>
+            </div>
+          </dl>
+
+          <div class="target-list" *ngIf="selected.targets.length">
+            <span class="section-kicker">Hedefler</span>
+            <span *ngFor="let target of selected.targets">
+              {{ target.typeName || target.type }}: {{ target.warehouseName || target.userFullName || target.username || target.warehouseNo || target.userId || '-' }}
+            </span>
+          </div>
+
+          <div class="detail-actions">
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              (click)="openEditModal(selected)"
+              [disabled]="!canUpdate() || selected.status === 'Archived'"
+            >
+              Duzenle
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-danger"
+              (click)="archiveSelected()"
+              [disabled]="!canArchive() || archiving() || selected.status === 'Archived'"
+            >
+              {{ archiving() ? 'Arsivleniyor...' : 'Arsivle' }}
+            </button>
+          </div>
+        </ng-container>
+
+        <ng-template #noSelection>
+          <article class="state-card">
+            <h3>Duyuru secilmedi</h3>
+            <p>Tablodan bir satir secildiginde detay burada gosterilir.</p>
+          </article>
+        </ng-template>
+      </aside>
+    </section>
+  </article>
+  <section class="modal-backdrop" *ngIf="modalOpen()" (click)="closeModal()">
+    <form
+      class="announcement-modal"
+      [formGroup]="announcementForm"
+      (click)="$event.stopPropagation()"
+      (ngSubmit)="submitAnnouncement()"
+      novalidate
+    >
+      <header class="modal-head">
+        <div>
+          <span class="section-kicker">{{ editingItem() ? 'Duyuru Guncelle' : 'Yeni Duyuru' }}</span>
+          <h3>{{ editingItem() ? editingItem()?.title : 'Duyuru Yayinla' }}</h3>
+        </div>
+        <button type="button" class="task-action task-action-secondary" (click)="closeModal()" [disabled]="saving()">
+          Kapat
+        </button>
+      </header>
+
+      <div class="modal-grid">
+        <label class="field field-wide">
+          <span>Baslik</span>
+          <input type="text" formControlName="title" maxlength="140" autocomplete="off" />
+        </label>
+
+        <label class="field field-wide">
+          <span>Mesaj</span>
+          <textarea formControlName="message" maxlength="4000" rows="7"></textarea>
+        </label>
+
+        <label class="field">
+          <span>Oncelik</span>
+          <select formControlName="priority">
+            <option *ngFor="let option of priorityOptions" [ngValue]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Hedef Tipi</span>
+          <select formControlName="targetType">
+            <option
+              *ngFor="let option of saveTargetTypeOptions"
+              [ngValue]="option.value"
+              [disabled]="targetTypeDisabled(option.value)"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field field-wide" *ngIf="currentFormTargetType() === 'Warehouse'">
+          <span>Hedef Depolar</span>
+          <input type="text" formControlName="targetWarehouseNosText" placeholder="110, 120" autocomplete="off" />
+          <small *ngIf="!canUseAllWarehouses()">{{ currentWarehouseLabel() }}</small>
+        </label>
+
+        <label class="field field-wide" *ngIf="currentFormTargetType() === 'User'">
+          <span>Hedef Kullanici Idleri</span>
+          <textarea formControlName="targetUserIdsText" rows="3" placeholder="guid-1, guid-2"></textarea>
+        </label>
+
+        <article class="scope-note field-wide" *ngIf="currentFormTargetType() === 'AllWarehouses'">
+          <strong>Tum Depolar</strong>
+          <span>Bu hedef tipi tum depolara duyuru yayinlar.</span>
+        </article>
+
+        <label class="field">
+          <span>Baslama Zamani</span>
+          <input type="datetime-local" formControlName="startsAtLocal" />
+        </label>
+
+        <label class="field">
+          <span>Bitis Zamani</span>
+          <input type="datetime-local" formControlName="expiresAtLocal" />
+        </label>
+      </div>
+
+      <article
+        class="modal-message"
+        *ngIf="modalMessage() as currentMessage"
+        [class.message-error]="currentMessage.tone === 'error'"
+        [class.message-success]="currentMessage.tone === 'success'"
+      >
+        <strong>{{ currentMessage.title }}</strong>
+        <span>{{ currentMessage.message }}</span>
+      </article>
+
+      <div class="modal-actions">
+        <button type="button" class="task-action task-action-secondary" (click)="closeModal()" [disabled]="saving()">
+          Vazgec
+        </button>
+        <button type="submit" class="task-action task-action-primary" [disabled]="saving()">
+          {{ saving() ? 'Kaydediliyor...' : 'Kaydet' }}
+        </button>
+      </div>
+    </form>
+  </section>
+</section>

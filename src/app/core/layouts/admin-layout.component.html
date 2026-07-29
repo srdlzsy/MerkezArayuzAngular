@@ -30,6 +30,7 @@
       </div>
 
       <div class="topbar-user">
+        <ng-container *ngTemplateOutlet="announcementMenu"></ng-container>
         <span class="topbar-divider"></span>
         <span class="topbar-branch">{{ branchLabel() }}</span>
         <button type="button" class="logout-button" (click)="logout()">Cikis</button>
@@ -52,6 +53,7 @@
         <strong class="page-title mobile-page-title">{{ pageTitle() }}</strong>
 
         <div class="mobile-user">
+          <ng-container *ngTemplateOutlet="announcementMenu"></ng-container>
           <span class="topbar-branch mobile-branch">{{ branchLabel() }}</span>
           <button type="button" class="logout-button mobile-logout" (click)="logout()">Cikis</button>
         </div>
@@ -64,6 +66,64 @@
   </main>
 </div>
 
+<ng-template #announcementMenu>
+  <div class="announcement-wrap">
+    <button
+      type="button"
+      class="announcement-button"
+      title="Duyurular"
+      aria-label="Duyurular"
+      (click)="toggleAnnouncementInbox()"
+    >
+      <i class="fa-solid fa-bell"></i>
+      <span class="announcement-badge" *ngIf="unreadAnnouncementCount()">
+        {{ formatAnnouncementCount(unreadAnnouncementCount()) }}
+      </span>
+    </button>
+
+    <section class="announcement-panel" *ngIf="announcementInboxOpen()">
+      <header class="announcement-panel-head">
+        <div>
+          <span>Duyurular</span>
+          <strong>{{ unreadAnnouncementCount() }} okunmamis</strong>
+        </div>
+        <button type="button" class="announcement-refresh" (click)="loadAnnouncementInbox()" [disabled]="announcementsLoading()">
+          <i class="fa-solid" [ngClass]="announcementsLoading() ? 'fa-circle-notch fa-spin' : 'fa-rotate'"></i>
+        </button>
+      </header>
+
+      <article class="announcement-state" *ngIf="announcementsLoading()">
+        Duyurular yukleniyor.
+      </article>
+
+      <button
+        type="button"
+        class="announcement-item"
+        *ngFor="let item of announcementItems(); trackBy: trackAnnouncement"
+        [ngClass]="getAnnouncementPriorityClass(item.priority)"
+        (click)="markAnnouncementAsRead(item, $event)"
+      >
+        <span>{{ item.priorityName || item.priority }}</span>
+        <strong>{{ item.title }}</strong>
+        <small>{{ item.message }}</small>
+        <em>{{ formatAnnouncementDate(item.publishedAtUtc) }}</em>
+      </button>
+
+      <article class="announcement-state" *ngIf="!announcementsLoading() && announcementsMessage()">
+        {{ announcementsMessage() }}
+      </article>
+
+      <button
+        type="button"
+        class="announcement-management"
+        *ngIf="canOpenAnnouncementManagement()"
+        (click)="openAnnouncementManagement()"
+      >
+        Tumunu Goster
+      </button>
+    </section>
+  </div>
+</ng-template>
 <ng-template #sidebarContent>
   <div class="sidebar-header">
     <button

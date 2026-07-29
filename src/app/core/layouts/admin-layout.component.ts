@@ -1,7 +1,9 @@
 import { CommonModule } from '@angular/common';
-import { Component, HostListener, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
-import { filter } from 'rxjs';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { filter, finalize } from 'rxjs';
+import type { AnnouncementDto, AnnouncementSummaryDto } from '@interfaces';
 
 import { DOCS_PAGES } from '../../docs/config/docs-pages.config';
 import { normalizeDocsAccessKey } from '../../docs/config/docs-menu.config';
@@ -9,6 +11,7 @@ import { DocsRegistryValidationService } from '../../docs/config/docs-registry-v
 import { DocsMenuSection } from '../../docs/models/docs.models';
 import { DocsNavigationService } from '../../docs/services/docs-navigation.service';
 import { AuthService } from '../auth/services/auth.service';
+import { OrtakIslemlerService } from '../api/module-services/ortak-islemler.service';
 import { environment } from '../../../environments/environment';
 
 @Component({
@@ -23,8 +26,10 @@ export class AdminLayoutComponent {
   private readonly sidebarZoomOutExpandWidth = 1760;
   private readonly sidebarCollapsedStorageKey = 'furpa.adminLayout.sidebarCollapsed';
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly activatedRoute = inject(ActivatedRoute);
   private readonly authService = inject(AuthService);
+  private readonly ortakIslemlerService = inject(OrtakIslemlerService);
   private readonly docsNavigationService = inject(DocsNavigationService);
   private readonly docsRegistryValidationService = inject(DocsRegistryValidationService);
 
@@ -54,6 +59,13 @@ export class AdminLayoutComponent {
   });
   protected readonly openSections = signal<Record<string, boolean>>({});
   protected readonly activeTaskId = signal<string | null>(null);
+  protected readonly announcementSummary = signal<AnnouncementSummaryDto | null>(null);
+  protected readonly announcementItems = signal<AnnouncementDto[]>([]);
+  protected readonly announcementInboxOpen = signal(false);
+  protected readonly announcementsLoading = signal(false);
+  protected readonly announcementsMessage = signal<string | null>(null);
+  protected readonly unreadAnnouncementCount = computed(() => this.announcementSummary()?.unreadCount ?? 0);
+  protected readonly canOpenAnnouncementManagement = computed(() => this.authService.hasTaskAccess('duyurular'));
 
   constructor() {
     effect(() => {
@@ -64,6 +76,7 @@ export class AdminLayoutComponent {
       }
 
       this.docsRegistryValidationService.reportAssignedTaskCoverage(user.sorumluluklar);
+      this.loadAnnouncementSummary();
 
       if (
         !environment.production &&
@@ -84,10 +97,113 @@ export class AdminLayoutComponent {
       this.expandActiveMenuPath();
       this.closeSidebar();
       this.closeRailMenu();
+      this.closeAnnouncementInbox();
     });
   }
 
+  protected toggleAnnouncementInbox(): void {
+    const nextOpen = !this.announcementInboxOpen();
+    this.announcementInboxOpen.set(nextOpen);
 
+    if (nextOpen) {
+      this.loadAnnouncementInbox();
+    }
+  }
+
+  protected closeAnnouncementInbox(): void {
+    this.announcementInboxOpen.set(false);
+  }
+
+  protected loadAnnouncementSummary(): void {
+    if (!this.authService.isAuthenticated()) {
+      return;
+    }
+
+    this.ortakIslemlerService
+      .getAnnouncementSummary()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (summary: AnnouncementSummaryDto) => this.announcementSummary.set(summary),
+        error: () => this.announcementSummary.set(null)
+      });
+  }
+
+  protected loadAnnouncementInbox(): void {
+    this.announcementsLoading.set(true);
+    this.announcementsMessage.set(null);
+
+    this.ortakIslemlerService
+      .getAnnouncementsInbox({ includeRead: false, take: 20 })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.announcementsLoading.set(false))
+      )
+      .subscribe({
+        next: (items: AnnouncementDto[]) => {
+          this.announcementItems.set((items ?? []).map((item) => ({ ...item, targets: item.targets ?? [] })));
+          this.announcementsMessage.set(items?.length ? null : 'Okunmamis aktif duyuru yok.');
+        },
+        error: () => {
+          this.announcementItems.set([]);
+          this.announcementsMessage.set('Duyurular su an alinamadi.');
+        }
+      });
+  }
+
+  protected markAnnouncementAsRead(item: AnnouncementDto, event?: MouseEvent): void {
+    event?.stopPropagation();
+
+    this.ortakIslemlerService
+      .markAnnouncementAsRead(item.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.announcementItems.update((items) => items.filter((current) => current.id !== item.id));
+          this.loadAnnouncementSummary();
+        }
+      });
+  }
+
+  protected openAnnouncementManagement(): void {
+    this.closeAnnouncementInbox();
+    void this.router.navigate(['/docs/api/duyurular']);
+  }
+
+  protected formatAnnouncementCount(count: number): string {
+    return count > 99 ? '99+' : `${count}`;
+  }
+
+  protected getAnnouncementPriorityClass(priority: string | null | undefined): string {
+    switch (priority) {
+      case 'Urgent':
+        return 'announcement-urgent';
+      case 'Important':
+        return 'announcement-important';
+      default:
+        return 'announcement-normal';
+    }
+  }
+
+  protected formatAnnouncementDate(value: string | null | undefined): string {
+    const textValue = value?.trim() ?? '';
+
+    if (!textValue) {
+      return '-';
+    }
+
+    const date = new Date(textValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return textValue;
+    }
+
+    return new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    }).format(date);
+  }
+
+  protected readonly trackAnnouncement = (_index: number, item: AnnouncementDto): string => item.id;
 
   protected logout(): void {
     this.authService.logout();

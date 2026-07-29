@@ -7,6 +7,7 @@ export * from './stok-islemleri.dtos';
 export * from './fatura-islemleri.dtos';
 export * from './home.dtos';
 export * from './feedback.dtos';
+export * from './announcement.dtos';
 export * from './green-grocer.dtos';
 export * from './rapor-islemleri.dtos';
 export * from './ayar-islemleri.dtos';

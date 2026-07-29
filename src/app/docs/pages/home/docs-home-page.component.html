@@ -160,6 +160,79 @@
             </button>
           </div>
         </article>
+
+        <article class="announcement-card">
+          <div class="panel-head">
+            <div>
+              <span class="eyebrow">Home</span>
+              <h3>Duyurular</h3>
+            </div>
+            <span class="status-badge" [ngClass]="announcementSummary()?.unreadCount ? 'status-warn' : 'status-success'">
+              {{ announcementSummary()?.unreadCount ?? 0 }} okunmamis
+            </span>
+          </div>
+
+          <div class="announcement-metrics">
+            <article>
+              <span>Aktif</span>
+              <strong>{{ announcementSummary()?.activeCount ?? 0 }}</strong>
+            </article>
+            <article>
+              <span>Okunmamis</span>
+              <strong>{{ announcementSummary()?.unreadCount ?? 0 }}</strong>
+            </article>
+            <article>
+              <span>Son Yayin</span>
+              <strong>{{ latestAnnouncementLabel() }}</strong>
+            </article>
+          </div>
+
+          <article
+            class="state-note"
+            *ngIf="announcementMessage() as currentMessage"
+            [class.state-error]="currentMessage.tone === 'error'"
+            [class.state-success]="currentMessage.tone === 'success'"
+          >
+            <strong>{{ currentMessage.title }}</strong>
+            <span>{{ currentMessage.text }}</span>
+          </article>
+
+          <div class="announcement-list" *ngIf="announcementItems().length">
+            <button
+              type="button"
+              class="announcement-row"
+              *ngFor="let item of announcementItems(); trackBy: trackAnnouncement"
+              [ngClass]="getAnnouncementPriorityTone(item.priority)"
+              (click)="markAnnouncementAsRead(item)"
+            >
+              <span>{{ item.priorityName || item.priority }}</span>
+              <strong>{{ item.title }}</strong>
+              <small>{{ item.message }}</small>
+            </button>
+          </div>
+
+          <div class="feedback-actions">
+            <button type="button" class="primary-action" (click)="loadAnnouncements()" [disabled]="announcementsLoading()">
+              {{ announcementsLoading() ? 'Yukleniyor...' : 'Okunmamislar' }}
+            </button>
+            <button
+              type="button"
+              class="secondary-action"
+              (click)="loadAnnouncementSummary()"
+              [disabled]="announcementSummaryLoading()"
+            >
+              Yenile
+            </button>
+            <button
+              type="button"
+              class="icon-text-button"
+              *ngIf="canOpenAnnouncementManagement()"
+              (click)="openAnnouncementManagement()"
+            >
+              Yonetim
+            </button>
+          </div>
+        </article>
       </section>
     </ng-container>
   </section>

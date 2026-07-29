@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
@@ -15,6 +15,7 @@ import type {
 
 import { OrtakIslemlerService } from '../../../../../core/api/module-services/ortak-islemler.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { currentUserHasPermission } from '../../../core/admin-warehouse.helpers';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 
@@ -33,6 +34,9 @@ interface ActionFeedback {
   title: string;
   message: string;
 }
+
+const FEEDBACK_LIST_ALL_PERMISSION = 'ortak-islemler.sikayet-oneri.list-all';
+const FEEDBACK_UPDATE_PERMISSION = 'ortak-islemler.sikayet-oneri.update';
 
 @Component({
   selector: 'app-sikayet-oneri-list',
@@ -101,9 +105,12 @@ export class SikayetOneriListComponent {
   protected readonly isDetailLoading = signal(false);
   protected readonly updatingAction = signal<'read' | 'status' | null>(null);
 
-  protected readonly isAdminUser = computed(() => this.hasRole('Admin') || this.hasRole('Administrator'));
-  protected readonly canViewAll = computed(() => this.isAdminUser());
-  protected readonly canUpdate = computed(() => this.isAdminUser());
+  protected readonly canViewAll = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), FEEDBACK_LIST_ALL_PERMISSION)
+  );
+  protected readonly canUpdate = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), FEEDBACK_UPDATE_PERMISSION)
+  );
   protected readonly openCount = computed(
     () => this.rows().filter((row) => !this.isFinalStatus(row.status)).length
   );
@@ -152,9 +159,15 @@ export class SikayetOneriListComponent {
   });
 
   constructor() {
-    if (!this.canViewAll()) {
+    effect(() => {
+      if (this.canViewAll()) {
+        this.filterForm.controls.warehouseNo.enable({ emitEvent: false });
+        return;
+      }
+
+      this.filterForm.controls.warehouseNo.setValue(null, { emitEvent: false });
       this.filterForm.controls.warehouseNo.disable({ emitEvent: false });
-    }
+    });
 
     this.loadRows();
   }
@@ -488,11 +501,6 @@ export class SikayetOneriListComponent {
     return status === 'Resolved' || status === 'Closed' || status === 'Rejected';
   }
 
-  private hasRole(role: string): boolean {
-    return (this.authService.currentUser()?.roller ?? []).some(
-      (value) => value.toLocaleLowerCase('tr-TR') === role.toLocaleLowerCase('tr-TR')
-    );
-  }
 
   private toOptionalNumber(value: unknown): number | null {
     if (value === null || value === undefined || value === '') {

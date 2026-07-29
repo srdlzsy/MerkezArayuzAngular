@@ -5,6 +5,8 @@ import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angula
 import { ActivatedRoute, Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import type {
+  AnnouncementDto,
+  AnnouncementSummaryDto,
   CreateFeedbackItemHttpRequest,
   FeedbackItemDto,
   FeedbackItemType,
@@ -43,6 +45,7 @@ const BACKEND_ROUTE_MAP: Readonly<Record<string, string>> = {
   '/yonetim/sikayet-oneri': '/docs/api/sikayet-oneri'
 };
 const HOME_WAREHOUSE_PRIORITIES_PERMISSION = 'home.depo-oncelikleri.all-warehouses';
+const ANNOUNCEMENT_MANAGEMENT_TASK_ID = 'duyurular';
 
 @Component({
   selector: 'app-docs-home-page',
@@ -94,6 +97,11 @@ export class DocsHomePageComponent {
 
   protected readonly feedbackSummary = signal<FeedbackSummaryDto | null>(null);
   protected readonly myFeedbackItems = signal<FeedbackItemDto[]>([]);
+  protected readonly announcementSummary = signal<AnnouncementSummaryDto | null>(null);
+  protected readonly announcementItems = signal<AnnouncementDto[]>([]);
+  protected readonly announcementsLoading = signal(false);
+  protected readonly announcementSummaryLoading = signal(false);
+  protected readonly announcementMessage = signal<FeedbackMessage | null>(null);
   protected readonly selectedFeedback = signal<FeedbackItemDto | null>(null);
   protected readonly feedbackMessage = signal<FeedbackMessage | null>(null);
   protected readonly feedbackModalOpen = signal(false);
@@ -107,6 +115,12 @@ export class DocsHomePageComponent {
   );
   protected readonly latestCreatedLabel = computed(() =>
     this.formatDateTime(this.feedbackSummary()?.latestCreatedAtUtc ?? null)
+  );
+  protected readonly latestAnnouncementLabel = computed(() =>
+    this.formatDateTime(this.announcementSummary()?.latestPublishedAtUtc ?? null)
+  );
+  protected readonly canOpenAnnouncementManagement = computed(() =>
+    this.authService.hasTaskAccess(ANNOUNCEMENT_MANAGEMENT_TASK_ID)
   );
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
@@ -323,6 +337,93 @@ export class DocsHomePageComponent {
       });
   }
 
+  protected loadAnnouncementSummary(): void {
+    this.announcementSummaryLoading.set(true);
+
+    this.ortakIslemlerService
+      .getAnnouncementSummary()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.announcementSummaryLoading.set(false))
+      )
+      .subscribe({
+        next: (summary: AnnouncementSummaryDto) => this.announcementSummary.set(summary),
+        error: (error: unknown) => {
+          this.announcementMessage.set({
+            tone: 'info',
+            title: 'Duyuru ozeti alinamadi',
+            text: this.getErrorMessage(error, 'Duyuru ozeti su an alinamadi.')
+          });
+        }
+      });
+  }
+
+  protected loadAnnouncements(): void {
+    this.announcementsLoading.set(true);
+    this.announcementMessage.set(null);
+
+    this.ortakIslemlerService
+      .getAnnouncementsInbox({ includeRead: false, take: 5 })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.announcementsLoading.set(false))
+      )
+      .subscribe({
+        next: (items: AnnouncementDto[]) => {
+          this.announcementItems.set((items ?? []).map((item) => ({ ...item, targets: item.targets ?? [] })));
+
+          if (!items?.length) {
+            this.announcementMessage.set({
+              tone: 'info',
+              title: 'Duyuru yok',
+              text: 'Okunmamis aktif duyuru bulunmuyor.'
+            });
+          }
+        },
+        error: (error: unknown) => {
+          this.announcementItems.set([]);
+          this.announcementMessage.set({
+            tone: 'error',
+            title: 'Duyurular alinamadi',
+            text: this.getErrorMessage(error, 'Duyurular yuklenirken hata olustu.')
+          });
+        }
+      });
+  }
+
+  protected markAnnouncementAsRead(item: AnnouncementDto): void {
+    this.ortakIslemlerService
+      .markAnnouncementAsRead(item.id)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: () => {
+          this.announcementItems.update((items) => items.filter((current) => current.id !== item.id));
+          this.loadAnnouncementSummary();
+        },
+        error: (error: unknown) => {
+          this.announcementMessage.set({
+            tone: 'error',
+            title: 'Okundu isaretlenemedi',
+            text: this.getErrorMessage(error, 'Duyuru okundu isaretlenirken hata olustu.')
+          });
+        }
+      });
+  }
+
+  protected openAnnouncementManagement(): void {
+    void this.router.navigate(['/docs/api/duyurular']);
+  }
+
+  protected getAnnouncementPriorityTone(priority: string | null | undefined): string {
+    switch (priority) {
+      case 'Urgent':
+        return 'priority-high';
+      case 'Important':
+        return 'priority-important';
+      default:
+        return 'priority-normal';
+    }
+  }
   protected loadFeedbackSummary(): void {
     this.summaryLoading.set(true);
 
@@ -466,6 +567,7 @@ export class DocsHomePageComponent {
     item: HomePriorityItemDto
   ): string => item.code;
   protected readonly trackFeedback = (_index: number, item: FeedbackItemDto): string => item.id;
+  protected readonly trackAnnouncement = (_index: number, item: AnnouncementDto): string => item.id;
 
   private applyHomeQueryActions(): void {
     const feedbackAction = this.activatedRoute.snapshot.queryParamMap.get('feedback')?.trim();
