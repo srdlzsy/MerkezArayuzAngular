@@ -70,6 +70,8 @@ export const SEARCH_TASK_SOURCE = {
       highlights: [
         'Barkod ile fiyat sorgusu',
         'Terazi barkodunda okutulan barkod ve normalize edilen lookup barkodu ayrilir',
+        'Barkod cozumleme endpointi satira ekleme kararini verir ama barkod tanimi yazmaz',
+        'Shipment akiminda hedef depo model kod sonucu bilgi amaclidir, tek basina bloklamaz',
         'Stok kodu ile fiyat arama',
         'Urun adi ile arama',
         'Stok kodundan son kunye bilgisi',
@@ -104,7 +106,7 @@ export const SEARCH_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/arama-islemleri/barkodlar/2700174041103/cozumle?warehouseNo=110&operationType=receiving&targetWarehouseNo=120&supplierCode=120.01.03106',
-              description: 'Kamera/barkod okutma akislari icin urun, miktar, hedef depo ve islem kullanilabilirlik kararini tek cevapta dondurur'
+              description: 'Kamera/barkod okutma akislari icin urun, miktar, hedef depo ve islem kullanilabilirlik kararini tek cevapta dondurur; barkod tanimi yazmaz'
             },
             {
               method: 'GET',
