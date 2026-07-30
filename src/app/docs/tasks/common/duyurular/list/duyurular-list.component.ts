@@ -7,8 +7,12 @@ import type {
   AnnouncementDto,
   AnnouncementManagementListHttpRequest,
   AnnouncementPriority,
+  AnnouncementReadReceiptListDto,
+  AnnouncementReadReceiptDto,
+  AnnouncementReadSummaryDto,
   AnnouncementStatus,
   AnnouncementTargetType,
+  AnnouncementTargetUserDto,
   SaveAnnouncementHttpRequest
 } from '@interfaces';
 
@@ -106,10 +110,11 @@ export class DuyurularListComponent {
       validators: [Validators.required]
     }),
     targetWarehouseNosText: new FormControl<string>('', { nonNullable: true }),
-    targetUserIdsText: new FormControl<string>('', { nonNullable: true }),
     startsAtLocal: new FormControl<string>('', { nonNullable: true }),
     expiresAtLocal: new FormControl<string>('', { nonNullable: true })
   });
+  protected readonly targetUserSearchControl = new FormControl<string>('', { nonNullable: true });
+  protected readonly targetUserWarehouseControl = new FormControl<number | null>(null);
 
   private readonly authService = inject(AuthService);
   private readonly destroyRef = inject(DestroyRef);
@@ -121,10 +126,17 @@ export class DuyurularListComponent {
   protected readonly modalMessage = signal<ActionFeedback | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly isDetailLoading = signal(false);
+  protected readonly readReceiptsLoading = signal(false);
+  protected readonly readReceiptsError = signal('');
   protected readonly modalOpen = signal(false);
   protected readonly saving = signal(false);
   protected readonly archiving = signal(false);
   protected readonly editingItem = signal<AnnouncementDto | null>(null);
+  protected readonly selectedTargetUsers = signal<AnnouncementTargetUserDto[]>([]);
+  protected readonly targetUserResults = signal<AnnouncementTargetUserDto[]>([]);
+  protected readonly targetUserSearchLoading = signal(false);
+  protected readonly targetUserSearchMessage = signal('');
+  private targetUserSearchRequestId = 0;
 
   protected readonly canCreate = computed(() =>
     currentUserHasPermission(this.authService.currentUser(), ANNOUNCEMENT_CREATE_PERMISSION)
@@ -164,12 +176,24 @@ export class DuyurularListComponent {
     effect(() => {
       if (this.canUseAllWarehouses()) {
         this.filterForm.controls.targetWarehouseNo.enable({ emitEvent: false });
+        this.targetUserWarehouseControl.enable({ emitEvent: false });
         return;
       }
 
       this.filterForm.controls.targetWarehouseNo.setValue(null, { emitEvent: false });
       this.filterForm.controls.targetWarehouseNo.disable({ emitEvent: false });
+      this.targetUserWarehouseControl.setValue(null, { emitEvent: false });
+      this.targetUserWarehouseControl.disable({ emitEvent: false });
     });
+
+    this.announcementForm.controls.targetType.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((targetType: AnnouncementTargetType) => {
+        if (targetType !== 'User') {
+          this.targetUserResults.set([]);
+          this.targetUserSearchMessage.set('');
+        }
+      });
 
     this.resetAnnouncementForm();
     this.loadRows();
@@ -195,10 +219,11 @@ export class DuyurularListComponent {
       )
       .subscribe({
         next: (rows: AnnouncementDto[]) => {
-          this.rows.set(rows ?? []);
-          this.selectedItem.set(rows?.[0] ?? null);
+          const normalizedRows = (rows ?? []).map((row) => this.normalizeAnnouncement(row));
+          this.rows.set(normalizedRows);
+          this.selectedItem.set(normalizedRows[0] ?? null);
 
-          if (!rows?.length && clearFeedback) {
+          if (!normalizedRows.length && clearFeedback) {
             this.feedback.set({
               tone: 'info',
               title: 'Duyuru bulunamadi',
@@ -234,6 +259,7 @@ export class DuyurularListComponent {
 
   protected openDetail(item: AnnouncementDto): void {
     this.selectedItem.set(item);
+    this.readReceiptsError.set('');
     this.isDetailLoading.set(true);
 
     this.ortakIslemlerService
@@ -250,6 +276,49 @@ export class DuyurularListComponent {
             title: 'Detay yuklenemedi',
             message: this.getErrorMessage(error, 'Duyuru detayi alinirken hata olustu.')
           });
+        }
+      });
+  }
+
+  protected loadReadReceipts(item: AnnouncementDto): void {
+    if (this.readReceiptsLoading()) {
+      return;
+    }
+
+    this.readReceiptsLoading.set(true);
+    this.readReceiptsError.set('');
+
+    this.ortakIslemlerService
+      .getAnnouncementReadReceipts(item.id)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.readReceiptsLoading.set(false))
+      )
+      .subscribe({
+        next: (response: AnnouncementReadReceiptListDto) => {
+          const normalized = this.normalizeAnnouncement({
+            ...item,
+            readSummary: response.summary,
+            readReceipts: response.readers ?? []
+          });
+
+          this.selectedItem.set(normalized);
+          this.rows.update((rows) =>
+            rows.map((row) =>
+              row.id === normalized.id
+                ? this.normalizeAnnouncement({
+                    ...row,
+                    readSummary: normalized.readSummary,
+                    readReceipts: row.readReceipts ?? []
+                  })
+                : row
+            )
+          );
+        },
+        error: (error: unknown) => {
+          this.readReceiptsError.set(
+            this.getErrorMessage(error, 'Okuyan kullanici listesi alinirken hata olustu.')
+          );
         }
       });
   }
@@ -407,6 +476,99 @@ export class DuyurularListComponent {
     return users.length ? users.join(', ') : '-';
   }
 
+  protected readSummary(item: AnnouncementDto): AnnouncementReadSummaryDto | null {
+    return item.readSummary ?? null;
+  }
+
+  protected readReceipts(item: AnnouncementDto): AnnouncementReadReceiptDto[] {
+    return item.readReceipts ?? [];
+  }
+
+  protected searchTargetUsers(): void {
+    if (this.targetUserSearchLoading()) {
+      return;
+    }
+
+    const search = this.targetUserSearchControl.value.trim();
+    const warehouseNo = this.canUseAllWarehouses()
+      ? this.toOptionalNumber(this.targetUserWarehouseControl.value)
+      : null;
+
+    if (search.length > 100) {
+      this.targetUserSearchMessage.set('Arama en fazla 100 karakter olabilir.');
+      return;
+    }
+
+    const requestId = ++this.targetUserSearchRequestId;
+    this.targetUserSearchLoading.set(true);
+    this.targetUserSearchMessage.set('');
+    this.targetUserResults.set([]);
+
+    this.ortakIslemlerService
+      .searchAnnouncementTargetUsers({
+        search: search || null,
+        warehouseNo,
+        take: 25
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.targetUserSearchRequestId) {
+            this.targetUserSearchLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (users: AnnouncementTargetUserDto[]) => {
+          if (requestId !== this.targetUserSearchRequestId) {
+            return;
+          }
+
+          const selectedIds = new Set(this.selectedTargetUsers().map((user) => user.id));
+          const nextUsers = (users ?? []).filter((user) => !selectedIds.has(user.id));
+          this.targetUserResults.set(nextUsers);
+
+          if (!nextUsers.length) {
+            this.targetUserSearchMessage.set('Uygun aktif kullanici bulunamadi.');
+          }
+        },
+        error: (error: unknown) => {
+          if (requestId !== this.targetUserSearchRequestId) {
+            return;
+          }
+
+          this.targetUserSearchMessage.set(
+            this.getErrorMessage(error, 'Kullanici aramasi yapilirken hata olustu.')
+          );
+        }
+      });
+  }
+
+  protected selectTargetUser(user: AnnouncementTargetUserDto): void {
+    const currentUsers = this.selectedTargetUsers();
+
+    if (!currentUsers.some((item) => item.id === user.id)) {
+      this.selectedTargetUsers.set([...currentUsers, user]);
+    }
+
+    this.targetUserResults.set(this.targetUserResults().filter((item) => item.id !== user.id));
+    this.targetUserSearchMessage.set('');
+  }
+
+  protected removeTargetUser(userId: string): void {
+    this.selectedTargetUsers.set(this.selectedTargetUsers().filter((user) => user.id !== userId));
+  }
+
+  protected targetUserLabel(user: AnnouncementTargetUserDto): string {
+    const displayName = user.displayName?.trim();
+
+    if (displayName) {
+      return displayName;
+    }
+
+    return this.buildTargetUserDisplayName(user);
+  }
+
   protected formatDateTime(value: string | null | undefined): string {
     const textValue = value?.trim() ?? '';
 
@@ -427,6 +589,9 @@ export class DuyurularListComponent {
   }
 
   protected readonly trackByAnnouncement = (_index: number, item: AnnouncementDto): string => item.id;
+  protected readonly trackByReadReceipt = (_index: number, item: AnnouncementReadReceiptDto): string =>
+    `${item.userId}_${item.readAtUtc}`;
+  protected readonly trackByTargetUser = (_index: number, item: AnnouncementTargetUserDto): string => item.id;
 
   private buildListRequest(): AnnouncementManagementListHttpRequest | null {
     if (this.filterForm.invalid) {
@@ -512,13 +677,15 @@ export class DuyurularListComponent {
     }
 
     if (targetType === 'User') {
-      targetUserIds = this.parseTextList(formValue.targetUserIdsText);
+      targetUserIds = this.selectedTargetUsers()
+        .map((user) => user.id.trim())
+        .filter((id, index, ids) => !!id && ids.indexOf(id) === index);
 
       if (!targetUserIds.length) {
         this.modalMessage.set({
           tone: 'error',
           title: 'Hedef kullanici eksik',
-          message: 'Kullanici hedefi icin en az bir kullanici id girin.'
+          message: 'Kullanici hedefi icin aramadan en az bir kullanici secin.'
         });
         return null;
       }
@@ -543,14 +710,19 @@ export class DuyurularListComponent {
       priority: 'Normal',
       targetType: 'Warehouse',
       targetWarehouseNosText: this.currentWarehouseNo()?.toString() ?? '',
-      targetUserIdsText: '',
       startsAtLocal: '',
       expiresAtLocal: ''
     });
+    this.selectedTargetUsers.set([]);
+    this.targetUserSearchControl.setValue('', { emitEvent: false });
+    this.targetUserWarehouseControl.setValue(null, { emitEvent: false });
+    this.targetUserResults.set([]);
+    this.targetUserSearchMessage.set('');
   }
 
   private patchAnnouncementForm(item: AnnouncementDto): void {
     const targetType = this.resolveTargetType(item);
+    const targetUsers = this.resolveTargetUsers(item);
 
     this.announcementForm.reset({
       title: item.title,
@@ -558,10 +730,14 @@ export class DuyurularListComponent {
       priority: (item.priority as AnnouncementPriority | undefined) ?? 'Normal',
       targetType,
       targetWarehouseNosText: this.resolveTargetWarehouseNos(item).join(', '),
-      targetUserIdsText: this.resolveTargetUserIds(item).join(', '),
       startsAtLocal: this.toLocalInputValue(item.startsAtUtc),
       expiresAtLocal: this.toLocalInputValue(item.expiresAtUtc)
     });
+    this.selectedTargetUsers.set(targetUsers);
+    this.targetUserSearchControl.setValue('', { emitEvent: false });
+    this.targetUserWarehouseControl.setValue(null, { emitEvent: false });
+    this.targetUserResults.set([]);
+    this.targetUserSearchMessage.set('');
   }
 
   private resolveTargetType(item: AnnouncementDto): AnnouncementTargetType {
@@ -584,10 +760,51 @@ export class DuyurularListComponent {
       );
   }
 
-  private resolveTargetUserIds(item: AnnouncementDto): string[] {
-    return (item.targets ?? [])
-      .map((target) => target.userId)
-      .filter((value, index, items): value is string => !!value?.trim() && items.indexOf(value) === index);
+  private resolveTargetUsers(item: AnnouncementDto): AnnouncementTargetUserDto[] {
+    const users = new Map<string, AnnouncementTargetUserDto>();
+
+    for (const target of item.targets ?? []) {
+      const userId = target.userId?.trim() ?? '';
+
+      if (target.type !== 'User' || !userId || users.has(userId)) {
+        continue;
+      }
+
+      const username = target.username?.trim() ?? '';
+      const fullName = target.userFullName?.trim() ?? '';
+      const warehouseName = target.warehouseName?.trim() || null;
+      const warehouseNo = target.warehouseNo ?? null;
+
+      users.set(userId, {
+        id: userId,
+        username,
+        fullName,
+        email: '',
+        warehouseNo,
+        warehouseName,
+        displayName: this.buildTargetUserDisplayName({
+          id: userId,
+          username,
+          fullName,
+          email: '',
+          warehouseNo,
+          warehouseName,
+          displayName: ''
+        })
+      });
+    }
+
+    return Array.from(users.values());
+  }
+
+  private buildTargetUserDisplayName(user: AnnouncementTargetUserDto): string {
+    const fullName = user.fullName?.trim();
+    const username = user.username?.trim();
+    const warehouse = user.warehouseNo
+      ? `${user.warehouseNo}${user.warehouseName ? ` - ${user.warehouseName}` : ''}`
+      : '';
+
+    return [fullName || username || user.id, warehouse].filter(Boolean).join(' / ');
   }
 
   private applySavedAnnouncement(saved: AnnouncementDto, title: string): void {
@@ -611,7 +828,9 @@ export class DuyurularListComponent {
   private normalizeAnnouncement(item: AnnouncementDto): AnnouncementDto {
     return {
       ...item,
-      targets: item.targets ?? []
+      targets: item.targets ?? [],
+      readSummary: item.readSummary ?? null,
+      readReceipts: item.readReceipts ?? []
     };
   }
 
@@ -627,13 +846,6 @@ export class DuyurularListComponent {
     }
 
     return Array.from(uniqueValues);
-  }
-
-  private parseTextList(value: string): string[] {
-    return value
-      .split(/[\s,;]+/)
-      .map((part) => part.trim())
-      .filter((part, index, items) => !!part && items.indexOf(part) === index);
   }
 
   private toOptionalNumber(value: unknown): number | null {

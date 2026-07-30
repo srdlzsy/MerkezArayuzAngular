@@ -78,7 +78,8 @@ export const COMMON_TASK_SOURCE = {
         'Yonetim listesi icin ortak-islemler.duyurular.list gerekir',
         'Olusturma, guncelleme ve arsivleme butonlari create/update/archive yetkilerine gore acilir',
         'Tum depolar veya baska depo hedefleme icin ortak-islemler.duyurular.all-warehouses gerekir',
-        'Okundu bilgisi kullanici bazli PATCH /api/home/duyurular/{id}/okundu ile guncellenir'
+        'Hedef kullanici secimi aktif kullanici arama endpointiyle yapilir, id elle yazdirilmaz',
+        'Okundu ozeti readSummary ile listede, okuyan kisi listesi detay/okuyanlar endpointiyle gosterilir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -105,7 +106,22 @@ export const COMMON_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ortak-islemler/duyurular?status=Published&targetWarehouseNo=110&take=100',
-              description: 'Yonetim duyuru listesini permission kapsamiyla getirir'
+              description: 'Yonetim duyuru listesini readSummary sayaclariyla permission kapsamiyla getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ortak-islemler/duyurular/hedef-kullanicilar?search=serdal&warehouseNo=101&take=25',
+              description: 'Duyuru hedefi icin aktif kullanici arama listesini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ortak-islemler/duyurular/{id}',
+              description: 'Secili duyurunun readSummary ve readReceipts dolu detayini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ortak-islemler/duyurular/{id}/okuyanlar',
+              description: 'Duyuruyu okuyan kullanicilari en son okuyan ustte olacak sekilde getirir'
             },
             {
               method: 'POST',

@@ -126,6 +126,7 @@
                 <th>Oncelik</th>
                 <th>Baslik</th>
                 <th>Hedef</th>
+                <th>Okuma</th>
                 <th>Baslangic</th>
                 <th>Bitis</th>
                 <th>Olusturan</th>
@@ -152,6 +153,18 @@
                   <div class="table-meta">{{ item.message }}</div>
                 </td>
                 <td>{{ targetSummary(item) }}</td>
+                <td class="read-cell">
+                  <ng-container *ngIf="readSummary(item) as summary; else noReadSummary">
+                    <strong>{{ summary.readCount }}</strong>
+                    <span *ngIf="summary.targetUserCount !== null && summary.targetUserCount !== undefined">
+                      / {{ summary.targetUserCount }}
+                    </span>
+                    <small *ngIf="summary.unreadCount !== null && summary.unreadCount !== undefined">
+                      {{ summary.unreadCount }} okunmadi
+                    </small>
+                  </ng-container>
+                  <ng-template #noReadSummary>-</ng-template>
+                </td>
                 <td>{{ formatDateTime(item.startsAtUtc || item.publishedAtUtc) }}</td>
                 <td>{{ formatDateTime(item.expiresAtUtc) }}</td>
                 <td>{{ item.createdByFullName || item.createdByUsername || '-' }}</td>
@@ -219,6 +232,62 @@
               <dd>{{ formatDateTime(selected.archivedAtUtc) }}</dd>
             </div>
           </dl>
+
+          <section class="read-panel">
+            <header class="read-panel-head">
+              <span class="section-kicker">Okuyanlar</span>
+              <button
+                type="button"
+                class="task-action task-action-secondary task-action-compact"
+                (click)="loadReadReceipts(selected)"
+                [disabled]="readReceiptsLoading()"
+              >
+                {{ readReceiptsLoading() ? 'Yukleniyor...' : 'Yenile' }}
+              </button>
+            </header>
+
+            <div class="read-summary-grid" *ngIf="readSummary(selected) as summary">
+              <article>
+                <span>Okuyan</span>
+                <strong>{{ summary.readCount }}</strong>
+              </article>
+              <article>
+                <span>Hedef</span>
+                <strong>{{ summary.targetUserCount ?? '-' }}</strong>
+              </article>
+              <article>
+                <span>Okumayan</span>
+                <strong>{{ summary.unreadCount ?? '-' }}</strong>
+              </article>
+              <article>
+                <span>Son Okuma</span>
+                <strong>{{ formatDateTime(summary.lastReadAtUtc) }}</strong>
+              </article>
+            </div>
+
+            <article class="modal-message message-error" *ngIf="readReceiptsError()">
+              <strong>Okuyanlar alinamadi</strong>
+              <span>{{ readReceiptsError() }}</span>
+            </article>
+
+            <div class="reader-list" *ngIf="readReceipts(selected).length; else noReaders">
+              <article *ngFor="let receipt of readReceipts(selected); trackBy: trackByReadReceipt">
+                <div>
+                  <strong>{{ receipt.userFullName || receipt.username || receipt.userId }}</strong>
+                  <span>{{ receipt.username || receipt.email || '-' }}</span>
+                </div>
+                <small>
+                  {{ receipt.warehouseNo || '-' }}
+                  <ng-container *ngIf="receipt.warehouseName"> - {{ receipt.warehouseName }}</ng-container>
+                  / {{ formatDateTime(receipt.readAtUtc) }}
+                </small>
+              </article>
+            </div>
+
+            <ng-template #noReaders>
+              <p class="empty-inline">Okuyan kullanici listesi henuz bos.</p>
+            </ng-template>
+          </section>
 
           <div class="target-list" *ngIf="selected.targets.length">
             <span class="section-kicker">Hedefler</span>
@@ -313,10 +382,62 @@
           <small *ngIf="!canUseAllWarehouses()">{{ currentWarehouseLabel() }}</small>
         </label>
 
-        <label class="field field-wide" *ngIf="currentFormTargetType() === 'User'">
-          <span>Hedef Kullanici Idleri</span>
-          <textarea formControlName="targetUserIdsText" rows="3" placeholder="guid-1, guid-2"></textarea>
-        </label>
+        <section class="target-user-picker field-wide" *ngIf="currentFormTargetType() === 'User'">
+          <div class="target-user-search-row">
+            <label class="field">
+              <span>Kullanici Ara</span>
+              <input
+                type="text"
+                [formControl]="targetUserSearchControl"
+                maxlength="100"
+                autocomplete="off"
+                placeholder="Ad, kullanici, e-posta..."
+                (keydown.enter)="$event.preventDefault(); searchTargetUsers()"
+              />
+            </label>
+
+            <label class="field target-user-warehouse" *ngIf="canUseAllWarehouses()">
+              <span>Depo</span>
+              <input type="number" min="1" [formControl]="targetUserWarehouseControl" placeholder="101" />
+            </label>
+
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              [disabled]="targetUserSearchLoading()"
+              (click)="searchTargetUsers()"
+            >
+              {{ targetUserSearchLoading() ? 'Araniyor...' : 'Ara' }}
+            </button>
+          </div>
+
+          <p class="target-user-message" *ngIf="targetUserSearchMessage()">
+            {{ targetUserSearchMessage() }}
+          </p>
+
+          <div class="target-user-results" *ngIf="targetUserResults().length">
+            <button
+              type="button"
+              *ngFor="let user of targetUserResults(); trackBy: trackByTargetUser"
+              (click)="selectTargetUser(user)"
+            >
+              <strong>{{ targetUserLabel(user) }}</strong>
+              <span>{{ user.email || user.username || '-' }}</span>
+            </button>
+          </div>
+
+          <div class="selected-target-users" *ngIf="selectedTargetUsers().length">
+            <span
+              class="selected-user-chip"
+              *ngFor="let user of selectedTargetUsers(); trackBy: trackByTargetUser"
+            >
+              {{ targetUserLabel(user) }}
+              <button type="button" (click)="removeTargetUser(user.id)" aria-label="Kullaniciyi kaldir">
+                X
+              </button>
+            </span>
+          </div>
+        </section>
 
         <article class="scope-note field-wide" *ngIf="currentFormTargetType() === 'AllWarehouses'">
           <strong>Tum Depolar</strong>

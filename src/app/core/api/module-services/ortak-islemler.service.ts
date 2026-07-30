@@ -4,7 +4,10 @@ import type {
   AnnouncementDto,
   AnnouncementInboxHttpRequest,
   AnnouncementManagementListHttpRequest,
+  AnnouncementReadReceiptListDto,
   AnnouncementSummaryDto,
+  AnnouncementTargetUserDto,
+  AnnouncementTargetUserSearchHttpRequest,
   ChangeFeedbackStatusHttpRequest,
   CreateFeedbackItemHttpRequest,
   FeedbackItemDto,
@@ -49,6 +52,21 @@ export class OrtakIslemlerService extends BaseApiService {
   getAnnouncementManagementDetail(id: string): Observable<AnnouncementDto> {
     return this.get<AnnouncementDto>(
       `ortak-islemler/duyurular/${encodeURIComponent(id)}`
+    );
+  }
+
+  searchAnnouncementTargetUsers(
+    request: AnnouncementTargetUserSearchHttpRequest
+  ): Observable<AnnouncementTargetUserDto[]> {
+    return this.getWithQuery<AnnouncementTargetUserDto[], AnnouncementTargetUserSearchHttpRequest>(
+      'ortak-islemler/duyurular/hedef-kullanicilar',
+      request
+    );
+  }
+
+  getAnnouncementReadReceipts(id: string): Observable<AnnouncementReadReceiptListDto> {
+    return this.get<AnnouncementReadReceiptListDto>(
+      `ortak-islemler/duyurular/${encodeURIComponent(id)}/okuyanlar`
     );
   }
 

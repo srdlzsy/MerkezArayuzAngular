@@ -20,6 +20,12 @@ export interface AnnouncementManagementListHttpRequest {
   take?: number | null;
 }
 
+export interface AnnouncementTargetUserSearchHttpRequest {
+  search?: string | null;
+  warehouseNo?: number | null;
+  take?: number | null;
+}
+
 export interface SaveAnnouncementHttpRequest {
   title: string;
   message: string;
@@ -49,6 +55,39 @@ export interface AnnouncementTargetDto {
   userFullName: string | null;
 }
 
+export interface AnnouncementReadSummaryDto {
+  readCount: number;
+  targetUserCount: number | null;
+  unreadCount: number | null;
+  lastReadAtUtc: string | null;
+}
+
+export interface AnnouncementReadReceiptListDto {
+  announcementId: string;
+  summary: AnnouncementReadSummaryDto;
+  readers: AnnouncementReadReceiptDto[];
+}
+
+export interface AnnouncementReadReceiptDto {
+  userId: string;
+  username: string;
+  userFullName: string;
+  email: string;
+  warehouseNo: number | null;
+  warehouseName: string | null;
+  readAtUtc: string;
+}
+
+export interface AnnouncementTargetUserDto {
+  id: string;
+  username: string;
+  fullName: string;
+  email: string;
+  warehouseNo: number | null;
+  warehouseName: string | null;
+  displayName: string;
+}
+
 export interface AnnouncementDto {
   id: string;
   title: string;
@@ -69,4 +108,6 @@ export interface AnnouncementDto {
   updatedAtUtc: string | null;
   readAtUtc: string | null;
   targets: AnnouncementTargetDto[];
+  readSummary: AnnouncementReadSummaryDto | null;
+  readReceipts: AnnouncementReadReceiptDto[];
 }

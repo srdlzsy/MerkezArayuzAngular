@@ -498,6 +498,10 @@ export interface WarehouseReceivingEDespatchPreviewDto {
   despatchNumber: string | null;
   issueDate: string | null;
   actualDespatchDate: string | null;
+  actualDespatchTime: string | null;
+  plaque: string | null;
+  driverNameSurname: string | null;
+  driverTckn: string | null;
   profileId: string | null;
   despatchAdviceTypeCode: string | null;
   notes: string[];
@@ -519,6 +523,10 @@ export interface CompanyReceivingEDespatchPreviewDto {
   despatchNumber: string | null;
   issueDate: string | null;
   actualDespatchDate: string | null;
+  actualDespatchTime: string | null;
+  plaque: string | null;
+  driverNameSurname: string | null;
+  driverTckn: string | null;
   profileId: string | null;
   despatchAdviceTypeCode: string | null;
   notes: string[];
