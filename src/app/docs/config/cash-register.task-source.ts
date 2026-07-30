@@ -121,7 +121,107 @@ export const CASH_REGISTER_TASK_SOURCE = {
       import('../tasks/cash-register/etiket-basimi/list/etiket-basimi-list.component').then(
         (m) => m.EtiketBasimiListComponent
       ),
-    { accessKeyAliases: ['etiket-basimi', 'EtiketBasim', 'EtiketBasimi'] }
+    { accessKeyAliases: ['EtiketBelgeleri', 'etiket-belgeleri'] }
+  ),
+  'etiket-basim': singleRouteTask(
+    {
+      id: 'etiket-basim',
+      title: 'Etiket Basim',
+      subtitle:
+        'Manav/depo mal kabul etiket kayitlarini gunluk liste, hesaplama, onizleme ve rapor akislariyla yonetir.',
+      baseRouteOrFile: '/api/kasa-islemleri/etiket-basim',
+      highlights: [
+        'Mevcut etiket-belgeleri modulunden ayridir',
+        'Tedarikci ve stok referans aramasi',
+        'Kasa/net kilo hesaplama ve etiket onizleme',
+        'Mikro aktarim sozlesmesi hazir olana kadar kapali tutulur'
+      ],
+      listTitle: 'Etiket Basim Islem Akisi',
+      items: [
+        {
+          name: 'EtiketBasimController',
+          description:
+            'Manav_Depo_Mal_Kabul_Etiket kabul kayitlarini yonetir, kilo hesaplar ve UI tarafinda yazdirilacak etiket datasini dondurur.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/etiket-basim/acceptance-records?date=2026-07-30',
+              description: 'Secilen gunun kabul kayitlarini listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/etiket-basim/suppliers?query=ABC&take=20',
+              description: 'Tedarikci arama sonucunu dondurur'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/etiket-basim/stocks?query=DOMATES&prefix=MNV&take=20',
+              description: 'Stok kodu, stok adi veya barkoda gore stok arar; varsayilan prefix MNV'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/calculate',
+              description: 'Brut kilo, kasa darasi, kasa sayisi ve palet darasindan net/ortalama kilo hesaplar',
+              payload: 'EtiketBasimCalculationHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/etiket-basim/acceptance-records',
+              description: 'Yeni kabul etiketi kaydi olusturur',
+              payload: 'SaveEtiketBasimAcceptanceRecordHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/{id}',
+              description: 'Aktarilmamis kabul etiketi kaydini gunceller',
+              payload: 'SaveEtiketBasimAcceptanceRecordHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/{id}',
+              description: 'Aktarilmamis kabul etiketi kaydini siler'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/{id}/label',
+              description: 'Kayitli satir icin etiket datasini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/etiket-basim/labels/preview',
+              description: 'Kaydetmeden etiket datasini onizler',
+              payload: 'SaveEtiketBasimAcceptanceRecordHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/etiket-basim/reports/received-products?date=2026-07-30',
+              description: 'Gunluk gelen urun raporunu getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/etiket-basim/reports/depot-stock?warehouseNo=56&date=2026-07-30',
+              description: 'Depo stok raporunu getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/etiket-basim/micro/goods-receipts',
+              description: 'Sozlesme vardir fakat su an 501 dondurur; UI tarafinda hazir degil gosterilir'
+            }
+          ]
+        }
+      ]
+    },
+    () =>
+      import('../tasks/cash-register/etiket-basim/list/etiket-basim-list.component').then(
+        (m) => m.EtiketBasimListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'EtiketBasim',
+        'etiket-basim',
+        'kasa-islemleri.etiket-basim'
+      ]
+    }
   ),
   'kunye-etiket-yazdirma': singleRouteTask(
     {

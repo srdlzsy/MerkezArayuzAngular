@@ -73,6 +73,21 @@ import {
   DeleteCashSummaryResponse,
   CashSummaryDateHttpRequest,
   BanknoteTrackDailySummaryTotalDto,
+  EtiketBasimAcceptanceRecordDto,
+  EtiketBasimCalculationDto,
+  EtiketBasimCalculationHttpRequest,
+  EtiketBasimDateHttpRequest,
+  EtiketBasimDepotStockReportDto,
+  EtiketBasimDepotStockReportHttpRequest,
+  EtiketBasimLabelDto,
+  EtiketBasimMicroTransferHttpRequest,
+  EtiketBasimMicroTransferResultDto,
+  EtiketBasimReceivedProductReportDto,
+  EtiketBasimReferenceSearchHttpRequest,
+  EtiketBasimStockDto,
+  EtiketBasimStockSearchHttpRequest,
+  EtiketBasimSupplierDto,
+  SaveEtiketBasimAcceptanceRecordHttpRequest,
   LabelPriceChangedProductListHttpRequest,
   LabelTagListHttpRequest,
   WarehouseOrderDateRangeHttpRequest,
@@ -95,6 +110,8 @@ import {
   toStringValue
 } from '../furpa-merkez-api.utils';
 import { BaseApiService } from '../base-api.service';
+
+const ETIKET_BASIM_ROOT = 'kasa-islemleri/etiket-basim';
 
 @Injectable({
   providedIn: 'root'
@@ -158,6 +175,140 @@ export class KasaIslemleriService extends BaseApiService {
         warehouseNo,
         dateToGet: dateToGet?.slice(0, 10) || undefined
       }
+    );
+  }
+
+  searchEtiketBasimSuppliers(
+    request: EtiketBasimReferenceSearchHttpRequest
+  ): Observable<EtiketBasimSupplierDto[]> {
+    return this.getWithQuery<EtiketBasimSupplierDto[], EtiketBasimReferenceSearchHttpRequest>(
+      `${ETIKET_BASIM_ROOT}/suppliers`,
+      {
+        query: request.query?.trim() || undefined,
+        take: request.take ?? 20
+      }
+    );
+  }
+
+  getEtiketBasimSupplierByName(name: string): Observable<EtiketBasimSupplierDto> {
+    return this.getWithQuery<EtiketBasimSupplierDto, { name: string }>(
+      `${ETIKET_BASIM_ROOT}/suppliers/by-name`,
+      { name: name.trim() }
+    );
+  }
+
+  searchEtiketBasimStocks(
+    request: EtiketBasimStockSearchHttpRequest
+  ): Observable<EtiketBasimStockDto[]> {
+    return this.getWithQuery<EtiketBasimStockDto[], EtiketBasimStockSearchHttpRequest>(
+      `${ETIKET_BASIM_ROOT}/stocks`,
+      {
+        query: request.query?.trim() || undefined,
+        prefix: request.prefix?.trim() || 'MNV',
+        take: request.take ?? 20
+      }
+    );
+  }
+
+  getEtiketBasimStockByName(name: string): Observable<EtiketBasimStockDto> {
+    return this.getWithQuery<EtiketBasimStockDto, { name: string }>(
+      `${ETIKET_BASIM_ROOT}/stocks/by-name`,
+      { name: name.trim() }
+    );
+  }
+
+  getEtiketBasimStock(stockCode: string): Observable<EtiketBasimStockDto> {
+    return this.get<EtiketBasimStockDto>(
+      `${ETIKET_BASIM_ROOT}/stocks/${encodeURIComponent(stockCode.trim())}`
+    );
+  }
+
+  calculateEtiketBasimAcceptanceRecord(
+    request: EtiketBasimCalculationHttpRequest
+  ): Observable<EtiketBasimCalculationDto> {
+    return this.post<EtiketBasimCalculationDto, EtiketBasimCalculationHttpRequest>(
+      `${ETIKET_BASIM_ROOT}/acceptance-records/calculate`,
+      request
+    );
+  }
+
+  getEtiketBasimAcceptanceRecords(
+    date: string
+  ): Observable<EtiketBasimAcceptanceRecordDto[]> {
+    return this.getWithQuery<EtiketBasimAcceptanceRecordDto[], EtiketBasimDateHttpRequest>(
+      `${ETIKET_BASIM_ROOT}/acceptance-records`,
+      { date }
+    );
+  }
+
+  getEtiketBasimAcceptanceRecord(id: number): Observable<EtiketBasimAcceptanceRecordDto> {
+    return this.get<EtiketBasimAcceptanceRecordDto>(
+      `${ETIKET_BASIM_ROOT}/acceptance-records/${id}`
+    );
+  }
+
+  createEtiketBasimAcceptanceRecord(
+    request: SaveEtiketBasimAcceptanceRecordHttpRequest
+  ): Observable<EtiketBasimAcceptanceRecordDto> {
+    return this.post<
+      EtiketBasimAcceptanceRecordDto,
+      SaveEtiketBasimAcceptanceRecordHttpRequest
+    >(`${ETIKET_BASIM_ROOT}/acceptance-records`, request);
+  }
+
+  updateEtiketBasimAcceptanceRecord(
+    id: number,
+    request: SaveEtiketBasimAcceptanceRecordHttpRequest
+  ): Observable<EtiketBasimAcceptanceRecordDto> {
+    return this.put<
+      EtiketBasimAcceptanceRecordDto,
+      SaveEtiketBasimAcceptanceRecordHttpRequest
+    >(`${ETIKET_BASIM_ROOT}/acceptance-records/${id}`, request);
+  }
+
+  deleteEtiketBasimAcceptanceRecord(id: number): Observable<void> {
+    return this.delete<void>(`${ETIKET_BASIM_ROOT}/acceptance-records/${id}`);
+  }
+
+  getEtiketBasimLabel(id: number): Observable<EtiketBasimLabelDto> {
+    return this.get<EtiketBasimLabelDto>(
+      `${ETIKET_BASIM_ROOT}/acceptance-records/${id}/label`
+    );
+  }
+
+  previewEtiketBasimLabel(
+    request: SaveEtiketBasimAcceptanceRecordHttpRequest
+  ): Observable<EtiketBasimLabelDto> {
+    return this.post<EtiketBasimLabelDto, SaveEtiketBasimAcceptanceRecordHttpRequest>(
+      `${ETIKET_BASIM_ROOT}/labels/preview`,
+      request
+    );
+  }
+
+  getEtiketBasimReceivedProductsReport(
+    date: string
+  ): Observable<EtiketBasimReceivedProductReportDto[]> {
+    return this.getWithQuery<EtiketBasimReceivedProductReportDto[], EtiketBasimDateHttpRequest>(
+      `${ETIKET_BASIM_ROOT}/reports/received-products`,
+      { date }
+    );
+  }
+
+  getEtiketBasimDepotStockReport(
+    request: EtiketBasimDepotStockReportHttpRequest
+  ): Observable<EtiketBasimDepotStockReportDto[]> {
+    return this.getWithQuery<
+      EtiketBasimDepotStockReportDto[],
+      EtiketBasimDepotStockReportHttpRequest
+    >(`${ETIKET_BASIM_ROOT}/reports/depot-stock`, request);
+  }
+
+  transferEtiketBasimGoodsReceipts(
+    request: EtiketBasimMicroTransferHttpRequest
+  ): Observable<EtiketBasimMicroTransferResultDto> {
+    return this.post<EtiketBasimMicroTransferResultDto, EtiketBasimMicroTransferHttpRequest>(
+      `${ETIKET_BASIM_ROOT}/micro/goods-receipts`,
+      request
     );
   }
 

@@ -1,0 +1,588 @@
+<section class="etiket-basim-page" *ngIf="page as current">
+  <article class="etiket-basim-screen surface-card">
+    <header class="page-head">
+      <div class="title-block">
+        <span>Kasa Islemleri</span>
+        <h2>{{ current.title }}</h2>
+      </div>
+
+      <div class="head-actions">
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="startNewRecord()"
+          [disabled]="!canCreate()"
+        >
+          Yeni Kayit
+        </button>
+      </div>
+    </header>
+
+    <section class="scope-bar">
+      <label class="field">
+        <span>Tarih</span>
+        <input
+          type="date"
+          [max]="maxDate"
+          [ngModel]="selectedDate()"
+          (ngModelChange)="setSelectedDate($event)"
+        />
+      </label>
+
+      <label class="field search-field">
+        <span>Liste Arama</span>
+        <input
+          type="search"
+          placeholder="Cari, evrak, stok veya barkod"
+          [ngModel]="recordSearch()"
+          (ngModelChange)="recordSearch.set($event)"
+        />
+      </label>
+
+      <div class="scope-actions">
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="loadRecords()"
+          [disabled]="isLoading() || !canList()"
+        >
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+        <button type="button" class="task-action" (click)="setActiveTab('reports')">
+          Raporlar
+        </button>
+      </div>
+    </section>
+
+    <section class="metric-strip">
+      <article class="metric-card">
+        <span>Kayit</span>
+        <strong>{{ listSummary().total }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Bekleyen</span>
+        <strong>{{ listSummary().waiting }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Aktarilan</span>
+        <strong>{{ listSummary().transferred }}</strong>
+      </article>
+      <article class="metric-card">
+        <span>Net Kilo</span>
+        <strong>{{ listSummary().netWeight | number:'1.2-2' }}</strong>
+      </article>
+    </section>
+
+    <article
+      class="feedback-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.is-error]="currentFeedback.tone === 'error'"
+      [class.is-success]="currentFeedback.tone === 'success'"
+    >
+      <strong>{{ currentFeedback.title }}</strong>
+      <span>{{ currentFeedback.message }}</span>
+    </article>
+
+    <nav class="tab-bar">
+      <button
+        type="button"
+        [class.is-active]="activeTab() === 'records'"
+        (click)="setActiveTab('records')"
+      >
+        Kayitlar
+      </button>
+      <button
+        type="button"
+        [class.is-active]="activeTab() === 'form'"
+        (click)="setActiveTab('form')"
+      >
+        Kayit Formu
+      </button>
+      <button
+        type="button"
+        [class.is-active]="activeTab() === 'reports'"
+        (click)="setActiveTab('reports')"
+      >
+        Raporlar
+      </button>
+    </nav>
+
+    <section class="records-panel" *ngIf="activeTab() === 'records'">
+      <div class="panel-head">
+        <div class="title-block">
+          <span>Gunluk Liste</span>
+          <h3>{{ visibleRecords().length }} / {{ records().length }} kayit</h3>
+        </div>
+
+        <label class="field sort-field">
+          <span>Siralama</span>
+          <select [ngModel]="sortKey()" (ngModelChange)="setSort($event)">
+            <option *ngFor="let column of sortColumns" [value]="column.key">
+              {{ column.label }}
+            </option>
+          </select>
+        </label>
+      </div>
+
+      <div class="table-wrap" *ngIf="visibleRecords().length; else emptyRecords">
+        <table class="record-table">
+          <thead>
+            <tr>
+              <th>
+                <button type="button" (click)="setSort('createdAt')">Tarih {{ sortIcon('createdAt') }}</button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('supplierName')">Cari {{ sortIcon('supplierName') }}</button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('stockName')">Stok {{ sortIcon('stockName') }}</button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('netReceivedWeight')">Kilo {{ sortIcon('netReceivedWeight') }}</button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('status')">Durum {{ sortIcon('status') }}</button>
+              </th>
+              <th>Islem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr
+              *ngFor="let record of visibleRecords(); trackBy: trackByRecord"
+              [class.is-selected]="isSelectedRecord(record)"
+              (click)="selectRecord(record)"
+            >
+              <td data-label="Tarih">
+                <strong>{{ record.createdAt | date:'dd.MM.yyyy HH:mm' }}</strong>
+                <span>{{ record.receivedBy || '-' }}</span>
+              </td>
+              <td data-label="Cari">
+                <strong>{{ record.supplierName }}</strong>
+                <span>{{ record.supplierCode }} / {{ record.seriesAndNumber || record.documentNo }}</span>
+              </td>
+              <td data-label="Stok">
+                <strong>{{ record.stockName }}</strong>
+                <span>{{ record.stockCode }} / {{ record.stockBarcode || '-' }}</span>
+              </td>
+              <td data-label="Kilo">
+                <strong>{{ record.netReceivedWeight | number:'1.2-2' }} net</strong>
+                <span>
+                  {{ record.grossWeight | number:'1.2-2' }} brut /
+                  {{ record.caseCount }} kasa /
+                  {{ record.averageCaseWeight | number:'1.2-2' }} ort.
+                </span>
+              </td>
+              <td data-label="Durum">
+                <span class="status-pill" [ngClass]="getStatusClass(record)">
+                  {{ record.microTransferred ? 'Aktarildi' : record.status || 'Bekliyor' }}
+                </span>
+                <span>{{ record.caseType || '-' }}</span>
+              </td>
+              <td data-label="Islem" class="action-cell">
+                <button type="button" class="icon-action" (click)="selectRecord(record); $event.stopPropagation()">
+                  Duzenle
+                </button>
+                <button
+                  type="button"
+                  class="icon-action"
+                  (click)="loadLabelForRecord(record); $event.stopPropagation()"
+                  [disabled]="isLabelLoading() || !canDetail()"
+                >
+                  Etiket
+                </button>
+                <button
+                  type="button"
+                  class="icon-action icon-action-danger"
+                  (click)="deleteRecord(record); $event.stopPropagation()"
+                  [disabled]="record.microTransferred || isDeleting() || !canDelete()"
+                >
+                  Sil
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #emptyRecords>
+        <article class="empty-state">
+          <strong>Kayit bulunamadi</strong>
+          <span>Tarih veya arama filtresini degistirip tekrar listeleyin.</span>
+        </article>
+      </ng-template>
+    </section>
+
+    <section class="form-panel" *ngIf="activeTab() === 'form'">
+      <div class="form-grid">
+        <article class="form-column">
+          <div class="panel-head compact">
+            <div class="title-block">
+              <span>{{ selectedRecordLabel() }}</span>
+              <h3>{{ draftModeLabel() }}</h3>
+            </div>
+            <span class="status-pill" *ngIf="selectedRecord() as selected" [ngClass]="getStatusClass(selected)">
+              {{ selected.microTransferred ? 'Aktarildi' : selected.status || 'Bekliyor' }}
+            </span>
+          </div>
+
+          <div class="lookup-grid">
+            <section class="lookup-box">
+              <label class="field">
+                <span>Tedarikci Ara</span>
+                <input
+                  type="search"
+                  placeholder="Kod veya ad"
+                  [(ngModel)]="supplierQuery"
+                  (keydown.enter)="searchSuppliers()"
+                />
+              </label>
+              <button
+                type="button"
+                class="task-action"
+                (click)="searchSuppliers()"
+                [disabled]="isSupplierSearching()"
+              >
+                {{ isSupplierSearching() ? 'Araniyor...' : 'Ara' }}
+              </button>
+
+              <div class="lookup-results" *ngIf="supplierResults().length">
+                <button
+                  type="button"
+                  *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier"
+                  (click)="selectSupplier(supplier)"
+                >
+                  <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
+                  <span>{{ getSupplierCode(supplier) }}</span>
+                </button>
+              </div>
+              <p class="field-message" *ngIf="supplierSearchMessage()">{{ supplierSearchMessage() }}</p>
+            </section>
+
+            <section class="lookup-box">
+              <div class="stock-search-row">
+                <label class="field">
+                  <span>Stok Ara</span>
+                  <input
+                    type="search"
+                    placeholder="Stok adi, kodu veya barkod"
+                    [(ngModel)]="stockQuery"
+                    (keydown.enter)="searchStocks()"
+                  />
+                </label>
+                <label class="field prefix-field">
+                  <span>Prefix</span>
+                  <input type="text" [(ngModel)]="stockPrefix" />
+                </label>
+              </div>
+              <button
+                type="button"
+                class="task-action"
+                (click)="searchStocks()"
+                [disabled]="isStockSearching()"
+              >
+                {{ isStockSearching() ? 'Araniyor...' : 'Ara' }}
+              </button>
+
+              <div class="lookup-results" *ngIf="stockResults().length">
+                <button
+                  type="button"
+                  *ngFor="let stock of stockResults(); trackBy: trackByStock"
+                  (click)="selectStock(stock)"
+                >
+                  <strong>{{ getStockName(stock) || getStockCode(stock) }}</strong>
+                  <span>{{ getStockCode(stock) }} / {{ getStockBarcode(stock) || '-' }}</span>
+                </button>
+              </div>
+              <p class="field-message" *ngIf="stockSearchMessage()">{{ stockSearchMessage() }}</p>
+            </section>
+          </div>
+
+          <div class="field-grid">
+            <label class="field">
+              <span>Cari Kod</span>
+              <input type="text" [(ngModel)]="draft.supplierCode" (ngModelChange)="onDraftTextChange()" />
+            </label>
+            <label class="field">
+              <span>Cari Ad</span>
+              <input type="text" [(ngModel)]="draft.supplierName" (ngModelChange)="onDraftTextChange()" />
+            </label>
+            <label class="field compact-field">
+              <span>Seri</span>
+              <input type="text" [(ngModel)]="draft.documentSeries" (ngModelChange)="onDraftTextChange()" />
+            </label>
+            <label class="field">
+              <span>Sira</span>
+              <input type="text" [(ngModel)]="draft.documentNo" (ngModelChange)="onDraftTextChange()" />
+            </label>
+            <label class="field">
+              <span>Stok Kod</span>
+              <input type="text" [(ngModel)]="draft.stockCode" (ngModelChange)="onDraftTextChange()" />
+            </label>
+            <label class="field">
+              <span>Stok Ad</span>
+              <input type="text" [(ngModel)]="draft.stockName" (ngModelChange)="onDraftTextChange()" />
+            </label>
+            <label class="field">
+              <span>Barkod</span>
+              <input type="text" [(ngModel)]="draft.stockBarcode" (ngModelChange)="onDraftTextChange(); scheduleCalculation()" />
+            </label>
+            <label class="field">
+              <span>Teslim Alan</span>
+              <input type="text" [(ngModel)]="draft.receivedBy" (ngModelChange)="onDraftTextChange()" />
+            </label>
+          </div>
+
+          <div class="number-grid">
+            <label class="field">
+              <span>Brut Kilo</span>
+              <input type="number" step="0.01" [ngModel]="draft.grossWeight" (ngModelChange)="onDraftNumberChange('grossWeight', $event)" />
+            </label>
+            <label class="field">
+              <span>Kasa Darasi</span>
+              <input type="number" step="0.01" [ngModel]="draft.caseTare" (ngModelChange)="onDraftNumberChange('caseTare', $event)" />
+            </label>
+            <label class="field">
+              <span>Kasa Sayisi</span>
+              <input type="number" min="1" step="1" [ngModel]="draft.caseCount" (ngModelChange)="onDraftNumberChange('caseCount', $event)" />
+            </label>
+            <label class="field">
+              <span>Palet Darasi</span>
+              <input type="number" step="0.01" [ngModel]="draft.palletTare" (ngModelChange)="onDraftNumberChange('palletTare', $event)" />
+            </label>
+            <label class="field">
+              <span>Kasa Tipi</span>
+              <select [(ngModel)]="draft.caseType" (ngModelChange)="onDraftTextChange()">
+                <option value="REHINLI">Rehinli</option>
+                <option value="REHINSIZ">Rehinsiz</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="form-actions">
+            <button
+              type="button"
+              class="task-action"
+              (click)="calculateDraft()"
+              [disabled]="isCalculating()"
+            >
+              {{ isCalculating() ? 'Hesaplaniyor...' : 'Hesapla' }}
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-primary"
+              (click)="saveDraft()"
+              [disabled]="!canSaveDraft()"
+            >
+              {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
+            </button>
+            <button type="button" class="task-action" (click)="previewDraftLabel()" [disabled]="isLabelLoading()">
+              {{ isLabelLoading() ? 'Hazirlaniyor...' : 'Etiket Onizle' }}
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-danger"
+              (click)="deleteRecord()"
+              [disabled]="!selectedRecord() || !!selectedRecord()?.microTransferred || isDeleting() || !canDelete()"
+            >
+              Sil
+            </button>
+            <button
+              type="button"
+              class="task-action"
+              disabled
+              [title]="canTransfer() ? 'Mikro aktarim API tarafinda hazir degil' : 'Transfer yetkisi yok'"
+            >
+              Mikro Hazir Degil
+            </button>
+          </div>
+        </article>
+
+        <aside class="side-column">
+          <section class="calc-panel">
+            <div class="title-block">
+              <span>Hesap</span>
+              <h3>{{ isCalculating() ? 'Hesaplaniyor' : 'Sonuc' }}</h3>
+            </div>
+            <div class="calc-grid" *ngIf="calculation() as currentCalculation; else noCalculation">
+              <article>
+                <span>Kasa Darasi</span>
+                <strong>{{ currentCalculation.caseTotalTare | number:'1.2-2' }}</strong>
+              </article>
+              <article>
+                <span>Net Kilo</span>
+                <strong>{{ currentCalculation.netReceivedWeight | number:'1.2-2' }}</strong>
+              </article>
+              <article>
+                <span>Ort. Kasa</span>
+                <strong>{{ currentCalculation.averageCaseWeight | number:'1.2-2' }}</strong>
+              </article>
+              <article>
+                <span>Barkod</span>
+                <strong>{{ currentCalculation.labelBarcode || '-' }}</strong>
+              </article>
+            </div>
+            <ng-template #noCalculation>
+              <p class="field-message">Brut kilo ve daralari girince hesap otomatik yenilenir.</p>
+            </ng-template>
+          </section>
+
+          <section class="label-panel" *ngIf="labelPreview() as label">
+            <div class="label-tools">
+              <div class="title-block">
+                <span>Etiket</span>
+                <h3>{{ label.labelCount }} kopya onerisi</h3>
+              </div>
+              <label class="field copy-field">
+                <span>Kopya</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  [ngModel]="labelCopyCount"
+                  (ngModelChange)="setLabelCopyCount($event)"
+                />
+              </label>
+            </div>
+
+            <article class="label-preview">
+              <strong>{{ label.stockName }}</strong>
+              <span>{{ label.supplierName }}</span>
+              <div class="label-meta">
+                <b>{{ label.averageCaseWeight | number:'1.2-2' }} KG</b>
+                <b>{{ label.caseType || '-' }}</b>
+                <b>{{ label.caseTare | number:'1.2-2' }} dara</b>
+              </div>
+              <svg #previewBarcode class="barcode-svg"></svg>
+              <small>{{ label.labelBarcode || label.stockBarcode || '-' }}</small>
+              <em>{{ label.labelDate | date:'dd.MM.yyyy' }}</em>
+            </article>
+
+            <button
+              type="button"
+              class="task-action task-action-primary full-action"
+              (click)="printLabel()"
+              [disabled]="isPrinting()"
+            >
+              {{ isPrinting() ? 'Yazdiriliyor...' : 'Yazdir' }}
+            </button>
+          </section>
+        </aside>
+      </div>
+    </section>
+
+    <section class="reports-panel" *ngIf="activeTab() === 'reports'">
+      <div class="report-head">
+        <div class="report-tabs">
+          <button type="button" [class.is-active]="activeReportTab() === 'received'" (click)="loadReport('received')">
+            Gelen Urun
+          </button>
+          <button type="button" [class.is-active]="activeReportTab() === 'depot'" (click)="loadReport('depot')">
+            Depo Stok
+          </button>
+        </div>
+
+        <label class="field report-warehouse" *ngIf="activeReportTab() === 'depot'">
+          <span>Depo</span>
+          <input
+            type="number"
+            min="1"
+            [disabled]="!canUseWarehouseScope()"
+            [placeholder]="currentWarehouseLabel()"
+            [ngModel]="reportWarehouseNo"
+            (ngModelChange)="updateReportWarehouseNo($event)"
+          />
+        </label>
+
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="loadReport()"
+          [disabled]="isReportLoading()"
+        >
+          {{ isReportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
+        </button>
+      </div>
+
+      <div class="table-wrap compact-table" *ngIf="activeReportTab() === 'received'">
+        <table class="record-table report-table">
+          <thead>
+            <tr>
+              <th>Tarih</th>
+              <th>Cari</th>
+              <th>Stok</th>
+              <th>Kilo</th>
+              <th>Durum</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of receivedReportRows()">
+              <td data-label="Tarih">{{ row.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
+              <td data-label="Cari">
+                <strong>{{ row.supplierName || '-' }}</strong>
+                <span>{{ row.supplierCode || row.seriesAndNumber || '-' }}</span>
+              </td>
+              <td data-label="Stok">
+                <strong>{{ row.stockName || '-' }}</strong>
+                <span>{{ row.stockCode || row.stockBarcode || '-' }}</span>
+              </td>
+              <td data-label="Kilo">
+                <strong>{{ (row.netReceivedWeight || 0) | number:'1.2-2' }} net</strong>
+                <span>{{ row.caseCount || 0 }} kasa / {{ (row.averageCaseWeight || 0) | number:'1.2-2' }} ort.</span>
+              </td>
+              <td data-label="Durum">
+                {{ row.microTransferred ? 'Aktarildi' : row.status || 'Bekliyor' }}
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <div class="table-wrap compact-table" *ngIf="activeReportTab() === 'depot'">
+        <table class="record-table report-table">
+          <thead>
+            <tr>
+              <th>Depo</th>
+              <th>Stok</th>
+              <th>Tedarikci</th>
+              <th>Miktar</th>
+              <th>Son Kabul</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let row of depotReportRows()">
+              <td data-label="Depo">{{ row.warehouseName || row.warehouseNo || '-' }}</td>
+              <td data-label="Stok">
+                <strong>{{ row.stockName || '-' }}</strong>
+                <span>{{ row.stockCode || row.stockBarcode || '-' }}</span>
+              </td>
+              <td data-label="Tedarikci">{{ row.supplierName || '-' }}</td>
+              <td data-label="Miktar">
+                <strong>{{ (row.netReceivedWeight || row.totalQuantity || row.quantity || 0) | number:'1.2-2' }}</strong>
+                <span>{{ row.caseCount || 0 }} kasa / {{ (row.averageCaseWeight || 0) | number:'1.2-2' }} ort.</span>
+              </td>
+              <td data-label="Son Kabul">{{ row.lastReceivedAt | date:'dd.MM.yyyy HH:mm' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+  </article>
+
+  <section class="etiket-basim-print-root" *ngIf="labelPreview()">
+    <article
+      class="print-label"
+      *ngFor="let label of printCopies(); let copyIndex = index; trackBy: trackByPrintCopy"
+    >
+      <strong>{{ label.stockName }}</strong>
+      <span>{{ label.supplierName }}</span>
+      <div class="print-label-meta">
+        <b>{{ label.averageCaseWeight | number:'1.2-2' }} KG</b>
+        <b>{{ label.caseType || '-' }}</b>
+        <b>{{ label.caseTare | number:'1.2-2' }} dara</b>
+      </div>
+      <svg #printBarcode class="barcode-svg"></svg>
+      <small>{{ label.labelBarcode || label.stockBarcode || '-' }}</small>
+      <em>{{ label.labelDate | date:'dd.MM.yyyy' }}</em>
+    </article>
+  </section>
+</section>

@@ -472,6 +472,187 @@ export interface KasaHareketReportRowDto {
 }
 
 // ============================================================================
+// Etiket Basim Modelleri
+// ============================================================================
+
+export type EtiketBasimCaseType = 'REHINLI' | 'REHINSIZ' | string;
+
+export interface EtiketBasimReferenceSearchHttpRequest {
+  query?: string | null;
+  take?: number | null;
+}
+
+export interface EtiketBasimStockSearchHttpRequest {
+  query?: string | null;
+  prefix?: string | null;
+  take?: number | null;
+}
+
+export interface EtiketBasimDateHttpRequest {
+  date: string;
+}
+
+export interface EtiketBasimCalculationHttpRequest {
+  grossWeight: number;
+  caseTare: number;
+  caseCount?: number | null;
+  palletTare?: number | null;
+  stockBarcode?: string | null;
+}
+
+export interface EtiketBasimCalculationDto {
+  caseTotalTare: number;
+  netReceivedWeight: number;
+  averageCaseWeight: number;
+  labelBarcodeRaw: string | null;
+  labelBarcode: string | null;
+  barcodeSymbology: string | null;
+}
+
+export interface EtiketBasimSupplierDto {
+  supplierCode?: string | null;
+  supplierName?: string | null;
+  code?: string | null;
+  name?: string | null;
+  customerCode?: string | null;
+  customerName?: string | null;
+  displayName?: string | null;
+}
+
+export interface EtiketBasimStockDto {
+  stockCode?: string | null;
+  stockName?: string | null;
+  stockBarcode?: string | null;
+  barcode?: string | null;
+  code?: string | null;
+  name?: string | null;
+  displayName?: string | null;
+  unitName?: string | null;
+}
+
+export interface SaveEtiketBasimAcceptanceRecordHttpRequest {
+  supplierCode: string;
+  supplierName: string;
+  documentSeries?: string | null;
+  documentNo: string;
+  stockCode: string;
+  stockName: string;
+  stockBarcode: string;
+  grossWeight: number;
+  caseTare: number;
+  caseCount?: number | null;
+  palletTare?: number | null;
+  receivedBy: string;
+  caseType: EtiketBasimCaseType;
+}
+
+export interface EtiketBasimAcceptanceRecordDto {
+  id: number;
+  createdAt: string;
+  updatedAt: string | null;
+  supplierCode: string;
+  supplierName: string;
+  documentSeries: string;
+  documentNo: string;
+  seriesAndNumber: string;
+  stockCode: string;
+  stockName: string;
+  stockBarcode: string | null;
+  grossWeight: number;
+  caseTare: number;
+  caseCount: number;
+  caseTotalTare: number;
+  palletTare: number;
+  averageCaseWeight: number;
+  netReceivedWeight: number;
+  receivedBy: string | null;
+  microTransferred: boolean;
+  status: string;
+  caseType: string | null;
+  labelBarcodeRaw: string | null;
+  labelBarcode: string | null;
+  barcodeSymbology: string | null;
+}
+
+export interface EtiketBasimLabelDto {
+  recordId: number | null;
+  stockCode: string;
+  stockName: string;
+  stockBarcode: string | null;
+  supplierName: string;
+  averageCaseWeight: number;
+  labelDate: string;
+  labelCount: number;
+  labelBarcodeRaw: string | null;
+  labelBarcode: string | null;
+  barcodeSymbology: string | null;
+  caseTare: number;
+  caseType: string | null;
+}
+
+export interface EtiketBasimReceivedProductReportDto {
+  createdAt?: string | null;
+  supplierCode?: string | null;
+  supplierName?: string | null;
+  documentSeries?: string | null;
+  documentNo?: string | null;
+  seriesAndNumber?: string | null;
+  stockCode?: string | null;
+  stockName?: string | null;
+  stockBarcode?: string | null;
+  barcode?: string | null;
+  grossWeight?: number | null;
+  caseTotalTare?: number | null;
+  palletTare?: number | null;
+  netReceivedWeight?: number | null;
+  caseCount?: number | null;
+  averageCaseWeight?: number | null;
+  invoiceQuantity?: number | null;
+  invoiceDifference?: number | null;
+  caseType?: string | null;
+  status?: string | null;
+  microTransferred?: boolean | null;
+}
+
+export interface EtiketBasimDepotStockReportHttpRequest {
+  warehouseNo?: number | null;
+  date: string;
+}
+
+export interface EtiketBasimDepotStockReportDto {
+  warehouseNo?: number | null;
+  warehouseName?: string | null;
+  stockCode?: string | null;
+  stockName?: string | null;
+  stockBarcode?: string | null;
+  supplierName?: string | null;
+  responsible?: string | null;
+  currentStock?: number | null;
+  purchasePriceWithVat?: number | null;
+  salesPrice?: number | null;
+  caseCount?: number | null;
+  quantity?: number | null;
+  totalQuantity?: number | null;
+  grossWeight?: number | null;
+  netReceivedWeight?: number | null;
+  averageCaseWeight?: number | null;
+  lastReceivedAt?: string | null;
+}
+
+export interface EtiketBasimMicroTransferHttpRequest {
+  date: string;
+  supplierCode?: string | null;
+}
+
+export interface EtiketBasimMicroTransferResultDto {
+  isAvailable?: boolean;
+  success?: boolean;
+  message?: string | null;
+  requiredRule?: string | null;
+  transferredCount?: number | null;
+}
+
+// ============================================================================
 // Banknot Hareketi Modelleri
 // ============================================================================
 

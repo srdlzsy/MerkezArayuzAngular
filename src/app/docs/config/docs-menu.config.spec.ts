@@ -86,7 +86,7 @@ describe('docs-menu.config', () => {
     expect(menu.map((section) => section.id)).toEqual(['siparis-islemleri']);
   });
 
-  it('uses backend sebike keys when menu label and task name are not identical', () => {
+  it('routes EtiketBasim backend key to the dedicated etiket-basim task', () => {
     const sorumluluklar: Sorumluluk[] = [
       {
         id: 1,
@@ -103,7 +103,11 @@ describe('docs-menu.config', () => {
       }
     ];
 
-    expect(hasDocsTaskAccess('etiket-belgeleri', sorumluluklar)).toBeTrue();
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('etiket-basim', sorumluluklar)).toBeTrue();
+    expect(hasDocsTaskAccess('etiket-belgeleri', sorumluluklar)).toBeFalse();
+    expect(menu[0]?.children.map((item) => item.id)).toEqual(['etiket-basim']);
   });
 
   it('shows authorization files when backend returns an alias key', () => {
