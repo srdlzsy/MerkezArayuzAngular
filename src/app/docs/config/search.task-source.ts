@@ -69,6 +69,7 @@ export const SEARCH_TASK_SOURCE = {
       baseRouteOrFile: '/api/arama-islemleri/fiyat-gor',
       highlights: [
         'Barkod ile fiyat sorgusu',
+        'Terazi barkodunda okutulan barkod ve normalize edilen lookup barkodu ayrilir',
         'Stok kodu ile fiyat arama',
         'Urun adi ile arama',
         'Stok kodundan son kunye bilgisi',
@@ -82,8 +83,8 @@ export const SEARCH_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/arama-islemleri/fiyat-gor?warehouseNo=110&barcode=8690000000000',
-              description: 'Barkod uzerinden fiyat sorgusu yapar'
+              path: '/api/arama-islemleri/fiyat-gor?warehouseNo=110&barcode=2700174041103',
+              description: 'Barkod uzerinden fiyat sorgusu yapar; terazi barkodunda lookup barkod ve KG miktarini dondurur'
             },
             {
               method: 'GET',
@@ -102,26 +103,37 @@ export const SEARCH_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/arama-islemleri/barkodlar/2700174041103/cozumle?warehouseNo=110&operationType=receiving&targetWarehouseNo=120&supplierCode=120.01.03106',
+              description: 'Kamera/barkod okutma akislari icin urun, miktar, hedef depo ve islem kullanilabilirlik kararini tek cevapta dondurur'
+            },
+            {
+              method: 'GET',
               path: '/api/arama-islemleri/urunler/016201/son-kunye?warehouseNo=110',
               description: 'Secili stok ve depo icin son sevk tarihli kunye bilgisini ve Mikro satis fiyatini getirir'
             }
           ]
         }
       ],
-      codeSample: `{
+  codeSample: `{
   "warehouseNo": 110,
-  "barcode": "8690000000000",
+  "barcode": "2700174",
   "stockCode": "015550",
-  "stockName": "Stok Adi",
-  "price": 125.5,
+  "stockName": "MNV SEFTALI KG",
+  "price": 99.9,
   "priceTypeCode": 1,
-  "unitName": "AD",
+  "unitName": "KG",
   "unitMultiplier": 1,
-  "secondaryUnitName": "KOLI",
-  "secondaryUnitMultiplier": 12,
+  "secondaryUnitName": "",
+  "secondaryUnitMultiplier": 0,
   "isSalesBlocked": false,
   "isOrderBlocked": false,
-  "isGoodsAcceptanceBlocked": false
+  "isGoodsAcceptanceBlocked": false,
+  "requestedBarcode": "2700174041103",
+  "lookupBarcode": "2700174",
+  "isVariableWeightBarcode": true,
+  "embeddedQuantity": 4.11,
+  "embeddedQuantityUnit": "KG",
+  "isBarcodeCheckDigitValid": true
 }`
     },
     () =>

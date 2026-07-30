@@ -135,6 +135,31 @@ export class FiyatGorListComponent {
     }).format(Number(value ?? 0));
   }
 
+  protected hasBarcodeLookupInfo(item: ProductLookupItemDto): boolean {
+    return (
+      !!item.requestedBarcode?.trim() ||
+      !!item.lookupBarcode?.trim() ||
+      !!item.isVariableWeightBarcode ||
+      (item.embeddedQuantity !== null && item.embeddedQuantity !== undefined) ||
+      (item.isBarcodeCheckDigitValid !== null && item.isBarcodeCheckDigitValid !== undefined)
+    );
+  }
+
+  protected formatQuantity(value: number | null | undefined): string {
+    return new Intl.NumberFormat('tr-TR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3
+    }).format(Number(value ?? 0));
+  }
+
+  protected formatCheckDigit(value: boolean | null | undefined): string {
+    if (value === null || value === undefined) {
+      return '-';
+    }
+
+    return value ? 'Gecerli' : 'Kontrol edilmeli';
+  }
+
   protected getBlockedLabels(item: ProductLookupItemDto): string[] {
     return [
       item.isSalesBlocked ? 'Satis Engelli' : '',

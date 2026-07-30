@@ -84,6 +84,21 @@
         <span>Depo: <strong>{{ item.warehouseNo || '-' }}</strong></span>
       </div>
 
+      <div class="barcode-info-panel" *ngIf="hasBarcodeLookupInfo(item)">
+        <span *ngIf="item.requestedBarcode">
+          Okutulan: <strong>{{ item.requestedBarcode }}</strong>
+        </span>
+        <span *ngIf="item.lookupBarcode">
+          Aranan: <strong>{{ item.lookupBarcode }}</strong>
+        </span>
+        <span *ngIf="item.isVariableWeightBarcode">
+          Terazi: <strong>{{ formatQuantity(item.embeddedQuantity) }} {{ item.embeddedQuantityUnit || 'KG' }}</strong>
+        </span>
+        <span>
+          Kontrol: <strong>{{ formatCheckDigit(item.isBarcodeCheckDigitValid) }}</strong>
+        </span>
+      </div>
+
       <div class="badge-row" *ngIf="getBlockedLabels(item).length">
         <span class="danger-badge" *ngFor="let label of getBlockedLabels(item)">
           {{ label }}

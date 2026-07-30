@@ -183,6 +183,23 @@ button:disabled {
   gap: 0.35rem 0.65rem;
 }
 
+.barcode-info-panel {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.55rem;
+  color: #475569;
+  font-size: 0.76rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #eff6ff;
+}
+
+.barcode-info-panel span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
 .badge-row {
   display: flex;
   flex-wrap: wrap;
@@ -266,6 +283,7 @@ button:disabled {
 
   .query-panel,
   .detail-grid,
+  .barcode-info-panel,
   .last-tag-panel {
     grid-template-columns: 1fr;
   }

@@ -4,6 +4,8 @@
  */
 
 import type {
+  BarcodeResolutionDto,
+  BarcodeResolutionHttpRequest,
   CustomerLookupItemDto,
   CustomerSearchHttpRequest,
   ProductLookupItemDto,
@@ -14,6 +16,8 @@ import type {
 
 export type IFurpaProductSearchQueryApiDto = ProductSearchHttpRequest;
 export type IFurpaProductSearchItemApiDto = ProductLookupItemDto;
+export type IFurpaBarcodeResolutionQueryApiDto = BarcodeResolutionHttpRequest;
+export type IFurpaBarcodeResolutionApiDto = BarcodeResolutionDto;
 export type IFurpaCustomerSearchQueryApiDto = CustomerSearchHttpRequest;
 export type IFurpaCustomerSearchItemApiDto = CustomerLookupItemDto;
 export type IFurpaWarehouseSearchQueryApiDto = WarehouseSearchHttpRequest;

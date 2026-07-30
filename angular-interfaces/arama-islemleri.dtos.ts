@@ -35,6 +35,22 @@ export interface ProductLookupItemDto {
   isOrderBlocked: boolean;
   isGoodsAcceptanceBlocked: boolean;
   productManagerCode: string;
+  requestedBarcode: string | null;
+  lookupBarcode: string | null;
+  isVariableWeightBarcode: boolean;
+  embeddedQuantity: number | null;
+  embeddedQuantityUnit: string | null;
+  isBarcodeCheckDigitValid: boolean | null;
+}
+
+export interface BarcodeResolutionHttpRequest {
+  warehouseNo?: number | null;
+  operationType?: string | null;
+  targetWarehouseNo?: number | null;
+  supplierCode?: string | null;
+  companyCode?: string | null;
+  isRefund?: boolean | null;
+  screenCode?: string | null;
 }
 
 export interface BarcodeResolutionDto {
@@ -60,6 +76,32 @@ export interface BarcodeResolutionDto {
   usabilityReason: string | null;
   defaultSupplierCode: string | null;
   defaultSupplierName: string | null;
+  lookupBarcode: string | null;
+  isVariableWeightBarcode: boolean;
+  embeddedQuantity: number | null;
+  embeddedQuantityUnit: string | null;
+  isBarcodeCheckDigitValid: boolean | null;
+  barcodeKind: string | null;
+  isPrimaryBarcode: boolean;
+  isCaseBarcode: boolean;
+  isAlternativeBarcode: boolean;
+  matchedUnitsPerCase: number | null;
+  operationType: string | null;
+  targetWarehouseNo: number | null;
+  isAllowedForTargetWarehouse: boolean | null;
+  targetWarehouseReason: string | null;
+  productModelCode: string | null;
+  targetWarehouseModelCodes: string[];
+  supplierCode: string | null;
+  hasPurchaseRequirement: boolean | null;
+  purchaseRequirementReason: string | null;
+  salesPrice: number | null;
+  priceTypeCode: number | null;
+  isPassive: boolean;
+  isUsableInOperation: boolean;
+  operationDecision: string | null;
+  warnings: string[];
+  errors: string[];
 }
 
 export interface ProductCustomerSuggestionItemDto {

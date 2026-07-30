@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, of } from 'rxjs';
 
 import {
+  BarcodeResolutionHttpRequest,
   BarcodeResolutionDto,
   CustomerLookupItemDto,
   IEtiketBasimProduct,
@@ -272,15 +273,28 @@ export class AramaService extends BaseApiService {
 
   resolveBarcode(
     barcode: string,
-    warehouseNo?: number,
+    warehouseNoOrRequest?: number | BarcodeResolutionHttpRequest,
     screenCode?: string
   ): Observable<BarcodeResolutionDto> {
+    const request: BarcodeResolutionHttpRequest =
+      typeof warehouseNoOrRequest === 'object'
+        ? {
+            warehouseNo: warehouseNoOrRequest.warehouseNo,
+            operationType: this.normalizeOptionalText(warehouseNoOrRequest.operationType),
+            targetWarehouseNo: warehouseNoOrRequest.targetWarehouseNo,
+            supplierCode: this.normalizeOptionalText(warehouseNoOrRequest.supplierCode),
+            companyCode: this.normalizeOptionalText(warehouseNoOrRequest.companyCode),
+            isRefund: warehouseNoOrRequest.isRefund,
+            screenCode: this.normalizeOptionalText(warehouseNoOrRequest.screenCode)
+          }
+        : {
+            warehouseNo: warehouseNoOrRequest,
+            screenCode: this.normalizeOptionalText(screenCode)
+          };
+
     return this.getWithQuery<BarcodeResolutionDto>(
       `arama-islemleri/barkodlar/${encodeURIComponent(barcode.trim())}/cozumle`,
-      {
-        warehouseNo,
-        screenCode: this.normalizeOptionalText(screenCode)
-      }
+      request
     );
   }
 
