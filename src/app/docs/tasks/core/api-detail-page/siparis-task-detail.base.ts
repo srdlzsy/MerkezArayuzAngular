@@ -72,6 +72,47 @@ export abstract class SiparisTaskDetailBase<
     return isClosed ? 'status-pill-success' : 'status-pill-warn';
   }
 
+  protected hasGreenGrocerCase(item: any): boolean {
+    return !!item?.greenGrocerCase;
+  }
+
+  protected formatGreenGrocerCase(item: any): string {
+    const caseInfo = item?.greenGrocerCase;
+
+    if (!caseInfo) {
+      return '';
+    }
+
+    const inputQuantity = this.getRecordNumber(caseInfo, 'inputQuantity');
+    const inputMode = this.formatGreenGrocerInputMode(this.getRecordText(caseInfo, 'inputMode'));
+    const estimatedQuantity = this.getRecordNumber(caseInfo, 'estimatedQuantity');
+    const microUnit = this.getRecordText(caseInfo, 'microUnit') || this.getRecordText(item, 'unitName');
+
+    return `${this.formatNumber(inputQuantity)} ${inputMode} ~= ${this.formatNumber(estimatedQuantity)} ${microUnit}`.trim();
+  }
+
+  protected formatGreenGrocerAverage(item: any): string {
+    const caseInfo = item?.greenGrocerCase;
+
+    if (!caseInfo) {
+      return '';
+    }
+
+    const averageKgPerCase = this.getRecordNumber(caseInfo, 'averageKgPerCase');
+    const unitsPerCase = this.getRecordNumber(caseInfo, 'unitsPerCase');
+    const microUnit = this.getRecordText(caseInfo, 'microUnit') || this.getRecordText(item, 'unitName');
+
+    if (averageKgPerCase !== null) {
+      return `Ort ${this.formatNumber(averageKgPerCase)} ${microUnit}/kasa`;
+    }
+
+    if (unitsPerCase !== null) {
+      return `Ort ${this.formatNumber(unitsPerCase)} ${microUnit}/koli`;
+    }
+
+    return this.getRecordText(caseInfo, 'confidence', 'status');
+  }
+
   protected readonly trackByItem = (index: number, item: any): string =>
     [
       this.getRecordText(item, 'stockCode'),
@@ -276,6 +317,23 @@ export abstract class SiparisTaskDetailBase<
 
   private joinCodeAndName(code: number | null, name: string): string {
     return joinTruthy([code === null ? '' : `${code}`, name], ' - ');
+  }
+
+  private formatGreenGrocerInputMode(value: string): string {
+    switch (value) {
+      case 'Case':
+        return 'kasa';
+      case 'Pack':
+        return 'koli';
+      case 'Piece':
+        return 'adet';
+      case 'KgDirect':
+        return 'kg';
+      case 'Sarf':
+        return 'sarf';
+      default:
+        return value.trim().toLocaleLowerCase('tr-TR') || 'miktar';
+    }
   }
 
   private getRecordText(record: any, ...keys: string[]): string {

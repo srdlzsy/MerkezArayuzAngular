@@ -110,7 +110,15 @@
                 </td>
                 <td>{{ item.productCode }}</td>
                 <td>{{ item.productName }}</td>
-                <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                <td class="number-cell">
+                  <span>{{ formatQuantity(item.quantity) }}</span>
+                  <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
+                    {{ caseText }}
+                  </small>
+                  <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
+                    {{ averageText }}
+                  </small>
+                </td>
               </tr>
             </tbody>
           </table>
@@ -165,7 +173,15 @@
                   <span class="product-name">{{ item.productName }}</span>
                   <small>{{ item.productCode }}</small>
                 </td>
-                <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                <td class="number-cell">
+                  <span>{{ formatQuantity(item.quantity) }}</span>
+                  <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
+                    {{ caseText }}
+                  </small>
+                  <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
+                    {{ averageText }}
+                  </small>
+                </td>
                 <td *ngIf="canDeleteOrders()">
                   <button
                     type="button"
@@ -247,7 +263,15 @@
                     <span class="product-name">{{ item.productName }}</span>
                     <small>{{ item.productCode }}</small>
                   </td>
-                  <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                  <td class="number-cell">
+                    <span>{{ formatQuantity(item.quantity) }}</span>
+                    <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
+                      {{ caseText }}
+                    </small>
+                    <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
+                      {{ averageText }}
+                    </small>
+                  </td>
                   <td class="number-cell">{{ item.breakdownItems.length }}</td>
                 </tr>
               </tbody>
@@ -278,7 +302,15 @@
                     <td>{{ formatDateTime(item.orderDate) }}</td>
                     <td>{{ formatBranch(item) }}</td>
                     <td>{{ formatDocument(item) }}</td>
-                    <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                    <td class="number-cell">
+                      <span>{{ formatQuantity(item.quantity) }}</span>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
+                        {{ caseText }}
+                      </small>
+                      <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
+                        {{ averageText }}
+                      </small>
+                    </td>
                   </tr>
                 </tbody>
               </table>
@@ -337,7 +369,15 @@
                   <span class="product-name">{{ item.productName }}</span>
                   <small>{{ item.productCode }}</small>
                 </td>
-                <td class="number-cell">{{ formatQuantity(item.quantity) }}</td>
+                <td class="number-cell">
+                  <span>{{ formatQuantity(item.quantity) }}</span>
+                  <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
+                    {{ caseText }}
+                  </small>
+                  <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
+                    {{ averageText }}
+                  </small>
+                </td>
                 <td *ngIf="canDeleteOrders()">
                   <button
                     type="button"

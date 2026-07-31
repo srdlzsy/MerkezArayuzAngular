@@ -1941,15 +1941,6 @@ export class UrunDagilimlariListComponent implements OnInit {
     const normalizedAction = this.normalizeText(action);
     const fullPermission = this.normalizeText(`${PERMISSION_PREFIX}.${action}`);
 
-    if (
-      (user?.roller ?? []).some((role) => {
-        const normalizedRole = this.normalizeText(role);
-        return normalizedRole === 'admin' || normalizedRole === 'administrator';
-      })
-    ) {
-      return true;
-    }
-
     const permissionKeys = [
       ...(user?.permissions ?? []),
       ...this.authService.getTaskPermissionCodes(TASK_ID),

@@ -35,6 +35,7 @@ interface AuthSession {
 }
 
 const AUTH_STORAGE_KEY = 'angularv20.auth.session';
+const MAX_AUTH_TOKEN_LENGTH = 4096;
 
 @Injectable({
   providedIn: 'root'
@@ -161,6 +162,13 @@ export class AuthService {
 
     return this.http.post<LoginResponse>(this.buildUrl('auth/login'), data).pipe(
       switchMap((loginResponse: LoginResponse) => {
+        const accessToken = this.normalizeAccessToken(loginResponse.accessToken);
+        const tokenType = this.normalizeTokenType(loginResponse.tokenType);
+
+        if (!accessToken) {
+          return throwError(() => new Error('Gecersiz access token.'));
+        }
+
         const embeddedCurrentUser = this.resolveCurrentUserFromLoginResponse(loginResponse);
 
         if (embeddedCurrentUser) {
@@ -168,7 +176,7 @@ export class AuthService {
           return of(true);
         }
 
-        return this.fetchCurrentUser(loginResponse.accessToken, loginResponse.tokenType ?? 'Bearer').pipe(
+        return this.fetchCurrentUser(accessToken, tokenType).pipe(
           map((currentUser: CurrentUser) => {
             this.storeSession(loginResponse, currentUser);
             return true;
@@ -186,7 +194,7 @@ export class AuthService {
   }
 
   getAccessToken(): string {
-    return this.sessionSignal()?.accessToken ?? '';
+    return this.normalizeAccessToken(this.sessionSignal()?.accessToken) ?? '';
   }
 
   getTokenType(): string {
@@ -206,11 +214,17 @@ export class AuthService {
 
     return this.http.post<LoginResponse>(this.buildUrl('auth/refresh'), request).pipe(
       switchMap((response: LoginResponse) => {
+        const accessToken = this.normalizeAccessToken(response.accessToken);
+
+        if (!accessToken) {
+          return throwError(() => new Error('Gecersiz access token.'));
+        }
+
         const embeddedCurrentUser = this.resolveCurrentUserFromLoginResponse(response);
         const nextSession: AuthSession = {
           ...session,
-          tokenType: response.tokenType ?? 'Bearer',
-          accessToken: response.accessToken,
+          tokenType: this.normalizeTokenType(response.tokenType),
+          accessToken,
           refreshToken: response.refreshToken ?? session.refreshToken,
           expiresIn: response.expiresIn ?? session.expiresIn,
           currentUser: embeddedCurrentUser ?? session.currentUser
@@ -232,9 +246,16 @@ export class AuthService {
     response: LoginResponse,
     currentUser: CurrentUser | null = this.sessionSignal()?.currentUser ?? null
   ): void {
+    const accessToken = this.normalizeAccessToken(response.accessToken);
+
+    if (!accessToken) {
+      this.clearStoredSession();
+      throw new Error('Gecersiz access token.');
+    }
+
     const session: AuthSession = {
-      tokenType: response.tokenType ?? 'Bearer',
-      accessToken: response.accessToken,
+      tokenType: this.normalizeTokenType(response.tokenType),
+      accessToken,
       refreshToken: response.refreshToken ?? null,
       expiresIn: response.expiresIn ?? null,
       currentUser
@@ -263,11 +284,13 @@ export class AuthService {
   }
 
   private fetchCurrentUser(accessToken?: string, tokenType = 'Bearer'): Observable<CurrentUser> {
+    const normalizedAccessToken = this.normalizeAccessToken(accessToken);
+    const normalizedTokenType = this.normalizeTokenType(tokenType);
     const currentUserRequest$ =
-      accessToken
+      normalizedAccessToken
         ? this.http.get<MeResponse | KullaniciResponse>(this.buildUrl('auth/me'), {
             headers: {
-              Authorization: `${tokenType} ${accessToken}`
+              Authorization: `${normalizedTokenType} ${normalizedAccessToken}`
             }
           })
         : this.kullaniciIslemleriService.getBenim<MeResponse | KullaniciResponse>();
@@ -396,15 +419,16 @@ export class AuthService {
 
     try {
       const session = JSON.parse(raw) as AuthSession;
+      const accessToken = this.normalizeAccessToken(session?.accessToken);
 
-      if (!session?.accessToken) {
+      if (!accessToken) {
         this.clearStoredSession();
         return null;
       }
 
       const nextSession = {
-        tokenType: session.tokenType || 'Bearer',
-        accessToken: session.accessToken,
+        tokenType: this.normalizeTokenType(session.tokenType),
+        accessToken,
         refreshToken: session.refreshToken ?? null,
         expiresIn: session.expiresIn ?? null,
         currentUser: session.currentUser ?? null
@@ -426,6 +450,30 @@ export class AuthService {
     const trimmedBaseUrl = this.apiBaseUrl.replace(/\/+$/, '');
     const trimmedPath = path.replace(/^\/+/, '');
     return `${trimmedBaseUrl}/${trimmedPath}`;
+  }
+
+  private normalizeAccessToken(value: unknown): string | null {
+    if (typeof value !== 'string') {
+      return null;
+    }
+
+    const token = value.trim();
+
+    if (
+      !token ||
+      token.length > MAX_AUTH_TOKEN_LENGTH ||
+      /^\s*[\[{]/.test(token) ||
+      /\s/.test(token)
+    ) {
+      return null;
+    }
+
+    return token;
+  }
+
+  private normalizeTokenType(value: unknown): string {
+    const tokenType = typeof value === 'string' ? value.trim() : '';
+    return /^[A-Za-z]+$/.test(tokenType) ? tokenType : 'Bearer';
   }
 
   private clearStoredSession(): void {

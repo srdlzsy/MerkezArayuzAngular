@@ -77,6 +77,7 @@ export const SHIPMENT_TASK_SOURCE = {
         'Sevk',
         'Yazma yolu MikroWriteRouting:InterWarehouseShipment ile Database veya MikroApi olur',
         'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir',
+        'Manav depo 56 akisi varsayilan olarak siparis satir GUID baglantisi gondermez',
         'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
       ],
       listTitle: 'Controller',

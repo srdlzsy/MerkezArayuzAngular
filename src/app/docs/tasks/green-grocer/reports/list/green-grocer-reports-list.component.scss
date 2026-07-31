@@ -145,6 +145,20 @@
   white-space: nowrap;
 }
 
+.case-info {
+  display: block;
+  margin-top: 0.12rem;
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.22;
+}
+
+.case-info-muted {
+  color: #64748b;
+  font-weight: 700;
+}
+
 .type-pill {
   display: inline-flex;
   align-items: center;

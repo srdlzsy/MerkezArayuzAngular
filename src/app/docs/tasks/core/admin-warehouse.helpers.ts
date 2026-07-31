@@ -11,17 +11,6 @@ const ALL_WAREHOUSES_PERMISSION_OVERRIDES: Record<string, string> = {
   'authorization-files': 'operasyon-islemleri.operations.all-warehouses'
 };
 
-export function hasAdminWarehouseRole(roles: readonly string[] | null | undefined): boolean {
-  return (roles ?? []).some((role) => {
-    const normalizedRole = role.trim().toLocaleLowerCase('tr-TR');
-    return normalizedRole === 'admin' || normalizedRole === 'administrator';
-  });
-}
-
-export function currentUserIsAdmin(user: CurrentUser | null | undefined): boolean {
-  return hasAdminWarehouseRole(user?.roller);
-}
-
 export function normalizePermissionCode(value: string | null | undefined): string {
   return value?.trim().toLocaleLowerCase('tr-TR') ?? '';
 }

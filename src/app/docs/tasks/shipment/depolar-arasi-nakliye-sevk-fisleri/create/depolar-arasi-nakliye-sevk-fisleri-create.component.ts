@@ -609,21 +609,23 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
 
   private buildRequest(): IFurpaCreateWarehouseShippingRequestApiDto {
     const rawValue = this.form.getRawValue();
+    const sourceWarehouseNo = this.resolveRequestWarehouseNo();
 
     return {
-      sourceWarehouseNo: this.resolveRequestWarehouseNo(),
+      sourceWarehouseNo,
       targetWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       transitWarehouseNo: rawValue.transitWarehouseNo ?? 60,
       movementDate: rawValue.movementDate,
       documentDate: rawValue.documentDate,
       documentNo: rawValue.documentNo.trim(),
       description: rawValue.description.trim(),
-      lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
+      lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem, sourceWarehouseNo))
     };
   }
 
-  private mapKalem(kalem: KalemFormValue) {
-    const warehouseOrderLineGuid = this.normalizeOptionalText(kalem.siparisGuid);
+  private mapKalem(kalem: KalemFormValue, sourceWarehouseNo: number | undefined) {
+    const warehouseOrderLineGuid =
+      sourceWarehouseNo === 56 ? null : this.normalizeOptionalText(kalem.siparisGuid);
 
     return {
       ...(warehouseOrderLineGuid ? { warehouseOrderLineGuid } : {}),

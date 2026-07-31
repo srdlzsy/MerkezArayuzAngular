@@ -3,6 +3,12 @@
  * FurpaMerkezApi v1.0
  */
 
+import type {
+  GreenGrocerProductCaseConfidence,
+  GreenGrocerProductCaseConversionMode,
+  GreenGrocerProductCaseInputMode
+} from './green-grocer.dtos';
+
 // ============================================================================
 // Depo Siparişi Modelleri
 // ============================================================================
@@ -66,6 +72,7 @@ export interface WarehouseOrderLineItemDto {
   description: string;
   packageCode: string;
   projectCode: string;
+  greenGrocerCase?: WarehouseOrderLineGreenGrocerCaseDto | null;
 }
 
 export interface WarehouseOrderDetailDto {
@@ -92,6 +99,7 @@ export interface CreateIssuedWarehouseOrderLineHttpRequest {
   packageCode: string;
   projectCode: string;
   responsibilityCenter: string;
+  greenGrocerCase?: GreenGrocerOrderLineSnapshotHttpRequest | null;
 }
 
 export interface CreateIssuedWarehouseOrderResponse {
@@ -150,6 +158,28 @@ export interface ConvertSuggestedWarehouseOrderLineHttpRequest {
   packageCode: string;
   projectCode: string;
   responsibilityCenter: string;
+}
+
+export interface GreenGrocerOrderLineSnapshotHttpRequest {
+  inputQuantity: number;
+  inputMode: GreenGrocerProductCaseInputMode;
+  conversionMode: GreenGrocerProductCaseConversionMode;
+  microUnit: string;
+  estimatedQuantity: number;
+  averageKgPerCase?: number | null;
+  unitsPerCase?: number | null;
+  averageSource?: string | null;
+  averageRecordCount?: number | null;
+  averageCaseCount?: number | null;
+  coefficientOfVariation?: number | null;
+  confidence: GreenGrocerProductCaseConfidence;
+}
+
+export interface WarehouseOrderLineGreenGrocerCaseDto
+  extends GreenGrocerOrderLineSnapshotHttpRequest {
+  actualShippedQuantity?: number | null;
+  actualShippedCaseCount?: number | null;
+  status?: string | null;
 }
 
 // ============================================================================

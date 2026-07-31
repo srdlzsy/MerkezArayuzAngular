@@ -2022,9 +2022,6 @@ export class MikroEvrakDuzenlemeListComponent {
   private hasPermission(code: string): boolean {
     const user = this.authService.currentUser();
     return (
-      (user?.roller ?? []).some(
-        (role) => role.toLocaleLowerCase('tr-TR') === 'administrator'
-      ) ||
       (user?.permissions ?? []).includes(code) ||
       this.authService.getTaskPermissionCodes('mikro-evrak-duzenleme').includes(code)
     );

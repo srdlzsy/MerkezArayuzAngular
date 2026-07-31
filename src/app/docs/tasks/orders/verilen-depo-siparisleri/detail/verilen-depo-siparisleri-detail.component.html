@@ -104,7 +104,15 @@
                 <td>{{ kalem.stockCode || '-' }}</td>
                 <td>{{ kalem.stockName || '-' }}</td>
                 <td>{{ kalem.unitName || '-' }}</td>
-                <td>{{ formatNumber(kalem.quantity) }}</td>
+                <td>
+                  <span>{{ formatNumber(kalem.quantity) }}</span>
+                  <small class="case-info" *ngIf="hasGreenGrocerCase(kalem)">
+                    {{ formatGreenGrocerCase(kalem) }}
+                  </small>
+                  <small class="case-info case-info-muted" *ngIf="hasGreenGrocerCase(kalem)">
+                    {{ formatGreenGrocerAverage(kalem) }}
+                  </small>
+                </td>
                 <td>{{ formatNumber(kalem.deliveredQuantity) }}</td>
                 <td>{{ formatNumber(kalem.remainingQuantity) }}</td>
                 <td>{{ formatNumber(kalem.unitPrice) }}</td>

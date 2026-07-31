@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -9,6 +10,8 @@ import {
   Validators
 } from '@angular/forms';
 import type {
+  GreenGrocerOrderLineSnapshotHttpRequest,
+  GreenGrocerProductCaseResolutionDto,
   IFurpaWarehouseSearchItemApiDto,
   IFurpaCreateWarehouseOrderRequestApiDto,
   IFurpaProductSearchItemApiDto
@@ -17,6 +20,7 @@ import { finalize } from 'rxjs';
 
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
+import { GreenGrocerService } from '../../../../../core/api/module-services/green-grocer.service';
 import { SiparisIslemleriService } from '../../../../../core/api/module-services/siparis-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -37,6 +41,12 @@ interface KalemFormValue {
   birim: string;
   birimKatsayisi: number | null;
   siparisMiktari: number | null;
+  cozumMiktari: number | null;
+  cozumBirim: string;
+  cozumMesaj: string;
+  cozumDurum: string;
+  cozumHata: string;
+  greenGrocerCase: GreenGrocerOrderLineSnapshotHttpRequest | null;
   aciklama: string;
   skt: string;
   modelKodu: string;
@@ -49,6 +59,12 @@ type KalemFormGroup = FormGroup<{
   birim: FormControl<string>;
   birimKatsayisi: FormControl<number | null>;
   siparisMiktari: FormControl<number | null>;
+  cozumMiktari: FormControl<number | null>;
+  cozumBirim: FormControl<string>;
+  cozumMesaj: FormControl<string>;
+  cozumDurum: FormControl<string>;
+  cozumHata: FormControl<string>;
+  greenGrocerCase: FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>;
   aciklama: FormControl<string>;
   skt: FormControl<string>;
   modelKodu: FormControl<string>;
@@ -62,10 +78,14 @@ type KalemFormGroup = FormGroup<{
   styleUrl: './alinan-depo-siparisleri-create.component.scss'
 })
 export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
+  private readonly destroyRef = inject(DestroyRef);
   private readonly aramaService = inject(AramaService);
+  private readonly greenGrocerService = inject(GreenGrocerService);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
   private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
+  private readonly lineResolutionRequestIds = new WeakMap<KalemFormGroup, number>();
+  private greenGrocerResolutionDisabled = false;
 
   protected readonly page: DocsContentPage = DOCS_PAGES['alinan-depo-siparisleri'];
   protected readonly isAdminUser = computed(() =>
@@ -273,13 +293,16 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       const current = Number(existingControl.controls.siparisMiktari.value ?? 0);
       existingControl.controls.siparisMiktari.setValue(current + step);
       existingControl.controls.siparisMiktari.markAsDirty();
+      this.resolveGreenGrocerLine(existingControl);
       this.stockQuery.setValue('');
       this.stockResults.set([]);
       this.stockError.set('');
       return;
     }
 
-    this.kalemler.push(this.createKalemFormGroup(stock));
+    const control = this.createKalemFormGroup(stock);
+    this.kalemler.push(control);
+    this.resolveGreenGrocerLine(control);
     this.stockQuery.setValue('');
     this.stockResults.set([]);
     this.stockError.set('');
@@ -306,6 +329,10 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     if (this.kalemler.length === 0) {
       this.stockError.set('Siparis icin en az bir kalem eklemelisin.');
+    }
+
+    if (!this.validateGreenGrocerLines()) {
+      return;
     }
 
     if (this.form.invalid || !this.selectedWarehouse() || this.kalemler.length === 0) {
@@ -335,9 +362,108 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
   protected toplamSiparisMiktari(): number {
     return this.kalemler.controls.reduce(
-      (total, control) => total + Number(control.controls.siparisMiktari.value ?? 0),
+      (total, control) => total + this.resolveLineOrderQuantity(control.getRawValue()),
       0
     );
+  }
+
+  protected isGreenGrocerOrder(): boolean {
+    return this.selectedWarehouse()?.warehouseNo === 56 && !this.greenGrocerResolutionDisabled;
+  }
+
+  protected resolveGreenGrocerLine(control: KalemFormGroup): void {
+    if (!this.isGreenGrocerOrder()) {
+      this.clearLineResolution(control);
+      return;
+    }
+
+    const stockCode = control.controls.stokKodu.value.trim();
+    const inputQuantity = Number(control.controls.siparisMiktari.value ?? 0);
+    const sourceWarehouseNo = this.selectedWarehouse()?.warehouseNo ?? null;
+    const targetWarehouseNo = this.resolveRequestWarehouseNo() ?? null;
+
+    if (!stockCode || !Number.isFinite(inputQuantity) || inputQuantity <= 0 || !sourceWarehouseNo) {
+      this.clearLineResolution(control);
+      return;
+    }
+
+    const requestId = (this.lineResolutionRequestIds.get(control) ?? 0) + 1;
+    this.lineResolutionRequestIds.set(control, requestId);
+    control.controls.cozumDurum.setValue('loading', { emitEvent: false });
+    control.controls.cozumMesaj.setValue('Cozumleniyor', { emitEvent: false });
+    control.controls.cozumHata.setValue('', { emitEvent: false });
+
+    this.greenGrocerService
+      .previewProductCaseResolution({
+        stockCode,
+        inputQuantity,
+        sourceWarehouseNo,
+        targetWarehouseNo,
+        orderDate: this.controls.orderDate.value
+      })
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (resolution: GreenGrocerProductCaseResolutionDto) => {
+          if (this.lineResolutionRequestIds.get(control) !== requestId) {
+            return;
+          }
+
+          this.applyLineResolution(control, resolution);
+        },
+        error: (error: HttpErrorResponse) => {
+          if (this.lineResolutionRequestIds.get(control) !== requestId) {
+            return;
+          }
+
+          if (error.status === 409) {
+            this.greenGrocerResolutionDisabled = true;
+            this.kalemler.controls.forEach((line) => this.clearLineResolution(line));
+            return;
+          }
+
+          control.controls.cozumDurum.setValue('error', { emitEvent: false });
+          control.controls.cozumMiktari.setValue(null, { emitEvent: false });
+          control.controls.cozumBirim.setValue('', { emitEvent: false });
+          control.controls.greenGrocerCase.setValue(null, { emitEvent: false });
+          control.controls.cozumMesaj.setValue('', { emitEvent: false });
+          control.controls.cozumHata.setValue(
+            this.resolveErrorMessage(error, 'Manav kasa cozumlemesi yapilamadi.'),
+            { emitEvent: false }
+          );
+        }
+      });
+  }
+
+  protected getLineResolutionLabel(control: KalemFormGroup): string {
+    const status = control.controls.cozumDurum.value;
+
+    if (status === 'loading') {
+      return 'Cozumleniyor...';
+    }
+
+    if (status === 'error') {
+      return control.controls.cozumHata.value || 'Cozumleme hatasi';
+    }
+
+    return control.controls.cozumMesaj.value;
+  }
+
+  protected getLineResolutionClass(control: KalemFormGroup): string {
+    const status = control.controls.cozumDurum.value;
+
+    if (status === 'ready') {
+      return 'resolution-note-ready';
+    }
+
+    if (status === 'warning') {
+      return 'resolution-note-warning';
+    }
+
+    if (status === 'error') {
+      return 'resolution-note-error';
+    }
+
+    return 'resolution-note-loading';
   }
 
   protected getWarehouseLabel(warehouse: IFurpaWarehouseSearchItemApiDto): string {
@@ -367,6 +493,12 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       siparisMiktari: new FormControl<number | null>(1, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
+      cozumMiktari: new FormControl<number | null>(null),
+      cozumBirim: new FormControl('', { nonNullable: true }),
+      cozumMesaj: new FormControl('', { nonNullable: true }),
+      cozumDurum: new FormControl('', { nonNullable: true }),
+      cozumHata: new FormControl('', { nonNullable: true }),
+      greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
       aciklama: new FormControl('', { nonNullable: true }),
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl('', { nonNullable: true })
@@ -387,17 +519,171 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private mapKalem(kalem: KalemFormValue) {
+    const quantity = this.resolveLineOrderQuantity(kalem);
+    const greenGrocerCase = this.resolveLineGreenGrocerCase(kalem, quantity);
+
     return {
       stockCode: kalem.stokKodu.trim(),
-      quantity: Number(kalem.siparisMiktari ?? 0),
+      quantity,
       recommendedQuantity: 0,
       unitPrice: 0,
       unitPointer: kalem.birimKatsayisi ?? 1,
       description: kalem.aciklama.trim(),
       packageCode: kalem.modelKodu.trim(),
       projectCode: '',
-      responsibilityCenter: ''
+      responsibilityCenter: '',
+      ...(greenGrocerCase ? { greenGrocerCase } : {})
     };
+  }
+
+  private applyLineResolution(
+    control: KalemFormGroup,
+    resolution: GreenGrocerProductCaseResolutionDto
+  ): void {
+    const estimatedQuantity = Number(resolution.estimatedQuantity ?? 0);
+    const inputMode = this.getInputModeLabel(resolution.inputMode);
+    const outputUnit = resolution.microUnit?.trim() || resolution.unit1?.trim() || '';
+    const baseMessage =
+      `${this.formatQuantity(resolution.inputQuantity)} ${inputMode}` +
+      ` ~= ${this.formatQuantity(estimatedQuantity)} ${outputUnit}`.trimEnd();
+
+    control.controls.cozumBirim.setValue(outputUnit, { emitEvent: false });
+
+    if (!resolution.isUsable || !Number.isFinite(estimatedQuantity) || estimatedQuantity <= 0) {
+      control.controls.cozumDurum.setValue('error', { emitEvent: false });
+      control.controls.cozumMiktari.setValue(null, { emitEvent: false });
+      control.controls.greenGrocerCase.setValue(null, { emitEvent: false });
+      control.controls.cozumMesaj.setValue('', { emitEvent: false });
+      control.controls.cozumHata.setValue(
+        resolution.errors?.[0] ?? 'Bu manav urunu icin kasa cozumlemesi kullanilamaz.',
+        { emitEvent: false }
+      );
+      return;
+    }
+
+    control.controls.cozumMiktari.setValue(estimatedQuantity, { emitEvent: false });
+    control.controls.greenGrocerCase.setValue(
+      this.buildGreenGrocerCaseSnapshot(resolution, estimatedQuantity, outputUnit),
+      { emitEvent: false }
+    );
+    control.controls.cozumMesaj.setValue(baseMessage, { emitEvent: false });
+    control.controls.cozumHata.setValue(resolution.warnings?.[0] ?? '', { emitEvent: false });
+    control.controls.cozumDurum.setValue(
+      resolution.confidence === 'Medium' || resolution.warnings?.length ? 'warning' : 'ready',
+      { emitEvent: false }
+    );
+  }
+
+  private clearLineResolution(control: KalemFormGroup): void {
+    this.lineResolutionRequestIds.set(control, (this.lineResolutionRequestIds.get(control) ?? 0) + 1);
+    control.controls.cozumMiktari.setValue(null, { emitEvent: false });
+    control.controls.cozumBirim.setValue('', { emitEvent: false });
+    control.controls.greenGrocerCase.setValue(null, { emitEvent: false });
+    control.controls.cozumMesaj.setValue('', { emitEvent: false });
+    control.controls.cozumDurum.setValue('', { emitEvent: false });
+    control.controls.cozumHata.setValue('', { emitEvent: false });
+  }
+
+  private validateGreenGrocerLines(): boolean {
+    if (!this.isGreenGrocerOrder()) {
+      return true;
+    }
+
+    const pendingLine = this.kalemler.controls.find(
+      (control) => control.controls.cozumDurum.value === 'loading'
+    );
+
+    if (pendingLine) {
+      this.stockError.set('Manav kasa cozumlemesi devam eden kalem var.');
+      return false;
+    }
+
+    const failedLine = this.kalemler.controls.find(
+      (control) => control.controls.cozumDurum.value === 'error'
+    );
+
+    if (failedLine) {
+      this.stockError.set(failedLine.controls.cozumHata.value || 'Manav kasa cozumlemesi hatali kalem var.');
+      return false;
+    }
+
+    return true;
+  }
+
+  private resolveLineOrderQuantity(kalem: KalemFormValue): number {
+    const resolvedQuantity = Number(kalem.cozumMiktari ?? 0);
+
+    if (Number.isFinite(resolvedQuantity) && resolvedQuantity > 0) {
+      return resolvedQuantity;
+    }
+
+    return Number(kalem.siparisMiktari ?? 0);
+  }
+
+  private resolveLineGreenGrocerCase(
+    kalem: KalemFormValue,
+    quantity: number
+  ): GreenGrocerOrderLineSnapshotHttpRequest | null {
+    if (!this.isGreenGrocerOrder() || !kalem.greenGrocerCase) {
+      return null;
+    }
+
+    const estimatedQuantity = Number(kalem.greenGrocerCase.estimatedQuantity ?? 0);
+
+    if (!Number.isFinite(estimatedQuantity) || Math.abs(estimatedQuantity - quantity) > 0.0001) {
+      return null;
+    }
+
+    return kalem.greenGrocerCase;
+  }
+
+  private buildGreenGrocerCaseSnapshot(
+    resolution: GreenGrocerProductCaseResolutionDto,
+    estimatedQuantity: number,
+    outputUnit: string
+  ): GreenGrocerOrderLineSnapshotHttpRequest {
+    return {
+      inputQuantity: Number(resolution.inputQuantity ?? 0),
+      inputMode: resolution.inputMode,
+      conversionMode: resolution.conversionMode,
+      microUnit: outputUnit,
+      estimatedQuantity,
+      averageKgPerCase: resolution.averageKgPerCase ?? null,
+      unitsPerCase: resolution.unitsPerCase ?? null,
+      averageSource: resolution.averageSource ?? null,
+      averageRecordCount: resolution.averageRecordCount ?? null,
+      averageCaseCount: resolution.averageCaseCount ?? null,
+      coefficientOfVariation: resolution.coefficientOfVariation ?? null,
+      confidence: resolution.confidence
+    };
+  }
+
+  private getInputModeLabel(value: string | null | undefined): string {
+    switch (value) {
+      case 'Case':
+        return 'kasa';
+      case 'Pack':
+        return 'koli';
+      case 'Piece':
+        return 'adet';
+      case 'KgDirect':
+        return 'kg';
+      case 'Sarf':
+        return 'sarf';
+      default:
+        return value?.trim().toLocaleLowerCase('tr-TR') || 'miktar';
+    }
+  }
+
+  private formatQuantity(value: number | null | undefined): string {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return '-';
+    }
+
+    return new Intl.NumberFormat('tr-TR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3
+    }).format(value);
   }
 
   private normalizeWarehouses(results: IFurpaWarehouseSearchItemApiDto[]): IFurpaWarehouseSearchItemApiDto[] {

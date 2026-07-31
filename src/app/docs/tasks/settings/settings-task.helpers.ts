@@ -90,9 +90,6 @@ export function hasSettingsPermission(
   const currentUser = authService.currentUser();
 
   return (
-    (currentUser?.roller ?? []).some(
-      (role) => role.toLocaleLowerCase('tr-TR') === 'administrator'
-    ) ||
     (currentUser?.permissions ?? []).includes(permissionCode) ||
     authService.getTaskPermissionCodes(taskId).includes(permissionCode)
   );

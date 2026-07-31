@@ -535,6 +535,36 @@
   color: #94a3b8;
 }
 
+.resolution-note {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 20px;
+  padding: 0.12rem 0.36rem;
+  border-radius: 999px;
+  font-size: 0.6rem;
+  font-weight: 700;
+  line-height: 1.15;
+  white-space: normal;
+}
+
+.resolution-note-ready {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.resolution-note-warning,
+.resolution-note-loading {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.resolution-note-error {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
 .col-miktar input {
   width: 100%;
   padding: 0.32rem 0.4rem;

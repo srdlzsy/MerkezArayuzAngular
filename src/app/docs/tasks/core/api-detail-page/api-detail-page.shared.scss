@@ -342,6 +342,21 @@ tbody tr:hover {
   background: #f8fbff;
 }
 
+.case-info {
+  display: block;
+  margin-top: 0.14rem;
+  color: #0f766e;
+  font-size: 0.68rem;
+  font-weight: 800;
+  line-height: 1.25;
+  white-space: nowrap;
+}
+
+.case-info-muted {
+  color: #64748b;
+  font-weight: 700;
+}
+
 pre {
   margin: 0;
   overflow: auto;

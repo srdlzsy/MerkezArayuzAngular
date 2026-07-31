@@ -94,5 +94,91 @@ export const GREEN_GROCER_TASK_SOURCE = {
         'yesillik-raporlari'
       ]
     }
+  ),
+  'green-grocer-product-case-profiles': singleRouteTask(
+    {
+      id: 'green-grocer-product-case-profiles',
+      title: 'Manav Kasa Profilleri',
+      subtitle:
+        'Manav kasa/koli girislerini Mikro miktarina ceviren urun profillerini ve cozumleme onizlemesini yonetir.',
+      baseRouteOrFile: '/api/green-grocer/product-case-profiles',
+      highlights: [
+        'Kasa, paket, adet, direkt KG ve sarf giris modlari desteklenir',
+        'Etiket ortalamasi, manuel KG/kasa, sabit adet/kasa ve direkt miktar cevrimi yapar',
+        'Feature kapaliysa profil ekrani kullaniciya blok durumunu gosterir',
+        'Manav depo 56 icin varsayilan akista siparis satir GUID baglantisi kullanilmaz',
+        'Cozumleme onizlemesi estimatedQuantity, guven ve hata/uyari bilgisini dondurur'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'GreenGrocerProductCaseProfilesController',
+          description:
+            'Manav urun kasa profillerini listeler, kaydeder, pasife alir ve sevk/siparis cozumleme onizlemesini verir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/green-grocer/product-case-profiles?search=KARPUZ&includeInactive=false&take=100',
+              description: 'Manav kasa profillerini arama, aktiflik ve limit filtresiyle listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/green-grocer/product-case-profiles/{stockCode}',
+              description: 'Tek urun icin profil detayini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/green-grocer/product-case-profiles/{stockCode}',
+              description: 'Urunun manav kasa profilini olusturur veya gunceller'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/green-grocer/product-case-profiles/{stockCode}',
+              description: 'Profil kaydini pasife alir'
+            },
+            {
+              method: 'POST',
+              path: '/api/green-grocer/product-case-profiles/resolution-preview',
+              description: 'Kasa/koli girisinin Mikro siparis miktarina nasil donusecegini onizler'
+            },
+            {
+              method: 'POST',
+              path: '/api/green-grocer/product-case-profiles/cozumleme-onizleme',
+              description: 'Cozumleme onizleme alias rotasi'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "stockCode": "016201",
+  "stockName": "KARPUZ",
+  "inputQuantity": 3,
+  "inputMode": "Case",
+  "conversionMode": "LabelAverageKgPerCase",
+  "microUnit": "KG",
+  "estimatedQuantity": 11.25,
+  "confidence": "High",
+  "isUsable": true,
+  "isOrderLinkable": false,
+  "warnings": [],
+  "errors": []
+}`
+    },
+    () =>
+      import(
+        '../tasks/green-grocer/product-case-profiles/list/green-grocer-product-case-profiles-list.component'
+      ).then((m) => m.GreenGrocerProductCaseProfilesListComponent),
+    {
+      accessKeyAliases: [
+        'green-grocer.product-case-profiles',
+        'green-grocer.product-case-profiles.list',
+        'green-grocer.product-case-profiles.detail',
+        'green-grocer.product-case-profiles.update',
+        'green-grocer.product-case-profiles.delete',
+        'green-grocer-product-case-profiles',
+        'manav-kasa-profilleri',
+        'manav-kasa-cozumleme'
+      ]
+    }
   )
 } as const satisfies Record<string, DocsTaskSource>;

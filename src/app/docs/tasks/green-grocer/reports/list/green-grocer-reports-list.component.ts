@@ -4,6 +4,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import type {
+  GreenGrocerProductCaseInfoDto,
   IFurpaGreenGrocerBranchReportItemApiDto,
   IFurpaGreenGrocerBranchReportResponseApiDto,
   IFurpaGreenGrocerDeleteOrderResponseApiDto,
@@ -46,6 +47,7 @@ interface ProductReportRow {
   productCode: string;
   productName: string;
   quantity: number;
+  caseInfo: GreenGrocerProductCaseInfoDto | null;
   breakdownItems: IFurpaGreenGrocerBranchReportItemApiDto[];
 }
 
@@ -66,6 +68,8 @@ interface ProductBreakdownExportRow {
   branchName: string | null | undefined;
   documentLabel: string;
   quantity: number;
+  caseText: string;
+  caseAverageText: string;
 }
 
 const TASK_ID = 'green-grocer-reports';
@@ -187,7 +191,9 @@ export class GreenGrocerReportsListComponent {
         branchNo: item.branchNo,
         branchName: item.branchName,
         documentLabel: this.formatDocument(item),
-        quantity: this.toSafeNumber(item.quantity)
+        quantity: this.toSafeNumber(item.quantity),
+        caseText: this.formatCaseInfo(item.caseInfo),
+        caseAverageText: this.formatCaseAverage(item.caseInfo)
       }))
     )
   );
@@ -385,6 +391,51 @@ export class GreenGrocerReportsListComponent {
     return this.quantityFormatter.format(this.toSafeNumber(value));
   }
 
+  protected formatCaseInfo(
+    caseInfo: GreenGrocerProductCaseInfoDto | null | undefined
+  ): string {
+    if (!caseInfo) {
+      return '';
+    }
+
+    const inputQuantity = this.toFiniteNumber(caseInfo.inputQuantity);
+    const estimatedQuantity = this.toFiniteNumber(caseInfo.estimatedQuantity);
+    const inputMode = this.getInputModeLabel(caseInfo.inputMode);
+    const microUnit = caseInfo.microUnit?.trim() || '';
+
+    if (inputQuantity !== null && estimatedQuantity !== null) {
+      return `${this.quantityFormatter.format(inputQuantity)} ${inputMode} ~= ${this.quantityFormatter.format(estimatedQuantity)} ${microUnit}`.trim();
+    }
+
+    if (inputQuantity !== null) {
+      return `${this.quantityFormatter.format(inputQuantity)} ${inputMode}`.trim();
+    }
+
+    return '';
+  }
+
+  protected formatCaseAverage(
+    caseInfo: GreenGrocerProductCaseInfoDto | null | undefined
+  ): string {
+    if (!caseInfo) {
+      return '';
+    }
+
+    const averageKgPerCase = this.toFiniteNumber(caseInfo.averageKgPerCase);
+    const unitsPerCase = this.toFiniteNumber(caseInfo.unitsPerCase);
+    const microUnit = caseInfo.microUnit?.trim() || '';
+
+    if (averageKgPerCase !== null) {
+      return `Ort ${this.quantityFormatter.format(averageKgPerCase)} ${microUnit}/kasa`;
+    }
+
+    if (unitsPerCase !== null) {
+      return `Ort ${this.quantityFormatter.format(unitsPerCase)} ${microUnit}/koli`;
+    }
+
+    return caseInfo.confidence?.trim() || '';
+  }
+
   protected formatDocument(item: IFurpaGreenGrocerBranchReportItemApiDto): string {
     const serie = item.documentSerie?.trim() || '-';
     const orderNo = this.toSafeNumber(item.documentOrderNo);
@@ -556,6 +607,7 @@ export class GreenGrocerReportsListComponent {
       productCode: item.productCode,
       productName: item.productName,
       quantity: this.toSafeNumber(item.totalQuantity ?? item.quantity),
+      caseInfo: item.caseInfo ?? null,
       breakdownItems: this.getProductBreakdownItems(item)
     };
   }
@@ -765,6 +817,39 @@ export class GreenGrocerReportsListComponent {
     return 0;
   }
 
+  private toFiniteNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      const parsedValue = Number(value);
+
+      if (Number.isFinite(parsedValue)) {
+        return parsedValue;
+      }
+    }
+
+    return null;
+  }
+
+  private getInputModeLabel(value: string | null | undefined): string {
+    switch (value) {
+      case 'Case':
+        return 'kasa';
+      case 'Pack':
+        return 'koli';
+      case 'Piece':
+        return 'adet';
+      case 'KgDirect':
+        return 'kg';
+      case 'Sarf':
+        return 'sarf';
+      default:
+        return value?.trim().toLocaleLowerCase('tr-TR') || 'miktar';
+    }
+  }
+
   private getToday(): string {
     const date = new Date();
     const year = date.getFullYear();
@@ -806,7 +891,9 @@ export class GreenGrocerReportsListComponent {
       { label: 'Tip Kodu', value: 'typeCode' },
       { label: 'Urun Kodu', value: 'productCode' },
       { label: 'Urun', value: 'productName' },
-      { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' }
+      { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
+      { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
+      { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) }
     ];
   }
 
@@ -829,7 +916,9 @@ export class GreenGrocerReportsListComponent {
         : []),
       { label: 'Urun Kodu', value: 'productCode' },
       { label: 'Urun', value: 'productName' },
-      { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' }
+      { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
+      { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
+      { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) }
     ];
   }
 
@@ -848,6 +937,8 @@ export class GreenGrocerReportsListComponent {
       { label: 'Urun Kodu', value: 'productCode' },
       { label: 'Urun', value: 'productName' },
       { label: 'Toplam Miktar', value: 'quantity', type: 'number' },
+      { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
+      { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
       { label: 'Kirilim Satiri', value: (row) => row.breakdownItems.length, type: 'number' }
     ];
   }
@@ -862,7 +953,9 @@ export class GreenGrocerReportsListComponent {
       { label: 'Sube No', value: 'branchNo', type: 'number' },
       { label: 'Sube', value: 'branchName' },
       { label: 'Evrak', value: 'documentLabel' },
-      { label: 'Miktar', value: 'quantity', type: 'number' }
+      { label: 'Miktar', value: 'quantity', type: 'number' },
+      { label: 'Kasa/Koli', value: 'caseText' },
+      { label: 'Ortalama', value: 'caseAverageText' }
     ];
   }
 }

@@ -1,0 +1,499 @@
+﻿<section class="task-page product-case-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="welcome-box">
+      <h2>{{ current.title }}</h2>
+    </div>
+
+    <div class="case-metrics" aria-label="Manav kasa profil ozeti">
+      <span>
+        <b>Profil</b>
+        <strong>{{ profiles().length }}</strong>
+      </span>
+      <span>
+        <b>Aktif</b>
+        <strong>{{ activeProfileCount() }}</strong>
+      </span>
+      <span>
+        <b>Pasif</b>
+        <strong>{{ passiveProfileCount() }}</strong>
+      </span>
+      <span>
+        <b>Manuel</b>
+        <strong>{{ manualProfileCount() }}</strong>
+      </span>
+      <span>
+        <b>Bloklu</b>
+        <strong>{{ blockedProfileCount() }}</strong>
+      </span>
+    </div>
+  </header>
+
+  <section class="task-block">
+    <form class="query-card case-query" [formGroup]="filtersForm" (ngSubmit)="loadProfiles()" novalidate>
+      <div class="query-grid case-query-grid">
+        <label class="field search-field">
+          <span>Arama</span>
+          <input type="search" formControlName="search" placeholder="Stok kodu veya urun adi" />
+        </label>
+
+        <label class="field take-field">
+          <span>Limit</span>
+          <input type="number" min="1" max="500" formControlName="take" />
+        </label>
+
+        <label class="switch-field">
+          <input type="checkbox" formControlName="includeInactive" />
+          <span>Pasifleri dahil et</span>
+        </label>
+
+        <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+
+        <button
+          type="button"
+          class="task-action task-action-secondary query-create"
+          (click)="startNewProfile()"
+          [disabled]="!canUpdateProfiles()"
+        >
+          Yeni Profil
+        </button>
+      </div>
+    </form>
+
+    <article class="state-card state-card-error" *ngIf="!canListProfiles()">
+      <h3>Yetki Yok</h3>
+      <p>Bu ekran icin listeleme yetkiniz bulunmuyor.</p>
+    </article>
+
+    <article
+      class="state-card feedback-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="case-workspace">
+      <article class="task-item profile-list-panel">
+        <div class="panel-head panel-head-actions">
+          <div>
+            <span class="section-kicker">Profiller</span>
+            <h3>Urun Kasa Ayarlari</h3>
+          </div>
+          <div class="panel-actions">
+            <button type="button" class="task-action task-action-secondary" (click)="openPreviewDialog()">
+              Cozum Testi
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-primary"
+              (click)="startNewProfile()"
+              [disabled]="!canUpdateProfiles()"
+            >
+              Yeni Profil
+            </button>
+          </div>
+        </div>
+
+        <article class="state-card compact-state" *ngIf="isLoading()">
+          <h3>Liste Yukleniyor</h3>
+        </article>
+
+        <app-api-list-table
+          *ngIf="!isLoading() && profileRows().length"
+          [rows]="profileRows()"
+          [columns]="profileColumns"
+          actionLabel="Duzenle"
+          [fitToWidth]="true"
+          filterPlaceholder="Stok kodu, urun, model veya cozum ara"
+          (rowAction)="editProfile($event)"
+        ></app-api-list-table>
+
+        <article class="state-card compact-state" *ngIf="!isLoading() && !profileRows().length">
+          <h3>Kayit Yok</h3>
+          <p>Arama kriterine uygun profil bulunamadi.</p>
+        </article>
+      </article>
+
+      <aside class="task-item guide-panel">
+        <div class="panel-head">
+          <div>
+            <span class="section-kicker">Islem</span>
+            <h3>Profil Akisi</h3>
+          </div>
+          <span class="panel-chip">{{ profileRows().length }} kayit</span>
+        </div>
+
+        <div class="guide-steps">
+          <button type="button" class="guide-step" (click)="startNewProfile()">
+            <strong>Stok sec</strong>
+            <span>Stok aramadan urunu bul, sonra kasa mantigini belirle.</span>
+          </button>
+          <button type="button" class="guide-step" (click)="openPreviewDialog()">
+            <strong>Test et</strong>
+            <span>Ornek miktar girip siparise yazilacak KG/ADET sonucunu gor.</span>
+          </button>
+        </div>
+
+        <dl class="guide-definitions">
+          <div>
+            <dt>Giris</dt>
+            <dd>Kullanicinin sipariste yazdigi miktar turudur: kasa, paket, adet veya direkt KG.</dd>
+          </div>
+          <div>
+            <dt>Cozum</dt>
+            <dd>Bu miktarin Mikro ana birimine nasil cevrilecegini belirler.</dd>
+          </div>
+          <div>
+            <dt>Onay</dt>
+            <dd>Riskli veya belirsiz urunlerde kullanici kontrolunu zorunlu yapar.</dd>
+          </div>
+        </dl>
+      </aside>
+    </section>
+  </section>
+
+  <div class="dialog-backdrop" *ngIf="isProfileDialogOpen()"></div>
+  <form
+    class="dialog-shell profile-dialog"
+    *ngIf="isProfileDialogOpen()"
+    [formGroup]="profileForm"
+    (ngSubmit)="saveProfile()"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Manav kasa profili"
+    novalidate
+  >
+    <header class="dialog-head">
+      <div>
+        <span class="section-kicker">{{ selectedProfile() ? 'Duzenle' : 'Yeni Profil' }}</span>
+        <h3>{{ selectedProfileTitle() }}</h3>
+        <p>{{ selectedStockLabel() }}</p>
+      </div>
+      <button type="button" class="dialog-close" (click)="closeProfileDialog()" [disabled]="isSaving() || isDeleting()">
+        Kapat
+      </button>
+    </header>
+
+    <div class="dialog-body">
+      <section class="stock-lookup-panel" [class.stock-lookup-locked]="selectedProfile() !== null">
+        <div class="lookup-head">
+          <div>
+            <strong>Stok Arama</strong>
+            <span>Yeni profil icin stok kodu, barkod veya urun adi ile secim yap.</span>
+          </div>
+          <span class="panel-chip" *ngIf="selectedProfile()">Stok sabit</span>
+        </div>
+
+        <div class="lookup-row">
+          <label class="field stock-search-field">
+            <span>Stok</span>
+            <input
+              type="search"
+              [formControl]="stockSearchControl"
+              placeholder="Stok kodu, barkod veya urun adi"
+              [readonly]="selectedProfile() !== null"
+              (keydown.enter)="$event.preventDefault(); searchStocks()"
+            />
+          </label>
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="searchStocks()"
+            [disabled]="isStockSearching() || selectedProfile() !== null"
+          >
+            {{ isStockSearching() ? 'Araniyor...' : 'Ara' }}
+          </button>
+        </div>
+
+        <div class="selected-stock-line">
+          <span>Secili stok</span>
+          <strong>{{ selectedStockLabel() }}</strong>
+        </div>
+
+        <div class="lookup-results" *ngIf="stockResults().length || stockSearchError() || isStockSearching()">
+          <button
+            type="button"
+            class="lookup-result"
+            *ngFor="let stock of stockResults(); trackBy: trackByStock"
+            (click)="selectStock(stock)"
+          >
+            <strong>{{ stock.stockName || 'Urun adi yok' }}</strong>
+            <span>{{ stock.stockCode }}</span>
+            <small>{{ stock.barcode || '-' }} / {{ stock.unitName || '-' }}</small>
+          </button>
+
+          <span class="lookup-message" *ngIf="isStockSearching()">Stoklar araniyor...</span>
+          <span class="lookup-message lookup-message-error" *ngIf="!isStockSearching() && stockSearchError()">
+            {{ stockSearchError() }}
+          </span>
+        </div>
+      </section>
+
+      <section class="profile-form-section">
+        <div class="section-title-row">
+          <div>
+            <span class="section-kicker">Kasa Mantigi</span>
+            <h4>Giris ve Cozum Ayarlari</h4>
+          </div>
+          <span class="panel-chip" *ngIf="isDetailLoading()">Detay yukleniyor</span>
+        </div>
+
+        <div class="editor-grid">
+          <label class="field stock-code-field">
+            <span>Stok Kodu</span>
+            <input
+              type="text"
+              formControlName="stockCode"
+              placeholder="016201"
+              [readonly]="selectedProfile() !== null"
+            />
+            <small>Yeni profilde aramadan secilebilir; mevcut profilde stok kodu degismez.</small>
+          </label>
+
+          <label class="switch-field switch-field-card">
+            <input type="checkbox" formControlName="isActive" />
+            <span>Aktif</span>
+          </label>
+
+          <label class="field">
+            <span>Giris</span>
+            <select formControlName="inputMode">
+              <option *ngFor="let option of inputModeOptions; trackBy: trackByOption" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <small>{{ getInputModeDescription(profileForm.controls.inputMode.value) }}</small>
+          </label>
+
+          <label class="field">
+            <span>Cozum</span>
+            <select formControlName="conversionMode">
+              <option *ngFor="let option of conversionModeOptions; trackBy: trackByOption" [value]="option.value">
+                {{ option.label }}
+              </option>
+            </select>
+            <small>{{ getConversionModeDescription(profileForm.controls.conversionMode.value) }}</small>
+          </label>
+
+          <label class="field">
+            <span>Manuel KG/Kasa</span>
+            <input type="number" min="0" step="0.001" formControlName="manualKgPerCase" />
+            <small>Manuel KG cozumunde 1 kasanin kac KG oldugudur.</small>
+          </label>
+
+          <label class="field">
+            <span>Adet/Kasa</span>
+            <input type="number" min="0" step="0.001" formControlName="manualUnitsPerCase" />
+            <small>Sabit adet cozumunde 1 kasanin kac adet oldugudur.</small>
+          </label>
+
+          <label class="field">
+            <span>Min KG/Kasa</span>
+            <input type="number" min="0" step="0.001" formControlName="minExpectedKgPerCase" />
+          </label>
+
+          <label class="field">
+            <span>Max KG/Kasa</span>
+            <input type="number" min="0" step="0.001" formControlName="maxExpectedKgPerCase" />
+          </label>
+
+          <label class="field">
+            <span>Ortalama Gun</span>
+            <input type="number" min="1" max="3650" formControlName="averageWindowDays" />
+          </label>
+
+          <label class="field">
+            <span>Min Kayit</span>
+            <input type="number" min="0" formControlName="minAverageRecordCount" />
+          </label>
+
+          <label class="field">
+            <span>Min Kasa</span>
+            <input type="number" min="0" formControlName="minAverageCaseCount" />
+          </label>
+
+          <label class="field">
+            <span>Max Sapma</span>
+            <input type="number" min="0" step="0.01" formControlName="maxCoefficientOfVariation" />
+          </label>
+
+          <label class="field">
+            <span>Fazla Tolerans %</span>
+            <input type="number" min="0" step="0.01" formControlName="overDeliveryTolerancePercent" />
+          </label>
+
+          <label class="switch-field switch-field-card">
+            <input type="checkbox" formControlName="requiresManualApproval" />
+            <span>Manuel onay</span>
+          </label>
+
+          <label class="switch-field switch-field-card">
+            <input type="checkbox" formControlName="allowOrderLinking" />
+            <span>Siparis baglanabilir</span>
+          </label>
+
+          <label class="field notes-field">
+            <span>Not</span>
+            <textarea rows="3" formControlName="notes" placeholder="Kisa operasyon notu"></textarea>
+          </label>
+        </div>
+      </section>
+
+      <div class="selected-profile-meta" *ngIf="selectedProfile() as profile">
+        <span>{{ profile.stockCode }}</span>
+        <span>{{ getInputModeLabel(profile.inputMode) }}</span>
+        <span>{{ getConversionModeLabel(profile.conversionMode) }}</span>
+        <span>{{ profile.unit1 || '-' }}</span>
+        <span>Guncel: {{ formatDateTime(profile.updatedAtUtc || profile.createdAtUtc) }}</span>
+      </div>
+    </div>
+
+    <footer class="dialog-actions">
+      <button type="button" class="task-action task-action-secondary" (click)="useProfileInPreview()" [disabled]="!profileForm.controls.stockCode.value.trim()">
+        Cozum Testi
+      </button>
+      <button
+        type="button"
+        class="task-action task-action-danger"
+        (click)="deleteSelectedProfile()"
+        [disabled]="isDeleting() || !canDeleteProfiles() || !selectedProfile()"
+      >
+        {{ isDeleting() ? 'Pasife Aliniyor...' : 'Pasife Al' }}
+      </button>
+      <button type="button" class="task-action task-action-secondary" (click)="closeProfileDialog()">
+        Vazgec
+      </button>
+      <button type="submit" class="task-action task-action-primary" [disabled]="isSaving() || !canUpdateProfiles()">
+        {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
+      </button>
+    </footer>
+  </form>
+
+  <div class="dialog-backdrop" *ngIf="isPreviewDialogOpen()"></div>
+  <article
+    class="dialog-shell preview-dialog"
+    *ngIf="isPreviewDialogOpen()"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Kasa cozumleme testi"
+  >
+    <header class="dialog-head">
+      <div>
+        <span class="section-kicker">Cozumleme</span>
+        <h3>Kasa Miktari Testi</h3>
+        <p>Ornek miktar gir, siparise yazilacak KG/ADET sonucunu gor.</p>
+      </div>
+      <button type="button" class="dialog-close" (click)="closePreviewDialog()" [disabled]="isPreviewing()">
+        Kapat
+      </button>
+    </header>
+
+    <div class="dialog-body">
+      <form class="preview-form" [formGroup]="previewForm" (ngSubmit)="previewResolution()" novalidate>
+        <label class="field">
+          <span>Stok Kodu</span>
+          <input type="text" formControlName="stockCode" placeholder="016201" />
+        </label>
+
+        <label class="field">
+          <span>Giris Miktari</span>
+          <input type="number" min="0.0001" step="0.001" formControlName="inputQuantity" />
+        </label>
+
+        <label class="field">
+          <span>Kaynak Depo</span>
+          <input type="number" min="1" formControlName="sourceWarehouseNo" />
+        </label>
+
+        <label class="field">
+          <span>Hedef Depo</span>
+          <input type="number" min="1" formControlName="targetWarehouseNo" />
+        </label>
+
+        <label class="field">
+          <span>Tarih</span>
+          <input type="date" formControlName="orderDate" />
+        </label>
+
+        <button type="submit" class="task-action task-action-primary" [disabled]="isPreviewing()">
+          {{ isPreviewing() ? 'Cozumleniyor...' : 'Onizle' }}
+        </button>
+      </form>
+
+      <article
+        class="state-card feedback-card compact-state"
+        *ngIf="previewFeedback() as currentPreviewFeedback"
+        [class.state-card-error]="currentPreviewFeedback.tone === 'error'"
+        [class.state-card-success]="currentPreviewFeedback.tone === 'success'"
+        [class.state-card-info]="currentPreviewFeedback.tone === 'info'"
+      >
+        <h3>{{ currentPreviewFeedback.title }}</h3>
+        <p>{{ currentPreviewFeedback.message }}</p>
+      </article>
+
+      <section
+        class="resolution-card"
+        *ngIf="resolution() as currentResolution"
+        [class.resolution-card-error]="!currentResolution.isUsable"
+      >
+        <div class="resolution-main">
+          <span>{{ currentResolution.stockCode }}</span>
+          <strong>{{ formatResolutionMain(currentResolution) }}</strong>
+          <small>{{ currentResolution.stockName || '-' }}</small>
+        </div>
+
+        <dl class="resolution-grid">
+          <div>
+            <dt>Guven</dt>
+            <dd [ngClass]="getConfidenceClass(currentResolution.confidence)">
+              {{ getConfidenceLabel(currentResolution.confidence) }}
+            </dd>
+          </div>
+          <div>
+            <dt>Mikro Birim</dt>
+            <dd>{{ currentResolution.microUnit || currentResolution.unit1 || '-' }}</dd>
+          </div>
+          <div>
+            <dt>Ort. KG/Kasa</dt>
+            <dd>{{ formatNumber(currentResolution.averageKgPerCase, 3) }}</dd>
+          </div>
+          <div>
+            <dt>Adet/Kasa</dt>
+            <dd>{{ formatNumber(currentResolution.unitsPerCase, 3) }}</dd>
+          </div>
+          <div>
+            <dt>Kayit</dt>
+            <dd>{{ formatNumber(currentResolution.averageRecordCount, 0) }}</dd>
+          </div>
+          <div>
+            <dt>Kasa</dt>
+            <dd>{{ formatNumber(currentResolution.averageCaseCount, 0) }}</dd>
+          </div>
+          <div>
+            <dt>Siparis Bag</dt>
+            <dd>{{ currentResolution.isOrderLinkable ? 'Evet' : 'Hayir' }}</dd>
+          </div>
+          <div>
+            <dt>Onay</dt>
+            <dd>{{ currentResolution.requiresManualApproval ? 'Gerekli' : 'Gerekmez' }}</dd>
+          </div>
+        </dl>
+
+        <div class="message-list" *ngIf="currentResolution.errors?.length">
+          <strong>Hata</strong>
+          <span *ngFor="let error of currentResolution.errors">{{ error }}</span>
+        </div>
+
+        <div class="message-list" *ngIf="currentResolution.warnings?.length">
+          <strong>Uyari</strong>
+          <span *ngFor="let warning of currentResolution.warnings">{{ warning }}</span>
+        </div>
+      </section>
+    </div>
+  </article>
+</section>

@@ -133,6 +133,13 @@
                 <strong>{{ kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value }}</strong>
                 <span class="kalem-kod">{{ kalem.controls.stokKodu.value }}</span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
+                <span
+                  class="resolution-note"
+                  *ngIf="isGreenGrocerOrder() && getLineResolutionLabel(kalem)"
+                  [ngClass]="getLineResolutionClass(kalem)"
+                >
+                  {{ getLineResolutionLabel(kalem) }}
+                </span>
               </div>
             </div>
             <div class="col-miktar">
@@ -143,6 +150,8 @@
                 formControlName="siparisMiktari"
                 placeholder="Miktar"
                 [class.error]="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched"
+                (change)="resolveGreenGrocerLine(kalem)"
+                (blur)="resolveGreenGrocerLine(kalem)"
               />
               <small class="field-error" *ngIf="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched">
                 Gecerli miktar

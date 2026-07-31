@@ -79,7 +79,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
     }),
     driverNameSurname: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required, Validators.pattern(/^\s*\S+(?:\s+\S+)+\s*$/)]
     }),
     driverTckn: new FormControl('', {
       nonNullable: true,
@@ -98,7 +98,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
       return;
     }
 
-    const request = this.form.getRawValue() as IFurpaSendEDespatchRequestApiDto;
+    const request = this.buildSendRequest();
     this.submitting.set(true);
     this.submitError.set('');
     this.pdfError.set('');
@@ -201,6 +201,16 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
           this.row.warehouseNo
         );
     }
+  }
+
+  private buildSendRequest(): IFurpaSendEDespatchRequestApiDto {
+    const rawValue = this.form.getRawValue();
+
+    return {
+      plaque: rawValue.plaque.trim(),
+      driverNameSurname: rawValue.driverNameSurname.trim().replace(/\s+/g, ' '),
+      driverTckn: rawValue.driverTckn.trim()
+    };
   }
 
   private resolvePdfRequest(): Observable<Blob> {
