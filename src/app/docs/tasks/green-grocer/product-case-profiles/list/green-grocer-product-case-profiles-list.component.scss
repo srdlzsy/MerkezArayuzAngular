@@ -39,6 +39,53 @@
   line-height: 1;
 }
 
+.welcome-box p {
+  max-width: 680px;
+  margin: 0.2rem 0 0;
+  color: #64748b;
+  font-size: 0.76rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.process-strip {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.process-card {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  padding: 0.52rem 0.6rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.process-card span,
+.rule-summary-card span {
+  color: #64748b;
+  font-size: 0.58rem;
+  font-weight: 850;
+  text-transform: uppercase;
+}
+
+.process-card strong,
+.rule-summary-card strong {
+  color: #0f172a;
+  font-size: 0.82rem;
+  line-height: 1.2;
+}
+
+.process-card small {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
 .case-query-grid {
   display: grid;
   grid-template-columns: minmax(220px, 1fr) 92px auto 112px 126px;
@@ -115,6 +162,30 @@
   border: 1px solid #d6deef;
   border-radius: 6px;
   background: #f8fafc;
+}
+
+.switch-field-detail {
+  align-items: start;
+  min-height: 58px;
+}
+
+.switch-field-detail span {
+  display: grid;
+  gap: 0.08rem;
+  white-space: normal;
+}
+
+.switch-field-detail strong {
+  color: #334155;
+  font-size: 0.76rem;
+  line-height: 1.2;
+}
+
+.switch-field-detail small {
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 650;
+  line-height: 1.25;
 }
 
 .state-card-success {
@@ -236,6 +307,47 @@
 
 .guide-definitions {
   margin: 0;
+}
+
+.guide-mode-list {
+  display: grid;
+  gap: 0.28rem;
+  padding: 0.52rem 0.58rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.guide-mode-list strong {
+  color: #0f172a;
+  font-size: 0.78rem;
+}
+
+.guide-mode-list span {
+  color: #475569;
+  font-size: 0.7rem;
+  line-height: 1.35;
+}
+
+.guide-mode-list b {
+  color: #0f766e;
+}
+
+.feature-note,
+.preview-note,
+.resolution-hint {
+  margin: 0;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.38;
+}
+
+.feature-note {
+  padding: 0.48rem 0.55rem;
+  border: 1px solid #cfe7de;
+  border-radius: 8px;
+  background: #f1fbf6;
 }
 
 .guide-definitions div {
@@ -461,6 +573,49 @@
   gap: 0.48rem;
 }
 
+.rule-summary-card {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.55rem;
+  align-items: start;
+  padding: 0.58rem 0.62rem;
+  border: 1px solid #cfe7de;
+  border-radius: 8px;
+  background: #f5fffb;
+}
+
+.rule-summary-card > div:first-child {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.rule-summary-card p {
+  margin: 0;
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 650;
+  line-height: 1.35;
+}
+
+.rule-summary-tags {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.28rem;
+  max-width: 260px;
+}
+
+.rule-summary-tags span {
+  min-height: 24px;
+  padding: 0.2rem 0.42rem;
+  color: #0f766e;
+  border-radius: 999px;
+  background: #e7f8f2;
+  font-size: 0.66rem;
+  white-space: nowrap;
+}
+
 .stock-code-field,
 .notes-field {
   grid-column: 1 / -1;
@@ -503,6 +658,13 @@
   grid-column: 1 / -1;
 }
 
+.preview-note {
+  padding: 0.42rem 0.5rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
 .resolution-card {
   display: grid;
   gap: 0.58rem;
@@ -538,6 +700,17 @@
 .resolution-main small {
   color: #64748b;
   font-size: 0.78rem;
+}
+
+.resolution-hint {
+  padding: 0.42rem 0.5rem;
+  border: 1px solid #cfe7de;
+  border-radius: 7px;
+  background: #fff;
+}
+
+.resolution-card-error .resolution-hint {
+  border-color: #fecaca;
 }
 
 .resolution-grid {
@@ -635,6 +808,10 @@
     grid-template-columns: 1fr;
   }
 
+  .process-strip {
+    grid-template-columns: 1fr;
+  }
+
   .case-metrics {
     justify-content: flex-start;
   }
@@ -652,8 +829,14 @@
   .panel-head-actions,
   .dialog-head,
   .lookup-head,
-  .section-title-row {
+  .section-title-row,
+  .rule-summary-card {
     display: grid;
+  }
+
+  .rule-summary-tags {
+    justify-content: flex-start;
+    max-width: none;
   }
 
   .panel-actions,

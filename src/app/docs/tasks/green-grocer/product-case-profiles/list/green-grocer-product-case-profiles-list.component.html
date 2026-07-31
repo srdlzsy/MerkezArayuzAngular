@@ -2,6 +2,7 @@
   <header class="hero">
     <div class="welcome-box">
       <h2>{{ current.title }}</h2>
+      <p>Subenin kasa/koli girisini Mikro'ya yazilacak KG/ADET miktarina ceviren stok bazli kurallar.</p>
     </div>
 
     <div class="case-metrics" aria-label="Manav kasa profil ozeti">
@@ -76,6 +77,24 @@
       <h3>{{ currentFeedback.title }}</h3>
       <p>{{ currentFeedback.message }}</p>
     </article>
+
+    <div class="process-strip" aria-label="Manav kasa cozumleme ozeti">
+      <article class="process-card">
+        <span>Kaynak</span>
+        <strong>Mikro stok + etiket gecmisi</strong>
+        <small>Stok karti Mikro'dan, KG/kasa ortalamasi gercek tartim etiketlerinden gelir.</small>
+      </article>
+      <article class="process-card">
+        <span>Siparis</span>
+        <strong>estimatedQuantity</strong>
+        <small>Cozum testi sonucu sipariste Mikro quantity alanina yazilacak KG/ADET degeridir.</small>
+      </article>
+      <article class="process-card">
+        <span>Kayit</span>
+        <strong>Snapshot saklanir</strong>
+        <small>Kasa girisi, katsayi, guven ve sonuc siparis satiri icin sabitlenir.</small>
+      </article>
+    </div>
 
     <section class="case-workspace">
       <article class="task-item profile-list-panel">
@@ -153,6 +172,18 @@
             <dd>Riskli veya belirsiz urunlerde kullanici kontrolunu zorunlu yapar.</dd>
           </div>
         </dl>
+
+        <div class="guide-mode-list">
+          <strong>Hangi cozum?</strong>
+          <span><b>Etiket Ort.</b> Tartim gecmisi yeterliyse KG urunlerde kullan.</span>
+          <span><b>Manuel KG.</b> Kasa kilosu operasyon tarafindan sabitse kullan.</span>
+          <span><b>Sabit Adet.</b> Koli/adet urunlerde Mikro birim2 veya manuel katsayi kullanir.</span>
+          <span><b>Manuel/Bloklu.</b> Ortalama yoksa ya da urun siparise acilmamaliysa kullan.</span>
+        </div>
+
+        <p class="feature-note">
+          Siparis baglama sadece profil izinli ve sistemde OrderLinkingEnabled aciksa sevk GUID'i tasir.
+        </p>
       </aside>
     </section>
   </section>
@@ -243,6 +274,23 @@
           <span class="panel-chip" *ngIf="isDetailLoading()">Detay yukleniyor</span>
         </div>
 
+        <article class="rule-summary-card">
+          <div>
+            <span>Secili Kural</span>
+            <strong>
+              {{ getProfileRuleTitle(profileForm.controls.inputMode.value, profileForm.controls.conversionMode.value) }}
+            </strong>
+            <p>
+              {{ getProfileRuleSummary(profileForm.controls.inputMode.value, profileForm.controls.conversionMode.value) }}
+            </p>
+          </div>
+          <div class="rule-summary-tags">
+            <span>Mikro KG/ADET</span>
+            <span>Profil stok bazli</span>
+            <span>Silme pasife alir</span>
+          </div>
+        </article>
+
         <div class="editor-grid">
           <label class="field stock-code-field">
             <span>Stok Kodu</span>
@@ -295,46 +343,59 @@
           <label class="field">
             <span>Min KG/Kasa</span>
             <input type="number" min="0" step="0.001" formControlName="minExpectedKgPerCase" />
+            <small>Etiket ortalamasi bu degerin altina duserse uyari/hata uretilebilir.</small>
           </label>
 
           <label class="field">
             <span>Max KG/Kasa</span>
             <input type="number" min="0" step="0.001" formControlName="maxExpectedKgPerCase" />
+            <small>Gercekci olmayan yuksek kasa ortalamalarini sinirlamak icindir.</small>
           </label>
 
           <label class="field">
             <span>Ortalama Gun</span>
             <input type="number" min="1" max="3650" formControlName="averageWindowDays" />
+            <small>Etiket gecmisinde kac gunluk tartim dikkate alinacak.</small>
           </label>
 
           <label class="field">
             <span>Min Kayit</span>
             <input type="number" min="0" formControlName="minAverageRecordCount" />
+            <small>Ortalamanin guvenilir sayilmasi icin gereken en az etiket kaydi.</small>
           </label>
 
           <label class="field">
             <span>Min Kasa</span>
             <input type="number" min="0" formControlName="minAverageCaseCount" />
+            <small>Ortalama icin gereken toplam kasa adedi.</small>
           </label>
 
           <label class="field">
             <span>Max Sapma</span>
             <input type="number" min="0" step="0.01" formControlName="maxCoefficientOfVariation" />
+            <small>Etiket gecmisi fazla daginiksa guven dusurmek icin kullanilir.</small>
           </label>
 
           <label class="field">
             <span>Fazla Tolerans %</span>
             <input type="number" min="0" step="0.01" formControlName="overDeliveryTolerancePercent" />
+            <small>Siparis/cozum farkinda kabul edilecek fazla teslim siniri.</small>
           </label>
 
-          <label class="switch-field switch-field-card">
+          <label class="switch-field switch-field-card switch-field-detail">
             <input type="checkbox" formControlName="requiresManualApproval" />
-            <span>Manuel onay</span>
+            <span>
+              <strong>Manuel onay</strong>
+              <small>Satir eklenebilir ama kullanici kontrolu zorunlu olur.</small>
+            </span>
           </label>
 
-          <label class="switch-field switch-field-card">
+          <label class="switch-field switch-field-card switch-field-detail">
             <input type="checkbox" formControlName="allowOrderLinking" />
-            <span>Siparis baglanabilir</span>
+            <span>
+              <strong>Siparis baglanabilir</strong>
+              <small>Global ayar kapaliysa response yine Hayir donebilir.</small>
+            </span>
           </label>
 
           <label class="field notes-field">
@@ -429,6 +490,10 @@
         </button>
       </form>
 
+      <p class="preview-note">
+        Manav depo siparisinde kaynak depo 56 ise sonuc Mikro quantity alanina yazilir; hata varsa satir eklenmemelidir.
+      </p>
+
       <article
         class="state-card feedback-card compact-state"
         *ngIf="previewFeedback() as currentPreviewFeedback"
@@ -451,7 +516,17 @@
           <small>{{ currentResolution.stockName || '-' }}</small>
         </div>
 
+        <p class="resolution-hint">{{ getResolutionHint(currentResolution) }}</p>
+
         <dl class="resolution-grid">
+          <div>
+            <dt>Giris</dt>
+            <dd>{{ getInputModeLabel(currentResolution.inputMode) }}</dd>
+          </div>
+          <div>
+            <dt>Cozum</dt>
+            <dd>{{ getConversionModeLabel(currentResolution.conversionMode) }}</dd>
+          </div>
           <div>
             <dt>Guven</dt>
             <dd [ngClass]="getConfidenceClass(currentResolution.confidence)">
@@ -467,8 +542,16 @@
             <dd>{{ formatNumber(currentResolution.averageKgPerCase, 3) }}</dd>
           </div>
           <div>
+            <dt>Kaynak</dt>
+            <dd>{{ getAverageSourceLabel(currentResolution.averageSource) }}</dd>
+          </div>
+          <div>
             <dt>Adet/Kasa</dt>
             <dd>{{ formatNumber(currentResolution.unitsPerCase, 3) }}</dd>
+          </div>
+          <div>
+            <dt>Sapma</dt>
+            <dd>{{ formatNumber(currentResolution.coefficientOfVariation, 3) }}</dd>
           </div>
           <div>
             <dt>Kayit</dt>
@@ -477,6 +560,10 @@
           <div>
             <dt>Kasa</dt>
             <dd>{{ formatNumber(currentResolution.averageCaseCount, 0) }}</dd>
+          </div>
+          <div>
+            <dt>Son Etiket</dt>
+            <dd>{{ formatDateTime(currentResolution.latestLabelDate) }}</dd>
           </div>
           <div>
             <dt>Siparis Bag</dt>

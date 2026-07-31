@@ -761,6 +761,58 @@ export class GreenGrocerProductCaseProfilesListComponent {
     }
   }
 
+  protected getProfileRuleTitle(
+    inputMode: string | null | undefined,
+    conversionMode: string | null | undefined
+  ): string {
+    return `${this.getInputModeLabel(inputMode)} -> ${this.getConversionModeLabel(conversionMode)}`;
+  }
+
+  protected getProfileRuleSummary(
+    inputMode: string | null | undefined,
+    conversionMode: string | null | undefined
+  ): string {
+    const inputLabel = this.getInputModeLabel(inputMode).toLocaleLowerCase('tr-TR');
+
+    switch (conversionMode) {
+      case 'LabelAverageKgPerCase':
+        return `Kullanici ${inputLabel} girer; Furpa etiket/tartim gecmisindeki KG/kasa ortalamasi ile Mikro miktari hesaplanir.`;
+      case 'ManualKgPerCase':
+        return `Kullanici ${inputLabel} girer; giris miktari profilin manuel KG/kasa degeri ile carpilir.`;
+      case 'FixedUnitsPerCase':
+        return `Kullanici ${inputLabel} girer; sonuc manuel adet/kasa ya da Mikro birim2 katsayisi ile ADET'e cevrilir.`;
+      case 'DirectQuantity':
+        return `Kullanici ${inputLabel} girer; miktar cevrilmeden Mikro ana birimine yazilir.`;
+      case 'ManualOnly':
+        return 'Otomatik sonuc uretilmez; kullaniciya manuel karar gerektigi gosterilir.';
+      case 'Blocked':
+        return 'Bu stok manav kasa siparisinde kullanilamaz; cozumleme satir ekletmez.';
+      default:
+        return 'Profil, sipariste girilen kasa/koli/adet degerinin Mikro KG/ADET miktarina nasil donusecegini belirler.';
+    }
+  }
+
+  protected getAverageSourceLabel(value: string | null | undefined): string {
+    switch (value) {
+      case 'LabelHistory':
+        return 'Etiket gecmisi';
+      case 'StockUnitFactor':
+        return 'Mikro birim2';
+      case 'Manual':
+      case 'ProfileManual':
+        return 'Manuel profil';
+      case 'Direct':
+      case 'DirectQuantity':
+        return 'Direkt';
+      case 'Mixed':
+        return 'Karma';
+      case 'None':
+        return 'Yok';
+      default:
+        return value?.trim() || '-';
+    }
+  }
+
   protected getInputModeLabel(value: string | null | undefined): string {
     return getInputModeLabel(value);
   }
@@ -826,6 +878,23 @@ export class GreenGrocerProductCaseProfilesListComponent {
     const estimated = this.formatNumber(resolution.estimatedQuantity, 3);
 
     return `${this.formatNumber(resolution.inputQuantity, 3)} ${inputUnit} ~= ${estimated} ${outputUnit}`.trim();
+  }
+
+  protected getResolutionHint(resolution: GreenGrocerProductCaseResolutionDto): string {
+    if (!resolution.isUsable) {
+      return resolution.errors?.[0] ?? 'Bu sonuc siparis satiri olarak kullanilmamali.';
+    }
+
+    const outputUnit = resolution.microUnit?.trim() || resolution.unit1?.trim() || 'miktar';
+    const baseMessage =
+      `Sipariste Mikro quantity = ${this.formatNumber(resolution.estimatedQuantity, 3)} ${outputUnit}; ` +
+      'cozum bilgisi greenGrocerCase snapshot olarak saklanir.';
+
+    if (resolution.isOrderLinkable) {
+      return `${baseMessage} Sevkte siparis satir GUID'i tasinabilir.`;
+    }
+
+    return `${baseMessage} Siparis baglama kapaliysa sevkte GUID tasinmaz.`;
   }
 
   protected trackByOption = (_index: number, option: SelectOption): string => option.value;
