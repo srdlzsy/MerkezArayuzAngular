@@ -36,7 +36,12 @@
       </label>
 
       <div class="scope-actions">
-        <button type="button" class="task-action task-action-primary" (click)="loadTags()" [disabled]="isLoading()">
+        <button
+          type="button"
+          class="task-action task-action-primary"
+          (click)="loadTags()"
+          [disabled]="isLoading() || !canListTags()"
+        >
           {{ isLoading() ? 'Sorgulaniyor...' : 'Etiketleri Getir' }}
         </button>
 

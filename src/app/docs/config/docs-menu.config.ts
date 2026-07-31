@@ -3,7 +3,8 @@ import type { Gorev, Sorumluluk, Yetki } from '../../core/auth/models/auth.model
 import { DOCS_PAGES } from './docs-pages.config';
 import {
   getPrimaryTaskRoutePath,
-  getTaskAccessKeyAliases
+  getTaskAccessKeyAliases,
+  getTaskRequiredPermissionCodes
 } from './docs-task-source.config';
 
 export interface DocsTaskRegistration {
@@ -13,6 +14,7 @@ export interface DocsTaskRegistration {
   route: string;
   pageId: string;
   accessKeys: string[];
+  requiredPermissionKeys: string[];
 }
 
 export interface DocsTaskContext {
@@ -67,6 +69,12 @@ function hasAnySharedKey(left: string[], right: string[]): boolean {
   return left.some((value) => right.includes(value));
 }
 
+function isDocsTaskRegistrationList(
+  value: readonly string[] | DocsTaskRegistration[] | undefined
+): value is DocsTaskRegistration[] {
+  return Array.isArray(value) && value.some((item) => typeof item === 'object' && item !== null);
+}
+
 function getBackendLeafKey(pageId: string): string {
   const baseRouteOrFile = DOCS_PAGES[pageId]?.baseRouteOrFile;
 
@@ -102,7 +110,8 @@ function buildTaskRegistration(pageId: string): DocsTaskRegistration {
       routeSegment,
       getBackendLeafKey(pageId),
       ...getTaskAccessKeyAliases(pageId)
-    ])
+    ]),
+    requiredPermissionKeys: buildUniqueAccessKeys(getTaskRequiredPermissionCodes(pageId))
   };
 }
 
@@ -124,6 +133,29 @@ function buildUserAccessKeySet(sorumluluklar: Sorumluluk[]): Set<string> {
   }
 
   return accessKeys;
+}
+
+function buildUserPermissionKeySet(
+  sorumluluklar: Sorumluluk[],
+  permissionCodes: readonly string[] = []
+): Set<string> {
+  const permissionKeys = new Set<string>();
+
+  for (const permissionCode of buildUniqueAccessKeys(permissionCodes)) {
+    permissionKeys.add(permissionCode);
+  }
+
+  for (const sorumluluk of sorumluluklar) {
+    for (const gorev of sorumluluk.gorevler ?? []) {
+      for (const yetki of gorev.yetkiler ?? []) {
+        for (const key of buildPermissionKeys(yetki)) {
+          permissionKeys.add(key);
+        }
+      }
+    }
+  }
+
+  return permissionKeys;
 }
 
 function buildTaskMatchKeys(gorev: Gorev): string[] {
@@ -157,6 +189,28 @@ function findTaskRegistration(
   );
 }
 
+function canOpenTaskRegistration(
+  gorev: Gorev,
+  registration: DocsTaskRegistration,
+  userPermissionKeys: Set<string>
+): boolean {
+  if (!registration.requiredPermissionKeys.length) {
+    return true;
+  }
+
+  const taskPermissionKeys = new Set<string>();
+
+  for (const yetki of gorev.yetkiler ?? []) {
+    for (const key of buildPermissionKeys(yetki)) {
+      taskPermissionKeys.add(key);
+    }
+  }
+
+  return registration.requiredPermissionKeys.some(
+    (permissionKey) => taskPermissionKeys.has(permissionKey) || userPermissionKeys.has(permissionKey)
+  );
+}
+
 function buildSectionId(sorumluluk: Sorumluluk, index: number): string {
   return (
     normalizeAccessKey(sorumluluk.sebike) ||
@@ -167,12 +221,13 @@ function buildSectionId(sorumluluk: Sorumluluk, index: number): string {
 
 function buildMenuItems(
   sorumluluk: Sorumluluk,
-  registrations: DocsTaskRegistration[]
+  registrations: DocsTaskRegistration[],
+  userPermissionKeys: Set<string>
 ): DocsTaskItem[] {
   return (sorumluluk.gorevler ?? []).flatMap((gorev) => {
     const registration = findTaskRegistration(gorev, registrations);
 
-    if (!registration) {
+    if (!registration || !canOpenTaskRegistration(gorev, registration, userPermissionKeys)) {
       return [];
     }
 
@@ -241,10 +296,19 @@ export function getDocsTaskRegistrations(
 
 export function buildDocsMenuForUser(
   sorumluluklar: Sorumluluk[],
+  permissionCodesOrRegistrations: readonly string[] | DocsTaskRegistration[] = [],
   registrations: DocsTaskRegistration[] = DOCS_TASK_REGISTRY
 ): DocsMenuSection[] {
+  const resolvedRegistrations = isDocsTaskRegistrationList(permissionCodesOrRegistrations)
+    ? permissionCodesOrRegistrations
+    : registrations;
+  const permissionCodes = isDocsTaskRegistrationList(permissionCodesOrRegistrations)
+    ? []
+    : permissionCodesOrRegistrations;
+  const userPermissionKeys = buildUserPermissionKeySet(sorumluluklar, permissionCodes);
+
   return sorumluluklar.flatMap((sorumluluk, index) => {
-    const children = buildMenuItems(sorumluluk, registrations);
+    const children = buildMenuItems(sorumluluk, resolvedRegistrations, userPermissionKeys);
 
     if (!children.length) {
       return [];
@@ -264,16 +328,29 @@ export function buildDocsMenuForUser(
 export function hasDocsTaskAccess(
   taskId: string,
   sorumluluklar: Sorumluluk[],
+  permissionCodesOrRegistrations: readonly string[] | DocsTaskRegistration[] = [],
   registrations: DocsTaskRegistration[] = DOCS_TASK_REGISTRY
 ): boolean {
-  const registration = findTaskRegistrationById(taskId, registrations);
-  const userAccessKeys = buildUserAccessKeySet(sorumluluklar);
+  const resolvedRegistrations = isDocsTaskRegistrationList(permissionCodesOrRegistrations)
+    ? permissionCodesOrRegistrations
+    : registrations;
+  const permissionCodes = isDocsTaskRegistrationList(permissionCodesOrRegistrations)
+    ? []
+    : permissionCodesOrRegistrations;
+  const registration = findTaskRegistrationById(taskId, resolvedRegistrations);
 
   if (!registration) {
+    const userAccessKeys = buildUserAccessKeySet(sorumluluklar);
     return userAccessKeys.has(normalizeAccessKey(taskId));
   }
 
-  return registration.accessKeys.some((accessKey) => userAccessKeys.has(accessKey));
+  const userPermissionKeys = buildUserPermissionKeySet(sorumluluklar, permissionCodes);
+
+  return findMatchedTaskContexts(taskId, sorumluluklar, resolvedRegistrations).some(
+    ({ gorev, registration: matchedRegistration }) =>
+      !!matchedRegistration &&
+      canOpenTaskRegistration(gorev, matchedRegistration, userPermissionKeys)
+  );
 }
 
 export function getDocsTaskContext(

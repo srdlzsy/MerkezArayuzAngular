@@ -16,6 +16,7 @@ export interface DocsTaskSource {
   page: DocsContentPage;
   routes: readonly DocsTaskRouteSource[];
   accessKeyAliases?: readonly string[];
+  requiredPermissionCodes?: readonly string[];
 }
 
 export function route(
@@ -34,11 +35,17 @@ export function route(
 export function singleRouteTask(
   page: DocsContentPage,
   loadComponent: DocsTaskLoadComponent,
-  options?: { accessKeyAliases?: readonly string[]; data?: DocsTaskRouteData; path?: string }
+  options?: {
+    accessKeyAliases?: readonly string[];
+    data?: DocsTaskRouteData;
+    path?: string;
+    requiredPermissionCodes?: readonly string[];
+  }
 ): DocsTaskSource {
   return {
     page,
     accessKeyAliases: options?.accessKeyAliases,
+    requiredPermissionCodes: options?.requiredPermissionCodes,
     routes: [
       route(options?.path ?? `docs/api/${page.id}`, loadComponent, {
         data: options?.data,
@@ -51,18 +58,25 @@ export function singleRouteTask(
 export function multiRouteTask(
   page: DocsContentPage,
   routes: readonly DocsTaskRouteSource[],
-  accessKeyAliases?: readonly string[]
+  accessKeyAliases?: readonly string[],
+  requiredPermissionCodes?: readonly string[]
 ): DocsTaskSource {
   return {
     page,
     routes,
-    accessKeyAliases
+    accessKeyAliases,
+    requiredPermissionCodes
   };
 }
 
 export function referenceTask(
   page: DocsContentPage,
-  options?: { accessKeyAliases?: readonly string[]; data?: DocsTaskRouteData; path?: string }
+  options?: {
+    accessKeyAliases?: readonly string[];
+    data?: DocsTaskRouteData;
+    path?: string;
+    requiredPermissionCodes?: readonly string[];
+  }
 ): DocsTaskSource {
   return singleRouteTask(
     page,

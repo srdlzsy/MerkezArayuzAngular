@@ -43,6 +43,7 @@ interface ActionFeedback {
 }
 
 const ANNOUNCEMENT_CREATE_PERMISSION = 'ortak-islemler.duyurular.create';
+const ANNOUNCEMENT_LIST_PERMISSION = 'ortak-islemler.duyurular.list';
 const ANNOUNCEMENT_UPDATE_PERMISSION = 'ortak-islemler.duyurular.update';
 const ANNOUNCEMENT_ARCHIVE_PERMISSION = 'ortak-islemler.duyurular.archive';
 const ANNOUNCEMENT_ALL_WAREHOUSES_PERMISSION = 'ortak-islemler.duyurular.all-warehouses';
@@ -141,6 +142,9 @@ export class DuyurularListComponent {
   protected readonly canCreate = computed(() =>
     currentUserHasPermission(this.authService.currentUser(), ANNOUNCEMENT_CREATE_PERMISSION)
   );
+  protected readonly canList = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), ANNOUNCEMENT_LIST_PERMISSION)
+  );
   protected readonly canUpdate = computed(() =>
     currentUserHasPermission(this.authService.currentUser(), ANNOUNCEMENT_UPDATE_PERMISSION)
   );
@@ -200,6 +204,17 @@ export class DuyurularListComponent {
   }
 
   protected loadRows(clearFeedback = true): void {
+    if (!this.canList()) {
+      this.rows.set([]);
+      this.selectedItem.set(null);
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki Yok',
+        message: 'Duyuru listesini gormek icin listeleme yetkisi gerekiyor.'
+      });
+      return;
+    }
+
     const request = this.buildListRequest();
 
     if (!request) {

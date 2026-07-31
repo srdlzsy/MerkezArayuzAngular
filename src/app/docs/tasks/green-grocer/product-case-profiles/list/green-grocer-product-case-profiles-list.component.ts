@@ -39,6 +39,7 @@ interface SelectOption {
 
 const TASK_ID = 'green-grocer-product-case-profiles';
 const LIST_PERMISSION = 'green-grocer.product-case-profiles.list';
+const CREATE_PERMISSION = 'green-grocer.product-case-profiles.create';
 const UPDATE_PERMISSION = 'green-grocer.product-case-profiles.update';
 const DELETE_PERMISSION = 'green-grocer.product-case-profiles.delete';
 
@@ -209,7 +210,10 @@ export class GreenGrocerProductCaseProfilesListComponent {
     this.uniquePermissionCodes(this.authService.getTaskPermissionCodes(TASK_ID))
   );
   protected readonly canListProfiles = computed(
-    () => this.authService.hasTaskAccess(TASK_ID) || this.hasActionPermission(LIST_PERMISSION)
+    () => this.hasActionPermission(LIST_PERMISSION)
+  );
+  protected readonly canCreateProfiles = computed(
+    () => this.hasActionPermission(CREATE_PERMISSION) || this.hasActionPermission(UPDATE_PERMISSION)
   );
   protected readonly canUpdateProfiles = computed(() =>
     this.hasActionPermission(UPDATE_PERMISSION)
@@ -448,8 +452,17 @@ export class GreenGrocerProductCaseProfilesListComponent {
       return;
     }
 
-    if (!this.canUpdateProfiles()) {
-      this.setFeedback('error', 'Yetki Yok', 'Profil kaydetmek icin guncelleme yetkisi gerekiyor.');
+    const isExistingProfile = !!this.selectedProfile();
+    const canSave = isExistingProfile ? this.canUpdateProfiles() : this.canCreateProfiles();
+
+    if (!canSave) {
+      this.setFeedback(
+        'error',
+        'Yetki Yok',
+        isExistingProfile
+          ? 'Profil guncellemek icin guncelleme yetkisi gerekiyor.'
+          : 'Yeni profil eklemek icin ekleme yetkisi gerekiyor.'
+      );
       return;
     }
 

@@ -10,6 +10,9 @@ export class DocsNavigationService {
   private readonly authService = inject(AuthService);
 
   readonly menuGroups = computed(() =>
-    buildDocsMenuForUser(this.authService.currentUser()?.sorumluluklar ?? [])
+    buildDocsMenuForUser(
+      this.authService.currentUser()?.sorumluluklar ?? [],
+      this.authService.currentUser()?.permissions ?? []
+    )
   );
 }

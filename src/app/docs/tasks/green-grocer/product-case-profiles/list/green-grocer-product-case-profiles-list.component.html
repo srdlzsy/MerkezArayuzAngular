@@ -54,7 +54,7 @@
           type="button"
           class="task-action task-action-secondary query-create"
           (click)="startNewProfile()"
-          [disabled]="!canUpdateProfiles()"
+          [disabled]="!canCreateProfiles()"
         >
           Yeni Profil
         </button>
@@ -92,7 +92,7 @@
               type="button"
               class="task-action task-action-primary"
               (click)="startNewProfile()"
-              [disabled]="!canUpdateProfiles()"
+              [disabled]="!canCreateProfiles()"
             >
               Yeni Profil
             </button>
@@ -368,7 +368,11 @@
       <button type="button" class="task-action task-action-secondary" (click)="closeProfileDialog()">
         Vazgec
       </button>
-      <button type="submit" class="task-action task-action-primary" [disabled]="isSaving() || !canUpdateProfiles()">
+      <button
+        type="submit"
+        class="task-action task-action-primary"
+        [disabled]="isSaving() || (selectedProfile() ? !canUpdateProfiles() : !canCreateProfiles())"
+      >
         {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
       </button>
     </footer>

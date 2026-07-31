@@ -36,6 +36,7 @@ interface ActionFeedback {
 }
 
 const FEEDBACK_LIST_ALL_PERMISSION = 'ortak-islemler.sikayet-oneri.list-all';
+const FEEDBACK_LIST_PERMISSION = 'ortak-islemler.sikayet-oneri.list';
 const FEEDBACK_UPDATE_PERMISSION = 'ortak-islemler.sikayet-oneri.update';
 
 @Component({
@@ -108,6 +109,9 @@ export class SikayetOneriListComponent {
   protected readonly canViewAll = computed(() =>
     currentUserHasPermission(this.authService.currentUser(), FEEDBACK_LIST_ALL_PERMISSION)
   );
+  protected readonly canList = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), FEEDBACK_LIST_PERMISSION)
+  );
   protected readonly canUpdate = computed(() =>
     currentUserHasPermission(this.authService.currentUser(), FEEDBACK_UPDATE_PERMISSION)
   );
@@ -173,6 +177,17 @@ export class SikayetOneriListComponent {
   }
 
   protected loadRows(clearFeedback = true): void {
+    if (!this.canList()) {
+      this.rows.set([]);
+      this.selectedItem.set(null);
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki Yok',
+        message: 'Sikayet/Oneri listesini gormek icin listeleme yetkisi gerekiyor.'
+      });
+      return;
+    }
+
     const request = this.buildListRequest();
 
     if (!request) {

@@ -11,6 +11,7 @@ import { DocsContentPage } from '../../../../models/docs.models';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
+  currentUserHasPermission,
   formatCurrentWarehouseLabel
 } from '../../../core/admin-warehouse.helpers';
 import { ManavKunyeEtiketPrintComponent } from './print/manav-kunye-etiket-print.component';
@@ -19,6 +20,8 @@ interface FeedbackState {
   tone: 'info' | 'error' | 'success';
   message: string;
 }
+
+const LIST_PERMISSION = 'kasa-islemleri.manav-kunye-etiket-yazdirma.list';
 
 @Component({
   selector: 'app-manav-kunye-etiket-basimi-list',
@@ -39,6 +42,9 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   protected readonly selectedDate = signal('');
   protected readonly searchTerm = signal('');
   protected readonly warehouseNo = signal<number | null>(null);
+  protected readonly canListTags = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), LIST_PERMISSION)
+  );
   protected readonly canUseWarehouseScope = computed(() =>
     currentUserCanUseAllWarehouses(
       this.authService.currentUser(),
@@ -93,7 +99,7 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   }
 
   ngOnInit(): void {
-    if (this.warehouseNo()) {
+    if (this.canListTags() && this.warehouseNo()) {
       this.loadTags();
     }
   }
@@ -117,6 +123,12 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
   }
 
   protected loadTags(): void {
+    if (!this.canListTags()) {
+      this.tags.set([]);
+      this.setFeedback('error', 'Manav kunye etiketlerini listeleme yetkiniz yok.');
+      return;
+    }
+
     const warehouseNo = this.getWarehouseNoForRequest();
 
     if (!warehouseNo || warehouseNo < 1) {

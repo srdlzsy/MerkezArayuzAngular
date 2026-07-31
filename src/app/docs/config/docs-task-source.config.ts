@@ -90,3 +90,10 @@ export function getTaskAccessKeyAliases(
 ): readonly string[] {
   return source[taskId]?.accessKeyAliases ?? [];
 }
+
+export function getTaskRequiredPermissionCodes(
+  taskId: string,
+  source: Record<string, DocsTaskSource> = DOCS_TASK_SOURCE
+): readonly string[] {
+  return source[taskId]?.requiredPermissionCodes ?? [];
+}

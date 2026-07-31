@@ -171,14 +171,12 @@ export const GREEN_GROCER_TASK_SOURCE = {
     {
       accessKeyAliases: [
         'green-grocer.product-case-profiles',
-        'green-grocer.product-case-profiles.list',
-        'green-grocer.product-case-profiles.detail',
-        'green-grocer.product-case-profiles.update',
-        'green-grocer.product-case-profiles.delete',
+        'green-grocer.product-case-profiles.manage',
         'green-grocer-product-case-profiles',
         'manav-kasa-profilleri',
         'manav-kasa-cozumleme'
-      ]
+      ],
+      requiredPermissionCodes: ['green-grocer.product-case-profiles.manage']
     }
   )
 } as const satisfies Record<string, DocsTaskSource>;

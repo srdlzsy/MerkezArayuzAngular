@@ -60,7 +60,11 @@ export class AuthService {
       return false;
     }
 
-    return hasDocsTaskAccess(taskId, currentUser.sorumluluklar ?? []);
+    return hasDocsTaskAccess(
+      taskId,
+      currentUser.sorumluluklar ?? [],
+      currentUser.permissions ?? []
+    );
   }
 
   getTaskPermissions(taskId: string): Yetki[] {

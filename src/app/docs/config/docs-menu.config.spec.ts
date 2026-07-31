@@ -476,6 +476,11 @@ describe('docs-menu.config', () => {
             yetkiler: [
               {
                 id: 1,
+                isim: 'Sayfa',
+                sebike: 'kasa-islemleri.manav-kunye-etiket-yazdirma.page'
+              },
+              {
+                id: 2,
                 isim: 'Listele',
                 sebike: 'kasa-islemleri.manav-kunye-etiket-yazdirma.list'
               }
@@ -563,6 +568,11 @@ describe('docs-menu.config', () => {
             yetkiler: [
               {
                 id: 1,
+                isim: 'Sayfa',
+                sebike: 'ortak-islemler.sikayet-oneri.page'
+              },
+              {
+                id: 2,
                 isim: 'Listele',
                 sebike: 'ortak-islemler.sikayet-oneri.list'
               }

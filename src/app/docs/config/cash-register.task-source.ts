@@ -268,7 +268,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'warehouseNo zorunludur',
         'dateToGet opsiyoneldir; bos ise son 1 ay icinden son kunye kayitlari gelir',
         'KunyeLabelTagDto response modeli stok kodu, satis fiyati ve urun birimi tasir',
-        'Endpoint anonim aciktir; menu gorunurlugu kasa-islemleri.manav-kunye-etiket-yazdirma.list yetkisine baglidir'
+        'Endpoint anonim aciktir; menu gorunurlugu page, liste aksiyonu list yetkisine baglidir'
       ],
       listTitle: 'Manav Kunye Etiket Yazdirma Akisi',
       items: [
@@ -295,8 +295,10 @@ export const CASH_REGISTER_TASK_SOURCE = {
       accessKeyAliases: [
         'ManavKunyeEtiketYazdirma',
         'manav-kunye-etiket-yazdirma',
-        'kasa-islemleri.manav-kunye-etiket-yazdirma'
-      ]
+        'kasa-islemleri.manav-kunye-etiket-yazdirma',
+        'kasa-islemleri.manav-kunye-etiket-yazdirma.page'
+      ],
+      requiredPermissionCodes: ['kasa-islemleri.manav-kunye-etiket-yazdirma.page']
     }
   ),
   'kasa-sayimlari': singleRouteTask(

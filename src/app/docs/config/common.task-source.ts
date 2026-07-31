@@ -12,7 +12,7 @@ export const COMMON_TASK_SOURCE = {
       highlights: [
         'Home endpointleri login olan her kullanici icin aciktir',
         'Yeni sikayet/oneri kaydi home veya yonetim ekranindan olusturulabilir',
-        'Yonetim listesi icin ortak-islemler.sikayet-oneri.list gerekir',
+        'Yonetim ekrani icin ortak-islemler.sikayet-oneri.page, liste API icin list gerekir',
         'Tum kayit kapsami icin ortak-islemler.sikayet-oneri.list-all gerekir',
         'Okundu ve durum/admin notu aksiyonlari ortak-islemler.sikayet-oneri.update yetkisiyle acilir'
       ],
@@ -63,7 +63,12 @@ export const COMMON_TASK_SOURCE = {
         (m) => m.SikayetOneriListComponent
       ),
     {
-      accessKeyAliases: ['SikayetOneri', 'ortak-sikayet-oneri']
+      accessKeyAliases: [
+        'SikayetOneri',
+        'ortak-sikayet-oneri',
+        'ortak-islemler.sikayet-oneri.page'
+      ],
+      requiredPermissionCodes: ['ortak-islemler.sikayet-oneri.page']
     }
   ),
   duyurular: singleRouteTask(
@@ -75,7 +80,7 @@ export const COMMON_TASK_SOURCE = {
       baseRouteOrFile: '/api/ortak-islemler/duyurular',
       highlights: [
         'Home duyuru inbox ve ozet endpointleri login olan her kullanici icin aciktir',
-        'Yonetim listesi icin ortak-islemler.duyurular.list gerekir',
+        'Yonetim ekrani icin ortak-islemler.duyurular.page, liste API icin list gerekir',
         'Olusturma, guncelleme ve arsivleme butonlari create/update/archive yetkilerine gore acilir',
         'Tum depolar veya baska depo hedefleme icin ortak-islemler.duyurular.all-warehouses gerekir',
         'Hedef kullanici secimi aktif kullanici arama endpointiyle yapilir, id elle yazdirilmaz',
@@ -159,7 +164,13 @@ export const COMMON_TASK_SOURCE = {
         (m) => m.DuyurularListComponent
       ),
     {
-      accessKeyAliases: ['Duyurular', 'Announcements', 'ortak-duyurular']
+      accessKeyAliases: [
+        'Duyurular',
+        'Announcements',
+        'ortak-duyurular',
+        'ortak-islemler.duyurular.page'
+      ],
+      requiredPermissionCodes: ['ortak-islemler.duyurular.page']
     }
   )
 } as const satisfies Record<string, DocsTaskSource>;
