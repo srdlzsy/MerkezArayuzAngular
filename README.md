@@ -35,6 +35,9 @@ npm install
 npm start
 ```
 
+Detayli proje akisi, yeni modul ekleme adimlari ve gelistirme kurallari icin
+[`PROJE_GELISTIRME_REHBERI.md`](PROJE_GELISTIRME_REHBERI.md) dosyasina bakin.
+
 Dogrulama:
 
 ```bash
