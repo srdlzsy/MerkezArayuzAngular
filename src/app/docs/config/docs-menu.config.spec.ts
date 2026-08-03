@@ -1,6 +1,10 @@
 import type { Sorumluluk } from '../../core/auth/models/auth.models';
 import { buildDocsMenuForUser, getDocsTask, getDocsTaskContext, getDocsTaskPermissions, hasDocsTaskAccess } from './docs-menu.config';
 
+function pagePermission(sebike: string, id = 1) {
+  return { id, isim: 'Sayfa', sebike };
+}
+
 describe('docs-menu.config', () => {
   it('builds the menu directly from the current user permission tree order', () => {
     const sorumluluklar: Sorumluluk[] = [
@@ -13,7 +17,7 @@ describe('docs-menu.config', () => {
             id: 11,
             isim: 'Verilen Firma Siparisleri',
             sebike: 'VerilenFirmaSiparisleri',
-            yetkiler: []
+            yetkiler: [pagePermission('siparis-islemleri.verilen-firma-siparisleri.page')]
           }
         ]
       },
@@ -26,7 +30,7 @@ describe('docs-menu.config', () => {
             id: 21,
             isim: 'Kullanicilar',
             sebike: 'Kullanicilar',
-            yetkiler: []
+            yetkiler: [pagePermission('kullanici-islemleri.kullanicilar.manage')]
           }
         ]
       }
@@ -54,7 +58,7 @@ describe('docs-menu.config', () => {
             id: 11,
             isim: 'Verilen Firma Sipari\u015fleri',
             sebike: 'VerilenFirmaSiparisleri',
-            yetkiler: []
+            yetkiler: [pagePermission('siparis-islemleri.verilen-firma-siparisleri.page')]
           }
         ]
       }
@@ -75,7 +79,7 @@ describe('docs-menu.config', () => {
             id: 11,
             isim: 'Verilen Siparişler',
             sebike: 'VerilenSiparisler',
-            yetkiler: []
+            yetkiler: [pagePermission('siparis-islemleri.verilen-firma-siparisleri.page')]
           }
         ]
       }
@@ -84,6 +88,36 @@ describe('docs-menu.config', () => {
     const menu = buildDocsMenuForUser(sorumluluklar);
 
     expect(menu.map((section) => section.id)).toEqual(['siparis-islemleri']);
+  });
+
+  it('requires EtiketBasim page permission before showing the menu task', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'Kasa Islemleri',
+        sebike: 'KasaIslemleri',
+        gorevler: [
+          {
+            id: 11,
+            isim: 'Etiket Basim',
+            sebike: 'EtiketBasim',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Listele',
+                sebike: 'kasa-islemleri.etiket-basim.list'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('etiket-basim', sorumluluklar)).toBeFalse();
+    expect(hasDocsTaskAccess('etiket-belgeleri', sorumluluklar)).toBeFalse();
+    expect(menu).toEqual([]);
   });
 
   it('routes EtiketBasim backend key to the dedicated etiket-basim task', () => {
@@ -97,7 +131,7 @@ describe('docs-menu.config', () => {
             id: 11,
             isim: 'Etiket Basim',
             sebike: 'EtiketBasim',
-            yetkiler: []
+            yetkiler: [pagePermission('kasa-islemleri.etiket-basim.page')]
           }
         ]
       }
@@ -121,7 +155,7 @@ describe('docs-menu.config', () => {
             id: 1,
             isim: 'Authorization Files',
             sebike: 'AuthorizationFiles',
-            yetkiler: [{ id: 1, isim: 'Listeleme', sebike: 'liste' }]
+            yetkiler: [pagePermission('operasyon-islemleri.operations.page')]
           }
         ]
       }
@@ -144,7 +178,7 @@ describe('docs-menu.config', () => {
             id: 1,
             isim: 'Axata Senkronizasyonu',
             sebike: 'AxataSenkronizasyonu',
-            yetkiler: [{ id: 1, isim: 'Listele', sebike: 'entegrasyon-islemleri.axata-senkronizasyonu.list' }]
+            yetkiler: [pagePermission('entegrasyon-islemleri.axata-senkronizasyonu.page')]
           }
         ]
       }
@@ -167,13 +201,7 @@ describe('docs-menu.config', () => {
             id: 2,
             isim: 'Urun Dagilimlari',
             sebike: 'UrunDagilimlari',
-            yetkiler: [
-              {
-                id: 1,
-                isim: 'Listele',
-                sebike: 'operasyon-islemleri.urun-dagilimlari.list'
-              }
-            ]
+            yetkiler: [pagePermission('operasyon-islemleri.urun-dagilimlari.page')]
           }
         ]
       }
@@ -196,13 +224,7 @@ describe('docs-menu.config', () => {
             id: 2,
             isim: 'POS Muhasebe Aktarimi',
             sebike: 'PosMuhasebeAktarimi',
-            yetkiler: [
-              {
-                id: 2,
-                isim: 'Listele',
-                sebike: 'entegrasyon-islemleri.pos-muhasebe-aktarimi.list'
-              }
-            ]
+            yetkiler: [pagePermission('entegrasyon-islemleri.pos-muhasebe-aktarimi.page')]
           }
         ]
       }
@@ -276,6 +298,7 @@ describe('docs-menu.config', () => {
         summary: 'Test task',
         route: '/docs/api/insan-kaynaklari',
         pageId: 'insan-kaynaklari',
+        requiredPermissionKeys: [],
         accessKeys: ['insan-kaynaklari']
       }
     ]);
@@ -333,7 +356,7 @@ describe('docs-menu.config', () => {
             id: 11,
             isim: 'Verilen Firma Siparisleri',
             sebike: 'verilen-firma-siparisleri',
-            yetkiler: []
+            yetkiler: [pagePermission('siparis-islemleri.verilen-firma-siparisleri.page')]
           }
         ]
       },
@@ -346,13 +369,13 @@ describe('docs-menu.config', () => {
             id: 21,
             isim: 'Firma Mal Kabulleri',
             sebike: 'firma-mal-kabulleri',
-            yetkiler: []
+            yetkiler: [pagePermission('mal-kabul-islemleri.firma-mal-kabulleri.page')]
           },
           {
             id: 22,
             isim: 'Mal Kabul Farklari',
             sebike: 'mal-kabul-farklari',
-            yetkiler: []
+            yetkiler: [pagePermission('mal-kabul-islemleri.mal-kabul-farklari.page')]
           }
         ]
       },
@@ -365,7 +388,7 @@ describe('docs-menu.config', () => {
             id: 31,
             isim: 'Giden Firma Sevkleri',
             sebike: 'giden-firma-sevkleri',
-            yetkiler: []
+            yetkiler: [pagePermission('sevk-islemleri.giden-firma-sevkleri.page')]
           }
         ]
       },
@@ -378,13 +401,13 @@ describe('docs-menu.config', () => {
             id: 41,
             isim: 'Masraf Fisleri',
             sebike: 'masraf-fisleri',
-            yetkiler: []
+            yetkiler: [pagePermission('stok-islemleri.masraf-fisleri.page')]
           },
           {
             id: 42,
             isim: 'Virmanlar',
             sebike: 'virmanlar',
-            yetkiler: []
+            yetkiler: [pagePermission('stok-islemleri.virmanlar.page')]
           }
         ]
       },
@@ -397,7 +420,7 @@ describe('docs-menu.config', () => {
             id: 51,
             isim: 'Kullanicilar',
             sebike: 'kullanicilar',
-            yetkiler: []
+            yetkiler: [pagePermission('kullanici-islemleri.kullanicilar.manage')]
           }
         ]
       }
@@ -423,7 +446,7 @@ describe('docs-menu.config', () => {
             id: 11,
             isim: 'Banknot Takipleri',
             sebike: 'banknot-takipleri',
-            yetkiler: []
+            yetkiler: [pagePermission('kasa-islemleri.banknot-takipleri.page')]
           }
         ]
       }
@@ -448,7 +471,7 @@ describe('docs-menu.config', () => {
             id: 12,
             isim: 'Kunye Etiket Yazdirma',
             sebike: 'kunye-etiket-yazdirma',
-            yetkiler: []
+            yetkiler: [pagePermission('kasa-islemleri.kunye-etiket-yazdirma.page')]
           }
         ]
       }
@@ -509,7 +532,7 @@ describe('docs-menu.config', () => {
             id: 13,
             isim: 'Kasa Hareket Aktarimi',
             sebike: 'kasa-hareket-aktarimi',
-            yetkiler: []
+            yetkiler: [pagePermission('kasa-islemleri.kasa-hareket-aktarimi.page')]
           }
         ]
       }
@@ -535,8 +558,9 @@ describe('docs-menu.config', () => {
             isim: 'Icmal Kaydi Girisi',
             sebike: 'IcmalKaydiGirisi',
             yetkiler: [
+              pagePermission('kasa-islemleri.icmal-kaydi-girisi.page'),
               {
-                id: 1,
+                id: 2,
                 isim: 'Ekle',
                 sebike: 'kasa-islemleri.icmal-kaydi-girisi.create'
               }
@@ -602,8 +626,9 @@ describe('docs-menu.config', () => {
             isim: 'Stok Raporlari',
             sebike: 'StokRaporlari',
             yetkiler: [
+              pagePermission('rapor-islemleri.stok-raporlari.page'),
               {
-                id: 1,
+                id: 2,
                 isim: 'Listele',
                 sebike: 'rapor-islemleri.stok-raporlari.list'
               }
@@ -633,8 +658,9 @@ describe('docs-menu.config', () => {
             isim: 'Promosyon Raporlari',
             sebike: 'promosyon-raporlari',
             yetkiler: [
+              pagePermission('rapor-islemleri.promosyon-raporlari.page'),
               {
-                id: 1,
+                id: 2,
                 isim: 'Listele',
                 sebike: 'rapor-islemleri.promosyon-raporlari.list'
               }

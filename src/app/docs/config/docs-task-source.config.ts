@@ -40,6 +40,70 @@ const DOCS_DOMAIN_TASK_SOURCES: ReadonlyArray<Record<string, DocsTaskSource>> = 
   COMMON_TASK_SOURCE
 ];
 
+const DOCS_TASK_ROUTE_PERMISSION_CODES: Readonly<Record<string, readonly string[]>> = {
+  kullanicilar: ['kullanici-islemleri.kullanicilar.manage'],
+  roller: ['kullanici-islemleri.roller.manage'],
+  yetkiler: ['kullanici-islemleri.yetkiler.manage'],
+  'cari-bul': ['arama-islemleri.cari-bul.page'],
+  'fiyat-gor': ['arama-islemleri.fiyat-gor.page'],
+  'green-grocer-reports': ['green-grocer.reports.page'],
+  'green-grocer-product-case-profiles': ['green-grocer.product-case-profiles.manage'],
+  'sikayet-oneri': ['ortak-islemler.sikayet-oneri.page'],
+  duyurular: ['ortak-islemler.duyurular.page'],
+  cihazlar: ['ayar-islemleri.cihazlar.manage'],
+  'sube-ayarlari': ['ayar-islemleri.sube-ayarlari.manage'],
+  'kasa-pos-terminalleri': ['ayar-islemleri.kasa-pos-terminalleri.manage'],
+  kasiyerler: ['ayar-islemleri.kasiyerler.manage'],
+  soforler: ['ayar-islemleri.soforler.manage'],
+  'alinan-depo-siparisleri': ['siparis-islemleri.alinan-depo-siparisleri.page'],
+  'verilen-depo-siparisleri': ['siparis-islemleri.verilen-depo-siparisleri.page'],
+  'alinan-firma-siparisleri': ['siparis-islemleri.alinan-firma-siparisleri.page'],
+  'verilen-firma-siparisleri': ['siparis-islemleri.verilen-firma-siparisleri.page'],
+  'onerilen-depo-siparisleri': ['siparis-islemleri.onerilen-depo-siparisleri.page'],
+  'onerilen-firma-siparisleri': ['siparis-islemleri.onerilen-firma-siparisleri.page'],
+  'giden-depolar-arasi-sevkler': ['sevk-islemleri.giden-depolar-arasi-sevkler.page'],
+  'gelen-depolar-arasi-sevkler': ['sevk-islemleri.gelen-depolar-arasi-sevkler.page'],
+  'giden-firma-sevkleri': ['sevk-islemleri.giden-firma-sevkleri.page'],
+  'gelen-firma-sevkleri': ['sevk-islemleri.gelen-firma-sevkleri.page'],
+  'giden-depo-iadeleri': ['iade-islemleri.giden-depo-iadeleri.page'],
+  'gelen-depo-iadeleri': ['iade-islemleri.gelen-depo-iadeleri.page'],
+  'firma-iadeleri': ['iade-islemleri.firma-iadeleri.page'],
+  'depo-mal-kabulleri': ['mal-kabul-islemleri.depo-mal-kabulleri.page'],
+  'mal-kabul-farklari': ['mal-kabul-islemleri.mal-kabul-farklari.page'],
+  'firma-mal-kabulleri': ['mal-kabul-islemleri.firma-mal-kabulleri.page'],
+  'zayiat-fisleri': ['stok-islemleri.zayiat-fisleri.page'],
+  'masraf-fisleri': ['stok-islemleri.masraf-fisleri.page'],
+  'sayim-sonuclari': ['stok-islemleri.sayim-sonuclari.page'],
+  virmanlar: ['stok-islemleri.virmanlar.page'],
+  'stok-anomali-merkezi': ['stok-islemleri.stok-anomali-merkezi.page'],
+  'satis-analizleri': ['rapor-islemleri.satis-analizleri.page'],
+  'stok-raporlari': ['rapor-islemleri.stok-raporlari.page'],
+  'promosyon-raporlari': ['rapor-islemleri.promosyon-raporlari.page'],
+  'tedarikci-performans-karnesi': ['rapor-islemleri.tedarikci-performans-karnesi.page'],
+  'authorization-files': ['operasyon-islemleri.operations.page'],
+  'belge-akis-takibi': ['operasyon-islemleri.belge-akis-takibi.page'],
+  'depo-operasyon-paneli': ['operasyon-islemleri.depo-operasyon-paneli.page'],
+  'urun-dagilimlari': ['operasyon-islemleri.urun-dagilimlari.page'],
+  'mikro-evrak-duzenleme': ['duzeltme-islemleri.mikro-evrak-duzenleme.page'],
+  'axata-senkronizasyonu': ['entegrasyon-islemleri.axata-senkronizasyonu.page'],
+  'pos-muhasebe-aktarimi': ['entegrasyon-islemleri.pos-muhasebe-aktarimi.page'],
+  'uyumsoft-e-fatura': ['entegrasyon-islemleri.uyumsoft-e-fatura.page'],
+  'uyumsoft-e-irsaliye': ['entegrasyon-islemleri.uyumsoft-e-irsaliye.page'],
+  'fatura-goruntuleme': ['fatura-islemleri.fatura-goruntuleme.page'],
+  'fatura-gonderimi': ['fatura-islemleri.fatura-gonderimi.page'],
+  'kasa-sayimlari': ['kasa-islemleri.kasa-sayimlari.page'],
+  'icmal-kaydi-girisi': ['kasa-islemleri.icmal-kaydi-girisi.page'],
+  'kasa-cirolari': ['kasa-islemleri.kasa-cirolari.page'],
+  'yeni-kasa-analizleri': ['kasa-islemleri.yeni-kasa-analizleri.page'],
+  'kasa-ciro-aktarimi': ['kasa-islemleri.kasa-ciro-aktarimi.page'],
+  'kasa-hareket-aktarimi': ['kasa-islemleri.kasa-hareket-aktarimi.page'],
+  'etiket-belgeleri': ['kasa-islemleri.etiket-belgeleri.page'],
+  'etiket-basim': ['kasa-islemleri.etiket-basim.page'],
+  'kunye-etiket-yazdirma': ['kasa-islemleri.kunye-etiket-yazdirma.page'],
+  'manav-kunye-etiket-yazdirma': ['kasa-islemleri.manav-kunye-etiket-yazdirma.page'],
+  'banknot-takipleri': ['kasa-islemleri.banknot-takipleri.page']
+};
+
 export const DOCS_TASK_SOURCE: Record<string, DocsTaskSource> = Object.assign(
   {},
   ...DOCS_DOMAIN_TASK_SOURCES
@@ -95,5 +159,9 @@ export function getTaskRequiredPermissionCodes(
   taskId: string,
   source: Record<string, DocsTaskSource> = DOCS_TASK_SOURCE
 ): readonly string[] {
-  return source[taskId]?.requiredPermissionCodes ?? [];
+  const explicitPermissionCodes = source[taskId]?.requiredPermissionCodes;
+
+  return explicitPermissionCodes?.length
+    ? explicitPermissionCodes
+    : DOCS_TASK_ROUTE_PERMISSION_CODES[taskId] ?? [];
 }

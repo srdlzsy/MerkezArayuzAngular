@@ -20,6 +20,7 @@ describe('docs-registry-validation.service', () => {
       summary: 'Test task',
       route: `/docs/api/${id}`,
       pageId: id,
+      requiredPermissionKeys: [],
       accessKeys: [id, label, ...extraKeys]
         .map((value) => normalizeDocsAccessKey(value))
         .filter((value, index, items) => !!value && items.indexOf(value) === index)

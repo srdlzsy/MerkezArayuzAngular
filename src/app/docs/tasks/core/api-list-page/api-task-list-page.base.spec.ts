@@ -1,9 +1,10 @@
 import { Dialog } from '@angular/cdk/dialog';
-import { Component } from '@angular/core';
+import { Component, signal } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
 import { delay, of, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
 
+import { AuthService } from '../../../../core/auth/services/auth.service';
 import { DocsContentPage } from '../../../models/docs.models';
 import { ApiTaskListPageBase } from './api-task-list-page.base';
 
@@ -54,6 +55,17 @@ describe('ApiTaskListPageBase', () => {
           useValue: {
             open: jasmine.createSpy('open').and.returnValue({
               closed: of(undefined)
+            })
+          }
+        },
+        {
+          provide: AuthService,
+          useValue: {
+            currentUser: signal({
+              depoNo: 110,
+              depoIsmi: 'Test Depo',
+              permissions: [],
+              sorumluluklar: []
             })
           }
         }
