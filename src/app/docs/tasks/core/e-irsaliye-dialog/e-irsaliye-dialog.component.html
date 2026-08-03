@@ -62,7 +62,7 @@
     <div class="form-head">
       <div>
         <h3>Tasima Bilgileri</h3>
-        <p>Plaka, sofor adi soyadi ve TCKN bilgilerini tamamla.</p>
+        <p>Kayitli sofor sec veya plaka, sofor adi soyadi ve TCKN bilgilerini elle tamamla.</p>
       </div>
 
       <div class="form-actions">
@@ -75,6 +75,68 @@
 
     <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
     <div class="feedback feedback-error" *ngIf="pdfError()">{{ pdfError() }}</div>
+
+    <section class="driver-lookup" *ngIf="canListDrivers()">
+      <div class="driver-lookup-head">
+        <div>
+          <strong>Kayitli Sofor</strong>
+          <span>Secim yapilirse e-irsaliye gonderiminde driverId kullanilir.</span>
+        </div>
+        <button
+          type="button"
+          class="secondary-button compact-button"
+          (click)="clearSelectedDriver()"
+          [disabled]="!selectedDriver() || submitting() || !!response()"
+        >
+          Secimi Temizle
+        </button>
+      </div>
+
+      <div class="driver-search-row">
+        <label class="field">
+          <span>Sofor Ara</span>
+          <input
+            type="search"
+            [formControl]="driverSearchControl"
+            placeholder="Ad, plaka veya TCKN"
+            (keydown.enter)="$event.preventDefault(); searchDrivers()"
+          />
+        </label>
+        <button
+          type="button"
+          class="secondary-button"
+          (click)="searchDrivers()"
+          [disabled]="driverSearchLoading() || submitting() || !!response()"
+        >
+          {{ driverSearchLoading() ? 'Araniyor...' : 'Ara' }}
+        </button>
+      </div>
+
+      <article class="selected-driver-card" *ngIf="selectedDriver() as driver">
+        <span>Secili Sofor</span>
+        <strong>{{ getDriverName(driver) }}</strong>
+        <small>{{ driver.plateNumber }} / {{ driver.maskedTckn || driver.tckn }}</small>
+      </article>
+
+      <div class="driver-results" *ngIf="driverResults().length">
+        <button
+          type="button"
+          class="driver-result"
+          *ngFor="let driver of driverResults(); trackBy: trackByDriver"
+          [class.is-selected]="selectedDriver()?.id === driver.id"
+          (click)="selectDriver(driver)"
+          [disabled]="submitting() || !!response()"
+        >
+          <strong>{{ getDriverName(driver) }}</strong>
+          <span>{{ driver.plateNumber }}</span>
+          <small>{{ driver.maskedTckn || driver.tckn }}</small>
+        </button>
+      </div>
+
+      <p class="driver-message" *ngIf="driverSearchError()">{{ driverSearchError() }}</p>
+    </section>
+
+    <input type="hidden" formControlName="driverId" />
 
     <div class="form-grid">
       <label class="field">

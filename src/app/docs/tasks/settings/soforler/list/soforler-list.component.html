@@ -1,0 +1,212 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="settings-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ayar Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p class="subtitle">E-irsaliye gonderiminde secilecek sofor, plaka ve TCKN kayitlari.</p>
+      </div>
+
+      <div class="metric-strip">
+        <article>
+          <span>Sofor</span>
+          <strong>{{ drivers().length }}</strong>
+        </article>
+        <article>
+          <span>Aktif</span>
+          <strong>{{ activeCount() }}</strong>
+        </article>
+        <article>
+          <span>Pasif</span>
+          <strong>{{ passiveCount() }}</strong>
+        </article>
+        <article>
+          <span>Secili</span>
+          <strong>{{ selectedDriver() ? 'Var' : 'Yok' }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <form class="filter-bar driver-filter" [formGroup]="filterForm" (ngSubmit)="loadDrivers()" novalidate>
+      <label class="field">
+        <span>Arama</span>
+        <input type="search" formControlName="search" placeholder="Ad, soyad, plaka veya TCKN" />
+      </label>
+
+      <label class="field take-field">
+        <span>Limit</span>
+        <input type="number" min="1" max="500" formControlName="take" />
+      </label>
+
+      <label class="inline-check">
+        <input type="checkbox" formControlName="includeInactive" />
+        <strong>Pasifleri dahil et</strong>
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('load') || !canList()">
+          <i class="fa-solid fa-rotate"></i>
+          {{ isLoading('load') ? 'Yukleniyor' : 'Listele' }}
+        </button>
+        <button type="button" class="task-action task-action-secondary" (click)="newDriver()" [disabled]="!canCreate()">
+          <i class="fa-solid fa-plus"></i>
+          Yeni
+        </button>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid driver-content-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Liste</span>
+            <h3>Sofor Tanimlari</h3>
+          </div>
+          <span class="status-badge status-info" *ngIf="isLoading('detail')">Detay</span>
+        </div>
+
+        <article class="state-card" *ngIf="isLoading('load')">
+          <h3>Liste yukleniyor</h3>
+          <p>Sofor kayitlari getiriliyor.</p>
+        </article>
+
+        <div class="table-wrap driver-table-wrap" *ngIf="!isLoading('load') && drivers().length">
+          <table class="data-table driver-table">
+            <thead>
+              <tr>
+                <th>Durum</th>
+                <th>Ad Soyad</th>
+                <th>Plaka</th>
+                <th>TCKN</th>
+                <th>Not</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let driver of drivers(); trackBy: trackByDriver"
+                [class.is-selected]="selectedDriver()?.id === driver.id"
+                (click)="selectDriver(driver)"
+              >
+                <td>
+                  <span class="status-badge" [class]="getStatusClass(driver)">
+                    {{ driver.isActive ? 'Aktif' : 'Pasif' }}
+                  </span>
+                </td>
+                <td>
+                  <strong>{{ getDriverName(driver) }}</strong>
+                  <span class="table-meta">{{ driver.firstName }} / {{ driver.lastName }}</span>
+                </td>
+                <td class="nowrap">{{ driver.plateNumber || '-' }}</td>
+                <td class="nowrap">{{ driver.maskedTckn || '-' }}</td>
+                <td>{{ driver.notes || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <article class="state-card" *ngIf="!isLoading('load') && !drivers().length">
+          <h3>Kayit yok</h3>
+          <p>Secilen kriterlerle sofor bulunmuyor.</p>
+        </article>
+      </section>
+
+      <aside class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Form</span>
+            <h3>{{ selectedTitle() }}</h3>
+          </div>
+          <span class="status-badge" *ngIf="selectedDriver() as selected" [class]="getStatusClass(selected)">
+            {{ selected.isActive ? 'Aktif' : 'Pasif' }}
+          </span>
+        </div>
+
+        <form class="form-panel form-grid two-col" [formGroup]="driverForm" (ngSubmit)="saveDriver()" novalidate>
+          <label class="field">
+            <span>Ad</span>
+            <input type="text" maxlength="60" formControlName="firstName" />
+          </label>
+
+          <label class="field">
+            <span>Soyad</span>
+            <input type="text" maxlength="60" formControlName="lastName" />
+          </label>
+
+          <label class="field">
+            <span>Plaka</span>
+            <input type="text" maxlength="20" formControlName="plateNumber" placeholder="16 ABC 123" />
+          </label>
+
+          <label class="field">
+            <span>TCKN</span>
+            <input type="text" inputmode="numeric" maxlength="11" formControlName="tckn" placeholder="11111111111" />
+          </label>
+
+          <label class="field state-toggle">
+            <span>Durum</span>
+            <label class="inline-check">
+              <input type="checkbox" formControlName="isActive" />
+              <strong>Aktif</strong>
+            </label>
+          </label>
+
+          <label class="field full-field">
+            <span>Not</span>
+            <textarea rows="3" maxlength="500" formControlName="notes" placeholder="Opsiyonel yonetim notu"></textarea>
+          </label>
+
+          <button
+            type="submit"
+            class="task-action task-action-primary"
+            [disabled]="isLoading('save') || (selectedDriver() ? !canUpdate() : !canCreate())"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            {{ getSaveLabel() }}
+          </button>
+
+          <button
+            type="button"
+            class="task-action task-action-danger"
+            (click)="deleteSelectedDriver()"
+            [disabled]="!selectedDriver() || !canDelete() || isLoading('delete')"
+          >
+            <i class="fa-solid fa-ban"></i>
+            {{ isLoading('delete') ? 'Pasife Aliniyor' : 'Pasife Al' }}
+          </button>
+        </form>
+
+        <ng-container *ngIf="selectedDriver() as selected">
+          <dl class="detail-grid">
+            <div>
+              <dt>Ad Soyad</dt>
+              <dd>{{ getDriverName(selected) }}</dd>
+            </div>
+            <div>
+              <dt>Plaka</dt>
+              <dd>{{ selected.plateNumber || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Maskeli TCKN</dt>
+              <dd>{{ selected.maskedTckn || '-' }}</dd>
+            </div>
+            <div>
+              <dt>Guncel</dt>
+              <dd>{{ formatDateTime(selected.updatedAtUtc || selected.createdAtUtc) }}</dd>
+            </div>
+          </dl>
+        </ng-container>
+      </aside>
+    </section>
+  </article>
+</section>

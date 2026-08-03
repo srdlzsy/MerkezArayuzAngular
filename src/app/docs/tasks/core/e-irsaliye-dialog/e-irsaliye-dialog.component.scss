@@ -84,6 +84,12 @@
   transform: none;
 }
 
+.compact-button {
+  min-height: 2.1rem;
+  padding: 0.42rem 0.62rem;
+  font-size: 0.78rem;
+}
+
 .summary-grid,
 .meta-grid,
 .result-grid {
@@ -178,6 +184,109 @@
   background: #fee2e2;
 }
 
+.driver-lookup {
+  display: grid;
+  gap: 0.7rem;
+  margin-top: 1rem;
+  border: 1px solid #dbe4f0;
+  border-radius: 14px;
+  padding: 0.85rem;
+  background: #f8fafc;
+}
+
+.driver-lookup-head,
+.driver-search-row {
+  display: grid;
+  gap: 0.7rem;
+}
+
+.driver-lookup-head {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+}
+
+.driver-lookup-head div {
+  display: grid;
+  gap: 0.15rem;
+}
+
+.driver-lookup-head strong,
+.selected-driver-card strong,
+.driver-result strong {
+  color: #0f172a;
+}
+
+.driver-lookup-head span,
+.selected-driver-card small,
+.driver-result small,
+.driver-message {
+  color: #64748b;
+  font-size: 0.8rem;
+  line-height: 1.35;
+}
+
+.driver-search-row {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+}
+
+.selected-driver-card {
+  display: grid;
+  gap: 0.12rem;
+  border: 1px solid #bbf7d0;
+  border-radius: 12px;
+  padding: 0.65rem 0.75rem;
+  background: #f0fdf4;
+}
+
+.selected-driver-card span {
+  color: #166534;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.driver-results {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.5rem;
+}
+
+.driver-result {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+  border: 1px solid #dbe4f0;
+  border-radius: 12px;
+  padding: 0.58rem 0.65rem;
+  text-align: left;
+  background: #fff;
+  cursor: pointer;
+}
+
+.driver-result:hover,
+.driver-result.is-selected {
+  border-color: #16a34a;
+  background: #f0fdf4;
+}
+
+.driver-result span {
+  color: #0f766e;
+  font-size: 0.78rem;
+  font-weight: 800;
+}
+
+.driver-result:disabled {
+  cursor: not-allowed;
+  opacity: 0.68;
+}
+
+.driver-message {
+  margin: 0;
+  font-weight: 700;
+}
+
 .form-grid {
   display: grid;
   gap: 0.9rem;
@@ -268,14 +377,18 @@
 
   .dialog-hero,
   .form-head,
-  .result-head {
+  .result-head,
+  .driver-lookup-head {
     flex-direction: column;
+    display: grid;
   }
 
   .summary-grid,
   .meta-grid,
   .result-grid,
-  .form-grid {
+  .form-grid,
+  .driver-search-row,
+  .driver-results {
     grid-template-columns: minmax(0, 1fr);
   }
 

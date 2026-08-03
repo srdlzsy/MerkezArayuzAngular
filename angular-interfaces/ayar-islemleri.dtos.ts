@@ -103,6 +103,20 @@ export interface CashierPasswordMutationDto {
   cashier: CashierDto;
 }
 
+export interface DespatchDriverDto {
+  id: string;
+  firstName: string;
+  lastName: string;
+  fullName: string;
+  plateNumber: string;
+  tckn: string;
+  maskedTckn: string;
+  isActive: boolean;
+  notes: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string | null;
+}
+
 export interface CreateDeviceHttpRequest {
   branchNo: number;
   deviceTypeId: number;
@@ -156,4 +170,19 @@ export interface UpdateCashierHttpRequest {
   cashierName: string;
   cashierAuthorization: string;
   cashierState: boolean;
+}
+
+export interface DespatchDriverListHttpRequest {
+  search?: string | null;
+  includeInactive?: boolean | null;
+  take?: number | null;
+}
+
+export interface SaveDespatchDriverHttpRequest {
+  firstName: string;
+  lastName: string;
+  plateNumber: string;
+  tckn: string;
+  isActive: boolean;
+  notes?: string | null;
 }

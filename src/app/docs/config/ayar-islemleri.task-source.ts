@@ -256,5 +256,73 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         (m) => m.KasiyerlerListComponent
       ),
     { accessKeyAliases: ['Kasiyerler', 'cashiers'] }
+  ),
+  soforler: singleRouteTask(
+    {
+      id: 'soforler',
+      title: 'Soforler',
+      subtitle:
+        'E-irsaliye gonderiminde kullanilacak kayitli sofor, plaka ve TCKN bilgilerini yonetir.',
+      baseRouteOrFile: '/api/ayar-islemleri/soforler',
+      highlights: [
+        'Menu ve route acilisi ayar-islemleri.soforler.manage yetkisiyle yapilir',
+        'Liste endpointi ad, soyad, plaka veya TCKN ile arama destekler',
+        'E-irsaliye modalinda driverId secilirse manuel plaka/sofor/TCKN zorunlulugu kalkar',
+        'Silme fiziksel degil, sofor kaydini pasife alma islemidir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AyarIslemleri Soforler',
+          description: 'E-irsaliye surucu tanimlarini listeler ve yonetir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/soforler?search=ali&includeInactive=false&take=20',
+              description: 'Soforleri ad, soyad, plaka veya TCKN ile listeler',
+              payload: 'DespatchDriverListHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/soforler/{id}',
+              description: 'Sofor detayini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/soforler',
+              description: 'Yeni sofor tanimi olusturur',
+              payload: 'SaveDespatchDriverHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/soforler/{id}',
+              description: 'Sofor tanimini gunceller',
+              payload: 'SaveDespatchDriverHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/ayar-islemleri/soforler/{id}',
+              description: 'Sofor kaydini pasife alir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "firstName": "Ali",
+  "lastName": "Veli",
+  "plateNumber": "16 ABC 123",
+  "tckn": "11111111111",
+  "isActive": true,
+  "notes": "Ana sevk soforu"
+}`
+    },
+    () =>
+      import('../tasks/settings/soforler/list/soforler-list.component').then(
+        (m) => m.SoforlerListComponent
+      ),
+    {
+      accessKeyAliases: ['Soforler', 'DespatchDrivers', 'drivers'],
+      requiredPermissionCodes: ['ayar-islemleri.soforler.manage']
+    }
   )
 } as const satisfies Record<string, DocsTaskSource>;

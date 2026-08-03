@@ -1,0 +1,106 @@
+@use '../../_settings-page.shared';
+
+.driver-filter {
+  grid-template-columns: minmax(220px, 1fr) 92px auto auto;
+}
+
+.driver-content-grid {
+  grid-template-columns: minmax(0, 1fr) minmax(340px, 0.38fr);
+}
+
+.take-field {
+  width: 92px;
+}
+
+.inline-check {
+  display: inline-flex;
+  min-height: 2.1rem;
+  align-items: center;
+  gap: 0.45rem;
+  border: 1px solid var(--settings-border);
+  border-radius: 8px;
+  padding: 0.38rem 0.55rem;
+  background: #fff;
+  color: var(--settings-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.inline-check input {
+  width: 1rem;
+  height: 1rem;
+  accent-color: var(--settings-accent);
+}
+
+.driver-table-wrap {
+  overflow-x: hidden;
+}
+
+.driver-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.driver-table th,
+.driver-table td {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.driver-table th:nth-child(1),
+.driver-table td:nth-child(1) {
+  width: 84px;
+}
+
+.driver-table th:nth-child(3),
+.driver-table td:nth-child(3) {
+  width: 116px;
+}
+
+.driver-table th:nth-child(4),
+.driver-table td:nth-child(4) {
+  width: 118px;
+}
+
+.driver-table .nowrap {
+  white-space: nowrap;
+}
+
+.driver-table td strong {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+}
+
+.state-toggle {
+  align-content: start;
+}
+
+@media (max-width: 1180px) {
+  .driver-content-grid,
+  .driver-filter {
+    grid-template-columns: 1fr;
+  }
+
+  .take-field {
+    width: 100%;
+  }
+}
+
+@media (max-width: 760px) {
+  .inline-check,
+  .filter-actions {
+    width: 100%;
+  }
+
+  .filter-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+  }
+
+  .driver-table th:nth-child(5),
+  .driver-table td:nth-child(5) {
+    display: none;
+  }
+}

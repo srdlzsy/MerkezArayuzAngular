@@ -1,15 +1,19 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import type {
+  DespatchDriverDto,
   IFurpaSendEDespatchRequestApiDto,
   IFurpaSendEDespatchResponseApiDto
 } from '@interfaces';
 import { Observable, finalize } from 'rxjs';
 
+import { AyarIslemleriService } from '../../../../core/api/module-services/ayar-islemleri.service';
 import { IadeIslemleriService } from '../../../../core/api/module-services/iade-islemleri.service';
 import { SevkIslemleriService } from '../../../../core/api/module-services/sevk-islemleri.service';
+import { AuthService } from '../../../../core/auth/services/auth.service';
 import { DocsTaskDialogBase } from '../task-dialog.base';
 import { PdfPreviewDialogComponent } from '../pdf-preview-dialog/pdf-preview-dialog.component';
 
@@ -36,6 +40,10 @@ export interface EDespatchDialogData {
   row: EDespatchDialogRowSummary;
 }
 
+const DRIVER_LIST_PERMISSION = 'ayar-islemleri.soforler.list';
+const DRIVER_NAME_PATTERN = /^\s*\S+(?:\s+\S+)+\s*$/;
+const DRIVER_TCKN_PATTERN = /^\d{11}$/;
+
 @Component({
   selector: 'app-e-irsaliye-dialog',
   standalone: true,
@@ -44,8 +52,11 @@ export interface EDespatchDialogData {
   styleUrl: './e-irsaliye-dialog.component.scss'
 })
 export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialogData> {
+  private readonly ayarIslemleriService = inject(AyarIslemleriService);
+  private readonly authService = inject(AuthService);
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly dialogData: EDespatchDialogData = this.data ?? {
     kind: 'company-shipment',
     pageTitle: 'E-Irsaliye',
@@ -66,27 +77,56 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   protected readonly pdfError = signal('');
   protected readonly pdfPreviewBlob = signal<Blob | null>(null);
   protected readonly response = signal<IFurpaSendEDespatchResponseApiDto | null>(null);
+  protected readonly driverResults = signal<DespatchDriverDto[]>([]);
+  protected readonly selectedDriver = signal<DespatchDriverDto | null>(null);
+  protected readonly driverSearchLoading = signal(false);
+  protected readonly driverSearchError = signal('');
   protected readonly pageTitle = this.dialogData.pageTitle;
   protected readonly row = this.dialogData.row;
   protected readonly headline = computed(() => this.resolveHeadline(this.dialogData.kind));
   protected readonly operationLabel = computed(() => this.resolveOperationLabel(this.dialogData.kind));
   protected readonly hasMissingDocumentNo = computed(() => !this.row.belgeNo?.trim());
+  protected readonly canListDrivers = computed(() => this.hasDriverListPermission());
+  protected readonly driverSearchControl = new FormControl('', { nonNullable: true });
 
   protected readonly controls = {
+    driverId: new FormControl('', { nonNullable: true }),
     plaque: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required]
     }),
     driverNameSurname: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.pattern(/^\s*\S+(?:\s+\S+)+\s*$/)]
+      validators: [Validators.required, Validators.pattern(DRIVER_NAME_PATTERN)]
     }),
     driverTckn: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.pattern(/^\d{11}$/)]
+      validators: [Validators.required, Validators.pattern(DRIVER_TCKN_PATTERN)]
     })
   };
   protected readonly form = new FormGroup(this.controls);
+  private driverSearchRequestId = 0;
+  private driverSearchTimer: ReturnType<typeof setTimeout> | null = null;
+
+  constructor() {
+    super();
+
+    this.controls.driverId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.updateTransportValidators());
+
+    this.driverSearchControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value: string) => this.scheduleDriverSearch(value));
+
+    this.destroyRef.onDestroy(() => this.clearDriverSearchTimer());
+
+    this.updateTransportValidators();
+
+    if (this.canListDrivers()) {
+      this.searchDrivers('', false);
+    }
+  }
 
   protected submit(): void {
     if (this.submitting() || this.response()) {
@@ -168,6 +208,85 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
     }
   }
 
+  protected searchDrivers(
+    search = this.driverSearchControl.value,
+    showEmptyMessage = true
+  ): void {
+    if (!this.canListDrivers()) {
+      this.driverResults.set([]);
+      this.driverSearchError.set('Kayitli sofor listesi icin yetki yok.');
+      return;
+    }
+
+    const requestId = ++this.driverSearchRequestId;
+    const normalizedSearch = search.trim();
+
+    this.clearDriverSearchTimer();
+    this.driverSearchLoading.set(true);
+    this.driverSearchError.set('');
+
+    this.ayarIslemleriService
+      .getDespatchDrivers({
+        search: normalizedSearch || null,
+        includeInactive: false,
+        take: 20
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.driverSearchRequestId) {
+            this.driverSearchLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (drivers: DespatchDriverDto[]) => {
+          if (requestId !== this.driverSearchRequestId) {
+            return;
+          }
+
+          this.driverResults.set(drivers ?? []);
+
+          if (showEmptyMessage && !drivers?.length) {
+            this.driverSearchError.set('Aktif sofor bulunamadi.');
+          }
+        },
+        error: (error: HttpErrorResponse) => {
+          if (requestId !== this.driverSearchRequestId) {
+            return;
+          }
+
+          this.driverResults.set([]);
+          this.driverSearchError.set(
+            this.resolveError(error, 'Kayitli sofor listesi alinamadi.')
+          );
+        }
+      });
+  }
+
+  protected selectDriver(driver: DespatchDriverDto): void {
+    this.selectedDriver.set(driver);
+    this.controls.driverId.setValue(driver.id);
+    this.controls.plaque.setValue(driver.plateNumber ?? '');
+    this.controls.driverNameSurname.setValue(this.getDriverName(driver));
+    this.controls.driverTckn.setValue(driver.tckn ?? '');
+    this.form.markAsDirty();
+    this.updateTransportValidators();
+  }
+
+  protected clearSelectedDriver(): void {
+    this.selectedDriver.set(null);
+    this.controls.driverId.setValue('');
+    this.updateTransportValidators();
+  }
+
+  protected getDriverName(driver: DespatchDriverDto): string {
+    return driver.fullName?.trim() || `${driver.firstName} ${driver.lastName}`.trim() || '-';
+  }
+
+  protected readonly trackByDriver = (_index: number, driver: DespatchDriverDto): string =>
+    driver.id;
+
   private resolveSendRequest(
     request: IFurpaSendEDespatchRequestApiDto
   ): Observable<IFurpaSendEDespatchResponseApiDto> {
@@ -205,12 +324,79 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
 
   private buildSendRequest(): IFurpaSendEDespatchRequestApiDto {
     const rawValue = this.form.getRawValue();
+    const request: IFurpaSendEDespatchRequestApiDto = {};
+    const driverId = rawValue.driverId.trim();
+    const plaque = rawValue.plaque.trim().toLocaleUpperCase('tr-TR');
+    const driverNameSurname = rawValue.driverNameSurname.trim().replace(/\s+/g, ' ');
+    const driverTckn = rawValue.driverTckn.trim();
 
-    return {
-      plaque: rawValue.plaque.trim(),
-      driverNameSurname: rawValue.driverNameSurname.trim().replace(/\s+/g, ' '),
-      driverTckn: rawValue.driverTckn.trim()
-    };
+    if (driverId) {
+      request.driverId = driverId;
+    }
+
+    if (plaque) {
+      request.plaque = plaque;
+    }
+
+    if (driverNameSurname) {
+      request.driverNameSurname = driverNameSurname;
+    }
+
+    if (driverTckn) {
+      request.driverTckn = driverTckn;
+    }
+
+    return request;
+  }
+
+  private updateTransportValidators(): void {
+    const hasSelectedDriver = !!this.controls.driverId.value.trim();
+
+    this.controls.plaque.setValidators(hasSelectedDriver ? [] : [Validators.required]);
+    this.controls.driverNameSurname.setValidators(
+      hasSelectedDriver
+        ? [Validators.pattern(DRIVER_NAME_PATTERN)]
+        : [Validators.required, Validators.pattern(DRIVER_NAME_PATTERN)]
+    );
+    this.controls.driverTckn.setValidators(
+      hasSelectedDriver
+        ? [Validators.pattern(DRIVER_TCKN_PATTERN)]
+        : [Validators.required, Validators.pattern(DRIVER_TCKN_PATTERN)]
+    );
+
+    this.controls.plaque.updateValueAndValidity({ emitEvent: false });
+    this.controls.driverNameSurname.updateValueAndValidity({ emitEvent: false });
+    this.controls.driverTckn.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private hasDriverListPermission(): boolean {
+    const currentUser = this.authService.currentUser();
+
+    return (
+      (currentUser?.permissions ?? []).includes(DRIVER_LIST_PERMISSION) ||
+      this.authService.getTaskPermissionCodes('soforler').includes(DRIVER_LIST_PERMISSION)
+    );
+  }
+
+  private scheduleDriverSearch(search: string): void {
+    if (!this.canListDrivers()) {
+      return;
+    }
+
+    this.clearDriverSearchTimer();
+    this.driverSearchTimer = setTimeout(() => {
+      this.driverSearchTimer = null;
+      this.searchDrivers(search, false);
+    }, 320);
+  }
+
+  private clearDriverSearchTimer(): void {
+    if (!this.driverSearchTimer) {
+      return;
+    }
+
+    clearTimeout(this.driverSearchTimer);
+    this.driverSearchTimer = null;
   }
 
   private resolvePdfRequest(): Observable<Blob> {

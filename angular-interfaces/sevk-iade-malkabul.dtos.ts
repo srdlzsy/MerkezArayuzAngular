@@ -545,9 +545,10 @@ export interface CompanyReceivingEDespatchPreviewDto {
 // ============================================================================
 
 export interface SendEDespatchHttpRequest {
-  plaque: string;
-  driverNameSurname: string;
-  driverTckn: string;
+  driverId?: string | null;
+  plaque?: string | null;
+  driverNameSurname?: string | null;
+  driverTckn?: string | null;
 }
 
 export enum EDespatchDocumentType {

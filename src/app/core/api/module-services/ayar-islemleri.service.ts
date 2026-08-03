@@ -17,6 +17,9 @@ import type {
   DeviceDto,
   DeviceStatusDto,
   DeviceTypeDto,
+  DespatchDriverDto,
+  DespatchDriverListHttpRequest,
+  SaveDespatchDriverHttpRequest,
   UpdateBranchSettingsHttpRequest,
   UpdateCashierHttpRequest
 } from '@interfaces';
@@ -165,5 +168,38 @@ export class AyarIslemleriService extends BaseApiService {
       `ayar-islemleri/kasiyerler/${cashierCode}/sifre-sifirla`,
       null
     );
+  }
+
+  getDespatchDrivers(
+    request: DespatchDriverListHttpRequest = {}
+  ): Observable<DespatchDriverDto[]> {
+    return this.getWithQuery<DespatchDriverDto[]>('ayar-islemleri/soforler', request);
+  }
+
+  getDespatchDriver(id: string): Observable<DespatchDriverDto> {
+    return this.get<DespatchDriverDto>(`ayar-islemleri/soforler/${encodeURIComponent(id)}`);
+  }
+
+  createDespatchDriver(
+    request: SaveDespatchDriverHttpRequest
+  ): Observable<DespatchDriverDto> {
+    return this.post<DespatchDriverDto, SaveDespatchDriverHttpRequest>(
+      'ayar-islemleri/soforler',
+      request
+    );
+  }
+
+  updateDespatchDriver(
+    id: string,
+    request: SaveDespatchDriverHttpRequest
+  ): Observable<DespatchDriverDto> {
+    return this.put<DespatchDriverDto, SaveDespatchDriverHttpRequest>(
+      `ayar-islemleri/soforler/${encodeURIComponent(id)}`,
+      request
+    );
+  }
+
+  deleteDespatchDriver(id: string): Observable<void> {
+    return this.delete<void>(`ayar-islemleri/soforler/${encodeURIComponent(id)}`);
   }
 }
