@@ -345,7 +345,6 @@
               <label class="field" *ngIf="storeExpenseTemplates().length > 0; else manualStoreExpenseType">
                 <span>Gider Tipi</span>
                 <select formControlName="storeExpensesType">
-                  <option [ngValue]="null">Seciniz</option>
                   <option
                     *ngFor="let template of storeExpenseTemplates(); trackBy: trackByIndex"
                     [ngValue]="template.paymentTypeNo"
@@ -461,10 +460,9 @@
             <label class="field" *ngIf="getPaymentTypeTemplates(source).length > 0; else manualPaymentTypeName">
               <span>Tip</span>
               <select
-                [value]="getPaymentTypeGroupTemplateKey(group)"
+                [value]="getPaymentTypeGroupTemplateKey(source, group)"
                 (change)="applyPaymentTypeTemplateSelection(index, $any($event.target).value)"
               >
-                <option value="">Seciniz</option>
                 <option
                   *ngFor="let template of getPaymentTypeTemplates(source); trackBy: trackByIndex"
                   [value]="getPaymentTypeTemplateKey(template)"

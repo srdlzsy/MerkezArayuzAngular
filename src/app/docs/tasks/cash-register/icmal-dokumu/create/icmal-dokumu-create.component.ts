@@ -549,7 +549,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .pipe(finalize(finalizeRequest))
       .subscribe({
         next: (items: IFurpaPaymentTypeLookupItemApiDto[]) => {
-          this.storeExpenseTemplates.set(items ?? []);
+          const templates = items ?? [];
+
+          this.storeExpenseTemplates.set(templates);
+          this.applyMissingStoreExpenseTypeDefaults(templates);
         },
         error: () => {
           this.storeExpenseTemplates.set([]);
@@ -929,13 +932,37 @@ export class IcmalDokumuCreateComponent implements OnInit {
     return this.buildPaymentTypeTemplateKey(template);
   }
 
-  protected getPaymentTypeGroupTemplateKey(group: PaymentTypeLineFormGroup): string {
-    return this.buildPaymentTypeTemplateKey({
+  protected getPaymentTypeGroupTemplateKey(
+    source: CashDrawerPaymentSource,
+    group: PaymentTypeLineFormGroup
+  ): string {
+    const templates = this.getPaymentTypeTemplates(source);
+    const exactKey = this.buildPaymentTypeTemplateKey({
       paymentName: group.controls.paymentName.value,
       paymentTypeNo: group.controls.paymentTypeNo.value,
       terminalId: group.controls.terminalId.value,
       accountCode: group.controls.accountCode.value
     });
+
+    if (templates.some((template) => this.buildPaymentTypeTemplateKey(template) === exactKey)) {
+      return exactKey;
+    }
+
+    const paymentTypeNo = this.toSafeNumber(group.controls.paymentTypeNo.value);
+    const terminalId = this.normalizeLookupKeyText(group.controls.terminalId.value);
+    const accountCode = this.normalizeLookupKeyText(group.controls.accountCode.value);
+
+    const matchedTemplate =
+      templates.find(
+        (template) =>
+          this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo &&
+          (!terminalId || this.normalizeLookupKeyText(template.terminalId) === terminalId) &&
+          (!accountCode || this.normalizeLookupKeyText(template.accountCode) === accountCode)
+      ) ??
+      templates.find((template) => this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo) ??
+      templates[0];
+
+    return matchedTemplate ? this.buildPaymentTypeTemplateKey(matchedTemplate) : '';
   }
 
   protected getPaymentTypeTemplateLabel(template: IFurpaPaymentTypeLookupItemApiDto): string {
@@ -957,19 +984,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
     const group = this.paymentTypes.at(index);
     const source = group.controls.source.value;
 
-    if (!templateKey) {
-      group.controls.paymentName.setValue(this.getDefaultPaymentName(source));
-      group.controls.paymentTypeNo.setValue(0);
-      group.controls.terminalId.setValue('');
-      group.controls.accountCode.setValue('');
-      this.markPaymentTypeLookupControlsTouched(group);
-      this.refreshComputedFormState();
-      return;
-    }
-
-    const template = this.getPaymentTypeTemplates(source).find(
-      (item) => this.buildPaymentTypeTemplateKey(item) === templateKey
-    );
+    const templates = this.getPaymentTypeTemplates(source);
+    const template =
+      templates.find((item) => this.buildPaymentTypeTemplateKey(item) === templateKey) ??
+      templates[0];
 
     if (!template) {
       return;
@@ -1136,6 +1154,31 @@ export class IcmalDokumuCreateComponent implements OnInit {
       if (this.paymentTypes.at(index).controls.source.value === source) {
         this.paymentTypes.removeAt(index);
       }
+    }
+  }
+
+  private applyMissingStoreExpenseTypeDefaults(
+    templates: IFurpaPaymentTypeLookupItemApiDto[]
+  ): void {
+    const defaultTemplate = templates[0];
+
+    if (!defaultTemplate) {
+      return;
+    }
+
+    let hasChanged = false;
+
+    this.storeExpenses.controls.forEach((group) => {
+      if (this.toSafeNumber(group.controls.storeExpensesType.value) > 0) {
+        return;
+      }
+
+      group.controls.storeExpensesType.setValue(defaultTemplate.paymentTypeNo ?? null);
+      hasChanged = true;
+    });
+
+    if (hasChanged) {
+      this.refreshComputedFormState();
     }
   }
 
