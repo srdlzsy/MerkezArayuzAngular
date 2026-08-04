@@ -2,6 +2,12 @@ import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import type {
+  GreenGrocerOperationsAdjustmentApplyDto,
+  GreenGrocerOperationsAdjustmentApplyHttpRequest,
+  GreenGrocerOperationsAdjustmentPreviewDto,
+  GreenGrocerOperationsAdjustmentPreviewHttpRequest,
+  GreenGrocerOperationsOverviewDto,
+  GreenGrocerOperationsOverviewHttpRequest,
   GreenGrocerProductCaseProfileDto,
   GreenGrocerProductCaseProfileListHttpRequest,
   GreenGrocerProductCaseResolutionDto,
@@ -21,6 +27,7 @@ import { BaseApiService } from '../base-api.service';
 })
 export class GreenGrocerService extends BaseApiService {
   private readonly productCaseProfilesPath = 'green-grocer/product-case-profiles';
+  private readonly operationsPath = 'green-grocer/operations';
 
   getSummary(date: string): Observable<IFurpaGreenGrocerSummaryReportItemApiDto[]> {
     return this.getWithQuery<IFurpaGreenGrocerSummaryReportItemApiDto[]>(
@@ -107,5 +114,32 @@ export class GreenGrocerService extends BaseApiService {
       GreenGrocerProductCaseResolutionDto,
       GreenGrocerProductCaseResolutionHttpRequest
     >(`${this.productCaseProfilesPath}/resolution-preview`, request);
+  }
+
+  getOperationsOverview(
+    request: GreenGrocerOperationsOverviewHttpRequest
+  ): Observable<GreenGrocerOperationsOverviewDto> {
+    return this.getWithQuery<GreenGrocerOperationsOverviewDto, GreenGrocerOperationsOverviewHttpRequest>(
+      `${this.operationsPath}/overview`,
+      request
+    );
+  }
+
+  previewOperationsAdjustment(
+    request: GreenGrocerOperationsAdjustmentPreviewHttpRequest
+  ): Observable<GreenGrocerOperationsAdjustmentPreviewDto> {
+    return this.post<
+      GreenGrocerOperationsAdjustmentPreviewDto,
+      GreenGrocerOperationsAdjustmentPreviewHttpRequest
+    >(`${this.operationsPath}/adjustments/preview`, request);
+  }
+
+  applyOperationsAdjustment(
+    request: GreenGrocerOperationsAdjustmentApplyHttpRequest
+  ): Observable<GreenGrocerOperationsAdjustmentApplyDto> {
+    return this.post<
+      GreenGrocerOperationsAdjustmentApplyDto,
+      GreenGrocerOperationsAdjustmentApplyHttpRequest
+    >(`${this.operationsPath}/adjustments`, request);
   }
 }

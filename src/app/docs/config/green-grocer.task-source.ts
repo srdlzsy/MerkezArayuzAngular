@@ -178,5 +178,85 @@ export const GREEN_GROCER_TASK_SOURCE = {
       ],
       requiredPermissionCodes: ['green-grocer.product-case-profiles.manage']
     }
+  ),
+  'green-grocer-operations': singleRouteTask(
+    {
+      id: 'green-grocer-operations',
+      title: 'Manav Operasyon Paneli',
+      subtitle:
+        'Manav depo alis, MNV fark, sube talep, gercek sevk, son sayim ve guncel stok durumunu tek ekranda izler.',
+      baseRouteOrFile: '/api/green-grocer/operations',
+      highlights: [
+        'Son 7 gun manav operasyon ozetiyle acilir',
+        'Stok kodu, urun adi, tip ve depo kapsamiyla filtrelenir',
+        'Satir detayi dialog icinde alis, sevk, sayim ve farklari gosterir',
+        'MNV duzeltme yazimi once preview, sonra kaydet akisiyle ilerler',
+        'Create yetkisi olmayan kullanicida duzeltme butonu acilmaz'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'GreenGrocerOperationsController',
+          description:
+            'Manav operasyon ozetini listeler ve yetkili kullanicida kontrollu MNV stok duzeltmesi yazar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/green-grocer/operations/overview?warehouseNo=56&startDate=2026-08-01&endDate=2026-08-04',
+              description: 'Manav operasyon ozetini stok satiri bazinda getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/green-grocer/operations/adjustments/preview',
+              description: 'MNV duzeltme yazmadan once hareket tipini ve toplam miktari onizler'
+            },
+            {
+              method: 'POST',
+              path: '/api/green-grocer/operations/adjustments',
+              description: 'Ayni clientRequestId ile kontrollu MNV duzeltme evragini yazar'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "warehouseNo": 56,
+  "warehouseName": "MANAV DEPO",
+  "productCount": 1,
+  "totalCurrentStockQuantity": 184.35,
+  "totalPurchaseQuantity": 300,
+  "totalAdjustmentNetQuantity": 9.3,
+  "totalOrderEstimatedQuantity": 225,
+  "totalShipmentQuantity": 210.75,
+  "items": [
+    {
+      "stockCode": "001082",
+      "stockName": "MNV SEFTALI KG",
+      "currentStockQuantity": 184.35,
+      "purchaseQuantity": 300,
+      "adjustmentNetQuantity": 9.3,
+      "orderInputQuantity": 18,
+      "orderEstimatedQuantity": 225,
+      "shipmentQuantity": 210.75,
+      "lastCountQuantity": 180,
+      "primaryStatusName": "Dengeli"
+    }
+  ]
+}`
+    },
+    () =>
+      import('../tasks/green-grocer/operations/list/green-grocer-operations-list.component').then(
+        (m) => m.GreenGrocerOperationsListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'green-grocer.operations',
+        'green-grocer.operations.page',
+        'green-grocer-operations',
+        'operations',
+        'manav-operasyon-paneli',
+        'manav-operasyonlari',
+        'manav-duzeltmeleri'
+      ]
+    }
   )
 } as const satisfies Record<string, DocsTaskSource>;

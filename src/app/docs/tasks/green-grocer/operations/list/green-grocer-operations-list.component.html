@@ -1,0 +1,441 @@
+﻿<section class="task-page green-operations-page" *ngIf="page as current">
+  <header class="hero operations-hero">
+    <div class="welcome-box">
+      <h2>{{ current.title }}</h2>
+    </div>
+
+    <div class="hero-actions">
+      <span class="scope-pill">{{ warehouseScopeLabel() }}</span>
+      <button
+        type="button"
+        class="task-action task-action-primary"
+        (click)="openAdjustmentDialog(null)"
+        [disabled]="!canCreateAdjustment()"
+      >
+        MNV Duzeltme
+      </button>
+    </div>
+  </header>
+
+  <section class="task-block">
+    <form class="query-card operations-query" [formGroup]="filtersForm" (ngSubmit)="loadOverview()" novalidate>
+      <div class="query-grid operations-query-grid">
+        <label class="field date-field">
+          <span>Baslangic</span>
+          <input type="date" formControlName="startDate" [max]="maxDate" />
+        </label>
+
+        <label class="field date-field">
+          <span>Bitis</span>
+          <input type="date" formControlName="endDate" [max]="maxDate" />
+        </label>
+
+        <label class="field warehouse-field" *ngIf="canUseAllWarehouses()">
+          <span>Depo</span>
+          <input type="number" min="1" formControlName="warehouseNo" />
+        </label>
+
+        <label class="field type-field">
+          <span>Tip</span>
+          <select formControlName="typeCode">
+            <option *ngFor="let option of typeOptions; trackBy: trackByOption" [value]="option.value">
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field search-field">
+          <span>Arama</span>
+          <input type="search" formControlName="search" placeholder="Stok kodu veya urun" />
+        </label>
+
+        <label class="field take-field">
+          <span>Limit</span>
+          <input type="number" min="1" max="2000" formControlName="take" />
+        </label>
+
+        <label class="switch-field">
+          <input type="checkbox" formControlName="onlyWithActivity" />
+          <span>Aktif satir</span>
+        </label>
+
+        <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
+          {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+      </div>
+    </form>
+
+    <article class="state-card state-card-error" *ngIf="!canOpenPage()">
+      <h3>Yetki Yok</h3>
+      <p>Bu ekrani acmak icin green-grocer.operations.page yetkisi gerekiyor.</p>
+    </article>
+
+    <article class="state-card state-card-error" *ngIf="canOpenPage() && !canListOperations()">
+      <h3>Liste Yetkisi Yok</h3>
+      <p>Panel verisini almak icin green-grocer.operations.list yetkisi gerekiyor.</p>
+    </article>
+
+    <article
+      class="state-card feedback-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="metric-strip" aria-label="Manav operasyon metrikleri">
+      <article class="metric-card" *ngFor="let metric of metricCards(); trackBy: trackByMetric">
+        <span>{{ metric.label }}</span>
+        <strong>{{ metric.value }}</strong>
+        <small>{{ metric.hint }}</small>
+      </article>
+    </section>
+
+    <section class="status-strip" *ngIf="statusSummaries().length">
+      <article class="status-card" *ngFor="let status of statusSummaries(); trackBy: trackByStatus">
+        <strong>{{ status.statusName }}</strong>
+        <span>{{ status.productCount }} urun</span>
+        <small>Stok {{ formatQuantity(status.currentStockQuantity) }}</small>
+      </article>
+    </section>
+
+    <article class="task-item operations-panel">
+      <div class="panel-head">
+        <div>
+          <span class="section-kicker">Operasyon Ozeti</span>
+          <h3>{{ overview()?.warehouseName || 'Manav Depo' }}</h3>
+        </div>
+        <span class="panel-chip">{{ sortedItems().length }} satir</span>
+      </div>
+
+      <article class="state-card compact-state" *ngIf="isLoading()">
+        <h3>Panel Yukleniyor</h3>
+      </article>
+
+      <div class="table-shell" *ngIf="!isLoading() && sortedItems().length; else emptyOverview">
+        <table class="operations-table">
+          <thead>
+            <tr>
+              <th><button type="button" (click)="sortBy('status')">Durum{{ getSortMark('status') }}</button></th>
+              <th><button type="button" (click)="sortBy('stock')">Urun{{ getSortMark('stock') }}</button></th>
+              <th><button type="button" (click)="sortBy('purchase')">Alis{{ getSortMark('purchase') }}</button></th>
+              <th><button type="button" (click)="sortBy('adjustment')">MNV{{ getSortMark('adjustment') }}</button></th>
+              <th><button type="button" (click)="sortBy('order')">Talep{{ getSortMark('order') }}</button></th>
+              <th><button type="button" (click)="sortBy('estimated')">Tahmini{{ getSortMark('estimated') }}</button></th>
+              <th><button type="button" (click)="sortBy('shipment')">Sevk{{ getSortMark('shipment') }}</button></th>
+              <th><button type="button" (click)="sortBy('currentStock')">Stok{{ getSortMark('currentStock') }}</button></th>
+              <th>Islem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of sortedItems(); trackBy: trackByItem">
+              <td data-label="Durum">
+                <span class="status-pill" [ngClass]="getStatusClass(item)">{{ item.primaryStatusName || '-' }}</span>
+                <small>{{ getTypeLabel(item.modelCode) }}</small>
+              </td>
+              <td data-label="Urun">
+                <strong class="product-name">{{ item.stockName }}</strong>
+                <small>{{ item.stockCode }} / {{ item.unitName || '-' }}</small>
+              </td>
+              <td data-label="Alis" class="number-cell">
+                <strong>{{ formatQuantity(item.purchaseQuantity) }}</strong>
+                <small>{{ formatMoney(item.purchaseAmount) }}</small>
+              </td>
+              <td data-label="MNV" class="number-cell">
+                <strong [class.negative-value]="item.adjustmentNetQuantity < 0">
+                  {{ formatSignedQuantity(item.adjustmentNetQuantity) }}
+                </strong>
+                <small>G {{ formatQuantity(item.adjustmentInQuantity) }} / C {{ formatQuantity(item.adjustmentOutQuantity) }}</small>
+              </td>
+              <td data-label="Talep" class="number-cell">
+                <strong>{{ formatQuantity(item.orderInputQuantity) }}</strong>
+                <small>{{ item.orderBranchCount }} sube</small>
+              </td>
+              <td data-label="Tahmini" class="number-cell">
+                <strong>{{ formatQuantity(item.orderEstimatedQuantity) }}</strong>
+                <small>Mikro {{ formatQuantity(item.orderMicroQuantity) }}</small>
+              </td>
+              <td data-label="Sevk" class="number-cell">
+                <strong>{{ formatQuantity(item.shipmentQuantity) }}</strong>
+                <small>{{ item.shipmentBranchCount }} sube</small>
+              </td>
+              <td data-label="Stok" class="number-cell">
+                <strong>{{ formatQuantity(item.currentStockQuantity) }}</strong>
+                <small>Sayim {{ formatQuantity(item.lastCountQuantity) }}</small>
+              </td>
+              <td data-label="Islem" class="actions-cell">
+                <button type="button" class="row-action" (click)="openDetail(item)">Detay</button>
+                <button
+                  type="button"
+                  class="row-action row-action-primary"
+                  (click)="openAdjustmentDialog(item)"
+                  [disabled]="!canCreateAdjustment()"
+                >
+                  Duzelt
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #emptyOverview>
+        <article class="state-card compact-state" *ngIf="!isLoading()">
+          <h3>Kayit Yok</h3>
+          <p>Filtreye uygun manav operasyon satiri bulunamadi.</p>
+        </article>
+      </ng-template>
+    </article>
+  </section>
+
+  <div class="dialog-backdrop" *ngIf="isDetailDialogOpen()"></div>
+  <section
+    class="dialog-shell detail-dialog"
+    *ngIf="isDetailDialogOpen() && selectedDetail() as detail"
+    role="dialog"
+    aria-modal="true"
+    aria-label="Manav operasyon satir detayi"
+  >
+    <header class="dialog-head">
+      <div>
+        <span class="section-kicker">Satir Detayi</span>
+        <h3>{{ selectedDetailTitle() }}</h3>
+        <p>{{ detail.stockCode }} / {{ detail.unitName || '-' }}</p>
+      </div>
+      <button type="button" class="dialog-close" (click)="closeDetailDialog()">Kapat</button>
+    </header>
+
+    <div class="dialog-body detail-grid">
+      <article class="detail-block">
+        <span>Alis</span>
+        <strong>{{ formatQuantity(detail.purchaseQuantity) }}</strong>
+        <small>{{ formatMoney(detail.purchaseAmount) }} / {{ detail.purchaseDocumentCount }} evrak</small>
+        <small>{{ formatDate(detail.lastPurchaseDate) }} - {{ detail.lastSupplierName || '-' }}</small>
+      </article>
+      <article class="detail-block">
+        <span>MNV Fark</span>
+        <strong>{{ formatSignedQuantity(detail.adjustmentNetQuantity) }}</strong>
+        <small>Giris {{ formatQuantity(detail.adjustmentInQuantity) }} / Cikis {{ formatQuantity(detail.adjustmentOutQuantity) }}</small>
+        <small>{{ formatDate(detail.lastAdjustmentDate) }} - {{ detail.lastAdjustmentDocument || '-' }}</small>
+      </article>
+      <article class="detail-block">
+        <span>Sube Talep</span>
+        <strong>{{ formatQuantity(detail.orderInputQuantity) }}</strong>
+        <small>{{ detail.orderLineCount }} satir / {{ detail.orderBranchCount }} sube</small>
+        <small>Tahmini {{ formatQuantity(detail.orderEstimatedQuantity) }}</small>
+      </article>
+      <article class="detail-block">
+        <span>Sevk</span>
+        <strong>{{ formatQuantity(detail.shipmentQuantity) }}</strong>
+        <small>{{ detail.shipmentDocumentCount }} evrak / {{ detail.shipmentBranchCount }} sube</small>
+        <small>{{ formatDate(detail.lastShipmentDate) }} - {{ detail.lastShipmentDocument || '-' }}</small>
+      </article>
+      <article class="detail-block">
+        <span>Sayim</span>
+        <strong>{{ formatQuantity(detail.lastCountQuantity) }}</strong>
+        <small>{{ formatDate(detail.lastCountDate) }} / {{ detail.lastCountDocumentNo || '-' }}</small>
+        <small>Fark {{ formatSignedQuantity(detail.countDifferenceAtCountDate) }}</small>
+      </article>
+      <article class="detail-block">
+        <span>Durum</span>
+        <strong>{{ detail.primaryStatusName || '-' }}</strong>
+        <small>{{ getFlagText(detail) }}</small>
+      </article>
+    </div>
+
+    <footer class="dialog-actions">
+      <button type="button" class="task-action task-action-secondary" (click)="closeDetailDialog()">Kapat</button>
+      <button
+        type="button"
+        class="task-action task-action-primary"
+        (click)="closeDetailDialog(); openAdjustmentDialog(detail)"
+        [disabled]="!canCreateAdjustment()"
+      >
+        Duzeltme Ac
+      </button>
+    </footer>
+  </section>
+
+  <div class="dialog-backdrop" *ngIf="isAdjustmentDialogOpen()"></div>
+  <form
+    class="dialog-shell adjustment-dialog"
+    *ngIf="isAdjustmentDialogOpen()"
+    [formGroup]="adjustmentForm"
+    (ngSubmit)="previewAdjustment()"
+    role="dialog"
+    aria-modal="true"
+    aria-label="MNV duzeltme dialogu"
+    novalidate
+  >
+    <header class="dialog-head">
+      <div>
+        <span class="section-kicker">MNV Duzeltme</span>
+        <h3>{{ adjustmentDialogTitle() }}</h3>
+        <p>{{ clientRequestId() }}</p>
+      </div>
+      <button
+        type="button"
+        class="dialog-close"
+        (click)="closeAdjustmentDialog()"
+        [disabled]="isSaving() || isPreviewing()"
+      >
+        Kapat
+      </button>
+    </header>
+
+    <article
+      class="state-card feedback-card"
+      *ngIf="adjustmentFeedback() as dialogFeedback"
+      [class.state-card-error]="dialogFeedback.tone === 'error'"
+      [class.state-card-success]="dialogFeedback.tone === 'success'"
+      [class.state-card-info]="dialogFeedback.tone === 'info'"
+    >
+      <h3>{{ dialogFeedback.title }}</h3>
+      <p>{{ dialogFeedback.message }}</p>
+    </article>
+
+    <div class="dialog-body adjustment-grid">
+      <label class="field" *ngIf="canUseAllWarehouses()">
+        <span>Depo</span>
+        <input type="number" min="1" formControlName="warehouseNo" />
+      </label>
+
+      <label class="field stock-field">
+        <span>Stok Kodu</span>
+        <input type="text" formControlName="stockCode" placeholder="001082" />
+      </label>
+
+      <label class="field">
+        <span>Yon</span>
+        <select formControlName="direction">
+          <option *ngFor="let option of directionOptions; trackBy: trackByOption" [value]="option.value">
+            {{ option.label }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Miktar</span>
+        <input type="number" min="0.0001" step="0.01" formControlName="quantity" />
+      </label>
+
+      <label class="field">
+        <span>Hareket Tarihi</span>
+        <input type="date" formControlName="movementDate" [max]="maxDate" />
+      </label>
+
+      <label class="field">
+        <span>Belge Tarihi</span>
+        <input type="date" formControlName="documentDate" [max]="maxDate" />
+      </label>
+
+      <label class="field">
+        <span>Seri</span>
+        <input type="text" formControlName="documentSerie" />
+      </label>
+
+      <label class="field">
+        <span>Belge No</span>
+        <input type="text" formControlName="documentNo" placeholder="Opsiyonel" />
+      </label>
+
+      <label class="field">
+        <span>Karsi Depo</span>
+        <input type="number" min="1" formControlName="counterWarehouseNo" />
+      </label>
+
+      <label class="field">
+        <span>Birim</span>
+        <input type="number" min="1" formControlName="unitPointer" />
+      </label>
+
+      <label class="field">
+        <span>Birim Fiyat</span>
+        <input type="number" min="0" step="0.01" formControlName="unitPrice" />
+      </label>
+
+      <label class="field">
+        <span>Neden</span>
+        <input type="text" formControlName="reasonCode" />
+      </label>
+
+      <label class="field">
+        <span>Olusturan</span>
+        <input type="text" formControlName="creator" />
+      </label>
+
+      <label class="field">
+        <span>Kabul Eden</span>
+        <input type="text" formControlName="acceptor" />
+      </label>
+
+      <label class="field description-field">
+        <span>Aciklama</span>
+        <textarea formControlName="description" rows="3"></textarea>
+      </label>
+    </div>
+
+    <section class="preview-result" *ngIf="adjustmentPreview() as preview">
+      <article>
+        <span>Yon</span>
+        <strong>{{ preview.directionName }}</strong>
+      </article>
+      <article>
+        <span>Seri</span>
+        <strong>{{ preview.documentSerie }}</strong>
+      </article>
+      <article>
+        <span>Miktar</span>
+        <strong>{{ formatQuantity(preview.totalQuantity) }}</strong>
+      </article>
+      <article>
+        <span>Tutar</span>
+        <strong>{{ formatMoney(preview.totalAmount) }}</strong>
+      </article>
+    </section>
+
+    <section class="preview-result result-success" *ngIf="adjustmentResult() as result">
+      <article>
+        <span>Evrak</span>
+        <strong>{{ result.documentSerie }}/{{ result.documentOrderNo }}</strong>
+      </article>
+      <article>
+        <span>Durum</span>
+        <strong>{{ result.status }}</strong>
+      </article>
+      <article>
+        <span>Satir</span>
+        <strong>{{ result.lineCount }}</strong>
+      </article>
+      <article>
+        <span>Guid</span>
+        <strong>{{ result.movementGuids.length }}</strong>
+      </article>
+    </section>
+
+    <footer class="dialog-actions">
+      <button
+        type="button"
+        class="task-action task-action-secondary"
+        (click)="closeAdjustmentDialog()"
+        [disabled]="isSaving() || isPreviewing()"
+      >
+        Kapat
+      </button>
+      <button type="submit" class="task-action task-action-secondary" [disabled]="isPreviewing() || isSaving()">
+        {{ isPreviewing() ? 'Onizleniyor...' : 'Onizle' }}
+      </button>
+      <button
+        type="button"
+        class="task-action task-action-primary"
+        (click)="saveAdjustment()"
+        [disabled]="isSaving() || isPreviewing() || !adjustmentPreview()"
+      >
+        {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
+      </button>
+    </footer>
+  </form>
+</section>

@@ -177,3 +177,148 @@ export interface GreenGrocerProductCaseResolutionDto {
   warnings: string[];
   errors: string[];
 }
+
+export type GreenGrocerOperationsTypeCode = '10' | '11' | '12' | '23' | 'all' | 'tum' | string;
+export type GreenGrocerOperationsAdjustmentDirection = 'increase' | 'decrease' | string;
+
+export interface GreenGrocerOperationsOverviewHttpRequest {
+  startDate?: string | null;
+  endDate?: string | null;
+  warehouseNo?: number | null;
+  typeCode?: GreenGrocerOperationsTypeCode | null;
+  search?: string | null;
+  onlyWithActivity?: boolean | null;
+  take?: number | null;
+}
+
+export interface GreenGrocerOperationsStatusSummaryDto {
+  statusCode: string;
+  statusName: string;
+  productCount: number;
+  currentStockQuantity: number;
+  purchaseQuantity: number;
+  adjustmentNetQuantity: number;
+  orderEstimatedQuantity: number;
+  shipmentQuantity: number;
+}
+
+export interface GreenGrocerOperationsOverviewItemDto {
+  stockCode: string;
+  stockName: string;
+  modelCode: string | null;
+  unitName: string | null;
+  currentStockQuantity: number;
+  purchaseQuantity: number;
+  purchaseAmount: number;
+  purchaseUnitPrice: number;
+  purchaseDocumentCount: number;
+  lastPurchaseDate: string | null;
+  lastPurchaseDocument: string | null;
+  lastSupplierCode: string | null;
+  lastSupplierName: string | null;
+  adjustmentInQuantity: number;
+  adjustmentOutQuantity: number;
+  adjustmentNetQuantity: number;
+  adjustmentDocumentCount: number;
+  lastAdjustmentDate: string | null;
+  lastAdjustmentDocument: string | null;
+  lastAdjustmentSeries: string | null;
+  lastAdjustmentReason: string | null;
+  orderInputQuantity: number;
+  orderEstimatedQuantity: number;
+  orderMicroQuantity: number;
+  orderLineCount: number;
+  orderBranchCount: number;
+  shipmentQuantity: number;
+  shipmentDocumentCount: number;
+  shipmentBranchCount: number;
+  lastShipmentDate: string | null;
+  lastShipmentDocument: string | null;
+  lastCountDate: string | null;
+  lastCountDocumentNo: number | null;
+  lastCountQuantity: number | null;
+  systemQuantityAtCountDate: number | null;
+  countDifferenceAtCountDate: number | null;
+  primaryStatusCode: string;
+  primaryStatusName: string;
+  flags: string[];
+}
+
+export interface GreenGrocerOperationsOverviewDto {
+  warehouseNo: number | null;
+  warehouseName: string | null;
+  startDate: string;
+  endDate: string;
+  productCount: number;
+  totalCurrentStockQuantity: number;
+  totalPurchaseQuantity: number;
+  totalPurchaseAmount: number;
+  totalAdjustmentInQuantity: number;
+  totalAdjustmentOutQuantity: number;
+  totalAdjustmentNetQuantity: number;
+  totalOrderInputQuantity: number;
+  totalOrderEstimatedQuantity: number;
+  totalShipmentQuantity: number;
+  totalLatestCountQuantity: number;
+  statusSummaries: GreenGrocerOperationsStatusSummaryDto[];
+  items: GreenGrocerOperationsOverviewItemDto[];
+}
+
+export interface GreenGrocerOperationsAdjustmentLineHttpRequest {
+  stockCode: string;
+  quantity: number;
+  unitPointer?: number | null;
+  unitPrice?: number | null;
+  description?: string | null;
+  partyCode?: string | null;
+  lotNo?: string | null;
+  projectCode?: string | null;
+}
+
+export interface GreenGrocerOperationsAdjustmentPreviewHttpRequest {
+  warehouseNo?: number | null;
+  direction: GreenGrocerOperationsAdjustmentDirection;
+  movementDate?: string | null;
+  documentSerie?: string | null;
+  reasonCode?: string | null;
+  lines: GreenGrocerOperationsAdjustmentLineHttpRequest[];
+}
+
+export interface GreenGrocerOperationsAdjustmentPreviewDto {
+  warehouseNo: number | null;
+  counterWarehouseNo: number | null;
+  direction: GreenGrocerOperationsAdjustmentDirection;
+  directionName: string;
+  documentSerie: string;
+  movementType: number;
+  movementGenre: number;
+  documentType: number;
+  reasonCode: string;
+  reasonName: string;
+  lineCount: number;
+  totalQuantity: number;
+  totalAmount: number;
+}
+
+export interface GreenGrocerOperationsAdjustmentApplyHttpRequest
+  extends GreenGrocerOperationsAdjustmentPreviewHttpRequest {
+  clientRequestId: string;
+  documentDate?: string | null;
+  documentNo?: string | null;
+  counterWarehouseNo?: number | null;
+  description?: string | null;
+  creator?: string | null;
+  acceptor?: string | null;
+}
+
+export interface GreenGrocerOperationsAdjustmentApplyDto
+  extends GreenGrocerOperationsAdjustmentPreviewDto {
+  clientRequestId: string;
+  status: string;
+  documentOrderNo: number;
+  movementDate: string;
+  documentDate: string;
+  documentNo: string | null;
+  connectionStringName: string;
+  movementGuids: string[];
+}

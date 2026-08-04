@@ -15,6 +15,7 @@ export interface DocsTaskRegistration {
   pageId: string;
   accessKeys: string[];
   requiredPermissionKeys: string[];
+  responsibilityKeys?: string[];
 }
 
 export interface DocsTaskContext {
@@ -89,6 +90,19 @@ function getBackendLeafKey(pageId: string): string {
   return backendSegments[backendSegments.length - 1] ?? '';
 }
 
+function getBackendModuleKey(pageId: string): string {
+  const baseRouteOrFile = DOCS_PAGES[pageId]?.baseRouteOrFile;
+
+  if (!baseRouteOrFile) {
+    return '';
+  }
+
+  const segments = baseRouteOrFile.split('/').filter(Boolean);
+  const apiIndex = segments.findIndex((segment) => segment.toLowerCase() === 'api');
+
+  return apiIndex >= 0 ? segments[apiIndex + 1] ?? '' : segments[0] ?? '';
+}
+
 function normalizeRoutePath(path: string): string {
   return path.startsWith('/') ? path : `/${path}`;
 }
@@ -111,7 +125,8 @@ function buildTaskRegistration(pageId: string): DocsTaskRegistration {
       getBackendLeafKey(pageId),
       ...getTaskAccessKeyAliases(pageId)
     ]),
-    requiredPermissionKeys: buildUniqueAccessKeys(getTaskRequiredPermissionCodes(pageId))
+    requiredPermissionKeys: buildUniqueAccessKeys(getTaskRequiredPermissionCodes(pageId)),
+    responsibilityKeys: buildUniqueAccessKeys([getBackendModuleKey(pageId)])
   };
 }
 
@@ -172,7 +187,37 @@ function matchesTaskRegistration(gorev: Gorev, registration: DocsTaskRegistratio
   return taskMatchKeys.length > 0 && hasAnySharedKey(registration.accessKeys, taskMatchKeys);
 }
 
+function buildTaskPermissionKeySet(gorev: Gorev): Set<string> {
+  const taskPermissionKeys = new Set<string>();
+
+  for (const yetki of gorev.yetkiler ?? []) {
+    for (const key of buildPermissionKeys(yetki)) {
+      taskPermissionKeys.add(key);
+    }
+  }
+
+  return taskPermissionKeys;
+}
+
+function buildResponsibilityMatchKeys(sorumluluk: Sorumluluk): string[] {
+  return buildUniqueAccessKeys([sorumluluk.isim, sorumluluk.sebike]);
+}
+
+function filterCandidatesByResponsibility(
+  candidates: DocsTaskRegistration[],
+  responsibilityMatchKeys: string[]
+): DocsTaskRegistration[] {
+  const responsibilityCandidates = candidates.filter(
+    (registration) =>
+      !!registration.responsibilityKeys?.length &&
+      hasAnySharedKey(registration.responsibilityKeys, responsibilityMatchKeys)
+  );
+
+  return responsibilityCandidates.length ? responsibilityCandidates : candidates;
+}
+
 function findTaskRegistration(
+  sorumluluk: Sorumluluk,
   gorev: Gorev,
   registrations: DocsTaskRegistration[]
 ): DocsTaskRegistration | null {
@@ -182,11 +227,68 @@ function findTaskRegistration(
     return null;
   }
 
-  return (
-    registrations.find((registration) =>
-      hasAnySharedKey(registration.accessKeys, taskMatchKeys)
-    ) ?? null
+  const candidates = registrations.filter((registration) =>
+    hasAnySharedKey(registration.accessKeys, taskMatchKeys)
   );
+
+  return filterCandidatesByResponsibility(candidates, buildResponsibilityMatchKeys(sorumluluk))[0] ?? null;
+}
+
+function getRegistrationPermissionScore(
+  registration: DocsTaskRegistration,
+  taskPermissionKeys: Set<string>,
+  userPermissionKeys: Set<string>
+): number {
+  if (!registration.requiredPermissionKeys.length) {
+    return 1;
+  }
+
+  if (registration.requiredPermissionKeys.some((permissionKey) => taskPermissionKeys.has(permissionKey))) {
+    return 3;
+  }
+
+  if (registration.requiredPermissionKeys.some((permissionKey) => userPermissionKeys.has(permissionKey))) {
+    return 2;
+  }
+
+  return 0;
+}
+
+function findOpenTaskRegistration(
+  sorumluluk: Sorumluluk,
+  gorev: Gorev,
+  registrations: DocsTaskRegistration[],
+  userPermissionKeys: Set<string>
+): DocsTaskRegistration | null {
+  const taskMatchKeys = buildTaskMatchKeys(gorev);
+
+  if (!taskMatchKeys.length) {
+    return null;
+  }
+
+  const taskPermissionKeys = buildTaskPermissionKeySet(gorev);
+  const responsibilityMatchKeys = buildResponsibilityMatchKeys(sorumluluk);
+  const candidates = filterCandidatesByResponsibility(
+    registrations.filter((registration) => hasAnySharedKey(registration.accessKeys, taskMatchKeys)),
+    responsibilityMatchKeys
+  );
+  let bestRegistration: DocsTaskRegistration | null = null;
+  let bestScore = 0;
+
+  for (const registration of candidates) {
+    const score = getRegistrationPermissionScore(
+      registration,
+      taskPermissionKeys,
+      userPermissionKeys
+    );
+
+    if (score > bestScore) {
+      bestRegistration = registration;
+      bestScore = score;
+    }
+  }
+
+  return bestRegistration;
 }
 
 function canOpenTaskRegistration(
@@ -198,13 +300,7 @@ function canOpenTaskRegistration(
     return true;
   }
 
-  const taskPermissionKeys = new Set<string>();
-
-  for (const yetki of gorev.yetkiler ?? []) {
-    for (const key of buildPermissionKeys(yetki)) {
-      taskPermissionKeys.add(key);
-    }
-  }
+  const taskPermissionKeys = buildTaskPermissionKeySet(gorev);
 
   return registration.requiredPermissionKeys.some(
     (permissionKey) => taskPermissionKeys.has(permissionKey) || userPermissionKeys.has(permissionKey)
@@ -225,9 +321,14 @@ function buildMenuItems(
   userPermissionKeys: Set<string>
 ): DocsTaskItem[] {
   return (sorumluluk.gorevler ?? []).flatMap((gorev) => {
-    const registration = findTaskRegistration(gorev, registrations);
+    const registration = findOpenTaskRegistration(
+      sorumluluk,
+      gorev,
+      registrations,
+      userPermissionKeys
+    );
 
-    if (!registration || !canOpenTaskRegistration(gorev, registration, userPermissionKeys)) {
+    if (!registration) {
       return [];
     }
 
@@ -266,7 +367,7 @@ function findMatchedTaskContexts(
   return sorumluluklar.flatMap((sorumluluk) =>
     (sorumluluk.gorevler ?? []).flatMap((gorev) => {
       const isMatch = registration
-        ? matchesTaskRegistration(gorev, registration)
+        ? findTaskRegistration(sorumluluk, gorev, registrations)?.id === registration.id
         : buildTaskMatchKeys(gorev).includes(normalizedTaskId);
 
       if (!isMatch) {

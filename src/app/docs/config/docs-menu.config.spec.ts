@@ -167,6 +167,57 @@ describe('docs-menu.config', () => {
     expect(menu[0]?.children.map((item) => item.id)).toEqual(['authorization-files']);
   });
 
+  it('routes GreenGrocer operations to the dedicated operation panel', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'GreenGrocer',
+        sebike: 'green-grocer',
+        gorevler: [
+          {
+            id: 1,
+            isim: 'Operations',
+            sebike: 'operations',
+            yetkiler: [pagePermission('green-grocer.operations.page')]
+          }
+        ]
+      }
+    ];
+
+    const menu = buildDocsMenuForUser(sorumluluklar);
+
+    expect(hasDocsTaskAccess('green-grocer-operations', sorumluluklar)).toBeTrue();
+    expect(hasDocsTaskAccess('authorization-files', sorumluluklar)).toBeFalse();
+    expect(menu[0]?.children.map((item) => item.id)).toEqual(['green-grocer-operations']);
+  });
+
+  it('requires GreenGrocer operations page permission before showing the operation panel', () => {
+    const sorumluluklar: Sorumluluk[] = [
+      {
+        id: 1,
+        isim: 'GreenGrocer',
+        sebike: 'green-grocer',
+        gorevler: [
+          {
+            id: 1,
+            isim: 'Operations',
+            sebike: 'operations',
+            yetkiler: [
+              {
+                id: 1,
+                isim: 'Listele',
+                sebike: 'green-grocer.operations.list'
+              }
+            ]
+          }
+        ]
+      }
+    ];
+
+    expect(hasDocsTaskAccess('green-grocer-operations', sorumluluklar)).toBeFalse();
+    expect(buildDocsMenuForUser(sorumluluklar)).toEqual([]);
+  });
+
   it('matches Axata synchronization task ids from backend menu codes and aliases', () => {
     const sorumluluklar: Sorumluluk[] = [
       {
