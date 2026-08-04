@@ -450,18 +450,18 @@ button.count-card:hover {
   z-index: 31;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  width: min(920px, calc(100vw - 2rem));
+  width: min(980px, calc(100vw - 1.5rem));
   max-height: calc(100vh - 2rem);
   min-height: 0;
   overflow: hidden;
   transform: translate(-50%, -50%);
-  border-radius: 18px;
+  border-radius: 14px;
 }
 
 .drawer-head,
 .drawer-summary,
 .drawer-footer {
-  padding: 1rem 1.1rem;
+  padding: 0.82rem 0.95rem;
 }
 
 .drawer-head {
@@ -487,14 +487,14 @@ button.count-card:hover {
 
 .drawer-summary strong {
   margin-top: 0;
-  font-size: 1.2rem;
+  font-size: 1.08rem;
 }
 
 .drawer-body {
   display: grid;
-  gap: 0.8rem;
+  gap: 0.55rem;
   min-height: 0;
-  padding: 1rem 1.1rem;
+  padding: 0.75rem 0.85rem;
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -505,34 +505,55 @@ button.count-card:hover {
 
 .editor-list {
   display: grid;
-  gap: 0.65rem;
+  gap: 0.42rem;
 }
 
 .editor-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  gap: 0.65rem;
+  gap: 0.42rem;
   align-items: end;
-  padding: 0.78rem;
+  padding: 0.52rem;
   border: 1px solid #e2e8f0;
-  border-radius: 14px;
+  border-radius: 8px;
   background: #fff;
 }
 
 .payment-row {
-  grid-template-columns: minmax(150px, 1.2fr) minmax(86px, 0.6fr) minmax(86px, 0.6fr) minmax(120px, 0.9fr) minmax(120px, 0.9fr) minmax(120px, 0.9fr) auto;
+  grid-template-columns: minmax(170px, 1.35fr) minmax(72px, 0.46fr) minmax(72px, 0.46fr) minmax(100px, 0.72fr) minmax(110px, 0.78fr) minmax(116px, 0.86fr) auto;
 }
 
 .store-row {
-  grid-template-columns: minmax(150px, 0.9fr) minmax(180px, 1.4fr) minmax(120px, 0.8fr) auto;
+  grid-template-columns: minmax(170px, 1fr) minmax(190px, 1.5fr) minmax(105px, 0.68fr) auto;
+}
+
+.drawer-body .field {
+  gap: 0.16rem;
+}
+
+.drawer-body .field span {
+  font-size: 0.52rem;
+}
+
+.drawer-body .field input,
+.drawer-body .field select {
+  min-height: 30px;
+  border-radius: 7px;
+  padding: 0.28rem 0.44rem;
+  font-size: 0.78rem;
+}
+
+.drawer-body .compact-field input {
+  text-align: right;
 }
 
 .row-remove {
-  min-height: 42px;
-  border-radius: 12px;
-  padding: 0.62rem 0.78rem;
+  min-height: 30px;
+  border-radius: 8px;
+  padding: 0.42rem 0.56rem;
   color: #b91c1c;
   background: #fef2f2;
+  font-size: 0.78rem;
 }
 
 .empty-state {

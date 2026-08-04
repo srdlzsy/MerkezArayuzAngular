@@ -671,9 +671,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected addEmptyPaymentType(source: CashDrawerPaymentSource = 'other'): void {
+    const defaultTemplate = this.getPaymentTypeTemplates(source)[0];
+
     this.paymentTypes.push(
       this.createPaymentTypeGroup(
-        {
+        defaultTemplate ?? {
           paymentName: this.getDefaultPaymentName(source),
           paymentTypeNo: 0,
           slipNumber: 0,
@@ -699,7 +701,19 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected addEmptyStoreExpense(): void {
-    this.storeExpenses.push(this.createStoreExpenseGroup());
+    const defaultTemplate = this.storeExpenseTemplates()[0];
+
+    this.storeExpenses.push(
+      this.createStoreExpenseGroup(
+        defaultTemplate
+          ? {
+              storeExpensesType: defaultTemplate.paymentTypeNo ?? null,
+              description: '',
+              amountValue: defaultTemplate.amountValue ?? 0
+            }
+          : undefined
+      )
+    );
     this.refreshComputedFormState();
   }
 
@@ -720,7 +734,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected addEmptyBanknote(): void {
-    this.banknoteMovements.push(this.createBanknoteGroup());
+    const defaultTemplate = [...this.banknoteTypes()].sort(
+      (left, right) => right.value - left.value
+    )[0];
+
+    this.banknoteMovements.push(this.createBanknoteGroup(defaultTemplate));
     this.refreshComputedFormState();
   }
 
@@ -745,7 +763,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected addEmptyGiftCheck(): void {
-    this.giftCheckMovements.push(this.createGiftCheckGroup());
+    this.giftCheckMovements.push(this.createGiftCheckGroup(this.giftCheckTypes()[0]));
     this.refreshComputedFormState();
   }
 
@@ -957,10 +975,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       return;
     }
 
-    group.controls.paymentName.setValue(template.paymentName?.trim() ?? '');
-    group.controls.paymentTypeNo.setValue(template.paymentTypeNo ?? null);
-    group.controls.terminalId.setValue(template.terminalId?.trim() ?? '');
-    group.controls.accountCode.setValue(template.accountCode?.trim() ?? '');
+    this.applyPaymentTypeTemplateToGroup(group, template);
     this.markPaymentTypeLookupControlsTouched(group);
     this.refreshComputedFormState();
   }
@@ -1099,7 +1114,14 @@ export class IcmalDokumuCreateComponent implements OnInit {
         return;
       }
 
-      this.paymentTypes.push(this.createPaymentTypeGroup(template, source));
+      const reusableGroup = this.findReusablePaymentTypePlaceholder(source);
+
+      if (reusableGroup) {
+        this.applyPaymentTypeTemplateToGroup(reusableGroup, template);
+      } else {
+        this.paymentTypes.push(this.createPaymentTypeGroup(template, source));
+      }
+
       existingKeys.add(key);
       hasNewTemplate = true;
     });
@@ -1115,6 +1137,39 @@ export class IcmalDokumuCreateComponent implements OnInit {
         this.paymentTypes.removeAt(index);
       }
     }
+  }
+
+  private findReusablePaymentTypePlaceholder(
+    source: CashDrawerPaymentSource
+  ): PaymentTypeLineFormGroup | null {
+    const defaultPaymentName = this.normalizePaymentName(this.getDefaultPaymentName(source));
+
+    return (
+      this.paymentTypes.controls.find((group) => {
+        const paymentName = this.normalizePaymentName(group.controls.paymentName.value);
+
+        return (
+          group.controls.source.value === source &&
+          !this.isBackendGeneratedCashPaymentGroup(group) &&
+          this.toSafeNumber(group.controls.paymentTypeNo.value) === 0 &&
+          this.toSafeNumber(group.controls.slipNumber.value) === 0 &&
+          this.toSafeNumber(group.controls.amountValue.value) === 0 &&
+          !group.controls.terminalId.value.trim() &&
+          !group.controls.accountCode.value.trim() &&
+          (!paymentName || paymentName === defaultPaymentName)
+        );
+      }) ?? null
+    );
+  }
+
+  private applyPaymentTypeTemplateToGroup(
+    group: PaymentTypeLineFormGroup,
+    template: IFurpaPaymentTypeLookupItemApiDto
+  ): void {
+    group.controls.paymentName.setValue(template.paymentName?.trim() ?? '');
+    group.controls.paymentTypeNo.setValue(template.paymentTypeNo ?? null);
+    group.controls.terminalId.setValue(template.terminalId?.trim() ?? '');
+    group.controls.accountCode.setValue(template.accountCode?.trim() ?? '');
   }
 
   private markPaymentTypeLookupControlsTouched(group: PaymentTypeLineFormGroup): void {
