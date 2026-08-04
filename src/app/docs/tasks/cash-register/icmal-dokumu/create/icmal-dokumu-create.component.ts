@@ -58,7 +58,7 @@ type PaymentTypeLineFormGroup = FormGroup<{
 }>;
 
 type StoreExpenseLineFormGroup = FormGroup<{
-  storeExpensesType: FormControl<string>;
+  storeExpensesType: FormControl<number | null>;
   description: FormControl<string>;
   amountValue: FormControl<number | null>;
 }>;
@@ -161,6 +161,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
     cashNo: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(1)]
     }),
+    cashRegisterFiscalNo: new FormControl<string>(
+      { value: '', disabled: true },
+      { nonNullable: true }
+    ),
     zReportNo: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(1)]
     }),
@@ -577,6 +581,8 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.cashRegisterDetail.set(null);
     this.bankPaymentTypes.set([]);
     this.cashRegisterMessage.set('');
+    this.controls.cashRegisterFiscalNo.setValue('', { emitEvent: false });
+    this.removePaymentTypesBySource('card');
     this.refreshComputedFormState();
 
     if (cashNo === null || cashNo === undefined || cashNo <= 0) {
@@ -591,8 +597,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .subscribe({
         next: (detail: ICashRegisterDetails | null) => {
           this.cashRegisterDetail.set(detail);
+          const fiscalMemoryNo = detail?.cashRegisterNo?.trim() ?? '';
+          this.controls.cashRegisterFiscalNo.setValue(fiscalMemoryNo, { emitEvent: false });
 
-          if (!detail?.cashRegisterNo?.trim()) {
+          if (!fiscalMemoryNo) {
             this.cashRegisterMessage.set(
               'Kasa detayi bulundu ancak banka odeme tiplerini getirmek icin cash register no okunamadi.'
             );
@@ -600,9 +608,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
           }
 
           this.cashRegisterMessage.set(
-            `${detail.cashRegisterNo} icin banka odeme tipleri yukleniyor.`
+            `${fiscalMemoryNo} icin banka odeme tipleri yukleniyor.`
           );
-          this.loadBankPaymentTypes(detail.cashRegisterNo.trim());
+          this.loadBankPaymentTypes(fiscalMemoryNo);
         },
         error: (error: HttpErrorResponse) => {
           this.cashRegisterMessage.set(
@@ -698,7 +706,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected addStoreExpenseTemplate(template: IFurpaPaymentTypeLookupItemApiDto): void {
     this.storeExpenses.push(
       this.createStoreExpenseGroup({
-        storeExpensesType: template.paymentName?.trim() ?? '',
+        storeExpensesType: template.paymentTypeNo ?? null,
         description: '',
         amountValue: template.amountValue ?? 0
       })
@@ -871,6 +879,92 @@ export class IcmalDokumuCreateComponent implements OnInit {
     return parts.join(' - ');
   }
 
+  protected getStoreExpenseTypeLabel(item: IFurpaPaymentTypeLookupItemApiDto): string {
+    const name = item.paymentName?.trim();
+    const typeNo = this.toSafeNumber(item.paymentTypeNo);
+
+    if (name && typeNo > 0) {
+      return `${name} - Tip ${typeNo}`;
+    }
+
+    return name || `Tip ${typeNo}`;
+  }
+
+  protected getPaymentTypeTemplates(
+    source: CashDrawerPaymentSource
+  ): IFurpaPaymentTypeLookupItemApiDto[] {
+    switch (source) {
+      case 'card':
+        return this.bankPaymentTypes();
+      case 'foodCheck':
+        return this.foodCheckPaymentTypes();
+      case 'expenseVoucher':
+        return this.expenseVoucherPaymentTypes();
+      case 'deferredSale':
+        return this.onlinePaymentTypes();
+      default:
+        return [];
+    }
+  }
+
+  protected getPaymentTypeTemplateKey(template: IFurpaPaymentTypeLookupItemApiDto): string {
+    return this.buildPaymentTypeTemplateKey(template);
+  }
+
+  protected getPaymentTypeGroupTemplateKey(group: PaymentTypeLineFormGroup): string {
+    return this.buildPaymentTypeTemplateKey({
+      paymentName: group.controls.paymentName.value,
+      paymentTypeNo: group.controls.paymentTypeNo.value,
+      terminalId: group.controls.terminalId.value,
+      accountCode: group.controls.accountCode.value
+    });
+  }
+
+  protected getPaymentTypeTemplateLabel(template: IFurpaPaymentTypeLookupItemApiDto): string {
+    const name = template.paymentName?.trim();
+    const typeNo = this.toSafeNumber(template.paymentTypeNo);
+    const parts = [
+      typeNo > 0 ? `Tip ${typeNo}` : '',
+      template.terminalId?.trim() ?? ''
+    ].filter(Boolean);
+
+    if (name && parts.length > 0) {
+      return `${name} - ${parts.join(' / ')}`;
+    }
+
+    return name || parts.join(' / ') || 'Odeme tipi';
+  }
+
+  protected applyPaymentTypeTemplateSelection(index: number, templateKey: string): void {
+    const group = this.paymentTypes.at(index);
+    const source = group.controls.source.value;
+
+    if (!templateKey) {
+      group.controls.paymentName.setValue(this.getDefaultPaymentName(source));
+      group.controls.paymentTypeNo.setValue(0);
+      group.controls.terminalId.setValue('');
+      group.controls.accountCode.setValue('');
+      this.markPaymentTypeLookupControlsTouched(group);
+      this.refreshComputedFormState();
+      return;
+    }
+
+    const template = this.getPaymentTypeTemplates(source).find(
+      (item) => this.buildPaymentTypeTemplateKey(item) === templateKey
+    );
+
+    if (!template) {
+      return;
+    }
+
+    group.controls.paymentName.setValue(template.paymentName?.trim() ?? '');
+    group.controls.paymentTypeNo.setValue(template.paymentTypeNo ?? null);
+    group.controls.terminalId.setValue(template.terminalId?.trim() ?? '');
+    group.controls.accountCode.setValue(template.accountCode?.trim() ?? '');
+    this.markPaymentTypeLookupControlsTouched(group);
+    this.refreshComputedFormState();
+  }
+
   private prefillPanel(panelId: CashDrawerPanelId): void {
     switch (panelId) {
       case 'banknotes': {
@@ -882,9 +976,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
         return;
       }
       case 'cards': {
-        if (!this.hasPaymentTypeSourceValue('card') && this.bankPaymentTypes().length > 0) {
-          this.bankPaymentTypes().forEach((item) => this.addPaymentTypeTemplate(item, 'card'));
-        }
+        this.addMissingPaymentTypeTemplates(this.bankPaymentTypes(), 'card');
         return;
       }
       case 'foodChecks': {
@@ -974,6 +1066,84 @@ export class IcmalDokumuCreateComponent implements OnInit {
     );
   }
 
+  private addMissingPaymentTypeTemplates(
+    templates: IFurpaPaymentTypeLookupItemApiDto[],
+    source: CashDrawerPaymentSource
+  ): void {
+    if (templates.length === 0) {
+      return;
+    }
+
+    const existingKeys = new Set(
+      this.paymentTypes.controls
+        .filter(
+          (group) =>
+            group.controls.source.value === source &&
+            !this.isBackendGeneratedCashPaymentGroup(group)
+        )
+        .map((group) =>
+          this.buildPaymentTypeTemplateKey({
+            paymentName: group.controls.paymentName.value,
+            paymentTypeNo: group.controls.paymentTypeNo.value,
+            terminalId: group.controls.terminalId.value,
+            accountCode: group.controls.accountCode.value
+          })
+        )
+    );
+    let hasNewTemplate = false;
+
+    templates.forEach((template) => {
+      const key = this.buildPaymentTypeTemplateKey(template);
+
+      if (existingKeys.has(key)) {
+        return;
+      }
+
+      this.paymentTypes.push(this.createPaymentTypeGroup(template, source));
+      existingKeys.add(key);
+      hasNewTemplate = true;
+    });
+
+    if (hasNewTemplate) {
+      this.refreshComputedFormState();
+    }
+  }
+
+  private removePaymentTypesBySource(source: CashDrawerPaymentSource): void {
+    for (let index = this.paymentTypes.length - 1; index >= 0; index -= 1) {
+      if (this.paymentTypes.at(index).controls.source.value === source) {
+        this.paymentTypes.removeAt(index);
+      }
+    }
+  }
+
+  private markPaymentTypeLookupControlsTouched(group: PaymentTypeLineFormGroup): void {
+    group.controls.paymentName.markAsDirty();
+    group.controls.paymentName.markAsTouched();
+    group.controls.paymentTypeNo.markAsDirty();
+    group.controls.paymentTypeNo.markAsTouched();
+    group.controls.terminalId.markAsDirty();
+    group.controls.terminalId.markAsTouched();
+    group.controls.accountCode.markAsDirty();
+    group.controls.accountCode.markAsTouched();
+  }
+
+  private buildPaymentTypeTemplateKey(
+    template: Partial<{
+      paymentName: string | null;
+      paymentTypeNo: number | string | null;
+      terminalId: string | null;
+      accountCode: string | null;
+    }>
+  ): string {
+    return [
+      this.normalizePaymentName(template.paymentName),
+      this.toSafeNumber(template.paymentTypeNo),
+      this.normalizeLookupKeyText(template.terminalId),
+      this.normalizeLookupKeyText(template.accountCode)
+    ].join('|');
+  }
+
   private paymentTotalBySource(source: CashDrawerPaymentSource): number {
     this.formRevision();
     return this.roundCurrency(
@@ -1054,6 +1224,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .replace(/^-+|-+$/g, '');
   }
 
+  private normalizeLookupKeyText(value: string | null | undefined): string {
+    return (value ?? '').trim().toLowerCase();
+  }
+
   private refreshComputedFormState(): void {
     this.formRevision.update((value) => value + 1);
   }
@@ -1061,10 +1235,17 @@ export class IcmalDokumuCreateComponent implements OnInit {
   private loadBankPaymentTypes(cashRegisterNo: string): void {
     this.kasaIslemleriService.getBankaOdemeTipleri(cashRegisterNo).subscribe({
       next: (items: IFurpaPaymentTypeLookupItemApiDto[]) => {
-        this.bankPaymentTypes.set(items ?? []);
+        const paymentTypes = items ?? [];
+
+        this.bankPaymentTypes.set(paymentTypes);
+
+        if (this.activePanel() === 'cards') {
+          this.addMissingPaymentTypeTemplates(paymentTypes, 'card');
+        }
+
         this.cashRegisterMessage.set(
-          items.length
-            ? `${cashRegisterNo} icin ${items.length} banka odeme tipi hazir.`
+          paymentTypes.length
+            ? `${cashRegisterNo} icin ${paymentTypes.length} banka odeme tipi hazir.`
             : `${cashRegisterNo} icin banka odeme tipi bulunamadi.`
         );
       },
@@ -1145,14 +1326,13 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   private createStoreExpenseGroup(
     template?: Partial<{
-      storeExpensesType: string;
+      storeExpensesType: number | null;
       description: string;
       amountValue: number;
     }>
   ): StoreExpenseLineFormGroup {
     return new FormGroup({
-      storeExpensesType: new FormControl(template?.storeExpensesType?.trim() ?? '', {
-        nonNullable: true,
+      storeExpensesType: new FormControl<number | null>(template?.storeExpensesType ?? null, {
         validators: [Validators.required]
       }),
       description: new FormControl(template?.description?.trim() ?? '', {

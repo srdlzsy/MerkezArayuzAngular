@@ -284,6 +284,13 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.13);
 }
 
+.field input[readonly],
+.field input:disabled {
+  background: #f8fafc;
+  color: #334155;
+  opacity: 1;
+}
+
 .cashier-card {
   min-height: 0;
 }

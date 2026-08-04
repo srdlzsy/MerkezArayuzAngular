@@ -119,52 +119,83 @@
         <table class="operations-table">
           <thead>
             <tr>
-              <th><button type="button" (click)="sortBy('status')">Durum{{ getSortMark('status') }}</button></th>
               <th><button type="button" (click)="sortBy('stock')">Urun{{ getSortMark('stock') }}</button></th>
               <th><button type="button" (click)="sortBy('purchase')">Alis{{ getSortMark('purchase') }}</button></th>
-              <th><button type="button" (click)="sortBy('adjustment')">MNV{{ getSortMark('adjustment') }}</button></th>
+              <th><button type="button" (click)="sortBy('adjustment')">MNV Fark{{ getSortMark('adjustment') }}</button></th>
               <th><button type="button" (click)="sortBy('order')">Talep{{ getSortMark('order') }}</button></th>
-              <th><button type="button" (click)="sortBy('estimated')">Tahmini{{ getSortMark('estimated') }}</button></th>
-              <th><button type="button" (click)="sortBy('shipment')">Sevk{{ getSortMark('shipment') }}</button></th>
-              <th><button type="button" (click)="sortBy('currentStock')">Stok{{ getSortMark('currentStock') }}</button></th>
+              <th><button type="button" (click)="sortBy('shipment')">Sevk / Stok{{ getSortMark('shipment') }}</button></th>
+              <th><button type="button" (click)="sortBy('count')">Sayim{{ getSortMark('count') }}</button></th>
               <th>Islem</th>
             </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of sortedItems(); trackBy: trackByItem">
-              <td data-label="Durum">
-                <span class="status-pill" [ngClass]="getStatusClass(item)">{{ item.primaryStatusName || '-' }}</span>
-                <small>{{ getTypeLabel(item.modelCode) }}</small>
-              </td>
               <td data-label="Urun">
-                <strong class="product-name">{{ item.stockName }}</strong>
-                <small>{{ item.stockCode }} / {{ item.unitName || '-' }}</small>
+                <div class="product-cell">
+                  <div class="product-main">
+                    <strong class="product-name">{{ item.stockName }}</strong>
+                    <small>{{ item.stockCode }} / {{ item.unitName || '-' }}</small>
+                  </div>
+                  <div class="product-badges">
+                    <span class="status-pill" [ngClass]="getStatusClass(item)">{{ item.primaryStatusName || '-' }}</span>
+                    <span class="type-pill">{{ getTypeLabel(item.modelCode) }}</span>
+                  </div>
+                </div>
               </td>
               <td data-label="Alis" class="number-cell">
-                <strong>{{ formatQuantity(item.purchaseQuantity) }}</strong>
-                <small>{{ formatMoney(item.purchaseAmount) }}</small>
+                <div class="quantity-card purchase-card">
+                  <strong>{{ formatQuantity(item.purchaseQuantity) }}</strong>
+                  <small>{{ formatMoney(item.purchaseAmount) }}</small>
+                  <em>{{ item.purchaseDocumentCount }} evrak</em>
+                </div>
               </td>
-              <td data-label="MNV" class="number-cell">
-                <strong [class.negative-value]="item.adjustmentNetQuantity < 0">
-                  {{ formatSignedQuantity(item.adjustmentNetQuantity) }}
-                </strong>
-                <small>G {{ formatQuantity(item.adjustmentInQuantity) }} / C {{ formatQuantity(item.adjustmentOutQuantity) }}</small>
+              <td data-label="MNV Fark" class="number-cell">
+                <div
+                  class="quantity-card adjustment-card"
+                  [class.negative-card]="item.adjustmentNetQuantity < 0"
+                >
+                  <strong>{{ formatSignedQuantity(item.adjustmentNetQuantity) }}</strong>
+                  <small>G {{ formatQuantity(item.adjustmentInQuantity) }} / C {{ formatQuantity(item.adjustmentOutQuantity) }}</small>
+                  <em>{{ item.adjustmentDocumentCount }} evrak</em>
+                </div>
               </td>
               <td data-label="Talep" class="number-cell">
-                <strong>{{ formatQuantity(item.orderInputQuantity) }}</strong>
-                <small>{{ item.orderBranchCount }} sube</small>
+                <div class="quantity-flow">
+                  <span>
+                    <b>Kasa</b>
+                    <strong>{{ formatQuantity(item.orderInputQuantity) }}</strong>
+                  </span>
+                  <span>
+                    <b>Tahmin</b>
+                    <strong>{{ formatQuantity(item.orderEstimatedQuantity) }}</strong>
+                  </span>
+                  <small>{{ item.orderBranchCount }} sube / Mikro {{ formatQuantity(item.orderMicroQuantity) }}</small>
+                </div>
               </td>
-              <td data-label="Tahmini" class="number-cell">
-                <strong>{{ formatQuantity(item.orderEstimatedQuantity) }}</strong>
-                <small>Mikro {{ formatQuantity(item.orderMicroQuantity) }}</small>
+              <td data-label="Sevk / Stok" class="number-cell">
+                <div class="quantity-flow stock-flow">
+                  <span>
+                    <b>Sevk</b>
+                    <strong>{{ formatQuantity(item.shipmentQuantity) }}</strong>
+                  </span>
+                  <span>
+                    <b>Stok</b>
+                    <strong>{{ formatQuantity(item.currentStockQuantity) }}</strong>
+                  </span>
+                  <small>{{ item.shipmentBranchCount }} sube / {{ item.shipmentDocumentCount }} evrak</small>
+                </div>
               </td>
-              <td data-label="Sevk" class="number-cell">
-                <strong>{{ formatQuantity(item.shipmentQuantity) }}</strong>
-                <small>{{ item.shipmentBranchCount }} sube</small>
-              </td>
-              <td data-label="Stok" class="number-cell">
-                <strong>{{ formatQuantity(item.currentStockQuantity) }}</strong>
-                <small>Sayim {{ formatQuantity(item.lastCountQuantity) }}</small>
+              <td data-label="Sayim" class="number-cell">
+                <div class="count-cell">
+                  <strong>{{ formatQuantity(item.lastCountQuantity) }}</strong>
+                  <span
+                    class="difference-pill"
+                    [class.negative-difference]="item.countDifferenceAtCountDate !== null && item.countDifferenceAtCountDate < 0"
+                  >
+                    {{ formatSignedQuantity(item.countDifferenceAtCountDate) }}
+                  </span>
+                  <small>{{ formatDate(item.lastCountDate) }}</small>
+                </div>
               </td>
               <td data-label="Islem" class="actions-cell">
                 <button type="button" class="row-action" (click)="openDetail(item)">Detay</button>

@@ -188,15 +188,15 @@
 
 .operations-table {
   width: 100%;
-  border-collapse: collapse;
+  border-collapse: separate;
+  border-spacing: 0 0.36rem;
   table-layout: fixed;
 }
 
 .operations-table th,
 .operations-table td {
-  padding: 0.42rem 0.38rem;
+  padding: 0.34rem 0.4rem;
   vertical-align: top;
-  border-bottom: 1px solid #edf2f7;
 }
 
 .operations-table th {
@@ -218,6 +218,26 @@
   cursor: pointer;
 }
 
+.operations-table tbody tr {
+  background: #fff;
+  border-radius: 8px;
+  box-shadow: inset 0 0 0 1px #e2e8f0;
+  transition: box-shadow 0.16s ease, transform 0.16s ease;
+}
+
+.operations-table tbody tr:hover {
+  box-shadow: inset 0 0 0 1px #99f6e4, 0 8px 24px rgba(15, 23, 42, 0.07);
+  transform: translateY(-1px);
+}
+
+.operations-table tbody td:first-child {
+  border-radius: 8px 0 0 8px;
+}
+
+.operations-table tbody td:last-child {
+  border-radius: 0 8px 8px 0;
+}
+
 .operations-table td {
   color: #0f172a;
   font-size: 0.75rem;
@@ -225,15 +245,32 @@
 }
 
 .operations-table th:nth-child(1) {
-  width: 9%;
+  width: 25%;
 }
 
 .operations-table th:nth-child(2) {
-  width: 19%;
+  width: 12%;
 }
 
-.operations-table th:nth-child(9) {
+.operations-table th:nth-child(3),
+.operations-table th:nth-child(4),
+.operations-table th:nth-child(5),
+.operations-table th:nth-child(6) {
+  width: 13%;
+}
+
+.operations-table th:nth-child(7) {
   width: 11%;
+}
+
+.product-cell {
+  display: grid;
+  gap: 0.32rem;
+  min-width: 0;
+}
+
+.product-main {
+  min-width: 0;
 }
 
 .product-name {
@@ -244,6 +281,13 @@
   font-weight: 850;
   text-overflow: ellipsis;
   white-space: nowrap;
+}
+
+.product-badges {
+  display: flex;
+  align-items: center;
+  gap: 0.26rem;
+  flex-wrap: wrap;
 }
 
 .operations-table small {
@@ -259,10 +303,56 @@
   text-align: right;
 }
 
-.number-cell strong {
+.quantity-card,
+.quantity-flow,
+.count-cell {
+  display: grid;
+  min-height: 58px;
+  gap: 0.1rem;
+  padding: 0.34rem 0.42rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  box-sizing: border-box;
+}
+
+.quantity-card strong,
+.quantity-flow strong,
+.count-cell strong {
   color: #0f172a;
-  font-size: 0.78rem;
+  font-size: 0.82rem;
   font-weight: 850;
+}
+
+.quantity-card small,
+.quantity-flow small,
+.count-cell small {
+  overflow: hidden;
+  margin-top: 0;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.quantity-card em {
+  color: #64748b;
+  font-size: 0.62rem;
+  font-style: normal;
+  font-weight: 800;
+}
+
+.purchase-card {
+  border-color: #dbeafe;
+  background: #eff6ff;
+}
+
+.adjustment-card {
+  border-color: #ccfbf1;
+  background: #f0fdfa;
+}
+
+.negative-card {
+  border-color: #fecaca;
+  background: #fff1f2;
 }
 
 .negative-value {
@@ -277,6 +367,19 @@
   padding: 0.18rem 0.42rem;
   border-radius: 999px;
   font-size: 0.68rem;
+  font-weight: 850;
+  white-space: nowrap;
+}
+
+.type-pill {
+  display: inline-flex;
+  align-items: center;
+  min-height: 22px;
+  padding: 0.16rem 0.38rem;
+  color: #334155;
+  border-radius: 999px;
+  background: #eef4fa;
+  font-size: 0.66rem;
   font-weight: 850;
   white-space: nowrap;
 }
@@ -296,14 +399,55 @@
   background: #fee2e2;
 }
 
-.actions-cell {
-  display: grid;
+.quantity-flow {
   gap: 0.24rem;
 }
 
+.quantity-flow span {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+  align-items: baseline;
+}
+
+.quantity-flow b {
+  color: #64748b;
+  font-size: 0.58rem;
+  font-weight: 850;
+  text-align: left;
+  text-transform: uppercase;
+}
+
+.stock-flow {
+  background: #f9fafb;
+}
+
+.difference-pill {
+  display: inline-flex;
+  justify-self: end;
+  min-height: 20px;
+  padding: 0.12rem 0.34rem;
+  color: #14532d;
+  border-radius: 999px;
+  background: #dcfce7;
+  font-size: 0.66rem;
+  font-weight: 850;
+}
+
+.negative-difference {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.actions-cell {
+  display: grid;
+  gap: 0.24rem;
+  align-content: center;
+}
+
 .row-action {
-  min-height: 28px;
-  padding: 0.25rem 0.4rem;
+  min-height: 30px;
+  padding: 0.28rem 0.42rem;
   color: #334155;
   border: 1px solid #dbe5f1;
   border-radius: 6px;
