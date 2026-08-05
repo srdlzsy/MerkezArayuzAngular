@@ -57,6 +57,9 @@ import {
   AxataInboundAtfCompanyReceivingBatchResponseDto,
   AxataInboundAtfCompanyReceivingResponseDto,
   AxataIntegrationAuditDto,
+  AxataLiveImportExecuteDto,
+  AxataLiveImportPreviewDto,
+  AxataLiveImportProfile,
   AxataManualIncomingCompanyReceivingBatchResponseDto,
   AxataManualIncomingCompanyReceivingResponseDto,
   AxataManualIncomingInventoryCountBatchResponseDto,
@@ -118,6 +121,14 @@ interface AxataFlowCard {
   tone: AuditInsightTone;
 }
 
+interface AxataLiveImportProfileOption {
+  value: AxataLiveImportProfile;
+  title: string;
+  label: string;
+  description: string;
+  previewText: string;
+  importText: string;
+}
 interface MissingShipmentVisibleSummary {
   documentCount: number;
   missingLineCount: number;
@@ -159,6 +170,8 @@ const DEFAULT_TASK_CODE = 'product-master-sync';
 const DEFAULT_EXECUTION_MODE: IAxataExecutionMode = 'DryRun';
 const DOCUMENT_TASK_CODES = new Set([
   'issued-warehouse-order-sync',
+  'received-company-order-sync',
+  'warehouse-inbound-order-sync',
   'company-receiving-sync',
   'inventory-count-sync'
 ]);
@@ -172,9 +185,67 @@ const DOCUMENT_TASK_CODES = new Set([
 })
 export class AxataSenkronizasyonuListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['axata-senkronizasyonu'];
-  protected readonly executionModes: readonly IAxataExecutionMode[] = ['DryRun', 'Outbox'];
-  protected readonly productExecutionModes: readonly IAxataExecutionMode[] = ['DryRun', 'Outbox'];
+  protected readonly executionModes: readonly IAxataExecutionMode[] = ['DryRun', 'Outbox', 'Live'];
+  protected readonly productExecutionModes: readonly IAxataExecutionMode[] = ['DryRun', 'Outbox', 'Live'];
   protected readonly queueMovementTypes = ['C02', 'C03', 'C4'] as const;
+  protected readonly liveImportProfiles: readonly AxataLiveImportProfileOption[] = [
+    {
+      value: 'c01',
+      title: 'C01 Depo Sevki',
+      label: 'Depo sevki',
+      description: 'AXATA C01 teslimatini Mikro depo sevk fisine cevirir.',
+      previewText: 'C01 Onizle',
+      importText: 'C01 Isle'
+    },
+    {
+      value: 'c02',
+      title: 'C02 Firma Sevk',
+      label: 'Firma sevk',
+      description: 'AXATA C02 teslimatini Mikro firma sevk hareketine cevirir.',
+      previewText: 'C02 Onizle',
+      importText: 'C02 Isle'
+    },
+    {
+      value: 'c03',
+      title: 'C03 Legacy Hareket',
+      label: 'Legacy',
+      description: 'AXATA C03 teslimatini legacy firma iade/ozel cikis hareketine cevirir.',
+      previewText: 'C03 Onizle',
+      importText: 'C03 Isle'
+    },
+    {
+      value: 'c04',
+      title: 'C04 Legacy 50 -> 51',
+      label: 'Legacy',
+      description: 'AXATA C4 teslimatini Mikro 50 -> 51 legacy hareketine cevirir.',
+      previewText: 'C04 Onizle',
+      importText: 'C04 Isle'
+    },
+    {
+      value: 'g01',
+      title: 'G01 Firma Mal Kabul',
+      label: 'Firma kabul',
+      description: 'AXATA G01 ATF satirlarini Mikro firma mal kabul hareketine cevirir.',
+      previewText: 'G01 Onizle',
+      importText: 'G01 Isle'
+    },
+    {
+      value: 'g02',
+      title: 'G02 Depo Mal Kabul',
+      label: 'Depo kabul',
+      description: 'AXATA G02 teslimatini mevcut Mikro bekleyen sevk fisine kabul olarak uygular.',
+      previewText: 'G02 Onizle',
+      importText: 'G02 Kabul Et'
+    },
+    {
+      value: 'dynamic-census',
+      title: 'DynamicCensus Stok Duzeltme',
+      label: 'Stok duzeltme',
+      description: 'AXATA vw_stok_duzeltme satirlarini Mikro stok duzeltme hareketine cevirir.',
+      previewText: 'Stok Duzeltme Onizle',
+      importText: 'Stok Duzeltmeleri Isle'
+    }
+  ];
   protected readonly overview = signal<AxataSynchronizationOverviewDto | null>(null);
   protected readonly health = signal<AxataSynchronizationHealthDto | null>(null);
   protected readonly fetchProfiles = signal<AxataSynchronizationFetchProfilesOverviewDto | null>(null);
@@ -213,6 +284,8 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly c01PreviewLoading = signal(false);
   protected readonly c01ImportLoading = signal(false);
   protected readonly c01DocumentRescueLoading = signal(false);
+  protected readonly liveImportLoading = signal(false);
+  protected readonly g02DocumentRescueLoading = signal(false);
   protected readonly genericJobLoading = signal(false);
   protected readonly productPreviewLoading = signal(false);
   protected readonly productDispatchLoading = signal(false);
@@ -359,6 +432,21 @@ export class AxataSenkronizasyonuListComponent {
       nonNullable: true
     })
   });
+  protected readonly liveImportForm = new FormGroup({
+    profile: new FormControl<AxataLiveImportProfile>('c02', {
+      nonNullable: true
+    }),
+    take: new FormControl<number>(20, {
+      nonNullable: true,
+      validators: [Validators.min(1), Validators.max(500)]
+    }),
+    continueOnError: new FormControl<boolean>(true, {
+      nonNullable: true
+    }),
+    acknowledge: new FormControl<boolean>(true, {
+      nonNullable: true
+    })
+  });
   protected readonly c01DocumentRescueForm = new FormGroup({
     documentSerie: new FormControl<string>('', {
       nonNullable: true,
@@ -368,6 +456,21 @@ export class AxataSenkronizasyonuListComponent {
       validators: [Validators.min(0)]
     }),
     status: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    acknowledge: new FormControl<boolean>(false, {
+      nonNullable: true
+    })
+  });
+  protected readonly g02DocumentRescueForm = new FormGroup({
+    documentSerie: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.required]
+    }),
+    documentOrderNo: new FormControl<number | null>(null, {
+      validators: [Validators.min(0)]
+    }),
+    status: new FormControl<string>('1', {
       nonNullable: true
     }),
     acknowledge: new FormControl<boolean>(false, {
@@ -441,6 +544,10 @@ export class AxataSenkronizasyonuListComponent {
     signal<AxataOutboundDeliveryImportPreviewDto | null>(null);
   protected readonly c01DocumentRescueImportResult =
     signal<AxataOutboundDeliveryImportExecuteDto | null>(null);
+  protected readonly liveImportPreview = signal<AxataLiveImportPreviewDto | null>(null);
+  protected readonly liveImportResult = signal<AxataLiveImportExecuteDto | null>(null);
+  protected readonly g02DocumentRescuePreview = signal<AxataLiveImportPreviewDto | null>(null);
+  protected readonly g02DocumentRescueImportResult = signal<AxataLiveImportExecuteDto | null>(null);
   protected readonly outboundDeliveryQueuePreview =
     signal<AxataOutboundDeliveryQueuePreviewDto | null>(null);
   protected readonly outboundDeliveriesByDate =
@@ -498,14 +605,28 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly selectedTaskLiveOperationName = computed(
     () => this.selectedTask()?.liveOperationName?.trim() || null
   );
-  protected readonly taskWarehouseLabel = computed(() =>
-    this.selectedTaskCode() === 'issued-warehouse-order-sync' ? 'Kaynak Depo No' : 'Depo No'
-  );
-  protected readonly taskWarehousePlaceholder = computed(() =>
-    this.selectedTaskCode() === 'issued-warehouse-order-sync'
-      ? 'AXATA kaynak/cikis deposu'
-      : 'JWT deposu veya manuel'
-  );
+  protected readonly taskWarehouseLabel = computed(() => {
+    if (this.selectedTaskCode() === 'issued-warehouse-order-sync') {
+      return 'Kaynak Depo No';
+    }
+
+    if (this.selectedTaskCode() === 'warehouse-inbound-order-sync') {
+      return 'Hedef/Giris Depo No';
+    }
+
+    return 'Depo No';
+  });
+  protected readonly taskWarehousePlaceholder = computed(() => {
+    if (this.selectedTaskCode() === 'issued-warehouse-order-sync') {
+      return 'AXATA kaynak/cikis deposu';
+    }
+
+    if (this.selectedTaskCode() === 'warehouse-inbound-order-sync') {
+      return 'AXATA hedef/giris deposu';
+    }
+
+    return 'JWT deposu veya manuel';
+  });
   protected readonly isDocumentTask = computed(() => this.supportsManualDocuments());
   protected readonly isInventoryCountTask = computed(
     () => this.selectedTaskCode() === 'inventory-count-sync'
@@ -540,6 +661,8 @@ export class AxataSenkronizasyonuListComponent {
       this.c01PreviewLoading() ||
       this.c01ImportLoading() ||
       this.c01DocumentRescueLoading() ||
+      this.liveImportLoading() ||
+      this.g02DocumentRescueLoading() ||
       this.genericJobLoading() ||
       this.productPreviewLoading() ||
       this.productDispatchLoading()
@@ -590,14 +713,14 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     const notes = [
-      'C01 canli fetch/import, AXATA -> Mikro sekmesinde ayrica yonetilir.',
-      'C02/C03/C4 icin sadece AXATA kuyruk preview vardir; Mikro yazma ve ack yoktur.',
+      'AXATA -> Mikro canli import profilleri C01/C02/C03/C04/G01/G02/DynamicCensus olarak ayri yonetilir.',
+      'Kuyruk preview veri yazmaz; Mikro yazma ve AXATA ack icin Canli Import bolumu kullanilir.',
       'Outbox basarisi AXATA kabul etti degil, payload dosyalandi anlamina gelir.'
     ];
 
     switch (selectedTask.code) {
       case 'firm-master-sync':
-        notes.unshift('Bu task icin UI sadece preview, job ve outbox deneyimi sunmalidir.');
+        notes.unshift('Firma master taski preview/job/outbox yaninda Live dispatch destekleyebilir.');
         break;
       case 'product-master-sync':
         notes.unshift(
@@ -609,25 +732,27 @@ export class AxataSenkronizasyonuListComponent {
         break;
       case 'issued-warehouse-order-sync':
         notes.unshift(
-          'Canli dispatch mevcut Mikro evragini yeniden gonderir; AXATAdan otomatik belge cekmez.'
-        );
-        notes.unshift(
           'Bu taskta warehouseNo hedef depo degil, AXATA kaynak/cikis deposudur; Mikro ssip_cikdepo filtresi kullanilir.'
         );
-        notes.push(
-          'Depolar-arasi-sevk belge detayi icin ayri AXATA dispatch butonu acilmamalidir.'
+        notes.push('Canli dispatch mevcut Mikro evragini yeniden AXATAya gonderir.');
+        break;
+      case 'received-company-order-sync':
+        notes.unshift('Alinan firma siparisi icin C02 akisi Mikro -> AXATA task evrenidir.');
+        break;
+      case 'warehouse-inbound-order-sync':
+        notes.unshift(
+          'Bu taskta warehouseNo AXATA hedef/giris depodur; Mikro ssip_girdepo filtresi kullanilir.'
         );
+        notes.push('AXATA G02 kabul donusu AXATA -> Mikro Canli Import bolumunden izlenir.');
         break;
       case 'company-receiving-sync':
-        notes.unshift(
-          'Canli dispatch sadece mevcut Mikro firma mal kabul evragini tekrar gonderir.'
-        );
+        notes.unshift('Canli dispatch sadece mevcut Mikro firma mal kabul evragini tekrar gonderir.');
         break;
       case 'inventory-count-sync':
-        notes.unshift('inventory-count-sync icin canli dispatch butonu gosterilmemelidir.');
-        notes.push(
-          'Inventory count taski AXATA -> Mikro manual incoming tarafinda ayrica kullanilabilir.'
+        notes.unshift(
+          'Live secenegi sayim payload dispatchi degil, AXATA DynamicCensus stok duzeltme importudur.'
         );
+        notes.push('Inventory count taski AXATA -> Mikro manual incoming tarafinda ayrica kullanilabilir.');
         break;
       default:
         break;
@@ -655,19 +780,19 @@ export class AxataSenkronizasyonuListComponent {
       tone: 'warn'
     },
     {
-      title: 'C01 sevk aktarimi',
+      title: 'Canli import',
       label: 'AXATA -> Mikro',
       description:
-        'C01 teslimatlarini onizle, uygun kayitlari Mikro sevk fisine isle ve acknowledge kararini acik sec.',
-      actionText: 'Mikroya Isle',
+        'C01/C02/C03/C04/G01/G02 ve DynamicCensus profillerini once onizle, sonra kontrollu sekilde Mikroya isle.',
+      actionText: 'Importu Ac',
       action: 'incoming',
       tone: 'danger'
     },
     {
-      title: 'C02/C03/C4 kuyruklari',
-      label: 'Sadece kontrol',
+      title: 'Kuyruk kontrolu',
+      label: 'AXATA -> Mikro',
       description:
-        'Bu profillerde sadece bekleyen AXATA sevklerini goruntule; Mikro yazma veya AXATA ack aksiyonu yok.',
+        'C02/C03/C4 pending kuyrugunu veri yazmadan kontrol et; uygun kayit icin Canli Import aksiyonuna gec.',
       actionText: 'Kuyrugu Gor',
       action: 'queue',
       tone: 'neutral'
@@ -759,6 +884,20 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly c01DocumentRescueImportJson = computed(() =>
     this.c01DocumentRescueImportResult()
       ? this.formatJson(this.c01DocumentRescueImportResult())
+      : ''
+  );
+  protected readonly liveImportPreviewJson = computed(() =>
+    this.liveImportPreview() ? this.formatJson(this.liveImportPreview()) : ''
+  );
+  protected readonly liveImportResultJson = computed(() =>
+    this.liveImportResult() ? this.formatJson(this.liveImportResult()) : ''
+  );
+  protected readonly g02DocumentRescuePreviewJson = computed(() =>
+    this.g02DocumentRescuePreview() ? this.formatJson(this.g02DocumentRescuePreview()) : ''
+  );
+  protected readonly g02DocumentRescueImportJson = computed(() =>
+    this.g02DocumentRescueImportResult()
+      ? this.formatJson(this.g02DocumentRescueImportResult())
       : ''
   );
   protected readonly queuePreviewJson = computed(() =>
@@ -1626,6 +1765,173 @@ export class AxataSenkronizasyonuListComponent {
       });
   }
 
+  protected clearLiveImportResult(): void {
+    this.liveImportPreview.set(null);
+    this.liveImportResult.set(null);
+  }
+
+  protected previewAxataLiveImport(): void {
+    if (this.liveImportForm.invalid) {
+      this.liveImportForm.markAllAsTouched();
+      return;
+    }
+
+    const profile = this.liveImportForm.controls.profile.value;
+    const take = this.getLiveImportTake(profile);
+
+    this.liveImportLoading.set(true);
+    this.liveImportPreview.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataLiveImport(profile, take)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.liveImportLoading.set(false))
+      )
+      .subscribe({
+        next: (preview: AxataLiveImportPreviewDto) => {
+          this.liveImportPreview.set(preview);
+          this.feedback.set({
+            tone: 'info',
+            title: `${this.formatLiveImportProfile(profile)} preview hazir`,
+            message: `${this.getLiveImportReturnedCount(preview)}/${this.getLiveImportFetchedCount(preview)} kayit kontrol edildi. Veri yazilmadi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: `${this.formatLiveImportProfile(profile)} preview alinamadi`,
+            message: 'Canli AXATA import preview endpointi cevap vermedi.'
+          });
+        }
+      });
+  }
+
+  protected executeAxataLiveImport(): void {
+    if (this.liveImportForm.invalid) {
+      this.liveImportForm.markAllAsTouched();
+      return;
+    }
+
+    const profile = this.liveImportForm.controls.profile.value;
+    const request: IAxataOutboundDeliveryImportExecuteRequestApiDto = {
+      take: this.getLiveImportTake(profile),
+      continueOnError: this.liveImportForm.controls.continueOnError.value,
+      acknowledge: this.liveImportForm.controls.acknowledge.value
+    };
+
+    this.liveImportLoading.set(true);
+    this.liveImportResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .executeAxataLiveImport(profile, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.liveImportLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataLiveImportExecuteDto) => {
+          this.liveImportResult.set(result);
+          this.feedback.set({
+            tone: this.getLiveImportFailedCount(result) > 0 ? 'info' : 'success',
+            title: `${this.formatLiveImportProfile(profile)} import tamamlandi`,
+            message: `${this.getLiveImportSucceededCount(result)} basarili, ${this.getLiveImportFailedCount(result)} hatali, ${this.getLiveImportSkippedCount(result)} atlanan kayit raporlandi.`
+          });
+          this.loadAuditOverview();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: `${this.formatLiveImportProfile(profile)} import basarisiz`,
+            message: 'Mikro yazim veya AXATA ack sirasinda hata alindi.'
+          });
+        }
+      });
+  }
+
+  protected previewG02DocumentRescue(): void {
+    const reference = this.buildG02DocumentRescueReference();
+
+    if (!reference) {
+      return;
+    }
+
+    this.g02DocumentRescueLoading.set(true);
+    this.g02DocumentRescuePreview.set(null);
+
+    this.entegrasyonIslemleriService
+      .previewAxataG02InboundDeliveryDocumentImport(
+        reference.documentSerie,
+        reference.documentOrderNo,
+        reference.status
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.g02DocumentRescueLoading.set(false))
+      )
+      .subscribe({
+        next: (preview: AxataLiveImportPreviewDto) => {
+          this.g02DocumentRescuePreview.set(preview);
+          this.feedback.set({
+            tone: 'info',
+            title: 'G02 belge preview hazir',
+            message: `${reference.documentSerie}.${reference.documentOrderNo} icin G02 kabul/link durumu kontrol edildi.`
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'G02 belge preview alinamadi',
+            message: 'G02 belge bazli preview endpointi cevap vermedi.'
+          });
+        }
+      });
+  }
+
+  protected executeG02DocumentRescue(): void {
+    const reference = this.buildG02DocumentRescueReference();
+
+    if (!reference) {
+      return;
+    }
+
+    const request: IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto = {
+      status: reference.status,
+      acknowledge: this.g02DocumentRescueForm.controls.acknowledge.value
+    };
+
+    this.g02DocumentRescueLoading.set(true);
+    this.g02DocumentRescueImportResult.set(null);
+
+    this.entegrasyonIslemleriService
+      .executeAxataG02InboundDeliveryDocumentImport(
+        reference.documentSerie,
+        reference.documentOrderNo,
+        request
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.g02DocumentRescueLoading.set(false))
+      )
+      .subscribe({
+        next: (result: AxataLiveImportExecuteDto) => {
+          this.g02DocumentRescueImportResult.set(result);
+          this.feedback.set({
+            tone: this.getLiveImportFailedCount(result) > 0 ? 'info' : 'success',
+            title: 'G02 belge import tamamlandi',
+            message: `${this.getLiveImportSucceededCount(result)} basarili, ${this.getLiveImportFailedCount(result)} hatali kayit raporlandi.`
+          });
+          this.loadAuditOverview();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'G02 belge import basarisiz',
+            message: 'G02 belge bazli import endpointi islemi tamamlayamadi.'
+          });
+        }
+      });
+  }
   protected applyUnsyncedWarehouseOrderToManual(
     item: IAxataUnsyncedWarehouseOrderApiDto
   ): void {
@@ -3412,6 +3718,149 @@ export class AxataSenkronizasyonuListComponent {
     return value?.trim() || '-';
   }
 
+  protected formatLiveImportProfile(profile: AxataLiveImportProfile | string | null | undefined): string {
+    return (
+      this.liveImportProfiles.find((item) => item.value === profile)?.title ??
+      profile?.trim() ??
+      '-'
+    );
+  }
+
+  protected getLiveImportProfileDescription(
+    profile: AxataLiveImportProfile | string | null | undefined
+  ): string {
+    return this.liveImportProfiles.find((item) => item.value === profile)?.description ?? '';
+  }
+
+  protected getLiveImportPreviewButtonText(): string {
+    const profile = this.liveImportForm.controls.profile.value;
+    return this.liveImportProfiles.find((item) => item.value === profile)?.previewText ?? 'Onizle';
+  }
+
+  protected getLiveImportExecuteButtonText(): string {
+    const profile = this.liveImportForm.controls.profile.value;
+    return this.liveImportProfiles.find((item) => item.value === profile)?.importText ?? 'Mikroya Isle';
+  }
+
+  protected getLiveImportPreviewRows(value: unknown): readonly unknown[] {
+    const documents = this.getArrayField(value, 'documents');
+
+    if (documents.length) {
+      return documents.slice(0, 20);
+    }
+
+    return this.getArrayField(value, 'lines').slice(0, 20);
+  }
+
+  protected getLiveImportReturnedCount(value: unknown): number {
+    return (
+      this.getFirstNumberField(value, [
+        'returnedDocumentCount',
+        'returnedLineCount',
+        'importableDocumentCount',
+        'importableLineCount'
+      ]) ?? 0
+    );
+  }
+
+  protected getLiveImportFetchedCount(value: unknown): number {
+    return (
+      this.getFirstNumberField(value, [
+        'totalFetchedDocumentCount',
+        'totalFetchedLineCount',
+        'requestedDocumentCount',
+        'requestedLineCount'
+      ]) ?? this.getLiveImportReturnedCount(value)
+    );
+  }
+
+  protected getLiveImportLineCount(value: unknown): number {
+    return (
+      this.getFirstNumberField(value, [
+        'totalLineCount',
+        'returnedLineCount',
+        'totalFetchedLineCount',
+        'createdMovementLineCount'
+      ]) ?? 0
+    );
+  }
+
+  protected getLiveImportQuantity(value: unknown): number {
+    return (
+      this.getFirstNumberField(value, [
+        'totalQuantity',
+        'createdMovementQuantity',
+        'createdQuantity'
+      ]) ?? 0
+    );
+  }
+
+  protected getLiveImportSucceededCount(value: unknown): number {
+    return this.getFirstNumberField(value, ['succeededDocumentCount', 'succeededLineCount']) ?? 0;
+  }
+
+  protected getLiveImportFailedCount(value: unknown): number {
+    return this.getFirstNumberField(value, ['failedDocumentCount', 'failedLineCount']) ?? 0;
+  }
+
+  protected getLiveImportSkippedCount(value: unknown): number {
+    return this.getFirstNumberField(value, ['skippedDocumentCount', 'skippedLineCount']) ?? 0;
+  }
+
+  protected getLiveImportCreatedQuantity(value: unknown): number {
+    return this.getFirstNumberField(value, ['createdMovementQuantity', 'createdQuantity']) ?? 0;
+  }
+
+  protected formatLiveImportRowAxata(row: unknown): string {
+    const sequence = this.getFirstTextField(row, ['axataSequenceNo', 'rowNo']);
+    const delivery = this.getFirstTextField(row, ['axataDeliveryNo', 'orderDocumentNo', 'viewName']);
+    return [sequence ? `#${sequence}` : '', delivery].filter(Boolean).join(' / ') || '-';
+  }
+
+  protected formatLiveImportRowReference(row: unknown): string {
+    const serie = this.getFirstTextField(row, ['documentSerie', 'movementSerie']);
+    const orderNo = this.getFirstTextField(row, ['documentOrderNo', 'movementOrderNo']);
+    const stockCode = this.getFirstTextField(row, ['stockCode']);
+    const customerCode = this.getFirstTextField(row, ['customerCode']);
+
+    if (serie || orderNo) {
+      return `${serie || '-'}.${orderNo || '-'}`;
+    }
+
+    return [stockCode, customerCode].filter(Boolean).join(' / ') || '-';
+  }
+
+  protected formatLiveImportRowQuantity(row: unknown): string {
+    const quantity =
+      this.getFirstNumberField(row, ['axataQuantity', 'quantity', 'createdMovementQuantity']) ?? null;
+
+    return quantity === null
+      ? '-'
+      : quantity.toLocaleString('tr-TR', { minimumFractionDigits: 0, maximumFractionDigits: 2 });
+  }
+
+  protected formatLiveImportRowState(row: unknown): string {
+    const canImport = this.getBooleanField(row, 'canImport');
+    const warning = this.getFirstTextField(row, ['warning', 'errorMessage', 'message']);
+
+    if (canImport === true) {
+      return 'Islenebilir';
+    }
+
+    if (warning) {
+      return warning;
+    }
+
+    if (canImport === false) {
+      return 'Kontrol gerekli';
+    }
+
+    return this.getFirstTextField(row, ['status', 'movementType']) ?? '-';
+  }
+
+  protected isLiveImportRowReady(row: unknown): boolean {
+    return this.getBooleanField(row, 'canImport') === true;
+  }
   protected formatArtifactLabel(artifact: IAxataSynchronizationJobArtifactApiDto): string {
     return `${artifact.kind}: ${artifact.name}`;
   }
@@ -3472,6 +3921,15 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     item: IncomingWarehouseBatchQueueItem
   ): string => item.reference;
+  protected trackByLiveImportPreviewRow = (_index: number, item: unknown): string =>
+    [
+      this.getFirstTextField(item, ['movementType']),
+      this.getFirstTextField(item, ['axataSequenceNo', 'rowNo']),
+      this.getFirstTextField(item, ['axataDeliveryNo', 'documentSerie']),
+      this.getFirstTextField(item, ['documentOrderNo', 'stockCode'])
+    ]
+      .filter(Boolean)
+      .join('|') || `${_index}`;
   protected trackByQueuePreviewDocument = (
     _index: number,
     item: IAxataOutboundDeliveryQueueDocumentApiDto
@@ -3791,6 +4249,44 @@ export class AxataSenkronizasyonuListComponent {
     };
   }
 
+  private buildG02DocumentRescueReference():
+    | {
+        documentSerie: string;
+        documentOrderNo: number;
+        status?: string;
+      }
+    | null {
+    const documentSerie = this.g02DocumentRescueForm.controls.documentSerie.value.trim();
+    const documentOrderNo = this.toPositiveNumber(
+      this.g02DocumentRescueForm.controls.documentOrderNo.value
+    );
+    const status = this.normalizeAxataStatus(this.g02DocumentRescueForm.controls.status.value);
+
+    if (!documentSerie || !documentOrderNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'G02 belge referansi eksik',
+        message: 'G02 belge kurtarma icin seri ve sira bilgisi zorunlu.'
+      });
+      return null;
+    }
+
+    if (this.g02DocumentRescueForm.controls.status.value.trim() && !status) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'AXATA status gecersiz',
+        message: 'G02 belge status alani bos, 0 veya 1 olmalidir.'
+      });
+      return null;
+    }
+
+    return {
+      documentSerie,
+      documentOrderNo,
+      ...(status ? { status } : {})
+    };
+  }
+
   private buildC01DocumentRescueReference():
     | {
         documentSerie: string;
@@ -4031,6 +4527,75 @@ export class AxataSenkronizasyonuListComponent {
     return `${year}-${month}-${day}`;
   }
 
+  private getLiveImportTake(profile: AxataLiveImportProfile): number {
+    const limit = profile === 'dynamic-census' ? 500 : 200;
+    const defaultTake = profile === 'dynamic-census' ? 50 : 20;
+    return Math.min(this.toPositiveNumber(this.liveImportForm.controls.take.value) ?? defaultTake, limit);
+  }
+
+  private getArrayField(value: unknown, key: string): unknown[] {
+    const record = this.asRecord(value);
+    const rawValue = record?.[key];
+    return Array.isArray(rawValue) ? rawValue : [];
+  }
+
+  private getFirstNumberField(value: unknown, keys: readonly string[]): number | null {
+    const record = this.asRecord(value);
+
+    if (!record) {
+      return null;
+    }
+
+    for (const key of keys) {
+      const rawValue = record[key];
+
+      if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+        return rawValue;
+      }
+
+      if (typeof rawValue === 'string' && rawValue.trim()) {
+        const parsedValue = Number(rawValue.replace(',', '.'));
+
+        if (Number.isFinite(parsedValue)) {
+          return parsedValue;
+        }
+      }
+    }
+
+    return null;
+  }
+
+  private getFirstTextField(value: unknown, keys: readonly string[]): string | null {
+    const record = this.asRecord(value);
+
+    if (!record) {
+      return null;
+    }
+
+    for (const key of keys) {
+      const rawValue = record[key];
+
+      if (typeof rawValue === 'string' && rawValue.trim()) {
+        return rawValue.trim();
+      }
+
+      if (typeof rawValue === 'number' && Number.isFinite(rawValue)) {
+        return `${rawValue}`;
+      }
+    }
+
+    return null;
+  }
+
+  private getBooleanField(value: unknown, key: string): boolean | null {
+    const record = this.asRecord(value);
+    const rawValue = record?.[key];
+    return typeof rawValue === 'boolean' ? rawValue : null;
+  }
+
+  private asRecord(value: unknown): Record<string, unknown> | null {
+    return value !== null && typeof value === 'object' ? (value as Record<string, unknown>) : null;
+  }
   private getRelativeDate(daysBack: number): string {
     const date = new Date();
     date.setDate(date.getDate() - daysBack);

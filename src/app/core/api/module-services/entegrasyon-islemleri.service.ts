@@ -126,6 +126,8 @@ export type AxataOutboundDeliveryImportPreviewDto =
   IAxataOutboundDeliveryImportPreviewApiDto;
 export type AxataOutboundDeliveryImportExecuteDto =
   IAxataOutboundDeliveryImportExecuteApiDto;
+export type AxataLiveImportPreviewDto = unknown;
+export type AxataLiveImportExecuteDto = unknown;
 export type AxataOutboundDeliveryQueuePreviewDto =
   IAxataOutboundDeliveryQueuePreviewApiDto;
 export type AxataOutboundDeliveriesByDateDto =
@@ -161,6 +163,15 @@ export function isAxataJobTerminalStatus(status: string | null | undefined): boo
     normalizedStatus === 'cancelled'
   );
 }
+
+export type AxataLiveImportProfile =
+  | 'c01'
+  | 'c02'
+  | 'c03'
+  | 'c04'
+  | 'g01'
+  | 'g02'
+  | 'dynamic-census';
 
 @Injectable({
   providedIn: 'root'
@@ -241,6 +252,15 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     );
   }
 
+  previewAxataLiveImport(profile: AxataLiveImportProfile, take?: number | null) {
+    return this.getWithQuery<AxataLiveImportPreviewDto>(
+      this.getAxataLiveImportPath(profile, 'preview'),
+      {
+        take: take ?? undefined
+      }
+    );
+  }
+
   previewAxataOutboundDeliveryQueue(
     query: IAxataOutboundDeliveryQueuePreviewHttpRequestApiDto
   ) {
@@ -275,6 +295,16 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     >('integrations/axata-sync/live/axata/outbound-deliveries/c01/import', request);
   }
 
+  executeAxataLiveImport(
+    profile: AxataLiveImportProfile,
+    request: IAxataOutboundDeliveryImportExecuteRequestApiDto
+  ) {
+    return this.post<
+      AxataLiveImportExecuteDto,
+      IAxataOutboundDeliveryImportExecuteRequestApiDto
+    >(this.getAxataLiveImportPath(profile, 'import'), request);
+  }
+
   previewAxataC01OutboundDeliveryDocumentImport(
     documentSerie: string,
     documentOrderNo: number,
@@ -302,6 +332,48 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     );
   }
 
+  previewAxataG02InboundDeliveryDocumentImport(
+    documentSerie: string,
+    documentOrderNo: number,
+    status?: string | null
+  ) {
+    return this.getWithQuery<AxataLiveImportPreviewDto>(
+      `integrations/axata-sync/live/axata/inbound-deliveries/g02/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/preview`,
+      {
+        status: status?.trim() || undefined
+      }
+    );
+  }
+
+  executeAxataG02InboundDeliveryDocumentImport(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto
+  ) {
+    return this.post<
+      AxataLiveImportExecuteDto,
+      IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto
+    >(
+      `integrations/axata-sync/live/axata/inbound-deliveries/g02/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/import`,
+      request
+    );
+  }
+
+  private getAxataLiveImportPath(
+    profile: AxataLiveImportProfile,
+    action: 'preview' | 'import'
+  ): string {
+    switch (profile) {
+      case 'g01':
+        return `integrations/axata-sync/live/axata/inbound-atf/g01/${action}`;
+      case 'g02':
+        return `integrations/axata-sync/live/axata/inbound-deliveries/g02/${action}`;
+      case 'dynamic-census':
+        return `integrations/axata-sync/live/axata/dynamic-census/${action}`;
+      default:
+        return `integrations/axata-sync/live/axata/outbound-deliveries/${profile}/${action}`;
+    }
+  }
   getAxataSynchronizationTaskPreview(
     taskCode: string,
     warehouseNo?: number | null,

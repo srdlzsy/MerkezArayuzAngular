@@ -1384,8 +1384,8 @@
     <div class="section-block">
       <h2 class="section-title">Bekleyen AXATA Sevkleri</h2>
       <p class="section-desc">
-        C02, C03 ve C4 kuyruklari karar destegi icin sadece goruntulenir; bu bolum Mikro'ya
-        yazmaz ve AXATA tarafinda tamamlandi olarak isaretlemez.
+        C02, C03 ve C4 kuyruklari veri yazmadan kontrol edilir; Mikro yazma ve AXATA ack icin
+        asagidaki Canli Import profili kullanilir.
       </p>
 
       <form class="compact-form form-grid" [formGroup]="queuePreviewForm">
@@ -1547,16 +1547,25 @@
     </div>
 
     <div class="section-block">
-      <h2 class="section-title">AXATA Sevki Mikro'ya Aktar</h2>
+      <h2 class="section-title">AXATA Canli Import</h2>
       <p class="section-desc">
-        C01 akisi once uygun teslimatlari kontrol eder, sonra secili limitle Mikro sevk fisi
-        olusturur. Acknowledge secimi AXATA tarafinda kaydi tamamlanmis isaretler.
+        Profili sec, once onizle, uygun kayitlari sonra Mikro'ya isle. Acknowledge sadece basarili
+        Mikro kaydindan sonra AXATA statusunu tamamlar.
       </p>
 
-      <form class="compact-form form-grid" [formGroup]="c01ImportForm">
+      <form class="compact-form form-grid" [formGroup]="liveImportForm">
         <label class="form-row">
-          <span>İşlenecek Belge</span>
-          <input type="number" formControlName="take" min="1" max="200" />
+          <span>Profil</span>
+          <select formControlName="profile" (change)="clearLiveImportResult()">
+            <option *ngFor="let profile of liveImportProfiles" [value]="profile.value">
+              {{ profile.title }} - {{ profile.label }}
+            </option>
+          </select>
+          <small>{{ getLiveImportProfileDescription(liveImportForm.controls.profile.value) }}</small>
+        </label>
+        <label class="form-row">
+          <span>Islenecek Kayit</span>
+          <input type="number" formControlName="take" min="1" max="500" />
         </label>
         <label class="form-row inline">
           <input type="checkbox" formControlName="continueOnError" />
@@ -1564,161 +1573,184 @@
         </label>
         <label class="form-row inline">
           <input type="checkbox" formControlName="acknowledge" />
-          <span>Başarılı kayıtları AXATA'da tamamla</span>
+          <span>Basarili kayitlari AXATA'da tamamla</span>
         </label>
       </form>
 
       <div class="button-group">
-        <button type="button" class="btn primary" (click)="loadC01OutboundDeliveryPreview()" [disabled]="c01PreviewLoading()">
-          {{ c01PreviewLoading() ? 'Kontrol ediliyor...' : 'Önizle' }}
+        <button type="button" class="btn primary" (click)="previewAxataLiveImport()" [disabled]="liveImportLoading()">
+          {{ liveImportLoading() ? 'Kontrol ediliyor...' : getLiveImportPreviewButtonText() }}
         </button>
-        <button type="button" class="btn secondary" (click)="executeC01OutboundDeliveryImport()" [disabled]="c01ImportLoading()">
-          {{ c01ImportLoading() ? 'Isleniyor...' : 'Mikro\'ya Isle' }}
+        <button type="button" class="btn secondary" (click)="executeAxataLiveImport()" [disabled]="liveImportLoading()">
+          {{ liveImportLoading() ? 'Isleniyor...' : getLiveImportExecuteButtonText() }}
         </button>
       </div>
 
-      <ng-container *ngIf="c01OutboundDeliveryPreview() as c01Preview">
+      <ng-container *ngIf="liveImportPreview() as livePreview">
         <div class="status-grid">
           <div class="status-card">
+            <span>Profil</span>
+            <strong>{{ formatLiveImportProfile(liveImportForm.controls.profile.value) }}</strong>
+          </div>
+          <div class="status-card">
             <span>Bulunan</span>
-            <strong>{{ c01Preview.returnedDocumentCount }}/{{ c01Preview.totalFetchedDocumentCount }}</strong>
+            <strong>{{ getLiveImportReturnedCount(livePreview) }}/{{ getLiveImportFetchedCount(livePreview) }}</strong>
           </div>
           <div class="status-card">
             <span>Satir</span>
-            <strong>{{ c01Preview.totalLineCount }}</strong>
+            <strong>{{ getLiveImportLineCount(livePreview) }}</strong>
           </div>
           <div class="status-card">
             <span>Miktar</span>
-            <strong>{{ c01Preview.totalQuantity | number:'1.0-2' }}</strong>
+            <strong>{{ getLiveImportQuantity(livePreview) | number:'1.0-2' }}</strong>
           </div>
         </div>
 
-        <div class="compact-table" *ngIf="c01Preview.documents.length">
+        <div class="compact-table" *ngIf="getLiveImportPreviewRows(livePreview).length; else noLiveImportRows">
           <div class="table-row table-head">
             <span>AXATA</span>
-            <span>Mikro Belge</span>
+            <span>Referans</span>
             <span>Miktar</span>
             <span>Durum</span>
           </div>
-          <div class="table-row" *ngFor="let item of c01Preview.documents">
-            <span>#{{ item.axataSequenceNo }} / {{ item.axataDeliveryNo }}</span>
-            <span>{{ item.documentSerie }}.{{ item.documentOrderNo }}</span>
-            <span>{{ item.axataQuantity | number:'1.0-2' }}</span>
-            <span class="status-pill" [class.status-pill-success]="item.canImport" [class.status-pill-warn]="!item.canImport">
-              {{ item.canImport ? 'Mikro\'ya islenebilir' : (item.warning || 'Kontrol gerekli') }}
+          <div class="table-row" *ngFor="let item of getLiveImportPreviewRows(livePreview); trackBy: trackByLiveImportPreviewRow">
+            <span>{{ formatLiveImportRowAxata(item) }}</span>
+            <span>{{ formatLiveImportRowReference(item) }}</span>
+            <span>{{ formatLiveImportRowQuantity(item) }}</span>
+            <span
+              class="status-pill"
+              [class.status-pill-success]="isLiveImportRowReady(item)"
+              [class.status-pill-neutral]="!isLiveImportRowReady(item)"
+            >
+              {{ formatLiveImportRowState(item) }}
             </span>
           </div>
         </div>
+        <ng-template #noLiveImportRows>
+          <div class="empty-msg">Secili profil icin onizleme satiri yok.</div>
+        </ng-template>
 
         <details class="json-details">
-          <summary>C01 Onizleme Detayi</summary>
-          <pre>{{ c01PreviewJson() }}</pre>
+          <summary>Canli Import Onizleme Detayi</summary>
+          <pre>{{ liveImportPreviewJson() }}</pre>
         </details>
       </ng-container>
 
-      <ng-container *ngIf="c01OutboundDeliveryImportResult() as c01Import">
+      <ng-container *ngIf="liveImportResult() as liveResult">
         <div class="status-grid">
           <div class="status-card">
             <span>Basarili</span>
-            <strong>{{ c01Import.succeededDocumentCount }}</strong>
+            <strong>{{ getLiveImportSucceededCount(liveResult) }}</strong>
           </div>
           <div class="status-card">
             <span>Hatali</span>
-            <strong>{{ c01Import.failedDocumentCount }}</strong>
+            <strong>{{ getLiveImportFailedCount(liveResult) }}</strong>
           </div>
           <div class="status-card">
             <span>Atlanan</span>
-            <strong>{{ c01Import.skippedDocumentCount }}</strong>
+            <strong>{{ getLiveImportSkippedCount(liveResult) }}</strong>
           </div>
           <div class="status-card">
             <span>Yazilan Miktar</span>
-            <strong>{{ c01Import.createdMovementQuantity | number:'1.0-2' }}</strong>
+            <strong>{{ getLiveImportCreatedQuantity(liveResult) | number:'1.0-2' }}</strong>
           </div>
         </div>
         <details class="json-details">
-          <summary>C01 Mikro Isleme Detayi</summary>
-          <pre>{{ c01ImportJson() }}</pre>
+          <summary>Canli Import Isleme Detayi</summary>
+          <pre>{{ liveImportResultJson() }}</pre>
         </details>
       </ng-container>
 
-      <div class="section-block nested-flat">
-        <h3 class="section-subtitle">C01 Belge Bazli Kurtarma</h3>
-        <form class="compact-form form-grid" [formGroup]="c01DocumentRescueForm">
-          <label class="form-row">
-            <span>Seri</span>
-            <input type="text" formControlName="documentSerie" />
-          </label>
-          <label class="form-row">
-            <span>Sira</span>
-            <input type="number" formControlName="documentOrderNo" />
-          </label>
-          <label class="form-row">
-            <span>AXATA Durumu</span>
-            <select formControlName="status">
-              <option value="">Once 0, sonra 1 dene</option>
-              <option value="0">0 - Pending</option>
-              <option value="1">1 - Ack verilmis</option>
-            </select>
-          </label>
-          <label class="form-row inline">
-            <input type="checkbox" formControlName="acknowledge" />
-            <span>Islem sonrasi AXATA'da tamamla</span>
-          </label>
-        </form>
+      <div class="section-grid">
+        <div class="section-block nested-flat">
+          <h3 class="section-subtitle">C01 Belge Bazli Kurtarma</h3>
+          <form class="compact-form form-grid" [formGroup]="c01DocumentRescueForm">
+            <label class="form-row">
+              <span>Seri</span>
+              <input type="text" formControlName="documentSerie" />
+            </label>
+            <label class="form-row">
+              <span>Sira</span>
+              <input type="number" formControlName="documentOrderNo" />
+            </label>
+            <label class="form-row">
+              <span>AXATA Durumu</span>
+              <select formControlName="status">
+                <option value="">Once 0, sonra 1 dene</option>
+                <option value="0">0 - Pending</option>
+                <option value="1">1 - Ack verilmis</option>
+              </select>
+            </label>
+            <label class="form-row inline">
+              <input type="checkbox" formControlName="acknowledge" />
+              <span>Islem sonrasi AXATA'da tamamla</span>
+            </label>
+          </form>
 
-        <div class="button-group">
-          <button type="button" class="btn primary" (click)="previewC01DocumentRescue()" [disabled]="c01DocumentRescueLoading()">
-            Belge Onizle
-          </button>
-          <button type="button" class="btn secondary" (click)="executeC01DocumentRescue()" [disabled]="c01DocumentRescueLoading()">
-            Belgeyi Mikro'ya Isle
-          </button>
-        </div>
-
-        <ng-container *ngIf="c01DocumentRescuePreview() as rescuePreview">
-          <div class="status-grid">
-            <div class="status-card">
-              <span>Bulunan</span>
-              <strong>{{ rescuePreview.returnedDocumentCount }}/{{ rescuePreview.totalFetchedDocumentCount }}</strong>
-            </div>
-            <div class="status-card">
-              <span>Satir</span>
-              <strong>{{ rescuePreview.totalLineCount }}</strong>
-            </div>
-            <div class="status-card">
-              <span>Miktar</span>
-              <strong>{{ rescuePreview.totalQuantity | number:'1.0-2' }}</strong>
-            </div>
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="previewC01DocumentRescue()" [disabled]="c01DocumentRescueLoading()">
+              C01 Belge Onizle
+            </button>
+            <button type="button" class="btn secondary" (click)="executeC01DocumentRescue()" [disabled]="c01DocumentRescueLoading()">
+              C01 Belgeyi Isle
+            </button>
           </div>
-          <details class="json-details">
-            <summary>Belge Kurtarma Onizleme Detayi</summary>
+
+          <details class="json-details" *ngIf="c01DocumentRescuePreview()">
+            <summary>C01 Belge Onizleme Detayi</summary>
             <pre>{{ c01DocumentRescuePreviewJson() }}</pre>
           </details>
-        </ng-container>
-
-        <ng-container *ngIf="c01DocumentRescueImportResult() as rescueImport">
-          <div class="status-grid">
-            <div class="status-card">
-              <span>Basarili</span>
-              <strong>{{ rescueImport.succeededDocumentCount }}</strong>
-            </div>
-            <div class="status-card">
-              <span>Hatali</span>
-              <strong>{{ rescueImport.failedDocumentCount }}</strong>
-            </div>
-            <div class="status-card">
-              <span>Yazilan Miktar</span>
-              <strong>{{ rescueImport.createdMovementQuantity | number:'1.0-2' }}</strong>
-            </div>
-          </div>
-          <details class="json-details">
-            <summary>Belge Mikro Isleme Detayi</summary>
+          <details class="json-details" *ngIf="c01DocumentRescueImportResult()">
+            <summary>C01 Belge Isleme Detayi</summary>
             <pre>{{ c01DocumentRescueImportJson() }}</pre>
           </details>
-        </ng-container>
+        </div>
+
+        <div class="section-block nested-flat">
+          <h3 class="section-subtitle">G02 Belge Bazli Kurtarma</h3>
+          <form class="compact-form form-grid" [formGroup]="g02DocumentRescueForm">
+            <label class="form-row">
+              <span>Seri</span>
+              <input type="text" formControlName="documentSerie" />
+            </label>
+            <label class="form-row">
+              <span>Sira</span>
+              <input type="number" formControlName="documentOrderNo" />
+            </label>
+            <label class="form-row">
+              <span>AXATA Durumu</span>
+              <select formControlName="status">
+                <option value="">Once 0, sonra 1 dene</option>
+                <option value="0">0 - Pending</option>
+                <option value="1">1 - Ack verilmis</option>
+              </select>
+            </label>
+            <label class="form-row inline">
+              <input type="checkbox" formControlName="acknowledge" />
+              <span>Islem sonrasi AXATA'da tamamla</span>
+            </label>
+          </form>
+
+          <div class="button-group">
+            <button type="button" class="btn primary" (click)="previewG02DocumentRescue()" [disabled]="g02DocumentRescueLoading()">
+              G02 Belge Onizle
+            </button>
+            <button type="button" class="btn secondary" (click)="executeG02DocumentRescue()" [disabled]="g02DocumentRescueLoading()">
+              G02 Belgeyi Kabul Et
+            </button>
+          </div>
+
+          <details class="json-details" *ngIf="g02DocumentRescuePreview()">
+            <summary>G02 Belge Onizleme Detayi</summary>
+            <pre>{{ g02DocumentRescuePreviewJson() }}</pre>
+          </details>
+          <details class="json-details" *ngIf="g02DocumentRescueImportResult()">
+            <summary>G02 Belge Isleme Detayi</summary>
+            <pre>{{ g02DocumentRescueImportJson() }}</pre>
+          </details>
+        </div>
       </div>
     </div>
-
     <details class="advanced-panel developer-tools">
       <summary>Gelismis Veri Islemleri</summary>
       <div class="section-grid advanced-panel-body">

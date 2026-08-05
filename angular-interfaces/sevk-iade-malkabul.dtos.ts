@@ -228,6 +228,7 @@ export interface CreateCompanyMovementHttpRequest {
 export interface CreateCompanyMovementLineHttpRequest {
   stockCode: string;
   quantity: number;
+  orderLineGuid?: string | null;
   unitPrice: number;
   unitPointer: number;
   description: string;

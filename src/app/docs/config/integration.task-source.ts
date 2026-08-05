@@ -17,6 +17,7 @@ export const INTEGRATION_TASK_SOURCE = {
           'issued-warehouse-order-sync basarili dispatch sonrasi ssip_special1 bayragini routing moduna gore yazar',
           'Mikro urun, tum barkod ve birimleriyle AXATA addSKUMaster canli aktarimi',
           'AXATA sevk tarihi listesi',
+          'C02/C03/C04/G01/G02/DynamicCensus live import',
           'Preview, route-based execute ve POST /jobs',
           'Job polling',
           'Document bazli batch kurtarma',
@@ -90,13 +91,90 @@ export const INTEGRATION_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c02/preview?take=20',
+              description: 'C02 pending teslimatlarini Mikro firma siparisleriyle eslestirir; veri yazmaz'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c02/import',
+              description: 'Uygun C02 teslimatlarini Mikro firma sevk hareketine cevirir ve istenirse AXATA ack atar',
+              payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c03/preview?take=20',
+              description: 'C03 legacy teslimatlarini kontrol eder; veri yazmaz'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c03/import',
+              description: 'Uygun C03 teslimatlarini Mikro legacy firma iade/ozel cikis hareketine cevirir',
+              payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c04/preview?take=20',
+              description: 'AXATA C4 teslimatlarini c04 route adiyla kontrol eder; veri yazmaz'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/outbound-deliveries/c04/import',
+              description: 'Uygun C4 teslimatlarini Mikro 50 -> 51 legacy hareketine cevirir',
+              payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/inbound-deliveries/g02/preview?take=20',
+              description: 'G02 pending giris teslimatlarini Mikro siparis ve bekleyen sevk fisiyle eslestirir; veri yazmaz'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/inbound-deliveries/g02/import',
+              description: 'Uygun G02 teslimatini mevcut Mikro bekleyen sevk fisine mal kabul olarak uygular',
+              payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/inbound-deliveries/g02/documents/{documentSerie}/{documentOrderNo}/preview?status=1',
+              description: 'Tek G02 belgeyi seri/sira ile kontrol eder; status bos ise backend once 0 sonra 1 dener'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/inbound-deliveries/g02/documents/{documentSerie}/{documentOrderNo}/import',
+              description: 'Tek G02 belgeyi bekleyen Mikro sevk fisine kabul olarak uygular',
+              payload: 'AxataOutboundDeliveryDocumentImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/inbound-atf/g01/preview?take=20',
+              description: 'G01 ATF satirlarini Mikro firma siparisiyle eslestirir; veri yazmaz'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/inbound-atf/g01/import',
+              description: 'Uygun G01 ATF satirlarini Mikro firma mal kabul hareketine cevirir',
+              payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/integrations/axata-sync/live/axata/dynamic-census/preview?take=50',
+              description: 'AXATA vw_stok_duzeltme satirlarini Mikro stok duzeltme importu icin onizler'
+            },
+            {
+              method: 'POST',
+              path: '/api/integrations/axata-sync/live/axata/dynamic-census/import',
+              description: 'Uygun DynamicCensus satirlarini Mikro stok duzeltme hareketine cevirir',
+              payload: 'AxataOutboundDeliveryImportExecuteHttpRequest'
+            },
+            {
+              method: 'GET',
               path: '/api/integrations/axata-sync/tasks/{taskCode}/preview?warehouseNo=...&take=10',
-              description: 'Secili task icin canli veriden preview payload olusturur; issued-warehouse-order-sync icin warehouseNo kaynak/cikis depodur'
+              description: 'Secili task icin canli veriden preview payload olusturur; issued taskta warehouseNo kaynak/cikis, warehouse-inbound taskta hedef/giris depodur'
             },
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/tasks/{taskCode}/execute',
-                description: 'Secili task icin DryRun veya Outbox job baslatir',
+                description: 'Secili task icin DryRun, Outbox veya destekliyorsa Live job baslatir',
                 payload: 'AxataSynchronizationExecuteTaskHttpRequest'
               },
               {
