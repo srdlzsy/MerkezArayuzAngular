@@ -15,6 +15,7 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
         'Depo bazli stok satis fiyatlarini listeleme ve upsert etme',
         'Seri-sira ile stok, cari hareket, firma siparisi ve depo siparisi evraki bulma',
         'Stok hareketinde sevk deposu ve mal kabul tarihi duzenleme',
+        'Alan etiketleri ve Mikro kolon bilgileri alan-haritasi katalog endpointinden okunur',
         'movementGuid ve orderGuid korumali satir guncelleme',
         'Yalniz degisen alanlari gonderen patch semantigi',
         '409 Conflict durumunda filtre daraltma rehberi'
@@ -26,6 +27,11 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
           description:
             'STOKLAR, STOK_DEPO_DETAYLARI, STOK_HAREKETLERI, CARI_HESAP_HAREKETLERI, SIPARISLER ve DEPOLAR_ARASI_SIPARISLER kayitlarinin whitelist alanlarini gunceller.',
           endpoints: [
+            {
+              method: 'GET',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/alan-haritasi',
+              description: 'Form alan adlari, Mikro kolonlari, veri tipleri ve editable bilgisini getirir'
+            },
             {
               method: 'GET',
               path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari',

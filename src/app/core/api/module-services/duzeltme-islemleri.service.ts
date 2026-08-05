@@ -14,6 +14,7 @@ import type {
   CustomerMovementDocumentDeleteHttpRequest,
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
+  MikroDocumentFieldCatalogDto,
   MikroDocumentDeleteResponse,
   StockCardDetailDto,
   StockCardListItemDto,
@@ -54,6 +55,10 @@ const ROOT = 'duzeltme-islemleri/mikro-evrak-duzenleme';
   providedIn: 'root'
 })
 export class DuzeltmeIslemleriService extends BaseApiService {
+  getFieldCatalog(): Observable<MikroDocumentFieldCatalogDto> {
+    return this.get<MikroDocumentFieldCatalogDto>(`${ROOT}/alan-haritasi`);
+  }
+
   searchStockCards(query: StockCardSearchHttpRequest): Observable<StockCardListItemDto[]> {
     return this.getWithQuery<StockCardListItemDto[]>(`${ROOT}/stok-kartlari`, query);
   }

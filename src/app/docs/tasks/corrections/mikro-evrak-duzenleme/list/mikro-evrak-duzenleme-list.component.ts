@@ -18,6 +18,8 @@ import type {
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
   MikroDocumentDeleteResponse,
+  MikroDocumentFieldCatalogDto,
+  MikroDocumentFieldCatalogFieldDto,
   StockCardDetailDto,
   StockCardListItemDto,
   StockCardPatchHttpRequest,
@@ -101,6 +103,12 @@ interface FieldDefinition {
   wide?: boolean;
 }
 
+interface FieldContext {
+  sectionCode: EditorTab | 'stock-sales-price' | 'stock-card-warehouse';
+  scope: 'body' | 'header' | 'line';
+  fields: readonly FieldDefinition[];
+}
+
 const STOCK_CARD_TEXT_FIELDS: readonly FieldDefinition[] = [
   { key: 'name', label: 'Stok Adı', wide: true },
   { key: 'shortName', label: 'Kısa Ad' },
@@ -118,7 +126,10 @@ const STOCK_CARD_TEXT_FIELDS: readonly FieldDefinition[] = [
   { key: 'rayonCode', label: 'Reyon' },
   { key: 'manufacturerCode', label: 'Üretici' },
   { key: 'responsibilityCode', label: 'Sorumluluk Merkezi' },
-  { key: 'shelfCode', label: 'Raf Kodu' }
+  { key: 'shelfCode', label: 'Raf Kodu' },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' }
 ];
 
 const STOCK_CARD_NUMBER_FIELDS: readonly FieldDefinition[] = [
@@ -160,6 +171,9 @@ const WAREHOUSE_CARD_TEXT_FIELDS: readonly FieldDefinition[] = [
   { key: 'accountingCode', label: 'Muhasebe Kodu' },
   { key: 'responsibilityCenter', label: 'Sorumluluk Merkezi' },
   { key: 'projectCode', label: 'Proje Kodu' },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' },
   { key: 'regionCode', label: 'Bolge Kodu' },
   { key: 'street', label: 'Cadde/Sokak', wide: true },
   { key: 'neighborhood', label: 'Mahalle' },
@@ -206,6 +220,9 @@ const WAREHOUSE_CARD_BOOLEAN_FIELDS: readonly FieldDefinition[] = [
 const CUSTOMER_CARD_TEXT_FIELDS: readonly FieldDefinition[] = [
   { key: 'title1', label: 'Unvan 1', wide: true },
   { key: 'title2', label: 'Unvan 2', wide: true },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' },
   { key: 'accountingCode', label: 'Muhasebe Kodu' },
   { key: 'accountingCode1', label: 'Muhasebe Kodu 1' },
   { key: 'accountingCode2', label: 'Muhasebe Kodu 2' },
@@ -292,6 +309,8 @@ const STOCK_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'expense2', label: 'Masraf 2', type: 'number' },
   { key: 'expense3', label: 'Masraf 3', type: 'number' },
   { key: 'expense4', label: 'Masraf 4', type: 'number' },
+  { key: 'expenseTaxPointer', label: 'Masraf Vergi Ptr', type: 'number' },
+  { key: 'expenseTaxAmount', label: 'Masraf Vergi Tutari', type: 'number' },
   { key: 'taxPointer', label: 'Vergi Ptr', type: 'number' },
   { key: 'taxAmount', label: 'Vergi Tutarı', type: 'number' },
   { key: 'netWeight', label: 'Net Ağırlık', type: 'number' },
@@ -302,6 +321,9 @@ const STOCK_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'projectCode', label: 'Proje Kodu' },
   { key: 'customerResponsibilityCenter', label: 'Cari Sorumluluk' },
   { key: 'stockResponsibilityCenter', label: 'Stok Sorumluluk' },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' },
   { key: 'inputWarehouseNo', label: 'Giriş Depo', type: 'number' },
   { key: 'outputWarehouseNo', label: 'Çıkış Depo', type: 'number' }
 ];
@@ -342,6 +364,9 @@ const CUSTOMER_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'tax4', label: 'Vergi 4', type: 'number' },
   { key: 'tax5', label: 'Vergi 5', type: 'number' },
   { key: 'description', label: 'Açıklama', wide: true },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' },
   { key: 'sellerCode', label: 'Satıcı Kodu' },
   { key: 'projectCode', label: 'Proje Kodu' },
   { key: 'responsibilityCenter', label: 'Sorumluluk Merkezi' }
@@ -382,6 +407,10 @@ const COMPANY_ORDER_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'deliveredQuantity', label: 'Teslim Miktari', type: 'number' },
   { key: 'unitPrice', label: 'Birim Fiyat', type: 'number' },
   { key: 'amount', label: 'Tutar', type: 'number' },
+  { key: 'priceListNo', label: 'Fiyat Liste No', type: 'number' },
+  { key: 'validUntil', label: 'Gecerlilik Tarihi', type: 'date' },
+  { key: 'reservedQuantity', label: 'Rezervasyon Miktari', type: 'number' },
+  { key: 'deliveredFromReservation', label: 'Rezerveden Teslim', type: 'number' },
   { key: 'discount1', label: 'Iskonto 1', type: 'number' },
   { key: 'discount2', label: 'Iskonto 2', type: 'number' },
   { key: 'discount3', label: 'Iskonto 3', type: 'number' },
@@ -396,6 +425,9 @@ const COMPANY_ORDER_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'taxAmount', label: 'Vergi Tutari', type: 'number' },
   { key: 'description1', label: 'Aciklama 1', wide: true },
   { key: 'description2', label: 'Aciklama 2', wide: true },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' },
   { key: 'packageCode', label: 'Paket Kodu' },
   { key: 'partyCode', label: 'Parti Kodu' },
   { key: 'lotNo', label: 'Lot No', type: 'number' },
@@ -433,7 +465,14 @@ const WAREHOUSE_ORDER_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'deliveredQuantity', label: 'Teslim Miktari', type: 'number' },
   { key: 'unitPrice', label: 'Birim Fiyat', type: 'number' },
   { key: 'amount', label: 'Tutar', type: 'number' },
+  { key: 'priceListNo', label: 'Fiyat Liste No', type: 'number' },
+  { key: 'validUntil', label: 'Gecerlilik Tarihi', type: 'date' },
+  { key: 'reservedQuantity', label: 'Rezervasyon Miktari', type: 'number' },
+  { key: 'deliveredFromReservation', label: 'Rezerveden Teslim', type: 'number' },
   { key: 'description', label: 'Aciklama', wide: true },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' },
   { key: 'inWarehouseNo', label: 'Giris Depo', type: 'number' },
   { key: 'outWarehouseNo', label: 'Cikis Depo', type: 'number' },
   { key: 'isClosed', label: 'Kapali', type: 'checkbox' },
@@ -515,6 +554,43 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly companyOrderDraft = signal<CompanyOrderDocumentDto | null>(null);
   protected readonly warehouseOrder = signal<WarehouseOrderDocumentDto | null>(null);
   protected readonly warehouseOrderDraft = signal<WarehouseOrderDocumentDto | null>(null);
+  protected readonly fieldCatalogLoading = signal(false);
+  private readonly fieldCatalog = signal<MikroDocumentFieldCatalogDto | null>(null);
+  private readonly fieldCatalogFieldMap = computed(() => {
+    const map = new Map<string, MikroDocumentFieldCatalogFieldDto>();
+
+    for (const section of this.fieldCatalog()?.sections ?? []) {
+      for (const field of section.fields ?? []) {
+        map.set(`${section.code}|${field.apiField}`, field);
+      }
+    }
+
+    return map;
+  });
+  private readonly fieldContexts: readonly FieldContext[] = [
+    { sectionCode: 'stock-card', scope: 'body', fields: STOCK_CARD_TEXT_FIELDS },
+    { sectionCode: 'stock-card', scope: 'body', fields: STOCK_CARD_NUMBER_FIELDS },
+    { sectionCode: 'stock-card', scope: 'body', fields: STOCK_CARD_BOOLEAN_FIELDS },
+    { sectionCode: 'stock-card-warehouse', scope: 'body', fields: STOCK_CARD_WAREHOUSE_FIELDS },
+    { sectionCode: 'stock-sales-price', scope: 'body', fields: STOCK_SALES_PRICE_FIELDS },
+    { sectionCode: 'warehouse-card', scope: 'body', fields: WAREHOUSE_CARD_TEXT_FIELDS },
+    { sectionCode: 'warehouse-card', scope: 'body', fields: WAREHOUSE_CARD_NUMBER_FIELDS },
+    { sectionCode: 'warehouse-card', scope: 'body', fields: WAREHOUSE_CARD_DATE_FIELDS },
+    { sectionCode: 'warehouse-card', scope: 'body', fields: WAREHOUSE_CARD_BOOLEAN_FIELDS },
+    { sectionCode: 'customer-card', scope: 'body', fields: CUSTOMER_CARD_TEXT_FIELDS },
+    { sectionCode: 'customer-card', scope: 'body', fields: CUSTOMER_CARD_NUMBER_FIELDS },
+    { sectionCode: 'customer-card', scope: 'body', fields: CUSTOMER_CARD_BOOLEAN_FIELDS },
+    { sectionCode: 'stock-movement', scope: 'header', fields: STOCK_HEADER_FIELDS },
+    { sectionCode: 'stock-movement', scope: 'line', fields: STOCK_LINE_FIELDS },
+    { sectionCode: 'customer-movement', scope: 'header', fields: CUSTOMER_HEADER_FIELDS },
+    { sectionCode: 'customer-movement', scope: 'line', fields: CUSTOMER_LINE_FIELDS },
+    { sectionCode: 'company-order', scope: 'header', fields: COMPANY_ORDER_HEADER_FIELDS },
+    { sectionCode: 'company-order', scope: 'header', fields: COMPANY_ORDER_BOOLEAN_FIELDS },
+    { sectionCode: 'company-order', scope: 'line', fields: COMPANY_ORDER_LINE_FIELDS },
+    { sectionCode: 'warehouse-order', scope: 'header', fields: WAREHOUSE_ORDER_HEADER_FIELDS },
+    { sectionCode: 'warehouse-order', scope: 'header', fields: WAREHOUSE_ORDER_BOOLEAN_FIELDS },
+    { sectionCode: 'warehouse-order', scope: 'line', fields: WAREHOUSE_ORDER_LINE_FIELDS }
+  ];
 
   protected stockSearch = {
     searchText: '',
@@ -588,6 +664,11 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly canDelete = computed(() =>
     this.hasPermission('duzeltme-islemleri.mikro-evrak-duzenleme.delete')
   );
+
+  constructor() {
+    this.loadFieldCatalog();
+  }
+
   protected readonly changedStockCardFieldCount = computed(() =>
     this.countChanges(this.selectedStockCard(), this.stockCardDraft(), [
       ...STOCK_CARD_TEXT_FIELDS,
@@ -662,6 +743,26 @@ export class MikroEvrakDuzenlemeListComponent {
 
   protected isBusy(action: BusyAction): boolean {
     return this.busyAction() === action;
+  }
+
+  private loadFieldCatalog(): void {
+    this.fieldCatalogLoading.set(true);
+
+    this.service
+      .getFieldCatalog()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.fieldCatalogLoading.set(false))
+      )
+      .subscribe({
+        next: (catalog: MikroDocumentFieldCatalogDto) => {
+          this.fieldCatalog.set(catalog);
+          this.applyFieldCatalogLabels();
+        },
+        error: () => {
+          this.fieldCatalog.set(null);
+        }
+      });
   }
 
   protected searchStockCards(): void {
@@ -1373,7 +1474,7 @@ export class MikroEvrakDuzenlemeListComponent {
     key: string,
     value: boolean
   ): void {
-    (draft as unknown as EditableRecord)[key] = value;
+    (draft as unknown as EditableRecord)[key] = this.normalizeFieldInputValue(key, value);
     this.warehouseSettingDraft.set(this.clone(draft));
   }
 
@@ -1617,7 +1718,7 @@ export class MikroEvrakDuzenlemeListComponent {
   }
 
   protected setField(target: object, key: string, value: unknown): void {
-    (target as EditableRecord)[key] = value;
+    (target as EditableRecord)[key] = this.normalizeFieldInputValue(key, value);
     this.stockCardDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.salesPriceDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.warehouseCardDraft.update((draft) => (draft ? this.clone(draft) : null));
@@ -1626,6 +1727,30 @@ export class MikroEvrakDuzenlemeListComponent {
     this.customerMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.companyOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.warehouseOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
+  }
+
+  protected isFieldEditable(field: FieldDefinition): boolean {
+    return this.getFieldMetadata(field)?.editable ?? true;
+  }
+
+  protected getFieldMaxLength(field: FieldDefinition): number | null {
+    return this.getFieldMaxLengthByKey(field.key);
+  }
+
+  protected getFieldHint(field: FieldDefinition): string | null {
+    const metadata = this.getFieldMetadata(field);
+
+    if (!metadata) {
+      return null;
+    }
+
+    const mikroColumn =
+      metadata.mikroTable && metadata.mikroColumn && metadata.mikroColumn !== '-'
+        ? `${metadata.mikroTable}.${metadata.mikroColumn}`
+        : '';
+    const parts = [mikroColumn, metadata.description?.trim()].filter(Boolean);
+
+    return parts.length ? parts.join(' - ') : null;
   }
 
   protected sameSalesPriceForTemplate(
@@ -1656,6 +1781,76 @@ export class MikroEvrakDuzenlemeListComponent {
       | WarehouseOrderDocumentLineDto
   ): string => 'movementGuid' in row ? row.movementGuid : row.orderGuid;
   protected trackByField = (_index: number, field: FieldDefinition): string => field.key;
+
+  private applyFieldCatalogLabels(): void {
+    for (const context of this.fieldContexts) {
+      for (const field of context.fields) {
+        const metadata = this.getFieldMetadata(field);
+
+        if (metadata?.displayName?.trim()) {
+          field.label = metadata.displayName.trim();
+        }
+      }
+    }
+  }
+
+  private getFieldMetadata(field: FieldDefinition): MikroDocumentFieldCatalogFieldDto | null {
+    const context = this.getFieldContext(field);
+
+    if (!context) {
+      return null;
+    }
+
+    const fieldMap = this.fieldCatalogFieldMap();
+
+    for (const apiField of this.getFieldApiCandidates(context, field.key)) {
+      const metadata = fieldMap.get(`${context.sectionCode}|${apiField}`);
+
+      if (metadata) {
+        return metadata;
+      }
+    }
+
+    const section = this.fieldCatalog()?.sections?.find(
+      (item) => item.code === context.sectionCode
+    );
+
+    return (
+      section?.fields?.find((metadata) =>
+        this.getFieldApiCandidates(context, field.key).includes(metadata.apiField)
+      ) ?? null
+    );
+  }
+
+  private getFieldContext(field: FieldDefinition): FieldContext | null {
+    return this.fieldContexts.find((context) => context.fields.includes(field)) ?? null;
+  }
+
+  private getFieldApiCandidates(context: FieldContext, key: string): string[] {
+    if (context.scope === 'line') {
+      return [`lines[].${key}`, key];
+    }
+
+    if (context.scope === 'header') {
+      return [`header.${key}`, key];
+    }
+
+    return [key];
+  }
+
+  private normalizeFieldInputValue(key: string, value: unknown): unknown {
+    const maxLength = this.getFieldMaxLengthByKey(key);
+
+    if (typeof value === 'string' && maxLength !== null) {
+      return value.slice(0, maxLength);
+    }
+
+    return value;
+  }
+
+  private getFieldMaxLengthByKey(key: string): number | null {
+    return /^special[123]$/i.test(key) ? 4 : null;
+  }
 
   private upsertSalesPrice(
     stockCode: string,
@@ -1860,6 +2055,7 @@ export class MikroEvrakDuzenlemeListComponent {
     clone.header.documentDate = clone.header.documentDate ? this.toDateInput(clone.header.documentDate) : null;
     clone.lines.forEach((line) => {
       line.deliveryDate = line.deliveryDate ? this.toDateInput(line.deliveryDate) : null;
+      line.validUntil = line.validUntil ? this.toDateInput(line.validUntil) : null;
     });
     return clone;
   }
@@ -1873,6 +2069,7 @@ export class MikroEvrakDuzenlemeListComponent {
     clone.header.documentDate = clone.header.documentDate ? this.toDateInput(clone.header.documentDate) : null;
     clone.lines.forEach((line) => {
       line.deliveryDate = line.deliveryDate ? this.toDateInput(line.deliveryDate) : null;
+      line.validUntil = line.validUntil ? this.toDateInput(line.validUntil) : null;
     });
     return clone;
   }
@@ -1921,6 +2118,7 @@ export class MikroEvrakDuzenlemeListComponent {
 
     return Object.fromEntries(
       fields.flatMap((field) =>
+        !this.isFieldEditable(field) ||
         this.valuesEqual(originalRecord[field.key], draftRecord[field.key])
           ? []
           : [[field.key, draftRecord[field.key]]]

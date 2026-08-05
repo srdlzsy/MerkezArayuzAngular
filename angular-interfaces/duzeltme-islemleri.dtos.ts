@@ -33,6 +33,9 @@ export interface StockCardDetailDto extends StockCardListItemDto {
   manufacturerCode: string;
   responsibilityCode: string;
   shelfCode: string;
+  special1: string;
+  special2: string;
+  special3: string;
   salesStopped: boolean;
   orderStopped: boolean;
   receivingStopped: boolean;
@@ -65,6 +68,9 @@ export type StockCardPatchHttpRequest = Partial<
     | 'manufacturerCode'
     | 'responsibilityCode'
     | 'shelfCode'
+    | 'special1'
+    | 'special2'
+    | 'special3'
     | 'salesStopped'
     | 'orderStopped'
     | 'receivingStopped'
@@ -78,6 +84,29 @@ export interface MikroUpdateSummaryDto {
   updatedRowCount: number;
   updatedAt: string;
   updateUser: number;
+}
+
+export interface MikroDocumentFieldCatalogDto {
+  sections: MikroDocumentFieldCatalogSectionDto[];
+}
+
+export interface MikroDocumentFieldCatalogSectionDto {
+  code: string;
+  title: string;
+  endpoint: string;
+  requestModel: string;
+  fields: MikroDocumentFieldCatalogFieldDto[];
+}
+
+export interface MikroDocumentFieldCatalogFieldDto {
+  apiField: string;
+  displayName: string;
+  scope: string;
+  valueType: string;
+  mikroTable: string;
+  mikroColumn: string;
+  editable: boolean;
+  description: string;
 }
 
 export interface StockCardUpdateResponse {
@@ -110,6 +139,9 @@ export interface WarehouseCardDetailDto extends WarehouseCardListItemDto {
   accountingCode: string;
   responsibilityCenter: string;
   projectCode: string;
+  special1: string;
+  special2: string;
+  special3: string;
   shipmentAppliedPriceNo: number;
   lockDate: string | null;
   street: string;
@@ -150,6 +182,9 @@ export type WarehouseCardPatchHttpRequest = Partial<
     | 'accountingCode'
     | 'responsibilityCenter'
     | 'projectCode'
+    | 'special1'
+    | 'special2'
+    | 'special3'
     | 'regionCode'
     | 'street'
     | 'neighborhood'
@@ -208,6 +243,9 @@ export interface CustomerCardListItemDto {
 
 export interface CustomerCardDetailDto extends CustomerCardListItemDto {
   customerGuid: string;
+  special1: string;
+  special2: string;
+  special3: string;
   movementType: number;
   connectionType: number;
   purchaseStockType: number;
@@ -251,6 +289,9 @@ export type CustomerCardPatchHttpRequest = Partial<
     CustomerCardDetailDto,
     | 'title1'
     | 'title2'
+    | 'special1'
+    | 'special2'
+    | 'special3'
     | 'movementType'
     | 'connectionType'
     | 'purchaseStockType'
@@ -449,11 +490,16 @@ export interface StockMovementDocumentLineDto {
   expense2?: number;
   expense3?: number;
   expense4?: number;
+  expenseTaxPointer?: number;
+  expenseTaxAmount?: number;
   taxPointer?: number;
   taxAmount?: number;
   netWeight?: number;
   grossWeight?: number;
   description: string;
+  special1?: string;
+  special2?: string;
+  special3?: string;
   partyCode: string;
   lotNo: number;
   projectCode: string;
@@ -571,6 +617,9 @@ export interface CustomerMovementDocumentLineDto {
   tax4?: number;
   tax5?: number;
   description: string;
+  special1?: string;
+  special2?: string;
+  special3?: string;
   sellerCode: string;
   projectCode: string;
   responsibilityCenter: string;
@@ -676,6 +725,10 @@ export interface CompanyOrderDocumentLineDto {
   remainingQuantity?: number | null;
   unitPrice: number;
   amount: number;
+  priceListNo?: number | null;
+  validUntil?: string | null;
+  reservedQuantity?: number | null;
+  deliveredFromReservation?: number | null;
   discount1?: number | null;
   discount2?: number | null;
   discount3?: number | null;
@@ -690,6 +743,9 @@ export interface CompanyOrderDocumentLineDto {
   taxAmount?: number | null;
   description1?: string | null;
   description2?: string | null;
+  special1?: string | null;
+  special2?: string | null;
+  special3?: string | null;
   packageCode?: string | null;
   partyCode?: string | null;
   lotNo?: number | null;
@@ -800,6 +856,13 @@ export interface WarehouseOrderDocumentLineDto {
   unitPrice: number;
   amount: number;
   description?: string | null;
+  priceListNo?: number | null;
+  validUntil?: string | null;
+  reservedQuantity?: number | null;
+  deliveredFromReservation?: number | null;
+  special1?: string | null;
+  special2?: string | null;
+  special3?: string | null;
   inWarehouseNo?: number | null;
   outWarehouseNo?: number | null;
   isClosed?: boolean | null;
