@@ -64,12 +64,14 @@ export class MalKabulIslemleriService extends BaseApiService {
 
   getCompanyReceiptByEttn(
     ettn: string,
-    warehouseNo?: number
+    warehouseNo?: number,
+    documentKind: 'auto' | 'e-despatch' | 'e-invoice' = 'auto'
   ): Observable<CompanyReceivingEDespatchPreviewDto> {
     return this.getWithQuery<CompanyReceivingEDespatchPreviewDto>(
-      `mal-kabul-islemleri/firma-mal-kabulleri/e-irsaliye/ettn/${encodeURIComponent(ettn)}`,
+      `mal-kabul-islemleri/firma-mal-kabulleri/resmi-belge/ettn/${encodeURIComponent(ettn)}`,
       {
-        warehouseNo
+        warehouseNo,
+        documentKind
       }
     );
   }

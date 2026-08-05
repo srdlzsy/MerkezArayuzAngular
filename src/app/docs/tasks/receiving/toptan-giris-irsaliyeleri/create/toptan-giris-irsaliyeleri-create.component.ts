@@ -12,6 +12,9 @@ import {
   Validators
 } from '@angular/forms';
 import type {
+  CompanyReceivingEDespatchPreviewDto,
+  EDespatchCustomerSuggestionDto,
+  EDespatchPreviewLineDto,
   IFurpaCustomerSearchItemApiDto,
   IFurpaCompanyOrderDetailApiDto,
   IFurpaCompanyOrderItemApiDto,
@@ -82,8 +85,8 @@ const documentDateValidator: ValidatorFn = (control: AbstractControl): Validatio
   const movementDate = control.get('movementDate')?.value;
   const documentDate = control.get('documentDate')?.value;
 
-  return movementDate && documentDate && documentDate < movementDate
-    ? { documentDateBeforeMovementDate: true }
+  return movementDate && documentDate && documentDate > movementDate
+    ? { documentDateAfterMovementDate: true }
     : null;
 };
 
@@ -114,15 +117,19 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   );
   protected readonly customerQuery = new FormControl('', { nonNullable: true });
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
+  protected readonly officialDocumentQuery = new FormControl('', { nonNullable: true });
   protected readonly customerResults = signal<IFurpaCustomerSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
   protected readonly selectedCustomer = signal<IFurpaCustomerSearchItemApiDto | null>(null);
+  protected readonly officialDocumentPreview = signal<CompanyReceivingEDespatchPreviewDto | null>(null);
   protected readonly customerLoading = signal(false);
   protected readonly stockLoading = signal(false);
   protected readonly orderLoading = signal(false);
+  protected readonly officialDocumentLoading = signal(false);
   protected readonly customerError = signal('');
   protected readonly stockError = signal('');
   protected readonly orderError = signal('');
+  protected readonly officialDocumentError = signal('');
   protected readonly submitError = signal('');
   protected readonly submitting = signal(false);
   protected readonly createdReceiptResult = signal<IFurpaCreateCompanyReceiptResponseApiDto | null>(null);
@@ -132,6 +139,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
   private customerRequestId = 0;
   private stockRequestId = 0;
   private orderRequestId = 0;
+  private officialDocumentRequestId = 0;
 
   protected readonly controls = {
     muhatapFirmaCariKod: new FormControl('', {
@@ -190,7 +198,7 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
 
   protected isDocumentDateInvalid(): boolean {
     return (
-      this.form.hasError('documentDateBeforeMovementDate') &&
+      this.form.hasError('documentDateAfterMovementDate') &&
       (this.controls.documentDate.touched || this.controls.documentDate.dirty)
     );
   }
@@ -270,6 +278,8 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     this.orderResultsOpen.set(false);
     this.selectedOrderKeys.set([]);
     this.orderError.set('');
+    this.officialDocumentPreview.set(null);
+    this.officialDocumentError.set('');
 
     if (customerChanged) {
       this.kalemler.clear();
@@ -291,6 +301,8 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     this.orderResultsOpen.set(false);
     this.selectedOrderKeys.set([]);
     this.orderError.set('');
+    this.officialDocumentPreview.set(null);
+    this.officialDocumentError.set('');
     this.kalemler.clear();
   }
 
@@ -396,6 +408,87 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
     this.orderError.set('');
     this.stockError.set('');
     this.closeOrderResults();
+  }
+
+  protected loadOfficialDocumentFromEttn(): void {
+    if (this.officialDocumentLoading()) {
+      return;
+    }
+
+    const ettn = this.officialDocumentQuery.value.trim();
+    if (!ettn) {
+      this.officialDocumentError.set('ETTN / UUID girilmelidir.');
+      return;
+    }
+
+    const requestId = ++this.officialDocumentRequestId;
+    this.officialDocumentLoading.set(true);
+    this.officialDocumentError.set('');
+    this.officialDocumentPreview.set(null);
+
+    this.malKabulIslemleriService
+      .getCompanyReceiptByEttn(ettn, this.isAdminUser() ? this.resolveRequestWarehouseNo() : undefined, 'auto')
+      .pipe(finalize(() => requestId === this.officialDocumentRequestId && this.officialDocumentLoading.set(false)))
+      .subscribe({
+        next: (preview: CompanyReceivingEDespatchPreviewDto) => {
+          if (requestId !== this.officialDocumentRequestId) {
+            return;
+          }
+
+          this.officialDocumentPreview.set(preview);
+
+          if (!preview?.isFound) {
+            this.officialDocumentError.set(
+              preview?.warnings?.[0] ?? 'E-irsaliye veya e-fatura bulunamadi.'
+            );
+            return;
+          }
+
+          this.applyOfficialDocumentHeader(preview);
+        },
+        error: (error: HttpErrorResponse) => {
+          if (requestId !== this.officialDocumentRequestId) {
+            return;
+          }
+
+          this.officialDocumentError.set(
+            this.resolveErrorMessage(error, 'E-belge bilgisi alinamadi.')
+          );
+        }
+      });
+  }
+
+  protected addMatchedOfficialDocumentLines(): void {
+    const preview = this.officialDocumentPreview();
+
+    if (!preview?.isFound) {
+      this.officialDocumentError.set('Once ETTN / UUID ile e-belge okunmalidir.');
+      return;
+    }
+
+    const usableLines = (preview.lines ?? []).filter((line) =>
+      line.canUseForGoodsAcceptance && !!line.internalStockCode?.trim()
+    );
+
+    if (usableLines.length === 0) {
+      this.officialDocumentError.set('Kaleme aktarilabilecek stok eslesmesi bulunamadi.');
+      return;
+    }
+
+    usableLines.forEach((line) => this.addOrMergeKalemFromOfficialDocument(line, preview));
+    this.officialDocumentError.set('');
+    this.stockError.set('');
+  }
+
+  protected getOfficialDocumentLabel(preview: CompanyReceivingEDespatchPreviewDto): string {
+    return preview.sourceDocumentLabel?.trim()
+      || (preview.sourceDocumentKind === 'e-invoice' ? 'E-Fatura' : 'E-Irsaliye');
+  }
+
+  protected getMatchedOfficialDocumentLineCount(preview: CompanyReceivingEDespatchPreviewDto): number {
+    return (preview.lines ?? []).filter((line) =>
+      line.canUseForGoodsAcceptance && !!line.internalStockCode?.trim()
+    ).length;
   }
 
   protected removeSelectedOrdersFromKalemler(): void {
@@ -718,6 +811,146 @@ export class ToptanGirisIrsaliyeleriCreateComponent extends DocsTaskDialogBase {
         modelKodu: new FormControl('', { nonNullable: true })
       }, { validators: [acceptedQuantityValidator] })
     );
+  }
+
+  private applyOfficialDocumentHeader(preview: CompanyReceivingEDespatchPreviewDto): void {
+    const primaryCustomer = preview.primaryCustomerSuggestion;
+    if (primaryCustomer?.customerCode?.trim()) {
+      this.selectCustomer(this.mapSuggestedCustomer(primaryCustomer));
+      this.officialDocumentPreview.set(preview);
+    }
+
+    const documentNo =
+      preview.sourceDocumentNumber?.trim()
+      || preview.despatchNumber?.trim()
+      || preview.invoiceNumber?.trim()
+      || '';
+    const documentDate = this.toDateInputValue(preview.issueDate ?? preview.invoiceDate);
+
+    if (documentNo) {
+      this.controls.documentNo.setValue(documentNo);
+      this.controls.documentNo.markAsDirty();
+    }
+
+    if (documentDate) {
+      this.controls.documentDate.setValue(documentDate);
+      this.controls.documentDate.markAsDirty();
+      this.controls.documentDate.updateValueAndValidity();
+      this.form.updateValueAndValidity();
+    }
+
+    if (preview.sender?.title && !this.controls.deliverer.value.trim()) {
+      this.controls.deliverer.setValue(preview.sender.title.trim());
+    }
+
+    const label = this.getOfficialDocumentLabel(preview);
+    const descriptionParts = [
+      `${label}: ${documentNo || preview.ettn}`,
+      ...(preview.warnings ?? [])
+    ].filter(Boolean);
+
+    if (descriptionParts.length) {
+      this.controls.description.setValue(descriptionParts.join(' | '));
+    }
+  }
+
+  private addOrMergeKalemFromOfficialDocument(
+    line: EDespatchPreviewLineDto,
+    preview: CompanyReceivingEDespatchPreviewDto
+  ): void {
+    const stockCode = line.internalStockCode?.trim() ?? '';
+    if (!stockCode) {
+      return;
+    }
+
+    const normalizedStockCode = stockCode.toLocaleUpperCase('tr-TR');
+    const incomingQuantity = Number(line.quantity ?? 0) > 0 ? Number(line.quantity) : 1;
+    const existingControl = this.kalemler.controls.find((control) =>
+      control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode &&
+      !control.controls.siparisGuid.value.trim()
+    );
+
+    if (existingControl) {
+      const currentDispatch = Number(existingControl.controls.irsaliyeMiktari.value ?? 0);
+      const currentAccepted = Number(existingControl.controls.fiiliKabulMiktari.value ?? 0);
+      existingControl.controls.irsaliyeMiktari.setValue(currentDispatch + incomingQuantity);
+      existingControl.controls.fiiliKabulMiktari.setValue(currentAccepted + incomingQuantity);
+      existingControl.controls.irsaliyeMiktari.markAsDirty();
+      existingControl.controls.fiiliKabulMiktari.markAsDirty();
+      return;
+    }
+
+    this.kalemler.push(
+      new FormGroup({
+        taslakGuid: new FormControl('', { nonNullable: true }),
+        siparisGuid: new FormControl('', { nonNullable: true }),
+        siparisReferansi: new FormControl(this.getOfficialDocumentLabel(preview), { nonNullable: true }),
+        stokKodu: new FormControl(stockCode, {
+          nonNullable: true,
+          validators: [Validators.required]
+        }),
+        stokIsmi: new FormControl(line.internalStockName?.trim() || line.productName?.trim() || stockCode, {
+          nonNullable: true
+        }),
+        barkodu: new FormControl(line.barcode?.trim() ?? '', { nonNullable: true }),
+        birim: new FormControl(line.unitCode?.trim() ?? '', { nonNullable: true }),
+        birimKatsayisi: new FormControl(1),
+        siparisMiktari: new FormControl<number | null>(0, {
+          validators: [Validators.required, Validators.min(0)]
+        }),
+        irsaliyeMiktari: new FormControl<number | null>(incomingQuantity, {
+          validators: [Validators.required, Validators.min(0.01)]
+        }),
+        fiiliKabulMiktari: new FormControl<number | null>(incomingQuantity, {
+          validators: [Validators.required, Validators.min(0)]
+        }),
+        aciklama: new FormControl(this.buildOfficialDocumentLineDescription(line, preview), { nonNullable: true }),
+        skt: new FormControl('', { nonNullable: true }),
+        modelKodu: new FormControl(line.sellerItemCode?.trim() ?? '', { nonNullable: true })
+      }, { validators: [acceptedQuantityValidator] })
+    );
+  }
+
+  private buildOfficialDocumentLineDescription(
+    line: EDespatchPreviewLineDto,
+    preview: CompanyReceivingEDespatchPreviewDto
+  ): string {
+    const parts = [
+      this.getOfficialDocumentLabel(preview),
+      line.quantitySource === 'invoice' ? 'Fatura miktari' : 'Irsaliye miktari',
+      line.description?.trim() || line.productName?.trim() || ''
+    ].filter(Boolean);
+
+    return parts.join(' - ');
+  }
+
+  private mapSuggestedCustomer(suggestion: EDespatchCustomerSuggestionDto): IFurpaCustomerSearchItemApiDto {
+    return {
+      customerCode: suggestion.customerCode,
+      customerName: suggestion.customerName,
+      customerTitle: suggestion.customerName,
+      customerDisplayName: suggestion.customerName,
+      taxNumber: suggestion.taxNoOrTckn ?? '',
+      representativeCode: '',
+      representativeName: '',
+      invoiceAddressNo: null,
+      shippingAddressNo: null,
+      isLocked: false,
+      isClosed: false
+    };
+  }
+
+  private toDateInputValue(value: string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
+
+    const date = new Date(value);
+    if (Number.isNaN(date.getTime())) {
+      return '';
+    }
+
+    return formatDateOnly(date);
   }
 
   private buildRequest(): IFurpaCreateCompanyReceiptRequestApiDto {

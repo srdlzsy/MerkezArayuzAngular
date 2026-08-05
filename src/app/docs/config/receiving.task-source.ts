@@ -15,7 +15,7 @@ export const RECEIVING_TASK_SOURCE = {
         'Eksik kabul farki icin varsayilan olarak otomatik firma iadesi olusturulur',
         'Yazma yolu MikroWriteRouting:CompanyReceiving ile Database veya MikroApi olur',
         'MikroApi modunda siparis teslim etkisi Mikro API tarafina birakilir',
-        'ETTN endpointi create ekrani icin ust bilgi ve kalem on-dolumu saglar',
+        'ETTN/UUID endpointi create ekrani icin e-irsaliye veya e-fatura ust bilgi ve kalem on-dolumu saglar',
         'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir'
       ],
       listTitle: 'Endpointler',
@@ -37,8 +37,8 @@ export const RECEIVING_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/mal-kabul-islemleri/firma-mal-kabulleri/e-irsaliye/ettn/{ettn}?warehouseNo=110',
-              description: 'ETTN ile resmi e-irsaliye ust bilgi, stok eslesmeleri ve cari onerilerini getirir'
+              path: '/api/mal-kabul-islemleri/firma-mal-kabulleri/resmi-belge/ettn/{ettn}?warehouseNo=110&documentKind=auto',
+              description: 'ETTN/UUID ile resmi e-irsaliye veya e-fatura ust bilgi, stok eslesmeleri ve cari onerilerini getirir'
             },
             {
               method: 'POST',

@@ -489,6 +489,9 @@ export interface EDespatchPreviewLineDto {
   isMatched: boolean;
   isGoodsAcceptanceBlocked: boolean;
   canUseForGoodsAcceptance: boolean;
+  unitPrice?: number | null;
+  lineAmount?: number | null;
+  quantitySource?: 'despatch' | 'invoice' | string | null;
 }
 
 export interface WarehouseReceivingEDespatchPreviewDto {
@@ -521,6 +524,9 @@ export interface CompanyReceivingEDespatchPreviewDto {
   warehouseNo: number;
   receivingContext: string;
   ettn: string;
+  sourceDocumentKind?: 'auto' | 'e-despatch' | 'e-invoice' | string | null;
+  sourceDocumentLabel?: string | null;
+  sourceDocumentNumber?: string | null;
   despatchNumber: string | null;
   issueDate: string | null;
   actualDespatchDate: string | null;
@@ -530,6 +536,14 @@ export interface CompanyReceivingEDespatchPreviewDto {
   driverTckn: string | null;
   profileId: string | null;
   despatchAdviceTypeCode: string | null;
+  invoiceNumber?: string | null;
+  invoiceDate?: string | null;
+  invoiceTotal?: number | null;
+  taxExclusiveAmount?: number | null;
+  taxTotal?: number | null;
+  currencyCode?: string | null;
+  despatchReferences?: string[];
+  warnings?: string[];
   notes: string[];
   sender: EDespatchPartyDto | null;
   receiver: EDespatchPartyDto | null;

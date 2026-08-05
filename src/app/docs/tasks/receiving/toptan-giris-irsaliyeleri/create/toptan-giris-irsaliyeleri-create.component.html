@@ -147,6 +147,56 @@
           </div>
         </div>
 
+        <section class="official-document-card">
+          <div class="official-document-search">
+            <label class="official-document-field">
+              <span>E-Belge ETTN / UUID</span>
+              <input
+                type="text"
+                [formControl]="officialDocumentQuery"
+                placeholder="QR'dan gelen ETTN veya UUID"
+                (keydown.enter)="$event.preventDefault(); loadOfficialDocumentFromEttn()"
+              />
+            </label>
+            <button
+              type="button"
+              class="small-btn"
+              [disabled]="officialDocumentLoading()"
+              (click)="loadOfficialDocumentFromEttn()"
+            >
+              {{ officialDocumentLoading() ? 'Okunuyor...' : 'E-Belge Oku' }}
+            </button>
+          </div>
+
+          <div class="feedback-error mini-error" *ngIf="officialDocumentError()">
+            {{ officialDocumentError() }}
+          </div>
+
+          <article class="official-document-preview" *ngIf="officialDocumentPreview() as preview">
+            <div class="official-document-summary">
+              <span class="document-kind">{{ getOfficialDocumentLabel(preview) }}</span>
+              <strong>{{ preview.sourceDocumentNumber || preview.despatchNumber || preview.invoiceNumber || preview.ettn }}</strong>
+              <span>{{ preview.matchedLineCount || 0 }} / {{ preview.totalLineCount || 0 }} eslesen kalem</span>
+              <span *ngIf="preview.invoiceTotal !== null && preview.invoiceTotal !== undefined">
+                Toplam: {{ preview.invoiceTotal | number: '1.2-2' }} {{ preview.currencyCode || '' }}
+              </span>
+            </div>
+
+            <div class="official-document-warnings" *ngIf="preview.warnings?.length">
+              <span *ngFor="let warning of preview.warnings">{{ warning }}</span>
+            </div>
+
+            <button
+              type="button"
+              class="small-btn"
+              [disabled]="!preview.isFound || !getMatchedOfficialDocumentLineCount(preview)"
+              (click)="addMatchedOfficialDocumentLines()"
+            >
+              Eslesen Kalemleri Ekle ({{ getMatchedOfficialDocumentLineCount(preview) }})
+            </button>
+          </article>
+        </section>
+
         <div class="contact-row">
           <div class="contact-field">
             <label>Muhatap Ad Soyad *</label>
@@ -163,6 +213,17 @@
         </div>
 
         <div class="contact-row">
+          <div class="contact-field">
+            <label>Hareket Tarihi *</label>
+            <input type="date" formControlName="movementDate" />
+          </div>
+          <div class="contact-field">
+            <label>Belge Tarihi *</label>
+            <input type="date" formControlName="documentDate" [class.error]="isDocumentDateInvalid()" />
+            <small class="field-error" *ngIf="isDocumentDateInvalid()">
+              Belge tarihi hareket tarihinden ileri olamaz.
+            </small>
+          </div>
           <div class="contact-field">
             <label>Belge No / Prefix</label>
             <input type="text" formControlName="documentNo" placeholder="Bos, ULK veya ST12026000002395" />
