@@ -265,6 +265,22 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
     shellStyle.id = 'kunye-print-shell';
     shellStyle.textContent = `
       @media print {
+        html.kunye-printing,
+        body.kunye-printing {
+          width: auto !important;
+          height: auto !important;
+          min-height: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+
+        body.kunye-printing > :not(.kunye-print-root) {
+          display: none !important;
+        }
+
         .app-sidebar,
         .topbar,
         .topbar-mobile,
@@ -278,6 +294,28 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
           padding: 0 !important;
         }
 
+        html,
+        body,
+        #printSection,
+        .kunye-print-root {
+          overflow: hidden !important;
+          scrollbar-width: none !important;
+          -ms-overflow-style: none !important;
+        }
+
+        html::-webkit-scrollbar,
+        body::-webkit-scrollbar,
+        #printSection::-webkit-scrollbar,
+        .kunye-print-root::-webkit-scrollbar,
+        .manav-a4-sheet::-webkit-scrollbar,
+        .manav-a5-page::-webkit-scrollbar,
+        .price-side::-webkit-scrollbar,
+        .kunye-card::-webkit-scrollbar {
+          width: 0 !important;
+          height: 0 !important;
+          display: none !important;
+        }
+
         .kunye-print-root {
           display: block !important;
           margin: 0 !important;
@@ -287,10 +325,42 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
           background: transparent !important;
           position: static !important;
           left: auto !important;
+          top: auto !important;
+          width: auto !important;
+          height: auto !important;
           visibility: visible !important;
+          overflow: hidden !important;
+          pointer-events: auto !important;
         }
       }
     `;
+
+    const printRoot = document.querySelector<HTMLElement>('#printSection.kunye-print-root');
+    const originalParent = printRoot?.parentNode as Node | null;
+    const originalNextSibling = printRoot?.nextSibling ?? null;
+
+    const mountPrintRoot = () => {
+      document.documentElement.classList.add('kunye-printing');
+      document.body.classList.add('kunye-printing');
+
+      if (printRoot && printRoot.parentNode !== document.body) {
+        document.body.appendChild(printRoot);
+      }
+    };
+
+    const restorePrintRoot = () => {
+      document.documentElement.classList.remove('kunye-printing');
+      document.body.classList.remove('kunye-printing');
+
+      if (!printRoot || !originalParent || printRoot.parentNode !== document.body) {
+        return;
+      }
+
+      const referenceNode = originalNextSibling?.parentNode === originalParent
+        ? originalNextSibling
+        : null;
+      originalParent.insertBefore(printRoot, referenceNode);
+    };
 
     const beforePrint = () => {
       this.printComponent?.renderBarcodesNow();
@@ -308,6 +378,7 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
       if (cleanupTimer !== undefined) {
         window.clearTimeout(cleanupTimer);
       }
+      restorePrintRoot();
       link.remove();
       shellStyle.remove();
       this.printState.set('idle');
@@ -325,6 +396,7 @@ export class ManavKunyeEtiketBasimiListComponent implements OnInit {
       await this.waitForFonts();
       await this.waitForNextPaint();
 
+      mountPrintRoot();
       cleanupTimer = window.setTimeout(cleanup, 60_000);
       window.print();
     } catch (error) {

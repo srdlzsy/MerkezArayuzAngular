@@ -1,13 +1,16 @@
 .print-sheet {
-  width: 100%;
-  max-width: 194mm;
-  min-height: 270mm;
+  width: 198mm;
+  max-width: 198mm;
+  height: 285mm;
+  min-height: 285mm;
   margin: 0 auto;
-  padding: 9mm 6mm 0;
+  padding: 7mm 4mm 0;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: repeat(2, 82mm);
-  gap: 10mm;
+  grid-template-columns: repeat(2, 90mm);
+  grid-template-rows: repeat(2, 106mm);
+  column-gap: 10mm;
+  row-gap: 10mm;
   background: #ffffff;
   page-break-after: always;
   justify-content: center;
@@ -15,6 +18,7 @@
   justify-items: center;
   align-items: start;
   font-family: 'Times New Roman', serif;
+  overflow: hidden;
 }
 
 .print-sheet:last-child {
@@ -23,7 +27,8 @@
 }
 
 .label-wrapper {
-  width: 82mm;
+  width: 90mm;
+  height: 106mm;
   box-sizing: border-box;
   page-break-inside: avoid;
   break-inside: avoid;
@@ -32,7 +37,9 @@
 
 .tag-label {
   border: 1px solid #000;
-  padding: 5px 7px;
+  width: 100%;
+  height: 100%;
+  padding: 3mm 3mm 2mm;
   display: flex;
   flex-direction: column;
   justify-content: flex-start;
@@ -49,10 +56,10 @@
 
 .product-title {
   text-align: center;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: bold;
-  line-height: 1.15;
-  min-height: 22px;
+  line-height: 1.12;
+  min-height: 27px;
   text-transform: uppercase;
 }
 
@@ -61,7 +68,7 @@
   background: #595959;
   color: #ffffff;
   text-align: center;
-  font-size: 8px;
+  font-size: 9px;
   font-weight: bold;
   padding: 6px 4px;
   text-transform: uppercase;
@@ -75,8 +82,8 @@
   justify-content: space-between;
   align-items: flex-start;
   gap: 7px;
-  margin-top: 6px;
-  margin-bottom: 6px;
+  margin-top: 7px;
+  margin-bottom: 7px;
 }
 
 .qr-section {
@@ -89,23 +96,23 @@
 }
 
 .qr-box {
-  width: 18mm;
-  height: 18mm;
+  width: 20mm;
+  height: 20mm;
   display: flex;
   align-items: center;
   justify-content: center;
 }
 
 .qr-svg {
-  width: 18mm;
-  height: 18mm;
+  width: 20mm;
+  height: 20mm;
   shape-rendering: crispEdges;
   display: block;
 }
 
 .qr-number {
   margin-top: 3px;
-  font-size: 6px;
+  font-size: 6.5px;
   line-height: 1.05;
   font-weight: bold;
   text-align: center;
@@ -114,7 +121,7 @@
 
 .cost-section {
   width: 66%;
-  font-size: 7px;
+  font-size: 7.4px;
   line-height: 1.15;
 }
 
@@ -122,7 +129,7 @@
   text-align: right;
   font-weight: bold;
   margin-bottom: 5px;
-  font-size: 7px;
+  font-size: 7.4px;
 }
 
 .cost-row,
@@ -132,7 +139,7 @@
   align-items: flex-start;
   gap: 4px;
   margin-bottom: 2px;
-  font-size: 7px;
+  font-size: 7.4px;
 }
 
 .cost-row span:first-child,
@@ -155,21 +162,21 @@
 }
 
 .info-section {
-  margin-top: 2px;
+  margin-top: 4px;
   border-top: 1px solid #000;
 }
 
 .info-row {
   display: flex;
   border-bottom: 1px solid #000;
-  min-height: 18px;
+  min-height: 22px;
   align-items: center;
 }
 
 .info-label {
   width: 42%;
   font-weight: bold;
-  font-size: 6px;
+  font-size: 7px;
   line-height: 1.1;
   padding: 1px 3px 1px 1px;
   text-transform: uppercase;
@@ -177,20 +184,20 @@
 
 .info-value {
   width: 58%;
-  font-size: 6px;
+  font-size: 7px;
   line-height: 1.1;
   padding: 1px 2px;
   word-break: break-word;
 }
 
 .footer-section {
-  margin-top: 2px;
+  margin-top: auto;
   padding-top: 2px;
   text-align: center;
 }
 
 .footer-text {
-  font-size: 5px;
+  font-size: 5.6px;
   line-height: 1.15;
   margin-bottom: 0;
 }
@@ -207,10 +214,11 @@
 
 @media print {
   .print-sheet {
-    width: 100%;
-    max-width: 194mm;
-    min-height: 270mm;
-    padding-top: 9mm;
+    width: 198mm;
+    max-width: 198mm;
+    height: 285mm;
+    min-height: 285mm;
+    padding: 7mm 4mm 0;
     page-break-after: always;
     break-after: page;
   }

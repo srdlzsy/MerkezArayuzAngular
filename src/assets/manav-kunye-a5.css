@@ -1,6 +1,6 @@
 @page {
   size: A4 portrait;
-  margin: 10mm;
+  margin: 6mm;
 }
 
 html,
@@ -8,13 +8,29 @@ body {
   margin: 0 !important;
   padding: 0 !important;
   background: #fff !important;
+  overflow: hidden !important;
+  scrollbar-width: none !important;
+  -ms-overflow-style: none !important;
   -webkit-print-color-adjust: exact !important;
   print-color-adjust: exact !important;
 }
 
+html::-webkit-scrollbar,
+body::-webkit-scrollbar,
+#printSection::-webkit-scrollbar,
+.kunye-print-root::-webkit-scrollbar,
+.manav-a4-sheet::-webkit-scrollbar,
+.manav-a5-page::-webkit-scrollbar,
+.price-side::-webkit-scrollbar,
+.kunye-card::-webkit-scrollbar {
+  width: 0 !important;
+  height: 0 !important;
+  display: none !important;
+}
+
 #printSection {
-  width: 210mm;
-  margin: 0;
+  width: 198mm;
+  margin: 0 auto;
   padding: 0;
   background: #fff;
   color: #000;
@@ -22,12 +38,16 @@ body {
 }
 
 .manav-a4-sheet {
-  width: 210mm;
-  height: 297mm;
-  margin: 0;
-  padding: 0;
-  display: flex;
-  flex-direction: column;
+  width: 198mm;
+  max-width: 198mm;
+  height: 285mm;
+  min-height: 285mm;
+  margin: 0 auto;
+  padding: 4mm 4mm 0;
+  box-sizing: border-box;
+  display: grid;
+  grid-template-rows: repeat(2, 133mm);
+  row-gap: 6mm;
   overflow: hidden;
   background: #fff;
   break-after: page;
@@ -40,17 +60,16 @@ body {
 }
 
 .manav-a5-page {
-  width: 210mm;
-  height: 148.5mm;
-  min-height: 148.5mm;
+  width: 190mm;
+  height: 133mm;
+  min-height: 133mm;
   box-sizing: border-box;
   display: grid;
-  grid-template-columns: 110mm 90mm;
+  grid-template-columns: minmax(0, 109mm) minmax(0, 79mm);
   justify-content: center;
   align-items: center;
-  flex: 0 0 148.5mm;
   overflow: hidden;
-  border: 0.7mm solid #000;
+  border: 0.35mm solid #000;
   background: #fff;
   color: #000;
   break-inside: avoid;
@@ -58,38 +77,38 @@ body {
 }
 
 .manav-a5-page + .manav-a5-page {
-  border-top-width: 0;
+  border-top-width: 0.35mm;
 }
 
 .price-side {
-  width: 110mm;
-  height: 140.5mm;
+  width: 109mm;
+  height: 126mm;
   box-sizing: border-box;
-  padding: 11mm 0 7mm;
+  padding: 9mm 0 7mm;
   display: flex;
   flex-direction: column;
   justify-content: center;
-  gap: 11mm;
+  gap: 8mm;
   font-family: Arial, Helvetica, sans-serif;
 }
 
 .product-name {
   text-align: center;
   text-transform: uppercase;
-  font-size: 36pt;
+  font-size: 30pt;
   font-weight: 700;
-  line-height: 1.25;
-  letter-spacing: 2mm;
+  line-height: 1.2;
+  letter-spacing: 1.7mm;
   overflow-wrap: anywhere;
 }
 
 .product-unit {
-  margin-top: 8mm;
+  margin-top: 5.5mm;
   text-align: center;
-  font-size: 29pt;
+  font-size: 25pt;
   font-weight: 400;
   line-height: 1.1;
-  letter-spacing: 2mm;
+  letter-spacing: 1.7mm;
 }
 
 .price-area {
@@ -112,40 +131,40 @@ body {
 }
 
 .big-price.price-size-xl {
-  font-size: 68pt;
+  font-size: 62pt;
 }
 
 .big-price.price-size-xl span {
-  font-size: 38pt;
+  font-size: 34pt;
 }
 
 .big-price.price-size-lg {
-  font-size: 58pt;
+  font-size: 54pt;
 }
 
 .big-price.price-size-lg span {
-  font-size: 32pt;
+  font-size: 30pt;
 }
 
 .big-price.price-size-md {
-  font-size: 48pt;
+  font-size: 45pt;
 }
 
 .big-price.price-size-md span {
-  font-size: 27pt;
+  font-size: 25pt;
 }
 
 .big-price.price-size-sm {
-  font-size: 39pt;
+  font-size: 36pt;
 }
 
 .big-price.price-size-sm span {
-  font-size: 22pt;
+  font-size: 20pt;
 }
 
 .kunye-card {
-  width: 90mm;
-  height: 140.5mm;
+  width: 79mm;
+  height: 126mm;
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
@@ -157,22 +176,22 @@ body {
 }
 
 .kunye-title {
-  height: 11mm;
+  height: 10mm;
   box-sizing: border-box;
-  padding: 2.6mm 2mm 1mm;
+  padding: 2.3mm 1.8mm 0.8mm;
   overflow: hidden;
   text-align: center;
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
-  font-size: 10.4pt;
+  font-size: 8.2pt;
   font-weight: 900;
   line-height: 1.1;
 }
 
 .kunye-type {
-  height: 10mm;
-  margin: 0 2.5mm 3mm;
+  height: 8.5mm;
+  margin: 0 2mm 2.4mm;
   box-sizing: border-box;
   display: flex;
   align-items: center;
@@ -184,32 +203,32 @@ body {
   text-overflow: ellipsis;
   text-transform: uppercase;
   white-space: nowrap;
-  font-size: 10pt;
+  font-size: 8.4pt;
   font-weight: 900;
   letter-spacing: 0.2mm;
 }
 
 .qr-cost-area {
-  height: 43mm;
+  height: 38mm;
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
-  padding: 3.6mm 2.5mm 2.5mm;
+  padding: 2.8mm 2mm 2mm;
   border-bottom: 0.35mm solid #111;
 }
 
 .qr-area {
-  width: 31mm;
-  flex: 0 0 31mm;
+  width: 26mm;
+  flex: 0 0 26mm;
   box-sizing: border-box;
-  padding-top: 2mm;
+  padding-top: 1.7mm;
   text-align: center;
 }
 
 .qr-box,
 .qr-box svg {
-  width: 24mm;
-  height: 24mm;
+  width: 19mm;
+  height: 19mm;
   display: block;
 }
 
@@ -218,8 +237,8 @@ body {
 }
 
 .kunye-no {
-  margin-top: 2mm;
-  font-size: 7.5pt;
+  margin-top: 1.5mm;
+  font-size: 6.1pt;
   font-weight: 900;
   line-height: 1.05;
   overflow-wrap: anywhere;
@@ -229,13 +248,13 @@ body {
   min-width: 0;
   flex: 1 1 auto;
   box-sizing: border-box;
-  padding-left: 3mm;
+  padding-left: 2.2mm;
 }
 
 .cost-title {
-  margin-bottom: 2mm;
+  margin-bottom: 1.3mm;
   text-align: center;
-  font-size: 7.3pt;
+  font-size: 6pt;
   font-weight: 900;
   letter-spacing: 0.1mm;
 }
@@ -250,8 +269,8 @@ body {
 }
 
 .cost-row {
-  font-size: 7pt;
-  line-height: 1.43;
+  font-size: 5.7pt;
+  line-height: 1.32;
 }
 
 .cost-row span:first-child {
@@ -265,22 +284,22 @@ body {
 }
 
 .cost-line {
-  margin: 2mm 0 1.4mm;
-  border-top: 0.5mm solid #000;
+  margin: 1.4mm 0 1mm;
+  border-top: 0.35mm solid #000;
 }
 
 .cost-total {
-  font-size: 7.2pt;
+  font-size: 5.9pt;
 }
 
 .info-row {
-  height: 10.5mm;
-  min-height: 10.5mm;
+  height: 9.8mm;
+  min-height: 9.8mm;
   box-sizing: border-box;
   display: flex;
   flex-direction: row;
   border-bottom: 0.35mm solid #111;
-  font-size: 7.9pt;
+  font-size: 6.5pt;
   line-height: 1.12;
 }
 
@@ -295,34 +314,56 @@ body {
 
 .info-label {
   width: 36%;
-  padding: 1.7mm 1mm 1.4mm 2.5mm;
+  padding: 1.5mm 0.8mm 1.2mm 2mm;
 }
 
 .info-value {
   width: 64%;
-  padding: 1.7mm 1mm 1.4mm 1mm;
+  padding: 1.5mm 0.8mm 1.2mm 0.8mm;
   overflow-wrap: anywhere;
 }
 
 .footer-note {
   margin-top: auto;
   box-sizing: border-box;
-  padding: 1.3mm 2mm 1.5mm;
+  padding: 1.2mm 1.6mm 1.3mm;
   text-align: center;
-  font-size: 6.5pt;
+  font-size: 5.3pt;
   font-weight: 700;
   line-height: 1.12;
 }
 
 @media print {
+  html,
+  body,
+  #printSection,
+  .kunye-print-root {
+    overflow: hidden !important;
+    scrollbar-width: none !important;
+    -ms-overflow-style: none !important;
+  }
+
+  html::-webkit-scrollbar,
+  body::-webkit-scrollbar,
+  #printSection::-webkit-scrollbar,
+  .kunye-print-root::-webkit-scrollbar,
+  .manav-a4-sheet::-webkit-scrollbar,
+  .manav-a5-page::-webkit-scrollbar,
+  .price-side::-webkit-scrollbar,
+  .kunye-card::-webkit-scrollbar {
+    width: 0 !important;
+    height: 0 !important;
+    display: none !important;
+  }
+
   #printSection {
     display: block !important;
     position: static !important;
-    width: 210mm !important;
+    width: 198mm !important;
     height: auto !important;
-    margin: 0 !important;
+    margin: 0 auto !important;
     padding: 0 !important;
-    overflow: visible !important;
+    overflow: hidden !important;
     visibility: visible !important;
     pointer-events: auto !important;
   }
