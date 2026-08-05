@@ -27,17 +27,18 @@ export const FALLBACK_SCALE_TYPE_OPTIONS: readonly SettingsTypeOptionDto[] = [
 export const FALLBACK_CASH_TYPE_OPTIONS: readonly SettingsTypeOptionDto[] = [
   {
     value: 0,
-    code: 'cash-type-0',
-    name: 'Kasa Tipi 0',
-    description: 'Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.',
-    isKnown: false
+    code: 'standard-pos-cash-register',
+    name: 'Standart POS Kasasi',
+    description: 'Subenin POSKON/MESAJ dosya islemlerine dahil edilen standart satis kasasi.',
+    isKnown: true
   },
   {
     value: 1,
-    code: 'cash-type-1',
-    name: 'Kasa Tipi 1',
-    description: 'Mevcut veri sozlugunde is kurali adi netlestirilmemis kasa tipi.',
-    isKnown: false
+    code: 'additional-pos-cash-register',
+    name: 'Ek POS Kasasi',
+    description:
+      'Subede standart kasa disinda tanimli ek POS kasasi; POSKON/MESAJ ve kasa hareket islemlerinde kasa no ile takip edilir.',
+    isKnown: true
   }
 ];
 

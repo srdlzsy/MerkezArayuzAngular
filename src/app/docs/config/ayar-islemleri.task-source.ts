@@ -138,7 +138,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'Sube kasa kayitlarini, POS terminal detaylarini ve MESAJ dosyasi durumlarini yonetir.',
       baseRouteOrFile: '/api/ayar-islemleri/kasa-pos-terminalleri',
       highlights: [
-        'Kasa tipi secimi /kasa-pos-terminalleri/secenekler lookup endpointinden gelir',
+        'Kasa tipi ve terminal banka secimi /kasa-pos-terminalleri/secenekler lookup endpointinden gelir',
         'branchNo + cashNo duplicate ise backend 409 doner',
         'Terminal silme islemi sube ve terminalNo ile branch scoped calisir',
         'Mesaj durumlari POSKON MESAJ.xxx dosyalarindan stateName metniyle hesaplanir'
@@ -152,7 +152,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/secenekler',
-              description: 'Kasa tipi lookup kataloglarini getirir'
+              description: 'Kasa tipi ve terminal banka lookup kataloglarini getirir'
             },
             {
               method: 'GET',

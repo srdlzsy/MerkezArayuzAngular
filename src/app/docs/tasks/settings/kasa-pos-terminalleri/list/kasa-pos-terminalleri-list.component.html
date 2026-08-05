@@ -162,7 +162,7 @@
             <tbody>
               <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminal">
                 <td><strong>{{ terminal.terminalNo }}</strong></td>
-                <td>{{ terminal.bank || '-' }}</td>
+                <td>{{ getTerminalBankLabel(terminal.bank) }}</td>
                 <td>{{ terminal.terminalId || '-' }}</td>
                 <td>{{ terminal.merchantNo || '-' }}</td>
                 <td>
@@ -241,7 +241,15 @@
 
           <label class="field">
             <span>Banka</span>
-            <input type="text" maxlength="80" formControlName="bank" />
+            <select formControlName="bank" [disabled]="lookupsLoading()">
+              <option value="" disabled>Banka secin</option>
+              <option
+                *ngFor="let option of terminalBankOptions(); trackBy: trackByTerminalBankOption"
+                [value]="option.paymentName"
+              >
+                {{ option.displayName || option.paymentName }}
+              </option>
+            </select>
           </label>
 
           <label class="field">
@@ -264,7 +272,7 @@
           <div class="draft-row" *ngFor="let draft of terminalDrafts(); trackBy: trackByTerminalDraft">
             <div>
               <strong>{{ draft.terminalNo }}</strong>
-              <span>{{ draft.bank || '-' }} / {{ draft.terminalId || '-' }}</span>
+              <span>{{ getTerminalBankLabel(draft.bank) }} / {{ draft.terminalId || '-' }}</span>
             </div>
             <button type="button" class="task-action task-action-danger" (click)="removeTerminalDraft(draft)">
               <i class="fa-solid fa-trash"></i>

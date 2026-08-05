@@ -382,7 +382,10 @@ export class KasaHareketAktarimiListComponent {
   }
 
   protected getCashRegisterLabel(cashRegister: KasaHareketCashRegisterDto): string {
-    return `Kasa ${cashRegister.cashRegisterNo} - Tip ${cashRegister.cashRegisterType}`;
+    const typeName =
+      cashRegister.cashRegisterTypeName?.trim() || `Tip ${cashRegister.cashRegisterType}`;
+
+    return `Kasa ${cashRegister.cashRegisterNo} - ${typeName}`;
   }
 
   protected getImportModeLabel(mode: KasaHareketImportMode): string {

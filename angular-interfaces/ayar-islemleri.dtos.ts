@@ -38,6 +38,14 @@ export interface BranchSettingsLookupsDto {
 
 export interface CashRegisterSettingsLookupsDto {
   cashTypes: SettingsTypeOptionDto[];
+  terminalBanks: TerminalBankOptionDto[];
+}
+
+export interface TerminalBankOptionDto {
+  paymentName: string;
+  paymentTypeNo: number;
+  accountCode: string;
+  displayName: string;
 }
 
 export interface BranchDetailDto {

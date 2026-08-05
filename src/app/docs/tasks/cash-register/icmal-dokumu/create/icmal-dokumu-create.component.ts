@@ -889,7 +889,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
     item.id;
 
   protected getCashRegisterLabel(register: IFurpaCashRegistryItemApiDto): string {
-    return `Kasa ${register.cashRegisterNo}`;
+    const typeName =
+      register.cashRegisterTypeName?.trim() || `Tip ${register.cashRegisterType}`;
+
+    return `Kasa ${register.cashRegisterNo} - ${typeName}`;
   }
 
   protected getCashierLabel(item: IFurpaCashierSearchItemApiDto): string {

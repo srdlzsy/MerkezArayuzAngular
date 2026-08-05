@@ -10,7 +10,8 @@ import type {
   CashRegisterTerminalDto,
   CashRegistryDto,
   CreateCashRegisterHttpRequest,
-  SettingsTypeOptionDto
+  SettingsTypeOptionDto,
+  TerminalBankOptionDto
 } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
@@ -35,7 +36,8 @@ interface TerminalDraft {
 }
 
 const DEFAULT_CASH_REGISTER_LOOKUPS: CashRegisterSettingsLookupsDto = {
-  cashTypes: [...FALLBACK_CASH_TYPE_OPTIONS]
+  cashTypes: [...FALLBACK_CASH_TYPE_OPTIONS],
+  terminalBanks: []
 };
 
 type PosAction = 'cash' | 'terminals' | 'messages' | 'create' | 'delete';
@@ -69,7 +71,7 @@ export class KasaPosTerminalleriListComponent {
     }),
     bank: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.maxLength(80)]
+      validators: [Validators.required, Validators.maxLength(80)]
     }),
     terminalId: new FormControl<string>('', {
       nonNullable: true,
@@ -123,6 +125,9 @@ export class KasaPosTerminalleriListComponent {
       FALLBACK_CASH_TYPE_OPTIONS
     )
   );
+  protected readonly terminalBankOptions = computed(
+    () => this.cashRegisterLookups().terminalBanks ?? []
+  );
 
   constructor() {
     const branchNo = this.authService.currentUser()?.depoNo ?? null;
@@ -151,8 +156,10 @@ export class KasaPosTerminalleriListComponent {
             cashTypes: this.mergeLookupOptions(
               lookups?.cashTypes ?? [],
               FALLBACK_CASH_TYPE_OPTIONS
-            )
+            ),
+            terminalBanks: lookups?.terminalBanks ?? []
           });
+          this.patchDefaultTerminalBank();
         },
         error: () => {
           this.cashRegisterLookups.set(DEFAULT_CASH_REGISTER_LOOKUPS);
@@ -330,7 +337,7 @@ export class KasaPosTerminalleriListComponent {
     ]);
     this.terminalDraftForm.reset({
       terminalNo: '',
-      bank: '',
+      bank: this.getDefaultTerminalBankName(),
       terminalId: '',
       merchantNo: ''
     });
@@ -542,6 +549,18 @@ export class KasaPosTerminalleriListComponent {
     return option.isKnown ? option.name : `${option.name} (tanimsiz)`;
   }
 
+  protected getTerminalBankLabel(paymentName: string | null | undefined): string {
+    const bank = paymentName?.trim() ?? '';
+
+    if (!bank) {
+      return '-';
+    }
+
+    const option = this.terminalBankOptions().find((item) => item.paymentName === bank);
+
+    return option?.displayName?.trim() || bank;
+  }
+
   protected getMessageStatusClass(status: CashRegisterMessageStatusDto): string {
     if (status.error || status.state === null) {
       return 'status-danger';
@@ -568,6 +587,10 @@ export class KasaPosTerminalleriListComponent {
     _index: number,
     option: SettingsTypeOptionDto
   ): number => option.value;
+  protected readonly trackByTerminalBankOption = (
+    _index: number,
+    option: TerminalBankOptionDto
+  ): string => `${option.paymentName}-${option.paymentTypeNo}`;
 
   private buildCreateRequest(): CreateCashRegisterHttpRequest {
     const formValue = this.cashRegisterForm.getRawValue();
@@ -639,5 +662,17 @@ export class KasaPosTerminalleriListComponent {
     value: number
   ): string | null {
     return options.find((item) => item.value === value)?.description?.trim() || null;
+  }
+
+  private patchDefaultTerminalBank(): void {
+    if (this.terminalDraftForm.controls.bank.value.trim()) {
+      return;
+    }
+
+    this.terminalDraftForm.controls.bank.setValue(this.getDefaultTerminalBankName());
+  }
+
+  private getDefaultTerminalBankName(): string {
+    return this.terminalBankOptions()[0]?.paymentName ?? '';
   }
 }

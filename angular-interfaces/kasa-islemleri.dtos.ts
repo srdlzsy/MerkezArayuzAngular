@@ -387,6 +387,8 @@ export interface KasaHareketCashRegisterDto {
   branchNo: number;
   cashRegisterNo: number;
   cashRegisterType: number;
+  cashRegisterTypeName?: string | null;
+  cashRegisterTypeDescription?: string | null;
 }
 
 export interface KasaHareketImportHttpRequest {
@@ -756,6 +758,8 @@ export interface CashRegistryItemDto {
   branchNo: number;
   cashRegisterNo: number;
   cashRegisterType: number;
+  cashRegisterTypeName?: string | null;
+  cashRegisterTypeDescription?: string | null;
 }
 
 export interface CashRegisterDetailDto {
@@ -1069,6 +1073,8 @@ export interface IFurpaCashRegistryItemApiDto {
   branchNo: number;
   cashRegisterNo: number;
   cashRegisterType: number;
+  cashRegisterTypeName?: string | null;
+  cashRegisterTypeDescription?: string | null;
 }
 
 export interface IFurpaCashRegisterLookupItemApiDto {
