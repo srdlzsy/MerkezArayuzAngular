@@ -5,6 +5,8 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import type {
   GreenGrocerProductCaseInfoDto,
+  GreenGrocerReportDateHttpRequest,
+  GreenGrocerReportTypeOptionDto,
   IFurpaGreenGrocerBranchReportItemApiDto,
   IFurpaGreenGrocerBranchReportResponseApiDto,
   IFurpaGreenGrocerDeleteOrderResponseApiDto,
@@ -20,6 +22,11 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
+import {
+  currentUserHasPermission,
+  formatCurrentWarehouseLabel,
+  toPositiveWarehouseNo
+} from '../../../core/admin-warehouse.helpers';
 import {
   ExcelExportColumn,
   ExcelExportSheet,
@@ -44,8 +51,12 @@ interface ReportTabOption {
 interface ProductReportRow {
   key: string;
   typeCode: string;
+  typeLabel: string;
   productCode: string;
   productName: string;
+  stockName: string;
+  unitName: string;
+  primaryBarcode: string;
   quantity: number;
   caseInfo: GreenGrocerProductCaseInfoDto | null;
   breakdownItems: IFurpaGreenGrocerBranchReportItemApiDto[];
@@ -58,11 +69,34 @@ interface GreenGrocerReportBundle {
   greens: IFurpaGreenGrocerBranchReportItemApiDto[];
 }
 
+interface SummaryGroup {
+  typeCode: string;
+  typeLabel: string;
+  totalQuantity: number;
+  items: IFurpaGreenGrocerSummaryReportItemApiDto[];
+}
+
+interface DocumentGroup {
+  key: string;
+  branchLabel: string;
+  branchNo: number;
+  regionLabel: string;
+  documentLabel: string;
+  orderDate: string | null | undefined;
+  totalQuantity: number;
+  typeLabels: string[];
+  items: IFurpaGreenGrocerBranchReportItemApiDto[];
+  canDelete: boolean;
+}
+
 interface ProductBreakdownExportRow {
   typeLabel: string;
   typeCode: string;
   productCode: string;
   productName: string;
+  stockName: string;
+  unitName: string;
+  primaryBarcode: string;
   orderDate: string | null | undefined;
   branchNo: number | null | undefined;
   branchName: string | null | undefined;
@@ -75,6 +109,7 @@ interface ProductBreakdownExportRow {
 const TASK_ID = 'green-grocer-reports';
 const LIST_PERMISSION = 'green-grocer.reports.list';
 const UPDATE_PERMISSION = 'green-grocer.reports.update';
+const ALL_WAREHOUSES_PERMISSION = 'green-grocer.reports.all-warehouses';
 
 const REPORT_TABS: readonly ReportTabOption[] = [
   {
@@ -113,6 +148,9 @@ export class GreenGrocerReportsListComponent {
     targetDate: new FormControl<string>(this.getToday(), {
       nonNullable: true,
       validators: [Validators.required]
+    }),
+    warehouseNo: new FormControl<number | null>(null, {
+      validators: [Validators.min(1)]
     })
   });
   protected readonly maxTargetDate = this.getToday();
@@ -127,6 +165,7 @@ export class GreenGrocerReportsListComponent {
   });
 
   protected readonly activeTab = signal<ReportTab>('summary');
+  protected readonly typeOptions = signal<GreenGrocerReportTypeOptionDto[]>([]);
   protected readonly summaryItems = signal<IFurpaGreenGrocerSummaryReportItemApiDto[]>([]);
   protected readonly branchItems = signal<IFurpaGreenGrocerBranchReportItemApiDto[]>([]);
   protected readonly lazyBranches = signal<IFurpaGreenGrocerLazyBranchApiDto[]>([]);
@@ -143,6 +182,18 @@ export class GreenGrocerReportsListComponent {
   protected readonly permissionCodes = computed(() =>
     this.uniquePermissionCodes(this.authService.getTaskPermissionCodes(TASK_ID))
   );
+  protected readonly currentUser = computed(() => this.authService.currentUser());
+  protected readonly canUseAllWarehouses = computed(() =>
+    currentUserHasPermission(this.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
+  protected readonly warehouseScopeLabel = computed(() => {
+    if (this.canUseAllWarehouses()) {
+      const warehouseNo = toPositiveWarehouseNo(this.filtersForm.controls.warehouseNo.value);
+      return warehouseNo ? `Depo ${warehouseNo}` : 'Tum Depolar';
+    }
+
+    return formatCurrentWarehouseLabel(this.currentUser());
+  });
   protected readonly canViewReports = computed(
     () =>
       this.authService.hasTaskAccess(TASK_ID) ||
@@ -151,10 +202,6 @@ export class GreenGrocerReportsListComponent {
   protected readonly canDeleteOrders = computed(() =>
     this.hasPermission(this.permissionCodes(), UPDATE_PERMISSION)
   );
-  protected readonly requestPath = computed(() => {
-    const targetDate = this.filtersForm.controls.targetDate.value.trim() || 'YYYY-MM-DD';
-    return `/api/green-grocer/reports/summary?date=${targetDate}`;
-  });
   protected readonly summaryTotalQuantity = computed(() =>
     this.summaryItems().reduce((total, item) => total + this.toSafeNumber(item.quantity), 0)
   );
@@ -164,6 +211,15 @@ export class GreenGrocerReportsListComponent {
   protected readonly branchCount = computed(() => this.countUniqueBranches(this.branchItems()));
   protected readonly greenTotalQuantity = computed(() =>
     this.greenItems().reduce((total, item) => total + this.toSafeNumber(item.quantity), 0)
+  );
+  protected readonly summaryGroups = computed<SummaryGroup[]>(() =>
+    this.groupSummaryItems(this.summaryItems())
+  );
+  protected readonly branchDocumentGroups = computed<DocumentGroup[]>(() =>
+    this.groupDocumentItems(this.branchItems(), true)
+  );
+  protected readonly greenDocumentGroups = computed<DocumentGroup[]>(() =>
+    this.groupDocumentItems(this.greenItems(), false)
   );
   protected readonly productRows = computed<ProductReportRow[]>(() =>
     this.productItems()
@@ -183,10 +239,13 @@ export class GreenGrocerReportsListComponent {
   protected readonly productBreakdownExportRows = computed<ProductBreakdownExportRow[]>(() =>
     this.productRows().flatMap((product) =>
       product.breakdownItems.map((item) => ({
-        typeLabel: this.getTypeLabel(product.typeCode),
+        typeLabel: this.getReportTypeLabel(item, product.typeLabel),
         typeCode: product.typeCode,
-        productCode: product.productCode,
-        productName: product.productName,
+        productCode: this.getProductCode(item) || product.productCode,
+        productName: this.getProductName(item) || product.productName,
+        stockName: item.stockName?.trim() || item.product?.stockName?.trim() || product.stockName,
+        unitName: this.getUnitName(item) || product.unitName,
+        primaryBarcode: item.primaryBarcode?.trim() || item.product?.primaryBarcode?.trim() || product.primaryBarcode,
         orderDate: item.orderDate,
         branchNo: item.branchNo,
         branchName: item.branchName,
@@ -206,6 +265,8 @@ export class GreenGrocerReportsListComponent {
       this.lazyBranches().length > 0
   );
 
+  protected readonly trackBySummaryGroup = (_index: number, item: SummaryGroup): string => item.typeCode;
+  protected readonly trackByDocumentGroup = (_index: number, item: DocumentGroup): string => item.key;
   protected readonly trackBySummary = (
     _index: number,
     item: IFurpaGreenGrocerSummaryReportItemApiDto
@@ -223,6 +284,11 @@ export class GreenGrocerReportsListComponent {
   protected readonly trackByTab = (_index: number, item: ReportTabOption): string => item.id;
 
   constructor() {
+    if (!this.canUseAllWarehouses()) {
+      this.filtersForm.controls.warehouseNo.disable({ emitEvent: false });
+    }
+
+    this.loadTypeOptions();
     this.loadReports();
   }
 
@@ -240,7 +306,7 @@ export class GreenGrocerReportsListComponent {
 
     this.feedback.set(null);
     this.isLoading.set(true);
-    this.loadReportsInParallel(targetDate, feedbackAfterLoad);
+    this.loadReportsInParallel(targetDate, this.resolveWarehouseNo(), feedbackAfterLoad);
   }
 
   protected selectTab(tab: ReportTab): void {
@@ -360,11 +426,11 @@ export class GreenGrocerReportsListComponent {
       case 'summary':
         return this.summaryItems().length;
       case 'byBranch':
-        return this.branchItems().length;
+        return this.branchDocumentGroups().length;
       case 'byProduct':
         return this.productRows().length;
       case 'greens':
-        return this.greenItems().length;
+        return this.greenDocumentGroups().length;
       default:
         return 0;
     }
@@ -437,6 +503,10 @@ export class GreenGrocerReportsListComponent {
   }
 
   protected formatDocument(item: IFurpaGreenGrocerBranchReportItemApiDto): string {
+    if (item.document?.documentNo?.trim()) {
+      return item.document.documentNo.trim();
+    }
+
     const serie = item.documentSerie?.trim() || '-';
     const orderNo = this.toSafeNumber(item.documentOrderNo);
 
@@ -444,34 +514,92 @@ export class GreenGrocerReportsListComponent {
   }
 
   protected formatBranch(item: IFurpaGreenGrocerBranchReportItemApiDto): string {
-    const branchName = item.branchName?.trim() ?? '';
+    const branchName = item.branch?.warehouseName?.trim() || item.branchName?.trim() || '';
+    const branchNo = this.toSafeNumber(item.branch?.warehouseNo ?? item.branchNo);
 
-    if (branchName && Number.isFinite(item.branchNo)) {
-      return `${branchName} (${item.branchNo})`;
+    if (branchName && branchNo > 0) {
+      return `${branchName} (${branchNo})`;
     }
 
     if (branchName) {
       return branchName;
     }
 
-    return Number.isFinite(item.branchNo) ? `Sube ${item.branchNo}` : '-';
+    return branchNo > 0 ? `Sube ${branchNo}` : '-';
   }
 
+  protected getReportTypeLabel(
+    row: {
+      typeCode?: string | null;
+      typeName?: string | null;
+      product?: { modelName?: string | null; modelCode?: string | null } | null;
+    },
+    fallback?: string | null
+  ): string {
+    return (
+      row.typeName?.trim() ||
+      row.product?.modelName?.trim() ||
+      fallback?.trim() ||
+      this.getTypeLabel(row.typeCode ?? row.product?.modelCode)
+    );
+  }
   protected getTypeLabel(typeCode: string | null | undefined): string {
-    switch ((typeCode ?? '').trim()) {
+    const normalizedTypeCode = (typeCode ?? '').trim();
+    const option = this.typeOptions().find((item) => item.typeCode === normalizedTypeCode);
+
+    if (option?.typeName?.trim()) {
+      return option.typeName.trim();
+    }
+
+    switch (normalizedTypeCode) {
       case '10':
-        return 'Manav 10';
+        return 'Meyve';
       case '11':
-        return 'Manav 11';
+        return 'Sebze';
       case '12':
-        return 'Yesillik 12';
+        return 'Yesillik';
+      case '23':
+        return 'Manav Sarf';
       default:
         return typeCode?.trim() ? `Tip ${typeCode}` : '-';
     }
   }
 
-  private loadReportsInParallel(targetDate: string, feedbackAfterLoad?: PageFeedback): void {
+  private loadTypeOptions(): void {
+    this.greenGrocerService
+      .getTypeOptions()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (options: GreenGrocerReportTypeOptionDto[]) => {
+          this.typeOptions.set(Array.isArray(options) ? options : []);
+        },
+        error: () => {
+          this.typeOptions.set([]);
+        }
+      });
+  }
+
+  private buildReportRequest(
+    date: string,
+    warehouseNo: number | null
+  ): GreenGrocerReportDateHttpRequest {
+    return warehouseNo ? { date, warehouseNo } : { date };
+  }
+
+  private resolveWarehouseNo(): number | null {
+    if (!this.canUseAllWarehouses()) {
+      return null;
+    }
+
+    return toPositiveWarehouseNo(this.filtersForm.controls.warehouseNo.value);
+  }
+  private loadReportsInParallel(
+    targetDate: string,
+    warehouseNo: number | null,
+    feedbackAfterLoad?: PageFeedback
+  ): void {
     const requestId = (this.loadSequence += 1);
+    const request = this.buildReportRequest(targetDate, warehouseNo);
     const bundle: GreenGrocerReportBundle = {
       summary: [],
       branchReport: {
@@ -518,7 +646,7 @@ export class GreenGrocerReportsListComponent {
     };
 
     this.greenGrocerService
-      .getSummary(targetDate)
+      .getSummary(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (summary: IFurpaGreenGrocerSummaryReportItemApiDto[]) => {
@@ -529,7 +657,7 @@ export class GreenGrocerReportsListComponent {
       });
 
     this.greenGrocerService
-      .getByBranch(targetDate)
+      .getByBranch(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (branchReport: IFurpaGreenGrocerBranchReportResponseApiDto) => {
@@ -540,7 +668,7 @@ export class GreenGrocerReportsListComponent {
       });
 
     this.greenGrocerService
-      .getByProduct(targetDate)
+      .getByProduct(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (productReport: IFurpaGreenGrocerProductReportApiResponse) => {
@@ -551,7 +679,7 @@ export class GreenGrocerReportsListComponent {
       });
 
     this.greenGrocerService
-      .getGreens(targetDate)
+      .getGreens(request)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (greens: IFurpaGreenGrocerBranchReportItemApiDto[]) => {
@@ -600,12 +728,111 @@ export class GreenGrocerReportsListComponent {
     this.selectedProductKey.set(null);
   }
 
+  private groupSummaryItems(
+    items: readonly IFurpaGreenGrocerSummaryReportItemApiDto[]
+  ): SummaryGroup[] {
+    const groups = new Map<string, SummaryGroup>();
+
+    for (const item of items) {
+      const typeCode = item.typeCode?.trim() || '-';
+      const current = groups.get(typeCode) ?? {
+        typeCode,
+        typeLabel: this.getReportTypeLabel(item),
+        totalQuantity: 0,
+        items: []
+      };
+
+      current.totalQuantity += this.toSafeNumber(item.quantity);
+      current.items.push(item);
+      groups.set(typeCode, current);
+    }
+
+    return Array.from(groups.values()).sort((left, right) =>
+      left.typeCode.localeCompare(right.typeCode, 'tr-TR', { numeric: true })
+    );
+  }
+
+  private groupDocumentItems(
+    items: readonly IFurpaGreenGrocerBranchReportItemApiDto[],
+    includeTypes: boolean
+  ): DocumentGroup[] {
+    const groups = new Map<string, DocumentGroup>();
+
+    for (const item of items) {
+      const key = this.buildDocumentKey(item);
+      const group = groups.get(key) ?? {
+        key,
+        branchLabel: this.formatBranch(item),
+        branchNo: this.toSafeNumber(item.branchNo),
+        regionLabel: item.branch?.regionCode?.trim() || '',
+        documentLabel: this.formatDocument(item),
+        orderDate: item.latestCreateDate || item.orderDate,
+        totalQuantity: 0,
+        typeLabels: [],
+        items: [],
+        canDelete: this.canDeleteOrders() && item.canDelete !== false
+      };
+      const typeLabel = this.getReportTypeLabel(item);
+
+      group.totalQuantity += this.toSafeNumber(item.quantity);
+      group.items.push(item);
+
+      if (includeTypes && typeLabel !== '-' && !group.typeLabels.includes(typeLabel)) {
+        group.typeLabels.push(typeLabel);
+      }
+
+      group.canDelete = group.canDelete && item.canDelete !== false;
+      groups.set(key, group);
+    }
+
+    return Array.from(groups.values()).sort((left, right) => {
+      if (left.branchNo !== right.branchNo) {
+        return left.branchNo - right.branchNo;
+      }
+
+      return left.documentLabel.localeCompare(right.documentLabel, 'tr-TR', { numeric: true });
+    });
+  }
+
+  protected getProductCode(row: {
+    productCode?: string | null;
+    stockCode?: string | null;
+    product?: { stockCode?: string | null; productCode?: string | null } | null;
+  }): string {
+    return row.stockCode?.trim() || row.product?.stockCode?.trim() || row.productCode?.trim() || '-';
+  }
+
+  protected getProductName(row: {
+    productName?: string | null;
+    stockName?: string | null;
+    product?: { displayName?: string | null; productName?: string | null; stockName?: string | null } | null;
+  }): string {
+    return (
+      row.product?.displayName?.trim() ||
+      row.productName?.trim() ||
+      row.product?.productName?.trim() ||
+      row.stockName?.trim() ||
+      row.product?.stockName?.trim() ||
+      '-'
+    );
+  }
+
+  protected getUnitName(row: {
+    unitName?: string | null;
+    product?: { unitName?: string | null } | null;
+  }): string {
+    return row.unitName?.trim() || row.product?.unitName?.trim() || '';
+  }
   private mapProductRow(item: IFurpaGreenGrocerProductReportItemApiDto): ProductReportRow {
     return {
-      key: `${item.typeCode}|${item.productCode}`,
+      key: `${item.typeCode}|${this.getProductCode(item)}`,
       typeCode: item.typeCode,
-      productCode: item.productCode,
-      productName: item.productName,
+      typeLabel: this.getReportTypeLabel(item),
+      productCode: this.getProductCode(item),
+      productName: this.getProductName(item),
+      stockName: item.stockName?.trim() || item.product?.stockName?.trim() || '',
+      unitName: this.getUnitName(item),
+      primaryBarcode: item.primaryBarcode?.trim() || item.product?.primaryBarcode?.trim() || '',
       quantity: this.toSafeNumber(item.totalQuantity ?? item.quantity),
       caseInfo: item.caseInfo ?? null,
       breakdownItems: this.getProductBreakdownItems(item)
@@ -887,10 +1114,13 @@ export class GreenGrocerReportsListComponent {
 
   private getSummaryExportColumns(): readonly ExcelExportColumn<IFurpaGreenGrocerSummaryReportItemApiDto>[] {
     return [
-      { label: 'Tip', value: (row) => this.getTypeLabel(row.typeCode) },
+      { label: 'Tip', value: (row) => this.getReportTypeLabel(row) },
       { label: 'Tip Kodu', value: 'typeCode' },
-      { label: 'Urun Kodu', value: 'productCode' },
-      { label: 'Urun', value: 'productName' },
+      { label: 'Stok Kodu', value: (row) => this.getProductCode(row) },
+      { label: 'Liste Adi', value: (row) => this.getProductName(row) },
+      { label: 'Stok Adi', value: (row) => row.stockName?.trim() || row.product?.stockName?.trim() || '' },
+      { label: 'Birim', value: (row) => this.getUnitName(row) },
+      { label: 'Barkod', value: (row) => row.primaryBarcode?.trim() || row.product?.primaryBarcode?.trim() || '' },
       { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
       { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) }
@@ -901,24 +1131,32 @@ export class GreenGrocerReportsListComponent {
     includeType: boolean
   ): readonly ExcelExportColumn<IFurpaGreenGrocerBranchReportItemApiDto>[] {
     return [
-      { label: 'Tarih', value: 'orderDate', type: 'datetime' },
-      { label: 'Sube No', value: 'branchNo', type: 'number' },
-      { label: 'Sube', value: 'branchName' },
+      { label: 'Tarih', value: (row) => row.latestCreateDate || row.orderDate, type: 'datetime' },
+      { label: 'Sube No', value: (row) => this.toSafeNumber(row.branch?.warehouseNo ?? row.branchNo), type: 'number' },
+      { label: 'Sube', value: (row) => row.branch?.warehouseName?.trim() || row.branchName },
+      { label: 'Bolge', value: (row) => row.branch?.regionCode?.trim() || '' },
       { label: 'Evrak', value: (row) => this.formatDocument(row) },
+      { label: 'Evrak Seri', value: 'documentSerie' },
+      { label: 'Evrak Sira', value: 'documentOrderNo', type: 'number' },
       ...(includeType
         ? [
             {
               label: 'Tip',
               value: (row: IFurpaGreenGrocerBranchReportItemApiDto) =>
-                this.getTypeLabel(row.typeCode)
-            }
+                this.getReportTypeLabel(row)
+            },
+            { label: 'Tip Kodu', value: 'typeCode' }
           ]
         : []),
-      { label: 'Urun Kodu', value: 'productCode' },
-      { label: 'Urun', value: 'productName' },
+      { label: 'Stok Kodu', value: (row) => this.getProductCode(row) },
+      { label: 'Liste Adi', value: (row) => this.getProductName(row) },
+      { label: 'Stok Adi', value: (row) => row.stockName?.trim() || row.product?.stockName?.trim() || '' },
+      { label: 'Birim', value: (row) => this.getUnitName(row) },
+      { label: 'Barkod', value: (row) => row.primaryBarcode?.trim() || row.product?.primaryBarcode?.trim() || '' },
       { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
-      { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) }
+      { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
+      { label: 'Silinebilir', value: (row) => (row.canDelete === false ? 'Hayir' : 'Evet') }
     ];
   }
 
@@ -932,10 +1170,13 @@ export class GreenGrocerReportsListComponent {
 
   private getProductExportColumns(): readonly ExcelExportColumn<ProductReportRow>[] {
     return [
-      { label: 'Tip', value: (row) => this.getTypeLabel(row.typeCode) },
+      { label: 'Tip', value: 'typeLabel' },
       { label: 'Tip Kodu', value: 'typeCode' },
-      { label: 'Urun Kodu', value: 'productCode' },
-      { label: 'Urun', value: 'productName' },
+      { label: 'Stok Kodu', value: 'productCode' },
+      { label: 'Liste Adi', value: 'productName' },
+      { label: 'Stok Adi', value: 'stockName' },
+      { label: 'Birim', value: 'unitName' },
+      { label: 'Barkod', value: 'primaryBarcode' },
       { label: 'Toplam Miktar', value: 'quantity', type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
       { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
@@ -947,8 +1188,11 @@ export class GreenGrocerReportsListComponent {
     return [
       { label: 'Tip', value: 'typeLabel' },
       { label: 'Tip Kodu', value: 'typeCode' },
-      { label: 'Urun Kodu', value: 'productCode' },
-      { label: 'Urun', value: 'productName' },
+      { label: 'Stok Kodu', value: 'productCode' },
+      { label: 'Liste Adi', value: 'productName' },
+      { label: 'Stok Adi', value: 'stockName' },
+      { label: 'Birim', value: 'unitName' },
+      { label: 'Barkod', value: 'primaryBarcode' },
       { label: 'Tarih', value: 'orderDate', type: 'datetime' },
       { label: 'Sube No', value: 'branchNo', type: 'number' },
       { label: 'Sube', value: 'branchName' },

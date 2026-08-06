@@ -8,6 +8,8 @@ import type {
   GreenGrocerOperationsAdjustmentPreviewHttpRequest,
   GreenGrocerOperationsOverviewDto,
   GreenGrocerOperationsOverviewHttpRequest,
+  GreenGrocerReportDateHttpRequest,
+  GreenGrocerReportTypeOptionDto,
   GreenGrocerProductCaseProfileDto,
   GreenGrocerProductCaseProfileListHttpRequest,
   GreenGrocerProductCaseResolutionDto,
@@ -29,31 +31,43 @@ export class GreenGrocerService extends BaseApiService {
   private readonly productCaseProfilesPath = 'green-grocer/product-case-profiles';
   private readonly operationsPath = 'green-grocer/operations';
 
-  getSummary(date: string): Observable<IFurpaGreenGrocerSummaryReportItemApiDto[]> {
-    return this.getWithQuery<IFurpaGreenGrocerSummaryReportItemApiDto[]>(
+  getTypeOptions(): Observable<GreenGrocerReportTypeOptionDto[]> {
+    return this.get<GreenGrocerReportTypeOptionDto[]>('green-grocer/reports/type-options');
+  }
+
+  getSummary(
+    dateOrRequest: string | GreenGrocerReportDateHttpRequest
+  ): Observable<IFurpaGreenGrocerSummaryReportItemApiDto[]> {
+    return this.getWithQuery<IFurpaGreenGrocerSummaryReportItemApiDto[], GreenGrocerReportDateHttpRequest>(
       'green-grocer/reports/summary',
-      { date }
+      this.buildReportDateRequest(dateOrRequest)
     );
   }
 
-  getByBranch(date: string): Observable<IFurpaGreenGrocerBranchReportResponseApiDto> {
-    return this.getWithQuery<IFurpaGreenGrocerBranchReportResponseApiDto>(
+  getByBranch(
+    dateOrRequest: string | GreenGrocerReportDateHttpRequest
+  ): Observable<IFurpaGreenGrocerBranchReportResponseApiDto> {
+    return this.getWithQuery<IFurpaGreenGrocerBranchReportResponseApiDto, GreenGrocerReportDateHttpRequest>(
       'green-grocer/reports/by-branch',
-      { date }
+      this.buildReportDateRequest(dateOrRequest)
     );
   }
 
-  getByProduct(date: string): Observable<IFurpaGreenGrocerProductReportApiResponse> {
-    return this.getWithQuery<IFurpaGreenGrocerProductReportApiResponse>(
+  getByProduct(
+    dateOrRequest: string | GreenGrocerReportDateHttpRequest
+  ): Observable<IFurpaGreenGrocerProductReportApiResponse> {
+    return this.getWithQuery<IFurpaGreenGrocerProductReportApiResponse, GreenGrocerReportDateHttpRequest>(
       'green-grocer/reports/by-product',
-      { date }
+      this.buildReportDateRequest(dateOrRequest)
     );
   }
 
-  getGreens(date: string): Observable<IFurpaGreenGrocerBranchReportItemApiDto[]> {
-    return this.getWithQuery<IFurpaGreenGrocerBranchReportItemApiDto[]>(
+  getGreens(
+    dateOrRequest: string | GreenGrocerReportDateHttpRequest
+  ): Observable<IFurpaGreenGrocerBranchReportItemApiDto[]> {
+    return this.getWithQuery<IFurpaGreenGrocerBranchReportItemApiDto[], GreenGrocerReportDateHttpRequest>(
       'green-grocer/reports/greens',
-      { date }
+      this.buildReportDateRequest(dateOrRequest)
     );
   }
 
@@ -141,5 +155,11 @@ export class GreenGrocerService extends BaseApiService {
       GreenGrocerOperationsAdjustmentApplyDto,
       GreenGrocerOperationsAdjustmentApplyHttpRequest
     >(`${this.operationsPath}/adjustments`, request);
+  }
+
+  private buildReportDateRequest(
+    dateOrRequest: string | GreenGrocerReportDateHttpRequest
+  ): GreenGrocerReportDateHttpRequest {
+    return typeof dateOrRequest === 'string' ? { date: dateOrRequest } : dateOrRequest;
   }
 }

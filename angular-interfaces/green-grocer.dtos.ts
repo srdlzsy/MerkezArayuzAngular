@@ -1,6 +1,39 @@
 export interface GreenGrocerReportDateHttpRequest {
   date: string;
   dateToGet?: string;
+  warehouseNo?: number | null;
+}
+
+export interface GreenGrocerReportTypeOptionDto {
+  typeCode: string;
+  typeName: string;
+  isGreens: boolean;
+}
+
+export interface GreenGrocerReportProductDto {
+  stockCode: string;
+  productCode: string;
+  stockName: string;
+  shortName: string | null;
+  displayName: string;
+  productName: string;
+  modelCode: string | null;
+  modelName: string | null;
+  unitName: string | null;
+  globalProductCode: string | null;
+  primaryBarcode: string | null;
+}
+
+export interface GreenGrocerReportBranchDto {
+  warehouseNo: number;
+  warehouseName: string;
+  regionCode: string | null;
+}
+
+export interface GreenGrocerReportDocumentDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  documentNo: string;
 }
 
 export interface GreenGrocerProductCaseInfoDto {
@@ -19,8 +52,15 @@ export interface GreenGrocerProductCaseInfoDto {
 
 export interface IFurpaGreenGrocerSummaryReportItemApiDto {
   typeCode: string;
+  typeName?: string | null;
   productCode: string;
   productName: string;
+  stockCode?: string | null;
+  stockName?: string | null;
+  unitName?: string | null;
+  primaryBarcode?: string | null;
+  globalProductCode?: string | null;
+  product?: GreenGrocerReportProductDto | null;
   quantity: number;
   caseInfo?: GreenGrocerProductCaseInfoDto | null;
 }
@@ -29,12 +69,24 @@ export interface IFurpaGreenGrocerBranchReportItemApiDto {
   orderDate: string;
   branchNo: number;
   branchName: string;
+  branch?: GreenGrocerReportBranchDto | null;
   documentSerie: string;
   documentOrderNo: number;
+  document?: GreenGrocerReportDocumentDto | null;
+  rowNo?: number | null;
   typeCode: string;
+  typeName?: string | null;
   productCode: string;
   productName: string;
+  stockCode?: string | null;
+  stockName?: string | null;
+  unitName?: string | null;
+  primaryBarcode?: string | null;
+  globalProductCode?: string | null;
+  product?: GreenGrocerReportProductDto | null;
   quantity: number;
+  latestCreateDate?: string | null;
+  canDelete?: boolean | null;
   caseInfo?: GreenGrocerProductCaseInfoDto | null;
 }
 
@@ -51,8 +103,15 @@ export interface IFurpaGreenGrocerBranchReportResponseApiDto {
 
 export interface IFurpaGreenGrocerProductReportItemApiDto {
   typeCode: string;
+  typeName?: string | null;
   productCode: string;
   productName: string;
+  stockCode?: string | null;
+  stockName?: string | null;
+  unitName?: string | null;
+  primaryBarcode?: string | null;
+  globalProductCode?: string | null;
+  product?: GreenGrocerReportProductDto | null;
   quantity: number;
   totalQuantity?: number | null;
   caseInfo?: GreenGrocerProductCaseInfoDto | null;

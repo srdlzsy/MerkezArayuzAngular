@@ -3059,7 +3059,12 @@ Response:
 [
   {
     "typeCode": "10",
-    "typeName": "Manav Tip 10",
+    "typeName": "Meyve",
+    "isGreens": false
+  },
+  {
+    "typeCode": "11",
+    "typeName": "Sebze",
     "isGreens": false
   },
   {
@@ -3073,6 +3078,35 @@ Response:
     "isGreens": false
   }
 ]
+```
+
+Rapor response ortak alanlari:
+
+- Urun iceren tum rapor satirlarinda eski uyumluluk icin `productCode` ve `productName` korunur.
+- `stockCode`, Mikro `STOKLAR.sto_kod` alanidir. UI'da net urun kodu kolonu icin bunu kullan.
+- `stockName`, Mikro `STOKLAR.sto_isim` alanidir. UI'da tam stok adi gerekiyorsa bunu kullan.
+- `productName`, kullaniciya okunakli gostermek icin kisa ad varsa `STOKLAR.sto_kisa_ismi`, yoksa `STOKLAR.sto_isim` fallback'idir.
+- `product.shortName`, `STOKLAR.sto_kisa_ismi`; `product.displayName`, UI liste adi; `product.unitName`, `STOKLAR.sto_birim1_ad`.
+- `product.primaryBarcode`, `BARKOD_TANIMLARI` icinden aktif/master oncelikli ilk barkoddur.
+- `branch` nesnesi depo/sube bilgisinin net halidir. Eski `branchNo`, `branchName` alanlari geriye uyumluluk icin durur.
+- `document` nesnesi evrak seri/sira ve ekranda gostermeye hazir `documentNo` bilgisini tasir.
+
+Ortak product modeli:
+
+```json
+{
+  "stockCode": "016201",
+  "productCode": "016201",
+  "stockName": "MNV ELMA STARKING KG",
+  "shortName": "ELMA",
+  "displayName": "ELMA",
+  "productName": "ELMA",
+  "modelCode": "10",
+  "modelName": "Meyve",
+  "unitName": "KG",
+  "globalProductCode": "8690000000000",
+  "primaryBarcode": "2801620100000"
+}
 ```
 
 ### Dashboard / Ozet
@@ -3135,9 +3169,61 @@ Response:
       }
     }
   ],
-  "branches": [],
-  "topProducts": [],
-  "lazyBranches": []
+  "branches": [
+    {
+      "branchNo": 110,
+      "branchName": "KESTEL 1",
+      "branch": {
+        "warehouseNo": 110,
+        "warehouseName": "KESTEL 1",
+        "regionCode": "1"
+      },
+      "documentCount": 1,
+      "productCount": 8,
+      "totalQuantity": 84.25,
+      "caseInfo": null
+    }
+  ],
+  "topProducts": [
+    {
+      "typeCode": "10",
+      "typeName": "Meyve",
+      "productCode": "016201",
+      "productName": "ELMA",
+      "stockCode": "016201",
+      "stockName": "MNV ELMA STARKING KG",
+      "unitName": "KG",
+      "primaryBarcode": "2801620100000",
+      "globalProductCode": "8690000000000",
+      "product": {
+        "stockCode": "016201",
+        "productCode": "016201",
+        "stockName": "MNV ELMA STARKING KG",
+        "shortName": "ELMA",
+        "displayName": "ELMA",
+        "productName": "ELMA",
+        "modelCode": "10",
+        "modelName": "Meyve",
+        "unitName": "KG",
+        "globalProductCode": "8690000000000",
+        "primaryBarcode": "2801620100000"
+      },
+      "quantity": 42.5,
+      "caseInfo": null
+    }
+  ],
+  "lazyBranches": [
+    {
+      "branchNo": 120,
+      "branchName": "ORNEK SUBE",
+      "branch": {
+        "warehouseNo": 120,
+        "warehouseName": "ORNEK SUBE",
+        "regionCode": "1"
+      },
+      "regionCode": "1"
+    }
+  ]
 }
 ```
 
@@ -3158,9 +3244,27 @@ Response item:
 ```json
 {
   "typeCode": "10",
-  "typeName": "Manav Tip 10",
+  "typeName": "Meyve",
   "productCode": "016201",
   "productName": "ELMA",
+  "stockCode": "016201",
+  "stockName": "MNV ELMA STARKING KG",
+  "unitName": "KG",
+  "primaryBarcode": "2801620100000",
+  "globalProductCode": "8690000000000",
+  "product": {
+    "stockCode": "016201",
+    "productCode": "016201",
+    "stockName": "MNV ELMA STARKING KG",
+    "shortName": "ELMA",
+    "displayName": "ELMA",
+    "productName": "ELMA",
+    "modelCode": "10",
+    "modelName": "Meyve",
+    "unitName": "KG",
+    "globalProductCode": "8690000000000",
+    "primaryBarcode": "2801620100000"
+  },
   "quantity": 42.5,
   "caseInfo": {
     "inputQuantity": 10,
@@ -3195,12 +3299,40 @@ Response:
       "orderDate": "2026-06-04T00:00:00",
       "branchNo": 110,
       "branchName": "KESTEL 1",
+      "branch": {
+        "warehouseNo": 110,
+        "warehouseName": "KESTEL 1",
+        "regionCode": "1"
+      },
       "documentSerie": "F110",
       "documentOrderNo": 1234,
+      "document": {
+        "documentSerie": "F110",
+        "documentOrderNo": 1234,
+        "documentNo": "F110/1234"
+      },
       "typeCode": "10",
-      "typeName": "Manav Tip 10",
+      "typeName": "Meyve",
       "productCode": "016201",
       "productName": "ELMA",
+      "stockCode": "016201",
+      "stockName": "MNV ELMA STARKING KG",
+      "unitName": "KG",
+      "primaryBarcode": "2801620100000",
+      "globalProductCode": "8690000000000",
+      "product": {
+        "stockCode": "016201",
+        "productCode": "016201",
+        "stockName": "MNV ELMA STARKING KG",
+        "shortName": "ELMA",
+        "displayName": "ELMA",
+        "productName": "ELMA",
+        "modelCode": "10",
+        "modelName": "Meyve",
+        "unitName": "KG",
+        "globalProductCode": "8690000000000",
+        "primaryBarcode": "2801620100000"
+      },
       "quantity": 12,
       "latestCreateDate": "2026-06-04T09:15:10",
       "canDelete": true,
@@ -3223,6 +3355,11 @@ Response:
     {
       "branchNo": 120,
       "branchName": "ORNEK SUBE",
+      "branch": {
+        "warehouseNo": 120,
+        "warehouseName": "ORNEK SUBE",
+        "regionCode": "1"
+      },
       "regionCode": "1"
     }
   ]
@@ -3243,6 +3380,59 @@ Amac:
 - `branches` kiriliminda `latestCreateDate` ve `canDelete` alanlari bulunur; UI sil butonunu `canDelete=true` ve kullanicida `green-grocer.reports.update` yetkisi varsa gostermelidir.
 - `caseInfo` doluysa rapor satiri siparis anindaki kasa/koli snapshot'ini de icerir. `quantity` ve `caseInfo.estimatedQuantity` Mikro'ya yazilan KG/ADET toplamidir; `caseInfo.inputQuantity` subenin girdigi kasa/koli toplamidir.
 
+Response item:
+
+```json
+{
+  "typeCode": "10",
+  "typeName": "Meyve",
+  "productCode": "016201",
+  "productName": "ELMA",
+  "stockCode": "016201",
+  "stockName": "MNV ELMA STARKING KG",
+  "unitName": "KG",
+  "primaryBarcode": "2801620100000",
+  "globalProductCode": "8690000000000",
+  "product": {
+    "stockCode": "016201",
+    "productCode": "016201",
+    "stockName": "MNV ELMA STARKING KG",
+    "shortName": "ELMA",
+    "displayName": "ELMA",
+    "productName": "ELMA",
+    "modelCode": "10",
+    "modelName": "Meyve",
+    "unitName": "KG",
+    "globalProductCode": "8690000000000",
+    "primaryBarcode": "2801620100000"
+  },
+  "totalQuantity": 42.5,
+  "caseInfo": null,
+  "branches": [
+    {
+      "branchNo": 110,
+      "branchName": "KESTEL 1",
+      "branch": {
+        "warehouseNo": 110,
+        "warehouseName": "KESTEL 1",
+        "regionCode": "1"
+      },
+      "documentSerie": "F110",
+      "documentOrderNo": 1234,
+      "document": {
+        "documentSerie": "F110",
+        "documentOrderNo": 1234,
+        "documentNo": "F110/1234"
+      },
+      "quantity": 12,
+      "latestCreateDate": "2026-06-04T09:15:10",
+      "canDelete": true,
+      "caseInfo": null
+    }
+  ]
+}
+```
+
 ### Yesillik Raporu
 
 `GET /api/green-grocer/reports/greens?date=2026-06-04`
@@ -3255,6 +3445,55 @@ Amac:
 
 - Yalnizca `STOKLAR.sto_model_kodu = '12'` olan satirlari sube ve evrak bilgisiyle listeler.
 - `typeCode` query verilse bile bu endpoint yesillik tipine sabitlenir.
+
+Response item:
+
+```json
+{
+  "orderDate": "2026-06-04T00:00:00",
+  "branchNo": 110,
+  "branchName": "KESTEL 1",
+  "branch": {
+    "warehouseNo": 110,
+    "warehouseName": "KESTEL 1",
+    "regionCode": "1"
+  },
+  "documentSerie": "F110",
+  "documentOrderNo": 1234,
+  "document": {
+    "documentSerie": "F110",
+    "documentOrderNo": 1234,
+    "documentNo": "F110/1234"
+  },
+  "rowNo": 0,
+  "typeCode": "12",
+  "typeName": "Yesillik",
+  "productCode": "018501",
+  "productName": "MARUL",
+  "stockCode": "018501",
+  "stockName": "MNV MARUL ADET",
+  "unitName": "ADET",
+  "primaryBarcode": "2801850100000",
+  "globalProductCode": "",
+  "product": {
+    "stockCode": "018501",
+    "productCode": "018501",
+    "stockName": "MNV MARUL ADET",
+    "shortName": "MARUL",
+    "displayName": "MARUL",
+    "productName": "MARUL",
+    "modelCode": "12",
+    "modelName": "Yesillik",
+    "unitName": "ADET",
+    "globalProductCode": "",
+    "primaryBarcode": "2801850100000"
+  },
+  "quantity": 25,
+  "latestCreateDate": "2026-06-04T09:15:10",
+  "canDelete": true,
+  "caseInfo": null
+}
+```
 
 ### Manav Siparisi Sil
 
@@ -9538,7 +9777,7 @@ Response:
 
 #### Yeni Kasa Saglik Ozeti
 
-Secilen tarih araliginda sube/kasa bazinda fiÃ…Å¸ sagligini tek bakista gosterir. Dashboard ust kartlari veya risk listesi icin kullanilir.
+Secilen tarih araliginda sube/kasa bazinda fiÃƒâ€¦Ã…Â¸ sagligini tek bakista gosterir. Dashboard ust kartlari veya risk listesi icin kullanilir.
 
 `GET /api/kasa-islemleri/yeni-kasa-analizleri/saglik-ozeti?startDate=2026-07-08&endDate=2026-07-08&warehouseNo=110`
 
@@ -9962,8 +10201,8 @@ filterValue filterType/scope ile eslesen kod veya arama degeri
 Notlar:
 
 - `filterType` icin Turkce aliaslar da kabul edilir: `stok`, `kategori`, `uretici`, `tedarikci`, `satin-almaci`, `satinalmaci`, `model`.
-- Turkce karakterli aliaslar da kabul edilir: `urun`, `ÃƒÂ¼rÃƒÂ¼n`, `ÃƒÂ¼retici`, `tedarikÃƒÂ§i`, `satÃ„Â±n-almacÃ„Â±`.
-- `filterType` ve `filterValue` birlikte kullanÃ„Â±lmalÃ„Â±dÃ„Â±r; sadece biri gÃƒÂ¶nderilirse backend 400 dÃƒÂ¶ner.
+- Turkce karakterli aliaslar da kabul edilir: `urun`, `ÃƒÆ’Ã‚Â¼rÃƒÆ’Ã‚Â¼n`, `ÃƒÆ’Ã‚Â¼retici`, `tedarikÃƒÆ’Ã‚Â§i`, `satÃƒâ€Ã‚Â±n-almacÃƒâ€Ã‚Â±`.
+- `filterType` ve `filterValue` birlikte kullanÃƒâ€Ã‚Â±lmalÃƒâ€Ã‚Â±dÃƒâ€Ã‚Â±r; sadece biri gÃƒÆ’Ã‚Â¶nderilirse backend 400 dÃƒÆ’Ã‚Â¶ner.
 - `scope` bos verilirse karlilik raporu `producer` kirilimi ile doner.
 - Sayisal toplamlar backend tarafinda 2 ondaliga yuvarlanir.
 - Barkod alanlari master/birim-1 barkod onceligiyle secilir.
@@ -11626,7 +11865,7 @@ Mevcut API'yi kullanarak ilerleyecekseniz akisi su sekilde okuyun:
 6. Kontrol sonucu uygunsa secilen gonderilmemis faturalari canli Uyumsoft'a gondermek icin `POST /api/fatura-islemleri/fatura-gonderimi/send`
    - `send` endpoint'i hiz icin `/validate` kontrolunu tekrar calistirmaz; UI "Kontrol Et" butonunu ayri aksiyon olarak sunmalidir
    - backend ayni belge icin eszamanli ikinci `send` istegini Uyumsoft'a gitmeden durdurur; UI bu durumda satir bazli hata mesajini gosterip ilk istegin sonucunu beklemelidir
-   - daha once Uyumsoft'a gonderilmis fakat yeniden kuyruÃ„Å¸a alinmasi gereken faturalar icin ayri olarak `POST /api/fatura-islemleri/fatura-gonderimi/retry` kullanilir
+   - daha once Uyumsoft'a gonderilmis fakat yeniden kuyruÃƒâ€Ã…Â¸a alinmasi gereken faturalar icin ayri olarak `POST /api/fatura-islemleri/fatura-gonderimi/retry` kullanilir
 7. Gelen/inbox faturalari icin secilen tarih araligini Uyumsoft'tan cache tabloya almak gerekirse `POST /api/fatura-islemleri/fatura-goruntuleme/senkronize`
 8. Gelen/inbox cache listesini okumak icin `GET /api/fatura-islemleri/fatura-goruntuleme`
 9. Gelen/inbox resmi PDF icin `GET /api/fatura-islemleri/fatura-goruntuleme/{documentId}` veya `/pdf` alias'i kullanilir.
@@ -12817,7 +13056,7 @@ Response `SendInvoiceDocumentsResponse`:
 
 Davranis:
 
-- secimler duplicate ise backend tekilleÃ…Å¸tirir
+- secimler duplicate ise backend tekilleÃƒâ€¦Ã…Â¸tirir
 - gonderim Uyumsoft WCF client ile fatura bazli tek tek yapilir; boylece basarili/hatali kayitlar response icinde ayri ayri gorulur
 - her belge icin UBL invoice uretilir ve Uyumsoft `SendInvoice` operasyonu cagrilir
 - hiz icin UBL-TR is kurali ve XSD dogrulamalari burada tekrar calistirilmaz; bu kontroller icin kullanici once `/validate` endpoint'ini cagirir
@@ -19141,5 +19380,7 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - Cok sayida detay endpointi ayri request class'i kullanmaz; path parametreleri ve opsiyonel `warehouseNo` query parametresi ile calisir.
 - `GET /api/kasa-islemleri/etiket-belgeleri`, `GET /api/kasa-islemleri/etiket-belgeleri/son`, `GET /api/kasa-islemleri/etiket-belgeleri/tumu` ve `GET /api/kasa-islemleri/etiket-belgeleri/{documentId}` endpointleri ayri request class'i yerine dogrudan action parametreleri kullanir.
 - `LabelPriceChangedProductListHttpRequest.DateTimeFilter` alaninin beklenen formati `dd.MM.yyyy HH:mm:ss` degeridir.
+
+
 
 

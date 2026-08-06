@@ -1,16 +1,23 @@
 <section class="task-page green-grocer-page" *ngIf="page as current">
-  <header class="hero">
-    <div class="welcome-box">
-      <h2>{{ current.title }}</h2>
-    </div>
-  </header>
-
-  <section class="task-block">
+  <section class="task-block report-shell">
     <form class="query-card green-query" [formGroup]="filtersForm" (ngSubmit)="loadReports()" novalidate>
+      <div class="report-command">
+        <div>
+          <span class="section-kicker">Manav Raporlari</span>
+          <h2>{{ current.title }}</h2>
+        </div>
+        <span class="scope-pill">{{ warehouseScopeLabel() }}</span>
+      </div>
+
       <div class="query-grid green-query-grid">
         <label class="field date-field">
           <span>Rapor Gunu</span>
           <input type="date" formControlName="targetDate" [max]="maxTargetDate" />
+        </label>
+
+        <label class="field warehouse-field" *ngIf="canUseAllWarehouses()">
+          <span>Depo</span>
+          <input type="number" formControlName="warehouseNo" min="1" placeholder="Tum Depolar" />
         </label>
 
         <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
@@ -45,15 +52,19 @@
 
     <section class="report-metrics">
       <article class="info-card">
-        <h3>Genel Miktar</h3>
+        <h3>Toplam</h3>
         <p>{{ formatQuantity(summaryTotalQuantity()) }}</p>
       </article>
       <article class="info-card">
-        <h3>Sube Satiri</h3>
-        <p>{{ branchItems().length }}</p>
+        <h3>Evrak</h3>
+        <p>{{ branchDocumentCount() }}</p>
       </article>
       <article class="info-card">
-        <h3>Urun Kirilimi</h3>
+        <h3>Sube</h3>
+        <p>{{ branchCount() }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Urun</h3>
         <p>{{ productRows().length }}</p>
       </article>
       <article class="info-card">
@@ -71,6 +82,7 @@
         (click)="selectTab(tab.id)"
       >
         <span>{{ tab.label }}</span>
+        <small>{{ tab.description }}</small>
         <strong>{{ getTabCount(tab.id) }}</strong>
       </button>
     </nav>
@@ -80,7 +92,7 @@
         <div class="panel-head">
           <div>
             <span class="section-kicker">Genel Manav Raporu</span>
-            <h3>Urun ve Tip Toplamlari</h3>
+            <h3>Tip ve Urun Toplamlari</h3>
           </div>
           <div class="panel-actions">
             <span class="panel-chip">{{ formatQuantity(summaryTotalQuantity()) }}</span>
@@ -93,36 +105,45 @@
           </div>
         </div>
 
-        <div class="table-wrap" *ngIf="summaryItems().length; else emptySummary">
-          <table class="report-table">
-            <thead>
-              <tr>
-                <th>Tip</th>
-                <th>Urun Kodu</th>
-                <th>Urun</th>
-                <th class="number-cell">Miktar</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of summaryItems(); trackBy: trackBySummary">
-                <td>
-                  <span class="type-pill">{{ getTypeLabel(item.typeCode) }}</span>
-                </td>
-                <td>{{ item.productCode }}</td>
-                <td>{{ item.productName }}</td>
-                <td class="number-cell">
-                  <span>{{ formatQuantity(item.quantity) }}</span>
-                  <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
-                    {{ caseText }}
-                  </small>
-                  <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
-                    {{ averageText }}
-                  </small>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <section class="summary-groups" *ngIf="summaryGroups().length; else emptySummary">
+          <details class="report-group accordion-card" *ngFor="let group of summaryGroups(); trackBy: trackBySummaryGroup" open>
+            <summary class="group-head accordion-head">
+              <div>
+                <span class="type-pill">{{ group.typeLabel }}</span>
+                <strong>{{ group.items.length }} urun</strong>
+              </div>
+              <span>{{ formatQuantity(group.totalQuantity) }}</span>
+            </summary>
+
+            <div class="table-wrap compact-wrap">
+              <table class="report-table compact-table">
+                <thead>
+                  <tr>
+                    <th>Urun</th>
+                    <th>Kod</th>
+                    <th>Birim</th>
+                    <th class="number-cell">Miktar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of group.items; trackBy: trackBySummary">
+                    <td>
+                      <span class="product-name">{{ getProductName(item) }}</span>
+                      <small *ngIf="item.stockName">{{ item.stockName }}</small>
+                    </td>
+                    <td>{{ getProductCode(item) }}</td>
+                    <td>{{ getUnitName(item) || '-' }}</td>
+                    <td class="number-cell">
+                      <span>{{ formatQuantity(item.quantity) }}</span>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
+                      <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">{{ averageText }}</small>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
 
         <ng-template #emptySummary>
           <article class="state-card compact-state" *ngIf="!isLoading()">
@@ -135,7 +156,7 @@
         <div class="panel-head">
           <div>
             <span class="section-kicker">Sube / Evrak Bazli Manav Raporu</span>
-            <h3>Evrak Satirlari</h3>
+            <h3>Evraklar</h3>
           </div>
           <div class="panel-actions">
             <span class="panel-chip">{{ branchDocumentCount() }} evrak</span>
@@ -148,54 +169,60 @@
           </div>
         </div>
 
-        <div class="table-wrap" *ngIf="branchItems().length; else emptyBranch">
-          <table class="report-table branch-table">
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                <th>Sube</th>
-                <th>Evrak</th>
-                <th>Tip</th>
-                <th>Urun</th>
-                <th class="number-cell">Miktar</th>
-                <th *ngIf="canDeleteOrders()">Islem</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of branchItems(); trackBy: trackByBranchItem">
-                <td>{{ formatDateTime(item.orderDate) }}</td>
-                <td>{{ formatBranch(item) }}</td>
-                <td>{{ formatDocument(item) }}</td>
-                <td>
-                  <span class="type-pill">{{ getTypeLabel(item.typeCode) }}</span>
-                </td>
-                <td>
-                  <span class="product-name">{{ item.productName }}</span>
-                  <small>{{ item.productCode }}</small>
-                </td>
-                <td class="number-cell">
-                  <span>{{ formatQuantity(item.quantity) }}</span>
-                  <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
-                    {{ caseText }}
-                  </small>
-                  <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
-                    {{ averageText }}
-                  </small>
-                </td>
-                <td *ngIf="canDeleteOrders()">
-                  <button
-                    type="button"
-                    class="row-action row-action-danger"
-                    (click)="deleteOrder(item)"
-                    [disabled]="isDeleting(item)"
-                  >
-                    {{ isDeleting(item) ? 'Siliniyor...' : 'Sil' }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <section class="document-groups" *ngIf="branchDocumentGroups().length; else emptyBranch">
+          <details class="document-card accordion-card" *ngFor="let group of branchDocumentGroups(); trackBy: trackByDocumentGroup" open>
+            <summary class="document-head accordion-head">
+              <div>
+                <span class="document-title">{{ group.branchLabel }}</span>
+                <small>{{ formatDateTime(group.orderDate) }} · {{ group.documentLabel }}</small>
+              </div>
+              <div class="document-actions">
+                <span class="panel-chip">{{ formatQuantity(group.totalQuantity) }}</span>
+                <button
+                  type="button"
+                  class="row-action row-action-danger"
+                  *ngIf="group.canDelete"
+                  (click)="$event.stopPropagation(); deleteOrder(group.items[0])"
+                  [disabled]="isDeleting(group.items[0])"
+                >
+                  {{ isDeleting(group.items[0]) ? 'Siliniyor...' : 'Sil' }}
+                </button>
+              </div>
+            </summary>
+
+            <div class="type-row" *ngIf="group.typeLabels.length">
+              <span class="type-pill" *ngFor="let type of group.typeLabels">{{ type }}</span>
+            </div>
+
+            <div class="table-wrap compact-wrap">
+              <table class="report-table line-table">
+                <thead>
+                  <tr>
+                    <th>Urun</th>
+                    <th>Kod</th>
+                    <th>Birim</th>
+                    <th class="number-cell">Miktar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of group.items; trackBy: trackByBranchItem">
+                    <td>
+                      <span class="product-name">{{ getProductName(item) }}</span>
+                      <small>{{ getReportTypeLabel(item) }}</small>
+                    </td>
+                    <td>{{ getProductCode(item) }}</td>
+                    <td>{{ getUnitName(item) || '-' }}</td>
+                    <td class="number-cell">
+                      <span>{{ formatQuantity(item.quantity) }}</span>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
+                      <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">{{ averageText }}</small>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
 
         <ng-template #emptyBranch>
           <article class="state-card compact-state" *ngIf="!isLoading()">
@@ -241,7 +268,7 @@
 
         <section class="product-workspace" *ngIf="productRows().length; else emptyProduct">
           <div class="table-wrap product-list">
-            <table class="report-table">
+            <table class="report-table product-table">
               <thead>
                 <tr>
                   <th>Tip</th>
@@ -256,21 +283,15 @@
                   [class.selected-row]="selectedProduct()?.key === item.key"
                   (click)="selectProduct(item)"
                 >
-                  <td>
-                    <span class="type-pill">{{ getTypeLabel(item.typeCode) }}</span>
-                  </td>
+                  <td><span class="type-pill">{{ item.typeLabel }}</span></td>
                   <td>
                     <span class="product-name">{{ item.productName }}</span>
                     <small>{{ item.productCode }}</small>
                   </td>
                   <td class="number-cell">
                     <span>{{ formatQuantity(item.quantity) }}</span>
-                    <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
-                      {{ caseText }}
-                    </small>
-                    <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
-                      {{ averageText }}
-                    </small>
+                    <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
+                    <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">{{ averageText }}</small>
                   </td>
                   <td class="number-cell">{{ item.breakdownItems.length }}</td>
                 </tr>
@@ -291,7 +312,6 @@
               <table class="report-table compact-table">
                 <thead>
                   <tr>
-                    <th>Tarih</th>
                     <th>Sube</th>
                     <th>Evrak</th>
                     <th class="number-cell">Miktar</th>
@@ -299,17 +319,14 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of product.breakdownItems; trackBy: trackByBranchItem">
-                    <td>{{ formatDateTime(item.orderDate) }}</td>
-                    <td>{{ formatBranch(item) }}</td>
-                    <td>{{ formatDocument(item) }}</td>
+                    <td>
+                      <span class="product-name">{{ formatBranch(item) }}</span>
+                      <small>{{ formatDateTime(item.latestCreateDate || item.orderDate) }}</small>
+                    </td>
+                    <td>{{ item.document?.documentNo || formatDocument(item) }}</td>
                     <td class="number-cell">
                       <span>{{ formatQuantity(item.quantity) }}</span>
-                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
-                        {{ caseText }}
-                      </small>
-                      <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
-                        {{ averageText }}
-                      </small>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
                     </td>
                   </tr>
                 </tbody>
@@ -335,7 +352,7 @@
         <div class="panel-head">
           <div>
             <span class="section-kicker">Yesillik Raporu</span>
-            <h3>Tip 12 Evrak Satirlari</h3>
+            <h3>Yesillik Evraklari</h3>
           </div>
           <div class="panel-actions">
             <span class="panel-chip">{{ formatQuantity(greenTotalQuantity()) }}</span>
@@ -348,50 +365,52 @@
           </div>
         </div>
 
-        <div class="table-wrap" *ngIf="greenItems().length; else emptyGreens">
-          <table class="report-table branch-table">
-            <thead>
-              <tr>
-                <th>Tarih</th>
-                <th>Sube</th>
-                <th>Evrak</th>
-                <th>Urun</th>
-                <th class="number-cell">Miktar</th>
-                <th *ngIf="canDeleteOrders()">Islem</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let item of greenItems(); trackBy: trackByBranchItem">
-                <td>{{ formatDateTime(item.orderDate) }}</td>
-                <td>{{ formatBranch(item) }}</td>
-                <td>{{ formatDocument(item) }}</td>
-                <td>
-                  <span class="product-name">{{ item.productName }}</span>
-                  <small>{{ item.productCode }}</small>
-                </td>
-                <td class="number-cell">
-                  <span>{{ formatQuantity(item.quantity) }}</span>
-                  <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">
-                    {{ caseText }}
-                  </small>
-                  <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">
-                    {{ averageText }}
-                  </small>
-                </td>
-                <td *ngIf="canDeleteOrders()">
-                  <button
-                    type="button"
-                    class="row-action row-action-danger"
-                    (click)="deleteOrder(item)"
-                    [disabled]="isDeleting(item)"
-                  >
-                    {{ isDeleting(item) ? 'Siliniyor...' : 'Sil' }}
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
+        <section class="document-groups" *ngIf="greenDocumentGroups().length; else emptyGreens">
+          <details class="document-card accordion-card" *ngFor="let group of greenDocumentGroups(); trackBy: trackByDocumentGroup" open>
+            <summary class="document-head accordion-head">
+              <div>
+                <span class="document-title">{{ group.branchLabel }}</span>
+                <small>{{ formatDateTime(group.orderDate) }} · {{ group.documentLabel }}</small>
+              </div>
+              <div class="document-actions">
+                <span class="panel-chip">{{ formatQuantity(group.totalQuantity) }}</span>
+                <button
+                  type="button"
+                  class="row-action row-action-danger"
+                  *ngIf="group.canDelete"
+                  (click)="$event.stopPropagation(); deleteOrder(group.items[0])"
+                  [disabled]="isDeleting(group.items[0])"
+                >
+                  {{ isDeleting(group.items[0]) ? 'Siliniyor...' : 'Sil' }}
+                </button>
+              </div>
+            </summary>
+
+            <div class="table-wrap compact-wrap">
+              <table class="report-table line-table">
+                <thead>
+                  <tr>
+                    <th>Urun</th>
+                    <th>Kod</th>
+                    <th>Birim</th>
+                    <th class="number-cell">Miktar</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let item of group.items; trackBy: trackByBranchItem">
+                    <td><span class="product-name">{{ getProductName(item) }}</span></td>
+                    <td>{{ getProductCode(item) }}</td>
+                    <td>{{ getUnitName(item) || '-' }}</td>
+                    <td class="number-cell">
+                      <span>{{ formatQuantity(item.quantity) }}</span>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+          </details>
+        </section>
 
         <ng-template #emptyGreens>
           <article class="state-card compact-state" *ngIf="!isLoading()">
