@@ -88,7 +88,7 @@
     </nav>
 
     <ng-container [ngSwitch]="activeTab()">
-      <section class="task-item report-panel" *ngSwitchCase="'summary'">
+      <section class="task-item report-panel" data-report-print="summary" *ngSwitchCase="'summary'">
         <div class="panel-head">
           <div>
             <span class="section-kicker">Genel Manav Raporu</span>
@@ -102,6 +102,9 @@
               [summary]="summaryItems().length + ' kayit'"
               (exportRequested)="exportSummaryReport()"
             ></app-excel-export-button>
+            <button type="button" class="print-action" [disabled]="!canPrintReport('summary')" (click)="printReport('summary')">
+              Yazdir
+            </button>
           </div>
         </div>
 
@@ -152,7 +155,7 @@
         </ng-template>
       </section>
 
-      <section class="task-item report-panel" *ngSwitchCase="'byBranch'">
+      <section class="task-item report-panel" data-report-print="byBranch" *ngSwitchCase="'byBranch'">
         <div class="panel-head">
           <div>
             <span class="section-kicker">Sube / Evrak Bazli Manav Raporu</span>
@@ -166,6 +169,9 @@
               [summary]="branchItems().length + lazyBranches().length + ' kayit'"
               (exportRequested)="exportBranchReport()"
             ></app-excel-export-button>
+            <button type="button" class="print-action" [disabled]="!canPrintReport('byBranch')" (click)="printReport('byBranch')">
+              Yazdir
+            </button>
           </div>
         </div>
 
@@ -249,7 +255,7 @@
         </section>
       </section>
 
-      <section class="task-item report-panel" *ngSwitchCase="'byProduct'">
+      <section class="task-item report-panel" data-report-print="byProduct" *ngSwitchCase="'byProduct'">
         <div class="panel-head">
           <div>
             <span class="section-kicker">Urun Bazli Manav Raporu</span>
@@ -263,6 +269,9 @@
               [summary]="productRows().length + productBreakdownExportRows().length + ' kayit'"
               (exportRequested)="exportProductReport()"
             ></app-excel-export-button>
+            <button type="button" class="print-action" [disabled]="!canPrintReport('byProduct')" (click)="printReport('byProduct')">
+              Yazdir
+            </button>
           </div>
         </div>
 
@@ -348,7 +357,7 @@
         </ng-template>
       </section>
 
-      <section class="task-item report-panel" *ngSwitchCase="'greens'">
+      <section class="task-item report-panel" data-report-print="greens" *ngSwitchCase="'greens'">
         <div class="panel-head">
           <div>
             <span class="section-kicker">Yesillik Raporu</span>
@@ -362,6 +371,9 @@
               [summary]="greenItems().length + ' kayit'"
               (exportRequested)="exportGreensReport()"
             ></app-excel-export-button>
+            <button type="button" class="print-action" [disabled]="!canPrintReport('greens')" (click)="printReport('greens')">
+              Yazdir
+            </button>
           </div>
         </div>
 

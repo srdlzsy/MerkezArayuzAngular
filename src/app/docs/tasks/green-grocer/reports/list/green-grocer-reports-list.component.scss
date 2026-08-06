@@ -345,6 +345,30 @@ td small {
   color: #991b1b;
 }
 
+.print-action {
+  min-height: 32px;
+  padding: 0.34rem 0.68rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 8px;
+  background: #fff;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.16s ease, background-color 0.16s ease, color 0.16s ease;
+}
+
+.print-action:hover:not(:disabled) {
+  border-color: #0f766e;
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
+.print-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.6;
+}
+
 .lazy-grid {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(170px, 1fr));
@@ -426,6 +450,9 @@ td small {
     justify-content: stretch;
   }
 
+  .print-action {
+    width: 100%;
+  }
 
   .accordion-card {
     padding: 0;

@@ -371,6 +371,109 @@ export class GreenGrocerReportsListComponent {
     ]);
   }
 
+  protected canPrintReport(tab: ReportTab): boolean {
+    switch (tab) {
+      case 'summary':
+        return this.summaryItems().length > 0;
+      case 'byBranch':
+        return this.branchItems().length > 0 || this.lazyBranches().length > 0;
+      case 'byProduct':
+        return this.productRows().length > 0;
+      case 'greens':
+        return this.greenItems().length > 0;
+      default:
+        return false;
+    }
+  }
+
+  protected printReport(tab: ReportTab): void {
+    if (!this.canPrintReport(tab)) {
+      return;
+    }
+
+    const source = document.querySelector<HTMLElement>(`[data-report-print="${tab}"]`);
+
+    if (!source) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirma hazirlanamadi',
+        message: 'Rapor alani bulunamadi.'
+      });
+      return;
+    }
+
+    const printWindow = window.open('', '_blank', 'width=1200,height=900');
+
+    if (!printWindow) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirma acilamadi',
+        message: 'Tarayici yeni pencereyi engelledi. Pop-up iznini kontrol edin.'
+      });
+      return;
+    }
+
+    const clonedReport = source.cloneNode(true) as HTMLElement;
+    clonedReport.querySelectorAll('details').forEach((details) => details.setAttribute('open', ''));
+    clonedReport
+      .querySelectorAll('app-excel-export-button, .print-action, .row-action, button')
+      .forEach((element) => element.remove());
+
+    const reportTitle = this.getPrintReportTitle(tab);
+    const reportDate = this.lastLoadedDate();
+    const scope = this.warehouseScopeLabel();
+
+    printWindow.document.open();
+    printWindow.document.write(`<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <title>${this.escapeHtml(reportTitle)}</title>
+  <style>
+    @page { size: A4 landscape; margin: 10mm; }
+    * { box-sizing: border-box; }
+    body { margin: 0; color: #0f172a; font-family: Arial, sans-serif; font-size: 11px; background: #fff; }
+    .print-header { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #cbd5e1; }
+    .print-header h1 { margin: 0 0 4px; font-size: 18px; }
+    .print-meta { color: #475569; font-size: 11px; text-align: right; }
+    .report-panel, .summary-groups, .document-groups, .product-workspace, .lazy-branches, .product-detail { display: block; }
+    .panel-head, .group-head, .document-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
+    h3 { margin: 0; font-size: 14px; }
+    .section-kicker, small { color: #64748b; }
+    .panel-chip, .type-pill { display: inline-block; padding: 3px 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: #0f172a; font-weight: 700; }
+    details { display: block; margin-bottom: 10px; break-inside: avoid; page-break-inside: avoid; }
+    summary { list-style: none; }
+    summary::-webkit-details-marker { display: none; }
+    .report-group, .document-card, .lazy-card, .product-detail { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; }
+    .table-wrap { overflow: visible; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 6px; }
+    th, td { padding: 5px 6px; border: 1px solid #cbd5e1; vertical-align: top; text-align: left; word-break: break-word; }
+    th { background: #f1f5f9; font-size: 10px; text-transform: uppercase; }
+    .number-cell { text-align: right; }
+    .product-name, .document-title { display: block; font-weight: 700; }
+    .lazy-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
+    .report-tabs, .state-card, .feedback-card { display: none; }
+  </style>
+</head>
+<body>
+  <header class="print-header">
+    <div>
+      <h1>${this.escapeHtml(reportTitle)}</h1>
+      <div>${this.escapeHtml(reportDate)}</div>
+    </div>
+    <div class="print-meta">${this.escapeHtml(scope)}</div>
+  </header>
+  ${clonedReport.innerHTML}
+</body>
+</html>`);
+    printWindow.document.close();
+    printWindow.focus();
+    printWindow.setTimeout(() => {
+      printWindow.print();
+      printWindow.close();
+    }, 150);
+  }
+
   protected deleteOrder(item: IFurpaGreenGrocerBranchReportItemApiDto): void {
     if (!this.canDeleteOrders()) {
       this.feedback.set({
@@ -1084,6 +1187,30 @@ export class GreenGrocerReportsListComponent {
     const day = String(date.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  private getPrintReportTitle(tab: ReportTab): string {
+    switch (tab) {
+      case 'summary':
+        return 'Genel Manav Raporu';
+      case 'byBranch':
+        return 'Sube Evrak Manav Raporu';
+      case 'byProduct':
+        return 'Urun Bazli Manav Raporu';
+      case 'greens':
+        return 'Yesillik Raporu';
+      default:
+        return 'Manav Raporu';
+    }
+  }
+
+  private escapeHtml(value: string): string {
+    return value
+      .replace(/&/g, '&amp;')
+      .replace(/</g, '&lt;')
+      .replace(/>/g, '&gt;')
+      .replace(/"/g, '&quot;')
+      .replace(/'/g, '&#39;');
   }
 
   private async exportReport(
