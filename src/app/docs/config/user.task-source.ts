@@ -53,8 +53,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/kullanicilar/detay',
         () =>
-          import('../tasks/user/kullanici/detail/kullanici-detail.component').then(
-            (m) => m.KullaniciDetailComponent
+          import('../tasks/user/kullanicilar/detail/kullanicilar-detail.component').then(
+            (m) => m.KullanicilarDetailComponent
           ),
         {
           data: { title: 'Kullanici Detay ve Rol Atama' }
@@ -63,8 +63,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/kullanicilar/ekle',
         () =>
-          import('../tasks/user/kullanici/create/kullanici-create.component').then(
-            (m) => m.KullaniciCreateComponent
+          import('../tasks/user/kullanicilar/create/kullanicilar-create.component').then(
+            (m) => m.KullanicilarCreateComponent
           ),
         {
           data: { title: 'Kullanici Ekle' }
@@ -73,8 +73,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/kullanicilar',
         () =>
-          import('../tasks/user/kullanici/list/kullanici-list.component').then(
-            (m) => m.KullaniciListComponent
+          import('../tasks/user/kullanicilar/list/kullanicilar-list.component').then(
+            (m) => m.KullanicilarListComponent
           ),
         {
           isPrimary: true
@@ -126,8 +126,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/roller/detay',
         () =>
-          import('../tasks/user/kullanici/detail/kullanici-detail.component').then(
-            (m) => m.KullaniciDetailComponent
+          import('../tasks/user/kullanicilar/detail/kullanicilar-detail.component').then(
+            (m) => m.KullanicilarDetailComponent
           ),
         {
           data: { title: 'Rol Detay ve Permission Atama' }
@@ -136,8 +136,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/roller/ekle',
         () =>
-          import('../tasks/user/kullanici/create/kullanici-create.component').then(
-            (m) => m.KullaniciCreateComponent
+          import('../tasks/user/kullanicilar/create/kullanicilar-create.component').then(
+            (m) => m.KullanicilarCreateComponent
           ),
         {
           data: { title: 'Rol Olustur' }
@@ -146,8 +146,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/roller',
         () =>
-          import('../tasks/user/kullanici/list/kullanici-list.component').then(
-            (m) => m.KullaniciListComponent
+          import('../tasks/user/kullanicilar/list/kullanicilar-list.component').then(
+            (m) => m.KullanicilarListComponent
           ),
         {
           isPrimary: true
@@ -198,8 +198,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/yetkiler/detay',
         () =>
-          import('../tasks/user/kullanici/detail/kullanici-detail.component').then(
-            (m) => m.KullaniciDetailComponent
+          import('../tasks/user/kullanicilar/detail/kullanicilar-detail.component').then(
+            (m) => m.KullanicilarDetailComponent
           ),
         {
           data: { title: 'Permission Detay ve Katalog' }
@@ -208,8 +208,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/yetkiler/ekle',
         () =>
-          import('../tasks/user/kullanici/create/kullanici-create.component').then(
-            (m) => m.KullaniciCreateComponent
+          import('../tasks/user/kullanicilar/create/kullanicilar-create.component').then(
+            (m) => m.KullanicilarCreateComponent
           ),
         {
           data: { title: 'Permission Olustur' }
@@ -218,8 +218,8 @@ export const USER_TASK_SOURCE = {
       route(
         'docs/api/yetkiler',
         () =>
-          import('../tasks/user/kullanici/list/kullanici-list.component').then(
-            (m) => m.KullaniciListComponent
+          import('../tasks/user/kullanicilar/list/kullanicilar-list.component').then(
+            (m) => m.KullanicilarListComponent
           ),
         {
           isPrimary: true

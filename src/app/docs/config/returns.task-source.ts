@@ -45,8 +45,8 @@ export const RETURNS_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/returns/firma-iade/list/firma-iade-list.component').then(
-        (m) => m.FirmaIadeListComponent
+      import('../tasks/returns/firma-iadeleri/list/firma-iadeleri-list.component').then(
+        (m) => m.FirmaIadeleriListComponent
       ),
     { accessKeyAliases: ['firma-iade'] }
   ),
@@ -100,8 +100,8 @@ export const RETURNS_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/returns/depo-iade/list/depo-iade-list.component').then(
-        (m) => m.DepoIadeListComponent
+      import('../tasks/returns/depo-iadeleri/list/depo-iadeleri-list.component').then(
+        (m) => m.DepoIadeleriListComponent
       ),
     { path: 'docs/api/giden-depo-iadeleri' }
   ),
@@ -133,8 +133,8 @@ export const RETURNS_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/returns/depo-iade/list/depo-iade-list.component').then(
-        (m) => m.DepoIadeListComponent
+      import('../tasks/returns/depo-iadeleri/list/depo-iadeleri-list.component').then(
+        (m) => m.DepoIadeleriListComponent
       ),
     { path: 'docs/api/gelen-depo-iadeleri' }
   )

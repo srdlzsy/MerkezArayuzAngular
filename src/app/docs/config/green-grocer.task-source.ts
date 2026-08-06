@@ -80,8 +80,8 @@ export const GREEN_GROCER_TASK_SOURCE = {
 }`
     },
     () =>
-      import('../tasks/green-grocer/reports/list/green-grocer-reports-list.component').then(
-        (m) => m.GreenGrocerReportsListComponent
+      import('../tasks/green-grocer/manav-raporlari/list/manav-raporlari-list.component').then(
+        (m) => m.ManavRaporlariListComponent
       ),
     {
       accessKeyAliases: [
@@ -166,8 +166,8 @@ export const GREEN_GROCER_TASK_SOURCE = {
     },
     () =>
       import(
-        '../tasks/green-grocer/product-case-profiles/list/green-grocer-product-case-profiles-list.component'
-      ).then((m) => m.GreenGrocerProductCaseProfilesListComponent),
+        '../tasks/green-grocer/manav-kasa-profilleri/list/manav-kasa-profilleri-list.component'
+      ).then((m) => m.ManavKasaProfilleriListComponent),
     {
       accessKeyAliases: [
         'green-grocer.product-case-profiles',
@@ -244,8 +244,8 @@ export const GREEN_GROCER_TASK_SOURCE = {
 }`
     },
     () =>
-      import('../tasks/green-grocer/operations/list/green-grocer-operations-list.component').then(
-        (m) => m.GreenGrocerOperationsListComponent
+      import('../tasks/green-grocer/manav-operasyon-paneli/list/manav-operasyon-paneli-list.component').then(
+        (m) => m.ManavOperasyonPaneliListComponent
       ),
     {
       accessKeyAliases: [

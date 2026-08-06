@@ -1,0 +1,34 @@
+import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import type { IFurpaCompanyMovementDetailApiDto } from '@interfaces';
+
+import { IadeIslemleriService } from '../../../../../core/api/module-services/iade-islemleri.service';
+import { DOCS_PAGES } from '../../../../config/docs-pages.config';
+import { DocsContentPage } from '../../../../models/docs.models';
+import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-task-detail.base';
+
+@Component({
+  selector: 'app-firma-iadeleri-detail',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './firma-iadeleri-detail.component.html',
+  styleUrl: './firma-iadeleri-detail.component.scss'
+})
+export class FirmaIadeleriDetailComponent extends KalemliTaskDetailBase<IFurpaCompanyMovementDetailApiDto> {
+  protected readonly page: DocsContentPage = DOCS_PAGES['firma-iadeleri'];
+  protected readonly screenTitle = 'Firma Iade Detayi';
+  protected override readonly printDocumentTitle = 'Firma Iade Evraki';
+  protected override readonly printDocumentNoLabel = 'Iade No';
+  protected override readonly printLineTitle = 'Iade Kalemleri';
+  private readonly iadeIslemleriService = inject(IadeIslemleriService);
+
+  protected override loadDetail(): void {
+    this.loadDetailRequest(
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.iadeIslemleriService.getFirmaIadeDetay(seri, sira, warehouseNo),
+      'Detay icin gerekli iade anahtari bulunamadi.',
+      'Firma iade detayi yuklenemedi. Lutfen tekrar deneyin.'
+    );
+  }
+}
+

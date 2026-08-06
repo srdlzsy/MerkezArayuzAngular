@@ -86,8 +86,8 @@ export const RECEIVING_TASK_SOURCE = {
     },
     () =>
       import(
-        '../tasks/receiving/toptan-giris-irsaliyeleri/list/toptan-giris-irsaliyeleri-list.component'
-      ).then((m) => m.ToptanGirisIrsaliyeleriListComponent),
+        '../tasks/receiving/firma-mal-kabulleri/list/firma-mal-kabulleri-list.component'
+      ).then((m) => m.FirmaMalKabulleriListComponent),
     { accessKeyAliases: ['toptan-giris-irsaliyeleri'] }
   ),
   'depo-mal-kabulleri': singleRouteTask(

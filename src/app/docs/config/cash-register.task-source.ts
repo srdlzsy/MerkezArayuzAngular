@@ -118,8 +118,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/cash-register/etiket-basimi/list/etiket-basimi-list.component').then(
-        (m) => m.EtiketBasimiListComponent
+      import('../tasks/cash-register/etiket-belgeleri/list/etiket-belgeleri-list.component').then(
+        (m) => m.EtiketBelgeleriListComponent
       ),
     { accessKeyAliases: ['EtiketBelgeleri', 'etiket-belgeleri'] }
   ),
@@ -252,8 +252,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/cash-register/kunye-etiket-yazdirma/list/kunye-etiket-basimi-list.component').then(
-        (m) => m.KunyeEtiketBasimiListComponent
+      import('../tasks/cash-register/kunye-etiket-yazdirma/list/kunye-etiket-yazdirma-list.component').then(
+        (m) => m.KunyeEtiketYazdirmaListComponent
     ),
     { accessKeyAliases: ['kunye-etiket-yazdirma', 'KunyeEtiketYazdirma'] }
   ),
@@ -288,8 +288,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/cash-register/manav-kunye-etiket-yazdirma/list/manav-kunye-etiket-basimi-list.component').then(
-        (m) => m.ManavKunyeEtiketBasimiListComponent
+      import('../tasks/cash-register/manav-kunye-etiket-yazdirma/list/manav-kunye-etiket-yazdirma-list.component').then(
+        (m) => m.ManavKunyeEtiketYazdirmaListComponent
       ),
     {
       accessKeyAliases: [

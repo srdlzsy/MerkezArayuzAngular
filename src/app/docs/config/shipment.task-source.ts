@@ -19,8 +19,8 @@ export const SHIPMENT_TASK_SOURCE = {
     },
     () =>
       import(
-        '../tasks/shipment/toptan-cikis-irsaliyeleri/list/toptan-cikis-irsaliyeleri-list.component'
-      ).then((m) => m.ToptanCikisIrsaliyeleriListComponent),
+        '../tasks/shipment/giden-firma-sevkleri/list/giden-firma-sevkleri-list.component'
+      ).then((m) => m.GidenFirmaSevkleriListComponent),
     { accessKeyAliases: ['toptan-cikis-irsaliyeleri'] }
   ),
   'gelen-firma-sevkleri': singleRouteTask(
@@ -40,8 +40,8 @@ export const SHIPMENT_TASK_SOURCE = {
     },
     () =>
       import(
-        '../tasks/shipment/toptan-cikis-faturalari/list/toptan-cikis-faturalari-list.component'
-      ).then((m) => m.ToptanCikisFaturalariListComponent),
+        '../tasks/shipment/gelen-firma-sevkleri/list/gelen-firma-sevkleri-list.component'
+      ).then((m) => m.GelenFirmaSevkleriListComponent),
     { accessKeyAliases: ['toptan-cikis-faturalari'] }
   ),
   'gelen-depolar-arasi-sevkler': singleRouteTask(

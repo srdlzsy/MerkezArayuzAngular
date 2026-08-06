@@ -1,0 +1,34 @@
+import { CommonModule } from '@angular/common';
+import { Component, inject } from '@angular/core';
+import type { IFurpaCompanyMovementDetailApiDto } from '@interfaces';
+
+import { SevkIslemleriService } from '../../../../../core/api/module-services/sevk-islemleri.service';
+import { DOCS_PAGES } from '../../../../config/docs-pages.config';
+import { DocsContentPage } from '../../../../models/docs.models';
+import { KalemliTaskDetailBase } from '../../../core/api-detail-page/kalemli-task-detail.base';
+
+@Component({
+  selector: 'app-giden-firma-sevkleri-detail',
+  standalone: true,
+  imports: [CommonModule],
+  templateUrl: './giden-firma-sevkleri-detail.component.html',
+  styleUrl: './giden-firma-sevkleri-detail.component.scss'
+})
+export class GidenFirmaSevkleriDetailComponent extends KalemliTaskDetailBase<IFurpaCompanyMovementDetailApiDto> {
+  protected readonly page: DocsContentPage = DOCS_PAGES['giden-firma-sevkleri'];
+  protected readonly screenTitle = 'Irsaliye Detayi';
+  protected override readonly printDocumentTitle = 'Toptan Cikis Irsaliye Evraki';
+  protected override readonly printDocumentNoLabel = 'Irsaliye No';
+  protected override readonly printLineTitle = 'Irsaliye Kalemleri';
+  private readonly sevkIslemleriService = inject(SevkIslemleriService);
+
+  protected override loadDetail(): void {
+    this.loadDetailRequest(
+      (seri: string, sira: number, warehouseNo?: number) =>
+        this.sevkIslemleriService.getSevkDetay('ToptanCikisIrsaliyeleri', seri, sira, warehouseNo),
+      'Detay icin gerekli irsaliye anahtari bulunamadi.',
+      'Toptan cikis irsaliyesi detayi yuklenemedi. Lutfen tekrar deneyin.'
+    );
+  }
+}
+

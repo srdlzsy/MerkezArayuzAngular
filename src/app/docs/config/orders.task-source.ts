@@ -42,8 +42,8 @@ export const ORDERS_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/orders/verilen-siparisler/list/verilen-siparisler-list.component').then(
-        (m) => m.VerilenSiparislerListComponent
+      import('../tasks/orders/verilen-firma-siparisleri/list/verilen-firma-siparisleri-list.component').then(
+        (m) => m.VerilenFirmaSiparisleriListComponent
       ),
     { accessKeyAliases: ['verilen-siparisler'] }
   ),
@@ -86,8 +86,8 @@ export const ORDERS_TASK_SOURCE = {
       ]
     },
     () =>
-      import('../tasks/orders/alinan-siparisler/list/alinan-siparisler-list.component').then(
-        (m) => m.AlinanSiparislerListComponent
+      import('../tasks/orders/alinan-firma-siparisleri/list/alinan-firma-siparisleri-list.component').then(
+        (m) => m.AlinanFirmaSiparisleriListComponent
       ),
     { accessKeyAliases: ['alinan-siparisler'] }
   ),

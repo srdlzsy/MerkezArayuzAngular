@@ -39,7 +39,7 @@ import {
   normalizePermissionCode
 } from '../../../core/admin-warehouse.helpers';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
-import { renderBarcodeSvg } from '../../etiket-basimi/etiket-barcode.util';
+import { renderBarcodeSvg } from '../../etiket-belgeleri/etiket-barcode.util';
 
 const TASK_ID = 'etiket-basim';
 const PERMISSION_PREFIX = 'kasa-islemleri.etiket-basim';
