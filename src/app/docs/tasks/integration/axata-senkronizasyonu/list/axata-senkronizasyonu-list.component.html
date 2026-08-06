@@ -22,14 +22,11 @@
     </div>
 
     <div class="header-actions">
-      <button type="button" class="action-btn" (click)="loadOverview()" [disabled]="overviewLoading()">
-        {{ overviewLoading() ? 'Yükleniyor...' : 'Yenile' }}
+      <button type="button" class="action-btn" (click)="refreshAxataPanel()" [disabled]="panelLoading() || overviewLoading()">
+        {{ panelLoading() || overviewLoading() ? 'Yükleniyor...' : 'Yenile' }}
       </button>
       <button type="button" class="action-btn" (click)="loadHealth()" [disabled]="healthLoading()">
         {{ healthLoading() ? 'Kontrol ediliyor...' : 'Bağlantıyı Kontrol Et' }}
-      </button>
-      <button type="button" class="action-btn action-btn-muted" (click)="loadFetchProfiles()" [disabled]="fetchProfilesLoading()">
-        {{ fetchProfilesLoading() ? 'Yükleniyor...' : 'Profilleri Getir' }}
       </button>
     </div>
   </header>
@@ -38,6 +35,160 @@
     <strong>{{ msg.title }}</strong>
     <p>{{ msg.message }}</p>
   </article>
+
+  <section class="panel-shell">
+    <form class="panel-filter" [formGroup]="auditForm" (ngSubmit)="loadAxataPanel()">
+      <label class="form-row">
+        <span>Başlangıç</span>
+        <input type="date" formControlName="startDate" />
+      </label>
+      <label class="form-row">
+        <span>Bitiş</span>
+        <input type="date" formControlName="endDate" />
+      </label>
+      <label class="form-row">
+        <span>Depo</span>
+        <input type="number" formControlName="warehouseNo" placeholder="Tümü" />
+      </label>
+      <label class="form-row">
+        <span>Adet</span>
+        <input type="number" formControlName="take" min="1" max="200" />
+      </label>
+      <button type="submit" class="btn primary" [disabled]="panelLoading()">
+        {{ panelLoading() ? 'Yükleniyor...' : 'Listele' }}
+      </button>
+    </form>
+
+    <ng-container *ngIf="panel() as panelModel; else panelEmpty">
+      <div class="panel-status" [ngClass]="'panel-status-' + getPanelTone(panelModel)">
+        <div>
+          <span class="audit-eyebrow">Operasyon Durumu</span>
+          <h2>{{ panelModel.title || 'AXATA Senkronizasyonu' }}</h2>
+          <p>{{ panelModel.message || (panelModel.isInSync ? 'Akışta müdahale gerektiren fark görünmüyor.' : 'Kontrol edilmesi gereken belge ve aksiyonlar var.') }}</p>
+        </div>
+        <div class="panel-state-card">
+          <span [class]="getPanelPillClass(panelModel)">
+            {{ formatAuditState(panelModel.state || panelModel.severity) }}
+          </span>
+          <strong>{{ panelModel.isInSync ? 'Uyumlu' : 'Kontrol Gerekli' }}</strong>
+          <small>{{ formatTimestamp(panelModel.generatedAtUtc) }}</small>
+        </div>
+      </div>
+
+      <div class="panel-card-grid" *ngIf="panelSummaryCards().length">
+        <article
+          *ngFor="let card of panelSummaryCards(); trackBy: trackByPanelMetric"
+          [ngClass]="getPanelCardClass(card)"
+        >
+          <span>{{ card.label }}</span>
+          <strong>{{ formatPanelMetricValue(card.value) }}</strong>
+          <small *ngIf="card.description">{{ card.description }}</small>
+        </article>
+      </div>
+
+      <div class="panel-workspace">
+        <article class="panel-section">
+          <div class="panel-section-head">
+            <h2>Akış</h2>
+            <span class="status-pill">{{ panelFlowSteps().length }} adım</span>
+          </div>
+          <div class="panel-flow-list" *ngIf="panelFlowSteps().length; else noPanelFlow">
+            <button
+              type="button"
+              *ngFor="let step of panelFlowSteps(); trackBy: trackByPanelFlowStep"
+              [ngClass]="getPanelFlowClass(step)"
+              (click)="openPanelListRoute(step.listRoute)"
+            >
+              <span>{{ step.label }}</span>
+              <strong>{{ formatAuditState(step.state || step.severity) }}</strong>
+              <small>{{ step.currentDocumentCount | number:'1.0-0' }} / {{ step.expectedDocumentCount | number:'1.0-0' }} belge</small>
+              <em [class.is-clean]="step.differenceDocumentCount === 0">
+                {{ step.differenceDocumentCount | number:'1.0-0' }} fark
+              </em>
+            </button>
+          </div>
+          <ng-template #noPanelFlow>
+            <div class="empty-msg">Akış özeti yok.</div>
+          </ng-template>
+        </article>
+
+        <article class="panel-section">
+          <div class="panel-section-head">
+            <h2>Aksiyonlar</h2>
+            <span class="status-pill">{{ panelActions().length }} işlem</span>
+          </div>
+          <div class="panel-action-list" *ngIf="panelActions().length; else noPanelActions">
+            <button
+              type="button"
+              *ngFor="let action of panelActions(); trackBy: trackByPanelAction"
+              [ngClass]="getPanelActionClass(action)"
+              (click)="openPanelAction(action)"
+            >
+              <span>
+                <strong>{{ action.label }}</strong>
+                <small>{{ formatPanelActionMetric(action) }}</small>
+              </span>
+              <em [class]="getPanelPillClass(action)">
+                {{ action.canExecute ? (action.writesData ? 'Onaylı İşlem' : 'İncele') : 'Pasif' }}
+              </em>
+            </button>
+          </div>
+          <ng-template #noPanelActions>
+            <div class="empty-msg">Aksiyon gerektiren kayıt yok.</div>
+          </ng-template>
+        </article>
+      </div>
+
+      <article class="panel-section priority-panel">
+        <div class="panel-section-head">
+          <h2>Öncelikli Evraklar</h2>
+          <span class="status-pill">{{ panelPriorityDocuments().length }} belge</span>
+        </div>
+        <div class="priority-list" *ngIf="panelPriorityDocuments().length; else noPriorityDocuments">
+          <div class="priority-row priority-head">
+            <span>Evrak</span>
+            <span>Tarih</span>
+            <span>Depo</span>
+            <span>Durum</span>
+            <span>Miktar</span>
+            <span>İşlem</span>
+          </div>
+          <button
+            type="button"
+            class="priority-row"
+            *ngFor="let document of panelPriorityDocuments(); trackBy: trackByPanelDocument"
+            (click)="openPanelDocument(document)"
+          >
+            <span class="priority-ref">
+              <strong>{{ formatPanelDocumentReference(document) }}</strong>
+              <small *ngIf="document.documentNo">{{ document.documentNo }}</small>
+            </span>
+            <span>{{ formatTimestamp(document.documentDate) }}</span>
+            <span>{{ formatPanelDocumentWarehouses(document) }}</span>
+            <span [class]="getPanelPillClass(document)">
+              {{ formatAuditState(document.synchronizationState || document.severity) }}
+            </span>
+            <span>{{ formatPanelDocumentQuantities(document) }}</span>
+            <span>{{ document.recommendedActionTitle || '-' }}</span>
+          </button>
+        </div>
+        <ng-template #noPriorityDocuments>
+          <div class="empty-msg">Öncelikli evrak yok.</div>
+        </ng-template>
+      </article>
+    </ng-container>
+
+    <ng-template #panelEmpty>
+      <div class="empty-msg">{{ panelLoading() ? 'Panel yükleniyor...' : 'Panel verisi henüz yok.' }}</div>
+    </ng-template>
+  </section>
+
+  <details class="axata-technical-shell">
+    <summary>
+      <span>Gelişmiş işlemler</span>
+      <small>Task, audit, manuel kurtarma ve teknik araçlar</small>
+    </summary>
+    <div class="axata-technical-body">
 
   <nav class="tab-nav">
     <button class="tab-btn" [class.active]="selectedTab() === 'tasks' && !isProductMasterTask()" (click)="openTaskOverview()">
@@ -1575,6 +1726,24 @@
           <input type="checkbox" formControlName="acknowledge" />
           <span>Basarili kayitlari AXATA'da tamamla</span>
         </label>
+        <ng-container *ngIf="isC01LiveImportSelected()">
+          <label class="form-row">
+            <span>Mikro Fis Tarihi</span>
+            <select formControlName="dateMode">
+              <option *ngFor="let mode of c01DateModes" [value]="mode.value">
+                {{ mode.label }}
+              </option>
+            </select>
+          </label>
+          <label class="form-row" *ngIf="isLiveImportCustomDateMode()">
+            <span>Hareket Tarihi</span>
+            <input type="date" formControlName="movementDate" />
+          </label>
+          <label class="form-row" *ngIf="isLiveImportCustomDateMode()">
+            <span>Belge Tarihi</span>
+            <input type="date" formControlName="documentDate" />
+          </label>
+        </ng-container>
       </form>
 
       <div class="button-group">
@@ -1655,6 +1824,20 @@
             <strong>{{ getLiveImportCreatedQuantity(liveResult) | number:'1.0-2' }}</strong>
           </div>
         </div>
+        <div class="compact-table" *ngIf="getLiveImportResultRows(liveResult).length">
+          <div class="table-row table-head">
+            <span>Mikro Fis</span>
+            <span>Kaynak</span>
+            <span>Tarih</span>
+            <span>Durum</span>
+          </div>
+          <div class="table-row" *ngFor="let item of getLiveImportResultRows(liveResult); trackBy: trackByLiveImportPreviewRow">
+            <span>{{ formatLiveImportRowReference(item) }}</span>
+            <span>{{ formatLiveImportResultSource(item) }}</span>
+            <span>{{ formatLiveImportResultDates(item) }}</span>
+            <span>{{ formatLiveImportResultState(item) }}</span>
+          </div>
+        </div>
         <details class="json-details">
           <summary>Canli Import Isleme Detayi</summary>
           <pre>{{ liveImportResultJson() }}</pre>
@@ -1684,6 +1867,22 @@
             <label class="form-row inline">
               <input type="checkbox" formControlName="acknowledge" />
               <span>Islem sonrasi AXATA'da tamamla</span>
+            </label>
+            <label class="form-row">
+              <span>Mikro Fis Tarihi</span>
+              <select formControlName="dateMode">
+                <option *ngFor="let mode of c01DateModes" [value]="mode.value">
+                  {{ mode.label }}
+                </option>
+              </select>
+            </label>
+            <label class="form-row" *ngIf="isC01DocumentRescueCustomDateMode()">
+              <span>Hareket Tarihi</span>
+              <input type="date" formControlName="movementDate" />
+            </label>
+            <label class="form-row" *ngIf="isC01DocumentRescueCustomDateMode()">
+              <span>Belge Tarihi</span>
+              <input type="date" formControlName="documentDate" />
             </label>
           </form>
 
@@ -2002,4 +2201,6 @@
       </div>
     </div>
   </section>
+    </div>
+  </details>
 </section>

@@ -46,6 +46,11 @@ import type {
   IAxataSynchronizationManualDocumentBatchRequestApiDto,
   IAxataSynchronizationManualDocumentCandidateItemApiDto,
   IAxataSynchronizationManualDocumentItemApiDto,
+  IAxataSynchronizationPanelActionApiDto,
+  IAxataSynchronizationPanelDocumentApiDto,
+  IAxataSynchronizationPanelEndpointApiDto,
+  IAxataSynchronizationPanelFlowStepApiDto,
+  IAxataSynchronizationPanelMetricApiDto,
   IAxataSynchronizationProbeApiDto,
   IAxataSynchronizationPreviewItemApiDto,
   IAxataSynchronizationTaskApiDto,
@@ -86,7 +91,9 @@ import {
   AxataSynchronizationManualDocumentCandidatesDto,
   AxataSynchronizationManualDocumentDto,
   AxataSynchronizationOverviewDto,
+  AxataSynchronizationPanelDto,
   AxataSynchronizationTaskPreviewDto,
+  AxataSynchronizationWorkbenchDto,
   EntegrasyonIslemleriService,
   isAxataJobTerminalStatus
 } from '../../../../../core/api/module-services/entegrasyon-islemleri.service';
@@ -98,6 +105,11 @@ type FeedbackTone = 'success' | 'error' | 'info';
 type AxataQueueMovementType = 'C02' | 'C03' | 'C4';
 type AuditInsightTone = 'success' | 'warn' | 'danger' | 'neutral';
 type AxataFlowAction = 'products' | 'manual' | 'incoming' | 'queue' | 'technical';
+type AxataC01DateMode = 'today' | 'axata' | 'custom';
+type AxataC01DateRequestFields = Pick<
+  IAxataOutboundDeliveryImportExecuteRequestApiDto,
+  'dateMode' | 'movementDate' | 'documentDate'
+>;
 
 interface PageFeedback {
   tone: FeedbackTone;
@@ -110,6 +122,11 @@ interface AuditInsightCard {
   value: string;
   detail: string;
   tone: AuditInsightTone;
+}
+
+interface AxataC01DateModeOption {
+  value: AxataC01DateMode;
+  label: string;
 }
 
 interface AxataFlowCard {
@@ -246,9 +263,16 @@ export class AxataSenkronizasyonuListComponent {
       importText: 'Stok Duzeltmeleri Isle'
     }
   ];
+  protected readonly c01DateModes: readonly AxataC01DateModeOption[] = [
+    { value: 'today', label: 'Bugun' },
+    { value: 'axata', label: 'AXATA teslimat tarihi' },
+    { value: 'custom', label: 'Manuel tarih' }
+  ];
   protected readonly overview = signal<AxataSynchronizationOverviewDto | null>(null);
   protected readonly health = signal<AxataSynchronizationHealthDto | null>(null);
   protected readonly fetchProfiles = signal<AxataSynchronizationFetchProfilesOverviewDto | null>(null);
+  protected readonly workbench = signal<AxataSynchronizationWorkbenchDto | null>(null);
+  protected readonly panel = signal<AxataSynchronizationPanelDto | null>(null);
   protected readonly audit = signal<AxataIntegrationAuditDto | null>(null);
   protected readonly preview = signal<AxataSynchronizationTaskPreviewDto | null>(null);
   protected readonly activeJob = signal<AxataSynchronizationJobDetailDto | null>(null);
@@ -265,6 +289,7 @@ export class AxataSenkronizasyonuListComponent {
   protected readonly overviewLoading = signal(false);
   protected readonly healthLoading = signal(false);
   protected readonly fetchProfilesLoading = signal(false);
+  protected readonly panelLoading = signal(false);
   protected readonly auditLoading = signal(false);
   protected readonly previewLoading = signal(false);
   protected readonly executeLoading = signal(false);
@@ -430,6 +455,15 @@ export class AxataSenkronizasyonuListComponent {
     }),
     acknowledge: new FormControl<boolean>(true, {
       nonNullable: true
+    }),
+    dateMode: new FormControl<AxataC01DateMode>('today', {
+      nonNullable: true
+    }),
+    movementDate: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    documentDate: new FormControl<string>('', {
+      nonNullable: true
     })
   });
   protected readonly liveImportForm = new FormGroup({
@@ -445,6 +479,15 @@ export class AxataSenkronizasyonuListComponent {
     }),
     acknowledge: new FormControl<boolean>(true, {
       nonNullable: true
+    }),
+    dateMode: new FormControl<AxataC01DateMode>('today', {
+      nonNullable: true
+    }),
+    movementDate: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    documentDate: new FormControl<string>('', {
+      nonNullable: true
     })
   });
   protected readonly c01DocumentRescueForm = new FormGroup({
@@ -459,6 +502,15 @@ export class AxataSenkronizasyonuListComponent {
       nonNullable: true
     }),
     acknowledge: new FormControl<boolean>(false, {
+      nonNullable: true
+    }),
+    dateMode: new FormControl<AxataC01DateMode>('today', {
+      nonNullable: true
+    }),
+    movementDate: new FormControl<string>('', {
+      nonNullable: true
+    }),
+    documentDate: new FormControl<string>('', {
       nonNullable: true
     })
   });
@@ -642,6 +694,7 @@ export class AxataSenkronizasyonuListComponent {
       this.overviewLoading() ||
       this.healthLoading() ||
       this.fetchProfilesLoading() ||
+      this.panelLoading() ||
       this.auditLoading() ||
       this.previewLoading() ||
       this.executeLoading() ||
@@ -682,6 +735,33 @@ export class AxataSenkronizasyonuListComponent {
       this.tasks().filter(
         (task: IAxataSynchronizationTaskApiDto) => task.supportsLiveDispatch
       ).length
+  );
+  protected readonly panelSummaryCards = computed(
+    () => this.panel()?.summaryCards ?? []
+  );
+  protected readonly panelFlowSteps = computed(
+    () => this.panel()?.flowSteps ?? []
+  );
+  protected readonly panelActions = computed(
+    () => this.panel()?.actions ?? []
+  );
+  protected readonly panelPriorityDocuments = computed(
+    () => this.panel()?.priorityDocuments ?? []
+  );
+  protected readonly panelNotes = computed(
+    () => this.panel()?.notes?.filter((note: string) => note.trim()) ?? []
+  );
+  protected readonly workbenchOperationGroups = computed(
+    () => this.workbench()?.operationGroups ?? []
+  );
+  protected readonly workbenchEndpointGroups = computed(
+    () => this.workbench()?.endpointGroups ?? []
+  );
+  protected readonly workbenchGlossary = computed(
+    () => this.workbench()?.glossary ?? []
+  );
+  protected readonly workbenchRules = computed(
+    () => this.workbench()?.rules ?? []
   );
   protected readonly selectedTaskCapabilities = computed(() => {
     const selectedTask = this.selectedTask();
@@ -1268,8 +1348,14 @@ export class AxataSenkronizasyonuListComponent {
     });
 
     this.loadOverview();
+    this.loadAxataPanel();
     this.loadHealth();
     this.loadFetchProfiles();
+  }
+
+  protected refreshAxataPanel(): void {
+    this.loadOverview();
+    this.loadAxataPanel();
   }
 
   protected selectTab(tab: string): void {
@@ -1478,6 +1564,118 @@ export class AxataSenkronizasyonuListComponent {
       });
   }
 
+  protected loadAxataPanel(): void {
+    const startDate = this.auditForm.controls.startDate.value.trim();
+    const endDate = this.auditForm.controls.endDate.value.trim();
+
+    if (!startDate || !endDate) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Panel tarih araligi eksik',
+        message: 'Baslangic ve bitis tarihi zorunlu.'
+      });
+      return;
+    }
+
+    const query = {
+      startDate,
+      endDate,
+      warehouseNo: this.toPositiveNumber(this.auditForm.controls.warehouseNo.value) ?? undefined,
+      take: this.toPositiveNumber(this.auditForm.controls.take.value) ?? 50
+    };
+
+    this.panelLoading.set(true);
+
+    this.entegrasyonIslemleriService
+      .getAxataSynchronizationWorkbench(query)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (workbench: AxataSynchronizationWorkbenchDto) => {
+          this.workbench.set(workbench);
+          this.panel.set(workbench.panel);
+          this.panelLoading.set(false);
+          this.feedback.set({
+            tone: workbench.panel.isInSync ? 'success' : 'info',
+            title: workbench.panel.isInSync ? 'AXATA akis uyumlu' : 'AXATA is merkezi hazir',
+            message:
+              workbench.panel.message?.trim() ||
+              (workbench.panel.isInSync
+                ? 'Ozet panelde islem gerektiren fark gorunmuyor.'
+                : 'Oncelikli belgeler ve aksiyonlar panelde listelendi.')
+          });
+        },
+        error: () => {
+          this.loadAxataIsMerkeziFallback(query);
+        }
+      });
+  }
+
+  private loadAxataIsMerkeziFallback(query: {
+    startDate: string;
+    endDate: string;
+    warehouseNo?: number;
+    take: number;
+  }): void {
+    this.entegrasyonIslemleriService
+      .getAxataSynchronizationIsMerkezi(query)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (workbench: AxataSynchronizationWorkbenchDto) => {
+          this.workbench.set(workbench);
+          this.panel.set(workbench.panel);
+          this.panelLoading.set(false);
+          this.feedback.set({
+            tone: workbench.panel.isInSync ? 'success' : 'info',
+            title: workbench.panel.isInSync ? 'AXATA akis uyumlu' : 'AXATA is merkezi hazir',
+            message:
+              workbench.panel.message?.trim() ||
+              (workbench.panel.isInSync
+                ? 'Ozet panelde islem gerektiren fark gorunmuyor.'
+                : 'Oncelikli belgeler ve aksiyonlar panelde listelendi.')
+          });
+        },
+        error: () => {
+          this.loadAxataPanelFallback(query);
+        }
+      });
+  }
+
+  private loadAxataPanelFallback(query: {
+    startDate: string;
+    endDate: string;
+    warehouseNo?: number;
+    take: number;
+  }): void {
+    this.entegrasyonIslemleriService
+      .getAxataSynchronizationPanel(query)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.panelLoading.set(false))
+      )
+      .subscribe({
+        next: (panel: AxataSynchronizationPanelDto) => {
+          this.workbench.set(null);
+          this.panel.set(panel);
+          this.feedback.set({
+            tone: panel.isInSync ? 'success' : 'info',
+            title: panel.isInSync ? 'AXATA akis uyumlu' : 'AXATA panel hazir',
+            message:
+              panel.message?.trim() ||
+              (panel.isInSync
+                ? 'Ozet panelde islem gerektiren fark gorunmuyor.'
+                : 'Workbench okunamadi, panel endpointi ile ozet listelendi.')
+          });
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'AXATA is merkezi okunamadi',
+            message: 'workbench ve panel endpointleri cevap vermedi veya filtreleri kabul etmedi.'
+          });
+        }
+      });
+  }
+
   protected loadAuditOverview(): void {
     const startDate = this.auditForm.controls.startDate.value.trim();
     const endDate = this.auditForm.controls.endDate.value.trim();
@@ -1646,10 +1844,17 @@ export class AxataSenkronizasyonuListComponent {
   }
 
   protected executeC01OutboundDeliveryImport(): void {
+    const c01DateFields = this.buildC01ImportDateFields();
+
+    if (!c01DateFields) {
+      return;
+    }
+
     const request: IAxataOutboundDeliveryImportExecuteRequestApiDto = {
       take: this.toPositiveNumber(this.c01ImportForm.controls.take.value) ?? 20,
       continueOnError: this.c01ImportForm.controls.continueOnError.value,
-      acknowledge: this.c01ImportForm.controls.acknowledge.value
+      acknowledge: this.c01ImportForm.controls.acknowledge.value,
+      ...c01DateFields
     };
 
     this.c01ImportLoading.set(true);
@@ -1722,14 +1927,16 @@ export class AxataSenkronizasyonuListComponent {
 
   protected executeC01DocumentRescue(): void {
     const reference = this.buildC01DocumentRescueReference();
+    const c01DateFields = this.buildC01DocumentRescueDateFields();
 
-    if (!reference) {
+    if (!reference || !c01DateFields) {
       return;
     }
 
     const request: IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto = {
       status: reference.status,
-      acknowledge: this.c01DocumentRescueForm.controls.acknowledge.value
+      acknowledge: this.c01DocumentRescueForm.controls.acknowledge.value,
+      ...c01DateFields
     };
 
     this.c01DocumentRescueLoading.set(true);
@@ -1814,10 +2021,17 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     const profile = this.liveImportForm.controls.profile.value;
+    const c01DateFields = profile === 'c01' ? this.buildLiveImportC01DateFields() : {};
+
+    if (!c01DateFields) {
+      return;
+    }
+
     const request: IAxataOutboundDeliveryImportExecuteRequestApiDto = {
       take: this.getLiveImportTake(profile),
       continueOnError: this.liveImportForm.controls.continueOnError.value,
-      acknowledge: this.liveImportForm.controls.acknowledge.value
+      acknowledge: this.liveImportForm.controls.acknowledge.value,
+      ...c01DateFields
     };
 
     this.liveImportLoading.set(true);
@@ -3257,6 +3471,264 @@ export class AxataSenkronizasyonuListComponent {
     return 'status-pill-neutral';
   }
 
+  protected getPanelToneClass(
+    item: { severity?: string | null; state?: string | null; isInSync?: boolean | null }
+  ): string {
+    return `panel-tone-${this.resolvePanelTone(item.severity, item.state, item.isInSync)}`;
+  }
+
+  protected getPanelTone(
+    item: { severity?: string | null; state?: string | null; isInSync?: boolean | null }
+  ): AuditInsightTone {
+    return this.resolvePanelTone(item.severity, item.state, item.isInSync);
+  }
+
+  protected getPanelStatusPillClass(
+    item: { severity?: string | null; state?: string | null; isInSync?: boolean | null }
+  ): string {
+    switch (this.resolvePanelTone(item.severity, item.state, item.isInSync)) {
+      case 'success':
+        return 'status-pill-success';
+      case 'warn':
+        return 'status-pill-warn';
+      case 'danger':
+        return 'status-pill-danger';
+      default:
+        return 'status-pill-neutral';
+    }
+  }
+
+  protected getPanelPillClass(
+    item: { severity?: string | null; state?: string | null; isInSync?: boolean | null }
+  ): string {
+    return this.getPanelStatusPillClass(item);
+  }
+
+  protected getPanelCardClass(
+    item: { severity?: string | null; state?: string | null; isInSync?: boolean | null }
+  ): string {
+    return `panel-card ${this.getPanelToneClass(item)}`;
+  }
+
+  protected getPanelFlowClass(item: IAxataSynchronizationPanelFlowStepApiDto): string {
+    return `panel-flow-step ${this.getPanelToneClass(item)}`;
+  }
+
+  protected getPanelActionClass(item: IAxataSynchronizationPanelActionApiDto): string {
+    return `panel-action ${this.getPanelToneClass(item)}`;
+  }
+
+  protected formatPanelState(value: string | null | undefined, isInSync?: boolean | null): string {
+    if (isInSync === true) {
+      return 'Uyumlu';
+    }
+
+    const normalizedValue = value?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    switch (normalizedValue) {
+      case 'ok':
+      case 'success':
+      case 'insync':
+        return 'Uyumlu';
+      case 'warning':
+      case 'warn':
+      case 'pending':
+        return 'Kontrol gerekli';
+      case 'critical':
+      case 'error':
+      case 'danger':
+      case 'actionrequired':
+        return 'Aksiyon gerekli';
+      default:
+        return value?.trim() || 'Durum bekleniyor';
+    }
+  }
+
+  protected formatPanelMetricValue(value: string | number | null | undefined): string {
+    if (typeof value === 'number') {
+      return value.toLocaleString('tr-TR');
+    }
+
+    return value?.toString().trim() || '-';
+  }
+
+  protected formatPanelStepMetric(item: IAxataSynchronizationPanelFlowStepApiDto): string {
+    const current = item.currentDocumentCount.toLocaleString('tr-TR');
+    const expected = item.expectedDocumentCount.toLocaleString('tr-TR');
+    const difference = item.differenceDocumentCount;
+
+    if (!difference) {
+      return `${current}/${expected}`;
+    }
+
+    return `${current}/${expected} - fark ${difference.toLocaleString('tr-TR')}`;
+  }
+
+  protected formatPanelActionMetric(item: IAxataSynchronizationPanelActionApiDto): string {
+    const parts = [`${item.documentCount.toLocaleString('tr-TR')} belge`];
+
+    if (typeof item.lineCount === 'number') {
+      parts.push(`${item.lineCount.toLocaleString('tr-TR')} satir`);
+    }
+
+    if (typeof item.quantity === 'number') {
+      parts.push(`${item.quantity.toLocaleString('tr-TR')} miktar`);
+    }
+
+    return parts.join(' / ');
+  }
+
+  protected formatPanelDocumentReference(
+    item: IAxataSynchronizationPanelDocumentApiDto
+  ): string {
+    const serie = item.documentSerie?.trim();
+
+    if (serie && item.documentOrderNo !== null && item.documentOrderNo !== undefined) {
+      return `${serie}.${item.documentOrderNo}`;
+    }
+
+    return item.documentNo?.trim() || '-';
+  }
+
+  protected formatPanelDocumentWarehouses(
+    item: IAxataSynchronizationPanelDocumentApiDto
+  ): string {
+    if (item.sourceWarehouseNo || item.targetWarehouseNo) {
+      return `${item.sourceWarehouseNo ?? '-'} -> ${item.targetWarehouseNo ?? '-'}`;
+    }
+
+    return '-';
+  }
+
+  protected formatPanelDocumentQuantities(
+    item: IAxataSynchronizationPanelDocumentApiDto
+  ): string {
+    const parts: string[] = [];
+
+    if (typeof item.mikroOrderQuantity === 'number') {
+      parts.push(`Sip ${item.mikroOrderQuantity.toLocaleString('tr-TR')}`);
+    }
+
+    if (typeof item.axataShipmentQuantity === 'number') {
+      parts.push(`AX ${item.axataShipmentQuantity.toLocaleString('tr-TR')}`);
+    }
+
+    if (typeof item.mikroLinkedShipmentQuantity === 'number') {
+      parts.push(`Mikro ${item.mikroLinkedShipmentQuantity.toLocaleString('tr-TR')}`);
+    }
+
+    return parts.join(' / ') || '-';
+  }
+
+  protected openPanelAction(item: IAxataSynchronizationPanelActionApiDto): void {
+    const searchText = [
+      item.code,
+      item.label,
+      item.listRoute,
+      item.previewRoute,
+      item.executeRoute
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('tr-TR');
+
+    if (searchText.includes('product')) {
+      this.openProductSynchronization();
+    } else if (searchText.includes('manual') || searchText.includes('dispatch')) {
+      this.openManualDispatchFlow();
+    } else if (
+      searchText.includes('import') ||
+      searchText.includes('incoming') ||
+      searchText.includes('c01') ||
+      searchText.includes('g02') ||
+      searchText.includes('outbound') ||
+      searchText.includes('dynamic')
+    ) {
+      this.openAxataIncomingFlow();
+    } else {
+      this.selectedTab.set('monitor');
+    }
+
+    this.feedback.set({
+      tone: item.canExecute ? 'info' : 'success',
+      title: item.label,
+      message: item.description?.trim() || 'Ilgili islem alani acildi.'
+    });
+  }
+
+  protected openPanelListRoute(route: string | null | undefined): void {
+    const normalizedRoute = route?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (!normalizedRoute) {
+      this.selectedTab.set('monitor');
+      return;
+    }
+
+    if (normalizedRoute.includes('products')) {
+      this.openProductSynchronization();
+      return;
+    }
+
+    if (
+      normalizedRoute.includes('incoming') ||
+      normalizedRoute.includes('outbound') ||
+      normalizedRoute.includes('dynamic-census') ||
+      normalizedRoute.includes('c01') ||
+      normalizedRoute.includes('g02')
+    ) {
+      this.openAxataIncomingFlow();
+      return;
+    }
+
+    this.selectedTab.set('monitor');
+  }
+
+  protected openPanelDocument(item: IAxataSynchronizationPanelDocumentApiDto): void {
+    const documentSerie = item.documentSerie?.trim();
+    const documentOrderNo = item.documentOrderNo ?? null;
+    const actionCode = [
+      item.recommendedActionCode,
+      item.recommendedActionTitle,
+      item.previewRoute,
+      item.executeRoute
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('tr-TR');
+
+    if (documentSerie && documentOrderNo !== null && actionCode.includes('g02')) {
+      this.g02DocumentRescueForm.patchValue(
+        {
+          documentSerie,
+          documentOrderNo,
+          status: '1',
+          acknowledge: false
+        },
+        { emitEvent: false }
+      );
+      this.selectedTab.set('incoming');
+    } else if (documentSerie && documentOrderNo !== null) {
+      this.c01DocumentRescueForm.patchValue(
+        {
+          documentSerie,
+          documentOrderNo,
+          status: '1',
+          acknowledge: false
+        },
+        { emitEvent: false }
+      );
+      this.selectedTab.set('incoming');
+    } else {
+      this.selectedTab.set('monitor');
+    }
+
+    this.feedback.set({
+      tone: 'info',
+      title: item.recommendedActionTitle?.trim() || 'Belge hazir',
+      message: `${this.formatPanelDocumentReference(item)} icin ilgili form acildi.`
+    });
+  }
+
   protected getAuditOperationTone(
     operation: Pick<IAxataIntegrationAuditOperationApiDto, 'severity' | 'state'>
   ): string {
@@ -3732,6 +4204,22 @@ export class AxataSenkronizasyonuListComponent {
     return this.liveImportProfiles.find((item) => item.value === profile)?.description ?? '';
   }
 
+  protected isC01LiveImportSelected(): boolean {
+    return this.liveImportForm.controls.profile.value === 'c01';
+  }
+
+  protected isC01ImportCustomDateMode(): boolean {
+    return this.c01ImportForm.controls.dateMode.value === 'custom';
+  }
+
+  protected isLiveImportCustomDateMode(): boolean {
+    return this.liveImportForm.controls.dateMode.value === 'custom';
+  }
+
+  protected isC01DocumentRescueCustomDateMode(): boolean {
+    return this.c01DocumentRescueForm.controls.dateMode.value === 'custom';
+  }
+
   protected getLiveImportPreviewButtonText(): string {
     const profile = this.liveImportForm.controls.profile.value;
     return this.liveImportProfiles.find((item) => item.value === profile)?.previewText ?? 'Onizle';
@@ -3750,6 +4238,10 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     return this.getArrayField(value, 'lines').slice(0, 20);
+  }
+
+  protected getLiveImportResultRows(value: unknown): readonly unknown[] {
+    return this.getArrayField(value, 'results').slice(0, 20);
   }
 
   protected getLiveImportReturnedCount(value: unknown): number {
@@ -3818,6 +4310,12 @@ export class AxataSenkronizasyonuListComponent {
   }
 
   protected formatLiveImportRowReference(row: unknown): string {
+    const movementDocumentNo = this.getFirstTextField(row, ['movementDocumentNo']);
+
+    if (movementDocumentNo) {
+      return movementDocumentNo;
+    }
+
     const serie = this.getFirstTextField(row, ['documentSerie', 'movementSerie']);
     const orderNo = this.getFirstTextField(row, ['documentOrderNo', 'movementOrderNo']);
     const stockCode = this.getFirstTextField(row, ['stockCode']);
@@ -3828,6 +4326,39 @@ export class AxataSenkronizasyonuListComponent {
     }
 
     return [stockCode, customerCode].filter(Boolean).join(' / ') || '-';
+  }
+
+  protected formatLiveImportResultSource(row: unknown): string {
+    const axata = this.formatLiveImportRowAxata(row);
+    const serie = this.getFirstTextField(row, ['documentSerie']);
+    const orderNo = this.getFirstTextField(row, ['documentOrderNo']);
+    const sourceDocument = serie || orderNo ? `${serie || '-'}.${orderNo || '-'}` : '';
+
+    return [axata !== '-' ? axata : '', sourceDocument].filter(Boolean).join(' / ') || '-';
+  }
+
+  protected formatLiveImportResultDates(row: unknown): string {
+    const movementDate = this.getFirstTextField(row, ['movementDate']);
+    const documentDate = this.getFirstTextField(row, ['documentDate']);
+    const formattedMovementDate = movementDate ? this.formatTimestamp(movementDate) : '';
+    const formattedDocumentDate = documentDate ? this.formatTimestamp(documentDate) : '';
+
+    if (formattedMovementDate && formattedDocumentDate && formattedMovementDate !== formattedDocumentDate) {
+      return `${formattedMovementDate} / ${formattedDocumentDate}`;
+    }
+
+    return formattedMovementDate || formattedDocumentDate || '-';
+  }
+
+  protected formatLiveImportResultState(row: unknown): string {
+    const acknowledged = this.getBooleanField(row, 'acknowledged');
+    const message = this.getFirstTextField(row, ['message']);
+
+    if (acknowledged === true) {
+      return 'Yazildi + ACK';
+    }
+
+    return message || 'Yazildi';
   }
 
   protected formatLiveImportRowQuantity(row: unknown): string {
@@ -3895,6 +4426,32 @@ export class AxataSenkronizasyonuListComponent {
     _index: number,
     profile: IAxataSynchronizationFetchProfileApiDto
   ): string => profile.code;
+
+  protected trackByPanelMetric = (
+    _index: number,
+    item: IAxataSynchronizationPanelMetricApiDto
+  ): string => item.code;
+
+  protected trackByPanelFlowStep = (
+    _index: number,
+    item: IAxataSynchronizationPanelFlowStepApiDto
+  ): string => item.code;
+
+  protected trackByPanelAction = (
+    _index: number,
+    item: IAxataSynchronizationPanelActionApiDto
+  ): string => item.code;
+
+  protected trackByPanelDocument = (
+    index: number,
+    item: IAxataSynchronizationPanelDocumentApiDto
+  ): string =>
+    `${item.documentSerie ?? ''}|${item.documentOrderNo ?? ''}|${item.documentNo ?? ''}|${index}`;
+
+  protected trackByPanelEndpoint = (
+    _index: number,
+    item: IAxataSynchronizationPanelEndpointApiDto
+  ): string => item.code;
 
   protected trackByPreviewItem = (
     _index: number,
@@ -4452,6 +5009,53 @@ export class AxataSenkronizasyonuListComponent {
     return statuses.length ? statuses.join(',') : null;
   }
 
+  private resolvePanelTone(
+    severity: string | null | undefined,
+    state?: string | null,
+    isInSync?: boolean | null
+  ): AuditInsightTone {
+    if (isInSync === true) {
+      return 'success';
+    }
+
+    const normalizedSeverity = severity?.trim().toLocaleLowerCase('tr-TR') ?? '';
+    const normalizedState = state?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (
+      normalizedSeverity === 'critical' ||
+      normalizedSeverity === 'error' ||
+      normalizedSeverity === 'danger' ||
+      normalizedState.includes('manual') ||
+      normalizedState.includes('missing') ||
+      normalizedState.includes('blocked') ||
+      normalizedState.includes('actionrequired')
+    ) {
+      return 'danger';
+    }
+
+    if (
+      normalizedSeverity === 'warning' ||
+      normalizedSeverity === 'warn' ||
+      normalizedState.includes('pending') ||
+      normalizedState.includes('waiting') ||
+      normalizedState.includes('warn')
+    ) {
+      return 'warn';
+    }
+
+    if (
+      normalizedSeverity === 'success' ||
+      normalizedSeverity === 'ok' ||
+      normalizedState === 'ok' ||
+      normalizedState.includes('sync') ||
+      normalizedState.includes('complete')
+    ) {
+      return 'success';
+    }
+
+    return 'neutral';
+  }
+
   private getCandidateTake(): number {
     return Math.min(this.toPositiveNumber(this.form.controls.candidateTake.value) ?? 25, 100);
   }
@@ -4525,6 +5129,79 @@ export class AxataSenkronizasyonuListComponent {
     const day = `${date.getDate()}`.padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  private buildC01ImportDateFields(): AxataC01DateRequestFields | null {
+    return this.buildC01DateFields(
+      this.c01ImportForm.controls.dateMode.value,
+      this.c01ImportForm.controls.movementDate.value,
+      this.c01ImportForm.controls.documentDate.value
+    );
+  }
+
+  private buildLiveImportC01DateFields(): AxataC01DateRequestFields | null {
+    return this.buildC01DateFields(
+      this.liveImportForm.controls.dateMode.value,
+      this.liveImportForm.controls.movementDate.value,
+      this.liveImportForm.controls.documentDate.value
+    );
+  }
+
+  private buildC01DocumentRescueDateFields(): AxataC01DateRequestFields | null {
+    return this.buildC01DateFields(
+      this.c01DocumentRescueForm.controls.dateMode.value,
+      this.c01DocumentRescueForm.controls.movementDate.value,
+      this.c01DocumentRescueForm.controls.documentDate.value
+    );
+  }
+
+  private buildC01DateFields(
+    dateMode: string | null | undefined,
+    movementDate: string | null | undefined,
+    documentDate: string | null | undefined
+  ): AxataC01DateRequestFields | null {
+    const normalizedDateMode = this.normalizeC01DateMode(dateMode);
+    const cleanMovementDate = movementDate?.trim() ?? '';
+    const cleanDocumentDate = documentDate?.trim() ?? '';
+
+    if (normalizedDateMode === 'custom' && !cleanMovementDate) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'C01 tarih eksik',
+        message: 'Manuel tarih secildiginde hareket tarihi zorunludur.'
+      });
+      return null;
+    }
+
+    return {
+      dateMode: normalizedDateMode,
+      movementDate: normalizedDateMode === 'custom' ? cleanMovementDate : null,
+      documentDate:
+        normalizedDateMode === 'custom' ? cleanDocumentDate || cleanMovementDate : null
+    };
+  }
+
+  private normalizeC01DateMode(value: string | null | undefined): AxataC01DateMode {
+    const normalizedValue = value?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (
+      normalizedValue === 'axata' ||
+      normalizedValue === 'axata-date' ||
+      normalizedValue === 'teslimat' ||
+      normalizedValue === 'teslimat-tarihi'
+    ) {
+      return 'axata';
+    }
+
+    if (
+      normalizedValue === 'custom' ||
+      normalizedValue === 'manual' ||
+      normalizedValue === 'elle'
+    ) {
+      return 'custom';
+    }
+
+    return 'today';
   }
 
   private getLiveImportTake(profile: AxataLiveImportProfile): number {

@@ -192,6 +192,157 @@ export interface IAxataIntegrationAuditQueryApiDto {
   statuses?: string | null;
 }
 
+export interface IAxataSynchronizationPanelQueryApiDto {
+  startDate?: string | null;
+  endDate?: string | null;
+  warehouseNo?: number | null;
+  take?: number | null;
+}
+
+export interface IAxataSynchronizationPanelMetricApiDto {
+  code: string;
+  label: string;
+  value: string | number | null;
+  severity?: string | null;
+  description?: string | null;
+}
+
+export interface IAxataSynchronizationPanelFlowStepApiDto {
+  code: string;
+  label: string;
+  state?: string | null;
+  severity?: string | null;
+  currentDocumentCount: number;
+  expectedDocumentCount: number;
+  differenceDocumentCount: number;
+  description?: string | null;
+  listRoute?: string | null;
+}
+
+export interface IAxataSynchronizationPanelActionApiDto {
+  code: string;
+  label: string;
+  state?: string | null;
+  severity?: string | null;
+  documentCount: number;
+  lineCount?: number | null;
+  quantity?: number | null;
+  canExecute: boolean;
+  writesData: boolean;
+  listRoute?: string | null;
+  previewRoute?: string | null;
+  executeRoute?: string | null;
+  description?: string | null;
+}
+
+export interface IAxataSynchronizationPanelDocumentApiDto {
+  documentSerie?: string | null;
+  documentOrderNo?: number | null;
+  documentNo?: string | null;
+  documentDate?: string | null;
+  sourceWarehouseNo?: number | null;
+  targetWarehouseNo?: number | null;
+  synchronizationState?: string | null;
+  severity?: string | null;
+  recommendedActionCode?: string | null;
+  recommendedActionTitle?: string | null;
+  canExecute: boolean;
+  previewRoute?: string | null;
+  executeRoute?: string | null;
+  mikroOrderQuantity?: number | null;
+  axataShipmentQuantity?: number | null;
+  mikroLinkedShipmentQuantity?: number | null;
+  reason?: string | null;
+}
+
+export interface IAxataSynchronizationPanelEndpointApiDto {
+  code: string;
+  label: string;
+  method: string;
+  route: string;
+  writesData: boolean;
+  description?: string | null;
+}
+
+export interface IAxataSynchronizationPanelApiDto {
+  title: string;
+  state?: string | null;
+  severity?: string | null;
+  message?: string | null;
+  isInSync: boolean;
+  generatedAtUtc: string | null;
+  startDate: string;
+  endDate: string;
+  warehouseNo: number | null;
+  summaryCards: IAxataSynchronizationPanelMetricApiDto[];
+  flowSteps: IAxataSynchronizationPanelFlowStepApiDto[];
+  actions: IAxataSynchronizationPanelActionApiDto[];
+  priorityDocuments: IAxataSynchronizationPanelDocumentApiDto[];
+  primaryEndpoints: IAxataSynchronizationPanelEndpointApiDto[];
+  notes: string[];
+}
+
+export interface IAxataSynchronizationWorkbenchEntryApiDto {
+  code?: string | null;
+  label?: string | null;
+  title?: string | null;
+  shortTitle?: string | null;
+  description?: string | null;
+  direction?: string | null;
+  sourceSystem?: string | null;
+  targetSystem?: string | null;
+  movementType?: string | null;
+  purpose?: string | null;
+  normalFlow?: string | null;
+  whenToUse?: string | null;
+  state?: string | null;
+  severity?: string | null;
+  documentCount?: number | null;
+  lineCount?: number | null;
+  quantity?: number | null;
+  canExecute?: boolean | null;
+  method?: string | null;
+  route?: string | null;
+  level?: string | null;
+  writesData?: boolean | null;
+  writeScope?: string | null;
+  primaryButtonLabel?: string | null;
+  confirmationMessage?: string | null;
+  buttonLabel?: string | null;
+  listRoute?: string | null;
+  previewRoute?: string | null;
+  executeRoute?: string | null;
+  requestModel?: string | null;
+  responseModel?: string | null;
+  term?: string | null;
+  uiLabel?: string | null;
+  meaning?: string | null;
+  userWarning?: string | null;
+  sortOrder?: number | null;
+  dataSource?: string | null;
+  uiBehavior?: string | null;
+  endpointCodes?: string[] | null;
+  items?: IAxataSynchronizationWorkbenchEntryApiDto[];
+  endpoints?: IAxataSynchronizationWorkbenchEntryApiDto[];
+  operations?: IAxataSynchronizationWorkbenchEntryApiDto[];
+  [key: string]: unknown;
+}
+
+export interface IAxataSynchronizationWorkbenchApiDto {
+  title?: string | null;
+  purpose?: string | null;
+  state?: string | null;
+  severity?: string | null;
+  message?: string | null;
+  panel: IAxataSynchronizationPanelApiDto;
+  screenSections: IAxataSynchronizationWorkbenchEntryApiDto[];
+  operationGroups: IAxataSynchronizationWorkbenchEntryApiDto[];
+  endpointGroups: IAxataSynchronizationWorkbenchEntryApiDto[];
+  glossary: IAxataSynchronizationWorkbenchEntryApiDto[];
+  rules: string[];
+  notes?: string[] | null;
+}
+
 export interface IAxataIntegrationAuditApiDto {
   isInSync: boolean;
   generatedAtUtc: string | null;
@@ -623,11 +774,17 @@ export interface IAxataOutboundDeliveryImportExecuteRequestApiDto {
   take?: number | null;
   continueOnError: boolean;
   acknowledge: boolean;
+  dateMode?: string | null;
+  movementDate?: string | null;
+  documentDate?: string | null;
 }
 
 export interface IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto {
   status?: string | null;
   acknowledge: boolean;
+  dateMode?: string | null;
+  movementDate?: string | null;
+  documentDate?: string | null;
 }
 
 export interface IAxataOutboundDeliveryImportPreviewApiDto {
@@ -744,6 +901,10 @@ export interface IAxataOutboundDeliveryImportResultApiDto {
   createdMovementQuantity: number;
   acknowledged: boolean;
   message: string;
+  axataDate?: string | null;
+  movementDate?: string | null;
+  documentDate?: string | null;
+  movementDocumentNo?: string | null;
 }
 
 export interface IAxataOutboundDeliveryImportFailureApiDto {

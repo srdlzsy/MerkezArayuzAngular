@@ -14250,18 +14250,45 @@ Operasyon modulu notlari:
 
 ## Entegrasyon Islemleri
 
-Bu modul, eski `Furpa.WorkerService` akisini yeni API icinde worker + manuel endpoint ayrimi ile yonetmek icin eklendi. UI tarafinda bu ekran "entegrasyon gorevi sec, preview al, dry-run yap veya outbox'a at, sonra job durumunu izle" mantigiyla kurgulanmalidir.
+Bu modul, eski `Furpa.WorkerService` akisini yeni API icinde worker + manuel endpoint ayrimi ile yonetmek icin eklendi. UI tarafinda ana ekran `workbench/is-merkezi` mantigiyla, teknik detaylar ise gelismis bolumlerde kurgulanmalidir.
+
+Yeni sade is merkezi yaklasimi:
+
+- UI ana ekrani once `GET /api/integrations/axata-sync/workbench` veya Turkce alias olarak `GET /api/integrations/axata-sync/is-merkezi` endpointini cagirmalidir.
+- Bu endpoint veri yazmaz; panel, ekran bolumleri, operasyon gruplari, endpoint sozlugu, terimler ve kurallari tek response'ta doner.
+- Normal UI route ailesi `operations/...`, manuel kurtarma route ailesi `recovery/...`, teknik route ailesi `advanced/...` olarak ayrildi.
+- Eski `live/...` ve `manual/...` route'lari geriye uyumluluk icin calismaya devam eder; yeni UI bunlari ana route olarak kullanmamalidir.
+- Teknik listeler, raw farklar, job/outbox ve payload detaylari "Gelismis/teknik detay" olarak `GET /api/integrations/axata-sync/audit` ve `advanced/...` endpointlerinden acilmalidir.
+
+Sade route ailesi:
+
+| Route ailesi | Amac | Veri yazar mi? | UI konumu |
+|---|---|---:|---|
+| `GET /workbench`, `GET /is-merkezi` | Tum AXATA ekranini kuracak is merkezi response'u | Hayir | Ilk cagri |
+| `GET /panel` | Yalniz ozet kartlar, akis ve oncelikli belgeler | Hayir | Hafif yenileme |
+| `GET /status`, `GET /connection-test`, `GET /profiles`, `GET /audit` | Durum, baglanti, profil ve teknik fark analizi | Hayir | Kontrol/teknik detay |
+| `operations/product-master/...` | Urun master onizle/gonder | Preview hayir, dispatch evet | Master veri |
+| `operations/{taskCode}/documents/...` | Mikro evrak aday/onizle/AXATA'ya gonder | Dispatch evet | Mikro -> AXATA |
+| `operations/c01-shipment/...` | C01 depo sevki onizle/import/rescue | Import evet | AXATA -> Mikro |
+| `operations/c02-company-shipment/...` | C02 firma sevki onizle/import | Import evet | AXATA -> Mikro |
+| `operations/c03-legacy-movement/...` | C03 legacy hareket onizle/import | Import evet | Gelismis operasyon |
+| `operations/c04-legacy-transfer/...` | C04/C4 legacy transfer onizle/import | Import evet | Gelismis operasyon |
+| `operations/g01-company-receiving/...` | G01 ATF firma mal kabul onizle/import | Import evet | AXATA -> Mikro |
+| `operations/g02-warehouse-receiving/...` | G02 depo kabul onizle/import/rescue | Import evet | AXATA -> Mikro |
+| `operations/dynamic-census/...` | AXATA stok duzeltme onizle/import | Import evet | Stok duzeltme |
+| `recovery/...` | Elle body, serbest mal kabul/sayim, bekleyen depo kabul | Evet | Manuel kurtarma |
+| `advanced/...` | Job, outbox, generic task execute | Duruma gore | Teknik detay |
 
 Sonuc odakli kullanim icin onerilen ana yollar:
 
-- Urun master: `live/products/preview` ile kontrol et, secili urun icin `live/products/{productCode}/dispatch`, toplu secim icin `live/products/dispatch` kullan. Job/outbox akisini ikincil/teknik arac olarak goster.
-- Mikro -> AXATA evrak kurtarma: once `manual/tasks/{taskCode}/documents/candidates`, sonra `preview`, son olarak gercek gonderim icin `dispatch` kullan. `execute/Outbox` AXATA'ya gondermez, sadece dosya hazirlar.
-- AXATA -> Mikro C01 sevk: once `live/axata/outbound-deliveries/c01/preview`, uygun kayit varsa `import` kullan. Import ekraninda `acknowledge` secimi kullaniciya acik gosterilmelidir.
-- AXATA -> Mikro C02 firma sevk: once `live/axata/outbound-deliveries/c02/preview`, uygun kayit varsa `import` kullan. Backend firma sevki yazar, siparis satiri linkini `sth_sip_uid` ile kurar ve siparis teslim miktarini gunceller. `MikroWriteRouting:CompanyMovement=Database` ise eski DB transaction yolu, `MikroApi` ise `IrsaliyeKaydetV2` yolu kullanilir.
-- AXATA -> Mikro C03/C4 legacy hareketler: once ilgili `c03` veya `c04` preview, sonra `import` kullan. UI bu aksiyonlari teknik/operasyonel import olarak etiketlemelidir.
-- AXATA -> Mikro G01 firma mal kabul: once `live/axata/inbound-atf/g01/preview`, uygun kayit varsa `import` kullan. Backend `S16SIPN/S16KALN` ile firma siparisine baglar. Yazma yolu `MikroWriteRouting:CompanyReceiving` ile secilir; `Database` eski worker DB yolunu, `MikroApi` firma mal kabul use case / `IrsaliyeKaydetV2` yolunu kullanir.
-- AXATA -> Mikro G02 depo mal kabul: once `live/axata/inbound-deliveries/g02/preview`, uygun kayit varsa `import` kullan. Backend bekleyen Mikro sevk fisini kabul eder, siparis teslim miktarini AXATA kabul miktarina gore duzeltir ve sonra AXATA ack atar.
-- AXATA -> Mikro DynamicCensus: once `live/axata/dynamic-census/preview`, uygun satir varsa `import` kullan. Backend `vw_stok_duzeltme` satirlarini Mikro stok duzeltme hareketine cevirir.
+- Urun master: `operations/product-master/preview` ile kontrol et, secili/toplu urun icin `operations/product-master/dispatch` kullan. Job/outbox akisini ikincil/teknik arac olarak goster.
+- Mikro -> AXATA evrak kurtarma: once `operations/{taskCode}/documents/candidates`, sonra `preview`, son olarak gercek gonderim icin `dispatch` kullan. `advanced/{taskCode}/documents/outbox` AXATA'ya gondermez, sadece dosya hazirlar.
+- AXATA -> Mikro C01 sevk: once `operations/c01-shipment/preview`, uygun kayit varsa `operations/c01-shipment/import` kullan. Import ekraninda `acknowledge` secimi kullaniciya acik gosterilmelidir.
+- AXATA -> Mikro C02 firma sevk: once `operations/c02-company-shipment/preview`, uygun kayit varsa `operations/c02-company-shipment/import` kullan. Backend firma sevki yazar, siparis satiri linkini `sth_sip_uid` ile kurar ve siparis teslim miktarini gunceller.
+- AXATA -> Mikro C03/C4 legacy hareketler: once ilgili `operations/c03-legacy-movement/preview` veya `operations/c04-legacy-transfer/preview`, sonra `import` kullan. UI bu aksiyonlari gelismis/operasyonel import olarak etiketlemelidir.
+- AXATA -> Mikro G01 firma mal kabul: once `operations/g01-company-receiving/preview`, uygun kayit varsa `import` kullan.
+- AXATA -> Mikro G02 depo mal kabul: once `operations/g02-warehouse-receiving/preview`, uygun kayit varsa `import` kullan. Backend bekleyen Mikro sevk fisini kabul eder, siparis teslim miktarini AXATA kabul miktarina gore duzeltir ve sonra AXATA ack atar.
+- AXATA -> Mikro DynamicCensus: once `operations/dynamic-census/preview`, uygun satir varsa `import` kullan. Backend `vw_stok_duzeltme` satirlarini Mikro stok duzeltme hareketine cevirir.
 - Manuel body/import ekranlari: yalnizca operasyon AXATA body bilgisini elle sagladiginda kullanilacak yardimci araclar olarak konumlandir.
 
 AXATA ekranlari icin genel sadelik ilkesi:
@@ -14306,16 +14333,40 @@ Execution mode:
 
 Mevcut endpointler:
 
+Not: Bu listede eski teknik route'lar da bulunabilir. Yeni UI icin oncelikli route'lar `workbench/is-merkezi`, `operations/...`, `recovery/...` ve `advanced/...` aileleridir. Eski `live/...` ve `manual/...` route'lari geriye uyumluluk icin korunur.
+
 - `GET /api/integrations/axata-sync`
   - modulu, aktif task'lari, schedule ayarlarini ve son job'lari doner
   - response `AxataSynchronizationOverviewDto`
+- `GET /api/integrations/axata-sync/status`
+  - `GET /api/integrations/axata-sync` icin sade alias
+  - veri yazmaz
 - `GET /api/integrations/axata-sync/health`
   - Mikro SQL, Furpa SQL ve AXATA endpoint erisimi icin probe sonucunu doner
   - response `AxataSynchronizationConnectionTestDto`
+- `GET /api/integrations/axata-sync/connection-test`
+  - `health` icin sade alias
+  - veri yazmaz
 - `GET /api/integrations/axata-sync/fetch-profiles`
   - eski worker parity icin planlanan AXATA fetch/import profillerini listeler
   - her profil icin bugunku fallback route ve implementasyon durumu gorulebilir
   - response `AxataSynchronizationFetchProfilesOverviewDto`
+- `GET /api/integrations/axata-sync/profiles`
+  - `fetch-profiles` icin sade alias
+  - veri yazmaz
+- `GET /api/integrations/axata-sync/workbench?startDate=2026-08-05&endDate=2026-08-06&warehouseNo=50&take=50`
+  - UI ana ekrani icin onerilen birincil endpointtir
+  - `panel`, `screenSections`, `operationGroups`, `endpointGroups`, `glossary` ve `rules` alanlarini tek response'ta doner
+  - veri yazmaz
+  - response `AxataSynchronizationWorkbenchDto`
+- `GET /api/integrations/axata-sync/is-merkezi?startDate=2026-08-05&endDate=2026-08-06&warehouseNo=50&take=50`
+  - `workbench` icin Turkce route alias
+  - veri yazmaz
+- `GET /api/integrations/axata-sync/panel?startDate=2026-08-05&endDate=2026-08-06&warehouseNo=50&take=50`
+  - UI ana ekrani icin sade kontrol paneli doner
+  - Mikro -> AXATA -> Mikro akis durumunu tek response'ta ozetler
+  - veri yazmaz; manuel mudahale icin kullanilacak route bilgilerini `actions` ve `primaryEndpoints` icinde verir
+  - response `AxataSynchronizationPanelDto`
 - `GET /api/integrations/axata-sync/live/products/preview?productCode=URUN001&take=20`
   - Mikro aktif stok, tum barkod ve birimlerini AXATA `addSKUMaster` paketinde onizler; veri yazmaz
   - response `AxataProductSynchronizationPreviewDto`
@@ -14527,19 +14578,134 @@ Mevcut endpointler:
   - birden fazla bekleyen depo mal kabulunu toplu kabul eder
   - response `AxataManualIncomingWarehouseReceivingBatchResponse`
 
+Sade panel response ana alanlari:
+
+```json
+{
+  "title": "Mikro -> AXATA -> Mikro fark kontrolu",
+  "state": "MikroTransferRequired",
+  "severity": "Critical",
+  "message": "Mikro'da 120 siparis var; AXATA siparis eslesmesi 120, AXATA sevk 80, Mikro'ya baglanan sevk 75...",
+  "isInSync": false,
+  "generatedAtUtc": "2026-08-06T09:00:00Z",
+  "startDate": "2026-08-05T00:00:00",
+  "endDate": "2026-08-06T00:00:00",
+  "warehouseNo": 50,
+  "summaryCards": [
+    {
+      "code": "ready-to-import-mikro",
+      "label": "Mikro'ya islenecek",
+      "value": 5,
+      "severity": "Critical",
+      "description": "AXATA sevki hazir olup Mikro sevk linki eksik olan ve import edilebilecek belgeler."
+    }
+  ],
+  "flowSteps": [
+    {
+      "code": "mikro-transfer",
+      "label": "4. Mikro sevk donusu",
+      "state": "Difference",
+      "severity": "Critical",
+      "currentDocumentCount": 75,
+      "expectedDocumentCount": 80,
+      "differenceDocumentCount": 5,
+      "description": "AXATA'da sevki olusmus belgelerin Mikro STOK_HAREKETLERI_EK siparis linki var mi kontrol eder.",
+      "listRoute": "/api/integrations/axata-sync/audit#interventionCandidates"
+    }
+  ],
+  "actions": [
+    {
+      "code": "sent-to-axata-missing-mikro-shipment",
+      "label": "AXATA sevk kesilmis Mikro donus eksik",
+      "state": "ActionRequired",
+      "severity": "Critical",
+      "documentCount": 5,
+      "lineCount": 20,
+      "quantity": 430.0,
+      "canExecute": true,
+      "writesData": true,
+      "listRoute": "/api/integrations/axata-sync/audit#sentWarehouseOrdersMissingMikroShipments",
+      "previewRoute": "/api/integrations/axata-sync/operations/c01-shipment/documents/{documentSerie}/{documentOrderNo}/preview",
+      "executeRoute": "/api/integrations/axata-sync/operations/c01-shipment/documents/{documentSerie}/{documentOrderNo}/import",
+      "description": "AXATA C01 outbound delivery kaydi bulunan pozitif miktarli sevklerde Mikro link yoksa rescue yapilabilir."
+    }
+  ],
+  "priorityDocuments": [
+    {
+      "documentSerie": "F50",
+      "documentOrderNo": 16122,
+      "documentNo": "F50.16122",
+      "documentDate": "2026-08-05T00:00:00",
+      "sourceWarehouseNo": 50,
+      "targetWarehouseNo": 172,
+      "synchronizationState": "WaitingForMikroTransfer",
+      "severity": "Critical",
+      "recommendedActionCode": "RESCUE_COMPLETED_C01",
+      "recommendedActionTitle": "Tamamlanmis SEV icin rescue yap",
+      "canExecute": true,
+      "previewRoute": "/api/integrations/axata-sync/operations/c01-shipment/documents/F50/16122/preview?status=1",
+      "executeRoute": "/api/integrations/axata-sync/operations/c01-shipment/documents/F50/16122/import",
+      "mikroOrderQuantity": 430.0,
+      "axataShipmentQuantity": 430.0,
+      "mikroLinkedShipmentQuantity": 0.0,
+      "reason": "AXATA'da 430 miktar SEV var, Mikro siparisine bagli sevk bulunamadi."
+    }
+  ],
+  "primaryEndpoints": [
+    {
+      "code": "panel",
+      "label": "Sade panel",
+      "method": "GET",
+      "route": "/api/integrations/axata-sync/panel",
+      "writesData": false,
+      "description": "UI ana ekrani icin ozet kartlari, akis adimlari, aksiyonlar ve oncelikli belgeleri dondurur."
+    }
+  ],
+  "notes": []
+}
+```
+
+Sade panel UI yerlesimi:
+
+- Ust satir: `summaryCards`.
+- Orta alan: `flowSteps`; her adim icin durum rengi `severity` alanindan alinmali.
+- Sag/alt aksiyon listesi: `actions`; `writesData=true` aksiyonlarda onay modali acilmali.
+- Belge listesi: `priorityDocuments`; `canExecute=true` ise once `previewRoute`, kullanici onayindan sonra `executeRoute` cagrilmali.
+- Teknik detay butonu: ayni query ile `GET /api/integrations/axata-sync/audit`.
+
 AXATA live import ortak request modeli:
 
 ```json
 {
   "take": 20,
   "continueOnError": true,
-  "acknowledge": true
+  "acknowledge": true,
+  "dateMode": "today",
+  "movementDate": null,
+  "documentDate": null
 }
 ```
 
 - `take`: kac belge/satir islenecek. Outbound/G01/G02 icin 1-200, DynamicCensus icin backend 500'e kadar kabul eder.
 - `continueOnError`: `true` ise hatali belge `failures` listesine eklenir ve digerleri denenir.
 - `acknowledge`: `true` ise Mikro yazimi basarili olduktan sonra AXATA EXT status alanlari `1` yapilir. Yazim basarisizsa ack atilmaz.
+- `dateMode`: C01 AXATA -> Mikro depo sevki icin kullanilir. Bos/null veya `today/bugun/current/api-date` gonderilirse Mikro `sth_tarih` ve `sth_belge_tarih` bugun olur. `axata/axata-date/teslimat/teslimat-tarihi` gonderilirse AXATA `S06ITAR` teslimat tarihi kullanilir. `custom/manual/elle` gonderilirse `movementDate` zorunludur, `documentDate` bos ise `movementDate` kullanilir. C02/C03/C04/G02/G01 akislari bu alanlari dikkate almaz.
+- UI sade kullanim icin kisa route'lari tercih etmelidir; eski `live/axata/...` ve `operations/...` route'lari geriye uyumluluk icin calismaya devam eder.
+
+AXATA import kisa route ozeti:
+
+| Islem | Kisa route | Eski/uyumlu route |
+| --- | --- | --- |
+| Outbound kuyruk | `GET /api/integrations/axata-sync/outbound-deliveries?movementType=C01&take=20` | `GET /api/integrations/axata-sync/live/axata/outbound-deliveries/preview` |
+| C01 preview | `GET /api/integrations/axata-sync/c01/preview?take=20` | `GET /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/preview` |
+| C01 import | `POST /api/integrations/axata-sync/c01/import` | `POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/import` |
+| C01 belge preview | `GET /api/integrations/axata-sync/c01/documents/{documentSerie}/{documentOrderNo}/preview?status=1` | `GET /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/documents/{documentSerie}/{documentOrderNo}/preview` |
+| C01 belge import | `POST /api/integrations/axata-sync/c01/documents/{documentSerie}/{documentOrderNo}/import` | `POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/documents/{documentSerie}/{documentOrderNo}/import` |
+| C02 preview/import | `GET/POST /api/integrations/axata-sync/c02/preview|import` | `GET/POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c02/preview|import` |
+| C03 preview/import | `GET/POST /api/integrations/axata-sync/c03/preview|import` | `GET/POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c03/preview|import` |
+| C04 preview/import | `GET/POST /api/integrations/axata-sync/c04/preview|import` | `GET/POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c04/preview|import` |
+| G02 preview/import | `GET/POST /api/integrations/axata-sync/g02/preview|import` | `GET/POST /api/integrations/axata-sync/live/axata/inbound-deliveries/g02/preview|import` |
+| G02 belge preview/import | `GET/POST /api/integrations/axata-sync/g02/documents/{documentSerie}/{documentOrderNo}/preview|import` | `GET/POST /api/integrations/axata-sync/live/axata/inbound-deliveries/g02/documents/{documentSerie}/{documentOrderNo}/preview|import` |
 
 C01/C02/C03/C04/G02 import preview response ortak ana alanlari:
 
@@ -14601,7 +14767,11 @@ C01/C02/C03/C04/G02 import execute response ortak ana alanlari:
       "createdMovementLineCount": 3,
       "createdMovementQuantity": 30.0,
       "acknowledged": true,
-      "message": "Mikro kaydi olusturuldu ve AXATA ack atildi."
+      "message": "Mikro kaydi olusturuldu ve AXATA ack atildi.",
+      "axataDate": "2026-08-05T00:00:00",
+      "movementDate": "2026-08-06T00:00:00",
+      "documentDate": "2026-08-06T00:00:00",
+      "movementDocumentNo": "F50-15035"
     }
   ],
   "failures": [
@@ -14614,6 +14784,11 @@ C01/C02/C03/C04/G02 import execute response ortak ana alanlari:
   "notes": []
 }
 ```
+
+- `axataDate`: AXATA teslimat/kabul kaydindan gelen tarih. C01 icin kaynak `ENT006.S06ITAR`.
+- `movementDate`: Mikro hareket tarihi. C01 defaultta import gunudur; `dateMode=axata` verilirse AXATA tarihi olur.
+- `documentDate`: Mikro belge tarihi. Bos birakilirsa `movementDate` ile ayni yazilir.
+- `movementDocumentNo`: UI'da gostermek icin olusan Mikro evrak numarasi (`movementSerie-movementOrderNo`).
 
 G01 preview response ana farklari:
 
@@ -14680,6 +14855,7 @@ UI icin endpoint davranis rehberi:
 
 | UI bolumu | Endpoint | Ne yapar | Veri yazar mi? | UI aksiyonu |
 |---|---|---|---|---|
+| Sade Panel | `GET /api/integrations/axata-sync/panel` | Ozet kartlar, akis adimlari, aksiyonlar ve oncelikli belgeleri tek response'ta verir | Hayir | Sayfa ana verisi olarak cagir |
 | Genel Durum | `GET /api/integrations/axata-sync` | Task listesini, aktif/pasif durumlari, worker/scheduler bilgisini ve son job'lari getirir | Hayir | Sayfa acilisinda cagir |
 | Genel Durum | `GET /api/integrations/axata-sync/health` | Mikro SQL, Furpa SQL, AXATA Main ve EXT endpoint erisimini kontrol eder | Hayir | "Baglanti testi" veya otomatik durum karti |
 | Profil Katalogu | `GET /api/integrations/axata-sync/fetch-profiles` | AXATA servislerinden hangi profillerin okunabilecegini ve backendde hangi seviyede desteklendigini listeler | Hayir | UI butonlarini capability'ye gore ac/kapat |
@@ -15017,6 +15193,7 @@ Import davranisi:
 - Mikro eslesme: `S06TESL` degeri `DocumentSerie.DocumentOrderNo` olarak okunur
 - Satir eslesme: once `S07KALN + S07SKOD` -> `ssip_satirno + ssip_stok_kod`, sonra 1-bazli satir no farki, son olarak tekil stok + kalan miktar kontrolu
 - Mikro yazim: depolar arasi sevk fisi ve bagli satirlarda `sth_subesip_uid` ile Mikro tarafinda siparis linki/teslim etkisi
+- Mikro tarih kuralı: C01 sevk Mikro'ya hangi gun import ediliyorsa `STOK_HAREKETLERI.sth_tarih` ve `sth_belge_tarih` o gun olur. AXATA `ENT006.S06ITAR` siparis/sevk izleme ve filtreleme bilgisidir; Mikro fis tarihi olarak kullanilmaz.
 - AXATA ack: Mikro yazim basarili olursa `AxataServicePoolEXT.svc/updIntegrationTableAsync` ile `ENT006.S06STAT=1`, `IDField=S06SIRA`
 - `acknowledge=false` verilirse Mikro yazilir ama AXATA status guncellenmez; bu sadece kontrollu test/kurtarma icin kullanilmalidir
 
@@ -18666,6 +18843,162 @@ public sealed record AxataSynchronizationTaskDto(
     bool SupportsManualDocuments,
     bool SupportsLiveDispatch,
     string? LiveOperationName);
+
+public sealed record AxataSynchronizationPanelDto(
+    string Title,
+    string State,
+    string Severity,
+    string Message,
+    bool IsInSync,
+    DateTime GeneratedAtUtc,
+    DateTime StartDate,
+    DateTime EndDate,
+    int? WarehouseNo,
+    IReadOnlyCollection<AxataSynchronizationPanelMetricDto> SummaryCards,
+    IReadOnlyCollection<AxataSynchronizationPanelFlowStepDto> FlowSteps,
+    IReadOnlyCollection<AxataSynchronizationPanelActionDto> Actions,
+    IReadOnlyCollection<AxataSynchronizationPanelDocumentDto> PriorityDocuments,
+    IReadOnlyCollection<AxataSynchronizationPanelEndpointDto> PrimaryEndpoints,
+    IReadOnlyCollection<string> Notes);
+
+public sealed record AxataSynchronizationPanelMetricDto(
+    string Code,
+    string Label,
+    int Value,
+    string Severity,
+    string Description);
+
+public sealed record AxataSynchronizationPanelFlowStepDto(
+    string Code,
+    string Label,
+    string State,
+    string Severity,
+    int CurrentDocumentCount,
+    int ExpectedDocumentCount,
+    int DifferenceDocumentCount,
+    string Description,
+    string? ListRoute);
+
+public sealed record AxataSynchronizationPanelActionDto(
+    string Code,
+    string Label,
+    string State,
+    string Severity,
+    int DocumentCount,
+    int LineCount,
+    double Quantity,
+    bool CanExecute,
+    bool WritesData,
+    string? ListRoute,
+    string? PreviewRoute,
+    string? ExecuteRoute,
+    string Description);
+
+public sealed record AxataSynchronizationPanelDocumentDto(
+    string DocumentSerie,
+    int DocumentOrderNo,
+    string DocumentNo,
+    DateTime DocumentDate,
+    int SourceWarehouseNo,
+    int TargetWarehouseNo,
+    string SynchronizationState,
+    string Severity,
+    string RecommendedActionCode,
+    string RecommendedActionTitle,
+    bool CanExecute,
+    string? PreviewRoute,
+    string? ExecuteRoute,
+    double MikroOrderQuantity,
+    double AxataShipmentQuantity,
+    double MikroLinkedShipmentQuantity,
+    string Reason);
+
+public sealed record AxataSynchronizationPanelEndpointDto(
+    string Code,
+    string Label,
+    string Method,
+    string Route,
+    bool WritesData,
+    string Description);
+
+public sealed record AxataSynchronizationWorkbenchDto(
+    string Title,
+    string Purpose,
+    string State,
+    string Severity,
+    string Message,
+    AxataSynchronizationPanelDto Panel,
+    IReadOnlyCollection<AxataSynchronizationWorkbenchScreenSectionDto> ScreenSections,
+    IReadOnlyCollection<AxataSynchronizationWorkbenchOperationGroupDto> OperationGroups,
+    IReadOnlyCollection<AxataSynchronizationWorkbenchEndpointGroupDto> EndpointGroups,
+    IReadOnlyCollection<AxataSynchronizationWorkbenchGlossaryItemDto> Glossary,
+    IReadOnlyCollection<string> Rules);
+
+public sealed record AxataSynchronizationWorkbenchScreenSectionDto(
+    string Code,
+    string Title,
+    int SortOrder,
+    string DataSource,
+    string Purpose,
+    string UiBehavior);
+
+public sealed record AxataSynchronizationWorkbenchOperationGroupDto(
+    string Code,
+    string Title,
+    string Direction,
+    string Description,
+    IReadOnlyCollection<AxataSynchronizationWorkbenchOperationDto> Operations);
+
+public sealed record AxataSynchronizationWorkbenchOperationDto(
+    string Code,
+    string Title,
+    string ShortTitle,
+    string Direction,
+    string SourceSystem,
+    string TargetSystem,
+    string? MovementType,
+    string Purpose,
+    string NormalFlow,
+    string WhenToUse,
+    string State,
+    string Severity,
+    int DocumentCount,
+    int LineCount,
+    double Quantity,
+    bool CanExecute,
+    bool WritesData,
+    string WriteScope,
+    string PrimaryButtonLabel,
+    string ConfirmationMessage,
+    string? ListRoute,
+    string? PreviewRoute,
+    string? ExecuteRoute,
+    IReadOnlyCollection<string> EndpointCodes);
+
+public sealed record AxataSynchronizationWorkbenchEndpointGroupDto(
+    string Code,
+    string Title,
+    string Description,
+    IReadOnlyCollection<AxataSynchronizationWorkbenchEndpointDto> Endpoints);
+
+public sealed record AxataSynchronizationWorkbenchEndpointDto(
+    string Code,
+    string Title,
+    string Method,
+    string Route,
+    string Level,
+    bool WritesData,
+    string WriteScope,
+    string ButtonLabel,
+    string Description,
+    string? RequestModel,
+    string? ResponseModel);
+
+public sealed record AxataSynchronizationWorkbenchGlossaryItemDto(
+    string Term,
+    string UiLabel,
+    string Meaning,
+    string UserWarning);
 
 public sealed record AxataSynchronizationFetchProfilesOverviewDto(
     DateTime GeneratedAtUtc,

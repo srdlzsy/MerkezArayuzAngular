@@ -49,6 +49,9 @@ import type {
   IAxataSynchronizationManualDocumentCandidatesQueryApiDto,
   IAxataSynchronizationManualDocumentExecuteRequestApiDto,
   IAxataSynchronizationManualDocumentRequestApiDto,
+  IAxataSynchronizationPanelApiDto,
+  IAxataSynchronizationPanelQueryApiDto,
+  IAxataSynchronizationWorkbenchApiDto,
   IAxataOutboundDeliveryBatchRequestApiDto,
   IAxataOutboundDeliveryRequestApiDto,
   IAxataOutboundDeliveryResponseApiDto,
@@ -90,6 +93,8 @@ export type AxataSynchronizationHealthDto = IAxataSynchronizationConnectionTestA
 export type AxataSynchronizationFetchProfilesOverviewDto =
   IAxataSynchronizationFetchProfilesOverviewApiDto;
 export type AxataIntegrationAuditDto = IAxataIntegrationAuditApiDto;
+export type AxataSynchronizationPanelDto = IAxataSynchronizationPanelApiDto;
+export type AxataSynchronizationWorkbenchDto = IAxataSynchronizationWorkbenchApiDto;
 export type AxataSynchronizationManualDocumentDto = IAxataSynchronizationManualDocumentApiDto;
 export type AxataSynchronizationManualDocumentCandidatesDto =
   IAxataSynchronizationManualDocumentCandidatesApiDto;
@@ -191,22 +196,58 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   }
 
   getAxataSynchronizationOverview() {
-    return this.get<AxataSynchronizationOverviewDto>('integrations/axata-sync');
+    return this.get<AxataSynchronizationOverviewDto>('integrations/axata-sync/status');
   }
 
   getAxataSynchronizationHealth() {
-    return this.get<AxataSynchronizationHealthDto>('integrations/axata-sync/health');
+    return this.get<AxataSynchronizationHealthDto>('integrations/axata-sync/connection-test');
   }
 
   getAxataSynchronizationFetchProfiles() {
     return this.get<AxataSynchronizationFetchProfilesOverviewDto>(
-      'integrations/axata-sync/fetch-profiles'
+      'integrations/axata-sync/profiles'
+    );
+  }
+
+  getAxataSynchronizationPanel(query: IAxataSynchronizationPanelQueryApiDto) {
+    return this.getWithQuery<AxataSynchronizationPanelDto>(
+      'integrations/axata-sync/panel',
+      {
+        startDate: query.startDate ?? undefined,
+        endDate: query.endDate ?? undefined,
+        warehouseNo: query.warehouseNo ?? undefined,
+        take: query.take ?? undefined
+      }
+    );
+  }
+
+  getAxataSynchronizationWorkbench(query: IAxataSynchronizationPanelQueryApiDto) {
+    return this.getWithQuery<AxataSynchronizationWorkbenchDto>(
+      'integrations/axata-sync/workbench',
+      {
+        startDate: query.startDate ?? undefined,
+        endDate: query.endDate ?? undefined,
+        warehouseNo: query.warehouseNo ?? undefined,
+        take: query.take ?? undefined
+      }
+    );
+  }
+
+  getAxataSynchronizationIsMerkezi(query: IAxataSynchronizationPanelQueryApiDto) {
+    return this.getWithQuery<AxataSynchronizationWorkbenchDto>(
+      'integrations/axata-sync/is-merkezi',
+      {
+        startDate: query.startDate ?? undefined,
+        endDate: query.endDate ?? undefined,
+        warehouseNo: query.warehouseNo ?? undefined,
+        take: query.take ?? undefined
+      }
     );
   }
 
   previewAxataProducts(query: IAxataProductSynchronizationPreviewQueryApiDto) {
     return this.getWithQuery<AxataProductSynchronizationPreviewDto>(
-      'integrations/axata-sync/live/products/preview',
+      'integrations/axata-sync/operations/product-master/preview',
       {
         productCode: query.productCode?.trim() || undefined,
         take: query.take ?? undefined
@@ -218,19 +259,25 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     return this.post<
       AxataProductSynchronizationExecuteDto,
       IAxataProductSynchronizationDispatchRequestApiDto
-    >('integrations/axata-sync/live/products/dispatch', request);
+    >('integrations/axata-sync/operations/product-master/dispatch', request);
   }
 
   dispatchAxataProduct(productCode: string) {
-    return this.post<AxataProductSynchronizationExecuteDto, Record<string, never>>(
-      `integrations/axata-sync/live/products/${encodeURIComponent(productCode)}/dispatch`,
-      {}
+    return this.post<
+      AxataProductSynchronizationExecuteDto,
+      IAxataProductSynchronizationDispatchRequestApiDto
+    >(
+      'integrations/axata-sync/operations/product-master/dispatch',
+      {
+        productCodes: [productCode],
+        continueOnError: false
+      }
     );
   }
 
   getAxataIntegrationAuditOverview(query: IAxataIntegrationAuditQueryApiDto) {
     return this.getWithQuery<AxataIntegrationAuditDto>(
-      'integrations/axata-sync/live/audit/overview',
+      'integrations/axata-sync/audit',
       {
         startDate: query.startDate ?? undefined,
         endDate: query.endDate ?? undefined,
@@ -245,7 +292,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
 
   previewAxataC01OutboundDeliveryImport(take?: number | null) {
     return this.getWithQuery<AxataOutboundDeliveryImportPreviewDto>(
-      'integrations/axata-sync/live/axata/outbound-deliveries/c01/preview',
+      'integrations/axata-sync/c01/preview',
       {
         take: take ?? undefined
       }
@@ -267,7 +314,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     const movementType = query.movementType?.trim();
 
     return this.getWithQuery<AxataOutboundDeliveryQueuePreviewDto>(
-      'integrations/axata-sync/live/axata/outbound-deliveries/preview',
+      'integrations/axata-sync/outbound-deliveries',
       {
         movementType: movementType || undefined,
         take: query.take ?? undefined
@@ -279,7 +326,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     query: IAxataOutboundDeliveriesByDateHttpRequestApiDto
   ) {
     return this.getWithQuery<AxataOutboundDeliveriesByDateDto>(
-      'integrations/axata-sync/live/axata/outbound-deliveries/by-date',
+      'integrations/axata-sync/outbound-deliveries/by-date',
       {
         date: query.date
       }
@@ -292,7 +339,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     return this.post<
       AxataOutboundDeliveryImportExecuteDto,
       IAxataOutboundDeliveryImportExecuteRequestApiDto
-    >('integrations/axata-sync/live/axata/outbound-deliveries/c01/import', request);
+    >('integrations/axata-sync/c01/import', request);
   }
 
   executeAxataLiveImport(
@@ -311,7 +358,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     status?: string | null
   ) {
     return this.getWithQuery<AxataOutboundDeliveryImportPreviewDto>(
-      `integrations/axata-sync/live/axata/outbound-deliveries/c01/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/preview`,
+      `integrations/axata-sync/c01/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/preview`,
       {
         status: status?.trim() || undefined
       }
@@ -327,7 +374,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       AxataOutboundDeliveryImportExecuteDto,
       IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto
     >(
-      `integrations/axata-sync/live/axata/outbound-deliveries/c01/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/import`,
+      `integrations/axata-sync/c01/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/import`,
       request
     );
   }
@@ -338,7 +385,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     status?: string | null
   ) {
     return this.getWithQuery<AxataLiveImportPreviewDto>(
-      `integrations/axata-sync/live/axata/inbound-deliveries/g02/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/preview`,
+      `integrations/axata-sync/g02/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/preview`,
       {
         status: status?.trim() || undefined
       }
@@ -354,7 +401,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       AxataLiveImportExecuteDto,
       IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto
     >(
-      `integrations/axata-sync/live/axata/inbound-deliveries/g02/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/import`,
+      `integrations/axata-sync/g02/documents/${encodeURIComponent(documentSerie)}/${documentOrderNo}/import`,
       request
     );
   }
@@ -365,13 +412,13 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   ): string {
     switch (profile) {
       case 'g01':
-        return `integrations/axata-sync/live/axata/inbound-atf/g01/${action}`;
+        return `integrations/axata-sync/g01/${action}`;
       case 'g02':
-        return `integrations/axata-sync/live/axata/inbound-deliveries/g02/${action}`;
+        return `integrations/axata-sync/g02/${action}`;
       case 'dynamic-census':
-        return `integrations/axata-sync/live/axata/dynamic-census/${action}`;
+        return `integrations/axata-sync/dynamic-census/${action}`;
       default:
-        return `integrations/axata-sync/live/axata/outbound-deliveries/${profile}/${action}`;
+        return `integrations/axata-sync/${profile}/${action}`;
     }
   }
   getAxataSynchronizationTaskPreview(
@@ -416,7 +463,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     query: IAxataSynchronizationManualDocumentCandidatesQueryApiDto
   ) {
     return this.getWithQuery<AxataSynchronizationManualDocumentCandidatesDto>(
-      `integrations/axata-sync/manual/tasks/${encodeURIComponent(taskCode)}/documents/candidates`,
+      `integrations/axata-sync/operations/${encodeURIComponent(taskCode)}/documents/candidates`,
       {
         warehouseNo: query.warehouseNo ?? undefined,
         startDate: query.startDate,
@@ -435,7 +482,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       AxataSynchronizationManualDocumentDto,
       IAxataSynchronizationManualDocumentRequestApiDto
     >(
-      `integrations/axata-sync/manual/tasks/${encodeURIComponent(taskCode)}/documents/preview`,
+      `integrations/axata-sync/operations/${encodeURIComponent(taskCode)}/documents/preview`,
       request
     );
   }
@@ -461,7 +508,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       AxataSynchronizationManualDispatchDto,
       IAxataSynchronizationManualDocumentRequestApiDto
     >(
-      `integrations/axata-sync/manual/tasks/${encodeURIComponent(taskCode)}/documents/dispatch`,
+      `integrations/axata-sync/operations/${encodeURIComponent(taskCode)}/documents/dispatch`,
       request
     );
   }
@@ -474,7 +521,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       AxataSynchronizationManualDocumentBatchDto,
       IAxataSynchronizationManualDocumentBatchRequestApiDto
     >(
-      `integrations/axata-sync/manual/tasks/${encodeURIComponent(taskCode)}/documents/preview-batch`,
+      `integrations/axata-sync/operations/${encodeURIComponent(taskCode)}/documents/preview-batch`,
       request
     );
   }
@@ -500,7 +547,7 @@ export class EntegrasyonIslemleriService extends BaseApiService {
       AxataSynchronizationManualDispatchBatchDto,
       IAxataSynchronizationManualDocumentBatchRequestApiDto
     >(
-      `integrations/axata-sync/manual/tasks/${encodeURIComponent(taskCode)}/documents/dispatch-batch`,
+      `integrations/axata-sync/operations/${encodeURIComponent(taskCode)}/documents/dispatch-batch`,
       request
     );
   }

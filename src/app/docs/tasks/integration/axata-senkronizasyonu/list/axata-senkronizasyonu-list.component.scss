@@ -129,7 +129,6 @@
   cursor: not-allowed;
 }
 
-// ==================== FEEDBACK BAR ====================
 .feedback-bar {
   margin: 0;
   padding: 0.8rem 1rem;
@@ -164,7 +163,166 @@
   color: var(--axata-blue);
 }
 
-// ==================== TAB NAVIGATION ====================
+.panel-shell,
+.axata-technical-shell {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.65rem;
+  background: var(--axata-surface);
+  border: 1px solid var(--axata-line);
+  border-radius: var(--radius-lg);
+}
+
+:where(
+  .panel-filter,
+  .panel-status,
+  .panel-workspace,
+  .panel-card-grid,
+  .panel-flow-list,
+  .panel-action-list,
+  .priority-list,
+  .axata-technical-body
+) {
+  display: grid;
+  gap: 0.45rem;
+}
+
+.panel-filter {
+  grid-template-columns: repeat(4, minmax(105px, 1fr)) auto;
+  align-items: end;
+}
+
+:where(
+  .panel-status,
+  .panel-card,
+  .panel-section,
+  .panel-flow-step,
+  .panel-action,
+  .priority-row
+) {
+  min-width: 0;
+  background: var(--a-soft);
+  border: 1px solid var(--axata-line);
+  border-left: 4px solid var(--axata-muted);
+  border-radius: var(--radius-md);
+}
+
+.panel-status {
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 0.7rem;
+}
+
+.panel-status :where(h2, p) {
+  margin: 0;
+}
+
+.panel-status h2,
+.panel-section-head h2 {
+  font-size: 0.95rem;
+}
+
+.panel-status p {
+  color: var(--a-sub);
+  font-size: 0.75rem;
+}
+
+:where(.panel-state-card, .panel-card, .panel-section, .priority-ref) {
+  display: grid;
+  gap: 0.18rem;
+}
+
+.panel-state-card {
+  justify-items: end;
+}
+
+.panel-card-grid {
+  grid-template-columns: repeat(auto-fit, minmax(135px, 1fr));
+}
+
+:where(.panel-card, .panel-section, .panel-flow-step, .panel-action, .priority-row) {
+  padding: 0.5rem;
+}
+
+:where(.panel-card span, .panel-flow-step span, .panel-action span, .priority-head) {
+  color: var(--a-sub);
+  font-size: 0.72rem;
+  font-weight: 700;
+}
+
+.panel-card strong {
+  font-size: 1rem;
+}
+
+.panel-workspace {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.55rem;
+}
+
+:where(.panel-section-head, .panel-flow-step, .panel-action) {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.panel-section-head h2 {
+  margin: 0;
+}
+
+:where(.panel-flow-step, .panel-action, .priority-row) {
+  width: 100%;
+  color: var(--axata-text);
+  font: inherit;
+  text-align: left;
+}
+
+:where(.panel-flow-step em, .panel-action em) {
+  font-style: normal;
+}
+
+.is-clean {
+  color: var(--axata-success) !important;
+}
+
+.priority-row {
+  display: grid;
+  grid-template-columns: 1.15fr 0.85fr 0.75fr 0.9fr 1fr 1fr;
+  align-items: center;
+  gap: 0.45rem;
+}
+
+.priority-head {
+  background: var(--axata-faint);
+  pointer-events: none;
+}
+
+:is(.panel-tone-success, .panel-status-success) {
+  border-left-color: var(--axata-success);
+}
+
+:is(.panel-tone-warn, .panel-status-warn) {
+  border-left-color: var(--axata-amber);
+}
+
+:is(.panel-tone-danger, .panel-status-danger) {
+  border-left-color: var(--axata-danger);
+}
+
+.axata-technical-shell > summary {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  cursor: pointer;
+  font-weight: 700;
+}
+
+.axata-technical-shell > summary small {
+  color: var(--axata-muted);
+  font-weight: 500;
+}
+
 .tab-nav {
   display: flex;
   gap: 0.5rem;
@@ -1135,6 +1293,32 @@
   gap: .35rem;
 }
 
+@media (max-width: 900px) {
+  .panel-filter {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  :where(.panel-filter .btn, .panel-workspace, .panel-status) {
+    grid-column: 1 / -1;
+  }
+
+  :where(.panel-workspace, .panel-status) {
+    grid-template-columns: 1fr;
+  }
+
+  .panel-state-card {
+    justify-items: start;
+  }
+
+  .priority-head {
+    display: none;
+  }
+
+  .priority-row {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 @media (max-width: 720px) {
   .compact-header,
   .section-block {
@@ -1157,6 +1341,18 @@
 
   .audit-score {
     align-items: flex-start;
+  }
+}
+
+@media (max-width: 560px) {
+  :where(
+    .panel-filter,
+    .priority-row,
+    .panel-section-head,
+    .panel-flow-step,
+    .panel-action
+  ) {
+    grid-template-columns: 1fr;
   }
 }
 
