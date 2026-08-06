@@ -13,6 +13,7 @@ export interface LoginResponse {
   tokenType?: string;
   expiresIn?: number;
   refreshToken?: string;
+  refreshTokenExpiresAtUtc?: string | null;
 }
 
 export interface Yetki {

@@ -212,6 +212,7 @@ export class KullanicilarDetailComponent implements OnInit {
     warehouseNo: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     warehouseName: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     isActive: new FormControl(true, { nonNullable: true }),
+    newPassword: new FormControl('', { nonNullable: true, validators: [Validators.minLength(6)] }),
     roleIds: new FormControl<string[]>([], { nonNullable: true })
   };
   protected readonly userForm = new FormGroup(this.userControls);
@@ -618,7 +619,8 @@ export class KullanicilarDetailComponent implements OnInit {
       lastName: this.userControls.lastName.value.trim(),
       warehouseNo: this.userControls.warehouseNo.value.trim(),
       warehouseName: this.userControls.warehouseName.value.trim(),
-      isActive: this.userControls.isActive.value
+      isActive: this.userControls.isActive.value,
+      newPassword: this.normalizeOptionalText(this.userControls.newPassword.value)
     };
     const roleAssignRequest: IFurpaUserRoleAssignRequestApiDto = {
       roleIds: this.userControls.roleIds.value.filter(Boolean)
@@ -746,6 +748,7 @@ export class KullanicilarDetailComponent implements OnInit {
       warehouseNo: user?.warehouseNo ?? '',
       warehouseName: user?.warehouseName ?? '',
       isActive: user?.isActive ?? true,
+      newPassword: '',
       roleIds: [...(user?.roles ?? [])]
         .map((roleName) =>
           this.roles().find((role: IFurpaRoleApiDto) => role.name === roleName)?.id ?? ''

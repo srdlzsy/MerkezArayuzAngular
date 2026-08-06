@@ -265,6 +265,7 @@ export interface GreenGrocerOperationsOverviewItemDto {
   stockCode: string;
   stockName: string;
   modelCode: string | null;
+  modelName?: string | null;
   unitName: string | null;
   currentStockQuantity: number;
   purchaseQuantity: number;

@@ -25,6 +25,8 @@ export interface RegisterUserRequest {
 export interface AuthResponse {
   accessToken: string;
   expiresAtUtc: string;
+  refreshToken: string;
+  refreshTokenExpiresAtUtc: string;
   user: UserDto;
 }
 
@@ -128,6 +130,7 @@ export interface UpdateUserBody {
   warehouseNo: string;
   warehouseName: string;
   isActive: boolean;
+  newPassword?: string | null;
 }
 
 // ============================================================================

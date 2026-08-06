@@ -65,10 +65,10 @@ const ALL_WAREHOUSES_PERMISSION = 'green-grocer.operations.all-warehouses';
 
 const TYPE_OPTIONS: readonly SelectOption<GreenGrocerOperationsTypeCode>[] = [
   { value: 'all', label: 'Tum Tipler' },
-  { value: '10', label: '10 Manav' },
-  { value: '11', label: '11 Paket' },
-  { value: '12', label: '12 Yesillik' },
-  { value: '23', label: '23 Sarf' }
+  { value: '10', label: 'Meyve' },
+  { value: '11', label: 'Sebze' },
+  { value: '12', label: 'Yesillik' },
+  { value: '23', label: 'Manav Sarf' }
 ];
 
 const DIRECTION_OPTIONS: readonly SelectOption<GreenGrocerOperationsAdjustmentDirection>[] = [
@@ -569,16 +569,20 @@ export class ManavOperasyonPaneliListComponent {
     return item.stockName?.trim() || item.stockCode;
   }
 
-  protected getTypeLabel(typeCode: string | null | undefined): string {
+  protected getTypeLabel(typeCode: string | null | undefined, typeName?: string | null): string {
+    if (typeName?.trim()) {
+      return typeName.trim();
+    }
+
     switch (typeCode?.trim()) {
       case '10':
-        return '10 Manav';
+        return 'Meyve';
       case '11':
-        return '11 Paket';
+        return 'Sebze';
       case '12':
-        return '12 Yesillik';
+        return 'Yesillik';
       case '23':
-        return '23 Sarf';
+        return 'Manav Sarf';
       default:
         return typeCode?.trim() || '-';
     }

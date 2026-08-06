@@ -12,8 +12,9 @@ export const authInterceptor: HttpInterceptorFn = (req, next) => {
   const tokenType = authService.getTokenType();
   const isLoginRequest = req.url.includes('/auth/login');
   const isRefreshRequest = req.url.includes('/auth/refresh');
+  const isLogoutRequest = req.url.includes('/auth/logout');
 
-  if (!token || !tokenType || isLoginRequest || isRefreshRequest) {
+  if (!token || !tokenType || isLoginRequest || isRefreshRequest || isLogoutRequest) {
     return next(req);
   }
 

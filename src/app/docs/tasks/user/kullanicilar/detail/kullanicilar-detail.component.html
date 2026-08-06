@@ -183,6 +183,14 @@
               </label>
 
               <label class="field field-wide">
+                <span>Yeni Sifre</span>
+                <input type="password" formControlName="newPassword" autocomplete="new-password" placeholder="Bos birakilirsa degismez" />
+                <small class="field-hint" *ngIf="userControls.newPassword.invalid && userControls.newPassword.touched">
+                  En az 6 karakter olmali.
+                </small>
+              </label>
+
+              <label class="field field-wide">
                 <span>Roller</span>
                 <select multiple class="role-select" (change)="onUserRoleSelectionChange($event)">
                   <option

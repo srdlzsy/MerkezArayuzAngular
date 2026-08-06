@@ -30,6 +30,7 @@ interface AuthSession {
   tokenType: string;
   accessToken: string;
   refreshToken: string | null;
+  refreshTokenExpiresAtUtc: string | null;
   expiresIn: number | null;
   currentUser: CurrentUser | null;
 }
@@ -191,6 +192,14 @@ export class AuthService {
   }
 
   logout(): void {
+    const refreshToken = this.sessionSignal()?.refreshToken?.trim();
+
+    if (refreshToken) {
+      this.http.post<void>(this.buildUrl('auth/logout'), { refreshToken }).subscribe({
+        error: () => undefined
+      });
+    }
+
     this.hasRefreshedHydratedSession = true;
     this.hydrationRequest$ = null;
     this.sessionSignal.set(null);
@@ -230,6 +239,8 @@ export class AuthService {
           tokenType: this.normalizeTokenType(response.tokenType),
           accessToken,
           refreshToken: response.refreshToken ?? session.refreshToken,
+          refreshTokenExpiresAtUtc:
+            response.refreshTokenExpiresAtUtc ?? session.refreshTokenExpiresAtUtc,
           expiresIn: response.expiresIn ?? session.expiresIn,
           currentUser: embeddedCurrentUser ?? session.currentUser
         };
@@ -261,6 +272,7 @@ export class AuthService {
       tokenType: this.normalizeTokenType(response.tokenType),
       accessToken,
       refreshToken: response.refreshToken ?? null,
+      refreshTokenExpiresAtUtc: response.refreshTokenExpiresAtUtc ?? null,
       expiresIn: response.expiresIn ?? null,
       currentUser
     };
@@ -434,6 +446,7 @@ export class AuthService {
         tokenType: this.normalizeTokenType(session.tokenType),
         accessToken,
         refreshToken: session.refreshToken ?? null,
+        refreshTokenExpiresAtUtc: session.refreshTokenExpiresAtUtc ?? null,
         expiresIn: session.expiresIn ?? null,
         currentUser: session.currentUser ?? null
       };
