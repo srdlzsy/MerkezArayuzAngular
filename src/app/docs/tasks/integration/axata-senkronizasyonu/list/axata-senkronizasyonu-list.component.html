@@ -166,7 +166,7 @@
             <span>{{ formatTimestamp(document.documentDate) }}</span>
             <span>{{ formatPanelDocumentWarehouses(document) }}</span>
             <span [class]="getPanelPillClass(document)">
-              {{ formatAuditState(document.synchronizationState || document.severity) }}
+              {{ document.synchronizationStateLabel || formatAuditState(document.synchronizationState || document.severity) }}
             </span>
             <span>{{ formatPanelDocumentQuantities(document) }}</span>
             <span>{{ document.recommendedActionTitle || '-' }}</span>

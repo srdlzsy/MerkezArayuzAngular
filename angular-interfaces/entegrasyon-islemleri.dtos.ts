@@ -243,6 +243,7 @@ export interface IAxataSynchronizationPanelDocumentApiDto {
   sourceWarehouseNo?: number | null;
   targetWarehouseNo?: number | null;
   synchronizationState?: string | null;
+  synchronizationStateLabel?: string | null;
   severity?: string | null;
   recommendedActionCode?: string | null;
   recommendedActionTitle?: string | null;
@@ -250,8 +251,13 @@ export interface IAxataSynchronizationPanelDocumentApiDto {
   previewRoute?: string | null;
   executeRoute?: string | null;
   mikroOrderQuantity?: number | null;
+  mikroDeliveredQuantity?: number | null;
   axataShipmentQuantity?: number | null;
   mikroLinkedShipmentQuantity?: number | null;
+  existingMikroShipmentLineCount?: number | null;
+  existingMikroShipmentQuantity?: number | null;
+  existingMikroShipmentDocumentNo?: string | null;
+  quantitySummary?: string | null;
   reason?: string | null;
 }
 

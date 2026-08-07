@@ -3603,6 +3603,12 @@ export class AxataSenkronizasyonuListComponent {
   protected formatPanelDocumentQuantities(
     item: IAxataSynchronizationPanelDocumentApiDto
   ): string {
+    const summary = item.quantitySummary?.trim();
+
+    if (summary) {
+      return summary;
+    }
+
     const parts: string[] = [];
 
     if (typeof item.mikroOrderQuantity === 'number') {
@@ -3615,6 +3621,18 @@ export class AxataSenkronizasyonuListComponent {
 
     if (typeof item.mikroLinkedShipmentQuantity === 'number') {
       parts.push(`Mikro ${item.mikroLinkedShipmentQuantity.toLocaleString('tr-TR')}`);
+    }
+
+    if (typeof item.mikroDeliveredQuantity === 'number') {
+      parts.push(`Tes ${item.mikroDeliveredQuantity.toLocaleString('tr-TR')}`);
+    }
+
+    if (typeof item.existingMikroShipmentLineCount === 'number') {
+      parts.push(`Satır ${item.existingMikroShipmentLineCount.toLocaleString('tr-TR')}`);
+    }
+
+    if (typeof item.existingMikroShipmentQuantity === 'number') {
+      parts.push(`Mevcut ${item.existingMikroShipmentQuantity.toLocaleString('tr-TR')}`);
     }
 
     return parts.join(' / ') || '-';
