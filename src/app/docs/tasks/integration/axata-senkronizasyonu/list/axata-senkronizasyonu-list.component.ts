@@ -1086,7 +1086,7 @@ export class AxataSenkronizasyonuListComponent {
             : 'success'
       },
       {
-        label: 'AXATA SEV Belgeleri',
+        label: 'AXATA SEVK Belgeleri',
         value: `${summary.axataShipmentDocumentCount}`,
         detail: `${summary.partiallyShippedDocumentCount} kismi / ${summary.fullyShippedDocumentCount} tam / ${summary.overShippedDocumentCount} fazla`,
         tone: summary.overShippedDocumentCount > 0 ? 'danger' : 'neutral'
