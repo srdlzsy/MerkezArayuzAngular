@@ -7,6 +7,8 @@ import {
   CustomerLookupItemDto,
   IEtiketBasimProduct,
   IFurpaProductSearchItemApiDto,
+  ProductCustomerSuggestionHttpRequest,
+  ProductCustomerSuggestionItemDto,
   ProductCustomerSuggestionsDto,
   ProductLastTagDto,
   ProductLookupItemDto,
@@ -34,16 +36,7 @@ export interface CariBulResultDto {
   unitsPerCase: number | null;
   defaultSupplierCode: string | null;
   defaultSupplierName: string | null;
-  suggestions: Array<{
-    customerCode: string;
-    customerName: string;
-    taxNoOrTckn: string | null;
-    isDefaultSupplier: boolean;
-    movementCount: number;
-    lastMovementDate: string | null;
-    lastDocumentNo: string | null;
-    sources: string[];
-  }>;
+  suggestions: ProductCustomerSuggestionItemDto[];
 }
 
 @Injectable({
@@ -75,6 +68,29 @@ export class AramaService extends BaseApiService {
   private normalizeOptionalText(value?: string | null): string | undefined {
     const normalizedValue = value?.trim();
     return normalizedValue ? normalizedValue : undefined;
+  }
+
+  private normalizeProductCustomerSuggestionRequest(
+    requestOrTake?: ProductCustomerSuggestionHttpRequest | number | null,
+    take?: number
+  ): ProductCustomerSuggestionHttpRequest {
+    if (typeof requestOrTake === 'object' && requestOrTake !== null) {
+      return {
+        warehouseNo: requestOrTake.warehouseNo,
+        take: requestOrTake.take
+      };
+    }
+
+    if (typeof requestOrTake === 'number' && take === undefined) {
+      return {
+        take: requestOrTake
+      };
+    }
+
+    return {
+      warehouseNo: typeof requestOrTake === 'number' ? requestOrTake : undefined,
+      take
+    };
   }
 
 
@@ -298,11 +314,18 @@ export class AramaService extends BaseApiService {
     );
   }
 
-  getProductCustomerSuggestions(stockCode: string, take: number = 10): Observable<ProductCustomerSuggestionsDto> {
+  getProductCustomerSuggestions(
+    stockCode: string,
+    requestOrTake?: ProductCustomerSuggestionHttpRequest | number | null,
+    take?: number
+  ): Observable<ProductCustomerSuggestionsDto> {
+    const request = this.normalizeProductCustomerSuggestionRequest(requestOrTake, take);
+
     return this.getWithQuery<ProductCustomerSuggestionsDto>(
       `arama-islemleri/urunler/${encodeURIComponent(stockCode.trim())}/cari-onerileri`,
       {
-        take: Math.min(Math.max(take, 1), 25)
+        warehouseNo: request.warehouseNo ?? undefined,
+        take: Math.min(Math.max(request.take ?? 10, 1), 25)
       }
     );
   }
@@ -318,8 +341,8 @@ export class AramaService extends BaseApiService {
 
   /**
    * Barkoddan cari/firma bul
-   * Barkodu stokla eslestirir, varsayilan tedarikciyi ve yakin gecmis stok hareketlerinden
-   * cari onerilerini doner.
+   * Barkodu stokla eslestirir, varsayilan tedarikciyi, aktif satinalma sarti carilerini
+   * ve yakin gecmis stok hareketlerinden cari onerilerini doner.
    * @param barcode Barkod (zorunlu)
    * @param warehouseNo Depo numarasi (opsiyonel)
    * @param take Gosterilecek sayi (varsayilan: 10, max: 25)

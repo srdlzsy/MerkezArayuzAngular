@@ -6,11 +6,12 @@ export const SEARCH_TASK_SOURCE = {
     {
       id: 'cari-bul',
       title: 'Cari Bul',
-      subtitle: 'Barkoddan cari/firma bulma ve oneriler; arama islemleri altinda hizli arama ekrani.',
+      subtitle: 'Barkoddan cari/firma bulma; varsayilan tedarikci, aktif satinalma sarti ve hareket onerileri.',
       baseRouteOrFile: '/api/arama-islemleri/cari-bul',
       highlights: [
         'Barkod bazli cari arama',
         'Varsayilan tedarikci bilgisi',
+        'Aktif satinalma sarti carileri',
         'Yakin gecmis stok hareketleri',
         'Firma onerileri'
       ],
@@ -18,12 +19,12 @@ export const SEARCH_TASK_SOURCE = {
       items: [
         {
           name: 'AramaIslemleriController',
-          description: 'Cari/firma arama ve bulma islemleri. Barkoddan stok eslestirip varsayilan tedarikci ve onerilen firmalar dondurur.',
+          description: 'Cari/firma arama ve bulma islemleri. Barkoddan stok eslestirip varsayilan tedarikci, satinalma sarti carileri ve onerilen firmalar dondurur.',
           endpoints: [
             {
               method: 'GET',
               path: '/api/arama-islemleri/cari-bul?barcode=8690000000000&warehouseNo=110&take=10',
-              description: 'Barkod ile cari/firma bulur ve varsayilan tedarikci ile yakin gecmis onerilerini dondurur'
+              description: 'Barkod ile cari/firma bulur; varsayilan tedarikci, aktif satinalma sarti ve yakin gecmis onerilerini dondurur'
             },
             {
               method: 'GET',
@@ -32,8 +33,8 @@ export const SEARCH_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/arama-islemleri/urunler/015550/cari-onerileri?take=10',
-              description: 'Stok kodundan cari onerilerini getirir'
+              path: '/api/arama-islemleri/urunler/015550/cari-onerileri?warehouseNo=110&take=10',
+              description: 'Stok kodundan depo bazli cari onerilerini getirir'
             }
           ]
         }
@@ -48,9 +49,16 @@ export const SEARCH_TASK_SOURCE = {
     {
       "customerCode": "120.01.03106",
       "customerName": "ORNEK TEDARIKCI",
+      "taxNoOrTckn": "1234567890",
       "isDefaultSupplier": true,
       "movementCount": 8,
-      "lastMovementDate": "2026-05-01T00:00:00"
+      "lastMovementDate": "2026-05-01T00:00:00",
+      "lastDocumentNo": "ST12026000002395",
+      "sources": [
+        "satinalma-sarti",
+        "stok-hareketleri",
+        "varsayilan-tedarikci"
+      ]
     }
   ]
 }`

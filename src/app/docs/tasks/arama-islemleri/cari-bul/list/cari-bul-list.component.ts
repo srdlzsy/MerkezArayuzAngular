@@ -34,6 +34,11 @@ export class CariBulListComponent {
   protected readonly canUseWarehouseScope = computed(() =>
     currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
   );
+  private readonly sourceLabels: Record<string, string> = {
+    'varsayilan-tedarikci': 'Varsayilan tedarikci',
+    'satinalma-sarti': 'Satinalma sarti',
+    'stok-hareketleri': 'Stok hareketi'
+  };
 
   protected barcodeInput = '';
   protected warehouseNo: number | null = null;
@@ -96,7 +101,11 @@ export class CariBulListComponent {
   }
 
   protected formatSources(sources: string[] | null | undefined): string {
-    return sources?.filter(Boolean).join(', ') || '-';
+    return sources?.filter(Boolean).map((source) => this.formatSource(source)).join(', ') || '-';
+  }
+
+  protected hasPurchaseConditionSource(sources: string[] | null | undefined): boolean {
+    return this.hasSource(sources, 'satinalma-sarti');
   }
 
   protected readonly trackBySuggestion = (
@@ -111,6 +120,15 @@ export class CariBulListComponent {
 
     const value = Number(this.warehouseNo ?? Number.NaN);
     return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+
+  private formatSource(source: string): string {
+    const normalizedSource = source.trim();
+    return this.sourceLabels[normalizedSource] ?? normalizedSource;
+  }
+
+  private hasSource(sources: string[] | null | undefined, expectedSource: string): boolean {
+    return sources?.some((source) => source.trim() === expectedSource) ?? false;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

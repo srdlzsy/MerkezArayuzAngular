@@ -165,7 +165,8 @@ button:disabled {
 }
 
 .status-pill,
-.default-badge {
+.default-badge,
+.purchase-badge {
   align-self: start;
   min-height: 24px;
   padding: 0.22rem 0.5rem;
@@ -173,6 +174,13 @@ button:disabled {
   font-size: 0.72rem;
   font-weight: 800;
   white-space: nowrap;
+}
+
+.badge-row {
+  display: flex;
+  flex-wrap: wrap;
+  justify-content: flex-end;
+  gap: 0.3rem;
 }
 
 .status-pill {
@@ -183,6 +191,11 @@ button:disabled {
 .default-badge {
   color: #92400e;
   background: #fef3c7;
+}
+
+.purchase-badge {
+  color: #065f46;
+  background: #d1fae5;
 }
 
 .detail-grid {

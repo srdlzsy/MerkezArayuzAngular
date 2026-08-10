@@ -3883,23 +3883,26 @@ UI kullanim notu:
 
 ### Urunden Cari Onerileri
 
-Secili urun icin varsayilan tedarikciyi ve yakin gecmiste ayni urunle hareket gormus cari onerilerini getirmek icin:
+Secili urun icin varsayilan tedarikciyi, aktif satinalma sarti carilerini ve yakin gecmiste ayni urunle hareket gormus cari onerilerini getirmek icin:
 
-`GET /api/arama-islemleri/urunler/015550/cari-onerileri?take=10`
+`GET /api/arama-islemleri/urunler/015550/cari-onerileri?warehouseNo=110&take=10`
 
 Query:
 
 ```text
+warehouseNo    opsiyonel; verilmezse JWT deposu kullanilir, SATINALMA_SARTLARI.sas_depo_no icin 0 veya bu depo kabul edilir
 take    opsiyonel; default 10, max 25
 ```
 
 Onemli not:
 
 - Endpoint once stok kartini bulur; bulunamazsa `isProductFound = false` ve bos liste doner.
-- Oneriler iki kaynaktan uretilir:
+- Oneriler uc kaynaktan uretilir:
   - `varsayilan-tedarikci`: stok kartindaki `sto_sat_cari_kod`
+  - `satinalma-sarti`: `SATINALMA_SARTLARI` icindeki aktif tedarikci kayitlari
   - `stok-hareketleri`: urunun bagli oldugu yakin tarihli stok hareketleri
-- Ayni cari iki kaynaktan da gelirse `sources` alaninda iki kaynak birlikte doner.
+- Ayni cari birden fazla kaynaktan gelirse `sources` alaninda kaynaklar birlikte doner.
+- Sira: once varsayilan tedarikci, sonra aktif satinalma sarti carileri, sonra stok hareket gecmisi gelir.
 - Bu endpoint otomatik cari set etmek zorunda degildir; sadece UI'a "onerilen firma" bilgisini verir.
 
 Response:
@@ -3921,6 +3924,7 @@ Response:
       "lastMovementDate": "2026-05-01T00:00:00",
       "lastDocumentNo": "ST12026000002395",
       "sources": [
+        "satinalma-sarti",
         "stok-hareketleri",
         "varsayilan-tedarikci"
       ]
@@ -3936,7 +3940,7 @@ UI kullanim notu:
 
 ### Barkoddan Cari Bul
 
-Arama Islemleri altinda menu olarak gosterilebilecek hizli cari/firma bulma ekranidir. Backend once barkodu stokla eslestirir, sonra stok kartindaki varsayilan tedarikciyi ve yakin gecmis stok hareketlerinden cari onerilerini doner.
+Arama Islemleri altinda menu olarak gosterilebilecek hizli cari/firma bulma ekranidir. Backend once barkodu stokla eslestirir, sonra stok kartindaki varsayilan tedarikciyi, aktif satinalma sarti carilerini ve yakin gecmis stok hareketlerinden cari onerilerini doner.
 
 `GET /api/arama-islemleri/cari-bul?barcode=8690000000000&warehouseNo=110&take=10`
 
@@ -3982,6 +3986,7 @@ Response:
       "lastMovementDate": "2026-05-01T00:00:00",
       "lastDocumentNo": "ST12026000002395",
       "sources": [
+        "satinalma-sarti",
         "stok-hareketleri",
         "varsayilan-tedarikci"
       ]
@@ -3995,6 +4000,7 @@ UI kullanim notu:
 - Sol menu altinda `AramaIslemleri > CariBul` gibi ayri bir hizli ekran olarak sunulabilir.
 - `isFound = false` ise barkod/stok eslesmesi yoktur; UI "urun bulunamadi" gibi kisa bir mesaj gosterebilir.
 - `suggestions` bos ama `defaultSupplierCode` doluysa UI varsayilan tedarikciyi tek onerilen firma gibi gosterebilir.
+- `sources` icinde `satinalma-sarti` varsa cari, urunun aktif satinalma sarti kaydindan gelmistir; mal kabul/siparis senaryolarinda diger gecmis hareket onerilerinden daha guvenilir adaydir.
 
 ### Cari Ara
 
@@ -14951,16 +14957,16 @@ Ekranda gosterilecek durum alanlari:
 | `isInSync` | audit overview | Tum kontrol basliklari temizse true |
 | `workflowSummary.mikroOrderDocumentCount` | audit overview | Secilen tarihte Mikro'ya dusen ve akisin baslangic evrenini olusturan siparis sayisi |
 | `workflowSummary.axataOrderDocumentCount` | audit overview | Mikro siparis numarasi ile AXATA `ENT000/ENT001` tarafinda gercekten bulunan siparis sayisi |
-| `workflowSummary.axataShipmentDocumentCount` | audit overview | Secilen Mikro siparislerine bagli tum AXATA C01 SEVK belge sayisi; sevk tarihi farkli gun olabilir |
-| `workflowSummary.partiallyShippedDocumentCount` | audit overview | Toplam AXATA SEVK miktari Mikro siparis miktarindan dusuk olan siparis sayisi |
-| `workflowSummary.fullyShippedDocumentCount` | audit overview | Toplam AXATA SEVK miktari Mikro siparis miktarina esit olan siparis sayisi |
+| `workflowSummary.axataShipmentDocumentCount` | audit overview | Secilen Mikro siparislerine bagli tum AXATA C01 SEV belge sayisi; sevk tarihi farkli gun olabilir |
+| `workflowSummary.partiallyShippedDocumentCount` | audit overview | Toplam AXATA SEV miktari Mikro siparis miktarindan dusuk olan siparis sayisi |
+| `workflowSummary.fullyShippedDocumentCount` | audit overview | Toplam AXATA SEV miktari Mikro siparis miktarina esit olan siparis sayisi |
 | `workflowSummary.mikroLinkedShipmentDocumentCount` | audit overview | En az bir Mikro sevk hareketi siparis satirina baglanmis siparis sayisi |
-| `workflowSummary.fullySynchronizedDocumentCount` | audit overview | AXATA siparisi, toplam SEVK ve Mikro siparis baglantisi miktar olarak tamamlanan siparis sayisi |
+| `workflowSummary.fullySynchronizedDocumentCount` | audit overview | AXATA siparisi, toplam SEV ve Mikro siparis baglantisi miktar olarak tamamlanan siparis sayisi |
 | `workflowSummary.manualActionRequiredDocumentCount` | audit overview | Evrak bazinda manuel aksiyon onerilen siparis sayisi |
 | `flowOverview` | audit overview | Mikro -> AXATA -> Mikro akisini okunur ozet olarak verir; ana sayilar, fark adimlari ve aksiyon gruplari burada toplanir |
 | `flowOverview.steps` | audit overview | 1 Mikro siparis, 2 AXATA siparis, 3 AXATA sevk, 4 Mikro sevk donusu, 5 tamamlanan akis kartlari |
 | `flowOverview.actionGroups` | audit overview | "Mikro'ya aktar", "AXATA ACK", "siparisi yeniden gonder", "bekle", "manuel incele" gibi aksiyonlara gore gruplanmis belgeler |
-| `orderLifecycles` | audit overview | Her Mikro siparisi icin AXATA siparis, tum SEVK'ler, Mikro baglanti durumu ve onerilen aksiyonu tek kayitta verir |
+| `orderLifecycles` | audit overview | Her Mikro siparisi icin AXATA siparis, tum SEV'ler, Mikro baglanti durumu ve onerilen aksiyonu tek kayitta verir |
 | `summary.unsentWarehouseOrderDocumentCount` | audit overview | Mikro'da AXATA'ya gitmemis depo siparisi sayisi |
 | `summary.sentWarehouseOrderMissingMikroShipmentDocumentCount` | audit overview | AXATA'ya gonderildi isaretli ama belge genelinde Mikro sevk linki olmayan belge sayisi |
 | `summary.sentWarehouseOrderMissingMikroShipmentLineCount` | audit overview | Belge genelinde hic Mikro sevk linki olmayan satir sayisi |
@@ -19529,7 +19535,7 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `BarcodeResolutionHttpRequest`: `WarehouseNo`, `OperationType`, `TargetWarehouseNo`, `SupplierCode`, `CompanyCode`, `IsRefund`, `ScreenCode`
 - `BarcodeCustomerLookupHttpRequest`: `Barcode`, `WarehouseNo`, `Take`
 - `BarcodeCustomerLookupByPathHttpRequest`: `WarehouseNo`, `Take`
-- `ProductCustomerSuggestionHttpRequest`: `Take`
+- `ProductCustomerSuggestionHttpRequest`: `WarehouseNo`, `Take`
 
 ### Siparis Request Modelleri
 

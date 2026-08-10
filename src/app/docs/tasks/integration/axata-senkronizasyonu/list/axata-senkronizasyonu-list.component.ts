@@ -1036,7 +1036,7 @@ export class AxataSenkronizasyonuListComponent {
         value: summary.sentWarehouseOrderShipmentDifferenceDocumentCount
       },
       {
-        label: 'AXATA Sevk',
+        label: 'AXATA SEV',
         value: summary.axataOutboundDeliveryDocumentCount ?? summary.pendingOutboundDeliveryDocumentCount
       },
       {
@@ -1048,7 +1048,7 @@ export class AxataSenkronizasyonuListComponent {
         value: summary.c01MikroExistsPendingAckDocumentCount
       },
       {
-        label: 'Tamamlanan Sevk',
+        label: 'Tamamlanan SEV',
         value: summary.axataCompletedOutboundDeliveryDocumentCount ?? 0
       },
       {
@@ -1086,7 +1086,7 @@ export class AxataSenkronizasyonuListComponent {
             : 'success'
       },
       {
-        label: 'AXATA SEVK Belgeleri',
+        label: 'AXATA SEV Belgeleri',
         value: `${summary.axataShipmentDocumentCount}`,
         detail: `${summary.partiallyShippedDocumentCount} kismi / ${summary.fullyShippedDocumentCount} tam / ${summary.overShippedDocumentCount} fazla`,
         tone: summary.overShippedDocumentCount > 0 ? 'danger' : 'neutral'
@@ -1143,7 +1143,7 @@ export class AxataSenkronizasyonuListComponent {
         tone: summary.unsentWarehouseOrderDocumentCount > 0 ? 'warn' : 'success'
       },
       {
-        label: 'AXATA Sevk Evreni',
+        label: 'AXATA SEV Evreni',
         value: `${summary.axataOutboundDeliveryDocumentCount ?? summary.pendingOutboundDeliveryDocumentCount}`,
         detail: `${summary.axataCompletedOutboundDeliveryDocumentCount ?? 0} tamamlanan / ${summary.axataCancelledOutboundDeliveryDocumentCount ?? 0} iptal-zero`,
         tone:
@@ -1165,12 +1165,12 @@ export class AxataSenkronizasyonuListComponent {
             : 'success'
       },
       {
-        label: 'Kismi Sevk / Fark',
+        label: 'Kismi SEV / Fark',
         value: `${summary.sentWarehouseOrderShipmentDifferenceDocumentCount}`,
         detail:
           summary.sentWarehouseOrderShipmentDifferenceDocumentCount > 0
             ? `${summary.sentWarehouseOrderShipmentDifferenceLineCount.toLocaleString('tr-TR')} satir / ${summary.sentWarehouseOrderShipmentDifferenceQuantity.toLocaleString('tr-TR')} miktar fark`
-            : 'Kismi sevk veya siparis-sevk farki yok',
+            : 'Kismi SEV veya siparis-SEV farki yok',
         tone:
           summary.sentWarehouseOrderShipmentDifferenceDocumentCount > 0
             ? 'warn'
@@ -1190,7 +1190,7 @@ export class AxataSenkronizasyonuListComponent {
             : 'success'
       },
       {
-        label: 'AXATA Sevki Bulunamayan',
+        label: 'AXATA SEV Bulunamayan',
         value: `${summary.sentWarehouseOrderMissingAxataOutboundDeliveryDocumentCount ?? 0}`,
         detail: 'Mikroda gonderildi gorunup secili AXATA status evreninde karsiligi bulunmayan ikincil kontrol',
         tone:
@@ -1714,8 +1714,8 @@ export class AxataSenkronizasyonuListComponent {
             tone: audit.isInSync ? 'success' : 'info',
             title: audit.isInSync ? 'Sistem es zamanli gorunuyor' : 'Fark analizi hazir',
             message: audit.isInSync
-              ? 'Mikro siparis bayraklari tamam; pending kuyruk, AXATA sevk donusu ve Mikro link kontrolleri uyumlu.'
-              : `${audit.unsyncedWarehouseOrders.length} Mikro siparis problemi, ${audit.pendingOutboundDeliveries.length} pending sevk ve ${audit.sentWarehouseOrdersMissingMikroShipments.length} kritik sevk donusu eksigi raporlandi.`
+              ? 'Mikro siparis bayraklari tamam; pending kuyruk, AXATA SEV donusu ve Mikro link kontrolleri uyumlu.'
+              : `${audit.unsyncedWarehouseOrders.length} Mikro siparis problemi, ${audit.pendingOutboundDeliveries.length} pending SEV ve ${audit.sentWarehouseOrdersMissingMikroShipments.length} kritik SEV donusu eksigi raporlandi.`
           });
         },
         error: () => {
@@ -1808,8 +1808,8 @@ export class AxataSenkronizasyonuListComponent {
     if (!date) {
       this.feedback.set({
         tone: 'error',
-        title: 'Sevk tarihi eksik',
-        message: 'AXATA sevk tarihi sorgusu icin date zorunlu.'
+        title: 'AXATA SEV tarihi eksik',
+        message: 'AXATA SEV tarihi sorgusu icin date zorunlu.'
       });
       return;
     }
@@ -1828,14 +1828,14 @@ export class AxataSenkronizasyonuListComponent {
           this.outboundDeliveriesByDate.set(result);
           this.feedback.set({
             tone: 'info',
-            title: 'AXATA sevk tarihi listesi hazir',
+            title: 'AXATA SEV tarihi listesi hazir',
             message: `${result.totalDocumentCount} belge, ${result.totalLineCount} satir ve ${result.totalQuantity} toplam miktar listelendi. Bu cagri veri yazmaz.`
           });
         },
         error: () => {
           this.feedback.set({
             tone: 'error',
-            title: 'AXATA sevkleri alinamadi',
+            title: 'AXATA SEV belgeleri alinamadi',
             message:
               'outbound-deliveries/by-date endpointi cevap vermedi. Tarihi yyyy-MM-dd formatinda kontrol et.'
           });
@@ -3991,11 +3991,11 @@ export class AxataSenkronizasyonuListComponent {
     if (item.isCancelled || state === 'CancelledInAxata') {
       return item.cancellationCode
         ? `Iptal (${item.cancellationCode})`
-        : 'Iptal / zero sevk';
+        : 'Iptal / zero SEV';
     }
 
     if (state === 'EmptyAxataDelivery') {
-      return 'Bos sevk';
+      return 'Bos SEV';
     }
 
     if (status === '1' && state === 'Synchronized') {
@@ -4058,7 +4058,7 @@ export class AxataSenkronizasyonuListComponent {
       OrderLineMismatch: 'Satir eslesmedi',
       Blocked: 'Blokeli',
       CancelledInAxata: 'AXATA iptal / zero',
-      EmptyAxataDelivery: 'Bos sevk'
+      EmptyAxataDelivery: 'Bos SEV'
     };
 
     return value ? labels[value] ?? value : '-';
@@ -4096,10 +4096,10 @@ export class AxataSenkronizasyonuListComponent {
       NotFound: 'Bulunamadi',
       Unknown: 'Dogrulanamadi',
       QuantityMismatch: 'Miktar farki',
-      WaitingForAxataShipment: 'AXATA sevki bekleniyor',
-      PartiallyShipped: 'Kismi sevk',
-      FullyShipped: 'Tam sevk',
-      OverShipped: 'Fazla sevk',
+      WaitingForAxataShipment: 'AXATA SEV bekleniyor',
+      PartiallyShipped: 'Kismi SEV',
+      FullyShipped: 'Tam SEV',
+      OverShipped: 'Fazla SEV',
       CancelledInAxata: 'AXATA iptal / zero',
       WaitingForMikroTransfer: 'Mikro aktarimi bekliyor',
       PartiallyLinked: 'Kismi Mikro linki',

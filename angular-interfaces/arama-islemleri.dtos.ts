@@ -115,6 +115,11 @@ export interface ProductCustomerSuggestionItemDto {
   sources: string[];
 }
 
+export interface ProductCustomerSuggestionHttpRequest {
+  warehouseNo?: number | null;
+  take?: number;
+}
+
 export interface ProductCustomerSuggestionsDto {
   isProductFound: boolean;
   stockCode: string;

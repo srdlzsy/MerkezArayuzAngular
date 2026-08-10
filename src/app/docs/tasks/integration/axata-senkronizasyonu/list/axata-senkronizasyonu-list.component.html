@@ -706,7 +706,7 @@
                 <strong>{{ item.mikroOrderQuantity | number:'1.0-2' }}</strong>
               </span>
               <span>
-                <small>AXATA SEVK</small>
+                <small>AXATA SEV</small>
                 <strong>{{ item.axataShipmentQuantity | number:'1.0-2' }}</strong>
               </span>
               <span>
@@ -731,7 +731,7 @@
                   <small>{{ item.axataOrderLineCount }} satir / {{ item.axataOrderQuantity | number:'1.0-2' }}</small>
                 </article>
                 <article>
-                  <span>AXATA Sevk</span>
+                  <span>AXATA SEV</span>
                   <strong>{{ formatWorkflowState(item.shipmentState) }}</strong>
                   <small>{{ item.axataShipmentDocumentCount }} SEV · {{ item.axataShipmentLineCount }} satir</small>
                 </article>
@@ -759,7 +759,7 @@
 
               <div class="compact-table lifecycle-shipments" *ngIf="item.shipments.length">
                 <div class="table-row table-head">
-                  <span>AXATA SEVK</span>
+                  <span>AXATA SEV</span>
                   <span>Tarih / Status</span>
                   <span>Satir</span>
                   <span>Miktar</span>
@@ -793,7 +793,7 @@
               <span class="audit-eyebrow">Mikro -> AXATA -> Mikro</span>
               <h2 class="section-title">{{ flowOverview.title || 'Akis Ozeti' }}</h2>
               <p class="section-desc">
-                {{ flowOverview.description || 'Siparisin AXATAya gidisi, sevkin AXATAdan donusu ve Mikro baglantisi tek akista izlenir.' }}
+                {{ flowOverview.description || 'Siparisin AXATAya gidisi, AXATA SEV donusu ve Mikro baglantisi tek akista izlenir.' }}
               </p>
             </div>
             <span [class]="auditModel.isInSync ? 'status-pill-success' : 'status-pill-danger'">
@@ -896,7 +896,7 @@
             [class.success]="auditModel.summary.pendingOutboundDeliveryDocumentCount === 0"
             [class.warn]="auditModel.summary.pendingOutboundDeliveryDocumentCount > 0"
           >
-            <span>2. AXATA Sevkleri</span>
+            <span>2. AXATA SEV Belgeleri</span>
             <strong>
               {{ auditModel.summary.axataOutboundDeliveryDocumentCount }}
             </strong>
@@ -978,7 +978,7 @@
       >
         <div class="audit-section-head">
           <div>
-            <h2 class="section-title">AXATA Sevki Var, Mikro Sevk Linki Eksik</h2>
+            <h2 class="section-title">AXATA SEV Var, Mikro Sevk Linki Eksik</h2>
             <p class="section-desc">
               Gosterilen {{ missingShipmentVisibleSummary().documentCount }} belgede
               {{ missingShipmentVisibleSummary().missingLineCount | number:'1.0-0' }} satir link bekliyor.
@@ -1052,7 +1052,7 @@
       <ng-template #noMissingShipment>
         <div class="section-block">
           <h2 class="section-title">Sevk Linki Kontrolu</h2>
-          <div class="empty-msg">AXATA sevki oluşup Mikro sevk linki eksik kalan belge yok.</div>
+          <div class="empty-msg">AXATA SEV olusup Mikro sevk linki eksik kalan belge yok.</div>
         </div>
       </ng-template>
 
@@ -1174,9 +1174,9 @@
 
       <div class="section-grid">
         <div class="section-block">
-          <h2 class="section-title">AXATA Sevk Evreni</h2>
+          <h2 class="section-title">AXATA SEV Evreni</h2>
           <p class="section-desc">
-            Secili status degerlerindeki ENT006/ENT007 belgeleri; tamamlanan ve iptal/zero sevkler dahil.
+            Secili status degerlerindeki ENT006/ENT007 belgeleri; tamamlanan ve iptal/zero SEV dahil.
           </p>
           <div
             class="compact-table audit-delivery-table"
@@ -1221,7 +1221,7 @@
             </div>
           </div>
           <ng-template #noAxataAuditDeliveries>
-            <div class="empty-msg">Secili status evreninde AXATA sevki donmedi.</div>
+            <div class="empty-msg">Secili status evreninde AXATA SEV donmedi.</div>
           </ng-template>
         </div>
 
@@ -1252,7 +1252,7 @@
         </div>
 
         <div class="section-block">
-          <h2 class="section-title">AXATA Pending Sevkler</h2>
+          <h2 class="section-title">AXATA Pending SEV Belgeleri</h2>
           <div class="compact-table" *ngIf="auditModel.pendingOutboundDeliveries.length; else noPendingDeliveries">
             <div class="table-row table-head">
               <span>AXATA</span>
@@ -1278,7 +1278,7 @@
             </div>
           </div>
           <ng-template #noPendingDeliveries>
-            <div class="empty-msg">AXATA pending sevk yok.</div>
+            <div class="empty-msg">AXATA pending SEV yok.</div>
           </ng-template>
         </div>
       </div>
@@ -1533,7 +1533,7 @@
 
   <section class="tab-content" *ngIf="selectedTab() === 'incoming'">
     <div class="section-block">
-      <h2 class="section-title">Bekleyen AXATA Sevkleri</h2>
+      <h2 class="section-title">Bekleyen AXATA SEV Belgeleri</h2>
       <p class="section-desc">
         C02, C03 ve C4 kuyruklari veri yazmadan kontrol edilir; Mikro yazma ve AXATA ack icin
         asagidaki Canli Import profili kullanilir.
@@ -1617,7 +1617,7 @@
     </div>
 
     <div class="section-block">
-      <h2 class="section-title">Tarihe Göre Sevk Ara</h2>
+      <h2 class="section-title">Tarihe Gore AXATA SEV Ara</h2>
 
       <form class="compact-form form-grid" [formGroup]="outboundDeliveriesByDateForm">
         <label class="form-row">
@@ -1633,7 +1633,7 @@
           (click)="loadOutboundDeliveriesByDate()"
           [disabled]="outboundDeliveriesByDateLoading()"
         >
-          {{ outboundDeliveriesByDateLoading() ? 'Sevkler getiriliyor...' : 'Sevkleri Getir' }}
+          {{ outboundDeliveriesByDateLoading() ? 'SEV belgeleri getiriliyor...' : 'SEV Belgelerini Getir' }}
         </button>
       </div>
 
@@ -1687,7 +1687,7 @@
           </div>
         </div>
         <ng-template #noOutboundDeliveriesByDate>
-          <div class="empty-msg">Secili tarih icin AXATA sevk kaydi yok.</div>
+          <div class="empty-msg">Secili tarih icin AXATA SEV kaydi yok.</div>
         </ng-template>
 
         <details class="json-details">
