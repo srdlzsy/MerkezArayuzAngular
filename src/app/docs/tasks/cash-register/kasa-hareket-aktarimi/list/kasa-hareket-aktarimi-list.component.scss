@@ -351,6 +351,25 @@
   accent-color: var(--transfer-accent);
 }
 
+.format-hint {
+  margin: 0;
+  padding: 0.46rem 0.55rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #eff6ff;
+  color: #1e3a8a;
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.35;
+}
+
+.format-hint code {
+  color: #0f172a;
+  font-family: Consolas, 'Courier New', monospace;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
 .form-actions {
   justify-content: flex-end;
 }

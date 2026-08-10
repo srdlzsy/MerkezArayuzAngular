@@ -136,6 +136,11 @@
               </button>
             </div>
 
+            <p class="format-hint">
+              HR/IP satirlari virgullu, noktali virgul, tab veya bosluk ayracli okunur. Guncel format genelde
+              <code>1,00006,01,FIS,...</code> seklindedir.
+            </p>
+
             <div class="form-grid" *ngIf="importForm.controls.importType.value !== 'scheduled'; else scheduledFields">
               <label class="field">
                 <span>Baslangic</span>

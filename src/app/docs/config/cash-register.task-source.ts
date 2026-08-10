@@ -807,6 +807,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
       highlights: [
         'Sube ve kasa lookup endpointleriyle import filtreleri hazirlanir',
         'HR hareket importu ve IP iptal belge importu ayri aksiyonlardir',
+        'HR/IP satirlari virgullu, noktali virgul, tab veya bosluk ayraclariyla okunabilir',
         'Zamanli import HR ve IP dosyalarini birlikte calistirir',
         'dryRun import dosyalarini parse eder, staging tablolara yazmaz',
         'Mikro aktar/sil endpointleri stored procedure sonucu doner'
@@ -831,13 +832,13 @@ export const CASH_REGISTER_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/kasa-islemleri/kasa-hareket-aktarimi/hareketler/aktar',
-              description: 'HR formatindaki kasa hareket dosyalarini staging tablolara aktarir',
+              description: 'HR formatindaki kasa hareket dosyalarini staging tablolara aktarir; virgullu, noktali virgul, tab ve bosluk ayraclari desteklenir',
               payload: 'KasaHareketImportHttpRequest'
             },
             {
               method: 'POST',
               path: '/api/kasa-islemleri/kasa-hareket-aktarimi/iptal-belgeleri/aktar',
-              description: 'IP formatindaki iptal belge dosyalarini staging tablolara aktarir',
+              description: 'IP formatindaki iptal belge dosyalarini staging tablolara aktarir; virgullu, noktali virgul, tab ve bosluk ayraclari desteklenir',
               payload: 'KasaHareketImportHttpRequest'
             },
             {

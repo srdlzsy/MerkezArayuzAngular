@@ -15,7 +15,8 @@ export const INTEGRATION_TASK_SOURCE = {
           'Fetch profile explorer',
           'AXATA SQL tabanli live audit, status evreni ve queue preview',
           'Mikro siparisten AXATA siparis/sevk ve Mikro linkine evrak bazli yasam dongusu',
-          'issued-warehouse-order-sync basarili dispatch sonrasi ssip_special1 bayragini routing moduna gore yazar',
+          'company-receiving-sync verilen firma/satinalma siparisini AXATA G01 inbound order olarak gonderir',
+          'Basarili C01/C02/G01/G02 dispatch kaynak siparis satirlarinda Special1 bayragini isaretler',
           'Mikro urun, tum barkod ve birimleriyle AXATA addSKUMaster canli aktarimi',
           'AXATA sevk tarihi listesi',
           'C02/C03/C04/G01/G02/DynamicCensus live import',
@@ -247,13 +248,13 @@ export const INTEGRATION_TASK_SOURCE = {
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/operations/{taskCode}/documents/dispatch',
-                description: 'Secili tek evraki WCF client ile gonderir; issued siparislerde ssip_special1 bayragi routing moduna gore yazilir',
+                description: 'Secili tek evraki WCF client ile gonderir; C01/C02/G01/G02 basarili dispatch kaynak siparis Special1 bayragini isaretler',
                 payload: 'AxataSynchronizationManualDocumentHttpRequest'
               },
               {
                 method: 'POST',
                 path: '/api/integrations/axata-sync/operations/{taskCode}/documents/dispatch-batch',
-                description: 'Birden fazla secili evraki canli WCF dispatch ile toplu gonderir',
+                description: 'Birden fazla secili evraki canli WCF dispatch ile toplu gonderir; basarili kaynak siparisler Special1 ile isaretlenir',
                 payload: 'AxataSynchronizationManualDocumentBatchHttpRequest'
               },
               {

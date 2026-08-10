@@ -826,7 +826,9 @@ export class AxataSenkronizasyonuListComponent {
         notes.push('AXATA G02 kabul donusu AXATA -> Mikro Canli Import bolumunden izlenir.');
         break;
       case 'company-receiving-sync':
-        notes.unshift('Canli dispatch sadece mevcut Mikro firma mal kabul evragini tekrar gonderir.');
+        notes.unshift(
+          'Canli dispatch verilen firma/satinalma siparisini AXATA G01 inbound order olarak gonderir; basarili donuste sip_special1 isaretlenir.'
+        );
         break;
       case 'inventory-count-sync':
         notes.unshift(
