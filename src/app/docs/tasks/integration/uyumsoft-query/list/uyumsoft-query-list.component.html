@@ -53,17 +53,66 @@
       <div class="parameter-list">
         <div
           class="parameter-row"
-          *ngFor="let parameter of parameterArray.controls"
+          *ngFor="let parameter of parameterArray.controls; let index = index; trackBy: trackByParameter"
         >
-          <div class="parameter-name">{{ parameter.controls.name.value }}</div>
+          <div class="parameter-name">
+            <strong>{{ parameter.controls.name.value }}</strong>
+            <span *ngIf="getParameterDefinition(parameter.controls.name.value) as definition">
+              {{ definition.type }}{{ definition.isRequired ? ' / zorunlu' : '' }}{{ definition.isArray ? ' / coklu' : '' }}
+            </span>
+            <small *ngIf="getParameterDefinition(parameter.controls.name.value)?.description as description">
+              {{ description }}
+            </small>
+          </div>
           <label class="field">
             <span>Deger</span>
+            <select
+              *ngIf="isEnumParameter(parameter.controls.name.value); else nonEnumInput"
+              [formControl]="parameter.controls.value"
+            >
+              <option value="">Seciniz</option>
+              <option
+                *ngFor="let allowedValue of getAllowedValues(parameter.controls.name.value)"
+                [value]="allowedValue"
+              >
+                {{ allowedValue }}
+              </option>
+            </select>
+            <ng-template #nonEnumInput>
+              <select
+                *ngIf="isBooleanParameter(parameter.controls.name.value); else textInput"
+                [formControl]="parameter.controls.value"
+              >
+                <option value="">Seciniz</option>
+                <option value="true">true</option>
+                <option value="false">false</option>
+              </select>
+            </ng-template>
+            <ng-template #textInput>
             <input
               type="text"
               [formControl]="parameter.controls.value"
               [placeholder]="getParameterExample(parameter.controls.name.value)"
             />
+            </ng-template>
           </label>
+          <div class="parameter-actions" *ngIf="isArrayParameter(parameter.controls.name.value)">
+            <button
+              type="button"
+              class="mini-button"
+              (click)="addArrayParameterValue(parameter.controls.name.value)"
+            >
+              Satir Ekle
+            </button>
+            <button
+              type="button"
+              class="mini-button danger"
+              (click)="removeParameter(index)"
+              [disabled]="parameterArray.controls.length <= selectedParameterDefinitions().length"
+            >
+              Sil
+            </button>
+          </div>
         </div>
       </div>
 

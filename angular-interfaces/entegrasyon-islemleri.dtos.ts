@@ -1059,11 +1059,21 @@ export interface IUyumsoftOperationRequestApiDto {
   parameters?: IUyumsoftOperationParameterApiDto[];
 }
 
+export interface IUyumsoftOperationParameterDefinitionApiDto {
+  name: string;
+  type: string;
+  isArray: boolean;
+  isRequired: boolean;
+  description: string | null;
+  allowedValues: string[];
+}
+
 export interface IUyumsoftOperationDefinitionApiDto {
   operationName: string;
   groupName: string;
   soapAction: string;
   requestHint: string;
+  parameters: IUyumsoftOperationParameterDefinitionApiDto[];
 }
 
 export interface IUyumsoftConnectedServiceOverviewApiDto {

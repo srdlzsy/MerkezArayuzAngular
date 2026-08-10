@@ -523,7 +523,9 @@ export const INTEGRATION_TASK_SOURCE = {
       highlights: [
         'Servis ozet karti',
         'Operasyon explorer',
-        'Typed parameter formu',
+        'operations cevabindan typed parameter formu',
+        'Enum alanlarda allowedValues dropdown',
+        'Array alanlarda ayni query key ile coklu deger',
         'Whitelist Get* operasyonlari',
         'Direkt PDF binary aliaslari'
       ],
@@ -542,12 +544,12 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/operations',
-              description: 'Sadece operasyon listesini getirir'
+              description: 'Operasyon listesini parameters ve allowedValues bilgileriyle getirir'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-fatura/get/{operationName}',
-              description: 'Whitelist icindeki tek bir GET operasyonunu query string ile calistirir'
+              description: 'Whitelist icindeki tek bir GET operasyonunu direkt query alanlari veya parameter=name=value ile calistirir'
             },
             {
               method: 'POST',
@@ -605,7 +607,9 @@ export const INTEGRATION_TASK_SOURCE = {
       highlights: [
         'Servis ozet karti',
         'Despatch operasyon explorer',
-        'Typed parameter formu',
+        'operations cevabindan typed parameter formu',
+        'Enum alanlarda allowedValues dropdown',
+        'Array alanlarda ayni query key ile coklu deger',
         'Whitelist Get* operasyonlari'
       ],
       listTitle: 'Endpointler',
@@ -623,12 +627,12 @@ export const INTEGRATION_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-irsaliye/operations',
-              description: 'Sadece operasyon listesini getirir'
+              description: 'Operasyon listesini parameters ve allowedValues bilgileriyle getirir'
             },
             {
               method: 'GET',
               path: '/api/entegrasyon-islemleri/uyumsoft/e-irsaliye/get/{operationName}',
-              description: 'Whitelist icindeki tek bir GET operasyonunu query string ile calistirir'
+              description: 'Whitelist icindeki tek bir GET operasyonunu direkt query alanlari veya parameter=name=value ile calistirir'
             },
             {
               method: 'POST',

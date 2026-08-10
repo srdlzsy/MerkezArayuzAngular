@@ -182,17 +182,31 @@ export type AxataLiveImportProfile =
   providedIn: 'root'
 })
 export class EntegrasyonIslemleriService extends BaseApiService {
-  private toUyumsoftGetQuery(request: IUyumsoftOperationRequestApiDto): {
-    parameter?: string[];
-  } {
-    const parameterValues =
-      request.parameters
-        ?.filter((item) => item.name?.trim())
-        .map((item) => `${item.name.trim()}=${item.value ?? ''}`) ?? [];
+  private toUyumsoftGetQuery(
+    request: IUyumsoftOperationRequestApiDto
+  ): Record<string, string | string[] | undefined> {
+    const query: Record<string, string | string[]> = {};
 
-    return {
-      parameter: parameterValues.length ? parameterValues : undefined
-    };
+    for (const parameter of request.parameters ?? []) {
+      const name = parameter.name?.trim();
+      const value = parameter.value?.trim();
+
+      if (!name || !value) {
+        continue;
+      }
+
+      const currentValue = query[name];
+
+      if (Array.isArray(currentValue)) {
+        currentValue.push(value);
+      } else if (typeof currentValue === 'string') {
+        query[name] = [currentValue, value];
+      } else {
+        query[name] = value;
+      }
+    }
+
+    return query;
   }
 
   getAxataSynchronizationOverview() {

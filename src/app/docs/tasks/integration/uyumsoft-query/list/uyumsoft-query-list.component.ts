@@ -10,6 +10,7 @@ import {
 } from '@angular/forms';
 import { ActivatedRoute } from '@angular/router';
 import type {
+  IUyumsoftOperationParameterDefinitionApiDto,
   IUyumsoftOperationParameterApiDto,
   IUyumsoftOperationRequestApiDto
 } from '@interfaces';
@@ -37,6 +38,11 @@ interface PageFeedback {
 
 interface OperationParameterDefinition {
   name: string;
+  type: string;
+  isArray: boolean;
+  isRequired: boolean;
+  description: string | null;
+  allowedValues: string[];
   example: string;
 }
 
@@ -87,6 +93,10 @@ export class UyumsoftQueryListComponent {
     const operationName = this.selectedOperationName();
     return this.operations().find((operation) => operation.operationName === operationName) ?? null;
   });
+
+  protected readonly selectedParameterDefinitions = computed(() =>
+    this.getSelectedParameterDefinitions()
+  );
 
   protected readonly responseJson = computed(() =>
     this.operationResponse() ? JSON.stringify(this.operationResponse(), null, 2) : ''
@@ -145,13 +155,52 @@ export class UyumsoftQueryListComponent {
   }
 
   protected getParameterExample(parameterName: string): string {
-    return this.getKnownParameterExample(parameterName);
+    return this.getParameterDefinition(parameterName)?.example ?? this.getKnownParameterExample(parameterName);
+  }
+
+  protected getParameterDefinition(
+    parameterName: string
+  ): OperationParameterDefinition | null {
+    const normalizedName = parameterName.trim().toLocaleLowerCase('tr-TR');
+
+    return (
+      this.selectedParameterDefinitions().find(
+        (definition) => definition.name.toLocaleLowerCase('tr-TR') === normalizedName
+      ) ?? null
+    );
+  }
+
+  protected isEnumParameter(parameterName: string): boolean {
+    return (this.getParameterDefinition(parameterName)?.allowedValues.length ?? 0) > 0;
+  }
+
+  protected isBooleanParameter(parameterName: string): boolean {
+    const type = this.getParameterDefinition(parameterName)?.type.trim().toLocaleLowerCase('tr-TR');
+    return type === 'bool' || type === 'boolean';
+  }
+
+  protected isArrayParameter(parameterName: string): boolean {
+    return this.getParameterDefinition(parameterName)?.isArray ?? false;
+  }
+
+  protected getAllowedValues(parameterName: string): string[] {
+    return this.getParameterDefinition(parameterName)?.allowedValues ?? [];
   }
 
   protected clearParameterValues(): void {
     for (const parameter of this.parameterArray.controls) {
       parameter.controls.value.setValue('');
     }
+  }
+
+  protected addArrayParameterValue(parameterName: string): void {
+    if (this.isArrayParameter(parameterName)) {
+      this.addParameter({ name: parameterName, value: '' });
+    }
+  }
+
+  protected removeParameter(index: number): void {
+    this.parameterArray.removeAt(index);
   }
 
   private addParameter(parameter: IUyumsoftOperationParameterApiDto): void {
@@ -214,6 +263,9 @@ export class UyumsoftQueryListComponent {
     _index: number,
     operation: UyumsoftOperationDefinitionDto
   ): string => operation.operationName;
+
+  protected trackByParameter = (index: number, parameter: ParameterFormGroup): string =>
+    `${parameter.controls.name.value}-${index}`;
 
   private resolveOperationsRequest() {
     return this.mode === 'invoice'
@@ -290,11 +342,11 @@ export class UyumsoftQueryListComponent {
     request: IUyumsoftOperationRequestApiDto
   ) {
     return this.mode === 'invoice'
-      ? this.entegrasyonIslemleriService.executeUyumsoftEInvoiceGetOperation(
+      ? this.entegrasyonIslemleriService.executeUyumsoftEInvoiceGetOperationWithQuery(
           operationName,
           request
         )
-      : this.entegrasyonIslemleriService.executeUyumsoftEDespatchGetOperation(
+      : this.entegrasyonIslemleriService.executeUyumsoftEDespatchGetOperationWithQuery(
           operationName,
           request
         );
@@ -316,17 +368,39 @@ export class UyumsoftQueryListComponent {
   private createParameterInputs(operationName: string): void {
     this.clearParameters();
 
-    const operation = this.operations().find(
-      (item) => item.operationName === operationName
-    );
-    const definitions = this.getOperationParameterDefinitions(
-      operationName,
-      operation?.requestHint ?? ''
-    );
+    const definitions = this.getSelectedParameterDefinitions(operationName);
 
     for (const definition of definitions) {
       this.addParameter({ name: definition.name, value: '' });
     }
+  }
+
+  private getSelectedParameterDefinitions(
+    operationName = this.selectedOperationName()
+  ): OperationParameterDefinition[] {
+    const operation = this.operations().find(
+      (item) => item.operationName === operationName
+    );
+
+    if (operation?.parameters?.length) {
+      return operation.parameters.map((parameter) => this.mapApiParameterDefinition(parameter));
+    }
+
+    return this.getOperationParameterDefinitions(operationName, operation?.requestHint ?? '');
+  }
+
+  private mapApiParameterDefinition(
+    parameter: IUyumsoftOperationParameterDefinitionApiDto
+  ): OperationParameterDefinition {
+    return {
+      name: parameter.name,
+      type: parameter.type,
+      isArray: parameter.isArray,
+      isRequired: parameter.isRequired,
+      description: parameter.description,
+      allowedValues: parameter.allowedValues ?? [],
+      example: this.getKnownParameterExample(parameter.name)
+    };
   }
 
   private getOperationParameterDefinitions(
@@ -343,7 +417,15 @@ export class UyumsoftQueryListComponent {
 
       const key = normalizedName.toLocaleLowerCase('tr-TR');
       if (!definitions.has(key)) {
-        definitions.set(key, { name: normalizedName, example });
+        definitions.set(key, {
+          name: normalizedName,
+          type: this.inferParameterType(normalizedName),
+          isArray: this.isKnownArrayParameter(normalizedName),
+          isRequired: false,
+          description: null,
+          allowedValues: [],
+          example
+        });
       }
     };
 
@@ -464,7 +546,7 @@ export class UyumsoftQueryListComponent {
       case 'format':
         return 'yyyy-MM-dd HH:mm:ss';
       case 'pageindex':
-        return '1';
+        return '0';
       case 'pagesize':
         return '20';
       case 'isarchived':
@@ -493,5 +575,33 @@ export class UyumsoftQueryListComponent {
       default:
         return 'Deger girin';
     }
+  }
+
+  private inferParameterType(parameterName: string): string {
+    const normalizedName = parameterName.toLocaleLowerCase('tr-TR');
+
+    if (normalizedName.includes('date') || normalizedName.endsWith('start') || normalizedName.endsWith('end')) {
+      return 'datetime';
+    }
+
+    if (normalizedName.startsWith('is') || normalizedName.startsWith('only') || normalizedName.startsWith('allow')) {
+      return 'bool';
+    }
+
+    if (normalizedName === 'pageindex' || normalizedName === 'pagesize') {
+      return 'int';
+    }
+
+    return this.isKnownArrayParameter(parameterName) ? 'string[]' : 'string';
+  }
+
+  private isKnownArrayParameter(parameterName: string): boolean {
+    const normalizedName = parameterName.toLocaleLowerCase('tr-TR');
+    return (
+      normalizedName.endsWith('ids') ||
+      normalizedName.endsWith('numbers') ||
+      normalizedName.endsWith('inlist') ||
+      normalizedName.endsWith('notinlist')
+    );
   }
 }

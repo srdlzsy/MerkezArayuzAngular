@@ -98,18 +98,55 @@
 
 .parameter-row {
   display: grid;
-  grid-template-columns: minmax(160px, 0.45fr) minmax(240px, 1fr);
+  grid-template-columns: minmax(190px, 0.45fr) minmax(240px, 1fr) auto;
   gap: 0.7rem;
   align-items: center;
 }
 
 .parameter-name {
+  display: grid;
+  gap: 0.22rem;
   padding: 0.75rem 0.8rem;
   border-radius: 10px;
   background: #eef4fa;
   color: #334155;
   font-size: 0.86rem;
   font-weight: 700;
+}
+
+.parameter-name span,
+.parameter-name small {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.parameter-name small {
+  line-height: 1.35;
+}
+
+.parameter-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
+.mini-button {
+  min-height: 2.2rem;
+  padding: 0.45rem 0.62rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #172033;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.mini-button.danger {
+  border-color: #fecaca;
+  background: #fff1f2;
+  color: #9f1239;
 }
 
 .primary-button,
@@ -209,6 +246,14 @@ button:disabled {
     grid-template-columns: 1fr;
   }
 
+  .parameter-actions {
+    justify-content: stretch;
+  }
+
+  .mini-button {
+    flex: 1;
+  }
+
   .primary-button,
   .secondary-button {
     width: 100%;
@@ -283,4 +328,11 @@ button:disabled {
   border-radius: 6px;
   padding: 0.44rem 0.52rem;
   font-size: 0.76rem;
+}
+
+.mini-button {
+  min-height: 30px;
+  border-radius: 6px;
+  padding: 0.3rem 0.5rem;
+  font-size: 0.7rem;
 }
