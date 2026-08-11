@@ -16,7 +16,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Uyumsoft zaman asiminda progress failed olur; onceki sayfalardaki eslesen kayitlar cachee yazilmis olabilir',
         'Fatura Tarihi UBL IssueDate alanindan, kayit tarihi CreateDateUtc alanindan okunur',
         'invoiceId, despatchId ve documentId ile backend tarafinda net filtreleme',
-        'Arama metni veya net arama parametresi doluysa liste tum cache icinde aranir; tarih filtresi uygulanmaz',
+        'Arama metni veya net arama parametresi doluysa varsayilan olarak liste tum cache icinde aranir; applyDateFilterWithSearch=true ile tarih araligi da uygulanir',
         'documentId teknik UUID ile application/pdf dosyasi',
         'HTML detay /detail endpointinden alinir',
         'POST render override',
@@ -33,8 +33,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&invoiceId=KEF2026&page=1&PageSize=50',
-              description: 'Lokal cache uzerinden listeyi getirir; arama kriteri bossa Fatura Tarihi araligini kullanir, arama kriteri doluysa tum cache icinde invoiceId, despatchId, customerTitle, customerTcknVkn, documentId gibi filtreleri uygular'
+              path: '/api/fatura-islemleri/fatura-goruntuleme?StartDate=2026-05-01&EndDate=2026-05-05&isProcessed=-1&isPrinted=-1&invoiceId=KEF2026&applyDateFilterWithSearch=true&page=1&PageSize=50',
+              description: 'Lokal cache uzerinden listeyi getirir; arama kriteri bossa Fatura Tarihi araligini kullanir, arama kriteri doluysa varsayilan olarak tum cache icinde arar; applyDateFilterWithSearch=true ise tarih araligini da uygular'
             },
             {
               method: 'POST',

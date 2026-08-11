@@ -28,6 +28,7 @@ import type {
 import { finalize, firstValueFrom } from 'rxjs';
 
 import {
+  formatDateOnly,
   getDefaultDateRange,
   type FurpaDateRange
 } from '../../../../../core/api/furpa-merkez-api.utils';
@@ -958,6 +959,7 @@ export class FaturaIslemleriListComponent {
         processedState: rawValue.processedState,
         isPrinted: rawValue.printedState,
         printedState: rawValue.printedState,
+        applyDateFilterWithSearch: hasSearch && this.isViewingDateRangeDifferentFromToday(rawValue.startDate, rawValue.endDate),
         ...backendSearch
       })
       .pipe(
@@ -1050,6 +1052,21 @@ export class FaturaIslemleriListComponent {
 
   protected hasViewingBackendSearch(): boolean {
     return this.viewingFilterForm.controls.searchText.value.trim().length > 0;
+  }
+
+  protected shouldApplyViewingDateWithSearch(): boolean {
+    return (
+      this.hasViewingBackendSearch() &&
+      this.isViewingDateRangeDifferentFromToday(
+        this.viewingFilterForm.controls.startDate.value,
+        this.viewingFilterForm.controls.endDate.value
+      )
+    );
+  }
+
+  private isViewingDateRangeDifferentFromToday(startDate: string, endDate: string): boolean {
+    const today = formatDateOnly(new Date());
+    return startDate !== today || endDate !== today;
   }
 
   protected getViewingSyncSkippedCount(

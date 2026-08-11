@@ -101,7 +101,11 @@
             </form>
 
             <div class="inline-note" *ngIf="hasViewingBackendSearch()">
-              Arama doluyken backend tum cache icinde arar; tarih araligi uygulanmaz.
+              {{
+                shouldApplyViewingDateWithSearch()
+                  ? 'Tarih bugunden farkli oldugu icin arama bu tarih araligi icinde yapilir.'
+                  : 'Bugunun tarihi seciliyken arama tum cache icinde hizli belge bulma olarak calisir.'
+              }}
             </div>
 
             <div class="action-row">

@@ -47,6 +47,8 @@ export interface IInvoiceViewingListQueryApiDto {
   hasDespatchId?: boolean | null;
   searchField?: IInvoiceViewingSearchFieldApiDto | null;
   searchText?: string | null;
+  applyDateFilterWithSearch?: boolean | null;
+  useDateFilterWithSearch?: boolean | null;
   page?: number | null;
   pageNumber?: number | null;
   pageSize?: number | null;

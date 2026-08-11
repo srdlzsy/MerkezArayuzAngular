@@ -222,6 +222,8 @@ export class FaturaIslemleriService extends BaseApiService {
         hasDespatchId: request.hasDespatchId ?? undefined,
         SearchField: request.searchField ?? undefined,
         SearchText: request.searchText?.trim() || undefined,
+        applyDateFilterWithSearch:
+          request.applyDateFilterWithSearch ?? request.useDateFilterWithSearch ?? undefined,
         page,
         PageNumber: page,
         PageSize: request.pageSize ?? undefined
