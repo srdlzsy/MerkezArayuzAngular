@@ -273,7 +273,7 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
           this.availableOrders.set(normalizedOrders);
 
           if (normalizedOrders.length === 0) {
-            this.orderError.set('Secilen depo icin sevk edilecek siparis bulunamadi.');
+            this.orderError.set('Secilen depo icin sevk edilecek acik siparis kalemi bulunamadi.');
           }
         },
         error: (error: HttpErrorResponse) => {
@@ -322,13 +322,14 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       const siparisReferansi = this.getOrderReference(order);
 
       for (const kalem of order.items ?? []) {
-        this.addOrMergeKalemFromSiparis(kalem, siparisReferansi || 'Siparis');
-        addedKalemCount += 1;
+        if (this.addOrMergeKalemFromSiparis(kalem, siparisReferansi || 'Siparis')) {
+          addedKalemCount += 1;
+        }
       }
     }
 
     if (addedKalemCount === 0) {
-      this.orderError.set('Secilen siparislerde kalem bulunamadi.');
+      this.orderError.set('Secilen siparislerde sevk edilecek acik/kalan kalem bulunamadi.');
       return;
     }
 
@@ -383,6 +384,10 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     const seri = order.header.documentSerie?.trim() || '-';
     const sira = order.header.documentOrderNo ?? '-';
     return `${seri}/${sira}`;
+  }
+
+  protected getOpenOrderItemCount(order: IFurpaWarehouseOrderDetailApiDto): number {
+    return (order.items ?? []).filter((item) => this.canUseOrderLineForDispatch(item)).length;
   }
 
   protected searchStock(): void {
@@ -557,10 +562,14 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     });
   }
 
-  private addOrMergeKalemFromSiparis(kalem: IFurpaWarehouseOrderItemApiDto, siparisReferansi: string): void {
+  private addOrMergeKalemFromSiparis(kalem: IFurpaWarehouseOrderItemApiDto, siparisReferansi: string): boolean {
+    if (!this.canUseOrderLineForDispatch(kalem)) {
+      return false;
+    }
+
     const stokKodu = kalem.stockCode?.trim() ?? '';
     if (!stokKodu) {
-      return;
+      return false;
     }
 
     const siparisGuid = kalem.lineGuid?.trim() ?? '';
@@ -573,17 +582,25 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       return controlStockCode === normalizedStockCode && controlSiparisGuid === normalizedSiparisGuid;
     });
 
-    const quantity = Number(kalem.quantity ?? 0);
-    const incomingQuantity = quantity > 0 ? quantity : 1;
+    const incomingQuantity = this.getOrderLineRemainingQuantity(kalem);
 
     if (existingControl) {
-      const currentSiparis = Number(existingControl.controls.siparisMiktari.value ?? 0);
       const currentSevk = Number(existingControl.controls.miktar.value ?? 0);
-      existingControl.controls.siparisMiktari.setValue(currentSiparis + incomingQuantity);
-      existingControl.controls.miktar.setValue(currentSevk + incomingQuantity);
+      existingControl.controls.siparisMiktari.setValue(incomingQuantity);
+      existingControl.controls.miktar.setValidators([
+        Validators.required,
+        Validators.min(0.01),
+        Validators.max(incomingQuantity)
+      ]);
+
+      if (!Number.isFinite(currentSevk) || currentSevk <= 0 || currentSevk > incomingQuantity) {
+        existingControl.controls.miktar.setValue(incomingQuantity);
+      }
+
       existingControl.controls.siparisMiktari.markAsDirty();
       existingControl.controls.miktar.markAsDirty();
-      return;
+      existingControl.controls.miktar.updateValueAndValidity();
+      return true;
     }
 
     this.kalemler.push(
@@ -601,13 +618,24 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
         birimKatsayisi: new FormControl(kalem.unitPointer ?? 1),
         siparisMiktari: new FormControl<number | null>(incomingQuantity),
         miktar: new FormControl<number | null>(incomingQuantity, {
-          validators: [Validators.required, Validators.min(0.01)]
+          validators: [Validators.required, Validators.min(0.01), Validators.max(incomingQuantity)]
         }),
         aciklama: new FormControl(trimToMaxLength(kalem.description, 50), { nonNullable: true, validators: [Validators.maxLength(50)] }),
         skt: new FormControl('', { nonNullable: true }),
         modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
       })
     );
+
+    return true;
+  }
+
+  private canUseOrderLineForDispatch(kalem: IFurpaWarehouseOrderItemApiDto): boolean {
+    return !kalem.isClosed && this.getOrderLineRemainingQuantity(kalem) > 0;
+  }
+
+  private getOrderLineRemainingQuantity(kalem: IFurpaWarehouseOrderItemApiDto): number {
+    const remainingQuantity = Number(kalem.remainingQuantity ?? 0);
+    return Number.isFinite(remainingQuantity) ? remainingQuantity : 0;
   }
 
   private buildRequest(): IFurpaCreateWarehouseShippingRequestApiDto {
@@ -661,12 +689,20 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     const uniqueOrders = new Map<string, IFurpaWarehouseOrderDetailApiDto>();
 
     for (const order of orders) {
+      const openItems = (order.items ?? []).filter((item) => this.canUseOrderLineForDispatch(item));
+      if (openItems.length === 0) {
+        continue;
+      }
+
       const key = this.getOrderKey(order);
       if (!key || uniqueOrders.has(key)) {
         continue;
       }
 
-      uniqueOrders.set(key, order);
+      uniqueOrders.set(key, {
+        ...order,
+        items: openItems
+      });
     }
 
     return Array.from(uniqueOrders.values()).sort((left, right) => {

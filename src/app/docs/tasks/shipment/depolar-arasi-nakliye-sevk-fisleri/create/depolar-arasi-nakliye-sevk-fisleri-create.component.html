@@ -114,7 +114,7 @@
                   <span class="order-meta">Tarih: {{ order.header.documentDate | date: 'dd.MM.yyyy HH:mm' }}</span>
                   <span class="order-meta">Durum: {{ order.header.isClosed ? 'Kapali' : 'Acik' }}</span>
                   <span class="order-meta">Muhatap: {{ order.header.relatedWarehouseName || '-' }}</span>
-                  <span class="order-meta">Kalem: {{ order.items.length }}</span>
+                  <span class="order-meta">Acik Kalem: {{ getOpenOrderItemCount(order) }}</span>
                 </span>
               </label>
             </div>
@@ -203,7 +203,7 @@
                   Siparis: {{ kalem.controls.siparisReferansi.value }}
                 </span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.siparisMiktari.value !== null">
-                  Sip Miktari: {{ kalem.controls.siparisMiktari.value | number: '1.0-2' }}
+                  Kalan Miktar: {{ kalem.controls.siparisMiktari.value | number: '1.0-2' }}
                 </span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
               </div>
@@ -211,14 +211,15 @@
             <div class="col-miktar">
               <input
                 type="number"
-                [attr.min]="kalem.controls.birimKatsayisi.value ?? 1"
+                [attr.min]="kalem.controls.siparisMiktari.value !== null ? 0.01 : (kalem.controls.birimKatsayisi.value ?? 1)"
+                [attr.max]="kalem.controls.siparisMiktari.value ?? null"
                 [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
                 formControlName="miktar"
                 placeholder="Sevk"
                 [class.error]="kalem.controls.miktar.invalid && kalem.controls.miktar.touched"
               />
               <small class="field-error" *ngIf="kalem.controls.miktar.invalid && kalem.controls.miktar.touched">
-                Gecerli miktar
+                {{ kalem.controls.miktar.hasError('max') ? 'Kalan miktari asamaz.' : 'Gecerli miktar' }}
               </small>
             </div>
             <div class="col-islem">
