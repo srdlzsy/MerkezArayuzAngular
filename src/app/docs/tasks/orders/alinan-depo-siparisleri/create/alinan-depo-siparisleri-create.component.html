@@ -87,7 +87,7 @@
         <div class="contact-row">
           <div class="contact-field">
             <label>Muhatap Ad Soyad *</label>
-            <input type="text" formControlName="muhatapAdSoyad" placeholder="Depo yetkilisi" />
+            <input type="text" formControlName="muhatapAdSoyad" maxlength="25" placeholder="Depo yetkilisi" />
             <small class="field-error" *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched">
               Zorunlu
             </small>

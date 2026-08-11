@@ -22,6 +22,7 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
+import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -84,8 +85,8 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       validators: [Validators.required]
     }),
     adminWarehouseNo: new FormControl<number | null>(null),
-    documentNo: new FormControl('', { nonNullable: true }),
-    description: new FormControl('Reyon duzenleme virmani', { nonNullable: true }),
+    documentNo: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
+    description: new FormControl('Reyon duzenleme virmani', { nonNullable: true, validators: [Validators.maxLength(50)] }),
     lines: new FormArray<VirmanLineFormGroup>([])
   });
 
@@ -242,17 +243,17 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       warehouseNo: this.resolveRequestWarehouseNo(),
       movementDate: rawValue.movementDate,
       documentDate: rawValue.documentDate,
-      documentNo: rawValue.documentNo.trim(),
-      description: rawValue.description.trim(),
+      documentNo: trimToMaxLength(rawValue.documentNo, 25),
+      description: trimToMaxLength(rawValue.description, 50),
       lines: rawValue.lines.map((line) => ({
         stockCode: line.stockCode.trim(),
         movementType: this.normalizeNumber(line.movementType),
         quantity: this.normalizeNumber(line.quantity),
         unitPointer: this.normalizeNumber(line.unitPointer),
-        description: line.description.trim(),
-        partyCode: line.partyCode.trim(),
+        description: trimToMaxLength(line.description, 50),
+        partyCode: trimToMaxLength(line.partyCode, 25),
         lotNo: this.normalizeNumber(line.lotNo),
-        projectCode: line.projectCode.trim()
+        projectCode: trimToMaxLength(line.projectCode, 25)
       }))
     });
   }
@@ -273,10 +274,10 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       quantity: new FormControl(1, {
         validators: [Validators.required, Validators.min(0.001)]
       }),
-      description: new FormControl('', { nonNullable: true }),
-      partyCode: new FormControl('', { nonNullable: true }),
+      description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
+      partyCode: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
       lotNo: new FormControl(0),
-      projectCode: new FormControl('', { nonNullable: true })
+      projectCode: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
   }
 
@@ -316,24 +317,6 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
-    }
-
-    if (typeof error.error === 'object' && error.error !== null) {
-      if ('detail' in error.error && typeof error.error.detail === 'string' && error.error.detail.trim()) {
-        return error.error.detail;
-      }
-
-      if ('message' in error.error && typeof error.error.message === 'string' && error.error.message.trim()) {
-        return error.error.message;
-      }
-
-      if ('title' in error.error && typeof error.error.title === 'string' && error.error.title.trim()) {
-        return error.error.title;
-      }
-    }
-
-    return fallback;
+    return resolveHttpErrorMessage(error, fallback);
   }
 }

@@ -27,6 +27,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -123,11 +124,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     muhatapDepoNo: new FormControl<number | null>(null, { validators: [Validators.required] }),
     muhatapAdSoyad: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required, Validators.maxLength(25)]
     }),
     ekleyenAdSoyad: new FormControl(this.getCurrentDisplayName(), {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required, Validators.maxLength(25)]
     }),
     orderDate: new FormControl(this.today, {
       nonNullable: true,
@@ -137,7 +138,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       nonNullable: true,
       validators: [Validators.required]
     }),
-    description: new FormControl('', { nonNullable: true }),
+    description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
     adminWarehouseNo: new FormControl<number | null>(null),
     kalemler: new FormArray<KalemFormGroup>([])
   };
@@ -563,7 +564,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.controls.muhatapDepoNo.setValue(warehouse.warehouseNo);
     this.controls.muhatapDepoNo.markAsDirty();
     this.controls.muhatapDepoNo.markAsTouched();
-    this.controls.muhatapAdSoyad.setValue(this.resolveWarehouseContact(warehouse));
+    this.controls.muhatapAdSoyad.setValue(trimToMaxLength(this.resolveWarehouseContact(warehouse), 25));
     this.controls.muhatapAdSoyad.markAsDirty();
 
     this.warehouseQuery.setValue(this.getWarehouseLabel(warehouse));
@@ -598,9 +599,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       cozumDurum: new FormControl('', { nonNullable: true }),
       cozumHata: new FormControl('', { nonNullable: true }),
       greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
-      aciklama: new FormControl('', { nonNullable: true }),
+      aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl('', { nonNullable: true })
+      modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
   }
 
@@ -627,9 +628,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       cozumDurum: new FormControl('', { nonNullable: true }),
       cozumHata: new FormControl('', { nonNullable: true }),
       greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
-      aciklama: new FormControl(kalem.description?.trim() ?? '', { nonNullable: true }),
+      aciklama: new FormControl(trimToMaxLength(kalem.description, 50), { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl(kalem.packageCode?.trim() ?? '', { nonNullable: true })
+      modelKodu: new FormControl(trimToMaxLength(kalem.packageCode, 25), { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
   }
 
@@ -641,7 +642,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       outWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       orderDate: rawValue.orderDate,
       deliveryDate: rawValue.deliveryDate,
-      description: rawValue.description.trim(),
+      description: trimToMaxLength(rawValue.description, 50),
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
     };
   }
@@ -656,8 +657,8 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       recommendedQuantity: 0,
       unitPrice: 0,
       unitPointer: kalem.birimKatsayisi ?? 1,
-      description: kalem.aciklama.trim(),
-      packageCode: kalem.modelKodu.trim(),
+      description: trimToMaxLength(kalem.aciklama, 50),
+      packageCode: trimToMaxLength(kalem.modelKodu, 25),
       projectCode: '',
       responsibilityCenter: '',
       ...(greenGrocerCase ? { greenGrocerCase } : {})
@@ -930,7 +931,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private getCurrentDisplayName(): string {
-    return this.authService.currentUser()?.displayName?.trim() || 'Kullanici';
+    return trimToMaxLength(this.authService.currentUser()?.displayName, 25) || 'Kullanici';
   }
 
   private resolveRequestWarehouseNo(): number | undefined {
@@ -949,21 +950,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
-    }
-
-    if (
-      typeof error.error === 'object' &&
-      error.error !== null &&
-      'message' in error.error &&
-      typeof error.error.message === 'string' &&
-      error.error.message.trim()
-    ) {
-      return error.error.message;
-    }
-
-    return fallback;
+    return resolveHttpErrorMessage(error, fallback);
   }
 }
 

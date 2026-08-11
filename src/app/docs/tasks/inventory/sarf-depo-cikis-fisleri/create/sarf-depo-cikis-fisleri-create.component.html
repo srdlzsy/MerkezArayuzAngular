@@ -40,12 +40,12 @@
         <div class="form-grid">
           <label class="field">
             <span>Masrafi Giren *</span>
-            <input type="text" formControlName="creator" placeholder="VARDIYA-2" />
+            <input type="text" formControlName="creator" maxlength="25" placeholder="VARDIYA-2" />
           </label>
 
           <label class="field">
             <span>Onaylayan / Teslim Alan *</span>
-            <input type="text" formControlName="acceptor" placeholder="SEF-02" />
+            <input type="text" formControlName="acceptor" maxlength="25" placeholder="SEF-02" />
           </label>
 
           <label class="field" *ngIf="isAdminUser()">
@@ -56,7 +56,7 @@
 
           <label class="field field-wide">
             <span>Masraf Aciklamasi</span>
-            <input type="text" formControlName="description" placeholder="Ic tuketim masrafi" />
+            <input type="text" formControlName="description" maxlength="50" placeholder="Ic tuketim masrafi" />
           </label>
         </div>
       </section>
@@ -136,12 +136,12 @@
             <div class="line-extra">
               <label class="field">
                 <span>Kalem Aciklamasi</span>
-                <input type="text" formControlName="description" />
+                <input type="text" formControlName="description" maxlength="50" />
               </label>
 
               <label class="field compact-field">
                 <span>Parti</span>
-                <input type="text" formControlName="partyCode" />
+                <input type="text" formControlName="partyCode" maxlength="25" />
               </label>
 
               <label class="field compact-field">
@@ -151,7 +151,7 @@
 
               <label class="field compact-field">
                 <span>Proje</span>
-                <input type="text" formControlName="projectCode" />
+                <input type="text" formControlName="projectCode" maxlength="25" />
               </label>
             </div>
 

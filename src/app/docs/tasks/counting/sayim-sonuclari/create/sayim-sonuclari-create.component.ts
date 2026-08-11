@@ -22,6 +22,7 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
+import { resolveHttpErrorMessage } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -275,24 +276,6 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
-    }
-
-    if (typeof error.error === 'object' && error.error !== null) {
-      if ('detail' in error.error && typeof error.error.detail === 'string' && error.error.detail.trim()) {
-        return error.error.detail;
-      }
-
-      if ('message' in error.error && typeof error.error.message === 'string' && error.error.message.trim()) {
-        return error.error.message;
-      }
-
-      if ('title' in error.error && typeof error.error.title === 'string' && error.error.title.trim()) {
-        return error.error.title;
-      }
-    }
-
-    return fallback;
+    return resolveHttpErrorMessage(error, fallback);
   }
 }

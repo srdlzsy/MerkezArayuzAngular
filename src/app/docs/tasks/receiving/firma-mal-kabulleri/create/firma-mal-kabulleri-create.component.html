@@ -200,7 +200,7 @@
         <div class="contact-row">
           <div class="contact-field">
             <label>Muhatap Ad Soyad *</label>
-            <input type="text" formControlName="muhatapAdSoyad" placeholder="Firma yetkilisi" />
+            <input type="text" formControlName="muhatapAdSoyad" maxlength="25" placeholder="Firma yetkilisi" />
             <small class="field-error" *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched">
               Zorunlu
             </small>
@@ -226,7 +226,7 @@
           </div>
           <div class="contact-field">
             <label>Belge No / Prefix</label>
-            <input type="text" formControlName="documentNo" placeholder="Bos, ULK veya ST12026000002395" />
+            <input type="text" formControlName="documentNo" maxlength="25" placeholder="Bos, ULK veya ST12026000002395" />
             <small>Bos birakilabilir; e-belgede bosluksuz seri + 9 haneli sira kullanilir.</small>
             <small class="field-error" *ngIf="isDocumentNoInvalid()">
               Belge no kontrol edilmeli.
@@ -234,11 +234,11 @@
           </div>
           <div class="contact-field">
             <label>Teslim Eden</label>
-            <input type="text" formControlName="deliverer" placeholder="Opsiyonel" />
+            <input type="text" formControlName="deliverer" maxlength="25" placeholder="Opsiyonel" />
           </div>
           <div class="contact-field">
             <label>Teslim Alan</label>
-            <input type="text" formControlName="receiver" placeholder="Opsiyonel" />
+            <input type="text" formControlName="receiver" maxlength="25" placeholder="Opsiyonel" />
           </div>
         </div>
 

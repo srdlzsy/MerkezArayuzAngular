@@ -155,14 +155,14 @@
         <div class="contact-row">
           <div class="contact-field">
             <label>Muhatap Ad Soyad *</label>
-            <input type="text" formControlName="muhatapAdSoyad" placeholder="Depo yetkilisi" />
+            <input type="text" formControlName="muhatapAdSoyad" maxlength="25" placeholder="Depo yetkilisi" />
             <small class="field-error" *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched">
               Zorunlu
             </small>
           </div>
           <div class="contact-field">
             <label>Aciklama</label>
-            <input type="text" formControlName="description" placeholder="Opsiyonel" />
+            <input type="text" formControlName="description" maxlength="50" placeholder="Opsiyonel" />
           </div>
           <div class="contact-field" *ngIf="isAdminUser()">
             <label>Kaynak Depo No</label>

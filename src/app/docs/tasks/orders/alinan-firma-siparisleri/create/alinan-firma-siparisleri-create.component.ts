@@ -22,6 +22,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -102,7 +103,7 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     }),
     muhatapAdSoyad: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required, Validators.maxLength(25)]
     }),
     orderDate: new FormControl(this.today, {
       nonNullable: true,
@@ -112,10 +113,10 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       nonNullable: true,
       validators: [Validators.required]
     }),
-    description1: new FormControl('', { nonNullable: true }),
-    description2: new FormControl('', { nonNullable: true }),
-    deliverer: new FormControl('', { nonNullable: true }),
-    receiver: new FormControl('', { nonNullable: true }),
+    description1: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
+    description2: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
+    deliverer: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
+    receiver: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
     adminWarehouseNo: new FormControl<number | null>(null),
     kalemler: new FormArray<KalemFormGroup>([])
   };
@@ -189,13 +190,13 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.selectedCustomer.set(customer);
     this.controls.muhatapFirmaCariKod.setValue(nextCariKod);
     this.controls.muhatapFirmaUnvani.setValue(customer.customerDisplayName?.trim() ?? '');
-    this.controls.muhatapAdSoyad.setValue(customer.customerDisplayName?.trim() ?? '');
+    this.controls.muhatapAdSoyad.setValue(trimToMaxLength(customer.customerDisplayName, 25));
     this.controls.muhatapFirmaCariKod.markAsDirty();
     this.controls.muhatapFirmaUnvani.markAsDirty();
     this.controls.muhatapAdSoyad.markAsDirty();
 
     if (!this.controls.deliverer.value.trim()) {
-      this.controls.deliverer.setValue(customer.customerDisplayName?.trim() ?? '');
+      this.controls.deliverer.setValue(trimToMaxLength(customer.customerDisplayName, 25));
     }
 
     this.customerQuery.setValue(this.getCustomerLabel(customer));
@@ -378,9 +379,9 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       siparisMiktari: new FormControl<number | null>(1, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
-      aciklama: new FormControl('', { nonNullable: true }),
+      aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl('', { nonNullable: true })
+      modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
   }
 
@@ -392,10 +393,10 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       orderDate: rawValue.orderDate,
       deliveryDate: rawValue.deliveryDate,
-      description1: rawValue.description1.trim(),
-      description2: rawValue.description2.trim(),
-      deliverer: rawValue.deliverer.trim(),
-      receiver: rawValue.receiver.trim(),
+      description1: trimToMaxLength(rawValue.description1, 50),
+      description2: trimToMaxLength(rawValue.description2, 50),
+      deliverer: trimToMaxLength(rawValue.deliverer, 25),
+      receiver: trimToMaxLength(rawValue.receiver, 25),
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
     };
   }
@@ -407,9 +408,9 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       recommendedQuantity: 0,
       unitPrice: 0,
       unitPointer: kalem.birimKatsayisi ?? 1,
-      description1: kalem.aciklama.trim(),
+      description1: trimToMaxLength(kalem.aciklama, 50),
       description2: '',
-      packageCode: kalem.modelKodu.trim(),
+      packageCode: trimToMaxLength(kalem.modelKodu, 25),
       projectCode: '',
       customerResponsibilityCenter: '',
       productResponsibilityCenter: ''
@@ -467,21 +468,7 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
-    }
-
-    if (
-      typeof error.error === 'object' &&
-      error.error !== null &&
-      'message' in error.error &&
-      typeof error.error.message === 'string' &&
-      error.error.message.trim()
-    ) {
-      return error.error.message;
-    }
-
-    return fallback;
+    return resolveHttpErrorMessage(error, fallback);
   }
 }
 

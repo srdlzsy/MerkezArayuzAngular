@@ -27,6 +27,7 @@ import { KasaIslemleriService } from '../../../../../core/api/module-services/ka
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -1481,7 +1482,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
         })),
       storeExpenses: rawValue.storeExpenses.map((line) => ({
         storeExpensesType: this.toSafeNumber(line.storeExpensesType),
-        description: line.description.trim(),
+        description: trimToMaxLength(line.description, 50),
         amountValue: this.toSafeNumber(line.amountValue)
       }))
     };
@@ -1549,30 +1550,6 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (
-      typeof error.error === 'object' &&
-      error.error !== null &&
-      'detail' in error.error &&
-      typeof error.error.detail === 'string' &&
-      error.error.detail.trim()
-    ) {
-      return error.error.detail;
-    }
-
-    if (
-      typeof error.error === 'object' &&
-      error.error !== null &&
-      'message' in error.error &&
-      typeof error.error.message === 'string' &&
-      error.error.message.trim()
-    ) {
-      return error.error.message;
-    }
-
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
-    }
-
-    return fallback;
+    return resolveHttpErrorMessage(error, fallback);
   }
 }

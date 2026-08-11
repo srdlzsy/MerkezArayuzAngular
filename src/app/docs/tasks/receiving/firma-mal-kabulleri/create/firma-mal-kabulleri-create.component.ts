@@ -31,6 +31,7 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
+import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import { MalKabulIslemleriService, TaslakService } from '@core/api/module-services';
 import {
   buildAllWarehousesPermissionCode,
@@ -153,7 +154,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     }),
     muhatapAdSoyad: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required, Validators.maxLength(25)]
     }),
     movementDate: new FormControl(this.today, {
       nonNullable: true,
@@ -166,9 +167,9 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     documentNo: new FormControl('', {
       nonNullable: true
     }),
-    deliverer: new FormControl('', { nonNullable: true }),
-    receiver: new FormControl('', { nonNullable: true }),
-    description: new FormControl('', { nonNullable: true }),
+    deliverer: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
+    receiver: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
+    description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
     allowOrderOverReceiving: new FormControl(false, { nonNullable: true }),
     autoCreateReturnForPartialAcceptance: new FormControl(true, { nonNullable: true }),
     adminWarehouseNo: new FormControl<number | null>(null),
@@ -260,13 +261,13 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     this.selectedCustomer.set(customer);
     this.controls.muhatapFirmaCariKod.setValue(customer.customerCode?.trim() ?? '');
     this.controls.muhatapFirmaUnvani.setValue(customer.customerDisplayName?.trim() ?? '');
-    this.controls.muhatapAdSoyad.setValue(customer.customerDisplayName?.trim() ?? '');
+    this.controls.muhatapAdSoyad.setValue(trimToMaxLength(customer.customerDisplayName, 25));
     this.controls.muhatapFirmaCariKod.markAsDirty();
     this.controls.muhatapFirmaUnvani.markAsDirty();
     this.controls.muhatapAdSoyad.markAsDirty();
 
     if (!this.controls.deliverer.value.trim()) {
-      this.controls.deliverer.setValue(customer.customerDisplayName?.trim() ?? '');
+      this.controls.deliverer.setValue(trimToMaxLength(customer.customerDisplayName, 25));
     }
 
     this.customerQuery.setValue(this.getCustomerLabel(customer));
@@ -746,9 +747,9 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       fiiliKabulMiktari: new FormControl<number | null>(1, {
         validators: [Validators.required, Validators.min(0)]
       }),
-      aciklama: new FormControl('', { nonNullable: true }),
+      aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl('', { nonNullable: true })
+      modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
     }, { validators: [acceptedQuantityValidator] });
   }
 
@@ -807,9 +808,9 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
         fiiliKabulMiktari: new FormControl<number | null>(incomingQuantity, {
           validators: [Validators.required, Validators.min(0)]
         }),
-        aciklama: new FormControl(kalem.description?.trim() ?? '', { nonNullable: true }),
+        aciklama: new FormControl(trimToMaxLength(kalem.description, 50), { nonNullable: true, validators: [Validators.maxLength(50)] }),
         skt: new FormControl('', { nonNullable: true }),
-        modelKodu: new FormControl('', { nonNullable: true })
+        modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
       }, { validators: [acceptedQuantityValidator] })
     );
   }
@@ -826,7 +827,9 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       || preview.despatchNumber?.trim()
       || preview.invoiceNumber?.trim()
       || '';
-    const documentDate = this.toDateInputValue(preview.issueDate ?? preview.invoiceDate);
+    const documentDate =
+      this.toDateInputValue(preview.sourceDocumentDate)
+      || this.toDateInputValue(preview.issueDate ?? preview.invoiceDate);
 
     if (documentNo) {
       this.controls.documentNo.setValue(documentNo);
@@ -841,7 +844,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     }
 
     if (preview.sender?.title && !this.controls.deliverer.value.trim()) {
-      this.controls.deliverer.setValue(preview.sender.title.trim());
+      this.controls.deliverer.setValue(trimToMaxLength(preview.sender.title, 25));
     }
 
     const label = this.getOfficialDocumentLabel(preview);
@@ -963,11 +966,11 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       movementDate: rawValue.movementDate,
       documentDate: rawValue.documentDate,
-      documentNo: rawValue.documentNo.trim(),
+      documentNo: trimToMaxLength(rawValue.documentNo, 25),
       ...officialDocumentTrace,
-      deliverer: rawValue.deliverer.trim(),
-      receiver: rawValue.receiver.trim(),
-      description: rawValue.description.trim(),
+      deliverer: trimToMaxLength(rawValue.deliverer, 25),
+      receiver: trimToMaxLength(rawValue.receiver, 25),
+      description: trimToMaxLength(rawValue.description, 50),
       allowOrderOverReceiving: rawValue.allowOrderOverReceiving,
       autoCreateReturnForPartialAcceptance: rawValue.autoCreateReturnForPartialAcceptance,
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
@@ -976,11 +979,12 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
   private buildOfficialDocumentTrace(): Partial<IFurpaCreateCompanyReceiptRequestApiDto> {
     const preview = this.officialDocumentPreview();
-    if (!preview?.isFound || !preview.ettn?.trim()) {
+    if (!preview?.isFound) {
       return {};
     }
 
     const sourceKind = this.resolveOfficialDocumentKind(preview);
+    const ettn = this.normalizeOptionalText(preview.ettn);
     const documentNo =
       this.normalizeOptionalText(preview.sourceDocumentNumber)
       ?? this.normalizeOptionalText(preview.despatchNumber)
@@ -991,11 +995,15 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       || this.toDateInputValue(preview.issueDate)
       || this.toDateInputValue(preview.invoiceDate);
 
+    if (!documentNo && !documentDate && !ettn) {
+      return {};
+    }
+
     return {
       officialDocumentKind: sourceKind,
       officialDocumentNo: documentNo ?? undefined,
       officialDocumentDate: documentDate || undefined,
-      officialDocumentEttn: preview.ettn.trim()
+      officialDocumentEttn: ettn ?? undefined
     };
   }
 
@@ -1017,7 +1025,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       unitPointer: kalem.birimKatsayisi ?? 1,
       lastConsumingDate: this.normalizeOptionalText(kalem.skt) ?? undefined,
       orderGuid: this.normalizeOptionalText(kalem.siparisGuid),
-      description: kalem.aciklama.trim(),
+      description: trimToMaxLength(kalem.aciklama, 50),
       partyCode: '',
       lotNo: 0,
       projectCode: '',
@@ -1120,21 +1128,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
-    }
-
-    if (
-      typeof error.error === 'object' &&
-      error.error !== null &&
-      'message' in error.error &&
-      typeof error.error.message === 'string' &&
-      error.error.message.trim()
-    ) {
-      return error.error.message;
-    }
-
-    return fallback;
+    return resolveHttpErrorMessage(error, fallback);
   }
 }
 

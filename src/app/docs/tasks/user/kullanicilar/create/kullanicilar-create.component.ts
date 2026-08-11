@@ -18,6 +18,7 @@ import { finalize, map, of, switchMap } from 'rxjs';
 import { KullaniciIslemleriService } from '../../../../../core/api/module-services/kullanici-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { resolveHttpErrorMessage } from '../../../core/api-error.helpers';
 import { injectDocsTaskContext } from '../../../core/task-permission-context';
 
 type UserAdminPageMode = 'users' | 'roles' | 'permissions';
@@ -67,7 +68,7 @@ export class KullanicilarCreateComponent implements OnInit {
 
   protected readonly roleControls = {
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    description: new FormControl('', { nonNullable: true }),
+    description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
     isActive: new FormControl(true, { nonNullable: true })
   };
   protected readonly roleForm = new FormGroup(this.roleControls);
@@ -75,7 +76,7 @@ export class KullanicilarCreateComponent implements OnInit {
   protected readonly permissionControls = {
     code: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
-    description: new FormControl('', { nonNullable: true })
+    description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] })
   };
   protected readonly permissionForm = new FormGroup(this.permissionControls);
 
@@ -358,20 +359,6 @@ export class KullanicilarCreateComponent implements OnInit {
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
-    if (typeof error.error === 'string' && error.error.trim()) {
-      return error.error;
-    }
-
-    if (
-      typeof error.error === 'object' &&
-      error.error !== null &&
-      'message' in error.error &&
-      typeof error.error.message === 'string' &&
-      error.error.message.trim()
-    ) {
-      return error.error.message;
-    }
-
-    return fallback;
+    return resolveHttpErrorMessage(error, fallback);
   }
 }

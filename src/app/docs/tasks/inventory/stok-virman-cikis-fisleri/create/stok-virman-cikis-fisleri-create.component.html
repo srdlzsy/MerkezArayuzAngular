@@ -51,7 +51,7 @@
 
           <label class="field field-wide">
             <span>Virman Aciklamasi</span>
-            <input type="text" formControlName="description" placeholder="Reyon duzenleme virmani" />
+            <input type="text" formControlName="description" maxlength="50" placeholder="Reyon duzenleme virmani" />
           </label>
         </div>
       </section>
@@ -140,12 +140,12 @@
             <div class="line-extra">
               <label class="field">
                 <span>Satir Notu</span>
-                <input type="text" formControlName="description" />
+                <input type="text" formControlName="description" maxlength="50" />
               </label>
 
               <label class="field compact-field">
                 <span>Parti</span>
-                <input type="text" formControlName="partyCode" />
+                <input type="text" formControlName="partyCode" maxlength="25" />
               </label>
 
               <label class="field compact-field">
@@ -155,7 +155,7 @@
 
               <label class="field compact-field">
                 <span>Proje</span>
-                <input type="text" formControlName="projectCode" />
+                <input type="text" formControlName="projectCode" maxlength="25" />
               </label>
             </div>
 
