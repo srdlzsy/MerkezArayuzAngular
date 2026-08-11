@@ -384,6 +384,18 @@ export interface CreateCompanyReceivingHttpRequest {
   movementDate: string;
   documentDate: string;
   documentNo?: string | null;
+  officialDocumentKind?: 'auto' | 'e-despatch' | 'e-invoice' | string | null;
+  officialDocumentNo?: string | null;
+  officialDocumentDate?: string | null;
+  officialDocumentEttn?: string | null;
+  sourceDocumentKind?: 'auto' | 'e-despatch' | 'e-invoice' | string | null;
+  sourceDocumentNumber?: string | null;
+  sourceDocumentDate?: string | null;
+  despatchNumber?: string | null;
+  issueDate?: string | null;
+  invoiceNumber?: string | null;
+  invoiceDate?: string | null;
+  ettn?: string | null;
   deliverer: string;
   receiver: string;
   description: string;
@@ -527,6 +539,7 @@ export interface CompanyReceivingEDespatchPreviewDto {
   sourceDocumentKind?: 'auto' | 'e-despatch' | 'e-invoice' | string | null;
   sourceDocumentLabel?: string | null;
   sourceDocumentNumber?: string | null;
+  sourceDocumentDate?: string | null;
   despatchNumber: string | null;
   issueDate: string | null;
   actualDespatchDate: string | null;

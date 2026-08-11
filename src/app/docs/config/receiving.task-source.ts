@@ -16,6 +16,7 @@ export const RECEIVING_TASK_SOURCE = {
         'Yazma yolu MikroWriteRouting:CompanyReceiving ile Database veya MikroApi olur',
         'MikroApi modunda siparis teslim etkisi Mikro API tarafina birakilir',
         'ETTN/UUID endpointi create ekrani icin e-irsaliye veya e-fatura ust bilgi ve kalem on-dolumu saglar',
+        'Resmi belge izi create bodyde officialDocumentKind/No/Date/Ettn alanlariyla Belge Akis Takibine aktarilir',
         'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir'
       ],
       listTitle: 'Endpointler',
@@ -66,6 +67,10 @@ export const RECEIVING_TASK_SOURCE = {
   "movementDate": "2026-04-20",
   "documentDate": "2026-04-20",
   "documentNo": "ST12026000002395",
+  "officialDocumentKind": "e-despatch",
+  "officialDocumentNo": "ST12026000002395",
+  "officialDocumentDate": "2026-04-20",
+  "officialDocumentEttn": "3fd0e4f4-87a2-43f2-b5ca-f2a4fd778111",
   "deliverer": "Teslim Eden",
   "receiver": "Teslim Alan",
   "description": "",

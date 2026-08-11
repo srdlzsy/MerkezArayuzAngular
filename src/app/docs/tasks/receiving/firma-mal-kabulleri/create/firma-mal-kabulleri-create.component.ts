@@ -955,6 +955,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
   private buildRequest(): IFurpaCreateCompanyReceiptRequestApiDto {
     const rawValue = this.form.getRawValue();
+    const officialDocumentTrace = this.buildOfficialDocumentTrace();
 
     return {
       clientRequestId: this.clientRequestId,
@@ -963,6 +964,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       movementDate: rawValue.movementDate,
       documentDate: rawValue.documentDate,
       documentNo: rawValue.documentNo.trim(),
+      ...officialDocumentTrace,
       deliverer: rawValue.deliverer.trim(),
       receiver: rawValue.receiver.trim(),
       description: rawValue.description.trim(),
@@ -970,6 +972,40 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       autoCreateReturnForPartialAcceptance: rawValue.autoCreateReturnForPartialAcceptance,
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
     };
+  }
+
+  private buildOfficialDocumentTrace(): Partial<IFurpaCreateCompanyReceiptRequestApiDto> {
+    const preview = this.officialDocumentPreview();
+    if (!preview?.isFound || !preview.ettn?.trim()) {
+      return {};
+    }
+
+    const sourceKind = this.resolveOfficialDocumentKind(preview);
+    const documentNo =
+      this.normalizeOptionalText(preview.sourceDocumentNumber)
+      ?? this.normalizeOptionalText(preview.despatchNumber)
+      ?? this.normalizeOptionalText(preview.invoiceNumber);
+    const documentDate =
+      this.toDateInputValue(preview.sourceDocumentDate)
+      || this.toDateInputValue(sourceKind === 'e-invoice' ? preview.invoiceDate : preview.issueDate)
+      || this.toDateInputValue(preview.issueDate)
+      || this.toDateInputValue(preview.invoiceDate);
+
+    return {
+      officialDocumentKind: sourceKind,
+      officialDocumentNo: documentNo ?? undefined,
+      officialDocumentDate: documentDate || undefined,
+      officialDocumentEttn: preview.ettn.trim()
+    };
+  }
+
+  private resolveOfficialDocumentKind(preview: CompanyReceivingEDespatchPreviewDto): string {
+    const sourceKind = preview.sourceDocumentKind?.trim();
+    if (sourceKind && sourceKind !== 'auto') {
+      return sourceKind;
+    }
+
+    return preview.invoiceNumber?.trim() ? 'e-invoice' : 'e-despatch';
   }
 
   private mapKalem(kalem: KalemFormValue) {
@@ -1068,8 +1104,8 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     );
   }
 
-  private normalizeOptionalText(value: string): string | null {
-    const normalizedValue = value.trim();
+  private normalizeOptionalText(value: string | null | undefined): string | null {
+    const normalizedValue = value?.trim() ?? '';
     return normalizedValue ? normalizedValue : null;
   }
 
