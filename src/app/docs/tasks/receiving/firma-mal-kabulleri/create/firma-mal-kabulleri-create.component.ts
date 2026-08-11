@@ -26,10 +26,11 @@ import { finalize } from 'rxjs';
 
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
-import { formatDateOnly, generateClientRequestId } from '../../../../../core/api/furpa-merkez-api.utils';
+import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
 import { MalKabulIslemleriService, TaslakService } from '@core/api/module-services';
 import {
   buildAllWarehousesPermissionCode,
@@ -103,7 +104,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
   private readonly taslakService = inject(TaslakService);
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
   private readonly today = formatDateOnly(new Date());
-  private readonly clientRequestId = generateClientRequestId();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyReceiptRequestApiDto>();
 
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-mal-kabulleri'];
   protected readonly isAdminUser = computed(() =>
@@ -957,8 +958,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
     const officialDocumentTrace = this.buildOfficialDocumentTrace();
 
-    return {
-      clientRequestId: this.clientRequestId,
+    return this.safeCreateRetry.withClientRequestId({
       warehouseNo: this.resolveRequestWarehouseNo(),
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       movementDate: rawValue.movementDate,
@@ -971,7 +971,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       allowOrderOverReceiving: rawValue.allowOrderOverReceiving,
       autoCreateReturnForPartialAcceptance: rawValue.autoCreateReturnForPartialAcceptance,
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
-    };
+    });
   }
 
   private buildOfficialDocumentTrace(): Partial<IFurpaCreateCompanyReceiptRequestApiDto> {

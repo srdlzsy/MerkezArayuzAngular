@@ -72,6 +72,7 @@ export interface StockReceiptDetailDto {
 
 export interface CreateStockReceiptHttpRequest {
   warehouseNo?: number;
+  clientRequestId?: string;
   creator: string;
   acceptor: string;
   movementDate: string;
@@ -352,6 +353,7 @@ export interface VirmanDetailDto {
 
 export interface CreateVirmanHttpRequest {
   warehouseNo?: number;
+  clientRequestId?: string;
   movementDate: string;
   documentDate: string;
   documentNo: string;

@@ -22,6 +22,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -66,6 +67,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
   private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyShipmentRequestApiDto>();
 
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-iadeleri'];
   protected readonly customerQuery = new FormControl('', { nonNullable: true });
@@ -381,7 +383,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
   private buildRequest(): IFurpaCreateCompanyShipmentRequestApiDto {
     const rawValue = this.form.getRawValue();
 
-    return {
+    return this.safeCreateRetry.withClientRequestId({
       warehouseNo: this.resolveRequestWarehouseNo(),
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       movementDate: rawValue.movementDate,
@@ -389,7 +391,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
       documentNo: rawValue.documentNo.trim(),
       description: rawValue.description.trim(),
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
-    };
+    });
   }
 
   private mapKalem(kalem: KalemFormValue) {

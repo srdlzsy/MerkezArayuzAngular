@@ -21,6 +21,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -60,6 +61,7 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly stokIslemleriService = inject(StokIslemleriService);
   private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateStockReceiptRequestApiDto>();
   private stockRequestId = 0;
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
@@ -168,6 +170,10 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected submit(): void {
+    if (this.submitting()) {
+      return;
+    }
+
     this.submitError.set('');
 
     if (this.form.invalid) {
@@ -220,7 +226,7 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private buildRequest(): IFurpaCreateStockReceiptRequestApiDto {
     const rawValue = this.form.getRawValue();
 
-    return {
+    return this.safeCreateRetry.withClientRequestId({
       warehouseNo: this.resolveRequestWarehouseNo(),
       creator: rawValue.creator.trim(),
       acceptor: rawValue.acceptor.trim(),
@@ -237,7 +243,7 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
         lotNo: this.normalizeNumber(line.lotNo),
         projectCode: line.projectCode.trim()
       }))
-    };
+    });
   }
 
   private createLineFormGroup(stock?: IFurpaProductSearchItemApiDto): MasrafLineFormGroup {

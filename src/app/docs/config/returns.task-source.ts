@@ -8,7 +8,15 @@ export const RETURNS_TASK_SOURCE = {
       title: 'Firma Iadeleri',
       subtitle: 'Firma iadeleri icin yeni iade API route’lariyla liste, detay ve create akisi sunulur.',
       baseRouteOrFile: '/api/iade-islemleri/firma-iadeleri',
-      highlights: ['Iade', 'Firma', 'Liste ve detay', 'Create endpointi aktif', 'E-irsaliye gonderim ve PDF route aktif'],
+      highlights: [
+        'Iade',
+        'Firma',
+        'Liste ve detay',
+        'Create endpointi aktif',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
+        'E-irsaliye gonderim ve PDF route aktif'
+      ],
       listTitle: 'Endpointler',
       items: [
         {
@@ -42,7 +50,22 @@ export const RETURNS_TASK_SOURCE = {
             }
           ]
         }
-      ]
+      ],
+      codeSample: `{
+  "clientRequestId": "527c6a79-f98b-438d-92f7-9f1cfc16cd64",
+  "customerCode": "120.01.001",
+  "movementDate": "2026-04-17",
+  "documentDate": "2026-04-17",
+  "documentNo": "",
+  "description": "Firma iadesi",
+  "lines": [
+    {
+      "stockCode": "015792",
+      "quantity": 5,
+      "unitPointer": 1
+    }
+  ]
+}`
     },
     () =>
       import('../tasks/returns/firma-iadeleri/list/firma-iadeleri-list.component').then(
@@ -61,6 +84,8 @@ export const RETURNS_TASK_SOURCE = {
         'Depo',
         'Giden yon',
         'Yazma yolu MikroWriteRouting:WarehouseReturn ile Database veya MikroApi olur',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
         'Otomatik depo siparisi aciksa backend iade satirini olusan siparis GUIDine baglar',
         'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
       ],
@@ -97,7 +122,23 @@ export const RETURNS_TASK_SOURCE = {
             }
           ]
         }
-      ]
+      ],
+      codeSample: `{
+  "clientRequestId": "622208d6-f427-48ef-b9fb-bd4e6e1844eb",
+  "targetWarehouseNo": 50,
+  "transitWarehouseNo": 60,
+  "movementDate": "2026-04-17",
+  "documentDate": "2026-04-17",
+  "documentNo": "",
+  "description": "Depo iadesi",
+  "lines": [
+    {
+      "stockCode": "015792",
+      "quantity": 5,
+      "unitPointer": 1
+    }
+  ]
+}`
     },
     () =>
       import('../tasks/returns/depo-iadeleri/list/depo-iadeleri-list.component').then(

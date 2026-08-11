@@ -14,6 +14,8 @@ export const RECEIVING_TASK_SOURCE = {
         'Yeni create akisi dispatchQuantity ve acceptedQuantity alanlarini ayri gonderir',
         'Eksik kabul farki icin varsayilan olarak otomatik firma iadesi olusturulur',
         'Yazma yolu MikroWriteRouting:CompanyReceiving ile Database veya MikroApi olur',
+        'Offline durum sorgusu destekli create akisi icin clientRequestId uretilir',
+        'Retry izi backendde FR prefixli trace olarak stok hareketine tasinir',
         'MikroApi modunda siparis teslim etkisi Mikro API tarafina birakilir',
         'ETTN/UUID endpointi create ekrani icin e-irsaliye veya e-fatura ust bilgi ve kalem on-dolumu saglar',
         'Resmi belge izi create bodyde officialDocumentKind/No/Date/Ettn alanlariyla Belge Akis Takibine aktarilir',

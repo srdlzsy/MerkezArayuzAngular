@@ -22,6 +22,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -66,6 +67,7 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseShippingRequestApiDto>();
 
   protected readonly page: DocsContentPage = DOCS_PAGES['gelen-depolar-arasi-sevkler'];
   protected readonly isAdminUser = computed(() =>
@@ -377,7 +379,7 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
   private buildRequest(): IFurpaCreateWarehouseShippingRequestApiDto {
     const rawValue = this.form.getRawValue();
 
-    return {
+    return this.safeCreateRetry.withClientRequestId({
       sourceWarehouseNo: this.resolveRequestWarehouseNo(),
       targetWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       transitWarehouseNo: rawValue.transitWarehouseNo ?? 60,
@@ -386,7 +388,7 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
       documentNo: rawValue.documentNo.trim(),
       description: rawValue.description.trim(),
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
-    };
+    });
   }
 
   private mapKalem(kalem: KalemFormValue) {

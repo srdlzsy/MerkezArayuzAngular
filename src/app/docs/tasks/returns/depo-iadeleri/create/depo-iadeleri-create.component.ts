@@ -22,6 +22,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -70,6 +71,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseReturnRequestApiDto>();
 
   protected readonly page: DocsContentPage =
     DOCS_PAGES[((this.data as DepoIadeleriCreateDialogData | null)?.pageId ?? 'giden-depo-iadeleri')] ??
@@ -383,7 +385,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   private buildRequest(): IFurpaCreateWarehouseReturnRequestApiDto {
     const rawValue = this.form.getRawValue();
 
-    return {
+    return this.safeCreateRetry.withClientRequestId({
       sourceWarehouseNo: this.resolveRequestWarehouseNo(),
       targetWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       transitWarehouseNo: rawValue.transitWarehouseNo ?? 60,
@@ -392,7 +394,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       documentNo: rawValue.documentNo.trim(),
       description: rawValue.description.trim(),
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
-    };
+    });
   }
 
   private mapKalem(kalem: KalemFormValue) {

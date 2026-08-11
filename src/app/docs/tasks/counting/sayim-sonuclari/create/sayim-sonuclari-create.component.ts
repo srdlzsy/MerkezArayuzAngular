@@ -21,6 +21,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
@@ -57,6 +58,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   private readonly sayimIslemleriService = inject(SayimIslemleriService);
   private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateInventoryCountRequestApiDto>();
   private stockRequestId = 0;
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
@@ -155,6 +157,10 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   }
 
   protected submit(): void {
+    if (this.submitting()) {
+      return;
+    }
+
     this.submitError.set('');
 
     if (this.form.invalid) {
@@ -207,7 +213,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   private buildRequest(): IFurpaCreateInventoryCountRequestApiDto {
     const rawValue = this.form.getRawValue();
 
-    return {
+    return this.safeCreateRetry.withClientRequestId({
       warehouseNo: this.resolveRequestWarehouseNo(),
       name: rawValue.name.trim(),
       documentDate: rawValue.documentDate,
@@ -217,7 +223,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
         barcode: line.barcode.trim() || undefined,
         unitPointer: this.normalizeNumber(line.unitPointer)
       }))
-    };
+    });
   }
 
   private createLineFormGroup(stock?: IFurpaProductSearchItemApiDto): SayimLineFormGroup {

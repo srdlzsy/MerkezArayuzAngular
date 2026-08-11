@@ -85,6 +85,8 @@ export const INVENTORY_TASK_SOURCE = {
       baseRouteOrFile: '/api/stok-islemleri/masraf-fisleri',
       highlights: [
         'warehouseNo body icinden all-warehouses yetkisi yoksa alinmaz; backend kullanici deposunu kullanir',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry izi backendde FR prefixli trace olarak stok hareketine tasinir',
         'sth_isemri_gider_kodu backend tarafinda sabit 0032 yazilir',
         'creator ve acceptor hareket grup kodlarina yazilir',
         'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
@@ -115,6 +117,7 @@ export const INVENTORY_TASK_SOURCE = {
         }
       ],
       codeSample: `{
+  "clientRequestId": "bc00ec38-5fbb-4669-87d5-7480f88e1987",
   "creator": "VARDIYA-2",
   "acceptor": "SEF-02",
   "movementDate": "2026-04-21",
@@ -148,6 +151,8 @@ export const INVENTORY_TASK_SOURCE = {
       baseRouteOrFile: '/api/stok-islemleri/zayiat-fisleri',
       highlights: [
         'warehouseNo body icinden all-warehouses yetkisi yoksa alinmaz; backend kullanici deposunu kullanir',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry izi backendde FR prefixli trace olarak stok hareketine tasinir',
         'backend STOK_HAREKETLERI icin sth_cins = 4 olarak kayit yazar',
         'creator ve acceptor hareket grup kodlarina yazilir',
         'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
@@ -178,6 +183,7 @@ export const INVENTORY_TASK_SOURCE = {
         }
       ],
       codeSample: `{
+  "clientRequestId": "3e39228d-5429-4f1e-b521-60b7e82b2c25",
   "creator": "VARDIYA-1",
   "acceptor": "SEF-01",
   "movementDate": "2026-04-21",
@@ -211,6 +217,8 @@ export const INVENTORY_TASK_SOURCE = {
       baseRouteOrFile: '/api/stok-islemleri/virmanlar',
       highlights: [
         'warehouseNo body icinden all-warehouses yetkisi yoksa alinmaz; backend kullanici deposunu kullanir',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry izi backendde FR prefixli trace olarak stok hareketine tasinir',
         'movementType satir bazinda sth_tip kolonuna yazilir; 2 gonderilirse backend giris ve cikis olarak iki stok hareketi acar',
         'giris ve cikis depo no eski yapiya uygun olarak kullanici deposuna yazilir',
         'documentSerie backend tarafinda F{loginKullaniciDepoNo} olarak uretilir'
@@ -241,6 +249,7 @@ export const INVENTORY_TASK_SOURCE = {
         }
       ],
       codeSample: `{
+  "clientRequestId": "527c6a79-f98b-438d-92f7-9f1cfc16cd64",
   "movementDate": "2026-04-21",
   "documentDate": "2026-04-21",
   "documentNo": "",
@@ -273,7 +282,8 @@ export const INVENTORY_TASK_SOURCE = {
       baseRouteOrFile: '/api/stok-islemleri/sayim-sonuclari',
       highlights: [
         'Detay acarken documentNo ile birlikte documentDate query parametresi zorunludur',
-        'Mobil offline pilotta request icin clientRequestId uretilir',
+        'Offline durum sorgusu destekli create akisi icin clientRequestId uretilir',
+        'Retry izi backendde FR prefixli trace olarak sayim seri alanina tasinir',
         'Barkod bos gonderilirse backend stok kodundan barkod bulmaya calisabilir'
       ],
       listTitle: 'Islem Adimlari',

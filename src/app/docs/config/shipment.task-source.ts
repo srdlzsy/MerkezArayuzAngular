@@ -8,14 +8,36 @@ export const SHIPMENT_TASK_SOURCE = {
       title: 'Giden Firma Sevkleri',
       subtitle: 'Giden firma sevkleri icin liste, detay ve olusturma akisi.',
       baseRouteOrFile: '/api/sevk-islemleri/firma-sevkleri/giden',
-      highlights: ['Sevk', 'Liste', 'Detay', 'E-irsaliye gonderim ve PDF alias route ailesi aktif'],
+      highlights: [
+        'Sevk',
+        'Liste',
+        'Detay',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
+        'E-irsaliye gonderim ve PDF alias route ailesi aktif'
+      ],
       listTitle: 'Controller',
       items: [
         {
           name: 'ToptanCikisIrsaliyeleriController',
           description: 'Toptan cikis irsaliyeleri.'
         }
-      ]
+      ],
+      codeSample: `{
+  "clientRequestId": "5b0b7e62-3514-43b6-a776-220853ef2c3f",
+  "customerCode": "120.01.001",
+  "movementDate": "2026-04-17",
+  "documentDate": "2026-04-17",
+  "documentNo": "",
+  "description": "Giden firma sevki",
+  "lines": [
+    {
+      "stockCode": "015792",
+      "quantity": 10,
+      "unitPointer": 1
+    }
+  ]
+}`
     },
     () =>
       import(
@@ -50,7 +72,13 @@ export const SHIPMENT_TASK_SOURCE = {
       title: 'Gelen Depolar Arasi Sevkler',
       subtitle: 'Hedef depo perspektifinden depolar arasi gelen sevk liste ve detay akisi.',
       baseRouteOrFile: '/api/sevk-islemleri/depolar-arasi-sevkler/gelen',
-      highlights: ['Dagitim', 'Sevk', 'Depo operasyonu'],
+      highlights: [
+        'Dagitim',
+        'Sevk',
+        'Depo operasyonu',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir'
+      ],
       listTitle: 'Controller',
       items: [
         {
@@ -76,6 +104,8 @@ export const SHIPMENT_TASK_SOURCE = {
         'Depolar arasi',
         'Sevk',
         'Yazma yolu MikroWriteRouting:InterWarehouseShipment ile Database veya MikroApi olur',
+        'Create requestinde guvenli retry icin clientRequestId uretilir',
+        'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
         'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir',
         'Manav depo 56 akisi varsayilan olarak siparis satir GUID baglantisi gondermez',
         'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
@@ -86,7 +116,23 @@ export const SHIPMENT_TASK_SOURCE = {
           name: 'DepolarArasiNakliyeSevkFisleriController',
           description: 'Depolar arasi nakliye sevk fisleri.'
         }
-      ]
+      ],
+      codeSample: `{
+  "clientRequestId": "2e8f99f1-8ad5-4dfb-a375-82b93f9aa101",
+  "targetWarehouseNo": 50,
+  "transitWarehouseNo": 60,
+  "movementDate": "2026-04-17",
+  "documentDate": "2026-04-17",
+  "documentNo": "",
+  "description": "Depolar arasi sevk",
+  "lines": [
+    {
+      "stockCode": "015792",
+      "quantity": 10,
+      "unitPointer": 1
+    }
+  ]
+}`
     },
     () =>
       import(

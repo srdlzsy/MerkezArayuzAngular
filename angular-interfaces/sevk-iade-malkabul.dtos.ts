@@ -76,6 +76,7 @@ export interface WarehouseShippingDetailDto {
 }
 
 export interface CreateInterWarehouseShipmentHttpRequest {
+  clientRequestId?: string;
   sourceWarehouseNo?: number;
   targetWarehouseNo: number;
   transitWarehouseNo?: number;
@@ -216,6 +217,7 @@ export interface CompanyMovementDetailDto {
 }
 
 export interface CreateCompanyMovementHttpRequest {
+  clientRequestId?: string;
   warehouseNo?: number;
   customerCode: string;
   movementDate: string;
@@ -258,6 +260,7 @@ export interface CreateCompanyMovementResponse {
 // ============================================================================
 
 export interface CreateWarehouseReturnHttpRequest {
+  clientRequestId?: string;
   sourceWarehouseNo?: number;
   targetWarehouseNo: number;
   transitWarehouseNo?: number;
