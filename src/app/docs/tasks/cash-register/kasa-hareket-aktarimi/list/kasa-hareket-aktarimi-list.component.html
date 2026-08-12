@@ -269,21 +269,23 @@
             {{ reportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
           </button>
 
-          <app-excel-export-button
-            [disabled]="!reportRows().length"
-            [exporting]="reportExporting()"
-            [summary]="reportRows().length + ' kayit'"
-            (exportRequested)="exportReportRows()"
-          ></app-excel-export-button>
+          <div class="toolbar-actions">
+            <app-excel-export-button
+              [disabled]="!reportRows().length"
+              [exporting]="reportExporting()"
+              [summary]="reportRows().length + ' kayit'"
+              (exportRequested)="exportReportRows()"
+            ></app-excel-export-button>
 
-          <button
-            type="button"
-            class="task-action task-action-secondary"
-            [disabled]="reportCsvExporting()"
-            (click)="exportReportCsv()"
-          >
-            {{ reportCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
-          </button>
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              [disabled]="reportCsvExporting()"
+              (click)="exportReportCsv()"
+            >
+              {{ reportCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
+            </button>
+          </div>
         </form>
 
         <section class="summary-strip">
@@ -358,18 +360,20 @@
             <input type="number" min="0" step="0.01" formControlName="tolerance" />
           </label>
 
-          <button type="submit" class="task-action task-action-primary" [disabled]="comparisonLoading()">
-            {{ comparisonLoading() ? 'Yukleniyor...' : 'Kontrol Et' }}
-          </button>
+          <div class="toolbar-actions">
+            <button type="submit" class="task-action task-action-primary" [disabled]="comparisonLoading()">
+              {{ comparisonLoading() ? 'Yukleniyor...' : 'Kontrol Et' }}
+            </button>
 
-          <button
-            type="button"
-            class="task-action task-action-secondary"
-            [disabled]="comparisonCsvExporting()"
-            (click)="exportComparisonCsv()"
-          >
-            {{ comparisonCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
-          </button>
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              [disabled]="comparisonCsvExporting()"
+              (click)="exportComparisonCsv()"
+            >
+              {{ comparisonCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
+            </button>
+          </div>
         </form>
 
         <section class="summary-strip comparison-summary" *ngIf="comparisonResult() as comparison">
@@ -434,18 +438,31 @@
                   <span class="status-pill" [ngClass]="getComparisonStatusClass(row.status)">
                     {{ row.statusName || row.status }}
                   </span>
-                  <div class="table-meta">Detay</div>
+                  <button
+                    type="button"
+                    class="mini-action"
+                    (click)="$event.stopPropagation(); openComparisonDetail(row)"
+                  >
+                    Detay
+                  </button>
                 </td>
               </tr>
             </tbody>
           </table>
         </div>
 
-        <section class="detail-shell" *ngIf="selectedComparisonRow() as selectedRow">
+        <section
+          class="detail-dialog-backdrop"
+          *ngIf="selectedComparisonRow() as selectedRow"
+          role="dialog"
+          aria-modal="true"
+          aria-labelledby="comparison-detail-title"
+        >
+          <article class="detail-dialog">
           <header class="detail-head">
             <div class="title-block">
               <span class="section-kicker">Detay</span>
-              <h3>{{ selectedRow.branchName || 'Sube' }} / Kasa {{ selectedRow.cashRegisterNo }}</h3>
+              <h3 id="comparison-detail-title">{{ selectedRow.branchName || 'Sube' }} / Kasa {{ selectedRow.cashRegisterNo }}</h3>
             </div>
 
             <div class="detail-actions">
@@ -688,6 +705,7 @@
               </div>
             </ng-container>
           </ng-container>
+          </article>
         </section>
 
         <article class="state-card empty-state" *ngIf="!comparisonLoading() && !(comparisonResult()?.rows?.length)">

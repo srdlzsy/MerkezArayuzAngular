@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Observable, finalize } from 'rxjs';
@@ -436,6 +436,13 @@ export class KasaHareketAktarimiListComponent {
 
   protected selectComparisonDetailTab(tab: KasaHareketDetailTab): void {
     this.comparisonDetailTab.set(tab);
+  }
+
+  @HostListener('document:keydown.escape')
+  protected closeComparisonDetailWithEscape(): void {
+    if (this.selectedComparisonRow()) {
+      this.closeComparisonDetail();
+    }
   }
 
   protected runProcedure(action: KasaHareketProcedureAction): void {

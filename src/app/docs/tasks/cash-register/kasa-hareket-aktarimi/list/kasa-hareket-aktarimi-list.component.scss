@@ -417,11 +417,27 @@
 }
 
 .report-toolbar {
-  grid-template-columns: minmax(150px, 0.32fr) auto minmax(280px, 1fr);
+  grid-template-columns: minmax(150px, 0.32fr) auto minmax(260px, auto);
   padding: 0.56rem;
   border: 1px solid var(--transfer-border);
   border-radius: 8px;
   background: var(--transfer-soft);
+}
+
+.comparison-toolbar {
+  grid-template-columns: minmax(150px, 0.26fr) minmax(110px, 0.18fr) minmax(240px, auto);
+}
+
+.toolbar-actions {
+  display: inline-flex;
+  gap: 0.4rem;
+  align-items: center;
+  justify-content: flex-end;
+  justify-self: end;
+}
+
+.toolbar-actions .task-action {
+  white-space: nowrap;
 }
 
 .table-wrap {
@@ -499,6 +515,28 @@
   font-weight: 800;
 }
 
+.mini-action {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 24px;
+  margin-left: 0.35rem;
+  padding: 0.18rem 0.42rem;
+  border: 1px solid rgba(15, 118, 110, 0.28);
+  border-radius: 6px;
+  background: #f0fdfa;
+  color: #115e59;
+  font: inherit;
+  font-size: 0.68rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.mini-action:hover {
+  border-color: rgba(15, 118, 110, 0.46);
+  background: #ccfbf1;
+}
+
 .issue-error .status-pill {
   color: var(--transfer-danger);
   background: #fee2e2;
@@ -525,13 +563,27 @@
   background: #e2e8f0;
 }
 
-.detail-shell {
+.detail-dialog-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 1200;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.42);
+}
+
+.detail-dialog {
   display: grid;
   gap: 0.55rem;
-  padding: 0.58rem;
+  width: min(1180px, 100%);
+  max-height: min(760px, calc(100vh - 2rem));
+  overflow: hidden;
+  padding: 0.68rem;
   border: 1px solid rgba(15, 118, 110, 0.26);
   border-radius: 8px;
-  background: #fbfefd;
+  background: #fff;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.2);
 }
 
 .detail-head {
@@ -539,6 +591,8 @@
   grid-template-columns: minmax(0, 1fr) auto;
   gap: 0.5rem;
   align-items: center;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid var(--transfer-border);
 }
 
 .detail-actions,
@@ -547,6 +601,10 @@
   flex-wrap: wrap;
   gap: 0.35rem;
   align-items: center;
+}
+
+.detail-actions {
+  justify-content: flex-end;
 }
 
 .detail-tabs {
@@ -572,7 +630,7 @@
 }
 
 .detail-table-wrap {
-  max-height: min(390px, calc(100vh - 390px));
+  max-height: min(360px, calc(100vh - 390px));
 }
 
 .detail-table {
@@ -750,10 +808,9 @@
 .procedure-result,
 .state-card,
 .range-card,
-.detail-shell,
+.detail-dialog,
 .panel-main {
   border-radius: 6px;
-  box-shadow: none;
 }
 
 .metric-strip,
@@ -798,9 +855,17 @@
 }
 
 .report-toolbar {
-  grid-template-columns: minmax(150px, 0.32fr) auto auto;
+  grid-template-columns: minmax(150px, 0.32fr) auto minmax(240px, auto);
   gap: 0.42rem;
   padding: 0.45rem;
+}
+
+.comparison-toolbar {
+  grid-template-columns: minmax(150px, 0.26fr) minmax(110px, 0.18fr) minmax(230px, auto);
+}
+
+.toolbar-actions {
+  justify-self: end;
 }
 
 .range-card {
@@ -836,6 +901,11 @@
   .detail-head {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
+
+  .toolbar-actions {
+    justify-self: stretch;
+    justify-content: flex-start;
+  }
 }
 
 @media (max-width: 720px) {
@@ -844,5 +914,11 @@
   .range-card,
   .detail-head {
     grid-template-columns: 1fr;
+  }
+
+  .toolbar-actions {
+    display: grid;
+    grid-template-columns: 1fr;
+    justify-content: stretch;
   }
 }
