@@ -465,6 +465,15 @@
   background: #f8fbfa;
 }
 
+.comparison-table tbody tr {
+  cursor: pointer;
+}
+
+.comparison-table tbody tr.is-selected {
+  background: #ecfdf5;
+  box-shadow: inset 3px 0 0 var(--transfer-accent);
+}
+
 .align-right {
   text-align: right !important;
 }
@@ -493,6 +502,89 @@
 .issue-error .status-pill {
   color: var(--transfer-danger);
   background: #fee2e2;
+}
+
+.status-balanced {
+  color: #166534;
+  background: #dcfce7;
+}
+
+.status-difference {
+  color: #92400e;
+  background: #fef3c7;
+}
+
+.status-missing-summary,
+.status-missing-movement {
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.status-unknown {
+  color: #475569;
+  background: #e2e8f0;
+}
+
+.detail-shell {
+  display: grid;
+  gap: 0.55rem;
+  padding: 0.58rem;
+  border: 1px solid rgba(15, 118, 110, 0.26);
+  border-radius: 8px;
+  background: #fbfefd;
+}
+
+.detail-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.5rem;
+  align-items: center;
+}
+
+.detail-actions,
+.detail-tabs {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  align-items: center;
+}
+
+.detail-tabs {
+  padding: 0.18rem;
+  border: 1px solid var(--transfer-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.detail-tabs .mode-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.detail-tabs .mode-tab span {
+  color: var(--transfer-muted);
+  font-size: 0.68rem;
+}
+
+.detail-summary {
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+}
+
+.detail-table-wrap {
+  max-height: min(390px, calc(100vh - 390px));
+}
+
+.detail-table {
+  min-width: 720px;
+}
+
+.compact-table {
+  min-width: 560px;
+}
+
+.receipt-table {
+  min-width: 760px;
 }
 
 .action-card {
@@ -542,12 +634,14 @@
   .scope-bar,
   .panel-grid,
   .report-toolbar,
-  .range-card {
+  .range-card,
+  .detail-head {
     grid-template-columns: 1fr;
   }
 
   .metric-strip,
   .summary-strip,
+  .detail-summary,
   .result-grid,
   .action-grid {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -570,11 +664,23 @@
 
   .metric-strip,
   .summary-strip,
+  .detail-summary,
   .result-grid,
   .action-grid,
   .form-grid,
   .procedure-result dl {
     grid-template-columns: 1fr;
+  }
+
+  .detail-actions,
+  .detail-tabs {
+    align-items: stretch;
+  }
+
+  .detail-actions .task-action,
+  .detail-tabs .mode-tab {
+    width: 100%;
+    justify-content: center;
   }
 
   .request-inline code {
@@ -644,6 +750,7 @@
 .procedure-result,
 .state-card,
 .range-card,
+.detail-shell,
 .panel-main {
   border-radius: 6px;
   box-shadow: none;
@@ -651,6 +758,7 @@
 
 .metric-strip,
 .summary-strip,
+.detail-summary,
 .result-grid,
 .action-grid,
 .tab-panel {
@@ -724,7 +832,17 @@
 @media (max-width: 1180px) {
   .scope-bar,
   .report-toolbar,
-  .range-card {
+  .range-card,
+  .detail-head {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 720px) {
+  .scope-bar,
+  .report-toolbar,
+  .range-card,
+  .detail-head {
+    grid-template-columns: 1fr;
   }
 }

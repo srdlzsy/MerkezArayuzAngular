@@ -5,12 +5,21 @@ import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
 import { Observable, finalize } from 'rxjs';
 import type {
   KasaHareketBranchDto,
+  KasaHareketCashSummaryComparisonDto,
+  KasaHareketCashSummaryComparisonRowDto,
   KasaHareketCashRegisterDto,
+  KasaHareketCashSummaryDocumentDto,
+  KasaHareketCashSummaryPaymentDto,
+  KasaHareketCashierSummaryDto,
+  KasaHareketDetailDto,
   KasaHareketImportHttpRequest,
   KasaHareketImportIssueDto,
   KasaHareketImportResultDto,
+  KasaHareketMovementPaymentSummaryDto,
   KasaHareketProcedureResultDto,
+  KasaHareketReceiptDto,
   KasaHareketReportRowDto,
+  KasaHareketReportSummaryDto,
   KasaHareketScheduledImportHttpRequest
 } from '@interfaces';
 
@@ -20,10 +29,17 @@ import { DocsContentPage } from '../../../../models/docs.models';
 import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
 import {
   ExcelExportColumn,
+  ExcelExportSheet,
   exportRowsToExcel
 } from '../../../core/excel-export/excel-export.utils';
 
-type KasaHareketTab = 'import' | 'rapor' | 'mikro';
+type KasaHareketTab = 'import' | 'rapor' | 'icmal' | 'mikro';
+type KasaHareketDetailTab =
+  | 'cashiers'
+  | 'movement-payments'
+  | 'summary-payments'
+  | 'documents'
+  | 'receipts';
 type KasaHareketImportMode = 'normal' | 'cancel' | 'scheduled';
 type KasaHareketProcedureAction =
   | 'staging-delete'
@@ -59,11 +75,21 @@ export class KasaHareketAktarimiListComponent {
   protected readonly cashRegistersLoading = signal(false);
   protected readonly importLoading = signal(false);
   protected readonly reportLoading = signal(false);
+  protected readonly reportCsvExporting = signal(false);
+  protected readonly comparisonLoading = signal(false);
+  protected readonly comparisonCsvExporting = signal(false);
+  protected readonly comparisonDetailLoading = signal(false);
+  protected readonly comparisonDetailExporting = signal(false);
   protected readonly procedureLoadingAction = signal<KasaHareketProcedureAction | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly lastImportResult = signal<KasaHareketImportResultDto | null>(null);
   protected readonly lastProcedureResult = signal<KasaHareketProcedureResultDto | null>(null);
   protected readonly reportRows = signal<KasaHareketReportRowDto[]>([]);
+  protected readonly reportSummary = signal<KasaHareketReportSummaryDto | null>(null);
+  protected readonly comparisonResult = signal<KasaHareketCashSummaryComparisonDto | null>(null);
+  protected readonly selectedComparisonRow = signal<KasaHareketCashSummaryComparisonRowDto | null>(null);
+  protected readonly comparisonDetail = signal<KasaHareketDetailDto | null>(null);
+  protected readonly comparisonDetailTab = signal<KasaHareketDetailTab>('cashiers');
   protected readonly reportExporting = signal(false);
   protected readonly excelExportErrorMessage = signal<string | null>(null);
 
@@ -85,6 +111,10 @@ export class KasaHareketAktarimiListComponent {
   });
   protected readonly reportForm = new FormGroup({
     date: new FormControl<string>(this.today, { nonNullable: true })
+  });
+  protected readonly comparisonForm = new FormGroup({
+    date: new FormControl<string>(this.today, { nonNullable: true }),
+    tolerance: new FormControl<number | null>(0.01)
   });
   protected readonly mikroForm = new FormGroup({
     date: new FormControl<string>(this.today, { nonNullable: true })
@@ -131,16 +161,20 @@ export class KasaHareketAktarimiListComponent {
     () => `${this.selectedBranchLabel()} / ${this.selectedCashRegisterLabel()}`
   );
   protected readonly reportTotalNet = computed(() =>
-    this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.netAmount), 0)
+    this.reportSummary()?.totalNetAmount
+    ?? this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.netAmount), 0)
   );
   protected readonly reportTotalExpense = computed(() =>
-    this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.expense), 0)
+    this.reportSummary()?.totalExpense
+    ?? this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.expense), 0)
   );
   protected readonly reportTotalCheck = computed(() =>
-    this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.checkAmount), 0)
+    this.reportSummary()?.totalCheckAmount
+    ?? this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.checkAmount), 0)
   );
   protected readonly reportTotalDifference = computed(() =>
-    this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.difference), 0)
+    this.reportSummary()?.totalDifference
+    ?? this.reportRows().reduce((total, row) => total + this.toSafeNumber(row.difference), 0)
   );
   protected readonly importIssueRows = computed<ImportIssueRow[]>(() => {
     const result = this.lastImportResult();
@@ -262,13 +296,12 @@ export class KasaHareketAktarimiListComponent {
 
     this.reportLoading.set(true);
     this.feedback.set(null);
+    this.reportSummary.set(null);
+
+    const request = this.buildReportRequest(date);
 
     this.kasaIslemleriService
-      .getKasaHareketRaporu({
-        date,
-        branchNo: this.getSelectedBranchNo(),
-        cashRegisterNo: this.getSelectedCashRegisterNo()
-      })
+      .getKasaHareketRaporu(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.reportLoading.set(false))
@@ -287,6 +320,7 @@ export class KasaHareketAktarimiListComponent {
         },
         error: (error: unknown) => {
           this.reportRows.set([]);
+          this.reportSummary.set(null);
           this.feedback.set({
             tone: 'error',
             title: 'Rapor yuklenemedi',
@@ -294,6 +328,114 @@ export class KasaHareketAktarimiListComponent {
           });
         }
       });
+
+    this.kasaIslemleriService
+      .getKasaHareketRaporOzeti(request)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (summary: KasaHareketReportSummaryDto) => this.reportSummary.set(summary ?? null),
+        error: () => this.reportSummary.set(null)
+      });
+  }
+
+  protected loadComparison(): void {
+    const date = this.comparisonForm.controls.date.value.trim();
+
+    if (!date) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Icmal tarihi gerekli',
+        message: 'Icmal kontrolu icin tarih secin.'
+      });
+      return;
+    }
+
+    this.comparisonLoading.set(true);
+    this.feedback.set(null);
+    this.comparisonResult.set(null);
+    this.selectedComparisonRow.set(null);
+    this.comparisonDetail.set(null);
+
+    this.kasaIslemleriService
+      .getKasaHareketIcmalKarsilastirma(this.buildComparisonRequest(date))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.comparisonLoading.set(false))
+      )
+      .subscribe({
+        next: (result: KasaHareketCashSummaryComparisonDto) => {
+          this.comparisonResult.set({
+            ...result,
+            rows: this.sortComparisonRows(result.rows ?? [])
+          });
+
+          if (!result.rows?.length) {
+            this.feedback.set({
+              tone: 'info',
+              title: 'Icmal kontrol bos',
+              message: 'Secilen filtrelerle karsilastirilacak kasa kaydi donmedi.'
+            });
+          }
+        },
+        error: (error: unknown) => {
+          this.comparisonResult.set(null);
+          this.feedback.set({
+            tone: 'error',
+            title: 'Icmal kontrol yuklenemedi',
+            message: this.getErrorMessage(error, 'Icmal karsilastirma alinirken hata olustu.')
+          });
+        }
+      });
+  }
+
+  protected openComparisonDetail(row: KasaHareketCashSummaryComparisonRowDto): void {
+    if (!row.branchNo || !row.cashRegisterNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Detay acilamadi',
+        message: 'Detay icin sube ve kasa bilgisi zorunludur.'
+      });
+      return;
+    }
+
+    this.selectedComparisonRow.set(row);
+    this.comparisonDetail.set(null);
+    this.comparisonDetailTab.set('cashiers');
+    this.comparisonDetailLoading.set(true);
+    this.feedback.set(null);
+
+    this.kasaIslemleriService
+      .getKasaHareketIcmalKarsilastirmaDetay({
+        date: this.toDateQueryValue(row.date || this.comparisonForm.controls.date.value),
+        branchNo: row.branchNo,
+        cashRegisterNo: row.cashRegisterNo,
+        receiptTake: 500
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.comparisonDetailLoading.set(false))
+      )
+      .subscribe({
+        next: (detail: KasaHareketDetailDto) =>
+          this.comparisonDetail.set(this.normalizeComparisonDetail(detail)),
+        error: (error: unknown) => {
+          this.comparisonDetail.set(null);
+          this.feedback.set({
+            tone: 'error',
+            title: 'Icmal detayi yuklenemedi',
+            message: this.getErrorMessage(error, 'Kasa hareket icmal detayi alinirken hata olustu.')
+          });
+        }
+      });
+  }
+
+  protected closeComparisonDetail(): void {
+    this.selectedComparisonRow.set(null);
+    this.comparisonDetail.set(null);
+  }
+
+  protected selectComparisonDetailTab(tab: KasaHareketDetailTab): void {
+    this.comparisonDetailTab.set(tab);
   }
 
   protected runProcedure(action: KasaHareketProcedureAction): void {
@@ -353,11 +495,11 @@ export class KasaHareketAktarimiListComponent {
   }
 
   protected getReportRequestPreview(): string {
-    return this.formatJson({
-      date: this.reportForm.controls.date.value.trim(),
-      branchNo: this.getSelectedBranchNo(),
-      cashRegisterNo: this.getSelectedCashRegisterNo()
-    });
+    return this.formatJson(this.buildReportRequest(this.reportForm.controls.date.value.trim()));
+  }
+
+  protected getComparisonRequestPreview(): string {
+    return this.formatJson(this.buildComparisonRequest(this.comparisonForm.controls.date.value.trim()));
   }
 
   protected getMikroRequestPreview(): string {
@@ -464,6 +606,81 @@ export class KasaHareketAktarimiListComponent {
     }
   }
 
+  protected exportReportCsv(): void {
+    const date = this.reportForm.controls.date.value.trim();
+
+    if (!date || this.reportCsvExporting()) {
+      return;
+    }
+
+    this.reportCsvExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    this.kasaIslemleriService
+      .exportKasaHareketRaporu(this.buildReportRequest(date))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.reportCsvExporting.set(false))
+      )
+      .subscribe({
+        next: (blob: Blob) => this.downloadBlob(blob, `kasa-hareket-rapor-${this.toCompactDate(date)}.csv`),
+        error: (error: unknown) => {
+          this.excelExportErrorMessage.set(
+            this.getErrorMessage(error, 'Kasa hareket raporu CSV dosyasi indirilemedi.')
+          );
+        }
+      });
+  }
+
+  protected exportComparisonCsv(): void {
+    const date = this.comparisonForm.controls.date.value.trim();
+
+    if (!date || this.comparisonCsvExporting()) {
+      return;
+    }
+
+    this.comparisonCsvExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    this.kasaIslemleriService
+      .exportKasaHareketIcmalKarsilastirma(this.buildComparisonRequest(date))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.comparisonCsvExporting.set(false))
+      )
+      .subscribe({
+        next: (blob: Blob) =>
+          this.downloadBlob(blob, `kasa-hareket-icmal-karsilastirma-${this.toCompactDate(date)}.csv`),
+        error: (error: unknown) => {
+          this.excelExportErrorMessage.set(
+            this.getErrorMessage(error, 'Icmal karsilastirma CSV dosyasi indirilemedi.')
+          );
+        }
+      });
+  }
+
+  protected async exportComparisonDetailExcel(): Promise<void> {
+    const detail = this.comparisonDetail();
+
+    if (!detail || this.comparisonDetailExporting()) {
+      return;
+    }
+
+    this.comparisonDetailExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    try {
+      await exportRowsToExcel({
+        fileName: `Kasa Hareket Icmal Detay ${this.toDateQueryValue(detail.date)} ${detail.branchNo} Kasa ${detail.cashRegisterNo}`,
+        sheets: this.getComparisonDetailExportSheets(detail).filter((sheet) => sheet.rows.length > 0)
+      });
+    } catch {
+      this.excelExportErrorMessage.set('Icmal detay Excel dosyasi olusturulamadi.');
+    } finally {
+      this.comparisonDetailExporting.set(false);
+    }
+  }
+
   protected readonly trackByBranch = (_index: number, branch: KasaHareketBranchDto): number =>
     branch.branchNo;
 
@@ -475,7 +692,45 @@ export class KasaHareketAktarimiListComponent {
   protected readonly trackByReportRow = (_index: number, row: KasaHareketReportRowDto): string =>
     `${row.date}-${row.branchNo}-${row.cashRegisterNo}`;
 
+  protected readonly trackByComparisonRow = (
+    _index: number,
+    row: KasaHareketCashSummaryComparisonRowDto
+  ): string => `${row.date}-${row.branchNo}-${row.cashRegisterNo}-${row.status}`;
+
   protected readonly trackByIssue = (_index: number, row: ImportIssueRow): string => row.issueId;
+
+  protected readonly trackByCashierSummary = (
+    _index: number,
+    row: KasaHareketCashierSummaryDto
+  ): string => row.cashierCode || row.cashierName;
+
+  protected readonly trackByMovementPaymentSummary = (
+    _index: number,
+    row: KasaHareketMovementPaymentSummaryDto
+  ): string => `${row.paymentType}-${row.paymentTypeName}`;
+
+  protected readonly trackByCashSummaryPayment = (
+    _index: number,
+    row: KasaHareketCashSummaryPaymentDto
+  ): string => `${row.paymentTypeId}-${row.accountCode}`;
+
+  protected readonly trackByCashSummaryDocument = (
+    _index: number,
+    row: KasaHareketCashSummaryDocumentDto
+  ): string => row.documentNo || `${row.documentSerie}-${row.documentOrderNo}`;
+
+  protected readonly trackByReceipt = (_index: number, row: KasaHareketReceiptDto): string =>
+    row.invoiceGuid || `${row.branchNo}-${row.cashRegisterNo}-${row.receiptNo}`;
+
+  protected isSelectedComparisonRow(row: KasaHareketCashSummaryComparisonRowDto): boolean {
+    const selected = this.selectedComparisonRow();
+
+    return !!selected
+      && selected.date === row.date
+      && selected.branchNo === row.branchNo
+      && selected.cashRegisterNo === row.cashRegisterNo
+      && selected.status === row.status;
+  }
 
   private runScheduledImport(): void {
     const request = this.buildScheduledImportRequest();
@@ -590,6 +845,21 @@ export class KasaHareketAktarimiListComponent {
     };
   }
 
+  private buildReportRequest(date: string) {
+    return {
+      date,
+      branchNo: this.getSelectedBranchNo(),
+      cashRegisterNo: this.getSelectedCashRegisterNo()
+    };
+  }
+
+  private buildComparisonRequest(date: string) {
+    return {
+      ...this.buildReportRequest(date),
+      tolerance: this.toOptionalNumber(this.comparisonForm.controls.tolerance.value) ?? 0.01
+    };
+  }
+
   private buildProcedureRequest(
     action: KasaHareketProcedureAction
   ): Observable<KasaHareketProcedureResultDto> | null {
@@ -666,6 +936,57 @@ export class KasaHareketAktarimiListComponent {
         left.cashRegisterNo - right.cashRegisterNo ||
         left.date.localeCompare(right.date)
     );
+  }
+
+  private sortComparisonRows(
+    rows: KasaHareketCashSummaryComparisonRowDto[]
+  ): KasaHareketCashSummaryComparisonRowDto[] {
+    return [...rows].sort(
+      (left, right) =>
+        left.branchNo - right.branchNo ||
+        left.cashRegisterNo - right.cashRegisterNo ||
+        left.status.localeCompare(right.status, 'tr')
+    );
+  }
+
+  private normalizeComparisonDetail(detail: KasaHareketDetailDto): KasaHareketDetailDto {
+    return {
+      ...detail,
+      cashierSummaries: detail.cashierSummaries ?? [],
+      movementPaymentSummaries: detail.movementPaymentSummaries ?? [],
+      cashSummaryPayments: detail.cashSummaryPayments ?? [],
+      cashSummaryDocuments: detail.cashSummaryDocuments ?? [],
+      receipts: detail.receipts ?? []
+    };
+  }
+
+  protected getComparisonStatusClass(status: string | null | undefined): string {
+    switch (status) {
+      case 'balanced':
+        return 'status-balanced';
+      case 'difference':
+        return 'status-difference';
+      case 'missing-cash-summary':
+        return 'status-missing-summary';
+      case 'missing-movement':
+        return 'status-missing-movement';
+      default:
+        return 'status-unknown';
+    }
+  }
+
+  private downloadBlob(blob: Blob, fileName: string): void {
+    const objectUrl = URL.createObjectURL(blob);
+    const anchor = document.createElement('a');
+    anchor.href = objectUrl;
+    anchor.download = fileName;
+    anchor.rel = 'noopener';
+    anchor.click();
+    URL.revokeObjectURL(objectUrl);
+  }
+
+  private toCompactDate(date: string): string {
+    return this.toDateQueryValue(date).replace(/-/g, '');
   }
 
   private validateDateRange(startDate: string, endDate: string, message: string): boolean {
@@ -757,6 +1078,138 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Masraf', value: 'expense', type: 'currency' },
       { label: 'Cek', value: 'checkAmount', type: 'currency' },
       { label: 'Fark', value: 'difference', type: 'currency' }
+    ];
+  }
+
+  private toDateQueryValue(value: string | null | undefined): string {
+    const textValue = value?.trim() ?? '';
+    return textValue.includes('T') ? textValue.slice(0, 10) : textValue;
+  }
+
+  private getComparisonDetailExportSheets(
+    detail: KasaHareketDetailDto
+  ): readonly ExcelExportSheet<any>[] {
+    return [
+      {
+        sheetName: 'Ozet',
+        rows: [detail],
+        columns: this.getComparisonDetailSummaryExportColumns()
+      },
+      {
+        sheetName: 'Kasiyer Ozeti',
+        rows: detail.cashierSummaries ?? [],
+        columns: this.getCashierSummaryExportColumns()
+      },
+      {
+        sheetName: 'Aktarim Odeme',
+        rows: detail.movementPaymentSummaries ?? [],
+        columns: this.getMovementPaymentExportColumns()
+      },
+      {
+        sheetName: 'Icmal Odeme',
+        rows: detail.cashSummaryPayments ?? [],
+        columns: this.getCashSummaryPaymentExportColumns()
+      },
+      {
+        sheetName: 'Icmal Belgeleri',
+        rows: detail.cashSummaryDocuments ?? [],
+        columns: this.getCashSummaryDocumentExportColumns()
+      },
+      {
+        sheetName: 'Fisler',
+        rows: detail.receipts ?? [],
+        columns: this.getReceiptExportColumns()
+      }
+    ];
+  }
+
+  private getComparisonDetailSummaryExportColumns(): readonly ExcelExportColumn<KasaHareketDetailDto>[] {
+    return [
+      { label: 'Tarih', value: 'date', type: 'date' },
+      { label: 'Sube No', value: 'branchNo', type: 'number' },
+      { label: 'Sube', value: 'branchName' },
+      { label: 'Kasa', value: 'cashRegisterNo', type: 'number' },
+      { label: 'Aktarim Z', value: (row) => row.summary.movementZReportAmount, type: 'currency' },
+      { label: 'Icmal', value: (row) => row.summary.cashSummaryAmount, type: 'currency' },
+      { label: 'Fark', value: (row) => row.summary.differenceAmount, type: 'currency' },
+      { label: 'Durum', value: (row) => row.comparison.statusName },
+      { label: 'Fis Sayisi', value: (row) => row.summary.receiptCount, type: 'number' },
+      { label: 'Icmal Belge', value: (row) => row.summary.cashSummaryDocumentCount, type: 'number' }
+    ];
+  }
+
+  private getCashierSummaryExportColumns(): readonly ExcelExportColumn<KasaHareketCashierSummaryDto>[] {
+    return [
+      { label: 'Kasiyer Kodu', value: 'cashierCode' },
+      { label: 'Kasiyer', value: 'cashierName' },
+      { label: 'Fis', value: 'receiptCount', type: 'number' },
+      { label: 'Satir', value: 'lineCount', type: 'number' },
+      { label: 'Net', value: 'netAmount', type: 'currency' },
+      { label: 'Gider', value: 'expense', type: 'currency' },
+      { label: 'Cek', value: 'checkAmount', type: 'currency' },
+      { label: 'Z Raporu', value: 'zReportAmount', type: 'currency' }
+    ];
+  }
+
+  private getMovementPaymentExportColumns(): readonly ExcelExportColumn<KasaHareketMovementPaymentSummaryDto>[] {
+    return [
+      { label: 'Odeme Tipi', value: 'paymentType', type: 'number' },
+      { label: 'Odeme Adi', value: 'paymentTypeName' },
+      { label: 'Adet', value: 'paymentCount', type: 'number' },
+      { label: 'Tutar', value: 'amount', type: 'currency' }
+    ];
+  }
+
+  private getCashSummaryPaymentExportColumns(): readonly ExcelExportColumn<KasaHareketCashSummaryPaymentDto>[] {
+    return [
+      { label: 'Odeme Tipi', value: 'paymentTypeId', type: 'number' },
+      { label: 'Odeme Adi', value: 'paymentTypeName' },
+      { label: 'Hesap Kodu', value: 'accountCode' },
+      { label: 'Fis', value: 'slipCount', type: 'number' },
+      { label: 'Tutar', value: 'amount', type: 'currency' },
+      { label: 'Karsilastirmada', value: 'isIncludedInComparison', type: 'boolean' }
+    ];
+  }
+
+  private getCashSummaryDocumentExportColumns(): readonly ExcelExportColumn<KasaHareketCashSummaryDocumentDto>[] {
+    return [
+      { label: 'Belge No', value: 'documentNo' },
+      { label: 'Seri', value: 'documentSerie' },
+      { label: 'Sira', value: 'documentOrderNo', type: 'number' },
+      { label: 'Kasa', value: 'cashNo', type: 'number' },
+      { label: 'Z No', value: 'zReportNo', type: 'number' },
+      { label: 'Kasiyer', value: 'cashierName' },
+      { label: 'Yonetici', value: 'managerName' },
+      { label: 'Tarih', value: 'summaryDate', type: 'date' },
+      { label: 'Toplam', value: 'totalAmount', type: 'currency' },
+      { label: 'Odeme Satiri', value: 'paymentLineCount', type: 'number' },
+      { label: 'Olusturma', value: 'createDate', type: 'datetime' }
+    ];
+  }
+
+  private getReceiptExportColumns(): readonly ExcelExportColumn<KasaHareketReceiptDto>[] {
+    return [
+      { label: 'Fis No', value: 'receiptNo', type: 'number' },
+      { label: 'Tarih', value: 'date', type: 'date' },
+      { label: 'Saat', value: 'time' },
+      { label: 'Sube', value: 'branchNo', type: 'number' },
+      { label: 'Kasa', value: 'cashRegisterNo', type: 'number' },
+      { label: 'Z No', value: 'zNo' },
+      { label: 'Belge Tipi', value: 'documentKindName' },
+      { label: 'Kasiyer Kodu', value: 'cashierCode' },
+      { label: 'Kasiyer', value: 'cashierName' },
+      { label: 'Brut', value: 'grossAmount', type: 'currency' },
+      { label: 'Kdv', value: 'taxAmount', type: 'currency' },
+      { label: 'Indirim', value: 'discountAmount', type: 'currency' },
+      { label: 'Net', value: 'netAmount', type: 'currency' },
+      { label: 'Gider', value: 'expenseAmount', type: 'currency' },
+      { label: 'Cek', value: 'checkAmount', type: 'currency' },
+      { label: 'Z Raporu', value: 'zReportAmount', type: 'currency' },
+      { label: 'Satir', value: 'lineCount', type: 'number' },
+      { label: 'Odeme', value: 'paymentCount', type: 'number' },
+      { label: 'Promosyon', value: 'promotionCount', type: 'number' },
+      { label: 'Mali Bellek', value: 'fiscalMemoryCode' },
+      { label: 'Sonuc', value: 'processResult' }
     ];
   }
 }

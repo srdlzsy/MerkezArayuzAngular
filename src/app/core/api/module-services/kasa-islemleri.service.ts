@@ -43,7 +43,11 @@ import {
   ISummariesDetailsCT,
   IKunyeTag,
   KasaHareketBranchDto,
+  KasaHareketCashSummaryComparisonDto,
+  KasaHareketCashSummaryComparisonHttpRequest,
   KasaHareketCashRegisterDto,
+  KasaHareketDetailDto,
+  KasaHareketDetailHttpRequest,
   KasaHareketDeleteStagingHttpRequest,
   KasaHareketImportHttpRequest,
   KasaHareketImportResultDto,
@@ -52,6 +56,7 @@ import {
   KasaHareketProcedureResultDto,
   KasaHareketReportHttpRequest,
   KasaHareketReportRowDto,
+  KasaHareketReportSummaryDto,
   KasaHareketScheduledImportHttpRequest,
   KasaCiroBranchDto,
   KasaCiroImportHttpRequest,
@@ -600,6 +605,49 @@ export class KasaIslemleriService extends BaseApiService {
   ): Observable<KasaHareketReportRowDto[]> {
     return this.getWithQuery<KasaHareketReportRowDto[], KasaHareketReportHttpRequest>(
       'kasa-islemleri/kasa-hareket-aktarimi/rapor',
+      request
+    );
+  }
+
+  getKasaHareketRaporOzeti(
+    request: KasaHareketReportHttpRequest
+  ): Observable<KasaHareketReportSummaryDto> {
+    return this.getWithQuery<KasaHareketReportSummaryDto, KasaHareketReportHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/rapor/ozet',
+      request
+    );
+  }
+
+  exportKasaHareketRaporu(request: KasaHareketReportHttpRequest): Observable<Blob> {
+    return this.getBlobWithQuery<KasaHareketReportHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/rapor/excel',
+      request
+    );
+  }
+
+  getKasaHareketIcmalKarsilastirma(
+    request: KasaHareketCashSummaryComparisonHttpRequest
+  ): Observable<KasaHareketCashSummaryComparisonDto> {
+    return this.getWithQuery<
+      KasaHareketCashSummaryComparisonDto,
+      KasaHareketCashSummaryComparisonHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/icmal-karsilastirma', request);
+  }
+
+  exportKasaHareketIcmalKarsilastirma(
+    request: KasaHareketCashSummaryComparisonHttpRequest
+  ): Observable<Blob> {
+    return this.getBlobWithQuery<KasaHareketCashSummaryComparisonHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/icmal-karsilastirma/excel',
+      request
+    );
+  }
+
+  getKasaHareketIcmalKarsilastirmaDetay(
+    request: KasaHareketDetailHttpRequest
+  ): Observable<KasaHareketDetailDto> {
+    return this.getWithQuery<KasaHareketDetailDto, KasaHareketDetailHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/icmal-karsilastirma/detay',
       request
     );
   }

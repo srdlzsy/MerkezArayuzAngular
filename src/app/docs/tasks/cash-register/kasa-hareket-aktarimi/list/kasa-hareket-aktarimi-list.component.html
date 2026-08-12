@@ -32,6 +32,15 @@
         >
           Mikro Aktarim
         </button>
+        <button
+          type="button"
+          class="task-tab"
+          [class.is-active]="activeTab() === 'icmal'"
+          (click)="selectTab('icmal')"
+        >
+          Icmal Kontrol
+          <span>{{ comparisonResult()?.summary?.differenceCount ?? 0 }}</span>
+        </button>
       </div>
     </header>
 
@@ -266,6 +275,15 @@
             [summary]="reportRows().length + ' kayit'"
             (exportRequested)="exportReportRows()"
           ></app-excel-export-button>
+
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            [disabled]="reportCsvExporting()"
+            (click)="exportReportCsv()"
+          >
+            {{ reportCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
+          </button>
         </form>
 
         <section class="summary-strip">
@@ -325,6 +343,355 @@
 
         <article class="state-card empty-state" *ngIf="!reportLoading() && !reportRows().length">
           <h3>Rapor satiri yok</h3>
+        </article>
+      </section>
+
+      <section class="tab-panel" *ngSwitchCase="'icmal'">
+        <form class="report-toolbar comparison-toolbar" [formGroup]="comparisonForm" (ngSubmit)="loadComparison()" novalidate>
+          <label class="field">
+            <span>Icmal Tarihi</span>
+            <input type="date" formControlName="date" />
+          </label>
+
+          <label class="field">
+            <span>Tolerans</span>
+            <input type="number" min="0" step="0.01" formControlName="tolerance" />
+          </label>
+
+          <button type="submit" class="task-action task-action-primary" [disabled]="comparisonLoading()">
+            {{ comparisonLoading() ? 'Yukleniyor...' : 'Kontrol Et' }}
+          </button>
+
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            [disabled]="comparisonCsvExporting()"
+            (click)="exportComparisonCsv()"
+          >
+            {{ comparisonCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
+          </button>
+        </form>
+
+        <section class="summary-strip comparison-summary" *ngIf="comparisonResult() as comparison">
+          <article class="summary-item">
+            <span>Satir</span>
+            <strong>{{ comparison.summary.rowCount }}</strong>
+          </article>
+          <article class="summary-item">
+            <span>Mutabik</span>
+            <strong>{{ comparison.summary.balancedCount }}</strong>
+          </article>
+          <article class="summary-item">
+            <span>Fark</span>
+            <strong>{{ comparison.summary.differenceCount }}</strong>
+          </article>
+          <article class="summary-item" [class.metric-negative]="comparison.summary.totalDifferenceAmount < 0">
+            <span>Toplam Fark</span>
+            <strong>{{ formatCurrency(comparison.summary.totalDifferenceAmount) }}</strong>
+          </article>
+        </section>
+
+        <article class="state-card" *ngIf="comparisonLoading()">
+          <h3>Icmal kontrol yukleniyor</h3>
+        </article>
+
+        <div class="table-wrap" *ngIf="!comparisonLoading() && comparisonResult()?.rows?.length">
+          <table class="data-table comparison-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Sube</th>
+                <th>Kasa</th>
+                <th class="align-right">Aktarim Z</th>
+                <th class="align-right">Icmal</th>
+                <th class="align-right">Belge</th>
+                <th class="align-right">Fark</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let row of comparisonResult()?.rows ?? []; trackBy: trackByComparisonRow"
+                [class.amount-negative]="row.differenceAmount < 0"
+                [class.is-selected]="isSelectedComparisonRow(row)"
+                tabindex="0"
+                (click)="openComparisonDetail(row)"
+                (keydown.enter)="openComparisonDetail(row)"
+              >
+                <td>{{ formatDate(row.date) }}</td>
+                <td>
+                  <strong>{{ row.branchName || 'Sube' }}</strong>
+                  <div class="table-meta">No: {{ row.branchNo }}</div>
+                </td>
+                <td>{{ row.cashRegisterNo }}</td>
+                <td class="align-right">{{ formatCurrency(row.movementZReportAmount) }}</td>
+                <td class="align-right">{{ formatCurrency(row.cashSummaryAmount) }}</td>
+                <td class="align-right">{{ row.cashSummaryDocumentCount }}</td>
+                <td class="align-right cell-strong" [class.amount-negative]="row.differenceAmount < 0">
+                  {{ formatCurrency(row.differenceAmount) }}
+                </td>
+                <td>
+                  <span class="status-pill" [ngClass]="getComparisonStatusClass(row.status)">
+                    {{ row.statusName || row.status }}
+                  </span>
+                  <div class="table-meta">Detay</div>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <section class="detail-shell" *ngIf="selectedComparisonRow() as selectedRow">
+          <header class="detail-head">
+            <div class="title-block">
+              <span class="section-kicker">Detay</span>
+              <h3>{{ selectedRow.branchName || 'Sube' }} / Kasa {{ selectedRow.cashRegisterNo }}</h3>
+            </div>
+
+            <div class="detail-actions">
+              <button
+                type="button"
+                class="task-action task-action-secondary"
+                [disabled]="!comparisonDetail() || comparisonDetailExporting()"
+                (click)="exportComparisonDetailExcel()"
+              >
+                {{ comparisonDetailExporting() ? 'Hazirlaniyor...' : 'Detay Excel' }}
+              </button>
+              <button type="button" class="task-action task-action-secondary" (click)="closeComparisonDetail()">
+                Kapat
+              </button>
+            </div>
+          </header>
+
+          <article class="state-card" *ngIf="comparisonDetailLoading()">
+            <h3>Detay yukleniyor</h3>
+          </article>
+
+          <ng-container *ngIf="!comparisonDetailLoading() && comparisonDetail() as detail">
+            <section class="summary-strip detail-summary">
+              <article class="summary-item">
+                <span>Aktarim Z</span>
+                <strong>{{ formatCurrency(detail.summary.movementZReportAmount) }}</strong>
+              </article>
+              <article class="summary-item">
+                <span>Icmal</span>
+                <strong>{{ formatCurrency(detail.summary.cashSummaryAmount) }}</strong>
+              </article>
+              <article class="summary-item" [class.metric-negative]="detail.summary.differenceAmount < 0">
+                <span>Fark</span>
+                <strong>{{ formatCurrency(detail.summary.differenceAmount) }}</strong>
+              </article>
+              <article class="summary-item">
+                <span>Durum</span>
+                <strong>{{ detail.comparison.statusName || detail.comparison.status }}</strong>
+              </article>
+              <article class="summary-item">
+                <span>Fis</span>
+                <strong>{{ detail.summary.receiptCount }}</strong>
+              </article>
+              <article class="summary-item">
+                <span>Icmal Belge</span>
+                <strong>{{ detail.summary.cashSummaryDocumentCount }}</strong>
+              </article>
+            </section>
+
+            <div class="detail-tabs" aria-label="Icmal detay sekmeleri">
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="comparisonDetailTab() === 'cashiers'"
+                (click)="selectComparisonDetailTab('cashiers')"
+              >
+                Kasiyer
+                <span>{{ detail.cashierSummaries.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="comparisonDetailTab() === 'movement-payments'"
+                (click)="selectComparisonDetailTab('movement-payments')"
+              >
+                Aktarim Odeme
+                <span>{{ detail.movementPaymentSummaries.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="comparisonDetailTab() === 'summary-payments'"
+                (click)="selectComparisonDetailTab('summary-payments')"
+              >
+                Icmal Odeme
+                <span>{{ detail.cashSummaryPayments.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="comparisonDetailTab() === 'documents'"
+                (click)="selectComparisonDetailTab('documents')"
+              >
+                Belgeler
+                <span>{{ detail.cashSummaryDocuments.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="comparisonDetailTab() === 'receipts'"
+                (click)="selectComparisonDetailTab('receipts')"
+              >
+                Fisler
+                <span>{{ detail.receipts.length }}</span>
+              </button>
+            </div>
+
+            <ng-container [ngSwitch]="comparisonDetailTab()">
+              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'cashiers'">
+                <table class="data-table detail-table">
+                  <thead>
+                    <tr>
+                      <th>Kasiyer</th>
+                      <th class="align-right">Fis</th>
+                      <th class="align-right">Satir</th>
+                      <th class="align-right">Net</th>
+                      <th class="align-right">Gider</th>
+                      <th class="align-right">Cek</th>
+                      <th class="align-right">Z Raporu</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of detail.cashierSummaries; trackBy: trackByCashierSummary">
+                      <td>
+                        <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
+                        <div class="table-meta">{{ row.cashierCode || '-' }}</div>
+                      </td>
+                      <td class="align-right">{{ row.receiptCount }}</td>
+                      <td class="align-right">{{ row.lineCount }}</td>
+                      <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
+                      <td class="align-right">{{ formatCurrency(row.expense) }}</td>
+                      <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
+                      <td class="align-right cell-strong">{{ formatCurrency(row.zReportAmount) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'movement-payments'">
+                <table class="data-table detail-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>Odeme</th>
+                      <th class="align-right">Adet</th>
+                      <th class="align-right">Tutar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of detail.movementPaymentSummaries; trackBy: trackByMovementPaymentSummary">
+                      <td>
+                        <strong>{{ row.paymentTypeName || 'Odeme' }}</strong>
+                        <div class="table-meta">Tip {{ row.paymentType }}</div>
+                      </td>
+                      <td class="align-right">{{ row.paymentCount }}</td>
+                      <td class="align-right cell-strong">{{ formatCurrency(row.amount) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'summary-payments'">
+                <table class="data-table detail-table compact-table">
+                  <thead>
+                    <tr>
+                      <th>Odeme</th>
+                      <th>Hesap</th>
+                      <th class="align-right">Fis</th>
+                      <th class="align-right">Tutar</th>
+                      <th>Durum</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of detail.cashSummaryPayments; trackBy: trackByCashSummaryPayment">
+                      <td>
+                        <strong>{{ row.paymentTypeName || 'Odeme' }}</strong>
+                        <div class="table-meta">Tip {{ row.paymentTypeId }}</div>
+                      </td>
+                      <td>{{ row.accountCode || '-' }}</td>
+                      <td class="align-right">{{ row.slipCount }}</td>
+                      <td class="align-right cell-strong">{{ formatCurrency(row.amount) }}</td>
+                      <td>
+                        <span class="status-pill" [class.status-balanced]="row.isIncludedInComparison">
+                          {{ row.isIncludedInComparison ? 'Dahil' : 'Haric' }}
+                        </span>
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'documents'">
+                <table class="data-table detail-table">
+                  <thead>
+                    <tr>
+                      <th>Belge</th>
+                      <th>Kasa / Z</th>
+                      <th>Kasiyer</th>
+                      <th>Yonetici</th>
+                      <th>Tarih</th>
+                      <th class="align-right">Toplam</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of detail.cashSummaryDocuments; trackBy: trackByCashSummaryDocument">
+                      <td>
+                        <strong>{{ row.documentNo || '-' }}</strong>
+                        <div class="table-meta">{{ row.documentSerie || '-' }} / {{ row.documentOrderNo }}</div>
+                      </td>
+                      <td>{{ row.cashNo }} / {{ row.zReportNo }}</td>
+                      <td>{{ row.cashierName || row.cashierNo }}</td>
+                      <td>{{ row.managerName || row.managerNo }}</td>
+                      <td>{{ formatDate(row.summaryDate) }}</td>
+                      <td class="align-right cell-strong">{{ formatCurrency(row.totalAmount) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'receipts'">
+                <table class="data-table detail-table receipt-table">
+                  <thead>
+                    <tr>
+                      <th>Fis</th>
+                      <th>Saat</th>
+                      <th>Kasiyer</th>
+                      <th class="align-right">Net</th>
+                      <th class="align-right">Gider</th>
+                      <th class="align-right">Cek</th>
+                      <th class="align-right">Z</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of detail.receipts; trackBy: trackByReceipt">
+                      <td>
+                        <strong>{{ row.receiptNo }}</strong>
+                        <div class="table-meta">{{ row.documentKindName || '-' }} / Z {{ row.zNo || '-' }}</div>
+                      </td>
+                      <td>{{ row.time || '-' }}</td>
+                      <td>
+                        <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
+                        <div class="table-meta">{{ row.cashierCode || '-' }}</div>
+                      </td>
+                      <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
+                      <td class="align-right">{{ formatCurrency(row.expenseAmount) }}</td>
+                      <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
+                      <td class="align-right cell-strong">{{ formatCurrency(row.zReportAmount) }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </ng-container>
+          </ng-container>
+        </section>
+
+        <article class="state-card empty-state" *ngIf="!comparisonLoading() && !(comparisonResult()?.rows?.length)">
+          <h3>Icmal kontrol satiri yok</h3>
         </article>
       </section>
 

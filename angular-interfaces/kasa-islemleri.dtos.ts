@@ -431,6 +431,17 @@ export interface KasaHareketReportHttpRequest {
   cashRegisterNo?: number | null;
 }
 
+export interface KasaHareketCashSummaryComparisonHttpRequest extends KasaHareketReportHttpRequest {
+  tolerance?: number | null;
+}
+
+export interface KasaHareketDetailHttpRequest {
+  date: string;
+  branchNo: number;
+  cashRegisterNo: number;
+  receiptTake?: number | null;
+}
+
 export interface KasaHareketImportIssueDto {
   branchNo: number | null;
   cashRegisterNo: number | null;
@@ -471,6 +482,168 @@ export interface KasaHareketReportRowDto {
   expense: number;
   checkAmount: number;
   difference: number;
+}
+
+export interface KasaHareketReportSummaryDto {
+  date: string;
+  branchNo: number | null;
+  cashRegisterNo: number | null;
+  rowCount: number;
+  totalNetAmount: number;
+  totalExpense: number;
+  totalCheckAmount: number;
+  totalDifference: number;
+}
+
+export type KasaHareketCashSummaryComparisonStatus =
+  | 'balanced'
+  | 'difference'
+  | 'missing-cash-summary'
+  | 'missing-movement'
+  | string;
+
+export interface KasaHareketCashSummaryComparisonSummaryDto {
+  rowCount: number;
+  balancedCount: number;
+  differenceCount: number;
+  missingCashSummaryCount: number;
+  missingMovementCount: number;
+  totalMovementZReportAmount: number;
+  totalCashSummaryAmount: number;
+  totalDifferenceAmount: number;
+}
+
+export interface KasaHareketCashSummaryComparisonRowDto {
+  date: string;
+  branchNo: number;
+  branchName: string;
+  cashRegisterNo: number;
+  movementNetAmount: number;
+  movementExpense: number;
+  movementCheckAmount: number;
+  movementZReportAmount: number;
+  cashSummaryAmount: number;
+  cashSummaryDocumentCount: number;
+  differenceAmount: number;
+  status: KasaHareketCashSummaryComparisonStatus;
+  statusName: string;
+}
+
+export interface KasaHareketCashSummaryComparisonDto {
+  date: string;
+  branchNo: number | null;
+  cashRegisterNo: number | null;
+  tolerance: number;
+  summary: KasaHareketCashSummaryComparisonSummaryDto;
+  rows: KasaHareketCashSummaryComparisonRowDto[];
+}
+
+export interface KasaHareketDetailComparisonDto {
+  movementZReportAmount: number;
+  cashSummaryAmount: number;
+  differenceAmount: number;
+  status: KasaHareketCashSummaryComparisonStatus;
+  statusName: string;
+}
+
+export interface KasaHareketDetailSummaryDto {
+  receiptCount: number;
+  movementLineCount: number;
+  movementPaymentCount: number;
+  cashSummaryDocumentCount: number;
+  cashSummaryPaymentCount: number;
+  movementNetAmount: number;
+  movementExpense: number;
+  movementCheckAmount: number;
+  movementZReportAmount: number;
+  cashSummaryAmount: number;
+  differenceAmount: number;
+}
+
+export interface KasaHareketCashierSummaryDto {
+  cashierCode: string;
+  cashierName: string;
+  receiptCount: number;
+  lineCount: number;
+  netAmount: number;
+  expense: number;
+  checkAmount: number;
+  zReportAmount: number;
+}
+
+export interface KasaHareketMovementPaymentSummaryDto {
+  paymentType: number;
+  paymentTypeName: string;
+  paymentCount: number;
+  amount: number;
+}
+
+export interface KasaHareketCashSummaryPaymentDto {
+  paymentTypeId: number;
+  paymentTypeName: string;
+  accountCode: string;
+  slipCount: number;
+  amount: number;
+  isIncludedInComparison: boolean;
+}
+
+export interface KasaHareketCashSummaryDocumentDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  documentNo: string;
+  cashNo: number;
+  zReportNo: number;
+  cashierNo: number;
+  cashierName: string;
+  managerNo: number;
+  managerName: string;
+  summaryDate: string;
+  totalAmount: number;
+  paymentLineCount: number;
+  createDate: string;
+}
+
+export interface KasaHareketReceiptDto {
+  invoiceGuid: string;
+  date: string;
+  time: string;
+  branchNo: number;
+  cashRegisterNo: number;
+  receiptNo: number;
+  zNo: string;
+  documentKind: number;
+  documentKindName: string;
+  cashierCode: string;
+  cashierName: string;
+  cardNumber: string;
+  customerCurrentCode: string;
+  grossAmount: number;
+  taxAmount: number;
+  discountAmount: number;
+  netAmount: number;
+  expenseAmount: number;
+  checkAmount: number;
+  zReportAmount: number;
+  lineCount: number;
+  paymentCount: number;
+  promotionCount: number;
+  fiscalMemoryCode: string;
+  processResult: string;
+}
+
+export interface KasaHareketDetailDto {
+  date: string;
+  branchNo: number;
+  branchName: string;
+  cashRegisterNo: number;
+  movementReport: KasaHareketReportRowDto | null;
+  comparison: KasaHareketDetailComparisonDto;
+  summary: KasaHareketDetailSummaryDto;
+  cashierSummaries: KasaHareketCashierSummaryDto[];
+  movementPaymentSummaries: KasaHareketMovementPaymentSummaryDto[];
+  cashSummaryPayments: KasaHareketCashSummaryPaymentDto[];
+  cashSummaryDocuments: KasaHareketCashSummaryDocumentDto[];
+  receipts: KasaHareketReceiptDto[];
 }
 
 // ============================================================================
