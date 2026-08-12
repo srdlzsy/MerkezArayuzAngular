@@ -147,7 +147,7 @@
 
             <p class="format-hint">
               HR/IP satirlari farkli ayraclarla okunur. <code>FIS</code>, <code>FAT</code>, <code>IRS</code>,
-              <code>GPS</code> belge ayrimi korunur; ayracsiz veya sabit <code>.00</code> para alanlari kurus kabul edilir.
+              <code>GPS</code> belge ayrimi korunur; ayracsiz para alanlari kurus, ondalik ayracli alanlar decimal okunur.
             </p>
 
             <div class="form-grid" *ngIf="importForm.controls.importType.value !== 'scheduled'; else scheduledFields">
