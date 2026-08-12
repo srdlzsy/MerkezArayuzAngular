@@ -39,7 +39,9 @@ type KasaHareketDetailTab =
   | 'movement-payments'
   | 'summary-payments'
   | 'documents'
-  | 'receipts';
+  | 'receipts'
+  | 'canceled-receipts'
+  | 'missing-receipts';
 type KasaHareketImportMode = 'normal' | 'cancel' | 'scheduled';
 type KasaHareketProcedureAction =
   | 'staging-delete'
@@ -56,6 +58,10 @@ interface ActionFeedback {
 interface ImportIssueRow extends KasaHareketImportIssueDto {
   severity: 'Hata' | 'Uyari';
   issueId: string;
+}
+
+interface MissingReceiptRow {
+  receiptNo: number;
 }
 
 @Component({
@@ -729,6 +735,8 @@ export class KasaHareketAktarimiListComponent {
   protected readonly trackByReceipt = (_index: number, row: KasaHareketReceiptDto): string =>
     row.invoiceGuid || `${row.branchNo}-${row.cashRegisterNo}-${row.receiptNo}`;
 
+  protected readonly trackByMissingReceipt = (_index: number, row: number): number => row;
+
   protected isSelectedComparisonRow(row: KasaHareketCashSummaryComparisonRowDto): boolean {
     const selected = this.selectedComparisonRow();
 
@@ -959,11 +967,16 @@ export class KasaHareketAktarimiListComponent {
   private normalizeComparisonDetail(detail: KasaHareketDetailDto): KasaHareketDetailDto {
     return {
       ...detail,
+      summary: {
+        ...detail.summary,
+        missingReceiptNos: detail.summary?.missingReceiptNos ?? []
+      },
       cashierSummaries: detail.cashierSummaries ?? [],
       movementPaymentSummaries: detail.movementPaymentSummaries ?? [],
       cashSummaryPayments: detail.cashSummaryPayments ?? [],
       cashSummaryDocuments: detail.cashSummaryDocuments ?? [],
-      receipts: detail.receipts ?? []
+      receipts: detail.receipts ?? [],
+      canceledReceipts: detail.canceledReceipts ?? []
     };
   }
 
@@ -1126,6 +1139,16 @@ export class KasaHareketAktarimiListComponent {
         sheetName: 'Fisler',
         rows: detail.receipts ?? [],
         columns: this.getReceiptExportColumns()
+      },
+      {
+        sheetName: 'Iptal Fisler',
+        rows: detail.canceledReceipts ?? [],
+        columns: this.getReceiptExportColumns()
+      },
+      {
+        sheetName: 'Eksik Fisler',
+        rows: this.getMissingReceiptRows(detail),
+        columns: this.getMissingReceiptExportColumns()
       }
     ];
   }
@@ -1141,6 +1164,11 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Fark', value: (row) => row.summary.differenceAmount, type: 'currency' },
       { label: 'Durum', value: (row) => row.comparison.statusName },
       { label: 'Fis Sayisi', value: (row) => row.summary.receiptCount, type: 'number' },
+      { label: 'Donen Fis', value: (row) => row.summary.returnedReceiptCount, type: 'number' },
+      { label: 'Iptal Fis', value: (row) => row.summary.canceledReceiptCount, type: 'number' },
+      { label: 'Eksik Fis', value: (row) => row.summary.missingReceiptNos.length, type: 'number' },
+      { label: 'Min Fis No', value: (row) => row.summary.minReceiptNo, type: 'number' },
+      { label: 'Max Fis No', value: (row) => row.summary.maxReceiptNo, type: 'number' },
       { label: 'Icmal Belge', value: (row) => row.summary.cashSummaryDocumentCount, type: 'number' }
     ];
   }
@@ -1216,7 +1244,19 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Odeme', value: 'paymentCount', type: 'number' },
       { label: 'Promosyon', value: 'promotionCount', type: 'number' },
       { label: 'Mali Bellek', value: 'fiscalMemoryCode' },
-      { label: 'Sonuc', value: 'processResult' }
+      { label: 'Sonuc', value: 'processResult' },
+      { label: 'Iptal Nedeni', value: 'cancelReason', type: 'number' },
+      { label: 'Iptal Nedeni Adi', value: 'cancelReasonName' }
+    ];
+  }
+
+  private getMissingReceiptRows(detail: KasaHareketDetailDto): MissingReceiptRow[] {
+    return (detail.summary.missingReceiptNos ?? []).map((receiptNo) => ({ receiptNo }));
+  }
+
+  private getMissingReceiptExportColumns(): readonly ExcelExportColumn<MissingReceiptRow>[] {
+    return [
+      { label: 'Eksik Fis No', value: 'receiptNo', type: 'number' }
     ];
   }
 }

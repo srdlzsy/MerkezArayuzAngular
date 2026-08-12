@@ -146,8 +146,8 @@
             </div>
 
             <p class="format-hint">
-              HR/IP satirlari virgullu, noktali virgul, tab veya bosluk ayracli okunur. Guncel format genelde
-              <code>1,00006,01,FIS,...</code> seklindedir.
+              HR/IP satirlari farkli ayraclarla okunur. <code>FIS</code>, <code>FAT</code>, <code>IRS</code>,
+              <code>GPS</code> belge ayrimi korunur; ayracsiz veya sabit <code>.00</code> para alanlari kurus kabul edilir.
             </p>
 
             <div class="form-grid" *ngIf="importForm.controls.importType.value !== 'scheduled'; else scheduledFields">
@@ -507,8 +507,24 @@
                 <strong>{{ detail.summary.receiptCount }}</strong>
               </article>
               <article class="summary-item">
+                <span>Donen Fis</span>
+                <strong>{{ detail.summary.returnedReceiptCount }}</strong>
+              </article>
+              <article class="summary-item">
+                <span>Iptal Fis</span>
+                <strong>{{ detail.summary.canceledReceiptCount }}</strong>
+              </article>
+              <article class="summary-item" [class.metric-negative]="detail.summary.missingReceiptNos.length > 0">
+                <span>Eksik Fis</span>
+                <strong>{{ detail.summary.missingReceiptNos.length }}</strong>
+              </article>
+              <article class="summary-item">
                 <span>Icmal Belge</span>
                 <strong>{{ detail.summary.cashSummaryDocumentCount }}</strong>
+              </article>
+              <article class="summary-item">
+                <span>Fis Araligi</span>
+                <strong>{{ detail.summary.minReceiptNo ?? '-' }} - {{ detail.summary.maxReceiptNo ?? '-' }}</strong>
               </article>
             </section>
 
@@ -557,6 +573,24 @@
               >
                 Fisler
                 <span>{{ detail.receipts.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="comparisonDetailTab() === 'canceled-receipts'"
+                (click)="selectComparisonDetailTab('canceled-receipts')"
+              >
+                Iptal Fis
+                <span>{{ detail.canceledReceipts.length }}</span>
+              </button>
+              <button
+                type="button"
+                class="mode-tab"
+                [class.is-active]="comparisonDetailTab() === 'missing-receipts'"
+                (click)="selectComparisonDetailTab('missing-receipts')"
+              >
+                Eksik Fis
+                <span>{{ detail.summary.missingReceiptNos.length }}</span>
               </button>
             </div>
 
@@ -702,6 +736,54 @@
                     </tr>
                   </tbody>
                 </table>
+              </div>
+
+              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'canceled-receipts'">
+                <table class="data-table detail-table receipt-table">
+                  <thead>
+                    <tr>
+                      <th>Fis</th>
+                      <th>Saat</th>
+                      <th>Kasiyer</th>
+                      <th>Iptal Nedeni</th>
+                      <th class="align-right">Satir</th>
+                      <th>Mali Bellek</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of detail.canceledReceipts; trackBy: trackByReceipt">
+                      <td>
+                        <strong>{{ row.receiptNo }}</strong>
+                        <div class="table-meta">{{ row.documentKindName || '-' }} / Z {{ row.zNo || '-' }}</div>
+                      </td>
+                      <td>{{ row.time || '-' }}</td>
+                      <td>
+                        <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
+                        <div class="table-meta">{{ row.cashierCode || '-' }}</div>
+                      </td>
+                      <td>
+                        <strong>{{ row.cancelReasonName || '-' }}</strong>
+                        <div class="table-meta">Kod {{ row.cancelReason }}</div>
+                      </td>
+                      <td class="align-right">{{ row.lineCount }}</td>
+                      <td>{{ row.fiscalMemoryCode || '-' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+
+              <div class="missing-receipts" *ngSwitchCase="'missing-receipts'">
+                <article class="state-card empty-state" *ngIf="!detail.summary.missingReceiptNos.length">
+                  <h3>Eksik fis numarasi yok</h3>
+                </article>
+                <div class="missing-chip-list" *ngIf="detail.summary.missingReceiptNos.length">
+                  <span
+                    class="missing-chip"
+                    *ngFor="let receiptNo of detail.summary.missingReceiptNos; trackBy: trackByMissingReceipt"
+                  >
+                    {{ receiptNo }}
+                  </span>
+                </div>
               </div>
             </ng-container>
           </ng-container>

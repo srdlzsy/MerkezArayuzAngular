@@ -548,6 +548,8 @@ export interface KasaHareketDetailComparisonDto {
 
 export interface KasaHareketDetailSummaryDto {
   receiptCount: number;
+  returnedReceiptCount: number;
+  canceledReceiptCount: number;
   movementLineCount: number;
   movementPaymentCount: number;
   cashSummaryDocumentCount: number;
@@ -558,6 +560,9 @@ export interface KasaHareketDetailSummaryDto {
   movementZReportAmount: number;
   cashSummaryAmount: number;
   differenceAmount: number;
+  minReceiptNo: number | null;
+  maxReceiptNo: number | null;
+  missingReceiptNos: number[];
 }
 
 export interface KasaHareketCashierSummaryDto {
@@ -629,6 +634,8 @@ export interface KasaHareketReceiptDto {
   promotionCount: number;
   fiscalMemoryCode: string;
   processResult: string;
+  cancelReason: number;
+  cancelReasonName: string;
 }
 
 export interface KasaHareketDetailDto {
@@ -644,6 +651,7 @@ export interface KasaHareketDetailDto {
   cashSummaryPayments: KasaHareketCashSummaryPaymentDto[];
   cashSummaryDocuments: KasaHareketCashSummaryDocumentDto[];
   receipts: KasaHareketReceiptDto[];
+  canceledReceipts: KasaHareketReceiptDto[];
 }
 
 // ============================================================================

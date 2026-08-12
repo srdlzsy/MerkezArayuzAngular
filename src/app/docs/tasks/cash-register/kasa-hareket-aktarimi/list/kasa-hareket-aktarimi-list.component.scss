@@ -626,7 +626,7 @@
 }
 
 .detail-summary {
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
 }
 
 .detail-table-wrap {
@@ -643,6 +643,36 @@
 
 .receipt-table {
   min-width: 760px;
+}
+
+.missing-receipts {
+  display: grid;
+  gap: 0.5rem;
+}
+
+.missing-chip-list {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  max-height: min(360px, calc(100vh - 390px));
+  overflow: auto;
+  padding: 0.55rem;
+  border: 1px solid var(--transfer-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.missing-chip {
+  display: inline-flex;
+  min-width: 52px;
+  justify-content: center;
+  padding: 0.3rem 0.44rem;
+  border: 1px solid #fecaca;
+  border-radius: 6px;
+  background: #fff7f7;
+  color: var(--transfer-danger);
+  font-size: 0.76rem;
+  font-weight: 900;
 }
 
 .action-card {
