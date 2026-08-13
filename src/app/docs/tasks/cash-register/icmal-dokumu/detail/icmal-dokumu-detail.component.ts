@@ -1,13 +1,16 @@
 import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
+import { finalize, switchMap } from 'rxjs';
 import type {
   IBanknoteMovementsCT,
   ICashier,
   ICashRegisterDetails,
   IGiftCheckMovementsCT,
   ISummariesCT,
-  ISummariesDetailsCT
+  ISummariesDetailsCT,
+  UpdateCashSummaryBanknoteLineHttpRequest,
+  UpdateCashSummaryDetailLineHttpRequest
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -15,6 +18,10 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  currentUserHasPermission,
+  normalizePermissionCode
+} from '../../../core/admin-warehouse.helpers';
 import {
   IcmalSummaryPrintModel,
   SummaryPrintComponent
@@ -25,6 +32,13 @@ interface DetailFeedback {
   title: string;
   message: string;
 }
+
+type IcmalActionPermission = 'update' | 'delete';
+type EditableDetailField = keyof ISummariesDetailsCT;
+type EditableBanknoteField = keyof IBanknoteMovementsCT;
+
+const TASK_ID = 'icmal-kaydi-girisi';
+const PERMISSION_PREFIX = 'kasa-islemleri.icmal-kaydi-girisi';
 
 @Component({
   selector: 'app-icmal-dokumu-detail',
@@ -52,6 +66,13 @@ export class IcmalDokumuDetailComponent
   protected readonly cashierAndManagerList = signal<ICashier[]>([]);
   protected readonly zTotalValue = signal<number | null>(null);
   protected readonly cashRegisterDetail = signal<ICashRegisterDetails | null>(null);
+  protected readonly isEditing = signal(false);
+  protected readonly isSaving = signal(false);
+  protected readonly isDeleting = signal(false);
+  protected readonly editableDetails = signal<ISummariesDetailsCT[]>([]);
+  protected readonly editableBanknoteMovements = signal<IBanknoteMovementsCT[]>([]);
+  protected readonly canUpdate = computed(() => this.hasPermission('update'));
+  protected readonly canDelete = computed(() => this.hasPermission('delete'));
 
   protected readonly warehouseNo = computed(() => {
     const summary = this.summary;
@@ -197,6 +218,187 @@ export class IcmalDokumuDetailComponent
     }
 
     this.printWithStylesheet('/assets/summaryPrint.css');
+  }
+
+  protected startEdit(): void {
+    if (!this.canUpdate()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki yok',
+        message: 'Bu icmal kaydini guncellemek icin gerekli yetkin yok.'
+      });
+      return;
+    }
+
+    this.feedback.set(null);
+    this.editableDetails.set(this.summariesDetails().map((item) => ({ ...item })));
+    this.editableBanknoteMovements.set(this.banknoteMovements().map((item) => ({ ...item })));
+    this.isEditing.set(true);
+  }
+
+  protected cancelEdit(): void {
+    if (this.isSaving()) {
+      return;
+    }
+
+    this.isEditing.set(false);
+    this.editableDetails.set([]);
+    this.editableBanknoteMovements.set([]);
+  }
+
+  protected updateEditableDetail(
+    index: number,
+    field: EditableDetailField,
+    value: string
+  ): void {
+    this.editableDetails.update((items) =>
+      items.map((item, itemIndex) => {
+        if (itemIndex !== index) {
+          return item;
+        }
+
+        if (field === 'paymentTypeID' || field === 'slipNumber' || field === 'amount') {
+          return { ...item, [field]: this.toSafeNumber(value) };
+        }
+
+        return { ...item, [field]: value };
+      })
+    );
+  }
+
+  protected updateEditableBanknote(
+    index: number,
+    field: EditableBanknoteField,
+    value: string
+  ): void {
+    this.editableBanknoteMovements.update((items) =>
+      items.map((item, itemIndex) => {
+        if (itemIndex !== index) {
+          return item;
+        }
+
+        const nextItem = { ...item, [field]: this.toSafeNumber(value) };
+
+        if (field === 'value' || field === 'quantity') {
+          nextItem.total = this.toSafeNumber(nextItem.value) * this.toSafeNumber(nextItem.quantity);
+        }
+
+        return nextItem;
+      })
+    );
+  }
+
+  protected saveEdit(): void {
+    const summary = this.summary;
+
+    if (!summary || this.isSaving()) {
+      return;
+    }
+
+    if (!this.canUpdate()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki yok',
+        message: 'Bu icmal kaydini guncellemek icin gerekli yetkin yok.'
+      });
+      return;
+    }
+
+    const warehouseNo = this.resolveRequestWarehouseNo();
+
+    this.feedback.set(null);
+    this.isSaving.set(true);
+
+    this.kasaIslemleriService
+      .updateCashSummaryDetails(
+        summary.documentSerie,
+        summary.documentOrderNo,
+        {
+          warehouseNo,
+          details: this.buildEditableDetailsRequest()
+        }
+      )
+      .pipe(
+        switchMap(() =>
+          this.kasaIslemleriService.updateCashSummaryBanknotes(
+            summary.documentSerie,
+            summary.documentOrderNo,
+            {
+              warehouseNo,
+              banknoteMovements: this.buildEditableBanknotesRequest()
+            }
+          )
+        ),
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSaving.set(false))
+      )
+      .subscribe({
+        next: () => {
+          this.isEditing.set(false);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Icmal guncellendi',
+            message: 'Odeme ve banknot satirlari yeni degerlerle kaydedildi.'
+          });
+          this.loadDetailData();
+        },
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Guncelleme tamamlanamadi',
+            message: 'Icmal satirlari kaydedilirken bir hata olustu.'
+          });
+        }
+      });
+  }
+
+  protected deleteSummary(): void {
+    const summary = this.summary;
+
+    if (!summary || this.isDeleting()) {
+      return;
+    }
+
+    if (!this.canDelete()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki yok',
+        message: 'Bu icmal kaydini silmek icin gerekli yetkin yok.'
+      });
+      return;
+    }
+
+    const confirmed = window.confirm(
+      `${summary.documentSerie}/${summary.documentOrderNo} icmal kaydi silinsin mi?`
+    );
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.feedback.set(null);
+    this.isDeleting.set(true);
+
+    this.kasaIslemleriService
+      .deleteCashSummary(
+        summary.documentSerie,
+        summary.documentOrderNo,
+        this.resolveRequestWarehouseNo()
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isDeleting.set(false))
+      )
+      .subscribe({
+        next: () => this.close({ deleted: true }),
+        error: () => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Silme tamamlanamadi',
+            message: 'Icmal kaydi silinirken bir hata olustu.'
+          });
+        }
+      });
   }
 
   protected formatSummaryDate(value: Date | string | null | undefined): string {
@@ -423,6 +625,57 @@ export class IcmalDokumuDetailComponent
 
   private toSafeString(value: unknown): string {
     return value === null || value === undefined ? '' : String(value);
+  }
+
+  private buildEditableDetailsRequest(): UpdateCashSummaryDetailLineHttpRequest[] {
+    return this.editableDetails()
+      .filter((item) => this.toSafeNumber(item.paymentTypeID) !== 500)
+      .map((item) => ({
+        typeName: this.toSafeString(item.typeName),
+        paymentTypeId: this.toSafeNumber(item.paymentTypeID),
+        accountCode: this.toSafeString(item.accountCode),
+        slipNumber: this.toSafeNumber(item.slipNumber),
+        amount: this.toSafeNumber(item.amount),
+        terminalId: this.toSafeString(item.terminalId),
+        description: this.toSafeString(item.description)
+      }));
+  }
+
+  private buildEditableBanknotesRequest(): UpdateCashSummaryBanknoteLineHttpRequest[] {
+    return this.editableBanknoteMovements().map((item) => ({
+      value: this.toSafeNumber(item.value),
+      banknoteType: this.toSafeNumber(item.banknoteTypeID),
+      quantity: this.toSafeNumber(item.quantity),
+      total: this.toSafeNumber(item.total)
+    }));
+  }
+
+  private resolveRequestWarehouseNo(): number | undefined {
+    const warehouseNo = this.warehouseNo();
+
+    return warehouseNo > 0 ? warehouseNo : undefined;
+  }
+
+  private hasPermission(action: IcmalActionPermission): boolean {
+    const user = this.authService.currentUser();
+
+    if (!user) {
+      return false;
+    }
+
+    const permissionCode = `${PERMISSION_PREFIX}.${action}`;
+    const permissionKeys = [
+      ...this.authService.getTaskPermissionCodes(TASK_ID),
+      ...this.authService.getTaskPermissionKeys(TASK_ID)
+    ].map((permission) => normalizePermissionCode(permission));
+    const normalizedPermissionCode = normalizePermissionCode(permissionCode);
+    const normalizedAction = normalizePermissionCode(action);
+
+    return (
+      currentUserHasPermission(user, permissionCode) ||
+      permissionKeys.includes(normalizedPermissionCode) ||
+      permissionKeys.includes(normalizedAction)
+    );
   }
 
   private printWithStylesheet(stylesheetHref: string): void {

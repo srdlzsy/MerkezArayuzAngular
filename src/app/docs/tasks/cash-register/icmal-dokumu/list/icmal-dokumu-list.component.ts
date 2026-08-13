@@ -185,13 +185,21 @@ export class IcmalDokumuListComponent {
   }
 
   protected openDetail(summary: ISummariesCT): void {
-    openDocsTaskDialog(this.dialog, IcmalDokumuDetailComponent, {
+    const dialogRef = openDocsTaskDialog(this.dialog, IcmalDokumuDetailComponent, {
       data: summary,
       width: 'min(1180px, 96vw)',
       maxWidth: '96vw',
       maxHeight: '96vh',
       panelClass: 'icmal-detail-dialog'
     });
+
+    dialogRef.closed
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: unknown) => {
+        if (this.isDeleteDialogResult(result)) {
+          this.loadSummaries();
+        }
+      });
   }
 
   protected clearSearch(): void {
@@ -283,6 +291,10 @@ export class IcmalDokumuListComponent {
     }
 
     return 0;
+  }
+
+  private isDeleteDialogResult(value: unknown): value is { deleted: true } {
+    return typeof value === 'object' && value !== null && 'deleted' in value;
   }
 }
 

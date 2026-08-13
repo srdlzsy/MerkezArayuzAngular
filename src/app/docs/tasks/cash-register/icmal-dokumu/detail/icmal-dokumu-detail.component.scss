@@ -55,7 +55,10 @@
 }
 
 .print-button,
-.close-button {
+.close-button,
+.edit-button,
+.save-button,
+.delete-button {
   min-height: 34px;
   border-radius: 8px;
   padding: 0.45rem 0.78rem;
@@ -70,6 +73,24 @@
   border: 1px solid #0b5c56;
 }
 
+.edit-button {
+  color: #1d4ed8;
+  background: #eff6ff;
+  border: 1px solid #bfdbfe;
+}
+
+.save-button {
+  color: #fff;
+  background: #2563eb;
+  border: 1px solid #1d4ed8;
+}
+
+.delete-button {
+  color: #fff;
+  background: #dc2626;
+  border: 1px solid #b91c1c;
+}
+
 .close-button {
   color: #0f172a;
   background: #f8fafc;
@@ -77,8 +98,21 @@
 }
 
 .print-button:hover,
-.close-button:hover {
+.close-button:hover,
+.edit-button:hover,
+.save-button:hover,
+.delete-button:hover {
   transform: translateY(-1px);
+}
+
+.print-button:disabled,
+.close-button:disabled,
+.edit-button:disabled,
+.save-button:disabled,
+.delete-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+  transform: none;
 }
 
 .dialog-body {
@@ -213,6 +247,76 @@
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   gap: 0.75rem;
+}
+
+.edit-panel {
+  display: grid;
+  gap: 0.75rem;
+  padding: 0.85rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.edit-panel-head {
+  display: flex;
+  align-items: start;
+  justify-content: space-between;
+  gap: 0.75rem;
+}
+
+.edit-panel-head h3 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1rem;
+}
+
+.edit-panel-head p {
+  margin: 0.25rem 0 0;
+  color: #526579;
+  font-size: 0.84rem;
+}
+
+.edit-panel-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
+}
+
+.edit-section {
+  padding: 0.8rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.edit-table-wrap {
+  box-shadow: none;
+}
+
+.edit-table {
+  min-width: 860px;
+}
+
+.edit-table-narrow {
+  min-width: 520px;
+}
+
+.edit-table input {
+  width: 100%;
+  min-height: 32px;
+  padding: 0.35rem 0.45rem;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  font: inherit;
+}
+
+.edit-table input:focus {
+  border-color: #2563eb;
+  box-shadow: 0 0 0 3px rgba(37, 99, 235, 0.12);
+  outline: none;
 }
 
 .detail-card-head {
@@ -356,6 +460,8 @@ th {
 @media (max-width: 820px) {
   .dialog-header,
   .dialog-actions,
+  .edit-panel-head,
+  .edit-panel-actions,
   .detail-card-head {
     flex-direction: column;
     align-items: start;
@@ -381,8 +487,12 @@ th {
   }
 
   .dialog-actions,
+  .edit-panel-actions,
   .print-button,
-  .close-button {
+  .close-button,
+  .edit-button,
+  .save-button,
+  .delete-button {
     width: 100%;
   }
 }

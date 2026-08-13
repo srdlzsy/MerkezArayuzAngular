@@ -15,6 +15,22 @@
     </div>
 
     <div class="dialog-actions">
+      <ng-container *ngIf="isEditing(); else readonlyActions">
+        <button type="button" class="close-button" [disabled]="isSaving()" (click)="cancelEdit()">
+          Vazgec
+        </button>
+        <button type="button" class="save-button" [disabled]="isSaving()" (click)="saveEdit()">
+          {{ isSaving() ? 'Kaydediliyor...' : 'Degisiklikleri Kaydet' }}
+        </button>
+      </ng-container>
+      <ng-template #readonlyActions>
+        <button type="button" class="edit-button" *ngIf="canUpdate()" [disabled]="isLoading()" (click)="startEdit()">
+          Duzenle
+        </button>
+        <button type="button" class="delete-button" *ngIf="canDelete()" [disabled]="isDeleting()" (click)="deleteSummary()">
+          {{ isDeleting() ? 'Siliniyor...' : 'Sil' }}
+        </button>
+      </ng-template>
       <button type="button" class="print-button" [disabled]="!printModel()" (click)="printSummary()">
         Yazdir
       </button>
@@ -36,6 +52,111 @@
       <h3>Detaylar getiriliyor</h3>
       <p>Odeme dagilimlari, Z raporu ve kasa bilgileri yukleniyor.</p>
     </article>
+
+    <section class="edit-panel icmal-print-hidden" *ngIf="isEditing()">
+      <div class="edit-panel-head">
+        <div>
+          <h3>Icmal Duzenleme</h3>
+          <p>Odeme satirlari ve banknot adetlerini kontrol edip kaydedin.</p>
+        </div>
+        <div class="edit-panel-actions">
+          <button type="button" class="close-button" [disabled]="isSaving()" (click)="cancelEdit()">
+            Vazgec
+          </button>
+          <button type="button" class="save-button" [disabled]="isSaving()" (click)="saveEdit()">
+            {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
+          </button>
+        </div>
+      </div>
+
+      <article class="edit-section">
+        <div class="detail-card-head">
+          <h3>Odeme Satirlari</h3>
+          <span>{{ editableDetails().length }} Kalem</span>
+        </div>
+        <div class="table-wrap edit-table-wrap">
+          <table class="edit-table">
+            <thead>
+              <tr>
+                <th>Tip</th>
+                <th>Tip No</th>
+                <th>Hesap</th>
+                <th>Terminal</th>
+                <th>Slip</th>
+                <th>Tutar</th>
+                <th>Aciklama</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of editableDetails(); let index = index">
+                <td>
+                  <input [value]="item.typeName" (input)="updateEditableDetail(index, 'typeName', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" [value]="item.paymentTypeID" (input)="updateEditableDetail(index, 'paymentTypeID', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input [value]="item.accountCode" (input)="updateEditableDetail(index, 'accountCode', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input [value]="item.terminalId" (input)="updateEditableDetail(index, 'terminalId', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" [value]="item.slipNumber" (input)="updateEditableDetail(index, 'slipNumber', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" step="0.01" [value]="item.amount" (input)="updateEditableDetail(index, 'amount', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input [value]="item.description" (input)="updateEditableDetail(index, 'description', $any($event.target).value)" />
+                </td>
+              </tr>
+              <tr *ngIf="!editableDetails().length">
+                <td colspan="7" class="empty-row">Duzenlenecek odeme satiri yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="edit-section">
+        <div class="detail-card-head">
+          <h3>Banknot Satirlari</h3>
+          <span>{{ editableBanknoteMovements().length }} Kalem</span>
+        </div>
+        <div class="table-wrap edit-table-wrap">
+          <table class="edit-table edit-table-narrow">
+            <thead>
+              <tr>
+                <th>Deger</th>
+                <th>Tip No</th>
+                <th>Adet</th>
+                <th>Toplam</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of editableBanknoteMovements(); let index = index">
+                <td>
+                  <input type="number" step="0.01" [value]="item.value" (input)="updateEditableBanknote(index, 'value', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" [value]="item.banknoteTypeID" (input)="updateEditableBanknote(index, 'banknoteTypeID', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" [value]="item.quantity" (input)="updateEditableBanknote(index, 'quantity', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" step="0.01" [value]="item.total" (input)="updateEditableBanknote(index, 'total', $any($event.target).value)" />
+                </td>
+              </tr>
+              <tr *ngIf="!editableBanknoteMovements().length">
+                <td colspan="4" class="empty-row">Duzenlenecek banknot satiri yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+    </section>
 
     <section class="summary-shell icmal-print-hidden">
       <article class="summary-card summary-card-primary">

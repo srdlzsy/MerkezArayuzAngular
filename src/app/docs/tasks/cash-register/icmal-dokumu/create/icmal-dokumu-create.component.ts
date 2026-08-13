@@ -31,7 +31,9 @@ import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-erro
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
-  formatCurrentWarehouseLabel
+  currentUserHasPermission,
+  formatCurrentWarehouseLabel,
+  normalizePermissionCode
 } from '../../../core/admin-warehouse.helpers';
 
 type BanknoteLineFormGroup = FormGroup<{
@@ -94,6 +96,7 @@ interface CashDrawerCard {
 }
 
 const BACKEND_CASH_PAYMENT_TYPE_NO = 500;
+const TASK_ID = 'icmal-kaydi-girisi';
 
 @Component({
   selector: 'app-icmal-dokumu-create',
@@ -119,6 +122,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
     )
   );
+  protected readonly canCreate = computed(() => this.hasPermission('create'));
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
   );
@@ -126,8 +130,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
     formatCurrentWarehouseLabel(this.authService.currentUser())
   );
   protected readonly generatedSeriePreview = computed(() => {
-    const warehouseNo = this.currentWarehouseNo();
-    return warehouseNo ? `KS${warehouseNo}` : 'KS{loginDepoNo}';
+    this.formRevision();
+    const warehouseNo = this.controls?.warehouseNo?.value ?? this.currentWarehouseNo();
+    const cashNo = this.controls?.cashNo?.value ?? null;
+    return this.buildCashSummaryDocumentSerie(warehouseNo, cashNo);
   });
 
   protected readonly lookupLoading = signal(false);
@@ -819,7 +825,12 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.zReportLoading.set(true);
 
     this.kasaIslemleriService
-      .getZRaporuToplamDeger(this.generatedSeriePreview(), warehouseNo, zReportNo, cashNo)
+      .getZRaporuToplamDeger(
+        this.buildCashSummaryDocumentSerie(warehouseNo, cashNo),
+        warehouseNo,
+        zReportNo,
+        cashNo
+      )
       .pipe(finalize(() => this.zReportLoading.set(false)))
       .subscribe({
         next: (value: number | null) => {
@@ -849,6 +860,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.submitError.set('');
     this.submitSuccess.set('');
     this.createdResponse.set(null);
+
+    if (!this.canCreate()) {
+      this.submitError.set('Bu icmal kaydini olusturmak icin kaydetme yetkin yok.');
+      return;
+    }
 
     if (!this.hasRequiredFinancialLines()) {
       this.submitError.set(
@@ -1507,6 +1523,37 @@ export class IcmalDokumuCreateComponent implements OnInit {
       ),
       storeExpenses: rawValue.storeExpenses
     };
+  }
+
+  private buildCashSummaryDocumentSerie(
+    warehouseNo: number | null | undefined,
+    cashNo: number | null | undefined
+  ): string {
+    const warehousePart = warehouseNo ? String(warehouseNo) : '{loginDepoNo}';
+    const cashPart = cashNo ? String(cashNo) : '{kasaNo}';
+    return `F${warehousePart}.${cashPart}`;
+  }
+
+  private hasPermission(action: 'create'): boolean {
+    const user = this.authService.currentUser();
+
+    if (!user) {
+      return false;
+    }
+
+    const permissionCode = `kasa-islemleri.icmal-kaydi-girisi.${action}`;
+    const permissionKeys = [
+      ...this.authService.getTaskPermissionCodes(TASK_ID),
+      ...this.authService.getTaskPermissionKeys(TASK_ID)
+    ].map((permission) => normalizePermissionCode(permission));
+    const normalizedPermissionCode = normalizePermissionCode(permissionCode);
+    const normalizedAction = normalizePermissionCode(action);
+
+    return (
+      currentUserHasPermission(user, permissionCode) ||
+      permissionKeys.includes(normalizedPermissionCode) ||
+      permissionKeys.includes(normalizedAction)
+    );
   }
 
   private sumFormArray<T extends FormGroup>(

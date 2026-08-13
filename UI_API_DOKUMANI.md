@@ -10954,8 +10954,8 @@ Response:
 
 Alan notlari:
 
-- `netAmount`: `PosFaturas` icinde satis/fatura kabul edilen kayit toplamidir.
-- `expense`: `BelgeTuru = 4` gider pusulasi toplamidir.
+- `netAmount`: `PosFaturas.Toplam + PosFaturas.ToplamKdv` icinde satis/fatura kabul edilen kayit toplamidir; staging toplaminda fatura indirimi zaten uygulanmis kabul edilir.
+- `expense`: `BelgeTuru = 4` icin `PosFaturas.Toplam + PosFaturas.ToplamKdv` gider pusulasi toplamidir.
 - `checkAmount`: `PosFaturaOdemes` icinde `OdemeTipi = 4` cek toplamidir.
 - `difference`: eski WinUI ekranindaki `Z Raporu` kolonudur; hesap `netAmount - expense - checkAmount` seklindedir.
 
@@ -11725,7 +11725,7 @@ Onemli not:
 - `kasa-islemleri.icmal-kaydi-girisi.all-warehouses` yoksa `warehouseNo` sorulmaz; backend JWT icindeki kullanici deposunu kullanir. Bu yetki varsa baska depo adina kasa sayimi/complete icmal kaydi olusturulacaksa body'de opsiyonel `warehouseNo` gonderilebilir
 - en az bir `paymentTypes`, `storeExpenses` veya `banknoteMovements` satiri zorunludur
 - backend `Summaries`, `BanknoteMovements`, `GiftCheckMovements` ve `CARI_HESAP_HAREKETLERI` tarafina yazar
-- `documentSerie` backend tarafinda `KS{islemDepoNo}` olarak uretilir
+- `documentSerie` backend tarafinda legacy kasa icmal formatinda `F{islemDepoNo}.{cashNo}` olarak uretilir
 - `documentOrderNo` ayni seri icin mevcut maksimum degerin bir fazlasi olarak uretilir
 - nakit toplam `paymentTypes` icinde manuel gonderilmez; backend banknot hareketlerinden `PaymentTypeID = 500`, `description = "Nakit Toplam"` satirini garanti eder
 - UI yanlislikla `paymentTypes` icinde `Nakit` veya `paymentTypeNo = 500` gonderirse backend bunu ayri odeme satiri olarak yazmaz, 500 satirini banknot toplamindan uretir
@@ -11768,7 +11768,7 @@ Response:
 
 ```json
 {
-  "documentSerie": "KS110",
+  "documentSerie": "F110.1",
   "documentOrderNo": 12,
   "summaryDate": "2026-04-24T00:00:00",
   "warehouseNo": 110,
@@ -11784,9 +11784,15 @@ Belge uzerindeki satirlari ve fiziksel para detaylarini guncellemek icin ayri en
 
 Route'lar:
 
-- `PUT /api/kasa-islemleri/kasa-sayimlari/KS110/12/detaylar`
-- `PUT /api/kasa-islemleri/kasa-sayimlari/KS110/12/banknot-hareketleri`
-- `DELETE /api/kasa-islemleri/kasa-sayimlari/KS110/12`
+- `PUT /api/kasa-islemleri/kasa-sayimlari/F110.1/12/detaylar`
+- `PUT /api/kasa-islemleri/kasa-sayimlari/F110.1/12/banknot-hareketleri`
+- `DELETE /api/kasa-islemleri/kasa-sayimlari/F110.1/12`
+
+Legacy uyumluluk route'lari:
+
+- `POST /api/kasa-islemleri/kasa-sayimlari/UpdateSummaryDetails`
+- `POST /api/kasa-islemleri/kasa-sayimlari/UpdateBanknoteMovements`
+- `POST /api/kasa-islemleri/kasa-sayimlari/DeleteSummary`
 
 Yetki:
 
@@ -11799,7 +11805,8 @@ Not:
 - detay update request'inde nakit/500 satiri gonderilmez; backend mevcut banknot toplamindan 500 satirini korur
 - banknot update request'inde `banknoteMovements` bos gonderilirse mevcut banknot satirlari temizlenebilir
 - banknot update sonrasi backend `PaymentTypeID = 500` nakit toplam satirini ve ilgili cari hareket toplamlarini yeni belge toplamiyla gunceller
-- `DELETE` cagrisinda `warehouseNo` body'den alinmaz; JWT deposu kullanilir
+- modern `DELETE` cagrisinda sube icin query `warehouseNo` veya JWT deposu kullanilir
+- legacy `POST DeleteSummary` cagrisinda `warehouseNo` yoksa backend `documentSerie` icinden subeyi cozer, ornek `F110.1` -> `110`
 
 Detay update request:
 
@@ -11823,7 +11830,7 @@ Detay update response:
 
 ```json
 {
-  "documentSerie": "KS110",
+  "documentSerie": "F110.1",
   "documentOrderNo": 12,
   "updatedLineCount": 2,
   "totalAmount": 6500
@@ -11852,16 +11859,62 @@ Banknot update response modeli:
 - `updatedLineCount`
 - `totalAmount`
 
+Legacy detay update request:
+
+```json
+{
+  "documentSerie": "F110.1",
+  "documentOrderNo": 12,
+  "summariesDetails": [
+    {
+      "typeName": "Akbank POS",
+      "paymentTypeID": 1,
+      "accountCode": "POS-AKBANK",
+      "slipNumber": 12,
+      "amount": 2500,
+      "terminalId": "TERM-01",
+      "description": ""
+    }
+  ]
+}
+```
+
+Legacy banknot update request:
+
+```json
+{
+  "documentSerie": "F110.1",
+  "documentOrderNo": 12,
+  "banknoteMovements": [
+    {
+      "value": 200,
+      "banknoteTypeID": 1,
+      "quantity": 25,
+      "total": 5000
+    }
+  ]
+}
+```
+
 Delete response:
 
 ```json
 {
-  "documentSerie": "KS110",
+  "documentSerie": "F110.1",
   "documentOrderNo": 12,
   "deletedSummaryLineCount": 2,
   "deletedBanknoteLineCount": 1,
   "deletedGiftCheckLineCount": 0,
   "deletedCustomerMovementCount": 1
+}
+```
+
+Legacy delete request:
+
+```json
+{
+  "documentSerie": "F110.1",
+  "documentOrderNo": 12
 }
 ```
 

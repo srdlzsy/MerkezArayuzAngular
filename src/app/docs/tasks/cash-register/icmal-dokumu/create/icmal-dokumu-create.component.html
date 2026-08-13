@@ -16,7 +16,7 @@
         <button type="button" class="action-button action-button-ghost" (click)="goBack()">
           Listeye Don
         </button>
-        <button type="submit" class="action-button action-button-primary" [disabled]="submitting()">
+        <button type="submit" class="action-button action-button-primary" [disabled]="submitting() || !canCreate()">
           {{ submitting() ? 'Kaydediliyor...' : 'Icmal Kaydini Kaydet' }}
         </button>
       </div>

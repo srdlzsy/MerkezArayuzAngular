@@ -1095,7 +1095,7 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Sube', value: 'branchName' },
       { label: 'Kasa', value: 'cashRegisterNo', type: 'number' },
       { label: 'Net', value: 'netAmount', type: 'currency' },
-      { label: 'Masraf', value: 'expense', type: 'currency' },
+      { label: 'Gider', value: 'expense', type: 'currency' },
       { label: 'Cek', value: 'checkAmount', type: 'currency' },
       { label: 'Fark', value: 'difference', type: 'currency' }
     ];
