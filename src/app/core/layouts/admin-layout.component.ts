@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, HostListener, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, HostListener, ViewChild, computed, effect, inject, signal } from '@angular/core';
 import { ActivatedRoute, NavigationEnd, Router, RouterLink, RouterLinkActive, RouterOutlet } from '@angular/router';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { filter, finalize } from 'rxjs';
@@ -22,6 +22,8 @@ import { environment } from '../../../environments/environment';
   styleUrl: './admin-layout.component.scss'
 })
 export class AdminLayoutComponent {
+  @ViewChild('contentWrapper') private contentWrapper?: ElementRef<HTMLElement>;
+
   private readonly sidebarZoomInCollapseWidth = 1280;
   private readonly sidebarZoomOutExpandWidth = 1760;
   private readonly sidebarCollapsedStorageKey = 'furpa.adminLayout.sidebarCollapsed';
@@ -95,6 +97,7 @@ export class AdminLayoutComponent {
       this.updatePageTitle();
       this.syncActiveTaskId();
       this.expandActiveMenuPath();
+      this.scheduleContentScrollToTop();
       this.closeSidebar();
       this.closeRailMenu();
       this.closeAnnouncementInbox();
@@ -227,6 +230,7 @@ export class AdminLayoutComponent {
   protected handleLeafNavigate(): void {
     this.closeSidebar();
     this.closeRailMenu();
+    this.scheduleContentScrollToTop();
   }
 
   protected closeRailMenu(): void {
@@ -414,6 +418,17 @@ export class AdminLayoutComponent {
     } catch {
       // Layout preference is optional; ignore storage failures.
     }
+  }
+
+  private scheduleContentScrollToTop(): void {
+    if (typeof window === 'undefined') {
+      return;
+    }
+
+    window.requestAnimationFrame(() => {
+      window.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+      this.contentWrapper?.nativeElement.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
   }
 
   private updatePageTitle(): void {

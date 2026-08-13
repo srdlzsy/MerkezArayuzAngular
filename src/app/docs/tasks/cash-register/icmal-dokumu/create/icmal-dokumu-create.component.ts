@@ -1069,6 +1069,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
     return this.buildPaymentTypeTemplateKey(template);
   }
 
+  protected getPaymentTypeNoSelection(group: PaymentTypeLineFormGroup): string {
+    const paymentTypeNo = this.toSafeNumber(group.controls.paymentTypeNo.value);
+    return paymentTypeNo > 0 ? `${paymentTypeNo}` : '';
+  }
+
   protected getPaymentTypeGroupTemplateKey(
     source: CashDrawerPaymentSource,
     group: PaymentTypeLineFormGroup
@@ -1098,8 +1103,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
     }
 
     const currentKey = this.buildPaymentTypeTemplateKey(currentTemplate);
+    const currentTypeNo = this.toSafeNumber(currentTemplate.paymentTypeNo);
     const hasCurrentTemplate = templates.some(
-      (template) => this.buildPaymentTypeTemplateKey(template) === currentKey
+      (template) =>
+        (currentTypeNo > 0 && this.toSafeNumber(template.paymentTypeNo) === currentTypeNo) ||
+        this.buildPaymentTypeTemplateKey(template) === currentKey
     );
 
     return hasCurrentTemplate ? templates : [currentTemplate, ...templates];
@@ -1118,6 +1126,25 @@ export class IcmalDokumuCreateComponent implements OnInit {
     }
 
     return name || parts.join(' / ') || 'Odeme tipi';
+  }
+
+  protected applyPaymentTypeNoSelection(index: number, rawPaymentTypeNo: string): void {
+    const group = this.paymentTypes.at(index);
+    const source = group.controls.source.value;
+    const paymentTypeNo = this.toSafeNumber(rawPaymentTypeNo);
+
+    const template = this.getPaymentTypeOptionsForGroup(source, group).find(
+      (item) => this.toSafeNumber(item.paymentTypeNo) === paymentTypeNo
+    );
+
+    if (template) {
+      this.applyPaymentTypeTemplateToGroup(group, template);
+    } else {
+      group.controls.paymentTypeNo.setValue(paymentTypeNo > 0 ? paymentTypeNo : null);
+    }
+
+    this.markPaymentTypeLookupControlsTouched(group);
+    this.refreshComputedFormState();
   }
 
   protected applyPaymentTypeTemplateSelection(index: number, templateKey: string): void {
@@ -1252,7 +1279,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
             !this.isBackendGeneratedCashPaymentGroup(group)
         )
         .map((group) =>
-          this.buildPaymentTypeTemplateKey({
+          this.buildPaymentTypeTemplateMatchKey({
             paymentName: group.controls.paymentName.value,
             paymentTypeNo: group.controls.paymentTypeNo.value,
             terminalId: group.controls.terminalId.value,
@@ -1263,7 +1290,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
     let hasNewTemplate = false;
 
     templates.forEach((template) => {
-      const key = this.buildPaymentTypeTemplateKey(template);
+      const key = this.buildPaymentTypeTemplateMatchKey(template);
 
       if (existingKeys.has(key)) {
         return;
@@ -1488,6 +1515,23 @@ export class IcmalDokumuCreateComponent implements OnInit {
       this.normalizeLookupKeyText(template.terminalId),
       this.normalizeLookupKeyText(template.accountCode)
     ].join('|');
+  }
+
+  private buildPaymentTypeTemplateMatchKey(
+    template: Partial<{
+      paymentName: string | null;
+      paymentTypeNo: number | string | null;
+      terminalId: string | null;
+      accountCode: string | null;
+    }>
+  ): string {
+    const paymentTypeNo = this.toSafeNumber(template.paymentTypeNo);
+
+    if (paymentTypeNo > 0) {
+      return `tip:${paymentTypeNo}`;
+    }
+
+    return this.buildPaymentTypeTemplateKey(template);
   }
 
   private paymentTotalBySource(source: CashDrawerPaymentSource): number {

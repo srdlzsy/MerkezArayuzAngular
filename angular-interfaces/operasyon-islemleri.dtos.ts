@@ -192,6 +192,7 @@ export interface WarehouseOperationPanelHttpRequest {
 export interface WarehouseOperationPanelSummaryDto {
   warehouseCount: number;
   todayShipmentCount: number;
+  todayReturnCount: number;
   todayReceivingCount: number;
   pendingReceivingCount: number;
   incompleteOperationCount: number;
@@ -208,6 +209,7 @@ export interface WarehouseOperationPanelItemDto {
   warehouseNo: number;
   warehouseName: string;
   todayShipmentCount: number;
+  todayReturnCount: number;
   todayReceivingCount: number;
   pendingReceivingCount: number;
   incompleteOperationCount: number;

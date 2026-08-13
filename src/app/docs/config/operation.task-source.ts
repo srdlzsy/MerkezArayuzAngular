@@ -108,11 +108,12 @@ export const OPERATION_TASK_SOURCE = {
       id: 'depo-operasyon-paneli',
       title: 'Depo Operasyon Paneli',
       subtitle:
-        'Aktif depolarin gunluk sevk, mal kabul, bekleyen islem ve e-irsaliye hata durumlarini tek ekranda izler.',
+        'Aktif depolarin gunluk sevk, iade, mal kabul, bekleyen islem ve e-irsaliye hata durumlarini tek ekranda izler.',
       baseRouteOrFile: '/api/operasyon-islemleri/depo-operasyon-paneli',
       highlights: [
         'Yalnizca Furpa Merkez API tarafindan kaydedilen belge akislarini sayar',
-        'Secilen gun icin sevk, mal kabul ve tamamlanmamis operasyon ozetini sunar',
+        'Secilen gun icin sevk, iade, mal kabul ve tamamlanmamis operasyon ozetini sunar',
+        'Kaynak ve hedef depo mantigina gore cikis, iade ve kabul sayaclarini ayri gosterir',
         'Depo sagligini Healthy, Warning ve Critical seviyelerinde gosterir',
         'Depo satirindan filtreli belge akis listesine gecis saglar'
       ],

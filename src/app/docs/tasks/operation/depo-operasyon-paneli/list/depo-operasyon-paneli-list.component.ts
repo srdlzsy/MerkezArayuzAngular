@@ -30,6 +30,7 @@ type SortKey =
   | 'warehouseNo'
   | 'warehouseName'
   | 'todayShipmentCount'
+  | 'todayReturnCount'
   | 'todayReceivingCount'
   | 'pendingReceivingCount'
   | 'incompleteOperationCount'
@@ -52,6 +53,7 @@ const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 const SUMMARY_METRICS: readonly SummaryMetric[] = [
   { key: 'warehouseCount', label: 'Aktif Depo', icon: 'fa-warehouse', tone: 'neutral' },
   { key: 'todayShipmentCount', label: 'Bugunku Sevk', icon: 'fa-truck-fast', tone: 'neutral' },
+  { key: 'todayReturnCount', label: 'Bugunku Iade', icon: 'fa-rotate-left', tone: 'neutral' },
   { key: 'todayReceivingCount', label: 'Mal Kabul', icon: 'fa-box-open', tone: 'success' },
   { key: 'pendingReceivingCount', label: 'Bekleyen Kabul', icon: 'fa-hourglass-half', tone: 'warning' },
   { key: 'incompleteOperationCount', label: 'Eksik Operasyon', icon: 'fa-list-check', tone: 'warning' },

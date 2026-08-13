@@ -483,12 +483,12 @@
             <label class="field" *ngIf="getPaymentTypeTemplates(source).length > 0; else manualPaymentTypeName">
               <span>Tip</span>
               <select
-                [value]="getPaymentTypeGroupTemplateKey(source, group)"
-                (change)="applyPaymentTypeTemplateSelection(index, $any($event.target).value)"
+                [value]="getPaymentTypeNoSelection(group)"
+                (change)="applyPaymentTypeNoSelection(index, $any($event.target).value)"
               >
                 <option
                   *ngFor="let template of getPaymentTypeOptionsForGroup(source, group); trackBy: trackByIndex"
-                  [value]="getPaymentTypeTemplateKey(template)"
+                  [value]="template.paymentTypeNo"
                 >
                   {{ getPaymentTypeTemplateLabel(template) }}
                 </option>
