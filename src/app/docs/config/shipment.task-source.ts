@@ -108,13 +108,22 @@ export const SHIPMENT_TASK_SOURCE = {
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
         'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir',
         'Manav depo 56 akisi varsayilan olarak siparis satir GUID baglantisi gondermez',
+        'Giden sevk guncelleme sadece e-irsaliye gonderilmemis ve karsi depo kabul etmemis evraklarda calisir',
+        'Guncelleme satir eslestirmesini stockCode ile degil movementGuid ile yapar; satir ekleme/silme yoktur',
         'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
       ],
       listTitle: 'Controller',
       items: [
         {
           name: 'DepolarArasiNakliyeSevkFisleriController',
-          description: 'Depolar arasi nakliye sevk fisleri.'
+          description: 'Depolar arasi nakliye sevk fisleri.',
+          endpoints: [
+            {
+              method: 'PUT',
+              path: '/api/sevk-islemleri/depolar-arasi-sevkler/giden/{seri}/{sira}?warehouseNo=110',
+              description: 'Giden depo sevkini movementGuid bazli mevcut satirlarla gunceller'
+            }
+          ]
         }
       ],
       codeSample: `{

@@ -10,6 +10,8 @@ import type {
   IFurpaCreateWarehouseReturnResponseApiDto,
   IFurpaSendEDespatchRequestApiDto,
   IFurpaSendEDespatchResponseApiDto,
+  IFurpaUpdateWarehouseReturnRequestApiDto,
+  IFurpaUpdateWarehouseReturnResponseApiDto,
   IFurpaWarehouseReturnDetailApiDto,
   IFurpaWarehouseReturnListItemApiDto,
   WarehouseOrderDateRangeHttpRequest
@@ -94,6 +96,24 @@ export class IadeIslemleriService extends BaseApiService {
   ): Observable<IFurpaCreateWarehouseReturnResponseApiDto> {
     return this.post<IFurpaCreateWarehouseReturnResponseApiDto, IFurpaCreateWarehouseReturnRequestApiDto>(
       'iade-islemleri/depo-iadeleri/giden',
+      request
+    );
+  }
+
+  updateWarehouseReturn(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: IFurpaUpdateWarehouseReturnRequestApiDto,
+    warehouseNo?: number
+  ): Observable<IFurpaUpdateWarehouseReturnResponseApiDto> {
+    return this.put<
+      IFurpaUpdateWarehouseReturnResponseApiDto,
+      IFurpaUpdateWarehouseReturnRequestApiDto
+    >(
+      this.withWarehouseQuery(
+        `iade-islemleri/depo-iadeleri/giden/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
+        warehouseNo
+      ),
       request
     );
   }
@@ -194,6 +214,15 @@ export class IadeIslemleriService extends BaseApiService {
     request: IFurpaCreateWarehouseReturnRequestApiDto
   ): Observable<IFurpaCreateWarehouseReturnResponseApiDto> {
     return this.createWarehouseReturn(request);
+  }
+
+  updateDepoIade(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: IFurpaUpdateWarehouseReturnRequestApiDto,
+    warehouseNo?: number
+  ): Observable<IFurpaUpdateWarehouseReturnResponseApiDto> {
+    return this.updateWarehouseReturn(documentSerie, documentOrderNo, request, warehouseNo);
   }
 
   sendEIade(

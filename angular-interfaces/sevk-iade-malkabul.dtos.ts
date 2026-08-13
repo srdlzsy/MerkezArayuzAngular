@@ -51,6 +51,7 @@ export interface WarehouseShippingHeaderDto {
   lineCount: number;
   totalQuantity: number;
   totalAmount: number;
+  description?: string | null;
 }
 
 export interface WarehouseShippingLineItemDto {
@@ -112,6 +113,40 @@ export interface CreateInterWarehouseShipmentResponse {
   transitWarehouseNo: number;
   lineCount: number;
   linkedWarehouseOrderLineCount: number;
+  totalQuantity: number;
+  totalAmount: number;
+  writeConnectionName: string;
+}
+
+export interface UpdateWarehouseMovementHttpRequest {
+  movementDate: string;
+  documentDate: string;
+  targetWarehouseNo: number;
+  transitWarehouseNo?: number;
+  description?: string | null;
+  lines: UpdateWarehouseMovementLineHttpRequest[];
+}
+
+export interface UpdateWarehouseMovementLineHttpRequest {
+  movementGuid: string;
+  quantity: number;
+  unitPrice: number;
+  unitPointer: number;
+  description?: string | null;
+}
+
+export interface UpdateWarehouseMovementResponse {
+  documentSerie: string;
+  documentOrderNo: number;
+  movementDate: string;
+  documentDate: string;
+  documentNo: string;
+  sourceWarehouseNo: number;
+  targetWarehouseNo: number;
+  transitWarehouseNo: number;
+  isReturn: boolean;
+  updatedLineCount: number;
+  lineCount: number;
   totalQuantity: number;
   totalAmount: number;
   writeConnectionName: string;

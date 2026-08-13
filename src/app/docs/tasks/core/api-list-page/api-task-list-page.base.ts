@@ -267,7 +267,13 @@ export abstract class ApiTaskListPageBase<
       width: 'min(1120px, 96vw)',
       maxWidth: '96vw',
       data: this.buildDetailData(row)
-    });
+    })
+      .closed.pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((result: unknown) => {
+        if (result) {
+          this.loadRows();
+        }
+      });
   }
 
   protected openCreate(): void {

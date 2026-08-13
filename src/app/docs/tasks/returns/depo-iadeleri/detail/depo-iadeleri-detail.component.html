@@ -7,6 +7,36 @@
     </div>
 
     <div class="dialog-actions">
+      <button
+        type="button"
+        class="edit-button"
+        *ngIf="showUpdateButton() && !isEditing()"
+        (click)="startEdit()"
+        [disabled]="!canUpdateDocument() || isSaving()"
+        [title]="updateBlockedReason()"
+      >
+        <i class="fa-solid fa-pen-to-square"></i>
+        <span>Duzenle</span>
+      </button>
+      <button
+        type="button"
+        class="save-button"
+        *ngIf="isEditing()"
+        (click)="saveEdit()"
+        [disabled]="isSaving()"
+      >
+        <i class="fa-solid fa-floppy-disk"></i>
+        <span>{{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}</span>
+      </button>
+      <button
+        type="button"
+        class="cancel-button"
+        *ngIf="isEditing()"
+        (click)="cancelEdit()"
+        [disabled]="isSaving()"
+      >
+        Vazgec
+      </button>
       <button type="button" class="print-button" (click)="printCurrentDocument()" [disabled]="!canPrintDocument()">
         <i class="fa-solid fa-print"></i>
         <span>Yazdir</span>
@@ -41,7 +71,20 @@
       <p>{{ errorMessage }}</p>
     </article>
 
+    <article class="state-card state-card-error" *ngIf="saveError() as saveError">
+      <h3>Guncelleme Basarisiz</h3>
+      <p>{{ saveError }}</p>
+    </article>
+
     <ng-container *ngIf="!isLoading() && header() as header">
+      <article
+        class="state-card state-card-info"
+        *ngIf="showUpdateButton() && !canUpdateDocument() && updateBlockedReason()"
+      >
+        <h3>Guncelleme Kapali</h3>
+        <p>{{ updateBlockedReason() }}</p>
+      </article>
+
       <section class="summary-grid">
         <article class="summary-card">
           <h3>Seri / Sira</h3>
@@ -69,10 +112,90 @@
         </article>
       </section>
 
+      <form class="edit-panel" [formGroup]="editForm" *ngIf="isEditing()">
+        <div class="edit-panel-head">
+          <div>
+            <h3>Guncelleme</h3>
+            <p>Mevcut satirlar movementGuid ile guncellenir; yeni satir eklenmez veya silinmez.</p>
+          </div>
+          <div class="edit-totals">
+            <span>{{ editableLines.length }} satir</span>
+          </div>
+        </div>
+
+        <div class="edit-grid">
+          <label class="edit-field">
+            <span>Hareket Tarihi</span>
+            <input type="date" formControlName="movementDate" />
+          </label>
+
+          <label class="edit-field">
+            <span>Belge Tarihi</span>
+            <input type="date" formControlName="documentDate" />
+          </label>
+
+          <label class="edit-field">
+            <span>Hedef Depo No</span>
+            <input type="number" min="1" step="1" formControlName="targetWarehouseNo" />
+          </label>
+
+          <label class="edit-field">
+            <span>Nakliye Depo No</span>
+            <input type="number" min="1" step="1" formControlName="transitWarehouseNo" />
+          </label>
+
+          <label class="edit-field edit-field-wide">
+            <span>Aciklama</span>
+            <input type="text" maxlength="50" formControlName="description" />
+          </label>
+        </div>
+
+        <div class="editable-table-wrap" formArrayName="lines">
+          <table class="editable-table">
+            <thead>
+              <tr>
+                <th>Satir</th>
+                <th>Stok</th>
+                <th>Birim</th>
+                <th>Miktar</th>
+                <th>Birim Fiyat</th>
+                <th>Birim No</th>
+                <th>Aciklama</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let line of editableLines.controls; let i = index; trackBy: trackByEditableLine"
+                [formGroupName]="i"
+              >
+                <td>{{ line.controls.lineNo.value ?? i + 1 }}</td>
+                <td>
+                  <strong>{{ line.controls.stockName.value || line.controls.stockCode.value }}</strong>
+                  <span>{{ line.controls.stockCode.value }}</span>
+                </td>
+                <td>{{ line.controls.unitName.value || '-' }}</td>
+                <td>
+                  <input type="number" min="0.001" step="0.001" formControlName="quantity" />
+                </td>
+                <td>
+                  <input type="number" min="0" step="0.01" formControlName="unitPrice" />
+                </td>
+                <td>
+                  <input type="number" min="1" step="1" formControlName="unitPointer" />
+                </td>
+                <td>
+                  <input type="text" maxlength="50" formControlName="description" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </form>
+
       <section class="task-block">
         <div class="task-title">Iade Kalemleri</div>
 
-        <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
+        <div class="table-wrap" *ngIf="!isEditing() && kalemler().length; else noKalemler">
           <table>
             <thead>
               <tr>
@@ -108,7 +231,7 @@
     </ng-container>
 
     <ng-template #noKalemler>
-      <article class="state-card">
+      <article class="state-card" *ngIf="!isEditing()">
         <h3>Kalem Bulunamadi</h3>
         <p>Bu depo iade kaydi icin kalem bilgisi donmedi.</p>
       </article>

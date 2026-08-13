@@ -10,6 +10,8 @@ import type {
   IFurpaCreateWarehouseShippingResponseApiDto,
   IFurpaSendEDespatchRequestApiDto,
   IFurpaSendEDespatchResponseApiDto,
+  IFurpaUpdateWarehouseShippingRequestApiDto,
+  IFurpaUpdateWarehouseShippingResponseApiDto,
   IFurpaWarehouseShippingDetailApiDto,
   IFurpaWarehouseShippingListItemApiDto,
   WarehouseOrderDateRangeHttpRequest,
@@ -111,6 +113,24 @@ export class SevkIslemleriService extends BaseApiService {
       IFurpaCreateWarehouseShippingRequestApiDto
     >(
       'sevk-islemleri/depolar-arasi-sevkler/giden',
+      request
+    );
+  }
+
+  updateGidenDepolarArasiSevk(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: IFurpaUpdateWarehouseShippingRequestApiDto,
+    warehouseNo?: number
+  ): Observable<IFurpaUpdateWarehouseShippingResponseApiDto> {
+    return this.put<
+      IFurpaUpdateWarehouseShippingResponseApiDto,
+      IFurpaUpdateWarehouseShippingRequestApiDto
+    >(
+      this.withWarehouseQuery(
+        `sevk-islemleri/depolar-arasi-sevkler/giden/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
+        warehouseNo
+      ),
       request
     );
   }
@@ -262,6 +282,15 @@ export class SevkIslemleriService extends BaseApiService {
     request: IFurpaCreateWarehouseShippingRequestApiDto
   ): Observable<IFurpaCreateWarehouseShippingResponseApiDto> {
     return this.createGidenDepolarArasiSevk(request);
+  }
+
+  updateDepolarArasiNakliyeSevkFisi(
+    seri: string,
+    sira: number,
+    request: IFurpaUpdateWarehouseShippingRequestApiDto,
+    warehouseNo?: number
+  ): Observable<IFurpaUpdateWarehouseShippingResponseApiDto> {
+    return this.updateGidenDepolarArasiSevk(seri, sira, request, warehouseNo);
   }
 
   createDepoDagitimSevkFisi(

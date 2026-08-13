@@ -15,6 +15,9 @@ import type {
   GoodsAcceptanceDifferenceDto,
   GoodsAcceptanceDifferenceListQuery,
   GoodsAcceptanceDifferenceScope,
+  UpdateWarehouseMovementHttpRequest,
+  UpdateWarehouseMovementLineHttpRequest,
+  UpdateWarehouseMovementResponse,
   WarehouseShippingDetailDto,
   WarehouseShippingHeaderDto,
   WarehouseShippingLineItemDto,
@@ -29,6 +32,10 @@ export type IFurpaCreateWarehouseShippingLineRequestApiDto =
   CreateInterWarehouseShipmentLineHttpRequest;
 export type IFurpaCreateWarehouseShippingRequestApiDto = CreateInterWarehouseShipmentHttpRequest;
 export type IFurpaCreateWarehouseShippingResponseApiDto = CreateInterWarehouseShipmentResponse;
+export type IFurpaUpdateWarehouseShippingLineRequestApiDto =
+  UpdateWarehouseMovementLineHttpRequest;
+export type IFurpaUpdateWarehouseShippingRequestApiDto = UpdateWarehouseMovementHttpRequest;
+export type IFurpaUpdateWarehouseShippingResponseApiDto = UpdateWarehouseMovementResponse;
 export type IFurpaWarehouseReceiptAcceptanceLineRequestApiDto =
   AcceptWarehouseReceivingLineHttpRequest;
 export type IFurpaWarehouseReceiptAcceptanceRequestApiDto = AcceptWarehouseReceivingHttpRequest;
@@ -47,6 +54,10 @@ export type IFurpaWarehouseReturnItemApiDto = WarehouseShippingLineItemDto;
 export type IFurpaWarehouseReturnDetailApiDto = WarehouseShippingDetailDto;
 export type IFurpaCreateWarehouseReturnRequestApiDto = CreateWarehouseReturnHttpRequest;
 export type IFurpaCreateWarehouseReturnResponseApiDto = CreateWarehouseReturnResponse;
+export type IFurpaUpdateWarehouseReturnLineRequestApiDto =
+  UpdateWarehouseMovementLineHttpRequest;
+export type IFurpaUpdateWarehouseReturnRequestApiDto = UpdateWarehouseMovementHttpRequest;
+export type IFurpaUpdateWarehouseReturnResponseApiDto = UpdateWarehouseMovementResponse;
 export type IFurpaCreateInterWarehouseShipmentRequestApiDto = CreateInterWarehouseShipmentHttpRequest;
 export type IFurpaCreateInterWarehouseShipmentResponseApiDto = CreateInterWarehouseShipmentResponse;
 export type IFurpaAcceptWarehouseReceivingLineRequestApiDto =

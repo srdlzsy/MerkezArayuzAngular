@@ -33,6 +33,8 @@ import {
 interface MalKabulDialogData {
   seri?: string;
   sira?: number;
+  warehouseNo?: number;
+  autoLoad?: boolean;
 }
 
 type FarkTipi = 'none' | 'missing' | 'excess';
@@ -74,6 +76,11 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
   protected readonly loadError = signal('');
   protected readonly submitError = signal('');
   protected readonly activeReceipt = signal<IFurpaWarehouseReceiptDetailApiDto | null>(null);
+  protected readonly canSubmitReceipt = computed(() => {
+    const receipt = this.activeReceipt();
+
+    return !!receipt && this.kalemCount() > 0 && !this.receiptAcceptanceBlockedReason();
+  });
 
   protected readonly controls = {
     seri: new FormControl('', {
@@ -97,6 +104,7 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
 
     const seri = this.data?.seri;
     const sira = this.data?.sira;
+    const warehouseNo = this.data?.warehouseNo;
 
     if (typeof seri === 'string' && seri.trim()) {
       this.controls.seri.setValue(this.normalizeSerie(seri));
@@ -104,6 +112,14 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
 
     if (typeof sira === 'number' && Number.isFinite(sira)) {
       this.controls.sira.setValue(sira);
+    }
+
+    if (typeof warehouseNo === 'number' && Number.isFinite(warehouseNo) && warehouseNo > 0) {
+      this.controls.adminWarehouseNo.setValue(warehouseNo);
+    }
+
+    if (this.data?.autoLoad && typeof seri === 'string' && seri.trim() && typeof sira === 'number') {
+      this.loadReceiptDetail();
     }
   }
 
@@ -174,6 +190,12 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
 
     if (!receipt) {
       this.submitError.set('Once kabul edecegin evraki getir.');
+      return;
+    }
+
+    const blockedReason = this.receiptAcceptanceBlockedReason();
+    if (blockedReason) {
+      this.submitError.set(blockedReason);
       return;
     }
 
@@ -248,6 +270,20 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
 
   protected hasDiscrepancy(): boolean {
     return this.lines.controls.some((control) => this.getDifferenceType(control) !== 'none');
+  }
+
+  protected receiptAcceptanceBlockedReason(): string {
+    const receipt = this.activeReceipt();
+
+    if (!receipt) {
+      return '';
+    }
+
+    if (!this.isSourceEDespatchSent(receipt.header)) {
+      return 'Kabul icin gonderen taraf e-irsaliyesi zorunludur. Once giden sevk veya iade e-irsaliyeye donusturulmeli.';
+    }
+
+    return '';
   }
 
   protected getDifferenceType(control: KabulKalemFormGroup): FarkTipi {
@@ -378,6 +414,13 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {
     return resolveHttpErrorMessage(error, fallback);
+  }
+
+  private isSourceEDespatchSent(header: IFurpaWarehouseReceiptDetailApiDto['header']): boolean {
+    const documentNo = header.documentNo?.trim() ?? '';
+    const ettn = header.descriptionEttn?.trim() ?? '';
+
+    return !!ettn || /^FRM/i.test(documentNo);
   }
 }
 

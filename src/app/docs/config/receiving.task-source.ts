@@ -109,6 +109,7 @@ export const RECEIVING_TASK_SOURCE = {
         'isReturn false normal gelen depo sevkini, true gelen depo iadesini ifade eder',
         'Satir eslestirmesi movementGuid ile yapilmalidir',
         'ETTN endpointi resmi gelen e-irsaliye satirlarini on-karsilastirma icin kullanilir',
+        'Kabul icin gonderen taraf e-irsaliyesi zorunludur; e-irsaliye gonderilmeden kabul butonu acilmaz',
         'allowDiscrepancy false iken eksik/fazla kabul 409 Conflict ile engellenir',
         'allowDiscrepancy true iken fark sth_FormulMiktar uzerinde recorded-on-formula-quantity olarak izlenir',
         'Kabul islemi mevcut sevk satirlarini gunceller, yeni ana hareket acmaz'

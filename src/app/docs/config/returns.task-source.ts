@@ -87,6 +87,8 @@ export const RETURNS_TASK_SOURCE = {
         'Create requestinde guvenli retry icin clientRequestId uretilir',
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
         'Otomatik depo siparisi aciksa backend iade satirini olusan siparis GUIDine baglar',
+        'Giden depo iadesi guncelleme sadece e-irsaliye gonderilmemis ve karsi depo kabul etmemis evraklarda calisir',
+        'Guncelleme satir eslestirmesini stockCode ile degil movementGuid ile yapar; satir ekleme/silme yoktur',
         'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
       ],
       listTitle: 'Endpointler',
@@ -109,6 +111,11 @@ export const RETURNS_TASK_SOURCE = {
               method: 'POST',
               path: '/api/iade-islemleri/depo-iadeleri/giden',
               description: 'Yeni giden depo iadesi olusturur'
+            },
+            {
+              method: 'PUT',
+              path: '/api/iade-islemleri/depo-iadeleri/giden/{seri}/{sira}?warehouseNo=110',
+              description: 'Giden depo iadesini movementGuid bazli mevcut satirlarla gunceller'
             },
             {
               method: 'POST',

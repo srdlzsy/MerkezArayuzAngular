@@ -14,7 +14,7 @@
         type="submit"
         class="primary-button"
         form="depolar-arasi-nakliye-mal-kabul-form"
-        [disabled]="submitting() || loadingDetail() || !activeReceipt() || !kalemCount()"
+        [disabled]="submitting() || loadingDetail() || !canSubmitReceipt()"
       >
         {{ submitting() ? 'Kabul Ediliyor...' : 'Kabul Et' }}
       </button>
@@ -114,6 +114,10 @@
 
         <article class="warning-card" *ngIf="hasDiscrepancy() && !controls.allowDiscrepancy.value">
           Sevk miktari ile kabul miktari farkli satirlar var. Devam etmek icin ustteki secenegi acman gerekir.
+        </article>
+
+        <article class="warning-card" *ngIf="receiptAcceptanceBlockedReason() as blockedReason">
+          {{ blockedReason }}
         </article>
       </section>
 
