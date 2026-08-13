@@ -7,6 +7,7 @@ import type { DeviceDto, DeviceStatusDto, DeviceTypeDto } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import {
@@ -46,6 +47,7 @@ export class CihazlarListComponent {
 
   private readonly authService = inject(AuthService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly deviceTypes = signal<DeviceTypeDto[]>([]);
@@ -221,8 +223,19 @@ export class CihazlarListComponent {
       });
   }
 
-  protected deleteDevice(device: DeviceDto): void {
-    if (!this.canUpdate() || !window.confirm(`${device.ipAddress} cihaz kaydi silinsin mi?`)) {
+  protected async deleteDevice(device: DeviceDto): Promise<void> {
+    if (!this.canUpdate()) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Cihaz kaydi silinsin mi?',
+      message: `${device.ipAddress} cihaz kaydi silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 

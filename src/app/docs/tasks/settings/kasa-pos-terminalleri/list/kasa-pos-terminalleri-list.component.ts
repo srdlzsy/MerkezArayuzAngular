@@ -16,6 +16,7 @@ import type {
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import {
@@ -85,6 +86,7 @@ export class KasaPosTerminalleriListComponent {
 
   private readonly authService = inject(AuthService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly cashRegistries = signal<CashRegistryDto[]>([]);
@@ -430,11 +432,19 @@ export class KasaPosTerminalleriListComponent {
       });
   }
 
-  protected deleteCashRegister(cashRegistry: CashRegistryDto): void {
-    if (
-      !this.canUpdate() ||
-      !window.confirm(`${cashRegistry.branchNo}/${cashRegistry.cashNo} kasa kaydi silinsin mi?`)
-    ) {
+  protected async deleteCashRegister(cashRegistry: CashRegistryDto): Promise<void> {
+    if (!this.canUpdate()) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Kasa kaydi silinsin mi?',
+      message: `${cashRegistry.branchNo}/${cashRegistry.cashNo} kasa kaydi silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -477,14 +487,21 @@ export class KasaPosTerminalleriListComponent {
       });
   }
 
-  protected deleteTerminal(terminal: CashRegisterTerminalDto): void {
+  protected async deleteTerminal(terminal: CashRegisterTerminalDto): Promise<void> {
     const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
 
-    if (
-      !this.canUpdate() ||
-      !branchNo ||
-      !window.confirm(`${terminal.terminalNo} terminal kaydi silinsin mi?`)
-    ) {
+    if (!this.canUpdate() || !branchNo) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Terminal kaydi silinsin mi?',
+      message: `${terminal.terminalNo} terminal kaydi silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 

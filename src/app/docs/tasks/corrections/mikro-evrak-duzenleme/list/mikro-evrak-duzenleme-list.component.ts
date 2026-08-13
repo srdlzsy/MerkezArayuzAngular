@@ -51,6 +51,7 @@ import type {
 
 import { DuzeltmeIslemleriService } from '../../../../../core/api/module-services/duzeltme-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
@@ -525,6 +526,7 @@ export class MikroEvrakDuzenlemeListComponent {
 
   private readonly service = inject(DuzeltmeIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly activeTab = signal<EditorTab>('stock-card');
@@ -1102,14 +1104,14 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
-  protected deleteStockMovement(hardDelete = false): void {
+  protected async deleteStockMovement(hardDelete = false): Promise<void> {
     const document = this.stockMovement();
     if (!document || !this.canDelete() || !this.validateLookup(this.stockLookup)) {
       return;
     }
 
     const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
-    if (!this.confirmMovementDelete('stok hareket evraki', label, hardDelete)) {
+    if (!(await this.confirmMovementDelete('stok hareket evraki', label, hardDelete))) {
       return;
     }
 
@@ -1195,14 +1197,14 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
-  protected deleteCustomerMovement(hardDelete = false): void {
+  protected async deleteCustomerMovement(hardDelete = false): Promise<void> {
     const document = this.customerMovement();
     if (!document || !this.canDelete() || !this.validateLookup(this.customerLookup)) {
       return;
     }
 
     const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
-    if (!this.confirmMovementDelete('cari hareket evraki', label, hardDelete)) {
+    if (!(await this.confirmMovementDelete('cari hareket evraki', label, hardDelete))) {
       return;
     }
 
@@ -1288,14 +1290,14 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
-  protected deleteCompanyOrder(hardDelete = false): void {
+  protected async deleteCompanyOrder(hardDelete = false): Promise<void> {
     const document = this.companyOrder();
     if (!document || !this.canDelete() || !this.validateLookup(this.companyOrderLookup)) {
       return;
     }
 
     const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
-    if (!this.confirmMovementDelete('firma siparis evraki', label, hardDelete)) {
+    if (!(await this.confirmMovementDelete('firma siparis evraki', label, hardDelete))) {
       return;
     }
 
@@ -1381,14 +1383,14 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
-  protected deleteWarehouseOrder(hardDelete = false): void {
+  protected async deleteWarehouseOrder(hardDelete = false): Promise<void> {
     const document = this.warehouseOrder();
     if (!document || !this.canDelete() || !this.validateLookup(this.warehouseOrderLookup)) {
       return;
     }
 
     const label = `${document.header.documentSerie}-${document.header.documentOrderNo}`;
-    if (!this.confirmMovementDelete('depo siparis evraki', label, hardDelete)) {
+    if (!(await this.confirmMovementDelete('depo siparis evraki', label, hardDelete))) {
       return;
     }
 
@@ -1529,7 +1531,7 @@ export class MikroEvrakDuzenlemeListComponent {
       });
   }
 
-  protected deleteWarehouseSetting(): void {
+  protected async deleteWarehouseSetting(): Promise<void> {
     const stockCode = this.selectedStockCard()?.stockCode;
     const setting = this.selectedWarehouseSetting();
 
@@ -1537,11 +1539,14 @@ export class MikroEvrakDuzenlemeListComponent {
       return;
     }
 
-    if (
-      !window.confirm(
-        `${setting.warehouseNo} - ${setting.warehouseName} depo ozel stok ayari silinsin mi?`
-      )
-    ) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Depo ozel stok ayari silinsin mi?',
+      message: `${setting.warehouseNo} - ${setting.warehouseName} depo ozel stok ayari silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -1626,7 +1631,7 @@ export class MikroEvrakDuzenlemeListComponent {
     this.upsertSalesPrice(stockCode, original.warehouseNo, request);
   }
 
-  protected deleteSalesPrice(): void {
+  protected async deleteSalesPrice(): Promise<void> {
     const stockCode = this.selectedStockCard()?.stockCode;
     const price = this.selectedSalesPrice();
 
@@ -1634,11 +1639,14 @@ export class MikroEvrakDuzenlemeListComponent {
       return;
     }
 
-    if (
-      !window.confirm(
-        `${price.warehouseNo} deposundaki ${price.priceListNo}/${price.unitPointer} satis fiyati silinsin mi?`
-      )
-    ) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Satis fiyati silinsin mi?',
+      message: `${price.warehouseNo} deposundaki ${price.priceListNo}/${price.unitPointer} satis fiyati silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 
@@ -2251,14 +2259,33 @@ export class MikroEvrakDuzenlemeListComponent {
     });
   }
 
-  private confirmMovementDelete(kind: string, label: string, hardDelete: boolean): boolean {
+  private async confirmMovementDelete(
+    kind: string,
+    label: string,
+    hardDelete: boolean
+  ): Promise<boolean> {
     if (!hardDelete) {
-      return window.confirm(`${label} ${kind} soft-delete yapilsin mi?`);
+      return this.confirmDialog.confirm({
+        title: 'Evrak soft-delete yapilsin mi?',
+        message: `${label} ${kind} soft-delete yapilacak.`,
+        confirmText: 'Soft Delete',
+        tone: 'danger'
+      });
     }
 
-    const confirmation = window.prompt(
-      `${label} ${kind} FIZIKSEL olarak silinecek. Bu islem geri alinamaz.\nOnay icin evrak anahtarini yazin: ${label}`
-    );
+    const confirmation = await this.confirmDialog.prompt({
+      title: 'Fiziksel silme onayi',
+      message: `${label} ${kind} FIZIKSEL olarak silinecek.`,
+      details: 'Bu islem geri alinamaz.',
+      confirmText: 'Fiziksel Sil',
+      tone: 'danger',
+      input: {
+        label: 'Evrak anahtari',
+        placeholder: label,
+        expectedValue: label,
+        required: true
+      }
+    });
 
     return confirmation?.trim() === label;
   }

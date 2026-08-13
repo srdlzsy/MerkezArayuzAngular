@@ -1,0 +1,179 @@
+:host {
+  display: contents;
+}
+
+.app-confirm-backdrop {
+  position: fixed;
+  inset: 0;
+  z-index: 5000;
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+  background: rgba(15, 23, 42, 0.52);
+  backdrop-filter: blur(3px);
+}
+
+.app-confirm-dialog {
+  width: min(430px, 100%);
+  overflow: hidden;
+  border: 1px solid #dbe3ee;
+  border-radius: 14px;
+  background: #fff;
+  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.26);
+}
+
+.dialog-head,
+.dialog-body,
+.dialog-actions {
+  padding: 1rem;
+}
+
+.dialog-head {
+  display: flex;
+  align-items: center;
+  gap: 0.82rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.dialog-icon {
+  display: inline-grid;
+  width: 42px;
+  height: 42px;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 12px;
+  color: #b45309;
+  background: #fffbeb;
+}
+
+.tone-danger .dialog-icon {
+  color: #b91c1c;
+  background: #fef2f2;
+}
+
+.tone-info .dialog-icon {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.dialog-head p {
+  margin: 0 0 0.18rem;
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.dialog-head h2 {
+  margin: 0;
+  color: #0f172a;
+  font-size: 1.08rem;
+  line-height: 1.2;
+}
+
+.dialog-body {
+  display: grid;
+  gap: 0.82rem;
+}
+
+.dialog-message,
+.dialog-details {
+  margin: 0;
+  color: #334155;
+  line-height: 1.5;
+}
+
+.dialog-details {
+  padding: 0.72rem 0.78rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 10px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.9rem;
+}
+
+.confirm-input {
+  display: grid;
+  gap: 0.34rem;
+}
+
+.confirm-input span {
+  color: #475569;
+  font-size: 0.76rem;
+  font-weight: 800;
+}
+
+.confirm-input input {
+  min-height: 40px;
+  border: 1px solid #cbd5e1;
+  border-radius: 10px;
+  padding: 0.58rem 0.72rem;
+  color: #0f172a;
+  font: inherit;
+  outline: 0;
+}
+
+.confirm-input input:focus {
+  border-color: #93c5fd;
+  box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.14);
+}
+
+.confirm-input small {
+  color: #64748b;
+  font-size: 0.76rem;
+}
+
+.dialog-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: 0.65rem;
+  border-top: 1px solid #e2e8f0;
+  background: #f8fafc;
+}
+
+.dialog-button {
+  min-height: 40px;
+  border: 0;
+  border-radius: 10px;
+  padding: 0.6rem 0.95rem;
+  cursor: pointer;
+  font: inherit;
+  font-weight: 800;
+}
+
+.dialog-button-ghost {
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  background: #fff;
+}
+
+.dialog-button-primary {
+  color: #fff;
+  background: #0f766e;
+}
+
+.tone-danger .dialog-button-primary {
+  background: #dc2626;
+}
+
+.dialog-button:disabled {
+  cursor: not-allowed;
+  opacity: 0.58;
+}
+
+@media (max-width: 520px) {
+  .dialog-head,
+  .dialog-body,
+  .dialog-actions {
+    padding: 0.88rem;
+  }
+
+  .dialog-actions {
+    flex-direction: column-reverse;
+  }
+
+  .dialog-button {
+    width: 100%;
+  }
+}

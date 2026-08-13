@@ -7,6 +7,7 @@ import type { CashierDto, CashierPasswordMutationDto } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import {
@@ -44,6 +45,7 @@ export class KasiyerlerListComponent {
 
   private readonly authService = inject(AuthService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly cashiers = signal<CashierDto[]>([]);
@@ -223,14 +225,21 @@ export class KasiyerlerListComponent {
       });
   }
 
-  protected resetPassword(): void {
+  protected async resetPassword(): Promise<void> {
     const selected = this.selectedCashier();
 
-    if (
-      !selected ||
-      !this.canUpdate() ||
-      !window.confirm(`${selected.cashierName} sifresi sifirlansin mi?`)
-    ) {
+    if (!selected || !this.canUpdate()) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Sifre sifirlansin mi?',
+      message: `${selected.cashierName} icin yeni sifre olusturulacak.`,
+      confirmText: 'Sifreyi Sifirla',
+      tone: 'warning'
+    });
+
+    if (!confirmed) {
       return;
     }
 

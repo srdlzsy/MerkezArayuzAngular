@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
@@ -228,7 +228,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       this.paymentTypes.controls
         .filter((group) => !this.isBackendGeneratedCashPaymentGroup(group))
         .reduce(
-          (total, group) => total + this.toSafeNumber(group.controls.amountValue.value),
+          (total, group) => total + this.toNonNegativeNumber(group.controls.amountValue.value),
           0
         )
     );
@@ -353,6 +353,16 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.refreshComputedFormState());
     this.loadLookupData();
+  }
+
+  @HostListener('wheel', ['$event'])
+  protected preventFocusedNumberWheel(event: WheelEvent): void {
+    const target = event.target as HTMLInputElement | null;
+
+    if (target?.tagName === 'INPUT' && target.type === 'number' && document.activeElement === target) {
+      event.preventDefault();
+      target.blur();
+    }
   }
 
   protected get banknoteMovements(): FormArray<BanknoteLineFormGroup> {
@@ -815,8 +825,8 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected recalculateBanknoteTotal(index: number): void {
     const group = this.banknoteMovements.at(index);
-    const quantity = this.toSafeNumber(group.controls.quantity.value);
-    const value = this.toSafeNumber(group.controls.value.value);
+    const quantity = this.toNonNegativeNumber(group.controls.quantity.value);
+    const value = this.toNonNegativeNumber(group.controls.value.value);
 
     group.controls.total.setValue(this.roundCurrency(quantity * value));
     group.controls.total.markAsDirty();
@@ -840,11 +850,61 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected recalculateGiftCheckTotal(index: number): void {
     const group = this.giftCheckMovements.at(index);
-    const quantity = this.toSafeNumber(group.controls.quantity.value);
-    const value = this.toSafeNumber(group.controls.value.value);
+    const quantity = this.toNonNegativeNumber(group.controls.quantity.value);
+    const value = this.toNonNegativeNumber(group.controls.value.value);
 
     group.controls.total.setValue(this.roundCurrency(quantity * value));
     group.controls.total.markAsDirty();
+    this.refreshComputedFormState();
+  }
+
+  protected normalizeBanknoteLine(index: number): void {
+    const group = this.banknoteMovements.at(index);
+
+    this.normalizeIntegerControl(group.controls.banknoteType);
+    this.normalizeIntegerControl(group.controls.quantity);
+    this.normalizeCurrencyControl(group.controls.value);
+    this.recalculateBanknoteTotal(index);
+  }
+
+  protected normalizeGiftCheckLine(index: number): void {
+    const group = this.giftCheckMovements.at(index);
+
+    this.normalizeIntegerControl(group.controls.giftCheckType);
+    this.normalizeIntegerControl(group.controls.quantity);
+    this.normalizeCurrencyControl(group.controls.value);
+    this.recalculateGiftCheckTotal(index);
+  }
+
+  protected normalizePaymentLine(index: number): void {
+    const group = this.paymentTypes.at(index);
+
+    this.normalizeIntegerControl(group.controls.paymentTypeNo);
+    this.normalizeIntegerControl(group.controls.slipNumber);
+    this.normalizeCurrencyControl(group.controls.amountValue);
+    this.refreshComputedFormState();
+  }
+
+  protected normalizeStoreExpenseLine(index: number): void {
+    const group = this.storeExpenses.at(index);
+
+    this.normalizeIntegerControl(group.controls.storeExpensesType);
+    this.normalizeCurrencyControl(group.controls.amountValue);
+    this.refreshComputedFormState();
+  }
+
+  protected normalizeCurrencyInput(control: FormControl<number | null>): void {
+    this.normalizeCurrencyControl(control);
+    this.refreshComputedFormState();
+  }
+
+  protected clearZeroOnFocus(control: FormControl<number | null>): void {
+    if (this.toSafeNumber(control.value) !== 0) {
+      return;
+    }
+
+    control.setValue(null);
+    control.markAsTouched();
     this.refreshComputedFormState();
   }
 
@@ -1017,7 +1077,32 @@ export class IcmalDokumuCreateComponent implements OnInit {
       group,
       this.getPaymentTypeTemplates(source)
     );
-    return template ? this.buildPaymentTypeTemplateKey(template) : '';
+
+    if (template) {
+      return this.buildPaymentTypeTemplateKey(template);
+    }
+
+    const currentTemplate = this.buildPaymentTypeTemplateFromGroup(group);
+    return currentTemplate ? this.buildPaymentTypeTemplateKey(currentTemplate) : '';
+  }
+
+  protected getPaymentTypeOptionsForGroup(
+    source: CashDrawerPaymentSource,
+    group: PaymentTypeLineFormGroup
+  ): IFurpaPaymentTypeLookupItemApiDto[] {
+    const templates = this.getPaymentTypeTemplates(source);
+    const currentTemplate = this.buildPaymentTypeTemplateFromGroup(group);
+
+    if (!currentTemplate) {
+      return templates;
+    }
+
+    const currentKey = this.buildPaymentTypeTemplateKey(currentTemplate);
+    const hasCurrentTemplate = templates.some(
+      (template) => this.buildPaymentTypeTemplateKey(template) === currentKey
+    );
+
+    return hasCurrentTemplate ? templates : [currentTemplate, ...templates];
   }
 
   protected getPaymentTypeTemplateLabel(template: IFurpaPaymentTypeLookupItemApiDto): string {
@@ -1039,10 +1124,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
     const group = this.paymentTypes.at(index);
     const source = group.controls.source.value;
 
-    const templates = this.getPaymentTypeTemplates(source);
-    const template =
-      templates.find((item) => this.buildPaymentTypeTemplateKey(item) === templateKey) ??
-      templates[0];
+    const template = this.getPaymentTypeOptionsForGroup(source, group).find(
+      (item) => this.buildPaymentTypeTemplateKey(item) === templateKey
+    );
 
     if (!template) {
       return;
@@ -1309,6 +1393,28 @@ export class IcmalDokumuCreateComponent implements OnInit {
     group.controls.accountCode.setValue(template.accountCode?.trim() ?? '');
   }
 
+  private buildPaymentTypeTemplateFromGroup(
+    group: PaymentTypeLineFormGroup
+  ): IFurpaPaymentTypeLookupItemApiDto | null {
+    const paymentTypeNo = this.toSafeNumber(group.controls.paymentTypeNo.value);
+    const paymentName = group.controls.paymentName.value.trim();
+    const terminalId = group.controls.terminalId.value.trim();
+    const accountCode = group.controls.accountCode.value.trim();
+
+    if (paymentTypeNo <= 0 && !paymentName && !terminalId && !accountCode) {
+      return null;
+    }
+
+    return {
+      paymentName: paymentName || this.getDefaultPaymentName(group.controls.source.value),
+      paymentTypeNo,
+      terminalId,
+      accountCode,
+      slipNumber: this.toSafeNumber(group.controls.slipNumber.value),
+      amountValue: this.toSafeNumber(group.controls.amountValue.value)
+    };
+  }
+
   private resolvePaymentTypeTemplateForGroup(
     group: PaymentTypeLineFormGroup,
     templates: IFurpaPaymentTypeLookupItemApiDto[]
@@ -1335,15 +1441,25 @@ export class IcmalDokumuCreateComponent implements OnInit {
     const terminalId = this.normalizeLookupKeyText(group.controls.terminalId.value);
     const accountCode = this.normalizeLookupKeyText(group.controls.accountCode.value);
 
-    return (
+    const matchedTemplate =
       templates.find(
         (template) =>
           this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo &&
           (!terminalId || this.normalizeLookupKeyText(template.terminalId) === terminalId) &&
           (!accountCode || this.normalizeLookupKeyText(template.accountCode) === accountCode)
       ) ??
-      templates.find((template) => this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo) ??
-      templates[0]
+      templates.find((template) => this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo);
+
+    if (matchedTemplate || paymentTypeNo > 0) {
+      return matchedTemplate ?? null;
+    }
+
+    return (
+      templates.find(
+        (template) =>
+          (!!terminalId && this.normalizeLookupKeyText(template.terminalId) === terminalId) ||
+          (!!accountCode && this.normalizeLookupKeyText(template.accountCode) === accountCode)
+      ) ?? templates[0]
     );
   }
 
@@ -1582,36 +1698,36 @@ export class IcmalDokumuCreateComponent implements OnInit {
       zReportNo: this.toSafeNumber(rawValue.zReportNo),
       cashierNo: this.toSafeNumber(rawValue.cashierNo),
       managerNo: this.toSafeNumber(rawValue.managerNo),
-      zTotalValue: this.toSafeNumber(rawValue.zTotalValue),
-      total: this.toSafeNumber(rawValue.total),
+      zTotalValue: this.toNonNegativeNumber(rawValue.zTotalValue),
+      total: this.toNonNegativeNumber(rawValue.total),
       summaryDate: rawValue.summaryDate,
       warehouseNo: this.isAdminUser() ? this.resolveCreateWarehouseNo() ?? undefined : undefined,
       giftCheckMovements: rawValue.giftCheckMovements.map((line) => ({
-        value: this.toSafeNumber(line.value),
-        giftCheckType: this.toSafeNumber(line.giftCheckType),
-        quantity: this.toSafeNumber(line.quantity),
-        total: this.toSafeNumber(line.total)
+        value: this.toNonNegativeNumber(line.value),
+        giftCheckType: this.toNonNegativeNumber(line.giftCheckType),
+        quantity: this.toNonNegativeNumber(line.quantity),
+        total: this.toNonNegativeNumber(line.total)
       })),
       banknoteMovements: rawValue.banknoteMovements.map((line) => ({
-        banknoteType: this.toSafeNumber(line.banknoteType),
-        quantity: this.toSafeNumber(line.quantity),
-        total: this.toSafeNumber(line.total),
-        value: this.toSafeNumber(line.value)
+        banknoteType: this.toNonNegativeNumber(line.banknoteType),
+        quantity: this.toNonNegativeNumber(line.quantity),
+        total: this.toNonNegativeNumber(line.total),
+        value: this.toNonNegativeNumber(line.value)
       })),
       paymentTypes: rawValue.paymentTypes
         .filter((line) => !this.isBackendGeneratedCashPaymentLine(line))
         .map((line) => ({
           paymentName: line.paymentName.trim(),
-          paymentTypeNo: this.toSafeNumber(line.paymentTypeNo),
+          paymentTypeNo: this.toNonNegativeNumber(line.paymentTypeNo),
           accountCode: line.accountCode.trim(),
           terminalId: line.terminalId.trim(),
-          slipNumber: this.toSafeNumber(line.slipNumber),
-          amountValue: this.toSafeNumber(line.amountValue)
+          slipNumber: this.toNonNegativeNumber(line.slipNumber),
+          amountValue: this.toNonNegativeNumber(line.amountValue)
         })),
       storeExpenses: rawValue.storeExpenses.map((line) => ({
-        storeExpensesType: this.toSafeNumber(line.storeExpensesType),
+        storeExpensesType: this.toNonNegativeNumber(line.storeExpensesType),
         description: trimToMaxLength(line.description, 50),
-        amountValue: this.toSafeNumber(line.amountValue)
+        amountValue: this.toNonNegativeNumber(line.amountValue)
       }))
     };
   }
@@ -1695,7 +1811,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   ): number {
     return this.roundCurrency(
       formArray.controls.reduce<number>(
-        (total, group) => total + this.toSafeNumber(selector(group as T)),
+        (total, group) => total + this.toNonNegativeNumber(selector(group as T)),
         0
       )
     );
@@ -1703,6 +1819,28 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   private roundCurrency(value: number): number {
     return Math.round(value * 100) / 100;
+  }
+
+  private normalizeIntegerControl(control: FormControl<number | null>): void {
+    const normalizedValue = Math.trunc(this.toNonNegativeNumber(control.value));
+
+    if (control.value !== normalizedValue) {
+      control.setValue(normalizedValue);
+      control.markAsDirty();
+    }
+  }
+
+  private normalizeCurrencyControl(control: FormControl<number | null>): void {
+    const normalizedValue = this.roundCurrency(this.toNonNegativeNumber(control.value));
+
+    if (control.value !== normalizedValue) {
+      control.setValue(normalizedValue);
+      control.markAsDirty();
+    }
+  }
+
+  private toNonNegativeNumber(value: number | string | null | undefined): number {
+    return Math.max(0, this.toSafeNumber(value));
   }
 
   private toSafeNumber(value: number | string | null | undefined): number {

@@ -24,6 +24,7 @@ import type {
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
@@ -132,6 +133,7 @@ export class KasaHareketAktarimiListComponent {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly numberFormatter = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -451,8 +453,21 @@ export class KasaHareketAktarimiListComponent {
     }
   }
 
-  protected runProcedure(action: KasaHareketProcedureAction): void {
-    if (this.isDeleteAction(action) && !window.confirm(`${this.getProcedureLabel(action)} calistirilsin mi?`)) {
+  protected async runProcedure(action: KasaHareketProcedureAction): Promise<void> {
+    if (this.isDeleteAction(action)) {
+      const confirmed = await this.confirmDialog.confirm({
+        title: 'Procedure calistirilsin mi?',
+        message: `${this.getProcedureLabel(action)} calistirilacak.`,
+        confirmText: 'Calistir',
+        tone: 'danger'
+      });
+
+      if (!confirmed) {
+        return;
+      }
+    }
+
+    if (this.procedureLoadingAction()) {
       return;
     }
 

@@ -7,6 +7,7 @@ import type { DespatchDriverDto } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import {
@@ -60,6 +61,7 @@ export class SoforlerListComponent {
 
   private readonly authService = inject(AuthService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
 
   protected readonly drivers = signal<DespatchDriverDto[]>([]);
@@ -249,14 +251,21 @@ export class SoforlerListComponent {
       });
   }
 
-  protected deleteSelectedDriver(): void {
+  protected async deleteSelectedDriver(): Promise<void> {
     const selected = this.selectedDriver();
 
     if (!selected || !this.canDelete()) {
       return;
     }
 
-    if (!window.confirm(`${this.getDriverName(selected)} pasife alinsin mi?`)) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Sofor pasife alinsin mi?',
+      message: `${this.getDriverName(selected)} pasife alinacak.`,
+      confirmText: 'Pasife Al',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 

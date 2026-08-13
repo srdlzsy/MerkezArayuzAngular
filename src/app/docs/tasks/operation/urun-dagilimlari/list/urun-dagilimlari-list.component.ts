@@ -36,6 +36,7 @@ import type {
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { OperasyonIslemleriService } from '../../../../../core/api/module-services/operasyon-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import type { DocsContentPage } from '../../../../models/docs.models';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
@@ -173,6 +174,7 @@ export class UrunDagilimlariListComponent implements OnInit {
   private readonly authService = inject(AuthService);
   private readonly aramaService = inject(AramaService);
   private readonly operasyonIslemleriService = inject(OperasyonIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private listRequestId = 0;
   private detailRequestId = 0;
   private proposalRequestId = 0;
@@ -689,14 +691,21 @@ export class UrunDagilimlariListComponent implements OnInit {
       });
   }
 
-  protected deleteSelectedDetail(): void {
+  protected async deleteSelectedDetail(): Promise<void> {
     const detail = this.selectedDetail();
 
     if (!detail || !this.canDeleteSelectedDetail()) {
       return;
     }
 
-    if (!window.confirm(`${detail.documentNo} dagilim kaydi silinsin mi?`)) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Dagilim kaydi silinsin mi?',
+      message: `${detail.documentNo} dagilim kaydi silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 

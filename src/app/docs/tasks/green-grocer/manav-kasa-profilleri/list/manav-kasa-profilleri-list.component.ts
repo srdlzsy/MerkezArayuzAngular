@@ -18,6 +18,7 @@ import { finalize } from 'rxjs';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { GreenGrocerService } from '../../../../../core/api/module-services/green-grocer.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
@@ -184,6 +185,7 @@ export class ManavKasaProfilleriListComponent {
   private readonly aramaService = inject(AramaService);
   private readonly authService = inject(AuthService);
   private readonly greenGrocerService = inject(GreenGrocerService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private profileListRequestId = 0;
   private profileDetailRequestId = 0;
   private stockSearchRequestId = 0;
@@ -506,7 +508,7 @@ export class ManavKasaProfilleriListComponent {
       });
   }
 
-  protected deleteSelectedProfile(): void {
+  protected async deleteSelectedProfile(): Promise<void> {
     if (this.isDeleting()) {
       return;
     }
@@ -523,7 +525,14 @@ export class ManavKasaProfilleriListComponent {
       return;
     }
 
-    if (!confirm(`${stockCode} profili pasife alinsin mi?`)) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Profil pasife alinsin mi?',
+      message: `${stockCode} profili pasife alinacak.`,
+      confirmText: 'Pasife Al',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 

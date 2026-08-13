@@ -1,0 +1,59 @@
+<section
+  class="app-confirm-backdrop"
+  *ngIf="request() as dialog"
+  role="presentation"
+  (click)="cancel()"
+>
+  <article
+    class="app-confirm-dialog"
+    [ngClass]="'tone-' + dialog.tone"
+    role="dialog"
+    aria-modal="true"
+    [attr.aria-labelledby]="'app-confirm-title-' + dialog.id"
+    (click)="$event.stopPropagation()"
+  >
+    <header class="dialog-head">
+      <span class="dialog-icon">
+        <i [class]="getIconClass()"></i>
+      </span>
+      <div>
+        <p>{{ dialog.tone === 'danger' ? 'Dikkatli islem' : 'Onay gerekli' }}</p>
+        <h2 [id]="'app-confirm-title-' + dialog.id">{{ getDialogTitle() }}</h2>
+      </div>
+    </header>
+
+    <div class="dialog-body">
+      <p class="dialog-message">{{ dialog.message }}</p>
+      <p class="dialog-details" *ngIf="dialog.details">{{ dialog.details }}</p>
+
+      <label class="confirm-input" *ngIf="dialog.mode === 'prompt'">
+        <span>{{ dialog.input?.label || 'Onay metni' }}</span>
+        <input
+          type="text"
+          [value]="inputValue()"
+          [placeholder]="dialog.input?.placeholder || ''"
+          (input)="updateInputValue($event)"
+          (keyup.enter)="confirm()"
+        />
+        <small *ngIf="dialog.input?.helpText">{{ dialog.input?.helpText }}</small>
+        <small *ngIf="!dialog.input?.helpText && dialog.input?.expectedValue">
+          Devam etmek icin {{ dialog.input?.expectedValue }} yazin.
+        </small>
+      </label>
+    </div>
+
+    <footer class="dialog-actions">
+      <button type="button" class="dialog-button dialog-button-ghost" (click)="cancel()">
+        {{ dialog.cancelText }}
+      </button>
+      <button
+        type="button"
+        class="dialog-button dialog-button-primary"
+        [disabled]="!canConfirm()"
+        (click)="confirm()"
+      >
+        {{ dialog.confirmText }}
+      </button>
+    </footer>
+  </article>
+</section>

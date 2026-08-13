@@ -19,6 +19,7 @@ import { finalize } from 'rxjs';
 
 import { GreenGrocerService } from '../../../../../core/api/module-services/green-grocer.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-export-button.component';
@@ -158,6 +159,7 @@ export class ManavRaporlariListComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly greenGrocerService = inject(GreenGrocerService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private loadSequence = 0;
   private readonly quantityFormatter = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 0,
@@ -474,7 +476,7 @@ export class ManavRaporlariListComponent {
     }, 150);
   }
 
-  protected deleteOrder(item: IFurpaGreenGrocerBranchReportItemApiDto): void {
+  protected async deleteOrder(item: IFurpaGreenGrocerBranchReportItemApiDto): Promise<void> {
     if (!this.canDeleteOrders()) {
       this.feedback.set({
         tone: 'error',
@@ -485,7 +487,12 @@ export class ManavRaporlariListComponent {
     }
 
     const documentLabel = this.formatDocument(item);
-    const confirmed = window.confirm(`${documentLabel} evraki silinsin mi?`);
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Manav evraki silinsin mi?',
+      message: `${documentLabel} evraki silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
 
     if (!confirmed) {
       return;

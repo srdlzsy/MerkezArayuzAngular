@@ -11,6 +11,7 @@ import type {
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 
@@ -51,6 +52,7 @@ export class KasaCiroAktarimiListComponent {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly numberFormatter = new Intl.NumberFormat('tr-TR');
   private readonly formVersion = signal(0);
 
@@ -155,15 +157,24 @@ export class KasaCiroAktarimiListComponent {
     this.importForm.controls.branches.setValue([]);
   }
 
-  protected runImport(): void {
+  protected async runImport(): Promise<void> {
     const request = this.buildImportRequest(true);
 
     if (!request) {
       return;
     }
 
-    if (!request.dryRun && !window.confirm('Canli kasa ciro aktarimi calistirilsin mi?')) {
-      return;
+    if (!request.dryRun) {
+      const confirmed = await this.confirmDialog.confirm({
+        title: 'Canli aktarim calistirilsin mi?',
+        message: 'Canli kasa ciro aktarimi baslatilacak.',
+        confirmText: 'Calistir',
+        tone: 'danger'
+      });
+
+      if (!confirmed) {
+        return;
+      }
     }
 
     this.importLoading.set(true);

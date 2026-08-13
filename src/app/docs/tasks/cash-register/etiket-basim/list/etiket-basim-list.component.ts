@@ -29,6 +29,7 @@ import { finalize } from 'rxjs';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import {
@@ -124,6 +125,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private calculationTimer: number | undefined;
   private calculationRequestId = 0;
   private labelRenderTimer: number | undefined;
@@ -550,7 +552,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       });
   }
 
-  protected deleteRecord(record?: EtiketBasimAcceptanceRecordDto | null): void {
+  protected async deleteRecord(record?: EtiketBasimAcceptanceRecordDto | null): Promise<void> {
     const targetRecord = record ?? this.selectedRecord();
 
     if (!targetRecord) {
@@ -567,7 +569,14 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       return;
     }
 
-    if (!window.confirm(`${targetRecord.seriesAndNumber || targetRecord.id} kaydi silinsin mi?`)) {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Etiket kaydi silinsin mi?',
+      message: `${targetRecord.seriesAndNumber || targetRecord.id} kaydi silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
       return;
     }
 

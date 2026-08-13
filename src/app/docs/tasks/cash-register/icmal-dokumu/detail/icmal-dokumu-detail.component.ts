@@ -15,6 +15,7 @@ import type {
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
@@ -56,6 +57,7 @@ export class IcmalDokumuDetailComponent
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
 
   protected readonly isLoading = signal(false);
   protected readonly feedback = signal<DetailFeedback | null>(null);
@@ -357,7 +359,7 @@ export class IcmalDokumuDetailComponent
       });
   }
 
-  protected deleteSummary(): void {
+  protected async deleteSummary(): Promise<void> {
     const summary = this.summary;
 
     if (!summary || this.isDeleting()) {
@@ -373,9 +375,12 @@ export class IcmalDokumuDetailComponent
       return;
     }
 
-    const confirmed = window.confirm(
-      `${summary.documentSerie}/${summary.documentOrderNo} icmal kaydi silinsin mi?`
-    );
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Icmal kaydi silinsin mi?',
+      message: `${summary.documentSerie}/${summary.documentOrderNo} icmal kaydi silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
 
     if (!confirmed) {
       return;
