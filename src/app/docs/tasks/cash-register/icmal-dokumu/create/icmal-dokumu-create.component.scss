@@ -284,6 +284,18 @@
   box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.13);
 }
 
+.field.field-invalid input,
+.field.field-invalid select {
+  border-color: #fca5a5;
+  background: #fff7f7;
+}
+
+.field-hint {
+  color: #b91c1c;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
 .field input[readonly],
 .field input:disabled {
   background: #f8fafc;

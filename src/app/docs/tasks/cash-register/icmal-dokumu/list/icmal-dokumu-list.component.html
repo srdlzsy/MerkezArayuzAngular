@@ -81,12 +81,10 @@
           <thead>
             <tr>
               <th>Sube</th>
-              <th>Evrak Seri</th>
-              <th>Evrak Sira</th>
-              <th>Kasa No</th>
+              <th>Belge</th>
+              <th>Kasa</th>
               <th>Z No</th>
-              <th>Kasiyer</th>
-              <th>Duzenleyen</th>
+              <th>Personel</th>
               <th>Icmal Tarihi</th>
               <th>Toplam</th>
               <th></th>
@@ -95,12 +93,23 @@
           <tbody>
             <tr *ngFor="let summary of paginatedSummaries(); trackBy: trackBySummary">
               <td>{{ summary.warehouse || '-' }}</td>
-              <td>{{ summary.documentSerie || '-' }}</td>
-              <td>{{ summary.documentOrderNo }}</td>
-              <td>{{ summary.cashNo }}</td>
+              <td>
+                <span class="stacked-cell">
+                  <strong>{{ summary.documentSerie || '-' }}</strong>
+                  <small>
+                    <span class="mobile-only">{{ summary.warehouse || '-' }} / </span>
+                    Sira {{ summary.documentOrderNo }}
+                  </small>
+                </span>
+              </td>
+              <td>Kasa {{ summary.cashNo }}</td>
               <td>{{ summary.zReportNo }}</td>
-              <td>{{ summary.cashierNo }}</td>
-              <td>{{ summary.managerNo }}</td>
+              <td>
+                <span class="stacked-cell">
+                  <strong>Kasiyer {{ summary.cashierNo }}</strong>
+                  <small>Duzenleyen {{ summary.managerNo }}</small>
+                </span>
+              </td>
               <td>{{ formatSummaryDate(summary.summaryDate) }}</td>
               <td>{{ summary.total | number:'1.2-2' }} TL</td>
               <td class="table-action-cell">

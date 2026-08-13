@@ -373,8 +373,10 @@ export const CASH_REGISTER_TASK_SOURCE = {
       baseRouteOrFile: '/api/kasa-islemleri/kasa-sayimlari',
       highlights: [
         'Yetki kodlari kasa-islemleri.icmal-kaydi-girisi.* ailesindedir',
-        'WarehouseNo body icinde opsiyoneldir ve JWT deposuyla ayni olmali',
+        'Tum depo yetkisi yoksa WarehouseNo sorulmaz ve backend JWT deposunu kullanir',
+        'Tum depo yetkisi varsa hedef sube secilmeli ve WarehouseNo body icinde gonderilmelidir',
         'En az bir paymentTypes, storeExpenses veya banknoteMovements satiri zorunludur',
+        'zReportNo Z rapor numarasi, zTotalValue Z rapor tutaridir',
         'Nakit toplam paymentTypes icinden gonderilmez; backend banknot hareketlerinden 500 satirini uretir',
         'Belge serisi backend tarafinda F{loginDepoNo}.{cashNo} olarak uretilir',
         'API route ailesi geriye uyumluluk icin kasa-sayimlari altinda kalir'
@@ -431,6 +433,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
         }
       ],
       codeSample: `{
+  "warehouseNo": 110,
   "cashNo": 1,
   "zReportNo": 125,
   "cashierNo": 1001,

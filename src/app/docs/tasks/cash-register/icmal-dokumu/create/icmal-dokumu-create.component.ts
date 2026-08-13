@@ -131,7 +131,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   );
   protected readonly generatedSeriePreview = computed(() => {
     this.formRevision();
-    const warehouseNo = this.controls?.warehouseNo?.value ?? this.currentWarehouseNo();
+    const warehouseNo = this.resolveCreateWarehouseNo();
     const cashNo = this.controls?.cashNo?.value ?? null;
     return this.buildCashSummaryDocumentSerie(warehouseNo, cashNo);
   });
@@ -198,6 +198,29 @@ export class IcmalDokumuCreateComponent implements OnInit {
     storeExpenses: new FormArray<StoreExpenseLineFormGroup>([])
   };
   protected readonly form = new FormGroup(this.controls);
+  protected readonly targetWarehouseLabel = computed(() => {
+    this.formRevision();
+
+    if (!this.isAdminUser()) {
+      return this.currentWarehouseLabel();
+    }
+
+    const warehouseNo = this.resolveCreateWarehouseNo();
+    return warehouseNo ? `Hedef Sube ${warehouseNo}` : 'Hedef sube secilmedi';
+  });
+  protected readonly canLoadLookupData = computed(() => {
+    this.formRevision();
+    return !this.lookupLoading() && !!this.resolveCreateWarehouseNo();
+  });
+  protected readonly canReadZReport = computed(() => {
+    this.formRevision();
+    return (
+      !this.zReportLoading() &&
+      !!this.resolveCreateWarehouseNo() &&
+      this.toSafeNumber(this.controls.cashNo.value) > 0 &&
+      this.toSafeNumber(this.controls.zReportNo.value) > 0
+    );
+  });
 
   protected readonly paymentTypesTotal = computed(() => {
     this.formRevision();
@@ -325,6 +348,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   });
 
   ngOnInit(): void {
+    this.configureWarehouseControl();
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.refreshComputedFormState());
@@ -447,7 +471,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       return;
     }
 
-    const warehouseNo = this.currentWarehouseNo();
+    const warehouseNo = this.resolveCreateWarehouseNo();
     const issues: string[] = [];
 
     this.lookupLoading.set(true);
@@ -518,6 +542,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .subscribe({
         next: (items: IFurpaPaymentTypeLookupItemApiDto[]) => {
           this.foodCheckPaymentTypes.set(items ?? []);
+
+          if (this.activePanel() === 'foodChecks') {
+            this.syncPaymentTypePanelTemplates('foodCheck');
+          }
         },
         error: () => {
           this.foodCheckPaymentTypes.set([]);
@@ -531,6 +559,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .subscribe({
         next: (items: IFurpaPaymentTypeLookupItemApiDto[]) => {
           this.onlinePaymentTypes.set(items ?? []);
+
+          if (this.activePanel() === 'deferredSales') {
+            this.syncPaymentTypePanelTemplates('deferredSale');
+          }
         },
         error: () => {
           this.onlinePaymentTypes.set([]);
@@ -544,6 +576,10 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .subscribe({
         next: (items: IFurpaPaymentTypeLookupItemApiDto[]) => {
           this.expenseVoucherPaymentTypes.set(items ?? []);
+
+          if (this.activePanel() === 'expenseVouchers') {
+            this.syncPaymentTypePanelTemplates('expenseVoucher');
+          }
         },
         error: () => {
           this.expenseVoucherPaymentTypes.set([]);
@@ -559,7 +595,12 @@ export class IcmalDokumuCreateComponent implements OnInit {
           const templates = items ?? [];
 
           this.storeExpenseTemplates.set(templates);
-          this.applyMissingStoreExpenseTypeDefaults(templates);
+
+          if (this.activePanel() === 'storeExpenses') {
+            this.syncStoreExpensePanelTemplates();
+          } else {
+            this.applyMissingStoreExpenseTypeDefaults(templates);
+          }
         },
         error: () => {
           this.storeExpenseTemplates.set([]);
@@ -583,6 +624,16 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected goBack(): void {
     void this.router.navigateByUrl('/docs/api/kasa-sayimlari');
+  }
+
+  protected onWarehouseNoChanged(): void {
+    this.controls.cashNo.setValue(null);
+    this.onCashNoChanged();
+    this.cashRegisters.set([]);
+    this.cashRegisterMessage.set('');
+    this.zReportMessage.set('');
+    this.loadLookupData();
+    this.refreshComputedFormState();
   }
 
   protected onCashNoChanged(): void {
@@ -809,7 +860,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       return;
     }
 
-    const warehouseNo = this.currentWarehouseNo() ?? this.controls.warehouseNo.value;
+    const warehouseNo = this.resolveCreateWarehouseNo();
     const zReportNo = this.controls.zReportNo.value;
     const cashNo = this.controls.cashNo.value;
 
@@ -863,6 +914,12 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
     if (!this.canCreate()) {
       this.submitError.set('Bu icmal kaydini olusturmak icin kaydetme yetkin yok.');
+      return;
+    }
+
+    if (this.isAdminUser() && !this.resolveCreateWarehouseNo()) {
+      this.controls.warehouseNo.markAsTouched();
+      this.submitError.set('Tum depo yetkisinde icmal kaydi icin hedef sube secmelisin.');
       return;
     }
 
@@ -956,33 +1013,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
     source: CashDrawerPaymentSource,
     group: PaymentTypeLineFormGroup
   ): string {
-    const templates = this.getPaymentTypeTemplates(source);
-    const exactKey = this.buildPaymentTypeTemplateKey({
-      paymentName: group.controls.paymentName.value,
-      paymentTypeNo: group.controls.paymentTypeNo.value,
-      terminalId: group.controls.terminalId.value,
-      accountCode: group.controls.accountCode.value
-    });
-
-    if (templates.some((template) => this.buildPaymentTypeTemplateKey(template) === exactKey)) {
-      return exactKey;
-    }
-
-    const paymentTypeNo = this.toSafeNumber(group.controls.paymentTypeNo.value);
-    const terminalId = this.normalizeLookupKeyText(group.controls.terminalId.value);
-    const accountCode = this.normalizeLookupKeyText(group.controls.accountCode.value);
-
-    const matchedTemplate =
-      templates.find(
-        (template) =>
-          this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo &&
-          (!terminalId || this.normalizeLookupKeyText(template.terminalId) === terminalId) &&
-          (!accountCode || this.normalizeLookupKeyText(template.accountCode) === accountCode)
-      ) ??
-      templates.find((template) => this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo) ??
-      templates[0];
-
-    return matchedTemplate ? this.buildPaymentTypeTemplateKey(matchedTemplate) : '';
+    const template = this.resolvePaymentTypeTemplateForGroup(
+      group,
+      this.getPaymentTypeTemplates(source)
+    );
+    return template ? this.buildPaymentTypeTemplateKey(template) : '';
   }
 
   protected getPaymentTypeTemplateLabel(template: IFurpaPaymentTypeLookupItemApiDto): string {
@@ -1029,32 +1064,19 @@ export class IcmalDokumuCreateComponent implements OnInit {
         return;
       }
       case 'cards': {
-        this.addMissingPaymentTypeTemplates(this.bankPaymentTypes(), 'card');
+        this.syncPaymentTypePanelTemplates('card');
         return;
       }
       case 'foodChecks': {
-        if (!this.hasPaymentTypeSourceValue('foodCheck') && this.foodCheckPaymentTypes().length > 0) {
-          this.foodCheckPaymentTypes().forEach((item) =>
-            this.addPaymentTypeTemplate(item, 'foodCheck')
-          );
-        }
+        this.syncPaymentTypePanelTemplates('foodCheck');
         return;
       }
       case 'storeExpenses': {
-        if (this.storeExpenses.length === 0 && this.storeExpenseTemplates().length > 0) {
-          this.storeExpenseTemplates().forEach((item) => this.addStoreExpenseTemplate(item));
-        }
+        this.syncStoreExpensePanelTemplates();
         return;
       }
       case 'expenseVouchers': {
-        if (
-          !this.hasPaymentTypeSourceValue('expenseVoucher') &&
-          this.expenseVoucherPaymentTypes().length > 0
-        ) {
-          this.expenseVoucherPaymentTypes().forEach((item) =>
-            this.addPaymentTypeTemplate(item, 'expenseVoucher')
-          );
-        }
+        this.syncPaymentTypePanelTemplates('expenseVoucher');
         return;
       }
       case 'giftChecks': {
@@ -1064,14 +1086,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
         return;
       }
       case 'deferredSales': {
-        if (
-          !this.hasPaymentTypeSourceValue('deferredSale') &&
-          this.onlinePaymentTypes().length > 0
-        ) {
-          this.onlinePaymentTypes().forEach((item) =>
-            this.addPaymentTypeTemplate(item, 'deferredSale')
-          );
-        }
+        this.syncPaymentTypePanelTemplates('deferredSale');
         return;
       }
     }
@@ -1111,12 +1126,30 @@ export class IcmalDokumuCreateComponent implements OnInit {
     }
   }
 
-  private hasPaymentTypeSourceValue(source: CashDrawerPaymentSource): boolean {
-    return this.paymentTypes.controls.some(
-      (group) =>
-        group.controls.source.value === source &&
-        !this.isBackendGeneratedCashPaymentGroup(group)
-    );
+  private syncPaymentTypePanelTemplates(source: CashDrawerPaymentSource): void {
+    const templates = this.getPaymentTypeTemplates(source);
+
+    if (!templates.length) {
+      return;
+    }
+
+    this.addMissingPaymentTypeTemplates(templates, source);
+    this.applyMissingPaymentTypeTemplateSelections(source, templates);
+  }
+
+  private syncStoreExpensePanelTemplates(): void {
+    const templates = this.storeExpenseTemplates();
+
+    if (!templates.length) {
+      return;
+    }
+
+    if (this.storeExpenses.length === 0) {
+      templates.forEach((item) => this.addStoreExpenseTemplate(item));
+      return;
+    }
+
+    this.applyMissingStoreExpenseTypeDefaults(templates);
   }
 
   private addMissingPaymentTypeTemplates(
@@ -1165,6 +1198,47 @@ export class IcmalDokumuCreateComponent implements OnInit {
     });
 
     if (hasNewTemplate) {
+      this.refreshComputedFormState();
+    }
+  }
+
+  private applyMissingPaymentTypeTemplateSelections(
+    source: CashDrawerPaymentSource,
+    templates: IFurpaPaymentTypeLookupItemApiDto[]
+  ): void {
+    let hasChanged = false;
+
+    this.paymentTypes.controls.forEach((group) => {
+      if (
+        group.controls.source.value !== source ||
+        this.isBackendGeneratedCashPaymentGroup(group)
+      ) {
+        return;
+      }
+
+      const template = this.resolvePaymentTypeTemplateForGroup(group, templates);
+
+      if (!template) {
+        return;
+      }
+
+      const currentKey = this.buildPaymentTypeTemplateKey({
+        paymentName: group.controls.paymentName.value,
+        paymentTypeNo: group.controls.paymentTypeNo.value,
+        terminalId: group.controls.terminalId.value,
+        accountCode: group.controls.accountCode.value
+      });
+      const templateKey = this.buildPaymentTypeTemplateKey(template);
+
+      if (currentKey === templateKey) {
+        return;
+      }
+
+      this.applyPaymentTypeTemplateToGroup(group, template);
+      hasChanged = true;
+    });
+
+    if (hasChanged) {
       this.refreshComputedFormState();
     }
   }
@@ -1233,6 +1307,44 @@ export class IcmalDokumuCreateComponent implements OnInit {
     group.controls.paymentTypeNo.setValue(template.paymentTypeNo ?? null);
     group.controls.terminalId.setValue(template.terminalId?.trim() ?? '');
     group.controls.accountCode.setValue(template.accountCode?.trim() ?? '');
+  }
+
+  private resolvePaymentTypeTemplateForGroup(
+    group: PaymentTypeLineFormGroup,
+    templates: IFurpaPaymentTypeLookupItemApiDto[]
+  ): IFurpaPaymentTypeLookupItemApiDto | null {
+    if (!templates.length) {
+      return null;
+    }
+
+    const exactKey = this.buildPaymentTypeTemplateKey({
+      paymentName: group.controls.paymentName.value,
+      paymentTypeNo: group.controls.paymentTypeNo.value,
+      terminalId: group.controls.terminalId.value,
+      accountCode: group.controls.accountCode.value
+    });
+    const exactTemplate = templates.find(
+      (template) => this.buildPaymentTypeTemplateKey(template) === exactKey
+    );
+
+    if (exactTemplate) {
+      return exactTemplate;
+    }
+
+    const paymentTypeNo = this.toSafeNumber(group.controls.paymentTypeNo.value);
+    const terminalId = this.normalizeLookupKeyText(group.controls.terminalId.value);
+    const accountCode = this.normalizeLookupKeyText(group.controls.accountCode.value);
+
+    return (
+      templates.find(
+        (template) =>
+          this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo &&
+          (!terminalId || this.normalizeLookupKeyText(template.terminalId) === terminalId) &&
+          (!accountCode || this.normalizeLookupKeyText(template.accountCode) === accountCode)
+      ) ??
+      templates.find((template) => this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo) ??
+      templates[0]
+    );
   }
 
   private markPaymentTypeLookupControlsTouched(group: PaymentTypeLineFormGroup): void {
@@ -1358,7 +1470,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
         this.bankPaymentTypes.set(paymentTypes);
 
         if (this.activePanel() === 'cards') {
-          this.addMissingPaymentTypeTemplates(paymentTypes, 'card');
+          this.syncPaymentTypePanelTemplates('card');
         }
 
         this.cashRegisterMessage.set(
@@ -1473,7 +1585,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       zTotalValue: this.toSafeNumber(rawValue.zTotalValue),
       total: this.toSafeNumber(rawValue.total),
       summaryDate: rawValue.summaryDate,
-      warehouseNo: this.isAdminUser() ? rawValue.warehouseNo ?? undefined : undefined,
+      warehouseNo: this.isAdminUser() ? this.resolveCreateWarehouseNo() ?? undefined : undefined,
       giftCheckMovements: rawValue.giftCheckMovements.map((line) => ({
         value: this.toSafeNumber(line.value),
         giftCheckType: this.toSafeNumber(line.giftCheckType),
@@ -1515,7 +1627,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       zTotalValue: rawValue.zTotalValue,
       total: rawValue.total,
       summaryDate: rawValue.summaryDate,
-      warehouseNo: this.isAdminUser() ? rawValue.warehouseNo : undefined,
+      warehouseNo: this.isAdminUser() ? this.resolveCreateWarehouseNo() : undefined,
       giftCheckMovements: rawValue.giftCheckMovements,
       banknoteMovements: rawValue.banknoteMovements,
       paymentTypes: rawValue.paymentTypes.filter(
@@ -1532,6 +1644,27 @@ export class IcmalDokumuCreateComponent implements OnInit {
     const warehousePart = warehouseNo ? String(warehouseNo) : '{loginDepoNo}';
     const cashPart = cashNo ? String(cashNo) : '{kasaNo}';
     return `F${warehousePart}.${cashPart}`;
+  }
+
+  private configureWarehouseControl(): void {
+    if (this.isAdminUser()) {
+      this.controls.warehouseNo.addValidators([Validators.required, Validators.min(1)]);
+    } else {
+      this.controls.warehouseNo.clearValidators();
+      this.controls.warehouseNo.setValue(this.currentWarehouseNo(), { emitEvent: false });
+    }
+
+    this.controls.warehouseNo.updateValueAndValidity({ emitEvent: false });
+  }
+
+  private resolveCreateWarehouseNo(): number | null {
+    if (this.isAdminUser()) {
+      const warehouseNo = this.toSafeNumber(this.controls?.warehouseNo?.value ?? null);
+      return warehouseNo > 0 ? warehouseNo : null;
+    }
+
+    const currentWarehouseNo = this.toSafeNumber(this.currentWarehouseNo());
+    return currentWarehouseNo > 0 ? currentWarehouseNo : null;
   }
 
   private hasPermission(action: 'create'): boolean {

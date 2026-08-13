@@ -6,7 +6,7 @@
         <h2>{{ current.title }}</h2>
         <p class="header-meta">
           <ng-container *ngIf="isAdminUser(); else seriePreview">
-            {{ currentWarehouseLabel() }} - {{ generatedSeriePreview() }}
+            {{ targetWarehouseLabel() }} - {{ generatedSeriePreview() }}
           </ng-container>
           <ng-template #seriePreview>{{ generatedSeriePreview() }}</ng-template>
         </p>
@@ -71,7 +71,7 @@
               type="button"
               class="action-button action-button-ghost compact-button"
               (click)="loadLookupData()"
-              [disabled]="lookupLoading()"
+              [disabled]="!canLoadLookupData()"
             >
               {{ lookupLoading() ? 'Yukleniyor...' : 'Yenile' }}
             </button>
@@ -79,7 +79,7 @@
               type="button"
               class="action-button action-button-ghost compact-button"
               (click)="loadZReportTotal()"
-              [disabled]="zReportLoading()"
+              [disabled]="!canReadZReport()"
             >
               {{ zReportLoading() ? 'Okunuyor...' : 'Z Oku' }}
             </button>
@@ -94,6 +94,24 @@
         </div>
 
         <div class="field-grid">
+          <label
+            class="field"
+            *ngIf="isAdminUser()"
+            [class.field-invalid]="controls.warehouseNo.touched && controls.warehouseNo.invalid"
+          >
+            <span>Hedef Sube</span>
+            <input
+              type="number"
+              formControlName="warehouseNo"
+              placeholder="110"
+              min="1"
+              (change)="onWarehouseNoChanged()"
+            />
+            <small class="field-hint" *ngIf="controls.warehouseNo.touched && controls.warehouseNo.invalid">
+              Hedef sube gerekli
+            </small>
+          </label>
+
           <label class="field">
             <span>Tarih</span>
             <input type="date" formControlName="summaryDate" />
@@ -248,7 +266,7 @@
       </article>
     </section>
 
-    <div class="drawer-backdrop" *ngIf="activePanel()" (click)="closePanel()"></div>
+    <div class="drawer-backdrop" *ngIf="activePanel()" aria-hidden="true"></div>
 
     <section class="drawer-panel" *ngIf="activePanel()" role="dialog" aria-modal="true">
       <header class="drawer-head">

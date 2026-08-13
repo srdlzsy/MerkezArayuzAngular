@@ -76,17 +76,22 @@ export class IcmalDokumuDetailComponent
 
   protected readonly warehouseNo = computed(() => {
     const summary = this.summary;
-    const currentWarehouseNo = this.authService.currentUser()?.depoNo ?? null;
+    const documentWarehouseNo = this.extractFirstNumber(summary?.documentSerie);
 
-    if (typeof currentWarehouseNo === 'number' && currentWarehouseNo > 0) {
-      return currentWarehouseNo;
+    if (documentWarehouseNo && documentWarehouseNo > 0) {
+      return documentWarehouseNo;
     }
 
     const summaryWarehouseNo = this.extractFirstNumber(summary?.warehouse);
-    return summaryWarehouseNo ?? 0;
+
+    if (summaryWarehouseNo && summaryWarehouseNo > 0) {
+      return summaryWarehouseNo;
+    }
+
+    return this.authService.currentUser()?.depoNo ?? 0;
   });
   protected readonly warehouseName = computed(
-    () => this.authService.currentUser()?.depoIsmi?.trim() || this.summary?.warehouse || '-'
+    () => this.summary?.warehouse || this.authService.currentUser()?.depoIsmi?.trim() || '-'
   );
   protected readonly cashierName = computed(() =>
     this.resolveCashierName(this.summary?.cashierNo ?? 0)
