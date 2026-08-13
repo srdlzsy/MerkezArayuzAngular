@@ -135,8 +135,8 @@ Bu tablo UI icin ana permission referansidir. Kaynak kod tarafi `PermissionCatal
 | `entegrasyon-islemleri` | `uyumsoft-e-irsaliye` | `entegrasyon-islemleri.uyumsoft-e-irsaliye.page` | `entegrasyon-islemleri.uyumsoft-e-irsaliye.list`<br>`entegrasyon-islemleri.uyumsoft-e-irsaliye.detail`<br>`entegrasyon-islemleri.uyumsoft-e-irsaliye.create`<br>`entegrasyon-islemleri.uyumsoft-e-irsaliye.update` | `entegrasyon-islemleri.uyumsoft-e-irsaliye.all-warehouses` |
 | `fatura-islemleri` | `fatura-goruntuleme` | `fatura-islemleri.fatura-goruntuleme.page` | `fatura-islemleri.fatura-goruntuleme.list`<br>`fatura-islemleri.fatura-goruntuleme.detail`<br>`fatura-islemleri.fatura-goruntuleme.update` | `fatura-islemleri.fatura-goruntuleme.all-warehouses` |
 | `fatura-islemleri` | `fatura-gonderimi` | `fatura-islemleri.fatura-gonderimi.page` | `fatura-islemleri.fatura-gonderimi.list`<br>`fatura-islemleri.fatura-gonderimi.detail`<br>`fatura-islemleri.fatura-gonderimi.create` | `fatura-islemleri.fatura-gonderimi.all-warehouses` |
-| `kasa-islemleri` | `kasa-sayimlari` | `kasa-islemleri.kasa-sayimlari.page` | `kasa-islemleri.kasa-sayimlari.list`<br>`kasa-islemleri.kasa-sayimlari.detail` | `kasa-islemleri.kasa-sayimlari.all-warehouses` |
-| `kasa-islemleri` | `icmal-kaydi-girisi` | `kasa-islemleri.icmal-kaydi-girisi.page` | `kasa-islemleri.icmal-kaydi-girisi.list`<br>`kasa-islemleri.icmal-kaydi-girisi.create`<br>`kasa-islemleri.icmal-kaydi-girisi.update`<br>`kasa-islemleri.icmal-kaydi-girisi.delete` | `kasa-islemleri.icmal-kaydi-girisi.all-warehouses` |
+| `kasa-islemleri` | `kasa-sayimlari` | `kasa-islemleri.kasa-sayimlari.page` | `kasa-islemleri.kasa-sayimlari.list`<br>`kasa-islemleri.kasa-sayimlari.detail`<br>`kasa-islemleri.kasa-sayimlari.update`<br>`kasa-islemleri.kasa-sayimlari.delete` | `kasa-islemleri.kasa-sayimlari.all-warehouses` |
+| `kasa-islemleri` | `icmal-kaydi-girisi` | `kasa-islemleri.icmal-kaydi-girisi.page` | `kasa-islemleri.icmal-kaydi-girisi.list`<br>`kasa-islemleri.icmal-kaydi-girisi.create` | `kasa-islemleri.icmal-kaydi-girisi.all-warehouses` |
 | `kasa-islemleri` | `kasa-cirolari` | `kasa-islemleri.kasa-cirolari.page` | `kasa-islemleri.kasa-cirolari.list`<br>`kasa-islemleri.kasa-cirolari.detail` | `kasa-islemleri.kasa-cirolari.all-warehouses` |
 | `kasa-islemleri` | `yeni-kasa-analizleri` | `kasa-islemleri.yeni-kasa-analizleri.page` | `kasa-islemleri.yeni-kasa-analizleri.list` | `kasa-islemleri.yeni-kasa-analizleri.all-warehouses` |
 | `kasa-islemleri` | `kasa-ciro-aktarimi` | `kasa-islemleri.kasa-ciro-aktarimi.page` | `kasa-islemleri.kasa-ciro-aktarimi.list`<br>`kasa-islemleri.kasa-ciro-aktarimi.detail`<br>`kasa-islemleri.kasa-ciro-aktarimi.create` | `kasa-islemleri.kasa-ciro-aktarimi.all-warehouses` |
@@ -11778,7 +11778,9 @@ Response:
 }
 ```
 
-### Icmal Kaydi Girisi / Guncelleme ve Silme
+### Kasa Sayimlari / Secili Kaydi Guncelleme ve Silme
+
+Bu akis Kasa Sayimlari liste ekranindan secilen kayit icindir. Icmal Kaydi Girisi sadece yeni kayit olusturma ekranidir.
 
 Belge uzerindeki satirlari ve fiziksel para detaylarini guncellemek icin ayri endpointler kullanilir.
 
@@ -11796,8 +11798,8 @@ Legacy uyumluluk route'lari:
 
 Yetki:
 
-- detay ve banknot update icin `kasa-islemleri.icmal-kaydi-girisi.update`
-- silme icin `kasa-islemleri.icmal-kaydi-girisi.delete`
+- detay ve banknot update icin `kasa-islemleri.kasa-sayimlari.update`
+- silme icin `kasa-islemleri.kasa-sayimlari.delete`
 
 Not:
 
@@ -12266,21 +12268,22 @@ Iade Islemleri / Depo Iadeleri
 Kasa Islemleri / Kasa Sayimlari
   -> ekran acilisinda o gunun belge listesi icin GET /api/kasa-islemleri/kasa-sayimlari?dateToGet=...
   -> ust rapor kartlari icin GET /api/kasa-islemleri/kasa-sayimlari/rapor?dateToGet=...
-  -> bu gorev sadece goruntuleme/listeleme icindir; icmal girisi butonu burada permission olarak cizilmemelidir
   -> kullanici satira tiklar
   -> GET /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}
   -> gerekiyorsa banknot ve hediye ceki detaylarini ayri sekmelerde
   -> GET /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/banknot-hareketleri
   -> GET /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/hediye-ceki-hareketleri
+  -> kullanicida kasa-islemleri.kasa-sayimlari.update varsa 'Duzenle' aksiyonu gosterilir
+  -> detay duzenleme icin PUT /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/detaylar
+  -> banknot duzenleme icin PUT /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/banknot-hareketleri
+  -> kullanicida kasa-islemleri.kasa-sayimlari.delete varsa 'Sil' aksiyonu gosterilir
+  -> silme icin DELETE /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}
 
 Kasa Islemleri / Icmal Kaydi Girisi
   -> UI bu gorevi Kasa Sayimlari'ndan ayri menu/task olarak gostermelidir
   -> lookup alanlari icin kasiyer, kasa, odeme tipi ve banknot tipi endpointlerini paralel cagir
   -> Z rapor karsilastirmasi icin GET /api/kasa-islemleri/kasa-sayimlari/z-rapor-toplam?... 
   -> kaydetmek icin POST /api/kasa-islemleri/kasa-sayimlari
-  -> detay duzenleme icin PUT /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/detaylar
-  -> banknot duzenleme icin PUT /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/banknot-hareketleri
-  -> silme icin DELETE /api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}
 
 Kasa Islemleri / Banknot Takipleri
   -> fiziksel para teslim takibi icin GET /api/kasa-islemleri/banknot-takipleri?dateToGet=...

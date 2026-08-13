@@ -37,8 +37,8 @@ type IcmalActionPermission = 'update' | 'delete';
 type EditableDetailField = keyof ISummariesDetailsCT;
 type EditableBanknoteField = keyof IBanknoteMovementsCT;
 
-const TASK_ID = 'icmal-kaydi-girisi';
-const PERMISSION_PREFIX = 'kasa-islemleri.icmal-kaydi-girisi';
+const TASK_ID = 'kasa-sayimlari';
+const PERMISSION_PREFIX = 'kasa-islemleri.kasa-sayimlari';
 
 @Component({
   selector: 'app-icmal-dokumu-detail',

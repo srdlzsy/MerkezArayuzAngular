@@ -306,18 +306,19 @@ export const CASH_REGISTER_TASK_SOURCE = {
       id: 'kasa-sayimlari',
       title: 'Kasa Sayimlari',
       subtitle:
-        'Gunluk kasa sayimi ve icmal kayitlarini salt okunur liste, rapor ve detay akisiyla izler.',
+        'Gunluk kasa sayimi ve icmal kayitlarini liste, rapor, detay, guncelleme ve silme akisiyla izler.',
       baseRouteOrFile: '/api/kasa-islemleri/kasa-sayimlari | /api/kasa-islemleri/kasa-sayimlari/rapor',
       highlights: [
-        'Bu gorev sadece list ve detail yetkileriyle okunur',
-        'Icmal girisi butonu bu ekranda yetki olarak cizilmez',
-        'Yeni kayit ve guncelleme akislari ayri Icmal Kaydi Girisi gorevinde acilir'
+        'Liste ve detay list/detail yetkileriyle okunur',
+        'Secili kayit guncelleme kasa-islemleri.kasa-sayimlari.update yetkisine baglidir',
+        'Secili kayit silme kasa-islemleri.kasa-sayimlari.delete yetkisine baglidir',
+        'Yeni icmal olusturma ayri Icmal Kaydi Girisi gorevinde acilir'
       ],
-      listTitle: 'Liste ve Detay Endpointleri',
+      listTitle: 'Liste, Detay, Guncelleme ve Silme Endpointleri',
       items: [
         {
           name: 'KasaSayimlariController',
-          description: 'Gunluk kasa icmal kayitlarini, raporunu ve detaylarini salt okunur kapsamdaki UI icin sunar.',
+          description: 'Gunluk kasa icmal kayitlarini, raporunu, detaylarini ve secili kayit aksiyonlarini UI icin sunar.',
           endpoints: [
             {
               method: 'GET',
@@ -333,6 +334,23 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/detaylar',
               description: 'Icmal odeme detaylarini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/detaylar',
+              description: 'Secili kasa sayimi odeme satirlarini gunceller',
+              payload: 'UpdateCashSummaryDetailsHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/banknot-hareketleri',
+              description: 'Secili kasa sayimi banknot satirlarini gunceller',
+              payload: 'UpdateCashSummaryBanknotesHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}',
+              description: 'Secili kasa sayimi kaydini siler'
             }
           ]
         }
@@ -351,44 +369,27 @@ export const CASH_REGISTER_TASK_SOURCE = {
       id: 'icmal-kaydi-girisi',
       title: 'Icmal Kaydi Girisi',
       subtitle:
-        'Kasa icmal kaydi olusturma, lookup, Z rapor okuma, detay guncelleme ve silme akislarini ayri gorev olarak yonetir.',
+        'Kasa icmal kaydi olusturma, lookup ve Z rapor okuma akislarini ayri gorev olarak yonetir.',
       baseRouteOrFile: '/api/kasa-islemleri/kasa-sayimlari',
       highlights: [
         'Yetki kodlari kasa-islemleri.icmal-kaydi-girisi.* ailesindedir',
         'WarehouseNo body icinde opsiyoneldir ve JWT deposuyla ayni olmali',
         'En az bir paymentTypes, storeExpenses veya banknoteMovements satiri zorunludur',
         'Nakit toplam paymentTypes icinden gonderilmez; backend banknot hareketlerinden 500 satirini uretir',
-        'Belge serisi backend tarafinda KS{loginDepoNo} olarak uretilir',
+        'Belge serisi backend tarafinda F{loginDepoNo}.{cashNo} olarak uretilir',
         'API route ailesi geriye uyumluluk icin kasa-sayimlari altinda kalir'
       ],
-      listTitle: 'Giris, Lookup ve Guncelleme Endpointleri',
+      listTitle: 'Giris ve Lookup Endpointleri',
       items: [
         {
           name: 'KasaSayimlariController',
-          description: 'Icmal kaydi girisi icin create, lookup, update ve delete endpointlerini sunar.',
+          description: 'Icmal kaydi girisi icin create ve lookup endpointlerini sunar.',
           endpoints: [
             {
               method: 'POST',
               path: '/api/kasa-islemleri/kasa-sayimlari',
               description: 'Yeni icmal kaydi olusturur',
               payload: 'CreateCashSummaryHttpRequest'
-            },
-            {
-              method: 'PUT',
-              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/detaylar',
-              description: 'Icmal odeme satirlarini gunceller',
-              payload: 'UpdateCashSummaryDetailsHttpRequest'
-            },
-            {
-              method: 'PUT',
-              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/banknot-hareketleri',
-              description: 'Banknot satirlarini gunceller',
-              payload: 'UpdateCashSummaryBanknotesHttpRequest'
-            },
-            {
-              method: 'DELETE',
-              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}',
-              description: 'Icmal kaydini siler'
             }
           ]
         },
