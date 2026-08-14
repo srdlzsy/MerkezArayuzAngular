@@ -40,6 +40,7 @@ export interface ISummariesDetailsCT {
   source?: string | null;
   category?: string | null;
   description: string;
+  paymentTypeKey?: string | null;
 }
 
 export class SummariesDetailsCT implements ISummariesDetailsCT {
@@ -54,13 +55,15 @@ export class SummariesDetailsCT implements ISummariesDetailsCT {
     public paymentName?: string | null,
     public paymentTypeNo?: number | null,
     public source?: string | null,
-    public category?: string | null
+    public category?: string | null,
+    public paymentTypeKey?: string | null
   ) {}
 }
 
 export interface IBanknoteMovementsCT {
   value: number;
   banknoteTypeID: number;
+  banknoteTypeName?: string | null;
   quantity: number;
   total: number;
 }
@@ -70,13 +73,15 @@ export class BanknoteMovementsCT implements IBanknoteMovementsCT {
     public value: number,
     public banknoteTypeID: number,
     public quantity: number,
-    public total: number
+    public total: number,
+    public banknoteTypeName?: string | null
   ) {}
 }
 
 export interface IGiftCheckMovementsCT {
   value: number;
   giftCheckTypeID: number;
+  giftCheckTypeName?: string | null;
   quantity: number;
   total: number;
 }
@@ -86,7 +91,8 @@ export class GiftCheckMovementsCT implements IGiftCheckMovementsCT {
     public value: number,
     public giftCheckTypeID: number,
     public quantity: number,
-    public total: number
+    public total: number,
+    public giftCheckTypeName?: string | null
   ) {}
 }
 

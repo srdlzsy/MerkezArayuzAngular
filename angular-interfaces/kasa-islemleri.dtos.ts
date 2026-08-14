@@ -69,6 +69,7 @@ export interface CashSummaryDetailItemDto {
   source?: string | null;
   category?: string | null;
   description: string;
+  paymentTypeKey?: string | null;
 }
 
 // ============================================================================
@@ -958,6 +959,7 @@ export interface ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto
 export interface BanknoteMovementItemDto {
   value: number;
   banknoteType: number;
+  banknoteTypeName?: string | null;
   quantity: number;
   total: number;
 }
@@ -967,6 +969,7 @@ export interface BanknoteTypeItemDto {
   quantity: number;
   total: number;
   banknoteType: number;
+  banknoteTypeName?: string | null;
 }
 
 export interface BanknoteTrackDto {
@@ -997,6 +1000,7 @@ export interface BanknoteTrackDailySummaryTotalDto {
 export interface GiftCheckMovementItemDto {
   value: number;
   giftCheckType: number;
+  giftCheckTypeName?: string | null;
   quantity: number;
   total: number;
 }
@@ -1006,6 +1010,7 @@ export interface GiftCheckTypeItemDto {
   quantity: number;
   total: number;
   giftCheckType: number;
+  giftCheckTypeName?: string | null;
 }
 
 // ============================================================================
@@ -1014,11 +1019,13 @@ export interface GiftCheckTypeItemDto {
 
 export interface PaymentTypeItemDto {
   paymentName: string;
+  paymentTypeId?: number | null;
   paymentTypeNo: number;
   terminalId: string;
   accountCode: string;
   slipNumber: number;
   amountValue: number;
+  paymentTypeKey?: string | null;
 }
 
 // ============================================================================
@@ -1328,6 +1335,7 @@ export interface IFurpaCashSummaryDetailItemApiDto {
   source?: string | null;
   category?: string | null;
   description: string;
+  paymentTypeKey?: string | null;
 }
 
 export type IFurpaCashTurnoverListItemApiDto = CashTurnoverListItemDto;
@@ -1343,6 +1351,7 @@ export type IFurpaCashTurnoverOverviewApiDto = CashTurnoverOverviewDto;
 export interface IFurpaBanknoteMovementItemApiDto {
   value: number;
   banknoteType: number;
+  banknoteTypeName?: string | null;
   quantity: number;
   total: number;
 }
@@ -1350,6 +1359,7 @@ export interface IFurpaBanknoteMovementItemApiDto {
 export interface IFurpaGiftCheckMovementItemApiDto {
   value: number;
   giftCheckType: number;
+  giftCheckTypeName?: string | null;
   quantity: number;
   total: number;
 }
@@ -1405,11 +1415,13 @@ export type IFurpaOnlineCashRegisterDetailApiDto = IFurpaCashRegisterLookupItemA
 
 export interface IFurpaPaymentTypeLookupItemApiDto {
   paymentName: string;
+  paymentTypeId?: number | null;
   paymentTypeNo: number;
   terminalId: string;
   accountCode: string;
   slipNumber: number;
   amountValue: number;
+  paymentTypeKey?: string | null;
 }
 
 export interface IFurpaCreateBanknoteTrackRequestApiDto {

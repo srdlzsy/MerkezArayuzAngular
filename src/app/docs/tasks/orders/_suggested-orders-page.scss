@@ -440,8 +440,7 @@ h2 {
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(15, 23, 42, 0.48);
-  backdrop-filter: blur(3px);
+  background: rgba(15, 23, 42, 0.56);
 }
 
 .convert-dialog {
@@ -453,7 +452,7 @@ h2 {
   border: 1px solid rgba(216, 224, 232, 0.9);
   border-radius: 8px;
   background: #fff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.32);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.22);
 }
 
 .convert-dialog-head {

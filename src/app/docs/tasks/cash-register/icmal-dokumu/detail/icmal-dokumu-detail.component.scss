@@ -261,13 +261,10 @@
   padding: 0.72rem;
   border: 1px solid #bfdbfe;
   border-radius: 10px;
-  background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
+  background: #f8fbff;
 }
 
 .edit-panel-head {
-  position: sticky;
-  top: 0;
-  z-index: 5;
   display: flex;
   align-items: start;
   justify-content: space-between;
@@ -275,8 +272,7 @@
   margin: -0.72rem -0.72rem 0;
   padding: 0.62rem 0.72rem;
   border-bottom: 1px solid #dbeafe;
-  background: rgba(255, 255, 255, 0.96);
-  backdrop-filter: blur(6px);
+  background: #fff;
 }
 
 .edit-panel-head h3 {
@@ -302,21 +298,25 @@
   border: 1px solid #dbeafe;
   border-radius: 10px;
   background: #fff;
+  contain: content;
+  content-visibility: auto;
+  contain-intrinsic-size: 240px;
 }
 
 .edit-section-actions {
   display: flex;
   align-items: center;
+  flex-wrap: wrap;
   justify-content: end;
   gap: 0.55rem;
 }
 
 .payment-add-grid {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(150px, max-content));
+  grid-template-columns: repeat(auto-fit, minmax(132px, max-content));
   align-items: center;
   gap: 0.55rem;
-  margin-bottom: 0.85rem;
+  margin: -0.2rem 0 0.85rem;
 }
 
 .add-line-button,
@@ -361,17 +361,22 @@
 .edit-table-wrap {
   max-height: min(52vh, 520px);
   overflow: auto;
+  overscroll-behavior: contain;
   box-shadow: none;
 }
 
 .edit-table {
-  min-width: 900px !important;
+  min-width: 1040px !important;
   table-layout: fixed;
 }
 
 .edit-table-narrow {
   min-width: 720px !important;
   table-layout: fixed;
+}
+
+.edit-table th {
+  position: static;
 }
 
 .edit-table input,
@@ -626,12 +631,12 @@ th {
 
 .edit-table th:nth-child(2),
 .edit-table td:nth-child(2) {
-  width: 250px;
+  width: 290px;
 }
 
 .edit-table th:nth-child(3),
 .edit-table td:nth-child(3) {
-  width: 150px;
+  width: 140px;
 }
 
 .edit-table th:nth-child(4),
@@ -643,7 +648,12 @@ th {
 
 .edit-table th:nth-child(6),
 .edit-table td:nth-child(6) {
-  width: 180px;
+  width: 160px;
+}
+
+.edit-table th:nth-child(7),
+.edit-table td:nth-child(7) {
+  width: 78px;
 }
 
 .edit-table-narrow th:nth-child(1),

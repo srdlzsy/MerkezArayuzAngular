@@ -757,7 +757,8 @@ export class KasaIslemleriService extends BaseApiService {
       terminalId: toStringValue(item.terminalId),
       source: toStringValue(item.source),
       category: toStringValue(item.category),
-      description: toStringValue(item.description)
+      description: toStringValue(item.description),
+      paymentTypeKey: toStringValue(item.paymentTypeKey)
     };
   }
 
@@ -765,6 +766,7 @@ export class KasaIslemleriService extends BaseApiService {
     return {
       value: toNumberValue(item.value),
       banknoteTypeID: toNumberValue(item.banknoteType),
+      banknoteTypeName: toStringValue(item.banknoteTypeName),
       quantity: toNumberValue(item.quantity),
       total: toNumberValue(item.total)
     };
@@ -774,6 +776,7 @@ export class KasaIslemleriService extends BaseApiService {
     return {
       value: toNumberValue(item.value),
       giftCheckTypeID: toNumberValue(item.giftCheckType),
+      giftCheckTypeName: toStringValue(item.giftCheckTypeName),
       quantity: toNumberValue(item.quantity),
       total: toNumberValue(item.total)
     };

@@ -657,8 +657,7 @@ button:disabled {
   z-index: 2;
   border-top: 1px solid var(--line);
   padding: 0.65rem;
-  background: rgba(255, 255, 255, 0.94);
-  backdrop-filter: blur(8px);
+  background: #fff;
 }
 
 .document-workspace {

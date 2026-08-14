@@ -9,8 +9,7 @@
   display: grid;
   place-items: center;
   padding: 1rem;
-  background: rgba(15, 23, 42, 0.52);
-  backdrop-filter: blur(3px);
+  background: rgba(15, 23, 42, 0.58);
 }
 
 .app-confirm-dialog {
@@ -19,7 +18,7 @@
   border: 1px solid #dbe3ee;
   border-radius: 14px;
   background: #fff;
-  box-shadow: 0 24px 70px rgba(15, 23, 42, 0.26);
+  box-shadow: 0 14px 34px rgba(15, 23, 42, 0.2);
 }
 
 .dialog-head,

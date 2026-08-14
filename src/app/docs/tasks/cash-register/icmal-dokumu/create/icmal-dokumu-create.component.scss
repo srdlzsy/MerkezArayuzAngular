@@ -34,7 +34,7 @@
   padding: 0.72rem 0.86rem;
   border-radius: 10px;
   border-left: 4px solid #0f766e;
-  backdrop-filter: blur(6px);
+  background: #fff;
 }
 
 .eyebrow {
@@ -462,8 +462,7 @@ button.count-card:focus-visible {
   position: fixed;
   inset: 0;
   z-index: 30;
-  background: rgba(15, 23, 42, 0.5);
-  backdrop-filter: blur(3px);
+  background: rgba(15, 23, 42, 0.58);
 }
 
 .drawer-panel {

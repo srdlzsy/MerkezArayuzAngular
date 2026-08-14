@@ -38,6 +38,35 @@ interface DetailFeedback {
   message: string;
 }
 
+interface SelectOptionView<T> {
+  key: string;
+  label: string;
+  template: T;
+}
+
+interface EditableDetailRowView {
+  index: number;
+  item: ISummariesDetailsCT;
+  categoryLabel: string;
+  categoryClass: string;
+  typeSelection: string;
+  typeOptions: SelectOptionView<IFurpaPaymentTypeLookupItemApiDto>[];
+}
+
+interface EditableBanknoteRowView {
+  index: number;
+  item: IBanknoteMovementsCT;
+  typeSelection: string;
+  typeOptions: SelectOptionView<IFurpaBanknoteTypeItemApiDto>[];
+}
+
+interface EditableGiftCheckRowView {
+  index: number;
+  item: IGiftCheckMovementsCT;
+  typeSelection: string;
+  typeOptions: SelectOptionView<IFurpaGiftCheckTypeItemApiDto>[];
+}
+
 type IcmalActionPermission = 'update' | 'delete';
 type EditableDetailField = keyof ISummariesDetailsCT;
 type EditableBanknoteField = keyof IBanknoteMovementsCT;
@@ -94,6 +123,73 @@ export class IcmalDokumuDetailComponent
   protected readonly onlinePaymentTypes = signal<IFurpaPaymentTypeLookupItemApiDto[]>([]);
   protected readonly expenseVoucherPaymentTypes = signal<IFurpaPaymentTypeLookupItemApiDto[]>([]);
   protected readonly storeExpensePaymentTypes = signal<IFurpaPaymentTypeLookupItemApiDto[]>([]);
+  protected readonly editablePaymentCategories: readonly EditablePaymentCategory[] = [
+    'card',
+    'foodCheck',
+    'expenseVoucher',
+    'storeExpense',
+    'onlineSale'
+  ];
+  protected readonly banknoteTypeOptions = computed(() =>
+    [...this.banknoteTypes()].sort((left, right) => {
+      const valueDifference = this.toSafeNumber(right.value) - this.toSafeNumber(left.value);
+
+      if (valueDifference !== 0) {
+        return valueDifference;
+      }
+
+      return this.getBanknoteTypeId(left) - this.getBanknoteTypeId(right);
+    })
+  );
+  protected readonly giftCheckTypeOptions = computed(() =>
+    [...this.giftCheckTypes()].sort((left, right) => {
+      const valueDifference = this.toSafeNumber(right.value) - this.toSafeNumber(left.value);
+
+      if (valueDifference !== 0) {
+        return valueDifference;
+      }
+
+      return this.getGiftCheckTypeId(left) - this.getGiftCheckTypeId(right);
+    })
+  );
+  protected readonly editableDetailRows = computed<EditableDetailRowView[]>(() =>
+    this.editableDetails().map((item, index) => ({
+      index,
+      item,
+      categoryLabel: this.getEditableDetailCategoryLabel(item),
+      categoryClass: this.getEditableDetailCategoryClass(item),
+      typeSelection: this.getEditableDetailTypeSelection(item),
+      typeOptions: this.getEditableDetailTypeOptions(item).map((template) => ({
+        key: this.getPaymentTypeTemplateKey(template),
+        label: this.getPaymentTypeTemplateLabel(template),
+        template
+      }))
+    }))
+  );
+  protected readonly editableBanknoteRows = computed<EditableBanknoteRowView[]>(() =>
+    this.editableBanknoteMovements().map((item, index) => ({
+      index,
+      item,
+      typeSelection: this.getEditableBanknoteTypeSelection(item),
+      typeOptions: this.getEditableBanknoteTypeOptions(item).map((template) => ({
+        key: this.getBanknoteTypeOptionValue(template),
+        label: this.getBanknoteTypeLabel(template),
+        template
+      }))
+    }))
+  );
+  protected readonly editableGiftCheckRows = computed<EditableGiftCheckRowView[]>(() =>
+    this.editableGiftCheckMovements().map((item, index) => ({
+      index,
+      item,
+      typeSelection: this.getEditableGiftCheckTypeSelection(item),
+      typeOptions: this.getEditableGiftCheckTypeOptions(item).map((template) => ({
+        key: this.getGiftCheckTypeOptionValue(template),
+        label: this.getGiftCheckTypeLabel(template),
+        template
+      }))
+    }))
+  );
   protected readonly canUpdate = computed(() => this.hasPermission('update'));
   protected readonly canDelete = computed(() => this.hasPermission('delete'));
   private editLookupCashRegisterNo: string | null = null;
@@ -262,8 +358,12 @@ export class IcmalDokumuDetailComponent
     this.feedback.set(null);
     this.loadEditLookups();
     this.editableDetails.set(this.summariesDetails().map((item) => ({ ...item })));
-    this.editableBanknoteMovements.set(this.banknoteMovements().map((item) => ({ ...item })));
-    this.editableGiftCheckMovements.set(this.giftCheckMovements().map((item) => ({ ...item })));
+    this.editableBanknoteMovements.set(
+      this.banknoteMovements().map((item) => this.normalizeEditableBanknote(item))
+    );
+    this.editableGiftCheckMovements.set(
+      this.giftCheckMovements().map((item) => this.normalizeEditableGiftCheck(item))
+    );
     this.isEditing.set(true);
   }
 
@@ -354,39 +454,70 @@ export class IcmalDokumuDetailComponent
     const options = category === 'unknown' ? [] : this.getDetailTypeTemplates(category);
     const currentTemplate = this.buildPaymentTemplateFromDetail(item);
     const currentKey = this.getPaymentTypeTemplateKey(currentTemplate);
-    const currentExists = options.some((option) => this.getPaymentTypeTemplateKey(option) === currentKey);
-    const lookupMatch = this.findPaymentTemplateMatch(item, options);
 
-    if (lookupMatch || currentExists || !this.hasDetailPaymentIdentity(item)) {
+    if (!this.hasDetailPaymentIdentity(item)) {
       return options;
     }
 
-    return [currentTemplate, ...options];
+    return [
+      currentTemplate,
+      ...options.filter((option) => this.getPaymentTypeTemplateKey(option) !== currentKey)
+    ];
   }
 
   protected getEditableDetailTypeSelection(item: ISummariesDetailsCT): string {
-    const template = this.resolveEditableDetailTypeTemplate(item);
+    if (this.hasDetailPaymentIdentity(item)) {
+      return this.getPaymentTypeTemplateKey(this.buildPaymentTemplateFromDetail(item));
+    }
+
+    const template = this.getEditableDetailTypeOptions(item)[0];
     return template ? this.getPaymentTypeTemplateKey(template) : '';
   }
 
   protected getPaymentTypeTemplateLabel(template: IFurpaPaymentTypeLookupItemApiDto): string {
     const name = this.toSafeString(template.paymentName).trim();
+    const terminalId = this.toSafeString(template.terminalId).trim();
+    const accountCode = this.toSafeString(template.accountCode).trim();
+    const meta = [terminalId, accountCode].filter(Boolean).join(' / ');
 
-    if (name) {
-      return name;
-    }
+    const label = name || this.getPaymentTemplateFallbackName(template);
 
-    return this.getPaymentTemplateFallbackName(template);
+    return meta ? `${label} / ${meta}` : label;
   }
 
   protected getPaymentTypeTemplateKey(template: IFurpaPaymentTypeLookupItemApiDto): string {
-    return [
-      this.normalizePaymentTemplateText(template.paymentName),
-      this.toSafeNumber(template.paymentTypeNo),
-      this.normalizePaymentTemplateText(template.terminalId),
-      this.normalizePaymentTemplateText(template.accountCode)
-    ].join('|');
+    const backendKey = this.toSafeString(template.paymentTypeKey).trim();
+
+    if (backendKey) {
+      return backendKey;
+    }
+
+    return this.buildPaymentTypeKey(
+      this.toSafeNumber(template.paymentTypeId) || this.toSafeNumber(template.paymentTypeNo),
+      template.accountCode,
+      template.terminalId
+    );
   }
+
+  protected readonly trackEditablePaymentCategory = (_: number, category: EditablePaymentCategory): string => {
+    return category;
+  };
+
+  protected readonly trackEditableDetail = (_: number, row: EditableDetailRowView): string => {
+    return `${row.index}|${row.typeSelection}`;
+  };
+
+  protected readonly trackSelectOption = <T>(_: number, option: SelectOptionView<T>): string => {
+    return option.key;
+  };
+
+  protected readonly trackEditableBanknote = (_: number, row: EditableBanknoteRowView): string => {
+    return `${row.index}|${row.typeSelection}`;
+  };
+
+  protected readonly trackEditableGiftCheck = (_: number, row: EditableGiftCheckRowView): string => {
+    return `${row.index}|${row.typeSelection}`;
+  };
 
   protected applyEditableDetailTypeSelection(index: number, templateKey: string): void {
     const currentItem = this.editableDetails()[index];
@@ -458,17 +589,14 @@ export class IcmalDokumuDetailComponent
   }
 
   protected getBanknoteTypeOptions(): IFurpaBanknoteTypeItemApiDto[] {
-    return [...this.banknoteTypes()].sort((left, right) => right.value - left.value);
+    return this.banknoteTypeOptions();
   }
 
   protected getEditableBanknoteTypeOptions(item: IBanknoteMovementsCT): IFurpaBanknoteTypeItemApiDto[] {
     const options = this.getBanknoteTypeOptions();
-    const banknoteType = this.toSafeNumber(item.banknoteTypeID);
-    const currentExists = options.some(
-      (option) => this.toSafeNumber(option.banknoteType) === banknoteType
-    );
+    const banknoteType = this.getBanknoteTypeId(item);
 
-    if (currentExists || banknoteType <= 0) {
+    if (banknoteType <= 0) {
       return options;
     }
 
@@ -476,19 +604,31 @@ export class IcmalDokumuDetailComponent
       {
         value: this.toSafeNumber(item.value),
         banknoteType,
+        banknoteTypeName: this.toSafeString(item.banknoteTypeName).trim(),
         quantity: 0,
         total: 0
       },
-      ...options
+      ...options.filter((option) => this.getBanknoteTypeId(option) !== banknoteType)
     ];
   }
 
   protected getBanknoteTypeLabel(item: IFurpaBanknoteTypeItemApiDto): string {
-    return `${this.toSafeNumber(item.value).toLocaleString('tr-TR')} TL - Tip ${this.toSafeNumber(item.banknoteType)}`;
+    const name = this.toSafeString(item.banknoteTypeName).trim();
+
+    if (name) {
+      return name;
+    }
+
+    return `${this.toSafeNumber(item.value).toLocaleString('tr-TR')} TL - Tip ${this.getBanknoteTypeId(item)}`;
   }
 
   protected getEditableBanknoteTypeSelection(item: IBanknoteMovementsCT): string {
-    const banknoteType = this.toSafeNumber(item.banknoteTypeID);
+    const banknoteType = this.getBanknoteTypeId(item);
+    return banknoteType > 0 ? `${banknoteType}` : '';
+  }
+
+  protected getBanknoteTypeOptionValue(item: IFurpaBanknoteTypeItemApiDto): string {
+    const banknoteType = this.getBanknoteTypeId(item);
     return banknoteType > 0 ? `${banknoteType}` : '';
   }
 
@@ -501,7 +641,7 @@ export class IcmalDokumuDetailComponent
 
     const banknoteType = this.toSafeNumber(rawBanknoteType);
     const template = this.getEditableBanknoteTypeOptions(currentItem).find(
-      (item) => this.toSafeNumber(item.banknoteType) === banknoteType
+      (item) => this.getBanknoteTypeId(item) === banknoteType
     );
 
     if (!template) {
@@ -514,7 +654,8 @@ export class IcmalDokumuDetailComponent
           ? {
               ...item,
               value: this.toSafeNumber(template.value),
-              banknoteTypeID: this.toSafeNumber(template.banknoteType),
+              banknoteTypeID: this.getBanknoteTypeId(template),
+              banknoteTypeName: this.toSafeString(template.banknoteTypeName).trim(),
               total: this.toSafeNumber(template.value) * this.toSafeNumber(item.quantity)
             }
           : item
@@ -561,7 +702,8 @@ export class IcmalDokumuDetailComponent
       ...items,
       {
         value: this.toSafeNumber(template.value),
-        banknoteTypeID: this.toSafeNumber(template.banknoteType),
+        banknoteTypeID: this.getBanknoteTypeId(template),
+        banknoteTypeName: this.toSafeString(template.banknoteTypeName).trim(),
         quantity: 0,
         total: 0
       }
@@ -575,17 +717,18 @@ export class IcmalDokumuDetailComponent
   }
 
   protected canAddEditableGiftCheck(): boolean {
-    return this.giftCheckTypes().length > 0;
+    return this.getGiftCheckTypeOptions().length > 0;
+  }
+
+  protected getGiftCheckTypeOptions(): IFurpaGiftCheckTypeItemApiDto[] {
+    return this.giftCheckTypeOptions();
   }
 
   protected getEditableGiftCheckTypeOptions(item: IGiftCheckMovementsCT): IFurpaGiftCheckTypeItemApiDto[] {
-    const options = this.giftCheckTypes();
-    const giftCheckType = this.toSafeNumber(item.giftCheckTypeID);
-    const currentExists = options.some(
-      (option) => this.toSafeNumber(option.giftCheckType) === giftCheckType
-    );
+    const options = this.getGiftCheckTypeOptions();
+    const giftCheckType = this.getGiftCheckTypeId(item);
 
-    if (currentExists || giftCheckType <= 0) {
+    if (giftCheckType <= 0) {
       return options;
     }
 
@@ -593,19 +736,31 @@ export class IcmalDokumuDetailComponent
       {
         value: this.toSafeNumber(item.value),
         giftCheckType,
+        giftCheckTypeName: this.toSafeString(item.giftCheckTypeName).trim(),
         quantity: 0,
         total: 0
       },
-      ...options
+      ...options.filter((option) => this.getGiftCheckTypeId(option) !== giftCheckType)
     ];
   }
 
   protected getGiftCheckTypeLabel(item: IFurpaGiftCheckTypeItemApiDto): string {
-    return `${this.toSafeNumber(item.value).toLocaleString('tr-TR')} TL - Tip ${this.toSafeNumber(item.giftCheckType)}`;
+    const name = this.toSafeString(item.giftCheckTypeName).trim();
+
+    if (name) {
+      return name;
+    }
+
+    return `${this.toSafeNumber(item.value).toLocaleString('tr-TR')} TL - Tip ${this.getGiftCheckTypeId(item)}`;
   }
 
   protected getEditableGiftCheckTypeSelection(item: IGiftCheckMovementsCT): string {
-    const giftCheckType = this.toSafeNumber(item.giftCheckTypeID);
+    const giftCheckType = this.getGiftCheckTypeId(item);
+    return giftCheckType > 0 ? `${giftCheckType}` : '';
+  }
+
+  protected getGiftCheckTypeOptionValue(item: IFurpaGiftCheckTypeItemApiDto): string {
+    const giftCheckType = this.getGiftCheckTypeId(item);
     return giftCheckType > 0 ? `${giftCheckType}` : '';
   }
 
@@ -618,7 +773,7 @@ export class IcmalDokumuDetailComponent
 
     const giftCheckType = this.toSafeNumber(rawGiftCheckType);
     const template = this.getEditableGiftCheckTypeOptions(currentItem).find(
-      (item) => this.toSafeNumber(item.giftCheckType) === giftCheckType
+      (item) => this.getGiftCheckTypeId(item) === giftCheckType
     );
 
     if (!template) {
@@ -631,7 +786,8 @@ export class IcmalDokumuDetailComponent
           ? {
               ...item,
               value: this.toSafeNumber(template.value),
-              giftCheckTypeID: this.toSafeNumber(template.giftCheckType),
+              giftCheckTypeID: this.getGiftCheckTypeId(template),
+              giftCheckTypeName: this.toSafeString(template.giftCheckTypeName).trim(),
               total: this.toSafeNumber(template.value) * this.toSafeNumber(item.quantity)
             }
           : item
@@ -662,7 +818,7 @@ export class IcmalDokumuDetailComponent
   }
 
   protected addEditableGiftCheck(): void {
-    const template = this.giftCheckTypes()[0];
+    const template = this.getGiftCheckTypeOptions()[0];
 
     if (!template) {
       this.feedback.set({
@@ -678,7 +834,8 @@ export class IcmalDokumuDetailComponent
       ...items,
       {
         value: this.toSafeNumber(template.value),
-        giftCheckTypeID: this.toSafeNumber(template.giftCheckType),
+        giftCheckTypeID: this.getGiftCheckTypeId(template),
+        giftCheckTypeName: this.toSafeString(template.giftCheckTypeName).trim(),
         quantity: 0,
         total: 0
       }
@@ -1172,7 +1329,7 @@ export class IcmalDokumuDetailComponent
       });
   }
 
-  private getEditablePaymentCategoryLabel(category: EditablePaymentCategory): string {
+  protected getEditablePaymentCategoryLabel(category: EditablePaymentCategory): string {
     switch (category) {
       case 'card':
         return 'Kredi Karti';
@@ -1194,7 +1351,9 @@ export class IcmalDokumuDetailComponent
       case 'foodCheck':
         return this.foodCheckPaymentTypes();
       case 'expenseVoucher':
-        return this.expenseVoucherPaymentTypes();
+        return this.expenseVoucherPaymentTypes().length
+          ? this.expenseVoucherPaymentTypes()
+          : [this.createPaymentTypeTemplate('Gider Pusulasi', 100)];
       case 'storeExpense':
         return this.storeExpensePaymentTypes();
       case 'onlineSale':
@@ -1202,27 +1361,59 @@ export class IcmalDokumuDetailComponent
     }
   }
 
+  private createPaymentTypeTemplate(
+    paymentName: string,
+    paymentTypeNo: number,
+    terminalId = '',
+    accountCode = ''
+  ): IFurpaPaymentTypeLookupItemApiDto {
+    return {
+      paymentName,
+      paymentTypeId: paymentTypeNo,
+      paymentTypeNo,
+      terminalId,
+      accountCode,
+      slipNumber: 0,
+      amountValue: 0,
+      paymentTypeKey: this.buildPaymentTypeKey(paymentTypeNo, accountCode, terminalId)
+    };
+  }
+
   private createDetailFromTemplate(
     template: IFurpaPaymentTypeLookupItemApiDto,
     base: ISummariesDetailsCT
   ): ISummariesDetailsCT {
+    const paymentTypeNo = this.toSafeNumber(template.paymentTypeNo);
+    const category = this.getEditablePaymentCategoryFromPaymentTypeNo(paymentTypeNo);
+
     return {
       ...base,
       typeName: this.toSafeString(template.paymentName).trim(),
-      paymentTypeID: this.toSafeNumber(template.paymentTypeNo),
+      paymentName: this.toSafeString(template.paymentName).trim(),
+      paymentTypeID: paymentTypeNo,
+      paymentTypeNo,
       accountCode: this.toSafeString(template.accountCode).trim(),
-      terminalId: this.toSafeString(template.terminalId).trim()
+      terminalId: this.toSafeString(template.terminalId).trim(),
+      source: category ? this.getEditablePaymentCategorySource(category) : base.source,
+      category: category ? this.getEditablePaymentCategoryLabel(category) : base.category,
+      paymentTypeKey: this.getPaymentTypeTemplateKey(template)
     };
   }
 
   private buildPaymentTemplateFromDetail(item: ISummariesDetailsCT): IFurpaPaymentTypeLookupItemApiDto {
+    const paymentTypeNo = this.toSafeNumber(item.paymentTypeNo) || this.toSafeNumber(item.paymentTypeID);
+
     return {
       paymentName: this.getPaymentDisplayName(item) || this.getEditableDetailCategoryLabel(item),
-      paymentTypeNo: this.toSafeNumber(item.paymentTypeNo) || this.toSafeNumber(item.paymentTypeID),
+      paymentTypeId: this.toSafeNumber(item.paymentTypeID) || paymentTypeNo,
+      paymentTypeNo,
       terminalId: this.toSafeString(item.terminalId).trim(),
       accountCode: this.toSafeString(item.accountCode).trim(),
       slipNumber: this.toSafeNumber(item.slipNumber),
-      amountValue: this.toSafeNumber(item.amount)
+      amountValue: this.toSafeNumber(item.amount),
+      paymentTypeKey:
+        this.toSafeString(item.paymentTypeKey).trim() ||
+        this.buildPaymentTypeKey(paymentTypeNo, item.accountCode, item.terminalId)
     };
   }
 
@@ -1301,6 +1492,7 @@ export class IcmalDokumuDetailComponent
     return (
       this.toSafeNumber(item.paymentTypeID) > 0 ||
       this.toSafeNumber(item.paymentTypeNo) > 0 ||
+      !!this.toSafeString(item.paymentTypeKey).trim() ||
       !!this.normalizePaymentTemplateText(item.typeName) ||
       !!this.normalizePaymentTemplateText(item.paymentName) ||
       !!this.normalizePaymentTemplateText(item.terminalId) ||
@@ -1340,6 +1532,109 @@ export class IcmalDokumuDetailComponent
       default:
         return null;
     }
+  }
+
+  private getEditablePaymentCategoryFromPaymentTypeNo(
+    paymentTypeNo: number
+  ): EditablePaymentCategory | null {
+    if (paymentTypeNo >= 0 && paymentTypeNo < 50) {
+      return 'card';
+    }
+
+    if (paymentTypeNo >= 50 && paymentTypeNo < 100) {
+      return 'foodCheck';
+    }
+
+    if (paymentTypeNo === 100) {
+      return 'expenseVoucher';
+    }
+
+    if (paymentTypeNo >= 110 && paymentTypeNo < 500) {
+      return 'storeExpense';
+    }
+
+    if (paymentTypeNo >= 600) {
+      return 'onlineSale';
+    }
+
+    return null;
+  }
+
+  private getEditablePaymentCategorySource(category: EditablePaymentCategory): string {
+    switch (category) {
+      case 'card':
+        return 'card';
+      case 'foodCheck':
+        return 'foodCheck';
+      case 'expenseVoucher':
+        return 'expenseVoucher';
+      case 'storeExpense':
+        return 'storeExpense';
+      case 'onlineSale':
+        return 'onlineSale';
+    }
+  }
+
+  private getBanknoteTypeId(item: unknown): number {
+    const record = item as Record<string, unknown>;
+
+    return (
+      this.toSafeNumber(record['banknoteTypeID']) ||
+      this.toSafeNumber(record['banknoteTypeId']) ||
+      this.toSafeNumber(record['banknoteType'])
+    );
+  }
+
+  private getGiftCheckTypeId(item: unknown): number {
+    const record = item as Record<string, unknown>;
+
+    return (
+      this.toSafeNumber(record['giftCheckTypeID']) ||
+      this.toSafeNumber(record['giftCheckTypeId']) ||
+      this.toSafeNumber(record['giftCheckType'])
+    );
+  }
+
+  private normalizeEditableBanknote(item: IBanknoteMovementsCT): IBanknoteMovementsCT {
+    const value = this.toSafeNumber(item.value);
+    const quantity = this.toSafeNumber(item.quantity);
+    const total = this.toSafeNumber(item.total) || value * quantity;
+
+    return {
+      ...item,
+      value,
+      banknoteTypeID: this.getBanknoteTypeId(item),
+      banknoteTypeName: this.toSafeString(item.banknoteTypeName).trim(),
+      quantity,
+      total
+    };
+  }
+
+  private normalizeEditableGiftCheck(item: IGiftCheckMovementsCT): IGiftCheckMovementsCT {
+    const value = this.toSafeNumber(item.value);
+    const quantity = this.toSafeNumber(item.quantity);
+    const total = this.toSafeNumber(item.total) || value * quantity;
+
+    return {
+      ...item,
+      value,
+      giftCheckTypeID: this.getGiftCheckTypeId(item),
+      giftCheckTypeName: this.toSafeString(item.giftCheckTypeName).trim(),
+      quantity,
+      total
+    };
+  }
+
+  private buildPaymentTypeKey(
+    paymentTypeNo: number,
+    accountCode: unknown,
+    terminalId: unknown
+  ): string {
+    return [
+      this.toSafeNumber(paymentTypeNo),
+      this.toSafeString(accountCode).trim().toLocaleUpperCase('tr-TR'),
+      this.toSafeString(terminalId).trim().toLocaleUpperCase('tr-TR')
+    ].join('|');
   }
 
   private normalizePaymentTemplateText(value: unknown): string {
@@ -1384,7 +1679,8 @@ export class IcmalDokumuDetailComponent
       terminalId: '',
       source: '',
       category: '',
-      description: ''
+      description: '',
+      paymentTypeKey: ''
     };
   }
 
@@ -1392,6 +1688,7 @@ export class IcmalDokumuDetailComponent
     return {
       value: 0,
       banknoteTypeID: 0,
+      banknoteTypeName: '',
       quantity: 0,
       total: 0
     };
@@ -1401,6 +1698,7 @@ export class IcmalDokumuDetailComponent
     return {
       value: 0,
       giftCheckTypeID: 0,
+      giftCheckTypeName: '',
       quantity: 0,
       total: 0
     };
@@ -1418,14 +1716,15 @@ export class IcmalDokumuDetailComponent
       !this.toSafeString(item.terminalId).trim() &&
       !this.toSafeString(item.source).trim() &&
       !this.toSafeString(item.category).trim() &&
-      !this.toSafeString(item.description).trim()
+      !this.toSafeString(item.description).trim() &&
+      !this.toSafeString(item.paymentTypeKey).trim()
     );
   }
 
   private isEmptyBanknoteRow(item: IBanknoteMovementsCT): boolean {
     return (
       this.toSafeNumber(item.value) === 0 &&
-      this.toSafeNumber(item.banknoteTypeID) === 0 &&
+      this.getBanknoteTypeId(item) === 0 &&
       this.toSafeNumber(item.quantity) === 0 &&
       this.toSafeNumber(item.total) === 0
     );
@@ -1434,7 +1733,7 @@ export class IcmalDokumuDetailComponent
   private isEmptyGiftCheckRow(item: IGiftCheckMovementsCT): boolean {
     return (
       this.toSafeNumber(item.value) === 0 &&
-      this.toSafeNumber(item.giftCheckTypeID) === 0 &&
+      this.getGiftCheckTypeId(item) === 0 &&
       this.toSafeNumber(item.quantity) === 0 &&
       this.toSafeNumber(item.total) === 0
     );
@@ -1461,7 +1760,7 @@ export class IcmalDokumuDetailComponent
       }
 
       return this.toSafeNumber(item.value) <= 0 ||
-        this.toSafeNumber(item.banknoteTypeID) <= 0 ||
+        this.getBanknoteTypeId(item) <= 0 ||
         this.toSafeNumber(item.quantity) <= 0 ||
         this.toSafeNumber(item.total) < 0;
     });
@@ -1476,7 +1775,7 @@ export class IcmalDokumuDetailComponent
       }
 
       return this.toSafeNumber(item.value) <= 0 ||
-        this.toSafeNumber(item.giftCheckTypeID) <= 0 ||
+        this.getGiftCheckTypeId(item) <= 0 ||
         this.toSafeNumber(item.quantity) <= 0 ||
         this.toSafeNumber(item.total) < 0;
     });
@@ -1508,7 +1807,7 @@ export class IcmalDokumuDetailComponent
       .filter((item) => !this.isEmptyBanknoteRow(item))
       .map((item) => ({
         value: this.toSafeNumber(item.value),
-        banknoteType: this.toSafeNumber(item.banknoteTypeID),
+        banknoteType: this.getBanknoteTypeId(item),
         quantity: this.toSafeNumber(item.quantity),
         total: this.toSafeNumber(item.total)
       }));
@@ -1519,7 +1818,7 @@ export class IcmalDokumuDetailComponent
       .filter((item) => !this.isEmptyGiftCheckRow(item))
       .map((item) => ({
         value: this.toSafeNumber(item.value),
-        giftCheckType: this.toSafeNumber(item.giftCheckTypeID),
+        giftCheckType: this.getGiftCheckTypeId(item),
         quantity: this.toSafeNumber(item.quantity),
         total: this.toSafeNumber(item.total)
       }));
