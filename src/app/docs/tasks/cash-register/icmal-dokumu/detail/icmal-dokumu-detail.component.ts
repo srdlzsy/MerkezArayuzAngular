@@ -10,7 +10,8 @@ import type {
   ISummariesCT,
   ISummariesDetailsCT,
   UpdateCashSummaryBanknoteLineHttpRequest,
-  UpdateCashSummaryDetailLineHttpRequest
+  UpdateCashSummaryDetailLineHttpRequest,
+  UpdateCashSummaryGiftCheckLineHttpRequest
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -37,6 +38,7 @@ interface DetailFeedback {
 type IcmalActionPermission = 'update' | 'delete';
 type EditableDetailField = keyof ISummariesDetailsCT;
 type EditableBanknoteField = keyof IBanknoteMovementsCT;
+type EditableGiftCheckField = keyof IGiftCheckMovementsCT;
 
 const TASK_ID = 'kasa-sayimlari';
 const PERMISSION_PREFIX = 'kasa-islemleri.kasa-sayimlari';
@@ -73,6 +75,7 @@ export class IcmalDokumuDetailComponent
   protected readonly isDeleting = signal(false);
   protected readonly editableDetails = signal<ISummariesDetailsCT[]>([]);
   protected readonly editableBanknoteMovements = signal<IBanknoteMovementsCT[]>([]);
+  protected readonly editableGiftCheckMovements = signal<IGiftCheckMovementsCT[]>([]);
   protected readonly canUpdate = computed(() => this.hasPermission('update'));
   protected readonly canDelete = computed(() => this.hasPermission('delete'));
 
@@ -240,6 +243,7 @@ export class IcmalDokumuDetailComponent
     this.feedback.set(null);
     this.editableDetails.set(this.summariesDetails().map((item) => ({ ...item })));
     this.editableBanknoteMovements.set(this.banknoteMovements().map((item) => ({ ...item })));
+    this.editableGiftCheckMovements.set(this.giftCheckMovements().map((item) => ({ ...item })));
     this.isEditing.set(true);
   }
 
@@ -251,6 +255,7 @@ export class IcmalDokumuDetailComponent
     this.isEditing.set(false);
     this.editableDetails.set([]);
     this.editableBanknoteMovements.set([]);
+    this.editableGiftCheckMovements.set([]);
   }
 
   protected updateEditableDetail(
@@ -279,6 +284,28 @@ export class IcmalDokumuDetailComponent
     value: string
   ): void {
     this.editableBanknoteMovements.update((items) =>
+      items.map((item, itemIndex) => {
+        if (itemIndex !== index) {
+          return item;
+        }
+
+        const nextItem = { ...item, [field]: this.toSafeNumber(value) };
+
+        if (field === 'value' || field === 'quantity') {
+          nextItem.total = this.toSafeNumber(nextItem.value) * this.toSafeNumber(nextItem.quantity);
+        }
+
+        return nextItem;
+      })
+    );
+  }
+
+  protected updateEditableGiftCheck(
+    index: number,
+    field: EditableGiftCheckField,
+    value: string
+  ): void {
+    this.editableGiftCheckMovements.update((items) =>
       items.map((item, itemIndex) => {
         if (itemIndex !== index) {
           return item;
@@ -336,6 +363,16 @@ export class IcmalDokumuDetailComponent
             }
           )
         ),
+        switchMap(() =>
+          this.kasaIslemleriService.updateCashSummaryGiftChecks(
+            summary.documentSerie,
+            summary.documentOrderNo,
+            {
+              warehouseNo,
+              giftCheckMovements: this.buildEditableGiftChecksRequest()
+            }
+          )
+        ),
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isSaving.set(false))
       )
@@ -345,7 +382,7 @@ export class IcmalDokumuDetailComponent
           this.feedback.set({
             tone: 'info',
             title: 'Icmal guncellendi',
-            message: 'Odeme ve banknot satirlari yeni degerlerle kaydedildi.'
+            message: 'Odeme, banknot ve hediye ceki satirlari yeni degerlerle kaydedildi.'
           });
           this.loadDetailData();
         },
@@ -464,7 +501,7 @@ export class IcmalDokumuDetailComponent
     };
 
     this.kasaIslemleriService
-      .getIcmalDetaylari(summary.documentSerie, summary.documentOrderNo)
+      .getIcmalDetaylari(summary.documentSerie, summary.documentOrderNo, this.resolveRequestWarehouseNo())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (items: ISummariesDetailsCT[]) => {
@@ -479,7 +516,7 @@ export class IcmalDokumuDetailComponent
       });
 
     this.kasaIslemleriService
-      .getNakitHareketDetayi(summary.documentSerie, summary.documentOrderNo)
+      .getNakitHareketDetayi(summary.documentSerie, summary.documentOrderNo, this.resolveRequestWarehouseNo())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (items: IBanknoteMovementsCT[]) => {
@@ -496,7 +533,7 @@ export class IcmalDokumuDetailComponent
       });
 
     this.kasaIslemleriService
-      .getHediyeCekiHareketDetaylari(summary.documentSerie, summary.documentOrderNo)
+      .getHediyeCekiHareketDetaylari(summary.documentSerie, summary.documentOrderNo, this.resolveRequestWarehouseNo())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (items: IGiftCheckMovementsCT[]) => {
@@ -655,6 +692,15 @@ export class IcmalDokumuDetailComponent
     return this.editableBanknoteMovements().map((item) => ({
       value: this.toSafeNumber(item.value),
       banknoteType: this.toSafeNumber(item.banknoteTypeID),
+      quantity: this.toSafeNumber(item.quantity),
+      total: this.toSafeNumber(item.total)
+    }));
+  }
+
+  private buildEditableGiftChecksRequest(): UpdateCashSummaryGiftCheckLineHttpRequest[] {
+    return this.editableGiftCheckMovements().map((item) => ({
+      value: this.toSafeNumber(item.value),
+      giftCheckType: this.toSafeNumber(item.giftCheckTypeID),
       quantity: this.toSafeNumber(item.quantity),
       total: this.toSafeNumber(item.total)
     }));

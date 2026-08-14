@@ -312,7 +312,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Liste ve detay list/detail yetkileriyle okunur',
         'Secili kayit guncelleme kasa-islemleri.kasa-sayimlari.update yetkisine baglidir',
         'Secili kayit silme kasa-islemleri.kasa-sayimlari.delete yetkisine baglidir',
-        'Detay ve banknot guncellemeleri patch degildir; UI kalacak tum satirlari son haliyle gonderir',
+        'Detay, banknot ve hediye ceki guncellemeleri patch degildir; UI kalacak tum satirlari son haliyle gonderir',
         'Nakit/500 satiri UI tarafindan normal detay gibi yonetilmez; backend banknot toplamindan yeniden uretir',
         'Yeni icmal olusturma ayri Icmal Kaydi Girisi gorevinde acilir'
       ],
@@ -348,6 +348,12 @@ export const CASH_REGISTER_TASK_SOURCE = {
               path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/banknot-hareketleri',
               description: 'Secili kasa sayimi banknot satirlarini son durumda kalacak tum banknot listesiyle gunceller',
               payload: 'UpdateCashSummaryBanknotesHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/hediye-ceki-hareketleri',
+              description: 'Secili kasa sayimi fiziksel hediye ceki satirlarini son durumda kalacak tum hediye ceki listesiyle gunceller',
+              payload: 'UpdateCashSummaryGiftChecksHttpRequest'
             },
             {
               method: 'DELETE',

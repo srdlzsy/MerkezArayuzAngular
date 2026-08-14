@@ -57,7 +57,7 @@
       <div class="edit-panel-head">
         <div>
           <h3>Icmal Duzenleme</h3>
-          <p>Odeme satirlari ve banknot adetlerini kontrol edip kaydedin.</p>
+          <p>Odeme satirlari, banknotlar ve fiziksel hediye ceklerini kontrol edip kaydedin.</p>
         </div>
         <div class="edit-panel-actions">
           <button type="button" class="close-button" [disabled]="isSaving()" (click)="cancelEdit()">
@@ -151,6 +151,44 @@
               </tr>
               <tr *ngIf="!editableBanknoteMovements().length">
                 <td colspan="4" class="empty-row">Duzenlenecek banknot satiri yok</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </article>
+
+      <article class="edit-section">
+        <div class="detail-card-head">
+          <h3>Hediye Ceki Satirlari</h3>
+          <span>{{ editableGiftCheckMovements().length }} Kalem</span>
+        </div>
+        <div class="table-wrap edit-table-wrap">
+          <table class="edit-table edit-table-narrow">
+            <thead>
+              <tr>
+                <th>Deger</th>
+                <th>Tip No</th>
+                <th>Adet</th>
+                <th>Toplam</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of editableGiftCheckMovements(); let index = index">
+                <td>
+                  <input type="number" step="0.01" [value]="item.value" (input)="updateEditableGiftCheck(index, 'value', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" [value]="item.giftCheckTypeID" (input)="updateEditableGiftCheck(index, 'giftCheckTypeID', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" [value]="item.quantity" (input)="updateEditableGiftCheck(index, 'quantity', $any($event.target).value)" />
+                </td>
+                <td>
+                  <input type="number" step="0.01" [value]="item.total" (input)="updateEditableGiftCheck(index, 'total', $any($event.target).value)" />
+                </td>
+              </tr>
+              <tr *ngIf="!editableGiftCheckMovements().length">
+                <td colspan="4" class="empty-row">Duzenlenecek hediye ceki satiri yok</td>
               </tr>
             </tbody>
           </table>

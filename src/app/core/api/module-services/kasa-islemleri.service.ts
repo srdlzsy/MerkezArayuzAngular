@@ -75,6 +75,8 @@ import {
   UpdateCashSummaryDetailsResponse,
   UpdateCashSummaryBanknotesHttpRequest,
   UpdateCashSummaryBanknotesResponse,
+  UpdateCashSummaryGiftChecksHttpRequest,
+  UpdateCashSummaryGiftChecksResponse,
   DeleteCashSummaryResponse,
   CashSummaryDateHttpRequest,
   BanknoteTrackDailySummaryTotalDto,
@@ -336,10 +338,14 @@ export class KasaIslemleriService extends BaseApiService {
 
   getIcmalDetaylari(
     documentSerie: string,
-    documentOrderNo: number
+    documentOrderNo: number,
+    warehouseNo?: number | null
   ): Observable<ISummariesDetailsCT[]> {
-    return this.get<IFurpaCashSummaryDetailItemApiDto[]>(
-      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/detaylar`
+    return this.getWithQuery<IFurpaCashSummaryDetailItemApiDto[]>(
+      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/detaylar`,
+      {
+        warehouseNo: warehouseNo ?? undefined
+      }
     ).pipe(
       map((items: IFurpaCashSummaryDetailItemApiDto[]) =>
         items.map((item: IFurpaCashSummaryDetailItemApiDto) => this.mapSummaryDetail(item))
@@ -349,10 +355,14 @@ export class KasaIslemleriService extends BaseApiService {
 
   getNakitHareketDetayi(
     documentSerie: string,
-    documentOrderNo: number
+    documentOrderNo: number,
+    warehouseNo?: number | null
   ): Observable<IBanknoteMovementsCT[]> {
-    return this.get<IFurpaBanknoteMovementItemApiDto[]>(
-      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/banknot-hareketleri`
+    return this.getWithQuery<IFurpaBanknoteMovementItemApiDto[]>(
+      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/banknot-hareketleri`,
+      {
+        warehouseNo: warehouseNo ?? undefined
+      }
     ).pipe(
       map((items: IFurpaBanknoteMovementItemApiDto[]) =>
         items.map((item: IFurpaBanknoteMovementItemApiDto) => this.mapBanknote(item))
@@ -394,10 +404,14 @@ export class KasaIslemleriService extends BaseApiService {
 
   getHediyeCekiHareketDetaylari(
     documentSerie: string,
-    documentOrderNo: number
+    documentOrderNo: number,
+    warehouseNo?: number | null
   ): Observable<IGiftCheckMovementsCT[]> {
-    return this.get<IFurpaGiftCheckMovementItemApiDto[]>(
-      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/hediye-ceki-hareketleri`
+    return this.getWithQuery<IFurpaGiftCheckMovementItemApiDto[]>(
+      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/hediye-ceki-hareketleri`,
+      {
+        warehouseNo: warehouseNo ?? undefined
+      }
     ).pipe(
       map((items: IFurpaGiftCheckMovementItemApiDto[]) =>
         items.map((item: IFurpaGiftCheckMovementItemApiDto) => this.mapGiftCheck(item))
@@ -857,6 +871,17 @@ export class KasaIslemleriService extends BaseApiService {
   ): Observable<UpdateCashSummaryBanknotesResponse> {
     return this.put<UpdateCashSummaryBanknotesResponse, UpdateCashSummaryBanknotesHttpRequest>(
       `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/banknot-hareketleri`,
+      request
+    );
+  }
+
+  updateCashSummaryGiftChecks(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: UpdateCashSummaryGiftChecksHttpRequest
+  ): Observable<UpdateCashSummaryGiftChecksResponse> {
+    return this.put<UpdateCashSummaryGiftChecksResponse, UpdateCashSummaryGiftChecksHttpRequest>(
+      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/hediye-ceki-hareketleri`,
       request
     );
   }

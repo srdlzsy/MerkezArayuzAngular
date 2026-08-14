@@ -1055,6 +1055,20 @@ export interface UpdateCashSummaryBanknotesResponse {
   totalAmount: number;
 }
 
+export interface UpdateCashSummaryGiftChecksHttpRequest {
+  warehouseNo?: number;
+  giftCheckMovements: UpdateCashSummaryGiftCheckLineHttpRequest[];
+}
+
+export interface UpdateCashSummaryGiftCheckLineHttpRequest {
+  giftCheckType: number;
+  quantity: number;
+  total: number;
+  value: number;
+}
+
+export type UpdateCashSummaryGiftChecksResponse = UpdateCashSummaryBanknotesResponse;
+
 // ============================================================================
 // Kasa Sayımı Silme Modelleri
 // ============================================================================
@@ -1364,6 +1378,13 @@ export interface IFurpaUpdateCashSummaryBanknotesRequestApiDto {
 }
 
 export type IFurpaUpdateCashSummaryBanknotesResponseApiDto =
+  IFurpaUpdateCashSummaryDetailsResponseApiDto;
+
+export interface IFurpaUpdateCashSummaryGiftChecksRequestApiDto {
+  giftCheckMovements: IFurpaGiftCheckMovementItemApiDto[];
+}
+
+export type IFurpaUpdateCashSummaryGiftChecksResponseApiDto =
   IFurpaUpdateCashSummaryDetailsResponseApiDto;
 
 export interface IFurpaDeleteCashSummaryResponseApiDto {
