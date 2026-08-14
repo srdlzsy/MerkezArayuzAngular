@@ -1467,27 +1467,33 @@ export class IcmalDokumuCreateComponent implements OnInit {
     const paymentTypeNo = this.toSafeNumber(group.controls.paymentTypeNo.value);
     const terminalId = this.normalizeLookupKeyText(group.controls.terminalId.value);
     const accountCode = this.normalizeLookupKeyText(group.controls.accountCode.value);
+    const samePaymentTypeTemplates = templates.filter(
+      (template) => this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo
+    );
 
-    const matchedTemplate =
-      templates.find(
+    if (samePaymentTypeTemplates.length > 0) {
+      const matchedTemplate = samePaymentTypeTemplates.find(
         (template) =>
-          this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo &&
           (!terminalId || this.normalizeLookupKeyText(template.terminalId) === terminalId) &&
           (!accountCode || this.normalizeLookupKeyText(template.accountCode) === accountCode)
-      ) ??
-      templates.find((template) => this.toSafeNumber(template.paymentTypeNo) === paymentTypeNo);
+      );
 
-    if (matchedTemplate || paymentTypeNo > 0) {
-      return matchedTemplate ?? null;
+      if (matchedTemplate) {
+        return matchedTemplate;
+      }
+
+      if (!terminalId && !accountCode && samePaymentTypeTemplates.length === 1) {
+        return samePaymentTypeTemplates[0];
+      }
     }
 
-    return (
-      templates.find(
-        (template) =>
-          (!!terminalId && this.normalizeLookupKeyText(template.terminalId) === terminalId) ||
-          (!!accountCode && this.normalizeLookupKeyText(template.accountCode) === accountCode)
-      ) ?? templates[0]
+    const contextTemplates = templates.filter(
+      (template) =>
+        (!!terminalId && this.normalizeLookupKeyText(template.terminalId) === terminalId) ||
+        (!!accountCode && this.normalizeLookupKeyText(template.accountCode) === accountCode)
     );
+
+    return contextTemplates.length === 1 ? contextTemplates[0] : null;
   }
 
   private markPaymentTypeLookupControlsTouched(group: PaymentTypeLineFormGroup): void {
@@ -1525,12 +1531,6 @@ export class IcmalDokumuCreateComponent implements OnInit {
       accountCode: string | null;
     }>
   ): string {
-    const paymentTypeNo = this.toSafeNumber(template.paymentTypeNo);
-
-    if (paymentTypeNo > 0) {
-      return `tip:${paymentTypeNo}`;
-    }
-
     return this.buildPaymentTypeTemplateKey(template);
   }
 

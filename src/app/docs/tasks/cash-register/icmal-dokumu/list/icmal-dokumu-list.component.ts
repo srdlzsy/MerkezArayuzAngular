@@ -187,9 +187,10 @@ export class IcmalDokumuListComponent {
   protected openDetail(summary: ISummariesCT): void {
     const dialogRef = openDocsTaskDialog(this.dialog, IcmalDokumuDetailComponent, {
       data: summary,
-      width: 'min(1180px, 96vw)',
-      maxWidth: '96vw',
-      maxHeight: '96vh',
+      width: 'min(1480px, 98vw)',
+      height: 'min(900px, 98vh)',
+      maxWidth: '98vw',
+      maxHeight: '98vh',
       panelClass: 'icmal-detail-dialog'
     });
 

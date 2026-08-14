@@ -114,4 +114,8 @@ export class SummaryPrintComponent {
       timeStyle: 'short'
     }).format(parsedDate);
   }
+
+  protected paymentDisplayName(item: ISummariesDetailsCT): string {
+    return item.typeName?.trim() || item.paymentName?.trim() || '-';
+  }
 }

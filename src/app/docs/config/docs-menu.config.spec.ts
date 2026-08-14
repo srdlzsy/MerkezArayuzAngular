@@ -90,7 +90,7 @@ describe('docs-menu.config', () => {
     expect(menu.map((section) => section.id)).toEqual(['siparis-islemleri']);
   });
 
-  it('requires EtiketBasim page permission before showing the menu task', () => {
+  it('requires ManavMalKabulVeEtiket page permission before showing the menu task', () => {
     const sorumluluklar: Sorumluluk[] = [
       {
         id: 1,
@@ -99,13 +99,13 @@ describe('docs-menu.config', () => {
         gorevler: [
           {
             id: 11,
-            isim: 'Etiket Basim',
-            sebike: 'EtiketBasim',
+            isim: 'Manav Mal Kabul ve Etiket',
+            sebike: 'ManavMalKabulVeEtiket',
             yetkiler: [
               {
                 id: 1,
                 isim: 'Listele',
-                sebike: 'kasa-islemleri.etiket-basim.list'
+                sebike: 'kasa-islemleri.manav-mal-kabul-etiket.list'
               }
             ]
           }
@@ -115,12 +115,12 @@ describe('docs-menu.config', () => {
 
     const menu = buildDocsMenuForUser(sorumluluklar);
 
-    expect(hasDocsTaskAccess('etiket-basim', sorumluluklar)).toBeFalse();
+    expect(hasDocsTaskAccess('manav-mal-kabul-etiket', sorumluluklar)).toBeFalse();
     expect(hasDocsTaskAccess('etiket-belgeleri', sorumluluklar)).toBeFalse();
     expect(menu).toEqual([]);
   });
 
-  it('routes EtiketBasim backend key to the dedicated etiket-basim task', () => {
+  it('routes ManavMalKabulVeEtiket backend key to the dedicated task', () => {
     const sorumluluklar: Sorumluluk[] = [
       {
         id: 1,
@@ -129,9 +129,9 @@ describe('docs-menu.config', () => {
         gorevler: [
           {
             id: 11,
-            isim: 'Etiket Basim',
-            sebike: 'EtiketBasim',
-            yetkiler: [pagePermission('kasa-islemleri.etiket-basim.page')]
+            isim: 'Manav Mal Kabul ve Etiket',
+            sebike: 'ManavMalKabulVeEtiket',
+            yetkiler: [pagePermission('kasa-islemleri.manav-mal-kabul-etiket.page')]
           }
         ]
       }
@@ -139,9 +139,9 @@ describe('docs-menu.config', () => {
 
     const menu = buildDocsMenuForUser(sorumluluklar);
 
-    expect(hasDocsTaskAccess('etiket-basim', sorumluluklar)).toBeTrue();
+    expect(hasDocsTaskAccess('manav-mal-kabul-etiket', sorumluluklar)).toBeTrue();
     expect(hasDocsTaskAccess('etiket-belgeleri', sorumluluklar)).toBeFalse();
-    expect(menu[0]?.children.map((item) => item.id)).toEqual(['etiket-basim']);
+    expect(menu[0]?.children.map((item) => item.id)).toEqual(['manav-mal-kabul-etiket']);
   });
 
   it('shows authorization files when backend returns an alias key', () => {

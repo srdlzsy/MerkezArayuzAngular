@@ -59,11 +59,15 @@ export interface CashSummaryReportItemDto {
 
 export interface CashSummaryDetailItemDto {
   typeName: string;
+  paymentName?: string | null;
   paymentTypeId: number;
+  paymentTypeNo?: number | null;
   accountCode: string;
   slipNumber: number;
   amount: number;
   terminalId: string;
+  source?: string | null;
+  category?: string | null;
   description: string;
 }
 
@@ -835,6 +839,118 @@ export interface EtiketBasimMicroTransferResultDto {
   transferredCount?: number | null;
 }
 
+export type ManavMalKabulVeEtiketCaseType = EtiketBasimCaseType;
+export type ManavMalKabulVeEtiketReferenceSearchHttpRequest = EtiketBasimReferenceSearchHttpRequest;
+export type ManavMalKabulVeEtiketStockSearchHttpRequest = EtiketBasimStockSearchHttpRequest;
+export type ManavMalKabulVeEtiketDateHttpRequest = EtiketBasimDateHttpRequest;
+export type ManavMalKabulVeEtiketCalculationHttpRequest = EtiketBasimCalculationHttpRequest;
+export type ManavMalKabulVeEtiketCalculationDto = EtiketBasimCalculationDto;
+export type ManavMalKabulVeEtiketSupplierSuggestionDto = EtiketBasimSupplierDto;
+export type ManavMalKabulVeEtiketSupplierDto = EtiketBasimSupplierDto;
+export type ManavMalKabulVeEtiketStockSuggestionDto = EtiketBasimStockDto;
+export type ManavMalKabulVeEtiketStockDto = EtiketBasimStockDto;
+export type SaveManavMalKabulVeEtiketAcceptanceRecordHttpRequest =
+  SaveEtiketBasimAcceptanceRecordHttpRequest;
+export type ManavMalKabulVeEtiketAcceptanceRecordDto = EtiketBasimAcceptanceRecordDto;
+export type ManavMalKabulVeEtiketLabelDto = EtiketBasimLabelDto;
+export type ManavMalKabulVeEtiketReceivedProductReportItemDto =
+  EtiketBasimReceivedProductReportDto;
+export type ManavMalKabulVeEtiketReceivedProductReportDto =
+  EtiketBasimReceivedProductReportDto;
+export type ManavMalKabulVeEtiketDepotStockReportHttpRequest =
+  EtiketBasimDepotStockReportHttpRequest;
+export type ManavMalKabulVeEtiketDepotStockReportItemDto = EtiketBasimDepotStockReportDto;
+export type ManavMalKabulVeEtiketDepotStockReportDto = EtiketBasimDepotStockReportDto;
+
+export interface ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest {
+  date: string;
+  supplierCode?: string | null;
+}
+
+export interface ManavMalKabulVeEtiketMicroGoodsReceiptLineDto {
+  lineNo: number;
+  stockCode: string;
+  stockName: string;
+  quantity: number;
+  unitPrice: number;
+  amount: number;
+  taxAmount: number;
+  taxPointer: number;
+  inWarehouseNo: number;
+  outWarehouseNo: number;
+}
+
+export interface ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto {
+  date: string;
+  documentSeries: string;
+  documentOrderNo: number;
+  seriesAndNumber: string;
+  supplierCode: string;
+  supplierName?: string | null;
+  createUserNo: number;
+  lineCount: number;
+  totalQuantity: number;
+  totalAmount: number;
+  totalTax: number;
+  firstCreatedAt?: string | null;
+  lastCreatedAt?: string | null;
+  lines: ManavMalKabulVeEtiketMicroGoodsReceiptLineDto[];
+}
+
+export type ManavMalKabulVeEtiketGoodsReceiptComparisonStatus =
+  | 'ESLESTI'
+  | 'YAKIN'
+  | 'FARKLI'
+  | 'SADECE_ETIKET'
+  | 'SADECE_MIKRO'
+  | string;
+
+export interface ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto {
+  date: string;
+  supplierCode: string;
+  supplierName: string;
+  stockCode: string;
+  stockName: string;
+  labelRowCount: number;
+  labelNetWeight: number;
+  microRowCount: number;
+  microQuantity: number;
+  difference: number;
+  microAmount: number;
+  microDocument: string;
+  status: ManavMalKabulVeEtiketGoodsReceiptComparisonStatus;
+}
+
+export interface ManavMalKabulVeEtiketCreateMicroGoodsReceiptLineHttpRequest {
+  acceptanceRecordId?: number | null;
+  stockCode: string;
+  quantity: number;
+  unitPrice: number;
+  unitPointer?: number | null;
+  taxPointer?: number | null;
+  taxRatePercent?: number | null;
+  taxAmount?: number | null;
+  description?: string | null;
+}
+
+export interface ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest {
+  date: string;
+  supplierCode: string;
+  documentSeries?: string | null;
+  documentOrderNo?: number | null;
+  documentNo?: string | null;
+  mikroUserNo?: number | null;
+  description?: string | null;
+  markAcceptanceRecordsTransferred?: boolean | null;
+  lines: ManavMalKabulVeEtiketCreateMicroGoodsReceiptLineHttpRequest[];
+}
+
+export interface ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto
+  extends ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto {
+  updatedAcceptanceRecordCount: number;
+  offlineTraceKey: string;
+}
+
 // ============================================================================
 // Banknot Hareketi Modelleri
 // ============================================================================
@@ -1202,11 +1318,15 @@ export interface IFurpaCashSummaryReportItemApiDto {
 
 export interface IFurpaCashSummaryDetailItemApiDto {
   typeName: string;
+  paymentName?: string | null;
   paymentTypeId: number;
+  paymentTypeNo?: number | null;
   accountCode: string;
   slipNumber: number;
   amount: number;
   terminalId: string;
+  source?: string | null;
+  category?: string | null;
   description: string;
 }
 

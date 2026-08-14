@@ -99,7 +99,7 @@ const DOCS_TASK_ROUTE_PERMISSION_CODES: Readonly<Record<string, readonly string[
   'kasa-ciro-aktarimi': ['kasa-islemleri.kasa-ciro-aktarimi.page'],
   'kasa-hareket-aktarimi': ['kasa-islemleri.kasa-hareket-aktarimi.page'],
   'etiket-belgeleri': ['kasa-islemleri.etiket-belgeleri.page'],
-  'etiket-basim': ['kasa-islemleri.etiket-basim.page'],
+  'manav-mal-kabul-etiket': ['kasa-islemleri.manav-mal-kabul-etiket.page'],
   'kunye-etiket-yazdirma': ['kasa-islemleri.kunye-etiket-yazdirma.page'],
   'manav-kunye-etiket-yazdirma': ['kasa-islemleri.manav-kunye-etiket-yazdirma.page'],
   'banknot-takipleri': ['kasa-islemleri.banknot-takipleri.page']

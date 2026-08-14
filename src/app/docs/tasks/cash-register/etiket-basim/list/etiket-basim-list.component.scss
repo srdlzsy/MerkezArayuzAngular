@@ -363,6 +363,12 @@ input:disabled {
   color: var(--eb-success);
 }
 
+.status-blocked {
+  border-color: #fecaca;
+  background: #fef2f2;
+  color: #b91c1c;
+}
+
 .empty-state {
   display: grid;
   gap: 0.15rem;
@@ -581,6 +587,376 @@ input:disabled {
   overflow: auto;
 }
 
+.operation-panel {
+  display: grid;
+  gap: 0.48rem;
+}
+
+.operation-top {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) 142px;
+  gap: 0.55rem;
+  align-items: stretch;
+}
+
+.entry-panel {
+  display: grid;
+  gap: 0.44rem;
+  min-width: 0;
+  border: 1px solid #aebfc4;
+  border-radius: 4px;
+  padding: 0.58rem;
+  background: #dbe9ed;
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.66);
+}
+
+.entry-caption {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+  min-height: 1.35rem;
+  color: #203239;
+}
+
+.entry-caption strong {
+  font-size: 0.76rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.entry-caption span {
+  overflow: hidden;
+  color: #49636b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.entry-grid {
+  display: grid;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.34rem 0.42rem;
+  align-items: end;
+}
+
+.entry-grid .field {
+  grid-column: span 2;
+}
+
+.entry-grid .field-wide {
+  grid-column: span 4;
+}
+
+.entry-grid .field-small {
+  grid-column: span 1;
+}
+
+.entry-panel .field {
+  gap: 0.12rem;
+}
+
+.entry-panel .field span,
+.case-type-group > span {
+  color: #314c55;
+  font-size: 0.66rem;
+  font-weight: 900;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.entry-panel .field input,
+.entry-panel .field select {
+  min-height: 1.72rem;
+  border-color: #97abb2;
+  border-radius: 2px;
+  padding: 0.22rem 0.34rem;
+  background: #f8fbfb;
+  color: #111827;
+  font-size: 0.74rem;
+}
+
+.entry-panel .field input[readonly] {
+  background: #edf3f5;
+  font-weight: 850;
+}
+
+.entry-search {
+  display: grid;
+  grid-template-columns: minmax(180px, 1.2fr) auto minmax(220px, 1.3fr) 72px auto;
+  gap: 0.36rem;
+  align-items: end;
+  padding-top: 0.16rem;
+}
+
+.entry-search .task-action {
+  min-height: 1.72rem;
+  border-radius: 3px;
+  padding: 0.2rem 0.5rem;
+  white-space: nowrap;
+}
+
+.lookup-drawer {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.35rem;
+  padding: 0.35rem;
+  border: 1px solid #bfd0d5;
+  border-radius: 4px;
+  background: rgba(255, 255, 255, 0.58);
+}
+
+.compact-results {
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  max-height: 90px;
+}
+
+.compact-results button {
+  min-width: 0;
+  border-radius: 3px;
+  padding: 0.28rem 0.36rem;
+}
+
+.entry-bottom {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) minmax(270px, 0.8fr);
+  gap: 0.45rem;
+  align-items: end;
+}
+
+.case-type-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.72rem;
+  min-height: 1.8rem;
+}
+
+.case-type-group label {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.28rem;
+  color: #203239;
+  font-size: 0.74rem;
+  font-weight: 800;
+}
+
+.case-type-group input {
+  width: 0.9rem;
+  height: 0.9rem;
+}
+
+.barcode-panel {
+  display: grid;
+  gap: 0.12rem;
+  justify-items: center;
+  min-width: 0;
+  padding: 0.28rem 0.38rem;
+  border: 1px solid #aebfc4;
+  border-radius: 3px;
+  background: #f9fbfb;
+}
+
+.barcode-lines {
+  display: flex;
+  align-items: stretch;
+  justify-content: center;
+  gap: 0.18rem;
+  width: 100%;
+  max-width: 260px;
+  height: 2.2rem;
+  overflow: hidden;
+}
+
+.barcode-lines span {
+  display: block;
+  width: 0.3rem;
+  background: #111827;
+}
+
+.barcode-lines span:nth-child(2),
+.barcode-lines span:nth-child(5) {
+  width: 0.72rem;
+}
+
+.barcode-lines span:nth-child(3),
+.barcode-lines span:nth-child(7) {
+  width: 0.48rem;
+}
+
+.barcode-panel small,
+.barcode-panel em {
+  overflow: hidden;
+  max-width: 100%;
+  color: #475569;
+  font-size: 0.65rem;
+  font-style: normal;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.operation-actions {
+  display: grid;
+  grid-template-rows: repeat(6, minmax(2.54rem, 1fr));
+  gap: 0.46rem;
+}
+
+.operation-actions .task-action {
+  min-height: 2.54rem;
+  border-color: #aebfc4;
+  border-radius: 3px;
+  background: linear-gradient(#f9fbfb, #e6edf0);
+  color: #2f4248;
+  font-size: 0.78rem;
+  font-weight: 900;
+  text-align: left;
+}
+
+.operation-actions .task-action-primary {
+  border-color: #9fb0b8;
+  background: linear-gradient(#f9fbfb, #e8edf0);
+  color: #2f4248;
+}
+
+.operation-actions .task-action-danger {
+  border-color: #efb0aa;
+  background: linear-gradient(#fffafa, #fbe7e5);
+  color: var(--eb-danger);
+}
+
+.operation-panel .metric-strip {
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+}
+
+.operation-panel .metric-card {
+  min-height: 2.1rem;
+  border-radius: 4px;
+  background: #f7faf9;
+}
+
+.legacy-records {
+  padding: 0.48rem;
+  border-radius: 4px;
+}
+
+.list-tools {
+  display: grid;
+  grid-template-columns: minmax(220px, 1fr) 150px;
+  gap: 0.42rem;
+  align-items: end;
+}
+
+.legacy-table-wrap {
+  max-height: calc(100vh - 430px);
+  min-height: 230px;
+  overflow: auto;
+  border-radius: 3px;
+}
+
+.legacy-table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.legacy-table th,
+.legacy-table td {
+  padding: 0.26rem 0.32rem;
+  border-color: #d6dde0;
+  font-size: 0.68rem;
+  line-height: 1.16;
+}
+
+.legacy-table th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  background: #d9e6ea;
+  color: #2b4048;
+  box-shadow: inset 0 -1px 0 #b8c7cc;
+}
+
+.legacy-table th button {
+  color: #2b4048;
+  font-size: 0.62rem;
+  letter-spacing: 0;
+  text-transform: none;
+}
+
+.legacy-table tbody tr {
+  background: #f8fafb;
+}
+
+.legacy-table tbody tr:nth-child(even) {
+  background: #eef4f6;
+}
+
+.legacy-table tbody tr:hover,
+.legacy-table tbody tr.is-selected {
+  background: #2f94d1;
+  color: #fff;
+}
+
+.legacy-table tbody tr:hover td,
+.legacy-table tbody tr:hover strong,
+.legacy-table tbody tr:hover span,
+.legacy-table tbody tr.is-selected td,
+.legacy-table tbody tr.is-selected strong,
+.legacy-table tbody tr.is-selected span {
+  color: #fff;
+}
+
+.legacy-table .status-pill {
+  min-height: 1.2rem;
+  padding: 0.08rem 0.34rem;
+  font-size: 0.62rem;
+}
+
+.legacy-table th:nth-child(1) {
+  width: 48px;
+}
+
+.legacy-table th:nth-child(2) {
+  width: 160px;
+}
+
+.legacy-table th:nth-child(3),
+.legacy-table th:nth-child(4),
+.legacy-table th:nth-child(5),
+.legacy-table th:nth-child(14),
+.legacy-table th:nth-child(15),
+.legacy-table th:nth-child(16),
+.legacy-table th:nth-child(17) {
+  width: 76px;
+}
+
+.legacy-table th:nth-child(6) {
+  width: 165px;
+}
+
+.legacy-table th:nth-child(7),
+.legacy-table th:nth-child(8),
+.legacy-table th:nth-child(9),
+.legacy-table th:nth-child(10),
+.legacy-table th:nth-child(11),
+.legacy-table th:nth-child(12),
+.legacy-table th:nth-child(13) {
+  width: 72px;
+}
+
+.legacy-table .action-cell {
+  flex-wrap: nowrap;
+}
+
+.legacy-table .icon-action {
+  min-height: 1.36rem;
+  padding: 0.12rem 0.28rem;
+  border-radius: 3px;
+  font-size: 0.62rem;
+}
+
 .etiket-basim-print-root {
   position: fixed;
   top: 0;
@@ -627,8 +1003,36 @@ input:disabled {
   .metric-strip,
   .lookup-grid,
   .field-grid,
-  .number-grid {
+  .number-grid,
+  .operation-top,
+  .entry-bottom {
     grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .operation-top {
+    grid-template-columns: 1fr;
+  }
+
+  .operation-actions {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    grid-template-rows: none;
+  }
+
+  .entry-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .entry-grid .field,
+  .entry-grid .field-small {
+    grid-column: span 2;
+  }
+
+  .entry-grid .field-wide {
+    grid-column: span 3;
+  }
+
+  .entry-search {
+    grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr) 72px auto;
   }
 }
 
@@ -639,8 +1043,21 @@ input:disabled {
   .number-grid,
   .stock-search-row,
   .calc-grid,
-  .label-tools {
+  .label-tools,
+  .entry-grid,
+  .entry-search,
+  .entry-bottom,
+  .lookup-drawer,
+  .operation-actions,
+  .list-tools,
+  .operation-panel .metric-strip {
     grid-template-columns: 1fr;
+  }
+
+  .entry-grid .field,
+  .entry-grid .field-wide,
+  .entry-grid .field-small {
+    grid-column: span 1;
   }
 
   .task-action,

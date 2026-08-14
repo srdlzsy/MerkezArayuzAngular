@@ -87,13 +87,16 @@ import {
   EtiketBasimDepotStockReportDto,
   EtiketBasimDepotStockReportHttpRequest,
   EtiketBasimLabelDto,
-  EtiketBasimMicroTransferHttpRequest,
-  EtiketBasimMicroTransferResultDto,
   EtiketBasimReceivedProductReportDto,
   EtiketBasimReferenceSearchHttpRequest,
   EtiketBasimStockDto,
   EtiketBasimStockSearchHttpRequest,
   EtiketBasimSupplierDto,
+  ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest,
+  ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto,
+  ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto,
+  ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto,
+  ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest,
   SaveEtiketBasimAcceptanceRecordHttpRequest,
   LabelPriceChangedProductListHttpRequest,
   LabelTagListHttpRequest,
@@ -118,7 +121,7 @@ import {
 } from '../furpa-merkez-api.utils';
 import { BaseApiService } from '../base-api.service';
 
-const ETIKET_BASIM_ROOT = 'kasa-islemleri/etiket-basim';
+const ETIKET_BASIM_ROOT = 'kasa-islemleri/manav-mal-kabul-etiket';
 
 @Injectable({
   providedIn: 'root'
@@ -311,12 +314,39 @@ export class KasaIslemleriService extends BaseApiService {
   }
 
   transferEtiketBasimGoodsReceipts(
-    request: EtiketBasimMicroTransferHttpRequest
-  ): Observable<EtiketBasimMicroTransferResultDto> {
-    return this.post<EtiketBasimMicroTransferResultDto, EtiketBasimMicroTransferHttpRequest>(
+    request: ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest
+  ): Observable<ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto> {
+    return this.post<
+      ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto,
+      ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest
+    >(
       `${ETIKET_BASIM_ROOT}/micro/goods-receipts`,
       request
     );
+  }
+
+  getManavMalKabulVeEtiketMicroGoodsReceipts(
+    request: ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest
+  ): Observable<ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto[]> {
+    return this.getWithQuery<
+      ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto[],
+      ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest
+    >(`${ETIKET_BASIM_ROOT}/micro/goods-receipts`, request);
+  }
+
+  getManavMalKabulVeEtiketGoodsReceiptComparison(
+    request: ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest
+  ): Observable<ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[]> {
+    return this.getWithQuery<
+      ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[],
+      ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest
+    >(`${ETIKET_BASIM_ROOT}/micro/goods-receipts/comparison`, request);
+  }
+
+  createManavMalKabulVeEtiketMicroGoodsReceipt(
+    request: ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest
+  ): Observable<ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto> {
+    return this.transferEtiketBasimGoodsReceipts(request);
   }
 
   getIcmaller(dateToGet: string): Observable<ISummariesCT[]> {
@@ -712,13 +742,21 @@ export class KasaIslemleriService extends BaseApiService {
   }
 
   private mapSummaryDetail(item: IFurpaCashSummaryDetailItemApiDto): ISummariesDetailsCT {
+    const typeName = toStringValue(item.typeName);
+    const paymentName = toStringValue(item.paymentName);
+    const paymentTypeNo = toNumberValue(item.paymentTypeNo, Number.NaN);
+
     return {
-      typeName: toStringValue(item.typeName),
-      paymentTypeID: toNumberValue(item.paymentTypeId),
+      typeName: typeName || paymentName,
+      paymentName,
+      paymentTypeID: toNumberValue(item.paymentTypeId, Number.isFinite(paymentTypeNo) ? paymentTypeNo : 0),
+      paymentTypeNo: Number.isFinite(paymentTypeNo) ? paymentTypeNo : null,
       accountCode: toStringValue(item.accountCode),
       slipNumber: toNumberValue(item.slipNumber),
       amount: toNumberValue(item.amount),
       terminalId: toStringValue(item.terminalId),
+      source: toStringValue(item.source),
+      category: toStringValue(item.category),
       description: toStringValue(item.description)
     };
   }

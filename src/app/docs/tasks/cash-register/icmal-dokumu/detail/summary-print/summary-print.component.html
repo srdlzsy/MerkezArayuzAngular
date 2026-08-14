@@ -59,7 +59,7 @@
       <th>Tutar</th>
     </tr>
     <tr *ngFor="let creditCard of model().creditCards">
-      <td>{{ creditCard.typeName }}</td>
+      <td>{{ paymentDisplayName(creditCard) }}</td>
       <td>{{ creditCard.terminalId || '-' }}</td>
       <td>{{ creditCard.slipNumber }}</td>
       <td>{{ creditCard.amount | number:'1.2-2' }} TL</td>
@@ -80,7 +80,7 @@
     </tr>
     <tr *ngFor="let foodCheck of model().foodChecks">
       <td>Yemek Ceki</td>
-      <td>{{ foodCheck.typeName }}</td>
+      <td>{{ paymentDisplayName(foodCheck) }}</td>
       <td>{{ foodCheck.slipNumber }}</td>
       <td>{{ foodCheck.amount | number:'1.2-2' }} TL</td>
     </tr>
@@ -101,7 +101,7 @@
       <th>Tutar</th>
     </tr>
     <tr *ngFor="let onlineSale of model().onlineSales">
-      <td>{{ onlineSale.typeName }}</td>
+      <td>{{ paymentDisplayName(onlineSale) }}</td>
       <td>{{ onlineSale.slipNumber }}</td>
       <td>{{ onlineSale.amount | number:'1.2-2' }} TL</td>
     </tr>
@@ -119,7 +119,7 @@
       <th>Tutar</th>
     </tr>
     <tr *ngFor="let expense of model().expenseCompass">
-      <td>{{ expense.typeName }}</td>
+      <td>{{ paymentDisplayName(expense) }}</td>
       <td>{{ expense.slipNumber }}</td>
       <td>{{ expense.amount | number:'1.2-2' }} TL</td>
     </tr>
@@ -157,7 +157,7 @@
       <th>Tutar</th>
     </tr>
     <tr *ngFor="let expense of model().storeExpenses">
-      <td>{{ expense.typeName }}</td>
+      <td>{{ paymentDisplayName(expense) }}</td>
       <td>{{ expense.description || '-' }}</td>
       <td>{{ expense.amount | number:'1.2-2' }} TL</td>
     </tr>

@@ -329,7 +329,7 @@
         </section>
 
         <section *ngSwitchCase="'cards'" class="drawer-body">
-          <div class="drawer-toolbar">
+          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('card').length === 0">
             <button type="button" class="action-button action-button-ghost compact-button" (click)="addEmptyPaymentType('card')">
               Slip Ekle
             </button>
@@ -341,7 +341,7 @@
         </section>
 
         <section *ngSwitchCase="'foodChecks'" class="drawer-body">
-          <div class="drawer-toolbar">
+          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('foodCheck').length === 0">
             <button type="button" class="action-button action-button-ghost compact-button" (click)="addEmptyPaymentType('foodCheck')">
               Satir Ekle
             </button>
@@ -400,7 +400,7 @@
         </section>
 
         <section *ngSwitchCase="'expenseVouchers'" class="drawer-body">
-          <div class="drawer-toolbar">
+          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('expenseVoucher').length === 0">
             <button
               type="button"
               class="action-button action-button-ghost compact-button"
@@ -454,7 +454,7 @@
         </section>
 
         <section *ngSwitchCase="'deferredSales'" class="drawer-body">
-          <div class="drawer-toolbar">
+          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('deferredSale').length === 0">
             <button
               type="button"
               class="action-button action-button-ghost compact-button"
@@ -482,17 +482,7 @@
           <article class="editor-row payment-row" *ngIf="isPaymentTypeSource(group, source)" [formGroup]="group">
             <label class="field" *ngIf="getPaymentTypeTemplates(source).length > 0; else manualPaymentTypeName">
               <span>Tip</span>
-              <select
-                [value]="getPaymentTypeNoSelection(group)"
-                (change)="applyPaymentTypeNoSelection(index, $any($event.target).value)"
-              >
-                <option
-                  *ngFor="let template of getPaymentTypeOptionsForGroup(source, group); trackBy: trackByIndex"
-                  [value]="template.paymentTypeNo"
-                >
-                  {{ getPaymentTypeTemplateLabel(template) }}
-                </option>
-              </select>
+              <input type="text" formControlName="paymentName" readonly tabindex="-1" />
             </label>
             <ng-template #manualPaymentTypeName>
               <label class="field">
@@ -500,7 +490,7 @@
                 <input type="text" formControlName="paymentName" />
               </label>
             </ng-template>
-            <label class="field compact-field">
+            <label class="field compact-field" *ngIf="getPaymentTypeTemplates(source).length === 0">
               <span>Tip No</span>
               <input
                 type="number"
@@ -523,11 +513,11 @@
             </label>
             <label class="field">
               <span>Terminal</span>
-              <input type="text" formControlName="terminalId" />
+              <input type="text" formControlName="terminalId" [readonly]="getPaymentTypeTemplates(source).length > 0" />
             </label>
             <label class="field">
               <span>Hesap</span>
-              <input type="text" formControlName="accountCode" />
+              <input type="text" formControlName="accountCode" [readonly]="getPaymentTypeTemplates(source).length > 0" />
             </label>
             <button type="button" class="row-remove" (click)="removePaymentType(index)">Kaldir</button>
           </article>

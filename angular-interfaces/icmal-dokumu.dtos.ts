@@ -30,11 +30,15 @@ export class SummariesCT implements ISummariesCT {
 
 export interface ISummariesDetailsCT {
   typeName: string;
+  paymentName?: string | null;
   paymentTypeID: number;
+  paymentTypeNo?: number | null;
   accountCode: string;
   slipNumber: number;
   amount: number;
   terminalId: string;
+  source?: string | null;
+  category?: string | null;
   description: string;
 }
 
@@ -46,7 +50,11 @@ export class SummariesDetailsCT implements ISummariesDetailsCT {
     public slipNumber: number,
     public amount: number,
     public terminalId: string,
-    public description: string
+    public description: string,
+    public paymentName?: string | null,
+    public paymentTypeNo?: number | null,
+    public source?: string | null,
+    public category?: string | null
   ) {}
 }
 

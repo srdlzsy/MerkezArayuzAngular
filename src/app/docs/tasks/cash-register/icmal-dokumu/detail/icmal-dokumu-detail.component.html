@@ -72,15 +72,16 @@
       <article class="edit-section">
         <div class="detail-card-head">
           <h3>Odeme Satirlari</h3>
-          <span>{{ editableDetails().length }} Kalem</span>
+          <div class="edit-section-actions">
+            <span>{{ editableDetails().length }} Kalem</span>
+          </div>
         </div>
         <div class="table-wrap edit-table-wrap">
           <table class="edit-table">
             <thead>
               <tr>
+                <th>Kategori</th>
                 <th>Tip</th>
-                <th>Tip No</th>
-                <th>Hesap</th>
                 <th>Terminal</th>
                 <th>Slip</th>
                 <th>Tutar</th>
@@ -90,29 +91,28 @@
             <tbody>
               <tr *ngFor="let item of editableDetails(); let index = index">
                 <td>
-                  <input [value]="item.typeName" (input)="updateEditableDetail(index, 'typeName', $any($event.target).value)" />
+                  <span class="category-pill" [ngClass]="getEditableDetailCategoryClass(item)">
+                    {{ getEditableDetailCategoryLabel(item) }}
+                  </span>
                 </td>
                 <td>
-                  <input type="number" [value]="item.paymentTypeID" (input)="updateEditableDetail(index, 'paymentTypeID', $any($event.target).value)" />
+                  <input [value]="getPaymentDisplayName(item)" readonly />
                 </td>
                 <td>
-                  <input [value]="item.accountCode" (input)="updateEditableDetail(index, 'accountCode', $any($event.target).value)" />
+                  <input [value]="item.terminalId" readonly />
                 </td>
                 <td>
-                  <input [value]="item.terminalId" (input)="updateEditableDetail(index, 'terminalId', $any($event.target).value)" />
+                  <input type="number" min="0" [value]="item.slipNumber" (input)="updateEditableDetail(index, 'slipNumber', $any($event.target).value)" />
                 </td>
                 <td>
-                  <input type="number" [value]="item.slipNumber" (input)="updateEditableDetail(index, 'slipNumber', $any($event.target).value)" />
+                  <input type="number" min="0" step="0.01" [value]="item.amount" (input)="updateEditableDetail(index, 'amount', $any($event.target).value)" />
                 </td>
                 <td>
-                  <input type="number" step="0.01" [value]="item.amount" (input)="updateEditableDetail(index, 'amount', $any($event.target).value)" />
-                </td>
-                <td>
-                  <input [value]="item.description" (input)="updateEditableDetail(index, 'description', $any($event.target).value)" />
+                  <input [value]="item.description" readonly />
                 </td>
               </tr>
               <tr *ngIf="!editableDetails().length">
-                <td colspan="7" class="empty-row">Duzenlenecek odeme satiri yok</td>
+                <td colspan="6" class="empty-row">Duzenlenecek odeme satiri yok</td>
               </tr>
             </tbody>
           </table>
@@ -122,7 +122,12 @@
       <article class="edit-section">
         <div class="detail-card-head">
           <h3>Banknot Satirlari</h3>
-          <span>{{ editableBanknoteMovements().length }} Kalem</span>
+          <div class="edit-section-actions">
+            <span>{{ editableBanknoteMovements().length }} Kalem</span>
+            <button type="button" class="add-line-button" [disabled]="isSaving() || editLookupLoading() || !canAddEditableBanknote()" (click)="addEditableBanknote()">
+              Satir Ekle
+            </button>
+          </div>
         </div>
         <div class="table-wrap edit-table-wrap">
           <table class="edit-table edit-table-narrow">
@@ -132,25 +137,41 @@
                 <th>Tip No</th>
                 <th>Adet</th>
                 <th>Toplam</th>
+                <th>Islem</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let item of editableBanknoteMovements(); let index = index">
                 <td>
-                  <input type="number" step="0.01" [value]="item.value" (input)="updateEditableBanknote(index, 'value', $any($event.target).value)" />
+                  <select
+                    [value]="getEditableBanknoteTypeSelection(item)"
+                    (change)="applyEditableBanknoteTypeSelection(index, $any($event.target).value)"
+                  >
+                    <option
+                      *ngFor="let template of getEditableBanknoteTypeOptions(item)"
+                      [value]="template.banknoteType"
+                    >
+                      {{ getBanknoteTypeLabel(template) }}
+                    </option>
+                  </select>
                 </td>
                 <td>
-                  <input type="number" [value]="item.banknoteTypeID" (input)="updateEditableBanknote(index, 'banknoteTypeID', $any($event.target).value)" />
+                  <input type="number" min="0" [value]="getEditableBanknoteTypeSelection(item)" readonly />
                 </td>
                 <td>
-                  <input type="number" [value]="item.quantity" (input)="updateEditableBanknote(index, 'quantity', $any($event.target).value)" />
+                  <input type="number" min="0" [value]="item.quantity" (input)="updateEditableBanknote(index, 'quantity', $any($event.target).value)" />
                 </td>
                 <td>
-                  <input type="number" step="0.01" [value]="item.total" (input)="updateEditableBanknote(index, 'total', $any($event.target).value)" />
+                  <input type="number" min="0" step="0.01" [value]="item.total" (input)="updateEditableBanknote(index, 'total', $any($event.target).value)" />
+                </td>
+                <td>
+                  <button type="button" class="remove-line-button" [disabled]="isSaving()" (click)="removeEditableBanknote(index)">
+                    Kaldir
+                  </button>
                 </td>
               </tr>
               <tr *ngIf="!editableBanknoteMovements().length">
-                <td colspan="4" class="empty-row">Duzenlenecek banknot satiri yok</td>
+                <td colspan="5" class="empty-row">Duzenlenecek banknot satiri yok</td>
               </tr>
             </tbody>
           </table>
@@ -160,7 +181,12 @@
       <article class="edit-section">
         <div class="detail-card-head">
           <h3>Hediye Ceki Satirlari</h3>
-          <span>{{ editableGiftCheckMovements().length }} Kalem</span>
+          <div class="edit-section-actions">
+            <span>{{ editableGiftCheckMovements().length }} Kalem</span>
+            <button type="button" class="add-line-button" [disabled]="isSaving() || editLookupLoading() || !canAddEditableGiftCheck()" (click)="addEditableGiftCheck()">
+              Satir Ekle
+            </button>
+          </div>
         </div>
         <div class="table-wrap edit-table-wrap">
           <table class="edit-table edit-table-narrow">
@@ -170,25 +196,41 @@
                 <th>Tip No</th>
                 <th>Adet</th>
                 <th>Toplam</th>
+                <th>Islem</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let item of editableGiftCheckMovements(); let index = index">
                 <td>
-                  <input type="number" step="0.01" [value]="item.value" (input)="updateEditableGiftCheck(index, 'value', $any($event.target).value)" />
+                  <select
+                    [value]="getEditableGiftCheckTypeSelection(item)"
+                    (change)="applyEditableGiftCheckTypeSelection(index, $any($event.target).value)"
+                  >
+                    <option
+                      *ngFor="let template of getEditableGiftCheckTypeOptions(item)"
+                      [value]="template.giftCheckType"
+                    >
+                      {{ getGiftCheckTypeLabel(template) }}
+                    </option>
+                  </select>
                 </td>
                 <td>
-                  <input type="number" [value]="item.giftCheckTypeID" (input)="updateEditableGiftCheck(index, 'giftCheckTypeID', $any($event.target).value)" />
+                  <input type="number" min="0" [value]="getEditableGiftCheckTypeSelection(item)" readonly />
                 </td>
                 <td>
-                  <input type="number" [value]="item.quantity" (input)="updateEditableGiftCheck(index, 'quantity', $any($event.target).value)" />
+                  <input type="number" min="0" [value]="item.quantity" (input)="updateEditableGiftCheck(index, 'quantity', $any($event.target).value)" />
                 </td>
                 <td>
-                  <input type="number" step="0.01" [value]="item.total" (input)="updateEditableGiftCheck(index, 'total', $any($event.target).value)" />
+                  <input type="number" min="0" step="0.01" [value]="item.total" (input)="updateEditableGiftCheck(index, 'total', $any($event.target).value)" />
+                </td>
+                <td>
+                  <button type="button" class="remove-line-button" [disabled]="isSaving()" (click)="removeEditableGiftCheck(index)">
+                    Kaldir
+                  </button>
                 </td>
               </tr>
               <tr *ngIf="!editableGiftCheckMovements().length">
-                <td colspan="4" class="empty-row">Duzenlenecek hediye ceki satiri yok</td>
+                <td colspan="5" class="empty-row">Duzenlenecek hediye ceki satiri yok</td>
               </tr>
             </tbody>
           </table>
@@ -304,7 +346,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of creditCards()">
-                <td>{{ item.typeName }}</td>
+                <td>{{ getPaymentDisplayName(item) }}</td>
                 <td>{{ item.terminalId || '-' }}</td>
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
@@ -333,7 +375,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of foodChecks()">
-                <td>{{ item.typeName }}</td>
+                <td>{{ getPaymentDisplayName(item) }}</td>
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
@@ -389,7 +431,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of onlineSales()">
-                <td>{{ item.typeName }}</td>
+                <td>{{ getPaymentDisplayName(item) }}</td>
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
@@ -417,7 +459,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of expenseCompass()">
-                <td>{{ item.typeName }}</td>
+                <td>{{ getPaymentDisplayName(item) }}</td>
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
@@ -445,7 +487,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let item of storeExpenses()">
-                <td>{{ item.typeName }}</td>
+                <td>{{ getPaymentDisplayName(item) }}</td>
                 <td>{{ item.description || '-' }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>

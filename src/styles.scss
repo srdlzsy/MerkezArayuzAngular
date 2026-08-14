@@ -408,6 +408,62 @@ body :where(
   font-size: 0.74rem !important;
 }
 
+.docs-task-dialog-panel.icmal-detail-dialog .cdk-dialog-container {
+  width: min(1480px, calc(100vw - 1rem)) !important;
+  max-width: min(1480px, calc(100vw - 1rem)) !important;
+  height: min(900px, calc(100dvh - 1rem)) !important;
+  max-height: calc(100dvh - 1rem) !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog .dialog-header {
+  padding: 0.66rem 0.85rem !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog .dialog-body {
+  gap: 0.7rem !important;
+  padding: 0.75rem 0.85rem 0.9rem !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog .panel,
+.docs-task-dialog-panel.icmal-detail-dialog .query-card,
+.docs-task-dialog-panel.icmal-detail-dialog .task-item {
+  padding: 0.72rem 0.78rem !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog input,
+.docs-task-dialog-panel.icmal-detail-dialog select,
+.docs-task-dialog-panel.icmal-detail-dialog textarea {
+  min-height: 34px !important;
+  padding: 0.42rem 0.55rem !important;
+  font-size: 0.8rem !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog .ghost-button,
+.docs-task-dialog-panel.icmal-detail-dialog .primary-button,
+.docs-task-dialog-panel.icmal-detail-dialog .secondary-button,
+.docs-task-dialog-panel.icmal-detail-dialog .small-btn,
+.docs-task-dialog-panel.icmal-detail-dialog .task-action,
+.docs-task-dialog-panel.icmal-detail-dialog .row-action,
+.docs-task-dialog-panel.icmal-detail-dialog .close-button {
+  min-height: 34px !important;
+  padding: 0.42rem 0.72rem !important;
+  font-size: 0.78rem !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog table {
+  min-width: 900px !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog th,
+.docs-task-dialog-panel.icmal-detail-dialog td {
+  padding: 0.5rem 0.56rem !important;
+  font-size: 0.8rem !important;
+}
+
+.docs-task-dialog-panel.icmal-detail-dialog th {
+  font-size: 0.62rem !important;
+}
+
 body .task-page .page-head,
 body .task-page .hero,
 body .create-page .hero,

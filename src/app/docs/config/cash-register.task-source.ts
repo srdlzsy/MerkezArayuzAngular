@@ -123,89 +123,100 @@ export const CASH_REGISTER_TASK_SOURCE = {
       ),
     { accessKeyAliases: ['EtiketBelgeleri', 'etiket-belgeleri'] }
   ),
-  'etiket-basim': singleRouteTask(
+  'manav-mal-kabul-etiket': singleRouteTask(
     {
-      id: 'etiket-basim',
-      title: 'Etiket Basim',
+      id: 'manav-mal-kabul-etiket',
+      title: 'Manav Mal Kabul ve Etiket',
       subtitle:
-        'Manav/depo mal kabul etiket kayitlarini gunluk liste, hesaplama, onizleme ve rapor akislariyla yonetir.',
-      baseRouteOrFile: '/api/kasa-islemleri/etiket-basim',
+        'Manav/depo mal kabul kayitlarini, etiket basimini, Mikro kontrolunu ve rapor akisini yonetir.',
+      baseRouteOrFile: '/api/kasa-islemleri/manav-mal-kabul-etiket',
       highlights: [
         'Mevcut etiket-belgeleri modulunden ayridir',
         'Tedarikci ve stok referans aramasi',
         'Kasa/net kilo hesaplama ve etiket onizleme',
-        'Mikro aktarim sozlesmesi hazir olana kadar kapali tutulur'
+        'Canli Mikro mal kabul belge kontrolu ve aktarim sozlesmesi'
       ],
-      listTitle: 'Etiket Basim Islem Akisi',
+      listTitle: 'Manav Mal Kabul ve Etiket Akisi',
       items: [
         {
-          name: 'EtiketBasimController',
+          name: 'ManavMalKabulVeEtiketController',
           description:
-            'Manav_Depo_Mal_Kabul_Etiket kabul kayitlarini yonetir, kilo hesaplar ve UI tarafinda yazdirilacak etiket datasini dondurur.',
+            'Manav_Depo_Mal_Kabul_Etiket kabul kayitlarini yonetir, kilo hesaplar, etiket datasini dondurur ve Mikro mal kabul karsilastirmasini saglar.',
           endpoints: [
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-basim/acceptance-records?date=2026-07-30',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/acceptance-records?date=2026-07-30',
               description: 'Secilen gunun kabul kayitlarini listeler'
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-basim/suppliers?query=ABC&take=20',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/suppliers?query=ABC&take=20',
               description: 'Tedarikci arama sonucunu dondurur'
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-basim/stocks?query=DOMATES&prefix=MNV&take=20',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/stocks?query=DOMATES&prefix=MNV&take=20',
               description: 'Stok kodu, stok adi veya barkoda gore stok arar; varsayilan prefix MNV'
             },
             {
               method: 'POST',
-              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/calculate',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/acceptance-records/calculate',
               description: 'Brut kilo, kasa darasi, kasa sayisi ve palet darasindan net/ortalama kilo hesaplar',
-              payload: 'EtiketBasimCalculationHttpRequest'
+              payload: 'ManavMalKabulVeEtiketCalculationHttpRequest'
             },
             {
               method: 'POST',
-              path: '/api/kasa-islemleri/etiket-basim/acceptance-records',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/acceptance-records',
               description: 'Yeni kabul etiketi kaydi olusturur',
-              payload: 'SaveEtiketBasimAcceptanceRecordHttpRequest'
+              payload: 'SaveManavMalKabulVeEtiketAcceptanceRecordHttpRequest'
             },
             {
               method: 'PUT',
-              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/{id}',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/acceptance-records/{id}',
               description: 'Aktarilmamis kabul etiketi kaydini gunceller',
-              payload: 'SaveEtiketBasimAcceptanceRecordHttpRequest'
+              payload: 'SaveManavMalKabulVeEtiketAcceptanceRecordHttpRequest'
             },
             {
               method: 'DELETE',
-              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/{id}',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/acceptance-records/{id}',
               description: 'Aktarilmamis kabul etiketi kaydini siler'
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-basim/acceptance-records/{id}/label',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/acceptance-records/{id}/label',
               description: 'Kayitli satir icin etiket datasini getirir'
             },
             {
               method: 'POST',
-              path: '/api/kasa-islemleri/etiket-basim/labels/preview',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/labels/preview',
               description: 'Kaydetmeden etiket datasini onizler',
-              payload: 'SaveEtiketBasimAcceptanceRecordHttpRequest'
+              payload: 'SaveManavMalKabulVeEtiketAcceptanceRecordHttpRequest'
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-basim/reports/received-products?date=2026-07-30',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/reports/received-products?date=2026-07-30',
               description: 'Gunluk gelen urun raporunu getirir'
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/etiket-basim/reports/depot-stock?warehouseNo=56&date=2026-07-30',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/reports/depot-stock?warehouseNo=56&date=2026-07-30',
               description: 'Depo stok raporunu getirir'
             },
             {
+              method: 'GET',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/micro/goods-receipts?date=2026-08-13',
+              description: 'Canli Mikro manav mal kabul belgelerini belge bazli listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/micro/goods-receipts/comparison?date=2026-08-13',
+              description: 'Etiket kayitlari ile canli Mikro manav mal kabullerini karsilastirir'
+            },
+            {
               method: 'POST',
-              path: '/api/kasa-islemleri/etiket-basim/micro/goods-receipts',
-              description: 'Sozlesme vardir fakat su an 501 dondurur; UI tarafinda hazir degil gosterilir'
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/micro/goods-receipts',
+              description: 'Fiyatli ve onayli satirlarla Mikro manav mal kabul belgesi olusturur',
+              payload: 'ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest'
             }
           ]
         }
@@ -217,10 +228,14 @@ export const CASH_REGISTER_TASK_SOURCE = {
       ),
     {
       accessKeyAliases: [
+        'ManavMalKabulVeEtiket',
+        'manav-mal-kabul-etiket',
+        'kasa-islemleri.manav-mal-kabul-etiket',
         'EtiketBasim',
         'etiket-basim',
         'kasa-islemleri.etiket-basim'
-      ]
+      ],
+      requiredPermissionCodes: ['kasa-islemleri.manav-mal-kabul-etiket.page']
     }
   ),
   'kunye-etiket-yazdirma': singleRouteTask(

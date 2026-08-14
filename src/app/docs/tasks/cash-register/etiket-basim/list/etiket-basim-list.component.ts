@@ -23,6 +23,7 @@ import {
   EtiketBasimReceivedProductReportDto,
   EtiketBasimStockDto,
   EtiketBasimSupplierDto,
+  ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto,
   SaveEtiketBasimAcceptanceRecordHttpRequest
 } from '@interfaces';
 import { finalize } from 'rxjs';
@@ -42,13 +43,13 @@ import {
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 import { renderBarcodeSvg } from '../../etiket-belgeleri/etiket-barcode.util';
 
-const TASK_ID = 'etiket-basim';
-const PERMISSION_PREFIX = 'kasa-islemleri.etiket-basim';
+const TASK_ID = 'manav-mal-kabul-etiket';
+const PERMISSION_PREFIX = 'kasa-islemleri.manav-mal-kabul-etiket';
 const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 const DEFAULT_STOCK_PREFIX = 'MNV';
 
 type EtiketBasimTab = 'records' | 'form' | 'reports';
-type EtiketBasimReportTab = 'received' | 'depot';
+type EtiketBasimReportTab = 'received' | 'comparison' | 'depot';
 type SortDirection = 'asc' | 'desc';
 type PermissionAction = 'list' | 'detail' | 'create' | 'update' | 'delete' | 'transfer';
 type DraftNumberKey = 'grossWeight' | 'caseTare' | 'caseCount' | 'palletTare';
@@ -129,6 +130,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   private calculationTimer: number | undefined;
   private calculationRequestId = 0;
   private labelRenderTimer: number | undefined;
+  private printAfterLabelPreview = false;
 
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
   protected readonly maxDate = this.getToday();
@@ -161,6 +163,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly calculation = signal<EtiketBasimCalculationDto | null>(null);
   protected readonly labelPreview = signal<EtiketBasimLabelDto | null>(null);
   protected readonly receivedReportRows = signal<EtiketBasimReceivedProductReportDto[]>([]);
+  protected readonly comparisonReportRows = signal<ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[]>([]);
   protected readonly depotReportRows = signal<EtiketBasimDepotStockReportDto[]>([]);
   protected readonly feedback = signal<FeedbackState | null>(null);
   protected readonly supplierSearchMessage = signal<string | null>(null);
@@ -638,6 +641,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       .subscribe({
         next: (label: EtiketBasimLabelDto) => this.applyLabelPreview(label),
         error: (error: unknown) => {
+          this.printAfterLabelPreview = false;
           this.setFeedback(
             'error',
             'Onizleme alinamadi',
@@ -645,6 +649,16 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           );
         }
       });
+  }
+
+  protected printCurrentLabel(): void {
+    this.printAfterLabelPreview = true;
+    this.previewDraftLabel();
+  }
+
+  protected printRecordLabel(record: EtiketBasimAcceptanceRecordDto): void {
+    this.printAfterLabelPreview = true;
+    this.loadLabelForRecord(record);
   }
 
   protected loadLabelForRecord(record: EtiketBasimAcceptanceRecordDto): void {
@@ -665,6 +679,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       .subscribe({
         next: (label: EtiketBasimLabelDto) => this.applyLabelPreview(label),
         error: (error: unknown) => {
+          this.printAfterLabelPreview = false;
           this.setFeedback(
             'error',
             'Etiket alinamadi',
@@ -689,7 +704,26 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const style = document.createElement('style');
     style.id = 'etiket-basim-print-shell';
     style.textContent = `
+      @page {
+        size: 57.9mm 38.9mm;
+        margin: 0;
+      }
+
       @media print {
+        html,
+        body {
+          width: 57.9mm !important;
+          min-width: 57.9mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+          overflow: visible !important;
+        }
+
+        body * {
+          visibility: hidden !important;
+        }
+
         .app-sidebar,
         .topbar,
         .topbar-mobile,
@@ -703,12 +737,37 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
         }
 
         .etiket-basim-print-root {
-          position: static !important;
-          left: auto !important;
-          display: grid !important;
+          position: absolute !important;
+          top: 0 !important;
+          left: 0 !important;
+          right: auto !important;
+          width: 57.9mm !important;
+          min-width: 57.9mm !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          display: block !important;
           visibility: visible !important;
           gap: 0 !important;
           pointer-events: auto !important;
+        }
+
+        .etiket-basim-print-root,
+        .etiket-basim-print-root * {
+          visibility: visible !important;
+        }
+
+        .print-label {
+          width: 57.9mm !important;
+          height: 38.9mm !important;
+          margin: 0 !important;
+          overflow: hidden !important;
+          break-after: page !important;
+          page-break-after: always !important;
+        }
+
+        .print-label:last-child {
+          break-after: auto !important;
+          page-break-after: auto !important;
         }
       }
     `;
@@ -757,6 +816,33 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
               'error',
               'Rapor alinamadi',
               getErrorMessage(error, 'Gelen urun raporu yuklenemedi.')
+            );
+          }
+      });
+      return;
+    }
+
+    if (tab === 'comparison') {
+      this.kasaIslemleriService
+        .getManavMalKabulVeEtiketGoodsReceiptComparison({ date })
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.isReportLoading.set(false))
+        )
+        .subscribe({
+          next: (rows: ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[]) => {
+            this.comparisonReportRows.set(rows ?? []);
+
+            if (!rows?.length) {
+              this.setFeedback('info', 'Rapor bos', 'Secilen gun icin Mikro karsilastirma kaydi bulunamadi.');
+            }
+          },
+          error: (error: unknown) => {
+            this.comparisonReportRows.set([]);
+            this.setFeedback(
+              'error',
+              'Rapor alinamadi',
+              getErrorMessage(error, 'Mikro karsilastirma raporu yuklenemedi.')
             );
           }
         });
@@ -872,6 +958,34 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected getStatusClass(record: EtiketBasimAcceptanceRecordDto): string {
     return record.microTransferred ? 'status-transferred' : 'status-waiting';
+  }
+
+  protected getComparisonStatusLabel(status: string | null | undefined): string {
+    switch ((status ?? '').trim().toLocaleUpperCase('tr-TR')) {
+      case 'ESLESTI':
+        return 'Eslesti';
+      case 'YAKIN':
+        return 'Yakin';
+      case 'FARKLI':
+        return 'Farkli';
+      case 'SADECE_ETIKET':
+        return 'Sadece Etiket';
+      case 'SADECE_MIKRO':
+        return 'Sadece Mikro';
+      default:
+        return status?.trim() || '-';
+    }
+  }
+
+  protected getComparisonStatusClass(status: string | null | undefined): string {
+    switch ((status ?? '').trim().toLocaleUpperCase('tr-TR')) {
+      case 'ESLESTI':
+        return 'status-transferred';
+      case 'YAKIN':
+        return 'status-waiting';
+      default:
+        return 'status-blocked';
+    }
   }
 
   protected trackByRecord = (_index: number, record: EtiketBasimAcceptanceRecordDto): number =>
@@ -1000,6 +1114,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.labelCopyCount = Math.max(1, Math.trunc(this.toSafeNumber(label.labelCount) || 1));
     this.activeTab.set('form');
     this.scheduleBarcodeRender();
+
+    if (this.printAfterLabelPreview) {
+      this.printAfterLabelPreview = false;
+      window.setTimeout(() => void this.printLabel(), 120);
+    }
   }
 
   protected scheduleCalculation(): void {
