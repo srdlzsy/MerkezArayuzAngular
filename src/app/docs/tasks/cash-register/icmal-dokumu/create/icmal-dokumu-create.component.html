@@ -479,7 +479,12 @@
     <ng-template #paymentEditor let-source="source" let-emptyText="emptyText">
       <div class="editor-list payment-list" formArrayName="paymentTypes" *ngIf="hasPaymentTypeSource(source); else emptyPayments">
         <ng-container *ngFor="let group of paymentTypes.controls; let index = index; trackBy: trackByIndex">
-          <article class="editor-row payment-row" *ngIf="isPaymentTypeSource(group, source)" [formGroup]="group">
+          <article
+            class="editor-row payment-row"
+            *ngIf="isPaymentTypeSource(group, source)"
+            [class.payment-row-readonly]="getPaymentTypeTemplates(source).length > 0"
+            [formGroup]="group"
+          >
             <label class="field" *ngIf="getPaymentTypeTemplates(source).length > 0; else manualPaymentTypeName">
               <span>Tip</span>
               <input type="text" formControlName="paymentName" readonly tabindex="-1" />

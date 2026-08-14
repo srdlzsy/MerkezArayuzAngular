@@ -24,13 +24,17 @@
 }
 
 .page-header {
+  position: sticky;
+  top: 0.4rem;
+  z-index: 10;
   display: flex;
   align-items: center;
   justify-content: space-between;
   gap: 1rem;
-  padding: 1rem 1.1rem;
-  border-radius: 18px;
+  padding: 0.72rem 0.86rem;
+  border-radius: 10px;
   border-left: 4px solid #0f766e;
+  backdrop-filter: blur(6px);
 }
 
 .eyebrow {
@@ -180,7 +184,7 @@
   grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.75rem;
   padding: 0.9rem 1rem;
-  border-radius: 16px;
+  border-radius: 10px;
 }
 
 .response-card span,
@@ -215,7 +219,8 @@
   align-content: start;
   gap: 0.55rem;
   padding: 0.72rem 0.78rem;
-  border-radius: 14px;
+  border-radius: 10px;
+  box-shadow: none;
 }
 
 .entry-card-head {
@@ -342,21 +347,21 @@
 
 .count-board {
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
-  gap: 0.9rem;
+  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
+  gap: 0.55rem;
   margin-top: 0.15rem;
 }
 
 .count-card {
   position: relative;
   display: grid;
-  min-height: 144px;
-  gap: 0.52rem;
-  padding: 1.05rem 1.08rem;
+  min-height: 108px;
+  gap: 0.42rem;
+  padding: 0.76rem 0.82rem;
   overflow: hidden;
   text-align: left;
   border-radius: 8px;
-  box-shadow: 0 14px 30px rgba(15, 23, 42, 0.08);
+  box-shadow: none;
 }
 
 button.count-card {
@@ -365,7 +370,12 @@ button.count-card {
 
 button.count-card:hover {
   transform: translateY(-2px);
-  box-shadow: 0 16px 34px rgba(15, 23, 42, 0.1);
+  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.09);
+}
+
+button.count-card:focus-visible {
+  outline: 3px solid rgba(37, 99, 235, 0.18);
+  outline-offset: 2px;
 }
 
 .count-card::before {
@@ -378,13 +388,14 @@ button.count-card:hover {
 
 .card-title {
   color: #0f172a;
-  font-size: 1rem;
+  font-size: 0.92rem;
   font-weight: 800;
 }
 
 .card-description {
   color: #607086;
-  font-size: 0.86rem;
+  font-size: 0.76rem;
+  line-height: 1.25;
 }
 
 .card-metrics {
@@ -397,13 +408,13 @@ button.count-card:hover {
 
 .card-metrics span {
   color: #475569;
-  font-size: 0.86rem;
+  font-size: 0.78rem;
   font-weight: 700;
 }
 
 .card-metrics strong {
   color: #0f172a;
-  font-size: 1.02rem;
+  font-size: 0.94rem;
   white-space: nowrap;
 }
 
@@ -462,18 +473,18 @@ button.count-card:hover {
   z-index: 31;
   display: grid;
   grid-template-rows: auto auto minmax(0, 1fr) auto;
-  width: min(980px, calc(100vw - 1.5rem));
+  width: min(1120px, calc(100vw - 1rem));
   max-height: calc(100vh - 2rem);
   min-height: 0;
   overflow: hidden;
   transform: translate(-50%, -50%);
-  border-radius: 14px;
+  border-radius: 10px;
 }
 
 .drawer-head,
 .drawer-summary,
 .drawer-footer {
-  padding: 0.82rem 0.95rem;
+  padding: 0.66rem 0.78rem;
 }
 
 .drawer-head {
@@ -506,7 +517,7 @@ button.count-card:hover {
   display: grid;
   gap: 0.55rem;
   min-height: 0;
-  padding: 0.75rem 0.85rem;
+  padding: 0.62rem 0.7rem;
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -525,14 +536,18 @@ button.count-card:hover {
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
   gap: 0.42rem;
   align-items: end;
-  padding: 0.52rem;
+  padding: 0.42rem;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
   background: #fff;
 }
 
 .payment-row {
-  grid-template-columns: minmax(170px, 1.35fr) minmax(72px, 0.46fr) minmax(72px, 0.46fr) minmax(100px, 0.72fr) minmax(110px, 0.78fr) minmax(116px, 0.86fr) auto;
+  grid-template-columns: minmax(180px, 1.45fr) minmax(74px, 0.46fr) minmax(98px, 0.62fr) minmax(106px, 0.72fr) minmax(110px, 0.78fr) minmax(116px, 0.86fr) auto;
+}
+
+.payment-row-readonly {
+  grid-template-columns: minmax(210px, 1.4fr) minmax(86px, 0.48fr) minmax(108px, 0.7fr) minmax(116px, 0.78fr) minmax(124px, 0.86fr) auto;
 }
 
 .store-row {
@@ -597,6 +612,7 @@ button.count-card:hover {
   }
 
   .payment-row,
+  .payment-row-readonly,
   .editor-row,
   .store-row {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -636,6 +652,7 @@ button.count-card:hover {
   .response-card,
   .cash-register-detail,
   .payment-row,
+  .payment-row-readonly,
   .editor-row,
   .store-row {
     grid-template-columns: 1fr;

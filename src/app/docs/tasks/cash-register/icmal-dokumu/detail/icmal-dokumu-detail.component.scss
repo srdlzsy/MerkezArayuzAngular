@@ -11,6 +11,9 @@
 }
 
 .dialog-header {
+  position: sticky;
+  top: 0;
+  z-index: 6;
   display: flex;
   align-items: start;
   justify-content: space-between;
@@ -30,6 +33,8 @@
   display: flex;
   align-items: center;
   gap: 0.6rem;
+  flex-wrap: wrap;
+  justify-content: flex-end;
 }
 
 .eyebrow {
@@ -118,8 +123,8 @@
 
 .dialog-body {
   display: grid;
-  gap: 0.7rem;
-  padding: 1rem 1.08rem 1.08rem !important;
+  gap: 0.58rem;
+  padding: 0.78rem 0.9rem 0.9rem !important;
   overflow: auto;
 }
 
@@ -252,18 +257,26 @@
 
 .edit-panel {
   display: grid;
-  gap: 0.9rem;
-  padding: 1rem;
+  gap: 0.66rem;
+  padding: 0.72rem;
   border: 1px solid #bfdbfe;
   border-radius: 10px;
   background: linear-gradient(180deg, #f8fbff 0%, #ffffff 100%);
 }
 
 .edit-panel-head {
+  position: sticky;
+  top: 0;
+  z-index: 5;
   display: flex;
   align-items: start;
   justify-content: space-between;
   gap: 0.75rem;
+  margin: -0.72rem -0.72rem 0;
+  padding: 0.62rem 0.72rem;
+  border-bottom: 1px solid #dbeafe;
+  background: rgba(255, 255, 255, 0.96);
+  backdrop-filter: blur(6px);
 }
 
 .edit-panel-head h3 {
@@ -285,7 +298,7 @@
 }
 
 .edit-section {
-  padding: 0.92rem;
+  padding: 0.68rem;
   border: 1px solid #dbeafe;
   border-radius: 10px;
   background: #fff;
@@ -346,6 +359,8 @@
 }
 
 .edit-table-wrap {
+  max-height: min(52vh, 520px);
+  overflow: auto;
   box-shadow: none;
 }
 
@@ -488,6 +503,9 @@ td {
 }
 
 th {
+  position: sticky;
+  top: 0;
+  z-index: 2;
   color: #475569;
   font-size: 0.66rem !important;
   font-weight: 800;

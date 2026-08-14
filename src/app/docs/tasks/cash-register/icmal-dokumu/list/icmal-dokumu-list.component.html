@@ -8,6 +8,16 @@
       <p class="subtitle">Gun sec, icmali getir, listeden satir detayina gec.</p>
     </div>
 
+    <div class="hero-actions">
+      <button
+        type="button"
+        class="action-button action-button-primary create-action"
+        *ngIf="canCreateIcmal()"
+        (click)="openCreate()"
+      >
+        Yeni Icmal
+      </button>
+    </div>
   </header>
 
   <section class="task-block">

@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
+import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import type { ISummariesCT } from '@interfaces';
 
@@ -12,12 +13,19 @@ import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { IcmalDokumuDetailComponent } from '../detail/icmal-dokumu-detail.component';
 import { openDocsTaskDialog } from '../../../core/task-dialog.config';
+import {
+  currentUserHasPermission,
+  normalizePermissionCode
+} from '../../../core/admin-warehouse.helpers';
 
 interface ActionFeedback {
   tone: 'error' | 'info';
   title: string;
   message: string;
 }
+
+const ICMAL_CREATE_TASK_ID = 'icmal-kaydi-girisi';
+const ICMAL_CREATE_PERMISSION = 'kasa-islemleri.icmal-kaydi-girisi.create';
 
 @Component({
   selector: 'app-icmal-dokumu-list',
@@ -40,6 +48,7 @@ export class IcmalDokumuListComponent {
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialog = inject(Dialog);
+  private readonly router = inject(Router);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly searchTerm = signal('');
@@ -126,6 +135,7 @@ export class IcmalDokumuListComponent {
   protected readonly canGoToNextPage = computed(
     () => this.currentPageSafe() < this.totalPages()
   );
+  protected readonly canCreateIcmal = computed(() => this.hasCreatePermission());
 
   constructor() {
     this.filtersForm.controls.search.valueChanges
@@ -201,6 +211,10 @@ export class IcmalDokumuListComponent {
           this.loadSummaries();
         }
       });
+  }
+
+  protected openCreate(): void {
+    void this.router.navigateByUrl('/docs/api/icmal-kaydi-girisi');
   }
 
   protected clearSearch(): void {
@@ -296,6 +310,27 @@ export class IcmalDokumuListComponent {
 
   private isDeleteDialogResult(value: unknown): value is { deleted: true } {
     return typeof value === 'object' && value !== null && 'deleted' in value;
+  }
+
+  private hasCreatePermission(): boolean {
+    const user = this.authService.currentUser();
+
+    if (!user) {
+      return false;
+    }
+
+    const permissionKeys = [
+      ...this.authService.getTaskPermissionCodes(ICMAL_CREATE_TASK_ID),
+      ...this.authService.getTaskPermissionKeys(ICMAL_CREATE_TASK_ID)
+    ].map((permission) => normalizePermissionCode(permission));
+    const normalizedPermissionCode = normalizePermissionCode(ICMAL_CREATE_PERMISSION);
+    const normalizedAction = normalizePermissionCode('create');
+
+    return (
+      currentUserHasPermission(user, ICMAL_CREATE_PERMISSION) ||
+      permissionKeys.includes(normalizedPermissionCode) ||
+      permissionKeys.includes(normalizedAction)
+    );
   }
 }
 
