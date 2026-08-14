@@ -442,16 +442,18 @@
       class="print-label"
       *ngFor="let label of printCopies(); let copyIndex = index; trackBy: trackByPrintCopy"
     >
-      <strong>{{ label.stockName }}</strong>
-      <span>{{ label.supplierName }}</span>
-      <div class="print-label-meta">
-        <b>{{ label.averageCaseWeight | number:'1.2-2' }} KG</b>
-        <b>{{ label.caseType || '-' }}</b>
-        <b>{{ label.caseTare | number:'1.2-2' }} dara</b>
+      <div class="print-label-content">
+        <strong>{{ label.stockName }}</strong>
+        <span>{{ label.supplierName }}</span>
+        <div class="print-label-meta">
+          <b>{{ label.averageCaseWeight | number:'1.2-2' }} KG</b>
+          <b>{{ label.caseType || '-' }}</b>
+          <b>{{ label.caseTare | number:'1.2-2' }} dara</b>
+        </div>
+        <svg #printBarcode class="barcode-svg"></svg>
+        <small>{{ label.labelBarcode || label.stockBarcode || '-' }}</small>
+        <em>{{ label.labelDate | date:'dd.MM.yyyy' }}</em>
       </div>
-      <svg #printBarcode class="barcode-svg"></svg>
-      <small>{{ label.labelBarcode || label.stockBarcode || '-' }}</small>
-      <em>{{ label.labelDate | date:'dd.MM.yyyy' }}</em>
     </article>
   </section>
 </section>

@@ -532,7 +532,7 @@ input:disabled {
 }
 
 .label-preview,
-.print-label {
+.print-label-content {
   display: grid;
   gap: 0.12rem;
   border: 1px solid #111;
@@ -546,7 +546,7 @@ input:disabled {
 }
 
 .label-preview strong,
-.print-label strong {
+.print-label-content strong {
   overflow: hidden;
   font-size: 1rem;
   line-height: 1.1;
@@ -555,9 +555,9 @@ input:disabled {
 }
 
 .label-preview span,
-.print-label span,
+.print-label-content span,
 .label-preview small,
-.print-label small {
+.print-label-content small {
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
@@ -1001,11 +1001,21 @@ input:disabled {
 }
 
 .print-label {
+  width: 38.9mm;
+  height: 57.9mm;
+  box-sizing: border-box;
+  padding: 0;
+  overflow: hidden;
+  page-break-after: always;
+}
+
+.print-label-content {
   width: 57.9mm;
   height: 38.9mm;
   box-sizing: border-box;
   padding: 2.1mm;
-  page-break-after: always;
+  transform: rotate(90deg) translateY(-38.9mm);
+  transform-origin: top left;
 }
 
 .print-label strong {

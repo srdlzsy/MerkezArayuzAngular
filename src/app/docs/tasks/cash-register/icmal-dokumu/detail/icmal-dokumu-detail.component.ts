@@ -1554,58 +1554,110 @@ export class IcmalDokumuDetailComponent
   }
 
   private printWithStylesheet(stylesheetHref: string): void {
+    const source = document.getElementById('print_section');
     const existingLink = document.getElementById('icmal-dokumu-print-style');
     const existingStyle = document.getElementById('icmal-dokumu-print-shell');
+    const existingHost = document.getElementById('icmal-dokumu-print-host');
 
     existingLink?.remove();
     existingStyle?.remove();
+    existingHost?.remove();
+
+    if (!source) {
+      window.print();
+      return;
+    }
 
     const link = document.createElement('link');
     link.id = 'icmal-dokumu-print-style';
     link.rel = 'stylesheet';
+    link.media = 'print';
     link.href = stylesheetHref;
+
+    const printHost = document.createElement('section');
+    printHost.id = 'icmal-dokumu-print-host';
+    printHost.setAttribute('aria-hidden', 'true');
+    printHost.style.display = 'none';
+
+    const printSection = source.cloneNode(true) as HTMLElement;
+    printSection.removeAttribute('aria-hidden');
+    printHost.appendChild(printSection);
 
     const shellStyle = document.createElement('style');
     shellStyle.id = 'icmal-dokumu-print-shell';
     shellStyle.textContent = `
       @media print {
-        body * {
-          visibility: hidden !important;
+        @page {
+          size: A4;
+          margin: 6mm;
         }
 
-        .cdk-overlay-container,
-        .cdk-overlay-container * {
-          visibility: visible !important;
+        html,
+        body {
+          width: auto !important;
+          min-width: 0 !important;
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+          background: #fff !important;
         }
 
-        .cdk-overlay-backdrop,
-        .icmal-print-hidden {
+        body > *:not(#icmal-dokumu-print-host) {
           display: none !important;
         }
 
-        .docs-task-dialog-panel,
-        .cdk-dialog-container,
-        .dialog-page,
-        .dialog-body {
+        #icmal-dokumu-print-host {
+          display: block !important;
+          position: static !important;
+          inset: auto !important;
           width: 100% !important;
           max-width: none !important;
-          max-height: none !important;
           height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
           overflow: visible !important;
+          visibility: visible !important;
           background: transparent !important;
-          box-shadow: none !important;
-          border: 0 !important;
-          padding: 0 !important;
           margin: 0 !important;
+          padding: 0 !important;
+          border: 0 !important;
+          box-shadow: none !important;
         }
 
-        .icmal-print-root,
-        .icmal-print-root * {
+        #icmal-dokumu-print-host,
+        #icmal-dokumu-print-host * {
+          box-sizing: border-box !important;
           visibility: visible !important;
         }
 
-        .icmal-print-root {
+        #icmal-dokumu-print-host * {
+          overflow: visible !important;
+        }
+
+        #icmal-dokumu-print-host #print_section {
           display: block !important;
+          position: static !important;
+          width: 100% !important;
+          max-width: none !important;
+          height: auto !important;
+          min-height: 0 !important;
+          max-height: none !important;
+          overflow: visible !important;
+          margin: 0 !important;
+          padding: 0 !important;
+        }
+
+        #icmal-dokumu-print-host table {
+          break-inside: auto !important;
+          page-break-inside: auto !important;
+        }
+
+        #icmal-dokumu-print-host tr {
+          break-inside: avoid !important;
+          page-break-inside: avoid !important;
         }
       }
     `;
@@ -1613,16 +1665,31 @@ export class IcmalDokumuDetailComponent
     const cleanup = () => {
       link.remove();
       shellStyle.remove();
+      printHost.remove();
       window.removeEventListener('afterprint', cleanup);
     };
 
+    let printStarted = false;
+    const startPrint = () => {
+      if (printStarted) {
+        return;
+      }
+
+      printStarted = true;
+      window.setTimeout(() => {
+        window.print();
+      }, 80);
+    };
+
+    link.addEventListener('load', startPrint, { once: true });
+    link.addEventListener('error', startPrint, { once: true });
+
     document.head.appendChild(link);
     document.head.appendChild(shellStyle);
+    document.body.appendChild(printHost);
     window.addEventListener('afterprint', cleanup);
 
-    window.setTimeout(() => {
-      window.print();
-    }, 150);
+    window.setTimeout(startPrint, 450);
   }
 }
 
