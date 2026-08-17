@@ -321,7 +321,7 @@
       </section>
 
       <section class="detail-grid icmal-print-hidden">
-      <article class="detail-card">
+      <article class="detail-card" *ngIf="banknoteMovements().length">
         <div class="detail-card-head">
           <h3>Nakit Hareketleri</h3>
           <span>{{ banknoteQuantity() }} Adet</span>
@@ -341,15 +341,12 @@
                 <td>{{ item.quantity }}</td>
                 <td>{{ item.total | number:'1.2-2' }} TL</td>
               </tr>
-              <tr *ngIf="!banknoteMovements().length">
-                <td colspan="3" class="empty-row">Kayit yok</td>
-              </tr>
             </tbody>
           </table>
         </div>
       </article>
 
-      <article class="detail-card">
+      <article class="detail-card" *ngIf="creditCards().length">
         <div class="detail-card-head">
           <h3>Kredi Kartlari</h3>
           <span>{{ creditCardsQuantity() }} Slip</span>
@@ -371,15 +368,12 @@
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
-              <tr *ngIf="!creditCards().length">
-                <td colspan="4" class="empty-row">Kayit yok</td>
-              </tr>
             </tbody>
           </table>
         </div>
       </article>
 
-      <article class="detail-card">
+      <article class="detail-card" *ngIf="foodChecks().length">
         <div class="detail-card-head">
           <h3>Yemek Cekleri</h3>
           <span>{{ foodChecksQuantity() }} Adet</span>
@@ -399,15 +393,12 @@
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
-              <tr *ngIf="!foodChecks().length">
-                <td colspan="3" class="empty-row">Kayit yok</td>
-              </tr>
             </tbody>
           </table>
         </div>
       </article>
 
-      <article class="detail-card">
+      <article class="detail-card" *ngIf="giftCheckMovements().length">
         <div class="detail-card-head">
           <h3>Hediye Cekleri</h3>
           <span>{{ giftCheckQuantity() }} Adet</span>
@@ -427,15 +418,12 @@
                 <td>{{ item.quantity }}</td>
                 <td>{{ item.total | number:'1.2-2' }} TL</td>
               </tr>
-              <tr *ngIf="!giftCheckMovements().length">
-                <td colspan="3" class="empty-row">Kayit yok</td>
-              </tr>
             </tbody>
           </table>
         </div>
       </article>
 
-      <article class="detail-card">
+      <article class="detail-card" *ngIf="onlineSales().length">
         <div class="detail-card-head">
           <h3>Online Satislar</h3>
           <span>{{ onlineSalesQuantity() }} Fis</span>
@@ -455,15 +443,12 @@
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
-              <tr *ngIf="!onlineSales().length">
-                <td colspan="3" class="empty-row">Kayit yok</td>
-              </tr>
             </tbody>
           </table>
         </div>
       </article>
 
-      <article class="detail-card">
+      <article class="detail-card" *ngIf="expenseCompass().length">
         <div class="detail-card-head">
           <h3>Gider Pusulalari</h3>
           <span>{{ expenseCompassQuantity() }} Fis</span>
@@ -483,15 +468,12 @@
                 <td>{{ item.slipNumber }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
-              <tr *ngIf="!expenseCompass().length">
-                <td colspan="3" class="empty-row">Kayit yok</td>
-              </tr>
             </tbody>
           </table>
         </div>
       </article>
 
-      <article class="detail-card">
+      <article class="detail-card" *ngIf="storeExpenses().length">
         <div class="detail-card-head">
           <h3>Magaza Giderleri</h3>
           <span>{{ storeExpenses().length }} Kalem</span>
@@ -510,9 +492,6 @@
                 <td>{{ getPaymentDisplayName(item) }}</td>
                 <td>{{ item.description || '-' }}</td>
                 <td>{{ item.amount | number:'1.2-2' }} TL</td>
-              </tr>
-              <tr *ngIf="!storeExpenses().length">
-                <td colspan="3" class="empty-row">Kayit yok</td>
               </tr>
             </tbody>
           </table>

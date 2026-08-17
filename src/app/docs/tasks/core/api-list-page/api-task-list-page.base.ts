@@ -19,6 +19,7 @@ import {
 } from '../pdf-preview-dialog/pdf-preview-dialog.component';
 import {
   buildAllWarehousesPermissionCode,
+  currentUserHasPermission,
   currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
   toPositiveWarehouseNo
@@ -52,6 +53,12 @@ export abstract class ApiTaskListPageBase<
   protected readonly lastLoadedAt = signal<string | null>(null);
   protected readonly allWarehousesPermissionCode = computed(() =>
     buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+  );
+  protected readonly createPermissionCode = computed(() =>
+    this.buildActionPermissionCode('create')
+  );
+  protected readonly canOpenCreate = computed(() =>
+    this.canCreate && this.hasTaskActionPermission('create')
   );
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
@@ -188,6 +195,17 @@ export abstract class ApiTaskListPageBase<
     return 'Olustur';
   }
 
+  protected getCreateButtonTitle(): string {
+    if (this.canOpenCreate()) {
+      return this.getCreateButtonLabel();
+    }
+
+    const permissionCode = this.createPermissionCode();
+    return permissionCode
+      ? `Bu islem icin ${permissionCode} yetkisi gerekiyor.`
+      : 'Bu islemi yapmak icin yetki gerekiyor.';
+  }
+
   protected getAdditionalRowActions(): readonly ApiListTableRowAction<Row>[] {
     return [];
   }
@@ -277,6 +295,11 @@ export abstract class ApiTaskListPageBase<
   }
 
   protected openCreate(): void {
+    if (!this.canOpenCreate()) {
+      this.errorMessage.set(this.getCreateButtonTitle());
+      return;
+    }
+
     openDocsTaskDialog(this.dialog, this.createComponent)
       .closed.pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result: unknown) => {
@@ -306,6 +329,16 @@ export abstract class ApiTaskListPageBase<
     }
 
     return undefined;
+  }
+
+  protected hasTaskActionPermission(action: string): boolean {
+    const permissionCode = this.buildActionPermissionCode(action);
+
+    if (!permissionCode) {
+      return true;
+    }
+
+    return currentUserHasPermission(this.listAuthService.currentUser(), permissionCode);
   }
 
   protected loadRows(): void {
@@ -486,6 +519,33 @@ export abstract class ApiTaskListPageBase<
       .replace(/dateToGet=\.\.\./g, `dateToGet=${endDate}`)
       .replace(/dateTimeFilter=\.\.\./g, `dateTimeFilter=${startDate}T00:00:00`)
       .replace(/documentDate=\.\.\./g, `documentDate=${startDate}`);
+  }
+
+  private buildActionPermissionCode(action: string): string | null {
+    const normalizedAction = action.trim().toLocaleLowerCase('tr-TR');
+
+    if (!normalizedAction) {
+      return null;
+    }
+
+    const normalizedRoute = this.page.baseRouteOrFile?.split('|')[0]?.trim();
+
+    if (!normalizedRoute?.startsWith('/api/')) {
+      return null;
+    }
+
+    const segments = normalizedRoute.split('/').filter(Boolean);
+    const apiIndex = segments.findIndex(
+      (segment) => segment.toLocaleLowerCase('tr-TR') === 'api'
+    );
+    const moduleCode = segments[apiIndex + 1];
+    const menuCode = segments[apiIndex + 2];
+
+    if (!moduleCode || !menuCode) {
+      return null;
+    }
+
+    return `${moduleCode}.${menuCode}.${normalizedAction}`;
   }
 
   private appendWarehousePreviewQuery(path: string): string {

@@ -49,7 +49,14 @@
           </div>
         </ng-template>
 
-        <button type="button" class="task-action task-action-secondary query-create" *ngIf="canCreate" (click)="openCreate()">
+        <button
+          type="button"
+          class="task-action task-action-secondary query-create"
+          *ngIf="canCreate"
+          [disabled]="!canOpenCreate()"
+          [title]="getCreateButtonTitle()"
+          (click)="openCreate()"
+        >
           {{ getCreateButtonLabel() }}
         </button>
 

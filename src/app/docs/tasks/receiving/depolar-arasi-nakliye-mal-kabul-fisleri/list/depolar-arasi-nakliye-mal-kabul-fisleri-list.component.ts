@@ -59,13 +59,18 @@ export class DepolarArasiNakliyeMalKabulFisleriListComponent extends ApiTaskList
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaWarehouseReceiptListItemApiDto>[] {
-    return ROW_ACTIONS;
+    return this.hasTaskActionPermission('create') ? ROW_ACTIONS : [];
   }
 
   protected override handleAdditionalRowAction(
     event: ApiListTableActionEvent<IFurpaWarehouseReceiptListItemApiDto>
   ): void {
     if (event.actionKey !== 'accept-receipt') {
+      return;
+    }
+
+    if (!this.hasTaskActionPermission('create')) {
+      this.errorMessage.set('Bu mal kabul fisini kabul etmek icin create yetkisi gerekiyor.');
       return;
     }
 

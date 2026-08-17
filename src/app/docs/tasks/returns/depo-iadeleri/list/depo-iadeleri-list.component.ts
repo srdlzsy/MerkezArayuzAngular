@@ -113,6 +113,11 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
   }
 
   protected override openCreate(): void {
+    if (!this.canOpenCreate()) {
+      this.errorMessage.set(this.getCreateButtonTitle());
+      return;
+    }
+
     openDocsTaskDialog(this.dialog, this.createComponent, {
       data: {
         direction: this.direction,

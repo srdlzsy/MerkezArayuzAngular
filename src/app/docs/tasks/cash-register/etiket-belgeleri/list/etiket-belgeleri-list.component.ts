@@ -32,7 +32,13 @@ interface ActionFeedback {
   message: string;
 }
 
-type ProductListFilter = 'all' | 'promotions' | 'price-changes' | 'missing-barcode';
+type ProductListFilter =
+  | 'all'
+  | 'promotions'
+  | 'price-changes'
+  | 'price-increased'
+  | 'price-decreased'
+  | 'missing-barcode';
 
 @Component({
   selector: 'app-etiket-belgeleri-list',
@@ -125,7 +131,13 @@ export class EtiketBelgeleriListComponent {
     this.products().filter((product) => product.promotionPrice ? product.promotionPrice > 0 : false)
   );
   protected readonly priceChangeProducts = computed(() =>
-    this.products().filter((product) => product.oldPrice > product.price)
+    this.products().filter((product) => this.hasPriceChanged(product))
+  );
+  protected readonly priceIncreasedProducts = computed(() =>
+    this.products().filter((product) => this.hasPriceIncreased(product))
+  );
+  protected readonly priceDecreasedProducts = computed(() =>
+    this.products().filter((product) => this.hasPriceDecreased(product))
   );
   protected readonly missingBarcodeProducts = computed(() =>
     this.products().filter((product) => !product.barcode.trim())
@@ -144,38 +156,19 @@ export class EtiketBelgeleriListComponent {
       ? this.promotionProducts()
       : this.products();
   });
+  protected readonly labelPrintProducts = computed(() =>
+    this.applyProductTools(this.previewProducts())
+  );
+  protected readonly priceChangePrintProducts = computed(() =>
+    this.applyProductTools(this.priceChangeProducts())
+  );
   protected readonly activePreviewCount = computed(() =>
     this.previewMode() === 'price-changes'
-      ? this.priceChangeProducts().length
-      : this.previewProducts().length
+      ? this.priceChangePrintProducts().length
+      : this.labelPrintProducts().length
   );
   protected readonly visibleProducts = computed(() => {
-    const filter = this.productTableFilter();
-    const query = this.productSearchTerm();
-    let items = this.products();
-
-    if (filter === 'promotions') {
-      items = items.filter((product) => product.promotionPrice ? product.promotionPrice > 0 : false);
-    } else if (filter === 'price-changes') {
-      items = items.filter((product) => product.oldPrice > product.price);
-    } else if (filter === 'missing-barcode') {
-      items = items.filter((product) => !product.barcode.trim());
-    }
-
-    if (!query) {
-      return items;
-    }
-
-    return items.filter((product) =>
-      [
-        product.productCode,
-        product.productName,
-        product.barcode,
-        product.origin,
-        product.priceChangeDate,
-        product.packageFactor
-      ].some((value) => value?.toLowerCase().includes(query))
-    );
+    return this.applyProductTools(this.products());
   });
   protected readonly hasActiveTableTools = computed(
     () => this.productTableFilter() !== 'all' || !!this.productSearchTerm()
@@ -213,10 +206,10 @@ export class EtiketBelgeleriListComponent {
   protected readonly canPrintLabels = computed(() => {
     const selectedEtiket = this.selectedEtiket();
 
-    return !!selectedEtiket?.kullanimaHazir && this.previewProducts().length > 0;
+    return !!selectedEtiket?.kullanimaHazir && this.labelPrintProducts().length > 0;
   });
   protected readonly canPrintPriceChanges = computed(
-    () => this.priceChangeProducts().length > 0
+    () => this.priceChangePrintProducts().length > 0
   );
   protected readonly totalPages = computed(() =>
     Math.max(1, Math.ceil(this.visibleProducts().length / this.pageSize()))
@@ -459,6 +452,30 @@ export class EtiketBelgeleriListComponent {
     this.previewMode.set(mode);
   }
 
+  protected getPriceTrendLabel(product: IEtiketBasimProduct): string {
+    if (this.hasPriceIncreased(product)) {
+      return 'Fiyat artti';
+    }
+
+    if (this.hasPriceDecreased(product)) {
+      return 'Fiyat azaldi';
+    }
+
+    return 'Fiyat ayni';
+  }
+
+  protected getPriceTrendClass(product: IEtiketBasimProduct): string {
+    if (this.hasPriceIncreased(product)) {
+      return 'table-badge-price-up';
+    }
+
+    if (this.hasPriceDecreased(product)) {
+      return 'table-badge-price-down';
+    }
+
+    return 'table-badge-neutral';
+  }
+
   protected setProductTableFilter(filter: ProductListFilter): void {
     this.productTableFilter.set(filter);
     this.currentPage.set(1);
@@ -500,7 +517,7 @@ export class EtiketBelgeleriListComponent {
       return;
     }
 
-    if (!this.previewProducts().length) {
+    if (!this.labelPrintProducts().length) {
       this.setFeedback(
         'error',
         'Yazdirilacak urun yok',
@@ -514,7 +531,7 @@ export class EtiketBelgeleriListComponent {
   }
 
   protected printPriceChanges(): void {
-    if (!this.priceChangeProducts().length) {
+    if (!this.priceChangePrintProducts().length) {
       this.setFeedback(
         'error',
         'Fiyat degisim listesi bos',
@@ -699,6 +716,57 @@ export class EtiketBelgeleriListComponent {
 
   private getProductDisplayName(product: IEtiketBasimProduct): string {
     return product.productName?.trim() || product.productCode?.trim() || product.barcode?.trim() || 'Urun';
+  }
+
+  private applyProductTools(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[] {
+    const filter = this.productTableFilter();
+    const query = this.productSearchTerm();
+    let items = [...products];
+
+    if (filter === 'promotions') {
+      items = items.filter((product) => product.promotionPrice ? product.promotionPrice > 0 : false);
+    } else if (filter === 'price-changes') {
+      items = items.filter((product) => this.hasPriceChanged(product));
+    } else if (filter === 'price-increased') {
+      items = items.filter((product) => this.hasPriceIncreased(product));
+    } else if (filter === 'price-decreased') {
+      items = items.filter((product) => this.hasPriceDecreased(product));
+    } else if (filter === 'missing-barcode') {
+      items = items.filter((product) => !product.barcode.trim());
+    }
+
+    if (!query) {
+      return items;
+    }
+
+    return items.filter((product) =>
+      [
+        product.productCode,
+        product.productName,
+        product.barcode,
+        product.origin,
+        product.priceChangeDate,
+        product.packageFactor,
+        product.unitName,
+        product.alternativeUnitName
+      ].some((value) => `${value ?? ''}`.toLocaleLowerCase('tr-TR').includes(query))
+    );
+  }
+
+  private hasPriceChanged(product: IEtiketBasimProduct): boolean {
+    return this.hasComparablePrice(product) && product.oldPrice !== product.price;
+  }
+
+  private hasPriceIncreased(product: IEtiketBasimProduct): boolean {
+    return this.hasComparablePrice(product) && product.price > product.oldPrice;
+  }
+
+  private hasPriceDecreased(product: IEtiketBasimProduct): boolean {
+    return this.hasComparablePrice(product) && product.price < product.oldPrice;
+  }
+
+  private hasComparablePrice(product: IEtiketBasimProduct): boolean {
+    return Number.isFinite(product.oldPrice) && product.oldPrice > 0 && Number.isFinite(product.price);
   }
 
   private dedupeProducts(products: readonly IEtiketBasimProduct[]): {
