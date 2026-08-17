@@ -51,6 +51,10 @@
           <h3>Belge No</h3>
           <p>{{ getHeaderText(header, 'documentNo') || '-' }}</p>
         </article>
+        <article class="summary-card" *ngIf="resolveWarehouseOrderNumbers(header) as warehouseOrderNumbers">
+          <h3>Siparis No</h3>
+          <p>{{ warehouseOrderNumbers }}</p>
+        </article>
         <article class="summary-card">
           <h3>Tarih</h3>
           <p>{{ formatDate(resolvePrimaryDate(header)) }}</p>

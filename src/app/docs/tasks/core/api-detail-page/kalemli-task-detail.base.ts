@@ -156,6 +156,30 @@ export abstract class KalemliTaskDetailBase<
     return this.getHeaderNumber(header, 'shippingState') === 1 ? 'Tamamlandi' : 'Bekliyor';
   }
 
+  protected resolveWarehouseOrderNumbers(header: any): string {
+    const headerOrderNo = this.getHeaderText(header, 'warehouseOrderNo');
+
+    if (headerOrderNo) {
+      return headerOrderNo;
+    }
+
+    if (Array.isArray(header?.warehouseOrderNos)) {
+      const headerOrderNos = header.warehouseOrderNos
+        .map((orderNo: unknown) => `${orderNo ?? ''}`.trim())
+        .filter(Boolean);
+
+      if (headerOrderNos.length) {
+        return Array.from(new Set(headerOrderNos)).join(', ');
+      }
+    }
+
+    const lineOrderNos = this.kalemler()
+      .map((line) => this.getLineText(line, 'warehouseOrderNo'))
+      .filter(Boolean);
+
+    return Array.from(new Set(lineOrderNos)).join(', ');
+  }
+
   protected resolveWarehouseName(header: any, side: 'source' | 'target'): string {
     return this.getHeaderText(
       header,
@@ -305,9 +329,7 @@ export abstract class KalemliTaskDetailBase<
             },
             {
               label: 'Siparis No',
-              value:
-                this.getHeaderText(header, 'warehouseOrderNo') ||
-                (Array.isArray(header?.warehouseOrderNos) ? header.warehouseOrderNos.join(', ') : ''),
+              value: this.resolveWarehouseOrderNumbers(header),
               optional: true
             },
             { label: 'Plaka', value: this.getHeaderText(header, 'plaque'), optional: true },

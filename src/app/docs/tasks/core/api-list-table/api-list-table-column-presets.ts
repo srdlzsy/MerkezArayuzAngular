@@ -154,7 +154,6 @@ const formatCompanyMovementStatus = (row: IFurpaCompanyMovementListItemApiDto): 
 
 const formatWarehouseMovementMeta = (row: IFurpaWarehouseShippingListItemApiDto): string =>
   joinText([
-    row.warehouseOrderNo ? `Siparis ${row.warehouseOrderNo}` : '',
     row.plaque ? `Plaka ${row.plaque}` : '',
     row.driverNameSurname ? `Sofor ${row.driverNameSurname}` : ''
   ]);
