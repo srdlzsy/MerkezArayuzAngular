@@ -389,6 +389,16 @@
             [productsToPrint]="labelPrintProducts()"
           ></app-a5-ikili-fiyat-etiketi>
 
+          <app-a5-ikili-furpara-kart-etiketi
+            *ngIf="selectedEtiket()?.sunumTipi === 'a5_cardlabel'"
+            [productsToPrint]="labelPrintProducts()"
+          ></app-a5-ikili-furpara-kart-etiketi>
+
+          <app-a5-tekli-fiyat-etiketi
+            *ngIf="selectedEtiket()?.sunumTipi === 'a5_single_pricelabel'"
+            [productsToPrint]="labelPrintProducts()"
+          ></app-a5-tekli-fiyat-etiketi>
+
           <app-a5-ikili-ayin-etiketi
             *ngIf="selectedEtiket()?.sunumTipi === 'a5_pricelabel_advantage'"
             [productsToPrint]="labelPrintProducts()"

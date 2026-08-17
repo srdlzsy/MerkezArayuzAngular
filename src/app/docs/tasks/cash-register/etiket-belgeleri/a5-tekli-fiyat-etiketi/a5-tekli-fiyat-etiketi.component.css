@@ -1,0 +1,83 @@
+@import '../../../../../../assets/a5-dual-price-print.css';
+
+.single-label-card {
+  width: 100%;
+  height: 148mm;
+  box-sizing: border-box;
+  display: flex;
+  flex-direction: column;
+  padding: 18mm 16mm 12mm;
+  overflow: hidden;
+}
+
+.single-spacer {
+  min-height: 16mm;
+}
+
+.single-product-name {
+  min-height: 32mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-align: center;
+  font-size: 27px;
+  font-weight: 700;
+  line-height: 1.1;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.single-price {
+  min-height: 48mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 5mm;
+  font-size: 102px;
+  font-weight: 900;
+  line-height: 0.95;
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.single-price span {
+  padding-top: 16mm;
+  font-size: 50px;
+  font-weight: 800;
+}
+
+.single-meta {
+  margin: 4mm 0 0;
+  display: grid;
+  gap: 1mm;
+  font-size: 14px;
+  line-height: 1.25;
+}
+
+.single-meta div {
+  display: grid;
+  grid-template-columns: 38mm minmax(0, 1fr);
+  gap: 2mm;
+}
+
+.single-meta dt {
+  font-weight: 700;
+}
+
+.single-meta dd {
+  margin: 0;
+}
+
+.single-footer {
+  margin-top: auto;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  min-height: 26mm;
+}
+
+.barcode-holder svg {
+  width: 110px;
+  height: 52px;
+}

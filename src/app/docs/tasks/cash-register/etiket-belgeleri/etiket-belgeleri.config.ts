@@ -7,6 +7,8 @@ export interface IEtiketTipiConfig {
     | 'rack_label_a4'
     | 'a4_pricelabel'
     | 'a5_pricelabel'
+    | 'a5_cardlabel'
+    | 'a5_single_pricelabel'
     | 'a5_pricelabel_advantage'
     | 'a5_pricelabel_advantage_product'
     | 'unsupported';
@@ -74,19 +76,19 @@ export const ETIKET_TIPLERI: readonly IEtiketTipiConfig[] = [
     etiketIsmi: 'A5 Ikili Furpara Kart Etiketi',
     etiketTipi: 'a5_cardlabel',
     ozelCss: '/assets/a5-dual-price-print.css',
-    sunumTipi: 'unsupported',
+    sunumTipi: 'a5_cardlabel',
     veriKumesi: 'tum-urunler',
-    kullanimaHazir: false,
-    aciklama: 'Bu tip icin ozel sablon component henuz eklenmedi.'
+    kullanimaHazir: true,
+    aciklama: 'A5 ikili Furpara Kart etiketi sabloni.'
   },
   {
     etiketIsmi: 'A5 Tekli Fiyat Etiketi',
     etiketTipi: 'a5_single_pricelabel',
     ozelCss: '/assets/a5-dual-price-print.css',
-    sunumTipi: 'unsupported',
+    sunumTipi: 'a5_single_pricelabel',
     veriKumesi: 'tum-urunler',
-    kullanimaHazir: false,
-    aciklama: 'Bu tip icin tekli etiket componenti henuz eklenmedi.'
+    kullanimaHazir: true,
+    aciklama: 'A5 tekli fiyat etiketi sabloni.'
   },
   {
     etiketIsmi: 'A5 Tekli Furpara Kart Etiketi',

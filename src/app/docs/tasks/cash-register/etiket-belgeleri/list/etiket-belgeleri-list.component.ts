@@ -15,8 +15,10 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { FiyatetiketComponent } from '../a4-fiyat-etiketi/fiyatetiket.component';
+import { A5IkiliFurparaKartEtiketiComponent } from '../a5-ikili-furpara-kart-etiketi/a5-ikili-furpara-kart-etiketi.component';
 import { A5IkiliAyinEtiketiComponent } from '../a5-ikili-ayin-etiketi/a5-ikili-ayin-etiketi.component';
 import { A5IkiliFiyatEtiketiComponent } from '../a5-ikili-fiyat-etiketi/a5-ikili-fiyat-etiketi.component';
+import { A5TekliFiyatEtiketiComponent } from '../a5-tekli-fiyat-etiketi/a5-tekli-fiyat-etiketi.component';
 import { AddLabel } from '../add-label/add-label';
 import { ETIKET_TIPLERI, IEtiketTipiConfig } from '../etiket-belgeleri.config';
 import { PrintChangePrice } from '../print-change-price/print-change-price';
@@ -48,6 +50,8 @@ type ProductListFilter =
     ReactiveFormsModule,
     FiyatetiketComponent,
     A5IkiliFiyatEtiketiComponent,
+    A5IkiliFurparaKartEtiketiComponent,
+    A5TekliFiyatEtiketiComponent,
     A5IkiliAyinUrunuFiyatEtiketi,
     RafetiketiComponent,
     RafEtiketA5Component,

@@ -1,0 +1,143 @@
+<div
+  *ngFor="let pair of productPairs; let isLast = last; trackBy: trackByPair"
+  class="a5-page ml-2"
+>
+  <div class="row page-row">
+    <article class="label-half card-label" *ngIf="pair[0] as product">
+      <div class="label-card">
+        <div class="card-title">FURPARA KART</div>
+
+        <div class="card-product-name">
+          {{ product.productName }}
+        </div>
+
+        <div class="card-price-block">
+          <div class="price-caption">Raf Fiyati</div>
+          <div class="base-price">{{ product.price.toFixed(2) }} TL</div>
+        </div>
+
+        <div class="card-price-block highlight">
+          <div class="price-caption">FURPARA KART OZEL Fiyati</div>
+          <div class="promo-price">{{ displayPromotionPrice(product).toFixed(2) }} TL</div>
+        </div>
+
+        <dl class="card-meta">
+          <div>
+            <dt>Urun Kodu</dt>
+            <dd>{{ product.productCode }}</dd>
+          </div>
+          <div>
+            <dt>Uretim Yeri</dt>
+            <dd>{{ product.origin || '-' }}</dd>
+          </div>
+          <div>
+            <dt>Fiyat Degisiklik Tarihi</dt>
+            <dd>{{ product.priceChangeDate || '-' }}</dd>
+          </div>
+          <div>
+            <dt>Etiket Basim Tarihi</dt>
+            <dd>{{ labelPrintDate }}</dd>
+          </div>
+          <div>
+            <dt>KDV Dahil Birim Fiyat</dt>
+            <dd>{{ product.unitPriceFactor.toFixed(2) }} TL/{{ product.alternativeUnitName }}</dd>
+          </div>
+        </dl>
+
+        <p class="card-description">
+          Kampanyamiz {{ displayExpiration(product) }} tarihine kadar gecerlidir.
+          Yemek ceki alisverislerinde Furpara Kart fiyatlari gecerli degildir.
+        </p>
+
+        <div class="label-bottom">
+          <div class="logo-group">
+            <img
+              *ngIf="isDomestic(product.origin)"
+              width="120"
+              height="60"
+              src="/assets/YerliUretim.jpg"
+              alt="Yerli Uretim"
+            />
+            <img width="120" height="70" src="/assets/FurParaCard.jpg" alt="Furpara Kart" />
+          </div>
+
+          <div class="barcode-holder">
+            <svg class="a5-card-barcode" [attr.data-code]="product.barcode"></svg>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <div class="label-gap"></div>
+
+    <article class="label-half card-label" *ngIf="pair[1] as product; else emptyCardLabel">
+      <div class="label-card">
+        <div class="card-title">FURPARA KART</div>
+
+        <div class="card-product-name">
+          {{ product.productName }}
+        </div>
+
+        <div class="card-price-block">
+          <div class="price-caption">Raf Fiyati</div>
+          <div class="base-price">{{ product.price.toFixed(2) }} TL</div>
+        </div>
+
+        <div class="card-price-block highlight">
+          <div class="price-caption">FURPARA KART OZEL Fiyati</div>
+          <div class="promo-price">{{ displayPromotionPrice(product).toFixed(2) }} TL</div>
+        </div>
+
+        <dl class="card-meta">
+          <div>
+            <dt>Urun Kodu</dt>
+            <dd>{{ product.productCode }}</dd>
+          </div>
+          <div>
+            <dt>Uretim Yeri</dt>
+            <dd>{{ product.origin || '-' }}</dd>
+          </div>
+          <div>
+            <dt>Fiyat Degisiklik Tarihi</dt>
+            <dd>{{ product.priceChangeDate || '-' }}</dd>
+          </div>
+          <div>
+            <dt>Etiket Basim Tarihi</dt>
+            <dd>{{ labelPrintDate }}</dd>
+          </div>
+          <div>
+            <dt>KDV Dahil Birim Fiyat</dt>
+            <dd>{{ product.unitPriceFactor.toFixed(2) }} TL/{{ product.alternativeUnitName }}</dd>
+          </div>
+        </dl>
+
+        <p class="card-description">
+          Kampanyamiz {{ displayExpiration(product) }} tarihine kadar gecerlidir.
+          Yemek ceki alisverislerinde Furpara Kart fiyatlari gecerli degildir.
+        </p>
+
+        <div class="label-bottom">
+          <div class="logo-group">
+            <img
+              *ngIf="isDomestic(product.origin)"
+              width="120"
+              height="60"
+              src="/assets/YerliUretim.jpg"
+              alt="Yerli Uretim"
+            />
+            <img width="120" height="70" src="/assets/FurParaCard.jpg" alt="Furpara Kart" />
+          </div>
+
+          <div class="barcode-holder">
+            <svg class="a5-card-barcode" [attr.data-code]="product.barcode"></svg>
+          </div>
+        </div>
+      </div>
+    </article>
+
+    <ng-template #emptyCardLabel>
+      <article class="label-half label-empty" aria-hidden="true"></article>
+    </ng-template>
+  </div>
+  <div class="page-break-row" *ngIf="!isLast"></div>
+</div>
