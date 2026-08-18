@@ -19,7 +19,8 @@ import type {
   SuggestedWarehouseOrderListItemDto,
   WarehouseOrderDetailDto,
   WarehouseOrderListItemDto,
-  WarehouseOrderDateRangeHttpRequest
+  WarehouseOrderDateRangeHttpRequest,
+  GreenGrocerSuggestedProductDto
 } from '@interfaces';
 
 import {
@@ -125,6 +126,13 @@ export class SiparisIslemleriService extends BaseApiService {
         LookbackDays: request.lookbackDays,
         FallbackRecommendedDay: request.fallbackRecommendedDay
       }
+    );
+  }
+
+  listGreenGrocerSuggestedWarehouseOrders(): Observable<GreenGrocerSuggestedProductDto[]> {
+    return this.getWithQuery<GreenGrocerSuggestedProductDto[]>(
+      'siparis-islemleri/onerilen-depo-siparisleri/manav',
+      {}
     );
   }
 

@@ -15,7 +15,8 @@ import type {
   IFurpaWarehouseSearchItemApiDto,
   IFurpaCreateWarehouseOrderRequestApiDto,
   IFurpaCreateWarehouseOrderLineRequestApiDto,
-  IFurpaProductSearchItemApiDto
+  IFurpaProductSearchItemApiDto,
+  GreenGrocerSuggestedProductDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -335,6 +336,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.presetProductsLoading.set(true);
     this.stockError.set('');
 
+    if (warehouse.warehouseNo === 56) {
+      this.loadGreenGrocerRecommendedKalemler(requestId, warehouse.warehouseNo);
+      return;
+    }
+
     this.siparisIslemleriService
       .getDepoIcinOnerilenSiparisKalemleri(warehouse.warehouseNo, this.resolveRequestWarehouseNo())
       .pipe(finalize(() => requestId === this.presetProductsRequestId && this.presetProductsLoading.set(false)))
@@ -385,6 +391,59 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       });
   }
 
+  private loadGreenGrocerRecommendedKalemler(requestId: number, warehouseNo: number): void {
+    this.siparisIslemleriService
+      .listGreenGrocerSuggestedWarehouseOrders()
+      .pipe(finalize(() => requestId === this.presetProductsRequestId && this.presetProductsLoading.set(false)))
+      .subscribe({
+        next: (results: GreenGrocerSuggestedProductDto[]) => {
+          if (
+            requestId !== this.presetProductsRequestId ||
+            this.selectedWarehouse()?.warehouseNo !== warehouseNo
+          ) {
+            return;
+          }
+
+          const normalizedKalemler = this.normalizeGreenGrocerRecommendedKalemler(results ?? []);
+
+          if (normalizedKalemler.length === 0) {
+            this.stockError.set('Manav urun listesinde siparise eklenebilir urun bulunamadi.');
+            return;
+          }
+
+          let addedCount = 0;
+
+          for (const kalem of normalizedKalemler) {
+            const normalizedStockCode = kalem.stockCode.trim().toLocaleUpperCase('tr-TR');
+            const existingControl = this.kalemler.controls.find(
+              (control) =>
+                control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
+            );
+
+            if (existingControl) {
+              continue;
+            }
+
+            this.kalemler.push(this.createGreenGrocerRecommendedKalemFormGroup(kalem));
+            addedCount++;
+          }
+
+          this.stockQuery.setValue('');
+          this.stockResults.set([]);
+          this.stockError.set(
+            addedCount ? '' : 'Manav urunleri zaten siparis satirlarinda bulunuyor.'
+          );
+        },
+        error: (error: HttpErrorResponse) => {
+          if (requestId !== this.presetProductsRequestId) {
+            return;
+          }
+
+          this.stockError.set(this.resolveErrorMessage(error, 'Manav urun listesi getirilemedi.'));
+        }
+      });
+  }
+
   protected submit(): void {
     if (this.submitting()) {
       return;
@@ -402,6 +461,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     if (this.kalemler.length === 0) {
       this.stockError.set('Siparis icin en az bir kalem eklemelisin.');
+    }
+
+    if (this.kalemler.length > 0 && this.getPositiveOrderLineCount() === 0) {
+      this.stockError.set('Siparise cevrilecek en az bir kalemde miktar 0dan buyuk olmalidir.');
+      return;
     }
 
     if (!this.validateGreenGrocerLines()) {
@@ -438,6 +502,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       (total, control) => total + this.resolveLineOrderQuantity(control.getRawValue()),
       0
     );
+  }
+
+  private getPositiveOrderLineCount(): number {
+    return this.kalemler.controls.filter(
+      (control) => this.resolveLineOrderQuantity(control.getRawValue()) > 0
+    ).length;
   }
 
   protected isGreenGrocerOrder(): boolean {
@@ -634,6 +704,39 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     });
   }
 
+  private createGreenGrocerRecommendedKalemFormGroup(
+    kalem: GreenGrocerSuggestedProductDto
+  ): KalemFormGroup {
+    return new FormGroup({
+      stokKodu: new FormControl(kalem.stockCode.trim(), {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stokIsmi: new FormControl(kalem.stockName.trim(), { nonNullable: true }),
+      barkodu: new FormControl('', { nonNullable: true }),
+      birim: new FormControl(kalem.unitName?.trim() ?? '', { nonNullable: true }),
+      birimKatsayisi: new FormControl<number | null>(kalem.unitPointer ?? 1),
+      siparisMiktari: new FormControl<number | null>(0, {
+        validators: [Validators.required, Validators.min(0)]
+      }),
+      cozumMiktari: new FormControl<number | null>(null),
+      cozumBirim: new FormControl('', { nonNullable: true }),
+      cozumMesaj: new FormControl('', { nonNullable: true }),
+      cozumDurum: new FormControl('', { nonNullable: true }),
+      cozumHata: new FormControl('', { nonNullable: true }),
+      greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
+      aciklama: new FormControl(trimToMaxLength(kalem.stockName, 50), {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)]
+      }),
+      skt: new FormControl('', { nonNullable: true }),
+      modelKodu: new FormControl(trimToMaxLength(kalem.modelCode, 25), {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
+    });
+  }
+
   private buildRequest(): IFurpaCreateWarehouseOrderRequestApiDto {
     const rawValue = this.form.getRawValue();
 
@@ -643,7 +746,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       orderDate: rawValue.orderDate,
       deliveryDate: rawValue.deliveryDate,
       description: trimToMaxLength(rawValue.description, 50),
-      lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
+      lines: rawValue.kalemler
+        .filter((kalem) => this.resolveLineOrderQuantity(kalem) > 0)
+        .map((kalem) => this.mapKalem(kalem))
     };
   }
 
@@ -909,6 +1014,38 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     );
   }
 
+  private normalizeGreenGrocerRecommendedKalemler(
+    results: GreenGrocerSuggestedProductDto[]
+  ): GreenGrocerSuggestedProductDto[] {
+    const uniqueKalemler = new Map<string, GreenGrocerSuggestedProductDto>();
+
+    for (const kalem of results) {
+      const stockCode = kalem.stockCode?.trim();
+      const key = stockCode?.toLocaleUpperCase('tr-TR');
+
+      if (!stockCode || !key || uniqueKalemler.has(key)) {
+        continue;
+      }
+
+      uniqueKalemler.set(key, {
+        ...kalem,
+        stockCode,
+        stockName: kalem.stockName?.trim() ?? '',
+        modelCode: kalem.modelCode?.trim() ?? '',
+        modelName: kalem.modelName?.trim() ?? '',
+        unitName: kalem.unitName?.trim() ?? '',
+        quantity: 0,
+        recommendedQuantity: 0,
+        unitPrice: kalem.unitPrice ?? 0,
+        unitPointer: kalem.unitPointer ?? 1
+      });
+    }
+
+    return Array.from(uniqueKalemler.values()).sort((left, right) =>
+      (left.stockName || left.stockCode).localeCompare(right.stockName || right.stockCode, 'tr')
+    );
+  }
+
   private resolveRecommendedQuantity(kalem: IFurpaCreateWarehouseOrderLineRequestApiDto): number {
     return this.normalizePositiveNumber(kalem.recommendedQuantity)
       ?? this.normalizePositiveNumber(kalem.quantity)
@@ -953,5 +1090,3 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     return resolveHttpErrorMessage(error, fallback);
   }
 }
-
-
