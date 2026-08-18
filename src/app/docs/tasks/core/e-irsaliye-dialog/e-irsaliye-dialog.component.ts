@@ -38,6 +38,7 @@ export interface EDespatchDialogData {
   kind: EDespatchDialogKind;
   pageTitle: string;
   row: EDespatchDialogRowSummary;
+  onSuccess?: (response: IFurpaSendEDespatchResponseApiDto) => void;
 }
 
 const DRIVER_LIST_PERMISSION = 'ayar-islemleri.soforler.list';
@@ -148,6 +149,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
       .subscribe({
         next: (response: IFurpaSendEDespatchResponseApiDto) => {
           this.response.set(response);
+          this.dialogData.onSuccess?.(response);
         },
         error: (error: HttpErrorResponse) => {
           this.submitError.set(

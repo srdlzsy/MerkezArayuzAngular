@@ -98,15 +98,28 @@ export class GidenFirmaSevkleriListComponent extends ApiTaskListPageBase<IFurpaC
       return;
     }
 
+    let refreshedAfterSuccess = false;
+    const refreshAfterSuccess = () => {
+      if (refreshedAfterSuccess) {
+        return;
+      }
+
+      refreshedAfterSuccess = true;
+      this.loadRows();
+    };
+
     openDocsTaskDialog(this.dialog, EDespatchDialogComponent, {
       width: 'min(920px, 96vw)',
       maxWidth: '96vw',
-      data: this.buildEDespatchDialogData(row)
+      data: {
+        ...this.buildEDespatchDialogData(row),
+        onSuccess: refreshAfterSuccess
+      }
     })
       .closed.pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((result: unknown) => {
         if (result) {
-          this.loadRows();
+          refreshAfterSuccess();
         }
       });
   }

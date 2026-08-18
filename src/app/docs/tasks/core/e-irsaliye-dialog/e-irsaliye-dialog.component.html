@@ -42,7 +42,7 @@
     </p>
   </article>
 
-  <form class="form-card" [formGroup]="form" (ngSubmit)="submit()">
+  <form class="form-card" *ngIf="!response()" [formGroup]="form" (ngSubmit)="submit()">
     <div class="form-head">
       <div>
         <h3>Tasima Bilgileri</h3>
@@ -179,7 +179,7 @@
 
     <footer class="form-actions">
       <button type="button" class="secondary-button" (click)="closeDialog()">Vazgec</button>
-      <button type="submit" class="primary-button" [disabled]="submitting() || !!response()">
+      <button type="submit" class="primary-button" [disabled]="submitting()">
         {{ submitting() ? 'Gonderiliyor...' : 'E-Irsaliyeye Donustur' }}
       </button>
     </footer>
@@ -190,7 +190,7 @@
       <div>
         <p class="eyebrow success">GONDERIM TAMAMLANDI</p>
         <h3>{{ getDocumentTypeLabel(result.documentType) }}</h3>
-        <p class="subtitle">Uyumsoft servisine basarili gonderim yapildi.</p>
+        <p class="subtitle">Liste otomatik yenilendi. PDF'i buradan kontrol edebilirsin.</p>
       </div>
 
       <div class="result-actions">

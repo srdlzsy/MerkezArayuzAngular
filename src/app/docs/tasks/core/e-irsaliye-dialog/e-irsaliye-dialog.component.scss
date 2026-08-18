@@ -226,6 +226,11 @@
   padding: 0.72rem;
 }
 
+.result-card {
+  border-color: #a7f3d0;
+  background: linear-gradient(180deg, #f0fdf4 0%, #fff 42%);
+}
+
 .form-actions,
 .result-actions {
   justify-content: flex-end;
@@ -411,6 +416,15 @@
 
 .result-grid {
   grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+
+.result-item {
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.result-actions .primary-button,
+.result-actions .secondary-button {
+  min-width: 132px;
 }
 
 @media (max-width: 900px) {
