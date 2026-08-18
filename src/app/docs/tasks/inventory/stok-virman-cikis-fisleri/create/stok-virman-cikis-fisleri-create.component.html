@@ -3,7 +3,7 @@
     <div class="dialog-heading">
       <p class="eyebrow">VIRMAN</p>
       <h2>Stok Virmani Olustur</h2>
-      <p class="subtitle">Depo icindeki stok giris-cikis virman satirlarini tek formda hazirla.</p>
+      <p class="subtitle">Urunleri sec, miktari yaz, virmani kaydet.</p>
     </div>
 
     <div class="header-actions">
@@ -58,7 +58,7 @@
 
       <section class="panel search-panel">
         <div class="panel-head">
-          <h3>Virman Stogu Ekle</h3>
+          <h3>Urun Ekle</h3>
         </div>
 
         <div class="search-row">
@@ -71,8 +71,11 @@
           <button type="button" class="small-btn" [disabled]="stockLoading()" (click)="searchStock()">
             {{ stockLoading() ? 'Araniyor...' : 'Ara' }}
           </button>
-          <button type="button" class="small-btn secondary" (click)="addManualLine()">
-            Manuel Virman Satiri
+          <button type="button" class="small-btn secondary" (click)="addManualLine(1)">
+            Cikis Satiri
+          </button>
+          <button type="button" class="small-btn secondary" (click)="addManualLine(0)">
+            Giris Satiri
           </button>
         </div>
 
@@ -86,7 +89,7 @@
             (click)="addStockLine(stock)"
           >
             <strong>{{ stock.stockName }}</strong>
-            <span>{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
+            <span>{{ stock.stockCode }} / {{ stock.barcode || '-' }} / {{ stock.unitName || 'Birim' }}</span>
           </button>
         </div>
       </section>
@@ -97,7 +100,7 @@
         </div>
 
         <div class="empty-state" *ngIf="!lineCount()">
-          Virmanlanacak stoklari arama alanindan sec veya manuel satir ekle.
+          Urun arayip sec veya bos satir ekle.
         </div>
 
         <div class="line-list" formArrayName="lines" *ngIf="lineCount()">
@@ -105,6 +108,8 @@
             class="line-row"
             *ngFor="let line of lines.controls; let i = index; trackBy: trackByLine"
             [formGroupName]="i"
+            [class.line-row-outgoing]="line.controls.movementType.value === 1"
+            [class.line-row-incoming]="line.controls.movementType.value === 0"
           >
             <div class="line-main virman-line-main">
               <label class="field">
@@ -118,11 +123,11 @@
               </label>
 
               <label class="field">
-                <span>Hareket Tipi *</span>
+                <span>Tip *</span>
                 <select formControlName="movementType">
-                  <option [ngValue]="0">0 - Giris</option>
-                  <option [ngValue]="1">1 - Cikis</option>
-                  <option [ngValue]="2">2 - Virman (giris + cikis)</option>
+                  <option [ngValue]="1">Cikis</option>
+                  <option [ngValue]="0">Giris</option>
+                  <option [ngValue]="2">Teknik Virman</option>
                 </select>
               </label>
 
@@ -132,34 +137,38 @@
               </label>
 
               <label class="field compact-field">
-                <span>Birim *</span>
+                <span>Birim No *</span>
                 <input type="number" min="1" step="1" formControlName="unitPointer" />
               </label>
             </div>
 
-            <div class="line-extra">
-              <label class="field">
-                <span>Satir Notu</span>
-                <input type="text" formControlName="description" maxlength="50" />
-              </label>
-
-              <label class="field compact-field">
-                <span>Parti</span>
-                <input type="text" formControlName="partyCode" maxlength="25" />
-              </label>
-
-              <label class="field compact-field">
-                <span>Lot</span>
-                <input type="number" min="0" step="1" formControlName="lotNo" />
-              </label>
-
-              <label class="field compact-field">
-                <span>Proje</span>
-                <input type="text" formControlName="projectCode" maxlength="25" />
-              </label>
-            </div>
-
             <button type="button" class="remove-btn" (click)="removeLine(i)">Sil</button>
+
+            <details class="line-advanced">
+              <summary>Detay</summary>
+
+              <div class="line-extra">
+                <label class="field">
+                  <span>Satir Notu</span>
+                  <input type="text" formControlName="description" maxlength="50" />
+                </label>
+
+                <label class="field compact-field">
+                  <span>Parti</span>
+                  <input type="text" formControlName="partyCode" maxlength="25" />
+                </label>
+
+                <label class="field compact-field">
+                  <span>Lot</span>
+                  <input type="number" min="0" step="1" formControlName="lotNo" />
+                </label>
+
+                <label class="field compact-field">
+                  <span>Proje</span>
+                  <input type="text" formControlName="projectCode" maxlength="25" />
+                </label>
+              </div>
+            </details>
           </article>
         </div>
       </section>

@@ -791,6 +791,15 @@ export class EtiketBelgeleriListComponent {
     ].filter(Boolean).join(' / ') || '-';
   }
 
+  protected getAlternativeBarcodeLabel(product: IEtiketBasimProduct): string {
+    const primaryBarcode = product.barcode?.trim();
+    const barcodes = (product.barcodes ?? [])
+      .map((barcode) => barcode.trim())
+      .filter((barcode) => barcode && barcode !== primaryBarcode);
+
+    return barcodes.length ? `Diger: ${barcodes.join(', ')}` : '';
+  }
+
   private setProductHiddenForCurrentLabel(key: string, hidden: boolean): void {
     const labelType = this.selectedLabelType();
 
@@ -853,6 +862,7 @@ export class EtiketBelgeleriListComponent {
         product.productCode,
         product.productName,
         product.barcode,
+        ...(product.barcodes ?? []),
         product.origin,
         product.priceChangeDate,
         product.packageFactor,

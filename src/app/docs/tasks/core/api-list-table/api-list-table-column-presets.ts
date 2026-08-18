@@ -286,22 +286,6 @@ export const SUBE_ICI_STOK_HAREKETI_LIST_COLUMNS = [
 export const VIRMAN_STOK_HAREKETI_LIST_COLUMNS = [
   { key: 'documentSerie', label: 'Seri' },
   { key: 'documentOrderNo', label: 'Sira' },
-  { key: 'documentNo', label: 'Belge No' },
-  { key: 'warehouseNo', label: 'Muhatap Depo No' },
-  { key: 'warehouseName', label: 'Muhatap Depo' },
-  {
-    key: 'lineFlow',
-    label: 'Cikis/Giris Kalem',
-    resolveValue: (row: IFurpaVirmanListItemApiDto) =>
-      `${row.outgoingLineCount ?? 0} / ${row.incomingLineCount ?? 0}`
-  },
-  {
-    key: 'quantityFlow',
-    label: 'Cikis/Giris Miktar',
-    resolveValue: (row: IFurpaVirmanListItemApiDto) =>
-      `${row.outgoingQuantity ?? 0} / ${row.incomingQuantity ?? 0}`
-  },
-  { key: 'description', label: 'Aciklama' },
   {
     key: 'movementDate',
     label: 'Tarih',
@@ -309,11 +293,16 @@ export const VIRMAN_STOK_HAREKETI_LIST_COLUMNS = [
     resolveValue: (row: IFurpaVirmanListItemApiDto) => row.documentDate || row.movementDate
   },
   {
-    key: 'status',
-    label: 'Durum',
-    type: 'status',
-    emptyValue: 'Bilinmiyor',
-    resolveValue: () => 'Hazir'
+    key: 'lineFlow',
+    label: 'C/G Kalem',
+    resolveValue: (row: IFurpaVirmanListItemApiDto) =>
+      `${row.outgoingLineCount ?? 0} / ${row.incomingLineCount ?? 0}`
+  },
+  {
+    key: 'quantityFlow',
+    label: 'C/G Miktar',
+    resolveValue: (row: IFurpaVirmanListItemApiDto) =>
+      `${row.outgoingQuantity ?? 0} / ${row.incomingQuantity ?? 0}`
   }
 ] as const satisfies readonly ApiListTableColumn<IFurpaVirmanListItemApiDto>[];
 

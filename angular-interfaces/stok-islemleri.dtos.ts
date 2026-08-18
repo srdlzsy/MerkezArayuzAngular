@@ -197,6 +197,7 @@ export interface LabelDocumentProductDto {
   productCode: string;
   productName: string;
   barcode: string;
+  barcodes?: string[];
   oldPrice: number;
   price: number;
   priceChangeDate: string;
@@ -230,6 +231,7 @@ export interface LabelPriceChangedProductDto {
   pluNo: number;
   alternativeUnitName: string;
   barcode: string;
+  barcodes: string[];
   isDomestic: number;
   oldPrice: number;
   origin: string;

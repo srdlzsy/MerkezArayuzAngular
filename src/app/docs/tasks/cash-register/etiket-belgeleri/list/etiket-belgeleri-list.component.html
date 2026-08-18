@@ -290,7 +290,12 @@
               <strong class="product-name">{{ product.productName || '-' }}</strong>
               <span class="product-code">{{ product.productCode || '-' }}</span>
             </td>
-            <td data-label="Barkod">{{ product.barcode || '-' }}</td>
+            <td data-label="Barkod">
+              {{ product.barcode || '-' }}
+              <span class="old-price" *ngIf="getAlternativeBarcodeLabel(product) as alternativeBarcodes">
+                {{ alternativeBarcodes }}
+              </span>
+            </td>
             <td data-label="Fiyat">
               <strong>{{ product.price | number:'1.2-2' }} TL</strong>
               <span class="old-price" *ngIf="product.oldPrice && product.oldPrice !== product.price">

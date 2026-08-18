@@ -46,5 +46,17 @@ export class StokVirmanCikisFisleriDetailComponent extends KalemliTaskDetailBase
 
     return value === null || value === undefined ? '-' : `${value}`;
   }
+
+  protected getMovementTypeClass(value: number | null | undefined): string {
+    if (value === 1) {
+      return 'movement-row-outgoing';
+    }
+
+    if (value === 0) {
+      return 'movement-row-incoming';
+    }
+
+    return 'movement-row-neutral';
+  }
 }
 

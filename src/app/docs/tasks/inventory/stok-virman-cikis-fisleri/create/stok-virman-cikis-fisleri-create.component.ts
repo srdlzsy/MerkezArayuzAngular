@@ -173,8 +173,8 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     this.stockQuery.setValue('');
   }
 
-  protected addManualLine(): void {
-    this.lines.push(this.createLineFormGroup());
+  protected addManualLine(movementType = 1): void {
+    this.lines.push(this.createLineFormGroup(undefined, movementType));
   }
 
   protected removeLine(index: number): void {
@@ -258,14 +258,17 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     });
   }
 
-  private createLineFormGroup(stock?: IFurpaProductSearchItemApiDto): VirmanLineFormGroup {
+  private createLineFormGroup(
+    stock?: IFurpaProductSearchItemApiDto,
+    movementType = 1
+  ): VirmanLineFormGroup {
     return new FormGroup({
       stockCode: new FormControl(stock?.stockCode?.trim() ?? '', {
         nonNullable: true,
         validators: [Validators.required]
       }),
       stockName: new FormControl(stock?.stockName?.trim() ?? '', { nonNullable: true }),
-      movementType: new FormControl(2, {
+      movementType: new FormControl(movementType, {
         validators: [Validators.required, Validators.min(0)]
       }),
       unitPointer: new FormControl(1, {

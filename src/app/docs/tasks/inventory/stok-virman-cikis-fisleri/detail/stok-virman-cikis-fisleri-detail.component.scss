@@ -1,1 +1,103 @@
 @use '../../../core/api-detail-page/api-detail-page.shared';
+
+.virman-detail-page {
+  width: min(980px, 100%);
+}
+
+.virman-detail-page .table-wrap {
+  max-height: min(62vh, 620px);
+  overflow-x: hidden;
+}
+
+.virman-detail-page table {
+  min-width: 0;
+  table-layout: fixed;
+}
+
+.virman-detail-page th:first-child,
+.virman-detail-page td:first-child {
+  width: 92px;
+}
+
+.virman-detail-page th:nth-child(2),
+.virman-detail-page td:nth-child(2) {
+  width: 116px;
+}
+
+.virman-detail-page th:last-child,
+.virman-detail-page td:last-child {
+  width: 120px;
+  text-align: right;
+}
+
+.movement-row-outgoing {
+  background: #fff7ed;
+}
+
+.movement-row-incoming {
+  background: #f0fdf4;
+}
+
+.movement-row-neutral {
+  background: #f8fafc;
+}
+
+.movement-pill {
+  display: inline-flex;
+  min-width: 58px;
+  justify-content: center;
+  padding: 0.22rem 0.45rem;
+  border-radius: 999px;
+  color: #0f172a;
+  background: #fff;
+  border: 1px solid #dbe5f1;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.movement-row-outgoing .movement-pill {
+  color: #9a3412;
+  border-color: #fed7aa;
+  background: #ffedd5;
+}
+
+.movement-row-incoming .movement-pill {
+  color: #166534;
+  border-color: #bbf7d0;
+  background: #dcfce7;
+}
+
+.code-cell {
+  color: #334155;
+  font-weight: 800;
+}
+
+.line-note,
+.quantity-cell span {
+  display: block;
+  margin-top: 0.12rem;
+  color: #64748b;
+  font-size: 0.68rem;
+  font-weight: 700;
+}
+
+.quantity-cell {
+  font-weight: 850;
+}
+
+@media (max-width: 700px) {
+  .virman-detail-page th:first-child,
+  .virman-detail-page td:first-child {
+    width: 78px;
+  }
+
+  .virman-detail-page th:nth-child(2),
+  .virman-detail-page td:nth-child(2) {
+    width: 96px;
+  }
+
+  .virman-detail-page th:last-child,
+  .virman-detail-page td:last-child {
+    width: 92px;
+  }
+}

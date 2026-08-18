@@ -1,4 +1,4 @@
-<section class="dialog-page" *ngIf="page as current">
+<section class="dialog-page virman-detail-page" *ngIf="page as current">
   <header class="dialog-header">
     <div class="dialog-heading">
       <p class="eyebrow">{{ screenTitle }}</p>
@@ -74,36 +74,39 @@
       </section>
 
       <section class="task-block">
-        <div class="task-title">Kalemler</div>
+        <div class="task-title">Virman Kalemleri</div>
 
         <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
           <table>
             <thead>
               <tr>
-                <th>Satir</th>
+                <th>Tip</th>
                 <th>Stok Kodu</th>
                 <th>Stok Ismi</th>
-                <th>Birim</th>
-                <th>Hareket Tipi</th>
                 <th>Miktar</th>
-                <th>Miktar 2</th>
-                <th>Birim Fiyat</th>
-                <th>Tutar</th>
-                <th>Aciklama</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let kalem of kalemler(); trackBy: trackByKalem">
-                <td>{{ getLineNumber(kalem, 'rowNo', 'lineNo') ?? '-' }}</td>
-                <td>{{ getLineText(kalem, 'stockCode') || '-' }}</td>
-                <td>{{ getLineText(kalem, 'stockName') || '-' }}</td>
-                <td>{{ getLineText(kalem, 'unitName') || '-' }}</td>
-                <td>{{ getMovementTypeLabel(getLineNumber(kalem, 'movementType')) }}</td>
-                <td>{{ formatNumber(getLineNumber(kalem, 'quantity')) }}</td>
-                <td>{{ formatNumber(getLineNumber(kalem, 'quantity2')) }}</td>
-                <td>{{ formatNumber(getLineNumber(kalem, 'unitPrice')) }}</td>
-                <td>{{ formatNumber(getLineNumber(kalem, 'lineAmount')) }}</td>
-                <td>{{ getLineText(kalem, 'description') || '-' }}</td>
+              <tr
+                *ngFor="let kalem of kalemler(); trackBy: trackByKalem"
+                [ngClass]="getMovementTypeClass(getLineNumber(kalem, 'movementType'))"
+              >
+                <td>
+                  <span class="movement-pill">
+                    {{ getMovementTypeLabel(getLineNumber(kalem, 'movementType')) }}
+                  </span>
+                </td>
+                <td class="code-cell">{{ getLineText(kalem, 'stockCode') || '-' }}</td>
+                <td>
+                  <strong>{{ getLineText(kalem, 'stockName') || '-' }}</strong>
+                  <span class="line-note" *ngIf="getLineText(kalem, 'description') as description">
+                    {{ description }}
+                  </span>
+                </td>
+                <td class="quantity-cell">
+                  {{ formatNumber(getLineNumber(kalem, 'quantity')) }}
+                  <span>{{ getLineText(kalem, 'unitName') || '' }}</span>
+                </td>
               </tr>
             </tbody>
           </table>

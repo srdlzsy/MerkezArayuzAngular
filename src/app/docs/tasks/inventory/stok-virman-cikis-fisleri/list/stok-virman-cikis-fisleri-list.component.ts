@@ -23,10 +23,27 @@ export class StokVirmanCikisFisleriListComponent extends ApiTaskListPageBase<IFu
   protected readonly tableColumns = VIRMAN_STOK_HAREKETI_LIST_COLUMNS;
   protected readonly detailComponent = StokVirmanCikisFisleriDetailComponent;
   protected readonly createComponent = StokVirmanCikisFisleriCreateComponent;
+  protected override readonly fitTableToWidth = true;
   private readonly stokIslemleriService = inject(StokIslemleriService);
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.stokIslemleriService.getVirmanListe('StokVirmanCikisFisleri', zamanlama, warehouseNo);
+  }
+
+  protected override getCreateButtonLabel(): string {
+    return 'Yeni Virman';
+  }
+
+  protected override getTableFilterPlaceholder(): string {
+    return 'Seri, sira veya tarih ara';
+  }
+
+  protected override getLoadingMessage(): string {
+    return 'Virman kayitlari getiriliyor.';
+  }
+
+  protected override getEmptyMessage(): string {
+    return 'Secilen tarihte virman kaydi yok.';
   }
 }
 
