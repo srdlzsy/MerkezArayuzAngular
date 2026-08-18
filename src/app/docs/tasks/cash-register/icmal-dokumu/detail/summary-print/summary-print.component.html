@@ -62,7 +62,7 @@
   </section>
 
   <section class="print-grid">
-    <article class="print-block" *ngIf="model().banknoteMovements.length">
+    <article class="print-block banknote-block" *ngIf="model().banknoteMovements.length">
       <h2>Banknot</h2>
       <table>
         <thead>
@@ -87,7 +87,7 @@
       </table>
     </article>
 
-    <article class="print-block">
+    <article class="print-block totals-block">
       <h2>Kasa Detay Dokum</h2>
       <table>
         <tbody>
@@ -133,7 +133,7 @@
       </table>
     </article>
 
-    <article class="print-block" *ngIf="model().creditCards.length">
+    <article class="print-block payment-block wide-block" *ngIf="model().creditCards.length">
       <h2>Kredi Karti</h2>
       <table>
         <thead>
@@ -160,7 +160,7 @@
       </table>
     </article>
 
-    <article class="print-block" *ngIf="model().foodChecks.length">
+    <article class="print-block payment-block" *ngIf="model().foodChecks.length">
       <h2>Yemek Cekleri</h2>
       <table>
         <thead>
@@ -185,7 +185,7 @@
       </table>
     </article>
 
-    <article class="print-block" *ngIf="model().onlineSales.length">
+    <article class="print-block payment-block" *ngIf="model().onlineSales.length">
       <h2>Vadeli / Online Satislar</h2>
       <table>
         <thead>
@@ -210,7 +210,7 @@
       </table>
     </article>
 
-    <article class="print-block" *ngIf="model().expenseCompass.length">
+    <article class="print-block payment-block" *ngIf="model().expenseCompass.length">
       <h2>Gider Pusulasi</h2>
       <table>
         <thead>
@@ -235,7 +235,7 @@
       </table>
     </article>
 
-    <article class="print-block" *ngIf="model().giftCheckMovements.length">
+    <article class="print-block payment-block" *ngIf="model().giftCheckMovements.length">
       <h2>Hediye Cekleri</h2>
       <table>
         <thead>
@@ -260,7 +260,7 @@
       </table>
     </article>
 
-    <article class="print-block" *ngIf="model().storeExpenses.length">
+    <article class="print-block payment-block wide-block" *ngIf="model().storeExpenses.length">
       <h2>Magaza Gider Fisi</h2>
       <table>
         <thead>

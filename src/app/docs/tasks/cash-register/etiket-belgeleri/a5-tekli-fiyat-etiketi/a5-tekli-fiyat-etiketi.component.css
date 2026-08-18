@@ -6,59 +6,64 @@
   box-sizing: border-box;
   display: flex;
   flex-direction: column;
-  padding: 18mm 16mm 12mm;
+  padding: 45mm 55mm 35mm;
   overflow: hidden;
 }
 
 .single-spacer {
-  min-height: 16mm;
+  display: none;
 }
 
 .single-product-name {
-  min-height: 32mm;
+  min-height: 15mm;
   display: flex;
   align-items: center;
   justify-content: center;
   overflow: hidden;
   text-align: center;
-  font-size: 27px;
-  font-weight: 700;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 14pt;
+  font-weight: 500;
   line-height: 1.1;
   text-transform: uppercase;
   overflow-wrap: anywhere;
 }
 
 .single-price {
-  min-height: 48mm;
+  min-height: 33mm;
   display: flex;
   align-items: center;
   justify-content: center;
-  gap: 5mm;
-  font-size: 102px;
-  font-weight: 900;
-  line-height: 0.95;
+  gap: 4.5mm;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 42pt;
+  font-weight: 400;
+  line-height: 1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
 
 .single-price span {
-  padding-top: 16mm;
-  font-size: 50px;
-  font-weight: 800;
+  padding-top: 10mm;
+  font-size: 22pt;
+  font-weight: 400;
 }
 
 .single-meta {
-  margin: 4mm 0 0;
+  width: 70mm;
+  margin: 0 0 0 6mm;
   display: grid;
-  gap: 1mm;
-  font-size: 14px;
-  line-height: 1.25;
+  gap: 0.5mm;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 6pt;
+  font-weight: 700;
+  line-height: 1.15;
 }
 
 .single-meta div {
   display: grid;
-  grid-template-columns: 38mm minmax(0, 1fr);
-  gap: 2mm;
+  grid-template-columns: 25mm minmax(0, 1fr);
+  gap: 1mm;
 }
 
 .single-meta dt {
@@ -74,10 +79,15 @@
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  min-height: 26mm;
+  min-height: 18mm;
 }
 
 .barcode-holder svg {
-  width: 110px;
-  height: 52px;
+  width: 17mm;
+  height: 9mm;
+}
+
+.single-footer img {
+  width: 19mm;
+  height: auto;
 }

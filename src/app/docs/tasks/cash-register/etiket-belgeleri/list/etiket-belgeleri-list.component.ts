@@ -20,6 +20,7 @@ import { A5IkiliAyinEtiketiComponent } from '../a5-ikili-ayin-etiketi/a5-ikili-a
 import { A5IkiliFiyatEtiketiComponent } from '../a5-ikili-fiyat-etiketi/a5-ikili-fiyat-etiketi.component';
 import { A5TekliFiyatEtiketiComponent } from '../a5-tekli-fiyat-etiketi/a5-tekli-fiyat-etiketi.component';
 import { AddLabel } from '../add-label/add-label';
+import { renderBarcodeSvg } from '../etiket-barcode.util';
 import { ETIKET_TIPLERI, IEtiketTipiConfig } from '../etiket-belgeleri.config';
 import { PrintChangePrice } from '../print-change-price/print-change-price';
 import { RafEtiketA5Component } from '../raf-etiket-a5/raf-etiket-a5.component';
@@ -933,6 +934,8 @@ export class EtiketBelgeleriListComponent {
       await this.appendPrintStylesheet(link);
       await this.waitForFonts();
       await this.waitForNextPaint();
+      this.renderPrintBarcodes();
+      await this.waitForNextPaint();
 
       cleanupTimer = window.setTimeout(cleanup, 60_000);
       window.print();
@@ -983,6 +986,18 @@ export class EtiketBelgeleriListComponent {
     return new Promise<void>((resolve) => {
       window.requestAnimationFrame(() => {
         window.requestAnimationFrame(() => resolve());
+      });
+    });
+  }
+
+  private renderPrintBarcodes(): void {
+    document.querySelectorAll<SVGSVGElement>('.etiket-print-root svg[data-code]').forEach((svg) => {
+      renderBarcodeSvg(svg, svg.getAttribute('data-code'), {
+        barWidth: 1,
+        barHeight: 35,
+        fontSize: 13,
+        marginX: 0,
+        marginTop: 0
       });
     });
   }

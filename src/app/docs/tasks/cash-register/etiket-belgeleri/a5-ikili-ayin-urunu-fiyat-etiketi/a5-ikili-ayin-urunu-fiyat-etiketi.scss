@@ -4,7 +4,7 @@
   padding: 0;
   background: #fff;
   color: #000;
-  font-family: Arial, Helvetica, sans-serif;
+  font-family: 'Times New Roman', Times, serif;
 }
 
 .a5-page {
@@ -12,10 +12,10 @@
   height: 148mm;
   box-sizing: border-box;
   display: flex;
-  align-items: center;
+  align-items: stretch;
   justify-content: center;
   margin: 0;
-  padding: 6mm;
+  padding: 0 29mm;
   overflow: hidden;
   background: #fff;
   break-after: page;
@@ -32,8 +32,8 @@
   height: 100%;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 6mm;
-  align-items: center;
+  gap: 1.5mm;
+  align-items: stretch;
   justify-content: center;
 }
 
@@ -47,67 +47,71 @@
   align-items: stretch;
   justify-content: flex-start;
   overflow: hidden;
-  border: 0.6mm solid #000;
   background: #fff;
   break-inside: avoid;
   page-break-inside: avoid;
 }
 
 .etiket-baslik {
-  min-height: 22mm;
+  height: 15mm;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  padding: 3mm;
+  margin-top: 31mm;
+  padding: 0 2mm;
+  overflow: hidden;
   background: #000;
   color: #fff;
   text-align: center;
-  font-size: 22pt;
-  font-weight: 900;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 17pt;
+  font-weight: 500;
   line-height: 1;
-  letter-spacing: 0.8mm;
+  letter-spacing: 0;
+  white-space: nowrap;
   -webkit-print-color-adjust: exact;
   print-color-adjust: exact;
 }
 
 .etiket-icerik {
   min-height: 0;
-  flex: 1;
   display: flex;
   flex-direction: column;
   align-items: center;
-  justify-content: center;
-  gap: 7mm;
+  justify-content: flex-start;
   box-sizing: border-box;
-  padding: 6mm;
+  padding: 3mm 1.5mm 0;
   text-align: center;
 }
 
 .urun-adi {
   width: 100%;
-  max-height: 29mm;
+  height: 16mm;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
   line-clamp: 2;
   overflow-wrap: anywhere;
-  font-size: 25pt;
-  font-weight: 900;
-  line-height: 1.05;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 13pt;
+  font-weight: 500;
+  line-height: 1.12;
   text-transform: uppercase;
 }
 
 .fiyat {
   width: 100%;
+  min-height: 27mm;
   min-width: 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 2.5mm;
-  font-weight: 900;
-  line-height: 0.85;
+  gap: 3.5mm;
+  font-family: Arial, Helvetica, sans-serif;
+  font-weight: 400;
+  line-height: 1;
   white-space: nowrap;
   font-variant-numeric: tabular-nums;
 }
@@ -117,52 +121,87 @@
 }
 
 .para-birimi {
-  padding-bottom: 1.5mm;
-  font-weight: 900;
+  padding-bottom: 5mm;
+  font-weight: 400;
 }
 
 .fiyat.price-large .fiyat-degeri {
-  font-size: 61pt;
+  font-size: 41pt;
 }
 
 .fiyat.price-large .para-birimi {
-  font-size: 25pt;
+  font-size: 20pt;
 }
 
 .fiyat.price-medium .fiyat-degeri {
-  font-size: 50pt;
+  font-size: 41pt;
 }
 
 .fiyat.price-medium .para-birimi {
-  font-size: 22pt;
+  font-size: 20pt;
 }
 
 .fiyat.price-small .fiyat-degeri {
-  font-size: 40pt;
+  font-size: 41pt;
 }
 
 .fiyat.price-small .para-birimi {
-  font-size: 19pt;
+  font-size: 20pt;
 }
 
-.urun-bilgisi {
+.urun-detaylari {
   width: 100%;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  gap: 3mm;
-  color: #222;
-  font-size: 10pt;
+  margin: 0;
+  display: grid;
+  gap: 0.7mm;
+  padding-left: 8mm;
+  color: #000;
+  text-align: left;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 5.8pt;
+  font-weight: 700;
+  line-height: 1.18;
+}
+
+.urun-detaylari div {
+  display: grid;
+  grid-template-columns: 23mm minmax(0, 1fr);
+  gap: 1mm;
+}
+
+.urun-detaylari dt {
   font-weight: 700;
 }
 
-.urun-bilgisi span + span::before {
-  content: '•';
-  margin-right: 3mm;
+.urun-detaylari dd {
+  margin: 0;
+}
+
+.etiket-alt {
+  margin-top: auto;
+  min-height: 22mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  padding: 0 8mm 31mm;
+}
+
+.etiket-alt svg {
+  width: 16mm;
+  height: 8mm;
+}
+
+.etiket-alt img {
+  width: 17mm;
+  height: auto;
+}
+
+.etiket-alt img,
+.etiket-alt svg {
+  display: block;
 }
 
 .etiket-bos {
-  border-color: transparent;
   visibility: hidden;
 }
 
