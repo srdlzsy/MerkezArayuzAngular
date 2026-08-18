@@ -315,8 +315,45 @@
         </article>
 
         <article class="total-card">
+          <span>Nakit</span>
+          <strong>{{ banknoteTotal() | number:'1.2-2' }} TL</strong>
+          <small>{{ banknoteQuantity() }} adet</small>
+        </article>
+
+        <article class="total-card">
+          <span>Kredi Karti</span>
+          <strong>{{ creditCardsTotal() | number:'1.2-2' }} TL</strong>
+          <small>{{ creditCardsQuantity() }} slip</small>
+        </article>
+
+        <article class="total-card">
+          <span>Yemek Ceki</span>
+          <strong>{{ foodChecksTotal() | number:'1.2-2' }} TL</strong>
+          <small>{{ foodChecksQuantity() }} adet</small>
+        </article>
+
+        <article class="total-card">
+          <span>Vadeli / Online</span>
+          <strong>{{ onlineSalesTotal() | number:'1.2-2' }} TL</strong>
+          <small>{{ onlineSalesQuantity() }} fis</small>
+        </article>
+
+        <article class="total-card">
+          <span>Gider Pusulasi</span>
+          <strong>{{ expenseCompassTotal() | number:'1.2-2' }} TL</strong>
+          <small>{{ expenseCompassQuantity() }} fis</small>
+        </article>
+
+        <article class="total-card">
+          <span>Magaza Gideri</span>
+          <strong>{{ storeExpensesTotal() | number:'1.2-2' }} TL</strong>
+          <small>{{ storeExpenses().length }} kalem</small>
+        </article>
+
+        <article class="total-card">
           <span>Hediye Ceki</span>
           <strong>{{ giftCheckTotal() | number:'1.2-2' }} TL</strong>
+          <small>{{ giftCheckQuantity() }} adet</small>
         </article>
       </section>
 

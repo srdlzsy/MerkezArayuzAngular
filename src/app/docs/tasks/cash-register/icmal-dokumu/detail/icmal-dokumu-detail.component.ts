@@ -1888,7 +1888,7 @@ export class IcmalDokumuDetailComponent
       @media print {
         @page {
           size: A4;
-          margin: 6mm;
+          margin: 10mm 8mm 9mm;
         }
 
         html,
@@ -1921,7 +1921,7 @@ export class IcmalDokumuDetailComponent
           visibility: visible !important;
           background: transparent !important;
           margin: 0 !important;
-          padding: 0 !important;
+          padding: 1mm 0 0 !important;
           border: 0 !important;
           box-shadow: none !important;
         }
