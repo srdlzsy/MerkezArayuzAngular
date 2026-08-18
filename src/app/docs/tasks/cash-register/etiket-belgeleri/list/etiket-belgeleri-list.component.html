@@ -279,7 +279,7 @@
             <th>Barkod</th>
             <th>Fiyat</th>
             <th>Durum</th>
-            <th>Koli</th>
+            <th>Birim / Koli</th>
             <th>Değişiklik</th>
             <th><span class="visually-hidden">İşlem</span></th>
           </tr>
@@ -312,7 +312,7 @@
                 {{ getPriceTrendLabel(product) }}
               </span>
             </td>
-            <td data-label="Koli">{{ product.packageFactor || '-' }}</td>
+            <td data-label="Birim / Koli">{{ getProductUnitLabel(product) }}</td>
             <td data-label="Değişiklik">{{ product.priceChangeDate || '-' }}</td>
             <td class="row-actions" data-label="İşlem">
               <button type="button" class="remove-button" (click)="removeProduct(product)">

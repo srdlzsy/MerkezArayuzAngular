@@ -758,11 +758,37 @@ export class EtiketBelgeleriListComponent {
   }
 
   private getProductKey(product: IEtiketBasimProduct): string {
-    return `${product.productCode}|${product.barcode}|${product.pluNo}|${product.productName}`;
+    return [
+      product.productCode,
+      product.barcode,
+      product.pluNo,
+      product.productName,
+      product.unitName,
+      product.alternativeUnitName,
+      product.unitPriceFactor,
+      product.packageFactor
+    ].map((value) => `${value ?? ''}`.trim()).join('|');
   }
 
   private getProductDisplayName(product: IEtiketBasimProduct): string {
     return product.productName?.trim() || product.productCode?.trim() || product.barcode?.trim() || 'Urun';
+  }
+
+  protected getProductUnitLabel(product: IEtiketBasimProduct): string {
+    const baseUnit = product.unitName?.trim() || '-';
+    const alternativeUnit = product.alternativeUnitName?.trim();
+    const unitPriceFactor = Number(product.unitPriceFactor);
+    const factorLabel = Number.isFinite(unitPriceFactor) && unitPriceFactor > 0
+      ? `${unitPriceFactor.toLocaleString('tr-TR', { maximumFractionDigits: 2 })} TL/${alternativeUnit || baseUnit}`
+      : '';
+    const packageFactor = product.packageFactor?.trim();
+
+    return [
+      baseUnit,
+      alternativeUnit && alternativeUnit !== baseUnit ? alternativeUnit : '',
+      factorLabel,
+      packageFactor ? `Koli ${packageFactor}` : ''
+    ].filter(Boolean).join(' / ') || '-';
   }
 
   private setProductHiddenForCurrentLabel(key: string, hidden: boolean): void {
