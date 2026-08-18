@@ -289,7 +289,19 @@ export const VIRMAN_STOK_HAREKETI_LIST_COLUMNS = [
   { key: 'documentNo', label: 'Belge No' },
   { key: 'warehouseNo', label: 'Muhatap Depo No' },
   { key: 'warehouseName', label: 'Muhatap Depo' },
-  { key: 'description', label: 'Muhatap' },
+  {
+    key: 'lineFlow',
+    label: 'Cikis/Giris Kalem',
+    resolveValue: (row: IFurpaVirmanListItemApiDto) =>
+      `${row.outgoingLineCount ?? 0} / ${row.incomingLineCount ?? 0}`
+  },
+  {
+    key: 'quantityFlow',
+    label: 'Cikis/Giris Miktar',
+    resolveValue: (row: IFurpaVirmanListItemApiDto) =>
+      `${row.outgoingQuantity ?? 0} / ${row.incomingQuantity ?? 0}`
+  },
+  { key: 'description', label: 'Aciklama' },
   {
     key: 'movementDate',
     label: 'Tarih',

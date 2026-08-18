@@ -108,6 +108,21 @@ export class CariBulListComponent {
     return this.hasSource(sources, 'satinalma-sarti');
   }
 
+  protected getSuggestionTitle(suggestion: CariBulResultDto['suggestions'][number]): string {
+    return (
+      suggestion.selectionLabel?.trim() ||
+      suggestion.customerDisplayName?.trim() ||
+      suggestion.customerTitle?.trim() ||
+      suggestion.customerName?.trim() ||
+      suggestion.customerCode?.trim() ||
+      '-'
+    );
+  }
+
+  protected hasDuplicateTaxCustomer(suggestion: CariBulResultDto['suggestions'][number]): boolean {
+    return Number(suggestion.sameTaxCustomerCount ?? 0) > 1;
+  }
+
   protected readonly trackBySuggestion = (
     index: number,
     suggestion: CariBulResultDto['suggestions'][number]

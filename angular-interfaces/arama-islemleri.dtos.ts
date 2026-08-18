@@ -107,6 +107,12 @@ export interface BarcodeResolutionDto {
 export interface ProductCustomerSuggestionItemDto {
   customerCode: string;
   customerName: string;
+  customerTitle?: string | null;
+  customerDisplayName?: string | null;
+  selectionLabel?: string | null;
+  groupCode?: string | null;
+  representativeName?: string | null;
+  sameTaxCustomerCount?: number | null;
   taxNoOrTckn: string | null;
   isDefaultSupplier: boolean;
   movementCount: number;
@@ -165,12 +171,25 @@ export interface CustomerLookupItemDto {
   customerTitle: string;
   customerDisplayName: string;
   taxNumber: string;
+  taxIdentityNo?: string | null;
+  taxOfficeNo?: string | null;
+  taxOfficeName?: string | null;
+  mainCustomerCode?: string | null;
+  regionCode?: string | null;
+  groupCode?: string | null;
+  sectorCode?: string | null;
   representativeCode: string;
   representativeName: string;
+  mobilePhone?: string | null;
+  email?: string | null;
   invoiceAddressNo: number | null;
   shippingAddressNo: number | null;
   isLocked: boolean;
   isClosed: boolean;
+  isEInvoiceCustomer?: boolean | null;
+  isEDespatchCustomer?: boolean | null;
+  sameTaxCustomerCount?: number | null;
+  selectionLabel?: string | null;
 }
 
 // ============================================================================

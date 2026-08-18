@@ -188,6 +188,7 @@
         <span>Seçili şablon</span>
         <strong>{{ selectedEtiket()?.etiketIsmi || 'Etiket seçilmedi' }}</strong>
         <small>{{ labelPrintProducts().length }} etiket hazir</small>
+        <small *ngIf="hiddenProductCount()">{{ hiddenProductCount() }} urun bu sablonda gizli</small>
       </div>
     </header>
 
@@ -208,7 +209,7 @@
           [class.is-active]="productTableFilter() === 'all'"
           (click)="setProductTableFilter('all')"
         >
-          Tümü <strong>{{ products().length }}</strong>
+          Tümü <strong>{{ activeProducts().length }}</strong>
         </button>
         <button
           type="button"
@@ -259,6 +260,14 @@
         (click)="clearProductTableTools()"
       >
         Filtreyi temizle
+      </button>
+      <button
+        type="button"
+        class="text-button restore-hidden-button"
+        *ngIf="hiddenProductCount()"
+        (click)="restoreHiddenProducts()"
+      >
+        Gizlenenleri geri al ({{ hiddenProductCount() }})
       </button>
     </div>
 

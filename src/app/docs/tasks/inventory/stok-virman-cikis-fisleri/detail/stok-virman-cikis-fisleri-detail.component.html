@@ -59,6 +59,14 @@
           <h3>Depo</h3>
           <p>{{ getHeaderText(header, 'warehouseName') || '-' }}</p>
         </article>
+        <article class="summary-card">
+          <h3>Cikis Kalem / Miktar</h3>
+          <p>{{ getHeaderNumber(header, 'outgoingLineCount') ?? 0 }} / {{ formatNumber(getHeaderNumber(header, 'outgoingQuantity')) }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Giris Kalem / Miktar</h3>
+          <p>{{ getHeaderNumber(header, 'incomingLineCount') ?? 0 }} / {{ formatNumber(getHeaderNumber(header, 'incomingQuantity')) }}</p>
+        </article>
         <article class="summary-card summary-card-wide">
           <h3>Aciklama</h3>
           <p>{{ getHeaderText(header, 'description') || '-' }}</p>
@@ -90,7 +98,7 @@
                 <td>{{ getLineText(kalem, 'stockCode') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'stockName') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'unitName') || '-' }}</td>
-                <td>{{ getLineNumber(kalem, 'movementType') ?? '-' }}</td>
+                <td>{{ getMovementTypeLabel(getLineNumber(kalem, 'movementType')) }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'quantity')) }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'quantity2')) }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'unitPrice')) }}</td>

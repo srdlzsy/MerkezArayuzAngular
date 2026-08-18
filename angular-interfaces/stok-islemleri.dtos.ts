@@ -307,6 +307,10 @@ export interface VirmanListItemDto {
   movementTypes: number[];
   description: string;
   lineCount: number;
+  incomingLineCount: number;
+  outgoingLineCount: number;
+  incomingQuantity: number;
+  outgoingQuantity: number;
   totalQuantity: number;
   totalAmount: number;
 }
@@ -325,6 +329,10 @@ export interface VirmanHeaderDto {
   movementTypes: number[];
   description: string;
   lineCount: number;
+  incomingLineCount: number;
+  outgoingLineCount: number;
+  incomingQuantity: number;
+  outgoingQuantity: number;
   totalQuantity: number;
   totalAmount: number;
 }
@@ -381,6 +389,10 @@ export interface CreateVirmanResponse {
   warehouseNo: number;
   movementTypes: number[];
   lineCount: number;
+  incomingLineCount: number;
+  outgoingLineCount: number;
+  incomingQuantity: number;
+  outgoingQuantity: number;
   totalQuantity: number;
   totalAmount: number;
   writeConnectionName: string;

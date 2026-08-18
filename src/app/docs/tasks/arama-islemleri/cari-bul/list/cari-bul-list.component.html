@@ -83,7 +83,7 @@
         >
           <div class="suggestion-head">
             <div>
-              <h3>{{ suggestion.customerName }}</h3>
+              <h3>{{ getSuggestionTitle(suggestion) }}</h3>
               <p>{{ suggestion.customerCode }}</p>
             </div>
             <div class="badge-row">
@@ -91,11 +91,14 @@
                 Satinalma sarti
               </span>
               <span class="default-badge" *ngIf="suggestion.isDefaultSupplier">Varsayilan</span>
+              <span class="duplicate-badge" *ngIf="hasDuplicateTaxCustomer(suggestion)">Ayni vergi no</span>
             </div>
           </div>
 
           <div class="detail-grid">
             <span>Vergi/TCKN: <strong>{{ suggestion.taxNoOrTckn || '-' }}</strong></span>
+            <span>Grup: <strong>{{ suggestion.groupCode || '-' }}</strong></span>
+            <span>Temsilci: <strong>{{ suggestion.representativeName || '-' }}</strong></span>
             <span>Hareket: <strong>{{ suggestion.movementCount }}</strong></span>
             <span>Son Tarih: <strong>{{ formatDate(suggestion.lastMovementDate) }}</strong></span>
             <span>Son Belge: <strong>{{ suggestion.lastDocumentNo || '-' }}</strong></span>

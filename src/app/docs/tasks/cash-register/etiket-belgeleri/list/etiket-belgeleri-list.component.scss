@@ -301,6 +301,15 @@
   color: var(--danger);
 }
 
+.restore-hidden-button {
+  padding-inline: 0.65rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-weight: 800;
+}
+
 .feedback {
   display: flex;
   align-items: flex-start;

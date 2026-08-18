@@ -166,7 +166,8 @@ button:disabled {
 
 .status-pill,
 .default-badge,
-.purchase-badge {
+.purchase-badge,
+.duplicate-badge {
   align-self: start;
   min-height: 24px;
   padding: 0.22rem 0.5rem;
@@ -196,6 +197,11 @@ button:disabled {
 .purchase-badge {
   color: #065f46;
   background: #d1fae5;
+}
+
+.duplicate-badge {
+  color: #9a3412;
+  background: #ffedd5;
 }
 
 .detail-grid {

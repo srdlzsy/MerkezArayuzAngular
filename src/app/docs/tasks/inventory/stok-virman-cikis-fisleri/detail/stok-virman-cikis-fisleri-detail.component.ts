@@ -30,5 +30,21 @@ export class StokVirmanCikisFisleriDetailComponent extends KalemliTaskDetailBase
       `${this.page.title} detayi yuklenemedi. Lutfen tekrar deneyin.`
     );
   }
+
+  protected getMovementTypeLabel(value: number | null | undefined): string {
+    if (value === 1) {
+      return 'Cikis';
+    }
+
+    if (value === 0) {
+      return 'Giris';
+    }
+
+    if (value === 2) {
+      return 'Virman';
+    }
+
+    return value === null || value === undefined ? '-' : `${value}`;
+  }
 }
 
