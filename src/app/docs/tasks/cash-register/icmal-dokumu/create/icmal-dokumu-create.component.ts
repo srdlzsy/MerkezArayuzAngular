@@ -153,6 +153,14 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected readonly cashierLookupQuery = new FormControl('', { nonNullable: true });
   protected readonly cashierLookupResults = signal<IFurpaCashierSearchItemApiDto[]>([]);
+  protected readonly cashierSearchQuery = new FormControl('', { nonNullable: true });
+  protected readonly managerSearchQuery = new FormControl('', { nonNullable: true });
+  protected readonly cashierSearchLoading = signal(false);
+  protected readonly managerSearchLoading = signal(false);
+  protected readonly cashierSearchError = signal('');
+  protected readonly managerSearchError = signal('');
+  protected readonly cashierSearchResults = signal<IFurpaCashierSearchItemApiDto[]>([]);
+  protected readonly managerSearchResults = signal<IFurpaCashierSearchItemApiDto[]>([]);
   protected readonly cashRegisters = signal<IFurpaCashRegistryItemApiDto[]>([]);
   protected readonly banknoteTypes = signal<IFurpaBanknoteTypeItemApiDto[]>([]);
   protected readonly giftCheckTypes = signal<IFurpaGiftCheckTypeItemApiDto[]>([]);
@@ -726,19 +734,65 @@ export class IcmalDokumuCreateComponent implements OnInit {
       });
   }
 
+  protected searchCashiersFor(target: 'cashier' | 'manager'): void {
+    const loading = target === 'cashier' ? this.cashierSearchLoading : this.managerSearchLoading;
+    const error = target === 'cashier' ? this.cashierSearchError : this.managerSearchError;
+    const results = target === 'cashier' ? this.cashierSearchResults : this.managerSearchResults;
+    const queryControl = target === 'cashier' ? this.cashierSearchQuery : this.managerSearchQuery;
+    const query = queryControl.value.trim();
+
+    if (loading()) {
+      return;
+    }
+
+    error.set('');
+    results.set([]);
+
+    if (query.length < 2) {
+      error.set('Aramak icin en az 2 karakter gir.');
+      return;
+    }
+
+    loading.set(true);
+
+    this.kasaIslemleriService
+      .searchKasiyerler(query)
+      .pipe(finalize(() => loading.set(false)))
+      .subscribe({
+        next: (items: IFurpaCashierSearchItemApiDto[]) => {
+          const normalizedItems = items ?? [];
+          results.set(normalizedItems);
+
+          if (normalizedItems.length === 0) {
+            error.set('Kayit bulunamadi.');
+          }
+        },
+        error: (httpError: HttpErrorResponse) => {
+          error.set(this.resolveErrorMessage(httpError, 'Arama yapilamadi.'));
+        }
+      });
+  }
+
   protected applyCashier(item: IFurpaCashierSearchItemApiDto, target: 'cashier' | 'manager'): void {
     const code = this.toSafeNumber(item.cashierCode);
+    const label = this.getCashierLabel(item);
 
     if (target === 'cashier') {
       this.controls.cashierNo.setValue(code);
       this.controls.cashierNo.markAsDirty();
       this.controls.cashierNo.markAsTouched();
+      this.cashierSearchQuery.setValue(label);
+      this.cashierSearchResults.set([]);
+      this.cashierSearchError.set('');
       return;
     }
 
     this.controls.managerNo.setValue(code);
     this.controls.managerNo.markAsDirty();
     this.controls.managerNo.markAsTouched();
+    this.managerSearchQuery.setValue(label);
+    this.managerSearchResults.set([]);
+    this.managerSearchError.set('');
   }
 
   protected addEmptyPaymentType(source: CashDrawerPaymentSource = 'other'): void {
@@ -1652,7 +1706,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
     template?: Partial<IFurpaBanknoteTypeItemApiDto>
   ): BanknoteLineFormGroup {
     return new FormGroup({
-      banknoteType: new FormControl<number | null>(template?.banknoteType ?? null, {
+      banknoteType: new FormControl<number | null>(template?.banknoteType ?? 0, {
         validators: [Validators.required, Validators.min(0)]
       }),
       quantity: new FormControl<number | null>(template?.quantity ?? 0, {
@@ -1674,7 +1728,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       value: new FormControl<number | null>(template?.value ?? 0, {
         validators: [Validators.required, Validators.min(0)]
       }),
-      giftCheckType: new FormControl<number | null>(template?.giftCheckType ?? null, {
+      giftCheckType: new FormControl<number | null>(template?.giftCheckType ?? 0, {
         validators: [Validators.required, Validators.min(0)]
       }),
       quantity: new FormControl<number | null>(template?.quantity ?? 0, {

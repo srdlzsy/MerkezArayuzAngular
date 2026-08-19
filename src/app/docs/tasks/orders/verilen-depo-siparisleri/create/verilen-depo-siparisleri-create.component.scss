@@ -461,7 +461,7 @@
 
 .kalem-table-head {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px 58px;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 230px) 58px;
   gap: 0.6rem;
   padding: 0.35rem 0.6rem;
   background: #f8fafc;
@@ -490,7 +490,7 @@
 
 .kalem-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) 110px 58px;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 230px) 58px;
   gap: 0.6rem;
   align-items: center;
   padding: 0.45rem 0.6rem;
@@ -532,6 +532,28 @@
 .kalem-barkod {
   font-size: 0.6rem;
   color: #94a3b8;
+}
+
+.package-note {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.quantity-fields {
+  display: grid;
+  grid-template-columns: minmax(58px, 0.75fr) minmax(74px, 1fr);
+  gap: 0.35rem;
+}
+
+.quantity-fields-single {
+  grid-template-columns: 1fr;
 }
 
 .resolution-note {
@@ -668,6 +690,10 @@
 
   .col-miktar input {
     text-align: left;
+  }
+
+  .quantity-fields {
+    grid-template-columns: 1fr;
   }
 
   .col-islem {

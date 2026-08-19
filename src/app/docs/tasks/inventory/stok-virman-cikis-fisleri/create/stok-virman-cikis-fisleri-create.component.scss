@@ -271,6 +271,97 @@ button:disabled {
   flex: 1;
 }
 
+.virman-entry-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.58rem;
+}
+
+.virman-product-card {
+  position: relative;
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.62rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.virman-product-out {
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.virman-product-in {
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.product-card-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.6rem;
+}
+
+.product-card-head span {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  border-radius: 999px;
+  padding: 0 0.5rem;
+  color: #ffffff;
+  background: #0f172a;
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
+.product-card-head strong {
+  color: #0f172a;
+  font-size: 0.84rem;
+}
+
+.product-search-row,
+.entry-actions-row {
+  display: flex;
+  gap: 0.45rem;
+  align-items: stretch;
+}
+
+.product-search-row input {
+  min-width: 0;
+  flex: 1;
+  min-height: 32px;
+  padding: 0.34rem 0.5rem;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.entry-actions-row {
+  justify-content: flex-end;
+}
+
+.add-pair-btn {
+  min-width: 190px;
+}
+
+.inline-results {
+  position: absolute;
+  top: calc(100% - 0.2rem);
+  right: 0.62rem;
+  left: 0.62rem;
+  z-index: 5;
+  grid-template-columns: 1fr;
+  max-height: 220px;
+  overflow: auto;
+  padding: 0.28rem;
+  background: #ffffff;
+  box-shadow: 0 16px 30px rgba(15, 23, 42, 0.14);
+}
+
 .search-results {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
@@ -298,12 +389,67 @@ button:disabled {
   font-size: 0.76rem;
 }
 
-.line-list {
+.line-list,
+.virman-table {
   display: grid;
   gap: 0.5rem;
   max-height: min(56vh, 620px);
   overflow: auto;
   padding-right: 0.18rem;
+}
+
+.virman-table-head,
+.virman-table-row {
+  display: grid;
+  grid-template-columns: 92px minmax(110px, 0.75fr) minmax(220px, 1.4fr) minmax(96px, 0.45fr) 56px;
+  gap: 0.42rem;
+  align-items: center;
+}
+
+.virman-table-head {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  padding: 0.42rem 0.52rem;
+  color: #475569;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #f8fafc;
+  font-size: 0.66rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.virman-table-row {
+  padding: 0.46rem 0.52rem;
+}
+
+.movement-pill {
+  display: inline-flex;
+  min-height: 24px;
+  align-items: center;
+  justify-content: center;
+  border-radius: 999px;
+  padding: 0 0.55rem;
+  color: #0f172a;
+  background: rgba(255, 255, 255, 0.74);
+  font-size: 0.72rem;
+  font-weight: 900;
+}
+
+.table-input {
+  width: 100%;
+  min-height: 31px;
+  padding: 0.3rem 0.44rem;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #ffffff;
+  box-sizing: border-box;
+}
+
+.quantity-input {
+  text-align: right;
 }
 
 .line-row {
@@ -315,6 +461,11 @@ button:disabled {
   background: #fbfdff;
   border: 1px solid #e2e8f0;
   border-radius: 8px;
+}
+
+.line-row.virman-table-row {
+  grid-template-columns: 92px minmax(110px, 0.75fr) minmax(220px, 1.4fr) minmax(96px, 0.45fr) 56px;
+  align-items: center;
 }
 
 .line-row-outgoing {
@@ -387,12 +538,26 @@ button:disabled {
 @media (max-width: 980px) {
   .form-grid,
   .line-main,
-  .line-extra {
+  .line-extra,
+  .virman-entry-grid {
     grid-template-columns: 1fr 1fr;
   }
 
   .field-wide {
     grid-column: span 2;
+  }
+
+  .virman-table-head {
+    display: none;
+  }
+
+  .virman-table-row {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .virman-table-row .remove-btn,
+  .line-advanced {
+    grid-column: 1 / -1;
   }
 }
 
@@ -400,13 +565,18 @@ button:disabled {
   .dialog-header,
   .header-actions,
   .search-row,
+  .product-search-row,
+  .entry-actions-row,
   .line-row {
     grid-template-columns: 1fr;
   }
 
   .header-actions,
-  .search-row {
+  .search-row,
+  .product-search-row,
+  .entry-actions-row {
     align-items: stretch;
+    flex-direction: column;
   }
 
   .header-actions {
@@ -415,7 +585,9 @@ button:disabled {
 
   .form-grid,
   .line-main,
-  .line-extra {
+  .line-extra,
+  .virman-entry-grid,
+  .virman-table-row {
     grid-template-columns: 1fr;
   }
 

@@ -17,6 +17,10 @@ import type {
   CustomerMovementDocumentLineDto,
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
+  InventoryCountDocumentDto,
+  InventoryCountDocumentLineDto,
+  InventoryCountDocumentLookupHttpRequest,
+  InventoryCountDocumentUpdateResponse,
   MikroDocumentDeleteResponse,
   MikroDocumentFieldCatalogDto,
   MikroDocumentFieldCatalogFieldDto,
@@ -37,6 +41,7 @@ import type {
   StockMovementDocumentUpdateResponse,
   UpdateCompanyOrderDocumentHttpRequest,
   UpdateCustomerMovementDocumentHttpRequest,
+  UpdateInventoryCountDocumentHttpRequest,
   UpdateStockMovementDocumentHttpRequest,
   UpdateWarehouseOrderDocumentHttpRequest,
   WarehouseCardDetailDto,
@@ -61,6 +66,7 @@ type EditorTab =
   | 'warehouse-card'
   | 'customer-card'
   | 'stock-movement'
+  | 'inventory-count'
   | 'customer-movement'
   | 'company-order'
   | 'warehouse-order';
@@ -80,6 +86,8 @@ type BusyAction =
   | 'movement-load'
   | 'movement-save'
   | 'movement-delete'
+  | 'inventory-count-load'
+  | 'inventory-count-save'
   | 'customer-load'
   | 'customer-save'
   | 'customer-delete'
@@ -329,6 +337,33 @@ const STOCK_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'outputWarehouseNo', label: 'Çıkış Depo', type: 'number' }
 ];
 
+const INVENTORY_COUNT_HEADER_FIELDS: readonly FieldDefinition[] = [
+  { key: 'documentDate', label: 'Sayim Tarihi', type: 'date' },
+  { key: 'warehouseNo', label: 'Depo No', type: 'number' },
+  { key: 'name', label: 'Sayim Adi', wide: true }
+];
+
+const INVENTORY_COUNT_LINE_FIELDS: readonly FieldDefinition[] = [
+  { key: 'rowNo', label: 'Satir', type: 'number' },
+  { key: 'stockCode', label: 'Stok Kodu' },
+  { key: 'barcode', label: 'Barkod' },
+  { key: 'unitPointer', label: 'Birim Ptr', type: 'number' },
+  { key: 'quantity1', label: 'Miktar 1', type: 'number' },
+  { key: 'quantity2', label: 'Miktar 2', type: 'number' },
+  { key: 'quantity3', label: 'Miktar 3', type: 'number' },
+  { key: 'quantity4', label: 'Miktar 4', type: 'number' },
+  { key: 'quantity5', label: 'Miktar 5', type: 'number' },
+  { key: 'rayonCode', label: 'Reyon' },
+  { key: 'corridorCode', label: 'Koridor' },
+  { key: 'shelfCode', label: 'Raf' },
+  { key: 'partyCode', label: 'Parti Kodu' },
+  { key: 'lotNo', label: 'Lot No', type: 'number' },
+  { key: 'serialNo', label: 'Seri No' },
+  { key: 'special1', label: 'Ozel Kod 1' },
+  { key: 'special2', label: 'Ozel Kod 2' },
+  { key: 'special3', label: 'Ozel Kod 3' }
+];
+
 const CUSTOMER_HEADER_FIELDS: readonly FieldDefinition[] = [
   { key: 'movementDate', label: 'Hareket Tarihi', type: 'date' },
   { key: 'documentDate', label: 'Belge Tarihi', type: 'date' },
@@ -497,6 +532,7 @@ export class MikroEvrakDuzenlemeListComponent {
     { id: 'warehouse-card' as const, label: 'Depo Karti', icon: 'fa-warehouse' },
     { id: 'customer-card' as const, label: 'Cari Karti', icon: 'fa-address-card' },
     { id: 'stock-movement' as const, label: 'Stok Hareketi', icon: 'fa-right-left' },
+    { id: 'inventory-count' as const, label: 'Sayim Sonucu', icon: 'fa-clipboard-list' },
     { id: 'customer-movement' as const, label: 'Cari Hareketi', icon: 'fa-receipt' },
     { id: 'company-order' as const, label: 'Firma Siparisi', icon: 'fa-file-invoice' },
     { id: 'warehouse-order' as const, label: 'Depo Siparisi', icon: 'fa-truck-ramp-box' }
@@ -515,6 +551,8 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly customerCardBooleanFields = CUSTOMER_CARD_BOOLEAN_FIELDS;
   protected readonly stockHeaderFields = STOCK_HEADER_FIELDS;
   protected readonly stockLineFields = STOCK_LINE_FIELDS;
+  protected readonly inventoryCountHeaderFields = INVENTORY_COUNT_HEADER_FIELDS;
+  protected readonly inventoryCountLineFields = INVENTORY_COUNT_LINE_FIELDS;
   protected readonly customerHeaderFields = CUSTOMER_HEADER_FIELDS;
   protected readonly customerLineFields = CUSTOMER_LINE_FIELDS;
   protected readonly companyOrderHeaderFields = COMPANY_ORDER_HEADER_FIELDS;
@@ -550,6 +588,8 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly customerCardDraft = signal<CustomerCardDetailDto | null>(null);
   protected readonly stockMovement = signal<StockMovementDocumentDto | null>(null);
   protected readonly stockMovementDraft = signal<StockMovementDocumentDto | null>(null);
+  protected readonly inventoryCount = signal<InventoryCountDocumentDto | null>(null);
+  protected readonly inventoryCountDraft = signal<InventoryCountDocumentDto | null>(null);
   protected readonly customerMovement = signal<CustomerMovementDocumentDto | null>(null);
   protected readonly customerMovementDraft = signal<CustomerMovementDocumentDto | null>(null);
   protected readonly companyOrder = signal<CompanyOrderDocumentDto | null>(null);
@@ -584,6 +624,8 @@ export class MikroEvrakDuzenlemeListComponent {
     { sectionCode: 'customer-card', scope: 'body', fields: CUSTOMER_CARD_BOOLEAN_FIELDS },
     { sectionCode: 'stock-movement', scope: 'header', fields: STOCK_HEADER_FIELDS },
     { sectionCode: 'stock-movement', scope: 'line', fields: STOCK_LINE_FIELDS },
+    { sectionCode: 'inventory-count', scope: 'header', fields: INVENTORY_COUNT_HEADER_FIELDS },
+    { sectionCode: 'inventory-count', scope: 'line', fields: INVENTORY_COUNT_LINE_FIELDS },
     { sectionCode: 'customer-movement', scope: 'header', fields: CUSTOMER_HEADER_FIELDS },
     { sectionCode: 'customer-movement', scope: 'line', fields: CUSTOMER_LINE_FIELDS },
     { sectionCode: 'company-order', scope: 'header', fields: COMPANY_ORDER_HEADER_FIELDS },
@@ -628,6 +670,11 @@ export class MikroEvrakDuzenlemeListComponent {
     movementKind: null,
     normalReturn: null,
     warehouseNo: this.authService.currentUser()?.depoNo ?? null
+  };
+  protected inventoryCountLookup: InventoryCountDocumentLookupHttpRequest = {
+    warehouseNo: this.authService.currentUser()?.depoNo ?? 0,
+    documentNo: 0,
+    documentDate: ''
   };
   protected customerLookup: CustomerMovementDocumentLookupHttpRequest = {
     documentSerie: '',
@@ -684,6 +731,15 @@ export class MikroEvrakDuzenlemeListComponent {
       this.stockMovementDraft(),
       STOCK_HEADER_FIELDS,
       STOCK_LINE_FIELDS
+    )
+  );
+  protected readonly changedInventoryCountCount = computed(() =>
+    this.countDocumentChanges(
+      this.inventoryCount(),
+      this.inventoryCountDraft(),
+      INVENTORY_COUNT_HEADER_FIELDS,
+      INVENTORY_COUNT_LINE_FIELDS,
+      'countGuid'
     )
   );
   protected readonly changedWarehouseFieldCount = computed(() =>
@@ -1133,6 +1189,67 @@ export class MikroEvrakDuzenlemeListComponent {
           this.setDeleteFeedback('Stok hareket evraki silindi', response);
         },
         error: (error: unknown) => this.handleError(error, 'Stok hareket evraki silinemedi.')
+      });
+  }
+
+  protected loadInventoryCount(): void {
+    if (!this.canDetail() || !this.validateInventoryCountLookup()) {
+      return;
+    }
+
+    this.busyAction.set('inventory-count-load');
+    this.feedback.set(null);
+    this.service
+      .getInventoryCountDocument(this.cleanLookup(this.inventoryCountLookup))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (document: InventoryCountDocumentDto) => this.applyInventoryCount(document),
+        error: (error: unknown) => this.handleError(error, 'Sayim sonucu fisi getirilemedi.')
+      });
+  }
+
+  protected saveInventoryCount(): void {
+    const original = this.inventoryCount();
+    const draft = this.inventoryCountDraft();
+    if (!original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    const request = this.buildDocumentRequest(
+      original,
+      draft,
+      this.cleanLookup(this.inventoryCountLookup),
+      INVENTORY_COUNT_HEADER_FIELDS,
+      INVENTORY_COUNT_LINE_FIELDS,
+      'countGuid'
+    ) as UpdateInventoryCountDocumentHttpRequest;
+
+    if (!request.header && !request.lines?.length) {
+      this.setInfo('Degisiklik yok', 'Kaydedilecek sayim sonucu degisikligi bulunmuyor.');
+      return;
+    }
+
+    this.busyAction.set('inventory-count-save');
+    this.feedback.set(null);
+    this.service
+      .updateInventoryCountDocument(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: InventoryCountDocumentUpdateResponse) => {
+          this.applyInventoryCount(response.document);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Sayim sonucu guncellendi',
+            message: `${response.summary.updatedRowCount} satir guncellendi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Sayim sonucu guncellenemedi.')
       });
   }
 
@@ -1706,6 +1823,11 @@ export class MikroEvrakDuzenlemeListComponent {
     this.stockMovementDraft.set(original ? this.prepareStockMovement(original) : null);
   }
 
+  protected resetInventoryCount(): void {
+    const original = this.inventoryCount();
+    this.inventoryCountDraft.set(original ? this.prepareInventoryCount(original) : null);
+  }
+
   protected resetCustomerMovement(): void {
     const original = this.customerMovement();
     this.customerMovementDraft.set(original ? this.prepareCustomerMovement(original) : null);
@@ -1732,6 +1854,7 @@ export class MikroEvrakDuzenlemeListComponent {
     this.warehouseCardDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.customerCardDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.stockMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
+    this.inventoryCountDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.customerMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.companyOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.warehouseOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
@@ -1784,10 +1907,11 @@ export class MikroEvrakDuzenlemeListComponent {
     _index: number,
     row:
       | StockMovementDocumentLineDto
+      | InventoryCountDocumentLineDto
       | CustomerMovementDocumentLineDto
       | CompanyOrderDocumentLineDto
       | WarehouseOrderDocumentLineDto
-  ): string => 'movementGuid' in row ? row.movementGuid : row.orderGuid;
+  ): string => 'movementGuid' in row ? row.movementGuid : 'countGuid' in row ? row.countGuid : row.orderGuid;
   protected trackByField = (_index: number, field: FieldDefinition): string => field.key;
 
   private applyFieldCatalogLabels(): void {
@@ -1982,6 +2106,18 @@ export class MikroEvrakDuzenlemeListComponent {
     this.stockMovementDraft.set(this.clone(prepared));
   }
 
+  private applyInventoryCount(document: InventoryCountDocumentDto): void {
+    const prepared = this.prepareInventoryCount(document);
+    this.inventoryCountLookup = {
+      ...this.inventoryCountLookup,
+      warehouseNo: prepared.header.warehouseNo,
+      documentNo: prepared.header.documentNo,
+      documentDate: prepared.header.documentDate
+    };
+    this.inventoryCount.set(this.clone(prepared));
+    this.inventoryCountDraft.set(this.clone(prepared));
+  }
+
   private applyCustomerMovement(document: CustomerMovementDocumentDto): void {
     const prepared = this.prepareCustomerMovement(document);
     this.customerLookup = {
@@ -2038,6 +2174,12 @@ export class MikroEvrakDuzenlemeListComponent {
     clone.lines.forEach((line) => {
       line.goodsAcceptanceDate = this.toDateInput(line.goodsAcceptanceDate);
     });
+    return clone;
+  }
+
+  private prepareInventoryCount(document: InventoryCountDocumentDto): InventoryCountDocumentDto {
+    const clone = this.clone(document);
+    clone.header.documentDate = this.toDateInput(clone.header.documentDate);
     return clone;
   }
 
@@ -2183,6 +2325,26 @@ export class MikroEvrakDuzenlemeListComponent {
         tone: 'error',
         title: 'Seri ve sıra zorunlu',
         message: 'Evrakı getirmek için belge serisi ve sıfırdan büyük belge sıra numarası girin.'
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  private validateInventoryCountLookup(): boolean {
+    const lookup = this.inventoryCountLookup;
+    if (
+      !Number.isFinite(lookup.warehouseNo) ||
+      lookup.warehouseNo <= 0 ||
+      !Number.isFinite(lookup.documentNo) ||
+      lookup.documentNo <= 0 ||
+      !lookup.documentDate?.trim()
+    ) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Sayim bilgileri zorunlu',
+        message: 'Sayim sonucunu getirmek icin depo no, evrak no ve sayim tarihini girin.'
       });
       return false;
     }

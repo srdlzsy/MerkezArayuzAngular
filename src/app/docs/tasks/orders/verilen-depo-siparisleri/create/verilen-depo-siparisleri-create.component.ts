@@ -45,6 +45,10 @@ interface KalemFormValue {
   barkodu: string;
   birim: string;
   birimKatsayisi: number | null;
+  ikinciBirim: string;
+  koliKatsayisi: number | null;
+  koliBarkodu: string;
+  koliMiktari: number | null;
   siparisMiktari: number | null;
   cozumMiktari: number | null;
   cozumBirim: string;
@@ -63,6 +67,10 @@ type KalemFormGroup = FormGroup<{
   barkodu: FormControl<string>;
   birim: FormControl<string>;
   birimKatsayisi: FormControl<number | null>;
+  ikinciBirim: FormControl<string>;
+  koliKatsayisi: FormControl<number | null>;
+  koliBarkodu: FormControl<string>;
+  koliMiktari: FormControl<number | null>;
   siparisMiktari: FormControl<number | null>;
   cozumMiktari: FormControl<number | null>;
   cozumBirim: FormControl<string>;
@@ -620,6 +628,50 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     return 'resolution-note-loading';
   }
 
+  protected hasPackageInput(control: KalemFormGroup): boolean {
+    const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+    return Number.isFinite(packageFactor) && packageFactor > 1;
+  }
+
+  protected getPackageHint(control: KalemFormGroup): string {
+    const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+    const secondaryUnitName = control.controls.ikinciBirim.value.trim() || 'KOLI';
+    const unitName = control.controls.birim.value.trim() || 'birim';
+
+    if (!Number.isFinite(packageFactor) || packageFactor <= 1) {
+      return '';
+    }
+
+    return `1 ${secondaryUnitName} = ${this.formatQuantity(packageFactor)} ${unitName}`;
+  }
+
+  protected applyPackageQuantity(control: KalemFormGroup): void {
+    const packageQuantity = Number(control.controls.koliMiktari.value ?? 0);
+    const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+
+    if (
+      !Number.isFinite(packageQuantity)
+      || packageQuantity <= 0
+      || !Number.isFinite(packageFactor)
+      || packageFactor <= 1
+    ) {
+      return;
+    }
+
+    control.controls.siparisMiktari.setValue(this.roundQuantity(packageQuantity * packageFactor), {
+      emitEvent: false
+    });
+    this.clearLineResolution(control);
+  }
+
+  protected clearPackageQuantity(control: KalemFormGroup): void {
+    if (control.controls.koliMiktari.value === null) {
+      return;
+    }
+
+    control.controls.koliMiktari.setValue(null, { emitEvent: false });
+  }
+
   protected getWarehouseLabel(warehouse: IFurpaWarehouseSearchItemApiDto): string {
     const depotName = warehouse.warehouseName?.trim() || 'Depo';
     return `${warehouse.warehouseNo} - ${depotName}`;
@@ -671,6 +723,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       barkodu: new FormControl(stock.barcode?.trim() ?? '', { nonNullable: true }),
       birim: new FormControl(stock.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
+      ikinciBirim: new FormControl('', { nonNullable: true }),
+      koliKatsayisi: new FormControl<number | null>(null),
+      koliBarkodu: new FormControl('', { nonNullable: true }),
+      koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(1, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
@@ -700,6 +756,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       barkodu: new FormControl('', { nonNullable: true }),
       birim: new FormControl('', { nonNullable: true }),
       birimKatsayisi: new FormControl<number | null>(kalem.unitPointer ?? 1),
+      ikinciBirim: new FormControl('', { nonNullable: true }),
+      koliKatsayisi: new FormControl<number | null>(null),
+      koliBarkodu: new FormControl('', { nonNullable: true }),
+      koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(siparisMiktari, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
@@ -727,6 +787,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       barkodu: new FormControl(kalem.barcode?.trim() ?? '', { nonNullable: true }),
       birim: new FormControl(kalem.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl<number | null>(kalem.unitPointer ?? 1),
+      ikinciBirim: new FormControl(kalem.secondaryUnitName?.trim() ?? '', { nonNullable: true }),
+      koliKatsayisi: new FormControl<number | null>(this.normalizePositiveNumber(kalem.packageFactor ?? null)),
+      koliBarkodu: new FormControl(kalem.caseBarcode?.trim() ?? '', { nonNullable: true }),
+      koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(0, {
         validators: [Validators.required, Validators.min(0)]
       }),
@@ -1045,8 +1109,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         modelCode: kalem.modelCode?.trim() ?? '',
         modelName: kalem.modelName?.trim() ?? '',
         unitName: kalem.unitName?.trim() ?? '',
+        secondaryUnitName: kalem.secondaryUnitName?.trim() ?? '',
+        packageFactor: this.normalizePositiveNumber(kalem.packageFactor ?? null),
         sourceWarehouseName: kalem.sourceWarehouseName?.trim() ?? '',
         barcode: kalem.barcode?.trim() ?? '',
+        caseBarcode: kalem.caseBarcode?.trim() ?? '',
         quantity: 0,
         recommendedQuantity: 0,
         unitPrice: kalem.unitPrice ?? 0,
@@ -1066,12 +1133,16 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       ?? 1;
   }
 
-  private normalizePositiveNumber(value: number | null): number | null {
+  private normalizePositiveNumber(value: number | null | undefined): number | null {
     if (value === null || value === undefined || !Number.isFinite(value) || value <= 0) {
       return null;
     }
 
     return value;
+  }
+
+  private roundQuantity(value: number): number {
+    return Math.round(value * 1000) / 1000;
   }
 
   private resolveWarehouseContact(warehouse: IFurpaWarehouseSearchItemApiDto): string {

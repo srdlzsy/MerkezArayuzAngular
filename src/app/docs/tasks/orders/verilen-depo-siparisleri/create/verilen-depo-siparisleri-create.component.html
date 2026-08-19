@@ -172,6 +172,8 @@
                 <strong>{{ kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value }}</strong>
                 <span class="kalem-kod">{{ kalem.controls.stokKodu.value }}</span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
+                <span class="kalem-barkod" *ngIf="kalem.controls.koliBarkodu.value">Koli barkodu: {{ kalem.controls.koliBarkodu.value }}</span>
+                <span class="package-note" *ngIf="hasPackageInput(kalem)">{{ getPackageHint(kalem) }}</span>
                 <span
                   class="resolution-note"
                   *ngIf="isGreenGrocerOrder() && getLineResolutionLabel(kalem)"
@@ -182,16 +184,29 @@
               </div>
             </div>
             <div class="col-miktar">
-              <input
-                type="number"
-                [attr.min]="kalem.controls.birimKatsayisi.value ?? 1"
-                [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
-                formControlName="siparisMiktari"
-                placeholder="Miktar"
-                [class.error]="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched"
-                (change)="resolveGreenGrocerLine(kalem)"
-                (blur)="resolveGreenGrocerLine(kalem)"
-              />
+              <div class="quantity-fields" [class.quantity-fields-single]="!hasPackageInput(kalem)">
+                <input
+                  *ngIf="hasPackageInput(kalem)"
+                  type="number"
+                  min="0"
+                  step="1"
+                  formControlName="koliMiktari"
+                  [placeholder]="kalem.controls.ikinciBirim.value || 'Koli'"
+                  (input)="applyPackageQuantity(kalem)"
+                  (change)="applyPackageQuantity(kalem)"
+                />
+                <input
+                  type="number"
+                  [attr.min]="kalem.controls.birimKatsayisi.value ?? 1"
+                  [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
+                  formControlName="siparisMiktari"
+                  placeholder="Miktar"
+                  [class.error]="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched"
+                  (input)="clearPackageQuantity(kalem)"
+                  (change)="resolveGreenGrocerLine(kalem)"
+                  (blur)="resolveGreenGrocerLine(kalem)"
+                />
+              </div>
               <small class="field-error" *ngIf="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched">
                 Gecerli miktar
               </small>

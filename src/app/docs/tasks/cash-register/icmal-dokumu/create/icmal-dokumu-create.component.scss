@@ -308,6 +308,73 @@
   opacity: 1;
 }
 
+.person-lookup-field {
+  position: relative;
+}
+
+.person-lookup-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.35rem;
+}
+
+.person-lookup-field .code-input {
+  min-height: 30px;
+  padding-block: 0.24rem;
+  font-size: 0.78rem;
+  background: #f8fafc;
+}
+
+.mini-search-button {
+  min-height: 36px;
+  padding: 0 0.58rem;
+  color: #0f766e;
+  border: 1px solid #99f6e4;
+  border-radius: 8px;
+  background: #f0fdfa;
+  font-size: 0.76rem;
+  font-weight: 800;
+  cursor: pointer;
+}
+
+.mini-search-button:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
+.inline-search-results {
+  position: absolute;
+  top: calc(100% + 0.25rem);
+  right: 0;
+  left: 0;
+  z-index: 20;
+  display: grid;
+  gap: 0.18rem;
+  max-height: 170px;
+  padding: 0.28rem;
+  overflow: auto;
+  border: 1px solid #dbe3ee;
+  border-radius: 10px;
+  background: #fff;
+  box-shadow: 0 14px 28px rgba(15, 23, 42, 0.12);
+}
+
+.inline-search-result {
+  padding: 0.42rem 0.5rem;
+  color: #0f172a;
+  text-align: left;
+  border: 0;
+  border-radius: 8px;
+  background: transparent;
+  font-size: 0.78rem;
+  font-weight: 750;
+  cursor: pointer;
+}
+
+.inline-search-result:hover {
+  background: #f1f5f9;
+}
+
 .cashier-card {
   min-height: 0;
 }
@@ -542,15 +609,20 @@ button.count-card:focus-visible {
 }
 
 .payment-row {
-  grid-template-columns: minmax(180px, 1.45fr) minmax(74px, 0.46fr) minmax(98px, 0.62fr) minmax(106px, 0.72fr) minmax(110px, 0.78fr) minmax(116px, 0.86fr) auto;
+  grid-template-columns: minmax(220px, 1.35fr) minmax(110px, 0.6fr) minmax(130px, 0.75fr) auto;
 }
 
 .payment-row-readonly {
-  grid-template-columns: minmax(210px, 1.4fr) minmax(86px, 0.48fr) minmax(108px, 0.7fr) minmax(116px, 0.78fr) minmax(124px, 0.86fr) auto;
+  grid-template-columns: minmax(220px, 1.35fr) minmax(110px, 0.6fr) minmax(130px, 0.75fr) auto;
 }
 
 .store-row {
   grid-template-columns: minmax(170px, 1fr) minmax(190px, 1.5fr) minmax(105px, 0.68fr) auto;
+}
+
+.banknote-row,
+.gift-row {
+  grid-template-columns: minmax(140px, 1fr) minmax(110px, 0.72fr) minmax(130px, 0.85fr) auto;
 }
 
 .drawer-body .field {

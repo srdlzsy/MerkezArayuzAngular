@@ -140,7 +140,10 @@ export interface SuggestedWarehouseSourceProductDto {
   modelCode: string;
   modelName: string;
   unitName: string;
+  secondaryUnitName?: string | null;
+  packageFactor?: number | null;
   barcode: string;
+  caseBarcode?: string | null;
   quantity: number;
   recommendedQuantity: number;
   unitPrice: number;

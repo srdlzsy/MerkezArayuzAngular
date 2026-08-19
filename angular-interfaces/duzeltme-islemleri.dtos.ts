@@ -550,6 +550,73 @@ export interface StockMovementDocumentUpdateResponse {
   document: StockMovementDocumentDto;
 }
 
+export interface InventoryCountDocumentLookupHttpRequest {
+  warehouseNo: number;
+  documentNo: number;
+  documentDate: string;
+}
+
+export interface InventoryCountDocumentHeaderDto {
+  documentDate: string;
+  createdAt: string | null;
+  documentNo: number;
+  warehouseNo: number;
+  warehouseName: string;
+  name: string;
+  lineCount: number;
+  totalQuantity: number;
+  lastUpdatedAt: string | null;
+}
+
+export interface InventoryCountDocumentLineDto {
+  countGuid: string;
+  rowNo: number;
+  stockCode: string;
+  stockName: string;
+  barcode: string;
+  unitPointer: number;
+  unitName: string;
+  quantity1: number;
+  quantity2: number;
+  quantity3: number;
+  quantity4: number;
+  quantity5: number;
+  rayonCode: string;
+  corridorCode: string;
+  shelfCode: string;
+  partyCode: string;
+  lotNo: number;
+  serialNo: string;
+  special1: string;
+  special2: string;
+  special3: string;
+  lastUpdatedAt: string | null;
+}
+
+export interface InventoryCountDocumentDto {
+  header: InventoryCountDocumentHeaderDto;
+  lines: InventoryCountDocumentLineDto[];
+}
+
+export type InventoryCountHeaderPatchHttpRequest = Partial<
+  Pick<InventoryCountDocumentHeaderDto, 'documentDate' | 'warehouseNo' | 'name'>
+>;
+
+export type InventoryCountLinePatchHttpRequest = Partial<
+  Omit<InventoryCountDocumentLineDto, 'countGuid' | 'stockName' | 'unitName' | 'lastUpdatedAt'>
+> & { countGuid: string };
+
+export interface UpdateInventoryCountDocumentHttpRequest {
+  lookup: InventoryCountDocumentLookupHttpRequest;
+  header?: InventoryCountHeaderPatchHttpRequest;
+  lines?: InventoryCountLinePatchHttpRequest[];
+}
+
+export interface InventoryCountDocumentUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  document: InventoryCountDocumentDto;
+}
+
 export interface CustomerMovementDocumentLookupHttpRequest {
   documentSerie: string;
   documentOrderNo: number;

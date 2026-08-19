@@ -61,37 +61,103 @@
           <h3>Urun Ekle</h3>
         </div>
 
-        <div class="search-row">
-          <input
-            type="text"
-            [formControl]="stockQuery"
-            placeholder="Virman stogu, kodu veya barkod"
-            (keydown.enter)="$event.preventDefault(); searchStock()"
-          />
-          <button type="button" class="small-btn" [disabled]="stockLoading()" (click)="searchStock()">
-            {{ stockLoading() ? 'Araniyor...' : 'Ara' }}
+        <div class="virman-entry-grid">
+          <div class="virman-product-card virman-product-out">
+            <div class="product-card-head">
+              <span>Cikis</span>
+              <strong>Parcalanacak Urun</strong>
+            </div>
+
+            <div class="product-search-row">
+              <input
+                type="text"
+                [formControl]="outgoingStockQuery"
+                placeholder="Urun kodu, adi veya barkod"
+                (keydown.enter)="$event.preventDefault(); searchVirmanStock('outgoing')"
+              />
+              <button
+                type="button"
+                class="small-btn"
+                [disabled]="outgoingStockLoading()"
+                (click)="searchVirmanStock('outgoing')"
+              >
+                {{ outgoingStockLoading() ? '...' : 'Ara' }}
+              </button>
+            </div>
+
+            <div class="search-results inline-results" *ngIf="outgoingStockResults().length">
+              <button
+                type="button"
+                class="result-item"
+                *ngFor="let stock of outgoingStockResults(); trackBy: trackByStock"
+                (click)="selectVirmanStock(stock, 'outgoing')"
+              >
+                <strong>{{ stock.stockName }}</strong>
+                <span>{{ stock.stockCode }} / {{ stock.barcode || '-' }} / {{ stock.unitName || 'Birim' }}</span>
+              </button>
+            </div>
+
+            <label class="field compact-field">
+              <span>Miktar</span>
+              <input type="number" min="0.001" step="0.001" [formControl]="outgoingQuantity" />
+            </label>
+          </div>
+
+          <div class="virman-product-card virman-product-in">
+            <div class="product-card-head">
+              <span>Giris</span>
+              <strong>Virman Yapilacak Urun</strong>
+            </div>
+
+            <div class="product-search-row">
+              <input
+                type="text"
+                [formControl]="incomingStockQuery"
+                placeholder="Urun kodu, adi veya barkod"
+                (keydown.enter)="$event.preventDefault(); searchVirmanStock('incoming')"
+              />
+              <button
+                type="button"
+                class="small-btn"
+                [disabled]="incomingStockLoading()"
+                (click)="searchVirmanStock('incoming')"
+              >
+                {{ incomingStockLoading() ? '...' : 'Ara' }}
+              </button>
+            </div>
+
+            <div class="search-results inline-results" *ngIf="incomingStockResults().length">
+              <button
+                type="button"
+                class="result-item"
+                *ngFor="let stock of incomingStockResults(); trackBy: trackByStock"
+                (click)="selectVirmanStock(stock, 'incoming')"
+              >
+                <strong>{{ stock.stockName }}</strong>
+                <span>{{ stock.stockCode }} / {{ stock.barcode || '-' }} / {{ stock.unitName || 'Birim' }}</span>
+              </button>
+            </div>
+
+            <label class="field compact-field">
+              <span>Miktar</span>
+              <input type="number" min="0.001" step="0.001" [formControl]="incomingQuantity" />
+            </label>
+          </div>
+        </div>
+
+        <div class="entry-actions-row">
+          <button type="button" class="small-btn add-pair-btn" (click)="addVirmanPair()">
+            Urunleri Listeye Ekle
           </button>
           <button type="button" class="small-btn secondary" (click)="addManualLine(1)">
-            Cikis Satiri
+            Bos Cikis
           </button>
           <button type="button" class="small-btn secondary" (click)="addManualLine(0)">
-            Giris Satiri
+            Bos Giris
           </button>
         </div>
 
         <div class="feedback feedback-error compact" *ngIf="stockError()">{{ stockError() }}</div>
-
-        <div class="search-results" *ngIf="stockResults().length">
-          <button
-            type="button"
-            class="result-item"
-            *ngFor="let stock of stockResults(); trackBy: trackByStock"
-            (click)="addStockLine(stock)"
-          >
-            <strong>{{ stock.stockName }}</strong>
-            <span>{{ stock.stockCode }} / {{ stock.barcode || '-' }} / {{ stock.unitName || 'Birim' }}</span>
-          </button>
-        </div>
       </section>
 
       <section class="panel kalem-panel">
@@ -103,51 +169,46 @@
           Urun arayip sec veya bos satir ekle.
         </div>
 
-        <div class="line-list" formArrayName="lines" *ngIf="lineCount()">
+        <div class="virman-table" formArrayName="lines" *ngIf="lineCount()">
+          <div class="virman-table-head">
+            <span>Tip</span>
+            <span>Urun Kodu</span>
+            <span>Urun Adi</span>
+            <span>Miktar</span>
+            <span></span>
+          </div>
+
           <article
-            class="line-row"
+            class="line-row virman-table-row"
             *ngFor="let line of lines.controls; let i = index; trackBy: trackByLine"
             [formGroupName]="i"
             [class.line-row-outgoing]="line.controls.movementType.value === 1"
             [class.line-row-incoming]="line.controls.movementType.value === 0"
           >
-            <div class="line-main virman-line-main">
-              <label class="field">
-                <span>Stok Kodu *</span>
-                <input type="text" formControlName="stockCode" />
-              </label>
-
-              <label class="field">
-                <span>Stok Adi</span>
-                <input type="text" formControlName="stockName" />
-              </label>
-
-              <label class="field">
-                <span>Tip *</span>
-                <select formControlName="movementType">
-                  <option [ngValue]="1">Cikis</option>
-                  <option [ngValue]="0">Giris</option>
-                  <option [ngValue]="2">Teknik Virman</option>
-                </select>
-              </label>
-
-              <label class="field compact-field">
-                <span>Miktar *</span>
-                <input type="number" min="0.001" step="0.001" formControlName="quantity" />
-              </label>
-
-              <label class="field compact-field">
-                <span>Birim No *</span>
-                <input type="number" min="1" step="1" formControlName="unitPointer" />
-              </label>
-            </div>
-
+            <span class="movement-pill">{{ getMovementLabel(line.controls.movementType.value) }}</span>
+            <input class="table-input" type="text" formControlName="stockCode" />
+            <input class="table-input" type="text" formControlName="stockName" />
+            <input class="table-input quantity-input" type="number" min="0.001" step="0.001" formControlName="quantity" />
             <button type="button" class="remove-btn" (click)="removeLine(i)">Sil</button>
 
             <details class="line-advanced">
               <summary>Detay</summary>
 
               <div class="line-extra">
+                <label class="field">
+                  <span>Tip</span>
+                  <select formControlName="movementType">
+                    <option [ngValue]="1">Cikis</option>
+                    <option [ngValue]="0">Giris</option>
+                    <option [ngValue]="2">Teknik Virman</option>
+                  </select>
+                </label>
+
+                <label class="field compact-field">
+                  <span>Birim No</span>
+                  <input type="number" min="1" step="1" formControlName="unitPointer" />
+                </label>
+
                 <label class="field">
                   <span>Satir Notu</span>
                   <input type="text" formControlName="description" maxlength="50" />

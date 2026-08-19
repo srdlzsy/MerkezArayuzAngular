@@ -14,6 +14,9 @@ import type {
   CustomerMovementDocumentDeleteHttpRequest,
   CustomerMovementDocumentLookupHttpRequest,
   CustomerMovementDocumentUpdateResponse,
+  InventoryCountDocumentDto,
+  InventoryCountDocumentLookupHttpRequest,
+  InventoryCountDocumentUpdateResponse,
   MikroDocumentFieldCatalogDto,
   MikroDocumentDeleteResponse,
   StockCardDetailDto,
@@ -34,6 +37,7 @@ import type {
   StockMovementDocumentUpdateResponse,
   UpdateCompanyOrderDocumentHttpRequest,
   UpdateCustomerMovementDocumentHttpRequest,
+  UpdateInventoryCountDocumentHttpRequest,
   UpdateStockMovementDocumentHttpRequest,
   UpdateWarehouseOrderDocumentHttpRequest,
   WarehouseCardDetailDto,
@@ -210,6 +214,21 @@ export class DuzeltmeIslemleriService extends BaseApiService {
       {
         params: this.buildParams(query)
       }
+    );
+  }
+
+  getInventoryCountDocument(
+    query: InventoryCountDocumentLookupHttpRequest
+  ): Observable<InventoryCountDocumentDto> {
+    return this.getWithQuery<InventoryCountDocumentDto>(`${ROOT}/sayim-sonuclari`, query);
+  }
+
+  updateInventoryCountDocument(
+    request: UpdateInventoryCountDocumentHttpRequest
+  ): Observable<InventoryCountDocumentUpdateResponse> {
+    return this.put<InventoryCountDocumentUpdateResponse, UpdateInventoryCountDocumentHttpRequest>(
+      `${ROOT}/sayim-sonuclari`,
+      request
     );
   }
 

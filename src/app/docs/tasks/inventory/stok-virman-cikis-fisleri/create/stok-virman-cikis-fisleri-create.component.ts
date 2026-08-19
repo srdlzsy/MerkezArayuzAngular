@@ -52,9 +52,20 @@ type VirmanLineFormGroup = FormGroup<{
 })
 export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['virmanlar'];
-  protected readonly stockQuery = new FormControl('', { nonNullable: true });
-  protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
-  protected readonly stockLoading = signal(false);
+  protected readonly outgoingStockQuery = new FormControl('', { nonNullable: true });
+  protected readonly incomingStockQuery = new FormControl('', { nonNullable: true });
+  protected readonly outgoingQuantity = new FormControl<number | null>(1, {
+    validators: [Validators.required, Validators.min(0.001)]
+  });
+  protected readonly incomingQuantity = new FormControl<number | null>(1, {
+    validators: [Validators.required, Validators.min(0.001)]
+  });
+  protected readonly outgoingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected readonly incomingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected readonly selectedOutgoingStock = signal<IFurpaProductSearchItemApiDto | null>(null);
+  protected readonly selectedIncomingStock = signal<IFurpaProductSearchItemApiDto | null>(null);
+  protected readonly outgoingStockLoading = signal(false);
+  protected readonly incomingStockLoading = signal(false);
   protected readonly stockError = signal('');
   protected readonly submitError = signal('');
   protected readonly submitting = signal(false);
@@ -64,7 +75,8 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly authService = inject(AuthService);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateVirmanRequestApiDto>();
-  private stockRequestId = 0;
+  private outgoingStockRequestId = 0;
+  private incomingStockRequestId = 0;
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
       this.authService.currentUser(),
@@ -123,42 +135,52 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     return this.lines.controls.some((line) => this.isExpandedVirmanLine(line));
   }
 
-  protected searchStock(): void {
-    const query = this.stockQuery.value.trim();
+  protected searchVirmanStock(target: 'outgoing' | 'incoming'): void {
+    const queryControl = target === 'outgoing' ? this.outgoingStockQuery : this.incomingStockQuery;
+    const loading = target === 'outgoing' ? this.outgoingStockLoading : this.incomingStockLoading;
+    const results = target === 'outgoing' ? this.outgoingStockResults : this.incomingStockResults;
+    const query = queryControl.value.trim();
 
-    if (this.stockLoading()) {
+    if (loading()) {
       return;
     }
 
     this.stockError.set('');
-    this.stockResults.set([]);
+    results.set([]);
 
     if (query.length < 2) {
       this.stockError.set('Virman stogu aramak icin en az 2 karakter gir.');
       return;
     }
 
-    const requestId = ++this.stockRequestId;
-    this.stockLoading.set(true);
+    const requestId = target === 'outgoing' ? ++this.outgoingStockRequestId : ++this.incomingStockRequestId;
+    loading.set(true);
 
     this.aramaService
       .searchStock(query)
-      .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
+      .pipe(finalize(() => {
+        const currentRequestId = target === 'outgoing' ? this.outgoingStockRequestId : this.incomingStockRequestId;
+        if (requestId === currentRequestId) {
+          loading.set(false);
+        }
+      }))
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
-          if (requestId !== this.stockRequestId) {
+          const currentRequestId = target === 'outgoing' ? this.outgoingStockRequestId : this.incomingStockRequestId;
+          if (requestId !== currentRequestId) {
             return;
           }
 
           const normalizedResults = this.normalizeStocks(results ?? []);
-          this.stockResults.set(normalizedResults);
+          (target === 'outgoing' ? this.outgoingStockResults : this.incomingStockResults).set(normalizedResults);
 
           if (!normalizedResults.length) {
             this.stockError.set('Aramana uygun virman stogu bulunamadi.');
           }
         },
         error: (error: HttpErrorResponse) => {
-          if (requestId !== this.stockRequestId) {
+          const currentRequestId = target === 'outgoing' ? this.outgoingStockRequestId : this.incomingStockRequestId;
+          if (requestId !== currentRequestId) {
             return;
           }
 
@@ -167,10 +189,47 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       });
   }
 
-  protected addStockLine(stock: IFurpaProductSearchItemApiDto): void {
-    this.lines.push(this.createLineFormGroup(stock));
-    this.stockResults.set([]);
-    this.stockQuery.setValue('');
+  protected selectVirmanStock(stock: IFurpaProductSearchItemApiDto, target: 'outgoing' | 'incoming'): void {
+    const label = this.getStockLabel(stock);
+
+    if (target === 'outgoing') {
+      this.selectedOutgoingStock.set(stock);
+      this.outgoingStockQuery.setValue(label);
+      this.outgoingStockResults.set([]);
+      return;
+    }
+
+    this.selectedIncomingStock.set(stock);
+    this.incomingStockQuery.setValue(label);
+    this.incomingStockResults.set([]);
+  }
+
+  protected addVirmanPair(): void {
+    this.stockError.set('');
+
+    const outgoingStock = this.selectedOutgoingStock();
+    const incomingStock = this.selectedIncomingStock();
+    const outgoingQuantity = this.normalizeNumber(this.outgoingQuantity.value);
+    const incomingQuantity = this.normalizeNumber(this.incomingQuantity.value);
+
+    if (!outgoingStock || !incomingStock) {
+      this.stockError.set('Once parcalanacak ve virman yapilacak urunleri sec.');
+      return;
+    }
+
+    if (this.getStockKey(outgoingStock) === this.getStockKey(incomingStock)) {
+      this.stockError.set('Cikis ve giris urunleri ayni olamaz.');
+      return;
+    }
+
+    if (outgoingQuantity <= 0 || incomingQuantity <= 0) {
+      this.stockError.set('Cikis ve giris miktarlari sifirdan buyuk olmali.');
+      return;
+    }
+
+    this.lines.push(this.createLineFormGroup(outgoingStock, 1, outgoingQuantity));
+    this.lines.push(this.createLineFormGroup(incomingStock, 0, incomingQuantity));
+    this.clearVirmanPairForm();
   }
 
   protected addManualLine(movementType = 1): void {
@@ -236,6 +295,29 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     control: VirmanLineFormGroup
   ): string => control.controls.stockCode.value.trim() || `${index}`;
 
+  protected getStockLabel(stock: IFurpaProductSearchItemApiDto | null): string {
+    if (!stock) {
+      return '';
+    }
+
+    const stockCode = stock.stockCode?.trim();
+    const stockName = stock.stockName?.trim();
+    return [stockCode, stockName].filter(Boolean).join(' - ');
+  }
+
+  protected getMovementLabel(movementType: number | null): string {
+    switch (this.normalizeNumber(movementType)) {
+      case 0:
+        return 'Giris';
+      case 1:
+        return 'Cikis';
+      case 2:
+        return 'Teknik';
+      default:
+        return 'Bilinmiyor';
+    }
+  }
+
   private buildRequest(): IFurpaCreateVirmanRequestApiDto {
     const rawValue = this.form.getRawValue();
 
@@ -260,7 +342,8 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
 
   private createLineFormGroup(
     stock?: IFurpaProductSearchItemApiDto,
-    movementType = 1
+    movementType = 1,
+    quantity = 1
   ): VirmanLineFormGroup {
     return new FormGroup({
       stockCode: new FormControl(stock?.stockCode?.trim() ?? '', {
@@ -274,7 +357,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       unitPointer: new FormControl(1, {
         validators: [Validators.required, Validators.min(1)]
       }),
-      quantity: new FormControl(1, {
+      quantity: new FormControl(quantity, {
         validators: [Validators.required, Validators.min(0.001)]
       }),
       description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
@@ -298,6 +381,21 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     }
 
     return Array.from(uniqueStocks.values());
+  }
+
+  private clearVirmanPairForm(): void {
+    this.selectedOutgoingStock.set(null);
+    this.selectedIncomingStock.set(null);
+    this.outgoingStockQuery.setValue('');
+    this.incomingStockQuery.setValue('');
+    this.outgoingQuantity.setValue(1);
+    this.incomingQuantity.setValue(1);
+    this.outgoingStockResults.set([]);
+    this.incomingStockResults.set([]);
+  }
+
+  private getStockKey(stock: IFurpaProductSearchItemApiDto): string {
+    return (stock.stockCode?.trim() || stock.barcode?.trim() || '').toLocaleUpperCase('tr-TR');
   }
 
   private normalizeNumber(value: number | null | undefined): number {

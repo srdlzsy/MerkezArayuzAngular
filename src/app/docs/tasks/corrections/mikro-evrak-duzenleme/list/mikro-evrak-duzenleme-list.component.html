@@ -1052,6 +1052,137 @@
       </ng-template>
     </section>
 
+    <section *ngSwitchCase="'inventory-count'" class="document-workspace">
+      <article class="lookup-bar">
+        <div class="lookup-title">
+          <p class="panel-kicker">SAYIM_SONUCLARI</p>
+          <h3>Sayim sonucu fisini bul</h3>
+        </div>
+        <label class="field">
+          <span>Depo No *</span>
+          <input
+            type="number"
+            [(ngModel)]="inventoryCountLookup.warehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Evrak No *</span>
+          <input
+            type="number"
+            [(ngModel)]="inventoryCountLookup.documentNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Sayim Tarihi *</span>
+          <input
+            type="date"
+            [(ngModel)]="inventoryCountLookup.documentDate"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canDetail() || isBusy('inventory-count-load')"
+          (click)="loadInventoryCount()"
+        >
+          {{ isBusy('inventory-count-load') ? 'Getiriliyor...' : 'Sayimi Getir' }}
+        </button>
+      </article>
+
+      <ng-container *ngIf="inventoryCountDraft() as document; else noInventoryCount">
+        <article class="document-summary">
+          <div>
+            <p class="panel-kicker">SAYIM OZETI</p>
+            <h3>
+              {{ document.header.warehouseNo }} / {{ document.header.documentNo }}
+              · {{ document.header.name || document.header.warehouseName || 'Sayim' }}
+            </h3>
+          </div>
+          <div class="summary-metrics">
+            <span><strong>{{ document.header.lineCount }}</strong> satir</span>
+            <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
+            <span class="change-badge">{{ changedInventoryCountCount() }} degisiklik</span>
+          </div>
+        </article>
+
+        <article class="editor-panel">
+          <div class="form-section">
+            <h4>Sayim ust bilgileri</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of inventoryCountHeaderFields; trackBy: trackByField"
+                class="field"
+                [class.field-wide]="field.wide"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  [type]="field.type || 'text'"
+                  [ngModel]="fieldValue(document.header, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(document.header, field.key, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="line-stack">
+            <details
+              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
+              class="line-card"
+              [open]="document.lines.length === 1"
+            >
+              <summary>
+                <span class="line-index">{{ index + 1 }}</span>
+                <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
+                <span>{{ line.quantity1 | number: '1.0-3' }} {{ line.unitName }}</span>
+                <code>{{ line.countGuid }}</code>
+              </summary>
+              <div class="form-grid line-form-grid">
+                <label
+                  *ngFor="let field of inventoryCountLineFields; trackBy: trackByField"
+                  class="field"
+                  [class.field-wide]="field.wide"
+                >
+                  <span>{{ field.label }}</span>
+                  <input
+                    [type]="field.type || 'text'"
+                    [ngModel]="fieldValue(line, field.key)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="setField(line, field.key, $event)"
+                  />
+                </label>
+              </div>
+            </details>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetInventoryCount()">
+              Degisiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedInventoryCountCount() || isBusy('inventory-count-save')"
+              (click)="saveInventoryCount()"
+            >
+              {{ isBusy('inventory-count-save') ? 'Kaydediliyor...' : 'Sayim Sonucunu Guncelle' }}
+            </button>
+          </div>
+        </article>
+      </ng-container>
+
+      <ng-template #noInventoryCount>
+        <div class="empty-state">
+          <i class="fa-solid fa-clipboard-list"></i>
+          <h3>Depo, evrak no ve tarih ile sayimi getirin</h3>
+          <p>Sayim sonucunda yeni satir olusturma veya silme yoktur; mevcut satirlar duzeltilir.</p>
+        </div>
+      </ng-template>
+    </section>
+
     <section *ngSwitchCase="'customer-movement'" class="document-workspace">
       <article class="lookup-bar">
         <div class="lookup-title">
