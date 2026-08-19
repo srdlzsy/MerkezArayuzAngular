@@ -37,7 +37,7 @@ import {
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
 
-const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58, 59, 62]);
+const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58]);
 
 interface KalemFormValue {
   stokKodu: string;
@@ -581,7 +581,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           control.controls.greenGrocerCase.setValue(null, { emitEvent: false });
           control.controls.cozumMesaj.setValue('', { emitEvent: false });
           control.controls.cozumHata.setValue(
-            this.resolveErrorMessage(error, 'Manav kasa cozumlemesi yapilamadi.'),
+            this.resolveErrorMessage(error, 'Kaynak depo urunu cozumlemesi yapilamadi.'),
             { emitEvent: false }
           );
         }
@@ -800,7 +800,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       control.controls.greenGrocerCase.setValue(null, { emitEvent: false });
       control.controls.cozumMesaj.setValue('', { emitEvent: false });
       control.controls.cozumHata.setValue(
-        resolution.errors?.[0] ?? 'Bu manav urunu icin kasa cozumlemesi kullanilamaz.',
+        resolution.errors?.[0] ?? 'Bu kaynak depo urunu icin kasa cozumlemesi kullanilamaz.',
         { emitEvent: false }
       );
       return;
@@ -839,7 +839,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     );
 
     if (pendingLine) {
-      this.stockError.set('Manav kasa cozumlemesi devam eden kalem var.');
+      this.stockError.set('Kaynak depo urunu cozumlemesi devam eden kalem var.');
       return false;
     }
 
@@ -848,7 +848,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     );
 
     if (failedLine) {
-      this.stockError.set(failedLine.controls.cozumHata.value || 'Manav kasa cozumlemesi hatali kalem var.');
+      this.stockError.set(failedLine.controls.cozumHata.value || 'Kaynak depo urunu cozumlemesi hatali kalem var.');
       return false;
     }
 
