@@ -132,12 +132,15 @@ export interface SuggestedWarehouseOrderListItemDto {
   suggestedOrderQuantity: number;
 }
 
-export interface GreenGrocerSuggestedProductDto {
+export interface SuggestedWarehouseSourceProductDto {
+  sourceWarehouseNo: number;
+  sourceWarehouseName: string;
   stockCode: string;
   stockName: string;
   modelCode: string;
   modelName: string;
   unitName: string;
+  barcode: string;
   quantity: number;
   recommendedQuantity: number;
   unitPrice: number;

@@ -20,7 +20,7 @@ import type {
   WarehouseOrderDetailDto,
   WarehouseOrderListItemDto,
   WarehouseOrderDateRangeHttpRequest,
-  GreenGrocerSuggestedProductDto
+  SuggestedWarehouseSourceProductDto
 } from '@interfaces';
 
 import {
@@ -129,10 +129,12 @@ export class SiparisIslemleriService extends BaseApiService {
     );
   }
 
-  listGreenGrocerSuggestedWarehouseOrders(): Observable<GreenGrocerSuggestedProductDto[]> {
-    return this.getWithQuery<GreenGrocerSuggestedProductDto[]>(
-      'siparis-islemleri/onerilen-depo-siparisleri/manav',
-      {}
+  listSuggestedWarehouseSourceProducts(
+    sourceWarehouseNo: number
+  ): Observable<SuggestedWarehouseSourceProductDto[]> {
+    return this.getWithQuery<SuggestedWarehouseSourceProductDto[]>(
+      'siparis-islemleri/onerilen-depo-siparisleri/kaynak-depo-urunleri',
+      { sourceWarehouseNo }
     );
   }
 

@@ -16,7 +16,7 @@ import type {
   IFurpaCreateWarehouseOrderRequestApiDto,
   IFurpaCreateWarehouseOrderLineRequestApiDto,
   IFurpaProductSearchItemApiDto,
-  GreenGrocerSuggestedProductDto
+  SuggestedWarehouseSourceProductDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -36,6 +36,8 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+
+const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58, 59, 62]);
 
 interface KalemFormValue {
   stokKodu: string;
@@ -336,8 +338,8 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.presetProductsLoading.set(true);
     this.stockError.set('');
 
-    if (warehouse.warehouseNo === 56) {
-      this.loadGreenGrocerRecommendedKalemler(requestId, warehouse.warehouseNo);
+    if (this.usesManualSourceProductSelection(warehouse.warehouseNo)) {
+      this.loadSourceWarehouseProducts(requestId, warehouse.warehouseNo);
       return;
     }
 
@@ -391,12 +393,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       });
   }
 
-  private loadGreenGrocerRecommendedKalemler(requestId: number, warehouseNo: number): void {
+  private loadSourceWarehouseProducts(requestId: number, warehouseNo: number): void {
     this.siparisIslemleriService
-      .listGreenGrocerSuggestedWarehouseOrders()
+      .listSuggestedWarehouseSourceProducts(warehouseNo)
       .pipe(finalize(() => requestId === this.presetProductsRequestId && this.presetProductsLoading.set(false)))
       .subscribe({
-        next: (results: GreenGrocerSuggestedProductDto[]) => {
+        next: (results: SuggestedWarehouseSourceProductDto[]) => {
           if (
             requestId !== this.presetProductsRequestId ||
             this.selectedWarehouse()?.warehouseNo !== warehouseNo
@@ -404,10 +406,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
             return;
           }
 
-          const normalizedKalemler = this.normalizeGreenGrocerRecommendedKalemler(results ?? []);
+          const normalizedKalemler = this.normalizeSourceWarehouseProducts(results ?? []);
 
           if (normalizedKalemler.length === 0) {
-            this.stockError.set('Manav urun listesinde siparise eklenebilir urun bulunamadi.');
+            this.stockError.set('Secilen kaynak depo icin siparise eklenebilir urun bulunamadi.');
             return;
           }
 
@@ -424,14 +426,14 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
               continue;
             }
 
-            this.kalemler.push(this.createGreenGrocerRecommendedKalemFormGroup(kalem));
+            this.kalemler.push(this.createSourceWarehouseProductFormGroup(kalem));
             addedCount++;
           }
 
           this.stockQuery.setValue('');
           this.stockResults.set([]);
           this.stockError.set(
-            addedCount ? '' : 'Manav urunleri zaten siparis satirlarinda bulunuyor.'
+            addedCount ? '' : 'Kaynak depo urunleri zaten siparis satirlarinda bulunuyor.'
           );
         },
         error: (error: HttpErrorResponse) => {
@@ -439,7 +441,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
             return;
           }
 
-          this.stockError.set(this.resolveErrorMessage(error, 'Manav urun listesi getirilemedi.'));
+          this.stockError.set(this.resolveErrorMessage(error, 'Kaynak depo urun listesi getirilemedi.'));
         }
       });
   }
@@ -511,7 +513,16 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected isGreenGrocerOrder(): boolean {
-    return this.selectedWarehouse()?.warehouseNo === 56 && !this.greenGrocerResolutionDisabled;
+    const warehouseNo = this.selectedWarehouse()?.warehouseNo;
+    return (
+      warehouseNo !== undefined &&
+      this.usesManualSourceProductSelection(warehouseNo) &&
+      !this.greenGrocerResolutionDisabled
+    );
+  }
+
+  private usesManualSourceProductSelection(warehouseNo: number | null | undefined): boolean {
+    return typeof warehouseNo === 'number' && MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS.has(warehouseNo);
   }
 
   protected resolveGreenGrocerLine(control: KalemFormGroup): void {
@@ -704,8 +715,8 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     });
   }
 
-  private createGreenGrocerRecommendedKalemFormGroup(
-    kalem: GreenGrocerSuggestedProductDto
+  private createSourceWarehouseProductFormGroup(
+    kalem: SuggestedWarehouseSourceProductDto
   ): KalemFormGroup {
     return new FormGroup({
       stokKodu: new FormControl(kalem.stockCode.trim(), {
@@ -713,7 +724,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         validators: [Validators.required]
       }),
       stokIsmi: new FormControl(kalem.stockName.trim(), { nonNullable: true }),
-      barkodu: new FormControl('', { nonNullable: true }),
+      barkodu: new FormControl(kalem.barcode?.trim() ?? '', { nonNullable: true }),
       birim: new FormControl(kalem.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl<number | null>(kalem.unitPointer ?? 1),
       siparisMiktari: new FormControl<number | null>(0, {
@@ -1014,10 +1025,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     );
   }
 
-  private normalizeGreenGrocerRecommendedKalemler(
-    results: GreenGrocerSuggestedProductDto[]
-  ): GreenGrocerSuggestedProductDto[] {
-    const uniqueKalemler = new Map<string, GreenGrocerSuggestedProductDto>();
+  private normalizeSourceWarehouseProducts(
+    results: SuggestedWarehouseSourceProductDto[]
+  ): SuggestedWarehouseSourceProductDto[] {
+    const uniqueKalemler = new Map<string, SuggestedWarehouseSourceProductDto>();
 
     for (const kalem of results) {
       const stockCode = kalem.stockCode?.trim();
@@ -1034,6 +1045,8 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         modelCode: kalem.modelCode?.trim() ?? '',
         modelName: kalem.modelName?.trim() ?? '',
         unitName: kalem.unitName?.trim() ?? '',
+        sourceWarehouseName: kalem.sourceWarehouseName?.trim() ?? '',
+        barcode: kalem.barcode?.trim() ?? '',
         quantity: 0,
         recommendedQuantity: 0,
         unitPrice: kalem.unitPrice ?? 0,
