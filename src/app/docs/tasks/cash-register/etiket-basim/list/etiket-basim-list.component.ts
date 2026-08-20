@@ -151,6 +151,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected supplierQuery = '';
   protected stockQuery = '';
   protected invoiceSearchText = '';
+  protected invoiceStartDate = this.getDateOffset(-6);
+  protected invoiceEndDate = this.getToday();
   protected includeArchivedInvoices = false;
   protected stockPrefix = DEFAULT_STOCK_PREFIX;
   protected reportWarehouseNo: number | null = null;
@@ -279,6 +281,14 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.selectedDate.set(value);
   }
 
+  protected setInvoiceStartDate(value: string): void {
+    this.invoiceStartDate = value;
+  }
+
+  protected setInvoiceEndDate(value: string): void {
+    this.invoiceEndDate = value;
+  }
+
   protected loadDailyWorkspace(): void {
     this.loadRecords();
     this.loadIncomingInvoices();
@@ -326,9 +336,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   protected loadIncomingInvoices(): void {
-    const date = this.selectedDate().trim();
+    const startDate = this.invoiceStartDate.trim();
+    const endDate = this.invoiceEndDate.trim();
 
-    if (!date || !this.canList()) {
+    if (!startDate || !endDate || !this.canList()) {
+      return;
+    }
+
+    if (startDate > endDate) {
+      this.setFeedback('error', 'Tarih araligi hatali', 'Baslangic tarihi bitis tarihinden buyuk olamaz.');
       return;
     }
 
@@ -336,8 +352,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
     this.kasaIslemleriService
       .getManavMalKabulVeEtiketIncomingInvoices({
-        startDate: date,
-        endDate: date,
+        startDate,
+        endDate,
         supplierCode: this.draft.supplierCode || null,
         searchText: this.invoiceSearchText,
         includeArchived: this.includeArchivedInvoices,
@@ -371,24 +387,26 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected selectIncomingInvoice(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): void {
     this.selectedIncomingInvoice.set(invoice);
+    this.selectedRecord.set(null);
+    this.draft = createEmptyDraft();
+    this.calculation.set(null);
+    this.labelPreview.set(null);
+    this.labelCopyCount = 1;
+    this.applyInvoiceToDraft(invoice);
 
-    const supplierCode = invoice.matchedSupplierCode?.trim() || '';
-    const supplierName = invoice.matchedSupplierName?.trim() || invoice.supplierTitle?.trim() || '';
-
-    if (supplierCode || supplierName) {
-      this.draft.supplierCode = supplierCode;
-      this.draft.supplierName = supplierName;
-      this.supplierQuery = this.joinLabel(supplierCode, supplierName);
+    const invoiceDate = this.getIncomingInvoiceDate(invoice)?.slice(0, 10);
+    if (invoiceDate && invoiceDate !== this.selectedDate()) {
+      this.selectedDate.set(invoiceDate);
+      this.loadRecords();
     }
 
-    const documentNo =
-      invoice.invoiceId?.trim() ||
-      invoice.documentId?.trim() ||
-      invoice.despatchId?.trim() ||
-      '';
-
-    if (documentNo && !this.draft.documentNo.trim()) {
-      this.draft.documentNo = documentNo;
+    if (!this.canStartInvoiceAcceptance(invoice)) {
+      this.setFeedback(
+        'error',
+        'Fatura kontrol gerekli',
+        invoice.message?.trim() || invoice.status?.trim() || 'Bu fatura icin kabul baslatilamaz.'
+      );
+      return;
     }
 
     this.feedback.set(null);
@@ -405,9 +423,23 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.calculation.set(null);
     this.labelPreview.set(null);
     this.labelCopyCount = 1;
+    const invoice = this.selectedIncomingInvoice();
+    if (invoice) {
+      this.applyInvoiceToDraft(invoice);
+    }
     this.feedback.set(null);
     this.activeTab.set('form');
     this.scheduleBarcodeRender();
+  }
+
+  protected startManualRecord(): void {
+    this.selectedIncomingInvoice.set(null);
+    this.startNewRecord();
+    this.setFeedback(
+      'info',
+      'Manuel kabul',
+      'Fatura bulunamadigi durumlarda manuel kabul taslagi acildi.'
+    );
   }
 
   protected selectRecord(record: EtiketBasimAcceptanceRecordDto): void {
@@ -468,6 +500,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.supplierQuery = this.joinLabel(supplierCode, supplierName);
     this.supplierResults.set([]);
     this.supplierSearchMessage.set(null);
+    this.loadIncomingInvoices();
   }
 
   protected searchStocks(): void {
@@ -1139,6 +1172,21 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     );
   }
 
+  protected getIncomingInvoiceDate(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): string | null {
+    return invoice.invoiceDate || invoice.createDate || null;
+  }
+
+  protected getSelectedInvoiceSubtitle(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): string {
+    const parts = [
+      this.getIncomingInvoiceDocument(invoice),
+      invoice.supplierTaxNo?.trim(),
+      invoice.invoiceType?.trim(),
+      invoice.status?.trim()
+    ].filter((value): value is string => !!value);
+
+    return parts.join(' / ') || 'Fatura bilgisi';
+  }
+
   protected trackByRecord = (_index: number, record: EtiketBasimAcceptanceRecordDto): number =>
     record.id;
 
@@ -1249,6 +1297,17 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     };
     this.supplierQuery = this.joinLabel(record.supplierCode, record.supplierName);
     this.stockQuery = this.joinLabel(record.stockCode, record.stockName);
+  }
+
+  private applyInvoiceToDraft(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): void {
+    const supplierCode = invoice.matchedSupplierCode?.trim() || '';
+    const supplierName = invoice.matchedSupplierName?.trim() || invoice.supplierTitle?.trim() || '';
+    const documentNo = this.getIncomingInvoiceDocument(invoice);
+
+    this.draft.supplierCode = supplierCode;
+    this.draft.supplierName = supplierName;
+    this.draft.documentNo = documentNo === '-' ? '' : documentNo;
+    this.supplierQuery = this.joinLabel(supplierCode, supplierName);
   }
 
   private upsertRecord(record: EtiketBasimAcceptanceRecordDto): void {
@@ -1481,6 +1540,12 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   private getToday(): string {
     return new Date().toISOString().slice(0, 10);
+  }
+
+  private getDateOffset(dayOffset: number): string {
+    const date = new Date();
+    date.setDate(date.getDate() + dayOffset);
+    return date.toISOString().slice(0, 10);
   }
 
   private waitForNextPaint(): Promise<void> {

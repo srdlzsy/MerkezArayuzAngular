@@ -131,10 +131,11 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Manav/depo mal kabul kayitlarini, etiket basimini, Mikro kontrolunu ve rapor akisini yonetir.',
       baseRouteOrFile: '/api/kasa-islemleri/manav-mal-kabul-etiket',
       highlights: [
-        'Mevcut etiket-belgeleri modulunden ayridir',
+        'Operasyon resmi hal faturasi secimiyle baslar, manuel kabul istisna akisidir',
+        'Gelen faturalar Uyumsoft cache icin /incoming-invoices endpointinden okunur',
         'Tedarikci ve stok referans aramasi',
         'Kasa/net kilo hesaplama ve etiket onizleme',
-        'Canli Mikro mal kabul belge kontrolu ve aktarim sozlesmesi'
+        'Mikro aktarim fiyat, KDV ve fatura secimi netlesmeden acilmamalidir'
       ],
       listTitle: 'Manav Mal Kabul ve Etiket Akisi',
       items: [

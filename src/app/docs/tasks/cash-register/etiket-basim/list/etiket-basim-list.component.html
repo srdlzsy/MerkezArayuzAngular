@@ -9,11 +9,11 @@
       <div class="head-actions">
         <button
           type="button"
-          class="task-action task-action-primary"
-          (click)="startNewRecord()"
+          class="task-action"
+          (click)="startManualRecord()"
           [disabled]="!canCreate()"
         >
-          Yeni Kayit
+          Manuel Kabul
         </button>
         <button type="button" class="task-action" (click)="setActiveTab('reports')">
           Raporlar
@@ -62,6 +62,33 @@
         </div>
 
         <div class="invoice-tools">
+          <label class="field date-field">
+            <span>Baslangic</span>
+            <input
+              type="date"
+              [max]="maxDate"
+              [ngModel]="invoiceStartDate"
+              (ngModelChange)="setInvoiceStartDate($event)"
+            />
+          </label>
+          <label class="field date-field">
+            <span>Bitis</span>
+            <input
+              type="date"
+              [max]="maxDate"
+              [ngModel]="invoiceEndDate"
+              (ngModelChange)="setInvoiceEndDate($event)"
+            />
+          </label>
+          <label class="field search-field">
+            <span>Tedarikci</span>
+            <input
+              type="search"
+              placeholder="Mikro cari ara"
+              [(ngModel)]="supplierQuery"
+              (keydown.enter)="searchSuppliers()"
+            />
+          </label>
           <label class="field search-field">
             <span>Fatura Ara</span>
             <input
@@ -82,6 +109,14 @@
           <button
             type="button"
             class="task-action"
+            (click)="searchSuppliers()"
+            [disabled]="isSupplierSearching()"
+          >
+            {{ isSupplierSearching() ? 'Araniyor...' : 'Cari Bul' }}
+          </button>
+          <button
+            type="button"
+            class="task-action task-action-primary"
             (click)="loadIncomingInvoices()"
             [disabled]="isIncomingInvoiceLoading() || !canList()"
           >
@@ -90,9 +125,52 @@
         </div>
       </div>
 
-      <div class="incoming-list" *ngIf="incomingInvoices().length; else emptyInvoices">
+      <div class="invoice-supplier-results" *ngIf="supplierResults().length">
         <button
           type="button"
+          *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier"
+          (click)="selectSupplier(supplier)"
+        >
+          <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
+          <span>{{ getSupplierCode(supplier) }} / {{ supplier.supplierTaxNo || '-' }}</span>
+        </button>
+      </div>
+      <p class="field-message" *ngIf="supplierSearchMessage() && !supplierResults().length">
+        {{ supplierSearchMessage() }}
+      </p>
+
+      <article class="selected-invoice-card" *ngIf="selectedIncomingInvoice() as invoice">
+        <div class="selected-invoice-title">
+          <span class="status-pill" [ngClass]="getIncomingInvoiceStatusClass(invoice)">
+            {{ getIncomingInvoiceStatusLabel(invoice) }}
+          </span>
+          <div>
+            <strong>{{ getIncomingInvoiceTitle(invoice) }}</strong>
+            <small>{{ getSelectedInvoiceSubtitle(invoice) }}</small>
+          </div>
+        </div>
+        <dl>
+          <div>
+            <dt>Fatura Tarihi</dt>
+            <dd>{{ getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }}</dd>
+          </div>
+          <div>
+            <dt>Toplam</dt>
+            <dd>{{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</dd>
+          </div>
+          <div>
+            <dt>Matrah</dt>
+            <dd>{{ invoice.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>KDV</dt>
+            <dd>{{ invoice.taxTotal || 0 | number:'1.2-2' }}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <div class="incoming-list" *ngIf="incomingInvoices().length; else emptyInvoices">
+        <article
           class="incoming-card"
           *ngFor="let invoice of incomingInvoices(); trackBy: trackByIncomingInvoice"
           [class.is-selected]="isSelectedIncomingInvoice(invoice)"
@@ -103,9 +181,17 @@
           </span>
           <strong>{{ getIncomingInvoiceTitle(invoice) }}</strong>
           <span>{{ getIncomingInvoiceDocument(invoice) }}</span>
-          <small>{{ invoice.invoiceDate || invoice.createDate | date:'dd.MM.yyyy' }} / {{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</small>
+          <small>{{ getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }} / {{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</small>
           <em>{{ invoice.matchedSupplierCode || invoice.supplierTaxNo || invoice.message || '-' }}</em>
-        </button>
+          <button
+            type="button"
+            class="mini-action"
+            [disabled]="!canStartInvoiceAcceptance(invoice)"
+            (click)="selectIncomingInvoice(invoice); $event.stopPropagation()"
+          >
+            Kabul Baslat
+          </button>
+        </article>
       </div>
 
       <ng-template #emptyInvoices>
@@ -121,7 +207,10 @@
         <section class="entry-panel">
           <div class="entry-caption">
             <strong>{{ draftModeLabel() }}</strong>
-            <span>{{ selectedRecordLabel() }}</span>
+            <span>
+              {{ selectedIncomingInvoice() ? 'Fatura uzerinden' : 'Manuel taslak' }} /
+              {{ selectedRecordLabel() }}
+            </span>
           </div>
 
           <div class="entry-grid">
@@ -206,20 +295,13 @@
             </button>
           </div>
 
-          <div class="lookup-drawer" *ngIf="supplierResults().length || stockResults().length || supplierSearchMessage() || stockSearchMessage()">
-            <div class="lookup-results compact-results" *ngIf="supplierResults().length">
-              <button type="button" *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier" (click)="selectSupplier(supplier)">
-                <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
-                <span>{{ getSupplierCode(supplier) }} / {{ supplier.supplierTaxNo || '-' }}</span>
-              </button>
-            </div>
+          <div class="lookup-drawer" *ngIf="stockResults().length || stockSearchMessage()">
             <div class="lookup-results compact-results" *ngIf="stockResults().length">
               <button type="button" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="selectStock(stock)">
                 <strong>{{ getStockName(stock) || getStockCode(stock) }}</strong>
                 <span>{{ getStockCode(stock) }} / {{ getStockBarcode(stock) || '-' }} / {{ stock.unitName || '-' }}</span>
               </button>
             </div>
-            <p class="field-message" *ngIf="supplierSearchMessage()">{{ supplierSearchMessage() }}</p>
             <p class="field-message" *ngIf="stockSearchMessage()">{{ stockSearchMessage() }}</p>
           </div>
 
