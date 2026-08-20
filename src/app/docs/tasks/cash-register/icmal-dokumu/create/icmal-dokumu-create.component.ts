@@ -677,9 +677,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
         next: (detail: ICashRegisterDetails | null) => {
           this.cashRegisterDetail.set(detail);
           const fiscalMemoryNo = detail?.cashRegisterNo?.trim() ?? '';
+          const bankLookupCashRegisterNo =
+            detail?.cashFinanceNumber?.trim() || fiscalMemoryNo;
           this.controls.cashRegisterFiscalNo.setValue(fiscalMemoryNo, { emitEvent: false });
 
-          if (!fiscalMemoryNo) {
+          if (!bankLookupCashRegisterNo) {
             this.cashRegisterMessage.set(
               'Kasa detayi bulundu ancak banka odeme tiplerini getirmek icin cash register no okunamadi.'
             );
@@ -687,9 +689,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
           }
 
           this.cashRegisterMessage.set(
-            `${fiscalMemoryNo} icin banka odeme tipleri yukleniyor.`
+            `${bankLookupCashRegisterNo} icin banka odeme tipleri yukleniyor.`
           );
-          this.loadBankPaymentTypes(fiscalMemoryNo);
+          this.loadBankPaymentTypes(bankLookupCashRegisterNo);
         },
         error: (error: HttpErrorResponse) => {
           this.cashRegisterMessage.set(
@@ -1079,8 +1081,11 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected getCashRegisterLabel(register: IFurpaCashRegistryItemApiDto): string {
     const typeName =
       register.cashRegisterTypeName?.trim() || `Tip ${register.cashRegisterType}`;
+    const financeNo = register.cashFinanceNumber?.trim();
 
-    return `Kasa ${register.cashRegisterNo} - ${typeName}`;
+    return financeNo
+      ? `Kasa ${register.cashRegisterNo} - ${financeNo}`
+      : `Kasa ${register.cashRegisterNo} - ${typeName}`;
   }
 
   protected getCashierLabel(item: IFurpaCashierSearchItemApiDto): string {

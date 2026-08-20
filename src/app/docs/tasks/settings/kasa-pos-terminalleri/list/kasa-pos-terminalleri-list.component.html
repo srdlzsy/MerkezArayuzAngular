@@ -110,7 +110,10 @@
                 (click)="selectCashRegistry(cash)"
               >
                 <td>{{ cash.branchNo }}</td>
-                <td><strong>{{ cash.cashNo }}</strong></td>
+                <td>
+                  <strong>{{ cash.cashNo }}</strong>
+                  <span class="table-meta">{{ cash.cashFinanceNumber || 'Finans no yok' }}</span>
+                </td>
                 <td>
                   <strong>{{ getCashTypeLabel(cash) }}</strong>
                   <span class="table-meta">{{ getCashTypeDescription(cash) }}</span>
@@ -161,7 +164,10 @@
             </thead>
             <tbody>
               <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminal">
-                <td><strong>{{ terminal.terminalNo }}</strong></td>
+                <td>
+                  <strong>{{ terminal.cashRegisterNo || terminal.terminalNo }}</strong>
+                  <span class="table-meta">{{ terminal.terminalNo }}</span>
+                </td>
                 <td>{{ getTerminalBankLabel(terminal.bank) }}</td>
                 <td>{{ terminal.terminalId || '-' }}</td>
                 <td>{{ terminal.merchantNo || '-' }}</td>

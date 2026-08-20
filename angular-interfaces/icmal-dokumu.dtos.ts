@@ -132,6 +132,7 @@ export class Cashier implements ICashier {
 
 export interface ICashRegisterDetails {
   cashRegisterNo: string;
+  cashFinanceNumber?: string | null;
   bank: string;
   terminalId: string;
   merchantNo: string;
@@ -142,6 +143,7 @@ export interface ICashRegisterDetails {
 export class CashRegisterDetails implements ICashRegisterDetails {
   constructor(
     public cashRegisterNo: string,
+    public cashFinanceNumber: string | null,
     public bank: string,
     public terminalId: string,
     public merchantNo: string,

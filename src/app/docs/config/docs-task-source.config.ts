@@ -56,6 +56,7 @@ const DOCS_TASK_ROUTE_PERMISSION_CODES: Readonly<Record<string, readonly string[
   'kasa-pos-terminalleri': ['ayar-islemleri.kasa-pos-terminalleri.manage'],
   kasiyerler: ['ayar-islemleri.kasiyerler.manage'],
   soforler: ['ayar-islemleri.soforler.manage'],
+  'b2b-ayarlari': ['ayar-islemleri.b2b-ayarlari.manage'],
   'alinan-depo-siparisleri': ['siparis-islemleri.alinan-depo-siparisleri.page'],
   'verilen-depo-siparisleri': ['siparis-islemleri.verilen-depo-siparisleri.page'],
   'alinan-firma-siparisleri': ['siparis-islemleri.alinan-firma-siparisleri.page'],

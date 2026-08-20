@@ -63,9 +63,14 @@ export interface CashRegistryDto {
   detailId: number;
   branchNo: number;
   cashNo: number;
+  cashRegisterNo?: number | null;
   cashType: number;
+  cashRegisterType?: number | null;
   cashTypeName: string;
+  cashRegisterTypeName?: string | null;
   cashTypeDescription: string;
+  cashRegisterTypeDescription?: string | null;
+  cashFinanceNumber?: string | null;
 }
 
 export interface CashRegisterResponse {
@@ -80,6 +85,7 @@ export interface CashRegisterResponse {
 export interface CashRegisterTerminalDto {
   id: number;
   terminalNo: string;
+  cashRegisterNo?: string | null;
   bank: string;
   terminalId: string;
   merchantNo: string;
@@ -193,4 +199,58 @@ export interface SaveDespatchDriverHttpRequest {
   tckn: string;
   isActive: boolean;
   notes?: string | null;
+}
+
+export interface B2BBulletinListHttpRequest {
+  search?: string | null;
+  take?: number | null;
+}
+
+export interface B2BBulletinDto {
+  id: number;
+  definition: string;
+  link: string;
+  createDate: string | null;
+}
+
+export interface SaveB2BBulletinHttpRequest {
+  definition: string;
+  link: string;
+  createDate?: string | null;
+}
+
+export interface B2BUserListHttpRequest {
+  search?: string | null;
+  includeInactive?: boolean | null;
+  take?: number | null;
+}
+
+export interface B2BUserDto {
+  userId: string;
+  userFullName: string;
+  userMail: string;
+  status: boolean;
+  createDate: string | null;
+  menus: string | null;
+  userEndDate: string | null;
+  accountCount: number;
+  categories?: string[] | null;
+}
+
+export interface B2BUserAccountDto {
+  id: number;
+  accountId: string;
+  category: string | null;
+}
+
+export interface B2BUserDetailDto extends B2BUserDto {
+  accounts: B2BUserAccountDto[];
+}
+
+export interface UpdateB2BUserHttpRequest {
+  userFullName: string;
+  userMail: string;
+  status: boolean;
+  menus?: string | null;
+  userEndDate?: string | null;
 }

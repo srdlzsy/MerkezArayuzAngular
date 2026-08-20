@@ -1,6 +1,11 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  B2BBulletinDto,
+  B2BBulletinListHttpRequest,
+  B2BUserDetailDto,
+  B2BUserDto,
+  B2BUserListHttpRequest,
   BranchDetailDto,
   BranchSettingsLookupsDto,
   CashierDto,
@@ -20,7 +25,9 @@ import type {
   DespatchDriverDto,
   DespatchDriverListHttpRequest,
   SaveDespatchDriverHttpRequest,
+  SaveB2BBulletinHttpRequest,
   UpdateBranchSettingsHttpRequest,
+  UpdateB2BUserHttpRequest,
   UpdateCashierHttpRequest
 } from '@interfaces';
 
@@ -201,5 +208,57 @@ export class AyarIslemleriService extends BaseApiService {
 
   deleteDespatchDriver(id: string): Observable<void> {
     return this.delete<void>(`ayar-islemleri/soforler/${encodeURIComponent(id)}`);
+  }
+
+  getB2BBulletins(request: B2BBulletinListHttpRequest = {}): Observable<B2BBulletinDto[]> {
+    return this.getWithQuery<B2BBulletinDto[]>('ayar-islemleri/b2b-ayarlari/bultenler', {
+      search: request.search?.trim() || undefined,
+      take: request.take ?? 100
+    });
+  }
+
+  createB2BBulletin(request: SaveB2BBulletinHttpRequest): Observable<B2BBulletinDto> {
+    return this.post<B2BBulletinDto, SaveB2BBulletinHttpRequest>(
+      'ayar-islemleri/b2b-ayarlari/bultenler',
+      request
+    );
+  }
+
+  updateB2BBulletin(
+    id: number,
+    request: SaveB2BBulletinHttpRequest
+  ): Observable<B2BBulletinDto> {
+    return this.put<B2BBulletinDto, SaveB2BBulletinHttpRequest>(
+      `ayar-islemleri/b2b-ayarlari/bultenler/${id}`,
+      request
+    );
+  }
+
+  deleteB2BBulletin(id: number): Observable<void> {
+    return this.delete<void>(`ayar-islemleri/b2b-ayarlari/bultenler/${id}`);
+  }
+
+  getB2BUsers(request: B2BUserListHttpRequest = {}): Observable<B2BUserDto[]> {
+    return this.getWithQuery<B2BUserDto[]>('ayar-islemleri/b2b-ayarlari/kullanicilar', {
+      search: request.search?.trim() || undefined,
+      includeInactive: request.includeInactive ?? false,
+      take: request.take ?? 100
+    });
+  }
+
+  getB2BUser(userId: string): Observable<B2BUserDetailDto> {
+    return this.get<B2BUserDetailDto>(
+      `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}`
+    );
+  }
+
+  updateB2BUser(
+    userId: string,
+    request: UpdateB2BUserHttpRequest
+  ): Observable<B2BUserDetailDto> {
+    return this.put<B2BUserDetailDto, UpdateB2BUserHttpRequest>(
+      `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}`,
+      request
+    );
   }
 }

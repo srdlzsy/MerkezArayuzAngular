@@ -192,7 +192,7 @@
             <div class="draft-row" *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry">
               <div>
                 <strong>Kasa {{ cash.cashNo }}</strong>
-                <span>{{ getCashTypeLabel(cash) }} / Detay {{ cash.detailId }}</span>
+                <span>{{ cash.cashFinanceNumber || 'Finans no yok' }} / Detay {{ cash.detailId }}</span>
                 <span class="table-meta">{{ getCashTypeDescription(cash) }}</span>
               </div>
             </div>

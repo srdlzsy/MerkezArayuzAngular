@@ -828,6 +828,7 @@ export class KasaIslemleriService extends BaseApiService {
 
     return {
       cashRegisterNo: toStringValue(item.cashRegisterNo),
+      cashFinanceNumber: toStringValue(item.cashFinanceNumber),
       bank: toStringValue(item.bank),
       terminalId: toStringValue(item.terminalId),
       merchantNo: toStringValue(item.merchantNo),

@@ -1,0 +1,197 @@
+<section class="b2b-settings-page" *ngIf="page as current">
+  <header class="page-head">
+    <div class="title-block">
+      <span>Ayar Islemleri</span>
+      <h2>{{ current.title }}</h2>
+    </div>
+
+    <div class="tab-actions">
+      <button type="button" [class.is-active]="activeTab() === 'bulletins'" (click)="setTab('bulletins')">
+        Bultenler
+      </button>
+      <button type="button" [class.is-active]="activeTab() === 'users'" (click)="setTab('users')">
+        Kullanicilar
+      </button>
+    </div>
+  </header>
+
+  <article
+    class="feedback-card"
+    *ngIf="feedback() as currentFeedback"
+    [class.is-error]="currentFeedback.tone === 'error'"
+    [class.is-success]="currentFeedback.tone === 'success'"
+  >
+    <strong>{{ currentFeedback.title }}</strong>
+    <span>{{ currentFeedback.message }}</span>
+  </article>
+
+  <section class="summary-grid">
+    <article>
+      <span>Bulten</span>
+      <strong>{{ bulletins().length }}</strong>
+    </article>
+    <article>
+      <span>Kullanici</span>
+      <strong>{{ users().length }}</strong>
+    </article>
+    <article>
+      <span>Aktif</span>
+      <strong>{{ activeUserCount() }}</strong>
+    </article>
+  </section>
+
+  <section class="workspace" *ngIf="activeTab() === 'bulletins'">
+    <article class="list-panel">
+      <div class="toolbar">
+        <label class="field">
+          <span>Bulten Ara</span>
+          <input type="search" [(ngModel)]="bulletinSearch" (keydown.enter)="loadBulletins()" />
+        </label>
+        <label class="field take-field">
+          <span>Limit</span>
+          <input type="number" min="1" max="500" [(ngModel)]="take" />
+        </label>
+        <button type="button" class="action-button" (click)="loadBulletins()" [disabled]="loadingAction() === 'load' || !canList()">
+          {{ loadingAction() === 'load' ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+      </div>
+
+      <div class="table-wrap" *ngIf="bulletins().length; else emptyBulletins">
+        <table>
+          <thead>
+            <tr>
+              <th>Bulten</th>
+              <th>Link</th>
+              <th>Tarih</th>
+              <th>Islem</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of bulletins(); trackBy: trackByBulletin" (click)="selectBulletin(item)">
+              <td data-label="Bulten"><strong>{{ item.definition }}</strong></td>
+              <td data-label="Link"><span>{{ item.link }}</span></td>
+              <td data-label="Tarih">{{ item.createDate | date:'dd.MM.yyyy HH:mm' }}</td>
+              <td data-label="Islem">
+                <button type="button" class="mini danger" (click)="deleteBulletin(item); $event.stopPropagation()" [disabled]="!canDelete()">
+                  Sil
+                </button>
+              </td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #emptyBulletins>
+        <article class="empty-state">Bulten bulunamadi.</article>
+      </ng-template>
+    </article>
+
+    <aside class="edit-panel">
+      <div class="panel-title">
+        <span>{{ bulletinDraft.id ? 'Bulten Guncelle' : 'Yeni Bulten' }}</span>
+        <button type="button" class="mini" (click)="newBulletin()">Yeni</button>
+      </div>
+
+      <label class="field">
+        <span>Aciklama</span>
+        <input type="text" maxlength="250" [(ngModel)]="bulletinDraft.definition" />
+      </label>
+      <label class="field">
+        <span>Link</span>
+        <input type="url" maxlength="500" [(ngModel)]="bulletinDraft.link" />
+      </label>
+      <label class="field">
+        <span>Tarih</span>
+        <input type="datetime-local" [(ngModel)]="bulletinDraft.createDate" />
+      </label>
+
+      <button type="button" class="action-button primary" (click)="saveBulletin()" [disabled]="loadingAction() === 'save' || (bulletinDraft.id ? !canUpdate() : !canCreate())">
+        {{ loadingAction() === 'save' ? 'Kaydediliyor...' : 'Kaydet' }}
+      </button>
+    </aside>
+  </section>
+
+  <section class="workspace" *ngIf="activeTab() === 'users'">
+    <article class="list-panel">
+      <div class="toolbar">
+        <label class="field">
+          <span>Kullanici Ara</span>
+          <input type="search" [(ngModel)]="userSearch" (keydown.enter)="loadUsers()" />
+        </label>
+        <label class="check-field">
+          <input type="checkbox" [(ngModel)]="includeInactiveUsers" (change)="loadUsers()" />
+          Pasif dahil
+        </label>
+        <button type="button" class="action-button" (click)="loadUsers()" [disabled]="loadingAction() === 'load' || !canList()">
+          {{ loadingAction() === 'load' ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+      </div>
+
+      <div class="table-wrap" *ngIf="users().length; else emptyUsers">
+        <table>
+          <thead>
+            <tr>
+              <th>Kullanici</th>
+              <th>E-posta</th>
+              <th>Durum</th>
+              <th>Hesap</th>
+              <th>Bitis</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let user of users(); trackBy: trackByUser" (click)="selectUser(user)">
+              <td data-label="Kullanici"><strong>{{ user.userFullName }}</strong><span>{{ user.categories?.join(', ') || '-' }}</span></td>
+              <td data-label="E-posta">{{ user.userMail }}</td>
+              <td data-label="Durum"><span class="status-pill" [class.is-passive]="!user.status">{{ user.status ? 'Aktif' : 'Pasif' }}</span></td>
+              <td data-label="Hesap">{{ user.accountCount || 0 }}</td>
+              <td data-label="Bitis">{{ user.userEndDate ? (user.userEndDate | date:'dd.MM.yyyy') : '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <ng-template #emptyUsers>
+        <article class="empty-state">Kullanici bulunamadi.</article>
+      </ng-template>
+    </article>
+
+    <aside class="edit-panel">
+      <div class="panel-title">
+        <span>Kullanici Guncelle</span>
+        <button type="button" class="mini" (click)="clearUserSelection()">Temizle</button>
+      </div>
+
+      <label class="field">
+        <span>Ad Soyad</span>
+        <input type="text" maxlength="70" [(ngModel)]="userDraft.userFullName" [disabled]="!userDraft.userId" />
+      </label>
+      <label class="field">
+        <span>E-posta</span>
+        <input type="email" maxlength="150" [(ngModel)]="userDraft.userMail" [disabled]="!userDraft.userId" />
+      </label>
+      <label class="field">
+        <span>Menu</span>
+        <input type="text" [(ngModel)]="userDraft.menus" [disabled]="!userDraft.userId" />
+      </label>
+      <label class="field">
+        <span>Bitis Tarihi</span>
+        <input type="datetime-local" [(ngModel)]="userDraft.userEndDate" [disabled]="!userDraft.userId" />
+      </label>
+      <label class="check-field form-check">
+        <input type="checkbox" [(ngModel)]="userDraft.status" [disabled]="!userDraft.userId" />
+        Aktif kullanici
+      </label>
+
+      <button type="button" class="action-button primary" (click)="saveUser()" [disabled]="loadingAction() === 'save' || !userDraft.userId || !canUpdate()">
+        {{ loadingAction() === 'save' ? 'Kaydediliyor...' : 'Kullaniciyi Kaydet' }}
+      </button>
+
+      <section class="account-list" *ngIf="selectedUser()?.accounts?.length">
+        <strong>Bagli Hesaplar</strong>
+        <span *ngFor="let account of selectedUser()?.accounts; trackBy: trackByAccount">
+          {{ account.category || '-' }} / {{ account.accountId }}
+        </span>
+      </section>
+    </aside>
+  </section>
+</section>

@@ -1459,11 +1459,13 @@ export interface IFurpaCashRegistryItemApiDto {
   cashRegisterType: number;
   cashRegisterTypeName?: string | null;
   cashRegisterTypeDescription?: string | null;
+  cashFinanceNumber?: string | null;
 }
 
 export interface IFurpaCashRegisterLookupItemApiDto {
   id: number;
   cashRegisterNo: string;
+  cashFinanceNumber?: string | null;
   bank: string;
   terminalId: string;
   merchantNo: string;

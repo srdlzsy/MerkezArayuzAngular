@@ -324,5 +324,83 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       accessKeyAliases: ['Soforler', 'DespatchDrivers', 'drivers'],
       requiredPermissionCodes: ['ayar-islemleri.soforler.manage']
     }
+  ),
+  'b2b-ayarlari': singleRouteTask(
+    {
+      id: 'b2b-ayarlari',
+      title: 'B2B Ayarlari',
+      subtitle: 'B2B bultenlerini ve B2B kullanici kayitlarini yonetir.',
+      baseRouteOrFile: '/api/ayar-islemleri/b2b-ayarlari',
+      highlights: [
+        'Menu ve route acilisi ayar-islemleri.b2b-ayarlari.manage yetkisiyle yapilir',
+        'Bultenler baslik/link/tarih bilgisiyle yonetilir',
+        'Kullanici guncelleme sifre veya hesap eslestirme alanlarini degistirmez',
+        'Sifre hash ve salt alanlari UI tarafinda hic gosterilmez'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AyarIslemleri B2B Ayarlari',
+          description: 'FurpaB2B bulten ve kullanici kayitlarini listeler ve yonetir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/b2b-ayarlari/bultenler?search=&take=100',
+              description: 'B2B bultenlerini listeler',
+              payload: 'B2BBulletinListHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/b2b-ayarlari/bultenler',
+              description: 'Yeni B2B bulteni olusturur',
+              payload: 'SaveB2BBulletinHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/b2b-ayarlari/bultenler/{id}',
+              description: 'B2B bultenini gunceller',
+              payload: 'SaveB2BBulletinHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/ayar-islemleri/b2b-ayarlari/bultenler/{id}',
+              description: 'B2B bultenini siler'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/b2b-ayarlari/kullanicilar?search=&includeInactive=false&take=100',
+              description: 'B2B kullanicilarini listeler',
+              payload: 'B2BUserListHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/b2b-ayarlari/kullanicilar/{userId}',
+              description: 'B2B kullanici detayini ve hesaplarini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/b2b-ayarlari/kullanicilar/{userId}',
+              description: 'B2B kullanici temel bilgilerini gunceller',
+              payload: 'UpdateB2BUserHttpRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "userFullName": "Ali Veli",
+  "userMail": "ali.veli@example.local",
+  "status": true,
+  "menus": "Orders,Reports",
+  "userEndDate": "2026-12-31T23:59:00"
+}`
+    },
+    () =>
+      import('../tasks/settings/b2b-ayarlari/list/b2b-ayarlari-list.component').then(
+        (m) => m.B2BAyarlariListComponent
+      ),
+    {
+      accessKeyAliases: ['B2BAyarlari', 'b2b-settings'],
+      requiredPermissionCodes: ['ayar-islemleri.b2b-ayarlari.manage']
+    }
   )
 } as const satisfies Record<string, DocsTaskSource>;
