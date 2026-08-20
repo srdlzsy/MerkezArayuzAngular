@@ -378,6 +378,9 @@
           <article class="save-hint" *ngIf="saveBlockReason() && !canSaveDraft()">
             {{ saveBlockReason() }}
           </article>
+          <article class="save-hint transfer-hint" *ngIf="microTransferBlockReason() && selectedRecord() && !selectedRecord()?.microTransferred">
+            Mikro aktarim: {{ microTransferBlockReason() }}
+          </article>
 
           <div class="entry-grid">
             <label class="field">
@@ -520,6 +523,14 @@
           </button>
           <button type="button" class="task-action" (click)="printCurrentLabel()" [disabled]="isLabelLoading() || isPrinting()">
             {{ isLabelLoading() ? 'Hazirlaniyor...' : 'Barkod Yazdir' }}
+          </button>
+          <button
+            type="button"
+            class="task-action task-action-primary"
+            (click)="transferCurrentRecordToMicro()"
+            [disabled]="!canTransferCurrentRecord()"
+          >
+            {{ isTransferring() ? 'Aktariliyor...' : 'Mikroya Aktar' }}
           </button>
           <button type="button" class="task-action task-action-danger" (click)="deleteRecord()" [disabled]="!selectedRecord() || !!selectedRecord()?.microTransferred || isDeleting() || !canDelete()">
             Sil

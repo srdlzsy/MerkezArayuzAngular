@@ -25,6 +25,8 @@ import {
   EtiketBasimSupplierDto,
   ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto,
   ManavMalKabulVeEtiketIncomingInvoiceDto,
+  ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest,
+  ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto,
   ManavMalKabulVeEtiketInvoiceDetailDto,
   ManavMalKabulVeEtiketInvoiceLineDto,
   SaveEtiketBasimAcceptanceRecordHttpRequest
@@ -175,6 +177,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly selectedInvoiceDetail = signal<ManavMalKabulVeEtiketInvoiceDetailDto | null>(null);
   protected readonly selectedInvoiceLine = signal<ManavMalKabulVeEtiketInvoiceLineDto | null>(null);
   protected readonly showIncomingInvoiceList = signal(true);
+  protected readonly draftVersion = signal(0);
   protected readonly receivedReportRows = signal<EtiketBasimReceivedProductReportDto[]>([]);
   protected readonly comparisonReportRows = signal<ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[]>([]);
   protected readonly depotReportRows = signal<EtiketBasimDepotStockReportDto[]>([]);
@@ -187,6 +190,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly isLoading = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
+  protected readonly isTransferring = signal(false);
   protected readonly isSupplierSearching = signal(false);
   protected readonly isStockSearching = signal(false);
   protected readonly isIncomingInvoiceLoading = signal(false);
@@ -255,6 +259,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     return record.seriesAndNumber || `${record.documentSeries}${record.documentNo}` || `#${record.id}`;
   });
   protected readonly canSaveDraft = computed(() => {
+    this.draftVersion();
+
     if (this.isSaving()) {
       return false;
     }
@@ -266,6 +272,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     return record ? this.canUpdate() && this.isDraftValid() : this.canCreate() && this.isDraftValid();
+  });
+  protected readonly canTransferCurrentRecord = computed(() => {
+    this.draftVersion();
+
+    return !this.microTransferBlockReason();
   });
 
   protected draftMissingFields(): string[] {
@@ -327,6 +338,59 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
     const missing = this.draftMissingFields();
     return missing.length ? `Eksik: ${missing.join(', ')}` : '';
+  }
+
+  protected microTransferBlockReason(): string {
+    const record = this.selectedRecord();
+    const line = this.selectedInvoiceLine();
+
+    if (this.isTransferring()) {
+      return 'Mikro aktarim devam ediyor.';
+    }
+
+    if (!this.canTransfer()) {
+      return 'Mikro aktarim yetkiniz bulunmuyor.';
+    }
+
+    if (!record) {
+      return 'Once kaydi kaydedip listeden secin.';
+    }
+
+    if (record.microTransferred) {
+      return 'Bu kayit daha once Mikroya aktarilmis.';
+    }
+
+    if (!this.selectedInvoiceDetail()) {
+      return 'Mikro aktarim icin fatura detayi secin.';
+    }
+
+    if (!line) {
+      return 'Mikro aktarim icin fatura kalemi secin.';
+    }
+
+    if (!this.isInvoiceLineMatched(line) || !this.draft.stockCode.trim()) {
+      return 'Fatura kalemi icin MNV stok eslestirin.';
+    }
+
+    const quantity = this.resolveTransferQuantity(record);
+
+    if (quantity <= 0) {
+      return 'Net kilo/miktar sifirdan buyuk olmali.';
+    }
+
+    if (this.toSafeNumber(line.unitPrice) <= 0) {
+      return 'Fatura kaleminde birim fiyat yok.';
+    }
+
+    if (line.taxPointer === null && line.taxPointer === undefined && line.taxRatePercent === null && line.taxRatePercent === undefined) {
+      return 'Fatura kaleminde KDV bilgisi yok.';
+    }
+
+    if (!this.draft.supplierCode.trim()) {
+      return 'Tedarikci cari kodu secili olmali.';
+    }
+
+    return '';
   }
 
   constructor() {
@@ -473,6 +537,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.selectedInvoiceLine.set(null);
     this.labelCopyCount = 1;
     this.applyInvoiceToDraft(invoice);
+    this.touchDraft();
 
     const invoiceDate = this.getIncomingInvoiceDate(invoice)?.slice(0, 10);
     if (invoiceDate && invoiceDate !== this.selectedDate()) {
@@ -584,6 +649,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
       this.stockQuery = this.joinLabel(stockCode, stockName);
       this.calculation.set(null);
+      this.touchDraft();
       this.setFeedback(
         'info',
         'Stok eslestirme gerekli',
@@ -610,6 +676,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     this.stockQuery = this.joinLabel(stockCode, stockName);
+    this.touchDraft();
     this.scheduleCalculation();
     this.activeTab.set('form');
   }
@@ -617,6 +684,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected startNewRecord(): void {
     this.selectedRecord.set(null);
     this.draft = createEmptyDraft();
+    this.touchDraft();
     this.supplierQuery = '';
     this.stockQuery = '';
     this.supplierResults.set([]);
@@ -703,6 +771,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.supplierQuery = this.joinLabel(supplierCode, supplierName);
     this.supplierResults.set([]);
     this.supplierSearchMessage.set(null);
+    this.touchDraft();
     this.loadIncomingInvoices();
   }
 
@@ -751,6 +820,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.stockQuery = this.joinLabel(stockCode, stockName);
     this.stockResults.set([]);
     this.stockSearchMessage.set(null);
+    this.touchDraft();
     this.scheduleCalculation();
   }
 
@@ -758,11 +828,13 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.draft[key] = this.toNullableNumber(value);
     this.calculation.set(null);
     this.labelPreview.set(null);
+    this.touchDraft();
     this.scheduleCalculation();
   }
 
   protected onDraftTextChange(): void {
     this.labelPreview.set(null);
+    this.touchDraft();
   }
 
   protected calculateDraft(silent = false): void {
@@ -882,6 +954,62 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
             'Kayit basarisiz',
             getErrorMessage(error, 'Kabul etiketi kaydedilemedi.')
           );
+        }
+      });
+  }
+
+  protected async transferCurrentRecordToMicro(): Promise<void> {
+    const blockReason = this.microTransferBlockReason();
+
+    if (blockReason) {
+      this.setFeedback('error', 'Mikro aktarim hazir degil', blockReason);
+      return;
+    }
+
+    const request = this.buildMicroTransferRequest();
+    const record = this.selectedRecord();
+
+    if (!request || !record) {
+      this.setFeedback('error', 'Mikro aktarim hazir degil', 'Aktarim istegi hazirlanamadi.');
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Mikro mal kabul olusturulsun mu?',
+      message: `${record.seriesAndNumber || record.id} kaydi Mikro alis/mal kabul evragina aktarilacak.`,
+      confirmText: 'Aktar',
+      tone: 'warning'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.isTransferring.set(true);
+
+    this.kasaIslemleriService
+      .createManavMalKabulVeEtiketMicroGoodsReceipt(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isTransferring.set(false))
+      )
+      .subscribe({
+        next: (result: ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto) => {
+          this.setFeedback(
+            'success',
+            'Mikro aktarim tamamlandi',
+            `${result.documentSeries || request.documentSeries || ''}${result.documentOrderNo || ''} evragi olusturuldu.`
+          );
+          this.loadRecords();
+          this.loadReport('comparison');
+        },
+        error: (error: unknown) => {
+          this.setFeedback(
+            'error',
+            'Mikro aktarim basarisiz',
+            getErrorMessage(error, 'Mikro mal kabul evragi olusturulamadi.')
+          );
+          this.loadReport('comparison');
         }
       });
   }
@@ -1512,8 +1640,60 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     };
   }
 
+  private buildMicroTransferRequest(): ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest | null {
+    const record = this.selectedRecord();
+    const line = this.selectedInvoiceLine();
+    const detail = this.selectedInvoiceDetail();
+    const supplierCode = (detail?.matchedSupplierCode || this.draft.supplierCode).trim();
+    const stockCode = (line?.matchedStockCode || this.draft.stockCode).trim();
+    const quantity = record ? this.resolveTransferQuantity(record) : 0;
+    const unitPrice = this.toSafeNumber(line?.unitPrice);
+    const taxPointer = line?.taxPointer ?? null;
+    const taxRatePercent = line?.taxRatePercent ?? null;
+
+    if (!record || !line || !detail || !supplierCode || !stockCode || quantity <= 0 || unitPrice <= 0) {
+      return null;
+    }
+
+    if (taxPointer === null && taxRatePercent === null) {
+      return null;
+    }
+
+    const issueDate = detail?.issueDate?.slice(0, 10);
+    const date = issueDate || this.selectedDate().trim() || this.getToday();
+    const documentNo = this.getInvoiceDetailDocument(detail);
+
+    return {
+      date,
+      supplierCode,
+      documentSeries: this.draft.documentSeries.trim() || DEFAULT_STOCK_PREFIX,
+      documentOrderNo: null,
+      documentNo: documentNo === '-' ? this.draft.documentNo.trim() || null : documentNo,
+      mikroUserNo: null,
+      description: `Manav mal kabul ${record.seriesAndNumber || record.id}`,
+      markAcceptanceRecordsTransferred: true,
+      lines: [
+        {
+          acceptanceRecordId: record.id,
+          stockCode,
+          quantity,
+          unitPrice,
+          unitPointer: 1,
+          taxPointer,
+          taxRatePercent,
+          taxAmount: line.taxAmount ?? null,
+          description: line.stockName?.trim() || this.draft.stockName.trim() || null
+        }
+      ]
+    };
+  }
+
   private isDraftValid(): boolean {
     return !!this.buildSaveRequest();
+  }
+
+  private resolveTransferQuantity(record: EtiketBasimAcceptanceRecordDto): number {
+    return this.toSafeNumber(record.netReceivedWeight) || this.toSafeNumber(this.calculation()?.netReceivedWeight);
   }
 
   private fillDraftFromRecord(record: EtiketBasimAcceptanceRecordDto): void {
@@ -1534,6 +1714,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     };
     this.supplierQuery = this.joinLabel(record.supplierCode, record.supplierName);
     this.stockQuery = this.joinLabel(record.stockCode, record.stockName);
+    this.touchDraft();
   }
 
   private applyInvoiceToDraft(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): void {
@@ -1545,6 +1726,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.draft.supplierName = supplierName;
     this.draft.documentNo = documentNo === '-' ? '' : documentNo;
     this.supplierQuery = this.joinLabel(supplierCode, supplierName);
+    this.touchDraft();
   }
 
   private applyInvoiceDetail(detail: ManavMalKabulVeEtiketInvoiceDetailDto): void {
@@ -1578,6 +1760,12 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     if (issueDate) {
       this.selectedDate.set(issueDate);
     }
+
+    this.touchDraft();
+  }
+
+  private touchDraft(): void {
+    this.draftVersion.update((version) => version + 1);
   }
 
   private upsertRecord(record: EtiketBasimAcceptanceRecordDto): void {
