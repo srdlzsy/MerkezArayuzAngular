@@ -173,6 +173,7 @@
             <div>
               <strong>{{ getInvoiceDetailTitle(detail) }}</strong>
               <small>{{ getInvoiceDetailDocument(detail) }} / {{ detail.invoiceTypeCode || invoice.invoiceType || 'Fatura' }}</small>
+              <small *ngIf="getInvoiceDetailWeightSummary(detail)">{{ getInvoiceDetailWeightSummary(detail) }}</small>
             </div>
           </div>
           <dl>
@@ -233,6 +234,7 @@
           <div>
             <strong>{{ getInvoiceDetailTitle(detail) }}</strong>
             <small>{{ getInvoiceDetailDocument(detail) }} / {{ detail.invoiceTypeCode || 'Fatura' }}</small>
+            <small *ngIf="getInvoiceDetailWeightSummary(detail)">{{ getInvoiceDetailWeightSummary(detail) }}</small>
           </div>
         </div>
         <dl>
@@ -299,7 +301,10 @@
                   <strong>{{ line.stockName || '-' }}</strong>
                   <span>{{ line.stockCode || '-' }} / {{ line.barcode || '-' }}</span>
                 </td>
-                <td data-label="Miktar">{{ line.quantity || 0 | number:'1.0-3' }} {{ line.unitCode || '' }}</td>
+                <td data-label="Miktar">
+                  <strong>{{ line.quantity || 0 | number:'1.0-3' }} {{ line.unitCode || '' }}</strong>
+                  <span *ngIf="getInvoiceLineWeightSummary(line)">{{ getInvoiceLineWeightSummary(line) }}</span>
+                </td>
                 <td data-label="Fiyat">{{ line.unitPrice || 0 | number:'1.2-2' }}</td>
                 <td data-label="KDV">%{{ line.taxRatePercent || 0 | number:'1.0-2' }}</td>
                 <td data-label="Mikro Stok">

@@ -637,6 +637,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected selectInvoiceLine(line: ManavMalKabulVeEtiketInvoiceLineDto): void {
     this.selectedInvoiceLine.set(line);
+    this.applyInvoiceLineWeightToDraft(line);
 
     if (!this.isInvoiceLineMatched(line)) {
       const stockName = line.stockName?.trim() || '';
@@ -1531,6 +1532,32 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     return detail.documentId?.trim() || detail.invoiceId?.trim() || detail.invoiceLookupId?.trim() || '-';
   }
 
+  protected getInvoiceDetailWeightSummary(detail: ManavMalKabulVeEtiketInvoiceDetailDto): string {
+    const parts = [
+      this.formatCountPart(detail.totalCaseCount, 'kap'),
+      this.formatWeightPart(detail.totalGrossWithTareQuantity, 'kg darali'),
+      this.formatWeightPart(detail.totalTareQuantity, 'kg dara'),
+      this.formatWeightPart(detail.totalNetQuantity, 'kg net')
+    ].filter((value): value is string => !!value);
+
+    return parts.join(' / ');
+  }
+
+  protected getInvoiceLineWeightSummary(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
+    const parts = [
+      this.formatCountPart(line.caseCount, 'kap'),
+      this.formatWeightPart(line.grossWithTareQuantity, 'kg darali'),
+      this.formatWeightPart(line.tareQuantity, 'kg dara'),
+      this.formatWeightPart(line.netQuantity, 'kg net')
+    ].filter((value): value is string => !!value);
+
+    if (parts.length) {
+      return parts.join(' / ');
+    }
+
+    return line.note?.trim() || '';
+  }
+
   protected isInvoiceLineMatched(line: ManavMalKabulVeEtiketInvoiceLineDto): boolean {
     return !!line.matchedStockCode?.trim() && line.canCreateAcceptance !== false;
   }
@@ -1731,6 +1758,25 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   private resolveTransferQuantity(record: EtiketBasimAcceptanceRecordDto): number {
     return this.toSafeNumber(record.netReceivedWeight) || this.toSafeNumber(this.calculation()?.netReceivedWeight);
+  }
+
+  private applyInvoiceLineWeightToDraft(line: ManavMalKabulVeEtiketInvoiceLineDto): void {
+    const caseCount = this.toSafeNumber(line.caseCount);
+    const grossWithTare = this.toSafeNumber(line.grossWithTareQuantity);
+    const totalTare = this.toSafeNumber(line.tareQuantity);
+
+    if (caseCount > 0) {
+      this.draft.caseCount = Math.trunc(caseCount);
+    }
+
+    if (grossWithTare > 0) {
+      this.draft.grossWeight = grossWithTare;
+    }
+
+    if (caseCount > 0 && totalTare >= 0) {
+      this.draft.caseTare = this.roundNumber(totalTare / caseCount, 3);
+      this.draft.palletTare = 0;
+    }
   }
 
   private fillDraftFromRecord(record: EtiketBasimAcceptanceRecordDto): void {
@@ -2026,6 +2072,28 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   private toSafeNumber(value: unknown): number {
     const numberValue = Number(value);
     return Number.isFinite(numberValue) ? numberValue : 0;
+  }
+
+  private roundNumber(value: number, fractionDigits = 2): number {
+    const factor = 10 ** fractionDigits;
+    return Math.round(value * factor) / factor;
+  }
+
+  private formatCountPart(value: unknown, suffix: string): string | null {
+    const numberValue = this.toSafeNumber(value);
+    return numberValue > 0 ? `${this.formatLocalNumber(numberValue, 0)} ${suffix}` : null;
+  }
+
+  private formatWeightPart(value: unknown, suffix: string): string | null {
+    const numberValue = this.toSafeNumber(value);
+    return numberValue > 0 ? `${this.formatLocalNumber(numberValue, 2)} ${suffix}` : null;
+  }
+
+  private formatLocalNumber(value: number, maximumFractionDigits: number): string {
+    return value.toLocaleString('tr-TR', {
+      maximumFractionDigits,
+      minimumFractionDigits: 0
+    });
   }
 
   private toTimestamp(value: string | null | undefined): number {

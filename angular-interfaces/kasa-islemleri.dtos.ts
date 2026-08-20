@@ -927,7 +927,12 @@ export interface ManavMalKabulVeEtiketInvoiceLineDto {
   stockName?: string | null;
   barcode?: string | null;
   unitCode?: string | null;
+  note?: string | null;
   quantity?: number | null;
+  caseCount?: number | null;
+  grossWithTareQuantity?: number | null;
+  tareQuantity?: number | null;
+  netQuantity?: number | null;
   unitPrice?: number | null;
   lineAmount?: number | null;
   taxRatePercent?: number | null;
@@ -952,6 +957,10 @@ export interface ManavMalKabulVeEtiketInvoiceDetailDto {
   taxExclusiveAmount?: number | null;
   taxTotal?: number | null;
   payableAmount?: number | null;
+  totalCaseCount?: number | null;
+  totalGrossWithTareQuantity?: number | null;
+  totalTareQuantity?: number | null;
+  totalNetQuantity?: number | null;
   despatchId?: string | null;
   matchedSupplierCode?: string | null;
   matchedSupplierName?: string | null;
