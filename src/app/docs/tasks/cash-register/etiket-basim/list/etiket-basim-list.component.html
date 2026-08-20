@@ -303,14 +303,14 @@
                 <td data-label="Fiyat">{{ line.unitPrice || 0 | number:'1.2-2' }}</td>
                 <td data-label="KDV">%{{ line.taxRatePercent || 0 | number:'1.0-2' }}</td>
                 <td data-label="Mikro Stok">
-                  <strong>{{ line.matchedStockName || '-' }}</strong>
-                  <span>{{ line.matchedStockCode || '-' }} / {{ line.matchedBarcode || '-' }}</span>
+                  <strong>{{ getInvoiceLineMicroStockName(line) || '-' }}</strong>
+                  <span>{{ getInvoiceLineMicroStockCode(line) || '-' }} / {{ getInvoiceLineMicroBarcode(line) || '-' }}</span>
                 </td>
                 <td data-label="Durum">
                   <span
                     class="status-pill"
-                    [class.status-ready]="isInvoiceLineMatched(line)"
-                    [class.status-blocked]="!isInvoiceLineMatched(line)"
+                    [class.status-ready]="isInvoiceLineReady(line)"
+                    [class.status-blocked]="!isInvoiceLineReady(line)"
                   >
                     {{ getInvoiceLineStatusLabel(line) }}
                   </span>

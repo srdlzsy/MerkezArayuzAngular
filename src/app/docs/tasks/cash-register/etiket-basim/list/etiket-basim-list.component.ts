@@ -238,12 +238,13 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     };
   });
   protected readonly invoiceLineSummary = computed(() => {
+    this.draftVersion();
     const lines = this.selectedInvoiceDetail()?.lines ?? [];
 
     return {
       total: lines.length,
-      matched: lines.filter((line) => this.isInvoiceLineMatched(line)).length,
-      waiting: lines.filter((line) => !this.isInvoiceLineMatched(line)).length
+      matched: lines.filter((line) => this.isInvoiceLineReady(line)).length,
+      waiting: lines.filter((line) => !this.isInvoiceLineReady(line)).length
     };
   });
   protected readonly draftModeLabel = computed(() =>
@@ -368,7 +369,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       return 'Mikro aktarim icin fatura kalemi secin.';
     }
 
-    if (!this.isInvoiceLineMatched(line) || !this.draft.stockCode.trim()) {
+    if (!this.draft.stockCode.trim()) {
       return 'Fatura kalemi icin MNV stok eslestirin.';
     }
 
@@ -1534,12 +1535,48 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     return !!line.matchedStockCode?.trim() && line.canCreateAcceptance !== false;
   }
 
+  protected isInvoiceLineReady(line: ManavMalKabulVeEtiketInvoiceLineDto): boolean {
+    if (this.isInvoiceLineMatched(line)) {
+      return true;
+    }
+
+    return this.isSelectedInvoiceLine(line) && !!this.draft.stockCode.trim();
+  }
+
   protected getInvoiceLineStatusLabel(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
     if (this.isInvoiceLineMatched(line)) {
       return 'Hazir';
     }
 
+    if (this.isInvoiceLineReady(line)) {
+      return 'Stok secildi';
+    }
+
     return line.warnings?.[0] || 'Stok eslestir';
+  }
+
+  protected getInvoiceLineMicroStockName(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
+    if (line.matchedStockName?.trim()) {
+      return line.matchedStockName.trim();
+    }
+
+    return this.isSelectedInvoiceLine(line) ? this.draft.stockName.trim() : '';
+  }
+
+  protected getInvoiceLineMicroStockCode(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
+    if (line.matchedStockCode?.trim()) {
+      return line.matchedStockCode.trim();
+    }
+
+    return this.isSelectedInvoiceLine(line) ? this.draft.stockCode.trim() : '';
+  }
+
+  protected getInvoiceLineMicroBarcode(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
+    if (line.matchedBarcode?.trim()) {
+      return line.matchedBarcode.trim();
+    }
+
+    return this.isSelectedInvoiceLine(line) ? this.draft.stockBarcode.trim() : '';
   }
 
   protected isSelectedInvoiceLine(line: ManavMalKabulVeEtiketInvoiceLineDto): boolean {
