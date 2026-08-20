@@ -60,7 +60,7 @@
     </article>
 
     <section class="entry-layout">
-      <article class="entry-card">
+      <article class="entry-card document-entry-card">
         <div class="entry-card-head">
           <div>
             <h3>Belge Bilgileri</h3>
@@ -93,9 +93,9 @@
           </div>
         </div>
 
-        <div class="field-grid">
+        <div class="field-grid document-field-grid">
           <label
-            class="field"
+            class="field field-target"
             *ngIf="isAdminUser()"
             [class.field-invalid]="controls.warehouseNo.touched && controls.warehouseNo.invalid"
           >
@@ -114,12 +114,12 @@
             </small>
           </label>
 
-          <label class="field">
+          <label class="field field-date">
             <span>Tarih</span>
             <input type="date" formControlName="summaryDate" />
           </label>
 
-          <label class="field" *ngIf="cashRegisters().length > 0; else manualCashNo">
+          <label class="field field-cash" *ngIf="cashRegisters().length > 0; else manualCashNo">
             <span>Kasa No</span>
             <select formControlName="cashNo" (change)="onCashNoChanged()">
               <option [ngValue]="null">Seciniz</option>
@@ -130,7 +130,7 @@
           </label>
 
           <ng-template #manualCashNo>
-            <label class="field">
+            <label class="field field-cash">
               <span>Kasa No</span>
               <input
                 type="number"
@@ -144,7 +144,7 @@
             </label>
           </ng-template>
 
-          <label class="field">
+          <label class="field field-fiscal">
             <span>Kasa Mali Bellek</span>
             <input
               type="text"
@@ -154,12 +154,12 @@
             />
           </label>
 
-          <label class="field">
+          <label class="field field-z">
             <span>Z No</span>
             <input type="number" formControlName="zReportNo" placeholder="1643" min="1" step="1" inputmode="numeric" />
           </label>
 
-          <div class="field person-lookup-field">
+          <div class="field field-person person-lookup-field">
             <span>Kasiyer</span>
             <div class="person-lookup-row">
               <input
@@ -172,8 +172,8 @@
               <button type="button" class="mini-search-button" [disabled]="cashierSearchLoading()" (click)="searchCashiersFor('cashier')">
                 {{ cashierSearchLoading() ? '...' : 'Ara' }}
               </button>
+              <input class="code-input" type="number" formControlName="cashierNo" placeholder="Kod" min="0" step="1" inputmode="numeric" />
             </div>
-            <input class="code-input" type="number" formControlName="cashierNo" placeholder="Kod" min="0" step="1" inputmode="numeric" />
             <small class="field-hint" *ngIf="cashierSearchError()">{{ cashierSearchError() }}</small>
             <div class="inline-search-results" *ngIf="cashierSearchResults().length > 0">
               <button
@@ -187,7 +187,7 @@
             </div>
           </div>
 
-          <div class="field person-lookup-field">
+          <div class="field field-person person-lookup-field">
             <span>Duzenleyen</span>
             <div class="person-lookup-row">
               <input
@@ -200,8 +200,8 @@
               <button type="button" class="mini-search-button" [disabled]="managerSearchLoading()" (click)="searchCashiersFor('manager')">
                 {{ managerSearchLoading() ? '...' : 'Ara' }}
               </button>
+              <input class="code-input" type="number" formControlName="managerNo" placeholder="Kod" min="0" step="1" inputmode="numeric" />
             </div>
-            <input class="code-input" type="number" formControlName="managerNo" placeholder="Kod" min="0" step="1" inputmode="numeric" />
             <small class="field-hint" *ngIf="managerSearchError()">{{ managerSearchError() }}</small>
             <div class="inline-search-results" *ngIf="managerSearchResults().length > 0">
               <button
@@ -215,12 +215,12 @@
             </div>
           </div>
 
-          <label class="field">
+          <label class="field field-total">
             <span>Z Toplami</span>
             <input type="number" step="0.01" min="0" inputmode="decimal" formControlName="zTotalValue" placeholder="0.00" (focus)="clearZeroOnFocus(controls.zTotalValue)" (blur)="normalizeCurrencyInput(controls.zTotalValue)" />
           </label>
 
-          <label class="field">
+          <label class="field field-total">
             <span>Sayim Toplami</span>
             <input type="number" step="0.01" min="0" inputmode="decimal" formControlName="total" placeholder="0.00" (focus)="clearZeroOnFocus(controls.total)" (blur)="normalizeCurrencyInput(controls.total)" />
           </label>

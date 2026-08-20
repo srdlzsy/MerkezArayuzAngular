@@ -329,6 +329,10 @@ button:disabled {
   gap: 0.42rem;
 }
 
+.sayim-line-main {
+  grid-template-columns: minmax(140px, 0.8fr) minmax(260px, 1.5fr) minmax(150px, 0.8fr) minmax(130px, 0.55fr);
+}
+
 .line-extra {
   grid-column: 1 / -1;
   grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(95px, 0.4fr));

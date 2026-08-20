@@ -7,6 +7,8 @@ const ALL_WAREHOUSES_PERMISSION_OVERRIDES: Record<string, string> = {
   'gelen-depo-iadeleri': 'iade-islemleri.gelen-depo-iadeleri.all-warehouses',
   'giden-depolar-arasi-sevkler': 'sevk-islemleri.giden-depolar-arasi-sevkler.all-warehouses',
   'gelen-depolar-arasi-sevkler': 'sevk-islemleri.gelen-depolar-arasi-sevkler.all-warehouses',
+  'giden-firma-sevkleri': 'sevk-islemleri.giden-firma-sevkleri.all-warehouses',
+  'gelen-firma-sevkleri': 'sevk-islemleri.gelen-firma-sevkleri.all-warehouses',
   'icmal-kaydi-girisi': 'kasa-islemleri.icmal-kaydi-girisi.all-warehouses',
   'authorization-files': 'operasyon-islemleri.operations.all-warehouses'
 };

@@ -329,6 +329,10 @@ button:disabled {
   gap: 0.42rem;
 }
 
+.expense-line-main {
+  grid-template-columns: minmax(140px, 0.85fr) minmax(260px, 1.6fr) minmax(110px, 0.55fr);
+}
+
 .line-extra {
   grid-column: 1 / -1;
   grid-template-columns: minmax(220px, 1fr) repeat(3, minmax(95px, 0.4fr));

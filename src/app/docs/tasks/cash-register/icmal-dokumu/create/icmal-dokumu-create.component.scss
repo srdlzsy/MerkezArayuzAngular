@@ -209,7 +209,7 @@
 
 .entry-layout {
   display: grid;
-  grid-template-columns: minmax(0, 2.6fr) minmax(260px, 0.65fr);
+  grid-template-columns: minmax(0, 1fr);
   gap: 0.65rem;
   align-items: start;
 }
@@ -249,6 +249,74 @@
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(112px, 1fr));
   gap: 0.48rem;
+}
+
+.document-entry-card {
+  width: 100%;
+  padding: 0.62rem 0.72rem;
+}
+
+.document-entry-card .entry-card-head {
+  align-items: center;
+  gap: 0.7rem;
+}
+
+.document-entry-card .entry-head-actions {
+  flex: 0 0 auto;
+  gap: 0.4rem;
+  flex-wrap: nowrap;
+}
+
+.document-entry-card .compact-button {
+  min-height: 34px;
+  padding: 0.5rem 0.7rem;
+  white-space: nowrap;
+}
+
+.document-field-grid {
+  grid-template-columns:
+    minmax(86px, 0.75fr)
+    minmax(118px, 0.85fr)
+    minmax(118px, 0.88fr)
+    minmax(122px, 0.98fr)
+    minmax(82px, 0.58fr)
+    minmax(168px, 1.28fr)
+    minmax(168px, 1.28fr)
+    minmax(118px, 0.88fr)
+    minmax(118px, 0.88fr);
+  gap: 0.38rem;
+  align-items: start;
+}
+
+.document-field-grid .field {
+  gap: 0.16rem;
+}
+
+.document-field-grid .field span {
+  font-size: 0.54rem;
+}
+
+.document-field-grid .field input,
+.document-field-grid .field select {
+  min-height: 32px;
+  border-radius: 8px;
+  padding: 0.32rem 0.48rem;
+  font-size: 0.82rem;
+}
+
+.document-field-grid .person-lookup-row {
+  grid-template-columns: minmax(0, 1fr) auto 64px;
+  gap: 0.26rem;
+}
+
+.document-field-grid .mini-search-button {
+  min-height: 32px;
+  padding: 0 0.5rem;
+}
+
+.document-field-grid .person-lookup-field .code-input {
+  min-height: 32px;
+  padding: 0.32rem 0.42rem;
 }
 
 .field {

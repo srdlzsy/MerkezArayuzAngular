@@ -6,35 +6,34 @@
         <h2>{{ current.title }}</h2>
       </div>
 
-      <div class="metric-strip">
-        <article>
-          <span>Kayit</span>
-          <strong>{{ rows().length }}</strong>
-        </article>
-        <article>
-          <span>Yayinda</span>
-          <strong>{{ publishedCount() }}</strong>
-        </article>
-        <article>
-          <span>Acil</span>
-          <strong>{{ urgentCount() }}</strong>
-        </article>
-        <article>
-          <span>Arsiv</span>
-          <strong>{{ archivedCount() }}</strong>
-        </article>
-        <article>
-          <button
-            type="button"
-            class="task-action task-action-primary"
-            (click)="openCreateModal()"
-            [disabled]="!canCreate()"
-          >
-            Yeni Duyuru
-          </button>
-        </article>
-      </div>
+      <button
+        type="button"
+        class="task-action task-action-primary"
+        (click)="openCreateModal()"
+        [disabled]="!canCreate()"
+      >
+        Yeni Duyuru
+      </button>
     </header>
+
+    <div class="metric-strip">
+      <article>
+        <span>Kayit</span>
+        <strong>{{ rows().length }}</strong>
+      </article>
+      <article>
+        <span>Yayinda</span>
+        <strong>{{ publishedCount() }}</strong>
+      </article>
+      <article>
+        <span>Acil</span>
+        <strong>{{ urgentCount() }}</strong>
+      </article>
+      <article>
+        <span>Arsiv</span>
+        <strong>{{ archivedCount() }}</strong>
+      </article>
+    </div>
 
     <form class="filter-bar" [formGroup]="filterForm" (ngSubmit)="loadRows()" novalidate>
       <label class="field">
@@ -118,59 +117,52 @@
           <p>{{ selectedScopeLabel() }} kapsamindaki duyurular getiriliyor.</p>
         </article>
 
-        <div class="table-wrap" *ngIf="!isLoading() && rows().length">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Durum</th>
-                <th>Oncelik</th>
-                <th>Baslik</th>
-                <th>Hedef</th>
-                <th>Okuma</th>
-                <th>Baslangic</th>
-                <th>Bitis</th>
-                <th>Olusturan</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let item of rows(); trackBy: trackByAnnouncement"
-                [class.is-selected]="selectedItem()?.id === item.id"
-                (click)="openDetail(item)"
-              >
-                <td>
-                  <span class="status-badge" [class]="getStatusTone(item.status)">
-                    {{ item.statusName || item.status }}
-                  </span>
-                </td>
-                <td>
-                  <span [class]="getPriorityTone(item.priority)">
-                    {{ item.priorityName || item.priority }}
-                  </span>
-                </td>
-                <td>
-                  <strong>{{ item.title }}</strong>
-                  <div class="table-meta">{{ item.message }}</div>
-                </td>
-                <td>{{ targetSummary(item) }}</td>
-                <td class="read-cell">
-                  <ng-container *ngIf="readSummary(item) as summary; else noReadSummary">
-                    <strong>{{ summary.readCount }}</strong>
-                    <span *ngIf="summary.targetUserCount !== null && summary.targetUserCount !== undefined">
-                      / {{ summary.targetUserCount }}
-                    </span>
-                    <small *ngIf="summary.unreadCount !== null && summary.unreadCount !== undefined">
-                      {{ summary.unreadCount }} okunmadi
-                    </small>
+        <div class="announcement-list" *ngIf="!isLoading() && rows().length">
+          <button
+            type="button"
+            class="announcement-card"
+            *ngFor="let item of rows(); trackBy: trackByAnnouncement"
+            [class.is-selected]="selectedItem()?.id === item.id"
+            (click)="openDetail(item)"
+          >
+            <span class="selection-bar" aria-hidden="true"></span>
+            <span class="announcement-main">
+              <span class="announcement-topline">
+                <span class="status-badge" [class]="getStatusTone(item.status)">
+                  {{ item.statusName || item.status }}
+                </span>
+                <span [class]="getPriorityTone(item.priority)">
+                  {{ item.priorityName || item.priority }}
+                </span>
+              </span>
+              <strong>{{ item.title }}</strong>
+              <span class="announcement-message">{{ item.message }}</span>
+            </span>
+            <span class="announcement-meta">
+              <span>
+                <small>Hedef</small>
+                <strong>{{ targetSummary(item) }}</strong>
+              </span>
+              <span>
+                <small>Okuma</small>
+                <strong *ngIf="readSummary(item) as summary; else noReadSummaryCard">
+                  {{ summary.readCount }}
+                  <ng-container *ngIf="summary.targetUserCount !== null && summary.targetUserCount !== undefined">
+                    / {{ summary.targetUserCount }}
                   </ng-container>
-                  <ng-template #noReadSummary>-</ng-template>
-                </td>
-                <td>{{ formatDateTime(item.startsAtUtc || item.publishedAtUtc) }}</td>
-                <td>{{ formatDateTime(item.expiresAtUtc) }}</td>
-                <td>{{ item.createdByFullName || item.createdByUsername || '-' }}</td>
-              </tr>
-            </tbody>
-          </table>
+                </strong>
+                <ng-template #noReadSummaryCard><strong>-</strong></ng-template>
+              </span>
+              <span>
+                <small>Baslangic</small>
+                <strong>{{ formatDateTime(item.startsAtUtc || item.publishedAtUtc) }}</strong>
+              </span>
+              <span>
+                <small>Bitis</small>
+                <strong>{{ formatDateTime(item.expiresAtUtc) }}</strong>
+              </span>
+            </span>
+          </button>
         </div>
 
         <article class="state-card" *ngIf="!isLoading() && !rows().length">
