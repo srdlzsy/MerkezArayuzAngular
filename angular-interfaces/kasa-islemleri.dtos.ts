@@ -700,6 +700,8 @@ export interface EtiketBasimCalculationDto {
 export interface EtiketBasimSupplierDto {
   supplierCode?: string | null;
   supplierName?: string | null;
+  supplierTitle2?: string | null;
+  supplierTaxNo?: string | null;
   code?: string | null;
   name?: string | null;
   customerCode?: string | null;
@@ -716,6 +718,8 @@ export interface EtiketBasimStockDto {
   name?: string | null;
   displayName?: string | null;
   unitName?: string | null;
+  modelCode?: string | null;
+  wholesaleTaxPointer?: number | null;
 }
 
 export interface SaveEtiketBasimAcceptanceRecordHttpRequest {
@@ -789,6 +793,7 @@ export interface EtiketBasimReceivedProductReportDto {
   stockName?: string | null;
   stockBarcode?: string | null;
   barcode?: string | null;
+  unitName?: string | null;
   grossWeight?: number | null;
   caseTotalTare?: number | null;
   palletTare?: number | null;
@@ -797,6 +802,10 @@ export interface EtiketBasimReceivedProductReportDto {
   averageCaseWeight?: number | null;
   invoiceQuantity?: number | null;
   invoiceDifference?: number | null;
+  labelRowCount?: number | null;
+  microRowCount?: number | null;
+  microAmount?: number | null;
+  microDocument?: string | null;
   caseType?: string | null;
   status?: string | null;
   microTransferred?: boolean | null;
@@ -813,6 +822,9 @@ export interface EtiketBasimDepotStockReportDto {
   stockCode?: string | null;
   stockName?: string | null;
   stockBarcode?: string | null;
+  barcode?: string | null;
+  unitName?: string | null;
+  modelCode?: string | null;
   supplierName?: string | null;
   responsible?: string | null;
   currentStock?: number | null;
@@ -863,6 +875,46 @@ export type ManavMalKabulVeEtiketDepotStockReportHttpRequest =
 export type ManavMalKabulVeEtiketDepotStockReportItemDto = EtiketBasimDepotStockReportDto;
 export type ManavMalKabulVeEtiketDepotStockReportDto = EtiketBasimDepotStockReportDto;
 
+export interface ManavMalKabulVeEtiketIncomingInvoiceHttpRequest {
+  startDate: string;
+  endDate: string;
+  supplierCode?: string | null;
+  searchText?: string | null;
+  includeArchived?: boolean | null;
+  take?: number | null;
+}
+
+export interface ManavMalKabulVeEtiketIncomingInvoiceDto {
+  documentId?: string | null;
+  invoiceId?: string | null;
+  supplierTitle?: string | null;
+  supplierTaxNo?: string | null;
+  createDate?: string | null;
+  invoiceDate?: string | null;
+  invoiceType?: string | null;
+  invoiceTotal?: number | null;
+  taxExclusiveAmount?: number | null;
+  taxTotal?: number | null;
+  despatchId?: string | null;
+  isProcessed?: boolean | null;
+  isPrinted?: boolean | null;
+  isStandard?: boolean | null;
+  statusCode?: string | null;
+  status?: string | null;
+  message?: string | null;
+  documentCurrencyCode?: string | null;
+  exchangeRate?: number | null;
+  orderDocumentId?: string | null;
+  isArchived?: boolean | null;
+  invoiceTipType?: string | null;
+  invoiceTipTypeCode?: string | null;
+  isSeen?: boolean | null;
+  lastSynchronizedAtUtc?: string | null;
+  matchedSupplierCode?: string | null;
+  matchedSupplierName?: string | null;
+  canStartAcceptance?: boolean | null;
+}
+
 export interface ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest {
   date: string;
   supplierCode?: string | null;
@@ -872,6 +924,10 @@ export interface ManavMalKabulVeEtiketMicroGoodsReceiptLineDto {
   lineNo: number;
   stockCode: string;
   stockName: string;
+  movementGuid?: string | null;
+  barcode?: string | null;
+  unitName?: string | null;
+  description?: string | null;
   quantity: number;
   unitPrice: number;
   amount: number;
@@ -885,6 +941,9 @@ export interface ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto {
   date: string;
   documentSeries: string;
   documentOrderNo: number;
+  documentNo?: string | null;
+  invoiceGuid?: string | null;
+  offlineTraceKey?: string | null;
   seriesAndNumber: string;
   supplierCode: string;
   supplierName?: string | null;

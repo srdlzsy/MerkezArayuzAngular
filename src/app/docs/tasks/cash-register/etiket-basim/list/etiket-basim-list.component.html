@@ -31,6 +31,91 @@
       <span>{{ currentFeedback.message }}</span>
     </article>
 
+    <section class="flow-strip" *ngIf="activeTab() !== 'reports'">
+      <article>
+        <span>1</span>
+        <strong>Gelen Fatura</strong>
+        <small>{{ incomingInvoiceSummary().ready }} hazir / {{ incomingInvoiceSummary().total }} belge</small>
+      </article>
+      <article>
+        <span>2</span>
+        <strong>Tartim ve Etiket</strong>
+        <small>{{ listSummary().waiting }} bekleyen kayit</small>
+      </article>
+      <article>
+        <span>3</span>
+        <strong>Mikro Kontrol</strong>
+        <small>{{ listSummary().transferred }} aktarilan</small>
+      </article>
+      <article>
+        <span>4</span>
+        <strong>Rapor</strong>
+        <small>Fark ve depo stok kontrolu</small>
+      </article>
+    </section>
+
+    <section class="incoming-panel" *ngIf="activeTab() !== 'reports'">
+      <div class="panel-head compact">
+        <div class="title-block">
+          <span>Gelen Faturalar</span>
+          <h3>{{ incomingInvoiceSummary().total }} belge</h3>
+        </div>
+
+        <div class="invoice-tools">
+          <label class="field search-field">
+            <span>Fatura Ara</span>
+            <input
+              type="search"
+              placeholder="Cari, vergi no, belge veya mesaj"
+              [(ngModel)]="invoiceSearchText"
+              (keydown.enter)="loadIncomingInvoices()"
+            />
+          </label>
+          <label class="check-field">
+            <input
+              type="checkbox"
+              [(ngModel)]="includeArchivedInvoices"
+              (change)="loadIncomingInvoices()"
+            />
+            Arsiv dahil
+          </label>
+          <button
+            type="button"
+            class="task-action"
+            (click)="loadIncomingInvoices()"
+            [disabled]="isIncomingInvoiceLoading() || !canList()"
+          >
+            {{ isIncomingInvoiceLoading() ? 'Yukleniyor...' : 'Faturalari Getir' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="incoming-list" *ngIf="incomingInvoices().length; else emptyInvoices">
+        <button
+          type="button"
+          class="incoming-card"
+          *ngFor="let invoice of incomingInvoices(); trackBy: trackByIncomingInvoice"
+          [class.is-selected]="isSelectedIncomingInvoice(invoice)"
+          (click)="selectIncomingInvoice(invoice)"
+        >
+          <span class="status-pill" [ngClass]="getIncomingInvoiceStatusClass(invoice)">
+            {{ getIncomingInvoiceStatusLabel(invoice) }}
+          </span>
+          <strong>{{ getIncomingInvoiceTitle(invoice) }}</strong>
+          <span>{{ getIncomingInvoiceDocument(invoice) }}</span>
+          <small>{{ invoice.invoiceDate || invoice.createDate | date:'dd.MM.yyyy' }} / {{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</small>
+          <em>{{ invoice.matchedSupplierCode || invoice.supplierTaxNo || invoice.message || '-' }}</em>
+        </button>
+      </div>
+
+      <ng-template #emptyInvoices>
+        <article class="empty-state compact-empty">
+          <strong>Gelen fatura yok</strong>
+          <span>Tarih veya arama bilgisini degistirip tekrar deneyin.</span>
+        </article>
+      </ng-template>
+    </section>
+
     <section class="operation-panel" *ngIf="activeTab() !== 'reports'">
       <div class="operation-top">
         <section class="entry-panel">
@@ -125,13 +210,13 @@
             <div class="lookup-results compact-results" *ngIf="supplierResults().length">
               <button type="button" *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier" (click)="selectSupplier(supplier)">
                 <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
-                <span>{{ getSupplierCode(supplier) }}</span>
+                <span>{{ getSupplierCode(supplier) }} / {{ supplier.supplierTaxNo || '-' }}</span>
               </button>
             </div>
             <div class="lookup-results compact-results" *ngIf="stockResults().length">
               <button type="button" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="selectStock(stock)">
                 <strong>{{ getStockName(stock) || getStockCode(stock) }}</strong>
-                <span>{{ getStockCode(stock) }} / {{ getStockBarcode(stock) || '-' }}</span>
+                <span>{{ getStockCode(stock) }} / {{ getStockBarcode(stock) || '-' }} / {{ stock.unitName || '-' }}</span>
               </button>
             </div>
             <p class="field-message" *ngIf="supplierSearchMessage()">{{ supplierSearchMessage() }}</p>
@@ -177,7 +262,7 @@
           <button type="button" class="task-action task-action-danger" (click)="deleteRecord()" [disabled]="!selectedRecord() || !!selectedRecord()?.microTransferred || isDeleting() || !canDelete()">
             Sil
           </button>
-          <button type="button" class="task-action" (click)="loadRecords()" [disabled]="isLoading() || !canList()">
+          <button type="button" class="task-action" (click)="loadDailyWorkspace()" [disabled]="isLoading() || isIncomingInvoiceLoading() || !canList()">
             {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
           </button>
         </aside>
@@ -333,6 +418,7 @@
               <th>Cari</th>
               <th>Stok</th>
               <th>Kilo</th>
+              <th>Mikro</th>
               <th>Durum</th>
             </tr>
           </thead>
@@ -345,7 +431,7 @@
               </td>
               <td data-label="Stok">
                 <strong>{{ row.stockName || '-' }}</strong>
-                <span>{{ row.stockCode || row.stockBarcode || '-' }}</span>
+                <span>{{ row.stockCode || row.stockBarcode || '-' }} / {{ row.unitName || '-' }}</span>
               </td>
               <td data-label="Kilo">
                 <strong>{{ (row.netReceivedWeight || 0) | number:'1.2-2' }} net</strong>
@@ -353,6 +439,10 @@
                   Mikro {{ (row.invoiceQuantity || 0) | number:'1.2-2' }} /
                   Fark {{ (row.invoiceDifference || 0) | number:'1.2-2' }}
                 </span>
+              </td>
+              <td data-label="Mikro">
+                <strong>{{ row.microDocument || '-' }}</strong>
+                <span>{{ row.labelRowCount || 0 }} etiket / {{ row.microRowCount || 0 }} mikro</span>
               </td>
               <td data-label="Durum">
                 {{ row.microTransferred ? 'Aktarildi' : row.status || 'Bekliyor' }}
@@ -422,7 +512,7 @@
               <td data-label="Depo">{{ row.warehouseName || row.warehouseNo || '-' }}</td>
               <td data-label="Stok">
                 <strong>{{ row.stockName || '-' }}</strong>
-                <span>{{ row.stockCode || row.stockBarcode || '-' }}</span>
+                <span>{{ row.stockCode || row.barcode || row.stockBarcode || '-' }} / {{ row.unitName || '-' }}</span>
               </td>
               <td data-label="Tedarikci">{{ row.supplierName || '-' }}</td>
               <td data-label="Miktar">

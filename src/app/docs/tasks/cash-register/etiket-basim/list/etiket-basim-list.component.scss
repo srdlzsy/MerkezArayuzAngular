@@ -236,6 +236,120 @@ input:disabled {
   font-size: 0.78rem;
 }
 
+.flow-strip {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.45rem;
+}
+
+.flow-strip article,
+.incoming-panel,
+.incoming-card {
+  border: 1px solid var(--eb-border);
+  border-radius: 8px;
+  background: #fff;
+}
+
+.flow-strip article {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: 0.1rem 0.48rem;
+  align-items: center;
+  min-width: 0;
+  padding: 0.48rem 0.56rem;
+}
+
+.flow-strip article > span {
+  grid-row: span 2;
+  display: inline-grid;
+  place-items: center;
+  width: 1.6rem;
+  height: 1.6rem;
+  border-radius: 999px;
+  background: #e7f5f2;
+  color: #115e59;
+  font-size: 0.78rem;
+  font-weight: 900;
+}
+
+.flow-strip strong,
+.incoming-card strong {
+  overflow: hidden;
+  color: var(--eb-ink);
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.flow-strip small,
+.incoming-card small,
+.incoming-card em {
+  overflow: hidden;
+  color: var(--eb-muted);
+  font-size: 0.72rem;
+  font-style: normal;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.incoming-panel {
+  display: grid;
+  gap: 0.48rem;
+  padding: 0.55rem;
+  background: #f8fbfb;
+}
+
+.invoice-tools {
+  display: grid;
+  grid-template-columns: minmax(240px, 1fr) auto auto;
+  gap: 0.42rem;
+  align-items: end;
+}
+
+.check-field {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-height: 2.15rem;
+  color: var(--eb-ink);
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.incoming-list {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.42rem;
+}
+
+.incoming-card {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  padding: 0.48rem;
+  cursor: pointer;
+  text-align: left;
+}
+
+.incoming-card:hover,
+.incoming-card.is-selected {
+  border-color: var(--eb-accent);
+  background: #eefaf7;
+}
+
+.incoming-card > span:not(.status-pill) {
+  overflow: hidden;
+  color: #314c55;
+  font-size: 0.76rem;
+  font-weight: 850;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.compact-empty {
+  padding: 0.56rem;
+}
+
 .tab-bar,
 .report-tabs {
   display: flex;
@@ -1045,6 +1159,7 @@ input:disabled {
   }
 
   .metric-strip,
+  .flow-strip,
   .lookup-grid,
   .field-grid,
   .number-grid,
@@ -1095,7 +1210,12 @@ input:disabled {
   .lookup-drawer,
   .operation-actions,
   .list-tools,
-  .operation-panel .metric-strip {
+  .operation-panel .metric-strip,
+  .incoming-list {
+    grid-template-columns: 1fr;
+  }
+
+  .invoice-tools {
     grid-template-columns: 1fr;
   }
 

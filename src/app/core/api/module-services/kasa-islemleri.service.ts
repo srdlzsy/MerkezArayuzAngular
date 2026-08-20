@@ -95,6 +95,8 @@ import {
   ManavMalKabulVeEtiketCreateMicroGoodsReceiptHttpRequest,
   ManavMalKabulVeEtiketCreateMicroGoodsReceiptResultDto,
   ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto,
+  ManavMalKabulVeEtiketIncomingInvoiceDto,
+  ManavMalKabulVeEtiketIncomingInvoiceHttpRequest,
   ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto,
   ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest,
   SaveEtiketBasimAcceptanceRecordHttpRequest,
@@ -249,6 +251,22 @@ export class KasaIslemleriService extends BaseApiService {
       `${ETIKET_BASIM_ROOT}/acceptance-records`,
       { date }
     );
+  }
+
+  getManavMalKabulVeEtiketIncomingInvoices(
+    request: ManavMalKabulVeEtiketIncomingInvoiceHttpRequest
+  ): Observable<ManavMalKabulVeEtiketIncomingInvoiceDto[]> {
+    return this.getWithQuery<
+      ManavMalKabulVeEtiketIncomingInvoiceDto[],
+      ManavMalKabulVeEtiketIncomingInvoiceHttpRequest
+    >(`${ETIKET_BASIM_ROOT}/incoming-invoices`, {
+      startDate: request.startDate,
+      endDate: request.endDate,
+      supplierCode: request.supplierCode?.trim() || undefined,
+      searchText: request.searchText?.trim() || undefined,
+      includeArchived: request.includeArchived ?? false,
+      take: request.take ?? 100
+    });
   }
 
   getEtiketBasimAcceptanceRecord(id: number): Observable<EtiketBasimAcceptanceRecordDto> {

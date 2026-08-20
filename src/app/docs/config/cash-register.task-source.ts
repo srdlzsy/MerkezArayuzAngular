@@ -150,6 +150,12 @@ export const CASH_REGISTER_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/incoming-invoices?startDate=2026-08-14&endDate=2026-08-14&take=100',
+              description: 'Gelen faturalari mal kabul akisi icin listeler',
+              payload: 'ManavMalKabulVeEtiketIncomingInvoiceHttpRequest'
+            },
+            {
+              method: 'GET',
               path: '/api/kasa-islemleri/manav-mal-kabul-etiket/suppliers?query=ABC&take=20',
               description: 'Tedarikci arama sonucunu dondurur'
             },

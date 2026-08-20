@@ -24,6 +24,7 @@ import {
   EtiketBasimStockDto,
   EtiketBasimSupplierDto,
   ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto,
+  ManavMalKabulVeEtiketIncomingInvoiceDto,
   SaveEtiketBasimAcceptanceRecordHttpRequest
 } from '@interfaces';
 import { finalize } from 'rxjs';
@@ -149,6 +150,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected draft: EtiketBasimDraft = createEmptyDraft();
   protected supplierQuery = '';
   protected stockQuery = '';
+  protected invoiceSearchText = '';
+  protected includeArchivedInvoices = false;
   protected stockPrefix = DEFAULT_STOCK_PREFIX;
   protected reportWarehouseNo: number | null = null;
   protected labelCopyCount = 1;
@@ -162,6 +165,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly stockResults = signal<EtiketBasimStockDto[]>([]);
   protected readonly calculation = signal<EtiketBasimCalculationDto | null>(null);
   protected readonly labelPreview = signal<EtiketBasimLabelDto | null>(null);
+  protected readonly incomingInvoices = signal<ManavMalKabulVeEtiketIncomingInvoiceDto[]>([]);
+  protected readonly selectedIncomingInvoice = signal<ManavMalKabulVeEtiketIncomingInvoiceDto | null>(null);
   protected readonly receivedReportRows = signal<EtiketBasimReceivedProductReportDto[]>([]);
   protected readonly comparisonReportRows = signal<ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[]>([]);
   protected readonly depotReportRows = signal<EtiketBasimDepotStockReportDto[]>([]);
@@ -176,6 +181,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly isDeleting = signal(false);
   protected readonly isSupplierSearching = signal(false);
   protected readonly isStockSearching = signal(false);
+  protected readonly isIncomingInvoiceLoading = signal(false);
   protected readonly isCalculating = signal(false);
   protected readonly isLabelLoading = signal(false);
   protected readonly isPrinting = signal(false);
@@ -206,6 +212,16 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
         (total, record) => total + this.toSafeNumber(record.netReceivedWeight),
         0
       )
+    };
+  });
+  protected readonly incomingInvoiceSummary = computed(() => {
+    const invoices = this.incomingInvoices();
+
+    return {
+      total: invoices.length,
+      ready: invoices.filter((invoice) => this.canStartInvoiceAcceptance(invoice)).length,
+      processed: invoices.filter((invoice) => !!invoice.isProcessed).length,
+      blocked: invoices.filter((invoice) => !this.canStartInvoiceAcceptance(invoice)).length
     };
   });
   protected readonly draftModeLabel = computed(() =>
@@ -240,7 +256,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   ngOnInit(): void {
     if (this.canList()) {
-      this.loadRecords();
+      this.loadDailyWorkspace();
     }
   }
 
@@ -261,6 +277,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected setSelectedDate(value: string): void {
     this.selectedDate.set(value);
+  }
+
+  protected loadDailyWorkspace(): void {
+    this.loadRecords();
+    this.loadIncomingInvoices();
   }
 
   protected loadRecords(): void {
@@ -302,6 +323,76 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           );
         }
       });
+  }
+
+  protected loadIncomingInvoices(): void {
+    const date = this.selectedDate().trim();
+
+    if (!date || !this.canList()) {
+      return;
+    }
+
+    this.isIncomingInvoiceLoading.set(true);
+
+    this.kasaIslemleriService
+      .getManavMalKabulVeEtiketIncomingInvoices({
+        startDate: date,
+        endDate: date,
+        supplierCode: this.draft.supplierCode || null,
+        searchText: this.invoiceSearchText,
+        includeArchived: this.includeArchivedInvoices,
+        take: 100
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isIncomingInvoiceLoading.set(false))
+      )
+      .subscribe({
+        next: (invoices: ManavMalKabulVeEtiketIncomingInvoiceDto[]) => {
+          this.incomingInvoices.set(invoices ?? []);
+
+          const selectedId = this.getIncomingInvoiceKey(this.selectedIncomingInvoice());
+          if (selectedId) {
+            this.selectedIncomingInvoice.set(
+              invoices?.find((invoice) => this.getIncomingInvoiceKey(invoice) === selectedId) ?? null
+            );
+          }
+        },
+        error: (error: unknown) => {
+          this.incomingInvoices.set([]);
+          this.setFeedback(
+            'error',
+            'Fatura listesi alinamadi',
+            getErrorMessage(error, 'Gelen faturalar yuklenemedi.')
+          );
+        }
+      });
+  }
+
+  protected selectIncomingInvoice(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): void {
+    this.selectedIncomingInvoice.set(invoice);
+
+    const supplierCode = invoice.matchedSupplierCode?.trim() || '';
+    const supplierName = invoice.matchedSupplierName?.trim() || invoice.supplierTitle?.trim() || '';
+
+    if (supplierCode || supplierName) {
+      this.draft.supplierCode = supplierCode;
+      this.draft.supplierName = supplierName;
+      this.supplierQuery = this.joinLabel(supplierCode, supplierName);
+    }
+
+    const documentNo =
+      invoice.invoiceId?.trim() ||
+      invoice.documentId?.trim() ||
+      invoice.despatchId?.trim() ||
+      '';
+
+    if (documentNo && !this.draft.documentNo.trim()) {
+      this.draft.documentNo = documentNo;
+    }
+
+    this.feedback.set(null);
+    this.activeTab.set('form');
   }
 
   protected startNewRecord(): void {
@@ -1001,6 +1092,53 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
   }
 
+  protected getIncomingInvoiceStatusLabel(
+    invoice: ManavMalKabulVeEtiketIncomingInvoiceDto
+  ): string {
+    if (invoice.isProcessed) {
+      return 'Islendi';
+    }
+
+    if (this.canStartInvoiceAcceptance(invoice)) {
+      return 'Hazir';
+    }
+
+    return invoice.status?.trim() || invoice.message?.trim() || 'Kontrol';
+  }
+
+  protected getIncomingInvoiceStatusClass(
+    invoice: ManavMalKabulVeEtiketIncomingInvoiceDto
+  ): string {
+    if (invoice.isProcessed) {
+      return 'status-transferred';
+    }
+
+    return this.canStartInvoiceAcceptance(invoice) ? 'status-waiting' : 'status-blocked';
+  }
+
+  protected canStartInvoiceAcceptance(
+    invoice: ManavMalKabulVeEtiketIncomingInvoiceDto | null | undefined
+  ): boolean {
+    return !!invoice && invoice.canStartAcceptance !== false && !invoice.isArchived;
+  }
+
+  protected isSelectedIncomingInvoice(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): boolean {
+    return this.getIncomingInvoiceKey(invoice) === this.getIncomingInvoiceKey(this.selectedIncomingInvoice());
+  }
+
+  protected getIncomingInvoiceTitle(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): string {
+    return invoice.supplierTitle?.trim() || invoice.matchedSupplierName?.trim() || '-';
+  }
+
+  protected getIncomingInvoiceDocument(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): string {
+    return (
+      invoice.invoiceId?.trim() ||
+      invoice.documentId?.trim() ||
+      invoice.despatchId?.trim() ||
+      '-'
+    );
+  }
+
   protected trackByRecord = (_index: number, record: EtiketBasimAcceptanceRecordDto): number =>
     record.id;
 
@@ -1009,6 +1147,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected trackByStock = (index: number, stock: EtiketBasimStockDto): string =>
     this.getStockCode(stock) || `${index}`;
+
+  protected trackByIncomingInvoice = (
+    index: number,
+    invoice: ManavMalKabulVeEtiketIncomingInvoiceDto
+  ): string => this.getIncomingInvoiceKey(invoice) || `${index}`;
 
   protected trackByPrintCopy = (index: number): number => index;
 
@@ -1258,7 +1401,13 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   }
 
   protected getSupplierName(supplier: EtiketBasimSupplierDto): string {
-    return (supplier.supplierName ?? supplier.name ?? supplier.displayName ?? '').trim();
+    return (
+      supplier.supplierName ??
+      supplier.supplierTitle2 ??
+      supplier.name ??
+      supplier.displayName ??
+      ''
+    ).trim();
   }
 
   protected getStockCode(stock: EtiketBasimStockDto): string {
@@ -1271,6 +1420,18 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected getStockBarcode(stock: EtiketBasimStockDto): string {
     return (stock.stockBarcode ?? stock.barcode ?? '').trim();
+  }
+
+  private getIncomingInvoiceKey(
+    invoice: ManavMalKabulVeEtiketIncomingInvoiceDto | null | undefined
+  ): string {
+    return (
+      invoice?.documentId?.trim() ||
+      invoice?.invoiceId?.trim() ||
+      invoice?.despatchId?.trim() ||
+      invoice?.orderDocumentId?.trim() ||
+      ''
+    );
   }
 
   private normalizeCaseType(value: string | null | undefined): 'REHINLI' | 'REHINSIZ' {
