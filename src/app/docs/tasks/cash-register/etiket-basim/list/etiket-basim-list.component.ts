@@ -25,6 +25,8 @@ import {
   EtiketBasimSupplierDto,
   ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto,
   ManavMalKabulVeEtiketIncomingInvoiceDto,
+  ManavMalKabulVeEtiketInvoiceDetailDto,
+  ManavMalKabulVeEtiketInvoiceLineDto,
   SaveEtiketBasimAcceptanceRecordHttpRequest
 } from '@interfaces';
 import { finalize } from 'rxjs';
@@ -151,6 +153,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected supplierQuery = '';
   protected stockQuery = '';
   protected invoiceSearchText = '';
+  protected invoiceEttn = '';
   protected invoiceStartDate = this.getDateOffset(-6);
   protected invoiceEndDate = this.getToday();
   protected includeArchivedInvoices = false;
@@ -169,6 +172,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly labelPreview = signal<EtiketBasimLabelDto | null>(null);
   protected readonly incomingInvoices = signal<ManavMalKabulVeEtiketIncomingInvoiceDto[]>([]);
   protected readonly selectedIncomingInvoice = signal<ManavMalKabulVeEtiketIncomingInvoiceDto | null>(null);
+  protected readonly selectedInvoiceDetail = signal<ManavMalKabulVeEtiketInvoiceDetailDto | null>(null);
+  protected readonly selectedInvoiceLine = signal<ManavMalKabulVeEtiketInvoiceLineDto | null>(null);
   protected readonly receivedReportRows = signal<EtiketBasimReceivedProductReportDto[]>([]);
   protected readonly comparisonReportRows = signal<ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[]>([]);
   protected readonly depotReportRows = signal<EtiketBasimDepotStockReportDto[]>([]);
@@ -184,6 +189,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly isSupplierSearching = signal(false);
   protected readonly isStockSearching = signal(false);
   protected readonly isIncomingInvoiceLoading = signal(false);
+  protected readonly isInvoiceDetailLoading = signal(false);
   protected readonly isCalculating = signal(false);
   protected readonly isLabelLoading = signal(false);
   protected readonly isPrinting = signal(false);
@@ -226,6 +232,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       blocked: invoices.filter((invoice) => !this.canStartInvoiceAcceptance(invoice)).length
     };
   });
+  protected readonly invoiceLineSummary = computed(() => {
+    const lines = this.selectedInvoiceDetail()?.lines ?? [];
+
+    return {
+      total: lines.length,
+      matched: lines.filter((line) => this.isInvoiceLineMatched(line)).length,
+      waiting: lines.filter((line) => !this.isInvoiceLineMatched(line)).length
+    };
+  });
   protected readonly draftModeLabel = computed(() =>
     this.selectedRecord() ? 'Kayit Guncelle' : 'Yeni Kabul'
   );
@@ -251,6 +266,67 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
     return record ? this.canUpdate() && this.isDraftValid() : this.canCreate() && this.isDraftValid();
   });
+
+  protected draftMissingFields(): string[] {
+    const missing: string[] = [];
+
+    if (!this.draft.supplierCode.trim()) {
+      missing.push('Cari kodu');
+    }
+
+    if (!this.draft.supplierName.trim()) {
+      missing.push('Tedarikci firma');
+    }
+
+    if (!this.draft.documentNo.trim()) {
+      missing.push('Evrak no');
+    }
+
+    if (!this.draft.stockCode.trim()) {
+      missing.push('Stok kodu');
+    }
+
+    if (!this.draft.stockName.trim()) {
+      missing.push('Stok adi');
+    }
+
+    if (!this.draft.stockBarcode.trim()) {
+      missing.push('Barkod');
+    }
+
+    if (!this.draft.receivedBy.trim()) {
+      missing.push('Teslim alan');
+    }
+
+    if (this.draft.grossWeight === null || this.draft.grossWeight <= 0) {
+      missing.push('Toplam kilo');
+    }
+
+    if (this.draft.caseTare === null || this.draft.caseTare < 0) {
+      missing.push('Kasa darasi');
+    }
+
+    return missing;
+  }
+
+  protected saveBlockReason(): string {
+    const selected = this.selectedRecord();
+
+    if (this.isSaving()) {
+      return 'Kayit islemi devam ediyor.';
+    }
+
+    if (selected?.microTransferred) {
+      return 'Mikro aktarilmis kayit guncellenemez.';
+    }
+
+    if (selected ? !this.canUpdate() : !this.canCreate()) {
+      return 'Kaydetme yetkiniz bulunmuyor.';
+    }
+
+    const missing = this.draftMissingFields();
+    return missing.length ? `Eksik: ${missing.join(', ')}` : '';
+  }
 
   constructor() {
     this.reportWarehouseNo = getCurrentWarehouseNo(this.authService.currentUser());
@@ -391,6 +467,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.draft = createEmptyDraft();
     this.calculation.set(null);
     this.labelPreview.set(null);
+    this.selectedInvoiceDetail.set(null);
+    this.selectedInvoiceLine.set(null);
     this.labelCopyCount = 1;
     this.applyInvoiceToDraft(invoice);
 
@@ -410,6 +488,122 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     this.feedback.set(null);
+    this.activeTab.set('form');
+    this.loadSelectedInvoiceDetail(invoice);
+  }
+
+  protected loadSelectedInvoiceDetail(
+    invoice: ManavMalKabulVeEtiketIncomingInvoiceDto = this.selectedIncomingInvoice() as ManavMalKabulVeEtiketIncomingInvoiceDto
+  ): void {
+    if (!invoice || !this.canDetail()) {
+      return;
+    }
+
+    const lookupId = this.getIncomingInvoiceLookupId(invoice);
+
+    if (!lookupId) {
+      this.setFeedback('error', 'Fatura detayi yok', 'Fatura kalemlerini almak icin belge anahtari okunamadi.');
+      return;
+    }
+
+    this.isInvoiceDetailLoading.set(true);
+
+    this.kasaIslemleriService
+      .getManavMalKabulVeEtiketIncomingInvoiceDetail(lookupId, this.draft.supplierCode || null)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isInvoiceDetailLoading.set(false))
+      )
+      .subscribe({
+        next: (detail: ManavMalKabulVeEtiketInvoiceDetailDto) => this.applyInvoiceDetail(detail),
+        error: (error: unknown) => {
+          this.selectedInvoiceDetail.set(null);
+          this.selectedInvoiceLine.set(null);
+          this.setFeedback(
+            'error',
+            'Fatura detayi alinamadi',
+            getErrorMessage(error, 'Fatura kalemleri yuklenemedi.')
+          );
+        }
+      });
+  }
+
+  protected loadInvoiceDetailByEttn(): void {
+    const ettn = this.invoiceEttn.trim();
+
+    if (!ettn) {
+      this.setFeedback('error', 'ETTN gerekli', 'Fatura detayi icin ETTN girin.');
+      return;
+    }
+
+    this.isInvoiceDetailLoading.set(true);
+
+    this.kasaIslemleriService
+      .getManavMalKabulVeEtiketIncomingInvoiceDetailByEttn(ettn, this.draft.supplierCode || null)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isInvoiceDetailLoading.set(false))
+      )
+      .subscribe({
+        next: (detail: ManavMalKabulVeEtiketInvoiceDetailDto) => {
+          this.selectedIncomingInvoice.set(null);
+          this.applyInvoiceDetail(detail);
+          this.activeTab.set('form');
+        },
+        error: (error: unknown) => {
+          this.selectedInvoiceDetail.set(null);
+          this.selectedInvoiceLine.set(null);
+          this.setFeedback(
+            'error',
+            'ETTN detayi alinamadi',
+            getErrorMessage(error, 'Fatura ETTN ile yuklenemedi.')
+          );
+        }
+      });
+  }
+
+  protected selectInvoiceLine(line: ManavMalKabulVeEtiketInvoiceLineDto): void {
+    this.selectedInvoiceLine.set(line);
+
+    if (!this.isInvoiceLineMatched(line)) {
+      const stockName = line.stockName?.trim() || '';
+      const stockCode = line.stockCode?.trim() || '';
+      this.draft.stockCode = '';
+      this.draft.stockBarcode = '';
+
+      if (stockName) {
+        this.draft.stockName = stockName;
+      }
+
+      this.stockQuery = this.joinLabel(stockCode, stockName);
+      this.calculation.set(null);
+      this.setFeedback(
+        'info',
+        'Stok eslestirme gerekli',
+        line.warnings?.[0] || 'Bu fatura kalemi icin MNV stok secin.'
+      );
+      this.activeTab.set('form');
+      return;
+    }
+
+    const stockCode = line.matchedStockCode?.trim() || '';
+    const stockName = line.matchedStockName?.trim() || line.stockName?.trim() || '';
+    const stockBarcode = line.matchedBarcode?.trim() || '';
+
+    if (stockCode) {
+      this.draft.stockCode = stockCode;
+    }
+
+    if (stockName) {
+      this.draft.stockName = stockName;
+    }
+
+    if (stockBarcode) {
+      this.draft.stockBarcode = stockBarcode;
+    }
+
+    this.stockQuery = this.joinLabel(stockCode, stockName);
+    this.scheduleCalculation();
     this.activeTab.set('form');
   }
 
@@ -434,6 +628,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected startManualRecord(): void {
     this.selectedIncomingInvoice.set(null);
+    this.selectedInvoiceDetail.set(null);
+    this.selectedInvoiceLine.set(null);
     this.startNewRecord();
     this.setFeedback(
       'info',
@@ -621,7 +817,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const request = this.buildSaveRequest();
 
     if (!request) {
-      this.setFeedback('error', 'Eksik bilgi', 'Kaydetmek icin zorunlu alanlari doldurun.');
+      this.setFeedback(
+        'error',
+        'Eksik bilgi',
+        this.saveBlockReason() || 'Kaydetmek icin zorunlu alanlari doldurun.'
+      );
       return;
     }
 
@@ -1187,6 +1387,31 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     return parts.join(' / ') || 'Fatura bilgisi';
   }
 
+  protected getInvoiceDetailTitle(detail: ManavMalKabulVeEtiketInvoiceDetailDto): string {
+    return detail.supplierTitle?.trim() || detail.matchedSupplierName?.trim() || '-';
+  }
+
+  protected getInvoiceDetailDocument(detail: ManavMalKabulVeEtiketInvoiceDetailDto): string {
+    return detail.documentId?.trim() || detail.invoiceId?.trim() || detail.invoiceLookupId?.trim() || '-';
+  }
+
+  protected isInvoiceLineMatched(line: ManavMalKabulVeEtiketInvoiceLineDto): boolean {
+    return !!line.matchedStockCode?.trim() && line.canCreateAcceptance !== false;
+  }
+
+  protected getInvoiceLineStatusLabel(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
+    if (this.isInvoiceLineMatched(line)) {
+      return 'Hazir';
+    }
+
+    return line.warnings?.[0] || 'Stok eslestir';
+  }
+
+  protected isSelectedInvoiceLine(line: ManavMalKabulVeEtiketInvoiceLineDto): boolean {
+    const selected = this.selectedInvoiceLine();
+    return !!selected && selected.lineNo === line.lineNo && selected.lineId === line.lineId;
+  }
+
   protected trackByRecord = (_index: number, record: EtiketBasimAcceptanceRecordDto): number =>
     record.id;
 
@@ -1200,6 +1425,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     index: number,
     invoice: ManavMalKabulVeEtiketIncomingInvoiceDto
   ): string => this.getIncomingInvoiceKey(invoice) || `${index}`;
+
+  protected trackByInvoiceLine = (
+    index: number,
+    line: ManavMalKabulVeEtiketInvoiceLineDto
+  ): string => `${line.lineNo || index}-${line.lineId || line.stockCode || line.stockName || index}`;
 
   protected trackByPrintCopy = (index: number): number => index;
 
@@ -1308,6 +1538,39 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.draft.supplierName = supplierName;
     this.draft.documentNo = documentNo === '-' ? '' : documentNo;
     this.supplierQuery = this.joinLabel(supplierCode, supplierName);
+  }
+
+  private applyInvoiceDetail(detail: ManavMalKabulVeEtiketInvoiceDetailDto): void {
+    this.selectedInvoiceDetail.set(detail);
+    this.applyInvoiceDetailToDraft(detail);
+
+    const firstReadyLine = (detail.lines ?? []).find((line) => this.isInvoiceLineMatched(line));
+    if (firstReadyLine) {
+      this.selectInvoiceLine(firstReadyLine);
+    }
+
+    if (detail.warnings?.length) {
+      this.setFeedback('info', 'Fatura detayi yuklendi', detail.warnings.join(' '));
+      return;
+    }
+
+    this.feedback.set(null);
+  }
+
+  private applyInvoiceDetailToDraft(detail: ManavMalKabulVeEtiketInvoiceDetailDto): void {
+    const supplierCode = detail.matchedSupplierCode?.trim() || this.draft.supplierCode.trim();
+    const supplierName = detail.matchedSupplierName?.trim() || detail.supplierTitle?.trim() || this.draft.supplierName.trim();
+    const documentNo = this.getInvoiceDetailDocument(detail);
+    const issueDate = detail.issueDate?.slice(0, 10);
+
+    this.draft.supplierCode = supplierCode;
+    this.draft.supplierName = supplierName;
+    this.draft.documentNo = documentNo === '-' ? this.draft.documentNo : documentNo;
+    this.supplierQuery = this.joinLabel(supplierCode, supplierName);
+
+    if (issueDate) {
+      this.selectedDate.set(issueDate);
+    }
   }
 
   private upsertRecord(record: EtiketBasimAcceptanceRecordDto): void {
@@ -1489,6 +1752,16 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       invoice?.invoiceId?.trim() ||
       invoice?.despatchId?.trim() ||
       invoice?.orderDocumentId?.trim() ||
+      ''
+    );
+  }
+
+  private getIncomingInvoiceLookupId(invoice: ManavMalKabulVeEtiketIncomingInvoiceDto): string {
+    return (
+      invoice.invoiceId?.trim() ||
+      invoice.documentId?.trim() ||
+      invoice.despatchId?.trim() ||
+      invoice.orderDocumentId?.trim() ||
       ''
     );
   }

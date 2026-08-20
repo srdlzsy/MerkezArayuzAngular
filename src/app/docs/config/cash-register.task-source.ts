@@ -132,7 +132,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
       baseRouteOrFile: '/api/kasa-islemleri/manav-mal-kabul-etiket',
       highlights: [
         'Operasyon resmi hal faturasi secimiyle baslar, manuel kabul istisna akisidir',
-        'Gelen faturalar Uyumsoft cache icin /incoming-invoices endpointinden okunur',
+        'Gelen faturalar Uyumsoft cache icin /incoming-invoices endpointinden okunur; belge secilince kalemler detay endpointinden yuklenir',
         'Tedarikci ve stok referans aramasi',
         'Kasa/net kilo hesaplama ve etiket onizleme',
         'Mikro aktarim fiyat, KDV ve fatura secimi netlesmeden acilmamalidir'
@@ -152,8 +152,20 @@ export const CASH_REGISTER_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/kasa-islemleri/manav-mal-kabul-etiket/incoming-invoices?startDate=2026-08-14&endDate=2026-08-14&take=100',
-              description: 'Gelen faturalari mal kabul akisi icin listeler',
+              description: 'Gelen fatura basliklarini mal kabul akisi icin listeler',
               payload: 'ManavMalKabulVeEtiketIncomingInvoiceHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/incoming-invoices/{invoiceLookupId}/detail?supplierCode=32000297',
+              description: 'Secili gelen faturanin baslik ve kalem detaylarini dondurur',
+              payload: 'ManavMalKabulVeEtiketInvoiceDetailQuery'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/manav-mal-kabul-etiket/incoming-invoices/ettn/{ettn}?supplierCode=32000297',
+              description: 'ETTN ile gelen fatura baslik ve kalem detaylarini dondurur',
+              payload: 'ManavMalKabulVeEtiketInvoiceDetailQuery'
             },
             {
               method: 'GET',

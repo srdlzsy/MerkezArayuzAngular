@@ -98,6 +98,15 @@
               (keydown.enter)="loadIncomingInvoices()"
             />
           </label>
+          <label class="field search-field">
+            <span>ETTN</span>
+            <input
+              type="search"
+              placeholder="ETTN ile detay getir"
+              [(ngModel)]="invoiceEttn"
+              (keydown.enter)="loadInvoiceDetailByEttn()"
+            />
+          </label>
           <label class="check-field">
             <input
               type="checkbox"
@@ -113,6 +122,14 @@
             [disabled]="isSupplierSearching()"
           >
             {{ isSupplierSearching() ? 'Araniyor...' : 'Cari Bul' }}
+          </button>
+          <button
+            type="button"
+            class="task-action"
+            (click)="loadInvoiceDetailByEttn()"
+            [disabled]="isInvoiceDetailLoading() || !invoiceEttn.trim() || !canDetail()"
+          >
+            {{ isInvoiceDetailLoading() ? 'Yukleniyor...' : 'ETTN Getir' }}
           </button>
           <button
             type="button"
@@ -140,6 +157,36 @@
       </p>
 
       <article class="selected-invoice-card" *ngIf="selectedIncomingInvoice() as invoice">
+        <ng-container *ngIf="selectedInvoiceDetail() as detail">
+          <div class="selected-invoice-title">
+            <span class="status-pill status-ready">
+              {{ invoiceLineSummary().matched }} / {{ invoiceLineSummary().total }} kalem
+            </span>
+            <div>
+              <strong>{{ getInvoiceDetailTitle(detail) }}</strong>
+              <small>{{ getInvoiceDetailDocument(detail) }} / {{ detail.invoiceTypeCode || invoice.invoiceType || 'Fatura' }}</small>
+            </div>
+          </div>
+          <dl>
+            <div>
+              <dt>Fatura Tarihi</dt>
+              <dd>{{ detail.issueDate || getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }}</dd>
+            </div>
+            <div>
+              <dt>Toplam</dt>
+              <dd>{{ detail.payableAmount || invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ detail.documentCurrencyCode || invoice.documentCurrencyCode || 'TL' }}</dd>
+            </div>
+            <div>
+              <dt>Matrah</dt>
+              <dd>{{ detail.taxExclusiveAmount || invoice.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
+            </div>
+            <div>
+              <dt>KDV</dt>
+              <dd>{{ detail.taxTotal || invoice.taxTotal || 0 | number:'1.2-2' }}</dd>
+            </div>
+          </dl>
+        </ng-container>
+        <ng-container *ngIf="!selectedInvoiceDetail()">
         <div class="selected-invoice-title">
           <span class="status-pill" [ngClass]="getIncomingInvoiceStatusClass(invoice)">
             {{ getIncomingInvoiceStatusLabel(invoice) }}
@@ -167,7 +214,111 @@
             <dd>{{ invoice.taxTotal || 0 | number:'1.2-2' }}</dd>
           </div>
         </dl>
+        </ng-container>
       </article>
+
+      <article class="selected-invoice-card" *ngIf="!selectedIncomingInvoice() && selectedInvoiceDetail() as detail">
+        <div class="selected-invoice-title">
+          <span class="status-pill status-ready">
+            {{ invoiceLineSummary().matched }} / {{ invoiceLineSummary().total }} kalem
+          </span>
+          <div>
+            <strong>{{ getInvoiceDetailTitle(detail) }}</strong>
+            <small>{{ getInvoiceDetailDocument(detail) }} / {{ detail.invoiceTypeCode || 'Fatura' }}</small>
+          </div>
+        </div>
+        <dl>
+          <div>
+            <dt>Fatura Tarihi</dt>
+            <dd>{{ detail.issueDate | date:'dd.MM.yyyy' }}</dd>
+          </div>
+          <div>
+            <dt>Toplam</dt>
+            <dd>{{ detail.payableAmount || 0 | number:'1.2-2' }} {{ detail.documentCurrencyCode || 'TL' }}</dd>
+          </div>
+          <div>
+            <dt>Matrah</dt>
+            <dd>{{ detail.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
+          </div>
+          <div>
+            <dt>KDV</dt>
+            <dd>{{ detail.taxTotal || 0 | number:'1.2-2' }}</dd>
+          </div>
+        </dl>
+      </article>
+
+      <section class="invoice-lines-panel" *ngIf="selectedInvoiceDetail() as detail">
+        <div class="panel-head compact">
+          <div class="title-block">
+            <span>Fatura Kalemleri</span>
+            <h3>{{ invoiceLineSummary().matched }} hazir / {{ invoiceLineSummary().total }} satir</h3>
+          </div>
+          <button
+            type="button"
+            class="task-action"
+            (click)="loadSelectedInvoiceDetail()"
+            [disabled]="isInvoiceDetailLoading() || !selectedIncomingInvoice()"
+          >
+            {{ isInvoiceDetailLoading() ? 'Yukleniyor...' : 'Kalemleri Yenile' }}
+          </button>
+        </div>
+
+        <article class="invoice-warning" *ngIf="detail.warnings?.length">
+          {{ detail.warnings?.join(' ') }}
+        </article>
+
+        <div class="table-wrap invoice-lines-wrap" *ngIf="detail.lines?.length; else emptyInvoiceLines">
+          <table class="record-table invoice-lines-table">
+            <thead>
+              <tr>
+                <th>#</th>
+                <th>Fatura Urunu</th>
+                <th>Miktar</th>
+                <th>Fiyat</th>
+                <th>KDV</th>
+                <th>Mikro Stok</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let line of detail.lines; trackBy: trackByInvoiceLine"
+                [class.is-selected]="isSelectedInvoiceLine(line)"
+                (click)="selectInvoiceLine(line)"
+              >
+                <td data-label="#">{{ line.lineNo || '-' }}</td>
+                <td data-label="Fatura Urunu">
+                  <strong>{{ line.stockName || '-' }}</strong>
+                  <span>{{ line.stockCode || '-' }} / {{ line.barcode || '-' }}</span>
+                </td>
+                <td data-label="Miktar">{{ line.quantity || 0 | number:'1.0-3' }} {{ line.unitCode || '' }}</td>
+                <td data-label="Fiyat">{{ line.unitPrice || 0 | number:'1.2-2' }}</td>
+                <td data-label="KDV">%{{ line.taxRatePercent || 0 | number:'1.0-2' }}</td>
+                <td data-label="Mikro Stok">
+                  <strong>{{ line.matchedStockName || '-' }}</strong>
+                  <span>{{ line.matchedStockCode || '-' }} / {{ line.matchedBarcode || '-' }}</span>
+                </td>
+                <td data-label="Durum">
+                  <span
+                    class="status-pill"
+                    [class.status-ready]="isInvoiceLineMatched(line)"
+                    [class.status-blocked]="!isInvoiceLineMatched(line)"
+                  >
+                    {{ getInvoiceLineStatusLabel(line) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <ng-template #emptyInvoiceLines>
+          <article class="empty-state compact-empty">
+            <strong>Fatura kalemi yok</strong>
+            <span>Bu belge icin detay kalemi gelmedi.</span>
+          </article>
+        </ng-template>
+      </section>
 
       <div class="incoming-list" *ngIf="incomingInvoices().length; else emptyInvoices">
         <article
@@ -213,7 +364,15 @@
             </span>
           </div>
 
+          <article class="save-hint" *ngIf="saveBlockReason() && !canSaveDraft()">
+            {{ saveBlockReason() }}
+          </article>
+
           <div class="entry-grid">
+            <label class="field">
+              <span>Cari Kodu</span>
+              <input type="text" [(ngModel)]="draft.supplierCode" (ngModelChange)="onDraftTextChange()" />
+            </label>
             <label class="field field-wide">
               <span>Tedarikci Firma</span>
               <input type="text" [(ngModel)]="draft.supplierName" (ngModelChange)="onDraftTextChange()" />

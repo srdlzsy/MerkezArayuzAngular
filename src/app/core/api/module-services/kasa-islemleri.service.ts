@@ -97,6 +97,7 @@ import {
   ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto,
   ManavMalKabulVeEtiketIncomingInvoiceDto,
   ManavMalKabulVeEtiketIncomingInvoiceHttpRequest,
+  ManavMalKabulVeEtiketInvoiceDetailDto,
   ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto,
   ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest,
   SaveEtiketBasimAcceptanceRecordHttpRequest,
@@ -267,6 +268,26 @@ export class KasaIslemleriService extends BaseApiService {
       includeArchived: request.includeArchived ?? false,
       take: request.take ?? 100
     });
+  }
+
+  getManavMalKabulVeEtiketIncomingInvoiceDetail(
+    invoiceLookupId: string,
+    supplierCode?: string | null
+  ): Observable<ManavMalKabulVeEtiketInvoiceDetailDto> {
+    return this.getWithQuery<ManavMalKabulVeEtiketInvoiceDetailDto, { supplierCode?: string }>(
+      `${ETIKET_BASIM_ROOT}/incoming-invoices/${encodeURIComponent(invoiceLookupId.trim())}/detail`,
+      { supplierCode: supplierCode?.trim() || undefined }
+    );
+  }
+
+  getManavMalKabulVeEtiketIncomingInvoiceDetailByEttn(
+    ettn: string,
+    supplierCode?: string | null
+  ): Observable<ManavMalKabulVeEtiketInvoiceDetailDto> {
+    return this.getWithQuery<ManavMalKabulVeEtiketInvoiceDetailDto, { supplierCode?: string }>(
+      `${ETIKET_BASIM_ROOT}/incoming-invoices/ettn/${encodeURIComponent(ettn.trim())}`,
+      { supplierCode: supplierCode?.trim() || undefined }
+    );
   }
 
   getEtiketBasimAcceptanceRecord(id: number): Observable<EtiketBasimAcceptanceRecordDto> {

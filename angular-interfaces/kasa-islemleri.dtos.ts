@@ -915,6 +915,51 @@ export interface ManavMalKabulVeEtiketIncomingInvoiceDto {
   canStartAcceptance?: boolean | null;
 }
 
+export interface ManavMalKabulVeEtiketInvoiceDetailQuery {
+  invoiceLookupId: string;
+  supplierCode?: string | null;
+}
+
+export interface ManavMalKabulVeEtiketInvoiceLineDto {
+  lineNo: number;
+  lineId?: string | null;
+  stockCode?: string | null;
+  stockName?: string | null;
+  barcode?: string | null;
+  unitCode?: string | null;
+  quantity?: number | null;
+  unitPrice?: number | null;
+  lineAmount?: number | null;
+  taxRatePercent?: number | null;
+  taxAmount?: number | null;
+  taxPointer?: number | null;
+  matchedStockCode?: string | null;
+  matchedStockName?: string | null;
+  matchedBarcode?: string | null;
+  canCreateAcceptance?: boolean | null;
+  warnings?: string[] | null;
+}
+
+export interface ManavMalKabulVeEtiketInvoiceDetailDto {
+  invoiceLookupId?: string | null;
+  invoiceId?: string | null;
+  documentId?: string | null;
+  supplierTitle?: string | null;
+  supplierTaxNo?: string | null;
+  issueDate?: string | null;
+  invoiceTypeCode?: string | null;
+  documentCurrencyCode?: string | null;
+  taxExclusiveAmount?: number | null;
+  taxTotal?: number | null;
+  payableAmount?: number | null;
+  despatchId?: string | null;
+  matchedSupplierCode?: string | null;
+  matchedSupplierName?: string | null;
+  canStartAcceptance?: boolean | null;
+  lines?: ManavMalKabulVeEtiketInvoiceLineDto[] | null;
+  warnings?: string[] | null;
+}
+
 export interface ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest {
   date: string;
   supplierCode?: string | null;
