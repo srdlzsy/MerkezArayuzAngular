@@ -174,6 +174,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly selectedIncomingInvoice = signal<ManavMalKabulVeEtiketIncomingInvoiceDto | null>(null);
   protected readonly selectedInvoiceDetail = signal<ManavMalKabulVeEtiketInvoiceDetailDto | null>(null);
   protected readonly selectedInvoiceLine = signal<ManavMalKabulVeEtiketInvoiceLineDto | null>(null);
+  protected readonly showIncomingInvoiceList = signal(true);
   protected readonly receivedReportRows = signal<EtiketBasimReceivedProductReportDto[]>([]);
   protected readonly comparisonReportRows = signal<ManavMalKabulVeEtiketGoodsReceiptComparisonItemDto[]>([]);
   protected readonly depotReportRows = signal<EtiketBasimDepotStockReportDto[]>([]);
@@ -442,6 +443,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       .subscribe({
         next: (invoices: ManavMalKabulVeEtiketIncomingInvoiceDto[]) => {
           this.incomingInvoices.set(invoices ?? []);
+          this.showIncomingInvoiceList.set(true);
 
           const selectedId = this.getIncomingInvoiceKey(this.selectedIncomingInvoice());
           if (selectedId) {
@@ -490,6 +492,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.feedback.set(null);
     this.activeTab.set('form');
     this.loadSelectedInvoiceDetail(invoice);
+    this.showIncomingInvoiceList.set(false);
+  }
+
+  protected toggleIncomingInvoiceList(): void {
+    this.showIncomingInvoiceList.update((value) => !value);
   }
 
   protected loadSelectedInvoiceDetail(

@@ -139,6 +139,14 @@
           >
             {{ isIncomingInvoiceLoading() ? 'Yukleniyor...' : 'Faturalari Getir' }}
           </button>
+          <button
+            type="button"
+            class="task-action"
+            *ngIf="incomingInvoices().length"
+            (click)="toggleIncomingInvoiceList()"
+          >
+            {{ showIncomingInvoiceList() ? 'Listeyi Kapat' : 'Listeyi Ac' }}
+          </button>
         </div>
       </div>
 
@@ -320,7 +328,10 @@
         </ng-template>
       </section>
 
-      <div class="incoming-list" *ngIf="incomingInvoices().length; else emptyInvoices">
+      <div
+        class="incoming-list"
+        *ngIf="incomingInvoices().length && (showIncomingInvoiceList() || !selectedInvoiceDetail()); else emptyInvoices"
+      >
         <article
           class="incoming-card"
           *ngFor="let invoice of incomingInvoices(); trackBy: trackByIncomingInvoice"
@@ -346,7 +357,7 @@
       </div>
 
       <ng-template #emptyInvoices>
-        <article class="empty-state compact-empty">
+        <article class="empty-state compact-empty" *ngIf="!incomingInvoices().length">
           <strong>Gelen fatura yok</strong>
           <span>Tarih veya arama bilgisini degistirip tekrar deneyin.</span>
         </article>
@@ -452,6 +463,16 @@
             <button type="button" class="task-action" (click)="searchStocks()" [disabled]="isStockSearching()">
               {{ isStockSearching() ? 'Araniyor...' : 'Stok Ara' }}
             </button>
+          </div>
+
+          <div class="lookup-drawer" *ngIf="supplierResults().length || supplierSearchMessage()">
+            <div class="lookup-results compact-results" *ngIf="supplierResults().length">
+              <button type="button" *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier" (click)="selectSupplier(supplier)">
+                <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
+                <span>{{ getSupplierCode(supplier) }} / {{ supplier.supplierTaxNo || '-' }}</span>
+              </button>
+            </div>
+            <p class="field-message" *ngIf="supplierSearchMessage()">{{ supplierSearchMessage() }}</p>
           </div>
 
           <div class="lookup-drawer" *ngIf="stockResults().length || stockSearchMessage()">
