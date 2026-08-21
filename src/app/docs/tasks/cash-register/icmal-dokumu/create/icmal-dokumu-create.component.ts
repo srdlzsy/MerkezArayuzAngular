@@ -736,7 +736,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       });
   }
 
-  protected searchCashiersFor(target: 'cashier' | 'manager'): void {
+  protected searchCashiersFor(target: 'cashier' | 'manager', autoApplyBestMatch = false): void {
     const loading = target === 'cashier' ? this.cashierSearchLoading : this.managerSearchLoading;
     const error = target === 'cashier' ? this.cashierSearchError : this.managerSearchError;
     const results = target === 'cashier' ? this.cashierSearchResults : this.managerSearchResults;
@@ -763,6 +763,15 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .subscribe({
         next: (items: IFurpaCashierSearchItemApiDto[]) => {
           const normalizedItems = items ?? [];
+          const bestMatch = autoApplyBestMatch
+            ? this.findCashierBestMatch(normalizedItems, query)
+            : null;
+
+          if (bestMatch) {
+            this.applyCashier(bestMatch, target);
+            return;
+          }
+
           results.set(normalizedItems);
 
           if (normalizedItems.length === 0) {
@@ -773,6 +782,25 @@ export class IcmalDokumuCreateComponent implements OnInit {
           error.set(this.resolveErrorMessage(httpError, 'Arama yapilamadi.'));
         }
       });
+  }
+
+  private findCashierBestMatch(
+    items: IFurpaCashierSearchItemApiDto[],
+    query: string
+  ): IFurpaCashierSearchItemApiDto | null {
+    if (items.length === 0) {
+      return null;
+    }
+
+    const normalizedQuery = query.trim().toLowerCase();
+    const exactMatch = items.find((item) => {
+      const code = `${item.cashierCode ?? ''}`.trim().toLowerCase();
+      const name = `${item.cashierName ?? ''}`.trim().toLowerCase();
+
+      return code === normalizedQuery || name === normalizedQuery;
+    });
+
+    return exactMatch ?? (items.length === 1 ? items[0] : null);
   }
 
   protected applyCashier(item: IFurpaCashierSearchItemApiDto, target: 'cashier' | 'manager'): void {

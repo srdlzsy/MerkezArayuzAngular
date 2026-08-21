@@ -275,15 +275,15 @@
 
 .document-field-grid {
   grid-template-columns:
-    minmax(86px, 0.75fr)
+    minmax(82px, 0.68fr)
     minmax(118px, 0.85fr)
-    minmax(118px, 0.88fr)
-    minmax(122px, 0.98fr)
-    minmax(82px, 0.58fr)
-    minmax(168px, 1.28fr)
-    minmax(168px, 1.28fr)
-    minmax(118px, 0.88fr)
-    minmax(118px, 0.88fr);
+    minmax(108px, 0.78fr)
+    minmax(124px, 0.92fr)
+    minmax(78px, 0.52fr)
+    minmax(214px, 1.52fr)
+    minmax(214px, 1.52fr)
+    minmax(110px, 0.78fr)
+    minmax(110px, 0.78fr);
   gap: 0.38rem;
   align-items: start;
 }
@@ -302,21 +302,6 @@
   border-radius: 8px;
   padding: 0.32rem 0.48rem;
   font-size: 0.82rem;
-}
-
-.document-field-grid .person-lookup-row {
-  grid-template-columns: minmax(0, 1fr) auto 64px;
-  gap: 0.26rem;
-}
-
-.document-field-grid .mini-search-button {
-  min-height: 32px;
-  padding: 0 0.5rem;
-}
-
-.document-field-grid .person-lookup-field .code-input {
-  min-height: 32px;
-  padding: 0.32rem 0.42rem;
 }
 
 .field {
@@ -382,32 +367,30 @@
 
 .person-lookup-row {
   display: grid;
-  grid-template-columns: minmax(0, 1fr) auto;
-  gap: 0.35rem;
+  grid-template-columns: minmax(0, 1fr);
+  min-width: 0;
 }
 
-.person-lookup-field .code-input {
-  min-height: 30px;
-  padding-block: 0.24rem;
-  font-size: 0.78rem;
-  background: #f8fafc;
+.person-lookup-row input[type='search'] {
+  min-width: 0;
 }
 
-.mini-search-button {
-  min-height: 36px;
-  padding: 0 0.58rem;
-  color: #0f766e;
-  border: 1px solid #99f6e4;
-  border-radius: 8px;
-  background: #f0fdfa;
-  font-size: 0.76rem;
-  font-weight: 800;
-  cursor: pointer;
+.person-hint {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  min-height: 0.92rem;
+  padding: 0.06rem 0.32rem;
+  color: #b91c1c;
+  border-radius: 6px;
+  background: #fff7f7;
+  font-size: 0.6rem;
+  line-height: 1.15;
 }
 
-.mini-search-button:disabled {
-  cursor: wait;
-  opacity: 0.55;
+.person-lookup-field.has-search-error .person-lookup-row input[type='search'] {
+  border-color: #fca5a5;
+  background: #fffafa;
 }
 
 .inline-search-results {

@@ -159,7 +159,7 @@
             <input type="number" formControlName="zReportNo" placeholder="1643" min="1" step="1" inputmode="numeric" />
           </label>
 
-          <div class="field field-person person-lookup-field">
+          <div class="field field-person person-lookup-field" [class.has-search-error]="cashierSearchError()">
             <span>Kasiyer</span>
             <div class="person-lookup-row">
               <input
@@ -167,14 +167,11 @@
                 [formControl]="cashierSearchQuery"
                 placeholder="Kod veya ad ara"
                 autocomplete="off"
-                (keydown.enter)="$event.preventDefault(); searchCashiersFor('cashier')"
+                (keydown.enter)="$event.preventDefault(); searchCashiersFor('cashier', true)"
               />
-              <button type="button" class="mini-search-button" [disabled]="cashierSearchLoading()" (click)="searchCashiersFor('cashier')">
-                {{ cashierSearchLoading() ? '...' : 'Ara' }}
-              </button>
-              <input class="code-input" type="number" formControlName="cashierNo" placeholder="Kod" min="0" step="1" inputmode="numeric" />
+              <input type="hidden" formControlName="cashierNo" />
             </div>
-            <small class="field-hint" *ngIf="cashierSearchError()">{{ cashierSearchError() }}</small>
+            <small class="field-hint person-hint" *ngIf="cashierSearchError()">{{ cashierSearchError() }}</small>
             <div class="inline-search-results" *ngIf="cashierSearchResults().length > 0">
               <button
                 type="button"
@@ -187,7 +184,7 @@
             </div>
           </div>
 
-          <div class="field field-person person-lookup-field">
+          <div class="field field-person person-lookup-field" [class.has-search-error]="managerSearchError()">
             <span>Duzenleyen</span>
             <div class="person-lookup-row">
               <input
@@ -195,14 +192,11 @@
                 [formControl]="managerSearchQuery"
                 placeholder="Kod veya ad ara"
                 autocomplete="off"
-                (keydown.enter)="$event.preventDefault(); searchCashiersFor('manager')"
+                (keydown.enter)="$event.preventDefault(); searchCashiersFor('manager', true)"
               />
-              <button type="button" class="mini-search-button" [disabled]="managerSearchLoading()" (click)="searchCashiersFor('manager')">
-                {{ managerSearchLoading() ? '...' : 'Ara' }}
-              </button>
-              <input class="code-input" type="number" formControlName="managerNo" placeholder="Kod" min="0" step="1" inputmode="numeric" />
+              <input type="hidden" formControlName="managerNo" />
             </div>
-            <small class="field-hint" *ngIf="managerSearchError()">{{ managerSearchError() }}</small>
+            <small class="field-hint person-hint" *ngIf="managerSearchError()">{{ managerSearchError() }}</small>
             <div class="inline-search-results" *ngIf="managerSearchResults().length > 0">
               <button
                 type="button"
