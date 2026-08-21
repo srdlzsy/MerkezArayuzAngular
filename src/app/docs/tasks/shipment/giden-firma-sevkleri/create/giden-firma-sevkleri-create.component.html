@@ -90,11 +90,15 @@
 
         <div class="contact-row">
           <div class="contact-field">
-            <label>Muhatap Ad Soyad *</label>
-            <input type="text" formControlName="muhatapAdSoyad" maxlength="25" placeholder="Firma yetkilisi" />
+            <label>Teslim Alan *</label>
+            <input type="text" formControlName="muhatapAdSoyad" maxlength="25" placeholder="Teslim alan" />
             <small class="field-error" *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched">
               Zorunlu
             </small>
+          </div>
+          <div class="contact-field">
+            <label>Teslim Eden</label>
+            <input type="text" formControlName="deliverer" maxlength="25" placeholder="Opsiyonel" />
           </div>
           <div class="contact-field">
             <label>Aciklama</label>

@@ -259,6 +259,8 @@ export interface CreateCompanyMovementHttpRequest {
   documentDate: string;
   documentNo: string;
   description: string;
+  deliverer?: string;
+  receiver?: string;
   lines: CreateCompanyMovementLineHttpRequest[];
 }
 
@@ -634,4 +636,6 @@ export interface SendEDespatchResponse {
   serviceDocumentNumber: string;
   sentAt: string;
   endpointUrl: string;
+  localMikroMetadataUpdated?: boolean;
+  warning?: string | null;
 }

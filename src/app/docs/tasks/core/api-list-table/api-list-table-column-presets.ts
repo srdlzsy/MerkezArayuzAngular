@@ -280,6 +280,11 @@ export const SUBE_ICI_STOK_HAREKETI_LIST_COLUMNS = [
     label: 'Tarih',
     type: 'date',
     resolveValue: (row: IFurpaStockReceiptListItemApiDto) => row.documentDate || row.movementDate
+  },
+  {
+    key: 'totalAmount',
+    label: 'Tutar',
+    resolveValue: (row: IFurpaStockReceiptListItemApiDto) => formatAmount(row.totalAmount)
   }
 ] as const satisfies readonly ApiListTableColumn<IFurpaStockReceiptListItemApiDto>[];
 

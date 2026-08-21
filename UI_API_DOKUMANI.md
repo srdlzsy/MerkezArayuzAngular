@@ -3907,7 +3907,8 @@ Kural:
 
 - `barcode`, `stockCode`, `stockName`, `companyCode` veya `supplierCode` alanlarindan en az biri verilmelidir.
 - Bos arama engellenir; cunku Mikro procedure genis fiyat/stok seti dondurebilir.
-- Barkod okutulduysa UI mumkunse degeri `barcode` alaninda gondermelidir. Genel arama kutusunda kullanici sadece numerik metin yazarsa ve ilk arama sonuc donmezse backend bu metni once barkod, sonra stok kodu gibi tekrar dener.
+- Barkod okutulduysa UI mumkunse degeri `barcode` alaninda gondermelidir. 27/29 terazi barkodunda backend ilk 7 haneyi arar; sonuc bulunamazsa ayni urun/PLU kismi icin `27`/`29` alternatif prefix'ini de dener. Ornek: `2700740000008` okutulursa `2700740`, sonra `2900740`, sonra orijinal barkod denenir.
+- Genel arama kutusunda kullanici sadece numerik metin yazarsa ve ilk arama sonuc donmezse backend bu metni once barkod, sonra stok kodu gibi tekrar dener.
 - Ornek: `stockName=2900729` gibi yanlis/genel arama seklinde gelirse backend sonuc bulamazsa `barcode=2900729` gibi tekrar deneyip `015806` stokunu dondurebilir. En temiz UI yolu yine `barcode=2900729` veya `GET /api/arama-islemleri/barkodlar/2900729/cozumle` kullanmaktir.
 - UI barkodu yanlislikla `stockCode` alaninda gonderirse de backend ilk stok kodu aramasindan sonuc alamazsa ayni numerik degeri barkod gibi tekrar dener. Ornek: `stockCode=2900728&companyCode=8880325699` sonuc bulamazsa backend `barcode=2900728&companyCode=8880325699` gibi tekrar arar ve stok `015805` donebilir.
 - Firma icin urun ararken UI `companyCode` gondermelidir; backend bunu Mikro procedure tarafinda `@tedarikci` filtresine baglar.
@@ -4083,7 +4084,7 @@ Onemli not:
 
 - Endpoint once 13 haneli terazi barkodunu normalize eder. `27` veya `29` ile baslayan EAN-13 barkodlarda ilk 7 hane urun barkodu kabul edilir; 8-12. haneler KG miktari olarak `embeddedQuantity` alanina yazilir.
 - Ornek: `2700174041103` okutulursa `lookupBarcode = 2700174`, `embeddedQuantity = 4.11`, `embeddedQuantityUnit = KG` doner.
-- Endpoint normalize edilen barkodu `BARKOD_TANIMLARI` tablosunda exact arar.
+- Endpoint normalize edilen barkodu `BARKOD_TANIMLARI` tablosunda exact arar. Terazi barkodunda sonuc bulunamazsa ayni urun/PLU kismi icin `27`/`29` alternatif prefix'i denenir. Ornek: `2700740000008` icin `2700740`, sonra `2900740`, sonra orijinal barkod aranir.
 - Barkod bulunamazsa barkodu stok kodu veya global urun numarasi gibi degerlerle eslestirmeyi dener.
 - `resolutionSource` alani eslestirmenin `variable-weight`, `barcode`, `stock-code`, `gtin` veya `not-found` kaynakli oldugunu anlatir.
 - `barcodeKind` alani okutulan barkodun `variable-weight`, `product`, `case`, `alternative`, `stock-code` veya `gtin` gibi pratik tipini verir.
@@ -8102,7 +8103,10 @@ Onemli not:
 - `creator` ve `acceptor` alanlari sirasiyla `sth_HareketGrupKodu1` ve `sth_HareketGrupKodu2` kolonlarina yazilir
 - `documentSerie` backend tarafinda `F{islemDepoNo}` olarak uretilir
 - `documentOrderNo` ayni seri ve zayiat fis turu icin write DB'deki mevcut maksimum sira okunarak uretilir
-- `totalAmount` su an satir tutarlari `0` yazildigi icin `0` doner
+- Satir tutari eski sistemle uyumlu olacak sekilde create aninda hesaplanir ve `STOK_HAREKETLERI.sth_tutar` alanina yazilir.
+- Birim fiyat icin ilgili stogun `SATINALMA_SARTLARI` tablosundaki en guncel kaydi kullanilir: `sas_net_alis_kdvli - (sas_isk_miktar1..6 toplamı)`.
+- Ilgili stok icin satin alma sarti bulunamazsa satir tutari `0` yazilir ve backend log'a uyarı duser.
+- Response `totalAmount`, yazilan satirlarin `sth_tutar` toplamidir. Liste ve detay ekranlari da kayitli `sth_tutar` alanini okur; detay endpointi sonradan fiyat hesaplamaz.
 
 Request:
 
@@ -8202,7 +8206,10 @@ Onemli not:
 - `creator` ve `acceptor` alanlari sirasiyla `sth_HareketGrupKodu1` ve `sth_HareketGrupKodu2` kolonlarina yazilir
 - `documentSerie` backend tarafinda `F{islemDepoNo}` olarak uretilir
 - `documentOrderNo` ayni seri ve masraf fis turu icin write DB'deki mevcut maksimum sira okunarak uretilir
-- `totalAmount` su an satir tutarlari `0` yazildigi icin `0` doner
+- Satir tutari eski sistemle uyumlu olacak sekilde create aninda hesaplanir ve `STOK_HAREKETLERI.sth_tutar` alanina yazilir.
+- Birim fiyat icin ilgili stogun `SATINALMA_SARTLARI` tablosundaki en guncel kaydi kullanilir: `sas_net_alis_kdvli - (sas_isk_miktar1..6 toplami)`.
+- Ilgili stok icin satin alma sarti bulunamazsa satir tutari `0` yazilir ve backend log'a uyari duser.
+- Response `totalAmount`, yazilan satirlarin `sth_tutar` toplamidir. Liste ve detay ekranlari da kayitli `sth_tutar` alanini okur; detay endpointi sonradan fiyat hesaplamaz.
 
 Request:
 
@@ -10512,6 +10519,7 @@ Onemli not:
 - `documentSerie` backend tarafinda `F{islemDepoNo}` olarak uretilir.
 - `documentOrderNo` ayni seri, evrak tipi ve iade tipi icin write DB'deki mevcut maksimum sira okunarak uretilir; ilk evrak `0`, sonraki evraklar `1, 2...` seklinde gider.
 - Plaka, sofor adi ve TCKN bu create request'inde gonderilmez. E-irsaliye gonderiminde manuel akista bu alanlar zorunludur; kayitli sofor secilirse `driverId` yeterlidir.
+- `deliverer` teslim eden, `receiver` teslim alan bilgisidir. Opsiyoneldir; gonderilirse Mikro `STOK_HAREKETLERI.sth_HareketGrupKodu2` ve `sth_HareketGrupKodu3` alanlarina yazilir.
 - Request/response modeli firma giden sevk create ile aynidir; tek fark kaydin `returnType = 1` olarak yazilmasidir.
 
 Request:
@@ -10524,6 +10532,8 @@ Request:
   "documentDate": "2026-04-17",
   "documentNo": "IAD-0001",
   "description": "",
+  "deliverer": "Teslim Eden",
+  "receiver": "Teslim Alan",
   "lines": [
     {
       "stockCode": "015792",
@@ -10603,6 +10613,8 @@ Notlar:
 - `driverId` doluysa kayit aktif degilse veya bulunamazsa `404 Not Found` doner.
 - `driverId` ile birlikte gelen dolu manuel alanlar secili sofor kaydinin ustune yazilir; bos manuel alanlar sofor tanimindan doldurulur.
 - Basarili gonderimden sonra cozulmus plaka ve TCKN Mikro hareket satirlarina metadata olarak yazilmaya calisilir.
+- Response icindeki `localMikroMetadataUpdated=false` gelirse Uyumsoft gonderimi basarilidir, fakat Mikro hareket satirlari FRM/ETTN metadata'si ile isaretlenememistir. UI bu durumda tekrar e-irsaliye gondermemeli; `eDespatchDocumentNo` ve `eDespatchUuid` degerleriyle lokal Mikro belge metadata onarimi yapilmalidir.
+- Ayni evrak icin belge akisinda basarili Uyumsoft gonderimi kayitliysa backend ikinci gonderimi `409 Conflict` ile engeller. Bu kural Mikro metadata isaretleme eksik kalmis olsa bile Uyumsoft'ta duplicate zarf olusmasini onlemek icindir.
 
 Response:
 
@@ -18850,7 +18862,9 @@ public sealed record SendEDespatchResponse(
     string ServiceDocumentId,
     string ServiceDocumentNumber,
     DateTime SentAt,
-    string EndpointUrl);
+    string EndpointUrl,
+    bool LocalMikroMetadataUpdated = true,
+    string? Warning = null);
 
 public enum UyumsoftConnectedServiceKind
 {
@@ -21514,7 +21528,7 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `AnnouncementManagementListHttpRequest`: `Status`, `TargetType`, `TargetWarehouseNo`, `TargetUserId`, `StartDate`, `EndDate`, `IncludeArchived`, `Take`
 - `AnnouncementTargetUserSearchHttpRequest`: `Search`, `WarehouseNo`, `Take`
 - `SaveAnnouncementHttpRequest`: `Title`, `Message`, `Priority`, `TargetType`, `TargetWarehouseNos`, `TargetUserIds`, `StartsAtUtc`, `ExpiresAtUtc`
-- `CreateCompanyMovementHttpRequest`: `WarehouseNo`, `CustomerCode`, `MovementDate`, `DocumentDate`, `DocumentNo`, `Description`, `Lines`
+- `CreateCompanyMovementHttpRequest`: `WarehouseNo`, `CustomerCode`, `MovementDate`, `DocumentDate`, `DocumentNo`, `Description`, `Deliverer`, `Receiver`, `Lines`
 - `CreateCompanyMovementLineHttpRequest`: `StockCode`, `Quantity`, `UnitPrice`, `UnitPointer`, `Description`, `PartyCode`, `LotNo`, `ProjectCode`, `CustomerResponsibilityCenter`, `ProductResponsibilityCenter`, `OrderLineGuid`
 - `CreateStockReceiptHttpRequest`: `WarehouseNo`, `Creator`, `Acceptor`, `MovementDate`, `DocumentDate`, `DocumentNo`, `Description`, `Lines`
 - `CreateStockReceiptLineHttpRequest`: `StockCode`, `Quantity`, `UnitPointer`, `Description`, `PartyCode`, `LotNo`, `ProjectCode`

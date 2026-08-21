@@ -107,6 +107,10 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(25)]
     }),
+    deliverer: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(25)]
+    }),
     movementDate: new FormControl(this.today, {
       nonNullable: true,
       validators: [Validators.required]
@@ -391,6 +395,8 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
       documentDate: rawValue.documentDate,
       documentNo: trimToMaxLength(rawValue.documentNo, 25),
       description: trimToMaxLength(rawValue.description, 50),
+      deliverer: trimToMaxLength(rawValue.deliverer, 25),
+      receiver: trimToMaxLength(rawValue.muhatapAdSoyad, 25),
       lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
     });
   }

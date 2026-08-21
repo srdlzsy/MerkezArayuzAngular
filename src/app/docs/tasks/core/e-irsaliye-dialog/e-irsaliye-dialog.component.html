@@ -201,6 +201,19 @@
       </div>
     </div>
 
+    <article
+      class="notice-card"
+      *ngIf="result.warning || result.localMikroMetadataUpdated === false"
+    >
+      <h3>Yerel Mikro Bilgisi</h3>
+      <p>
+        {{
+          result.warning ||
+            'Uyumsoft gonderimi basarili; ancak Mikro evrak metadata bilgisi yerelde isaretlenemedi. Bu evrak tekrar gonderilmemeli, belge no ve UUID ile yerel metadata onarimi yapilmali.'
+        }}
+      </p>
+    </article>
+
     <div class="result-grid">
       <article class="result-item">
         <span class="meta-label">E-Irsaliye No</span>
