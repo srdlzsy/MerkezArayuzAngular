@@ -530,6 +530,65 @@ export const CASH_REGISTER_TASK_SOURCE = {
     ],
     ['IcmalKaydiGirisi', 'icmal-dokumu', 'kasa-islemleri.icmal-kaydi-girisi']
   ),
+  'birlik-kart-sorgulama': singleRouteTask(
+    {
+      id: 'birlik-kart-sorgulama',
+      title: 'Birlik Kart Sorgulama',
+      subtitle:
+        'Birlik kart ve indirim ceki kaydini kart/cek no ile sorgular, detayini gosterir ve yetkili kullanicida gunceller.',
+      baseRouteOrFile: '/api/kasa-islemleri/birlik-kart-sorgulama',
+      highlights: [
+        'Ekranda tek ana giris kart veya cek no alanidir',
+        'Depo kapsamli degildir; depo secici gosterilmez',
+        'Kayit bulunamazsa teknik hata degil sonuc mesaji olarak gosterilir',
+        'Detay ve guncelleme isteklerinde sorgudan gelen cekNo kullanilir',
+        'Guncelleme sadece update yetkisi olan kullaniciya acilir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'BirlikKartSorgulamaController',
+          description:
+            'Puan DB tarafindaki indirim ceki satirini sorgular, detaylandirir ve yetki varsa gunceller.',
+          endpoints: [
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/birlik-kart-sorgulama/sorgula',
+              description: 'Okutulan veya girilen kart/cek numarasini CEK_NO alaninda arar',
+              payload: 'BirlikKartSorgulamaRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/birlik-kart-sorgulama/detay',
+              description: 'Sorgudan gelen cekNo ile kaydin detayini getirir',
+              payload: 'BirlikKartDetayRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/kasa-islemleri/birlik-kart-sorgulama/guncelle',
+              description: 'Ayni cekNo ve cariKod eslesmesiyle kaydi gunceller',
+              payload: 'BirlikKartSorgulamaGuncelleRequest'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "kartNo": "123456"
+}`
+    },
+    () =>
+      import('../tasks/cash-register/birlik-kart-sorgulama/list/birlik-kart-sorgulama-list.component').then(
+        (m) => m.BirlikKartSorgulamaListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'BirlikKartSorgulama',
+        'birlik-kart-sorgulama',
+        'kasa-islemleri.birlik-kart-sorgulama'
+      ],
+      requiredPermissionCodes: ['kasa-islemleri.birlik-kart-sorgulama.page']
+    }
+  ),
   'banknot-takipleri': singleRouteTask(
     {
       id: 'banknot-takipleri',

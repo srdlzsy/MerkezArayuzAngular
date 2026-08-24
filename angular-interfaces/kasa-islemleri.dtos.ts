@@ -1599,6 +1599,54 @@ export interface IFurpaCreateCashSummaryRequestApiDto {
   storeExpenses: IFurpaCreateStoreExpenseRequestApiDto[];
 }
 
+// ============================================================================
+// Birlik Kart Sorgulama
+// ============================================================================
+
+export interface BirlikKartSorgulamaRequest {
+  kartNo: string;
+}
+
+export interface BirlikKartDetayRequest {
+  cekNo: string;
+}
+
+export interface BirlikKartSorgulamaResponse {
+  isFound: boolean;
+  kartNo?: string | null;
+  cekNo?: string | null;
+  cariKod?: string | null;
+  tutar?: number | null;
+  puan?: number | null;
+  baslangic?: string | null;
+  bitis?: string | null;
+  flag?: boolean | null;
+  subeKodu?: string | null;
+  kasaNo?: number | null;
+  kartTipi?: number | null;
+  message?: string | null;
+}
+
+export type BirlikKartDetayResponse = BirlikKartSorgulamaResponse;
+
+export interface BirlikKartSorgulamaGuncelleRequest {
+  cekNo: string;
+  cariKod: string;
+  tutar?: number | null;
+  puan?: number | null;
+  baslangic?: string | null;
+  bitis?: string | null;
+  flag?: boolean | null;
+  subeKodu?: string | null;
+  kasaNo?: number | null;
+  kartTipi?: number | null;
+}
+
+export interface BirlikKartGuncelleResponse {
+  isUpdated: boolean;
+  message?: string | null;
+}
+
 export interface IFurpaCreateCashSummaryResponseApiDto {
   documentSerie: string;
   documentOrderNo: number;

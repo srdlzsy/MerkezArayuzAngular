@@ -1,0 +1,205 @@
+<section class="task-page birlik-card-page" *ngIf="page as current">
+  <header class="hero birlik-hero">
+    <div class="welcome-box">
+      <span class="section-kicker">Kasa Islemleri</span>
+      <h2>{{ current.title }}</h2>
+      <p>Kart veya cek numarasini okut, sonucu kontrol et, yetkin varsa kaydi guncelle.</p>
+    </div>
+
+    <div class="hero-status">
+      <span [class.status-ok]="canList()" [class.status-warn]="!canList()">
+        <b>Sorgu</b>
+        {{ canList() ? 'Yetkili' : 'Yetki yok' }}
+      </span>
+      <span [class.status-ok]="canDetail()" [class.status-muted]="!canDetail()">
+        <b>Detay</b>
+        {{ canDetail() ? 'Acik' : 'Kapali' }}
+      </span>
+      <span [class.status-ok]="canUpdate()" [class.status-muted]="!canUpdate()">
+        <b>Guncelle</b>
+        {{ canUpdate() ? 'Acik' : 'Kapali' }}
+      </span>
+    </div>
+  </header>
+
+  <section class="task-block birlik-layout">
+    <form class="query-card search-card" [formGroup]="searchForm" (ngSubmit)="sorgula()" novalidate>
+      <label class="field search-field">
+        <span>Kart / Cek No</span>
+        <input
+          type="text"
+          formControlName="kartNo"
+          autocomplete="off"
+          inputmode="numeric"
+          placeholder="Okut veya numara gir"
+          [readonly]="isSearching()"
+        />
+        <small *ngIf="searchForm.controls.kartNo.touched && searchForm.controls.kartNo.invalid">
+          Kart veya cek no zorunlu.
+        </small>
+      </label>
+
+      <button type="submit" class="task-action task-action-primary" [disabled]="isSearching() || !canList()">
+        {{ isSearching() ? 'Sorgulaniyor...' : 'Sorgula' }}
+      </button>
+
+      <button
+        type="button"
+        class="task-action task-action-secondary"
+        [disabled]="isDetailLoading() || !canDetail() || !hasEditableResult()"
+        (click)="detayYenile()"
+      >
+        {{ isDetailLoading() ? 'Yenileniyor...' : 'Detay Yenile' }}
+      </button>
+    </form>
+
+    <article
+      class="state-card feedback-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+      [class.state-card-info]="currentFeedback.tone === 'info'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="!searched() && !isSearching()">
+      <h3>Sorgu Bekleniyor</h3>
+      <p>Kart veya cek numarasini okutunca sonuc burada acilir.</p>
+    </article>
+
+    <article class="result-card" *ngIf="result() as card">
+      <div class="result-head">
+        <div>
+          <span class="section-kicker">Sonuc</span>
+          <h3>{{ card.isFound ? 'Kart / Cek Kaydi' : 'Kayit Bulunamadi' }}</h3>
+        </div>
+        <span class="result-pill" [class.result-pill-ok]="card.isFound">
+          {{ card.isFound ? 'Bulundu' : 'Yok' }}
+        </span>
+      </div>
+
+      <div class="summary-grid">
+        <span>
+          <b>Kart No</b>
+          <strong>{{ card.kartNo || '-' }}</strong>
+        </span>
+        <span>
+          <b>Cek No</b>
+          <strong>{{ card.cekNo || '-' }}</strong>
+        </span>
+        <span>
+          <b>Cari Kod</b>
+          <strong>{{ card.cariKod || '-' }}</strong>
+        </span>
+        <span>
+          <b>Tutar</b>
+          <strong>{{ formatAmount(card.tutar) }}</strong>
+        </span>
+        <span>
+          <b>Puan</b>
+          <strong>{{ formatAmount(card.puan) }}</strong>
+        </span>
+        <span>
+          <b>Baslangic</b>
+          <strong>{{ formatDateTime(card.baslangic) }}</strong>
+        </span>
+        <span>
+          <b>Bitis</b>
+          <strong>{{ formatDateTime(card.bitis) }}</strong>
+        </span>
+        <span>
+          <b>Durum</b>
+          <strong>{{ formatFlag(card.flag) }}</strong>
+        </span>
+        <span>
+          <b>Sube / Kasa</b>
+          <strong>{{ card.subeKodu || '-' }} / {{ card.kasaNo ?? '-' }}</strong>
+        </span>
+        <span>
+          <b>Kart Tipi</b>
+          <strong>{{ card.kartTipi ?? '-' }}</strong>
+        </span>
+      </div>
+    </article>
+
+    <form
+      class="query-card update-card"
+      *ngIf="result()?.isFound"
+      [formGroup]="updateForm"
+      (ngSubmit)="guncelle()"
+      novalidate
+    >
+      <div class="panel-head">
+        <div>
+          <span class="section-kicker">Guncelleme</span>
+          <h3>Kayit Bilgileri</h3>
+          <p>Cari kod mevcut kayit kontrolu icin sabit gonderilir.</p>
+        </div>
+        <button
+          type="submit"
+          class="task-action task-action-primary"
+          [disabled]="isUpdating() || !canUpdate() || !hasEditableResult() || updateForm.invalid"
+        >
+          {{ isUpdating() ? 'Kaydediliyor...' : 'Guncelle' }}
+        </button>
+      </div>
+
+      <div class="edit-grid">
+        <label class="field">
+          <span>Cari Kod</span>
+          <input type="text" formControlName="cariKod" readonly />
+        </label>
+
+        <label class="field">
+          <span>Tutar</span>
+          <input type="text" formControlName="tutar" inputmode="decimal" placeholder="0,00" />
+        </label>
+
+        <label class="field">
+          <span>Puan</span>
+          <input type="text" formControlName="puan" inputmode="decimal" placeholder="0,00" />
+        </label>
+
+        <label class="field">
+          <span>Baslangic</span>
+          <input type="datetime-local" formControlName="baslangic" />
+        </label>
+
+        <label class="field">
+          <span>Bitis</span>
+          <input type="datetime-local" formControlName="bitis" />
+        </label>
+
+        <label class="field">
+          <span>Flag</span>
+          <select formControlName="flag">
+            <option value="">Bos</option>
+            <option value="false">Hayir</option>
+            <option value="true">Evet</option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Sube Kodu</span>
+          <input type="text" formControlName="subeKodu" />
+        </label>
+
+        <label class="field">
+          <span>Kasa No</span>
+          <input type="text" formControlName="kasaNo" inputmode="numeric" />
+        </label>
+
+        <label class="field">
+          <span>Kart Tipi</span>
+          <input type="text" formControlName="kartTipi" inputmode="numeric" />
+        </label>
+      </div>
+
+      <p class="permission-note" *ngIf="!canUpdate()">
+        Guncelleme yetkiniz olmadigi icin form sadece okunur.
+      </p>
+    </form>
+  </section>
+</section>

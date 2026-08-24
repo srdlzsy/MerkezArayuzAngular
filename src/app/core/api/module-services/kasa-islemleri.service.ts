@@ -80,6 +80,12 @@ import {
   DeleteCashSummaryResponse,
   CashSummaryDateHttpRequest,
   BanknoteTrackDailySummaryTotalDto,
+  BirlikKartDetayRequest,
+  BirlikKartDetayResponse,
+  BirlikKartGuncelleResponse,
+  BirlikKartSorgulamaGuncelleRequest,
+  BirlikKartSorgulamaRequest,
+  BirlikKartSorgulamaResponse,
   EtiketBasimAcceptanceRecordDto,
   EtiketBasimCalculationDto,
   EtiketBasimCalculationHttpRequest,
@@ -125,6 +131,7 @@ import {
 import { BaseApiService } from '../base-api.service';
 
 const ETIKET_BASIM_ROOT = 'kasa-islemleri/manav-mal-kabul-etiket';
+const BIRLIK_KART_ROOT = 'kasa-islemleri/birlik-kart-sorgulama';
 
 @Injectable({
   providedIn: 'root'
@@ -928,6 +935,33 @@ export class KasaIslemleriService extends BaseApiService {
    * @param documentOrderNo Sayım numarası
    * @param request Güncelleme isteği
    */
+  sorgulaBirlikKart(
+    request: BirlikKartSorgulamaRequest
+  ): Observable<BirlikKartSorgulamaResponse> {
+    return this.post<BirlikKartSorgulamaResponse, BirlikKartSorgulamaRequest>(
+      `${BIRLIK_KART_ROOT}/sorgula`,
+      request
+    );
+  }
+
+  getBirlikKartDetay(
+    request: BirlikKartDetayRequest
+  ): Observable<BirlikKartDetayResponse> {
+    return this.post<BirlikKartDetayResponse, BirlikKartDetayRequest>(
+      `${BIRLIK_KART_ROOT}/detay`,
+      request
+    );
+  }
+
+  updateBirlikKart(
+    request: BirlikKartSorgulamaGuncelleRequest
+  ): Observable<BirlikKartGuncelleResponse> {
+    return this.post<BirlikKartGuncelleResponse, BirlikKartSorgulamaGuncelleRequest>(
+      `${BIRLIK_KART_ROOT}/guncelle`,
+      request
+    );
+  }
+
   updateCashSummaryDetails(
     documentSerie: string,
     documentOrderNo: number,
