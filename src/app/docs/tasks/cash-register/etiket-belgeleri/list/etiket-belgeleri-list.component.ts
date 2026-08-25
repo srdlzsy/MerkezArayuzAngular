@@ -967,6 +967,7 @@ export class EtiketBelgeleriListComponent {
         .preview-shell-hidden,
         .etiket-print-root,
         .preview-stage,
+        app-a5-dortlu-fiyat-etiketi,
         app-a5-ikili-ayin-urunu-fiyat-etiketi {
           width: auto !important;
           max-width: none !important;

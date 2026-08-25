@@ -1,5 +1,5 @@
-<div *ngFor="let group of productGroups; let pageIndex = index; let isLast = last" class="a5-quad-page">
-  <div *ngFor="let product of group; let itemIndex = index" class="quad-label-card">
+<div *ngFor="let group of productGroups; let isLast = last" class="a5-quad-page">
+  <article *ngFor="let product of group; trackBy: trackByProduct" class="quad-label-card">
     <div class="quad-label-name">
       <h3>{{ product.productName }}</h3>
     </div>
@@ -22,9 +22,9 @@
         src="/assets/YerliUretim.jpg"
         alt="Yerli Uretim"
       />
-      <svg [id]="'barcode-quad-' + pageIndex + '-' + itemIndex"></svg>
+      <svg class="a5-quad-barcode" [attr.data-code]="product.barcode"></svg>
     </div>
-  </div>
+  </article>
 
   <div class="page-break-row" *ngIf="!isLast"></div>
 </div>

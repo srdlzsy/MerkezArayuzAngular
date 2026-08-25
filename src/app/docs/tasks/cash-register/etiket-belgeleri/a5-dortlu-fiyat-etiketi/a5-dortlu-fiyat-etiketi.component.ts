@@ -1,5 +1,13 @@
 import { CommonModule } from '@angular/common';
-import { AfterViewInit, Component, Input, OnChanges, OnInit, SimpleChanges } from '@angular/core';
+import {
+  AfterViewInit,
+  Component,
+  Input,
+  OnChanges,
+  OnDestroy,
+  OnInit,
+  SimpleChanges
+} from '@angular/core';
 import type { IEtiketBasimProduct } from '@interfaces';
 
 import { isDomesticOrigin, renderBarcodeSvg } from '../etiket-barcode.util';
@@ -11,26 +19,35 @@ import { isDomesticOrigin, renderBarcodeSvg } from '../etiket-barcode.util';
   templateUrl: './a5-dortlu-fiyat-etiketi.component.html',
   styleUrls: ['./a5-dortlu-fiyat-etiketi.component.css']
 })
-export class A5DortluFiyatEtiketiComponent implements OnInit, AfterViewInit, OnChanges {
+export class A5DortluFiyatEtiketiComponent
+  implements OnInit, AfterViewInit, OnChanges, OnDestroy
+{
   @Input() productsToPrint: readonly IEtiketBasimProduct[] = [];
 
   protected productGroups: IEtiketBasimProduct[][] = [];
   protected labelPrintDate: string = this.getFormattedPrintDate();
 
+  private readonly beforePrintHandler = () => this.renderBarcodesSafe();
+
   ngOnInit(): void {
     this.labelPrintDate = this.getFormattedPrintDate();
     this.productGroups = this.chunkProducts(this.productsToPrint);
+    window.addEventListener('beforeprint', this.beforePrintHandler);
   }
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['productsToPrint']) {
       this.productGroups = this.chunkProducts(this.productsToPrint);
-      this.renderBarcodes();
+      this.renderBarcodesSafe();
     }
   }
 
   ngAfterViewInit(): void {
-    this.renderBarcodes();
+    this.renderBarcodesSafe();
+  }
+
+  ngOnDestroy(): void {
+    window.removeEventListener('beforeprint', this.beforePrintHandler);
   }
 
   protected isDomestic(origin: string | null | undefined): boolean {
@@ -43,14 +60,27 @@ export class A5DortluFiyatEtiketiComponent implements OnInit, AfterViewInit, OnC
     }).format(new Date());
   }
 
+  protected readonly trackByProduct = (
+    index: number,
+    product: IEtiketBasimProduct
+  ): string => `${product.productCode}-${product.barcode}-${index}`;
+
+  private renderBarcodesSafe(): void {
+    requestAnimationFrame(() => {
+      requestAnimationFrame(() => this.renderBarcodes());
+    });
+  }
+
   private renderBarcodes(): void {
-    setTimeout(() => {
-      this.productGroups.forEach((group, groupIndex) => {
-        group.forEach((product, itemIndex) => {
-          this.renderBarcode(`barcode-quad-${groupIndex}-${itemIndex}`, product.barcode);
-        });
+    document.querySelectorAll<SVGSVGElement>('svg.a5-quad-barcode').forEach((svg) => {
+      renderBarcodeSvg(svg, svg.getAttribute('data-code'), {
+        barWidth: 1,
+        barHeight: 28,
+        fontSize: 10,
+        marginX: 0,
+        marginTop: 0
       });
-    }, 0);
+    });
   }
 
   private chunkProducts(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[][] {
@@ -63,13 +93,4 @@ export class A5DortluFiyatEtiketiComponent implements OnInit, AfterViewInit, OnC
     return groups;
   }
 
-  private renderBarcode(targetId: string, value: string | null | undefined): void {
-    renderBarcodeSvg(document.getElementById(targetId) as SVGSVGElement | null, value, {
-      barWidth: 1,
-      barHeight: 24,
-      fontSize: 10,
-      marginX: 0,
-      marginTop: 0
-    });
-  }
 }

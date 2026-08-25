@@ -18,11 +18,11 @@ body {
 .a5-quad-page {
   width: 210mm;
   height: 148mm;
-  padding: 7mm 8mm;
+  padding: 2mm 7mm;
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
   grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 5mm 6mm;
+  gap: 1mm 5mm;
   overflow: hidden;
   box-sizing: border-box;
   font-family: 'Times New Roman', Times, serif;
@@ -33,10 +33,10 @@ body {
 .quad-label-card {
   min-width: 0;
   min-height: 0;
-  padding: 3mm 4mm 2.5mm;
-  display: flex;
-  flex-direction: column;
-  justify-content: space-between;
+  padding: 1mm 6mm 2mm;
+  display: grid;
+  grid-template-rows: 13mm 25mm 16mm 14mm;
+  align-content: stretch;
   box-sizing: border-box;
   overflow: hidden;
   page-break-inside: avoid;
@@ -44,24 +44,24 @@ body {
 }
 
 .quad-label-name {
-  min-height: 14mm;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: center;
   text-align: center;
+  overflow: hidden;
 }
 
 .quad-label-name h3 {
   margin: 0;
-  font-size: 13px;
+  font-size: 16px;
   font-weight: 400;
-  line-height: 1.08;
+  line-height: 1.05;
+  max-height: 14mm;
   overflow-wrap: anywhere;
   word-break: break-word;
 }
 
 .quad-label-price {
-  min-height: 22mm;
   display: flex;
   align-items: center;
   justify-content: center;
@@ -70,41 +70,45 @@ body {
 
 .quad-label-price h1 {
   margin: 0;
-  font-size: 44px;
+  font-size: 60px;
   font-weight: 400;
   line-height: 0.95;
   white-space: nowrap;
 }
 
 .quad-label-price span {
-  font-size: 18px;
+  font-size: 24px;
   font-weight: 400;
 }
 
 .quad-label-meta {
-  min-height: 18mm;
-  font-size: 8.5px;
-  line-height: 1.28;
+  width: 62mm;
+  margin-left: 0;
+  font-size: 9.5px;
+  font-weight: 700;
+  line-height: 1.18;
   overflow: hidden;
 }
 
 .quad-label-bottom {
-  min-height: 12mm;
   display: flex;
-  align-items: flex-end;
+  align-items: center;
   justify-content: space-between;
-  gap: 6mm;
+  gap: 5mm;
+  overflow: visible;
 }
 
 .quad-label-bottom img {
-  width: 48px;
+  width: 20mm;
+  max-height: 10mm;
   height: auto;
   display: block;
+  object-fit: contain;
 }
 
 .quad-label-bottom svg {
-  width: 72px;
-  height: 34px;
+  width: 27mm;
+  height: 12mm;
   display: block;
   max-width: 100%;
 }
