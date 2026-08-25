@@ -61,6 +61,7 @@ export abstract class EditableWarehouseMovementDetailBase
   protected readonly isEditing = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly saveError = signal<string | null>(null);
+  protected readonly deletedMovementGuids = signal<string[]>([]);
 
   protected readonly editControls = {
     movementDate: new FormControl('', {
@@ -141,6 +142,7 @@ export abstract class EditableWarehouseMovementDetailBase
     this.isEditing.set(false);
     this.saveError.set(null);
     this.editableLines.clear();
+    this.deletedMovementGuids.set([]);
     this.runDetailRequest({
       validatePayload: (payload: SeriSiraPayload | null): payload is Required<Pick<SeriSiraPayload, 'seri' | 'sira'>> & SeriSiraPayload =>
         !!payload?.seri && payload.sira !== null && payload.sira !== undefined,
@@ -194,7 +196,7 @@ export abstract class EditableWarehouseMovementDetailBase
       return;
     }
 
-    if (!this.editableLines.length) {
+    if (!this.editableLines.length && this.deletedMovementGuids().length === 0) {
       this.saveError.set('Guncellenecek en az bir satir bulunmali.');
       return;
     }
@@ -234,6 +236,41 @@ export abstract class EditableWarehouseMovementDetailBase
     control.controls.stockCode.value.trim() ||
     `${index}`;
 
+  protected addEditableLine(): void {
+    this.editableLines.push(
+      this.createLineFormGroup({
+        movementGuid: '',
+        stockCode: '',
+        stockName: '',
+        unitName: '',
+        unitPointer: 1,
+        quantity: 1,
+        unitPrice: 0,
+        description: ''
+      })
+    );
+    this.editForm.markAsDirty();
+  }
+
+  protected removeEditableLine(index: number): void {
+    const control = this.editableLines.at(index);
+
+    if (!control) {
+      return;
+    }
+
+    const movementGuid = control.controls.movementGuid.value.trim();
+
+    if (movementGuid) {
+      this.deletedMovementGuids.update((movementGuids) =>
+        movementGuids.includes(movementGuid) ? movementGuids : [...movementGuids, movementGuid]
+      );
+    }
+
+    this.editableLines.removeAt(index);
+    this.editForm.markAsDirty();
+  }
+
   protected canUseUpdateEndpoint(): boolean {
     return true;
   }
@@ -260,6 +297,7 @@ export abstract class EditableWarehouseMovementDetailBase
     this.editControls.description.setValue((header.description ?? '').trim());
 
     this.editableLines.clear();
+    this.deletedMovementGuids.set([]);
     for (const line of detail.items ?? []) {
       this.editableLines.push(this.createLineFormGroup(line));
     }
@@ -269,15 +307,17 @@ export abstract class EditableWarehouseMovementDetailBase
   }
 
   private createLineFormGroup(
-    line: IFurpaWarehouseShippingItemApiDto
+    line: Partial<IFurpaWarehouseShippingItemApiDto>
   ): EditableWarehouseLineFormGroup {
     return new FormGroup({
       movementGuid: new FormControl(line.movementGuid?.trim() ?? '', {
+        nonNullable: true
+      }),
+      lineNo: new FormControl(this.formatInputNumber(line.lineNo)),
+      stockCode: new FormControl(line.stockCode?.trim() ?? '', {
         nonNullable: true,
         validators: [Validators.required]
       }),
-      lineNo: new FormControl(this.formatInputNumber(line.lineNo)),
-      stockCode: new FormControl(line.stockCode?.trim() ?? '', { nonNullable: true }),
       stockName: new FormControl(line.stockName?.trim() ?? '', { nonNullable: true }),
       unitName: new FormControl(line.unitName?.trim() ?? '', { nonNullable: true }),
       unitPointer: new FormControl(this.formatInputNumber(line.unitPointer), {
@@ -305,13 +345,35 @@ export abstract class EditableWarehouseMovementDetailBase
       targetWarehouseNo: this.normalizeNumber(rawValue.targetWarehouseNo),
       transitWarehouseNo: this.toOptionalPositiveNumber(rawValue.transitWarehouseNo),
       description: rawValue.description.trim(),
-      lines: rawValue.lines.map((line) => ({
-        movementGuid: line.movementGuid.trim(),
-        quantity: this.normalizeNumber(line.quantity),
-        unitPrice: this.normalizeNumber(line.unitPrice),
-        unitPointer: this.normalizeNumber(line.unitPointer),
-        description: line.description.trim()
-      }))
+      lines: [
+        ...rawValue.lines.map((line) => {
+          const movementGuid = line.movementGuid.trim();
+          const commonLineFields = {
+            quantity: this.normalizeNumber(line.quantity),
+            unitPrice: this.normalizeNumber(line.unitPrice),
+            unitPointer: this.normalizeNumber(line.unitPointer),
+            description: line.description.trim()
+          };
+
+          if (movementGuid) {
+            return {
+              action: 'update' as const,
+              movementGuid,
+              ...commonLineFields
+            };
+          }
+
+          return {
+            action: 'add' as const,
+            stockCode: line.stockCode.trim(),
+            ...commonLineFields
+          };
+        }),
+        ...this.deletedMovementGuids().map((movementGuid) => ({
+          action: 'delete' as const,
+          movementGuid
+        }))
+      ]
     };
   }
 

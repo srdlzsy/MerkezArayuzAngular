@@ -109,7 +109,7 @@ export const SHIPMENT_TASK_SOURCE = {
         'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir',
         'Manav depo 56 akisi varsayilan olarak siparis satir GUID baglantisi gondermez',
         'Giden sevk guncelleme sadece e-irsaliye gonderilmemis ve karsi depo kabul etmemis evraklarda calisir',
-        'Guncelleme satir eslestirmesini stockCode ile degil movementGuid ile yapar; satir ekleme/silme yoktur',
+        'Guncelleme update/add/delete satir aksiyonlariyla calisir; update/delete movementGuid, add stockCode kullanir',
         'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
       ],
       listTitle: 'Controller',
@@ -121,7 +121,7 @@ export const SHIPMENT_TASK_SOURCE = {
             {
               method: 'PUT',
               path: '/api/sevk-islemleri/depolar-arasi-sevkler/giden/{seri}/{sira}?warehouseNo=110',
-              description: 'Giden depo sevkini movementGuid bazli mevcut satirlarla gunceller'
+              description: 'Giden depo sevkini update/add/delete satir aksiyonlariyla gunceller'
             }
           ]
         }

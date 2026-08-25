@@ -120,10 +120,16 @@
         <div class="edit-panel-head">
           <div>
             <h3>Guncelleme</h3>
-            <p>Mevcut satirlar movementGuid ile guncellenir; yeni satir eklenmez veya silinmez.</p>
+            <p>Mevcut satirlar GUID ile guncellenir; yeni satir stok koduyla eklenir, kaldirilan mevcut satir silinir.</p>
           </div>
-          <div class="edit-totals">
-            <span>{{ editableLines.length }} satir</span>
+          <div class="edit-head-actions">
+            <div class="edit-totals">
+              <span>{{ editableLines.length }} satir</span>
+              <span *ngIf="deletedMovementGuids().length">{{ deletedMovementGuids().length }} silinecek</span>
+            </div>
+            <button type="button" class="add-line-button" (click)="addEditableLine()" [disabled]="isSaving()">
+              Satir Ekle
+            </button>
           </div>
         </div>
 
@@ -165,6 +171,7 @@
                 <th>Birim Fiyat</th>
                 <th>Birim No</th>
                 <th>Aciklama</th>
+                <th>Islem</th>
               </tr>
             </thead>
             <tbody>
@@ -174,8 +181,14 @@
               >
                 <td>{{ i + 1 }}</td>
                 <td>
-                  <strong>{{ line.controls.stockName.value || line.controls.stockCode.value }}</strong>
-                  <span>{{ line.controls.stockCode.value }}</span>
+                  <ng-container *ngIf="line.controls.movementGuid.value; else newStockFields">
+                    <strong>{{ line.controls.stockName.value || line.controls.stockCode.value }}</strong>
+                    <span>{{ line.controls.stockCode.value }}</span>
+                  </ng-container>
+                  <ng-template #newStockFields>
+                    <input type="text" maxlength="25" placeholder="Stok kodu" formControlName="stockCode" />
+                    <input type="text" maxlength="80" placeholder="Stok adi notu" formControlName="stockName" />
+                  </ng-template>
                 </td>
                 <td>{{ line.controls.unitName.value || '-' }}</td>
                 <td>
@@ -189,6 +202,11 @@
                 </td>
                 <td>
                   <input type="text" maxlength="50" formControlName="description" />
+                </td>
+                <td>
+                  <button type="button" class="remove-line-button" (click)="removeEditableLine(i)" [disabled]="isSaving()">
+                    Kaldir
+                  </button>
                 </td>
               </tr>
             </tbody>

@@ -127,11 +127,17 @@ export interface UpdateWarehouseMovementHttpRequest {
   lines: UpdateWarehouseMovementLineHttpRequest[];
 }
 
+export type UpdateWarehouseMovementLineAction = 'update' | 'add' | 'delete';
+
 export interface UpdateWarehouseMovementLineHttpRequest {
-  movementGuid: string;
-  quantity: number;
-  unitPrice: number;
-  unitPointer: number;
+  action?: UpdateWarehouseMovementLineAction | null;
+  movementGuid?: string | null;
+  rowNo?: number | null;
+  stockCode?: string | null;
+  quantity?: number | null;
+  amount?: number | null;
+  unitPrice?: number | null;
+  unitPointer?: number | null;
   description?: string | null;
 }
 
@@ -146,6 +152,8 @@ export interface UpdateWarehouseMovementResponse {
   transitWarehouseNo: number;
   isReturn: boolean;
   updatedLineCount: number;
+  addedLineCount?: number;
+  deletedLineCount?: number;
   lineCount: number;
   totalQuantity: number;
   totalAmount: number;

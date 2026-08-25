@@ -64,6 +64,10 @@ export class OperasyonIslemleriService extends BaseApiService {
     return this.getWithOptionalWarehouse<OperationJobDto>('operations/promofile', warehouseNo);
   }
 
+  createCustomerFileJob(warehouseNo?: number | null) {
+    return this.getWithOptionalWarehouse<OperationJobDto>('operations/customerfile', warehouseNo);
+  }
+
   getJobDetail(jobId: string) {
     return this.get<OperationJobDetailDto>(`operations/jobs/${encodeURIComponent(jobId)}`);
   }

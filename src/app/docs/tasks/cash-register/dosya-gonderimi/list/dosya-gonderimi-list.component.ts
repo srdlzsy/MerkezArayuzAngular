@@ -23,7 +23,8 @@ type DosyaGonderimKey =
   | 'terazi'
   | 'urun'
   | 'kasiyer'
-  | 'promosyon';
+  | 'promosyon'
+  | 'cari';
 
 type OperationWarehouseScope = 'current' | 'all' | 'manual';
 
@@ -84,6 +85,14 @@ export class DosyaGonderimiListComponent {
         'Promosyon ve yardimci POS dosyalarini hazirlar, sonucu ekrandan takip eder.',
       icon: 'fas fa-tags',
       accent: 'accent-promotion',
+      enabled: true
+    },
+    {
+      key: 'cari',
+      title: 'Cari / EFATVNO Dosyasi',
+      description: 'Cari vergi no dosyasi EFATVNO.DAT icin kuyrukta is baslatir.',
+      icon: 'fas fa-address-book',
+      accent: 'accent-customer',
       enabled: true
     }
   ];
@@ -181,6 +190,10 @@ export class DosyaGonderimiListComponent {
 
   protected sendPromotionFile(): void {
     this.executeAction('promosyon');
+  }
+
+  protected sendCustomerFile(): void {
+    this.executeAction('cari');
   }
 
   protected isActionRunning(key: DosyaGonderimKey): boolean {
@@ -414,6 +427,8 @@ export class DosyaGonderimiListComponent {
         return this.operasyonIslemleriService.createCashierFileJob(warehouseNo);
       case 'promosyon':
         return this.operasyonIslemleriService.createPromoFileJob(warehouseNo);
+      case 'cari':
+        return this.operasyonIslemleriService.createCustomerFileJob(warehouseNo);
     }
   }
 

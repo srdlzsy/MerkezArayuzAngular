@@ -18,7 +18,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Job polling',
         'Authorization file grid',
         'operasyon-islemleri.operations.all-warehouses icin opsiyonel warehouseNo query destegi',
-        'Promofile queue/polling destegi'
+        'Promofile queue/polling destegi',
+        'Cari / EFATVNO dosyasi'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -46,6 +47,11 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/operations/promofile?warehouseNo=110',
               description: 'Promosyon ve yardimci POS dosyalari isini kuyruga alir; warehouseNo yalniz all-warehouses depo secimi icindir'
+            },
+            {
+              method: 'GET',
+              path: '/api/operations/customerfile?warehouseNo=110',
+              description: 'Cari/vergi no EFATVNO.DAT isini kuyruga alir; warehouseNo yalniz all-warehouses depo secimi icindir'
             },
             {
               method: 'GET',

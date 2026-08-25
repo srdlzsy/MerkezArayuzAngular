@@ -177,17 +177,15 @@
   <section class="product-panel etiket-print-hidden">
     <header class="product-panel-header">
       <div>
-        <span class="page-kicker">Ürün listesi</span>
-        <h3>{{ visibleProducts().length }} ürün görüntüleniyor</h3>
+        <h3>Kalem Listesi</h3>
         <p *ngIf="visibleProducts().length">
-          {{ pageStartIndex() }}–{{ pageEndIndex() }} arası kayıtlar
+          {{ visibleProducts().length }} ürün · {{ pageStartIndex() }}-{{ pageEndIndex() }} arası
         </p>
       </div>
 
       <div class="selected-label">
-        <span>Seçili şablon</span>
         <strong>{{ selectedEtiket()?.etiketIsmi || 'Etiket seçilmedi' }}</strong>
-        <small>{{ labelPrintProducts().length }} etiket hazir</small>
+        <small>{{ labelPrintProducts().length }} etiket hazır</small>
         <small *ngIf="hiddenProductCount()">{{ hiddenProductCount() }} urun bu sablonda gizli</small>
       </div>
     </header>
@@ -200,6 +198,15 @@
           [formControl]="filtersForm.controls.productSearch"
           placeholder="Ürün adı, kodu, barkod veya koli bilgisi"
         />
+      </label>
+
+      <label class="field page-size-field" *ngIf="visibleProducts().length">
+        <span>Sayfa boyutu</span>
+        <select [value]="pageSize()" (change)="setPageSize(+$any($event.target).value)">
+          <option *ngFor="let option of readonlyPageSizeOptions" [value]="option">
+            {{ option }}
+          </option>
+        </select>
       </label>
 
       <div class="filter-tabs" role="group" aria-label="Ürün listesi filtreleri">
@@ -333,15 +340,6 @@
       <span>Sayfa {{ currentPageSafe() }} / {{ totalPages() }}</span>
 
       <div class="pagination">
-        <label>
-          <span>Sayfa boyutu</span>
-          <select [value]="pageSize()" (change)="setPageSize(+$any($event.target).value)">
-            <option *ngFor="let option of readonlyPageSizeOptions" [value]="option">
-              {{ option }}
-            </option>
-          </select>
-        </label>
-
         <button
           type="button"
           class="pagination-button"
