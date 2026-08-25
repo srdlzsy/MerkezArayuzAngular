@@ -19,7 +19,7 @@ interface SeriSiraPayload {
 type KalemliPrintMode = 'company' | 'warehouse' | 'stock';
 
 interface KalemliPrintColumn extends DocumentPrintColumn {
-  value: (kalem: any) => unknown;
+  value: (kalem: any, index: number) => unknown;
 }
 
 @Directive()
@@ -219,7 +219,7 @@ export abstract class KalemliTaskDetailBase<
       sections: this.buildPrintSections(header, mode),
       lineTitle: this.printLineTitle,
       columns: documentColumns,
-      rows: this.kalemler().map((kalem) => printColumns.map((column) => column.value(kalem))),
+      rows: this.kalemler().map((kalem, index) => printColumns.map((column) => column.value(kalem, index))),
       signatures: this.buildPrintSignatures(header, mode)
     });
   }
@@ -391,7 +391,7 @@ export abstract class KalemliTaskDetailBase<
         label: 'Sira',
         width: '9mm',
         align: 'center',
-        value: (kalem) => this.getLineNumber(kalem, 'lineNo', 'rowNo') ?? '-'
+        value: (_kalem, index) => index + 1
       },
       {
         label: 'Urun Kodu',

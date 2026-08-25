@@ -43,6 +43,12 @@ const formatQuantity = (value: number | null | undefined): string => {
   return Number.isFinite(numericValue) ? NUMBER_FORMATTER.format(numericValue) : '-';
 };
 
+const formatDisplayLineNumber = (value: number | null | undefined): string => {
+  const numericValue = Number(value);
+
+  return Number.isFinite(numericValue) ? NUMBER_FORMATTER.format(numericValue + 1) : '-';
+};
+
 const formatAmount = (value: number | null | undefined): string => {
   const numericValue = Number(value);
 
@@ -388,7 +394,7 @@ export const MAL_KABUL_FARKLARI_LIST_COLUMNS = [
     resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
       joinText([
         formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo),
-        `Satir ${formatQuantity(row.lineNo)}`
+        `Satir ${formatDisplayLineNumber(row.lineNo)}`
       ])
   },
   {

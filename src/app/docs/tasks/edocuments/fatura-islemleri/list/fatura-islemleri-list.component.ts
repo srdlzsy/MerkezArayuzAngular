@@ -677,14 +677,8 @@ export class FaturaIslemleriListComponent {
             item.invoiceProfileId,
             item.invoiceTypeCode,
             item.scenario,
-            item.shipmentDocumentNo,
-            item.returnInvoiceNo,
-            item.returnInvoiceDate,
             item.sentDocumentNo,
-            item.warehouseName,
             item.description,
-            item.sourceLineSummary,
-            item.taxRateSummary,
             `${item.sourceLineCount ?? ''}`,
             `${item.payableTotal}`
           ].some((value) => this.normalizeText(value).includes(filter))
@@ -2241,6 +2235,10 @@ export class FaturaIslemleriListComponent {
     return `${count} satir`;
   }
 
+  protected getSendingDetailOnlyLabel(value: string | null | undefined): string {
+    return value?.trim() || 'Detayda kontrol';
+  }
+
   protected getReturnReferenceCandidates(
     response: InvoiceReturnReferenceCandidatesResponseDto | null
   ): InvoiceReturnReferenceDto[] {
@@ -3354,9 +3352,9 @@ export class FaturaIslemleriListComponent {
       case 'profile':
         return item.invoiceProfileId;
       case 'sourceLine':
-        return item.sourceLineCount ?? item.sourceLineSummary ?? null;
+        return item.sourceLineCount ?? null;
       case 'taxRate':
-        return item.taxRateSummary ?? null;
+        return null;
       case 'returnReference':
         return this.isReturnInvoice(item) ? this.getReturnReferenceLabel(item) : '';
       case 'payableTotal':

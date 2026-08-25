@@ -41,6 +41,11 @@ export class MalKabulFarklariDetailComponent extends DocsTaskDialogBase<IFurpaGo
     }).format(Number(value ?? 0));
   }
 
+  protected formatDisplayLineNo(value: number | null | undefined): string {
+    const lineNo = Number(value);
+    return Number.isFinite(lineNo) ? `${lineNo + 1}` : '-';
+  }
+
   protected getDifferenceTypeLabel(value: string | null | undefined): string {
     if (value === 'missing') {
       return 'Eksik';

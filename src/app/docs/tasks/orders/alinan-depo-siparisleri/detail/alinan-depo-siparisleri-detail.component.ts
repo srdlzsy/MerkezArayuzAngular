@@ -112,7 +112,7 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
     const rows = items
       .map(
         (item, index) => `<tr>
-          <td class="line-no">${this.escapeHtml(this.formatPrintNumber(item.lineNo || index + 1))}</td>
+          <td class="line-no">${this.escapeHtml(this.formatPrintNumber(index + 1))}</td>
           <td class="barcode">${this.escapeHtml(this.resolveLineBarcode(item))}</td>
           <td class="product">${this.escapeHtml(item.stockName || '-')}</td>
           <td class="quantity">${this.escapeHtml(this.formatPrintNumber(item.quantity))}</td>

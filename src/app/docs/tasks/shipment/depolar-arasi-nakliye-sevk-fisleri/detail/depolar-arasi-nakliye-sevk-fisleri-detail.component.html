@@ -172,7 +172,7 @@
                 *ngFor="let line of editableLines.controls; let i = index; trackBy: trackByEditableLine"
                 [formGroupName]="i"
               >
-                <td>{{ line.controls.lineNo.value ?? i + 1 }}</td>
+                <td>{{ i + 1 }}</td>
                 <td>
                   <strong>{{ line.controls.stockName.value || line.controls.stockCode.value }}</strong>
                   <span>{{ line.controls.stockCode.value }}</span>
@@ -216,8 +216,8 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let kalem of kalemler(); trackBy: trackByKalem">
-                <td>{{ getLineNumber(kalem, 'lineNo', 'rowNo') ?? '-' }}</td>
+              <tr *ngFor="let kalem of kalemler(); let i = index; trackBy: trackByKalem">
+                <td>{{ i + 1 }}</td>
                 <td>{{ getLineText(kalem, 'stockCode') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'stockName') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'unitName') || '-' }}</td>

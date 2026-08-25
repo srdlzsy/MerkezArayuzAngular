@@ -976,10 +976,10 @@
                     </td>
                     <td>
                       <span class="table-main-text">{{ getSourceLineCountLabel(item) }}</span>
-                      <small>{{ item.sourceLineSummary || '-' }}</small>
+                      <small>{{ getSendingDetailOnlyLabel(item.sourceLineSummary) }}</small>
                     </td>
                     <td>
-                      <span class="table-main-text">{{ item.taxRateSummary || '-' }}</span>
+                      <span class="table-main-text">{{ getSendingDetailOnlyLabel(item.taxRateSummary) }}</span>
                     </td>
                     <td>
                       <ng-container *ngIf="isReturnInvoice(item); else noReturnReference">
@@ -1232,13 +1232,11 @@
               <article class="summary-card">
                 <span>Kaynak Satir</span>
                 <strong>{{ getSourceLineCountLabel(summary) }}</strong>
-                <small *ngIf="summary.sourceLineSummary">
-                  {{ summary.sourceLineSummary }}
-                </small>
+                <small>{{ getSendingDetailOnlyLabel(summary.sourceLineSummary) }}</small>
               </article>
               <article class="summary-card">
                 <span>KDV Ozeti</span>
-                <strong>{{ summary.taxRateSummary || '-' }}</strong>
+                <strong>{{ getSendingDetailOnlyLabel(summary.taxRateSummary) }}</strong>
               </article>
               <article class="summary-card">
                 <span>Gonderim Durumu</span>

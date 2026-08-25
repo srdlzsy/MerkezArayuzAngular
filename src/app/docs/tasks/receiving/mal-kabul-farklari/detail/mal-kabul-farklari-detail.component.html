@@ -56,7 +56,7 @@
       <div class="line-shell">
         <strong>{{ item.productName || item.productCode }}</strong>
         <span>{{ item.productCode }}</span>
-        <span>Satir: {{ item.lineNo }}</span>
+        <span>Satir: {{ formatDisplayLineNo(item.lineNo) }}</span>
         <span>Movement GUID: {{ item.movementGuid }}</span>
         <span>Fark: {{ formatNumber(item.differenceQuantity) }}</span>
         <p>{{ item.description || '-' }}</p>

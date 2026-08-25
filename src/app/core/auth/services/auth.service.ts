@@ -23,6 +23,7 @@ import {
   MeResponse,
   RefreshTokenRequest,
   Sorumluluk,
+  WarehouseContextResponse,
   Yetki
 } from '../models/auth.models';
 
@@ -122,6 +123,14 @@ export class AuthService {
         return currentUser;
       })
     );
+  }
+
+  checkWarehouseContext(): Observable<WarehouseContextResponse | null> {
+    if (!this.sessionSignal()?.accessToken) {
+      return of(null);
+    }
+
+    return this.http.get<WarehouseContextResponse>(this.buildUrl('auth/warehouse-context'));
   }
 
   ensureHydratedCurrentUser(): Observable<CurrentUser | null> {

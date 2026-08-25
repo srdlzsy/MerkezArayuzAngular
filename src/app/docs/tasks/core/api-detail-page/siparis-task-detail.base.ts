@@ -19,7 +19,7 @@ interface SeriSiraPayload {
 type SiparisPrintMode = 'company' | 'warehouse';
 
 interface SiparisPrintColumn extends DocumentPrintColumn {
-  value: (item: any) => unknown;
+  value: (item: any, index: number) => unknown;
 }
 
 @Directive()
@@ -141,7 +141,7 @@ export abstract class SiparisTaskDetailBase<
       sections: this.buildPrintSections(header, mode),
       lineTitle: this.printLineTitle,
       columns: documentColumns,
-      rows: this.items().map((item) => printColumns.map((column) => column.value(item))),
+      rows: this.items().map((item, index) => printColumns.map((column) => column.value(item, index))),
       signatures: this.buildPrintSignatures(header, mode)
     });
   }
@@ -246,7 +246,7 @@ export abstract class SiparisTaskDetailBase<
         label: 'Sira',
         width: '9mm',
         align: 'center',
-        value: (item) => this.getRecordNumber(item, 'lineNo') ?? '-'
+        value: (_item, index) => index + 1
       },
       {
         label: 'Urun Kodu',

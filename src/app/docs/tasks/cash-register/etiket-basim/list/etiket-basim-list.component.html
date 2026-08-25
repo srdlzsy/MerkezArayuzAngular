@@ -292,11 +292,11 @@
             </thead>
             <tbody>
               <tr
-                *ngFor="let line of detail.lines; trackBy: trackByInvoiceLine"
+                *ngFor="let line of detail.lines; let i = index; trackBy: trackByInvoiceLine"
                 [class.is-selected]="isSelectedInvoiceLine(line)"
                 (click)="selectInvoiceLine(line)"
               >
-                <td data-label="#">{{ line.lineNo || '-' }}</td>
+                <td data-label="#">{{ i + 1 }}</td>
                 <td data-label="Fatura Urunu">
                   <strong>{{ line.stockName || '-' }}</strong>
                   <span>{{ line.stockCode || '-' }} / {{ line.barcode || '-' }}</span>

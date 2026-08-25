@@ -66,6 +66,30 @@ export interface RefreshTokenRequest {
   refreshToken: string;
 }
 
+export type WarehouseContextReason =
+  | 'Ok'
+  | 'SharedNetwork'
+  | 'WarehouseChanged'
+  | 'NetworkUnknown'
+  | 'NetworkAmbiguous'
+  | 'NotTerminalUser'
+  | 'UserInactive'
+  | 'InvalidTokenWarehouse'
+  | string;
+
+export interface WarehouseContextResponse {
+  userId: string;
+  username: string;
+  tokenWarehouseNo: string | null;
+  tokenWarehouseName: string | null;
+  currentWarehouseNo: string | null;
+  currentWarehouseName: string | null;
+  isTerminalUser: boolean;
+  requiresRelogin: boolean;
+  reason: WarehouseContextReason;
+  serverTimeUtc: string;
+}
+
 export type MeActionResponse = IFurpaPermissionCatalogActionApiDto;
 export type MeMenuResponse = IFurpaPermissionCatalogMenuApiDto;
 export type MeModuleResponse = IFurpaPermissionCatalogModuleApiDto;
