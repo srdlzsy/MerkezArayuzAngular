@@ -7,6 +7,7 @@ export interface IEtiketTipiConfig {
     | 'rack_label_a4'
     | 'a4_pricelabel'
     | 'a5_pricelabel'
+    | 'a5_quad_pricelabel'
     | 'a5_cardlabel'
     | 'a5_single_pricelabel'
     | 'a5_pricelabel_advantage'
@@ -62,6 +63,15 @@ export const ETIKET_TIPLERI: readonly IEtiketTipiConfig[] = [
     veriKumesi: 'tum-urunler',
     kullanimaHazir: true,
     aciklama: 'A5 ikili fiyat etiketi sabloni.'
+  },
+  {
+    etiketIsmi: 'A5 Dortlu Fiyat Etiketi',
+    etiketTipi: 'a5_quad_pricelabel',
+    ozelCss: '/assets/a5-quad-price-print.css',
+    sunumTipi: 'a5_quad_pricelabel',
+    veriKumesi: 'tum-urunler',
+    kullanimaHazir: true,
+    aciklama: 'A5 uzerine dortlu fiyat etiketi sabloni.'
   },
   {
     etiketIsmi: 'A5 Ikili Ayin Urunu Fiyat Etiketi',

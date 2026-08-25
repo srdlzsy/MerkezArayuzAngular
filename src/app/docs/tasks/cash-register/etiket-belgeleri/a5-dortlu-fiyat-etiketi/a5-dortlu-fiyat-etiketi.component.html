@@ -1,0 +1,30 @@
+<div *ngFor="let group of productGroups; let pageIndex = index; let isLast = last" class="a5-quad-page">
+  <div *ngFor="let product of group; let itemIndex = index" class="quad-label-card">
+    <div class="quad-label-name">
+      <h3>{{ product.productName }}</h3>
+    </div>
+
+    <div class="quad-label-price">
+      <h1>{{ product.price.toFixed(2) }} <span>TL</span></h1>
+    </div>
+
+    <div class="quad-label-meta">
+      <div>Urun Kodu: {{ product.productCode }}</div>
+      <div>Uretim Yeri: {{ product.origin || '-' }}</div>
+      <div>Fiyat Degisiklik Tarihi: {{ product.priceChangeDate || '-' }}</div>
+      <div>Etiket Basim Tarihi: {{ labelPrintDate }}</div>
+      <div>KDV Dahil Birim Fiyat {{ product.unitPriceFactor.toFixed(2) }} TL/{{ product.alternativeUnitName }}</div>
+    </div>
+
+    <div class="quad-label-bottom">
+      <img
+        *ngIf="isDomestic(product.origin)"
+        src="/assets/YerliUretim.jpg"
+        alt="Yerli Uretim"
+      />
+      <svg [id]="'barcode-quad-' + pageIndex + '-' + itemIndex"></svg>
+    </div>
+  </div>
+
+  <div class="page-break-row" *ngIf="!isLast"></div>
+</div>

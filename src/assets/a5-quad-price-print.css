@@ -1,0 +1,121 @@
+@media print {
+  @page {
+    size: A5 landscape;
+    margin: 0mm;
+  }
+
+  html,
+  body {
+    margin: 0;
+    padding: 0;
+  }
+}
+
+body {
+  font-family: 'Times New Roman', Times, serif;
+}
+
+.a5-quad-page {
+  width: 210mm;
+  height: 148mm;
+  padding: 7mm 8mm;
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  grid-template-rows: repeat(2, minmax(0, 1fr));
+  gap: 5mm 6mm;
+  overflow: hidden;
+  box-sizing: border-box;
+  font-family: 'Times New Roman', Times, serif;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.quad-label-card {
+  min-width: 0;
+  min-height: 0;
+  padding: 3mm 4mm 2.5mm;
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  box-sizing: border-box;
+  overflow: hidden;
+  page-break-inside: avoid;
+  break-inside: avoid;
+}
+
+.quad-label-name {
+  min-height: 14mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  text-align: center;
+}
+
+.quad-label-name h3 {
+  margin: 0;
+  font-size: 13px;
+  font-weight: 400;
+  line-height: 1.08;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+}
+
+.quad-label-price {
+  min-height: 22mm;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  text-align: center;
+}
+
+.quad-label-price h1 {
+  margin: 0;
+  font-size: 44px;
+  font-weight: 400;
+  line-height: 0.95;
+  white-space: nowrap;
+}
+
+.quad-label-price span {
+  font-size: 18px;
+  font-weight: 400;
+}
+
+.quad-label-meta {
+  min-height: 18mm;
+  font-size: 8.5px;
+  line-height: 1.28;
+  overflow: hidden;
+}
+
+.quad-label-bottom {
+  min-height: 12mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: space-between;
+  gap: 6mm;
+}
+
+.quad-label-bottom img {
+  width: 48px;
+  height: auto;
+  display: block;
+}
+
+.quad-label-bottom svg {
+  width: 72px;
+  height: 34px;
+  display: block;
+  max-width: 100%;
+}
+
+img,
+svg {
+  display: block;
+}
+
+.page-break-row {
+  display: none;
+  page-break-before: always;
+  break-before: page;
+}

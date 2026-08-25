@@ -814,9 +814,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
   private buildRequest(): IFurpaCreateWarehouseOrderRequestApiDto {
     const rawValue = this.form.getRawValue();
+    const inWarehouseNo = this.resolveCreateInWarehouseNo();
 
     return {
-      inWarehouseNo: this.resolveRequestWarehouseNo(),
+      ...(inWarehouseNo ? { inWarehouseNo } : {}),
       outWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       orderDate: rawValue.orderDate,
       deliveryDate: rawValue.deliveryDate,
@@ -1163,6 +1164,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     return adminWarehouseNo
       ?? getCurrentWarehouseNo(this.authService.currentUser())
       ?? undefined;
+  }
+
+  private resolveCreateInWarehouseNo(): number | undefined {
+    return this.isAdminUser()
+      ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value) ?? undefined
+      : undefined;
   }
 
   private normalizeOptionalText(value: string): string | null {

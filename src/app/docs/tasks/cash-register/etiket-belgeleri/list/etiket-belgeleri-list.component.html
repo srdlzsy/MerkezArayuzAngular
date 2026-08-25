@@ -401,6 +401,11 @@
             [productsToPrint]="labelPrintProducts()"
           ></app-a5-ikili-fiyat-etiketi>
 
+          <app-a5-dortlu-fiyat-etiketi
+            *ngIf="selectedEtiket()?.sunumTipi === 'a5_quad_pricelabel'"
+            [productsToPrint]="labelPrintProducts()"
+          ></app-a5-dortlu-fiyat-etiketi>
+
           <app-a5-ikili-furpara-kart-etiketi
             *ngIf="selectedEtiket()?.sunumTipi === 'a5_cardlabel'"
             [productsToPrint]="labelPrintProducts()"

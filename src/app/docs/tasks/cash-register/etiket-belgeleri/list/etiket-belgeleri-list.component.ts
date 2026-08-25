@@ -15,6 +15,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { FiyatetiketComponent } from '../a4-fiyat-etiketi/fiyatetiket.component';
+import { A5DortluFiyatEtiketiComponent } from '../a5-dortlu-fiyat-etiketi/a5-dortlu-fiyat-etiketi.component';
 import { A5IkiliFurparaKartEtiketiComponent } from '../a5-ikili-furpara-kart-etiketi/a5-ikili-furpara-kart-etiketi.component';
 import { A5IkiliAyinEtiketiComponent } from '../a5-ikili-ayin-etiketi/a5-ikili-ayin-etiketi.component';
 import { A5IkiliFiyatEtiketiComponent } from '../a5-ikili-fiyat-etiketi/a5-ikili-fiyat-etiketi.component';
@@ -51,6 +52,7 @@ type ProductListFilter =
     ReactiveFormsModule,
     FiyatetiketComponent,
     A5IkiliFiyatEtiketiComponent,
+    A5DortluFiyatEtiketiComponent,
     A5IkiliFurparaKartEtiketiComponent,
     A5TekliFiyatEtiketiComponent,
     A5IkiliAyinUrunuFiyatEtiketi,
