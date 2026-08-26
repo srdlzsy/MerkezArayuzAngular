@@ -8,6 +8,7 @@ import {
   Validators
 } from '@angular/forms';
 import type {
+  IFurpaProductSearchItemApiDto,
   IFurpaUpdateWarehouseShippingRequestApiDto,
   IFurpaUpdateWarehouseShippingResponseApiDto,
   IFurpaWarehouseShippingDetailApiDto,
@@ -16,6 +17,7 @@ import type {
 import { Observable, finalize } from 'rxjs';
 import { tap } from 'rxjs/operators';
 
+import { AramaService } from '../../../../core/api/module-services/arama.service';
 import { AuthService } from '../../../../core/auth/services/auth.service';
 import { DocsContentPage } from '../../../models/docs.models';
 import { resolveHttpErrorMessage } from '../api-error.helpers';
@@ -56,12 +58,18 @@ export abstract class EditableWarehouseMovementDetailBase
   protected abstract readonly updatePermissionCode: string;
 
   private readonly authService = inject(AuthService);
+  private readonly aramaService = inject(AramaService);
   private readonly editableDestroyRef = inject(DestroyRef);
+  private stockRequestId = 0;
 
   protected readonly isEditing = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly saveError = signal<string | null>(null);
   protected readonly deletedMovementGuids = signal<string[]>([]);
+  protected readonly editableStockQuery = new FormControl('', { nonNullable: true });
+  protected readonly editableStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected readonly editableStockError = signal('');
+  protected readonly editableStockLoading = signal(false);
 
   protected readonly editControls = {
     movementDate: new FormControl('', {
@@ -141,6 +149,7 @@ export abstract class EditableWarehouseMovementDetailBase
   ): void {
     this.isEditing.set(false);
     this.saveError.set(null);
+    this.clearEditableStockSearch();
     this.editableLines.clear();
     this.deletedMovementGuids.set([]);
     this.runDetailRequest({
@@ -165,6 +174,7 @@ export abstract class EditableWarehouseMovementDetailBase
 
     this.populateEditForm(detail);
     this.saveError.set(null);
+    this.clearEditableStockSearch();
     this.isEditing.set(true);
   }
 
@@ -176,6 +186,7 @@ export abstract class EditableWarehouseMovementDetailBase
     }
 
     this.saveError.set(null);
+    this.clearEditableStockSearch();
     this.isEditing.set(false);
   }
 
@@ -251,6 +262,113 @@ export abstract class EditableWarehouseMovementDetailBase
     );
     this.editForm.markAsDirty();
   }
+
+  protected searchEditableStock(): void {
+    const query = this.editableStockQuery.value.trim();
+
+    if (this.editableStockLoading()) {
+      return;
+    }
+
+    this.editableStockError.set('');
+    this.editableStockResults.set([]);
+
+    if (query.length < 2) {
+      this.editableStockError.set('Kalem aramak icin en az 2 karakter gir.');
+      return;
+    }
+
+    const requestId = ++this.stockRequestId;
+    this.editableStockLoading.set(true);
+
+    this.aramaService
+      .searchStock(query, 12)
+      .pipe(
+        takeUntilDestroyed(this.editableDestroyRef),
+        finalize(() => {
+          if (requestId === this.stockRequestId) {
+            this.editableStockLoading.set(false);
+          }
+        })
+      )
+      .subscribe({
+        next: (results: IFurpaProductSearchItemApiDto[]) => {
+          if (requestId !== this.stockRequestId) {
+            return;
+          }
+
+          const normalizedResults = this.normalizeStockResults(results ?? []);
+          this.editableStockResults.set(normalizedResults);
+
+          if (!normalizedResults.length) {
+            this.editableStockError.set('Aramana uygun kalem bulunamadi.');
+          }
+        },
+        error: (error: HttpErrorResponse) => {
+          if (requestId !== this.stockRequestId) {
+            return;
+          }
+
+          this.editableStockError.set(
+            resolveHttpErrorMessage(error, 'Kalem aramasi yapilamadi. Lutfen tekrar deneyin.')
+          );
+        }
+      });
+  }
+
+  protected addEditableStockLine(stock: IFurpaProductSearchItemApiDto): void {
+    const stockCode = stock.stockCode?.trim();
+
+    if (!stockCode) {
+      this.editableStockError.set('Secilen kalemin stok kodu bulunamadi.');
+      return;
+    }
+
+    const normalizedStockCode = stockCode.toLocaleUpperCase('tr-TR');
+    const existingNewLine = this.editableLines.controls.find(
+      (control) =>
+        !control.controls.movementGuid.value.trim() &&
+        control.controls.stockCode.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
+    );
+    const unitPointer = this.toPositiveNumber(stock.unitMultiplier, 1);
+    const quantityStep = unitPointer > 0 ? unitPointer : 1;
+
+    if (existingNewLine) {
+      const currentQuantity = this.toPositiveNumber(existingNewLine.controls.quantity.value, 0);
+      existingNewLine.controls.quantity.setValue(currentQuantity + quantityStep);
+      existingNewLine.controls.quantity.markAsDirty();
+      this.editForm.markAsDirty();
+      this.clearEditableStockSearch();
+      return;
+    }
+
+    this.editableLines.push(
+      this.createLineFormGroup({
+        movementGuid: '',
+        stockCode,
+        stockName: stock.stockName?.trim() ?? '',
+        unitName: stock.unitName?.trim() ?? '',
+        unitPointer,
+        quantity: quantityStep,
+        unitPrice: 0,
+        description: ''
+      })
+    );
+    this.editForm.markAsDirty();
+    this.clearEditableStockSearch();
+  }
+
+  protected readonly trackByEditableStock = (
+    index: number,
+    stock: IFurpaProductSearchItemApiDto
+  ): string =>
+    [
+      stock.stockCode?.trim(),
+      stock.barcode?.trim(),
+      `${index}`
+    ]
+      .filter((value): value is string => !!value)
+      .join('-');
 
   protected removeEditableLine(index: number): void {
     const control = this.editableLines.at(index);
@@ -454,5 +572,39 @@ export abstract class EditableWarehouseMovementDetailBase
 
   private normalizePermission(permission: string | null | undefined): string {
     return (permission ?? '').trim().toLocaleLowerCase('en-US');
+  }
+
+  private clearEditableStockSearch(): void {
+    this.stockRequestId += 1;
+    this.editableStockQuery.setValue('');
+    this.editableStockResults.set([]);
+    this.editableStockError.set('');
+    this.editableStockLoading.set(false);
+  }
+
+  private normalizeStockResults(
+    results: readonly IFurpaProductSearchItemApiDto[]
+  ): IFurpaProductSearchItemApiDto[] {
+    const uniqueStocks = new Map<string, IFurpaProductSearchItemApiDto>();
+
+    for (const stock of results) {
+      const key = stock.stockCode?.trim().toLocaleUpperCase('tr-TR');
+
+      if (!key || uniqueStocks.has(key)) {
+        continue;
+      }
+
+      uniqueStocks.set(key, stock);
+    }
+
+    return Array.from(uniqueStocks.values()).sort((left, right) =>
+      (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr')
+    );
+  }
+
+  private toPositiveNumber(value: number | string | null | undefined, fallback: number): number {
+    const normalizedValue = Number(value ?? fallback);
+
+    return Number.isFinite(normalizedValue) && normalizedValue > 0 ? normalizedValue : fallback;
   }
 }

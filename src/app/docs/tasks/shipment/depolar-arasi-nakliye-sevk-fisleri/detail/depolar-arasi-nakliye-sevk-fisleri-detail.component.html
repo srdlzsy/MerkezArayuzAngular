@@ -120,16 +120,13 @@
         <div class="edit-panel-head">
           <div>
             <h3>Guncelleme</h3>
-            <p>Mevcut satirlar GUID ile guncellenir; yeni satir stok koduyla eklenir, kaldirilan mevcut satir silinir.</p>
+            <p>Mevcut satirlari duzenle, yeni kalemi arayip secerek evraka ekle.</p>
           </div>
           <div class="edit-head-actions">
             <div class="edit-totals">
               <span>{{ editableLines.length }} satir</span>
               <span *ngIf="deletedMovementGuids().length">{{ deletedMovementGuids().length }} silinecek</span>
             </div>
-            <button type="button" class="add-line-button" (click)="addEditableLine()" [disabled]="isSaving()">
-              Satir Ekle
-            </button>
           </div>
         </div>
 
@@ -158,6 +155,46 @@
             <span>Aciklama</span>
             <input type="text" maxlength="50" formControlName="description" />
           </label>
+        </div>
+
+        <div class="editable-stock-search">
+          <div class="editable-stock-search-row">
+            <label class="edit-field editable-stock-query">
+              <span>Kalem Ara</span>
+              <input
+                type="search"
+                [formControl]="editableStockQuery"
+                placeholder="Stok adi, kodu veya barkod"
+                (keydown.enter)="$event.preventDefault(); searchEditableStock()"
+              />
+            </label>
+            <button
+              type="button"
+              class="add-line-button"
+              [disabled]="editableStockLoading() || isSaving()"
+              (click)="searchEditableStock()"
+            >
+              {{ editableStockLoading() ? 'Araniyor...' : 'Ara' }}
+            </button>
+          </div>
+
+          <p class="editable-stock-error" *ngIf="editableStockError()">{{ editableStockError() }}</p>
+
+          <div class="editable-stock-results" *ngIf="editableStockResults().length">
+            <div
+              class="editable-stock-result"
+              *ngFor="let stock of editableStockResults(); trackBy: trackByEditableStock"
+            >
+              <div>
+                <strong>{{ stock.stockName || stock.stockCode }}</strong>
+                <span>{{ stock.stockCode }}<ng-container *ngIf="stock.barcode"> / {{ stock.barcode }}</ng-container></span>
+                <small>{{ stock.unitName || 'Birim yok' }}</small>
+              </div>
+              <button type="button" class="add-mini-button" [disabled]="isSaving()" (click)="addEditableStockLine(stock)">
+                Ekle
+              </button>
+            </div>
+          </div>
         </div>
 
         <div class="editable-table-wrap" formArrayName="lines">

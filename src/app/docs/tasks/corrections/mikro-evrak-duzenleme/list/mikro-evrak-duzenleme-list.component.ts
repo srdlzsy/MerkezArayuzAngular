@@ -1981,6 +1981,10 @@ export class MikroEvrakDuzenlemeListComponent {
   }
 
   private getFieldMaxLengthByKey(key: string): number | null {
+    if (key === 'postalCode') {
+      return 10;
+    }
+
     return /^special[123]$/i.test(key) ? 4 : null;
   }
 

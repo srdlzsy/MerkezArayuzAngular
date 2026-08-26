@@ -128,6 +128,98 @@
   background: #ecfdf5;
 }
 
+.editable-stock-search {
+  display: grid;
+  gap: 0.42rem;
+  min-width: 0;
+  padding: 0.5rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #f8fbff;
+}
+
+.editable-stock-search-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: end;
+  gap: 0.45rem;
+}
+
+.editable-stock-query input {
+  min-height: 32px;
+}
+
+.editable-stock-error {
+  margin: 0;
+  color: #b91c1c;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.editable-stock-results {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(220px, 1fr));
+  gap: 0.38rem;
+  max-height: 190px;
+  overflow: auto;
+}
+
+.editable-stock-result {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: center;
+  gap: 0.45rem;
+  min-width: 0;
+  padding: 0.45rem;
+  border: 1px solid #dbeafe;
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.editable-stock-result strong,
+.editable-stock-result span,
+.editable-stock-result small {
+  display: block;
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.editable-stock-result strong {
+  color: #0f172a;
+  font-size: 0.74rem;
+}
+
+.editable-stock-result span {
+  margin-top: 0.1rem;
+  color: #475569;
+  font-size: 0.68rem;
+}
+
+.editable-stock-result small {
+  margin-top: 0.08rem;
+  color: #0f766e;
+  font-size: 0.66rem;
+  font-weight: 800;
+}
+
+.add-mini-button {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-height: 28px;
+  border: 1px solid #99f6e4;
+  border-radius: 7px;
+  padding: 0.26rem 0.5rem;
+  color: #0f766e;
+  background: #ecfdf5;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
 .remove-line-button {
   color: #b91c1c;
   border: 1px solid #fecaca;
@@ -135,7 +227,8 @@
 }
 
 .add-line-button:disabled,
-.remove-line-button:disabled {
+.remove-line-button:disabled,
+.add-mini-button:disabled {
   cursor: not-allowed;
   opacity: 0.58;
 }
@@ -254,6 +347,10 @@
   .edit-totals,
   .add-line-button {
     flex: 1 1 auto;
+  }
+
+  .editable-stock-search-row {
+    grid-template-columns: 1fr;
   }
 
   .edit-grid {
