@@ -5,9 +5,12 @@
   }
 
   html,
-  body {
-    margin: 0;
-    padding: 0;
+  body,
+  .etiket-print-root,
+  .preview-stage {
+    margin: 0 !important;
+    padding: 0 !important;
+    background: #fff !important;
   }
 }
 
@@ -15,45 +18,110 @@ body {
   font-family: 'Times New Roman', Times, serif;
 }
 
-.a5-quad-page {
+:host {
+  display: block;
   width: 210mm;
-  height: 148mm;
-  padding: 2mm 7mm;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  grid-template-rows: repeat(2, minmax(0, 1fr));
-  gap: 1mm 5mm;
+  margin: 0;
+  padding: 0;
+  line-height: 1;
+}
+
+@media print {
+  :host {
+    display: block;
+    width: 210mm;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 1 !important;
+  }
+}
+
+.a5-quad-page {
+  position: relative;
+  width: 209mm;
+  height: 146mm;
+  padding: 0;
+  display: block;
   overflow: hidden;
   box-sizing: border-box;
   font-family: 'Times New Roman', Times, serif;
+  contain: layout paint;
   page-break-inside: avoid;
   break-inside: avoid;
+  page-break-after: always;
+  break-after: page;
+}
+
+.a5-quad-page + .a5-quad-page {
+  page-break-before: always;
+  break-before: page;
+}
+
+.a5-quad-page.is-last {
+  page-break-after: auto;
+  break-after: auto;
 }
 
 .quad-label-card {
-  min-width: 0;
-  min-height: 0;
-  padding: 1mm 6mm 2mm;
-  display: grid;
-  grid-template-rows: 13mm 25mm 16mm 14mm;
-  align-content: stretch;
+  position: absolute;
+  width: 97mm;
+  height: 66.5mm;
+  padding: 0;
+  display: block;
   box-sizing: border-box;
-  overflow: hidden;
+  overflow: visible;
   page-break-inside: avoid;
   break-inside: avoid;
 }
 
+.quad-label-card.position-0 {
+  top: 5mm;
+  left: 6mm;
+}
+
+.quad-label-card.position-1 {
+  top: 5mm;
+  left: 107mm;
+}
+
+.quad-label-card.position-2 {
+  top: 72mm;
+  left: 6mm;
+}
+
+.quad-label-card.position-3 {
+  top: 72mm;
+  left: 107mm;
+}
+
+.quad-label-content {
+  position: relative;
+  width: 100%;
+  height: 100%;
+  padding: 0;
+  display: block;
+  box-sizing: border-box;
+  overflow: visible;
+}
+
 .quad-label-name {
+  position: absolute;
+  top: 56.25mm;
+  left: 11.5mm;
+  width: 46mm;
+  height: 13mm;
   display: flex;
-  align-items: center;
+  align-items: flex-start;
   justify-content: center;
   text-align: center;
   overflow: hidden;
+  transform: rotate(-90deg);
+  transform-origin: left top;
 }
 
 .quad-label-name h3 {
   margin: 0;
-  font-size: 16px;
+  font-size: 10px;
   font-weight: 400;
   line-height: 1.05;
   max-height: 14mm;
@@ -62,53 +130,92 @@ body {
 }
 
 .quad-label-price {
+  position: absolute;
+  top: 57.25mm;
+  left: 25.5mm;
+  width: 48mm;
+  height: 24mm;
   display: flex;
   align-items: center;
   justify-content: center;
   text-align: center;
+  overflow: hidden;
+  transform: rotate(-90deg);
+  transform-origin: left top;
 }
 
 .quad-label-price h1 {
   margin: 0;
-  font-size: 60px;
+  font-size: 38px;
   font-weight: 400;
   line-height: 0.95;
   white-space: nowrap;
 }
 
 .quad-label-price span {
-  font-size: 24px;
+  font-size: 14px;
   font-weight: 400;
 }
 
 .quad-label-meta {
-  width: 62mm;
-  margin-left: 0;
-  font-size: 9.5px;
+  position: absolute;
+  top: 53.25mm;
+  left: 49.5mm;
+  width: 40mm;
+  height: 15mm;
+  margin: 0;
+  font-size: 5.8px;
   font-weight: 700;
-  line-height: 1.18;
+  line-height: 1.1;
   overflow: hidden;
+  transform: rotate(-90deg);
+  transform-origin: left top;
 }
 
 .quad-label-bottom {
+  position: absolute;
+  top: 54.25mm;
+  left: 68.5mm;
+  width: 42mm;
+  height: 9mm;
   display: flex;
   align-items: center;
   justify-content: space-between;
-  gap: 5mm;
-  overflow: visible;
+  gap: 3mm;
+  overflow: hidden;
+  transform: rotate(-90deg);
+  transform-origin: left top;
 }
 
-.quad-label-bottom img {
-  width: 20mm;
-  max-height: 10mm;
+.quad-origin-mark {
+  width: 10mm;
+  max-height: 6mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-start;
+  flex: 0 0 10mm;
+}
+
+.quad-origin-mark img {
+  width: 10mm;
+  max-height: 6mm;
   height: auto;
   display: block;
   object-fit: contain;
 }
 
-.quad-label-bottom svg {
-  width: 27mm;
-  height: 12mm;
+.quad-barcode-slot {
+  width: 16mm;
+  height: 7mm;
+  display: flex;
+  align-items: flex-end;
+  justify-content: flex-end;
+  flex: 0 0 16mm;
+}
+
+.quad-barcode-slot svg {
+  width: 16mm;
+  height: 7mm;
   display: block;
   max-width: 100%;
 }
@@ -116,10 +223,4 @@ body {
 img,
 svg {
   display: block;
-}
-
-.page-break-row {
-  display: none;
-  page-break-before: always;
-  break-before: page;
 }

@@ -38,6 +38,9 @@ interface KalemFormValue {
   barkodu: string;
   birim: string;
   birimKatsayisi: number | null;
+  ikinciBirim: string;
+  koliKatsayisi: number | null;
+  koliBarkodu: string;
   siparisMiktari: number | null;
   aciklama: string;
   skt: string;
@@ -50,6 +53,9 @@ type KalemFormGroup = FormGroup<{
   barkodu: FormControl<string>;
   birim: FormControl<string>;
   birimKatsayisi: FormControl<number | null>;
+  ikinciBirim: FormControl<string>;
+  koliKatsayisi: FormControl<number | null>;
+  koliBarkodu: FormControl<string>;
   siparisMiktari: FormControl<number | null>;
   aciklama: FormControl<string>;
   skt: FormControl<string>;
@@ -439,6 +445,45 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly trackByKalem = (index: number, control: KalemFormGroup): string =>
     control.controls.stokKodu.value.trim() || `${index}`;
 
+  protected hasPackageInput(control: KalemFormGroup): boolean {
+    const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+    return Number.isFinite(packageFactor) && packageFactor > 1;
+  }
+
+  protected getPackageHint(control: KalemFormGroup): string {
+    const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+    const unitName = control.controls.birim.value.trim() || 'birim';
+
+    if (!Number.isFinite(packageFactor) || packageFactor <= 1) {
+      return '';
+    }
+
+    return `Koli ici: ${this.formatQuantity(packageFactor)} ${unitName}`;
+  }
+
+  protected getPackageMultipleWarning(control: KalemFormGroup): string {
+    const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+    const quantity = Number(control.controls.siparisMiktari.value ?? 0);
+    const unitName = control.controls.birim.value.trim() || 'birim';
+
+    if (
+      !Number.isFinite(packageFactor)
+      || packageFactor <= 1
+      || !Number.isFinite(quantity)
+      || quantity <= 0
+    ) {
+      return '';
+    }
+
+    const ratio = quantity / packageFactor;
+
+    if (Math.abs(ratio - Math.round(ratio)) < 0.0001) {
+      return '';
+    }
+
+    return `Koli ici ${this.formatQuantity(packageFactor)} ${unitName}. Girilen miktar koli kati degil.`;
+  }
+
   private createKalemFormGroup(stock: IFurpaProductSearchItemApiDto): KalemFormGroup {
     return new FormGroup({
       stokKodu: new FormControl(stock.stockCode?.trim() ?? '', {
@@ -449,6 +494,11 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       barkodu: new FormControl(stock.barcode?.trim() ?? '', { nonNullable: true }),
       birim: new FormControl(stock.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
+      ikinciBirim: new FormControl(stock.secondaryUnitName?.trim() ?? '', { nonNullable: true }),
+      koliKatsayisi: new FormControl<number | null>(
+        this.normalizePositiveNumber(stock.secondaryUnitMultiplier ?? null)
+      ),
+      koliBarkodu: new FormControl('', { nonNullable: true }),
       siparisMiktari: new FormControl<number | null>(1, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
@@ -470,6 +520,9 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       barkodu: new FormControl('', { nonNullable: true }),
       birim: new FormControl('', { nonNullable: true }),
       birimKatsayisi: new FormControl<number | null>(kalem.unitPointer ?? 1),
+      ikinciBirim: new FormControl('', { nonNullable: true }),
+      koliKatsayisi: new FormControl<number | null>(null),
+      koliBarkodu: new FormControl('', { nonNullable: true }),
       siparisMiktari: new FormControl<number | null>(siparisMiktari, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
@@ -589,6 +642,17 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     }
 
     return value;
+  }
+
+  private formatQuantity(value: number | null | undefined): string {
+    if (typeof value !== 'number' || !Number.isFinite(value)) {
+      return '-';
+    }
+
+    return new Intl.NumberFormat('tr-TR', {
+      minimumFractionDigits: 0,
+      maximumFractionDigits: 3
+    }).format(value);
   }
 
   private normalizeOptionalText(value: string): string | null {

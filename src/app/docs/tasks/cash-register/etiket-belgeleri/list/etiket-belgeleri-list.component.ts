@@ -1,6 +1,14 @@
 import { Dialog } from '@angular/cdk/dialog';
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import {
+  ChangeDetectionStrategy,
+  Component,
+  DestroyRef,
+  computed,
+  effect,
+  inject,
+  signal
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { catchError, finalize, map, of } from 'rxjs';
@@ -21,7 +29,7 @@ import { A5IkiliAyinEtiketiComponent } from '../a5-ikili-ayin-etiketi/a5-ikili-a
 import { A5IkiliFiyatEtiketiComponent } from '../a5-ikili-fiyat-etiketi/a5-ikili-fiyat-etiketi.component';
 import { A5TekliFiyatEtiketiComponent } from '../a5-tekli-fiyat-etiketi/a5-tekli-fiyat-etiketi.component';
 import { AddLabel } from '../add-label/add-label';
-import { renderBarcodeSvg } from '../etiket-barcode.util';
+import { renderBarcodeSvg, type BarcodeRenderOptions } from '../etiket-barcode.util';
 import { ETIKET_TIPLERI, IEtiketTipiConfig } from '../etiket-belgeleri.config';
 import { PrintChangePrice } from '../print-change-price/print-change-price';
 import { RafEtiketA5Component } from '../raf-etiket-a5/raf-etiket-a5.component';
@@ -62,7 +70,8 @@ type ProductListFilter =
     PrintChangePrice
   ],
   templateUrl: './etiket-belgeleri-list.component.html',
-  styleUrl: './etiket-belgeleri-list.component.scss'
+  styleUrl: './etiket-belgeleri-list.component.scss',
+  changeDetection: ChangeDetectionStrategy.OnPush
 })
 export class EtiketBelgeleriListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['etiket-belgeleri'];
@@ -94,6 +103,8 @@ export class EtiketBelgeleriListComponent {
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
 
   private activeLoadId = 0;
+  private productSearchDebounceId: number | undefined;
+  private lastProductSearchQuery = '';
   private recentDocumentsWarehouseNo: number | null = null;
   private lastHandledDocumentId: number | null = null;
   private readonly productSearchTerm = signal('');
@@ -114,6 +125,10 @@ export class EtiketBelgeleriListComponent {
   protected readonly previewMode = signal<PreviewMode>('labels');
   protected readonly lastLoadedSource = signal('Henuz veri yuklenmedi');
   protected readonly printState = signal<'idle' | 'preparing'>('idle');
+  protected readonly isPrintPreviewMounted = signal(false);
+  protected readonly printPreviewMode = signal<PreviewMode>('labels');
+  protected readonly printPreviewProducts = signal<readonly IEtiketBasimProduct[]>([]);
+  protected readonly printPreviewLabelConfig = signal<IEtiketTipiConfig | null>(null);
 
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
@@ -306,11 +321,16 @@ export class EtiketBelgeleriListComponent {
       });
 
     this.filtersForm.controls.productSearch.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((query: string | null) => {
-        this.productSearchTerm.set(query?.trim().toLocaleLowerCase('tr-TR') ?? '');
-        this.currentPage.set(1);
-      });
+      .pipe(
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((query: string | null) => this.queueProductSearch(query));
+
+    this.destroyRef.onDestroy(() => {
+      if (this.productSearchDebounceId !== undefined) {
+        window.clearTimeout(this.productSearchDebounceId);
+      }
+    });
   }
 
   protected loadByDate(): void {
@@ -399,6 +419,7 @@ export class EtiketBelgeleriListComponent {
   protected clearList(): void {
     this.products.set([]);
     this.hiddenProductKeysByLabelType.set({});
+    this.resetPrintPreview();
     this.previewMode.set('labels');
     this.clearProductTableTools();
     this.currentPage.set(1);
@@ -530,6 +551,11 @@ export class EtiketBelgeleriListComponent {
 
   protected clearProductTableTools(): void {
     this.productTableFilter.set('all');
+    this.lastProductSearchQuery = '';
+    if (this.productSearchDebounceId !== undefined) {
+      window.clearTimeout(this.productSearchDebounceId);
+      this.productSearchDebounceId = undefined;
+    }
     this.filtersForm.controls.productSearch.setValue('', { emitEvent: false });
     this.productSearchTerm.set('');
     this.currentPage.set(1);
@@ -553,6 +579,10 @@ export class EtiketBelgeleriListComponent {
   }
 
   protected printLabels(): void {
+    if (this.printState() === 'preparing') {
+      return;
+    }
+
     const selectedEtiket = this.selectedEtiket();
 
     if (!selectedEtiket?.kullanimaHazir) {
@@ -573,11 +603,21 @@ export class EtiketBelgeleriListComponent {
       return;
     }
 
+    const productsToPrint = this.labelPrintProducts();
+
     this.previewMode.set('labels');
+    this.printPreviewMode.set('labels');
+    this.printPreviewLabelConfig.set(selectedEtiket);
+    this.printPreviewProducts.set(productsToPrint);
+    this.isPrintPreviewMounted.set(true);
     void this.printWithStylesheet(selectedEtiket.ozelCss);
   }
 
   protected printPriceChanges(): void {
+    if (this.printState() === 'preparing') {
+      return;
+    }
+
     if (!this.priceChangePrintProducts().length) {
       this.setFeedback(
         'error',
@@ -587,7 +627,13 @@ export class EtiketBelgeleriListComponent {
       return;
     }
 
+    const productsToPrint = this.priceChangePrintProducts();
+
     this.previewMode.set('price-changes');
+    this.printPreviewMode.set('price-changes');
+    this.printPreviewLabelConfig.set(null);
+    this.printPreviewProducts.set(productsToPrint);
+    this.isPrintPreviewMounted.set(true);
     void this.printWithStylesheet('/assets/price-change-list-print.css');
   }
 
@@ -874,6 +920,24 @@ export class EtiketBelgeleriListComponent {
     );
   }
 
+  private queueProductSearch(query: string | null): void {
+    const nextQuery = query?.trim().toLocaleLowerCase('tr-TR') ?? '';
+
+    if (this.productSearchDebounceId !== undefined) {
+      window.clearTimeout(this.productSearchDebounceId);
+    }
+
+    this.productSearchDebounceId = window.setTimeout(() => {
+      if (this.lastProductSearchQuery === nextQuery) {
+        return;
+      }
+
+      this.lastProductSearchQuery = nextQuery;
+      this.productSearchTerm.set(nextQuery);
+      this.currentPage.set(1);
+    }, 120);
+  }
+
   private hasPriceChanged(product: IEtiketBasimProduct): boolean {
     return this.hasComparablePrice(product) && product.oldPrice !== product.price;
   }
@@ -951,7 +1015,7 @@ export class EtiketBelgeleriListComponent {
     const link = document.createElement('link');
     link.id = 'etiket-belgeleri-print-style';
     link.rel = 'stylesheet';
-    link.href = stylesheetHref;
+    link.href = `${stylesheetHref}${stylesheetHref.includes('?') ? '&' : '?'}v=${Date.now()}`;
 
     const shellStyle = document.createElement('style');
     shellStyle.id = 'etiket-belgeleri-print-shell';
@@ -1041,6 +1105,7 @@ export class EtiketBelgeleriListComponent {
       link.remove();
       shellStyle.remove();
       this.printState.set('idle');
+      this.resetPrintPreview();
       window.removeEventListener('afterprint', cleanup);
     };
 
@@ -1051,8 +1116,7 @@ export class EtiketBelgeleriListComponent {
       await this.appendPrintStylesheet(link);
       await this.waitForFonts();
       await this.waitForNextPaint();
-      this.renderPrintBarcodes();
-      await this.waitForNextPaint();
+      await this.renderPrintBarcodes();
 
       cleanupTimer = window.setTimeout(cleanup, 60_000);
       window.print();
@@ -1107,16 +1171,79 @@ export class EtiketBelgeleriListComponent {
     });
   }
 
-  private renderPrintBarcodes(): void {
-    document.querySelectorAll<SVGSVGElement>('.etiket-print-root svg[data-code]').forEach((svg) => {
-      renderBarcodeSvg(svg, svg.getAttribute('data-code'), {
+  private async renderPrintBarcodes(): Promise<void> {
+    const svgs = [
+      ...document.querySelectorAll<SVGSVGElement>('.etiket-print-root svg[data-code]')
+    ];
+    const chunkSize = 40;
+
+    for (let index = 0; index < svgs.length; index += chunkSize) {
+      svgs.slice(index, index + chunkSize).forEach((svg) => {
+        renderBarcodeSvg(
+          svg,
+          svg.getAttribute('data-code'),
+          this.getPrintBarcodeOptions(svg)
+        );
+      });
+
+      await this.waitForNextPaint();
+    }
+  }
+
+  private getPrintBarcodeOptions(svg: SVGSVGElement): BarcodeRenderOptions {
+    if (svg.classList.contains('a5-quad-barcode')) {
+      return {
+        barWidth: 0.72,
+        barHeight: 18,
+        fontSize: 6,
+        marginX: 0,
+        marginTop: 0
+      };
+    }
+
+    if (svg.classList.contains('a5-single-barcode')) {
+      return {
         barWidth: 1,
         barHeight: 35,
         fontSize: 13,
         marginX: 0,
         marginTop: 0
-      });
-    });
+      };
+    }
+
+    if (svg.classList.contains('a5-card-barcode')) {
+      return {
+        barWidth: 1,
+        barHeight: 32,
+        fontSize: 12,
+        marginX: 0,
+        marginTop: 0
+      };
+    }
+
+    if (svg.classList.contains('a5-advantage-product-barcode')) {
+      return {
+        barWidth: 1,
+        barHeight: 30,
+        fontSize: 11,
+        marginX: 0,
+        marginTop: 0
+      };
+    }
+
+    return {
+      barWidth: 1,
+      barHeight: 35,
+      fontSize: 13,
+      marginX: 0,
+      marginTop: 0
+    };
+  }
+
+  private resetPrintPreview(): void {
+    this.isPrintPreviewMounted.set(false);
+    this.printPreviewProducts.set([]);
+    this.printPreviewLabelConfig.set(null);
   }
 
   private setFeedback(

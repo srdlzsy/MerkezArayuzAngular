@@ -217,6 +217,14 @@ export interface WarehouseLookupItemDto {
   isInventoryExcluded: boolean;
 }
 
+export interface SourceWarehouseLookupItemDto {
+  sourceWarehouseNo: number;
+  sourceWarehouseName: string;
+  modelCodes: string[];
+  modelNames: string[];
+  displayName: string;
+}
+
 // ============================================================================
 // Genel Arama Parametreleri
 // ============================================================================

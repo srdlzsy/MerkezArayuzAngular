@@ -513,6 +513,18 @@
   color: #94a3b8;
 }
 
+.package-note {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
 .col-miktar input {
   width: 100%;
   padding: 0.32rem 0.4rem;
@@ -537,6 +549,16 @@
   text-align: center;
   margin-top: 0.2rem;
   font-size: 0.58rem;
+}
+
+.package-warning {
+  display: block;
+  margin-top: 0.2rem;
+  color: #92400e;
+  font-size: 0.58rem;
+  font-weight: 700;
+  line-height: 1.2;
+  text-align: center;
 }
 
 .col-islem {

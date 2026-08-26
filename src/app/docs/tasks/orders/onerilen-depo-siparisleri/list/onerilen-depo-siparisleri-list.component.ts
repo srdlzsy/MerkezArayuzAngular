@@ -7,10 +7,12 @@ import { finalize } from 'rxjs';
 import type {
   ConvertSuggestedWarehouseOrderHttpRequest,
   CreateIssuedWarehouseOrderResponse,
+  IFurpaSourceWarehouseSearchItemApiDto,
   SuggestedWarehouseOrderListItemDto
 } from '@interfaces';
 
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
+import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { SiparisIslemleriService } from '../../../../../core/api/module-services/siparis-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
@@ -37,6 +39,7 @@ interface PageFeedback {
 export class OnerilenDepoSiparisleriListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['onerilen-depo-siparisleri'];
   private readonly destroyRef = inject(DestroyRef);
+  private readonly aramaService = inject(AramaService);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
   private readonly today = formatDateOnly(new Date());
   private requestId = 0;
@@ -71,6 +74,9 @@ export class OnerilenDepoSiparisleriListComponent {
   protected readonly feedback = signal<PageFeedback | null>(null);
   protected readonly convertFeedback = signal<PageFeedback | null>(null);
   protected readonly isLoading = signal(false);
+  protected readonly sourceWarehouses = signal<IFurpaSourceWarehouseSearchItemApiDto[]>([]);
+  protected readonly sourceWarehousesLoading = signal(false);
+  protected readonly sourceWarehousesError = signal('');
   protected readonly isConverting = signal(false);
   protected readonly isConvertDialogOpen = signal(false);
   protected readonly lastResponse = signal<CreateIssuedWarehouseOrderResponse | null>(null);
@@ -98,7 +104,47 @@ export class OnerilenDepoSiparisleriListComponent {
   });
 
   constructor() {
-    this.loadSuggestions();
+    this.loadSourceWarehouses();
+  }
+
+  protected loadSourceWarehouses(): void {
+    this.sourceWarehousesLoading.set(true);
+    this.sourceWarehousesError.set('');
+
+    this.aramaService
+      .searchSourceWarehouses(undefined, 100)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.sourceWarehousesLoading.set(false))
+      )
+      .subscribe({
+        next: (warehouses: IFurpaSourceWarehouseSearchItemApiDto[]) => {
+          const normalizedWarehouses = this.normalizeSourceWarehouses(warehouses ?? []);
+          this.sourceWarehouses.set(normalizedWarehouses);
+
+          if (!normalizedWarehouses.length) {
+            this.lines.set([]);
+            this.feedback.set({
+              tone: 'info',
+              title: 'Kaynak depo yok',
+              message: 'Siparis verilebilir kaynak depo bulunamadi.'
+            });
+            return;
+          }
+
+          const currentWarehouseNo = this.filterForm.controls.sourceWarehouseNo.value;
+          const selectedWarehouse = normalizedWarehouses.find(
+            (warehouse) => warehouse.sourceWarehouseNo === currentWarehouseNo
+          ) ?? normalizedWarehouses[0];
+
+          this.filterForm.controls.sourceWarehouseNo.setValue(selectedWarehouse.sourceWarehouseNo);
+          this.loadSuggestions();
+        },
+        error: (error: unknown) => {
+          this.sourceWarehouses.set([]);
+          this.sourceWarehousesError.set(this.resolveErrorMessage(error, 'Kaynak depo listesi alinamadi.'));
+        }
+      });
   }
 
   protected loadSuggestions(): void {
@@ -319,6 +365,16 @@ export class OnerilenDepoSiparisleriListComponent {
   protected readonly trackByLine = (_index: number, line: SuggestedWarehouseLineState): string =>
     line.item.stockCode || `${_index}`;
 
+  protected readonly trackBySourceWarehouse = (
+    _index: number,
+    warehouse: IFurpaSourceWarehouseSearchItemApiDto
+  ): string => `${warehouse.sourceWarehouseNo}-${warehouse.displayName?.trim() || _index}`;
+
+  protected getSourceWarehouseLabel(warehouse: IFurpaSourceWarehouseSearchItemApiDto): string {
+    return warehouse.displayName?.trim()
+      || `${warehouse.sourceWarehouseNo} - ${warehouse.sourceWarehouseName?.trim() || 'Depo'}`;
+  }
+
   private buildConvertRequest(
     selectedLines: SuggestedWarehouseLineState[]
   ): ConvertSuggestedWarehouseOrderHttpRequest {
@@ -345,6 +401,27 @@ export class OnerilenDepoSiparisleriListComponent {
 
   private safeNumber(value: number | null | undefined): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
+  private normalizeSourceWarehouses(
+    warehouses: IFurpaSourceWarehouseSearchItemApiDto[]
+  ): IFurpaSourceWarehouseSearchItemApiDto[] {
+    const uniqueWarehouses = new Map<number, IFurpaSourceWarehouseSearchItemApiDto>();
+
+    for (const warehouse of warehouses) {
+      if (
+        !Number.isFinite(warehouse.sourceWarehouseNo)
+        || uniqueWarehouses.has(warehouse.sourceWarehouseNo)
+      ) {
+        continue;
+      }
+
+      uniqueWarehouses.set(warehouse.sourceWarehouseNo, warehouse);
+    }
+
+    return Array.from(uniqueWarehouses.values()).sort(
+      (left, right) => left.sourceWarehouseNo - right.sourceWarehouseNo
+    );
   }
 
   private resolveErrorMessage(error: unknown, fallback: string): string {

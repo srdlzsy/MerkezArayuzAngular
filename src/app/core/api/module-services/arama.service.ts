@@ -13,6 +13,7 @@ import {
   ProductLastTagDto,
   ProductLookupItemDto,
   ProductSearchHttpRequest,
+  SourceWarehouseLookupItemDto,
   WarehouseLookupItemDto,
   WarehouseSearchHttpRequest
 } from '@interfaces';
@@ -257,6 +258,22 @@ export class AramaService extends BaseApiService {
     warehouseNo?: number
   ): Observable<WarehouseLookupItemDto[]> {
     return this.listAllWarehouses(take, warehouseNo);
+  }
+
+  searchSourceWarehouses(
+    searchText?: string,
+    take: number = 100
+  ): Observable<SourceWarehouseLookupItemDto[]> {
+    const normalizedSearchText = this.normalizeOptionalText(searchText);
+
+    if (normalizedSearchText && normalizedSearchText.length < 2) {
+      return of([]);
+    }
+
+    return this.getWithQuery<SourceWarehouseLookupItemDto[]>('arama-islemleri/depolar/kaynaklar', {
+      searchText: normalizedSearchText,
+      take: Math.min(take, 100)
+    });
   }
 
   /**

@@ -47,7 +47,7 @@
             <div class="search-results" *ngIf="warehouseResults().length">
               <div class="result-item" *ngFor="let warehouse of warehouseResults(); trackBy: trackByWarehouse" (click)="selectWarehouse(warehouse)">
                 <strong>{{ getWarehouseLabel(warehouse) }}</strong>
-                <span>{{ warehouse.warehouseName }}</span>
+                <span>{{ warehouse.modelNames.join(', ') || warehouse.sourceWarehouseName }}</span>
               </div>
             </div>
           </div>
@@ -133,6 +133,7 @@
                 <strong>{{ kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value }}</strong>
                 <span class="kalem-kod">{{ kalem.controls.stokKodu.value }}</span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
+                <span class="package-note" *ngIf="hasPackageInput(kalem)">{{ getPackageHint(kalem) }}</span>
                 <span
                   class="resolution-note"
                   *ngIf="isGreenGrocerOrder() && getLineResolutionLabel(kalem)"
@@ -155,6 +156,9 @@
               />
               <small class="field-error" *ngIf="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched">
                 Gecerli miktar
+              </small>
+              <small class="package-warning" *ngIf="getPackageMultipleWarning(kalem)">
+                {{ getPackageMultipleWarning(kalem) }}
               </small>
             </div>
             <div class="col-islem">

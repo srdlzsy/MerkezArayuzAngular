@@ -24,7 +24,7 @@ export class A5DortluFiyatEtiketiComponent
 {
   @Input() productsToPrint: readonly IEtiketBasimProduct[] = [];
 
-  protected productGroups: IEtiketBasimProduct[][] = [];
+  protected productGroups: Array<Array<IEtiketBasimProduct | null>> = [];
   protected labelPrintDate: string = this.getFormattedPrintDate();
 
   private readonly beforePrintHandler = () => this.renderBarcodesSafe();
@@ -62,8 +62,8 @@ export class A5DortluFiyatEtiketiComponent
 
   protected readonly trackByProduct = (
     index: number,
-    product: IEtiketBasimProduct
-  ): string => `${product.productCode}-${product.barcode}-${index}`;
+    product: IEtiketBasimProduct | null
+  ): string => product ? `${product.productCode}-${product.barcode}-${index}` : `empty-${index}`;
 
   private renderBarcodesSafe(): void {
     requestAnimationFrame(() => {
@@ -74,20 +74,26 @@ export class A5DortluFiyatEtiketiComponent
   private renderBarcodes(): void {
     document.querySelectorAll<SVGSVGElement>('svg.a5-quad-barcode').forEach((svg) => {
       renderBarcodeSvg(svg, svg.getAttribute('data-code'), {
-        barWidth: 1,
-        barHeight: 28,
-        fontSize: 10,
+        barWidth: 0.72,
+        barHeight: 18,
+        fontSize: 6,
         marginX: 0,
         marginTop: 0
       });
     });
   }
 
-  private chunkProducts(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[][] {
-    const groups: IEtiketBasimProduct[][] = [];
+  private chunkProducts(products: readonly IEtiketBasimProduct[]): Array<Array<IEtiketBasimProduct | null>> {
+    const groups: Array<Array<IEtiketBasimProduct | null>> = [];
 
     for (let i = 0; i < products.length; i += 4) {
-      groups.push(products.slice(i, i + 4));
+      const group: Array<IEtiketBasimProduct | null> = products.slice(i, i + 4);
+
+      while (group.length < 4) {
+        group.push(null);
+      }
+
+      groups.push(group);
     }
 
     return groups;

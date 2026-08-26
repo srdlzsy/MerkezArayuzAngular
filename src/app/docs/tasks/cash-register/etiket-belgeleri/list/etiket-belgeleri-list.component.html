@@ -377,61 +377,67 @@
     </ng-template>
   </section>
 
-  <section class="preview-shell-hidden etiket-print-root" aria-hidden="true">
+  <section
+    class="preview-shell-hidden etiket-print-root"
+    aria-hidden="true"
+    *ngIf="isPrintPreviewMounted()"
+  >
     <div class="preview-stage">
-      <ng-container *ngIf="previewMode() === 'labels'; else priceChangePreview">
-        <ng-container *ngIf="selectedEtiket()?.kullanimaHazir && labelPrintProducts().length">
-          <app-rafetiketi
-            *ngIf="selectedEtiket()?.sunumTipi === 'rack_label'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-rafetiketi>
+      <ng-container *ngIf="printPreviewMode() === 'labels'; else priceChangePreview">
+        <ng-container *ngIf="printPreviewLabelConfig() as previewEtiket">
+          <ng-container *ngIf="previewEtiket.kullanimaHazir && printPreviewProducts().length">
+            <app-rafetiketi
+              *ngIf="previewEtiket.sunumTipi === 'rack_label'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-rafetiketi>
 
-          <app-raf-etiket-a5
-            *ngIf="selectedEtiket()?.sunumTipi === 'rack_label_a4'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-raf-etiket-a5>
+            <app-raf-etiket-a5
+              *ngIf="previewEtiket.sunumTipi === 'rack_label_a4'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-raf-etiket-a5>
 
-          <app-fiyatetiket
-            *ngIf="selectedEtiket()?.sunumTipi === 'a4_pricelabel'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-fiyatetiket>
+            <app-fiyatetiket
+              *ngIf="previewEtiket.sunumTipi === 'a4_pricelabel'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-fiyatetiket>
 
-          <app-a5-ikili-fiyat-etiketi
-            *ngIf="selectedEtiket()?.sunumTipi === 'a5_pricelabel'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-a5-ikili-fiyat-etiketi>
+            <app-a5-ikili-fiyat-etiketi
+              *ngIf="previewEtiket.sunumTipi === 'a5_pricelabel'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-a5-ikili-fiyat-etiketi>
 
-          <app-a5-dortlu-fiyat-etiketi
-            *ngIf="selectedEtiket()?.sunumTipi === 'a5_quad_pricelabel'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-a5-dortlu-fiyat-etiketi>
+            <app-a5-dortlu-fiyat-etiketi
+              *ngIf="previewEtiket.sunumTipi === 'a5_quad_pricelabel'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-a5-dortlu-fiyat-etiketi>
 
-          <app-a5-ikili-furpara-kart-etiketi
-            *ngIf="selectedEtiket()?.sunumTipi === 'a5_cardlabel'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-a5-ikili-furpara-kart-etiketi>
+            <app-a5-ikili-furpara-kart-etiketi
+              *ngIf="previewEtiket.sunumTipi === 'a5_cardlabel'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-a5-ikili-furpara-kart-etiketi>
 
-          <app-a5-tekli-fiyat-etiketi
-            *ngIf="selectedEtiket()?.sunumTipi === 'a5_single_pricelabel'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-a5-tekli-fiyat-etiketi>
+            <app-a5-tekli-fiyat-etiketi
+              *ngIf="previewEtiket.sunumTipi === 'a5_single_pricelabel'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-a5-tekli-fiyat-etiketi>
 
-          <app-a5-ikili-ayin-etiketi
-            *ngIf="selectedEtiket()?.sunumTipi === 'a5_pricelabel_advantage'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-a5-ikili-ayin-etiketi>
+            <app-a5-ikili-ayin-etiketi
+              *ngIf="previewEtiket.sunumTipi === 'a5_pricelabel_advantage'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-a5-ikili-ayin-etiketi>
 
-          <app-a5-ikili-ayin-urunu-fiyat-etiketi
-            *ngIf="selectedEtiket()?.sunumTipi === 'a5_pricelabel_advantage_product'"
-            [productsToPrint]="labelPrintProducts()"
-          ></app-a5-ikili-ayin-urunu-fiyat-etiketi>
+            <app-a5-ikili-ayin-urunu-fiyat-etiketi
+              *ngIf="previewEtiket.sunumTipi === 'a5_pricelabel_advantage_product'"
+              [productsToPrint]="printPreviewProducts()"
+            ></app-a5-ikili-ayin-urunu-fiyat-etiketi>
+          </ng-container>
         </ng-container>
       </ng-container>
 
       <ng-template #priceChangePreview>
         <app-print-change-price
-          *ngIf="priceChangePrintProducts().length"
-          [productsToPrint]="priceChangePrintProducts()"
+          *ngIf="printPreviewProducts().length"
+          [productsToPrint]="printPreviewProducts()"
         ></app-print-change-price>
       </ng-template>
     </div>

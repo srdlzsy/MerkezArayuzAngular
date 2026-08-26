@@ -30,7 +30,17 @@
       <div class="query-grid">
         <label class="field">
           <span>Kaynak Depo</span>
-          <input type="number" min="1" formControlName="sourceWarehouseNo" placeholder="50" />
+          <select formControlName="sourceWarehouseNo">
+            <option [ngValue]="null">
+              {{ sourceWarehousesLoading() ? 'Kaynak depolar yukleniyor...' : 'Kaynak depo sec' }}
+            </option>
+            <option
+              *ngFor="let warehouse of sourceWarehouses(); trackBy: trackBySourceWarehouse"
+              [ngValue]="warehouse.sourceWarehouseNo"
+            >
+              {{ getSourceWarehouseLabel(warehouse) }}
+            </option>
+          </select>
         </label>
 
         <label class="field">
@@ -53,6 +63,9 @@
 
       <p class="deduction-note">
         Acik depo siparisleri ihtiyac hesabinda dikkate alinir.
+      </p>
+      <p class="deduction-note" *ngIf="sourceWarehousesError()">
+        {{ sourceWarehousesError() }}
       </p>
     </form>
 

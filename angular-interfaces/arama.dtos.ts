@@ -10,6 +10,7 @@ import type {
   CustomerSearchHttpRequest,
   ProductLookupItemDto,
   ProductSearchHttpRequest,
+  SourceWarehouseLookupItemDto,
   WarehouseLookupItemDto,
   WarehouseSearchHttpRequest
 } from './arama-islemleri.dtos';
@@ -22,3 +23,4 @@ export type IFurpaCustomerSearchQueryApiDto = CustomerSearchHttpRequest;
 export type IFurpaCustomerSearchItemApiDto = CustomerLookupItemDto;
 export type IFurpaWarehouseSearchQueryApiDto = WarehouseSearchHttpRequest;
 export type IFurpaWarehouseSearchItemApiDto = WarehouseLookupItemDto;
+export type IFurpaSourceWarehouseSearchItemApiDto = SourceWarehouseLookupItemDto;
