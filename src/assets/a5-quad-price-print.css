@@ -121,7 +121,7 @@ body {
 
 .quad-label-name h3 {
   margin: 0;
-  font-size: 11px;
+  font-size: 12px;
   font-weight: 400;
   line-height: 1.05;
   max-height: 14mm;
@@ -146,14 +146,14 @@ body {
 
 .quad-label-price h1 {
   margin: 0;
-  font-size: 40px;
+  font-size: 44px;
   font-weight: 400;
   line-height: 0.95;
   white-space: nowrap;
 }
 
 .quad-label-price span {
-  font-size: 15px;
+  font-size: 16px;
   font-weight: 400;
 }
 
@@ -164,7 +164,7 @@ body {
   width: 40mm;
   height: 15mm;
   margin: 0;
-  font-size: 6.3px;
+  font-size: 7px;
   font-weight: 700;
   line-height: 1.1;
   overflow: hidden;
@@ -188,34 +188,34 @@ body {
 }
 
 .quad-origin-mark {
-  width: 10mm;
-  max-height: 6mm;
+  width: 11.5mm;
+  max-height: 7mm;
   display: flex;
   align-items: flex-end;
   justify-content: flex-start;
-  flex: 0 0 10mm;
+  flex: 0 0 11.5mm;
 }
 
 .quad-origin-mark img {
-  width: 10mm;
-  max-height: 6mm;
+  width: 11.5mm;
+  max-height: 7mm;
   height: auto;
   display: block;
   object-fit: contain;
 }
 
 .quad-barcode-slot {
-  width: 16mm;
-  height: 7mm;
+  width: 18mm;
+  height: 8mm;
   display: flex;
   align-items: flex-end;
   justify-content: flex-end;
-  flex: 0 0 16mm;
+  flex: 0 0 18mm;
 }
 
 .quad-barcode-slot svg {
-  width: 16mm;
-  height: 7mm;
+  width: 18mm;
+  height: 8mm;
   display: block;
   max-width: 100%;
 }

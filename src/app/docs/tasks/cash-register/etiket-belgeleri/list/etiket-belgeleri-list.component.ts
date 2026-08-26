@@ -1193,9 +1193,9 @@ export class EtiketBelgeleriListComponent {
   private getPrintBarcodeOptions(svg: SVGSVGElement): BarcodeRenderOptions {
     if (svg.classList.contains('a5-quad-barcode')) {
       return {
-        barWidth: 0.72,
-        barHeight: 18,
-        fontSize: 6,
+        barWidth: 0.82,
+        barHeight: 21,
+        fontSize: 7,
         marginX: 0,
         marginTop: 0
       };

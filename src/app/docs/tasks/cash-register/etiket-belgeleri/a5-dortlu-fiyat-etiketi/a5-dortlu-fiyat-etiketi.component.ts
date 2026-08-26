@@ -74,9 +74,9 @@ export class A5DortluFiyatEtiketiComponent
   private renderBarcodes(): void {
     document.querySelectorAll<SVGSVGElement>('svg.a5-quad-barcode').forEach((svg) => {
       renderBarcodeSvg(svg, svg.getAttribute('data-code'), {
-        barWidth: 0.72,
-        barHeight: 18,
-        fontSize: 6,
+        barWidth: 0.82,
+        barHeight: 21,
+        fontSize: 7,
         marginX: 0,
         marginTop: 0
       });
