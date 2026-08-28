@@ -329,6 +329,35 @@ export interface CreateIssuedCompanyOrderResponse {
   writeConnectionName: string;
 }
 
+export interface CompanyOrderCustomerProductListHttpRequest {
+  customerCode: string;
+  warehouseNo?: number | null;
+  search?: string | null;
+  take?: number | null;
+}
+
+export interface CompanyOrderCustomerProductDto {
+  warehouseNo: number;
+  customerCode: string;
+  customerName: string;
+  stockCode: string;
+  stockName: string;
+  modelCode: string;
+  modelName: string;
+  unitName: string;
+  secondaryUnitName?: string | null;
+  secondaryUnitMultiplier?: number | null;
+  packageFactor?: number | null;
+  barcode: string;
+  caseBarcode?: string | null;
+  quantity: number;
+  recommendedQuantity: number;
+  unitPrice: number;
+  minimumPurchaseQuantity: number;
+  deliveryDay: number | null;
+  unitPointer: number;
+}
+
 export interface SuggestedCompanyOrderListItemDto {
   supplierCode: string;
   supplierName: string;

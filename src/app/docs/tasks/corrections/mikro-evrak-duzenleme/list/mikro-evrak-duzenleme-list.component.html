@@ -1732,5 +1732,108 @@
         </div>
       </ng-template>
     </section>
+
+    <section *ngSwitchCase="'banknote-track'" class="document-workspace banknote-track-workspace">
+      <article class="lookup-bar banknote-track-lookup-bar">
+        <div class="lookup-title">
+          <p class="panel-kicker">BANKNOTE_TRACKS</p>
+          <h3>Banknot takip kaydini bul</h3>
+        </div>
+        <label class="field">
+          <span>Banknot Takip ID *</span>
+          <input
+            type="text"
+            [(ngModel)]="banknoteTrackLookup.banknoteTrackId"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Orn. 20260424-110"
+            (keyup.enter)="loadBanknoteTrack()"
+          />
+        </label>
+        <label class="field">
+          <span>Depo No</span>
+          <input
+            type="number"
+            min="1"
+            [(ngModel)]="banknoteTrackLookup.warehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+            placeholder="Aktif depo"
+            (keyup.enter)="loadBanknoteTrack()"
+          />
+        </label>
+        <button
+          type="button"
+          class="primary-action"
+          [disabled]="!canDetail() || isBusy('banknote-track-load')"
+          (click)="loadBanknoteTrack()"
+        >
+          {{ isBusy('banknote-track-load') ? 'Getiriliyor...' : 'Kaydi Getir' }}
+        </button>
+      </article>
+
+      <ng-container *ngIf="banknoteTrackDraft() as draft; else noBanknoteTrack">
+        <article class="document-summary">
+          <div>
+            <p class="panel-kicker">BANKNOT TAKIP OZETI</p>
+            <h3>{{ draft.banknoteTrackId }} - Depo {{ draft.warehouseNo }}</h3>
+          </div>
+          <div class="summary-metrics">
+            <span><strong>{{ draft.totalAmount | number: '1.2-2' }}</strong> sayim</span>
+            <span><strong>{{ draft.deliveryTotalAmount | number: '1.2-2' }}</strong> teslim</span>
+            <span><strong>{{ draft.differenceAmount | number: '1.2-2' }}</strong> fark</span>
+            <span class="change-badge">{{ changedBanknoteTrackFieldCount() }} degisiklik</span>
+          </div>
+        </article>
+
+        <article class="editor-panel">
+          <div class="form-section">
+            <h4>Banknot takip bilgileri</h4>
+            <div class="form-grid">
+              <label
+                *ngFor="let field of banknoteTrackFields; trackBy: trackByField"
+                class="field"
+              >
+                <span>{{ field.label }}</span>
+                <input
+                  [type]="field.type || 'text'"
+                  [ngModel]="fieldValue(draft, field.key)"
+                  [ngModelOptions]="{ standalone: true }"
+                  (ngModelChange)="setField(draft, field.key, $event)"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="editor-actions">
+            <button type="button" class="secondary-action" (click)="resetBanknoteTrack()">
+              Degisiklikleri Geri Al
+            </button>
+            <button
+              type="button"
+              class="primary-action"
+              [disabled]="!canUpdate() || !changedBanknoteTrackFieldCount() || isBusy('banknote-track-save')"
+              (click)="saveBanknoteTrack()"
+            >
+              {{ isBusy('banknote-track-save') ? 'Kaydediliyor...' : 'Banknot Takibini Guncelle' }}
+            </button>
+            <button
+              type="button"
+              class="danger-action"
+              [disabled]="!canDelete() || isBusy('banknote-track-delete')"
+              (click)="deleteBanknoteTrack()"
+            >
+              {{ isBusy('banknote-track-delete') ? 'Siliniyor...' : 'Banknot Takibini Sil' }}
+            </button>
+          </div>
+        </article>
+      </ng-container>
+
+      <ng-template #noBanknoteTrack>
+        <div class="empty-state">
+          <i class="fa-solid fa-money-bill-wave"></i>
+          <h3>Banknot takip ID ile kaydi getirin</h3>
+          <p>Guncelleme ve silme islemleri Mikro Evrak Duzenleme uzerinden yapilir.</p>
+        </div>
+      </ng-template>
+    </section>
   </ng-container>
 </section>

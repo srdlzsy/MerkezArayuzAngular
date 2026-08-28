@@ -105,6 +105,52 @@
           </div>
         </div>
 
+        <div class="customer-products-panel" *ngIf="selectedCustomer()">
+          <div class="customer-products-head">
+            <div>
+              <strong>Firma Urunleri</strong>
+              <span>{{ customerProducts().length }} urun</span>
+            </div>
+            <div class="customer-products-actions">
+              <input
+                type="search"
+                [formControl]="customerProductsQuery"
+                placeholder="Urun adi, kodu veya barkod"
+                (keydown.enter)="$event.preventDefault(); loadCustomerProducts()"
+              />
+              <button
+                type="button"
+                class="small-btn"
+                [disabled]="customerProductsLoading()"
+                (click)="loadCustomerProducts()"
+              >
+                {{ customerProductsLoading() ? '...' : 'Getir' }}
+              </button>
+            </div>
+          </div>
+
+          <div class="feedback-error mini-error" *ngIf="customerProductsError()">{{ customerProductsError() }}</div>
+
+          <div class="customer-products-list" *ngIf="customerProducts().length">
+            <button
+              type="button"
+              class="customer-product-row"
+              *ngFor="let product of customerProducts(); trackBy: trackByCustomerProduct"
+              (click)="addCustomerProductKalem(product)"
+            >
+              <span class="product-main">
+                <strong>{{ product.stockName }}</strong>
+                <small>{{ product.stockCode }} · {{ product.barcode || '-' }}</small>
+              </span>
+              <span class="product-package" *ngIf="(product.packageFactor || product.secondaryUnitMultiplier || 0) > 1">
+                Koli ici {{ product.packageFactor || product.secondaryUnitMultiplier }} {{ product.unitName }}
+              </span>
+              <span class="product-price">{{ product.unitPrice | number: '1.2-2' }} TL</span>
+              <span class="add-mini">+</span>
+            </button>
+          </div>
+        </div>
+
         <div class="contact-row">
           <div class="contact-field">
             <label>Muhatap Ad Soyad *</label>

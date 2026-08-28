@@ -8,6 +8,8 @@ import type {
   CompanyOrderHeaderDto,
   CompanyOrderLineItemDto,
   CompanyOrderListItemDto,
+  CompanyOrderCustomerProductDto,
+  CompanyOrderCustomerProductListHttpRequest,
   ConvertSuggestedCompanyOrderHttpRequest,
   ConvertSuggestedCompanyOrderLineHttpRequest,
   CreateIssuedCompanyOrderHttpRequest,
@@ -24,6 +26,9 @@ export type IFurpaCompanyOrderDetailApiDto = CompanyOrderDetailDto;
 export type IFurpaCreateCompanyOrderLineRequestApiDto = CreateIssuedCompanyOrderLineHttpRequest;
 export type IFurpaCreateCompanyOrderRequestApiDto = CreateIssuedCompanyOrderHttpRequest;
 export type IFurpaCreateCompanyOrderResponseApiDto = CreateIssuedCompanyOrderResponse;
+export type IFurpaCompanyOrderCustomerProductApiDto = CompanyOrderCustomerProductDto;
+export type IFurpaCompanyOrderCustomerProductListRequestApiDto =
+  CompanyOrderCustomerProductListHttpRequest;
 export type IFurpaSuggestedCompanyOrderListItemApiDto = SuggestedCompanyOrderListItemDto;
 export type IFurpaSuggestedCompanyOrderListRequestApiDto = SuggestedCompanyOrderListHttpRequest;
 export type IFurpaConvertSuggestedCompanyOrderRequestApiDto =

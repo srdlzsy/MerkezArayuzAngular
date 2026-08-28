@@ -606,7 +606,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Kasa sayimlari altindan ayrilan yeni route ailesidir',
         'warehouseNo bos gonderilirse all-warehouses yetkili kullanici icin tum depolari listeler',
         'Yeni teslim kaydinda totalAmount sayim-toplami endpointinden doldurulabilir',
-        'differenceAmount deliveryTotalAmount - totalAmount olarak gelir'
+        'differenceAmount deliveryTotalAmount - totalAmount olarak gelir',
+        'Guncelleme ve silme Mikro Evrak Duzenleme banknot-takipleri endpointleriyle yapilir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -634,6 +635,17 @@ export const CASH_REGISTER_TASK_SOURCE = {
               path: '/api/kasa-islemleri/banknot-takipleri',
               description: 'Gunluk banknot teslim kaydi olusturur',
               payload: 'CreateBanknoteTrackHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/{banknoteTrackId}?warehouseNo=110',
+              description: 'Banknot takip kaydini Mikro Evrak Duzenleme uzerinden gunceller',
+              payload: 'BanknoteTrackPatchHttpRequest'
+            },
+            {
+              method: 'DELETE',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/{banknoteTrackId}?warehouseNo=110',
+              description: 'Banknot takip kaydini Mikro Evrak Duzenleme uzerinden siler'
             }
           ]
         }
@@ -650,7 +662,10 @@ export const CASH_REGISTER_TASK_SOURCE = {
       import('../tasks/cash-register/banknot-takipleri/list/banknot-takipleri-list.component').then(
         (m) => m.BanknotTakipleriListComponent
       ),
-    { accessKeyAliases: ['banknot-takip', 'BanknotTakipleri'] }
+    {
+      accessKeyAliases: ['banknot-takip', 'BanknotTakipleri'],
+      requiredPermissionCodes: ['kasa-islemleri.banknot-takipleri.page']
+    }
   ),
   'kasa-cirolari': singleRouteTask(
     {

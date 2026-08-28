@@ -9,6 +9,7 @@ import {
   Validators
 } from '@angular/forms';
 import type {
+  CompanyOrderCustomerProductDto,
   IFurpaCustomerSearchItemApiDto,
   IFurpaCreateCompanyOrderRequestApiDto,
   IFurpaCreateCompanyOrderLineRequestApiDto,
@@ -42,6 +43,8 @@ interface KalemFormValue {
   koliKatsayisi: number | null;
   koliBarkodu: string;
   siparisMiktari: number | null;
+  onerilenMiktar: number | null;
+  birimFiyati: number | null;
   aciklama: string;
   skt: string;
   modelKodu: string;
@@ -57,6 +60,8 @@ type KalemFormGroup = FormGroup<{
   koliKatsayisi: FormControl<number | null>;
   koliBarkodu: FormControl<string>;
   siparisMiktari: FormControl<number | null>;
+  onerilenMiktar: FormControl<number | null>;
+  birimFiyati: FormControl<number | null>;
   aciklama: FormControl<string>;
   skt: FormControl<string>;
   modelKodu: FormControl<string>;
@@ -78,14 +83,18 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['verilen-firma-siparisleri'];
   protected readonly customerQuery = new FormControl('', { nonNullable: true });
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
+  protected readonly customerProductsQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   protected readonly customerResults = signal<IFurpaCustomerSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected readonly customerProducts = signal<CompanyOrderCustomerProductDto[]>([]);
   protected readonly selectedCustomer = signal<IFurpaCustomerSearchItemApiDto | null>(null);
   protected readonly customerLoading = signal(false);
   protected readonly stockLoading = signal(false);
+  protected readonly customerProductsLoading = signal(false);
   protected readonly recommendedKalemlerLoading = signal(false);
   protected readonly customerError = signal('');
   protected readonly stockError = signal('');
+  protected readonly customerProductsError = signal('');
   protected readonly submitError = signal('');
   protected readonly submitting = signal(false);
   protected readonly isAdminUser = computed(() =>
@@ -99,6 +108,7 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   );
   private customerRequestId = 0;
   private stockRequestId = 0;
+  private customerProductsRequestId = 0;
   private recommendedKalemlerRequestId = 0;
 
   protected readonly controls = {
@@ -137,8 +147,10 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       const hasCustomer = !!this.selectedCustomer();
       if (hasCustomer) {
         this.stockQuery.enable({ emitEvent: false });
+        this.customerProductsQuery.enable({ emitEvent: false });
       } else {
         this.stockQuery.disable({ emitEvent: false });
+        this.customerProductsQuery.disable({ emitEvent: false });
       }
     });
   }
@@ -220,6 +232,7 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       this.stockResults.set([]);
       this.stockError.set('');
       this.kalemler.clear();
+      this.loadCustomerProducts();
     }
   }
 
@@ -235,8 +248,54 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockQuery.setValue('');
     this.stockResults.set([]);
     this.stockError.set('');
+    this.customerProductsQuery.setValue('');
+    this.customerProducts.set([]);
+    this.customerProductsError.set('');
+    this.customerProductsLoading.set(false);
     this.recommendedKalemlerLoading.set(false);
     this.kalemler.clear();
+  }
+
+  protected loadCustomerProducts(): void {
+    const customerCode = this.selectedCustomer()?.customerCode?.trim() ?? '';
+
+    if (!customerCode || this.customerProductsLoading()) {
+      return;
+    }
+
+    const requestId = ++this.customerProductsRequestId;
+    this.customerProductsLoading.set(true);
+    this.customerProductsError.set('');
+
+    this.siparisIslemleriService
+      .listIssuedCompanyOrderCustomerProducts({
+        customerCode,
+        warehouseNo: this.resolveRequestWarehouseNo(),
+        search: this.customerProductsQuery.value,
+        take: 500
+      })
+      .pipe(finalize(() => requestId === this.customerProductsRequestId && this.customerProductsLoading.set(false)))
+      .subscribe({
+        next: (products: CompanyOrderCustomerProductDto[]) => {
+          if (requestId !== this.customerProductsRequestId) {
+            return;
+          }
+
+          const normalizedProducts = this.normalizeCustomerProducts(products ?? []);
+          this.customerProducts.set(normalizedProducts);
+
+          if (!normalizedProducts.length) {
+            this.customerProductsError.set('Secilen firma icin urun bulunamadi.');
+          }
+        },
+        error: (error: HttpErrorResponse) => {
+          if (requestId !== this.customerProductsRequestId) {
+            return;
+          }
+
+          this.customerProductsError.set(this.resolveErrorMessage(error, 'Firma urunleri getirilemedi.'));
+        }
+      });
   }
 
   protected searchStock(): void {
@@ -309,6 +368,24 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockQuery.setValue('');
     this.stockResults.set([]);
     this.stockError.set('');
+  }
+
+  protected addCustomerProductKalem(product: CompanyOrderCustomerProductDto): void {
+    const normalizedStockCode = product.stockCode.trim().toLocaleUpperCase('tr-TR');
+    const existingControl = this.kalemler.controls.find(
+      (control) => control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
+    );
+
+    if (existingControl) {
+      const step = this.resolveCustomerProductQuantity(product);
+      const current = Number(existingControl.controls.siparisMiktari.value ?? 0);
+      existingControl.controls.siparisMiktari.setValue(current + step);
+      existingControl.controls.siparisMiktari.markAsDirty();
+      return;
+    }
+
+    this.kalemler.push(this.createCustomerProductKalemFormGroup(product));
+    this.customerProductsError.set('');
   }
 
   protected removeKalem(index: number): void {
@@ -442,6 +519,9 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly trackByStock = (_index: number, stock: IFurpaProductSearchItemApiDto): string =>
     stock.stockCode?.trim() || stock.barcode?.trim() || `${_index}`;
 
+  protected readonly trackByCustomerProduct = (_index: number, product: CompanyOrderCustomerProductDto): string =>
+    product.stockCode?.trim() || product.barcode?.trim() || `${_index}`;
+
   protected readonly trackByKalem = (index: number, control: KalemFormGroup): string =>
     control.controls.stokKodu.value.trim() || `${index}`;
 
@@ -502,6 +582,8 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       siparisMiktari: new FormControl<number | null>(1, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
+      onerilenMiktar: new FormControl<number | null>(0),
+      birimFiyati: new FormControl<number | null>(0),
       aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
@@ -526,9 +608,41 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       siparisMiktari: new FormControl<number | null>(siparisMiktari, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
+      onerilenMiktar: new FormControl<number | null>(kalem.recommendedQuantity ?? 0),
+      birimFiyati: new FormControl<number | null>(kalem.unitPrice ?? 0),
       aciklama: new FormControl(kalem.description1?.trim() ?? '', { nonNullable: true }),
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl(trimToMaxLength(kalem.packageCode, 25), { nonNullable: true, validators: [Validators.maxLength(25)] })
+    });
+  }
+
+  private createCustomerProductKalemFormGroup(product: CompanyOrderCustomerProductDto): KalemFormGroup {
+    const packageFactor = this.normalizePositiveNumber(product.packageFactor ?? product.secondaryUnitMultiplier ?? null);
+    const quantity = this.resolveCustomerProductQuantity(product);
+
+    return new FormGroup({
+      stokKodu: new FormControl(product.stockCode?.trim() ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stokIsmi: new FormControl(product.stockName?.trim() ?? '', { nonNullable: true }),
+      barkodu: new FormControl(product.barcode?.trim() ?? '', { nonNullable: true }),
+      birim: new FormControl(product.unitName?.trim() ?? '', { nonNullable: true }),
+      birimKatsayisi: new FormControl<number | null>(product.unitPointer ?? 1),
+      ikinciBirim: new FormControl(product.secondaryUnitName?.trim() ?? '', { nonNullable: true }),
+      koliKatsayisi: new FormControl<number | null>(packageFactor),
+      koliBarkodu: new FormControl(product.caseBarcode?.trim() ?? '', { nonNullable: true }),
+      siparisMiktari: new FormControl<number | null>(quantity, {
+        validators: [Validators.required, Validators.min(0.01)]
+      }),
+      onerilenMiktar: new FormControl<number | null>(product.recommendedQuantity ?? 0),
+      birimFiyati: new FormControl<number | null>(product.unitPrice ?? 0),
+      aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
+      skt: new FormControl('', { nonNullable: true }),
+      modelKodu: new FormControl(trimToMaxLength(product.modelCode, 25), {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
     });
   }
 
@@ -544,7 +658,9 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       description2: trimToMaxLength(rawValue.description2, 50),
       deliverer: trimToMaxLength(rawValue.deliverer, 25),
       receiver: trimToMaxLength(rawValue.receiver, 25),
-      lines: rawValue.kalemler.map((kalem) => this.mapKalem(kalem))
+      lines: rawValue.kalemler
+        .filter((kalem) => Number(kalem.siparisMiktari ?? 0) > 0)
+        .map((kalem) => this.mapKalem(kalem))
     };
   }
 
@@ -552,8 +668,8 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     return {
       stockCode: kalem.stokKodu.trim(),
       quantity: Number(kalem.siparisMiktari ?? 0),
-      recommendedQuantity: 0,
-      unitPrice: 0,
+      recommendedQuantity: Number(kalem.onerilenMiktar ?? 0),
+      unitPrice: Number(kalem.birimFiyati ?? 0),
       unitPointer: kalem.birimKatsayisi ?? 1,
       description1: trimToMaxLength(kalem.aciklama, 50),
       description2: '',
@@ -599,6 +715,35 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     );
   }
 
+  private normalizeCustomerProducts(products: CompanyOrderCustomerProductDto[]): CompanyOrderCustomerProductDto[] {
+    const uniqueProducts = new Map<string, CompanyOrderCustomerProductDto>();
+
+    for (const product of products) {
+      const stockCode = product.stockCode?.trim();
+      const key = stockCode?.toLocaleUpperCase('tr-TR');
+
+      if (!stockCode || !key || uniqueProducts.has(key)) {
+        continue;
+      }
+
+      uniqueProducts.set(key, {
+        ...product,
+        stockCode,
+        stockName: product.stockName?.trim() ?? '',
+        modelCode: product.modelCode?.trim() ?? '',
+        modelName: product.modelName?.trim() ?? '',
+        unitName: product.unitName?.trim() ?? '',
+        secondaryUnitName: product.secondaryUnitName?.trim() ?? '',
+        barcode: product.barcode?.trim() ?? '',
+        caseBarcode: product.caseBarcode?.trim() ?? ''
+      });
+    }
+
+    return Array.from(uniqueProducts.values()).sort((left, right) =>
+      (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr')
+    );
+  }
+
   private normalizeRecommendedKalemler(
     results: IFurpaCreateCompanyOrderLineRequestApiDto[]
   ): IFurpaCreateCompanyOrderLineRequestApiDto[] {
@@ -633,6 +778,16 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     return this.normalizePositiveNumber(kalem.recommendedQuantity)
       ?? this.normalizePositiveNumber(kalem.quantity)
       ?? this.normalizePositiveNumber(kalem.unitPointer)
+      ?? 1;
+  }
+
+  private resolveCustomerProductQuantity(product: CompanyOrderCustomerProductDto): number {
+    return this.normalizePositiveNumber(product.quantity)
+      ?? this.normalizePositiveNumber(product.recommendedQuantity)
+      ?? this.normalizePositiveNumber(product.minimumPurchaseQuantity)
+      ?? this.normalizePositiveNumber(product.packageFactor ?? null)
+      ?? this.normalizePositiveNumber(product.secondaryUnitMultiplier ?? null)
+      ?? this.normalizePositiveNumber(product.unitPointer)
       ?? 1;
   }
 

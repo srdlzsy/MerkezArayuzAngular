@@ -5,6 +5,9 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
 import type {
+  BanknoteTrackDetailDto,
+  BanknoteTrackPatchHttpRequest,
+  BanknoteTrackUpdateResponse,
   CompanyOrderDocumentDto,
   CompanyOrderDocumentLineDto,
   CompanyOrderDocumentLookupHttpRequest,
@@ -69,7 +72,8 @@ type EditorTab =
   | 'inventory-count'
   | 'customer-movement'
   | 'company-order'
-  | 'warehouse-order';
+  | 'warehouse-order'
+  | 'banknote-track';
 type BusyAction =
   | 'stock-search'
   | 'stock-detail'
@@ -96,7 +100,10 @@ type BusyAction =
   | 'company-order-delete'
   | 'warehouse-order-load'
   | 'warehouse-order-save'
-  | 'warehouse-order-delete';
+  | 'warehouse-order-delete'
+  | 'banknote-track-load'
+  | 'banknote-track-save'
+  | 'banknote-track-delete';
 type EditableRecord = Record<string, unknown>;
 
 interface Feedback {
@@ -518,6 +525,15 @@ const WAREHOUSE_ORDER_LINE_FIELDS: readonly FieldDefinition[] = [
   { key: 'responsibilityCenter', label: 'Sorumluluk Merkezi' }
 ];
 
+const BANKNOTE_TRACK_FIELDS: readonly FieldDefinition[] = [
+  { key: 'banknoteTrackDate', label: 'Takip Tarihi', type: 'date' },
+  { key: 'warehouseNo', label: 'Depo No', type: 'number' },
+  { key: 'totalAmount', label: 'Sayim Toplami', type: 'number' },
+  { key: 'deliveryTotalAmount', label: 'Teslim Toplami', type: 'number' },
+  { key: 'deliverer', label: 'Teslim Eden' },
+  { key: 'receiver', label: 'Teslim Alan' }
+];
+
 @Component({
   selector: 'app-mikro-evrak-duzenleme-list',
   standalone: true,
@@ -535,7 +551,8 @@ export class MikroEvrakDuzenlemeListComponent {
     { id: 'inventory-count' as const, label: 'Sayim Sonucu', icon: 'fa-clipboard-list' },
     { id: 'customer-movement' as const, label: 'Cari Hareketi', icon: 'fa-receipt' },
     { id: 'company-order' as const, label: 'Firma Siparisi', icon: 'fa-file-invoice' },
-    { id: 'warehouse-order' as const, label: 'Depo Siparisi', icon: 'fa-truck-ramp-box' }
+    { id: 'warehouse-order' as const, label: 'Depo Siparisi', icon: 'fa-truck-ramp-box' },
+    { id: 'banknote-track' as const, label: 'Banknot Takibi', icon: 'fa-money-bill-wave' }
   ];
   protected readonly stockCardTextFields = STOCK_CARD_TEXT_FIELDS;
   protected readonly stockCardNumberFields = STOCK_CARD_NUMBER_FIELDS;
@@ -561,6 +578,7 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly warehouseOrderHeaderFields = WAREHOUSE_ORDER_HEADER_FIELDS;
   protected readonly warehouseOrderBooleanFields = WAREHOUSE_ORDER_BOOLEAN_FIELDS;
   protected readonly warehouseOrderLineFields = WAREHOUSE_ORDER_LINE_FIELDS;
+  protected readonly banknoteTrackFields = BANKNOTE_TRACK_FIELDS;
 
   private readonly service = inject(DuzeltmeIslemleriService);
   private readonly authService = inject(AuthService);
@@ -596,6 +614,8 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly companyOrderDraft = signal<CompanyOrderDocumentDto | null>(null);
   protected readonly warehouseOrder = signal<WarehouseOrderDocumentDto | null>(null);
   protected readonly warehouseOrderDraft = signal<WarehouseOrderDocumentDto | null>(null);
+  protected readonly banknoteTrack = signal<BanknoteTrackDetailDto | null>(null);
+  protected readonly banknoteTrackDraft = signal<BanknoteTrackDetailDto | null>(null);
   protected readonly fieldCatalogLoading = signal(false);
   private readonly fieldCatalog = signal<MikroDocumentFieldCatalogDto | null>(null);
   private readonly fieldCatalogFieldMap = computed(() => {
@@ -633,7 +653,8 @@ export class MikroEvrakDuzenlemeListComponent {
     { sectionCode: 'company-order', scope: 'line', fields: COMPANY_ORDER_LINE_FIELDS },
     { sectionCode: 'warehouse-order', scope: 'header', fields: WAREHOUSE_ORDER_HEADER_FIELDS },
     { sectionCode: 'warehouse-order', scope: 'header', fields: WAREHOUSE_ORDER_BOOLEAN_FIELDS },
-    { sectionCode: 'warehouse-order', scope: 'line', fields: WAREHOUSE_ORDER_LINE_FIELDS }
+    { sectionCode: 'warehouse-order', scope: 'line', fields: WAREHOUSE_ORDER_LINE_FIELDS },
+    { sectionCode: 'banknote-track', scope: 'body', fields: BANKNOTE_TRACK_FIELDS }
   ];
 
   protected stockSearch = {
@@ -699,6 +720,10 @@ export class MikroEvrakDuzenlemeListComponent {
     warehouseNo: this.authService.currentUser()?.depoNo ?? null,
     inWarehouseNo: null,
     outWarehouseNo: null
+  };
+  protected banknoteTrackLookup = {
+    banknoteTrackId: '',
+    warehouseNo: this.authService.currentUser()?.depoNo ?? null
   };
 
   protected readonly canList = computed(() =>
@@ -774,6 +799,9 @@ export class MikroEvrakDuzenlemeListComponent {
       CUSTOMER_HEADER_FIELDS,
       CUSTOMER_LINE_FIELDS
     )
+  );
+  protected readonly changedBanknoteTrackFieldCount = computed(() =>
+    this.countChanges(this.banknoteTrack(), this.banknoteTrackDraft(), BANKNOTE_TRACK_FIELDS)
   );
   protected readonly changedCompanyOrderCount = computed(() =>
     this.countDocumentChanges(
@@ -1009,6 +1037,123 @@ export class MikroEvrakDuzenlemeListComponent {
         },
         error: (error: unknown) => this.handleError(error, 'Depo karti guncellenemedi.')
       });
+  }
+
+  protected loadBanknoteTrack(): void {
+    const banknoteTrackId = this.banknoteTrackLookup.banknoteTrackId.trim();
+
+    if (!banknoteTrackId || !this.canDetail()) {
+      this.setInfo('Banknot takip ID gerekli', 'Duzenlenecek banknot takip kaydinin ID bilgisini girin.');
+      return;
+    }
+
+    this.busyAction.set('banknote-track-load');
+    this.feedback.set(null);
+    this.service
+      .getBanknoteTrack(banknoteTrackId, this.banknoteTrackLookup.warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (track: BanknoteTrackDetailDto) => this.applyBanknoteTrack(track),
+        error: (error: unknown) => this.handleError(error, 'Banknot takip kaydi getirilemedi.')
+      });
+  }
+
+  protected saveBanknoteTrack(): void {
+    const original = this.banknoteTrack();
+    const draft = this.banknoteTrackDraft();
+
+    if (!original || !draft || !this.canUpdate()) {
+      return;
+    }
+
+    if (!this.validateBanknoteTrack(draft)) {
+      return;
+    }
+
+    const request = this.buildPatch(original, draft, BANKNOTE_TRACK_FIELDS) as BanknoteTrackPatchHttpRequest;
+
+    if (!Object.keys(request).length) {
+      this.setInfo('Degisiklik yok', 'Kaydedilecek banknot takip degisikligi bulunmuyor.');
+      return;
+    }
+
+    this.busyAction.set('banknote-track-save');
+    this.feedback.set(null);
+    this.service
+      .updateBanknoteTrack(original.banknoteTrackId, request, this.banknoteTrackLookup.warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: BanknoteTrackUpdateResponse) => {
+          this.applyBanknoteTrack({
+            ...draft,
+            ...response.banknoteTrack
+          });
+          this.feedback.set({
+            tone: 'success',
+            title: 'Banknot takip guncellendi',
+            message: `${response.summary.updatedRowCount} kayit guncellendi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Banknot takip kaydi guncellenemedi.')
+      });
+  }
+
+  protected async deleteBanknoteTrack(): Promise<void> {
+    const original = this.banknoteTrack();
+
+    if (!original || !this.canDelete()) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.prompt({
+      title: 'Banknot takip kaydi silinsin mi?',
+      message: `${original.banknoteTrackId} numarali kayit kalici olarak silinecek. Devam etmek icin ID bilgisini yazin.`,
+      confirmText: 'Sil',
+      cancelText: 'Vazgec',
+      tone: 'danger',
+      input: {
+        label: 'Banknot takip ID',
+        placeholder: original.banknoteTrackId,
+        expectedValue: original.banknoteTrackId,
+        required: true
+      }
+    });
+
+    if (confirmed?.trim() !== original.banknoteTrackId) {
+      return;
+    }
+
+    this.busyAction.set('banknote-track-delete');
+    this.feedback.set(null);
+    this.service
+      .deleteBanknoteTrack(original.banknoteTrackId, this.banknoteTrackLookup.warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: MikroDocumentDeleteResponse) => {
+          this.banknoteTrack.set(null);
+          this.banknoteTrackDraft.set(null);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Banknot takip silindi',
+            message: `${response.deletedRowCount} kayit silindi.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Banknot takip kaydi silinemedi.')
+      });
+  }
+
+  protected resetBanknoteTrack(): void {
+    const original = this.banknoteTrack();
+    this.banknoteTrackDraft.set(original ? this.clone(original) : null);
   }
 
   protected searchCustomerCards(): void {
@@ -1858,6 +2003,7 @@ export class MikroEvrakDuzenlemeListComponent {
     this.customerMovementDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.companyOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
     this.warehouseOrderDraft.update((draft) => (draft ? this.clone(draft) : null));
+    this.banknoteTrackDraft.update((draft) => (draft ? this.clone(draft) : null));
   }
 
   protected isFieldEditable(field: FieldDefinition): boolean {
@@ -2170,6 +2316,18 @@ export class MikroEvrakDuzenlemeListComponent {
     this.warehouseOrderDraft.set(this.clone(prepared));
   }
 
+  private applyBanknoteTrack(track: BanknoteTrackDetailDto): void {
+    const prepared = this.clone(track);
+    prepared.banknoteTrackDate = this.toDateInput(prepared.banknoteTrackDate);
+    this.banknoteTrackLookup = {
+      ...this.banknoteTrackLookup,
+      banknoteTrackId: prepared.banknoteTrackId,
+      warehouseNo: prepared.warehouseNo
+    };
+    this.banknoteTrack.set(this.clone(prepared));
+    this.banknoteTrackDraft.set(this.clone(prepared));
+  }
+
   private prepareStockMovement(document: StockMovementDocumentDto): StockMovementDocumentDto {
     const clone = this.clone(document);
     clone.header.movementDate = this.toDateInput(clone.header.movementDate);
@@ -2380,6 +2538,46 @@ export class MikroEvrakDuzenlemeListComponent {
 
     card.latitude = latitude;
     card.longitude = longitude;
+    return true;
+  }
+
+  private validateBanknoteTrack(track: BanknoteTrackDetailDto): boolean {
+    if (!track.banknoteTrackDate) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Tarih gerekli',
+        message: 'Banknot takip tarihi bos olamaz.'
+      });
+      return false;
+    }
+
+    if (!Number.isFinite(Number(track.warehouseNo)) || Number(track.warehouseNo) <= 0) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Depo no gecersiz',
+        message: 'Banknot takip kaydi icin sifirdan buyuk depo no girin.'
+      });
+      return false;
+    }
+
+    if (Number(track.totalAmount) < 0 || Number(track.deliveryTotalAmount) < 0) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Toplam gecersiz',
+        message: 'Sayim ve teslim toplam tutarlari negatif olamaz.'
+      });
+      return false;
+    }
+
+    if ((track.deliverer ?? '').length > 100 || (track.receiver ?? '').length > 100) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Isim cok uzun',
+        message: 'Teslim eden ve teslim alan alanlari en fazla 100 karakter olmalidir.'
+      });
+      return false;
+    }
+
     return true;
   }
 

@@ -359,6 +359,114 @@
   margin-top: 0.2rem;
 }
 
+.customer-products-panel {
+  margin-top: 0.65rem;
+  padding: 0.55rem;
+  border: 1px solid #dbeafe;
+  border-radius: 10px;
+  background: #f8fbff;
+}
+
+.customer-products-head {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(260px, 430px);
+  gap: 0.6rem;
+  align-items: center;
+}
+
+.customer-products-head strong {
+  display: block;
+  color: var(--text);
+  font-size: 0.76rem;
+}
+
+.customer-products-head span {
+  color: #64748b;
+  font-size: 0.62rem;
+}
+
+.customer-products-actions {
+  display: flex;
+  gap: 0.35rem;
+  min-width: 0;
+}
+
+.customer-products-actions input {
+  flex: 1;
+  min-width: 0;
+  padding: 0.35rem 0.55rem;
+  font-size: 0.72rem;
+  border: 1px solid var(--border-strong);
+  border-radius: 6px;
+}
+
+.customer-products-list {
+  display: grid;
+  gap: 0.35rem;
+  max-height: 180px;
+  overflow-y: auto;
+  margin-top: 0.5rem;
+  padding-right: 0.15rem;
+}
+
+.customer-product-row {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto auto 24px;
+  gap: 0.45rem;
+  align-items: center;
+  width: 100%;
+  padding: 0.42rem 0.55rem;
+  background: #ffffff;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  text-align: left;
+  cursor: pointer;
+}
+
+.customer-product-row:hover {
+  border-color: #14b8a6;
+  background: #f0fdfa;
+}
+
+.product-main {
+  min-width: 0;
+}
+
+.product-main strong,
+.product-main small {
+  display: block;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.product-main strong {
+  color: var(--text);
+  font-size: 0.7rem;
+}
+
+.product-main small {
+  color: #64748b;
+  font-size: 0.6rem;
+}
+
+.product-package {
+  padding: 0.14rem 0.42rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.58rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
+.product-price {
+  color: #0f766e;
+  font-size: 0.66rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
 .contact-field {
   display: flex;
   flex-direction: column;
@@ -626,6 +734,15 @@
   .contact-row {
     grid-template-columns: 1fr;
     gap: 0.5rem;
+  }
+
+  .customer-products-head,
+  .customer-product-row {
+    grid-template-columns: 1fr;
+  }
+
+  .customer-products-actions {
+    width: 100%;
   }
 
   .kalem-table-head {

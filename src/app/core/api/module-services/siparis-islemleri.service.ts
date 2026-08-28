@@ -3,6 +3,8 @@ import { Observable, map } from 'rxjs';
 
 import type {
   CompanyOrderDetailDto,
+  CompanyOrderCustomerProductDto,
+  CompanyOrderCustomerProductListHttpRequest,
   CompanyOrderListItemDto,
   ConvertSuggestedCompanyOrderHttpRequest,
   ConvertSuggestedWarehouseOrderHttpRequest,
@@ -217,6 +219,20 @@ export class SiparisIslemleriService extends BaseApiService {
     return this.post<CreateIssuedCompanyOrderResponse, CreateIssuedCompanyOrderHttpRequest>(
       'siparis-islemleri/verilen-firma-siparisleri',
       request
+    );
+  }
+
+  listIssuedCompanyOrderCustomerProducts(
+    request: CompanyOrderCustomerProductListHttpRequest
+  ): Observable<CompanyOrderCustomerProductDto[]> {
+    return this.getWithQuery<CompanyOrderCustomerProductDto[]>(
+      'siparis-islemleri/verilen-firma-siparisleri/firma-urunleri',
+      {
+        customerCode: request.customerCode,
+        warehouseNo: request.warehouseNo ?? undefined,
+        search: request.search?.trim() || undefined,
+        take: request.take ?? 500
+      }
     );
   }
 

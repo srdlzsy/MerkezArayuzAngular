@@ -342,6 +342,32 @@ export interface CustomerCardUpdateResponse {
   customerCard: Partial<CustomerCardDetailDto> & Pick<CustomerCardDetailDto, 'customerCode'>;
 }
 
+export interface BanknoteTrackDetailDto {
+  banknoteTrackId: string;
+  banknoteTrackDate: string;
+  warehouseNo: number;
+  warehouseName?: string | null;
+  totalAmount: number;
+  deliveryTotalAmount: number;
+  differenceAmount: number;
+  deliverer: string;
+  receiver: string;
+}
+
+export interface BanknoteTrackPatchHttpRequest {
+  banknoteTrackDate?: string | null;
+  warehouseNo?: number | null;
+  totalAmount?: number | null;
+  deliveryTotalAmount?: number | null;
+  deliverer?: string | null;
+  receiver?: string | null;
+}
+
+export interface BanknoteTrackUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  banknoteTrack: Partial<BanknoteTrackDetailDto> & Pick<BanknoteTrackDetailDto, 'banknoteTrackId'>;
+}
+
 export interface MikroDocumentDeleteResponse {
   target: string;
   deletedRowCount: number;

@@ -150,7 +150,7 @@ Bu tablo UI icin ana permission referansidir. Kaynak kod tarafi `PermissionCatal
 | `kasa-islemleri` | `kunye-etiket-yazdirma` | `kasa-islemleri.kunye-etiket-yazdirma.page` | `kasa-islemleri.kunye-etiket-yazdirma.list`<br>`kasa-islemleri.kunye-etiket-yazdirma.detail`<br>`kasa-islemleri.kunye-etiket-yazdirma.create`<br>`kasa-islemleri.kunye-etiket-yazdirma.update` | `kasa-islemleri.kunye-etiket-yazdirma.all-warehouses` |
 | `kasa-islemleri` | `manav-kunye-etiket-yazdirma` | `kasa-islemleri.manav-kunye-etiket-yazdirma.page` | `kasa-islemleri.manav-kunye-etiket-yazdirma.list` | `kasa-islemleri.manav-kunye-etiket-yazdirma.all-warehouses` |
 | `kasa-islemleri` | `birlik-kart-sorgulama` | `kasa-islemleri.birlik-kart-sorgulama.page` | `kasa-islemleri.birlik-kart-sorgulama.list`<br>`kasa-islemleri.birlik-kart-sorgulama.detail`<br>`kasa-islemleri.birlik-kart-sorgulama.update` | `-` |
-| `kasa-islemleri` | `banknot-takipleri` | `kasa-islemleri.banknot-takipleri.page` | `kasa-islemleri.banknot-takipleri.list`<br>`kasa-islemleri.banknot-takipleri.detail`<br>`kasa-islemleri.banknot-takipleri.create` | `kasa-islemleri.banknot-takipleri.all-warehouses` |
+| `kasa-islemleri` | `banknot-takipleri` | `kasa-islemleri.banknot-takipleri.page` | `kasa-islemleri.banknot-takipleri.list`<br>`kasa-islemleri.banknot-takipleri.detail`<br>`kasa-islemleri.banknot-takipleri.create`<br>`kasa-islemleri.banknot-takipleri.update`<br>`kasa-islemleri.banknot-takipleri.delete` | `kasa-islemleri.banknot-takipleri.all-warehouses` |
 
 ## AnaSayfa / Depo Oncelikleri
 
@@ -4973,6 +4973,79 @@ Response:
 }
 ```
 
+### Verilen Firma Siparisi / Cari Urunleri
+
+`GET /api/siparis-islemleri/verilen-firma-siparisleri/firma-urunleri?customerCode=32000999`
+
+Arama ile daraltma:
+
+`GET /api/siparis-islemleri/verilen-firma-siparisleri/firma-urunleri?customerCode=32000999&search=sut&take=100`
+
+Yetki:
+
+- `siparis-islemleri.verilen-firma-siparisleri.create`
+
+Amac:
+
+- Verilen firma siparisi create ekraninda kullanici cari/tedarikci sectikten sonra, o carinin secili depoda siparise acik urunlerini tek seferde listelemek.
+- Bu endpoint read-only calisir, Mikro'ya veri yazmaz.
+- Bu endpoint otomatik miktar onermez; donen satirlar `quantity=0` ve `recommendedQuantity=0` ile siparis satirina basilmaya hazirdir.
+- Kullanici isterse bu listeden urun secip miktar girer, isterse klasik `GET /api/arama-islemleri/urunler?...` akisi ile urunu tek tek aramaya devam eder.
+
+Query:
+
+```text
+customerCode  zorunlu; secilen Mikro cari/tedarikci kodu
+warehouseNo   opsiyonel; verilmezse JWT icindeki depo kullanilir
+search        opsiyonel; stok kodu, stok adi veya barkod icinde arar
+take          opsiyonel; default 500, max 2000
+```
+
+Kapsam ve filtre:
+
+- `*.all-warehouses` yoksa `warehouseNo` gonderilmez; backend JWT deposunu kullanir.
+- `*.all-warehouses` olan kullanici baska depo adina firma siparisi olusturacaksa ayni depoyu burada `warehouseNo` olarak gonderebilir.
+- Cari Mikro `CARI_HESAPLAR` icinde bulunamazsa `400 Bad Request` doner.
+- Urunler `STOK_DEPO_DETAYLARI` uzerinden secili depoda tanimli olmalidir.
+- Pasif, iptal, siparise kapali ve `DLS%` stoklar donmez.
+- Cari eslesmesi once depo detay tedarikcisi, sonra stok karti tedarikcisi, sonra aktif `SATINALMA_SARTLARI` kaydi uzerinden kabul edilir.
+- Satinalma sarti depo no `0`, `null` veya secili depo olan aktif kayitlar dikkate alinir.
+
+Response:
+
+```json
+[
+  {
+    "warehouseNo": 110,
+    "customerCode": "32000999",
+    "customerName": "TEDARIKCI A.S.",
+    "stockCode": "010001",
+    "stockName": "Stok Adi",
+    "modelCode": "01",
+    "modelName": "01",
+    "unitName": "AD",
+    "secondaryUnitName": "KOLI",
+    "packageFactor": 12,
+    "barcode": "8690000000001",
+    "caseBarcode": "18690000000018",
+    "quantity": 0,
+    "recommendedQuantity": 0,
+    "unitPrice": 15.75,
+    "minimumPurchaseQuantity": 24,
+    "deliveryDay": 2,
+    "unitPointer": 1
+  }
+]
+```
+
+UI akisi:
+
+- Firma siparisi create ekraninda kullanici cari sectiginde bu endpoint cagrilir.
+- Donen satirlar grid/secim modalina basilir; `packageFactor > 1` ise UI koli ici miktari olarak gosterebilir.
+- Satir siparise eklendiginde `stockCode`, `unitPrice`, `unitPointer`, `quantity` ve gerekirse `recommendedQuantity` create body satirina tasinir.
+- `quantity=0` olan satirlar kaydetmeye gonderilmemelidir; kullanici miktar girdikten sonra gonderilmelidir.
+- Liste bos gelirse UI kullaniciyi engellememeli; kullanici klasik urun arama ile tek tek urun ekleyebilir.
+
 ### Onerilen Firma Siparisleri Liste
 
 `GET /api/siparis-islemleri/onerilen-firma-siparisleri?SupplierCode=32000999`
@@ -6263,7 +6336,7 @@ Yetki:
 Onemli not:
 
 - Bu liste yeni create kaynagi degil, mevcut yapilmis mal kabul fislerinin gecmis listesidir.
-- Firma mal kabul liste tarih filtresi `documentDate` alanina, Mikro tarafinda `STOK_HAREKETLERI.sth_belge_tarih` kolonuna uygulanir; `movementCreateDate` filtre alani degildir.
+- Firma mal kabul liste tarih filtresi Mikro tarafinda `STOK_HAREKETLERI.sth_tarih` kolonuna uygulanir. Bu alan kabul/islem tarihidir; resmi e-belge tarihi veya Mikro `sth_belge_tarih` farkli olsa bile bugun kabul edilen evrak bugunun listesinde gorunur.
 - Response modeli `CompanyMovementListItemDto` ile aynidir.
 - UI ana ekranda gecmisi gosterip `Yeni Mal Kabul` aksiyonuyla create ekranina gecebilir.
 
@@ -6319,6 +6392,29 @@ Onemli not:
 - E-fatura satirlarinda UBL'de varsa `unitPrice` ve `lineAmount` gelir. Bunlar on dolum/gosterim bilgisidir; kaydetmede son soz yine `POST /api/mal-kabul-islemleri/firma-mal-kabulleri` body alanlaridir.
 - UI QR okutunca once bu endpoint'i cagirir. `sourceDocumentKind = e-invoice` ise ekranda "E-Fatura" etiketi, `sourceDocumentKind = e-despatch` ise "E-Irsaliye" etiketi gosterilmelidir.
 - `warnings` bos degilse UI uyari bandinda gosterebilir. E-fatura bulundu ama irsaliye referansi yoksa backend bunu uyarida belirtir; bu durumda mal kabul fatura uzerinden taslaklanir, kullanici fiili kabul miktarini yine kontrol eder.
+
+UI on dolum kurali:
+
+| Lookup alani | Create body alani | UI davranisi |
+|---|---|---|
+| `primaryCustomerSuggestion.customerCode` | `customerCode` | Cari bos ise varsayilan cari adayi olarak onerilir; kullanici degistirebilir. |
+| `sourceDocumentKind` | `officialDocumentKind` | `e-despatch` veya `e-invoice` olarak aynen tasinir. |
+| `sourceDocumentNumber` | `officialDocumentNo` | Belge Akis Takibi `externalDocumentNo` icin asil alandir. |
+| `despatchNumber` | `documentNo` ve gerekirse `officialDocumentNo` | E-irsaliye bulunduysa Mikro `sth_belge_no` icin en temiz adaydir. |
+| `invoiceNumber` | `documentNo` ve gerekirse `officialDocumentNo` | E-fatura bulunduysa Mikro `sth_belge_no` icin adaydir. |
+| `issueDate` | `documentDate` ve gerekirse `officialDocumentDate` | E-irsaliye belge tarihidir. |
+| `invoiceDate` | `documentDate` ve gerekirse `officialDocumentDate` | E-fatura belge tarihidir. |
+| `ettn` | `officialDocumentEttn` | Belge Akis Takibi `externalUuid` icin asil alandir. |
+| `lines[].internalStockCode` | `lines[].stockCode` | Sadece `isMatched=true` ve `canUseForGoodsAcceptance=true` ise otomatik satira tasinir. |
+| `lines[].quantity` | `lines[].dispatchQuantity` ve ilk oneride `acceptedQuantity` | Resmi belge miktari sevk/gelen miktar kabul edilir; kullanici fiili sayimla `acceptedQuantity` degerini degistirebilir. |
+| `lines[].unitPrice` | `lines[].unitPrice` | Varsa on dolumdur; kullanici/ekran son degeri create body'de gonderir. |
+| `lines[].description` | `lines[].description` | Max 50 karaktere kirpilerek gonderilmelidir. |
+
+Not:
+
+- `documentNo`, Mikro `STOK_HAREKETLERI.sth_belge_no` alanidir; ETTN degildir.
+- `officialDocumentEttn` gonderilmezse mal kabul fisinin Mikro kaydi olusabilir, fakat Belge Akis Takibi'nde ETTN/UUID ile izleme yapilamaz.
+- UI lookup response'unu sakliyorsa bile kaydetmede sade ve net model olarak `officialDocumentKind`, `officialDocumentNo`, `officialDocumentDate`, `officialDocumentEttn` alanlarini gondermelidir.
 
 Response:
 
@@ -6533,16 +6629,96 @@ Onemli not:
 - `documentNo` Mikro `STOK_HAREKETLERI.sth_belge_no` alanina basilan tedarikci belge numarasidir. ETTN/UUID bu alana basilmaz; resmi belgeyi bulmak icin Belge Akis Takibi'nde `externalUuid` olarak aranir.
 - UYARI: `documentNo` veya `description = "E-Irsaliye: ..."` gondermek resmi belge izini Belge Akis Takibi'ne yazdirmaz. `document_flows.external_document_no` icin mutlaka `officialDocumentNo` veya alias'i, `document_flows.external_uuid` icin mutlaka `officialDocumentEttn` veya `ettn` gonderilmelidir.
 - Ornek tam `documentNo` degerleri: `ST12026000002395`, `C682026000003472`, `FRM2026600059281`, `OY32026000000162`
-- Tam formatta `documentNo` gelirse `documentSerie` son 9 hane atilarak, `documentOrderNo` son 9 hane sayi olarak okunarak uretilir.
-- `documentNo` bos gelirse backend cari unvanindan seri uretir ve ayni depo/seri icin siradaki `documentOrderNo` degerini verir.
+- Tam formatta `documentNo` gelirse `documentSerie` son 9 hane atilarak, `documentOrderNo` son 9 hane sayi olarak okunarak uretilir. Son 9 hanenin sayisal degeri `0` olamaz; sira `1` ve uzeri olmalidir.
+- `documentNo` bos gelirse backend `FMK{depoNo}` serisini kullanir ve ayni depo/seri icin siradaki `documentOrderNo` degerini verir.
 - `documentNo` `ABC`, `ULK`, `FIRMA` gibi harf iceren ve tam format olmayan kisa bir deger gelirse backend bunu seri/prefix kabul eder, sadece harf-rakam karakterlerini kullanir ve siradaki sira numarasini uretir.
-- `documentNo` bos veya sadece sayisal bir degerse backend seri icin cari unvanina duser.
+- `documentNo` bos veya sadece sayisal bir degerse backend seri icin `FMK{depoNo}` degerine duser.
+- Bos/prefix modunda ilgili seri daha once hic kullanilmadiysa ilk `documentOrderNo` degeri `1` olur; `0` uretilmez.
 - Response'taki `documentNo`, uretilen nihai `documentSerie + 9 haneli documentOrderNo` degeridir.
 - Ayni depo icinde ayni `documentSerie + documentOrderNo` kombinasyonu tekrar kullanilamaz.
 - Mobil retry icin backend `clientRequestId` izini `FR` prefixli trace olarak `sth_eticaret_kanal_kodu` alanina tasir; `MikroApi` modunda bu payload ile Mikro'ya gider, tekrar istekte sonuc bu iz uzerinden toparlanabilir.
 - Ayni `clientRequestId` ile ayni payload tekrar gonderilirse backend ayni business response'u dondurmeye calisir.
 - Ayni `clientRequestId` ile farkli payload gonderilirse `409 Conflict` doner.
 - Ayni `clientRequestId` halen isleniyorsa `409 Conflict` doner.
+
+Create body validasyonlari:
+
+| Alan | Zorunlu | Kural |
+|---|---|---|
+| `warehouseNo` | Hayir | `*.all-warehouses` yetkisi yoksa UI gondermez; gonderilirse pozitif integer olmalidir. |
+| `clientRequestId` | Hayir | GUID; offline/timeout guvenli retry icin ayni mantiksal kayitte ayni kalmalidir. |
+| `customerCode` | Evet | Max 25 karakter; Mikro write DB'de `CARI_HESAPLAR.cari_kod` olarak bulunmalidir. |
+| `movementDate` | Hayir | Bos ise backend bugunu kullanir; Mikro `sth_tarih` alanina yazilir. |
+| `documentDate` | Hayir | Bos ise `movementDate` kullanilir; Mikro `sth_belge_tarih` alanina yazilir; `documentDate > movementDate` olamaz. |
+| `documentNo` | Hayir | Max 29 karakter; Mikro `sth_belge_no` alanina yazilir; ETTN buraya yazilmaz. |
+| `officialDocumentKind` | Hayir | Max 30 karakter; `e-despatch` veya `e-invoice` onerilir. |
+| `officialDocumentNo` | Hayir | Max 50 karakter; Belge Akis Takibi `externalDocumentNo` alanina yazilir. |
+| `officialDocumentDate` | Hayir | Resmi e-belge tarihidir; Belge Akis mesajinda kullanilir. |
+| `officialDocumentEttn` | Hayir | Max 50 karakter; Belge Akis Takibi `externalUuid` alanina yazilir. |
+| `sourceDocumentKind` | Hayir | Max 30; lookup response alias'i, `officialDocumentKind` bos ise kullanilir. |
+| `sourceDocumentNumber` | Hayir | Max 50; lookup response alias'i, `officialDocumentNo` bos ise kullanilir. |
+| `sourceDocumentDate` | Hayir | Lookup response alias'i, `officialDocumentDate` bos ise kullanilir. |
+| `despatchNumber` | Hayir | Max 50; `officialDocumentNo` bos ise resmi belge no adayi olarak kullanilir. |
+| `issueDate` | Hayir | `officialDocumentDate` bos ise resmi belge tarihi adayi olarak kullanilir. |
+| `invoiceNumber` | Hayir | Max 50; e-fatura icin `officialDocumentNo` bos ise resmi belge no adayi olarak kullanilir. |
+| `invoiceDate` | Hayir | e-fatura icin `officialDocumentDate` bos ise resmi belge tarihi adayi olarak kullanilir. |
+| `ettn` | Hayir | Max 50; `officialDocumentEttn` bos ise ETTN/UUID adayi olarak kullanilir. |
+| `deliverer` | Hayir | Max 25; Mikro `sth_HareketGrupKodu2` alanina yazilir. |
+| `receiver` | Hayir | Max 25; Mikro `sth_HareketGrupKodu3` alanina yazilir. |
+| `description` | Hayir | Max 50; hem ust aciklama hem satir aciklamasi icin uzun metin gonderilmemelidir. |
+| `allowOrderOverReceiving` | Hayir | Varsayilan false; true ise siparis kalanini asan miktar siparissiz satira bolunebilir. |
+| `autoCreateReturnForPartialAcceptance` | Hayir | Varsayilan true; eksik kabul farkindan otomatik firma iadesi olusturur. |
+| `lines` | Evet | En az 1 satir olmalidir. |
+
+Satir validasyonlari:
+
+| Alan | Zorunlu | Kural |
+|---|---|---|
+| `stockCode` | Evet | Max 25; bos olamaz. |
+| `quantity` | Eski uyum | Pozitif olmali; `dispatchQuantity` ve `acceptedQuantity` bos ise ikisi icin de kullanilir. |
+| `dispatchQuantity` | Onerilen | Pozitif olmali; resmi/gelen miktardir ve Mikro mal kabul hareket miktari olarak yazilir. |
+| `acceptedQuantity` | Onerilen | Sifir veya pozitif olabilir; fiili kabul miktaridir; `dispatchQuantity` degerinden buyuk olamaz. |
+| `unitPrice` | Hayir | Sifir veya pozitif olmali. |
+| `unitPointer` | Hayir | 1-255 arasi; bos ise 1 kabul edilir. |
+| `lastConsumingDate` | Hayir | SKT/son tuketim tarihi gerekiyorsa gonderilir. |
+| `orderGuid` | Hayir | Siparisli kabul icin verilen firma siparisi satir GUID'i; ayni request'te ayni GUID birden fazla satirda kullanilamaz. |
+| `description` | Hayir | Max 50. |
+| `partyCode` | Hayir | Max 25. |
+| `lotNo` | Hayir | Sifir veya pozitif integer. |
+| `projectCode` | Hayir | Max 25. |
+| `customerResponsibilityCenter` | Hayir | Max 25. |
+| `productResponsibilityCenter` | Hayir | Max 25. |
+
+Siparis baglama validasyonlari:
+
+- `orderGuid` Mikro write DB'de bulunmalidir.
+- Siparis satiri iptal veya kapali olamaz.
+- Siparis satiri verilen firma siparisi olmalidir.
+- Siparis satirinin deposu, create icin cozulmus `warehouseNo` ile ayni olmalidir.
+- Siparis satirinin carisi `customerCode` ile ayni olmalidir.
+- Siparis satirinin stok kodu `lines[].stockCode` ile ayni olmalidir.
+- Siparis kalan miktari sifir veya altindaysa kabul yapilamaz.
+- `allowOrderOverReceiving=false` iken `dispatchQuantity` siparis kalanindan buyuk olamaz.
+
+Resmi belge / Mikro alan eslesmesi:
+
+| Create alani | Yazildigi yer | Aciklama |
+|---|---|---|
+| `documentNo` | Mikro `STOK_HAREKETLERI.sth_belge_no` | Tedarikci belge numarasi veya UI'nin manuel belge no degeri. |
+| `movementDate` | Mikro `STOK_HAREKETLERI.sth_tarih` | Mal kabul/islem tarihi; liste filtresi bu tarihe bakar. |
+| `documentDate` | Mikro `STOK_HAREKETLERI.sth_belge_tarih` | Tedarikci resmi belge tarihi. |
+| `customerCode` | Mikro `STOK_HAREKETLERI.sth_cari_kodu` | Mal kabul carisi. |
+| `lines[].stockCode` | Mikro `STOK_HAREKETLERI.sth_stok_kod` | Kabul edilen ic stok kodu. |
+| `lines[].dispatchQuantity` | Mikro `STOK_HAREKETLERI.sth_miktar` | Mal kabul hareket miktari. |
+| `lines[].unitPrice` | Mikro tutar hesaplari | Satir tutari/fiyat alanlari create rotasina gore yazilir. |
+| `officialDocumentNo` | Auth DB `document_flows.external_document_no` | Belge Akis Takibi'nde resmi belge no ile izleme icindir. |
+| `officialDocumentEttn` | Auth DB `document_flows.external_uuid` | Belge Akis Takibi'nde ETTN/UUID ile izleme icindir. |
+
+UI icin kritik uyari:
+
+- Uzun aciklama gondermeyin: `description`, `lines[].description`, `deliverer`, `receiver` gibi alanlar Mikro kolon limitleri nedeniyle kisadir. Son loglarda gorulen `Description must be a string with a maximum length of 50` hatasi bu sebeptendir.
+- ETTN okutulduysa `documentNo` doldurmak tek basina yeterli degildir. Mutlaka `officialDocumentEttn` de gonderilmelidir.
+- E-fatura bulunduysa `invoiceNumber` ve `invoiceDate`, e-irsaliye bulunduysa `despatchNumber` ve `issueDate` on dolum icin kullanilir; fakat kaydetme body modelinde `officialDocument*` alanlari tercih edilmelidir.
 
 Request:
 
@@ -6825,6 +7001,9 @@ Endpoint ozeti:
 | `DELETE /api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-hareketleri` | query | `StockMovementDocumentLookupHttpRequest` | `MikroDocumentDeleteResponse` | `delete` |
 | `GET /api/duzeltme-islemleri/mikro-evrak-duzenleme/sayim-sonuclari` | query | `InventoryCountDocumentLookupHttpRequest` | `InventoryCountDocumentDto` | `detail` |
 | `PUT /api/duzeltme-islemleri/mikro-evrak-duzenleme/sayim-sonuclari` | body | `UpdateInventoryCountDocumentHttpRequest` | `InventoryCountDocumentUpdateResponse` | `update` |
+| `GET /api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/{banknoteTrackId}` | path + query | `banknoteTrackId`, `warehouseNo?: int` | `BanknoteTrackDto` | `detail` |
+| `PUT /api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/{banknoteTrackId}` | path + query + body | `BanknoteTrackPatchHttpRequest` | `BanknoteTrackUpdateResponse` | `update` |
+| `DELETE /api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/{banknoteTrackId}` | path + query | `banknoteTrackId`, `warehouseNo?: int` | `MikroDocumentDeleteResponse` | `delete` |
 | `GET /api/duzeltme-islemleri/mikro-evrak-duzenleme/cari-hareketleri` | query | `CustomerMovementDocumentLookupHttpRequest` | `CustomerMovementDocumentDto` | `detail` |
 | `PUT /api/duzeltme-islemleri/mikro-evrak-duzenleme/cari-hareketleri` | body | `UpdateCustomerMovementDocumentHttpRequest` | `CustomerMovementDocumentUpdateResponse` | `update` |
 | `DELETE /api/duzeltme-islemleri/mikro-evrak-duzenleme/cari-hareketleri` | query | `CustomerMovementDocumentLookupHttpRequest` | `MikroDocumentDeleteResponse` | `delete` |
@@ -6903,6 +7082,11 @@ Kritik alan karsiliklari:
 | Sayim satiri | `countGuid` | Sayim satir GUID | `SAYIM_SONUCLARI.sym_Guid` | Read-only; satir eslestirme anahtari |
 | Sayim satiri | `quantity1..5` | Sayim miktarlari | `SAYIM_SONUCLARI.sym_miktar1..5` | En kritik duzeltme alani genelde `quantity1` |
 | Sayim satiri | `stockCode`, `barcode`, `unitPointer` | Stok/barkod/birim | `sym_Stokkodu`, `sym_barkod`, `sym_birim_pntr` | Stok degisirse stok karti varligi kontrol edilir |
+| Banknot takibi | `banknoteTrackDate` | Takip tarihi | `BanknoteTracks.BanknoteTrackDate` | Sadece mevcut takip kaydini tasir |
+| Banknot takibi | `warehouseNo` | Depo | `BanknoteTracks.WarehouseNo` | Body'de verilirse kayit baska depoya tasinir; yetki ve duplicate kontrolu yapilir |
+| Banknot takibi | `totalAmount` | Sayim toplami | `BanknoteTracks.TotalAmount` | Negatif olamaz |
+| Banknot takibi | `deliveryTotalAmount` | Teslim toplami | `BanknoteTracks.DeliveryTotalAmount` | Negatif olamaz |
+| Banknot takibi | `deliverer`, `receiver` | Teslim eden/alan | `BanknoteTracks.Deliverer/Receiver` | En fazla 100 karakter |
 | Cari hareket satiri | `special1/2/3` | Ozel kod 1/2/3 | `CARI_HESAP_HAREKETLERI.cha_special1/2/3` | Yeni guncellenebilir alanlar, 4 karakter |
 | Firma siparis satiri | `priceListNo` | Fiyat liste no | `SIPARISLER.sip_fiyat_liste_no` | Yeni guncellenebilir alan |
 | Firma siparis satiri | `validUntil` | Gecerlilik tarihi | `SIPARISLER.sip_gecerlilik_tarihi` | Yeni guncellenebilir alan |
@@ -7254,6 +7438,7 @@ Body'de sadece degistirilecek alanlar gonderilmelidir:
   "projectCode": "",
   "city": "BURSA",
   "district": "KESTEL",
+  "postalCode": "16000",
   "phoneCountryCode": "90",
   "phoneAreaCode": "224",
   "phoneNo1": "0000000",
@@ -7270,6 +7455,13 @@ Guncellenebilir alanlar:
 - Adres: `street`, `neighborhood`, `avenue`, `quarter`, `apartmentNo`, `apartmentUnitNo`, `postalCode`, `district`, `city`, `country`, `addressCode`
 - Konum/iletisim: `latitude`, `longitude`, `authorizedEmail`, `phoneCountryCode`, `phoneAreaCode`, `phoneNo1`, `phoneNo2`, `faxNo`
 - Durum: `excludedFromInventory`, `detailTrackingType`, `outgoingEDespatchEnabled`, `incomingEDespatchEnabled`, `isPassive`, `isHidden`, `isLocked`, `lockDate`
+
+E-irsaliye notu:
+
+- Depolar arasi sevk/iade e-irsaliyesinde Uyumsoft `DeliveryAddress/PostalZone` alanini zorunlu ister.
+- Bu alan hedef teslim deposunun `postalCode` degerinden gelir.
+- Yoldaki sevklerde `girisDepo/transitWarehouseNo` 60 gibi nakliye depo olabilir; asil teslim deposu `targetWarehouseNo`/Mikro `sth_nakliyedeposu` alanidir.
+- Hedef teslim deposunun `postalCode` alani bos ise e-irsaliye gonderimi Uyumsoft'a gitmeden `400 Bad Request` ile durdurulur. UI bu durumda Duzeltme Islemleri > Mikro Evrak Duzenleme > Depo Karti ekranindan ilgili deponun posta kodunu doldurtmalidir.
 
 Response:
 
@@ -7845,6 +8037,96 @@ Response `InventoryCountDocumentUpdateResponse` doner:
       }
     ]
   }
+}
+```
+
+### Banknot Takibi Getir / Guncelle / Sil
+
+Bu endpointler Kasa Islemleri > Banknot Takipleri ekraninda olusan `BanknoteTracks` kaydini Mikro Evrak Duzenleme modulunden duzeltmek veya silmek icindir. Normal liste/olusturma akisi yine `/api/kasa-islemleri/banknot-takipleri` altindadir.
+
+Detay:
+
+`GET /api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/14d74fd4-1217-4056-9a0e-c45e3a25a456?warehouseNo=110`
+
+Guncelle:
+
+`PUT /api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/14d74fd4-1217-4056-9a0e-c45e3a25a456?warehouseNo=110`
+
+Body:
+
+```json
+{
+  "banknoteTrackDate": "2026-04-24",
+  "totalAmount": 12000,
+  "deliveryTotalAmount": 11850,
+  "deliverer": "Teslim Eden",
+  "receiver": "Teslim Alan"
+}
+```
+
+Kaydi baska depoya tasima gerekiyorsa body'de `warehouseNo` da gonderilebilir:
+
+```json
+{
+  "warehouseNo": 120
+}
+```
+
+Kurallar:
+
+- Yetki `duzeltme-islemleri.mikro-evrak-duzenleme.detail/update/delete` uzerinden kontrol edilir.
+- Query'deki `warehouseNo` mevcut kaydi bulmak/kapsam kontrolu icindir. Normal sube kullanicisi bunu bos birakir veya kendi deposunu gonderir.
+- Body'deki `warehouseNo` kaydin yeni deposudur. Baska depoya tasima sadece kullanicida `duzeltme-islemleri.mikro-evrak-duzenleme.all-warehouses` varsa yapilmalidir.
+- Ayni depo ve ayni takip tarihi icin baska `BanknoteTracks` kaydi varsa guncelleme `409 Conflict` doner.
+- Body'de en az bir alan gonderilmelidir.
+- `totalAmount` ve `deliveryTotalAmount` negatif olamaz.
+- `deliverer` ve `receiver` en fazla 100 karakterdir; bos string gonderilirse alan temizlenir.
+- `differenceAmount` body'den gonderilmez; response'ta `deliveryTotalAmount - totalAmount` olarak hesaplanir.
+
+Response:
+
+```json
+{
+  "summary": {
+    "target": "banknot-takipleri",
+    "updatedRowCount": 1,
+    "updatedAt": "2026-08-28T10:40:00",
+    "updateUser": 110
+  },
+  "banknoteTrack": {
+    "banknoteTrackId": "14d74fd4-1217-4056-9a0e-c45e3a25a456",
+    "warehouseNo": 110,
+    "warehouseName": "KESTEL 1",
+    "banknoteTrackDate": "2026-04-24T00:00:00",
+    "totalAmount": 12000,
+    "deliveryTotalAmount": 11850,
+    "differenceAmount": -150,
+    "deliverer": "Teslim Eden",
+    "receiver": "Teslim Alan",
+    "createDate": "2026-04-24T20:10:00"
+  }
+}
+```
+
+Sil:
+
+`DELETE /api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/14d74fd4-1217-4056-9a0e-c45e3a25a456?warehouseNo=110`
+
+Not:
+
+- `BanknoteTracks` tablosunda `iptal/hidden` benzeri soft delete alanlari olmadigi icin bu endpoint fiziksel siler.
+- `hardDelete` query parametresi yoktur; silme response'unda `deletionMode = hard-delete` gelir.
+- Kayit bulunamazsa `404 Not Found` doner.
+
+Response:
+
+```json
+{
+  "target": "banknot-takipleri/14d74fd4-1217-4056-9a0e-c45e3a25a456",
+  "deletedRowCount": 1,
+  "deletedAt": "2026-08-28T10:45:00",
+  "deleteUser": 110,
+  "deletionMode": "hard-delete"
 }
 ```
 
@@ -13049,6 +13331,11 @@ Gunluk banknot teslim/toplam kayitlarini Kasa Islemleri altindaki ayri menu rout
 Yetki:
 
 - `kasa-islemleri.banknot-takipleri.list`
+- `kasa-islemleri.banknot-takipleri.detail`
+- `kasa-islemleri.banknot-takipleri.create`
+- `kasa-islemleri.banknot-takipleri.update`
+- `kasa-islemleri.banknot-takipleri.delete`
+- `kasa-islemleri.banknot-takipleri.all-warehouses`
 
 Not:
 
@@ -13057,6 +13344,7 @@ Not:
 - `warehouseNo = 1` artik tum depolar anlami tasimaz; gercekten 1 no'lu depo filtresi olarak yorumlanir
 - response modeli `BanknoteTrackDto` doner ve `banknoteTrackId` alanini GUID olarak icerir
 - bu route'da `differenceAmount`, eski kodla uyumlu olarak `deliveryTotalAmount - totalAmount` hesaplanir
+- Banknot takip kaydini guncelleme/silme ihtiyaci Mikro Evrak Duzenleme modulunden yapilir: `PUT/DELETE /api/duzeltme-islemleri/mikro-evrak-duzenleme/banknot-takipleri/{banknoteTrackId}`
 
 Sayim toplami:
 
@@ -21990,6 +22278,7 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 - `UpdateInventoryCountDocumentHttpRequest`: `Lookup`, `Header`, `Lines`
 - `InventoryCountHeaderPatchHttpRequest`: `DocumentDate`, `WarehouseNo`, `Name`
 - `InventoryCountLinePatchHttpRequest`: `CountGuid`, `RowNo`, `StockCode`, `Barcode`, `UnitPointer`, `Quantity1`, `Quantity2`, `Quantity3`, `Quantity4`, `Quantity5`, `RayonCode`, `CorridorCode`, `ShelfCode`, `PartyCode`, `LotNo`, `SerialNo`, `Special1`, `Special2`, `Special3`
+- `BanknoteTrackPatchHttpRequest`: `BanknoteTrackDate`, `WarehouseNo`, `TotalAmount`, `DeliveryTotalAmount`, `Deliverer`, `Receiver`
 - `CustomerMovementDocumentLookupHttpRequest`: `DocumentSerie`, `DocumentOrderNo`, `DocumentType`, `MovementType`, `MovementKind`, `NormalReturn`, `CustomerCode`
 - `UpdateCustomerMovementDocumentHttpRequest`: `Lookup`, `Header`, `Lines`
 - `CustomerMovementHeaderPatchHttpRequest`: `MovementDate`, `DocumentDate`, `DocumentNo`, `CustomerCode`, `TurnoverCustomerCode`, `Description`, `SellerCode`, `ProjectCode`, `ResponsibilityCenter`

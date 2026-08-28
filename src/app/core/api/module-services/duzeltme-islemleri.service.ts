@@ -1,6 +1,9 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  BanknoteTrackDetailDto,
+  BanknoteTrackPatchHttpRequest,
+  BanknoteTrackUpdateResponse,
   CompanyOrderDocumentDeleteHttpRequest,
   CompanyOrderDocumentDto,
   CompanyOrderDocumentLookupHttpRequest,
@@ -122,6 +125,38 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     return this.put<CustomerCardUpdateResponse, CustomerCardPatchHttpRequest>(
       `${ROOT}/cariler/${encodeURIComponent(customerCode)}`,
       request
+    );
+  }
+
+  getBanknoteTrack(
+    banknoteTrackId: string,
+    warehouseNo?: number | null
+  ): Observable<BanknoteTrackDetailDto> {
+    return this.getWithQuery<BanknoteTrackDetailDto>(
+      `${ROOT}/banknot-takipleri/${encodeURIComponent(banknoteTrackId)}`,
+      { warehouseNo: warehouseNo ?? undefined }
+    );
+  }
+
+  updateBanknoteTrack(
+    banknoteTrackId: string,
+    request: BanknoteTrackPatchHttpRequest,
+    warehouseNo?: number | null
+  ): Observable<BanknoteTrackUpdateResponse> {
+    return this.http.put<BanknoteTrackUpdateResponse>(
+      this.buildUrl(`${ROOT}/banknot-takipleri/${encodeURIComponent(banknoteTrackId)}`),
+      request,
+      { params: this.buildParams({ warehouseNo: warehouseNo ?? undefined }) }
+    );
+  }
+
+  deleteBanknoteTrack(
+    banknoteTrackId: string,
+    warehouseNo?: number | null
+  ): Observable<MikroDocumentDeleteResponse> {
+    return this.http.delete<MikroDocumentDeleteResponse>(
+      this.buildUrl(`${ROOT}/banknot-takipleri/${encodeURIComponent(banknoteTrackId)}`),
+      { params: this.buildParams({ warehouseNo: warehouseNo ?? undefined }) }
     );
   }
 
