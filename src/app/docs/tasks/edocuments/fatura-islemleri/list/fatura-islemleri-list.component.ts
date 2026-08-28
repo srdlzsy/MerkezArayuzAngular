@@ -2401,7 +2401,7 @@ export class FaturaIslemleriListComponent {
     }
 
     const blob = await firstValueFrom(
-      this.faturaIslemleriService.getInvoiceViewingPdf(invoiceUuid)
+      this.faturaIslemleriService.getInvoiceViewingPrintPdf(invoiceUuid)
     );
 
     await this.printPdfBlob(blob, item.invoiceId);
@@ -2443,15 +2443,14 @@ export class FaturaIslemleriListComponent {
 
     return new Promise<void>((resolve, reject) => {
       let settled = false;
-      let fallbackTimer = 0;
+      let printStartedTimer = 0;
       let printDelayTimer = 0;
       let loadTimeoutTimer = 0;
       const cleanup = () => {
         frame.onload = null;
-        window.clearTimeout(fallbackTimer);
+        window.clearTimeout(printStartedTimer);
         window.clearTimeout(printDelayTimer);
         window.clearTimeout(loadTimeoutTimer);
-        window.removeEventListener('afterprint', handleAfterPrint);
       };
       const finish = () => {
         if (settled) {
@@ -2462,7 +2461,6 @@ export class FaturaIslemleriListComponent {
         cleanup();
         resolve();
       };
-      const handleAfterPrint = () => finish();
 
       loadTimeoutTimer = window.setTimeout(() => {
         if (settled) {
@@ -2477,10 +2475,9 @@ export class FaturaIslemleriListComponent {
       frame.onload = () => {
         printDelayTimer = window.setTimeout(() => {
           try {
-            window.addEventListener('afterprint', handleAfterPrint, { once: true });
             frame.contentWindow?.focus();
             frame.contentWindow?.print();
-            fallbackTimer = window.setTimeout(finish, 2500);
+            printStartedTimer = window.setTimeout(finish, 1500);
           } catch (error) {
             cleanup();
             reject(error);
@@ -2489,8 +2486,6 @@ export class FaturaIslemleriListComponent {
       };
 
       document.body.appendChild(frame);
-    }).finally(() => {
-      window.setTimeout(() => this.releasePrintFrame(), 1500);
     });
   }
 

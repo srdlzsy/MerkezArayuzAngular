@@ -237,6 +237,12 @@ export class FaturaIslemleriService extends BaseApiService {
     );
   }
 
+  getInvoiceViewingPrintPdf(documentId: string) {
+    return this.getBlob(
+      `fatura-islemleri/fatura-goruntuleme/${encodeURIComponent(documentId)}/pdf/yazdirma`
+    );
+  }
+
   getInvoiceViewingDetail(documentId: string) {
     return this.getInvoiceViewingHtmlDetail(documentId);
   }

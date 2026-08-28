@@ -59,6 +59,11 @@ export const EDOCUMENTS_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}/pdf/yazdirma',
+              description: 'Yazdir aksiyonunda kullanilacak baskiya uygun PDF dosyasini application/pdf olarak getirir'
+            },
+            {
+              method: 'GET',
               path: '/api/fatura-islemleri/fatura-goruntuleme/{documentId}/detail',
               description: 'Secili evragin summary ve HTML render detayini getirir'
             },
