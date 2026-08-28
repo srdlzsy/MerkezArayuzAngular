@@ -605,7 +605,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
       highlights: [
         'Kasa sayimlari altindan ayrilan yeni route ailesidir',
         'warehouseNo bos gonderilirse all-warehouses yetkili kullanici icin tum depolari listeler',
-        'Yeni teslim kaydinda totalAmount sayim-toplami endpointinden doldurulabilir',
+        'Yeni teslim kaydinda totalAmount icmal belge tarihi ve depo filtresine gore sayim-toplami endpointinden doldurulabilir',
         'differenceAmount deliveryTotalAmount - totalAmount olarak gelir',
         'Guncelleme ve silme Mikro Evrak Duzenleme banknot-takipleri endpointleriyle yapilir'
       ],
@@ -628,7 +628,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/kasa-islemleri/banknot-takipleri/sayim-toplami?dateToGet=2026-04-24&warehouseNo=110',
-              description: 'Teslim formu icin banknot sayim toplam tutarini getirir'
+              description: 'Teslim formu icin SummaryDate gunundeki icmal evraklarinin banknot toplam tutarini getirir'
             },
             {
               method: 'POST',

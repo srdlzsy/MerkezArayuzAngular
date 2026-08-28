@@ -413,13 +413,19 @@ export class OnerilenFirmaSiparisleriListComponent {
   }
 
   protected getSupplierLabel(supplier: CustomerLookupItemDto): string {
+    const selectionLabel = supplier.selectionLabel?.trim();
+    if (selectionLabel) {
+      return selectionLabel;
+    }
+
     const displayName =
       supplier.customerDisplayName?.trim() ||
       supplier.customerName?.trim() ||
       supplier.customerTitle?.trim() ||
       'Tedarikci';
 
-    return `${supplier.customerCode} - ${displayName}`;
+    const code = supplier.customerCode?.trim() || '';
+    return code ? `${code} - ${displayName}` : displayName;
   }
 
   protected formatNumber(value: number | null | undefined): string {

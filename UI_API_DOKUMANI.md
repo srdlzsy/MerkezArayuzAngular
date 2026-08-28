@@ -4350,6 +4350,10 @@ UI kullanim notu:
 
 `GET /api/arama-islemleri/cariler?searchText=market&take=20`
 
+Kisa cari kod parcasi ile:
+
+`GET /api/arama-islemleri/cariler?searchText=391&take=20`
+
 TCKN/VKN, unvan veya kodla cok sayida benzer cari donebildigi icin bu endpoint secim ekranlarinda
 detayli bilgi dondurur. UI sadece `customerName` alanini gostermemeli; mumkunse
 `selectionLabel` alanini veya `customerCode + customerDisplayName + taxNumber + groupCode`
@@ -4361,6 +4365,12 @@ Query:
 searchText   zorunlu, en az 2 karakter
 take         opsiyonel; default 20, max 100
 ```
+
+Not:
+
+- Cari kod aramasinda tam eslesme, kod baslangici, kod sonu ve kod icinde eslesme oncelikli siralanir.
+- Ornek: kullanici `391` yazarsa `32000391` gibi kod sonu eslesen cari ilk sonuclarda gelir.
+- UI cari secim kutusunda kullaniciya sadece unvan degil, `selectionLabel` veya en az `customerCode + customerDisplayName` gostermelidir.
 
 Arama alanlari:
 
@@ -13357,7 +13367,8 @@ Yetki:
 Not:
 
 - Banknot teslim formunda `totalAmount` alanini backendden doldurmak icindir
-- toplam, eski `GetTotalAmountForBanknoteTrack` davranisina uygun olarak `BanknoteMovements.CreateDate` gunu ve depo filtresiyle `Total` toplamidir
+- toplam, kasa sayimi/icmal belge tarihine gore hesaplanir: backend once `Summaries.SummaryDate` gunu ve depo filtresiyle icmal evraklarini bulur, sonra ayni `DocumentSerie + DocumentOrderNo + BranchNo` evraklarinin `BanknoteMovements.Total` toplamlarini toplar
+- `BanknoteMovements.CreateDate` hesap tarihi olarak kullanilmaz; gecmis tarihli icmalin banknotlari sonradan duzenlense bile toplam ilgili `SummaryDate` gununde kalir
 - `kasa-islemleri.banknot-takipleri.all-warehouses` yoksa `warehouseNo` gonderilmez; backend JWT deposunu kullanir
 - all-warehouses yetkisi varsa baska depo icin `warehouseNo` gonderilebilir
 
@@ -13650,6 +13661,7 @@ Onemli not:
 - CARI tarafinda odeme tipleri, nakit toplam, `300 = total - zTotalValue fark` ve `400 = Z Rapor Toplami` satirlari ayri hareketler olarak yazilir
 - nakit toplam `paymentTypes` icinde manuel gonderilmez; backend banknot hareketlerinden `PaymentTypeID = 500`, `description = "Nakit Toplam"` satirini garanti eder
 - UI yanlislikla `paymentTypes` icinde `Nakit` veya `paymentTypeNo = 500` gonderirse backend bunu ayri odeme satiri olarak yazmaz, 500 satirini banknot toplamindan uretir
+- `BanknoteMovements.CreateDate` eski sistem uyumu icin `summaryDate` gunu olarak yazilir; `UpdateDate` teknik olusturma/guncelleme anini tasir
 
 Request:
 
@@ -13736,6 +13748,7 @@ Not:
 - nakit/500 satiri UI tarafindan normal detay gibi yonetilmez; backend mevcut banknot/nakit toplamindan 500 satirini yeniden uretir
 - banknot update de patch degildir; `banknoteMovements` son durumda kalacak tum banknotlari icermelidir
 - banknot update request'inde `banknoteMovements` bos gonderilirse mevcut banknot satirlari temizlenebilir
+- banknot update eski satirlari silip yeniden yazar, ancak yeni `BanknoteMovements.CreateDate` mevcut icmal belgesinin `Summaries.SummaryDate` gununde kalir; boylece gecmis tarihli icmal duzeltmesi baska ekranlarda bugunun banknot toplamına kaymaz
 - banknot update sonrasi backend `PaymentTypeID = 500` nakit toplam satirini ve ilgili cari hareket toplamlarini yeni belge toplamiyla gunceller
 - hediye ceki update de patch degildir; `giftCheckMovements` son durumda kalacak tum hediye ceki satirlarini icermelidir
 - hediye ceki update request'inde `giftCheckMovements` bos gonderilirse mevcut hediye ceki satirlari temizlenebilir

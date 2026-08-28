@@ -709,8 +709,14 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected getCustomerLabel(customer: IFurpaCustomerSearchItemApiDto): string {
-    const name = customer.customerDisplayName?.trim() || 'Firma';
-    return `${customer.customerCode?.trim() || ''} - ${name}`;
+    const selectionLabel = customer.selectionLabel?.trim();
+    if (selectionLabel) {
+      return selectionLabel;
+    }
+
+    const code = customer.customerCode?.trim() || '';
+    const name = customer.customerDisplayName?.trim() || customer.customerName?.trim() || customer.customerTitle?.trim() || 'Firma';
+    return code ? `${code} - ${name}` : name;
   }
 
   protected readonly trackByCustomer = (_index: number, customer: IFurpaCustomerSearchItemApiDto): string =>

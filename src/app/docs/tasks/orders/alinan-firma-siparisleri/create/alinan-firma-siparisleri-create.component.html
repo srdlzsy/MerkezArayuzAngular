@@ -51,7 +51,7 @@
                 (click)="selectCustomer(customer)"
               >
                 <strong>{{ customer.customerCode }}</strong>
-                <span>{{ customer.customerDisplayName }}</span>
+                <span>{{ getCustomerLabel(customer) }}</span>
               </div>
             </div>
           </div>
