@@ -1126,7 +1126,123 @@ test edilmelidir.
 
 ---
 
-## 22. Projedeki Uygulanmış Örnek
+## 22. Manav Mal Kabul Etiketi
+
+`manav-mal-kabul-etiket` ekranındaki barkod etiketi A4 veya A5 kağıda göre
+tasarlanmamıştır. Özel ölçülü, dikey ilerleyen rulo etikete basılır.
+
+### Fiziksel ölçü ve yön
+
+| Özellik | Değer |
+|---|---|
+| Yazıcı kağıt ölçüsü | `38,9 mm × 57,9 mm` |
+| `@page` ölçüsü | `38.9mm 57.9mm` |
+| Sayfa kenar boşluğu | `0` |
+| Bir sayfadaki etiket | `1` |
+| Etiket dış kutusu | `38,9 mm × 57,9 mm` |
+| İçerik tasarım alanı | `57,9 mm × 38,9 mm` |
+| İç boşluk | `2,1 mm` |
+| Baskı yönü | İçerik saat yönünde `90deg` döndürülür |
+
+Kağıt yazıcıya dikey ilerler; kullanıcı etiketi eline aldığında içerik yatay
+okunur. Bunun için dış sayfa ölçüsü ile içerik ölçüsü birbirinin tersidir:
+
+```css
+@page {
+  size: 38.9mm 57.9mm;
+  margin: 0;
+}
+
+.print-label {
+  width: 38.9mm;
+  height: 57.9mm;
+  overflow: hidden;
+  break-after: page;
+}
+
+.print-label-content {
+  width: 57.9mm;
+  height: 38.9mm;
+  padding: 2.1mm;
+  transform: rotate(90deg) translateY(-38.9mm);
+  transform-origin: top left;
+}
+```
+
+Her kopya ayrı bir fiziksel sayfadır. Son etikette gereksiz boş sayfa
+oluşmaması için son elemanın `break-after` ve `page-break-after` değeri
+`auto` yapılır.
+
+### Etikette gösterilen bilgiler
+
+Etiket içeriği şu sırayla hazırlanır:
+
+1. Stok adı
+2. Tedarikçi firma adı
+3. Ortalama kasa kilosu (`KG`)
+4. Kasa tipi
+5. Kasa darası
+6. Barkod grafiği
+7. Barkodun okunabilir metni
+8. Etiket tarihi
+
+Başlık `10pt`, diğer metinler `7pt` kullanır. Barkod alanının minimum
+yüksekliği `12 mm` olarak korunur. Uzun metinler etiketi büyütmez; tek satırda
+kesilerek fiziksel ölçünün bozulması engellenir.
+
+### Barkod kuralı
+
+Basılan barkod aşağıdaki öncelik sırasıyla seçilir:
+
+```text
+labelBarcode
+  → labelBarcodeRaw
+  → stockBarcode
+  → boş değer
+```
+
+Barkod SVG olarak, baskıdan hemen önce yeniden üretilir. Baskı ayarları:
+
+```text
+barWidth: 1
+barHeight: 28
+fontSize: 8
+marginX: 2
+marginTop: 1
+```
+
+`barcodeSymbology` API response'unda taşınır. Barkodun asıl değeri ve kontrol
+hanesi backend tarafından hazırlanır; UI bu değeri değiştirmeden görselleştirir.
+
+### Kopya ve sayfalama kuralı
+
+- API'nin `labelCount` değeri ilk kopya adedidir.
+- Kayıt üzerinden baskı açıldığında kasa sayısı başlangıç kopya adedi olarak kullanılır.
+- Kullanıcı kopya sayısını değiştirebilir.
+- UI tek işlemde en az `1`, en fazla `200` etiket üretir.
+- Her etiket ayrı sayfaya basılır; etiketler aynı sayfada birleştirilmez.
+
+### Yazıcı ayarı
+
+Fiziksel çıktıda yazıcı sürücüsünde de özel kağıt boyutu `38,9 × 57,9 mm`
+tanımlı olmalıdır. Ölçek `%100`, kenar boşluğu `Yok` olmalıdır. Sürücü ayrıca
+sayfayı döndürürse içerik ikinci kez döneceği için otomatik yönlendirme veya
+otomatik döndürme kapatılmalıdır.
+
+İlgili dosyalar:
+
+```text
+src/app/docs/tasks/cash-register/etiket-basim/list/
+  etiket-basim-list.component.ts
+  etiket-basim-list.component.html
+  etiket-basim-list.component.scss
+
+angular-interfaces/kasa-islemleri.dtos.ts
+```
+
+---
+
+## 23. Projedeki Uygulanmış Örnek
 
 Manav künye etiketi bu genel yaklaşımın projedeki bir uygulamasıdır; rehberin
 kendisi manav künyesine bağlı değildir.
@@ -1154,7 +1270,7 @@ Yeni tasarım oluştururken bu dosyalar incelenebilir; ancak class adları, kağ
 
 ---
 
-## 23. Sonuç
+## 24. Sonuç
 
 Genel ve tekrar kullanılabilir etiket altyapısında sorumluluklar şöyle ayrılır:
 

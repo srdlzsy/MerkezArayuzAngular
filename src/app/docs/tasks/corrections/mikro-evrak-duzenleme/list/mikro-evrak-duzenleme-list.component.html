@@ -543,11 +543,11 @@
             <p class="panel-kicker">DEPOLAR</p>
             <h3>Depo karti ara</h3>
           </div>
-          <span>{{ warehouseCards().length }} sonuc</span>
+          <span>{{ visibleWarehouseCards().length }} sonuc</span>
         </div>
 
         <label class="field">
-          <span>No, ad, grup, il veya ilce</span>
+          <span>No, ad, grup, bolge, il veya ilce</span>
           <input
             type="search"
             [(ngModel)]="warehouseCardSearch.searchText"
@@ -576,6 +576,15 @@
             />
             <span>Pasifleri dahil et</span>
           </label>
+          <label class="check-field">
+            <input
+              type="checkbox"
+              [ngModel]="showWarehousesWithoutRegion()"
+              [ngModelOptions]="{ standalone: true }"
+              (ngModelChange)="showWarehousesWithoutRegion.set($event)"
+            />
+            <span>Bolgesi eksik</span>
+          </label>
         </div>
 
         <button
@@ -590,7 +599,7 @@
 
         <div class="result-list">
           <button
-            *ngFor="let row of warehouseCards(); trackBy: trackByWarehouseCardNo"
+            *ngFor="let row of visibleWarehouseCards(); trackBy: trackByWarehouseCardNo"
             type="button"
             class="result-row"
             [class.is-selected]="selectedWarehouseCard()?.warehouseNo === row.warehouseNo"
@@ -599,7 +608,11 @@
           >
             <span class="result-code">{{ row.warehouseNo }}</span>
             <strong>{{ row.name }}</strong>
-            <small>{{ row.city || '-' }} / {{ row.district || '-' }} · {{ row.groupCode || 'Grupsuz' }}</small>
+            <small>
+              {{ row.city || '-' }} / {{ row.district || '-' }} ·
+              {{ row.groupCode || 'Grupsuz' }} ·
+              {{ row.regionCode ? 'Bolge ' + row.regionCode : 'Bolge kodu yok' }}
+            </small>
             <span class="status-dot" [class.is-passive]="row.isPassive || row.isHidden">
               {{ row.isPassive || row.isHidden ? 'Pasif' : 'Aktif' }}
             </span>

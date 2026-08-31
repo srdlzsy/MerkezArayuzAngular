@@ -599,6 +599,13 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly selectedSalesPrice = signal<StockSalesPriceDto | null>(null);
   protected readonly salesPriceDraft = signal<StockSalesPriceDto | null>(null);
   protected readonly warehouseCards = signal<WarehouseCardListItemDto[]>([]);
+  protected readonly showWarehousesWithoutRegion = signal(false);
+  protected readonly visibleWarehouseCards = computed(() => {
+    const rows = this.warehouseCards();
+    return this.showWarehousesWithoutRegion()
+      ? rows.filter((row) => !row.regionCode?.trim())
+      : rows;
+  });
   protected readonly selectedWarehouseCard = signal<WarehouseCardDetailDto | null>(null);
   protected readonly warehouseCardDraft = signal<WarehouseCardDetailDto | null>(null);
   protected readonly customerCards = signal<CustomerCardListItemDto[]>([]);

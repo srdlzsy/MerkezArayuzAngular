@@ -124,6 +124,7 @@ export interface WarehouseCardListItemDto {
   warehouseNo: number;
   name: string;
   groupCode: string;
+  regionCode: string;
   warehouseType: number;
   city: string;
   district: string;
@@ -163,7 +164,6 @@ export interface WarehouseCardDetailDto extends WarehouseCardListItemDto {
   faxNo: string;
   excludedFromInventory: boolean;
   detailTrackingType: number;
-  regionCode: string;
   outgoingEDespatchEnabled: boolean;
   incomingEDespatchEnabled: boolean;
   isLocked: boolean;
