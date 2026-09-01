@@ -114,7 +114,7 @@ export class VarYokListComponent {
   }
 
   protected hasPackInfo(item: VarYokLookupItemDto): boolean {
-    return !!item.secondaryUnitName?.trim() && Number(item.secondaryUnitMultiplier ?? 0) > 1;
+    return !!item.secondaryUnitName?.trim() && Number(item.unitMultiplier ?? 0) > 1;
   }
 
   protected hasBarcodeLookupInfo(item: VarYokLookupItemDto): boolean {

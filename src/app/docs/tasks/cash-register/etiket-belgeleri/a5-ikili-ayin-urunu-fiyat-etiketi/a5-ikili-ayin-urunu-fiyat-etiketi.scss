@@ -15,7 +15,7 @@
   align-items: stretch;
   justify-content: center;
   margin: 0;
-  padding: 0 29mm;
+  padding: 0;
   overflow: hidden;
   background: #fff;
   break-after: page;
@@ -30,15 +30,15 @@
 .etiket-grid {
   width: 100%;
   height: 100%;
-  display: grid;
-  grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: 1.5mm;
+  display: flex;
+  flex-wrap: nowrap;
+  gap: 1%;
   align-items: stretch;
   justify-content: center;
 }
 
 .etiket {
-  width: 100%;
+  width: 49.5%;
   height: 100%;
   min-width: 0;
   box-sizing: border-box;
@@ -53,19 +53,19 @@
 }
 
 .etiket-baslik {
-  height: 15mm;
+  height: 21mm;
   box-sizing: border-box;
   display: flex;
   align-items: center;
   justify-content: center;
-  margin-top: 31mm;
+  margin-top: 10mm;
   padding: 0 2mm;
   overflow: hidden;
   background: #000;
   color: #fff;
   text-align: center;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 17pt;
+  font-size: 22pt;
   font-weight: 500;
   line-height: 1;
   letter-spacing: 0;
@@ -81,13 +81,13 @@
   align-items: center;
   justify-content: flex-start;
   box-sizing: border-box;
-  padding: 3mm 1.5mm 0;
+  padding: 3mm 0 0;
   text-align: center;
 }
 
 .urun-adi {
   width: 100%;
-  height: 16mm;
+  height: 23mm;
   overflow: hidden;
   display: -webkit-box;
   -webkit-box-orient: vertical;
@@ -95,20 +95,20 @@
   line-clamp: 2;
   overflow-wrap: anywhere;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 13pt;
+  font-size: 14pt;
   font-weight: 500;
-  line-height: 1.12;
+  line-height: 1.15;
   text-transform: uppercase;
 }
 
 .fiyat {
   width: 100%;
-  min-height: 27mm;
+  min-height: 32mm;
   min-width: 0;
   display: flex;
   align-items: flex-end;
   justify-content: center;
-  gap: 3.5mm;
+  gap: 5mm;
   font-family: Arial, Helvetica, sans-serif;
   font-weight: 400;
   line-height: 1;
@@ -118,59 +118,61 @@
 
 .fiyat-degeri {
   min-width: 0;
+  flex: 0 0 auto;
 }
 
 .para-birimi {
-  padding-bottom: 5mm;
+  padding-bottom: 0;
+  flex: 0 0 auto;
   font-weight: 400;
 }
 
 .fiyat.price-large .fiyat-degeri {
-  font-size: 41pt;
+  font-size: 72pt;
 }
 
 .fiyat.price-large .para-birimi {
-  font-size: 20pt;
+  font-size: 30pt;
 }
 
 .fiyat.price-medium .fiyat-degeri {
-  font-size: 41pt;
+  font-size: 60pt;
 }
 
 .fiyat.price-medium .para-birimi {
-  font-size: 20pt;
+  font-size: 27pt;
 }
 
 .fiyat.price-small .fiyat-degeri {
-  font-size: 41pt;
+  font-size: 50pt;
 }
 
 .fiyat.price-small .para-birimi {
-  font-size: 20pt;
+  font-size: 23pt;
 }
 
 .urun-detaylari {
   width: 100%;
   margin: 0;
   display: grid;
-  gap: 0.7mm;
-  padding-left: 8mm;
+  gap: 0;
+  padding: 0 3mm 0 11mm;
   color: #000;
   text-align: left;
   font-family: Arial, Helvetica, sans-serif;
-  font-size: 5.8pt;
-  font-weight: 700;
-  line-height: 1.18;
+  font-size: 10pt;
+  font-weight: 400;
+  line-height: 1.2;
 }
 
 .urun-detaylari div {
   display: grid;
-  grid-template-columns: 23mm minmax(0, 1fr);
+  grid-template-columns: max-content minmax(0, 1fr);
   gap: 1mm;
 }
 
 .urun-detaylari dt {
-  font-weight: 700;
+  font-weight: 400;
 }
 
 .urun-detaylari dd {
@@ -178,22 +180,23 @@
 }
 
 .etiket-alt {
-  margin-top: auto;
-  min-height: 22mm;
+  margin-top: 14mm;
+  min-height: 12mm;
   display: flex;
   align-items: flex-end;
   justify-content: space-between;
-  padding: 0 8mm 31mm;
+  padding: 0 9mm 0 2mm;
 }
 
 .etiket-alt svg {
-  width: 16mm;
-  height: 8mm;
+  width: 22mm;
+  height: 11mm;
 }
 
 .etiket-alt img {
-  width: 17mm;
-  height: auto;
+  width: 24mm;
+  height: 12mm;
+  object-fit: contain;
 }
 
 .etiket-alt img,

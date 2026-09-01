@@ -362,6 +362,10 @@ export class OnerilenDepoSiparisleriListComponent {
     }).format(this.safeNumber(value));
   }
 
+  protected getUnitMultiplier(item: SuggestedWarehouseOrderListItemDto): number {
+    return this.safeNumber(item.unitMultiplier ?? item.packageFactor);
+  }
+
   protected readonly trackByLine = (_index: number, line: SuggestedWarehouseLineState): string =>
     line.item.stockCode || `${_index}`;
 

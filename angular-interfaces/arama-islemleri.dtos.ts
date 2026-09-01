@@ -79,6 +79,7 @@ export interface BarcodeResolutionDto {
   primaryBarcode: string | null;
   caseBarcode: string | null;
   unitsPerCase: number | null;
+  unitMultiplier: number | null;
   matchedUnitPointer: number | null;
   matchedUnitName: string | null;
   matchedUnitMultiplier: number | null;

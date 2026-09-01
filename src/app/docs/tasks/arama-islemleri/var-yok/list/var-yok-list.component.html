@@ -77,7 +77,7 @@
         <span>Birim: <strong>{{ item.unitName || '-' }}</strong></span>
         <span>Fiyat Tipi: <strong>{{ item.priceTypeCode }}</strong></span>
         <span *ngIf="hasPackInfo(item)">
-          Koli: <strong>{{ item.secondaryUnitName }} ici {{ item.secondaryUnitMultiplier }} {{ item.unitName || '' }}</strong>
+          Koli: <strong>{{ item.secondaryUnitName }} ici {{ item.unitMultiplier }} {{ item.unitName || '' }}</strong>
         </span>
         <span *ngIf="item.productManagerCode">
           Reyon: <strong>{{ item.productManagerCode }}</strong>

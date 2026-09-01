@@ -36,6 +36,7 @@ export interface CariBulResultDto {
   primaryBarcode: string | null;
   caseBarcode: string | null;
   unitsPerCase: number | null;
+  unitMultiplier: number | null;
   defaultSupplierCode: string | null;
   defaultSupplierName: string | null;
   suggestions: ProductCustomerSuggestionItemDto[];
@@ -404,6 +405,7 @@ export class AramaService extends BaseApiService {
         primaryBarcode: null,
         caseBarcode: null,
         unitsPerCase: null,
+        unitMultiplier: null,
         defaultSupplierCode: null,
         defaultSupplierName: null,
         suggestions: []

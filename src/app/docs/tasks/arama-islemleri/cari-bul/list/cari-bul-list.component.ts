@@ -123,6 +123,11 @@ export class CariBulListComponent {
     return Number(suggestion.sameTaxCustomerCount ?? 0) > 1;
   }
 
+  protected getPackMultiplier(result: CariBulResultDto | null | undefined): number | null {
+    const value = Number(result?.unitMultiplier ?? result?.unitsPerCase ?? 0);
+    return Number.isFinite(value) && value > 1 ? value : null;
+  }
+
   protected readonly trackBySuggestion = (
     index: number,
     suggestion: CariBulResultDto['suggestions'][number]

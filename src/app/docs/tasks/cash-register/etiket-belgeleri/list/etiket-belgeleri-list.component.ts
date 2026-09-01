@@ -117,7 +117,7 @@ export class EtiketBelgeleriListComponent {
   protected readonly productTableFilter = signal<ProductListFilter>('all');
 
   protected readonly products = signal<IEtiketBasimProduct[]>([]);
-  private readonly hiddenProductKeysByLabelType = signal<Record<string, readonly string[]>>({});
+  private readonly hiddenProductKeysState = signal<readonly string[]>([]);
   protected readonly recentDocuments = signal<ILabelDocument[]>([]);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly isLoadingProducts = signal(false);
@@ -150,9 +150,7 @@ export class EtiketBelgeleriListComponent {
     const labelType = this.selectedLabelType();
     return this.etiketTipleri.find((item) => item.etiketTipi === labelType) ?? null;
   });
-  protected readonly hiddenProductKeys = computed(
-    () => new Set(this.hiddenProductKeysByLabelType()[this.selectedLabelType()] ?? [])
-  );
+  protected readonly hiddenProductKeys = computed(() => new Set(this.hiddenProductKeysState()));
   protected readonly activeProducts = computed(() =>
     this.products().filter((product) => !this.hiddenProductKeys().has(this.getProductKey(product)))
   );
@@ -418,7 +416,7 @@ export class EtiketBelgeleriListComponent {
 
   protected clearList(): void {
     this.products.set([]);
-    this.hiddenProductKeysByLabelType.set({});
+    this.hiddenProductKeysState.set([]);
     this.resetPrintPreview();
     this.previewMode.set('labels');
     this.clearProductTableTools();
@@ -455,12 +453,12 @@ export class EtiketBelgeleriListComponent {
 
         if (exists) {
           if (this.hiddenProductKeys().has(key)) {
-            this.setProductHiddenForCurrentLabel(key, false);
+            this.setProductHidden(key, false);
             this.currentPage.set(1);
             this.setFeedback(
               'success',
               'Urun geri alindi',
-              `${this.getProductDisplayName(product)} secili sablonun yazdirma listesine geri eklendi.`
+              `${this.getProductDisplayName(product)} tum etiket tiplerinin yazdirma listesine geri eklendi.`
             );
             return;
           }
@@ -474,7 +472,7 @@ export class EtiketBelgeleriListComponent {
         }
 
         this.products.update((items) => [...items, product]);
-        this.setProductHiddenForCurrentLabel(key, false);
+        this.setProductHidden(key, false);
         this.previewMode.set('labels');
         this.clearProductTableTools();
         this.currentPage.set(this.totalPages());
@@ -490,13 +488,13 @@ export class EtiketBelgeleriListComponent {
   protected removeProduct(product: IEtiketBasimProduct): void {
     const key = this.getProductKey(product);
 
-    this.setProductHiddenForCurrentLabel(key, true);
+    this.setProductHidden(key, true);
     this.currentPage.set(Math.min(this.currentPageSafe(), this.totalPages()));
 
     this.setFeedback(
       'info',
       'Urun yazdirmadan cikarildi',
-      `${this.getProductDisplayName(product)} sadece secili sablonun yazdirma listesinden cikarildi.`
+      `${this.getProductDisplayName(product)} tum etiket tiplerinin yazdirma listesinden cikarildi.`
     );
   }
 
@@ -507,12 +505,12 @@ export class EtiketBelgeleriListComponent {
 
     const count = this.hiddenProductCount();
 
-    this.clearHiddenProductsForCurrentLabel();
+    this.clearHiddenProducts();
     this.currentPage.set(1);
     this.setFeedback(
       'success',
       'Urunler geri alindi',
-      `${count} urun secili sablonun yazdirma listesine geri eklendi.`
+      `${count} urun tum etiket tiplerinin yazdirma listesine geri eklendi.`
     );
   }
 
@@ -685,7 +683,7 @@ export class EtiketBelgeleriListComponent {
           }
 
           this.products.set(products);
-          this.hiddenProductKeysByLabelType.set({});
+          this.hiddenProductKeysState.set([]);
           this.previewMode.set('labels');
           this.clearProductTableTools();
           this.currentPage.set(1);
@@ -705,7 +703,7 @@ export class EtiketBelgeleriListComponent {
           }
 
           this.products.set([]);
-          this.hiddenProductKeysByLabelType.set({});
+          this.hiddenProductKeysState.set([]);
           this.setFeedback(
             'error',
             'Veri getirilemedi',
@@ -848,15 +846,13 @@ export class EtiketBelgeleriListComponent {
     return barcodes.length ? `Diger: ${barcodes.join(', ')}` : '';
   }
 
-  private setProductHiddenForCurrentLabel(key: string, hidden: boolean): void {
-    const labelType = this.selectedLabelType();
-
-    if (!labelType || !key) {
+  private setProductHidden(key: string, hidden: boolean): void {
+    if (!key) {
       return;
     }
 
-    this.hiddenProductKeysByLabelType.update((state) => {
-      const nextKeys = new Set(state[labelType] ?? []);
+    this.hiddenProductKeysState.update((keys) => {
+      const nextKeys = new Set(keys);
 
       if (hidden) {
         nextKeys.add(key);
@@ -864,24 +860,12 @@ export class EtiketBelgeleriListComponent {
         nextKeys.delete(key);
       }
 
-      return {
-        ...state,
-        [labelType]: [...nextKeys]
-      };
+      return [...nextKeys];
     });
   }
 
-  private clearHiddenProductsForCurrentLabel(): void {
-    const labelType = this.selectedLabelType();
-
-    if (!labelType) {
-      return;
-    }
-
-    this.hiddenProductKeysByLabelType.update((state) => {
-      const { [labelType]: _removed, ...rest } = state;
-      return rest;
-    });
+  private clearHiddenProducts(): void {
+    this.hiddenProductKeysState.set([]);
   }
 
   private applyProductTools(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[] {

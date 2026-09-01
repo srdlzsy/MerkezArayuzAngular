@@ -172,7 +172,7 @@
                 </td>
                 <td>
                   <div class="metric-lines">
-                    <span>Koli <strong>{{ formatNumber(line.item.packageFactor) }}</strong></span>
+                    <span>Koli <strong>{{ formatNumber(getUnitMultiplier(line.item)) }}</strong></span>
                     <span>Asgari <strong>{{ formatNumber(line.item.minimumPurchaseQuantity) }}</strong></span>
                     <span>Alis <strong>{{ formatCurrency(line.item.purchasePrice) }}</strong></span>
                     <span>Teslim <strong>{{ line.item.deliveryDay ?? '-' }}</strong></span>

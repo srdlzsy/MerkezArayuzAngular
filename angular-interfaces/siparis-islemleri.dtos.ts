@@ -123,7 +123,8 @@ export interface SuggestedWarehouseOrderListItemDto {
   sourceOnHand: number;
   salesQuantity: number;
   openIncomingOrderQuantity: number;
-  packageFactor: number;
+  unitMultiplier: number;
+  packageFactor?: number | null;
   minDay: number;
   recommendedDay: number;
   maxDay: number;
@@ -141,6 +142,7 @@ export interface SuggestedWarehouseSourceProductDto {
   modelName: string;
   unitName: string;
   secondaryUnitName?: string | null;
+  unitMultiplier?: number | null;
   packageFactor?: number | null;
   barcode: string;
   caseBarcode?: string | null;
@@ -346,6 +348,7 @@ export interface CompanyOrderCustomerProductDto {
   modelName: string;
   unitName: string;
   secondaryUnitName?: string | null;
+  unitMultiplier?: number | null;
   secondaryUnitMultiplier?: number | null;
   packageFactor?: number | null;
   barcode: string;
@@ -368,7 +371,8 @@ export interface SuggestedCompanyOrderListItemDto {
   targetOnHand: number;
   salesQuantity: number;
   openCompanyOrderQuantity: number;
-  packageFactor: number;
+  unitMultiplier: number;
+  packageFactor?: number | null;
   minDay: number;
   recommendedDay: number;
   maxDay: number;

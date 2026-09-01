@@ -158,7 +158,7 @@
                 </td>
                 <td>
                   <div class="metric-lines">
-                    <span>Koli <strong>{{ formatNumber(line.item.packageFactor) }}</strong></span>
+                    <span>Koli <strong>{{ formatNumber(getUnitMultiplier(line.item)) }}</strong></span>
                     <span>Stok <strong>{{ formatNumber(line.item.recommendedStockQuantity) }}</strong></span>
                     <span>Siparis <strong>{{ formatNumber(line.item.suggestedOrderQuantity) }}</strong></span>
                   </div>

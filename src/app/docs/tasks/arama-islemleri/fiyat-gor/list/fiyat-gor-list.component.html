@@ -78,8 +78,8 @@
       <div class="detail-grid">
         <span>Birim: <strong>{{ item.unitName || '-' }}</strong></span>
         <span>Fiyat Tipi: <strong>{{ item.priceTypeCode }}</strong></span>
-        <span *ngIf="item.secondaryUnitName">
-          Alternatif: <strong>{{ item.secondaryUnitName }} x{{ item.secondaryUnitMultiplier }}</strong>
+        <span *ngIf="hasPackInfo(item)">
+          Koli: <strong>{{ item.secondaryUnitName }} ici {{ item.unitMultiplier }} {{ item.unitName || '' }}</strong>
         </span>
         <span>Depo: <strong>{{ item.warehouseNo || '-' }}</strong></span>
       </div>

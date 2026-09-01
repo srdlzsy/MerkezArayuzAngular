@@ -142,8 +142,8 @@
                 <strong>{{ product.stockName }}</strong>
                 <small>{{ product.stockCode }} · {{ product.barcode || '-' }}</small>
               </span>
-              <span class="product-package" *ngIf="(product.packageFactor || product.secondaryUnitMultiplier || 0) > 1">
-                Koli ici {{ product.packageFactor || product.secondaryUnitMultiplier }} {{ product.unitName }}
+              <span class="product-package" *ngIf="(resolveProductUnitMultiplier(product) || 0) > 1">
+                Koli ici {{ resolveProductUnitMultiplier(product) }} {{ product.unitName }}
               </span>
               <span class="product-price">{{ product.unitPrice | number: '1.2-2' }} TL</span>
               <span class="add-mini">+</span>

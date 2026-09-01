@@ -442,6 +442,10 @@ export class OnerilenFirmaSiparisleriListComponent {
     }).format(this.safeNumber(value));
   }
 
+  protected getUnitMultiplier(item: SuggestedCompanyOrderListItemDto): number {
+    return this.safeNumber(item.unitMultiplier ?? item.packageFactor);
+  }
+
   protected readonly trackByLine = (_index: number, line: SuggestedCompanyLineState): string =>
     `${line.item.supplierCode}-${line.item.stockCode || _index}`;
 

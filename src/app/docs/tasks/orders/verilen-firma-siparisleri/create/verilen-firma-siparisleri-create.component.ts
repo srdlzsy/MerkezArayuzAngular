@@ -623,7 +623,7 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private createCustomerProductKalemFormGroup(product: CompanyOrderCustomerProductDto): KalemFormGroup {
-    const packageFactor = this.normalizePositiveNumber(product.packageFactor ?? product.secondaryUnitMultiplier ?? null);
+    const packageFactor = this.resolveProductUnitMultiplier(product);
     const quantity = this.resolveCustomerProductQuantity(product);
 
     return new FormGroup({
@@ -791,10 +791,15 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     return this.normalizePositiveNumber(product.quantity)
       ?? this.normalizePositiveNumber(product.recommendedQuantity)
       ?? this.normalizePositiveNumber(product.minimumPurchaseQuantity)
-      ?? this.normalizePositiveNumber(product.packageFactor ?? null)
-      ?? this.normalizePositiveNumber(product.secondaryUnitMultiplier ?? null)
+      ?? this.resolveProductUnitMultiplier(product)
       ?? this.normalizePositiveNumber(product.unitPointer)
       ?? 1;
+  }
+
+  protected resolveProductUnitMultiplier(product: CompanyOrderCustomerProductDto): number | null {
+    return this.normalizePositiveNumber(product.unitMultiplier ?? null)
+      ?? this.normalizePositiveNumber(product.packageFactor ?? null)
+      ?? this.normalizePositiveNumber(product.secondaryUnitMultiplier ?? null);
   }
 
   private normalizePositiveNumber(value: number | null): number | null {

@@ -145,6 +145,10 @@ export class FiyatGorListComponent {
     );
   }
 
+  protected hasPackInfo(item: ProductLookupItemDto): boolean {
+    return !!item.secondaryUnitName?.trim() && Number(item.unitMultiplier ?? 0) > 1;
+  }
+
   protected formatQuantity(value: number | null | undefined): string {
     return new Intl.NumberFormat('tr-TR', {
       minimumFractionDigits: 0,
