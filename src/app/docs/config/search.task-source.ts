@@ -151,5 +151,78 @@ export const SEARCH_TASK_SOURCE = {
         (m) => m.FiyatGorListComponent
       ),
     { accessKeyAliases: ['arama-islemleri-fiyat-gor', 'fiyat-ara', 'fiyat-sorgula'] }
+  ),
+  'var-yok': singleRouteTask(
+    {
+      id: 'var-yok',
+      title: 'Var Yok',
+      subtitle: 'Barkod, stok kodu veya urun adi ile depo stok durumunu hizli sorgular.',
+      baseRouteOrFile: '/api/arama-islemleri/var-yok',
+      highlights: [
+        'Barkod ile depo stok durumu',
+        'Terazi barkodunda okutulan barkod ve normalize edilen lookup barkodu ayrilir',
+        'Stok kodu ile var yok sorgusu',
+        'Urun adi ile contains arama',
+        'Depo stok miktari ve hasStock durumu',
+        'Fiyat ve alternatif birim/koli bilgisi',
+        'Satis, siparis ve mal kabul bloklari'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AramaIslemleriController',
+          description: 'Var yok arama islemleri. Urun bulunursa secili depodaki stok miktarini, fiyatini, barkod cozumleme bilgisini ve blok durumlarini dondurur.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/var-yok?warehouseNo=110&barcode=8690000000000',
+              description: 'Barkod uzerinden var yok sorgusu yapar; terazi barkodunda lookup barkod ve KG miktarini dondurur'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/var-yok?warehouseNo=110&stockCode=015550',
+              description: 'Stok kodu uzerinden var yok sorgusu yapar'
+            },
+            {
+              method: 'GET',
+              path: '/api/arama-islemleri/var-yok?warehouseNo=110&stockName=sut&take=20',
+              description: 'Urun adinda contains arama ile var yok listesi getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "warehouseNo": 110,
+  "warehouseName": "KESTEL 1",
+  "barcode": "2700174",
+  "stockCode": "015550",
+  "stockName": "MNV SEFTALI KG",
+  "unitName": "KG",
+  "currentStockQuantity": 24.75,
+  "hasStock": true,
+  "price": 99.9,
+  "priceTypeCode": 1,
+  "secondaryUnitName": "KOLI",
+  "secondaryUnitMultiplier": 12,
+  "salesBlockCode": 0,
+  "orderBlockCode": 0,
+  "goodsAcceptanceBlockCode": 0,
+  "isSalesBlocked": false,
+  "isOrderBlocked": false,
+  "isGoodsAcceptanceBlocked": false,
+  "productManagerCode": "PER001",
+  "requestedBarcode": "2700174041103",
+  "lookupBarcode": "2700174",
+  "isVariableWeightBarcode": true,
+  "embeddedQuantity": 4.11,
+  "embeddedQuantityUnit": "KG",
+  "isBarcodeCheckDigitValid": true
+}`
+    },
+    () =>
+      import('../tasks/arama-islemleri/var-yok/list/var-yok-list.component').then(
+        (m) => m.VarYokListComponent
+      ),
+    { accessKeyAliases: ['arama-islemleri-var-yok', 'varyok', 'stok-var-yok'] }
   )
 } as const satisfies Record<string, DocsTaskSource>;

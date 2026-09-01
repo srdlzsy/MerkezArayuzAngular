@@ -14,6 +14,7 @@ import {
   ProductLookupItemDto,
   ProductSearchHttpRequest,
   SourceWarehouseLookupItemDto,
+  VarYokLookupItemDto,
   WarehouseLookupItemDto,
   WarehouseSearchHttpRequest
 } from '@interfaces';
@@ -175,6 +176,26 @@ export class AramaService extends BaseApiService {
     }
 
     return this.getWithQuery<ProductLookupItemDto[]>('arama-islemleri/fiyat-gor', {
+      warehouseNo,
+      barcode: filters.barcode,
+      stockCode: filters.stockCode,
+      stockName: filters.stockName,
+      take: Math.min(take, 100)
+    });
+  }
+
+  searchVarYok(
+    query: string,
+    warehouseNo?: number,
+    take: number = 20
+  ): Observable<VarYokLookupItemDto[]> {
+    const filters = this.buildProductSearchQuery(query);
+
+    if (!filters.barcode && !filters.stockCode && !filters.stockName) {
+      return of([]);
+    }
+
+    return this.getWithQuery<VarYokLookupItemDto[]>('arama-islemleri/var-yok', {
       warehouseNo,
       barcode: filters.barcode,
       stockCode: filters.stockCode,

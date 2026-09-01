@@ -43,6 +43,20 @@ export interface ProductLookupItemDto {
   isBarcodeCheckDigitValid: boolean | null;
 }
 
+export interface VarYokSearchHttpRequest {
+  warehouseNo?: number;
+  barcode?: string;
+  stockCode?: string;
+  stockName?: string;
+  take?: number;
+}
+
+export interface VarYokLookupItemDto extends ProductLookupItemDto {
+  warehouseName: string | null;
+  currentStockQuantity: number;
+  hasStock: boolean;
+}
+
 export interface BarcodeResolutionHttpRequest {
   warehouseNo?: number | null;
   operationType?: string | null;

@@ -46,6 +46,7 @@ const DOCS_TASK_ROUTE_PERMISSION_CODES: Readonly<Record<string, readonly string[
   yetkiler: ['kullanici-islemleri.yetkiler.manage'],
   'cari-bul': ['arama-islemleri.cari-bul.page'],
   'fiyat-gor': ['arama-islemleri.fiyat-gor.page'],
+  'var-yok': ['arama-islemleri.var-yok.page'],
   'green-grocer-reports': ['green-grocer.reports.page'],
   'green-grocer-product-case-profiles': ['green-grocer.product-case-profiles.manage'],
   'green-grocer-operations': ['green-grocer.operations.page'],

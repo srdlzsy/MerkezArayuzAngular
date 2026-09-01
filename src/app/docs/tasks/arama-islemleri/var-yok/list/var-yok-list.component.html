@@ -1,0 +1,114 @@
+<section class="lookup-page">
+  <header class="page-head">
+    <div>
+      <p class="eyebrow">Arama Islemleri</p>
+      <h2>Var Yok</h2>
+      <p class="subtitle">
+        Barkod, stok kodu veya urun adi ile depo stok durumunu hizli sorgula.
+      </p>
+    </div>
+
+    <div class="metric-stack">
+      <article class="metric-card">
+        <span>Sonuc</span>
+        <strong>{{ totalCount() }}</strong>
+      </article>
+      <article class="metric-card metric-stocked">
+        <span>Var</span>
+        <strong>{{ stockedCount() }}</strong>
+      </article>
+    </div>
+  </header>
+
+  <section class="query-panel" [class.no-warehouse-filter]="!canUseWarehouseScope()">
+    <label class="field field-main">
+      <span>Arama</span>
+      <input
+        type="search"
+        [(ngModel)]="searchQuery"
+        placeholder="Barkod, stok kodu veya urun adi"
+        (keydown.enter)="$event.preventDefault(); search()"
+      />
+    </label>
+
+    <label class="field field-small" *ngIf="canUseWarehouseScope()">
+      <span>Depo No</span>
+      <input type="number" min="1" step="1" [(ngModel)]="warehouseNo" placeholder="Depo" />
+    </label>
+
+    <label class="field field-small">
+      <span>Limit</span>
+      <input type="number" min="1" max="100" step="1" [(ngModel)]="take" />
+    </label>
+
+    <button type="button" class="primary-action" [disabled]="isLoading()" (click)="search()">
+      {{ isLoading() ? 'Araniyor...' : 'Ara' }}
+    </button>
+
+    <button type="button" class="ghost-action" (click)="clear()">Temizle</button>
+  </section>
+
+  <article class="feedback feedback-error" *ngIf="errorMessage()">
+    {{ errorMessage() }}
+  </article>
+
+  <article class="state-card" *ngIf="isLoading()">
+    <h3>Stok durumu sorgulaniyor</h3>
+    <p>Secilen kriterlerle var yok bilgisi getiriliyor.</p>
+  </article>
+
+  <section class="result-grid" *ngIf="!isLoading() && results().length">
+    <article class="product-card" *ngFor="let item of results(); trackBy: trackByProduct">
+      <div class="product-main">
+        <div>
+          <h3>{{ item.stockName || item.stockCode }}</h3>
+          <p>{{ item.stockCode }} / {{ item.barcode || '-' }}</p>
+        </div>
+
+        <div class="stock-state" [class.stock-state-empty]="!item.hasStock">
+          <span>{{ getStockStateLabel(item) }}</span>
+          <strong>{{ formatQuantity(item.currentStockQuantity) }} {{ item.unitName || '' }}</strong>
+        </div>
+      </div>
+
+      <div class="detail-grid">
+        <span>Depo: <strong>{{ item.warehouseName || item.warehouseNo || '-' }}</strong></span>
+        <span>Fiyat: <strong>{{ formatPrice(item.price) }} TL</strong></span>
+        <span>Birim: <strong>{{ item.unitName || '-' }}</strong></span>
+        <span>Fiyat Tipi: <strong>{{ item.priceTypeCode }}</strong></span>
+        <span *ngIf="hasPackInfo(item)">
+          Koli: <strong>{{ item.secondaryUnitName }} ici {{ item.secondaryUnitMultiplier }} {{ item.unitName || '' }}</strong>
+        </span>
+        <span *ngIf="item.productManagerCode">
+          Reyon: <strong>{{ item.productManagerCode }}</strong>
+        </span>
+      </div>
+
+      <div class="barcode-info-panel" *ngIf="hasBarcodeLookupInfo(item)">
+        <span *ngIf="item.requestedBarcode">
+          Okutulan: <strong>{{ item.requestedBarcode }}</strong>
+        </span>
+        <span *ngIf="item.lookupBarcode">
+          Aranan: <strong>{{ item.lookupBarcode }}</strong>
+        </span>
+        <span *ngIf="item.isVariableWeightBarcode">
+          Terazi: <strong>{{ formatQuantity(item.embeddedQuantity) }} {{ item.embeddedQuantityUnit || 'KG' }}</strong>
+        </span>
+        <span>
+          Kontrol: <strong>{{ formatCheckDigit(item.isBarcodeCheckDigitValid) }}</strong>
+        </span>
+      </div>
+
+      <div class="badge-row" *ngIf="getBlockedLabels(item).length">
+        <span class="danger-badge" *ngFor="let label of getBlockedLabels(item)">
+          {{ label }}
+        </span>
+      </div>
+    </article>
+  </section>
+
+  <article class="state-card" *ngIf="!isLoading() && hasSearched() && !results().length && !errorMessage()">
+    <h3>Kayit bulunamadi</h3>
+    <p>Arama ifadesini veya depo filtresini degistirip tekrar dene.</p>
+  </article>
+</section>
