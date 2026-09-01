@@ -1166,15 +1166,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     style.id = 'etiket-basim-print-shell';
     style.textContent = `
       @page {
-        size: 38.9mm 57.9mm;
+        size: 57.9mm 38.9mm;
         margin: 0;
       }
 
       @media print {
         html,
         body {
-          width: 38.9mm !important;
-          min-width: 38.9mm !important;
+          width: 57.9mm !important;
+          min-width: 57.9mm !important;
           height: auto !important;
           margin: 0 !important;
           padding: 0 !important;
@@ -1203,8 +1203,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           top: 0 !important;
           left: 0 !important;
           right: auto !important;
-          width: 38.9mm !important;
-          min-width: 38.9mm !important;
+          width: 57.9mm !important;
+          min-width: 57.9mm !important;
           margin: 0 !important;
           padding: 0 !important;
           display: flex !important;
@@ -1221,8 +1221,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
         }
 
         .print-label {
-          width: 38.9mm !important;
-          height: 57.9mm !important;
+          width: 57.9mm !important;
+          height: 38.9mm !important;
           margin: 0 !important;
           padding: 0 !important;
           overflow: hidden !important;
@@ -1234,8 +1234,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           width: 57.9mm !important;
           height: 38.9mm !important;
           box-sizing: border-box !important;
-          transform: rotate(90deg) translateY(-38.9mm) !important;
-          transform-origin: top left !important;
+          transform: none !important;
+          transform-origin: initial !important;
           writing-mode: horizontal-tb !important;
         }
 

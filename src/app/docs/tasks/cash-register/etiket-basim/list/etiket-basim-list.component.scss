@@ -1348,11 +1348,12 @@ input:disabled {
 }
 
 .print-label {
-  width: 38.9mm;
-  height: 57.9mm;
+  width: 57.9mm;
+  height: 38.9mm;
   box-sizing: border-box;
   padding: 0;
   overflow: hidden;
+  break-after: page;
   page-break-after: always;
 }
 
@@ -1361,21 +1362,56 @@ input:disabled {
   height: 38.9mm;
   box-sizing: border-box;
   padding: 2.1mm;
-  transform: rotate(90deg) translateY(-38.9mm);
-  transform-origin: top left;
+  display: grid;
+  grid-template-rows: auto auto auto minmax(12mm, 1fr) auto auto;
+  align-content: start;
+  gap: 0.7mm;
+  transform: none;
+  transform-origin: initial;
 }
 
 .print-label strong {
   font-size: 10pt;
+  font-weight: 800;
+  line-height: 1.05;
 }
 
 .print-label span,
 .print-label small {
   font-size: 7pt;
+  line-height: 1.05;
 }
 
 .print-label .barcode-svg {
+  justify-self: center;
+  align-self: center;
+  width: 42mm;
   min-height: 12mm;
+}
+
+.print-label .print-label-meta {
+  flex-wrap: nowrap;
+  gap: 1mm;
+  min-width: 0;
+  overflow: hidden;
+}
+
+.print-label .print-label-meta b {
+  min-width: 0;
+  border-radius: 2px;
+  font-size: 6.5pt;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.print-label small {
+  justify-self: center;
+}
+
+.print-label em {
+  justify-self: end;
+  font-size: 6.5pt;
+  line-height: 1;
 }
 
 @media (max-width: 1180px) {
