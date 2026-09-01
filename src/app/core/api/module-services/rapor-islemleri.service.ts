@@ -20,6 +20,8 @@ import type {
   NotSoldProductReportHttpRequest,
   NotSoldProductReportItemDto,
   ProducerStockOnHandHttpRequest,
+  ProductShipmentDistributionDto,
+  ProductShipmentDistributionHttpRequest,
   ProductWarehouseStockDto,
   ProductWarehouseStockByPathHttpRequest,
   ProductWarehouseStockHttpRequest,
@@ -267,6 +269,15 @@ export class RaporIslemleriService extends BaseApiService {
   ): Observable<ProductWarehouseStockDto[]> {
     return this.getStockReport<ProductWarehouseStockDto[], ProductWarehouseStockByPathHttpRequest>(
       `urun/${encodeURIComponent(stockCodeOrBarcode)}/depo-durum`,
+      request
+    );
+  }
+
+  getProductShipmentDistributionReport(
+    request: ProductShipmentDistributionHttpRequest
+  ): Observable<ProductShipmentDistributionDto[]> {
+    return this.getStockReport<ProductShipmentDistributionDto[], ProductShipmentDistributionHttpRequest>(
+      'urun-sevk-dagilimi',
       request
     );
   }

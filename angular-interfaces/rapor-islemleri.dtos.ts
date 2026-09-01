@@ -202,6 +202,13 @@ export interface ProductWarehouseStockHttpRequest {
 export interface ProductWarehouseStockByPathHttpRequest
   extends Omit<ProductWarehouseStockHttpRequest, 'stockCodeOrBarcode'> {}
 
+export interface ProductShipmentDistributionHttpRequest {
+  warehouseNo?: number | null;
+  shipmentDate: string;
+  stockCodeOrBarcode: string;
+  take?: number | null;
+}
+
 export interface ReportStockCardDetailHttpRequest {
   warehouseNo?: number | null;
   barcode?: string | null;
@@ -326,6 +333,30 @@ export interface ProductWarehouseStockDto {
   salesPrice?: number | null;
   salesValue?: number | null;
   lastMovementDate?: string | null;
+}
+
+export interface ProductShipmentDistributionDto {
+  sourceWarehouseNo?: number | null;
+  sourceWarehouseName?: string | null;
+  targetWarehouseNo?: number | null;
+  targetWarehouseName?: string | null;
+  warehouseNo?: number | null;
+  warehouseName?: string | null;
+  branchNo?: number | null;
+  branchName?: string | null;
+  stockCode?: string | null;
+  stockName?: string | null;
+  barcode?: string | null;
+  unitName?: string | null;
+  shipmentDate?: string | null;
+  shipmentQuantity?: number | null;
+  shippedQuantity?: number | null;
+  totalQuantity?: number | null;
+  quantity?: number | null;
+  lineCount?: number | null;
+  documentCount?: number | null;
+  salesPrice?: number | null;
+  salesValue?: number | null;
 }
 
 export interface StockCategoryOptionDto {

@@ -21,6 +21,8 @@ import type {
   NotSoldProductReportHttpRequest,
   NotSoldProductReportItemDto,
   ProducerStockOnHandHttpRequest,
+  ProductShipmentDistributionDto,
+  ProductShipmentDistributionHttpRequest,
   ProductWarehouseStockDto,
   ProductWarehouseStockByPathHttpRequest,
   ProductLookupItemDto,
@@ -68,6 +70,7 @@ type StockReportKey =
   | 'uretici-son-stok'
   | 'envanter-degeri'
   | 'urun-depo-durum'
+  | 'urun-sevk-dagilimi'
   | 'stok-kartlari'
   | 'depoda-var-subede-yok'
   | 'depo-sifir-stok'
@@ -355,6 +358,40 @@ const PRODUCT_WAREHOUSE_COLUMNS: readonly ApiListTableColumn<ProductWarehouseSto
   { key: 'lastMovementDate', label: 'Son Hareket', resolveValue: (row) => formatDateOnly(row.lastMovementDate) }
 ];
 
+const PRODUCT_SHIPMENT_DISTRIBUTION_COLUMNS: readonly ApiListTableColumn<ProductShipmentDistributionDto>[] = [
+  {
+    key: 'targetWarehouseName',
+    label: 'Hedef Depo',
+    resolveValue: (row) =>
+      formatWarehouse({
+        warehouseName: row.targetWarehouseName || row.warehouseName || row.branchName,
+        warehouseNo: row.targetWarehouseNo ?? row.warehouseNo ?? row.branchNo
+      })
+  },
+  {
+    key: 'sourceWarehouseName',
+    label: 'Kaynak',
+    resolveValue: (row) =>
+      formatWarehouse({
+        warehouseName: row.sourceWarehouseName,
+        warehouseNo: row.sourceWarehouseNo
+      })
+  },
+  { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
+  { key: 'barcode', label: 'Barkod' },
+  { key: 'unitName', label: 'Birim' },
+  {
+    key: 'shipmentQuantity',
+    label: 'Sevk Miktari',
+    resolveValue: (row) =>
+      formatNumber(row.shipmentQuantity ?? row.shippedQuantity ?? row.totalQuantity ?? row.quantity)
+  },
+  { key: 'documentCount', label: 'Belge', resolveValue: (row) => formatInteger(row.documentCount) },
+  { key: 'lineCount', label: 'Satir', resolveValue: (row) => formatInteger(row.lineCount) },
+  { key: 'salesValue', label: 'Deger', resolveValue: (row) => formatMoney(row.salesValue) },
+  { key: 'shipmentDate', label: 'Sevk Tarihi', resolveValue: (row) => formatDateOnly(row.shipmentDate) }
+];
+
 const STOCK_CARD_COLUMNS: readonly ApiListTableColumn<StockCardDetailDto>[] = [
   { key: 'stockCode', label: 'Stok Kodu' },
   { key: 'name', label: 'Stok Adi' },
@@ -577,6 +614,18 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
     primaryPlaceholder: '015550 veya barkod'
   },
   {
+    key: 'urun-sevk-dagilimi',
+    group: 'Depo',
+    label: 'Urun Sevk Dagilimi',
+    description: 'Tek urunun secili kaynak depodan hedef depolara sevk miktari.',
+    endpoint: '/api/rapor-islemleri/stok-raporlari/urun-sevk-dagilimi',
+    mode: 'snapshot',
+    columns: PRODUCT_SHIPMENT_DISTRIBUTION_COLUMNS,
+    requiresWarehouse: true,
+    primaryLabel: 'Stok Kodu / Barkod',
+    primaryPlaceholder: '023740 veya barkod'
+  },
+  {
     key: 'stok-kartlari',
     group: 'Kart',
     label: 'Stok Kartlari',
@@ -785,6 +834,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
       'son-stok',
       'envanter-degeri',
       'urun-depo-durum',
+      'urun-sevk-dagilimi',
       'stok-kartlari',
       'depoda-var-subede-yok',
       'hareketler',
@@ -1036,6 +1086,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
 
     switch (this.selectedReport()) {
       case 'urun-depo-durum':
+      case 'urun-sevk-dagilimi':
       case 'stok-kartlari':
       case 'hareketler':
       case 'iadeler-subeler':
@@ -1247,6 +1298,14 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
             this.buildProductWarehouseByPathRequest()
           )
           .pipe(map((rows: ProductWarehouseStockDto[]) => this.buildProductWarehouseResult(rows ?? [])));
+      case 'urun-sevk-dagilimi':
+        return this.raporIslemleriService
+          .getProductShipmentDistributionReport(this.buildProductShipmentDistributionRequest())
+          .pipe(
+            map((rows: ProductShipmentDistributionDto[]) =>
+              this.buildProductShipmentDistributionResult(rows ?? [])
+            )
+          );
       case 'stok-kartlari':
         return this.raporIslemleriService
           .searchReportStockCards(this.buildStockCardRequest())
@@ -1330,6 +1389,36 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
         { label: 'Satis Degeri', value: formatMoney(sumBy(rows, (row) => row.salesValue)) },
         { label: 'Kayit', value: formatInteger(rows.length) }
       ]
+    };
+  }
+
+  private buildProductShipmentDistributionResult(
+    rows: readonly ProductShipmentDistributionDto[]
+  ): StockReportLoadResult {
+    return {
+      rows,
+      metrics: [
+        {
+          label: 'Hedef Depo',
+          value: formatInteger(
+            new Set(
+              rows.map((row) => row.targetWarehouseNo ?? row.warehouseNo ?? row.branchNo)
+            ).size
+          )
+        },
+        {
+          label: 'Sevk Miktari',
+          value: formatNumber(
+            sumBy(
+              rows,
+              (row) => row.shipmentQuantity ?? row.shippedQuantity ?? row.totalQuantity ?? row.quantity
+            )
+          )
+        },
+        { label: 'Belge', value: formatInteger(sumBy(rows, (row) => row.documentCount)) },
+        { label: 'Satir', value: formatInteger(sumBy(rows, (row) => row.lineCount)) }
+      ],
+      note: 'Secili kaynak depodan secili tarihte hedef depolara kesilen urun sevk dagilimi.'
     };
   }
 
@@ -1505,6 +1594,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
   private applyProductToCurrentReport(stockCode: string): void {
     switch (this.selectedReport()) {
       case 'urun-depo-durum':
+      case 'urun-sevk-dagilimi':
       case 'stok-kartlari':
       case 'hareketler':
       case 'iadeler-subeler':
@@ -1586,6 +1676,15 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
       warehouseNo: this.resolveWarehouseNo(),
       reportDate: this.reportDate() || null,
       onlyWithStock: this.onlyWithStock(),
+      take: this.take()
+    };
+  }
+
+  private buildProductShipmentDistributionRequest(): ProductShipmentDistributionHttpRequest {
+    return {
+      warehouseNo: this.resolveWarehouseNo(),
+      shipmentDate: this.reportDate(),
+      stockCodeOrBarcode: this.primaryCode().trim(),
       take: this.take()
     };
   }
@@ -1697,6 +1796,15 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     switch (this.selectedReport()) {
       case 'depoda-var-subede-yok':
         return this.buildWarehouseMissingRequest();
+      case 'urun-sevk-dagilimi':
+        return this.primaryCode().trim()
+          ? this.buildProductShipmentDistributionRequest()
+          : {
+              warehouseNo: this.resolveWarehouseNo(),
+              shipmentDate: this.reportDate(),
+              stockCodeOrBarcode: 'STOK_KODU_VEYA_BARKOD',
+              take: this.take()
+            };
       case 'sayim-karsilastirma':
         return this.buildCountingRequest();
       case 'hareketler':
@@ -1788,9 +1896,13 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     }
 
     if (
-      ['tedarikci-son-stok', 'uretici-son-stok', 'urun-depo-durum', 'iadeler-subeler'].includes(
-        this.selectedReport()
-      ) &&
+      [
+        'tedarikci-son-stok',
+        'uretici-son-stok',
+        'urun-depo-durum',
+        'urun-sevk-dagilimi',
+        'iadeler-subeler'
+      ].includes(this.selectedReport()) &&
       !this.primaryCode().trim()
     ) {
       this.failValidation(`${this.primaryLabel()} zorunludur.`);
