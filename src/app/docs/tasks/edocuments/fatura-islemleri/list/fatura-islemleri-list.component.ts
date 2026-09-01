@@ -680,6 +680,10 @@ export class FaturaIslemleriListComponent {
             item.sentDocumentNo,
             item.description,
             `${item.sourceLineCount ?? ''}`,
+            `${this.getSendingGrossTotal(item)}`,
+            `${this.getSendingDiscountTotal(item)}`,
+            `${this.getSendingLineExtensionTotal(item)}`,
+            `${this.getSendingTaxTotal(item)}`,
             `${item.payableTotal}`
           ].some((value) => this.normalizeText(value).includes(filter))
         );
@@ -2235,6 +2239,42 @@ export class FaturaIslemleriListComponent {
     return `${count} satir`;
   }
 
+  protected getSendingGrossTotal(item: InvoiceSendingListItemDto): number {
+    const grossTotal = this.toFiniteNumber(item.grossTotal);
+
+    if (grossTotal !== null) {
+      return grossTotal;
+    }
+
+    return this.getSendingLineExtensionTotal(item) + this.getSendingDiscountTotal(item);
+  }
+
+  protected getSendingDiscountTotal(item: InvoiceSendingListItemDto): number {
+    return this.toFiniteNumber(item.discountTotal) ?? 0;
+  }
+
+  protected getSendingLineExtensionTotal(item: InvoiceSendingListItemDto): number {
+    return this.toFiniteNumber(item.lineExtensionTotal) ?? 0;
+  }
+
+  protected getSendingTaxTotal(item: InvoiceSendingListItemDto): number {
+    return this.toFiniteNumber(item.taxTotal) ?? 0;
+  }
+
+  protected getSendingPayableTotal(item: InvoiceSendingListItemDto): number {
+    const payableTotal = this.toFiniteNumber(item.payableTotal);
+
+    if (payableTotal !== null) {
+      return payableTotal;
+    }
+
+    return (
+      this.getSendingLineExtensionTotal(item) +
+      this.getSendingTaxTotal(item) +
+      (this.toFiniteNumber(item.chargeTotal) ?? 0)
+    );
+  }
+
   protected getSendingDetailOnlyLabel(value: string | null | undefined): string {
     return value?.trim() || 'Detayda kontrol';
   }
@@ -3353,7 +3393,7 @@ export class FaturaIslemleriListComponent {
       case 'returnReference':
         return this.isReturnInvoice(item) ? this.getReturnReferenceLabel(item) : '';
       case 'payableTotal':
-        return item.payableTotal;
+        return this.getSendingPayableTotal(item);
     }
   }
 
@@ -3397,6 +3437,10 @@ export class FaturaIslemleriListComponent {
     const parsedValue = Number(rawValue.replace(',', '.'));
 
     return Number.isFinite(parsedValue) ? parsedValue : null;
+  }
+
+  private toFiniteNumber(value: unknown): number | null {
+    return typeof value === 'number' && Number.isFinite(value) ? value : null;
   }
 
   private buildSendingKey(documentSerie: string, documentOrderNo: number): string {

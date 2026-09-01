@@ -203,6 +203,8 @@ export interface IInvoiceSendingListItemApiDto {
   invoiceProfileId: string | null;
   invoiceTypeCode: string | null;
   scenario: IInvoiceSendingScenarioValueApiDto;
+  grossTotal?: number | null;
+  discountTotal?: number | null;
   lineExtensionTotal: number;
   taxTotal: number;
   chargeTotal: number;

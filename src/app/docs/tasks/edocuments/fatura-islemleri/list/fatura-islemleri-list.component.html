@@ -998,7 +998,11 @@
                       <ng-template #noReturnReference>-</ng-template>
                     </td>
                     <td class="amount-column">
-                      <strong>{{ item.payableTotal | number: '1.2-2' }} TL</strong>
+                      <strong>{{ getSendingPayableTotal(item) | number: '1.2-2' }} TL</strong>
+                      <small>
+                        Net {{ getSendingLineExtensionTotal(item) | number: '1.2-2' }} /
+                        KDV {{ getSendingTaxTotal(item) | number: '1.2-2' }}
+                      </small>
                     </td>
                     <td>
                       <div class="table-actions">
@@ -1218,8 +1222,24 @@
 
             <section class="summary-grid">
               <article class="summary-card">
-                <span>Toplam</span>
-                <strong>{{ summary.payableTotal | number: '1.2-2' }} TL</strong>
+                <span>Brut</span>
+                <strong>{{ getSendingGrossTotal(summary) | number: '1.2-2' }} TL</strong>
+              </article>
+              <article class="summary-card">
+                <span>Iskonto</span>
+                <strong>{{ getSendingDiscountTotal(summary) | number: '1.2-2' }} TL</strong>
+              </article>
+              <article class="summary-card">
+                <span>Net Matrah</span>
+                <strong>{{ getSendingLineExtensionTotal(summary) | number: '1.2-2' }} TL</strong>
+              </article>
+              <article class="summary-card">
+                <span>KDV</span>
+                <strong>{{ getSendingTaxTotal(summary) | number: '1.2-2' }} TL</strong>
+              </article>
+              <article class="summary-card">
+                <span>Genel Toplam</span>
+                <strong>{{ getSendingPayableTotal(summary) | number: '1.2-2' }} TL</strong>
               </article>
               <article class="summary-card">
                 <span>Hedef Alias</span>
