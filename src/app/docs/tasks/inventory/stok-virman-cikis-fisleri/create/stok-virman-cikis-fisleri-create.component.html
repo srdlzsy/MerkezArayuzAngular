@@ -99,7 +99,7 @@
 
             <label class="field compact-field">
               <span>Miktar</span>
-              <input type="number" min="0.001" step="0.001" [formControl]="outgoingQuantity" />
+              <input type="number" min="0.001" step="1" [formControl]="outgoingQuantity" />
             </label>
           </div>
 
@@ -140,7 +140,7 @@
 
             <label class="field compact-field">
               <span>Miktar</span>
-              <input type="number" min="0.001" step="0.001" [formControl]="incomingQuantity" />
+              <input type="number" min="0.001" step="1" [formControl]="incomingQuantity" />
             </label>
           </div>
         </div>
@@ -188,7 +188,7 @@
             <span class="movement-pill">{{ getMovementLabel(line.controls.movementType.value) }}</span>
             <input class="table-input" type="text" formControlName="stockCode" />
             <input class="table-input" type="text" formControlName="stockName" />
-            <input class="table-input quantity-input" type="number" min="0.001" step="0.001" formControlName="quantity" />
+            <input class="table-input quantity-input" type="number" min="0.001" step="1" formControlName="quantity" />
             <button type="button" class="remove-btn" (click)="removeLine(i)">Sil</button>
 
             <details class="line-advanced">
