@@ -252,6 +252,7 @@
         class="count-card"
         *ngFor="let card of summaryCards(); trackBy: trackByCardId"
         [ngClass]="'tone-' + card.tone"
+        [class.count-card-active]="activePanel() === card.id"
         (click)="openPanel(card.id)"
       >
         <span class="card-title">{{ card.title }}</span>

@@ -205,7 +205,7 @@ export interface ProductWarehouseStockByPathHttpRequest
 export interface ProductShipmentDistributionHttpRequest {
   warehouseNo?: number | null;
   shipmentDate: string;
-  stockCodeOrBarcode: string;
+  stockCodeOrBarcode?: string | null;
   take?: number | null;
 }
 

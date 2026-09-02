@@ -465,21 +465,24 @@
 
 .count-board {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(188px, 1fr));
-  gap: 0.55rem;
+  grid-template-columns: repeat(auto-fit, minmax(210px, 1fr));
+  gap: 0.7rem;
   margin-top: 0.15rem;
 }
 
 .count-card {
   position: relative;
   display: grid;
-  min-height: 108px;
-  gap: 0.42rem;
-  padding: 0.76rem 0.82rem;
+  min-height: 116px;
+  gap: 0.5rem;
+  padding: 0.88rem 0.95rem 0.88rem 1rem;
   overflow: hidden;
   text-align: left;
+  border-color: #cbd5e1;
+  border-left: 5px solid var(--card-accent, #0f766e);
   border-radius: 8px;
-  box-shadow: none;
+  background: #fff;
+  box-shadow: 0 1px 2px rgba(15, 23, 42, 0.04);
 }
 
 button.count-card {
@@ -487,8 +490,9 @@ button.count-card {
 }
 
 button.count-card:hover {
-  transform: translateY(-2px);
-  box-shadow: 0 10px 22px rgba(15, 23, 42, 0.09);
+  transform: translateY(-1px);
+  border-color: #94a3b8;
+  box-shadow: 0 8px 18px rgba(15, 23, 42, 0.08);
 }
 
 button.count-card:focus-visible {
@@ -496,24 +500,24 @@ button.count-card:focus-visible {
   outline-offset: 2px;
 }
 
-.count-card::before {
-  content: '';
-  position: absolute;
-  inset: 0;
-  width: 5px;
-  background: var(--card-accent, #0f766e);
+.count-card-active {
+  border-color: #0f766e;
+  background: #f8fffd;
+  box-shadow: 0 0 0 3px rgba(15, 118, 110, 0.12);
 }
 
 .card-title {
   color: #0f172a;
-  font-size: 0.92rem;
-  font-weight: 800;
+  font-size: 1rem;
+  font-weight: 850;
+  line-height: 1.2;
 }
 
 .card-description {
-  color: #607086;
-  font-size: 0.76rem;
-  line-height: 1.25;
+  color: #475569;
+  font-size: 0.84rem;
+  font-weight: 650;
+  line-height: 1.32;
 }
 
 .card-metrics {
@@ -526,49 +530,43 @@ button.count-card:focus-visible {
 
 .card-metrics span {
   color: #475569;
-  font-size: 0.78rem;
-  font-weight: 700;
+  font-size: 0.84rem;
+  font-weight: 750;
 }
 
 .card-metrics strong {
   color: #0f172a;
-  font-size: 0.94rem;
+  font-size: 1.08rem;
+  font-weight: 850;
   white-space: nowrap;
 }
 
 .tone-cash {
   --card-accent: #16a34a;
-  background: #f0fdf4;
 }
 
 .tone-card {
   --card-accent: #2563eb;
-  background: #eff6ff;
 }
 
 .tone-food {
   --card-accent: #059669;
-  background: #ecfdf5;
 }
 
 .tone-expense {
   --card-accent: #0f766e;
-  background: #f0fdfa;
 }
 
 .tone-voucher {
   --card-accent: #7c3aed;
-  background: #f5f3ff;
 }
 
 .tone-gift {
   --card-accent: #d97706;
-  background: #fffbeb;
 }
 
 .tone-deferred {
   --card-accent: #0284c7;
-  background: #f0f9ff;
 }
 
 .total-card {
@@ -596,12 +594,13 @@ button.count-card:focus-visible {
   overflow: hidden;
   transform: translate(-50%, -50%);
   border-radius: 10px;
+  box-shadow: 0 24px 60px rgba(15, 23, 42, 0.24);
 }
 
 .drawer-head,
 .drawer-summary,
 .drawer-footer {
-  padding: 0.66rem 0.78rem;
+  padding: 0.78rem 0.92rem;
 }
 
 .drawer-head {
@@ -613,7 +612,8 @@ button.count-card:focus-visible {
 }
 
 .drawer-head h3 {
-  font-size: 1.12rem;
+  font-size: 1.18rem;
+  line-height: 1.2;
 }
 
 .drawer-summary {
@@ -627,14 +627,15 @@ button.count-card:focus-visible {
 
 .drawer-summary strong {
   margin-top: 0;
-  font-size: 1.08rem;
+  font-size: 1.22rem;
+  font-weight: 850;
 }
 
 .drawer-body {
   display: grid;
-  gap: 0.55rem;
+  gap: 0.7rem;
   min-height: 0;
-  padding: 0.62rem 0.7rem;
+  padding: 0.78rem 0.92rem;
   overflow: auto;
   overscroll-behavior: contain;
 }
@@ -645,18 +646,18 @@ button.count-card:focus-visible {
 
 .editor-list {
   display: grid;
-  gap: 0.42rem;
+  gap: 0.55rem;
 }
 
 .editor-row {
   display: grid;
   grid-template-columns: repeat(4, minmax(0, 1fr)) auto;
-  gap: 0.42rem;
+  gap: 0.55rem;
   align-items: end;
-  padding: 0.42rem;
-  border: 1px solid #e2e8f0;
+  padding: 0.62rem;
+  border: 1px solid #dbe3ee;
   border-radius: 8px;
-  background: #fff;
+  background: #fbfdff;
 }
 
 .payment-row {
@@ -677,19 +678,23 @@ button.count-card:focus-visible {
 }
 
 .drawer-body .field {
-  gap: 0.16rem;
+  gap: 0.22rem;
 }
 
 .drawer-body .field span {
-  font-size: 0.52rem;
+  color: #475569;
+  font-size: 0.62rem;
+  letter-spacing: 0.04em;
 }
 
 .drawer-body .field input,
 .drawer-body .field select {
-  min-height: 30px;
-  border-radius: 7px;
-  padding: 0.28rem 0.44rem;
-  font-size: 0.78rem;
+  min-height: 38px;
+  border-color: #cbd5e1;
+  border-radius: 8px;
+  padding: 0.42rem 0.56rem;
+  font-size: 0.9rem;
+  font-weight: 650;
 }
 
 .drawer-body .compact-field input {
@@ -697,12 +702,12 @@ button.count-card:focus-visible {
 }
 
 .row-remove {
-  min-height: 30px;
+  min-height: 38px;
   border-radius: 8px;
-  padding: 0.42rem 0.56rem;
+  padding: 0.46rem 0.66rem;
   color: #b91c1c;
   background: #fef2f2;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
 }
 
 .empty-state {

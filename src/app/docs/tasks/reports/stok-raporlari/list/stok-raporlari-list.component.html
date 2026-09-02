@@ -182,11 +182,11 @@
         </label>
 
         <div class="field product-lookup-field" *ngIf="usesProductLookup()">
-          <span>Stok Ara</span>
+          <span>{{ productLookupLabel() }}</span>
           <div class="input-with-action product-search-box">
             <input
               type="search"
-              placeholder="Barkod, stok kodu veya ad"
+              [placeholder]="productLookupPlaceholder()"
               [value]="productSearchText()"
               (input)="updateProductSearch($any($event.target).value ?? '')"
               (keyup.enter)="applyFirstProductSearchResult()"
@@ -204,7 +204,7 @@
               type="button"
               class="icon-action"
               title="Stok filtresini temizle"
-              *ngIf="productSearchText() || productSearchResults().length || searchText()"
+              *ngIf="productSearchText() || productSearchResults().length || primaryCode() || searchText()"
               (click)="clearProductFilter()"
             >
               <i class="fa-solid fa-xmark"></i>
@@ -369,8 +369,15 @@
     </div>
 
     <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
-      <h3>Kayit Bulunamadi</h3>
-      <p>Secilen rapor ve filtreler icin kayit donmedi.</p>
+      <ng-container *ngIf="hasLoadedRows(); else reportReadyState">
+        <h3>Kayit Bulunamadi</h3>
+        <p>Secilen rapor ve filtreler icin kayit donmedi.</p>
+      </ng-container>
+
+      <ng-template #reportReadyState>
+        <h3>Rapor Hazir</h3>
+        <p>Filtreleri secip Raporu Getir butonuyla listeyi yukleyin.</p>
+      </ng-template>
     </article>
 
     <p class="result-note" *ngIf="resultNote() as note">{{ note }}</p>

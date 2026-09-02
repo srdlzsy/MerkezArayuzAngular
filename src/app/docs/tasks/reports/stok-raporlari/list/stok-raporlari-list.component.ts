@@ -4,7 +4,6 @@ import {
   Component,
   DestroyRef,
   OnDestroy,
-  OnInit,
   computed,
   inject,
   signal
@@ -617,13 +616,13 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
     key: 'urun-sevk-dagilimi',
     group: 'Depo',
     label: 'Urun Sevk Dagilimi',
-    description: 'Tek urunun secili kaynak depodan hedef depolara sevk miktari.',
+    description: 'Secili kaynak deponun urun veya hedef depo bazli sevk dagilimi.',
     endpoint: '/api/rapor-islemleri/stok-raporlari/urun-sevk-dagilimi',
     mode: 'snapshot',
     columns: PRODUCT_SHIPMENT_DISTRIBUTION_COLUMNS,
     requiresWarehouse: true,
-    primaryLabel: 'Stok Kodu / Barkod',
-    primaryPlaceholder: '023740 veya barkod'
+    primaryLabel: 'Stok Kodu / Barkod (Opsiyonel)',
+    primaryPlaceholder: 'Bos birakilirsa tum urunler'
   },
   {
     key: 'stok-kartlari',
@@ -748,7 +747,7 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
   styleUrl: './stok-raporlari-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
 })
-export class StokRaporlariListComponent implements OnInit, OnDestroy {
+export class StokRaporlariListComponent implements OnDestroy {
   protected readonly page: DocsContentPage = DOCS_PAGES['stok-raporlari'];
   protected readonly reportDefinitions = REPORT_DEFINITIONS;
   protected readonly filterTypes = FILTER_TYPES;
@@ -783,6 +782,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
   protected readonly isLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly lastLoadedAt = signal<string | null>(null);
+  protected readonly hasLoadedRows = signal(false);
   protected readonly resultNote = signal<string | null>(null);
 
   private readonly destroyRef = inject(DestroyRef);
@@ -849,6 +849,14 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
   protected readonly primaryPlaceholder = computed(
     () => this.selectedDefinition().primaryPlaceholder ?? 'Kod veya filtre'
   );
+  protected readonly productLookupLabel = computed(() =>
+    this.selectedReport() === 'urun-sevk-dagilimi' ? 'Urun Ara (Opsiyonel)' : 'Stok Ara'
+  );
+  protected readonly productLookupPlaceholder = computed(() =>
+    this.selectedReport() === 'urun-sevk-dagilimi'
+      ? 'Bos birak: tum urunler, yaz: urun ara'
+      : 'Barkod, stok kodu veya ad'
+  );
   protected readonly selectedDateLabel = computed(() => {
     if (this.usesDateRange()) {
       return `${this.startDate() || 'YYYY-MM-DD'} - ${this.endDate() || 'YYYY-MM-DD'}`;
@@ -896,11 +904,6 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     return queryText ? `${endpoint}?${queryText}` : endpoint;
   });
 
-  ngOnInit(): void {
-    this.loadCategoryOptions();
-    this.loadRows();
-  }
-
   ngOnDestroy(): void {
     if (this.productSearchTimer) {
       clearTimeout(this.productSearchTimer);
@@ -922,16 +925,8 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
       this.primaryCode.set(this.categoryCode().trim());
     }
 
-    this.rows.set([]);
-    this.metrics.set([]);
-    this.resultNote.set(null);
+    this.clearLoadedResult();
     this.clearProductSearchState();
-
-    if (this.usesCategoryOptions()) {
-      this.loadCategoryOptions();
-    }
-
-    this.loadRows();
   }
 
   protected selectScope(scope: StockReportScope): void {
@@ -940,38 +935,42 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     }
 
     this.scope.set(scope);
-
-    if (scope !== 'manual' || this.getManualWarehouseNo()) {
-      this.loadRows();
-    }
+    this.clearLoadedResult();
   }
 
   protected updateStartDate(value: string): void {
     this.startDate.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateEndDate(value: string): void {
     this.endDate.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateReportDate(value: string): void {
     this.reportDate.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateCountDate(value: string): void {
     this.countDate.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateManualWarehouseNo(value: string): void {
     this.manualWarehouseNo.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateSourceWarehouseNo(value: string): void {
     this.sourceWarehouseNo.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateTargetWarehouseNo(value: string): void {
     this.targetWarehouseNo.set(value);
+    this.clearLoadedResult();
   }
 
   protected updatePrimaryCode(value: string): void {
@@ -980,6 +979,8 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     if (this.selectedReport() === 'kategori-son-stok') {
       this.categoryCode.set(value);
     }
+
+    this.clearLoadedResult();
   }
 
   protected updateCategoryCode(value: string): void {
@@ -988,6 +989,8 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     if (this.selectedReport() === 'kategori-son-stok') {
       this.primaryCode.set(value);
     }
+
+    this.clearLoadedResult();
   }
 
   protected clearCategoryCode(): void {
@@ -997,11 +1000,12 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
       this.primaryCode.set('');
     }
 
-    this.loadRows();
+    this.clearLoadedResult();
   }
 
   protected updateSearchText(value: string): void {
     this.searchText.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateProductSearch(value: string): void {
@@ -1073,7 +1077,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     this.productSearchResults.set([]);
     this.productSearchMessage.set(null);
     this.applyProductToCurrentReport(stockCode);
-    this.loadRows();
+    this.clearLoadedResult();
   }
 
   protected clearProductFilter(): void {
@@ -1109,34 +1113,42 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
         this.searchText.set('');
         break;
     }
+
+    this.clearLoadedResult();
   }
 
   protected updateModelCode(value: string): void {
     this.modelCode.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateFilterType(value: string): void {
     if (FILTER_TYPES.some((option) => option.value === value)) {
       this.filterType.set(value as (typeof FILTER_TYPES)[number]['value']);
+      this.clearLoadedResult();
     }
   }
 
   protected updateProfitScope(value: string): void {
     if (PROFIT_SCOPES.some((option) => option.value === value)) {
       this.profitScope.set(value as (typeof PROFIT_SCOPES)[number]['value']);
+      this.clearLoadedResult();
     }
   }
 
   protected updateOnlyWithStock(value: boolean): void {
     this.onlyWithStock.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateIncludeDls(value: boolean): void {
     this.includeDls.set(value);
+    this.clearLoadedResult();
   }
 
   protected updateTake(value: string | number): void {
     this.take.set(this.toLimitedNumber(value, 1, 1000, 250));
+    this.clearLoadedResult();
   }
 
   protected loadCategoryOptions(): void {
@@ -1184,6 +1196,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     this.isLoading.set(true);
     this.errorMessage.set(null);
     this.resultNote.set(null);
+    this.hasLoadedRows.set(true);
 
     this.fetchSelectedReport()
       .pipe(
@@ -1212,6 +1225,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
 
           this.rows.set([]);
           this.metrics.set([]);
+          this.resultNote.set(null);
           this.errorMessage.set(getErrorMessage(error, `${this.selectedDefinition().label} raporu yuklenemedi.`));
         }
       });
@@ -1398,6 +1412,16 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     return {
       rows,
       metrics: [
+        {
+          label: 'Stok',
+          value: formatInteger(
+            new Set(
+              rows
+                .map((row) => row.stockCode?.trim())
+                .filter((value): value is string => Boolean(value))
+            ).size
+          )
+        },
         {
           label: 'Hedef Depo',
           value: formatInteger(
@@ -1684,7 +1708,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     return {
       warehouseNo: this.resolveWarehouseNo(),
       shipmentDate: this.reportDate(),
-      stockCodeOrBarcode: this.primaryCode().trim(),
+      stockCodeOrBarcode: this.primaryCode().trim() || null,
       take: this.take()
     };
   }
@@ -1797,14 +1821,7 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
       case 'depoda-var-subede-yok':
         return this.buildWarehouseMissingRequest();
       case 'urun-sevk-dagilimi':
-        return this.primaryCode().trim()
-          ? this.buildProductShipmentDistributionRequest()
-          : {
-              warehouseNo: this.resolveWarehouseNo(),
-              shipmentDate: this.reportDate(),
-              stockCodeOrBarcode: 'STOK_KODU_VEYA_BARKOD',
-              take: this.take()
-            };
+        return this.buildProductShipmentDistributionRequest();
       case 'sayim-karsilastirma':
         return this.buildCountingRequest();
       case 'hareketler':
@@ -1900,7 +1917,6 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
         'tedarikci-son-stok',
         'uretici-son-stok',
         'urun-depo-durum',
-        'urun-sevk-dagilimi',
         'iadeler-subeler'
       ].includes(this.selectedReport()) &&
       !this.primaryCode().trim()
@@ -1926,7 +1942,20 @@ export class StokRaporlariListComponent implements OnInit, OnDestroy {
     this.rows.set([]);
     this.metrics.set([]);
     this.resultNote.set(null);
+    this.lastLoadedAt.set(null);
+    this.hasLoadedRows.set(false);
     this.errorMessage.set(message);
+  }
+
+  private clearLoadedResult(): void {
+    this.activeRequestId++;
+    this.rows.set([]);
+    this.metrics.set([]);
+    this.resultNote.set(null);
+    this.errorMessage.set(null);
+    this.lastLoadedAt.set(null);
+    this.hasLoadedRows.set(false);
+    this.isLoading.set(false);
   }
 
   private resolveWarehouseNo(): number | undefined {
