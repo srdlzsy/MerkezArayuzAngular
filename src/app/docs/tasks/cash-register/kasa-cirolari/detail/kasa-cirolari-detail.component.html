@@ -22,7 +22,12 @@
 
       <article class="hero-metric">
         <span>Satis Tutari</span>
-        <strong>{{ currentHeader.totalSalesAmount | number:'1.2-2' }} TL</strong>
+        <strong>{{ (currentHeader.grossSalesTotal ?? currentHeader.totalSalesAmount) | number:'1.2-2' }} TL</strong>
+      </article>
+
+      <article class="hero-metric">
+        <span>Mutabakat</span>
+        <strong>{{ (currentHeader.comparisonTotal ?? currentHeader.totalCollectionAmount) | number:'1.2-2' }} TL</strong>
       </article>
 
       <article class="hero-metric">
@@ -52,6 +57,11 @@
     <article class="state-card state-card-error" *ngIf="excelExportErrorMessage() as exportError">
       <h3>Excel Aktarimi Basarisiz</h3>
       <p>{{ exportError }}</p>
+    </article>
+
+    <article class="state-card state-card-warning" *ngIf="header()?.paymentDataMissing">
+      <h3>Odeme verisi eksik</h3>
+      <p>Bu vardiyada satis var ama yeni kasa odeme satiri bulunamadi. Farki ciro eksigi gibi yorumlamayin.</p>
     </article>
 
     <ng-container *ngIf="header() as currentHeader">
@@ -91,6 +101,18 @@
           <article class="summary-card">
             <h3>Tahsilat</h3>
             <p>{{ currentHeader.totalCollectionAmount | number:'1.2-2' }} TL</p>
+          </article>
+          <article class="summary-card">
+            <h3>Brut Satis</h3>
+            <p>{{ (currentHeader.grossSalesTotal ?? currentHeader.totalSalesAmount) | number:'1.2-2' }} TL</p>
+          </article>
+          <article class="summary-card">
+            <h3>Mutabakat</h3>
+            <p>{{ (currentHeader.comparisonTotal ?? currentHeader.totalCollectionAmount) | number:'1.2-2' }} TL</p>
+          </article>
+          <article class="summary-card" *ngIf="currentHeader.futuresSalesTotal">
+            <h3>Veresiye</h3>
+            <p>{{ currentHeader.futuresSalesTotal | number:'1.2-2' }} TL</p>
           </article>
         </section>
       </section>

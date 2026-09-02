@@ -304,10 +304,13 @@ export class KasaCirolariDetailComponent
       { label: 'Vardiya', value: 'shiftNo', type: 'number' },
       { label: 'Urun Satiri', value: 'productLineCount', type: 'number' },
       { label: 'Satis Miktari', value: 'totalSalesQuantity', type: 'number' },
-      { label: 'Satis Tutari', value: 'totalSalesAmount', type: 'currency' },
+      { label: 'Satis Tutari', value: (row) => row.grossSalesTotal ?? row.totalSalesAmount, type: 'currency' },
+      { label: 'Mutabakat', value: (row) => row.comparisonTotal ?? row.totalCollectionAmount, type: 'currency' },
+      { label: 'Veresiye', value: (row) => row.futuresSalesTotal ?? 0, type: 'currency' },
       { label: 'Tahsilat', value: 'totalCollectionAmount', type: 'currency' },
       { label: 'Komisyon', value: 'totalCustomerCommission', type: 'currency' },
-      { label: 'Net Tahsilat', value: 'netCollectionAmount', type: 'currency' }
+      { label: 'Net Tahsilat', value: 'netCollectionAmount', type: 'currency' },
+      { label: 'Odeme Verisi Eksik', value: (row) => row.paymentDataMissing ? 'Evet' : 'Hayir' }
     ];
   }
 

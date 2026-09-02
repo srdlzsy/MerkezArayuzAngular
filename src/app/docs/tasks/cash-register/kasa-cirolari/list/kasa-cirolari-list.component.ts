@@ -61,6 +61,22 @@ function buildWarehouseLabel(row: CashTurnoverListItemDto): string {
   return Number.isFinite(row.warehouseNo) ? String(row.warehouseNo) : '';
 }
 
+function getCashTurnoverGrossSalesTotal(row: CashTurnoverListItemDto): number {
+  return row.grossSalesTotal ?? row.totalSalesAmount;
+}
+
+function getCashTurnoverComparisonTotal(row: CashTurnoverListItemDto): number {
+  return row.comparisonTotal ?? row.totalCollectionAmount;
+}
+
+function getBranchGrossSalesTotal(row: CashTurnoverOverviewBranchDto): number {
+  return row.grossSalesTotal ?? row.overallTotal;
+}
+
+function getBranchComparisonTotal(row: CashTurnoverOverviewBranchDto): number {
+  return row.comparisonTotal ?? row.collectionTotal ?? row.overallTotal;
+}
+
 function getCashTurnoverSourceLabel(
   source: CashTurnoverSource | CashTurnoverRouteSource | null | undefined
 ): string {
@@ -114,8 +130,13 @@ const CASH_TURNOVER_LIST_COLUMNS: readonly ApiListTableColumn<CashTurnoverListIt
   },
   {
     key: 'totalSalesAmount',
-    label: 'Satis Tutari',
-    resolveValue: (row) => toFixedNumber(row.totalSalesAmount, 2)
+    label: 'Brut Satis',
+    resolveValue: (row) => toFixedNumber(getCashTurnoverGrossSalesTotal(row), 2)
+  },
+  {
+    key: 'comparisonTotal',
+    label: 'Mutabakat',
+    resolveValue: (row) => toFixedNumber(getCashTurnoverComparisonTotal(row), 2)
   },
   {
     key: 'paymentLineCount',
@@ -125,6 +146,11 @@ const CASH_TURNOVER_LIST_COLUMNS: readonly ApiListTableColumn<CashTurnoverListIt
     key: 'netCollectionAmount',
     label: 'Net Tahsilat',
     resolveValue: (row) => toFixedNumber(row.netCollectionAmount, 2)
+  },
+  {
+    key: 'paymentDataMissing',
+    label: 'Odeme Verisi',
+    resolveValue: (row) => row.paymentDataMissing ? 'Eksik' : 'Tam'
   }
 ];
 
@@ -180,7 +206,13 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
     this.rows().reduce((total, row) => total + this.toSafeNumber(row.netCollectionAmount), 0)
   );
   protected readonly totalSalesAmount = computed(() =>
-    this.rows().reduce((total, row) => total + this.toSafeNumber(row.totalSalesAmount), 0)
+    this.rows().reduce((total, row) => total + this.toSafeNumber(getCashTurnoverGrossSalesTotal(row)), 0)
+  );
+  protected readonly totalComparisonAmount = computed(() =>
+    this.rows().reduce((total, row) => total + this.toSafeNumber(getCashTurnoverComparisonTotal(row)), 0)
+  );
+  protected readonly paymentDataMissingCount = computed(() =>
+    this.rows().filter((row) => row.paymentDataMissing).length
   );
   protected readonly averageNetCollection = computed(() => {
     const totalCount = this.totalCount();
@@ -214,27 +246,29 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   );
   protected readonly branchOverviewRows = computed(() =>
     [...(this.overview()?.subeCirolari ?? [])].sort(
-      (left, right) => this.toSafeNumber(right.overallTotal) - this.toSafeNumber(left.overallTotal)
+      (left, right) => this.toSafeNumber(getBranchGrossSalesTotal(right)) - this.toSafeNumber(getBranchGrossSalesTotal(left))
     )
   );
   protected readonly branchOverviewCount = computed(() => this.branchOverviewRows().length);
   protected readonly overviewCashRate = computed(() => {
     const overview = this.overview();
+    const dailyTotal = overview?.dailyComparisonTotal ?? overview?.dailyCollectionTotal ?? overview?.dailyTotal;
 
-    if (!overview?.dailyTotal) {
+    if (!dailyTotal) {
       return 0;
     }
 
-    return (this.toSafeNumber(overview.dailyCashPayment) / this.toSafeNumber(overview.dailyTotal)) * 100;
+    return (this.toSafeNumber(overview?.dailyCashPayment) / this.toSafeNumber(dailyTotal)) * 100;
   });
   protected readonly overviewCreditRate = computed(() => {
     const overview = this.overview();
+    const dailyTotal = overview?.dailyComparisonTotal ?? overview?.dailyCollectionTotal ?? overview?.dailyTotal;
 
-    if (!overview?.dailyTotal) {
+    if (!dailyTotal) {
       return 0;
     }
 
-    return (this.toSafeNumber(overview.dailyCreditCardPayment) / this.toSafeNumber(overview.dailyTotal)) * 100;
+    return (this.toSafeNumber(overview?.dailyCreditCardPayment) / this.toSafeNumber(dailyTotal)) * 100;
   });
 
   protected override fetchRows(_zamanlama: string, warehouseNo?: number) {
@@ -297,6 +331,34 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
       default:
         return this.newRowCount();
     }
+  }
+
+  protected getDailyGrossSalesTotal(overview: CashTurnoverOverviewDto): number {
+    return overview.dailyGrossSalesTotal ?? overview.dailyTotal;
+  }
+
+  protected getDailyCollectionTotal(overview: CashTurnoverOverviewDto): number {
+    return overview.dailyCollectionTotal ?? overview.dailyTotal;
+  }
+
+  protected getDailyComparisonTotal(overview: CashTurnoverOverviewDto): number {
+    return overview.dailyComparisonTotal ?? overview.dailyCollectionTotal ?? overview.dailyTotal;
+  }
+
+  protected getDailyPaymentDataMissingBranchCount(overview: CashTurnoverOverviewDto): number {
+    return overview.dailyPaymentDataMissingBranchCount ?? 0;
+  }
+
+  protected getBranchCollectionTotal(branch: CashTurnoverOverviewBranchDto): number {
+    return branch.collectionTotal ?? getBranchComparisonTotal(branch);
+  }
+
+  protected getBranchGrossSalesTotal(branch: CashTurnoverOverviewBranchDto): number {
+    return getBranchGrossSalesTotal(branch);
+  }
+
+  protected getBranchComparisonTotal(branch: CashTurnoverOverviewBranchDto): number {
+    return getBranchComparisonTotal(branch);
   }
 
   protected override getLoadingMessage(): string {
@@ -451,10 +513,14 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
       { label: 'Kaynak', value: () => this.selectedSourceLabel() },
       { label: 'Kapsam', value: () => this.overviewScopeLabel() },
       { label: 'Tarih Araligi', value: () => this.selectedDateRangeLabel() },
-      { label: 'Gunluk Toplam', value: 'dailyTotal', type: 'currency' },
+      { label: 'Brut Satis', value: (row) => row.dailyGrossSalesTotal ?? row.dailyTotal, type: 'currency' },
+      { label: 'Tahsilat', value: (row) => row.dailyCollectionTotal ?? row.dailyTotal, type: 'currency' },
+      { label: 'Mutabakat Toplami', value: (row) => row.dailyComparisonTotal ?? row.dailyTotal, type: 'currency' },
       { label: 'Musteri', value: 'dailyCustomerCount', type: 'number' },
       { label: 'Nakit', value: 'dailyCashPayment', type: 'currency' },
       { label: 'Kredi', value: 'dailyCreditCardPayment', type: 'currency' },
+      { label: 'Veresiye', value: 'dailyFuturesSalesTotal', type: 'currency' },
+      { label: 'Odeme Verisi Eksik Sube', value: (row) => row.dailyPaymentDataMissingBranchCount ?? 0, type: 'number' },
       { label: 'Ort. Sepet', value: 'averageBasketAmount', type: 'currency' },
       { label: 'Nakit Orani', value: () => this.overviewCashRate(), type: 'number' },
       { label: 'Kredi Orani', value: () => this.overviewCreditRate(), type: 'number' }
@@ -470,7 +536,11 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
       { label: 'Son Fis', value: 'lastBillTime' },
       { label: 'Nakit', value: 'cashTotal', type: 'currency' },
       { label: 'Kredi', value: 'creditTotal', type: 'currency' },
-      { label: 'Toplam', value: 'overallTotal', type: 'currency' },
+      { label: 'Tahsilat', value: (row) => row.collectionTotal ?? getBranchComparisonTotal(row), type: 'currency' },
+      { label: 'Brut Satis', value: (row) => getBranchGrossSalesTotal(row), type: 'currency' },
+      { label: 'Mutabakat', value: (row) => getBranchComparisonTotal(row), type: 'currency' },
+      { label: 'Veresiye', value: 'futuresSalesTotal', type: 'currency' },
+      { label: 'Odeme Verisi Eksik', value: (row) => row.paymentDataMissing ? 'Evet' : 'Hayir' },
       { label: 'Ort. Sepet', value: 'averageBasketAmount', type: 'currency' }
     ];
   }

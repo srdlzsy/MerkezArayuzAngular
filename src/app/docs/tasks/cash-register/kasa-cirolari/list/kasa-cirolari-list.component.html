@@ -91,8 +91,12 @@
         <strong>{{ totalNetCollection() | number:'1.2-2' }} TL</strong>
       </article>
       <article class="metric-item">
-        <span>Satis Tutari</span>
+        <span>Brut Satis</span>
         <strong>{{ totalSalesAmount() | number:'1.2-2' }} TL</strong>
+      </article>
+      <article class="metric-item">
+        <span>Mutabakat</span>
+        <strong>{{ totalComparisonAmount() | number:'1.2-2' }} TL</strong>
       </article>
       <article class="metric-item">
         <span>Kayit / Odeme</span>
@@ -113,6 +117,7 @@
         <span>{{ selectedSourceLabel() }}</span>
         <span>{{ sourceDistributionLabel() }}</span>
         <span>{{ totalPaymentLineCount() }} odeme satiri</span>
+        <span *ngIf="paymentDataMissingCount()">{{ paymentDataMissingCount() }} odeme verisi eksik</span>
       </div>
       <strong>{{ salesCollectionGap() | number:'1.2-2' }} TL satis/net farki</strong>
     </div>
@@ -208,8 +213,16 @@
         <ng-container *ngIf="!overviewLoading() && !overviewError() && overview() as currentOverview">
           <div class="summary-strip">
             <article class="summary-item">
-              <span>Gunluk Toplam</span>
-              <strong>{{ currentOverview.dailyTotal | number:'1.2-2' }} TL</strong>
+              <span>Brut Satis</span>
+              <strong>{{ getDailyGrossSalesTotal(currentOverview) | number:'1.2-2' }} TL</strong>
+            </article>
+            <article class="summary-item">
+              <span>Tahsilat</span>
+              <strong>{{ getDailyCollectionTotal(currentOverview) | number:'1.2-2' }} TL</strong>
+            </article>
+            <article class="summary-item">
+              <span>Mutabakat</span>
+              <strong>{{ getDailyComparisonTotal(currentOverview) | number:'1.2-2' }} TL</strong>
             </article>
             <article class="summary-item">
               <span>Musteri</span>
@@ -233,6 +246,17 @@
             </article>
           </div>
 
+          <article
+            class="state-card state-card-warning"
+            *ngIf="getDailyPaymentDataMissingBranchCount(currentOverview) > 0"
+          >
+            <h3>Odeme verisi eksik</h3>
+            <p>
+              {{ getDailyPaymentDataMissingBranchCount(currentOverview) }} subede satis var ama yeni kasa odeme
+              satiri bulunamadi. Icmal farkini ciro eksigi gibi yorumlamayin.
+            </p>
+          </article>
+
           <div class="branch-table-wrap" *ngIf="branchOverviewRows().length; else emptyOverview">
             <table class="branch-table">
               <thead>
@@ -243,7 +267,10 @@
                   <th>Son Fis</th>
                   <th class="align-right">Nakit</th>
                   <th class="align-right">Kredi</th>
-                  <th class="align-right">Toplam</th>
+                  <th class="align-right">Tahsilat</th>
+                  <th class="align-right">Brut Satis</th>
+                  <th class="align-right">Mutabakat</th>
+                  <th class="align-right">Veresiye</th>
                   <th class="align-right">Ort. Sepet</th>
                 </tr>
               </thead>
@@ -258,7 +285,13 @@
                   <td>{{ branch.lastBillTime || '-' }}</td>
                   <td class="align-right">{{ branch.cashTotal | number:'1.2-2' }}</td>
                   <td class="align-right">{{ branch.creditTotal | number:'1.2-2' }}</td>
-                  <td class="align-right cell-strong">{{ branch.overallTotal | number:'1.2-2' }}</td>
+                  <td class="align-right">{{ getBranchCollectionTotal(branch) | number:'1.2-2' }}</td>
+                  <td class="align-right">{{ getBranchGrossSalesTotal(branch) | number:'1.2-2' }}</td>
+                  <td class="align-right cell-strong">
+                    {{ getBranchComparisonTotal(branch) | number:'1.2-2' }}
+                    <div class="table-warning" *ngIf="branch.paymentDataMissing">Odeme verisi eksik</div>
+                  </td>
+                  <td class="align-right">{{ branch.futuresSalesTotal | number:'1.2-2' }}</td>
                   <td class="align-right">{{ branch.averageBasketAmount | number:'1.2-2' }}</td>
                 </tr>
               </tbody>

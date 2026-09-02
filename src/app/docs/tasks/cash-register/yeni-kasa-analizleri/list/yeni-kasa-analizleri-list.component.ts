@@ -168,6 +168,7 @@ const KASA_OZETI_COLUMNS: readonly ApiListTableColumn<YeniKasaKasaOzetItemDto>[]
   { key: 'cashTotal', label: 'Nakit', resolveValue: (row) => formatNumber(row.cashTotal) },
   { key: 'creditCardTotal', label: 'Kart', resolveValue: (row) => formatNumber(row.creditCardTotal) },
   { key: 'giftCardTotal', label: 'Yemek/Gift', resolveValue: (row) => formatNumber(row.giftCardTotal) },
+  { key: 'nonCollectionPaymentTotal', label: 'Tahsilat Disi', resolveValue: (row) => formatNumber(row.nonCollectionPaymentTotal ?? 0) },
   { key: 'unknownPaymentTotal', label: 'Bilinmeyen', resolveValue: (row) => formatNumber(row.unknownPaymentTotal) },
   { key: 'difference', label: 'Fark', resolveValue: (row) => formatNumber(row.difference) },
   { key: 'lastSaleAt', label: 'Son Satis', resolveValue: (row) => formatDateTime(row.lastSaleAt) }

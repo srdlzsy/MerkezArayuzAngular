@@ -95,6 +95,10 @@ export interface CashTurnoverListItemDto {
   totalCustomerCommission: number;
   netCollectionAmount: number;
   source: CashTurnoverSource;
+  grossSalesTotal?: number;
+  comparisonTotal?: number;
+  futuresSalesTotal?: number;
+  paymentDataMissing?: boolean;
 }
 
 export interface CashTurnoverPaymentItemDto {
@@ -131,6 +135,10 @@ export interface CashTurnoverOverviewBranchDto {
   futuresSalesTotal: number;
   futuresSalesCount: number;
   averageBasketAmount: number;
+  collectionTotal?: number;
+  grossSalesTotal?: number;
+  comparisonTotal?: number;
+  paymentDataMissing?: boolean;
 }
 
 export interface CashTurnoverOverviewDto {
@@ -146,6 +154,10 @@ export interface CashTurnoverOverviewDto {
   averageBasketAmount: number;
   dailyFuturesSalesCount: number;
   dailyFuturesSalesTotal: number;
+  dailyCollectionTotal?: number;
+  dailyGrossSalesTotal?: number;
+  dailyComparisonTotal?: number;
+  dailyPaymentDataMissingBranchCount?: number;
   subeCirolari: CashTurnoverOverviewBranchDto[];
 }
 
@@ -196,6 +208,7 @@ export interface YeniKasaKasaOzetItemDto {
   giftCardTotal: number;
   otherPaymentTotal: number;
   unknownPaymentTotal: number;
+  nonCollectionPaymentTotal?: number;
   difference: number;
   cashierCount: number;
   lastSaleAt: string | null;

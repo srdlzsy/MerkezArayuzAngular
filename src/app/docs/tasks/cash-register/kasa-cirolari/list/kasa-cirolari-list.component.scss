@@ -245,7 +245,7 @@
 
 .metric-strip {
   display: grid;
-  grid-template-columns: 1.2fr repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
   gap: 0.52rem;
 }
 
@@ -326,6 +326,11 @@
   background: #fff7f7;
 }
 
+.state-card-warning {
+  border-color: #f4d28d;
+  background: #fffaf0;
+}
+
 .overview-block {
   display: grid;
   gap: 0.58rem;
@@ -356,7 +361,7 @@
 
 .summary-strip {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(132px, 1fr));
   gap: 0.45rem;
 }
 
@@ -424,6 +429,13 @@
 
 .cell-strong {
   color: var(--cash-accent-deep);
+  font-weight: 800;
+}
+
+.table-warning {
+  margin-top: 0.12rem;
+  color: #b45309;
+  font-size: 0.66rem;
   font-weight: 800;
 }
 
