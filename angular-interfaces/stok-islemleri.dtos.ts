@@ -271,6 +271,7 @@ export interface LabelPriceChangedProductListHttpRequest {
 export interface KunyeLabelTagDto extends LabelTagDto {
   stockCode: string;
   stockName: string;
+  barcode?: string | null;
   salesPrice: number;
   productUnit: string;
 }

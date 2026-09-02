@@ -122,7 +122,7 @@
           <span>Liste Icinde Ara</span>
           <input
             type="search"
-            placeholder="Urun, stok kodu, kunye no veya uretici"
+            placeholder="Urun, stok kodu, barkod, kunye no veya uretici"
             [ngModel]="searchTerm()"
             (ngModelChange)="onSearchChange($event)"
           />
@@ -152,6 +152,7 @@
                 />
               </th>
               <th>Stok Kodu</th>
+              <th>Barkod</th>
               <th>Urun</th>
               <th class="align-right">Satis Fiyati</th>
               <th>Birim</th>
@@ -175,6 +176,7 @@
                 />
               </td>
               <td>{{ tag.stockCode }}</td>
+              <td>{{ tag.barcode || '-' }}</td>
               <td>
                 <strong>{{ tag.stockName || tag.productName }}</strong>
                 <div class="table-meta">{{ tag.goodsGenus || '-' }}</div>

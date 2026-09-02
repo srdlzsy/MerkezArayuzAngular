@@ -76,6 +76,7 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
       [
         tag.stockCode,
         tag.stockName,
+        tag.barcode,
         tag.productName,
         tag.goodsGenus,
         tag.goodsType,

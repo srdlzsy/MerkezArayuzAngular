@@ -51,9 +51,9 @@ export class AramaService extends BaseApiService {
   ): Partial<Pick<ProductSearchHttpRequest, 'barcode' | 'stockCode' | 'stockName'>> {
     const normalizedQuery = query.trim();
 
-    if (/^\d{8,}$/.test(normalizedQuery)) {
+    if (/^\d{2,}$/.test(normalizedQuery)) {
       return {
-        barcode: normalizedQuery
+        stockName: normalizedQuery
       };
     }
 

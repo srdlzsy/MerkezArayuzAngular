@@ -11,6 +11,7 @@ import {
 } from '@angular/core';
 
 import type { IManavKunyeTag } from '@interfaces';
+import { renderBarcodeSvg } from '../../../etiket-belgeleri/etiket-barcode.util';
 import { renderQrSvg } from '../../../kunye-etiket-yazdirma/kunye-qr.util';
 
 interface ManavKunyePrintPage {
@@ -33,6 +34,9 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
 
   @ViewChildren('qrEl')
   qrElements!: QueryList<ElementRef<SVGSVGElement>>;
+
+  @ViewChildren('priceBarcode')
+  priceBarcodeElements!: QueryList<ElementRef<SVGSVGElement>>;
 
   private renderScheduled = false;
   private static readonly LABOR_RATE = 0.115;
@@ -59,6 +63,7 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
 
   public renderBarcodesNow(): void {
     this.renderQrs();
+    this.renderPriceBarcodes();
   }
 
   private scheduleRender(): void {
@@ -68,7 +73,7 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
 
     this.renderScheduled = true;
     void this.waitForNextPaint()
-      .then(() => this.renderQrs())
+      .then(() => this.renderBarcodesNow())
       .finally(() => {
         this.renderScheduled = false;
       });
@@ -85,6 +90,21 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
       }
 
       renderQrSvg(elRef.nativeElement, String(tag.takenTag ?? '').trim());
+    });
+  }
+
+  private renderPriceBarcodes(): void {
+    const elements = this.priceBarcodeElements?.toArray() ?? [];
+
+    elements.forEach((elRef) => {
+      renderBarcodeSvg(elRef.nativeElement, elRef.nativeElement.getAttribute('data-code'), {
+        barWidth: 1,
+        barHeight: 22,
+        fontSize: 7,
+        marginX: 2,
+        marginTop: 0,
+        textMargin: 0
+      });
     });
   }
 

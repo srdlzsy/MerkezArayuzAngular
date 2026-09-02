@@ -2,24 +2,32 @@
   <header class="dialog-head">
     <div>
       <p class="eyebrow">Manuel Ekleme</p>
-      <h3>Etiket Icin Urun Ara</h3>
-      <p>Stok kodu, barkod veya urun adina gore arama yapip sonucu listeye ekleyin.</p>
+      <h3>Etiket icin urun sec</h3>
+      <p>Stok kodu, barkod, barkodun son haneleri veya urun adi ile arayin.</p>
     </div>
     <button type="button" class="ghost-button" (click)="closeDialog()">Kapat</button>
   </header>
 
-  <label class="field">
-    <span>Arama</span>
-    <input
-      [(ngModel)]="searchText"
-      (ngModelChange)="onSearchChange()"
-      placeholder="En az 3 karakter girin"
-      autocomplete="off"
-    />
-  </label>
+  <div class="search-panel">
+    <label class="field">
+      <span>Urun Ara</span>
+      <input
+        type="search"
+        [(ngModel)]="searchText"
+        (ngModelChange)="onSearchChange()"
+        placeholder="Orn: 013500, 321158 veya sut"
+        autocomplete="off"
+        autofocus
+      />
+    </label>
+
+    <p class="search-help">
+      Barkod eksikse en az 6 rakam yazin; birden fazla sonuc gelirse dogru urunu listeden secin.
+    </p>
+  </div>
 
   <p class="feedback" *ngIf="feedbackMessage">{{ feedbackMessage }}</p>
-  <p class="feedback" *ngIf="isSearching">Araniyor...</p>
+  <p class="feedback feedback-loading" *ngIf="isSearching">Araniyor...</p>
 
   <div class="results" *ngIf="findProducts.length">
     <button
@@ -28,10 +36,15 @@
       *ngFor="let item of findProducts"
       (click)="selectProduct(item)"
     >
-      <strong>{{ item.stockName || '-' }}</strong>
-      <span>{{ item.stockCode || '-' }}</span>
-      <span>{{ item.barcode || 'Barkod yok' }}</span>
-      <span>{{ item.price | number:'1.2-2' }} TL</span>
+      <span class="result-main">
+        <strong>{{ item.stockName || '-' }}</strong>
+        <em>{{ item.price | number:'1.2-2' }} TL</em>
+      </span>
+      <span class="result-meta">
+        <span>{{ item.stockCode || '-' }}</span>
+        <span>{{ item.barcode || 'Barkod yok' }}</span>
+        <span>{{ item.unitName || '-' }}</span>
+      </span>
     </button>
   </div>
 

@@ -18,6 +18,10 @@
           <span>TL</span>
         </div>
       </div>
+
+      <div class="price-barcode-area" *ngIf="tag.barcode">
+        <svg #priceBarcode class="price-barcode" [attr.data-code]="tag.barcode"></svg>
+      </div>
     </section>
 
     <section class="kunye-card">

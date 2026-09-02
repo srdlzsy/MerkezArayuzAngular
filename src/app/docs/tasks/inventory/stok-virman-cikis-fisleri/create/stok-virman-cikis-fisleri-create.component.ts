@@ -55,10 +55,10 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly outgoingStockQuery = new FormControl('', { nonNullable: true });
   protected readonly incomingStockQuery = new FormControl('', { nonNullable: true });
   protected readonly outgoingQuantity = new FormControl<number | null>(1, {
-    validators: [Validators.required, Validators.min(0.001)]
+    validators: [Validators.required, Validators.min(1)]
   });
   protected readonly incomingQuantity = new FormControl<number | null>(1, {
-    validators: [Validators.required, Validators.min(0.001)]
+    validators: [Validators.required, Validators.min(1)]
   });
   protected readonly outgoingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
   protected readonly incomingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
@@ -358,7 +358,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
         validators: [Validators.required, Validators.min(1)]
       }),
       quantity: new FormControl(quantity, {
-        validators: [Validators.required, Validators.min(0.001)]
+        validators: [Validators.required, Validators.min(1)]
       }),
       description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
       partyCode: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
