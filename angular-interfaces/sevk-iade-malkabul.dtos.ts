@@ -550,6 +550,8 @@ export interface EDespatchPreviewLineDto {
   isGoodsAcceptanceBlocked: boolean;
   canUseForGoodsAcceptance: boolean;
   unitPrice?: number | null;
+  netUnitPrice?: number | null;
+  priceSource?: string | null;
   lineAmount?: number | null;
   quantitySource?: 'despatch' | 'invoice' | string | null;
 }

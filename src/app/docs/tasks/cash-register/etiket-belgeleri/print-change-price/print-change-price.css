@@ -1,7 +1,7 @@
 /* Genel Sayfa Stili */
 .page {
   width: 210mm; /* A4 genişlik */
-  min-height: 297mm; /* A4 yükseklik */
+  min-height: auto;
   margin: 0 auto;
   padding: 15mm;
   box-sizing: border-box;
@@ -21,11 +21,14 @@
   
   .page {
     width: 100%;
-    height: 100%;
+    min-height: 0;
+    height: auto;
     margin: 0;
     padding: 15mm;
-    page-break-after: always;
-    page-break-inside: avoid;
+    break-after: auto;
+    page-break-after: auto;
+    break-inside: auto;
+    page-break-inside: auto;
   }
   
   .header, .content {

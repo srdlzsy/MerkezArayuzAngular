@@ -24,6 +24,10 @@ export interface ProductLookupItemDto {
   stockName: string;
   price: number;
   priceTypeCode: number;
+  purchasePrice: number | null;
+  purchaseGrossPrice: number | null;
+  purchasePriceSource: string | null;
+  purchaseSupplierCode: string | null;
   unitName: string;
   unitMultiplier: number;
   secondaryUnitName: string;
@@ -112,6 +116,10 @@ export interface BarcodeResolutionDto {
   purchaseRequirementReason: string | null;
   salesPrice: number | null;
   priceTypeCode: number | null;
+  purchasePrice: number | null;
+  purchaseGrossPrice: number | null;
+  purchasePriceSource: string | null;
+  purchaseSupplierCode: string | null;
   isPassive: boolean;
   isUsableInOperation: boolean;
   operationDecision: string | null;

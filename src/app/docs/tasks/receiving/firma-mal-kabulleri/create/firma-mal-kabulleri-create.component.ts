@@ -50,6 +50,7 @@ interface KalemFormValue {
   barkodu: string;
   birim: string;
   birimKatsayisi: number | null;
+  birimFiyati: number | null;
   siparisMiktari: number | null;
   irsaliyeMiktari: number | null;
   fiiliKabulMiktari: number | null;
@@ -67,6 +68,7 @@ type KalemFormGroup = FormGroup<{
   barkodu: FormControl<string>;
   birim: FormControl<string>;
   birimKatsayisi: FormControl<number | null>;
+  birimFiyati: FormControl<number | null>;
   siparisMiktari: FormControl<number | null>;
   irsaliyeMiktari: FormControl<number | null>;
   fiiliKabulMiktari: FormControl<number | null>;
@@ -606,6 +608,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       const currentAccepted = Number(existingControl.controls.fiiliKabulMiktari.value ?? 0);
       existingControl.controls.irsaliyeMiktari.setValue(currentDispatch + step);
       existingControl.controls.fiiliKabulMiktari.setValue(currentAccepted + step);
+      this.patchLineUnitPriceIfEmpty(existingControl, this.resolvePurchaseUnitPrice(stock));
       existingControl.controls.irsaliyeMiktari.markAsDirty();
       existingControl.controls.fiiliKabulMiktari.markAsDirty();
       this.stockQuery.setValue('');
@@ -744,6 +747,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       barkodu: new FormControl(stock.barcode?.trim() ?? '', { nonNullable: true }),
       birim: new FormControl(stock.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
+      birimFiyati: new FormControl(this.resolvePurchaseUnitPrice(stock)),
       siparisMiktari: new FormControl<number | null>(0, {
         validators: [Validators.required, Validators.min(0)]
       }),
@@ -786,6 +790,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       existingControl.controls.siparisMiktari.setValue(currentSiparis + incomingQuantity);
       existingControl.controls.irsaliyeMiktari.setValue(currentDispatch + incomingQuantity);
       existingControl.controls.fiiliKabulMiktari.setValue(currentAccepted + incomingQuantity);
+      this.patchLineUnitPriceIfEmpty(existingControl, kalem.unitPrice);
       existingControl.controls.siparisMiktari.markAsDirty();
       existingControl.controls.irsaliyeMiktari.markAsDirty();
       existingControl.controls.fiiliKabulMiktari.markAsDirty();
@@ -805,6 +810,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
         barkodu: new FormControl('', { nonNullable: true }),
         birim: new FormControl(kalem.unitName?.trim() ?? '', { nonNullable: true }),
         birimKatsayisi: new FormControl(kalem.unitPointer ?? 1),
+        birimFiyati: new FormControl(this.toPositiveNumberOrNull(kalem.unitPrice)),
         siparisMiktari: new FormControl<number | null>(incomingQuantity, {
           validators: [Validators.required, Validators.min(0.01)]
         }),
@@ -875,6 +881,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
     const normalizedStockCode = stockCode.toLocaleUpperCase('tr-TR');
     const incomingQuantity = Number(line.quantity ?? 0) > 0 ? Number(line.quantity) : 1;
+    const unitPrice = this.resolveOfficialDocumentNetUnitPrice(line);
     const existingControl = this.kalemler.controls.find((control) =>
       control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode &&
       !control.controls.siparisGuid.value.trim()
@@ -885,6 +892,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       const currentAccepted = Number(existingControl.controls.fiiliKabulMiktari.value ?? 0);
       existingControl.controls.irsaliyeMiktari.setValue(currentDispatch + incomingQuantity);
       existingControl.controls.fiiliKabulMiktari.setValue(currentAccepted + incomingQuantity);
+      this.patchLineUnitPriceIfEmpty(existingControl, unitPrice);
       existingControl.controls.irsaliyeMiktari.markAsDirty();
       existingControl.controls.fiiliKabulMiktari.markAsDirty();
       return;
@@ -905,6 +913,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
         barkodu: new FormControl(line.barcode?.trim() ?? '', { nonNullable: true }),
         birim: new FormControl(line.unitCode?.trim() ?? '', { nonNullable: true }),
         birimKatsayisi: new FormControl(1),
+        birimFiyati: new FormControl(unitPrice),
         siparisMiktari: new FormControl<number | null>(0, {
           validators: [Validators.required, Validators.min(0)]
         }),
@@ -1027,7 +1036,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       stockCode: kalem.stokKodu.trim(),
       dispatchQuantity: Number(kalem.irsaliyeMiktari ?? 0),
       acceptedQuantity: Number(kalem.fiiliKabulMiktari ?? 0),
-      unitPrice: 0,
+      unitPrice: Number(kalem.birimFiyati ?? 0),
       unitPointer: kalem.birimKatsayisi ?? 1,
       lastConsumingDate: this.normalizeOptionalText(kalem.skt) ?? undefined,
       orderGuid: this.normalizeOptionalText(kalem.siparisGuid),
@@ -1044,6 +1053,29 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     return this.availableOrders().filter((order) =>
       this.selectedOrderKeys().includes(this.getOrderKey(order))
     );
+  }
+
+  private resolvePurchaseUnitPrice(stock: IFurpaProductSearchItemApiDto): number | null {
+    return this.toPositiveNumberOrNull(stock.purchasePrice);
+  }
+
+  private resolveOfficialDocumentNetUnitPrice(line: EDespatchPreviewLineDto): number | null {
+    return this.toPositiveNumberOrNull(line.netUnitPrice);
+  }
+
+  private patchLineUnitPriceIfEmpty(control: KalemFormGroup, value: number | null | undefined): void {
+    const nextValue = this.toPositiveNumberOrNull(value);
+    if (!nextValue || this.toPositiveNumberOrNull(control.controls.birimFiyati.value)) {
+      return;
+    }
+
+    control.controls.birimFiyati.setValue(nextValue);
+    control.controls.birimFiyati.markAsDirty();
+  }
+
+  private toPositiveNumberOrNull(value: unknown): number | null {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) && numberValue > 0 ? numberValue : null;
   }
 
   private closeOrderResults(): void {
