@@ -192,8 +192,8 @@ export class IcmalDokumuCreateComponent implements OnInit {
     zTotalValue: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(0)]
     }),
-    total: new FormControl<number | null>(null, {
-      validators: [Validators.required, Validators.min(0)]
+    total: new FormControl<number | null>(0, {
+      validators: [Validators.min(0)]
     }),
     summaryDate: new FormControl(this.today, {
       nonNullable: true,
@@ -230,11 +230,19 @@ export class IcmalDokumuCreateComponent implements OnInit {
     );
   });
 
-  protected readonly paymentTypesTotal = computed(() => {
+  protected readonly paymentTypesZDifferenceTotal = computed(() => {
     this.formRevision();
     return this.roundCurrency(
       this.paymentTypes.controls
-        .filter((group) => !this.isBackendGeneratedCashPaymentGroup(group))
+        .filter((group) => {
+          const paymentTypeNo = this.toSafeNumber(group.controls.paymentTypeNo.value);
+
+          return (
+            paymentTypeNo > 0 &&
+            paymentTypeNo < 100 &&
+            !this.isBackendGeneratedCashPaymentGroup(group)
+          );
+        })
         .reduce(
           (total, group) => total + this.toNonNegativeNumber(group.controls.amountValue.value),
           0
@@ -261,28 +269,26 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.formRevision();
     return this.sumFormArray(this.giftCheckMovements, (group) => group.controls.quantity.value);
   });
-  protected readonly drawerGrandTotal = computed(() =>
-    this.roundCurrency(
-      this.banknoteTotal() +
-        this.paymentTypesTotal() +
-        this.storeExpensesTotal() +
-        this.giftCheckTotal()
-    )
+  protected readonly collectionTotal = computed(() =>
+    this.roundCurrency(this.banknoteTotal() + this.paymentTypesZDifferenceTotal())
   );
-  protected readonly suggestedSummaryTotal = computed(() => this.drawerGrandTotal());
+  protected readonly zDifferenceBaseTotal = computed(() =>
+    this.roundCurrency(this.collectionTotal() + this.storeExpensesTotal())
+  );
+  protected readonly suggestedSummaryTotal = computed(() => this.zDifferenceBaseTotal());
   protected readonly totalDifference = computed(() => {
     this.formRevision();
-    const declaredTotal = this.toSafeNumber(this.controls.total.value);
     const zTotal = this.toSafeNumber(this.controls.zTotalValue.value);
 
-    return this.roundCurrency(declaredTotal - zTotal);
+    return this.roundCurrency(this.zDifferenceBaseTotal() - zTotal);
   });
   protected readonly hasRequiredFinancialLines = computed(() => {
     this.formRevision();
     return (
       this.hasWritablePaymentTypeLines() ||
-      this.storeExpenses.length > 0 ||
-      this.banknoteMovements.length > 0
+      this.hasWritableStoreExpenseLines() ||
+      this.hasWritableBanknoteLines() ||
+      this.hasWritableGiftCheckLines()
     );
   });
   protected readonly summaryCards = computed<CashDrawerCard[]>(() => {
@@ -1671,7 +1677,71 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   private hasWritablePaymentTypeLines(): boolean {
     return this.paymentTypes.controls.some(
-      (group) => !this.isBackendGeneratedCashPaymentGroup(group)
+      (group) => this.isWritablePaymentTypeLine(group.getRawValue())
+    );
+  }
+
+  private hasWritableStoreExpenseLines(): boolean {
+    return this.storeExpenses.controls.some((group) =>
+      this.isWritableStoreExpenseLine(group.getRawValue())
+    );
+  }
+
+  private hasWritableBanknoteLines(): boolean {
+    return this.banknoteMovements.controls.some((group) =>
+      this.isWritableBanknoteLine(group.getRawValue())
+    );
+  }
+
+  private hasWritableGiftCheckLines(): boolean {
+    return this.giftCheckMovements.controls.some((group) =>
+      this.isWritableGiftCheckLine(group.getRawValue())
+    );
+  }
+
+  private isWritablePaymentTypeLine(line: {
+    paymentName?: string | null;
+    paymentTypeNo?: number | string | null;
+    amountValue?: number | string | null;
+  }): boolean {
+    return (
+      !this.isBackendGeneratedCashPaymentLine(line) &&
+      this.toNonNegativeNumber(line.paymentTypeNo) > 0 &&
+      this.toNonNegativeNumber(line.amountValue) > 0
+    );
+  }
+
+  private isWritableStoreExpenseLine(line: {
+    storeExpensesType?: number | string | null;
+    amountValue?: number | string | null;
+  }): boolean {
+    return (
+      this.toNonNegativeNumber(line.storeExpensesType) > 0 &&
+      this.toNonNegativeNumber(line.amountValue) > 0
+    );
+  }
+
+  private isWritableBanknoteLine(line: {
+    banknoteType?: number | string | null;
+    quantity?: number | string | null;
+    total?: number | string | null;
+  }): boolean {
+    return (
+      this.toNonNegativeNumber(line.banknoteType) > 0 &&
+      this.toNonNegativeNumber(line.quantity) > 0 &&
+      this.toNonNegativeNumber(line.total) > 0
+    );
+  }
+
+  private isWritableGiftCheckLine(line: {
+    giftCheckType?: number | string | null;
+    quantity?: number | string | null;
+    total?: number | string | null;
+  }): boolean {
+    return (
+      this.toNonNegativeNumber(line.giftCheckType) > 0 &&
+      this.toNonNegativeNumber(line.quantity) > 0 &&
+      this.toNonNegativeNumber(line.total) > 0
     );
   }
 
@@ -1830,23 +1900,27 @@ export class IcmalDokumuCreateComponent implements OnInit {
       cashierNo: this.toSafeNumber(rawValue.cashierNo),
       managerNo: this.toSafeNumber(rawValue.managerNo),
       zTotalValue: this.toNonNegativeNumber(rawValue.zTotalValue),
-      total: this.toNonNegativeNumber(rawValue.total),
+      total: 0,
       summaryDate: rawValue.summaryDate,
       warehouseNo: this.isAdminUser() ? this.resolveCreateWarehouseNo() ?? undefined : undefined,
-      giftCheckMovements: rawValue.giftCheckMovements.map((line) => ({
-        value: this.toNonNegativeNumber(line.value),
-        giftCheckType: this.toNonNegativeNumber(line.giftCheckType),
-        quantity: this.toNonNegativeNumber(line.quantity),
-        total: this.toNonNegativeNumber(line.total)
-      })),
-      banknoteMovements: rawValue.banknoteMovements.map((line) => ({
-        banknoteType: this.toNonNegativeNumber(line.banknoteType),
-        quantity: this.toNonNegativeNumber(line.quantity),
-        total: this.toNonNegativeNumber(line.total),
-        value: this.toNonNegativeNumber(line.value)
-      })),
+      giftCheckMovements: rawValue.giftCheckMovements
+        .filter((line) => this.isWritableGiftCheckLine(line))
+        .map((line) => ({
+          value: this.toNonNegativeNumber(line.value),
+          giftCheckType: this.toNonNegativeNumber(line.giftCheckType),
+          quantity: this.toNonNegativeNumber(line.quantity),
+          total: this.toNonNegativeNumber(line.total)
+        })),
+      banknoteMovements: rawValue.banknoteMovements
+        .filter((line) => this.isWritableBanknoteLine(line))
+        .map((line) => ({
+          banknoteType: this.toNonNegativeNumber(line.banknoteType),
+          quantity: this.toNonNegativeNumber(line.quantity),
+          total: this.toNonNegativeNumber(line.total),
+          value: this.toNonNegativeNumber(line.value)
+        })),
       paymentTypes: rawValue.paymentTypes
-        .filter((line) => !this.isBackendGeneratedCashPaymentLine(line))
+        .filter((line) => this.isWritablePaymentTypeLine(line))
         .map((line) => ({
           paymentName: line.paymentName.trim(),
           paymentTypeNo: this.toNonNegativeNumber(line.paymentTypeNo),
@@ -1855,11 +1929,13 @@ export class IcmalDokumuCreateComponent implements OnInit {
           slipNumber: this.toNonNegativeNumber(line.slipNumber),
           amountValue: this.toNonNegativeNumber(line.amountValue)
         })),
-      storeExpenses: rawValue.storeExpenses.map((line) => ({
-        storeExpensesType: this.toNonNegativeNumber(line.storeExpensesType),
-        description: trimToMaxLength(line.description, 50),
-        amountValue: this.toNonNegativeNumber(line.amountValue)
-      }))
+      storeExpenses: rawValue.storeExpenses
+        .filter((line) => this.isWritableStoreExpenseLine(line))
+        .map((line) => ({
+          storeExpensesType: this.toNonNegativeNumber(line.storeExpensesType),
+          description: trimToMaxLength(line.description, 50),
+          amountValue: this.toNonNegativeNumber(line.amountValue)
+        }))
     };
   }
 
@@ -1872,15 +1948,19 @@ export class IcmalDokumuCreateComponent implements OnInit {
       cashierNo: rawValue.cashierNo,
       managerNo: rawValue.managerNo,
       zTotalValue: rawValue.zTotalValue,
-      total: rawValue.total,
+      total: 0,
       summaryDate: rawValue.summaryDate,
       warehouseNo: this.isAdminUser() ? this.resolveCreateWarehouseNo() : undefined,
-      giftCheckMovements: rawValue.giftCheckMovements,
-      banknoteMovements: rawValue.banknoteMovements,
-      paymentTypes: rawValue.paymentTypes.filter(
-        (line) => !this.isBackendGeneratedCashPaymentLine(line)
+      giftCheckMovements: rawValue.giftCheckMovements.filter((line) =>
+        this.isWritableGiftCheckLine(line)
       ),
-      storeExpenses: rawValue.storeExpenses
+      banknoteMovements: rawValue.banknoteMovements.filter((line) =>
+        this.isWritableBanknoteLine(line)
+      ),
+      paymentTypes: rawValue.paymentTypes.filter((line) => this.isWritablePaymentTypeLine(line)),
+      storeExpenses: rawValue.storeExpenses.filter((line) =>
+        this.isWritableStoreExpenseLine(line)
+      )
     };
   }
 

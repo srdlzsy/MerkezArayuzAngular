@@ -50,7 +50,7 @@
         <strong>{{ response.summaryDate | date: 'dd.MM.yyyy' }}</strong>
       </div>
       <div>
-        <span>Toplam</span>
+        <span>Legacy Toplam</span>
         <strong>{{ response.total | number:'1.2-2' }} TL</strong>
       </div>
       <div>
@@ -264,11 +264,12 @@
       </button>
 
       <article class="count-card total-card">
-        <span class="card-title">Toplam</span>
-        <span class="card-description">Icmal kaydi</span>
+        <span class="card-title">Z Fark Bazi</span>
+        <span class="card-description">Tahsilat + magaza gideri</span>
         <span class="card-metrics">
+          <span>Tahsilat {{ collectionTotal() | number:'1.2-2' }} TL</span>
+          <strong>{{ zDifferenceBaseTotal() | number:'1.2-2' }} TL</strong>
           <span>Z Farki {{ totalDifference() | number:'1.2-2' }} TL</span>
-          <strong>{{ drawerGrandTotal() | number:'1.2-2' }} TL</strong>
         </span>
       </article>
     </section>
