@@ -145,6 +145,8 @@
         [showExport]="true"
         [exportFileName]="getListExportFileName()"
         [exportSheetName]="selectedSourceLabel()"
+        [printTitle]="selectedSourceLabel()"
+        [printSubtitle]="getListExportFileName()"
         (rowAction)="openDetail($event)"
       ></app-api-list-table>
     </div>

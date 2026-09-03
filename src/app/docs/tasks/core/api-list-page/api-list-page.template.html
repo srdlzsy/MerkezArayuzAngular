@@ -87,6 +87,8 @@
       [columns]="tableColumns"
       [fitToWidth]="fitTableToWidth"
       [filterPlaceholder]="getTableFilterPlaceholder()"
+      [printTitle]="current.title"
+      [printSubtitle]="selectedWarehouseLabel() + ' / ' + startDate() + ' - ' + endDate()"
       [additionalActions]="getAdditionalRowActions()"
       (rowAction)="openDetail($event)"
       (additionalRowAction)="handleAdditionalRowAction($event)"

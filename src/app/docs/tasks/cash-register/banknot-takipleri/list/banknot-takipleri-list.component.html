@@ -97,6 +97,8 @@
       actionLabel="Detay"
       [fitToWidth]="true"
       filterPlaceholder="ID, depo, teslim eden, teslim alan veya tutar ara"
+      printTitle="Banknot Takipleri"
+      [printSubtitle]="selectedWarehouseLabel() + ' / ' + filtersForm.controls.targetDate.value"
       (rowAction)="openDetail($event)"
     ></app-api-list-table>
 

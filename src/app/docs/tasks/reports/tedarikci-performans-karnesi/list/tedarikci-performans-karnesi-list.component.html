@@ -183,6 +183,8 @@
         [showExport]="true"
         [exportFileName]="'Tedarikci Performans Karnesi ' + selectedDateRangeLabel() + ' ' + scopeLabel()"
         [exportSheetName]="'Tedarikci Karnesi'"
+        [printTitle]="'Tedarikci Performans Karnesi'"
+        [printSubtitle]="selectedDateRangeLabel() + ' / ' + scopeLabel()"
         actionLabel="Detay"
         filterPlaceholder="Tedarikci, risk, skor, fatura veya miktar ara"
         (rowAction)="openDetail($event)"

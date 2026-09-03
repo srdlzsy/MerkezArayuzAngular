@@ -70,6 +70,8 @@
       [rows]="rows()"
       [columns]="tableColumns"
       [filterPlaceholder]="'Evrak no, sayan veya tarih ara'"
+      [printTitle]="current.title"
+      [printSubtitle]="selectedWarehouseLabel() + ' / ' + startDate() + ' - ' + endDate()"
       (rowAction)="openDetail($event)"
     ></app-api-list-table>
 

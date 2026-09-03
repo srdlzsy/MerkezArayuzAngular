@@ -31,12 +31,18 @@ export class ApiListTableComponent {
   readonly fitToWidth = input(false);
   readonly additionalActions = input<readonly ApiListTableRowAction[]>([]);
   readonly filterPlaceholder = input('Seri, sira, firma, depo veya durum ara');
+  readonly showPrint = input(true);
+  readonly printTitle = input('');
+  readonly printSubtitle = input('');
+  readonly printNotes = input<readonly string[]>([]);
+  readonly printSignatureTitle = input('Kontrol Eden');
   readonly showExport = input(false);
   readonly exportFileName = input('rapor');
   readonly exportSheetName = input('Rapor');
   readonly rowAction = output<any>();
   readonly additionalRowAction = output<ApiListTableActionEvent>();
 
+  protected readonly printRootId = `api-list-print-${Math.random().toString(36).slice(2)}`;
   protected readonly pageSizeOptions = [10, 25, 50, 100] as const;
   protected readonly filterTerm = signal('');
   protected readonly pageSize = signal(10);
@@ -44,6 +50,8 @@ export class ApiListTableComponent {
   protected readonly sortKey = signal<string | null>(null);
   protected readonly sortDirection = signal<SortDirection>(null);
   protected readonly isExporting = signal(false);
+  protected readonly isPrinting = signal(false);
+  protected readonly printGeneratedAt = signal('');
   protected readonly exportErrorMessage = signal<string | null>(null);
 
   protected readonly totalCount = computed(() => this.rows().length);
@@ -122,6 +130,19 @@ export class ApiListTableComponent {
   protected readonly exportSummary = computed(() => {
     const count = this.filteredCount();
     return count ? `${count} kayit` : 'Kayit yok';
+  });
+  protected readonly resolvedPrintTitle = computed(
+    () => this.printTitle().trim() || this.exportSheetName().trim() || 'Liste Dokumu'
+  );
+  protected readonly resolvedPrintNotes = computed(() => {
+    const notes = this.printNotes().map((note) => note.trim()).filter(Boolean);
+
+    return notes.length
+      ? notes
+      : [
+          'Liste dokumu kontrol amaclidir.',
+          'Islem yapmadan once evrak detaylarini kontrol ediniz.'
+        ];
   });
 
   protected updateFilter(value: string): void {
@@ -332,6 +353,77 @@ export class ApiListTableComponent {
     }
   }
 
+  protected async printList(): Promise<void> {
+    if (!this.sortedRows().length || this.isPrinting()) {
+      return;
+    }
+
+    this.printGeneratedAt.set(this.formatPrintDate(new Date()));
+    this.isPrinting.set(true);
+    await this.waitForNextPaint();
+
+    const style = document.createElement('style');
+    style.id = `${this.printRootId}-style`;
+    style.textContent = `
+      @page {
+        size: A4 portrait;
+        margin: 11mm 12mm;
+      }
+
+      @media print {
+        html,
+        body {
+          width: auto !important;
+          height: auto !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          background: #fff !important;
+          overflow: visible !important;
+        }
+
+        body * {
+          visibility: hidden !important;
+        }
+
+        #${this.printRootId},
+        #${this.printRootId} * {
+          visibility: visible !important;
+        }
+
+        #${this.printRootId} {
+          display: block !important;
+          position: absolute !important;
+          inset: 0 auto auto 0 !important;
+          width: 100% !important;
+          min-height: 100% !important;
+          color: #000 !important;
+          background: #fff !important;
+        }
+      }
+    `;
+
+    const cleanup = () => {
+      style.remove();
+      this.isPrinting.set(false);
+      window.removeEventListener('afterprint', cleanup);
+    };
+
+    document.head.appendChild(style);
+    window.addEventListener('afterprint', cleanup, { once: true });
+    window.setTimeout(cleanup, 30_000);
+    window.print();
+  }
+
+  protected formatPrintCell(row: ApiListRow, column: ApiListTableColumn): string {
+    const value = this.readCell(row, column);
+
+    if (column.type === 'date') {
+      return this.formatDate(value);
+    }
+
+    return this.formatText(value, column.emptyValue || '-');
+  }
+
   private buildSearchText(row: ApiListRow, columns: readonly ApiListTableColumn[]): string {
     return columns
       .map((column) => {
@@ -434,5 +526,20 @@ export class ApiListTableComponent {
 
   private resolveCellValue(row: ApiListRow, column: ApiListTableColumn): unknown {
     return column.resolveValue ? column.resolveValue(row) : this.readValue(row, column.key);
+  }
+
+  private formatPrintDate(value: Date): string {
+    return new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'short',
+      timeStyle: 'medium'
+    }).format(value);
+  }
+
+  private waitForNextPaint(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
   }
 }

@@ -177,6 +177,8 @@
         [columns]="columns"
         actionLabel="Timeline"
         filterPlaceholder="Belge tipi, depo, belge no, e-belge veya hata ara"
+        printTitle="Belge Akis Takibi"
+        [printSubtitle]="filters.startDate + ' - ' + filters.endDate + ' / ' + flowScopeLabel()"
         (rowAction)="openDetail($event)"
       ></app-api-list-table>
 

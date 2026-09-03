@@ -140,6 +140,8 @@
         [showExport]="true"
         [exportFileName]="selectedDefinition().label + ' ' + selectedDateRangeLabel() + ' ' + scopeLabel()"
         [exportSheetName]="selectedDefinition().label"
+        [printTitle]="selectedDefinition().label"
+        [printSubtitle]="selectedDateRangeLabel() + ' / ' + scopeLabel()"
         filterPlaceholder="Sube, banka, belge, terminal, kart veya tutar ara"
       ></app-api-list-table>
     </div>

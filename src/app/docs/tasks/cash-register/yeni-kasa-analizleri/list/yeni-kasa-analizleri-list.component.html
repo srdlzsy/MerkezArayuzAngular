@@ -149,6 +149,8 @@
         [showExport]="true"
         [exportFileName]="getExportFileName()"
         [exportSheetName]="activeTabDefinition().label"
+        [printTitle]="activeTabDefinition().label"
+        [printSubtitle]="getExportFileName()"
         (rowAction)="openReceiptDetail($event)"
       ></app-api-list-table>
     </div>

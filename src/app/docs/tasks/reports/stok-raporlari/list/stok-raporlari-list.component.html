@@ -364,6 +364,8 @@
         [showExport]="true"
         [exportFileName]="selectedDefinition().label + ' ' + selectedDateLabel() + ' ' + scopeLabel()"
         [exportSheetName]="selectedDefinition().label"
+        [printTitle]="selectedDefinition().label"
+        [printSubtitle]="selectedDateLabel() + ' / ' + scopeLabel()"
         filterPlaceholder="Stok, depo, cari, barkod, belge veya tutar ara"
       ></app-api-list-table>
     </div>

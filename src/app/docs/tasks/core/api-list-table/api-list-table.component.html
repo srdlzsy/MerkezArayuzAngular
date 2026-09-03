@@ -28,6 +28,16 @@
         (exportRequested)="exportToExcel()"
       ></app-excel-export-button>
 
+      <button
+        *ngIf="showPrint()"
+        type="button"
+        class="print-action"
+        [disabled]="filteredCount() === 0 || isPrinting()"
+        (click)="printList()"
+      >
+        {{ isPrinting() ? 'Hazirlaniyor...' : 'Yazdir' }}
+      </button>
+
       <label class="control-field control-field-size">
         <span>Sayfa Boyutu</span>
         <select [value]="pageSize()" (change)="updatePageSize($any($event.target).value ?? pageSize())">
@@ -165,4 +175,46 @@
       </div>
     </footer>
   </ng-container>
+
+  <section
+    class="api-list-print-root"
+    [class.is-active-print]="isPrinting()"
+    [id]="printRootId"
+    aria-hidden="true"
+  >
+    <div class="print-page">
+      <div class="print-notes">
+        <p *ngFor="let note of resolvedPrintNotes()">** {{ note }}</p>
+      </div>
+
+      <div class="print-meta">
+        <span>{{ printGeneratedAt() }}</span>
+        <span *ngIf="printSubtitle()">{{ printSubtitle() }}</span>
+        <span>{{ filteredCount() }} kayit</span>
+      </div>
+
+      <h1>{{ resolvedPrintTitle() }}</h1>
+
+      <table class="print-table">
+        <thead>
+          <tr>
+            <th *ngFor="let column of columns(); trackBy: trackByColumn">{{ column.label }}</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let row of sortedRows(); trackBy: trackByRow">
+            <td *ngFor="let column of columns(); trackBy: trackByColumn">
+              {{ formatPrintCell(row, column) }}
+            </td>
+          </tr>
+        </tbody>
+      </table>
+
+      <div class="print-signature">
+        <strong>{{ printSignatureTitle() }}</strong>
+        <span>Ad Soyad ................................................</span>
+        <span>Imza ....................................................</span>
+      </div>
+    </div>
+  </section>
 </section>
