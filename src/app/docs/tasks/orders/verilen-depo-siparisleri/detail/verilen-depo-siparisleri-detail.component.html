@@ -82,7 +82,23 @@
       </section>
 
       <section class="task-block">
-        <div class="task-title">Siparis Kalemleri</div>
+        <div class="task-title-row">
+          <div class="task-title">Siparis Kalemleri</div>
+
+          <app-excel-export-button
+            *ngIf="isCentralWarehouseOrder()"
+            label="Kalanlari Excel'e Aktar"
+            [disabled]="!remainingOrderItems().length"
+            [exporting]="isRemainingExporting()"
+            [summary]="remainingExportSummary()"
+            (exportRequested)="exportRemainingItems()"
+          ></app-excel-export-button>
+        </div>
+
+        <article class="state-card state-card-error" *ngIf="remainingExportErrorMessage() as remainingExportError">
+          <h3>Excel Aktarimi Basarisiz</h3>
+          <p>{{ remainingExportError }}</p>
+        </article>
 
         <div class="table-wrap" *ngIf="order.items.length; else noKalemler">
           <table>
@@ -100,7 +116,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let kalem of order.items; trackBy: trackByItem">
+              <tr
+                *ngFor="let kalem of order.items; trackBy: trackByItem"
+                [class.remaining-line]="shouldMarkRemainingItem(kalem)"
+              >
                 <td>{{ kalem.stockCode || '-' }}</td>
                 <td>{{ kalem.stockName || '-' }}</td>
                 <td>{{ kalem.unitName || '-' }}</td>
@@ -114,7 +133,14 @@
                   </small>
                 </td>
                 <td>{{ formatNumber(kalem.deliveredQuantity) }}</td>
-                <td>{{ formatNumber(kalem.remainingQuantity) }}</td>
+                <td>
+                  <span [class.remaining-quantity]="shouldMarkRemainingItem(kalem)">
+                    {{ formatNumber(kalem.remainingQuantity) }}
+                  </span>
+                  <small class="remaining-note" *ngIf="shouldMarkRemainingItem(kalem)">
+                    {{ getRemainingStatusLabel(kalem) }}
+                  </small>
+                </td>
                 <td>{{ formatNumber(kalem.unitPrice) }}</td>
                 <td>{{ formatNumber(kalem.lineAmount) }}</td>
                 <td>{{ kalem.description || '-' }}</td>

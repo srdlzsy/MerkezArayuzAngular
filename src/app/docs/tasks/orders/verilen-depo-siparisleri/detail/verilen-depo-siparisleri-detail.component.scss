@@ -1,2 +1,37 @@
-﻿@use '../../../core/api-detail-page/api-detail-page.shared';
+@use '../../../core/api-detail-page/api-detail-page.shared';
 
+.task-title-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  flex-wrap: wrap;
+}
+
+.remaining-line {
+  background: #fff7ed;
+}
+
+.remaining-line:hover {
+  background: #ffedd5;
+}
+
+.remaining-quantity {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 54px;
+  padding: 0.12rem 0.34rem;
+  color: #9a3412;
+  border-radius: 999px;
+  background: #fed7aa;
+  font-weight: 800;
+}
+
+.remaining-note {
+  display: block;
+  margin-top: 0.16rem;
+  color: #9a3412;
+  font-size: 0.66rem;
+  font-weight: 800;
+}

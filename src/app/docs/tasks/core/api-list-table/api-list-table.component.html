@@ -28,6 +28,13 @@
         (exportRequested)="exportToExcel()"
       ></app-excel-export-button>
 
+      <label class="control-field control-field-size">
+        <span>Sayfa Boyutu</span>
+        <select [value]="pageSize()" (change)="updatePageSize($any($event.target).value ?? pageSize())">
+          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }} / sayfa</option>
+        </select>
+      </label>
+
       <button
         *ngIf="showPrint()"
         type="button"
@@ -37,13 +44,6 @@
       >
         {{ isPrinting() ? 'Hazirlaniyor...' : 'Yazdir' }}
       </button>
-
-      <label class="control-field control-field-size">
-        <span>Sayfa Boyutu</span>
-        <select [value]="pageSize()" (change)="updatePageSize($any($event.target).value ?? pageSize())">
-          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }} / sayfa</option>
-        </select>
-      </label>
     </div>
   </div>
 
