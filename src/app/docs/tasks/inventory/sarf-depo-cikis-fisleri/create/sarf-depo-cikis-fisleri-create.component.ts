@@ -207,7 +207,10 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
       .createSubeIci('SarfDepoCikisFisleri', this.buildRequest())
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: (result: unknown) => this.close({ created: true, result }),
+        next: (result: unknown) => {
+          this.safeCreateRetry.reset();
+          this.close({ created: true, result });
+        },
         error: (error: HttpErrorResponse) => {
           this.submitError.set(this.resolveErrorMessage(error, 'Masraf fisi kaydedilemedi.'));
         }

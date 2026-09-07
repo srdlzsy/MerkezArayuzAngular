@@ -35,6 +35,11 @@
       <input type="number" min="1" max="100" step="1" [(ngModel)]="take" />
     </label>
 
+    <label class="check-field">
+      <input type="checkbox" [(ngModel)]="hideDelistedProducts" />
+      <span>Pasif/DLS gizle</span>
+    </label>
+
     <button type="button" class="primary-action" [disabled]="isLoading()" (click)="search()">
       {{ isLoading() ? 'Araniyor...' : 'Ara' }}
     </button>
@@ -99,8 +104,8 @@
         </span>
       </div>
 
-      <div class="badge-row" *ngIf="getBlockedLabels(item).length">
-        <span class="danger-badge" *ngFor="let label of getBlockedLabels(item)">
+      <div class="badge-row" *ngIf="getProductStateLabels(item).length">
+        <span class="danger-badge" *ngFor="let label of getProductStateLabels(item)">
           {{ label }}
         </span>
       </div>

@@ -1072,12 +1072,45 @@ UI davranis kurali:
 
 - `clientRequestId` form ekraninin kimligi degildir; tek mantiksal kaydetme denemesinin kimligidir.
 - UI ilk `Kaydet` aninda `clientRequestId` uretmeli, gonderilen body'nin snapshot'ini bu id ile birlikte saklamalidir.
+- `clientRequestId` form acilisinda veya her render/submit denemesinde yeniden uretilmemelidir. Ayni kaydetme denemesi sonuc kesinlesene kadar ayni id ile yasar.
 - Request devam ederken kaydet butonu ve form alanlari kilitlenmelidir.
 - Timeout, network kopmasi veya belirsiz sonuc olursa UI ayni body snapshot'i ve ayni `clientRequestId` ile `Tekrar Dene` yapmalidir.
+- Timeout veya 500 cevabi sonrasi UI ayni fis icin yeni `clientRequestId` uretirse backend bunu yeni bir create islemi olarak kabul edebilir ve ayni icerikte ikinci evrak olusabilir.
 - Kullanici belirsiz kayit modundayken formu degistirmek isterse UI bunu yeni islem kabul etmeli, eski `clientRequestId` degerini birakip sonraki kaydetmede yeni `clientRequestId` uretmelidir.
 - Ayni `clientRequestId` ile farkli body gonderilip API `409 Conflict` donerse UI bunu teknik hata gibi degil, "Bu kayit denemesinin icerigi degismis; yeni islem olarak tekrar kaydedin." durumu gibi ele almalidir.
 - `409 Conflict` sonrasi kullanici devam edecekse UI yeni `clientRequestId` uretmeli ve guncel body'yi yeni kaydetme denemesi olarak gondermelidir.
 - En guvenli akista `Normal Edit Mode` alanlari degistirilebilir, `Pending/Retry Mode` alanlari kilitlidir; pending durumundan cikmak icin kullanici acikca `Yeni islem olarak duzenle` veya `Vazgec` aksiyonu secmelidir.
+
+UI state ornegi:
+
+```ts
+type PendingCreateState = {
+  clientRequestId: string;
+  payloadSnapshot: unknown;
+  status: "idle" | "sending" | "retryable" | "completed";
+};
+```
+
+Kaydetme akisi:
+
+```text
+1. Kullanici Kaydet'e basar.
+2. UI yeni GUID uretir ve gonderilecek body'nin snapshot'ini alir.
+3. Body icine ayni `clientRequestId` yazilir ve POST edilir.
+4. Request devam ederken Kaydet butonu ve form alanlari kilitlenir.
+5. Basarili response gelirse islem `completed` olur ve pending state temizlenir.
+6. Timeout, HTTP 0, network kopmasi veya belirsiz 500 durumunda islem `retryable` olur.
+7. Kullanici `Tekrar Dene` derse UI yeni body uretmez; saklanan snapshot'i ayni `clientRequestId` ile tekrar POST eder.
+8. Kullanici pending kaydi degistirmek isterse once `Yeni islem olarak duzenle` secilir; bu durumda sonraki Kaydet yeni `clientRequestId` ile yeni islem sayilir.
+```
+
+Yanlis retry ornegi:
+
+```text
+08:20 ayni sevk A clientRequestId ile POST edildi, cevap gec geldi veya timeout goruldu.
+08:25 UI ayni sevki B clientRequestId ile tekrar POST etti.
+Sonuc: Backend A ve B isteklerini iki ayri create sayabilir; F120/3496 ve F120/3497 gibi ayni icerikli iki evrak olusabilir.
+```
 
 Offline durum sorgu endpointleri:
 
@@ -3954,6 +3987,7 @@ stockCode      opsiyonel; stok kodu ile exact arama
 stockName      opsiyonel; stok adinda contains arama, en az 2 karakter
 companyCode    opsiyonel; secilen firma/cari kodu filtresi
 supplierCode   opsiyonel; companyCode ile ayni filtre icin geriye uyum alias'i
+includeDelisted opsiyonel; default true. true ise pasif veya DLS/99 urunler de doner; false ise bu urunler listeden gizlenir
 take           opsiyonel; default 20, max 100
 ```
 
@@ -3961,6 +3995,9 @@ Kural:
 
 - `barcode`, `stockCode`, `stockName`, `companyCode` veya `supplierCode` alanlarindan en az biri verilmelidir.
 - Bos arama engellenir; cunku Mikro procedure genis fiyat/stok seti dondurebilir.
+- Urun arama, fiyat gor ve var-yok listelerinde pasif veya DLS/99 urunler normalde gorunur; backend satiri `isPassive`, `isDelisted` ve `delistReason` alanlariyla isaretler.
+- UI "delistleri/pasifleri gizle" toggle'i aciksa ayni istege `includeDelisted=false` eklemelidir. Toggle kapaliysa alan gonderilmeyebilir; default `true` kabul edilir.
+- UI sadece kendi icinde filtre yapmamalidir; gizleme karari backend tarafinda calismalidir ki web, terminal ve mobil ayni sonucu gorsun.
 - `warehouseNo`, fiyat/stok/blok bilgisinin hangi islem deposuna gore okunacagini belirler. Bu alan kaynak depo secimi icin kullanilmaz.
 - Merkez depoya siparis verme ekraninda kullanici deposu `56`, kaynak depo `50` ise urun arama istegi `warehouseNo=50` ile degil, `warehouseNo=56` ile veya `warehouseNo` bos gonderilerek yapilmalidir.
 - Ornek yanlis kullanim: `GET /api/arama-islemleri/urunler?warehouseNo=50&stockName=aytac`. Kullanici token deposu `56` ise ve tum depo yetkisi yoksa backend `403 Forbidden` dondurur.
@@ -4027,6 +4064,7 @@ UI kullanim notu:
 - Mal kabulde `isGoodsAcceptanceBlocked = true` olan urunlerde uyari gosterilebilir.
 - Siparis girisinde `isOrderBlocked = true` olan urunlerde uyari veya engel uygulanabilir.
 - Satis/sevk formlarinda `isSalesBlocked = true` olan urunlerde uyari gosterilebilir; depolar arasi sevkte bu alan tek basina satira ekleme engeli degildir.
+- `isDelisted=true` gelen satirlar normalde listede gorunur ama pasif/delist etiketiyle ayrilmalidir. Kullanici gizle toggle'ini acarsa UI tekrar `includeDelisted=false` ile backend'den liste istemelidir.
 - Koli ici gosterim icin `unitMultiplier > 1` ise `KOLI ici 6 ADET` gibi gosterim yapilabilir; miktar girisinde koli adedi girilecekse ana miktar `koliAdedi * unitMultiplier` olarak hesaplanir.
 - Barkod okutulan satir ekleme ekranlarinda nihai karar icin once `barkodlar/{barcode}/cozumle` cagrilmalidir; `urunler` daha cok liste/arama deneyimi icindir.
 
@@ -4059,6 +4097,7 @@ stockCode      opsiyonel; stok kodu ile exact arama
 stockName      opsiyonel; stok adinda contains arama, en az 2 karakter
 companyCode    opsiyonel; secilen firma/cari kodu filtresi
 supplierCode   opsiyonel; companyCode ile ayni filtre icin geriye uyum alias'i
+includeDelisted opsiyonel; default true. true ise pasif veya DLS/99 urunler de doner; false ise bu urunler listeden gizlenir
 take           opsiyonel; default 20, max 100
 ```
 
@@ -4097,6 +4136,7 @@ warehouseNo    opsiyonel; verilmezse JWT icindeki depo kullanilir
 barcode        opsiyonel; once tam barkod arar; 27/29 terazi barkodunda arama barkodu normalize edilir; sonuc yoksa 6+ rakamda barkod son hane fallback'i calisir
 stockCode      opsiyonel; stok kodu ile exact arama
 stockName      opsiyonel; stok adinda contains arama, en az 2 karakter
+includeDelisted opsiyonel; default true. true ise pasif veya DLS/99 urunler de doner; false ise bu urunler listeden gizlenir
 take           opsiyonel; default 20, max 100
 ```
 
@@ -4124,6 +4164,9 @@ Response:
     "isSalesBlocked": false,
     "isOrderBlocked": false,
     "isGoodsAcceptanceBlocked": false,
+    "isPassive": false,
+    "isDelisted": false,
+    "delistReason": null,
     "productManagerCode": "PER001",
     "requestedBarcode": "2700174041103",
     "lookupBarcode": "2700174",
@@ -4140,6 +4183,7 @@ UI kullanim notu:
 - Sol menu altinda `AramaIslemleri > VarYok` veya "Var Yok" gibi ayri bir hizli ekran olarak sunulabilir.
 - Ana gosterim icin `stockCode`, `stockName`, `currentStockQuantity`, `unitName`, `warehouseName`, `price` ve varsa `secondaryUnitName/unitMultiplier` yeterlidir.
 - `hasStock=false` ise UI urunu buldugunu ama secili depoda stok olmadigini net gostermelidir.
+- `isDelisted=true` gelen satirlar normalde listede gorunur ama pasif/delist etiketiyle ayrilmalidir. Kullanici gizle toggle'ini acarsa UI tekrar `includeDelisted=false` ile backend'den liste istemelidir.
 - `unitMultiplier > 1` ise kullaniciya koli ici miktar olarak gosterilebilir; ornek: `KOLI ici 12 ADET`.
 - Depo secici sadece `arama-islemleri.var-yok.all-warehouses` yetkisi varsa acilmalidir; normal kullanicida depo JWT deposudur.
 - Bu endpoint satir ekleme karari icin degil, hizli stok sorgu ekranidir. Mal kabul/siparis/sevk satira ekleme kararinda yine `barkodlar/{barcode}/cozumle` ana karar noktasi olmalidir.
@@ -5593,6 +5637,10 @@ Onemli not:
 - Backend ayni `documentSerie` icin sevk olusturma islemlerini SQL application lock ile siraya alir. Bu, terminalden pes pese kaydetme veya ayni anda birden fazla sevk olusturma durumunda sira numarasi/insert deadlock riskini azaltir.
 - Backend son 5 dakika icinde ayni kaynak depo, hedef depo, transit depo, tarih ve birebir ayni satirlar ile olusmus bir sevk bulursa yeni evrak acmaz; mevcut evrakin `documentSerie` ve `documentOrderNo` bilgisini ayni response modeliyle dondurur. Bu alan response'ta ayrica isaretlenmez, UI ayni response'u basar.
 - UI kaydet butonunu ilk tiklamadan sonra request bitene kadar disable etmeli ve timeout sonrasi ayni body tekrar gonderildiginde ayni evrak numarasinin donebilecegini kabul etmelidir. Timeout gorulse bile kullaniciya liste/detay yenileme secenegi verilmesi onerilir.
+- Depolar arasi sevk create ekraninda `clientRequestId` pratikte zorunlu kabul edilmelidir. UI bu id'yi ilk `Kaydet` aninda uretmeli, ayni body snapshot'i ile birlikte saklamali ve sonuc kesinlesene kadar degistirmemelidir.
+- Timeout, HTTP 0, tarayici iptali, 500 veya kullaniciya sonucu kesin gosterilemeyen durumlarda `Tekrar Dene` aksiyonu ayni `clientRequestId` ve ayni body snapshot'i ile POST etmelidir.
+- UI ayni sevk icerigini yeni `clientRequestId` ile tekrar gonderirse backend bunu yeni evrak olarak yorumlayabilir. Bu durumda ayni stok/miktar satirlari farkli `documentOrderNo` ile ikinci kez olusur; ornek risk `F120/3496` ve `F120/3497` gibi ayni icerikli iki sevktir.
+- Kullanici pending/retry durumundaki sevk formunu degistirmek isterse UI bunu acikca yeni islem saymali; eski pending state'i kullanmadan yeni `clientRequestId` uretmelidir.
 - Satirda `warehouseOrderLineGuid` verilirse depo siparis satirina baglanir. `MikroWriteRouting:InterWarehouseShipment=Database` modunda backend `STOK_HAREKETLERI_EK.sth_subesip_uid` linkini DB'de kurar; `MikroApi` modunda ayni GUID `DahiliStokHareketKaydetV2` satirina `sth_subesip_uid` olarak gonderilir ve link/teslim etkisi Mikro tarafina birakilir.
 - `warehouseOrderLineGuid` verilmezse satir normalde siparissiz sevk olarak olusur; otomatik depo siparisi kurali devredeyse backend once Mikro API ile depo siparisi olusturup satiri bu yeni siparis GUID'ine baglar.
 - Siparise bagli satirda stok kodu, kaynak depo, hedef depo ve kalan miktar kontrol edilir.
@@ -15807,13 +15855,14 @@ Davranis:
 - secimler duplicate ise backend tekilleÃƒâ€¦Ã…Â¸tirir
 - gonderim Uyumsoft WCF client ile fatura bazli tek tek yapilir; boylece basarili/hatali kayitlar response icinde ayri ayri gorulur
 - her belge icin UBL invoice uretilir ve Uyumsoft `SendInvoice` operasyonu cagrilir
-- UBL-TR is kurali ve XSD dogrulamalari Uyumsoft cagrisi oncesinde zorunlu calisir. UI'nin once `/validate` cagirmasi hizli kullanici geri bildirimi saglar ancak veri guvenligi UI davranisina birakilmaz.
-- backend satir neti, satir KDV matrahi, iskonto toplami, belge net matrahi, KDV ve `PayableAmount` aritmetigini kontrol eder; tutarsiz XML Uyumsoft'a gonderilmez.
+- performans icin `/send` agir UBL-TR is kurali ve XSD dogrulamasini otomatik calistirmaz; kullanici kontrol istiyorsa veya toplu gonderim oncesi guvence isteniyorsa UI once `/validate` cagirmalidir
+- `/validate` backend satir neti, satir KDV matrahi, iskonto toplami, belge net matrahi, KDV ve `PayableAmount` aritmetigini kontrol eder; UI validasyon sonucunu kullaniciya ayri aksiyon olarak gostermelidir
 - ayni belge icin SQL application lock alinir; ayni belge baska bir istek tarafindan gonderiliyorsa ikinci istek Uyumsoft'a cagrilmaz ve ilgili satir hata mesaji ile doner
 - basarili donuste `serviceDocumentNumber` Mikro `cha_belge_no` alanina yazilir
 - `serviceDocumentId` Uyumsoft'un teknik id'sidir; basarili gonderimde Mikro `cha_uuid` alanina yazilir, servis id bos donerse faturanin lokal UUID degeri fallback olarak saklanir
 - sonraki liste ekraninda gonderilmis fatura PDF ve tekrar gonderim aksiyonlari backend tarafinda bu UUID uzerinden cozulur; UI teknik UUID gondermek zorunda degildir
-- ayni anda `cha_kilitli = true`, `cha_degisti = true`, `cha_lastup_user = 39` ve `cha_lastup_date = now` set edilir
+- ayni anda Mikro'da `cha_kilitli = true` olur; write rotasi DB ise `cha_degisti`, `cha_lastup_user` ve `cha_lastup_date` backend tarafindan set edilir, write rotasi Mikro API ise backend `KayitKaydetV2` icin kaydin mevcut `cha_degisti` ve `cha_lastup_user` degerlerini kullanir
+- `MikroWriteRouting:InvoiceSendingMarkAsSent=MikroApi` ortaminda marker yazimi `POST /Api/apiMethods/KayitKaydetV2` ile `CARI_HESAP_HAREKETLERI` tablo no `51`, `KayitTipi=1` uzerinden yapilir; backend yazimdan sonra `cha_belge_no`, `cha_uuid` ve `cha_kilitli` alanlarini readback ile dogrular
 - zaten gonderilmis kayitlar response'ta `isSucceeded = false` ile doner; genel request tamamen patlatilmaz
 - basarili veya hatali gonderim loglarinda toplam sureye ek olarak `BuildAndValidateMs`, `UyumsoftMs` ve `MarkAsSentMs` sureleri bulunur. Uzun beklemenin DB/XML, Uyumsoft veya Mikro geri yazma asamasindan hangisinde oldugu bu alanlarla ayristirilir.
 - Liste 2 saniyeyi veya onizleme 5 saniyeyi asarsa backend tek bir warning logu yazar. Liste logunda filtreler, kayit sayisi ve toplam sure; onizleme logunda `LoadMs`, `BuildMs` ve `RenderMs` alanlari bulunur. Normal hizdaki istekler icin ek log uretilmez.
@@ -15927,7 +15976,7 @@ Fatura modulu notlari:
 - `fatura-goruntuleme` icinde legacy'deki "goruntule" ve "yazdirildi say" ayrimi artik ayri endpointlerle temsil edilir
 - `GET /{documentId}/detail` ile `POST render` ayni response tipini doner; fark, `POST render` ile XSLT davranisinin override edilebilmesidir
 - `fatura-gonderimi` detail/send akisinda invoice XML Mikro verisinden backend tarafinda yeniden uretilir; UI ham XML kurmak zorunda degildir
-- `fatura-gonderimi` send akisinda basarili sonuclarda Mikro `cha_belge_no` ve `cha_uuid` geri yazilir, kayit kilitlenir
+- `fatura-gonderimi` send akisinda basarili sonuclarda Mikro `cha_belge_no` ve `cha_uuid` geri yazilir, kayit kilitlenir; `InvoiceSendingMarkAsSent=MikroApi` ise bu is `KayitKaydetV2` tablo `51` update yolu ile yapilir ve backend readback dogrulamasi olmadan basarili donmez
 - render sirasinda once embedded XSLT denenir; yoksa WebApi icindeki `Assets/Xslt/efatura.xslt` veya `Assets/Xslt/earsiv.xslt` fallback olarak kullanilir
 - ortak renderer artik ek karekod uretmez; fatura-gonderimi ve fatura-goruntuleme HTML'inde karekodun tek kaynagi secilen XSLT'dir
 - `fatura-goruntuleme` PDF/detail lookup anahtari `documentId`'dir; `invoiceId` ise kullaniciya gosterilen numaradir
@@ -19920,7 +19969,14 @@ public sealed record ProductLookupItemDto(
     bool IsVariableWeightBarcode = false,
     double? EmbeddedQuantity = null,
     string? EmbeddedQuantityUnit = null,
-    bool? IsBarcodeCheckDigitValid = null);
+    bool? IsBarcodeCheckDigitValid = null,
+    double? PurchasePrice = null,
+    double? PurchaseGrossPrice = null,
+    string? PurchasePriceSource = null,
+    string? PurchaseSupplierCode = null,
+    bool IsPassive = false,
+    bool IsDelisted = false,
+    string? DelistReason = null);
 
 public sealed record ProductCustomerSuggestionResponse(
     bool IsProductFound,
@@ -22436,8 +22492,9 @@ Bu bolumde yalnizca endpointlerin dogrudan baglandigi HTTP request modelleri yer
 
 ### Arama Request Modelleri
 
-- `ProductSearchHttpRequest`: `WarehouseNo`, `Barcode`, `StockCode`, `StockName`, `SupplierCode`, `CompanyCode`, `Take`
-- `ProductBarcodePriceLookupHttpRequest`: `WarehouseNo`, `Take`
+- `ProductSearchHttpRequest`: `WarehouseNo`, `Barcode`, `StockCode`, `StockName`, `SupplierCode`, `CompanyCode`, `IncludeDelisted`, `Take`
+- `ProductBarcodePriceLookupHttpRequest`: `WarehouseNo`, `IncludeDelisted`, `Take`
+- `ProductAvailabilityHttpRequest`: `WarehouseNo`, `Barcode`, `StockCode`, `StockName`, `IncludeDelisted`, `Take`
 - `CustomerSearchHttpRequest`: `SearchText`, `Take`
 - `WarehouseSearchHttpRequest`: `SearchText`, `WarehouseNo`, `Take`
 - `BarcodeResolutionHttpRequest`: `WarehouseNo`, `OperationType`, `TargetWarehouseNo`, `SupplierCode`, `CompanyCode`, `IsRefund`, `ScreenCode`

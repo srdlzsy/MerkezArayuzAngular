@@ -67,14 +67,14 @@ h2 {
 
 .query-panel {
   display: grid;
-  grid-template-columns: minmax(240px, 1fr) 110px 92px auto auto;
+  grid-template-columns: minmax(240px, 1fr) 110px 92px auto auto auto;
   gap: 0.55rem;
   align-items: end;
   padding: 0.7rem;
 }
 
 .query-panel.no-warehouse-filter {
-  grid-template-columns: minmax(240px, 1fr) 92px auto auto;
+  grid-template-columns: minmax(240px, 1fr) 92px auto auto auto;
 }
 
 .field {
@@ -104,6 +104,23 @@ h2 {
 .field input:focus {
   outline: 2px solid rgba(15, 118, 110, 0.15);
   border-color: #5eead4;
+}
+
+.check-field {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+  min-height: 36px;
+  color: #334155;
+  font-size: 0.78rem;
+  font-weight: 800;
+  white-space: nowrap;
+}
+
+.check-field input {
+  width: 16px;
+  height: 16px;
+  accent-color: #0f766e;
 }
 
 .primary-action,

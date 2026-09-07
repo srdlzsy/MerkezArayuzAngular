@@ -657,6 +657,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: (result: IFurpaCreateCompanyReceiptResponseApiDto) => {
+          this.safeCreateRetry.reset();
           this.createdReceiptResult.set(result);
         },
         error: (error: HttpErrorResponse) => {

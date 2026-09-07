@@ -282,12 +282,36 @@
       <table>
         <thead>
           <tr>
-            <th>Ürün</th>
-            <th>Barkod</th>
-            <th>Fiyat</th>
-            <th>Durum</th>
-            <th>Birim / Koli</th>
-            <th>Değişiklik</th>
+            <th>
+              <button type="button" class="sort-button" (click)="setProductSort('productName')">
+                Ürün <span>{{ getProductSortIcon('productName') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-button" (click)="setProductSort('barcode')">
+                Barkod <span>{{ getProductSortIcon('barcode') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-button" (click)="setProductSort('price')">
+                Fiyat <span>{{ getProductSortIcon('price') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-button" (click)="setProductSort('status')">
+                Durum <span>{{ getProductSortIcon('status') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-button" (click)="setProductSort('unit')">
+                Birim / Koli <span>{{ getProductSortIcon('unit') }}</span>
+              </button>
+            </th>
+            <th>
+              <button type="button" class="sort-button" (click)="setProductSort('priceChangeDate')">
+                Değişiklik <span>{{ getProductSortIcon('priceChangeDate') }}</span>
+              </button>
+            </th>
             <th><span class="visually-hidden">İşlem</span></th>
           </tr>
         </thead>

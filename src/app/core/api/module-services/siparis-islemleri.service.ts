@@ -17,6 +17,7 @@ import type {
   IssuedCompanyOrderListHttpRequest,
   SuggestedCompanyOrderListHttpRequest,
   SuggestedCompanyOrderListItemDto,
+  SuggestedWarehouseOrderCreateLineDto,
   SuggestedWarehouseOrderListHttpRequest,
   SuggestedWarehouseOrderListItemDto,
   WarehouseOrderDetailDto,
@@ -488,13 +489,18 @@ export class SiparisIslemleriService extends BaseApiService {
   getDepoIcinOnerilenSiparisKalemleri(
     warehouseNo: number,
     targetWarehouseNo?: number
-  ): Observable<CreateIssuedWarehouseOrderLineHttpRequest[]> {
+  ): Observable<SuggestedWarehouseOrderCreateLineDto[]> {
     return this.listSuggestedWarehouseOrders({ sourceWarehouseNo: warehouseNo, targetWarehouseNo }).pipe(
       map((items: SuggestedWarehouseOrderListItemDto[]) =>
         (items ?? []).map((item: SuggestedWarehouseOrderListItemDto) => ({
           stockCode: item.stockCode,
+          stockName: item.stockName,
+          barcode: item.barcode,
+          modelCode: item.modelCode,
           quantity: item.suggestedOrderQuantity,
           recommendedQuantity: item.suggestedOrderQuantity,
+          unitMultiplier: item.unitMultiplier,
+          packageFactor: item.packageFactor ?? null,
           unitPrice: 0,
           unitPointer: 1,
           description: '',

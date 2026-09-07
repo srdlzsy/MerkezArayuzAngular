@@ -16,6 +16,7 @@ import type {
   IFurpaCreateWarehouseOrderRequestApiDto,
   IFurpaCreateWarehouseOrderLineRequestApiDto,
   IFurpaProductSearchItemApiDto,
+  SuggestedWarehouseOrderCreateLineDto,
   SuggestedWarehouseSourceProductDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
@@ -355,7 +356,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       .getDepoIcinOnerilenSiparisKalemleri(warehouse.sourceWarehouseNo, this.resolveRequestWarehouseNo())
       .pipe(finalize(() => requestId === this.presetProductsRequestId && this.presetProductsLoading.set(false)))
       .subscribe({
-        next: (results: IFurpaCreateWarehouseOrderLineRequestApiDto[]) => {
+        next: (results: SuggestedWarehouseOrderCreateLineDto[]) => {
           if (requestId !== this.presetProductsRequestId || this.selectedWarehouse()?.sourceWarehouseNo !== warehouse.sourceWarehouseNo) {
             return;
           }
@@ -767,21 +768,23 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private createRecommendedKalemFormGroup(
-    kalem: IFurpaCreateWarehouseOrderLineRequestApiDto
+    kalem: SuggestedWarehouseOrderCreateLineDto
   ): KalemFormGroup {
     const siparisMiktari = this.resolveRecommendedQuantity(kalem);
+    const unitMultiplier = this.normalizePositiveNumber(kalem.unitMultiplier ?? null) ?? kalem.unitPointer ?? 1;
+    const modelCode = kalem.modelCode?.trim() || kalem.packageCode?.trim() || '';
 
     return new FormGroup({
       stokKodu: new FormControl(kalem.stockCode?.trim() ?? '', {
         nonNullable: true,
         validators: [Validators.required]
       }),
-      stokIsmi: new FormControl('', { nonNullable: true }),
-      barkodu: new FormControl('', { nonNullable: true }),
+      stokIsmi: new FormControl(kalem.stockName?.trim() ?? '', { nonNullable: true }),
+      barkodu: new FormControl(kalem.barcode?.trim() ?? '', { nonNullable: true }),
       birim: new FormControl('', { nonNullable: true }),
-      birimKatsayisi: new FormControl<number | null>(kalem.unitPointer ?? 1),
+      birimKatsayisi: new FormControl<number | null>(unitMultiplier),
       ikinciBirim: new FormControl('', { nonNullable: true }),
-      koliKatsayisi: new FormControl<number | null>(null),
+      koliKatsayisi: new FormControl<number | null>(this.normalizePositiveNumber(kalem.packageFactor ?? null)),
       koliBarkodu: new FormControl('', { nonNullable: true }),
       koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(siparisMiktari, {
@@ -795,7 +798,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
       aciklama: new FormControl(trimToMaxLength(kalem.description, 50), { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl(trimToMaxLength(kalem.packageCode, 25), { nonNullable: true, validators: [Validators.maxLength(25)] })
+      modelKodu: new FormControl(trimToMaxLength(modelCode, 25), { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
   }
 
@@ -1087,9 +1090,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private normalizeRecommendedKalemler(
-    results: IFurpaCreateWarehouseOrderLineRequestApiDto[]
-  ): IFurpaCreateWarehouseOrderLineRequestApiDto[] {
-    const uniqueKalemler = new Map<string, IFurpaCreateWarehouseOrderLineRequestApiDto>();
+    results: SuggestedWarehouseOrderCreateLineDto[]
+  ): SuggestedWarehouseOrderCreateLineDto[] {
+    const uniqueKalemler = new Map<string, SuggestedWarehouseOrderCreateLineDto>();
 
     for (const kalem of results) {
       const stokKodu = kalem.stockCode?.trim();
@@ -1102,6 +1105,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       uniqueKalemler.set(key, {
         ...kalem,
         stockCode: stokKodu,
+        stockName: kalem.stockName?.trim() ?? '',
+        barcode: kalem.barcode?.trim() ?? '',
+        modelCode: kalem.modelCode?.trim() ?? '',
+        unitMultiplier: this.normalizePositiveNumber(kalem.unitMultiplier ?? null) ?? 1,
+        packageFactor: this.normalizePositiveNumber(kalem.packageFactor ?? null),
         description: kalem.description?.trim() ?? '',
         packageCode: kalem.packageCode?.trim() ?? '',
         projectCode: kalem.projectCode?.trim() ?? '',
@@ -1110,7 +1118,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     }
 
     return Array.from(uniqueKalemler.values()).sort((left, right) =>
-      (left.stockCode ?? '').localeCompare(right.stockCode ?? '', 'tr')
+      (left.stockName || left.stockCode).localeCompare(right.stockName || right.stockCode, 'tr')
     );
   }
 

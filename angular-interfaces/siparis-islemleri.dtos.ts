@@ -102,6 +102,14 @@ export interface CreateIssuedWarehouseOrderLineHttpRequest {
   greenGrocerCase?: GreenGrocerOrderLineSnapshotHttpRequest | null;
 }
 
+export interface SuggestedWarehouseOrderCreateLineDto extends CreateIssuedWarehouseOrderLineHttpRequest {
+  stockName: string;
+  barcode: string;
+  modelCode: string;
+  unitMultiplier: number;
+  packageFactor?: number | null;
+}
+
 export interface CreateIssuedWarehouseOrderResponse {
   documentSerie: string;
   documentOrderNo: number;

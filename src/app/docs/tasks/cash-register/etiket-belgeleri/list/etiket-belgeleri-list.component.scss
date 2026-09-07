@@ -249,7 +249,8 @@
 .text-button,
 .filter-tab,
 .pagination-button,
-.remove-button {
+.remove-button,
+.sort-button {
   border: 0;
   cursor: pointer;
   font: inherit;
@@ -472,6 +473,34 @@ th {
   font-weight: 800;
   letter-spacing: 0.05em;
   text-transform: uppercase;
+}
+
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.24rem;
+  min-height: 24px;
+  padding: 0;
+  border-radius: 4px;
+  background: transparent;
+  color: inherit;
+  font-size: inherit;
+  letter-spacing: inherit;
+  text-align: left;
+  text-transform: inherit;
+}
+
+.sort-button:hover {
+  color: var(--accent);
+}
+
+.sort-button span {
+  display: inline-grid;
+  width: 0.8rem;
+  place-items: center;
+  color: var(--accent);
+  font-size: 0.72rem;
+  line-height: 1;
 }
 
 td {
@@ -899,12 +928,19 @@ tbody tr:hover {
 .text-button,
 .filter-tab,
 .remove-button,
-.page-button {
+.page-button,
+.sort-button {
   min-height: 32px;
   border-radius: 6px;
   padding: 0.34rem 0.62rem;
   font-size: 0.74rem;
   box-shadow: none;
+}
+
+.sort-button {
+  min-height: 24px;
+  padding: 0;
+  font-size: inherit;
 }
 
 th,

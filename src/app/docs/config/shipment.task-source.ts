@@ -106,6 +106,7 @@ export const SHIPMENT_TASK_SOURCE = {
         'Yazma yolu MikroWriteRouting:InterWarehouseShipment ile Database veya MikroApi olur',
         'Create requestinde guvenli retry icin clientRequestId uretilir',
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
+        'Timeout/belirsiz sonuc sonrasi ayni sevki yeni clientRequestId ile gondermek ikinci evrak olusturabilir',
         'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir',
         'Manav depo 56 akisi varsayilan olarak siparis satir GUID baglantisi gondermez',
         'Giden sevk guncelleme sadece e-irsaliye gonderilmemis ve karsi depo kabul etmemis evraklarda calisir',

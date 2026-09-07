@@ -82,6 +82,7 @@ export const SEARCH_TASK_SOURCE = {
         'Shipment akiminda hedef depo model kod sonucu bilgi amaclidir, tek basina bloklamaz',
         'Stok kodu ile fiyat arama',
         'Urun adi ile arama',
+        'Pasif/DLS urunler default gorunur; gizle secenegi includeDelisted=false ile backendden filtreler',
         'Stok kodundan son kunye bilgisi',
         'Mikro fiyat proseduru'
       ],
@@ -103,8 +104,8 @@ export const SEARCH_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/arama-islemleri/fiyat-gor?warehouseNo=110&stockName=sut&take=20',
-              description: 'Urun adinda contains arama ile fiyat listesi getirir'
+              path: '/api/arama-islemleri/fiyat-gor?warehouseNo=110&stockName=sut&includeDelisted=false&take=20',
+              description: 'Urun adinda contains arama ile fiyat listesi getirir; includeDelisted=false pasif/DLS satirlari backend tarafinda gizler'
             },
             {
               method: 'GET',
@@ -138,6 +139,9 @@ export const SEARCH_TASK_SOURCE = {
   "isSalesBlocked": false,
   "isOrderBlocked": false,
   "isGoodsAcceptanceBlocked": false,
+  "isPassive": false,
+  "isDelisted": false,
+  "delistReason": null,
   "requestedBarcode": "2700174041103",
   "lookupBarcode": "2700174",
   "isVariableWeightBarcode": true,
@@ -165,7 +169,8 @@ export const SEARCH_TASK_SOURCE = {
         'Urun adi ile contains arama',
         'Depo stok miktari ve hasStock durumu',
         'Fiyat ve alternatif birim/koli bilgisi',
-        'Satis, siparis ve mal kabul bloklari'
+        'Satis, siparis ve mal kabul bloklari',
+        'Pasif/DLS urunler default gorunur; gizle secenegi includeDelisted=false ile backendden filtreler'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -185,8 +190,8 @@ export const SEARCH_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/arama-islemleri/var-yok?warehouseNo=110&stockName=sut&take=20',
-              description: 'Urun adinda contains arama ile var yok listesi getirir'
+              path: '/api/arama-islemleri/var-yok?warehouseNo=110&stockName=sut&includeDelisted=false&take=20',
+              description: 'Urun adinda contains arama ile var yok listesi getirir; includeDelisted=false pasif/DLS satirlari backend tarafinda gizler'
             }
           ]
         }
@@ -210,6 +215,9 @@ export const SEARCH_TASK_SOURCE = {
   "isSalesBlocked": false,
   "isOrderBlocked": false,
   "isGoodsAcceptanceBlocked": false,
+  "isPassive": false,
+  "isDelisted": false,
+  "delistReason": null,
   "productManagerCode": "PER001",
   "requestedBarcode": "2700174041103",
   "lookupBarcode": "2700174",

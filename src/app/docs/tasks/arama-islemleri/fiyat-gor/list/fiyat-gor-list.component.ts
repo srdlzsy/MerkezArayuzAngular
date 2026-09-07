@@ -39,6 +39,7 @@ export class FiyatGorListComponent {
   protected searchQuery = '';
   protected warehouseNo: number | null = null;
   protected take = 20;
+  protected hideDelistedProducts = false;
 
   protected search(): void {
     const query = this.searchQuery.trim();
@@ -55,7 +56,12 @@ export class FiyatGorListComponent {
     this.isLoading.set(true);
 
     this.aramaService
-      .searchPrices(query, this.normalizeWarehouseNo(), this.take)
+      .searchPrices(
+        query,
+        this.normalizeWarehouseNo(),
+        this.take,
+        this.resolveIncludeDelisted()
+      )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoading.set(false))
@@ -76,6 +82,7 @@ export class FiyatGorListComponent {
   protected clear(): void {
     this.searchQuery = '';
     this.warehouseNo = null;
+    this.hideDelistedProducts = false;
     this.results.set([]);
     this.lastTags.set({});
     this.lastTagLoadingStockCode.set(null);
@@ -172,6 +179,14 @@ export class FiyatGorListComponent {
     ].filter((label): label is string => !!label);
   }
 
+  protected getProductStateLabels(item: ProductLookupItemDto): string[] {
+    return [
+      item.isPassive ? 'Pasif' : '',
+      item.isDelisted ? item.delistReason?.trim() || 'DLS/99' : '',
+      ...this.getBlockedLabels(item)
+    ].filter((label): label is string => !!label);
+  }
+
   protected formatDate(value: string | null | undefined): string {
     if (!value) {
       return '-';
@@ -200,6 +215,10 @@ export class FiyatGorListComponent {
 
     const value = Number(this.warehouseNo ?? Number.NaN);
     return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+
+  private resolveIncludeDelisted(): boolean | undefined {
+    return this.hideDelistedProducts ? false : undefined;
   }
 
   private getLastTagWarehouseNo(item: ProductLookupItemDto): number | undefined {

@@ -14,6 +14,7 @@ export interface ProductSearchHttpRequest {
   stockName?: string;
   supplierCode?: string;
   companyCode?: string;
+  includeDelisted?: boolean;
   take?: number;
 }
 
@@ -28,6 +29,9 @@ export interface ProductLookupItemDto {
   purchaseGrossPrice: number | null;
   purchasePriceSource: string | null;
   purchaseSupplierCode: string | null;
+  isPassive?: boolean;
+  isDelisted?: boolean;
+  delistReason?: string | null;
   unitName: string;
   unitMultiplier: number;
   secondaryUnitName: string;

@@ -498,6 +498,7 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
+          this.safeCreateRetry.reset();
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {

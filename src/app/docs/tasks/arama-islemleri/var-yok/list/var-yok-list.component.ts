@@ -39,6 +39,7 @@ export class VarYokListComponent {
   protected searchQuery = '';
   protected warehouseNo: number | null = null;
   protected take = 20;
+  protected hideDelistedProducts = false;
 
   protected search(): void {
     const query = this.searchQuery.trim();
@@ -55,7 +56,12 @@ export class VarYokListComponent {
     this.isLoading.set(true);
 
     this.aramaService
-      .searchVarYok(query, this.normalizeWarehouseNo(), this.take)
+      .searchVarYok(
+        query,
+        this.normalizeWarehouseNo(),
+        this.take,
+        this.resolveIncludeDelisted()
+      )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoading.set(false))
@@ -74,6 +80,7 @@ export class VarYokListComponent {
   protected clear(): void {
     this.searchQuery = '';
     this.warehouseNo = null;
+    this.hideDelistedProducts = false;
     this.results.set([]);
     this.errorMessage.set('');
     this.hasSearched.set(false);
@@ -113,6 +120,14 @@ export class VarYokListComponent {
     ].filter((label): label is string => !!label);
   }
 
+  protected getProductStateLabels(item: VarYokLookupItemDto): string[] {
+    return [
+      item.isPassive ? 'Pasif' : '',
+      item.isDelisted ? item.delistReason?.trim() || 'DLS/99' : '',
+      ...this.getBlockedLabels(item)
+    ].filter((label): label is string => !!label);
+  }
+
   protected hasPackInfo(item: VarYokLookupItemDto): boolean {
     return !!item.secondaryUnitName?.trim() && Number(item.unitMultiplier ?? 0) > 1;
   }
@@ -139,6 +154,10 @@ export class VarYokListComponent {
 
     const value = Number(this.warehouseNo ?? Number.NaN);
     return Number.isFinite(value) && value > 0 ? value : undefined;
+  }
+
+  private resolveIncludeDelisted(): boolean | undefined {
+    return this.hideDelistedProducts ? false : undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

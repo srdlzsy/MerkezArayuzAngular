@@ -114,7 +114,8 @@ export class AramaService extends BaseApiService {
     stockName?: string,
     supplierCode?: string,
     companyCode?: string,
-    take: number = 20
+    take: number = 20,
+    includeDelisted?: boolean
   ): Observable<ProductLookupItemDto[]> {
     const normalizedBarcode = this.normalizeOptionalText(barcode);
     const normalizedStockCode = this.normalizeOptionalText(stockCode);
@@ -143,6 +144,7 @@ export class AramaService extends BaseApiService {
       stockName: normalizedStockName,
       supplierCode: normalizedSupplierCode,
       companyCode: normalizedCompanyCode,
+      includeDelisted,
       take
     };
 
@@ -152,7 +154,11 @@ export class AramaService extends BaseApiService {
     });
   }
 
-  searchStock(query: string, take: number = 20): Observable<ProductLookupItemDto[]> {
+  searchStock(
+    query: string,
+    take: number = 20,
+    includeDelisted?: boolean
+  ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
     return this.searchProducts(
       undefined,
@@ -161,14 +167,16 @@ export class AramaService extends BaseApiService {
       filters.stockName,
       undefined,
       undefined,
-      take
+      take,
+      includeDelisted
     );
   }
 
   searchPrices(
     query: string,
     warehouseNo?: number,
-    take: number = 20
+    take: number = 20,
+    includeDelisted?: boolean
   ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
 
@@ -181,6 +189,7 @@ export class AramaService extends BaseApiService {
       barcode: filters.barcode,
       stockCode: filters.stockCode,
       stockName: filters.stockName,
+      includeDelisted,
       take: Math.min(take, 100)
     });
   }
@@ -188,7 +197,8 @@ export class AramaService extends BaseApiService {
   searchVarYok(
     query: string,
     warehouseNo?: number,
-    take: number = 20
+    take: number = 20,
+    includeDelisted?: boolean
   ): Observable<VarYokLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
 
@@ -201,12 +211,17 @@ export class AramaService extends BaseApiService {
       barcode: filters.barcode,
       stockCode: filters.stockCode,
       stockName: filters.stockName,
+      includeDelisted,
       take: Math.min(take, 100)
     });
   }
 
-  getByFilterForLabel(query: string, take: number = 20): Observable<ProductLookupItemDto[]> {
-    return this.searchStock(query, take);
+  getByFilterForLabel(
+    query: string,
+    take: number = 20,
+    includeDelisted?: boolean
+  ): Observable<ProductLookupItemDto[]> {
+    return this.searchStock(query, take, includeDelisted);
   }
 
   /**
@@ -307,7 +322,8 @@ export class AramaService extends BaseApiService {
   searchProductsByCustomer(
     customerCode: string,
     searchText: string,
-    take: number = 20
+    take: number = 20,
+    includeDelisted?: boolean
   ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(searchText);
 
@@ -318,7 +334,8 @@ export class AramaService extends BaseApiService {
       filters.stockName,
       undefined,
       this.normalizeOptionalText(customerCode),
-      take
+      take,
+      includeDelisted
     );
   }
 

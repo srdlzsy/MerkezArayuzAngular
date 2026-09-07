@@ -110,7 +110,8 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Gonderilmis satirlar icin Uyumsoft resmi outbox PDF',
         'Iade fatura referansi secimi',
         'Ayrı validate kontrolu',
-        'Canli SendInvoice gonderimi',
+        'Canli SendInvoice gonderimi; send agir UBL-TR/XSD kontrolunu tekrar calistirmaz',
+        'Basarili gonderimde Mikro marker yazimi ve readback dogrulamasi',
         'Gonderilmis faturalar icin Uyumsoft retry gonderimi',
         'Karekodun tek kaynagi embedded veya fallback XSLT',
         'XML preview'
@@ -157,7 +158,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/fatura-islemleri/fatura-gonderimi/send',
-              description: 'Secili gonderilmemis faturalari Uyumsoft SendInvoice ile canli ortama gonderir; validate kontrolunu tekrar calistirmaz',
+              description: 'Secili gonderilmemis faturalari Uyumsoft SendInvoice ile canli ortama gonderir; performans icin validate kontrolunu tekrar calistirmaz. Basarili sonuc Mikro cha_belge_no/cha_uuid/cha_kilitli marker yazimi ve readback dogrulamasi sonrasi doner',
               payload: 'SendInvoiceDocumentsRequest'
             },
             {
