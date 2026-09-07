@@ -63,12 +63,20 @@
                 [disabled]="presetProductsLoading() || !selectedWarehouse()"
                 (click)="loadRecommendedKalemler()"
               >
-                {{ presetProductsLoading() ? 'Getiriliyor...' : 'Onerilenleri Getir' }}
+                {{ presetProductsAction() === 'recommended' ? 'Getiriliyor...' : 'Onerilenleri Getir' }}
+              </button>
+              <button
+                type="button"
+                class="small-btn fetch-btn source-products-btn"
+                [disabled]="presetProductsLoading() || !selectedWarehouse()"
+                (click)="loadSourceProducts()"
+              >
+                {{ presetProductsAction() === 'source' ? 'Getiriliyor...' : 'Kaynak Urunleri Getir' }}
               </button>
             </div>
 
             <p class="helper-text">
-              Aramayla depo secip kalemleri manuel ekleyebilir, listeden secip onerilen kalemleri butonla tabloya cekebilirsin.
+              Onerilen miktarlari hesaplatabilir veya kaynak depoya tanimli urunleri miktarsiz olarak tabloya cekebilirsin.
             </p>
 
             <div class="feedback-error mini-error" *ngIf="warehouseError()">{{ warehouseError() }}</div>
@@ -119,16 +127,30 @@
             </label>
 
             <p class="helper-text" *ngIf="presetProductsLoading()">
-              Secilen depo icin onerilen kalemler getiriliyor...
+              Secilen depo icin
+              {{ presetProductsAction() === 'source' ? 'kaynak urunleri' : 'onerilen kalemler' }}
+              getiriliyor...
             </p>
 
             <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
 
             <div class="search-results stock-results-list" *ngIf="stockResults().length">
               <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
-                <div>
+                <div class="stock-result-main">
                   <strong>{{ stock.stockName }}</strong>
-                  <span class="stock-code">{{ stock.stockCode }}</span>
+                  <span class="stock-code">{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
+                  <div class="stock-source-badges" *ngIf="getStockSourceBadges(stock).length">
+                    <span
+                      *ngFor="let badge of getStockSourceBadges(stock)"
+                      class="source-badge"
+                      [class.source-badge-warehouse]="badge.tone === 'warehouse'"
+                      [class.source-badge-company]="badge.tone === 'company'"
+                      [class.source-badge-mixed]="badge.tone === 'mixed'"
+                      [class.source-badge-muted]="badge.tone === 'muted'"
+                    >
+                      {{ badge.label }}
+                    </span>
+                  </div>
                 </div>
                 <button type="button" class="add-mini">+</button>
               </div>

@@ -105,7 +105,7 @@ export class AramaService extends BaseApiService {
    * @param stockName Ürün adı
    * @param supplierCode Tedarikçi kodu
    * @param companyCode Firma kodu
-   * @param take Gösterilecek sayı (varsayılan: 20)
+   * @param take Gösterilecek sayı (varsayılan: 150)
    */
   searchProducts(
     warehouseNo?: number,
@@ -114,7 +114,7 @@ export class AramaService extends BaseApiService {
     stockName?: string,
     supplierCode?: string,
     companyCode?: string,
-    take: number = 20,
+    take: number = 150,
     includeDelisted?: boolean
   ): Observable<ProductLookupItemDto[]> {
     const normalizedBarcode = this.normalizeOptionalText(barcode);
@@ -150,7 +150,7 @@ export class AramaService extends BaseApiService {
 
     return this.getWithQuery<ProductLookupItemDto[]>('arama-islemleri/urunler', {
       ...request,
-      take: Math.min(take, 100)
+      take: Math.min(take, 150)
     });
   }
 

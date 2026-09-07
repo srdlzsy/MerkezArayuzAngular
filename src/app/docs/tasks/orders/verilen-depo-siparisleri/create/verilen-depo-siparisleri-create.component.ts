@@ -40,6 +40,11 @@ import {
 
 const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58]);
 
+interface StockSourceBadge {
+  label: string;
+  tone: 'warehouse' | 'company' | 'mixed' | 'muted';
+}
+
 interface KalemFormValue {
   stokKodu: string;
   stokIsmi: string;
@@ -123,6 +128,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly warehouseOptionsLoading = signal(false);
   protected readonly stockLoading = signal(false);
   protected readonly presetProductsLoading = signal(false);
+  protected readonly presetProductsAction = signal<'recommended' | 'source' | null>(null);
   protected readonly warehouseError = signal('');
   protected readonly warehouseOptionsError = signal('');
   protected readonly stockError = signal('');
@@ -255,6 +261,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.stockError.set('');
     this.presetProductsLoading.set(false);
+    this.presetProductsAction.set(null);
     this.kalemler.clear();
   }
 
@@ -346,16 +353,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     const requestId = ++this.presetProductsRequestId;
     this.presetProductsLoading.set(true);
+    this.presetProductsAction.set('recommended');
     this.stockError.set('');
-
-    if (this.usesManualSourceProductSelection(warehouse.sourceWarehouseNo)) {
-      this.loadSourceWarehouseProducts(requestId, warehouse.sourceWarehouseNo);
-      return;
-    }
 
     this.siparisIslemleriService
       .getDepoIcinOnerilenSiparisKalemleri(warehouse.sourceWarehouseNo, this.resolveRequestWarehouseNo())
-      .pipe(finalize(() => requestId === this.presetProductsRequestId && this.presetProductsLoading.set(false)))
+      .pipe(finalize(() => this.finishPresetProductsRequest(requestId)))
       .subscribe({
         next: (results: SuggestedWarehouseOrderCreateLineDto[]) => {
           if (requestId !== this.presetProductsRequestId || this.selectedWarehouse()?.sourceWarehouseNo !== warehouse.sourceWarehouseNo) {
@@ -403,10 +406,24 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       });
   }
 
+  protected loadSourceProducts(): void {
+    const warehouse = this.selectedWarehouse();
+
+    if (!warehouse || this.presetProductsLoading()) {
+      return;
+    }
+
+    const requestId = ++this.presetProductsRequestId;
+    this.presetProductsLoading.set(true);
+    this.presetProductsAction.set('source');
+    this.stockError.set('');
+    this.loadSourceWarehouseProducts(requestId, warehouse.sourceWarehouseNo);
+  }
+
   private loadSourceWarehouseProducts(requestId: number, warehouseNo: number): void {
     this.siparisIslemleriService
       .listSuggestedWarehouseSourceProducts(warehouseNo)
-      .pipe(finalize(() => requestId === this.presetProductsRequestId && this.presetProductsLoading.set(false)))
+      .pipe(finalize(() => this.finishPresetProductsRequest(requestId)))
       .subscribe({
         next: (results: SuggestedWarehouseSourceProductDto[]) => {
           if (
@@ -454,6 +471,15 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           this.stockError.set(this.resolveErrorMessage(error, 'Kaynak depo urun listesi getirilemedi.'));
         }
       });
+  }
+
+  private finishPresetProductsRequest(requestId: number): void {
+    if (requestId !== this.presetProductsRequestId) {
+      return;
+    }
+
+    this.presetProductsLoading.set(false);
+    this.presetProductsAction.set(null);
   }
 
   protected submit(): void {
@@ -533,6 +559,21 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
   private usesManualSourceProductSelection(warehouseNo: number | null | undefined): boolean {
     return typeof warehouseNo === 'number' && MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS.has(warehouseNo);
+  }
+
+  private getProcurementBadge(value: string | null | undefined): StockSourceBadge | null {
+    switch ((value ?? '').trim().toLocaleLowerCase('tr-TR')) {
+      case 'warehouse':
+        return { label: 'Depo urunu', tone: 'warehouse' };
+      case 'company':
+        return { label: 'Firma urunu', tone: 'company' };
+      case 'mixed':
+        return { label: 'Karisik kaynak', tone: 'mixed' };
+      case 'unassigned':
+        return { label: 'Kaynak tanimsiz', tone: 'muted' };
+      default:
+        return null;
+    }
   }
 
   protected resolveGreenGrocerLine(control: KalemFormGroup): void {
@@ -707,6 +748,48 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly trackByStock = (_index: number, stock: IFurpaProductSearchItemApiDto): string =>
     stock.stockCode?.trim() || stock.barcode?.trim() || `${_index}`;
 
+  protected getStockSourceBadges(stock: IFurpaProductSearchItemApiDto): StockSourceBadge[] {
+    const badges: StockSourceBadge[] = [];
+    const modelCode = stock.modelCode?.trim();
+
+    if (modelCode) {
+      badges.push({ label: `Model ${modelCode}`, tone: 'muted' });
+    }
+
+    const procurementBadge = this.getProcurementBadge(stock.procurementType);
+
+    if (procurementBadge) {
+      badges.push(procurementBadge);
+    }
+
+    const allSourceWarehouses = stock.sourceWarehouses ?? [];
+    const visibleSourceWarehouses = allSourceWarehouses
+      .filter((warehouse) => Number.isFinite(warehouse.warehouseNo))
+      .slice(0, 2);
+
+    for (const warehouse of visibleSourceWarehouses) {
+      const warehouseName = warehouse.warehouseName?.trim();
+      badges.push({
+        label: warehouseName
+          ? `Kaynak ${warehouse.warehouseNo} - ${warehouseName}`
+          : `Kaynak ${warehouse.warehouseNo}`,
+        tone: 'warehouse'
+      });
+    }
+
+    const hiddenWarehouseCount = Math.max(0, allSourceWarehouses.length - visibleSourceWarehouses.length);
+
+    if (hiddenWarehouseCount > 0) {
+      badges.push({ label: `+${hiddenWarehouseCount} kaynak`, tone: 'muted' });
+    }
+
+    if (stock.hasPurchaseRequirement) {
+      badges.push({ label: 'Firma sarti var', tone: 'company' });
+    }
+
+    return badges;
+  }
+
   protected readonly trackByKalem = (index: number, control: KalemFormGroup): string =>
     control.controls.stokKodu.value.trim() || `${index}`;
 
@@ -716,6 +799,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     this.presetProductsRequestId++;
     this.presetProductsLoading.set(false);
+    this.presetProductsAction.set(null);
 
     this.selectedWarehouse.set(warehouse);
     this.controls.muhatapDepoNo.setValue(warehouse.sourceWarehouseNo);

@@ -18,6 +18,13 @@ export interface ProductSearchHttpRequest {
   take?: number;
 }
 
+export type ProductProcurementType = 'Warehouse' | 'Company' | 'Mixed' | 'Unassigned';
+
+export interface ProductSourceWarehouseDto {
+  warehouseNo: number;
+  warehouseName: string;
+}
+
 export interface ProductLookupItemDto {
   warehouseNo: number;
   barcode: string;
@@ -43,6 +50,10 @@ export interface ProductLookupItemDto {
   isOrderBlocked: boolean;
   isGoodsAcceptanceBlocked: boolean;
   productManagerCode: string;
+  modelCode: string;
+  procurementType: ProductProcurementType;
+  sourceWarehouses: ProductSourceWarehouseDto[];
+  hasPurchaseRequirement: boolean;
   requestedBarcode: string | null;
   lookupBarcode: string | null;
   isVariableWeightBarcode: boolean;
