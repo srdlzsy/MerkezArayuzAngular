@@ -109,6 +109,14 @@
                 {{ stockLoading() ? '...' : 'Ara' }}
               </button>
             </div>
+            <label class="delist-toggle">
+              <input
+                type="checkbox"
+                [checked]="hideDelistedProducts"
+                (change)="hideDelistedProducts = $any($event.target).checked"
+              />
+              <span>Pasif/DLS gizle</span>
+            </label>
 
             <p class="helper-text" *ngIf="presetProductsLoading()">
               Secilen depo icin onerilen kalemler getiriliyor...

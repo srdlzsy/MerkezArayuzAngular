@@ -108,6 +108,7 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   protected readonly warehouseResults = signal<IFurpaSourceWarehouseSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected hideDelistedProducts = false;
   protected readonly selectedWarehouse = signal<IFurpaSourceWarehouseSearchItemApiDto | null>(null);
   protected readonly warehouseLoading = signal(false);
   protected readonly stockLoading = signal(false);
@@ -264,7 +265,7 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockLoading.set(true);
 
     this.aramaService
-      .searchStock(query)
+      .searchStock(query, 20, this.resolveIncludeDelisted())
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
@@ -802,6 +803,10 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   private normalizeOptionalText(value: string): string | null {
     const normalizedValue = value.trim();
     return normalizedValue ? normalizedValue : null;
+  }
+
+  private resolveIncludeDelisted(): boolean | undefined {
+    return this.hideDelistedProducts ? false : undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

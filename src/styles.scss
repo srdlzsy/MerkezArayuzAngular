@@ -710,3 +710,26 @@ body .lookup-page td {
     grid-template-columns: 1fr;
   }
 }
+
+.delist-toggle {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-top: 0.35rem;
+  color: var(--axata-text-secondary, #475569);
+  font-size: 0.72rem;
+  font-weight: 700;
+  line-height: 1.2;
+  cursor: pointer;
+  user-select: none;
+}
+
+.delist-toggle input {
+  width: 0.9rem;
+  height: 0.9rem;
+  margin: 0;
+}
+
+.delist-toggle-inline {
+  margin-top: 0;
+}

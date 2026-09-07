@@ -75,6 +75,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   protected readonly customerResults = signal<IFurpaCustomerSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected hideDelistedProducts = false;
   protected readonly selectedCustomer = signal<IFurpaCustomerSearchItemApiDto | null>(null);
   protected readonly customerLoading = signal(false);
   protected readonly stockLoading = signal(false);
@@ -249,7 +250,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
     this.stockLoading.set(true);
 
     this.aramaService
-      .searchStockByCustomerCode(query, this.selectedCustomer()?.customerCode ?? '')
+      .searchStockByCustomerCode(query, this.selectedCustomer()?.customerCode ?? '', 20, this.resolveIncludeDelisted())
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
@@ -461,6 +462,10 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
   private normalizeOptionalText(value: string): string | null {
     const normalizedValue = value.trim();
     return normalizedValue ? normalizedValue : null;
+  }
+
+  private resolveIncludeDelisted(): boolean | undefined {
+    return this.hideDelistedProducts ? false : undefined;
   }
 
   private resolveRequestWarehouseNo(): number | undefined {

@@ -87,6 +87,15 @@
               </button>
             </div>
 
+            <label class="delist-toggle">
+              <input
+                type="checkbox"
+                [checked]="hideDelistedProducts"
+                (change)="hideDelistedProducts = $any($event.target).checked"
+              />
+              <span>Pasif/DLS gizle</span>
+            </label>
+
             <p class="helper-text" *ngIf="recommendedKalemlerLoading()">
               Secilen firma icin onerilen kalemler getiriliyor...
             </p>

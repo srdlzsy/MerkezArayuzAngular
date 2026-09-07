@@ -70,6 +70,14 @@
                 {{ stockLoading() ? '...' : 'Ara' }}
               </button>
             </div>
+            <label class="delist-toggle">
+              <input
+                type="checkbox"
+                [checked]="hideDelistedProducts"
+                (change)="hideDelistedProducts = $any($event.target).checked"
+              />
+              <span>Pasif/DLS gizle</span>
+            </label>
             <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
 
             <div class="search-results stock-results-list" *ngIf="stockResults().length">

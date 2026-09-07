@@ -60,6 +60,14 @@
         <div class="panel-head">
           <h3>Urun Ekle</h3>
         </div>
+        <label class="delist-toggle delist-toggle-inline">
+          <input
+            type="checkbox"
+            [checked]="hideDelistedProducts"
+            (change)="hideDelistedProducts = $any($event.target).checked"
+          />
+          <span>Pasif/DLS gizle</span>
+        </label>
 
         <div class="virman-entry-grid">
           <div class="virman-product-card virman-product-out">

@@ -62,6 +62,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   });
   protected readonly outgoingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
   protected readonly incomingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected hideDelistedProducts = false;
   protected readonly selectedOutgoingStock = signal<IFurpaProductSearchItemApiDto | null>(null);
   protected readonly selectedIncomingStock = signal<IFurpaProductSearchItemApiDto | null>(null);
   protected readonly outgoingStockLoading = signal(false);
@@ -157,7 +158,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     loading.set(true);
 
     this.aramaService
-      .searchStock(query)
+      .searchStock(query, 20, this.resolveIncludeDelisted())
       .pipe(finalize(() => {
         const currentRequestId = target === 'outgoing' ? this.outgoingStockRequestId : this.incomingStockRequestId;
         if (requestId === currentRequestId) {
@@ -418,6 +419,10 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     return adminWarehouseNo
       ?? getCurrentWarehouseNo(this.authService.currentUser())
       ?? undefined;
+  }
+
+  private resolveIncludeDelisted(): boolean | undefined {
+    return this.hideDelistedProducts ? false : undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

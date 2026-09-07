@@ -339,8 +339,13 @@ export class AramaService extends BaseApiService {
     );
   }
 
-  searchStockByCustomerCode(searchText: string, customerCode: string, take: number = 20): Observable<ProductLookupItemDto[]> {
-    return this.searchProductsByCustomer(customerCode, searchText, take);
+  searchStockByCustomerCode(
+    searchText: string,
+    customerCode: string,
+    take: number = 20,
+    includeDelisted?: boolean
+  ): Observable<ProductLookupItemDto[]> {
+    return this.searchProductsByCustomer(customerCode, searchText, take, includeDelisted);
   }
 
   resolveBarcode(

@@ -607,10 +607,13 @@ export class EtiketBelgeleriListComponent {
   }
 
   protected setProductSort(key: ProductSortKey): void {
-    if (this.productSortKey() === key) {
-      this.productSortDirection.set(this.productSortDirection() === 'asc' ? 'desc' : 'asc');
-    } else {
+    if (this.productSortKey() !== key) {
       this.productSortKey.set(key);
+      this.productSortDirection.set('asc');
+    } else if (this.productSortDirection() === 'asc') {
+      this.productSortDirection.set('desc');
+    } else {
+      this.productSortKey.set(null);
       this.productSortDirection.set('asc');
     }
 

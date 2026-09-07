@@ -50,6 +50,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['sayim-sonuclari'];
   protected readonly stockQuery = new FormControl('', { nonNullable: true });
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected hideDelistedProducts = false;
   protected readonly stockLoading = signal(false);
   protected readonly stockError = signal('');
   protected readonly submitError = signal('');
@@ -118,7 +119,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     this.stockLoading.set(true);
 
     this.aramaService
-      .searchStock(query)
+      .searchStock(query, 20, this.resolveIncludeDelisted())
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
@@ -273,6 +274,10 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     return adminWarehouseNo
       ?? getCurrentWarehouseNo(this.authService.currentUser())
       ?? undefined;
+  }
+
+  private resolveIncludeDelisted(): boolean | undefined {
+    return this.hideDelistedProducts ? false : undefined;
   }
 
   private resolveErrorMessage(error: HttpErrorResponse, fallback: string): string {

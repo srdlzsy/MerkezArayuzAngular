@@ -74,6 +74,14 @@
             Manuel Sayim Satiri
           </button>
         </div>
+        <label class="delist-toggle">
+          <input
+            type="checkbox"
+            [checked]="hideDelistedProducts"
+            (change)="hideDelistedProducts = $any($event.target).checked"
+          />
+          <span>Pasif/DLS gizle</span>
+        </label>
 
         <div class="feedback feedback-error compact" *ngIf="stockError()">{{ stockError() }}</div>
 
