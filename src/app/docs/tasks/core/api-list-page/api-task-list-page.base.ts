@@ -545,6 +545,13 @@ export abstract class ApiTaskListPageBase<
       return null;
     }
 
+    const routeDirection = segments.at(-1)?.toLocaleLowerCase('tr-TR');
+    const taskId = this.page.id?.trim();
+
+    if ((routeDirection === 'giden' || routeDirection === 'gelen') && taskId) {
+      return `${moduleCode}.${taskId}.${normalizedAction}`;
+    }
+
     return `${moduleCode}.${menuCode}.${normalizedAction}`;
   }
 

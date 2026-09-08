@@ -39,6 +39,7 @@ import {
 } from '../../../core/admin-warehouse.helpers';
 
 const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58]);
+const STOCK_SEARCH_TAKE = 150;
 
 interface StockSourceBadge {
   label: string;
@@ -289,7 +290,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockLoading.set(true);
 
     this.aramaService
-      .searchStock(query, 20, this.resolveIncludeDelisted())
+      .searchStock(query, STOCK_SEARCH_TAKE, this.resolveIncludeDelisted())
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {

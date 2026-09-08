@@ -135,6 +135,38 @@ describe('ApiTaskListPageBase', () => {
     expect(component.statusSummary()).toEqual([{ label: 'Bilinmiyor', count: 2 }]);
   });
 
+  it('uses the directional task id for outgoing shipment and return create permissions', () => {
+    const fixture = TestBed.createComponent(TestListPageComponent);
+    const component = fixture.componentInstance as any;
+    const scenarios = [
+      {
+        taskId: 'giden-depolar-arasi-sevkler',
+        route: '/api/sevk-islemleri/depolar-arasi-sevkler/giden',
+        permission: 'sevk-islemleri.giden-depolar-arasi-sevkler.create'
+      },
+      {
+        taskId: 'giden-firma-sevkleri',
+        route: '/api/sevk-islemleri/firma-sevkleri/giden',
+        permission: 'sevk-islemleri.giden-firma-sevkleri.create'
+      },
+      {
+        taskId: 'giden-depo-iadeleri',
+        route: '/api/iade-islemleri/depo-iadeleri/giden',
+        permission: 'iade-islemleri.giden-depo-iadeleri.create'
+      }
+    ];
+
+    for (const scenario of scenarios) {
+      component.page = {
+        ...component.page,
+        id: scenario.taskId,
+        baseRouteOrFile: scenario.route
+      };
+
+      expect(component.buildActionPermissionCode('create')).toBe(scenario.permission);
+    }
+  });
+
   it('reloads the list after create dialog closes with a truthy result', () => {
     const fixture = TestBed.createComponent(TestListPageComponent);
     const component = fixture.componentInstance as any;
