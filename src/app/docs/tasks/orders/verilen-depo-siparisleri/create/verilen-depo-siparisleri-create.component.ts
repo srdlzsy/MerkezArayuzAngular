@@ -345,6 +345,14 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.kalemler.removeAt(index);
   }
 
+  protected removeEmptyKalemler(): void {
+    for (let index = this.kalemler.length - 1; index >= 0; index--) {
+      if (this.resolveLineOrderQuantity(this.kalemler.at(index).getRawValue()) <= 0) {
+        this.kalemler.removeAt(index);
+      }
+    }
+  }
+
   protected loadRecommendedKalemler(): void {
     const warehouse = this.selectedWarehouse();
 
@@ -541,6 +549,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       (total, control) => total + this.resolveLineOrderQuantity(control.getRawValue()),
       0
     );
+  }
+
+  protected emptyKalemCount(): number {
+    return this.kalemler.controls.filter(
+      (control) => this.resolveLineOrderQuantity(control.getRawValue()) <= 0
+    ).length;
   }
 
   private getPositiveOrderLineCount(): number {
@@ -891,6 +905,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   private createSourceWarehouseProductFormGroup(
     kalem: SuggestedWarehouseSourceProductDto
   ): KalemFormGroup {
+    const packageFactor =
+      this.normalizePositiveNumber(kalem.unitMultiplier ?? null) ??
+      this.normalizePositiveNumber(kalem.packageFactor ?? null);
+
     return new FormGroup({
       stokKodu: new FormControl(kalem.stockCode.trim(), {
         nonNullable: true,
@@ -901,7 +919,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       birim: new FormControl(kalem.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl<number | null>(kalem.unitPointer ?? 1),
       ikinciBirim: new FormControl(kalem.secondaryUnitName?.trim() ?? '', { nonNullable: true }),
-      koliKatsayisi: new FormControl<number | null>(this.normalizePositiveNumber(kalem.packageFactor ?? null)),
+      koliKatsayisi: new FormControl<number | null>(packageFactor),
       koliBarkodu: new FormControl(kalem.caseBarcode?.trim() ?? '', { nonNullable: true }),
       koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(0, {
@@ -1229,6 +1247,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         modelName: kalem.modelName?.trim() ?? '',
         unitName: kalem.unitName?.trim() ?? '',
         secondaryUnitName: kalem.secondaryUnitName?.trim() ?? '',
+        unitMultiplier: this.normalizePositiveNumber(kalem.unitMultiplier ?? null),
         packageFactor: this.normalizePositiveNumber(kalem.packageFactor ?? null),
         sourceWarehouseName: kalem.sourceWarehouseName?.trim() ?? '',
         barcode: kalem.barcode?.trim() ?? '',

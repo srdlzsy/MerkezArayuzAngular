@@ -344,6 +344,36 @@ export interface CreateWarehouseReturnResponse {
   writeConnectionName: string;
 }
 
+export interface WarehouseReturnableProductDto {
+  stockCode: string;
+  stockName: string;
+  barcode: string;
+  caseBarcode: string | null;
+  modelCode: string;
+  modelName: string;
+  unitName: string;
+  secondaryUnitName: string | null;
+  unitMultiplier: number | null;
+  productSourceWarehouseNo: number;
+  productSourceWarehouseName: string;
+  returnWarehouseNo: number;
+  returnWarehouseName: string;
+  currentStockQuantity: number;
+  returnableQuantity: number;
+  procurementType: string;
+  hasPurchaseRequirement: boolean;
+  isReturnable: boolean;
+  decision: string;
+  warnings: string[];
+}
+
+export interface WarehouseReturnableProductsResponseDto {
+  sourceWarehouseNo: number;
+  sourceWarehouseName: string;
+  totalCount: number;
+  items: WarehouseReturnableProductDto[];
+}
+
 // ============================================================================
 // Mal Kabul Modelleri
 // ============================================================================

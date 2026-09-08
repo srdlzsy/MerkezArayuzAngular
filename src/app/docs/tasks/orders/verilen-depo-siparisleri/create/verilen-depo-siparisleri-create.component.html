@@ -182,6 +182,14 @@
           <div class="kalem-stats" *ngIf="kalemCount()">
             <span class="badge">{{ kalemCount() }} Kalem</span>
             <span class="total-badge">Toplam: {{ toplamSiparisMiktari() }}</span>
+            <button
+              type="button"
+              class="clear-empty-btn"
+              [disabled]="!emptyKalemCount()"
+              (click)="removeEmptyKalemler()"
+            >
+              Boslari Temizle{{ emptyKalemCount() ? ' (' + emptyKalemCount() + ')' : '' }}
+            </button>
           </div>
         </div>
 

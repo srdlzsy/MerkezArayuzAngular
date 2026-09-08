@@ -10,8 +10,10 @@ import {
 } from '@angular/forms';
 import type {
   IFurpaWarehouseSearchItemApiDto,
-  IFurpaProductSearchItemApiDto,
-  IFurpaCreateWarehouseReturnRequestApiDto
+  IFurpaCreateWarehouseReturnRequestApiDto,
+  ProductLookupItemDto,
+  WarehouseReturnableProductsResponseDto,
+  WarehouseReturnableProductDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -60,6 +62,14 @@ interface DepoIadeleriCreateDialogData {
   pageId?: string;
 }
 
+interface ReturnLineProduct {
+  stockCode: string;
+  stockName: string;
+  barcode: string;
+  unitName: string;
+  unitMultiplier: number | null;
+}
+
 @Component({
   selector: 'app-depo-iadeleri-create',
   standalone: true,
@@ -89,17 +99,21 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly warehouseQuery = new FormControl('', { nonNullable: true });
   protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
   protected readonly warehouseResults = signal<IFurpaWarehouseSearchItemApiDto[]>([]);
-  protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
+  protected readonly stockResults = signal<ProductLookupItemDto[]>([]);
+  protected readonly returnableProducts = signal<WarehouseReturnableProductDto[]>([]);
   protected hideDelistedProducts = false;
   protected readonly selectedWarehouse = signal<IFurpaWarehouseSearchItemApiDto | null>(null);
   protected readonly warehouseLoading = signal(false);
   protected readonly stockLoading = signal(false);
+  protected readonly returnableProductsLoading = signal(false);
   protected readonly warehouseError = signal('');
   protected readonly stockError = signal('');
+  protected readonly returnableProductsError = signal('');
   protected readonly submitError = signal('');
   protected readonly submitting = signal(false);
   private warehouseRequestId = 0;
   private stockRequestId = 0;
+  private returnableProductsRequestId = 0;
 
   protected readonly controls = {
     muhatapDepoNo: new FormControl<number | null>(null, { validators: [Validators.required] }),
@@ -202,6 +216,8 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     this.stockQuery.setValue('');
     this.stockResults.set([]);
     this.stockError.set('');
+    this.returnableProducts.set([]);
+    this.returnableProductsError.set('');
 
     if (warehouseChanged) {
       this.kalemler.clear();
@@ -218,6 +234,8 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     this.stockQuery.setValue('');
     this.stockResults.set([]);
     this.stockError.set('');
+    this.returnableProducts.set([]);
+    this.returnableProductsError.set('');
     this.kalemler.clear();
   }
 
@@ -248,7 +266,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       .searchStock(query, 20, this.resolveIncludeDelisted())
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
-        next: (results: IFurpaProductSearchItemApiDto[]) => {
+        next: (results: ProductLookupItemDto[]) => {
           if (requestId !== this.stockRequestId) {
             return;
           }
@@ -270,7 +288,85 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       });
   }
 
-  protected addKalem(stock: IFurpaProductSearchItemApiDto): void {
+  protected loadReturnableProducts(): void {
+    const query = this.stockQuery.value.trim();
+
+    if (this.returnableProductsLoading()) {
+      return;
+    }
+
+    this.returnableProductsError.set('');
+    this.returnableProducts.set([]);
+
+    if (!this.selectedWarehouse()) {
+      this.returnableProductsError.set('Once muhatap depo secmelisin.');
+      return;
+    }
+
+    if (query.length < 2) {
+      this.returnableProductsError.set('Iade edilebilir urunler icin en az 2 karakter gir.');
+      return;
+    }
+
+    const requestId = ++this.returnableProductsRequestId;
+    this.returnableProductsLoading.set(true);
+
+    this.iadeIslemleriService
+      .listReturnableWarehouseProducts({
+        warehouseNo: this.resolveRequestWarehouseNo(),
+        targetWarehouseNo: this.selectedWarehouse()?.warehouseNo,
+        search: query
+      })
+      .pipe(
+        finalize(() =>
+          requestId === this.returnableProductsRequestId && this.returnableProductsLoading.set(false)
+        )
+      )
+      .subscribe({
+        next: (response: WarehouseReturnableProductsResponseDto) => {
+          if (requestId !== this.returnableProductsRequestId) {
+            return;
+          }
+
+          const products = this.normalizeReturnableProducts(response.items ?? []);
+          this.returnableProducts.set(products);
+
+          if (products.length === 0) {
+            this.returnableProductsError.set('Bu kaynak ve iade deposu icin uygun urun bulunamadi.');
+          }
+        },
+        error: (error: HttpErrorResponse) => {
+          if (requestId !== this.returnableProductsRequestId) {
+            return;
+          }
+
+          this.returnableProductsError.set(
+            this.resolveErrorMessage(error, 'Iade edilebilir urunler alinamadi.')
+          );
+        }
+      });
+  }
+
+  protected addKalem(stock: ProductLookupItemDto): void {
+    this.addKalemInternal(stock);
+  }
+
+  protected addReturnableKalem(stock: WarehouseReturnableProductDto): void {
+    const selectedWarehouse = this.selectedWarehouse();
+
+    if (!selectedWarehouse || selectedWarehouse.warehouseNo !== stock.returnWarehouseNo) {
+      this.stockError.set(
+        'Bu urun farkli bir iade deposuna ait. Ayri iade evragi olusturmalisin.'
+      );
+      return;
+    }
+
+    this.controls.muhatapDepoNo.setValue(stock.returnWarehouseNo);
+    this.controls.muhatapDepoNo.markAsDirty();
+    this.addKalemInternal(stock);
+  }
+
+  private addKalemInternal(stock: ReturnLineProduct): void {
     const normalizedStockCode = stock.stockCode.trim().toLocaleUpperCase('tr-TR');
     const existingControl = this.kalemler.controls.find(
       (control) => control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
@@ -284,6 +380,8 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       this.stockQuery.setValue('');
       this.stockResults.set([]);
       this.stockError.set('');
+      this.returnableProducts.set([]);
+      this.returnableProductsError.set('');
       return;
     }
 
@@ -291,6 +389,8 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     this.stockQuery.setValue('');
     this.stockResults.set([]);
     this.stockError.set('');
+    this.returnableProducts.set([]);
+    this.returnableProductsError.set('');
   }
 
   protected removeKalem(index: number): void {
@@ -360,13 +460,29 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly trackByWarehouse = (_index: number, warehouse: IFurpaWarehouseSearchItemApiDto): string =>
     `${warehouse.warehouseNo}-${warehouse.warehouseName?.trim() || _index}`;
 
-  protected readonly trackByStock = (_index: number, stock: IFurpaProductSearchItemApiDto): string =>
+  protected readonly trackByStock = (_index: number, stock: ProductLookupItemDto): string =>
+    stock.stockCode?.trim() || stock.barcode?.trim() || `${_index}`;
+
+  protected readonly trackByReturnableProduct = (
+    _index: number,
+    stock: WarehouseReturnableProductDto
+  ): string =>
     stock.stockCode?.trim() || stock.barcode?.trim() || `${_index}`;
 
   protected readonly trackByKalem = (index: number, control: KalemFormGroup): string =>
     control.controls.stokKodu.value.trim() || `${index}`;
 
-  private createKalemFormGroup(stock: IFurpaProductSearchItemApiDto): KalemFormGroup {
+  protected getReturnablePackageHint(stock: WarehouseReturnableProductDto): string {
+    const multiplier = Number(stock.unitMultiplier ?? 0);
+
+    if (!Number.isFinite(multiplier) || multiplier <= 1) {
+      return '';
+    }
+
+    return `Koli ici: ${multiplier} ${stock.unitName?.trim() || 'birim'}`;
+  }
+
+  private createKalemFormGroup(stock: ReturnLineProduct): KalemFormGroup {
     return new FormGroup({
       stokKodu: new FormControl(stock.stockCode?.trim() ?? '', {
         nonNullable: true,
@@ -427,8 +543,8 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     return Array.from(uniqueWarehouses.values()).sort((left, right) => left.warehouseNo - right.warehouseNo);
   }
 
-  private normalizeStocks(results: IFurpaProductSearchItemApiDto[]): IFurpaProductSearchItemApiDto[] {
-    const uniqueStocks = new Map<string, IFurpaProductSearchItemApiDto>();
+  private normalizeStocks(results: ProductLookupItemDto[]): ProductLookupItemDto[] {
+    const uniqueStocks = new Map<string, ProductLookupItemDto>();
 
     for (const stock of results) {
       const key = stock.stockCode?.trim().toLocaleUpperCase('tr-TR');
@@ -441,6 +557,26 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     }
 
     return Array.from(uniqueStocks.values()).sort((left, right) =>
+      (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr')
+    );
+  }
+
+  private normalizeReturnableProducts(
+    results: WarehouseReturnableProductDto[]
+  ): WarehouseReturnableProductDto[] {
+    const uniqueProducts = new Map<string, WarehouseReturnableProductDto>();
+
+    for (const product of results) {
+      const key = product.stockCode?.trim().toLocaleUpperCase('tr-TR');
+
+      if (!key || uniqueProducts.has(key)) {
+        continue;
+      }
+
+      uniqueProducts.set(key, product);
+    }
+
+    return Array.from(uniqueProducts.values()).sort((left, right) =>
       (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr')
     );
   }

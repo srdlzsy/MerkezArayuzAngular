@@ -310,6 +310,54 @@
   display: block;
 }
 
+.result-item .stock-return-meta {
+  display: block;
+  margin-top: 0.08rem;
+  color: #0f766e;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+.returnable-products {
+  margin-top: 0.55rem;
+  padding-top: 0.45rem;
+  border-top: 1px solid #eef2f7;
+}
+
+.returnable-products-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.45rem;
+  color: var(--muted);
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.4px;
+}
+
+.returnable-products-btn {
+  padding: 0.28rem 0.48rem;
+  border: 1px solid #99d8d1;
+  border-radius: 6px;
+  background: var(--accent-soft);
+  color: var(--accent-strong);
+  cursor: pointer;
+  font-size: 0.62rem;
+  font-weight: 700;
+  text-transform: none;
+  letter-spacing: 0;
+}
+
+.returnable-products-btn:hover:not(:disabled) {
+  background: #d9f5ef;
+}
+
+.returnable-products-btn:disabled {
+  cursor: wait;
+  opacity: 0.55;
+}
+
 .add-mini {
   background: var(--accent-soft);
   border: none;

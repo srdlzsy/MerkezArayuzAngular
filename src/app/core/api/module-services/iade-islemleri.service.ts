@@ -14,6 +14,7 @@ import type {
   IFurpaUpdateWarehouseReturnResponseApiDto,
   IFurpaWarehouseReturnDetailApiDto,
   IFurpaWarehouseReturnListItemApiDto,
+  WarehouseReturnableProductsResponseDto,
   WarehouseOrderDateRangeHttpRequest
 } from '@interfaces';
 
@@ -88,6 +89,17 @@ export class IadeIslemleriService extends BaseApiService {
     return this.getWithQuery<IFurpaWarehouseReturnDetailApiDto>(
       `iade-islemleri/depo-iadeleri/${direction}/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
       { warehouseNo }
+    );
+  }
+
+  listReturnableWarehouseProducts(request: {
+    warehouseNo?: number;
+    targetWarehouseNo?: number;
+    search?: string;
+  }): Observable<WarehouseReturnableProductsResponseDto> {
+    return this.getWithQuery<WarehouseReturnableProductsResponseDto>(
+      'iade-islemleri/depo-iadeleri/iade-edilebilir-urunler',
+      request
     );
   }
 
