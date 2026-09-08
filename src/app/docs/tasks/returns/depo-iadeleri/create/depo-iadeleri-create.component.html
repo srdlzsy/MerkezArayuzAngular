@@ -85,47 +85,114 @@
                 <div>
                   <strong>{{ stock.stockName }}</strong>
                   <span class="stock-code">{{ stock.stockCode }}</span>
+                  <span class="stock-package" *ngIf="getPackageUnitHint(stock)">
+                    Koli ici: {{ getPackageUnitHint(stock) }}
+                  </span>
                 </div>
                 <button type="button" class="add-mini">+</button>
               </div>
             </div>
 
-            <div class="returnable-products">
-              <div class="returnable-products-head">
-                <span>Iade Edilebilir Urunler</span>
-                <button
-                  type="button"
-                  class="returnable-products-btn"
-                  [disabled]="returnableProductsLoading() || !selectedWarehouse()"
-                  (click)="loadReturnableProducts()"
-                >
-                  {{ returnableProductsLoading() ? 'Getiriliyor...' : 'Iade Edilebilirleri Getir' }}
-                </button>
-              </div>
-              <p class="helper-inline">Ayni arama metniyle, secili kaynak ve iade deposuna uygun stoklari getirir.</p>
-              <div class="feedback-error mini-error" *ngIf="returnableProductsError()">
-                {{ returnableProductsError() }}
-              </div>
-
-              <div class="search-results stock-results-list" *ngIf="returnableProducts().length">
-                <div
-                  class="result-item stock-result"
-                  *ngFor="let stock of returnableProducts(); trackBy: trackByReturnableProduct"
-                  (click)="addReturnableKalem(stock)"
-                >
-                  <div>
-                    <strong>{{ stock.stockName }}</strong>
-                    <span class="stock-code">{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
-                    <span class="stock-return-meta">Iade stok: {{ stock.returnableQuantity }} {{ stock.unitName }}</span>
-                    <span class="stock-return-meta" *ngIf="getReturnablePackageHint(stock)">
-                      {{ getReturnablePackageHint(stock) }}
-                    </span>
-                  </div>
-                  <button type="button" class="add-mini">+</button>
-                </div>
-              </div>
+            <div class="returnable-products-launch">
+              <button
+                type="button"
+                class="returnable-products-btn"
+                [disabled]="returnableProductsLoading() || !selectedWarehouse()"
+                (click)="loadReturnableProducts()"
+              >
+                {{ returnableProductsLoading() ? 'Getiriliyor...' : 'Iade Edilebilir Urunleri Getir' }}
+              </button>
+              <span>Arama bos birakilirsa tum uygun urunler gelir.</span>
             </div>
           </div>
+        </div>
+
+        <div class="returnable-products" *ngIf="returnableProductsPanelOpen()">
+          <div class="returnable-products-head">
+            <div>
+              <strong>Iade Edilebilir Urunler</strong>
+              <span>{{ returnableProducts().length }} urun</span>
+            </div>
+            <div class="returnable-products-actions">
+              <button
+                type="button"
+                class="returnable-action-btn"
+                [disabled]="returnableProductsLoading()"
+                (click)="loadReturnableProducts()"
+              >
+                {{ returnableProductsLoading() ? 'Getiriliyor...' : 'Yenile' }}
+              </button>
+              <button
+                type="button"
+                class="returnable-action-btn"
+                [disabled]="!returnableProducts().length"
+                (click)="toggleAllReturnableProducts()"
+              >
+                {{ selectedReturnableProductCount() === returnableProducts().length && returnableProducts().length ? 'Secimi Kaldir' : 'Tumunu Sec' }}
+              </button>
+              <button
+                type="button"
+                class="returnable-action-btn primary"
+                [disabled]="!selectedReturnableProductCount()"
+                (click)="addSelectedReturnableProducts()"
+              >
+                Secilenleri Ekle ({{ selectedReturnableProductCount() }})
+              </button>
+              <button type="button" class="returnable-action-btn close" (click)="closeReturnableProducts()">
+                Kapat
+              </button>
+            </div>
+          </div>
+
+          <p class="helper-inline">
+            Satira tiklayarak secim yapabilir, arti dugmesiyle tek urunu hemen ekleyebilirsin.
+          </p>
+          <div class="feedback-error mini-error" *ngIf="returnableProductsError()">
+            {{ returnableProductsError() }}
+          </div>
+
+          <cdk-virtual-scroll-viewport
+            class="returnable-products-list"
+            itemSize="76"
+            *ngIf="returnableProducts().length"
+          >
+            <div
+              class="returnable-product-row"
+              [class.selected]="isReturnableProductSelected(stock)"
+              *cdkVirtualFor="let stock of returnableProducts(); trackBy: trackByReturnableProduct"
+              role="button"
+              tabindex="0"
+              (click)="toggleReturnableProduct(stock)"
+              (keydown.enter)="toggleReturnableProduct(stock)"
+              (keydown.space)="$event.preventDefault(); toggleReturnableProduct(stock)"
+            >
+              <input
+                type="checkbox"
+                [checked]="isReturnableProductSelected(stock)"
+                (click)="$event.stopPropagation(); toggleReturnableProduct(stock)"
+              />
+              <span class="returnable-product-main">
+                <strong>{{ stock.stockName }}</strong>
+                <small>{{ stock.stockCode }} / {{ stock.barcode || '-' }}</small>
+              </span>
+              <span class="returnable-product-metric">
+                <small>Iade stogu</small>
+                <b>{{ stock.returnableQuantity }} {{ stock.unitName }}</b>
+              </span>
+              <span class="returnable-product-metric" *ngIf="getPackageUnitHint(stock)">
+                <small>Koli ici</small>
+                <b>{{ getPackageUnitHint(stock) }}</b>
+              </span>
+              <button
+                type="button"
+                class="add-mini"
+                title="Listeye ekle"
+                (click)="$event.stopPropagation(); addReturnableKalem(stock)"
+              >
+                +
+              </button>
+            </div>
+          </cdk-virtual-scroll-viewport>
         </div>
 
         <div class="contact-row">
@@ -177,6 +244,9 @@
                 <strong>{{ kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value }}</strong>
                 <span class="kalem-kod">{{ kalem.controls.stokKodu.value }}</span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
+                <span class="package-note" *ngIf="(kalem.controls.birimKatsayisi.value ?? 0) > 1">
+                  Koli ici: {{ kalem.controls.birimKatsayisi.value }} {{ kalem.controls.birim.value || 'birim' }}
+                </span>
               </div>
             </div>
             <div class="col-miktar">

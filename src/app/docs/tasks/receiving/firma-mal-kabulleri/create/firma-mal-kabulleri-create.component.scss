@@ -380,6 +380,21 @@
   display: block;
 }
 
+.result-item .package-note,
+.kalem-info .package-note {
+  display: inline-flex;
+  width: fit-content;
+  max-width: 100%;
+  margin-top: 0.1rem;
+  padding: 0.1rem 0.35rem;
+  border-radius: 999px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-size: 0.58rem;
+  font-weight: 700;
+}
+
+
 .official-document-card {
   display: grid;
   gap: 0.45rem;

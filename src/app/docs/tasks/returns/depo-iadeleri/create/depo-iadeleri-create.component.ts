@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
+import { ScrollingModule } from '@angular/cdk/scrolling';
 import { Component, computed, effect, inject, signal } from '@angular/core';
 import {
   FormArray,
@@ -73,7 +74,7 @@ interface ReturnLineProduct {
 @Component({
   selector: 'app-depo-iadeleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, ScrollingModule],
   templateUrl: './depo-iadeleri-create.component.html',
   styleUrl: './depo-iadeleri-create.component.scss'
 })
@@ -101,6 +102,11 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly warehouseResults = signal<IFurpaWarehouseSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<ProductLookupItemDto[]>([]);
   protected readonly returnableProducts = signal<WarehouseReturnableProductDto[]>([]);
+  protected readonly returnableProductsPanelOpen = signal(false);
+  protected readonly selectedReturnableProductCodes = signal<ReadonlySet<string>>(new Set());
+  protected readonly selectedReturnableProductCount = computed(
+    () => this.selectedReturnableProductCodes().size
+  );
   protected hideDelistedProducts = false;
   protected readonly selectedWarehouse = signal<IFurpaWarehouseSearchItemApiDto | null>(null);
   protected readonly warehouseLoading = signal(false);
@@ -218,6 +224,8 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     this.stockError.set('');
     this.returnableProducts.set([]);
     this.returnableProductsError.set('');
+    this.returnableProductsPanelOpen.set(false);
+    this.selectedReturnableProductCodes.set(new Set());
 
     if (warehouseChanged) {
       this.kalemler.clear();
@@ -236,6 +244,8 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     this.stockError.set('');
     this.returnableProducts.set([]);
     this.returnableProductsError.set('');
+    this.returnableProductsPanelOpen.set(false);
+    this.selectedReturnableProductCodes.set(new Set());
     this.kalemler.clear();
   }
 
@@ -297,14 +307,11 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
 
     this.returnableProductsError.set('');
     this.returnableProducts.set([]);
+    this.returnableProductsPanelOpen.set(true);
+    this.selectedReturnableProductCodes.set(new Set());
 
     if (!this.selectedWarehouse()) {
       this.returnableProductsError.set('Once muhatap depo secmelisin.');
-      return;
-    }
-
-    if (query.length < 2) {
-      this.returnableProductsError.set('Iade edilebilir urunler icin en az 2 karakter gir.');
       return;
     }
 
@@ -315,7 +322,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       .listReturnableWarehouseProducts({
         warehouseNo: this.resolveRequestWarehouseNo(),
         targetWarehouseNo: this.selectedWarehouse()?.warehouseNo,
-        search: query
+        search: query || undefined
       })
       .pipe(
         finalize(() =>
@@ -363,10 +370,57 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
 
     this.controls.muhatapDepoNo.setValue(stock.returnWarehouseNo);
     this.controls.muhatapDepoNo.markAsDirty();
-    this.addKalemInternal(stock);
+    this.addKalemInternal(stock, false);
+    this.removeReturnableProductSelection(stock);
   }
 
-  private addKalemInternal(stock: ReturnLineProduct): void {
+  protected closeReturnableProducts(): void {
+    this.returnableProductsPanelOpen.set(false);
+    this.selectedReturnableProductCodes.set(new Set());
+  }
+
+  protected isReturnableProductSelected(stock: WarehouseReturnableProductDto): boolean {
+    return this.selectedReturnableProductCodes().has(this.getReturnableProductKey(stock));
+  }
+
+  protected toggleReturnableProduct(stock: WarehouseReturnableProductDto): void {
+    const key = this.getReturnableProductKey(stock);
+    const selectedCodes = new Set(this.selectedReturnableProductCodes());
+
+    if (selectedCodes.has(key)) {
+      selectedCodes.delete(key);
+    } else {
+      selectedCodes.add(key);
+    }
+
+    this.selectedReturnableProductCodes.set(selectedCodes);
+  }
+
+  protected toggleAllReturnableProducts(): void {
+    if (this.selectedReturnableProductCount() === this.returnableProducts().length) {
+      this.selectedReturnableProductCodes.set(new Set());
+      return;
+    }
+
+    this.selectedReturnableProductCodes.set(
+      new Set(this.returnableProducts().map((stock) => this.getReturnableProductKey(stock)))
+    );
+  }
+
+  protected addSelectedReturnableProducts(): void {
+    const selectedCodes = this.selectedReturnableProductCodes();
+    const selectedProducts = this.returnableProducts().filter((stock) =>
+      selectedCodes.has(this.getReturnableProductKey(stock))
+    );
+
+    for (const stock of selectedProducts) {
+      this.addReturnableKalem(stock);
+    }
+
+    this.selectedReturnableProductCodes.set(new Set());
+  }
+
+  private addKalemInternal(stock: ReturnLineProduct, clearProductPickers = true): void {
     const normalizedStockCode = stock.stockCode.trim().toLocaleUpperCase('tr-TR');
     const existingControl = this.kalemler.controls.find(
       (control) => control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
@@ -377,20 +431,27 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       const current = Number(existingControl.controls.miktar.value ?? 0);
       existingControl.controls.miktar.setValue(current + step);
       existingControl.controls.miktar.markAsDirty();
-      this.stockQuery.setValue('');
-      this.stockResults.set([]);
-      this.stockError.set('');
-      this.returnableProducts.set([]);
-      this.returnableProductsError.set('');
+      this.finishProductAddition(clearProductPickers);
       return;
     }
 
     this.kalemler.push(this.createKalemFormGroup(stock));
+    this.finishProductAddition(clearProductPickers);
+  }
+
+  private finishProductAddition(clearProductPickers: boolean): void {
+    this.stockError.set('');
+    this.returnableProductsError.set('');
+
+    if (!clearProductPickers) {
+      return;
+    }
+
     this.stockQuery.setValue('');
     this.stockResults.set([]);
-    this.stockError.set('');
     this.returnableProducts.set([]);
-    this.returnableProductsError.set('');
+    this.returnableProductsPanelOpen.set(false);
+    this.selectedReturnableProductCodes.set(new Set());
   }
 
   protected removeKalem(index: number): void {
@@ -472,14 +533,14 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly trackByKalem = (index: number, control: KalemFormGroup): string =>
     control.controls.stokKodu.value.trim() || `${index}`;
 
-  protected getReturnablePackageHint(stock: WarehouseReturnableProductDto): string {
+  protected getPackageUnitHint(stock: ReturnLineProduct): string {
     const multiplier = Number(stock.unitMultiplier ?? 0);
 
     if (!Number.isFinite(multiplier) || multiplier <= 1) {
       return '';
     }
 
-    return `Koli ici: ${multiplier} ${stock.unitName?.trim() || 'birim'}`;
+    return `${multiplier} ${stock.unitName?.trim() || 'birim'}`;
   }
 
   private createKalemFormGroup(stock: ReturnLineProduct): KalemFormGroup {
@@ -579,6 +640,22 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     return Array.from(uniqueProducts.values()).sort((left, right) =>
       (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr')
     );
+  }
+
+  private getReturnableProductKey(stock: WarehouseReturnableProductDto): string {
+    return stock.stockCode.trim().toLocaleUpperCase('tr-TR');
+  }
+
+  private removeReturnableProductSelection(stock: WarehouseReturnableProductDto): void {
+    const key = this.getReturnableProductKey(stock);
+
+    if (!this.selectedReturnableProductCodes().has(key)) {
+      return;
+    }
+
+    const selectedCodes = new Set(this.selectedReturnableProductCodes());
+    selectedCodes.delete(key);
+    this.selectedReturnableProductCodes.set(selectedCodes);
   }
 
   private resolveWarehouseContact(warehouse: IFurpaWarehouseSearchItemApiDto): string {

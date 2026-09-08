@@ -153,6 +153,7 @@
                 <div>
                   <strong>{{ stock.stockName }}</strong>
                   <span class="stock-code">{{ stock.stockCode }}</span>
+                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
                 </div>
                 <button type="button" class="add-mini">+</button>
               </div>
@@ -214,6 +215,7 @@
                   Kalan Miktar: {{ kalem.controls.siparisMiktari.value | number: '1.0-2' }}
                 </span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
+                <span class="package-note" *ngIf="(kalem.controls.birimKatsayisi.value ?? 0) > 1">Koli ici: {{ kalem.controls.birimKatsayisi.value }} {{ kalem.controls.birim.value || 'birim' }}</span>
               </div>
             </div>
             <div class="col-miktar">

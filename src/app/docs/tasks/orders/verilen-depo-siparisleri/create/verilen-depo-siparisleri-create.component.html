@@ -139,6 +139,7 @@
                 <div class="stock-result-main">
                   <strong>{{ stock.stockName }}</strong>
                   <span class="stock-code">{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
+                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
                   <div class="stock-source-badges" *ngIf="getStockSourceBadges(stock).length">
                     <span
                       *ngFor="let badge of getStockSourceBadges(stock)"
