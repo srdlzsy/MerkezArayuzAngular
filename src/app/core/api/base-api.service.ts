@@ -54,6 +54,10 @@ export class BaseApiService {
     return this.http.post<TResponse>(this.buildUrl(path), body);
   }
 
+  protected postBlob<TRequest>(path: string, body: TRequest): Observable<Blob> {
+    return this.http.post(this.buildUrl(path), body, { responseType: 'blob' });
+  }
+
   protected put<TResponse, TRequest>(path: string, body: TRequest): Observable<TResponse> {
     return this.http.put<TResponse>(this.buildUrl(path), body);
   }

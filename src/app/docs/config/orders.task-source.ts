@@ -164,6 +164,12 @@ export const ORDERS_TASK_SOURCE = {
             },
             {
               method: 'POST',
+              path: '/api/siparis-islemleri/alinan-depo-siparisleri/toplu-yazdir',
+              description: 'Secilen en fazla 100 alinan depo siparisini tek PDF olarak hazirlar',
+              payload: 'WarehouseOrderBulkPrintHttpRequest'
+            },
+            {
+              method: 'POST',
               path: '/api/siparis-islemleri/alinan-depo-siparisleri',
               description: 'Create aksiyonu backend tarafinda scaffold olarak gorunur',
               payload: 'CreateIssuedWarehouseOrderHttpRequest'

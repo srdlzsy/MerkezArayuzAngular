@@ -20,6 +20,7 @@ import type {
   SuggestedWarehouseOrderCreateLineDto,
   SuggestedWarehouseOrderListHttpRequest,
   SuggestedWarehouseOrderListItemDto,
+  WarehouseOrderBulkPrintHttpRequest,
   WarehouseOrderDetailDto,
   WarehouseOrderListItemDto,
   WarehouseOrderDateRangeHttpRequest,
@@ -90,6 +91,10 @@ export class SiparisIslemleriService extends BaseApiService {
     return this.get<WarehouseOrderDetailDto>(
       `siparis-islemleri/alinan-depo-siparisleri/key/${encodeURIComponent(documentKey)}`
     );
+  }
+
+  printReceivedWarehouseOrders(request: WarehouseOrderBulkPrintHttpRequest): Observable<Blob> {
+    return this.postBlob('siparis-islemleri/alinan-depo-siparisleri/toplu-yazdir', request);
   }
 
   getIssuedWarehouseOrderDetailByKey(

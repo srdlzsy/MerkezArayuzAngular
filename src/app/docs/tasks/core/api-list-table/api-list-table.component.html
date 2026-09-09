@@ -44,6 +44,26 @@
       >
         {{ isPrinting() ? 'Hazirlaniyor...' : 'Yazdir' }}
       </button>
+
+      <button
+        *ngIf="showSelection()"
+        type="button"
+        class="print-action"
+        [disabled]="selectionActionDisabled() || selectionActionLoading()"
+        (click)="selectionActionRequested.emit()"
+      >
+        {{ selectionActionLoading() ? 'PDF Hazirlaniyor...' : selectionActionLabel() }}
+      </button>
+
+      <button
+        *ngIf="showSelection() && showSelectionAllAction()"
+        type="button"
+        class="ghost-action"
+        [disabled]="selectionAllActionDisabled() || selectionActionLoading()"
+        (click)="selectionAllActionRequested.emit()"
+      >
+        {{ selectionAllActionLabel() }}
+      </button>
     </div>
   </div>
 
@@ -64,10 +84,19 @@
   </article>
 
   <ng-container *ngIf="filteredCount() > 0">
-    <div class="table-wrap" [class.fit-to-width]="fitToWidth()">
+    <div class="table-wrap" [class.fit-to-width]="fitToWidth()" [class.has-selection]="showSelection()">
       <table class="data-table">
         <thead>
           <tr>
+            <th class="selection-cell" *ngIf="showSelection()">
+              <input
+                type="checkbox"
+                [checked]="allSelectableRowsSelected()"
+                [disabled]="selectableRows().length === 0"
+                aria-label="Filtrelenmis tum satirlari sec"
+                (change)="toggleAllSelectableRows($any($event.target).checked)"
+              />
+            </th>
             <th
               *ngFor="let column of columns(); trackBy: trackByColumn"
               [attr.aria-sort]="getAriaSort(column.key)"
@@ -87,6 +116,15 @@
         </thead>
         <tbody>
           <tr *ngFor="let row of pagedRows(); trackBy: trackByRow">
+            <td class="selection-cell" data-label="Sec" *ngIf="showSelection()">
+              <input
+                type="checkbox"
+                [checked]="isRowSelected(row)"
+                [disabled]="!getSelectionKey(row)"
+                [attr.aria-label]="getSelectionKey(row) ? 'Evragi sec' : 'Evrak anahtari yok'"
+                (change)="toggleRowSelection(row, $any($event.target).checked)"
+              />
+            </td>
             <td
               *ngFor="let column of columns(); trackBy: trackByColumn"
               [attr.data-label]="column.label"

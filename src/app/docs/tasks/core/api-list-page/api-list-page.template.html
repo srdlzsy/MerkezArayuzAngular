@@ -90,8 +90,20 @@
       [printTitle]="current.title"
       [printSubtitle]="selectedWarehouseLabel() + ' / ' + startDate() + ' - ' + endDate()"
       [additionalActions]="getAdditionalRowActions()"
+      [showSelection]="shouldShowTableSelection()"
+      [selectedRowKeys]="getTableSelectedRowKeys()"
+      [selectionKey]="tableSelectionKeyResolver"
+      [selectionActionLabel]="getTableSelectionActionLabel()"
+      [selectionActionDisabled]="isTableSelectionActionDisabled()"
+      [showSelectionAllAction]="shouldShowTableSelectAllAction()"
+      [selectionAllActionLabel]="getTableSelectAllActionLabel()"
+      [selectionAllActionDisabled]="isTableSelectAllActionDisabled()"
+      [selectionActionLoading]="isTableSelectionActionLoading()"
       (rowAction)="openDetail($event)"
       (additionalRowAction)="handleAdditionalRowAction($event)"
+      (selectionChanged)="handleTableSelectionChanged($event)"
+      (selectionActionRequested)="handleTableSelectionAction()"
+      (selectionAllActionRequested)="handleTableSelectAllAction()"
     ></app-api-list-table>
 
     <article class="state-card" *ngIf="!isLoading() && !errorMessage() && !rows().length">

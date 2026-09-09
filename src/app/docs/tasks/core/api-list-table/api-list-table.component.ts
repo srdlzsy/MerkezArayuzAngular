@@ -39,8 +39,20 @@ export class ApiListTableComponent {
   readonly showExport = input(false);
   readonly exportFileName = input('rapor');
   readonly exportSheetName = input('Rapor');
+  readonly showSelection = input(false);
+  readonly selectedRowKeys = input<ReadonlySet<string>>(new Set());
+  readonly selectionKey = input<(row: ApiListRow) => string | null>(() => null);
+  readonly selectionActionLabel = input('Secilenleri Yazdir');
+  readonly selectionActionDisabled = input(true);
+  readonly showSelectionAllAction = input(false);
+  readonly selectionAllActionLabel = input('Tumunu Yazdir');
+  readonly selectionAllActionDisabled = input(true);
+  readonly selectionActionLoading = input(false);
   readonly rowAction = output<any>();
   readonly additionalRowAction = output<ApiListTableActionEvent>();
+  readonly selectionChanged = output<ReadonlySet<string>>();
+  readonly selectionActionRequested = output<void>();
+  readonly selectionAllActionRequested = output<void>();
 
   protected readonly printRootId = `api-list-print-${Math.random().toString(36).slice(2)}`;
   protected readonly pageSizeOptions = [10, 25, 50, 100] as const;
@@ -131,6 +143,15 @@ export class ApiListTableComponent {
     const count = this.filteredCount();
     return count ? `${count} kayit` : 'Kayit yok';
   });
+  protected readonly selectableRows = computed(() =>
+    this.sortedRows().filter((row) => !!this.getSelectionKey(row))
+  );
+  protected readonly allSelectableRowsSelected = computed(() => {
+    const rows = this.selectableRows();
+    const selectedKeys = this.selectedRowKeys();
+
+    return rows.length > 0 && rows.every((row) => selectedKeys.has(this.getSelectionKey(row) as string));
+  });
   protected readonly resolvedPrintTitle = computed(
     () => this.printTitle().trim() || this.exportSheetName().trim() || 'Liste Dokumu'
   );
@@ -215,6 +236,47 @@ export class ApiListTableComponent {
     }
 
     return this.sortDirection() === 'asc' ? 'ascending' : 'descending';
+  }
+
+  protected isRowSelected(row: ApiListRow): boolean {
+    const key = this.getSelectionKey(row);
+    return !!key && this.selectedRowKeys().has(key);
+  }
+
+  protected toggleRowSelection(row: ApiListRow, checked: boolean): void {
+    const key = this.getSelectionKey(row);
+
+    if (!key) {
+      return;
+    }
+
+    const selectedKeys = new Set(this.selectedRowKeys());
+    if (checked) {
+      selectedKeys.add(key);
+    } else {
+      selectedKeys.delete(key);
+    }
+
+    this.selectionChanged.emit(selectedKeys);
+  }
+
+  protected toggleAllSelectableRows(checked: boolean): void {
+    const selectedKeys = new Set(this.selectedRowKeys());
+
+    for (const row of this.selectableRows()) {
+      const key = this.getSelectionKey(row);
+      if (!key) {
+        continue;
+      }
+
+      if (checked) {
+        selectedKeys.add(key);
+      } else {
+        selectedKeys.delete(key);
+      }
+    }
+
+    this.selectionChanged.emit(selectedKeys);
   }
 
   protected readonly trackByColumn = (_index: number, column: ApiListTableColumn): string => column.key;
@@ -438,6 +500,10 @@ export class ApiListTableComponent {
       })
       .join(' ')
       .toLocaleLowerCase('tr-TR');
+  }
+
+  protected getSelectionKey(row: ApiListRow): string | null {
+    return this.selectionKey()(row)?.trim() || null;
   }
 
   private compareRows(

@@ -38,6 +38,8 @@ export abstract class ApiTaskListPageBase<
   protected readonly fitTableToWidth: boolean = false;
   protected readonly unknownStatusLabel: string | null = null;
   protected readonly activityMessage = signal<string | null>(null);
+  protected readonly tableSelectionKeyResolver = (row: object): string | null =>
+    this.getTableSelectionKey(row as Row);
 
   protected readonly dialog = inject(Dialog);
   protected readonly destroyRef = inject(DestroyRef);
@@ -209,6 +211,48 @@ export abstract class ApiTaskListPageBase<
   protected getAdditionalRowActions(): readonly ApiListTableRowAction<Row>[] {
     return [];
   }
+
+  protected shouldShowTableSelection(): boolean {
+    return false;
+  }
+
+  protected getTableSelectedRowKeys(): ReadonlySet<string> {
+    return new Set();
+  }
+
+  protected getTableSelectionKey(_row: Row): string | null {
+    return null;
+  }
+
+  protected getTableSelectionActionLabel(): string {
+    return 'Secilenleri Yazdir';
+  }
+
+  protected isTableSelectionActionDisabled(): boolean {
+    return true;
+  }
+
+  protected shouldShowTableSelectAllAction(): boolean {
+    return false;
+  }
+
+  protected getTableSelectAllActionLabel(): string {
+    return 'Tumunu Yazdir';
+  }
+
+  protected isTableSelectAllActionDisabled(): boolean {
+    return true;
+  }
+
+  protected isTableSelectionActionLoading(): boolean {
+    return false;
+  }
+
+  protected handleTableSelectionChanged(_keys: ReadonlySet<string>): void {}
+
+  protected handleTableSelectionAction(): void {}
+
+  protected handleTableSelectAllAction(): void {}
 
   protected getPdfLoadingRowActions<TRow extends object>(
     actions: readonly ApiListTableRowAction<TRow>[]

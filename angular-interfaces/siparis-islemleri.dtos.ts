@@ -80,6 +80,10 @@ export interface WarehouseOrderDetailDto {
   items: WarehouseOrderLineItemDto[];
 }
 
+export interface WarehouseOrderBulkPrintHttpRequest {
+  documentKeys: string[];
+}
+
 export interface CreateIssuedWarehouseOrderHttpRequest {
   inWarehouseNo?: number;
   outWarehouseNo: number;
