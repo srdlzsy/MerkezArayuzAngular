@@ -81,6 +81,12 @@
             <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
 
             <div class="search-results stock-results-list" *ngIf="stockResults().length">
+              <div class="search-results-head">
+                <span>{{ stockResults().length }} urun bulundu</span>
+                <button type="button" class="search-results-close" (click)="closeStockResults()">
+                  Kapat
+                </button>
+              </div>
               <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
                 <div>
                   <strong>{{ stock.stockName }}</strong>

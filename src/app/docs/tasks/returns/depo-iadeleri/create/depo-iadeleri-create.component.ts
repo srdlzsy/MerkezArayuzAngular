@@ -298,6 +298,14 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       });
   }
 
+  protected closeStockResults(): void {
+    // An outstanding search must not reopen a list the user explicitly dismissed.
+    this.stockRequestId++;
+    this.stockLoading.set(false);
+    this.stockResults.set([]);
+    this.stockError.set('');
+  }
+
   protected loadReturnableProducts(): void {
     const query = this.stockQuery.value.trim();
 
