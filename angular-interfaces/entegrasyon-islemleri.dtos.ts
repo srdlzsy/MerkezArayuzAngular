@@ -973,7 +973,8 @@ export interface IAxataInboundAtfCompanyReceivingRequestApiDto {
   customerCode: string;
   movementDate: string;
   documentDate: string;
-  documentNo?: string | null;
+  documentSerie: string;
+  documentOrderNo: number;
   axataOrderNo?: string | null;
   invoiceNo?: string | null;
   deliverer?: string | null;

@@ -60,10 +60,16 @@
               <div
                 class="result-item"
                 *ngFor="let customer of customerResults(); trackBy: trackByCustomer"
-                (click)="selectCustomer(customer)"
+                [class.customer-result-disabled]="customer.isLocked || customer.isClosed"
+                [attr.aria-disabled]="customer.isLocked || customer.isClosed"
+                [title]="customer.isLocked || customer.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
+                (click)="!customer.isLocked && !customer.isClosed && selectCustomer(customer)"
               >
                 <strong>{{ customer.customerCode }}</strong>
                 <span>{{ getCustomerLabel(customer) }}</span>
+                <small class="customer-result-status" *ngIf="customer.isLocked || customer.isClosed">
+                  {{ customer.isLocked ? 'Kilitli' : 'Kapali' }}
+                </small>
               </div>
             </div>
           </div>

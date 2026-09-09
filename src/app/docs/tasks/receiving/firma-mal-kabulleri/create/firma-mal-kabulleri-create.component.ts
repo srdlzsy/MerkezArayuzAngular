@@ -94,6 +94,11 @@ const documentDateValidator: ValidatorFn = (control: AbstractControl): Validatio
     : null;
 };
 
+const positiveIntegerValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const value = Number(control.value);
+  return Number.isInteger(value) && value > 0 ? null : { positiveInteger: true };
+};
+
 @Component({
   selector: 'app-firma-mal-kabulleri-create',
   standalone: true,
@@ -167,8 +172,12 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       nonNullable: true,
       validators: [Validators.required]
     }),
-    documentNo: new FormControl('', {
-      nonNullable: true
+    documentSerie: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.maxLength(20), Validators.pattern(/^[A-Za-z0-9]+$/)]
+    }),
+    documentOrderNo: new FormControl<number | null>(null, {
+      validators: [Validators.required, positiveIntegerValidator]
     }),
     deliverer: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
     receiver: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
@@ -196,8 +205,13 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     return this.controls.kalemler;
   }
 
-  protected isDocumentNoInvalid(): boolean {
-    const control = this.controls.documentNo;
+  protected isDocumentSerieInvalid(): boolean {
+    const control = this.controls.documentSerie;
+    return control.invalid && (control.touched || control.dirty);
+  }
+
+  protected isDocumentOrderNoInvalid(): boolean {
+    const control = this.controls.documentOrderNo;
     return control.invalid && (control.touched || control.dirty);
   }
 
@@ -845,10 +859,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       this.toDateInputValue(preview.sourceDocumentDate)
       || this.toDateInputValue(preview.issueDate ?? preview.invoiceDate);
 
-    if (documentNo) {
-      this.controls.documentNo.setValue(documentNo);
-      this.controls.documentNo.markAsDirty();
-    }
+    this.controls.documentSerie.setValue(preview.documentSerie?.trim() ?? '');
+    this.controls.documentOrderNo.setValue(this.toPositiveIntegerOrNull(preview.documentOrderNo));
+    this.controls.documentSerie.markAsDirty();
+    this.controls.documentOrderNo.markAsDirty();
 
     if (documentDate) {
       this.controls.documentDate.setValue(documentDate);
@@ -983,7 +997,8 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       customerCode: rawValue.muhatapFirmaCariKod.trim(),
       movementDate: rawValue.movementDate,
       documentDate: rawValue.documentDate,
-      documentNo: trimToMaxLength(rawValue.documentNo, 25),
+      documentSerie: rawValue.documentSerie.trim().toLocaleUpperCase('en-US'),
+      documentOrderNo: Number(rawValue.documentOrderNo),
       ...officialDocumentTrace,
       deliverer: trimToMaxLength(rawValue.deliverer, 25),
       receiver: trimToMaxLength(rawValue.receiver, 25),
@@ -1031,6 +1046,11 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     }
 
     return preview.invoiceNumber?.trim() ? 'e-invoice' : 'e-despatch';
+  }
+
+  private toPositiveIntegerOrNull(value: unknown): number | null {
+    const numberValue = Number(value);
+    return Number.isInteger(numberValue) && numberValue > 0 ? numberValue : null;
   }
 
   private mapKalem(kalem: KalemFormValue) {

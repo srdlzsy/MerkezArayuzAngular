@@ -44,6 +44,22 @@ a {
   font: inherit;
 }
 
+.customer-result-disabled {
+  cursor: not-allowed !important;
+  opacity: 0.55;
+}
+
+.customer-result-disabled:hover {
+  background: inherit !important;
+}
+
+.customer-result-status {
+  color: #b45309 !important;
+  font-size: 0.58rem;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 body :where(
   .main-content,
   .content-wrapper,

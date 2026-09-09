@@ -57,10 +57,15 @@
           type="button"
           class="result-button"
           *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier"
+          [disabled]="supplier.isLocked || supplier.isClosed"
+          [title]="supplier.isLocked || supplier.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
           (click)="selectSupplier(supplier)"
         >
           <strong>{{ getSupplierLabel(supplier) }}</strong>
           <span class="table-meta">{{ supplier.taxNumber || '-' }} {{ supplier.representativeName || '' }}</span>
+          <span class="customer-result-status" *ngIf="supplier.isLocked || supplier.isClosed">
+            {{ supplier.isLocked ? 'Kilitli' : 'Kapali' }}
+          </span>
         </button>
       </div>
     </section>

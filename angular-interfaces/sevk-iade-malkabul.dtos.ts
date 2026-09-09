@@ -461,7 +461,8 @@ export interface CreateCompanyReceivingHttpRequest {
   customerCode: string;
   movementDate: string;
   documentDate: string;
-  documentNo?: string | null;
+  documentSerie: string;
+  documentOrderNo: number;
   officialDocumentKind?: 'auto' | 'e-despatch' | 'e-invoice' | string | null;
   officialDocumentNo?: string | null;
   officialDocumentDate?: string | null;
@@ -620,6 +621,8 @@ export interface CompanyReceivingEDespatchPreviewDto {
   sourceDocumentLabel?: string | null;
   sourceDocumentNumber?: string | null;
   sourceDocumentDate?: string | null;
+  documentSerie?: string | null;
+  documentOrderNo?: number | null;
   despatchNumber: string | null;
   issueDate: string | null;
   actualDespatchDate: string | null;

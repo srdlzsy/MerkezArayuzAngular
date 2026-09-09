@@ -56,10 +56,16 @@
               <div
                 class="result-item"
                 *ngFor="let customer of customerResults(); trackBy: trackByCustomer"
-                (click)="selectCustomer(customer)"
+                [class.customer-result-disabled]="customer.isLocked || customer.isClosed"
+                [attr.aria-disabled]="customer.isLocked || customer.isClosed"
+                [title]="customer.isLocked || customer.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
+                (click)="!customer.isLocked && !customer.isClosed && selectCustomer(customer)"
               >
                 <strong>{{ customer.customerCode }}</strong>
                 <span>{{ getCustomerLabel(customer) }}</span>
+                <small class="customer-result-status" *ngIf="customer.isLocked || customer.isClosed">
+                  {{ customer.isLocked ? 'Kilitli' : 'Kapali' }}
+                </small>
               </div>
             </div>
           </div>
@@ -234,11 +240,18 @@
             </small>
           </div>
           <div class="contact-field">
-            <label>Belge No / Prefix</label>
-            <input type="text" formControlName="documentNo" maxlength="25" placeholder="Bos, ULK veya ST12026000002395" />
-            <small>Bos birakilabilir; e-belgede bosluksuz seri + 9 haneli sira kullanilir.</small>
-            <small class="field-error" *ngIf="isDocumentNoInvalid()">
-              Belge no kontrol edilmeli.
+            <label>Evrak Serisi *</label>
+            <input type="text" formControlName="documentSerie" maxlength="20" placeholder="Ornek: FMK120" />
+            <small>Yalniz harf ve rakam kullanin.</small>
+            <small class="field-error" *ngIf="isDocumentSerieInvalid()">
+              Evrak serisi zorunludur.
+            </small>
+          </div>
+          <div class="contact-field">
+            <label>Evrak Sirasi *</label>
+            <input type="number" formControlName="documentOrderNo" min="1" step="1" placeholder="Ornek: 1" />
+            <small class="field-error" *ngIf="isDocumentOrderNoInvalid()">
+              Pozitif tam sayi girin.
             </small>
           </div>
           <div class="contact-field">
