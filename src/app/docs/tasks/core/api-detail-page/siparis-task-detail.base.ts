@@ -45,7 +45,7 @@ export abstract class SiparisTaskDetailBase<
     return `${payload.seri}-${payload.sira}`;
   });
 
-  private readonly documentPrintService = inject(DocumentPrintService);
+  protected readonly documentPrintService = inject(DocumentPrintService);
 
   protected abstract override loadDetail(): void;
 

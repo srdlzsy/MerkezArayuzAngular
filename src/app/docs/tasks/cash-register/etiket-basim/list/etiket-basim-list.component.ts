@@ -45,8 +45,10 @@ import {
   getCurrentWarehouseNo,
   normalizePermissionCode
 } from '../../../core/admin-warehouse.helpers';
+import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
 import { renderBarcodeSvg } from '../../etiket-belgeleri/etiket-barcode.util';
+import { ETIKET_BASIM_PRINT_STYLES } from './etiket-basim-print.styles';
 
 const TASK_ID = 'manav-mal-kabul-etiket';
 const PERMISSION_PREFIX = 'kasa-islemleri.manav-mal-kabul-etiket';
@@ -132,6 +134,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
+  private readonly inPlacePrintService = inject(InPlacePrintService);
   private calculationTimer: number | undefined;
   private calculationRequestId = 0;
   private labelRenderTimer: number | undefined;
@@ -1159,103 +1162,17 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
     this.isPrinting.set(true);
     this.scheduleBarcodeRender();
-    await this.waitForNextPaint();
-    this.renderAllBarcodes();
 
-    const style = document.createElement('style');
-    style.id = 'etiket-basim-print-shell';
-    style.textContent = `
-      @page {
-        size: 57.9mm 38.9mm;
-        margin: 0;
-      }
+    const started = await this.inPlacePrintService.print({
+      styleId: 'etiket-basim-print-shell',
+      styles: ETIKET_BASIM_PRINT_STYLES,
+      beforePrint: () => this.renderAllBarcodes(),
+      afterPrint: () => this.isPrinting.set(false)
+    });
 
-      @media print {
-        html,
-        body {
-          width: 57.9mm !important;
-          min-width: 57.9mm !important;
-          height: auto !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          background: #fff !important;
-          overflow: visible !important;
-        }
-
-        body * {
-          visibility: hidden !important;
-        }
-
-        .app-sidebar,
-        .topbar,
-        .topbar-mobile,
-        .sidebar-backdrop,
-        .etiket-basim-screen {
-          display: none !important;
-        }
-
-        .content-wrapper {
-          padding: 0 !important;
-        }
-
-        .etiket-basim-print-root {
-          position: absolute !important;
-          top: 0 !important;
-          left: 0 !important;
-          right: auto !important;
-          width: 57.9mm !important;
-          min-width: 57.9mm !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          display: flex !important;
-          flex-direction: column !important;
-          align-items: flex-start !important;
-          visibility: visible !important;
-          gap: 0 !important;
-          pointer-events: auto !important;
-        }
-
-        .etiket-basim-print-root,
-        .etiket-basim-print-root * {
-          visibility: visible !important;
-        }
-
-        .print-label {
-          width: 57.9mm !important;
-          height: 38.9mm !important;
-          margin: 0 !important;
-          padding: 0 !important;
-          overflow: hidden !important;
-          break-after: page !important;
-          page-break-after: always !important;
-        }
-
-        .print-label-content {
-          width: 57.9mm !important;
-          height: 38.9mm !important;
-          box-sizing: border-box !important;
-          transform: none !important;
-          transform-origin: initial !important;
-          writing-mode: horizontal-tb !important;
-        }
-
-        .print-label:last-child {
-          break-after: auto !important;
-          page-break-after: auto !important;
-        }
-      }
-    `;
-
-    const cleanup = () => {
-      style.remove();
+    if (!started) {
       this.isPrinting.set(false);
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    document.head.appendChild(style);
-    window.addEventListener('afterprint', cleanup, { once: true });
-    window.setTimeout(cleanup, 60_000);
-    window.print();
+    }
   }
 
   protected loadReport(tab: EtiketBasimReportTab = this.activeReportTab()): void {
@@ -2121,11 +2038,4 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     return date.toISOString().slice(0, 10);
   }
 
-  private waitForNextPaint(): Promise<void> {
-    return new Promise<void>((resolve) => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => resolve());
-      });
-    });
-  }
 }

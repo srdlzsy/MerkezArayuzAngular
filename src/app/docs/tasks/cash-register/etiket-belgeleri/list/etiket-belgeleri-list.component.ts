@@ -22,6 +22,7 @@ import { KasaIslemleriService } from '../../../../../core/api/module-services/ka
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 import { FiyatetiketComponent } from '../a4-fiyat-etiketi/fiyatetiket.component';
 import { A5DortluFiyatEtiketiComponent } from '../a5-dortlu-fiyat-etiketi/a5-dortlu-fiyat-etiketi.component';
 import { A5IkiliFurparaKartEtiketiComponent } from '../a5-ikili-furpara-kart-etiketi/a5-ikili-furpara-kart-etiketi.component';
@@ -115,6 +116,7 @@ export class EtiketBelgeleriListComponent {
   private readonly dialog = inject(Dialog);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
+  private readonly inPlacePrintService = inject(InPlacePrintService);
 
   private activeLoadId = 0;
   private productRowSequence = 0;
@@ -1097,21 +1099,10 @@ export class EtiketBelgeleriListComponent {
 
   private async printWithStylesheet(stylesheetHref: string): Promise<void> {
     this.printState.set('preparing');
-
-    const existingLink = document.getElementById('etiket-belgeleri-print-style');
-    const existingStyle = document.getElementById('etiket-belgeleri-print-shell');
-
-    existingLink?.remove();
-    existingStyle?.remove();
-
-    const link = document.createElement('link');
-    link.id = 'etiket-belgeleri-print-style';
-    link.rel = 'stylesheet';
-    link.href = `${stylesheetHref}${stylesheetHref.includes('?') ? '&' : '?'}v=${Date.now()}`;
-
-    const shellStyle = document.createElement('style');
-    shellStyle.id = 'etiket-belgeleri-print-shell';
-    shellStyle.textContent = `
+    const cacheBustedStylesheet = `${stylesheetHref}${stylesheetHref.includes('?') ? '&' : '?'}v=${Date.now()}`;
+    const started = await this.inPlacePrintService.print({
+      styleId: 'etiket-belgeleri-print-shell',
+      styles: `
       @media print {
         html,
         body,
@@ -1180,78 +1171,28 @@ export class EtiketBelgeleriListComponent {
           box-shadow: none !important;
         }
       }
-    `;
-
-    let cleanedUp = false;
-    let cleanupTimer: number | undefined;
-
-    const cleanup = () => {
-      if (cleanedUp) {
-        return;
+    `,
+      stylesheets: [
+        {
+          id: 'etiket-belgeleri-print-style',
+          href: cacheBustedStylesheet
+        }
+      ],
+      beforePrint: () => this.renderPrintBarcodes(),
+      afterPrint: () => {
+        this.printState.set('idle');
+        this.resetPrintPreview();
       }
+    });
 
-      cleanedUp = true;
-      if (cleanupTimer !== undefined) {
-        window.clearTimeout(cleanupTimer);
-      }
-      link.remove();
-      shellStyle.remove();
+    if (!started) {
       this.printState.set('idle');
       this.resetPrintPreview();
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    document.head.appendChild(shellStyle);
-    window.addEventListener('afterprint', cleanup);
-
-    try {
-      await this.appendPrintStylesheet(link);
-      await this.waitForFonts();
-      await this.waitForNextPaint();
-      await this.renderPrintBarcodes();
-
-      cleanupTimer = window.setTimeout(cleanup, 60_000);
-      window.print();
-    } catch {
-      cleanup();
       this.setFeedback(
         'error',
         'Baski hazirlanamadi',
         'Etiket baski stili yuklenemedi. Lutfen tekrar deneyin.'
       );
-    }
-  }
-
-  private appendPrintStylesheet(link: HTMLLinkElement): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const timeoutId = window.setTimeout(() => {
-        reject(new Error(`Baski stili zamaninda yuklenemedi: ${link.href}`));
-      }, 5_000);
-
-      link.addEventListener(
-        'load',
-        () => {
-          window.clearTimeout(timeoutId);
-          resolve();
-        },
-        { once: true }
-      );
-      link.addEventListener(
-        'error',
-        () => {
-          window.clearTimeout(timeoutId);
-          reject(new Error(`Baski stili yuklenemedi: ${link.href}`));
-        },
-        { once: true }
-      );
-
-      document.head.appendChild(link);
-    });
-  }
-
-  private async waitForFonts(): Promise<void> {
-    if ('fonts' in document) {
-      await document.fonts.ready;
     }
   }
 

@@ -23,24 +23,24 @@
 
 .welcome-box h2 {
   margin: 0;
-  color: #0f172a;
-  font-size: 1.16rem;
+  color: var(--operation-text);
+  font-size: var(--operation-title-font-size);
   font-weight: 700;
   line-height: 1.15;
   letter-spacing: 0;
 }
 .query-card,
 .state-card {
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: var(--operation-surface);
+  border: 1px solid var(--operation-border-soft);
+  border-radius: var(--operation-panel-radius);
   box-shadow: none;
 }
 
 .state-card h3 {
   margin: 0 0 0.18rem;
-  color: #64748b;
-  font-size: 0.58rem;
+  color: var(--operation-muted);
+  font-size: var(--operation-caption-size);
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -48,8 +48,8 @@
 
 .state-card p {
   margin: 0;
-  color: #0f172a;
-  font-size: 0.78rem;
+  color: var(--operation-text);
+  font-size: var(--operation-body-font-size);
 }
 
 .task-block {
@@ -64,14 +64,14 @@
   gap: 0.42rem;
   flex-wrap: wrap;
   padding: 0.42rem 0.52rem;
-  background: #fff;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
+  background: var(--operation-surface);
+  border: 1px solid var(--operation-border-soft);
+  border-radius: var(--operation-panel-radius);
   box-shadow: none;
 }
 
 .task-title {
-  color: #334155;
+  color: var(--operation-text-secondary);
   font-size: 0.84rem;
   font-weight: 700;
 }
@@ -86,7 +86,7 @@
 
 .task-action {
   border: 0;
-  border-radius: 6px;
+  border-radius: var(--operation-control-radius);
   padding: 0.36rem 0.68rem;
   font-size: 0.76rem;
   font-weight: 700;
@@ -104,15 +104,15 @@
 }
 
 .task-action-secondary {
-  color: #0f172a;
-  background: #f8fafc;
-  border: 1px solid #dbe5f1;
+  color: var(--operation-text);
+  background: var(--operation-surface-muted);
+  border: 1px solid var(--operation-border-color);
   box-shadow: none;
 }
 
 .task-action-primary {
   color: #fff;
-  background: linear-gradient(135deg, #0f766e, #0b5c56);
+  background: var(--operation-accent);
   box-shadow: none;
 }
 
@@ -172,8 +172,8 @@
 }
 
 .field span {
-  color: #64748b;
-  font-size: 0.6rem;
+  color: var(--operation-muted);
+  font-size: var(--operation-caption-size);
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -184,17 +184,17 @@
   width: 100%;
   min-height: 32px;
   padding: 0.34rem 0.52rem;
-  color: #0f172a;
-  border: 1px solid #d6deef;
-  border-radius: 6px;
-  background: #fff;
+  color: var(--operation-text);
+  border: 1px solid var(--operation-border-color);
+  border-radius: var(--operation-control-radius);
+  background: var(--operation-surface);
   box-sizing: border-box;
   font-size: 0.8rem;
 }
 
 .field input:focus {
-  outline: 2px solid rgba(59, 130, 246, 0.14);
-  border-color: #93c5fd;
+  outline: 2px solid var(--operation-focus-ring);
+  border-color: var(--operation-focus-border);
 }
 
 .warehouse-field {
@@ -207,15 +207,15 @@
   min-width: 150px;
   min-height: 32px;
   padding: 0.28rem 0.5rem;
-  border: 1px solid #d6deef;
-  border-radius: 6px;
-  background: #f8fafc;
+  border: 1px solid var(--operation-border-color);
+  border-radius: var(--operation-control-radius);
+  background: var(--operation-surface-muted);
   box-sizing: border-box;
 }
 
 .warehouse-scope-pill span {
-  color: #64748b;
-  font-size: 0.58rem;
+  color: var(--operation-muted);
+  font-size: var(--operation-caption-size);
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -223,7 +223,7 @@
 
 .warehouse-scope-pill strong {
   overflow: hidden;
-  color: #0f172a;
+  color: var(--operation-text);
   font-size: 0.76rem;
   line-height: 1.1;
   text-overflow: ellipsis;
@@ -312,13 +312,13 @@ tbody tr:hover {
 }
 
 .state-card-error {
-  background: #fff7f7;
-  border-color: #fecaca;
+  background: var(--operation-danger-surface);
+  border-color: var(--operation-danger-border);
 }
 
 .state-card-info {
-  background: #eff6ff;
-  border-color: #bfdbfe;
+  background: var(--operation-info-surface);
+  border-color: var(--operation-info-border);
 }
 
 pre {

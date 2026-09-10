@@ -56,7 +56,4 @@ export class SayimSonuclariListComponent extends ApiTaskListPageBase<
     };
   }
 
-  protected override getInitialStartDate(): string {
-    return this.getFirstDayOfMonthOffset(0);
-  }
 }

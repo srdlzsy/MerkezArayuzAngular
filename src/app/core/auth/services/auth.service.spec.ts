@@ -397,6 +397,11 @@ describe('AuthService', () => {
     completeSuccessfulLogin();
     service.logout();
 
+    const logoutRequest = httpMock.expectOne('http://api.test/auth/logout');
+    expect(logoutRequest.request.method).toBe('POST');
+    expect(logoutRequest.request.body).toEqual({ refreshToken: 'refresh-token' });
+    logoutRequest.flush(null);
+
     expect(service.isAuthenticated()).toBeFalse();
     expect(sessionStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();
     expect(localStorage.getItem(AUTH_STORAGE_KEY)).toBeNull();

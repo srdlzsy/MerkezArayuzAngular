@@ -283,10 +283,6 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
     }, this.selectedSource());
   }
 
-  protected override getInitialStartDate(): string {
-    return this.getRelativeDate(-6);
-  }
-
   protected selectSource(source: CashTurnoverRouteSource): void {
     if (this.selectedSource() === source) {
       return;

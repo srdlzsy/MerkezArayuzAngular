@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, computed, input, output, signal } from '@angular/core';
+import { Component, computed, inject, input, output, signal } from '@angular/core';
 
 import {
   ApiListTableActionEvent,
@@ -12,6 +12,7 @@ import {
   ExcelExportColumn,
   exportRowsToExcel
 } from '../excel-export/excel-export.utils';
+import { InPlacePrintService } from '../document-print/in-place-print.service';
 
 type ApiListRow = object;
 type SortDirection = 'asc' | 'desc' | null;
@@ -24,6 +25,8 @@ type SortDirection = 'asc' | 'desc' | null;
   styleUrl: './api-list-table.component.scss'
 })
 export class ApiListTableComponent {
+  private readonly inPlacePrintService = inject(InPlacePrintService);
+
   readonly rows = input.required<readonly ApiListRow[]>();
   readonly columns = input.required<readonly ApiListTableColumn[]>();
   readonly actionLabel = input('Detay');
@@ -422,11 +425,10 @@ export class ApiListTableComponent {
 
     this.printGeneratedAt.set(this.formatPrintDate(new Date()));
     this.isPrinting.set(true);
-    await this.waitForNextPaint();
 
-    const style = document.createElement('style');
-    style.id = `${this.printRootId}-style`;
-    style.textContent = `
+    const started = await this.inPlacePrintService.print({
+      styleId: `${this.printRootId}-style`,
+      styles: `
       @page {
         size: A4 portrait;
         margin: 11mm 12mm;
@@ -462,18 +464,14 @@ export class ApiListTableComponent {
           background: #fff !important;
         }
       }
-    `;
+    `,
+      cleanupTimeoutMs: 30_000,
+      afterPrint: () => this.isPrinting.set(false)
+    });
 
-    const cleanup = () => {
-      style.remove();
+    if (!started) {
       this.isPrinting.set(false);
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    document.head.appendChild(style);
-    window.addEventListener('afterprint', cleanup, { once: true });
-    window.setTimeout(cleanup, 30_000);
-    window.print();
+    }
   }
 
   protected formatPrintCell(row: ApiListRow, column: ApiListTableColumn): string {
@@ -601,11 +599,4 @@ export class ApiListTableComponent {
     }).format(value);
   }
 
-  private waitForNextPaint(): Promise<void> {
-    return new Promise<void>((resolve) => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => resolve());
-      });
-    });
-  }
 }

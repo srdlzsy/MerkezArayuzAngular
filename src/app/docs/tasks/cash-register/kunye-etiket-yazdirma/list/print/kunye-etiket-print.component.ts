@@ -44,6 +44,16 @@ export class KunyeEtiketPrintComponent implements OnChanges, AfterViewChecked {
     setTimeout(() => this.renderBarcodes(), 50);
   }
 
+  public async prepareForPrint(): Promise<void> {
+    await this.waitForNextPaint();
+    this.renderBarcodes();
+    await this.waitForNextPaint();
+  }
+
+  public renderBarcodesNow(): void {
+    this.renderBarcodes();
+  }
+
   private buildPages(): void {
     this.pages = [];
 
@@ -89,5 +99,13 @@ export class KunyeEtiketPrintComponent implements OnChanges, AfterViewChecked {
     };
 
     attempt(3);
+  }
+
+  private waitForNextPaint(): Promise<void> {
+    return new Promise<void>((resolve) => {
+      window.requestAnimationFrame(() => {
+        window.requestAnimationFrame(() => resolve());
+      });
+    });
   }
 }

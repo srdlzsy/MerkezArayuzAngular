@@ -37,6 +37,13 @@ export interface DocumentPrintRequest {
   generatedAt?: Date;
 }
 
+export interface RawDocumentPrintRequest {
+  markup: string;
+  windowFeatures?: string;
+  printDelayMs?: number;
+  closeAfterPrint?: boolean;
+}
+
 @Injectable({ providedIn: 'root' })
 export class DocumentPrintService {
   private readonly dateFormatter = new Intl.DateTimeFormat('tr-TR', {
@@ -45,17 +52,31 @@ export class DocumentPrintService {
   });
 
   print(request: DocumentPrintRequest): boolean {
-    const printWindow = window.open('', '_blank', 'width=960,height=720');
+    return this.printHtml({ markup: this.buildPrintMarkup(request) });
+  }
+
+  printHtml(request: RawDocumentPrintRequest): boolean {
+    const printWindow = window.open(
+      '',
+      '_blank',
+      request.windowFeatures ?? 'width=960,height=720'
+    );
 
     if (!printWindow) {
       return false;
     }
 
     printWindow.document.open();
-    printWindow.document.write(this.buildPrintMarkup(request));
+    printWindow.document.write(request.markup);
     printWindow.document.close();
     printWindow.focus();
-    printWindow.setTimeout(() => printWindow.print(), 150);
+    printWindow.setTimeout(() => {
+      printWindow.print();
+
+      if (request.closeAfterPrint) {
+        printWindow.close();
+      }
+    }, request.printDelayMs ?? 150);
 
     return true;
   }

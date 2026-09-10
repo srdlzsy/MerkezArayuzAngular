@@ -56,6 +56,7 @@ import {
   type SendInvoiceDocumentsResponseDto
 } from '../../../../../core/api/module-services/fatura-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { PdfPrintService } from '../../../core/document-print/pdf-print.service';
 
 type WorkspaceMode = 'viewing' | 'sending';
 type FeedbackTone = 'success' | 'error' | 'info';
@@ -173,11 +174,10 @@ export class FaturaIslemleriListComponent {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly authService = inject(AuthService);
   private readonly faturaIslemleriService = inject(FaturaIslemleriService);
+  private readonly pdfPrintService = inject(PdfPrintService);
   private readonly previewObjectUrlCache = new Map<string, string>();
   private readonly previewResourceUrlCache = new Map<string, SafeResourceUrl>();
   private viewingPdfObjectUrl: string | null = null;
-  private printFrame: HTMLIFrameElement | null = null;
-  private printObjectUrl: string | null = null;
   private feedbackDismissTimer: ReturnType<typeof setTimeout> | null = null;
   private viewingSyncProgressTimer: ReturnType<typeof setTimeout> | null = null;
 
@@ -2444,7 +2444,7 @@ export class FaturaIslemleriListComponent {
       this.faturaIslemleriService.getInvoiceViewingPrintPdf(invoiceUuid)
     );
 
-    await this.printPdfBlob(blob, item.invoiceId);
+    await this.pdfPrintService.print({ blob, title: item.invoiceId });
 
     const response = await firstValueFrom(
       this.faturaIslemleriService.updateInvoiceViewingPrintedState(item.documentId, {
@@ -2454,92 +2454,6 @@ export class FaturaIslemleriListComponent {
     );
 
     this.mergeViewingSummary(response.summary);
-  }
-
-  private printPdfBlob(blob: Blob, invoiceId: string): Promise<void> {
-    const pdfBlob =
-      blob.type === 'application/pdf'
-        ? blob
-        : new Blob([blob], {
-            type: 'application/pdf'
-          });
-
-    this.releasePrintFrame();
-
-    const objectUrl = URL.createObjectURL(pdfBlob);
-    const frame = document.createElement('iframe');
-    this.printObjectUrl = objectUrl;
-    this.printFrame = frame;
-
-    frame.title = invoiceId?.trim() || 'Fatura PDF';
-    frame.style.position = 'fixed';
-    frame.style.left = '-10000px';
-    frame.style.top = '0';
-    frame.style.width = '1px';
-    frame.style.height = '1px';
-    frame.style.border = '0';
-    frame.style.opacity = '0';
-    frame.src = objectUrl;
-
-    return new Promise<void>((resolve, reject) => {
-      let settled = false;
-      let printStartedTimer = 0;
-      let printDelayTimer = 0;
-      let loadTimeoutTimer = 0;
-      const cleanup = () => {
-        frame.onload = null;
-        window.clearTimeout(printStartedTimer);
-        window.clearTimeout(printDelayTimer);
-        window.clearTimeout(loadTimeoutTimer);
-      };
-      const finish = () => {
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-        cleanup();
-        resolve();
-      };
-
-      loadTimeoutTimer = window.setTimeout(() => {
-        if (settled) {
-          return;
-        }
-
-        settled = true;
-        cleanup();
-        reject(new Error('PDF yazdirma alani zamaninda yuklenemedi.'));
-      }, 15000);
-
-      frame.onload = () => {
-        printDelayTimer = window.setTimeout(() => {
-          try {
-            frame.contentWindow?.focus();
-            frame.contentWindow?.print();
-            printStartedTimer = window.setTimeout(finish, 1500);
-          } catch (error) {
-            cleanup();
-            reject(error);
-          }
-        }, 650);
-      };
-
-      document.body.appendChild(frame);
-    });
-  }
-
-  private releasePrintFrame(): void {
-    if (this.printFrame?.parentNode) {
-      this.printFrame.parentNode.removeChild(this.printFrame);
-    }
-
-    this.printFrame = null;
-
-    if (this.printObjectUrl) {
-      URL.revokeObjectURL(this.printObjectUrl);
-      this.printObjectUrl = null;
-    }
   }
 
   private releaseViewingPdfUrl(): void {

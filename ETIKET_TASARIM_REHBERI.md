@@ -19,6 +19,23 @@ Kapsama giren örnekler:
 Amaç, her yeni tasarımda baskı altyapısını yeniden keşfetmek yerine aynı güvenilir
 yaklaşımı kullanmaktır.
 
+Bu rehber 10.09.2026 tarihindeki ortak baskı mimarisine göre günceldir. Güncel
+uygulama kaynakları:
+
+```text
+src/app/docs/tasks/core/document-print/in-place-print.service.ts
+src/app/docs/tasks/core/document-print/document-print.service.ts
+src/app/docs/tasks/core/document-print/pdf-print.service.ts
+src/app/docs/tasks/core/document-print/print-layout-profiles.ts
+src/app/docs/tasks/core/document-print/print-layout-regression.spec.ts
+scripts/check-print-layouts.mjs
+```
+
+En önemli kural:
+
+> Feature component'i doğrudan `window.print()` çağırmaz; uygun ortak baskı
+> servisine fiziksel tasarım ve hazırlanacak içeriği tarif eder.
+
 ---
 
 ## 1. Temel İlke: Ekran ile Baskıyı Ayır
@@ -149,7 +166,7 @@ Profesyonel baskı akışı:
 5. QR/barkodları hazırla
 6. Fontları bekle
 7. Layout ve paint işlemini bekle
-8. window.print() çağır
+8. Ortak baskı servisi tarayıcı baskısını açar
 9. Baskı kapanınca geçici kaynakları temizle
 10. Hata olursa aynı temizliği çalıştır
 ```
@@ -422,9 +439,13 @@ Püf noktaları:
 
 ---
 
-## 9. Genel `printWithStylesheet` Sözleşmesi
+## 9. Güncel `InPlacePrintService` Sözleşmesi
 
-`printWithStylesheet` ismi bir uygulama detayıdır. Genel ihtiyaç şudur:
+Feature içindeki `printWithStylesheet` metodu artık baskı yaşam döngüsünü kendi
+başına yönetmez. Bu metot varsa yalnız seçili root, stylesheet ve tasarıma özel
+callback'leri hazırlayıp ortak `InPlacePrintService` servisine gönderir.
+
+Genel ihtiyaç şudur:
 
 > Belirli bir root alanını, belirli bir baskı CSS'i ve hazırlık callback'i ile
 > güvenli biçimde yazdır.
@@ -432,30 +453,41 @@ Püf noktaları:
 Genel konfigürasyon:
 
 ```ts
-interface PrintRequest {
-  stylesheetHref: string;
-  printRootSelector: string;
-  hiddenSelectors?: readonly string[];
-  bodyClass?: string;
-  prepare?: () => void | Promise<void>;
+interface InPlacePrintRequest {
+  styleId: string;
+  styles: string;
+  stylesheets?: readonly InPlacePrintStylesheet[];
+  mount?: InPlacePrintMount;
+  awaitFonts?: boolean;
   cleanupTimeoutMs?: number;
+  beforePrint?: () => void | Promise<void>;
+  onBeforePrint?: () => void;
+  afterPrint?: () => void;
 }
 ```
 
 Örnek kullanım:
 
 ```ts
-await this.printService.print({
-  stylesheetHref: '/assets/example-label-print.css',
-  printRootSelector: '#printSection',
-  hiddenSelectors: [
-    '.app-sidebar',
-    '.topbar',
-    '.screen-content'
+const started = await this.inPlacePrintService.print({
+  styleId: 'example-print-shell',
+  styles: EXAMPLE_PRINT_SHELL_STYLES,
+  stylesheets: [
+    { id: 'example-print-css', href: '/assets/example-label-print.css' }
   ],
-  prepare: () => this.printComponent?.prepareForPrint()
+  mount: {
+    element: this.printRoot.nativeElement,
+    documentClassName: 'example-printing'
+  },
+  beforePrint: () => this.printComponent?.prepareForPrint(),
+  onBeforePrint: () => this.printComponent?.refreshBeforePrint(),
+  afterPrint: () => this.resetPrintState()
 });
 ```
+
+`print()` sonucu `false` ise tarayıcı penceresi yoktur veya başka bir baskı
+oturumu aktiftir. Feature bu durumda loading durumunu kapatıp kullanıcıya kısa
+bir hata göstermelidir.
 
 Bu sözleşme farklı tasarımları destekler:
 
@@ -469,16 +501,18 @@ Metin çıktısı  → prepare callback'i gerekmeyebilir
 
 ---
 
-## 10. `printWithStylesheet` Metodunun Genel Çalışması
+## 10. `InPlacePrintService` İç Çalışması
 
-Bir feature içinde özel metot olarak veya tercihen ortak `PrintService` içinde
-uygulanabilir.
+Aşağıdaki yaşam döngüsü feature'larda tekrar uygulanmaz. Tamamı
+`src/app/docs/tasks/core/document-print/in-place-print.service.ts` içindedir.
+Bu bölüm yeni servis yazmak için değil, sorun teşhis ederken sırayı anlamak için
+tutulmuştur.
 
 ### 10.1. Baskı durumunu kilitle
 
-```ts
-this.printState.set('preparing');
-```
+Servis `activeCleanup` doluyken ikinci isteği `false` ile reddeder. Feature kendi
+`isPrinting` veya `printState` değerini kullanıcı geri bildirimi için tutabilir;
+oturum kilidinin asıl sahibi ortak servistir.
 
 Amaç:
 
@@ -489,8 +523,8 @@ Amaç:
 ### 10.2. Önceki geçici elementleri kaldır
 
 ```ts
-document.getElementById(styleLinkId)?.remove();
-document.getElementById(shellStyleId)?.remove();
+this.document.getElementById(request.styleId)?.remove();
+this.document.getElementById(stylesheet.id)?.remove();
 ```
 
 Önceki baskı yarım kaldıysa eski CSS'in yeni baskıyla çakışmasını engeller.
@@ -498,9 +532,9 @@ document.getElementById(shellStyleId)?.remove();
 ### 10.3. Asset stylesheet oluştur
 
 ```ts
-const link = document.createElement('link');
+const link = this.document.createElement('link');
 link.rel = 'stylesheet';
-link.href = request.stylesheetHref;
+link.href = stylesheet.href;
 ```
 
 Asset CSS yalnızca fiziksel tasarımı taşımalıdır:
@@ -541,7 +575,7 @@ Shell CSS → uygulama layout'unun baskı davranışı
 ### 10.5. Stylesheet'in yüklenmesini bekle
 
 ```ts
-await appendStylesheet(link);
+await this.loadStylesheet(link, stylesheet, printWindow);
 ```
 
 Yükleme `load` ve `error` event'leriyle takip edilmelidir:
@@ -556,7 +590,7 @@ Sonsuz beklemeyi engellemek için timeout eklenebilir.
 ### 10.6. Tasarıma özel hazırlığı çalıştır
 
 ```ts
-await request.prepare?.();
+await request.beforePrint?.();
 ```
 
 Bu callback tasarıma göre farklı iş yapabilir:
@@ -569,13 +603,13 @@ Bu callback tasarıma göre farklı iş yapabilir:
 - Dinamik ölçüm yapmak
 
 Baskı altyapısı QR veya barkodun nasıl üretildiğini bilmemelidir. Yalnızca verilen
-`prepare` callback'ini beklemelidir.
+`beforePrint` callback'ini beklemelidir.
 
 ### 10.7. Fontları bekle
 
 ```ts
-if ('fonts' in document) {
-  await document.fonts.ready;
+if (request.awaitFonts !== false && 'fonts' in this.document) {
+  await this.document.fonts.ready;
 }
 ```
 
@@ -604,26 +638,21 @@ tamamlaması için güvenli bir pencere sağlar.
 Tarayıcı print moduna geçerken içeriği yeniden değerlendirebilir:
 
 ```ts
-const beforePrint = () => {
-  void request.prepare?.();
-};
+request.onBeforePrint?.();
 ```
 
 Hazırlık callback'i ağır veya asenkron ise `beforeprint` içinde ikinci kez tamamen
-çalıştırmak yerine yalnızca senkron `refresh` callback'i tanımlanabilir:
-
-```ts
-interface PrintRequest {
-  prepare?: () => void | Promise<void>;
-  refreshBeforePrint?: () => void;
-}
-```
+çalıştırılmaz. `beforePrint` asenkron ilk hazırlık, `onBeforePrint` ise tarayıcının
+gerçek baskı event'inde çalışabilecek senkron yenileme içindir.
 
 ### 10.10. Baskıyı aç
 
 ```ts
-window.print();
+printWindow.print();
 ```
+
+Bu doğrudan çağrı yalnız ortak servisin içinde bulunur. Feature component'ine
+aynı çağrıyı eklemek mimari kontrolü bozar.
 
 Bu çağrıdan önce:
 
@@ -638,12 +667,12 @@ Bu çağrıdan önce:
 Cleanup şunları yapmalıdır:
 
 ```ts
-link.remove();
-shellStyle.remove();
-document.body.classList.remove(request.bodyClass ?? '');
-window.removeEventListener('beforeprint', beforePrint);
-window.removeEventListener('afterprint', cleanup);
-this.printState.set('idle');
+style.remove();
+stylesheetLinks.forEach((link) => link.remove());
+this.restoreMount(mountState);
+printWindow.removeEventListener('beforeprint', request.onBeforePrint);
+printWindow.removeEventListener('afterprint', cleanup);
+request.afterPrint?.();
 ```
 
 Cleanup idempotent olmalıdır:
@@ -664,8 +693,8 @@ const cleanup = () => {
 ### 10.12. `afterprint` ve güvenlik timeout'u
 
 ```ts
-window.addEventListener('afterprint', cleanup);
-const timer = window.setTimeout(cleanup, 60_000);
+printWindow.addEventListener('afterprint', cleanup, { once: true });
+const timer = printWindow.setTimeout(cleanup, request.cleanupTimeoutMs ?? 60_000);
 ```
 
 Bazı tarayıcılarda `afterprint` güvenilir olmayabilir. Timeout ekranın sonsuza
@@ -676,7 +705,7 @@ kadar “Hazırlanıyor” durumunda kalmasını önler.
 ```ts
 try {
   // hazırlık
-  window.print();
+  printWindow.print();
 } catch (error) {
   cleanup();
   throw error;
@@ -687,36 +716,38 @@ Hangi adım hata verirse versin geçici CSS ve event listener'lar kaldırılmal�
 
 ---
 
-## 11. Ortak `PrintService` Önerisi
+## 11. Üç Ortak Baskı Servisi
 
-Birden fazla feature aynı baskı hazırlama kodunu kullanıyorsa metotları component
-içinde kopyalamak yerine ortak servis oluşturulmalıdır.
+Ortak servisler uygulanmıştır; yeni bir `PrintService` daha açılmamalıdır:
 
-Önerilen konum:
+| Servis | Sorumluluk | Örnek kullanım |
+|---|---|---|
+| `InPlacePrintService` | Mevcut DOM root'u, harici CSS, font, mount ve cleanup | Etiket, künye, icmal |
+| `DocumentPrintService` | Yeni popup içinde güvenli HTML evrak/tablo | Liste çıktısı, takip formu, rapor |
+| `PdfPrintService` | PDF blob, gizli iframe ve object URL yaşam döngüsü | Fatura PDF baskısı |
+
+Konum:
 
 ```text
-src/app/core/printing/print.service.ts
+src/app/docs/tasks/core/document-print/
 ```
 
-Önerilen sorumluluklar:
+Servislerin bilmediği ve feature'da kalan bilgiler:
 
-- Dinamik stylesheet yüklemek
-- Shell style üretmek
-- Fontları beklemek
-- Animation frame beklemek
-- `beforeprint` / `afterprint` yönetmek
-- Timeout ve cleanup yapmak
-- Aktif baskı oturumunu kilitlemek
+- Ürün veya evrak modeli
+- Fiyat ve iş hesabı
+- QR/barkod içeriği
+- Bir sayfadaki etiket sayısı
+- Fiziksel etiket HTML'i
+- Hangi kullanıcı aksiyonundan sonra baskı açılacağı
 
-Servisin bilmemesi gerekenler:
+`DocumentPrintService.print()` standart evrak alanlarını escape ederek HTML
+üretir. Tamamen özel ve güvenilir markup gerekiyorsa `printHtml()` kullanılabilir.
+Kullanıcı verisini string interpolation ile ham HTML'e ekleme.
 
-- Ürün modeli
-- Fiyat hesabı
-- QR içeriği
-- Sayfa başına etiket sayısı
-- Etiket HTML'i
-
-Bu bilgiler feature ve print component'te kalmalıdır.
+`PdfPrintService.print()` backendden gelen blob'u `application/pdf` olarak gizli
+iframe'e bağlar, baskıyı açar ve URL'yi güvenli sürede revoke eder. Feature içinde
+`URL.createObjectURL`, iframe timer veya `contentWindow.print()` tekrarlanmaz.
 
 ---
 
@@ -1158,10 +1189,10 @@ Bu ekran su isleri yapar:
 - Urun adina, koduna, barkoda, uretim yerine, tarih ve koli bilgisine gore arama
 - Buyuk listede ekrani kilitlememek icin tabloyu sayfalama
 - Yazdirilacak urun listesini print root icine gecici olarak mount etme
-- Ilgili print CSS dosyasini dinamik yukleme
-- Barkodlari baskidan hemen once SVG olarak uretme
-- Font/layout hazir olduktan sonra `window.print()` cagirma
-- `afterprint` veya guvenlik timeout'u ile gecici print alanini temizleme
+- Ilgili print CSS ve shell ayarlarini `InPlacePrintService` istegine donusturme
+- Barkodlari servisin `beforePrint` callback'inde SVG olarak uretme
+- Font/layout bekleme ve tarayici baskisini ortak servise birakma
+- Servisin `afterprint` veya guvenlik timeout'u sonrasi feature state'ini temizleme
 
 Ana ekranin asil tasarim prensibi sudur:
 
@@ -1287,26 +1318,26 @@ Bu ayrim onemlidir. Print CSS etiketi tasarlar; shell CSS uygulama kabugunu
 yazicidan kaldirir. Ikisini ayni dosyada karmak baska sayfalarda yan etki
 olusturur.
 
-### 22.5. Dinamik print CSS yukleme akisi
+### 22.5. Ortak servisle dinamik print akisi
 
-Ana ekran `printWithStylesheet(stylesheetHref)` metodu ile basar:
+Ana ekran `printWithStylesheet(stylesheetHref)` adli ince bir feature adapter'i
+kullanir. Bu metot baskiyi kendi basina acmaz; `InPlacePrintService.print()`
+istegini hazirlar:
 
 ```text
-1. printState = preparing
-2. Eski print link/style elementlerini sil
-3. Yeni asset CSS linkini cache busting ile ekle
-4. Shell style elementini ekle
-5. afterprint cleanup listener'i ekle
-6. CSS load event'ini bekle
-7. document.fonts.ready bekle
-8. Iki requestAnimationFrame bekle
-9. SVG barkodlari parca parca render et
-10. 60 saniyelik cleanup timeout'u kur
-11. window.print()
-12. afterprint veya timeout ile temizle
+1. `printState = preparing`
+2. Print root'un DOM'da olustugunu dogrula
+3. Shell CSS'i `styles` olarak ver
+4. Etiket asset CSS'ini `stylesheets` listesine ver
+5. `isPrintPreviewMounted` ile print root'u uygulama DOM'unda olustur
+6. SVG barkodlari `beforePrint` callback'inde parca parca render et
+7. Gerekli senkron yenilemeyi `onBeforePrint` callback'inde yap
+8. Feature temizligini `afterPrint` callback'ine ver
+9. CSS load, font, iki paint, baski ve guvenlik timeout'unu servise birak
 ```
 
-Cache busting icin CSS URL'sine zaman eklenir:
+Etiket Belgeleri asset CSS'i icin cache busting degeri stylesheet `href` alaninda
+feature tarafindan eklenebilir:
 
 ```ts
 link.href = `${stylesheetHref}${stylesheetHref.includes('?') ? '&' : '?'}v=${Date.now()}`;
@@ -1314,6 +1345,25 @@ link.href = `${stylesheetHref}${stylesheetHref.includes('?') ? '&' : '?'}v=${Dat
 
 Bu, baski CSS'i degistirildiginde Chrome print preview'un eski CSS'i kullanmasini
 azaltir.
+
+Basitlestirilmis gercek kullanim:
+
+```ts
+await this.inPlacePrintService.print({
+  styleId: 'etiket-print-shell',
+  styles: shellStyles,
+  stylesheets: [{
+    id: 'etiket-print-stylesheet',
+    href: cacheBustedStylesheetHref
+  }],
+  beforePrint: () => this.renderPrintBarcodes(),
+  afterPrint: () => this.resetPrintPreview()
+});
+```
+
+Bu ekranda root zaten uygulama DOM'unda oldugu icin service `mount` secenegi
+verilmez. Künye ekranlari gibi parent zinciri baskida gizlenen tasarimlarda ise
+`mount.element` kullanilarak root gecici olarak `body` altina alinabilir.
 
 ### 22.6. Performans kurallari
 
@@ -2023,13 +2073,15 @@ Son etikette `break-after: auto` olmasi bos etiket/sayfa cikmasini engeller.
 
 ### 23.6. Runtime print shell
 
-`printLabel()` icinde gecici style olusturulur:
+Fiziksel rulo CSS'i component metodunun icinden ayrilmistir:
 
 ```text
-style.id = etiket-basim-print-shell
+src/app/docs/tasks/cash-register/etiket-basim/list/etiket-basim-print.styles.ts
+ETIKET_BASIM_PRINT_STYLES
 ```
 
-Bu style sadece baski oturumu boyunca kalir. Gorevi:
+`printLabel()` bu sabiti `InPlacePrintService` servisine verir. Servis style'i
+baski oturumu boyunca ekler ve oturum sonunda kaldirir. Stil sabitinin gorevi:
 
 - `@page` olcusunu rulo etikete ayarlamak
 - Uygulama kabugunu baskida gizlemek
@@ -2063,6 +2115,10 @@ Baski root'u:
   gap: 0 !important;
 }
 ```
+
+Component icinde yeniden `document.createElement('style')`, `afterprint` listener
+ve timeout kurulmaz. Fiziksel olcu tek kaynakta kaldigi icin test profili de ayni
+`ETIKET_BASIM_PRINT_STYLES` sabitini kullanir.
 
 ### 23.7. Barkod render ayarlari
 
@@ -2100,8 +2156,9 @@ SCSS tarafinda barkod icin minimum yukseklik korunur:
 }
 ```
 
-Barkodun baskidan once render edilmesi gerekir. `printLabel()` bu yuzden once
-paint bekler, sonra `renderAllBarcodes()` cagirir, sonra `window.print()` acar.
+Barkodun baskidan once render edilmesi gerekir. `printLabel()` render hazirligini
+`beforePrint` callback'iyle ortak servise verir; servis daha sonra font ve iki
+paint adimini bekleyip baski penceresini acar.
 
 ### 23.8. Print akisi
 
@@ -2111,13 +2168,12 @@ Baski sirasi:
 1. labelPreview var mi kontrol et
 2. isPrinting true yap
 3. Barkod render zamanlayicisini calistir
-4. Iki animation frame bekle
-5. Tum print barkodlarini SVG olarak render et
-6. Gecici print shell style'i head'e ekle
-7. afterprint cleanup listener'i ekle
-8. 60 saniye guvenlik timeout'u kur
-9. window.print()
-10. afterprint veya timeout ile style'i kaldir ve isPrinting false yap
+4. `InPlacePrintService.print()` istegine rulo stilini ver
+5. `beforePrint` icinde tum print barkodlarini SVG olarak render et
+6. Servisin font ve iki animation frame beklemesini tamamla
+7. Servis icinden tarayici baskisini ac
+8. `afterprint` veya timeout sonrasi service style'i kaldirsin
+9. `afterPrint` callback'i `isPrinting = false` yapsin
 ```
 
 Cleanup mutlaka calismalidir; aksi halde sayfa normal ekranda print CSS etkisinde
@@ -2290,13 +2346,124 @@ Yeni tasarım oluştururken bu dosyalar incelenebilir; ancak class adları, kağ
 
 ---
 
-## 26. Sonuç
+## 26. Otomatik Regresyon ve Şube Kabulü
+
+Etiket baskısı üç ayrı seviyede doğrulanır. Bu seviyeler birbirinin yerine geçmez:
+
+### 26.1. Statik fiziksel sözleşme
+
+```bash
+npm run check:print-layouts
+```
+
+`scripts/check-print-layouts.mjs` şu kontrolleri yapar:
+
+- `etiket-belgeleri.config.ts` içindeki her `ozelCss` dosyası gerçekten var mı?
+- Her print CSS içinde `@page size` tanımı var mı?
+- Kritik etiketlerin width/height ve kart ölçüleri korunuyor mu?
+- Feature component'lerinde doğrudan baskı çağrısı kalmış mı?
+
+Güncel fiziksel sözleşmeler:
+
+| Sözleşme | Kağıt/etiket | Kritik kontrol |
+|---|---|---|
+| A5 dörtlü fiyat | `A5 landscape`, sheet `209 x 146 mm` | 4 adet `97 x 66.5 mm` slot |
+| Manav künye | `A4 portrait`, sheet `198 x 285 mm` | 2 adet `190 x 133 mm` etiket |
+| Standart künye | `A4 portrait`, sheet `198 x 285 mm` | 4 adet `90 x 106 mm` etiket |
+| Ayın ürünü | component sheet `210 x 148 mm` | İki adet `%49.5` kolon |
+| Argox rulo | `57.9 x 38.9 mm` | Tek etiket, `transform: none` |
+
+Yeni kritik tasarım eklenince yalnız CSS dosyasını eklemek yeterli değildir;
+`check-print-layouts.mjs` içine ölçü sözleşmesi de eklenmelidir.
+
+### 26.2. Gerçek Chrome yerleşim regresyonu
+
+Dosyalar:
+
+```text
+src/app/docs/tasks/core/document-print/print-layout-profiles.ts
+src/app/docs/tasks/core/document-print/print-layout-regression.spec.ts
+```
+
+Test, Chrome Headless içinde iframe oluşturur, gerçek print CSS'i ve temsilî uzun
+veriyi yükler. Ardından:
+
+1. Beklenen sayıda etiket üretildiğini,
+2. Sayfa kutusunun piksel karşılığının hedef mm ölçüsüne uyduğunu,
+3. Her etiketin sol/üst/sağ/alt sınırlarının sayfa içinde kaldığını doğrular.
+
+Milimetre dönüşümü tarayıcının CSS standardına göre yapılır:
+
+```text
+px = mm x 96 / 25.4
+```
+
+Yeni bir profil eklemek için `PrintLayoutProfile` alanları doldurulur ve spec
+içindeki fixture üretimine o tasarımın gerçek class isimleri eklenir. Test verisi
+kısa ve rahat bir ürün adı değil, taşmayı zorlayacak uzun ad ve büyük fiyat
+içermelidir.
+
+### 26.3. Baskı servisi testleri
+
+Servis testleri şu davranışları korur:
+
+- Aynı anda ikinci in-place baskı açılmaz.
+- Harici CSS yüklenmeden baskı başlamaz.
+- Geçici taşınan root eski parent ve sibling konumuna geri döner.
+- `afterprint` sonrasında style, class ve listener temizlenir.
+- Popup engellenirse `DocumentPrintService` güvenli şekilde `false` döner.
+- Evrak verileri HTML escape edilir.
+- PDF iframe'i ve object URL süresi sonunda serbest bırakılır.
+
+Tam kontrol:
+
+```bash
+npm run verify
+```
+
+### 26.4. Gerçek yazıcı ve şube kabulü
+
+Chrome testi yazıcı sürücüsünü, tepsiyi, toner davranışını ve şubenin özel kağıt
+tanımını taklit edemez. Canon, Konica ve Argox gibi farklı sürücülerde fiziksel
+onay ayrıca yapılır.
+
+Her şube/yazıcı için kaydedilecek bilgiler:
+
+| Alan | Örnek |
+|---|---|
+| Şube/depo | `120 - Yunuseli` |
+| Yazıcı | `Canon LBP6030/6040`, `Konica Minolta 367S`, `Argox OS-2140 PPLA` |
+| Sürücü ve sürüm | Windows yazıcı özelliklerinden |
+| Kağıt | A4, A5 veya `57.9 x 38.9 mm` özel boyut |
+| Tepsi/besleme | Kaset, bypass veya rulo |
+| Yön | Dikey/yatay; otomatik döndürme açık mı? |
+| Ölçek | `%100` veya Varsayılan |
+| Sonuç | Geçti/kaldı ve ölçülen sapma |
+
+Fiziksel test sırası:
+
+1. Önce tek etiket veya tek sayfa bas.
+2. Dış ölçüyü cetvelle kontrol et.
+3. Ürün adı, büyük fiyat, logo ve barkod kırpılıyor mu bak.
+4. Barkodu gerçek el terminali veya kasada okut.
+5. İlk ve son sayfayı birlikte kontrol etmek için en az iki sayfa bas.
+6. A5 dörtlüde dört kesim alanını, Argox'ta üç ardışık rulo etiketini kontrol et.
+7. Sorun yalnız bir şubedeyse CSS değiştirmeden önce sürücü kağıt ölçüsü, tepsi
+   yönü, otomatik sığdırma ve tarayıcı margin ayarını karşılaştır.
+
+Bir şubedeki sürücü farkı için global CSS'e rastgele offset eklenmez. Gerçekten
+cihaza özel kalibrasyon gerekiyorsa yazıcı/profil bazlı açık bir konfigurasyon
+olarak tasarlanır ve diğer şubelerin varsayılanını değiştirmez.
+
+---
+
+## 27. Sonuç
 
 Genel ve tekrar kullanılabilir etiket altyapısında sorumluluklar şöyle ayrılır:
 
 ```text
-PrintService
-  → Baskı oturumu, CSS yükleme, event ve cleanup
+InPlacePrintService / DocumentPrintService / PdfPrintService
+  → Baskı türüne göre oturum, CSS/popup/iframe ve cleanup
 
 Feature component
   → Veri, seçim, kullanılacak CSS ve print isteği
@@ -2306,6 +2473,9 @@ Print component
 
 Asset print CSS
   → Kağıt, fiziksel ölçü ve görsel tasarım
+
+Print layout kontrolleri
+  → Fiziksel sözleşme, Chrome yerleşimi ve doğrudan baskı yasağı
 ```
 
 Bu ayrım korunduğunda aynı altyapıyla farklı A4, A5, raf, fiyat, kampanya,

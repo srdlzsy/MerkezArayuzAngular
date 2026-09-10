@@ -7,6 +7,7 @@ import type { IKunyeTag } from '@interfaces';
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 import { KunyeEtiketPrintComponent } from './print/kunye-etiket-print.component';
 
 interface FeedbackState {
@@ -34,7 +35,10 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
   protected readonly selectedCount = signal(0);
   protected readonly selectedTags = signal<IKunyeTag[]>([]);
 
-  constructor(private readonly kasaIslemleriService: KasaIslemleriService) {}
+  constructor(
+    private readonly kasaIslemleriService: KasaIslemleriService,
+    private readonly inPlacePrintService: InPlacePrintService
+  ) {}
 
   ngOnInit(): void {
     this.loadTags();
@@ -107,17 +111,17 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
     return this.tags().length > 0;
   }
 
-  protected printSelected(): void {
+  protected async printSelected(): Promise<void> {
+    if (this.printState() === 'preparing') {
+      return;
+    }
+
     if (!this.selectedCount()) {
       this.setFeedback('info', 'Yazdirilacak etiket bulunamadi.');
       return;
     }
 
-    this.printComponent?.forceRenderBarcodes();
-    window.setTimeout(() => {
-      this.printComponent?.forceRenderBarcodes();
-      this.printWithStylesheet('/assets/tagLabel.css');
-    }, 420);
+    await this.printWithStylesheet('/assets/tagLabel.css');
   }
 
   protected readonly trackByTag = (_index: number, tag: IKunyeTag): string =>
@@ -154,23 +158,19 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
     return `${year}-${month}-${day} 00:00:00`;
   }
 
-  private printWithStylesheet(stylesheetHref: string): void {
+  private async printWithStylesheet(stylesheetHref: string): Promise<void> {
     this.printState.set('preparing');
+    const printRoot = document.querySelector<HTMLElement>('.kunye-print-root');
 
-    const existingLink = document.getElementById('kunye-print-style');
-    const existingStyle = document.getElementById('kunye-print-shell');
+    if (!printRoot) {
+      this.printState.set('idle');
+      this.setFeedback('error', 'Kunye baski alani bulunamadi.');
+      return;
+    }
 
-    existingLink?.remove();
-    existingStyle?.remove();
-
-    const link = document.createElement('link');
-    link.id = 'kunye-print-style';
-    link.rel = 'stylesheet';
-    link.href = stylesheetHref;
-
-    const shellStyle = document.createElement('style');
-    shellStyle.id = 'kunye-print-shell';
-    shellStyle.textContent = `
+    const started = await this.inPlacePrintService.print({
+      styleId: 'kunye-print-shell',
+      styles: `
       @media print {
         html.kunye-printing,
         body.kunye-printing {
@@ -236,69 +236,17 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
           pointer-events: auto !important;
         }
       }
-    `;
+    `,
+      stylesheets: [{ id: 'kunye-print-style', href: stylesheetHref }],
+      mount: { element: printRoot, documentClassName: 'kunye-printing' },
+      beforePrint: () => this.printComponent?.prepareForPrint(),
+      onBeforePrint: () => this.printComponent?.renderBarcodesNow(),
+      afterPrint: () => this.printState.set('idle')
+    });
 
-    const printRoot = document.querySelector<HTMLElement>('.kunye-print-root');
-    const originalParent = printRoot?.parentNode as Node | null;
-    const originalNextSibling = printRoot?.nextSibling ?? null;
-
-    const mountPrintRoot = () => {
-      document.documentElement.classList.add('kunye-printing');
-      document.body.classList.add('kunye-printing');
-
-      if (printRoot && printRoot.parentNode !== document.body) {
-        document.body.appendChild(printRoot);
-      }
-    };
-
-    const restorePrintRoot = () => {
-      document.documentElement.classList.remove('kunye-printing');
-      document.body.classList.remove('kunye-printing');
-
-      if (!printRoot || !originalParent || printRoot.parentNode !== document.body) {
-        return;
-      }
-
-      const referenceNode = originalNextSibling?.parentNode === originalParent
-        ? originalNextSibling
-        : null;
-      originalParent.insertBefore(printRoot, referenceNode);
-    };
-
-    const beforePrint = () => {
-      this.printComponent?.forceRenderBarcodes();
-    };
-
-    let cleanedUp = false;
-    let cleanupTimer: number | undefined;
-
-    const cleanup = () => {
-      if (cleanedUp) {
-        return;
-      }
-
-      cleanedUp = true;
-      if (cleanupTimer !== undefined) {
-        window.clearTimeout(cleanupTimer);
-      }
-      restorePrintRoot();
-      link.remove();
-      shellStyle.remove();
+    if (!started) {
       this.printState.set('idle');
-      window.removeEventListener('beforeprint', beforePrint);
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    document.head.appendChild(link);
-    document.head.appendChild(shellStyle);
-    window.addEventListener('beforeprint', beforePrint);
-    window.addEventListener('afterprint', cleanup);
-
-    window.setTimeout(() => {
-      this.printComponent?.forceRenderBarcodes();
-      mountPrintRoot();
-      cleanupTimer = window.setTimeout(cleanup, 60_000);
-      window.print();
-    }, 420);
+      this.setFeedback('error', 'Kunye baskisi baslatilamadi. Lutfen tekrar deneyin.');
+    }
   }
 }

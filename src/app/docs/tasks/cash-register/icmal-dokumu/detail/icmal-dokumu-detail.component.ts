@@ -27,6 +27,7 @@ import {
   currentUserHasPermission,
   normalizePermissionCode
 } from '../../../core/admin-warehouse.helpers';
+import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 import {
   IcmalSummaryPrintModel,
   SummaryPrintComponent
@@ -99,6 +100,7 @@ export class IcmalDokumuDetailComponent
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
+  private readonly inPlacePrintService = inject(InPlacePrintService);
 
   protected readonly isLoading = signal(false);
   protected readonly feedback = signal<DetailFeedback | null>(null);
@@ -342,7 +344,7 @@ export class IcmalDokumuDetailComponent
       return;
     }
 
-    this.printWithStylesheet('/assets/summaryPrint.css');
+    void this.printWithStylesheet('/assets/summaryPrint.css');
   }
 
   protected startEdit(): void {
@@ -1852,26 +1854,20 @@ export class IcmalDokumuDetailComponent
     );
   }
 
-  private printWithStylesheet(stylesheetHref: string): void {
+  private async printWithStylesheet(stylesheetHref: string): Promise<void> {
     const source = document.getElementById('print_section');
-    const existingLink = document.getElementById('icmal-dokumu-print-style');
-    const existingStyle = document.getElementById('icmal-dokumu-print-shell');
     const existingHost = document.getElementById('icmal-dokumu-print-host');
 
-    existingLink?.remove();
-    existingStyle?.remove();
     existingHost?.remove();
 
     if (!source) {
-      window.print();
+      this.feedback.set({
+        tone: 'error',
+        title: 'Baski hazirlanamadi',
+        message: 'Icmal baski alani bulunamadi.'
+      });
       return;
     }
-
-    const link = document.createElement('link');
-    link.id = 'icmal-dokumu-print-style';
-    link.rel = 'stylesheet';
-    link.media = 'print';
-    link.href = stylesheetHref;
 
     const printHost = document.createElement('section');
     printHost.id = 'icmal-dokumu-print-host';
@@ -1882,9 +1878,9 @@ export class IcmalDokumuDetailComponent
     printSection.removeAttribute('aria-hidden');
     printHost.appendChild(printSection);
 
-    const shellStyle = document.createElement('style');
-    shellStyle.id = 'icmal-dokumu-print-shell';
-    shellStyle.textContent = `
+    const started = await this.inPlacePrintService.print({
+      styleId: 'icmal-dokumu-print-shell',
+      styles: `
       @media print {
         @page {
           size: A4;
@@ -1959,36 +1955,30 @@ export class IcmalDokumuDetailComponent
           page-break-inside: avoid !important;
         }
       }
-    `;
+    `,
+      stylesheets: [
+        {
+          id: 'icmal-dokumu-print-style',
+          href: stylesheetHref,
+          media: 'print',
+          loadTimeoutMs: 1_000,
+          tolerateLoadError: true
+        }
+      ],
+      beforePrint: () => {
+        document.body.appendChild(printHost);
+      },
+      afterPrint: () => printHost.remove()
+    });
 
-    const cleanup = () => {
-      link.remove();
-      shellStyle.remove();
+    if (!started) {
       printHost.remove();
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    let printStarted = false;
-    const startPrint = () => {
-      if (printStarted) {
-        return;
-      }
-
-      printStarted = true;
-      window.setTimeout(() => {
-        window.print();
-      }, 80);
-    };
-
-    link.addEventListener('load', startPrint, { once: true });
-    link.addEventListener('error', startPrint, { once: true });
-
-    document.head.appendChild(link);
-    document.head.appendChild(shellStyle);
-    document.body.appendChild(printHost);
-    window.addEventListener('afterprint', cleanup);
-
-    window.setTimeout(startPrint, 450);
+      this.feedback.set({
+        tone: 'error',
+        title: 'Baski baslatilamadi',
+        message: 'Tarayici yazdirma islemini baslatamadi. Lutfen tekrar deneyin.'
+      });
+    }
   }
 }
 

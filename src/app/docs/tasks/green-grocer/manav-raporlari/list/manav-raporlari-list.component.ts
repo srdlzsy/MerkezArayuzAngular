@@ -33,6 +33,7 @@ import {
   ExcelExportSheet,
   exportRowsToExcel
 } from '../../../core/excel-export/excel-export.utils';
+import { DocumentPrintService } from '../../../core/document-print/document-print.service';
 
 type ReportTab = 'summary' | 'byBranch' | 'byProduct' | 'greens';
 type FeedbackTone = 'error' | 'info' | 'success';
@@ -160,6 +161,7 @@ export class ManavRaporlariListComponent {
   private readonly authService = inject(AuthService);
   private readonly greenGrocerService = inject(GreenGrocerService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
+  private readonly documentPrintService = inject(DocumentPrintService);
   private loadSequence = 0;
   private readonly quantityFormatter = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 0,
@@ -404,17 +406,6 @@ export class ManavRaporlariListComponent {
       return;
     }
 
-    const printWindow = window.open('', '_blank', 'width=1200,height=900');
-
-    if (!printWindow) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'Yazdirma acilamadi',
-        message: 'Tarayici yeni pencereyi engelledi. Pop-up iznini kontrol edin.'
-      });
-      return;
-    }
-
     const clonedReport = source.cloneNode(true) as HTMLElement;
     clonedReport.querySelectorAll('details').forEach((details) => details.setAttribute('open', ''));
     clonedReport
@@ -425,8 +416,8 @@ export class ManavRaporlariListComponent {
     const reportDate = this.lastLoadedDate();
     const scope = this.warehouseScopeLabel();
 
-    printWindow.document.open();
-    printWindow.document.write(`<!doctype html>
+    const opened = this.documentPrintService.printHtml({
+      markup: `<!doctype html>
 <html lang="tr">
 <head>
   <meta charset="utf-8">
@@ -467,13 +458,18 @@ export class ManavRaporlariListComponent {
   </header>
   ${clonedReport.innerHTML}
 </body>
-</html>`);
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.setTimeout(() => {
-      printWindow.print();
-      printWindow.close();
-    }, 150);
+</html>`,
+      windowFeatures: 'width=1200,height=900',
+      closeAfterPrint: true
+    });
+
+    if (!opened) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirma acilamadi',
+        message: 'Tarayici yeni pencereyi engelledi. Pop-up iznini kontrol edin.'
+      });
+    }
   }
 
   protected async deleteOrder(item: IFurpaGreenGrocerBranchReportItemApiDto): Promise<void> {

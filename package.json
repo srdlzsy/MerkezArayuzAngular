@@ -8,7 +8,10 @@
     "build": "npm run clean:dist && ng build",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
-    "test:ci": "ng test --watch=false --progress=false --browsers=ChromeHeadless"
+    "test:ci": "ng test --watch=false --progress=false --browsers=ChromeHeadless",
+    "check:architecture": "node scripts/check-architecture.mjs",
+    "check:print-layouts": "node scripts/check-print-layouts.mjs",
+    "verify": "npm run check:architecture && npm run check:print-layouts && npm run test:ci && ng build --configuration development"
   },
   "prettier": {
     "printWidth": 100,

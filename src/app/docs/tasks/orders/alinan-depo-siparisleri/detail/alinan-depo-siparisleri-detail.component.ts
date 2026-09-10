@@ -53,17 +53,9 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
       return;
     }
 
-    const printWindow = window.open('', '_blank', 'width=960,height=720');
-
-    if (!printWindow) {
-      return;
-    }
-
-    printWindow.document.open();
-    printWindow.document.write(this.buildManavOrderPrintMarkup(order.header, order.items ?? []));
-    printWindow.document.close();
-    printWindow.focus();
-    printWindow.setTimeout(() => printWindow.print(), 150);
+    this.documentPrintService.printHtml({
+      markup: this.buildManavOrderPrintMarkup(order.header, order.items ?? [])
+    });
   }
 
   private hasManavWarehouse(header: WarehouseOrderHeaderDto): boolean {

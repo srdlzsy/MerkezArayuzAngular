@@ -1,0 +1,139 @@
+/*
+ * Shared visual defaults for routed operational screens.
+ * Keep selectors low-specificity so component styles can override these defaults naturally.
+ */
+.operational-shell :where(
+  .task-page .page-head,
+  .task-page .hero,
+  .create-page .hero,
+  .lookup-page .page-head
+) {
+  gap: 0.5rem;
+  margin-bottom: 0.45rem;
+  padding: 0;
+  border: 0;
+  border-radius: 0;
+  background: transparent;
+  box-shadow: none;
+}
+
+.operational-shell :where(.task-page, .create-page, .lookup-page) h2 {
+  margin: 0;
+  font-size: 1.14rem;
+  line-height: 1.18;
+  letter-spacing: 0;
+}
+
+.operational-shell :where(
+  .task-page .eyebrow,
+  .create-page .eyebrow,
+  .lookup-page .eyebrow
+) {
+  margin: 0;
+  font-size: var(--operation-caption-size);
+  letter-spacing: 0;
+}
+
+.operational-shell :where(
+  .task-page .query-card,
+  .task-page .filter-panel,
+  .task-page .form-panel,
+  .task-page .surface-card,
+  .task-page .panel,
+  .task-page .action-card,
+  .task-page .range-card,
+  .task-page .selection-panel,
+  .task-page .compact-panel,
+  .task-page .side-panel,
+  .task-page .state-card,
+  .task-page .summary-card,
+  .task-page .info-card,
+  .task-page .status-card,
+  .task-page .metric-card,
+  .task-page .setup-card,
+  .task-page .job-card,
+  .task-page .result-card,
+  .task-page .write-card,
+  .task-page .metric-strip article,
+  .create-page .form-card,
+  .create-page .info-card,
+  .create-page .state-card,
+  .lookup-page .query-panel,
+  .lookup-page .product-card,
+  .lookup-page .state-card,
+  .lookup-page .metric-card,
+  .lookup-page .summary-card
+) {
+  border: 1px solid var(--operation-border-color);
+  border-radius: var(--operation-panel-radius);
+  box-shadow: none;
+  background: var(--operation-surface);
+}
+
+.operational-shell :where(
+  .task-page .query-card,
+  .task-page .filter-panel,
+  .task-page .form-panel,
+  .task-page .surface-card,
+  .task-page .panel,
+  .task-page .action-card,
+  .task-page .range-card,
+  .task-page .selection-panel,
+  .task-page .compact-panel,
+  .task-page .side-panel,
+  .task-page .state-card,
+  .task-page .summary-card,
+  .task-page .status-card,
+  .task-page .metric-card,
+  .create-page .form-card,
+  .lookup-page .query-panel,
+  .lookup-page .product-card,
+  .lookup-page .state-card,
+  .lookup-page .metric-card
+) {
+  padding: var(--operation-panel-padding);
+}
+
+.operational-shell :where(
+  .task-page .metric-strip,
+  .task-page .metrics-grid,
+  .task-page .summary-grid,
+  .task-page .query-grid,
+  .task-page .workspace-grid,
+  .create-page,
+  .create-page .form-grid,
+  .lookup-page .result-grid,
+  .lookup-page .query-panel
+) {
+  gap: var(--operation-grid-gap);
+}
+
+.operational-shell :where(.task-page, .create-page, .lookup-page) :where(input, select, textarea) {
+  min-height: var(--operation-control-height);
+  border-radius: var(--operation-control-radius);
+  font-size: var(--operation-control-font-size);
+  padding: 0.34rem 0.52rem;
+}
+
+.operational-shell :where(
+  .task-page .task-action,
+  .task-page .primary-action,
+  .task-page .ghost-action,
+  .task-page .action-button,
+  .create-page .primary-button,
+  .create-page .secondary-button,
+  .create-page .ghost-button,
+  .lookup-page .primary-action,
+  .lookup-page .ghost-action
+) {
+  min-height: var(--operation-control-height);
+  border-radius: var(--operation-control-radius);
+  padding: 0.34rem 0.62rem;
+  font-size: 0.78rem;
+  box-shadow: none;
+}
+
+.operational-shell :where(.task-page, .lookup-page) :where(th, td) {
+  padding: 0.44rem 0.52rem;
+  font-size: 0.78rem;
+}

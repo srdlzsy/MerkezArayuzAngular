@@ -84,7 +84,10 @@ export class AdminLayoutComponent {
         !environment.production &&
         ['kullanicilar', 'roller', 'yetkiler'].some((taskId) => this.authService.hasTaskAccess(taskId))
       ) {
-        this.docsRegistryValidationService.validateRegistry().subscribe();
+        this.docsRegistryValidationService
+          .validateRegistry()
+          .pipe(takeUntilDestroyed(this.destroyRef))
+          .subscribe();
       }
     });
 
@@ -93,15 +96,20 @@ export class AdminLayoutComponent {
     this.expandActiveMenuPath();
     this.syncSidebarWithViewportWidth();
 
-    this.router.events.pipe(filter((event: unknown) => event instanceof NavigationEnd)).subscribe(() => {
-      this.updatePageTitle();
-      this.syncActiveTaskId();
-      this.expandActiveMenuPath();
-      this.scheduleContentScrollToTop();
-      this.closeSidebar();
-      this.closeRailMenu();
-      this.closeAnnouncementInbox();
-    });
+    this.router.events
+      .pipe(
+        filter((event: unknown) => event instanceof NavigationEnd),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe(() => {
+        this.updatePageTitle();
+        this.syncActiveTaskId();
+        this.expandActiveMenuPath();
+        this.scheduleContentScrollToTop();
+        this.closeSidebar();
+        this.closeRailMenu();
+        this.closeAnnouncementInbox();
+      });
   }
 
   protected toggleAnnouncementInbox(): void {

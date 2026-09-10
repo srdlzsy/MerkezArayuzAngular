@@ -30,8 +30,5 @@ export class VerilenFirmaSiparisleriListComponent extends ApiTaskListPageBase<IF
     return this.siparisIslemleriService.getVerilenSiparisler(zamanlama, warehouseNo);
   }
 
-  protected override getInitialStartDate(): string {
-    return this.getRelativeDate(-1);
-  }
 }
 

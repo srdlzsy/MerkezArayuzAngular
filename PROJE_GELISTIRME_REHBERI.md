@@ -11,6 +11,19 @@ Amac sudur:
 
 Bu projede en onemli kaynak `UI_API_DOKUMANI.md` dosyasidir. Backend sozlesmesi orada degisir; frontend entegrasyonu bu dosyaya gore yapilir.
 
+Bu rehber 10.09.2026 tarihinde mevcut kod yapisina gore guncellenmistir. Kaynaklarin
+oncelik sirasi soyledir:
+
+1. API endpoint, request, response ve permission sozlesmesi: `UI_API_DOKUMANI.md`
+2. Genel mimari ve gelistirme akisi: `PROJE_GELISTIRME_REHBERI.md`
+3. Ortak ekran ve tasarim kurallari: `docs/UI_GELISTIRME_STANDARTLARI.md`
+4. Etiket ve fiziksel baski kurallari: `ETIKET_TASARIM_REHBERI.md`
+5. Calisan kod ve otomatik testler: son ve dogrulanabilir kaynak
+
+Dokuman ile kod celisirse once API sozlesmesi kontrol edilir, sonra kod ve testler
+birlikte guncellenir. Sadece dokumani veya sadece component'i degistirmek entegrasyonu
+tamamlanmis saydirmaz.
+
 ## 1. Proje Ozeti
 
 Proje, Furpa Merkez icin Angular 20 tabanli bir yonetim arayuzudur.
@@ -65,6 +78,28 @@ Whitespace kontrolu icin:
 ```bash
 git diff --check
 ```
+
+Mimari butceleri kontrol et:
+
+```bash
+npm run check:architecture
+```
+
+Etiket CSS dosyalarini ve fiziksel baski sozlesmelerini kontrol et:
+
+```bash
+npm run check:print-layouts
+```
+
+Commit veya teslim oncesi tercih edilen tek komut:
+
+```bash
+npm run verify
+```
+
+`verify`; mimari kontrolu, baski yerlesim kontrolunu, Chrome Headless testlerini ve
+development build'ini sirayla calistirir. Bir ortak altyapi degisikligi bu zincir
+gecmeden tamamlanmis kabul edilmemelidir.
 
 ## 3. Ana Klasorler
 
@@ -177,6 +212,11 @@ Yani yeni ekran route'u dogrudan `app.routes.ts` icine eklenmez. Once ilgili `*.
 - `provideRouter(routes)`
 - `provideHttpClient(withInterceptors([authInterceptor]))`
 - `API_BASE_URL` provider
+
+Ayrica `provideZoneChangeDetection({ eventCoalescing: true })`, ayni browser event
+dongusunde olusan gereksiz tekrar change detection calismalarini birlestirir. Bu
+ayar buyuk operasyon listelerinde genel performans korumasidir; feature bazinda
+tekrar tanimlanmaz.
 
 Bu yuzden servislerde manuel base URL tasimaya gerek yoktur. Module service'ler `BaseApiService` uzerinden path verir.
 
@@ -424,8 +464,19 @@ Template:
 
 ```ts
 templateUrl: '../../../core/api-list-page/api-list-page.template.html'
-styleUrl: '../../../core/api-list-page/api-list-page.shared.scss'
+styleUrl: './ornek-list.component.scss'
 ```
+
+Yerel SCSS ortak liste stilini yukler:
+
+```scss
+@use '../../../core/api-list-page/api-list-page.shared';
+```
+
+Bu ayrim bilerek korunur. Ortak template liste davranisini merkezilestirir; yerel
+SCSS dosyasi ise ekranin gercekten ihtiyac duydugu az sayida override icin alan
+birakir. Ortak template kullanan bir component'in yaninda kullanilmayan eski HTML
+dosyasi tutulmaz. `check:architecture` bu tip artik dosyalari hata olarak yakalar.
 
 Her sayfa sadece sunlari saglar:
 
@@ -435,6 +486,20 @@ Her sayfa sadece sunlari saglar:
 - `createComponent`
 - `fetchRows`
 - Gerekirse ek satir aksiyonlari
+
+Tarih varsayimi tum standart listelerde bugundur:
+
+```ts
+protected getInitialStartDate(): string;
+protected getInitialEndDate(): string;
+```
+
+Base class bu hook'lari gercekten kullanir. Bir ekran is geregi farkli aralikla
+acilacaksa yalniz ilgili hook override edilir. Override yoksa baslangic ve bitis
+bugun olur; constructor veya `ngOnInit` icinde ayni tarihi yeniden atama.
+
+Ortak liste yuklemelerinde request id ile eski cevap korumasi vardir. Kullanici
+filtreyi hizla degistirdiginde onceki yavas cevap yeni sonucu ezmemelidir.
 
 ### Tablo componenti
 
@@ -521,6 +586,62 @@ PDF gibi blob cevaplari icin:
 - Ortak liste base kullaniliyorsa `getPdfLoadingRowActions` ile buton labeli `PDF Yukleniyor...` olur.
 - Blob geldikten sonra `openBlobInDialog` kullan.
 
+### Yazdirma servisleri
+
+Ekran component'leri dogrudan `window.print()` cagiramaz. Baskinin turune gore
+`src/app/docs/tasks/core/document-print` altindaki servislerden biri secilir:
+
+| Ihtiyac | Servis | Kullanim |
+|---|---|---|
+| Mevcut DOM/etiket root'unu basmak | `InPlacePrintService` | Etiket, künye, icmal gibi uygulama DOM'unda hazirlanan ciktilar |
+| Yeni pencerede HTML evrak basmak | `DocumentPrintService` | Liste, tablo, rapor ve evrak takip formu |
+| Backendden gelen PDF blob'u basmak | `PdfPrintService` | Fatura ve hazir PDF dokumanlari |
+
+`InPlacePrintService` su ortak sorumluluklari tek yerde yonetir:
+
+- Inline shell style ekleme ve kaldirma
+- Harici print stylesheet yukleme ve timeout
+- Print root'u gecici olarak `body` altina tasima ve eski yerine geri koyma
+- `document.fonts.ready` ve iki animation frame bekleme
+- `beforePrint`, `onBeforePrint`, `afterPrint` callback'leri
+- Ayni anda ikinci baskiyi engelleme
+- `afterprint` gelmezse guvenlik timeout'u ile temizleme
+
+Ornek:
+
+```ts
+const started = await this.inPlacePrintService.print({
+  styleId: 'ornek-print-shell',
+  styles: PRINT_SHELL_STYLES,
+  stylesheets: [{ id: 'ornek-print-css', href: '/assets/ornek-print.css' }],
+  mount: { element: printRoot, documentClassName: 'ornek-printing' },
+  beforePrint: () => this.printComponent?.prepareForPrint(),
+  onBeforePrint: () => this.printComponent?.renderBarcodesNow(),
+  afterPrint: () => this.resetPrintState()
+});
+```
+
+`DocumentPrintService.printHtml()` sadece guvenilir uygulama tarafindan uretilen
+tam HTML markup icin kullanilir. Kullanici verisi markup'a giriyorsa HTML escape
+edilmelidir. Standart tablo/evrak ciktilarinda servisin `print()` metodu tercih
+edilir; bu metot alanlari guvenli sekilde escape eder.
+
+`PdfPrintService` blob URL ve gizli iframe yasam dongusunu yonetir. Component
+iframe olusturmaz, URL revoke etmez ve zamanlayici tutmaz. Ayni anda yeni PDF
+baskisi baslatilirsa onceki oturum iptal edilerek kaynak sizintisi engellenir.
+
+Dogru olmayan kullanim:
+
+```ts
+window.print();
+iframe.contentWindow?.print();
+document.head.appendChild(localPrintStyle);
+```
+
+Bu kodlar yalniz ortak `document-print` servislerinin icinde bulunabilir.
+`npm run check:architecture` ve `npm run check:print-layouts` yeni dogrudan baski
+cagrilarini engeller.
+
 ## 9. Tasarim Mantigi
 
 Bu proje operasyonel bir is uygulamasidir. Kullanici ekrana girince teknik dokuman okumamali; isi yapabilmelidir.
@@ -533,6 +654,63 @@ Ana prensip:
 4. Kucuk ekranda her sey tek kolona duzgun dusmeli.
 5. Tablo kullanilabilir kalmali.
 6. Gereksiz aciklama, endpoint metni ve kalabalik gosterilmemeli.
+
+### Tasarim katmanlari
+
+Global tasarim uc seviyeye ayrilir:
+
+```text
+src/styles/_design-tokens.scss
+  -> Renk, radius, kontrol boyu, bosluk ve font olcegi degerleri
+
+src/styles/_operational-shell.scss
+  -> Sadece .operational-shell altindaki dusuk specificity ortak gorunum
+
+src/styles.scss
+  -> Reset, layout, dialog overlay ve gecici geriye uyumluluk kurallari
+```
+
+`_design-tokens.scss` yalniz deger tanimlar; kendi basina bir elementi stillendirmez.
+Yeni component sabit renk ve olcu kopyalamak yerine token kullanir:
+
+```scss
+.panel {
+  color: var(--operation-text);
+  border: 1px solid var(--operation-border-color);
+  border-radius: var(--operation-panel-radius);
+  background: var(--operation-surface);
+}
+```
+
+`_operational-shell.scss` kurallari `:where(...)` ile dusuk specificity kullanir.
+Boylece component SCSS'i ortak varsayimi normal bir selector ile ezebilir; yeni
+`!important` zinciri olusmaz. CDK dialog overlay'i routed shell disinda yasadigi
+icin gerekli dialog uyumluluklari `styles.scss` icinde `.docs-task-dialog-panel`
+ile sinirli kalir.
+
+Yeni global selector eklemeden once su karar sirasi uygulanir:
+
+1. Deger tekrar ediyorsa tasarim tokeni ekle veya mevcut tokeni kullan.
+2. Tum operasyon ekranlarinin ortak davranisiysa `_operational-shell.scss` dusun.
+3. Yalniz bir ekrana aitse component SCSS'inde tut.
+4. CDK overlay kaynakliysa `.docs-task-dialog-panel` altinda sinirla.
+5. Mevcut bir kurali ezmek icin once specificity kaynagini duzelt; `!important` son care olsun.
+
+Global SCSS'e `.task-page .x`, `.create-page .x` gibi genis ve feature'a ozel
+selector eklemek yasaktir. Bir sayfadaki duzeltme diger siparis, iade veya baski
+ekranini degistirmemelidir.
+
+### Responsive ve scroll siniri
+
+`min-width: 0`, sabit grid kolonlari ve kontrollu `overflow-x` ortak shell tarafinda
+saglanir. Buna ragmen her tabloya cok sayida kolon eklemek kabul edilmez. Yatay
+scroll teknik bir emniyet kemeridir, tasarim hedefi degildir.
+
+- Ana is akisi 320px genislikten itibaren kullanilabilir kalir.
+- Sabit formatli toolbar, sayac, ikon butonu ve etiket onizlemesi olcu degistirmez.
+- Uzun metinler parent'i buyutmez; wrap, clamp veya ellipsis politikasi acik olur.
+- Dialog body kayar, dialog baslik ve ana aksiyonlari erisilebilir kalir.
+- Sayfa ve dialog icinde kart icine kart kurulmaz.
 
 ### Rapor ekranlari
 
@@ -1153,6 +1331,36 @@ Ortak helper, menu, guard, tablo veya base class degistiyse:
 npm run test:ci
 ```
 
+Teslim oncesi tum kontroller:
+
+```bash
+npm run verify
+```
+
+Kontrol katmanlari:
+
+| Katman | Komut | Yakaladigi sorun |
+|---|---|---|
+| TypeScript | `npx tsc -p tsconfig.app.json --noEmit` | Tip, import ve temel template baglantilari |
+| Mimari | `npm run check:architecture` | Buyuyen kritik component butceleri, global `!important` artisi, artik liste HTML'i, dogrudan baski |
+| Baski | `npm run check:print-layouts` | Eksik print CSS, eksik `@page`, degisen fiziksel etiket olculeri, ortak servis disi baski |
+| Unit/regresyon | `npm run test:ci` | Servis, base class, yetki ve Chrome layout davranislari |
+| Build | `npm run build` | Production bundle, Angular compiler ve style budgetlari |
+
+`scripts/check-architecture.mjs` gecici mimari butceler tanimlar. Amaci buyuk
+component'leri bir gecede bolmek degil, daha da buyumelerini engelleyerek yeni
+kodu helper, child component veya ortak servise yonlendirmektir. Butceyi hata
+aldigi icin yukari cekmek yerine once eklenen sorumlulugu ayir.
+
+`scripts/check-print-layouts.mjs`, Etiket Belgeleri konfigurasyonundaki tum
+`ozelCss` dosyalarinin gercekte varligini ve `@page size` sozlesmesini kontrol
+eder. Ayrica kritik fiziksel olculeri sabit regresyon sozlesmeleriyle korur.
+
+Chrome layout testleri CSS metnini aramakla yetinmez. Iframe icinde ornek print
+DOM'u kurar, `getBoundingClientRect()` sonucunu mm-px toleransiyla olcer ve etiket
+kutularinin sayfa sinirini asmadigini dogrular. Bu test fiziksel yazici surucusunu
+taklit etmez; surucu ve tepsi yonu her subede gercek kagitla ayrica onaylanir.
+
 Build warningleri onemlidir.
 
 Ozellikle:
@@ -1281,8 +1489,12 @@ Bu liste pratikte commit oncesi kullanilabilir.
 - Loading, error, empty state var.
 - PDF/Excel aksiyonlari dogru.
 - Kucuk ekranda tablo ve form bozulmuyor.
+- Yeni stiller once component SCSS'inde veya tasarim tokeninda cozuldu.
+- Global `!important` ve genis feature selector eklenmedi.
+- Baskida dogrudan `window.print()` yerine uygun ortak servis kullanildi.
+- Yeni etiket tipi config, print component, CSS ve regresyon sozlesmesiyle birlikte eklendi.
 - `npx tsc -p tsconfig.app.json --noEmit` gecti.
-- `npm run build` gecti.
+- `npm run verify` gecti.
 
 ## 20. Commit Hazirligi
 
@@ -1291,8 +1503,7 @@ Commit oncesi kontrol:
 ```bash
 git status --short
 git diff --check
-npx tsc -p tsconfig.app.json --noEmit
-npm run build
+npm run verify
 ```
 
 Commit mesaji genel formati:
@@ -1332,3 +1543,67 @@ Bu endpoint kullaniciya hangi isi yaptiracak?
 ```
 
 Cevap netse ekran sade olur. Cevap karisiksa once akis sadelestirilmeli, sonra kod yazilmalidir.
+
+## 22. Olceklenebilirlik Icin Karar Rehberi
+
+Yeni bir ihtiyacta dosya acmadan once asagidaki karar agaci kullanilir:
+
+```text
+Ayni davranis en az iki ekranda var mi?
+  Hayir -> Feature component/helper icinde tut.
+  Evet
+    Is kurali mi?       -> Domain helper veya service.
+    Liste davranisi mi? -> ApiTaskListPageBase / ApiListTableComponent.
+    Baski oturumu mu?   -> document-print servisleri.
+    Sadece deger mi?    -> design token.
+    Gorsel varsayim mi? -> operational shell.
+```
+
+Abstraction yalniz tekrar var diye kurulmaz. Ortak API gercekten sabit bir
+sozlesme sunmali ve feature'larin farkli is kurallarini gizlememelidir. Ornegin
+tum liste ekranlarini tek dev component'e koymak yerine ortak filtre/tablo
+iskeleti base class'ta, kolonlar ve sorgu feature'da kalir.
+
+### Buyuk componentlerde yeni kodun yeri
+
+Axata, fatura ve evrak duzenleme gibi buyuk componentlere yeni sorumluluk
+eklerken su sirayla dusun:
+
+1. Saf hesap veya donusumse `.util.ts` dosyasina cikar.
+2. Bir veri grubunu yoneten gorunumse child component yap.
+3. HTTP ve oturum yasam dongusu tekrar ediyorsa service yap.
+4. Kolon veya sabit konfigurasyonsa `.config.ts`/`.columns.ts` dosyasina cikar.
+5. Feature'a ozel state ana component'te kalabilir; global store acmak zorunlu degildir.
+
+Child component API'si kucuk tutulur:
+
+```ts
+input.required<ReadonlyArray<RowDto>>();
+output<RowDto>();
+```
+
+Alt component'in ayni veriyi yeniden API'den cekmesi yerine parent veriyi verir,
+alt component kullanici olayini geri yollar. Bu, istek tekrarini ve state
+uyusmazligini azaltir.
+
+### Performans sinirlari
+
+- Sayfa acilir acilmaz gerekli olmayan rapor endpointleri cagrilmaz.
+- Aramalar en az iki karakter, debounce ve makul `take` ile calisir; barkod veya
+  tam stok kodu gibi kesin aramalar domain sozlesmesine gore istisna olabilir.
+- Buyuk listeler sayfalama, secili satir anahtari ve `trackBy` kullanir.
+- Yuzlerce barkod tek event loop'ta uretilmez; chunk'lara bolunur.
+- Ayni filtre icin eski HTTP cevabi yeni sonucu ezemez.
+- Loading flag her cikis yolunda `finalize` veya ortak servis cleanup'i ile kapanir.
+
+### Definition of done
+
+Bir is ancak su kosullarda tamamlanmistir:
+
+1. API request/response ve permission sozlesmesi dogru.
+2. Normal, loading, empty, error ve yetkisiz durumlar calisiyor.
+3. Masaustu ve dar ekran yerlesimi bozulmuyor.
+4. Baskili bir akis ise ilk/son sayfa ve uzun veri test edildi.
+5. Yeni ortak davranisin testi var.
+6. `npm run verify` basarili.
+7. Kullaniciya fiziksel veya operasyonel test gerektiren kisim acikca bildirildi.

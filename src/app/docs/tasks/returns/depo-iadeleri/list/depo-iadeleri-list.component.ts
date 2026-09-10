@@ -204,10 +204,6 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
       });
   }
 
-  protected override getInitialStartDate(): string {
-    return this.getFirstDayOfMonthOffset(-1);
-  }
-
   private buildEDespatchDialogData(row: IFurpaWarehouseReturnListItemApiDto): EDespatchDialogData {
     return {
       kind: 'warehouse-return',

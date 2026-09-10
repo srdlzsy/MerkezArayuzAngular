@@ -43,12 +43,23 @@ class TestListPageComponent extends ApiTaskListPageBase<TestRow> {
   protected override fetchRows(): Observable<TestRow[]> {
     return this.responses.shift() ?? throwError(() => new Error('Response tanimlanmadi'));
   }
+
+}
+
+@Component({
+  standalone: true,
+  template: ''
+})
+class CustomDateListPageComponent extends TestListPageComponent {
+  protected override getInitialStartDate(): string {
+    return '2026-03-15';
+  }
 }
 
 describe('ApiTaskListPageBase', () => {
   beforeEach(() => {
     TestBed.configureTestingModule({
-      imports: [TestListPageComponent],
+      imports: [TestListPageComponent, CustomDateListPageComponent],
       providers: [
         {
           provide: Dialog,
@@ -83,6 +94,22 @@ describe('ApiTaskListPageBase', () => {
     expect(component.rows()).toEqual([{ seri: 'A', sira: 1, durumu: 'Hazir' }]);
     expect(component.totalCount()).toBe(1);
     expect(component.requestPath()).toContain('/api/test-task?StartDate=');
+  });
+
+  it('uses the standard date range for every list page', () => {
+    const fixture = TestBed.createComponent(TestListPageComponent);
+    const component = fixture.componentInstance as any;
+    const today = component.formatAsInputDate(new Date());
+
+    expect(component.startDate()).toBe(today);
+    expect(component.endDate()).toBe(today);
+  });
+
+  it('allows a concrete list page to override its initial date', () => {
+    const fixture = TestBed.createComponent(CustomDateListPageComponent);
+    const component = fixture.componentInstance as any;
+
+    expect(component.startDate()).toBe('2026-03-15');
   });
 
   it('ignores stale responses when a newer request is active', fakeAsync(() => {

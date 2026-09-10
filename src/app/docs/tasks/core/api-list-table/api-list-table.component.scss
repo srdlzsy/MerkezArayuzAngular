@@ -8,9 +8,9 @@
   align-items: end;
   gap: 0.48rem;
   padding: 0.46rem 0.56rem;
-  border: 1px solid #e2e8f0;
-  border-radius: 8px;
-  background: #fff;
+  border: 1px solid var(--operation-border-soft);
+  border-radius: var(--operation-panel-radius);
+  background: var(--operation-surface);
   box-shadow: none;
 }
 
@@ -29,8 +29,8 @@
 }
 
 .control-field span {
-  color: #64748b;
-  font-size: 0.68rem;
+  color: var(--operation-muted);
+  font-size: var(--operation-caption-size);
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -41,18 +41,18 @@
   width: 100%;
   min-height: 32px;
   padding: 0.34rem 0.5rem;
-  color: #0f172a;
-  border: 1px solid #d6deef;
-  border-radius: 6px;
-  background: #fff;
+  color: var(--operation-text);
+  border: 1px solid var(--operation-border-color);
+  border-radius: var(--operation-control-radius);
+  background: var(--operation-surface);
   box-sizing: border-box;
-  font-size: 0.8rem;
+  font-size: var(--operation-control-font-size);
 }
 
 .control-field input:focus,
 .control-field select:focus {
-  outline: 2px solid rgba(59, 130, 246, 0.14);
-  border-color: #93c5fd;
+  outline: 2px solid var(--operation-focus-ring);
+  border-color: var(--operation-focus-border);
 }
 
 .control-actions {
@@ -65,7 +65,7 @@
 .ghost-action {
   border: 0;
   padding: 0;
-  color: #1d4ed8;
+  color: var(--operation-link);
   font-size: 0.8rem;
   font-weight: 700;
   background: transparent;
@@ -80,11 +80,11 @@
   align-self: end;
   min-width: 82px;
   min-height: 32px;
-  border: 1px solid #dbe5f1;
-  border-radius: 6px;
+  border: 1px solid var(--operation-border-color);
+  border-radius: var(--operation-control-radius);
   padding: 0.34rem 0.7rem;
   color: #fff;
-  background: #0f766e;
+  background: var(--operation-accent);
   font-size: 0.76rem;
   font-weight: 800;
   cursor: pointer;
@@ -93,8 +93,8 @@
 }
 
 .print-action:hover:not(:disabled) {
-  background: #0b5c56;
-  border-color: #0b5c56;
+  background: var(--operation-accent-hover);
+  border-color: var(--operation-accent-hover);
   transform: translateY(-1px);
 }
 

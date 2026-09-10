@@ -1,4 +1,6 @@
 @use './app/docs/tasks/edocuments/fatura-islemleri/list/fatura-islemleri-viewing-overrides';
+@use './styles/design-tokens';
+@use './styles/operational-shell';
 
 html,
 body {
@@ -6,7 +8,7 @@ body {
   min-width: 320px;
   min-height: 100%;
   font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
-  background: #fff !important;
+  background: #fff;
   overflow-x: hidden;
   text-size-adjust: 100%;
   -webkit-text-size-adjust: 100%;
@@ -55,14 +57,13 @@ a {
 
 .customer-result-status {
   color: #b45309 !important;
-  font-size: 0.58rem;
+  font-size: 0.68rem;
   font-weight: 700;
   white-space: nowrap;
 }
 
-body :where(
-  .main-content,
-  .content-wrapper,
+body :where(.main-content, .content-wrapper),
+:is(.operational-shell, .docs-task-dialog-panel) :where(
   .task-page,
   .create-page,
   .lookup-page,
@@ -82,11 +83,11 @@ body :where(
   max-width: 100%;
 }
 
-body .content-wrapper > * {
+.operational-shell > * {
   width: 100%;
 }
 
-body :where(
+:is(.operational-shell, .docs-task-dialog-panel) :where(
   .task-page,
   .create-page,
   .lookup-page,
@@ -138,7 +139,7 @@ body :where(
   max-width: 100%;
 }
 
-body :where(
+:is(.operational-shell, .docs-task-dialog-panel) :where(
   .query-grid,
   .filter-grid,
   .form-grid,
@@ -156,7 +157,7 @@ body :where(
   min-width: 0;
 }
 
-body :where(
+:is(.operational-shell, .docs-task-dialog-panel) :where(
   .table-wrap,
   .table-shell,
   .invoice-table-shell,
@@ -169,7 +170,7 @@ body :where(
   overscroll-behavior-x: contain;
 }
 
-body :where(
+:is(.operational-shell, .docs-task-dialog-panel) :where(
   .task-page,
   .create-page,
   .lookup-page,
@@ -214,10 +215,7 @@ body :where(
   --op-accent: #0f766e;
 }
 
-.dialog-page {
-  height: var(--docs-dialog-page-height);
-}
-
+/* CDK overlays live outside the routed shell; keep their compatibility overrides isolated here. */
 .docs-task-dialog-panel .dialog-page {
   width: 100% !important;
   height: 100% !important;
@@ -242,7 +240,7 @@ body :where(
 .docs-task-dialog-panel .eyebrow {
   margin: 0 !important;
   color: var(--op-accent) !important;
-  font-size: 0.56rem !important;
+  font-size: 0.68rem !important;
   letter-spacing: 0 !important;
 }
 
@@ -322,7 +320,7 @@ body :where(
 .docs-task-dialog-panel .summary-card h3 {
   margin: 0 !important;
   color: #475569 !important;
-  font-size: 0.62rem !important;
+  font-size: 0.7rem !important;
   line-height: 1.15 !important;
   letter-spacing: 0 !important;
   text-transform: uppercase !important;
@@ -348,7 +346,7 @@ body :where(
 .docs-task-dialog-panel .contact-field label {
   margin: 0 !important;
   color: var(--op-muted) !important;
-  font-size: 0.58rem !important;
+  font-size: 0.68rem !important;
   line-height: 1.1 !important;
   letter-spacing: 0 !important;
   text-transform: uppercase !important;
@@ -361,7 +359,7 @@ body :where(
   padding: 0.32rem 0.48rem !important;
   border: 1px solid #cfd9e7 !important;
   border-radius: 6px !important;
-  font-size: 0.74rem !important;
+  font-size: 0.8rem !important;
   background: #fff !important;
 }
 
@@ -379,7 +377,7 @@ body :where(
   min-height: 30px !important;
   border-radius: 6px !important;
   padding: 0.32rem 0.62rem !important;
-  font-size: 0.72rem !important;
+  font-size: 0.78rem !important;
   font-weight: 700 !important;
   box-shadow: none !important;
 }
@@ -396,13 +394,13 @@ body :where(
 .docs-task-dialog-panel th,
 .docs-task-dialog-panel td {
   padding: 0.38rem 0.48rem !important;
-  font-size: 0.74rem !important;
+  font-size: 0.78rem !important;
   line-height: 1.25 !important;
 }
 
 .docs-task-dialog-panel th {
   color: #475569 !important;
-  font-size: 0.58rem !important;
+  font-size: 0.68rem !important;
   letter-spacing: 0 !important;
 }
 
@@ -477,143 +475,6 @@ body :where(
 
 .docs-task-dialog-panel.icmal-detail-dialog th {
   font-size: 0.62rem !important;
-}
-
-body .task-page .page-head,
-body .task-page .hero,
-body .create-page .hero,
-body .lookup-page .page-head {
-  gap: 0.5rem !important;
-  margin-bottom: 0.45rem !important;
-  padding: 0 !important;
-  border: 0 !important;
-  border-radius: 0 !important;
-  background: transparent !important;
-  box-shadow: none !important;
-}
-
-body .task-page h2,
-body .create-page h2,
-body .lookup-page h2 {
-  margin: 0 !important;
-  font-size: 1.14rem !important;
-  line-height: 1.18 !important;
-  letter-spacing: 0 !important;
-}
-
-body .task-page .eyebrow,
-body .create-page .eyebrow,
-body .lookup-page .eyebrow {
-  margin: 0 !important;
-  font-size: 0.58rem !important;
-  letter-spacing: 0 !important;
-}
-
-body .task-page .query-card,
-body .task-page .filter-panel,
-body .task-page .form-panel,
-body .task-page .surface-card,
-body .task-page .panel,
-body .task-page .action-card,
-body .task-page .range-card,
-body .task-page .selection-panel,
-body .task-page .compact-panel,
-body .task-page .side-panel,
-body .task-page .state-card,
-body .task-page .summary-card,
-body .task-page .info-card,
-body .task-page .status-card,
-body .task-page .metric-card,
-body .task-page .setup-card,
-body .task-page .job-card,
-body .task-page .result-card,
-body .task-page .write-card,
-body .task-page .metric-strip article,
-body .create-page .form-card,
-body .create-page .info-card,
-body .create-page .state-card,
-body .lookup-page .query-panel,
-body .lookup-page .product-card,
-body .lookup-page .state-card,
-body .lookup-page .metric-card,
-body .lookup-page .summary-card {
-  border: 1px solid #dbe5f1 !important;
-  border-radius: 8px !important;
-  box-shadow: none !important;
-  background: #fff !important;
-}
-
-body .task-page .query-card,
-body .task-page .filter-panel,
-body .task-page .form-panel,
-body .task-page .surface-card,
-body .task-page .panel,
-body .task-page .action-card,
-body .task-page .range-card,
-body .task-page .selection-panel,
-body .task-page .compact-panel,
-body .task-page .side-panel,
-body .task-page .state-card,
-body .task-page .summary-card,
-body .task-page .status-card,
-body .task-page .metric-card,
-body .create-page .form-card,
-body .lookup-page .query-panel,
-body .lookup-page .product-card,
-body .lookup-page .state-card,
-body .lookup-page .metric-card {
-  padding: 0.48rem 0.56rem !important;
-}
-
-body .task-page .metric-strip,
-body .task-page .metrics-grid,
-body .task-page .summary-grid,
-body .task-page .query-grid,
-body .task-page .workspace-grid,
-body .create-page,
-body .create-page .form-grid,
-body .lookup-page .result-grid,
-body .lookup-page .query-panel {
-  gap: 0.42rem !important;
-}
-
-body .task-page input,
-body .task-page select,
-body .task-page textarea,
-body .create-page input,
-body .create-page select,
-body .create-page textarea,
-body .lookup-page input,
-body .lookup-page select,
-body .lookup-page textarea {
-  min-height: 32px !important;
-  border-radius: 6px !important;
-  font-size: 0.78rem !important;
-  padding: 0.34rem 0.52rem !important;
-}
-
-body .task-page .task-action,
-body .task-page .primary-action,
-body .task-page .ghost-action,
-body .task-page .action-button,
-body .create-page .primary-button,
-body .create-page .secondary-button,
-body .create-page .ghost-button,
-body .lookup-page .primary-action,
-body .lookup-page .ghost-action {
-  min-height: 32px !important;
-  border-radius: 6px !important;
-  padding: 0.34rem 0.62rem !important;
-  font-size: 0.74rem !important;
-  box-shadow: none !important;
-}
-
-body .task-page th,
-body .task-page td,
-body .lookup-page th,
-body .lookup-page td {
-  padding: 0.44rem 0.52rem !important;
-  font-size: 0.76rem !important;
 }
 
 @media (max-width: 700px) {

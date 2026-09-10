@@ -31,8 +31,5 @@ export class AlinanFirmaSiparisleriListComponent extends ApiTaskListPageBase<IFu
     return this.siparisIslemleriService.getAlinanSiparisler(zamanlama, warehouseNo);
   }
 
-  protected override getInitialStartDate(): string {
-    return this.getRelativeDate(-1);
-  }
 }
 

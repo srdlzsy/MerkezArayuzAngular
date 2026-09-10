@@ -46,7 +46,7 @@ export abstract class ApiTaskListPageBase<
   private readonly listAuthService = inject(AuthService);
   private activeRequestId = 0;
 
-  protected readonly startDate = signal(this.getdayoffsetfromtoday(-0));
+  protected readonly startDate = signal(this.getInitialStartDate());
   protected readonly endDate = signal(this.getInitialEndDate());
   protected readonly adminWarehouseNo = signal('');
   protected readonly rows = signal<Row[]>([]);
@@ -120,7 +120,7 @@ export abstract class ApiTaskListPageBase<
   protected abstract fetchRows(zamanlama: string, warehouseNo?: number): Observable<Row[]>;
 
   protected getInitialStartDate(): string {
-    return this.getFirstDayOfMonthOffset(-2);
+    return this.formatAsInputDate(new Date());
   }
 
   protected getInitialEndDate(): string {
@@ -500,11 +500,7 @@ export abstract class ApiTaskListPageBase<
     date.setMonth(date.getMonth() + monthOffset);
     return this.formatAsInputDate(date);
   }
- protected getdayoffsetfromtoday(dayOffset: number): string {
-    const date = new Date();
-    date.setDate(date.getDate() + dayOffset);
-    return this.formatAsInputDate(date);
-  }
+
   protected getRelativeDate(dayOffset: number): string {
     const date = new Date();
     date.setDate(date.getDate() + dayOffset);

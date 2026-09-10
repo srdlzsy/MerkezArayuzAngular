@@ -14,6 +14,7 @@ import {
   currentUserHasPermission,
   formatCurrentWarehouseLabel
 } from '../../../core/admin-warehouse.helpers';
+import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 import { ManavKunyeEtiketPrintComponent } from './print/manav-kunye-etiket-print.component';
 
 interface FeedbackState {
@@ -94,7 +95,8 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
 
   constructor(
     private readonly authService: AuthService,
-    private readonly kasaIslemleriService: KasaIslemleriService
+    private readonly kasaIslemleriService: KasaIslemleriService,
+    private readonly inPlacePrintService: InPlacePrintService
   ) {
     this.warehouseNo.set(this.authService.currentUser()?.depoNo ?? null);
   }
@@ -250,21 +252,16 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
 
   private async printWithStylesheet(stylesheetHref: string): Promise<void> {
     this.printState.set('preparing');
+    const printRoot = document.querySelector<HTMLElement>('#printSection.kunye-print-root');
 
-    const existingLink = document.getElementById('kunye-print-style');
-    const existingStyle = document.getElementById('kunye-print-shell');
+    if (!printRoot) {
+      this.printState.set('idle');
+      throw new Error('Manav kunye baski alani bulunamadi.');
+    }
 
-    existingLink?.remove();
-    existingStyle?.remove();
-
-    const link = document.createElement('link');
-    link.id = 'kunye-print-style';
-    link.rel = 'stylesheet';
-    link.href = stylesheetHref;
-
-    const shellStyle = document.createElement('style');
-    shellStyle.id = 'kunye-print-shell';
-    shellStyle.textContent = `
+    const started = await this.inPlacePrintService.print({
+      styleId: 'kunye-print-shell',
+      styles: `
       @media print {
         html.kunye-printing,
         body.kunye-printing {
@@ -334,116 +331,17 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
           pointer-events: auto !important;
         }
       }
-    `;
+    `,
+      stylesheets: [{ id: 'kunye-print-style', href: stylesheetHref }],
+      mount: { element: printRoot, documentClassName: 'kunye-printing' },
+      beforePrint: () => this.printComponent?.prepareForPrint(),
+      onBeforePrint: () => this.printComponent?.renderBarcodesNow(),
+      afterPrint: () => this.printState.set('idle')
+    });
 
-    const printRoot = document.querySelector<HTMLElement>('#printSection.kunye-print-root');
-    const originalParent = printRoot?.parentNode as Node | null;
-    const originalNextSibling = printRoot?.nextSibling ?? null;
-
-    const mountPrintRoot = () => {
-      document.documentElement.classList.add('kunye-printing');
-      document.body.classList.add('kunye-printing');
-
-      if (printRoot && printRoot.parentNode !== document.body) {
-        document.body.appendChild(printRoot);
-      }
-    };
-
-    const restorePrintRoot = () => {
-      document.documentElement.classList.remove('kunye-printing');
-      document.body.classList.remove('kunye-printing');
-
-      if (!printRoot || !originalParent || printRoot.parentNode !== document.body) {
-        return;
-      }
-
-      const referenceNode = originalNextSibling?.parentNode === originalParent
-        ? originalNextSibling
-        : null;
-      originalParent.insertBefore(printRoot, referenceNode);
-    };
-
-    const beforePrint = () => {
-      this.printComponent?.renderBarcodesNow();
-    };
-
-    let cleanedUp = false;
-    let cleanupTimer: number | undefined;
-
-    const cleanup = () => {
-      if (cleanedUp) {
-        return;
-      }
-
-      cleanedUp = true;
-      if (cleanupTimer !== undefined) {
-        window.clearTimeout(cleanupTimer);
-      }
-      restorePrintRoot();
-      link.remove();
-      shellStyle.remove();
+    if (!started) {
       this.printState.set('idle');
-      window.removeEventListener('beforeprint', beforePrint);
-      window.removeEventListener('afterprint', cleanup);
-    };
-
-    document.head.appendChild(shellStyle);
-    window.addEventListener('beforeprint', beforePrint);
-    window.addEventListener('afterprint', cleanup);
-
-    try {
-      await this.appendStylesheet(link);
-      await this.printComponent?.prepareForPrint();
-      await this.waitForFonts();
-      await this.waitForNextPaint();
-
-      mountPrintRoot();
-      cleanupTimer = window.setTimeout(cleanup, 60_000);
-      window.print();
-    } catch (error) {
-      cleanup();
-      throw error;
+      throw new Error('Manav kunye baskisi baslatilamadi.');
     }
-  }
-
-  private appendStylesheet(link: HTMLLinkElement): Promise<void> {
-    return new Promise<void>((resolve, reject) => {
-      const timeoutId = window.setTimeout(() => {
-        reject(new Error(`Baski stili zamaninda yuklenemedi: ${link.href}`));
-      }, 5_000);
-
-      link.addEventListener(
-        'load',
-        () => {
-          window.clearTimeout(timeoutId);
-          resolve();
-        },
-        { once: true }
-      );
-      link.addEventListener(
-        'error',
-        () => {
-          window.clearTimeout(timeoutId);
-          reject(new Error(`Baski stili yuklenemedi: ${link.href}`));
-        },
-        { once: true }
-      );
-
-      document.head.appendChild(link);
-    });
-  }
-
-  private async waitForFonts(): Promise<void> {
-    if ('fonts' in document) {
-      await document.fonts.ready;
-    }
-  }
-
-  private waitForNextPaint(): Promise<void> {
-    return new Promise<void>((resolve) => {
-      window.requestAnimationFrame(() => {
-        window.requestAnimationFrame(() => resolve());
-      });
-    });
   }
 }

@@ -1,0 +1,28 @@
+/* Shared tokens are values only; they do not style page elements by themselves. */
+:root {
+  --operation-text: #0f172a;
+  --operation-text-secondary: #334155;
+  --operation-muted: #64748b;
+  --operation-accent: #0f766e;
+  --operation-accent-hover: #0b5c56;
+  --operation-link: #1d4ed8;
+  --operation-border-color: #dbe5f1;
+  --operation-border-soft: #e2e8f0;
+  --operation-surface: #fff;
+  --operation-surface-muted: #f8fafc;
+  --operation-danger-surface: #fff7f7;
+  --operation-danger-border: #fecaca;
+  --operation-info-surface: #eff6ff;
+  --operation-info-border: #bfdbfe;
+  --operation-focus-border: #93c5fd;
+  --operation-focus-ring: rgba(59, 130, 246, 0.14);
+  --operation-panel-radius: 8px;
+  --operation-control-radius: 6px;
+  --operation-control-height: 32px;
+  --operation-panel-padding: 0.48rem 0.56rem;
+  --operation-grid-gap: 0.42rem;
+  --operation-caption-size: 0.68rem;
+  --operation-control-font-size: 0.8rem;
+  --operation-body-font-size: 0.82rem;
+  --operation-title-font-size: 1.16rem;
+}

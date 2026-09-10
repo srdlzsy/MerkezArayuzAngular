@@ -58,10 +58,6 @@ export class FirmaIadeleriListComponent extends ApiTaskListPageBase<IFurpaCompan
     return this.iadeIslemleriService.getFirmaIadeleri(zamanlama, warehouseNo);
   }
 
-  protected override getInitialStartDate(): string {
-    return this.getFirstDayOfMonthOffset(-1);
-  }
-
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaCompanyMovementListItemApiDto>[] {
     return this.getPdfLoadingRowActions(ROW_ACTIONS);
   }
