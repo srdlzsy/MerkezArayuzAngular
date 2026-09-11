@@ -15,7 +15,9 @@ export const RETURNS_TASK_SOURCE = {
         'Create endpointi aktif',
         'Create requestinde guvenli retry icin clientRequestId uretilir',
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
-        'E-irsaliye gonderim ve PDF route aktif'
+        'E-irsaliye gonderim ve PDF route aktif',
+        'Firma e-irsaliye alici aliasini backend VKN/TCKN ile Uyumsofttan cozer; UI alias secmez ve request bodyye Mikro aliasi yazmaz',
+        'Bu JWTli ekran normal /api/iade-islemleri routeunu kullanir; anonim /api/legacy/e-irsaliye koprusu yalniz eski arayuz icindir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -89,7 +91,9 @@ export const RETURNS_TASK_SOURCE = {
         'Otomatik depo siparisi aciksa backend iade satirini olusan siparis GUIDine baglar',
         'Giden depo iadesi guncelleme sadece e-irsaliye gonderilmemis ve karsi depo kabul etmemis evraklarda calisir',
         'Guncelleme update/add/delete satir aksiyonlariyla calisir; update/delete movementGuid, add stockCode kullanir',
-        'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
+        'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir',
+        'Depo iadesi e-irsaliyesinde hedef cari olmadigi icin firma alici alias cozumleme adimi calismaz',
+        'Bu JWTli ekran normal /api/iade-islemleri routeunu kullanir; anonim /api/legacy/e-irsaliye koprusu yalniz eski arayuz icindir'
       ],
       listTitle: 'Endpointler',
       items: [

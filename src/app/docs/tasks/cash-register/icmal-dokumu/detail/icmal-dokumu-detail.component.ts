@@ -578,7 +578,7 @@ export class IcmalDokumuDetailComponent
     this.feedback.set(null);
     this.editableDetails.update((items) => [
       ...items,
-      this.createDetailFromTemplate(template, this.createEmptyDetail())
+      this.createDetailFromTemplate(template, this.createEmptyDetail(), category)
     ]);
   }
 
@@ -1383,10 +1383,14 @@ export class IcmalDokumuDetailComponent
 
   private createDetailFromTemplate(
     template: IFurpaPaymentTypeLookupItemApiDto,
-    base: ISummariesDetailsCT
+    base: ISummariesDetailsCT,
+    categoryOverride?: EditablePaymentCategory
   ): ISummariesDetailsCT {
     const paymentTypeNo = this.toSafeNumber(template.paymentTypeNo);
-    const category = this.getEditablePaymentCategoryFromPaymentTypeNo(paymentTypeNo);
+    const category =
+      categoryOverride ??
+      this.getEditableDetailCategoryFromSource(base.source) ??
+      this.getEditablePaymentCategoryFromPaymentTypeNo(paymentTypeNo);
 
     return {
       ...base,
@@ -1504,7 +1508,7 @@ export class IcmalDokumuDetailComponent
 
   private getEditableDetailCategoryFromSource(
     source: string | null | undefined
-  ): EditableDetailCategory | null {
+  ): EditablePaymentCategory | null {
     const normalizedSource = this.toSafeString(source)
       .trim()
       .replace(/[-_\s]+/g, '')

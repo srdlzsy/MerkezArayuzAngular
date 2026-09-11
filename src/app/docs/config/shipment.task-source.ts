@@ -14,7 +14,9 @@ export const SHIPMENT_TASK_SOURCE = {
         'Detay',
         'Create requestinde guvenli retry icin clientRequestId uretilir',
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
-        'E-irsaliye gonderim ve PDF alias route ailesi aktif'
+        'E-irsaliye gonderim ve PDF alias route ailesi aktif',
+        'Firma e-irsaliye alici aliasini backend VKN/TCKN ile Uyumsofttan cozer; UI alias secmez ve request bodyye Mikro aliasi yazmaz',
+        'Bu JWTli ekran normal /api/sevk-islemleri routeunu kullanir; anonim /api/legacy/e-irsaliye koprusu yalniz eski arayuz icindir'
       ],
       listTitle: 'Controller',
       items: [
@@ -111,7 +113,9 @@ export const SHIPMENT_TASK_SOURCE = {
         'Manav depo 56 akisi varsayilan olarak siparis satir GUID baglantisi gondermez',
         'Giden sevk guncelleme sadece e-irsaliye gonderilmemis ve karsi depo kabul etmemis evraklarda calisir',
         'Guncelleme update/add/delete satir aksiyonlariyla calisir; update/delete movementGuid, add stockCode kullanir',
-        'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir'
+        'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir',
+        'Depolar arasi e-irsaliyede hedef cari olmadigi icin firma alici alias cozumleme adimi calismaz',
+        'Bu JWTli ekran normal /api/sevk-islemleri routeunu kullanir; anonim /api/legacy/e-irsaliye koprusu yalniz eski arayuz icindir'
       ],
       listTitle: 'Controller',
       items: [

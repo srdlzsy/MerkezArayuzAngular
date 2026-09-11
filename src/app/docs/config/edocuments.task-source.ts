@@ -109,6 +109,7 @@ export const EDOCUMENTS_TASK_SOURCE = {
         'Gonderilmemis satirlar icin lokal HTML onizleme',
         'Gonderilmis satirlar icin Uyumsoft resmi outbox PDF',
         'Iade fatura referansi secimi',
+        'Iade referansi backend routing ayarina gore Database veya MikroApi tablo 597 yoluyla yazilir; UI request modeli degismez ve basari backend readback dogrulamasindan sonra gelir',
         'Ayrı validate kontrolu',
         'Canli SendInvoice gonderimi; send agir UBL-TR/XSD kontrolunu tekrar calistirmaz',
         'Basarili gonderimde Mikro marker yazimi ve readback dogrulamasi',

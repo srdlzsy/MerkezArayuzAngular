@@ -32,6 +32,15 @@ Timeout ve tekrar deneme notu:
 - Manav mal kabul Mikro aktarimi `GreenGrocerGoodsReceipt`, POS muhasebe ERP aktarimi `PosAccountingSlip` routing ayariyla opsiyonel olarak Mikro API uzerinden calisir. Bu secim UI request modelini degistirmez; backend API sonrasi Mikro DB readback yapmadan islemi basarili saymaz.
 - Terminal, mobil ve web istemcileri liste ve create isteklerinde HTTP client timeout degerini en az `300` saniye yapmalidir. Subede internet zayifsa API islemi devam ederken istemci 30-60 saniyede vazgecerse kullanici timeout gorur ve kontrolsuz tekrar basabilir.
 - POST/create timeout gorurse UI hemen yeni istek kimligi veya farkli body uretmemeli; mumkunse ayni payload ile guvenli retry yapmali veya liste/detay yenileyerek evrakin olusup olusmadigini kontrol etmelidir.
+
+E-irsaliye alici alias notu:
+
+- Firma sevki ve firma iadesi e-irsaliye gonderiminde backend, carinin VKN/TCKN bilgisiyle Uyumsoft `GetUserAliasses` servisini cagirir.
+- Yalnizca aktif `DespatchReceiverboxAliases` kayitlari e-irsaliye alici alias'i olarak kabul edilir. E-fatura `ReceiverboxAliases` listesi bu islemde kullanilmaz.
+- Mikro `CARI_HESAP_ADRESLERI.adr_eirsaliye_alias` degeri aktif e-irsaliye listesinde bulunuyorsa korunur; eski, hatali veya e-fatura alias'iysa Uyumsoft'un dondurdugu ilk aktif e-irsaliye alici alias'i kullanilir.
+- Alias sorgusu hata verirse veya aktif e-irsaliye alici alias'i donmezse backend `TargetCustomer` bilgisini gondermez; UBL icindeki alici VKN/TCKN bilgisini koruyarak alias secimini eski akis gibi Uyumsoft'a birakir.
+- Alias fallback'i de Uyumsoft tarafinda reddedilirse API servis hatasini dondurur. UI alias secmeye veya Mikro alias'ini request body'ye yazmaya calismamalidir.
+- Depolar arasi sevk ve depo iadesinde hedef bir cari olmadigi icin bu alias cozumleme adimi calismaz.
 - Mikro API yazma audit kaydi istekten once `Pending` acilir. Kesin basari `Succeeded`, kesin is kurali hatasi `Failed`, timeout/baglanti kopmasi/istemci iptali gibi commit sonucu kanitlanamayan durumlar `Unknown`, Mikro DB readback ile evrak bulundugunda `Recovered` olur.
 - Istemci istegi iptal edilse bile audit kapanisi kullanici request token'ina bagli degildir; Auth DB yazimi kisa ve ayri bir timeout ile tamamlanmaya calisilir.
 - Arka plan uzlastirma islemi varsayilan olarak 5 dakikada bir calisir. 15 dakikadan eski `Pending` kayitlari `Unknown` yapar ve eski parser nedeniyle `Succeeded` yazilmis `MikroAPI - TimeOut` cevaplarini duzeltir. `Recovered` kayitlara dokunmaz.
@@ -77,6 +86,75 @@ Controller'da acik olan pratik alias/canonical route'lar:
 - `GET /api/stok-islemleri/virmanlar/{documentSerie}/{documentOrderNo}`
 - `GET /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}`, `GET /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}/detaylar`, `GET /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}/banknot-hareketleri`, `GET /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}/hediye-ceki-hareketleri`
 - `PUT /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}/detaylar`, `PUT /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}/banknot-hareketleri`, `PUT /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}/hediye-ceki-hareketleri` ve `DELETE /api/kasa-islemleri/kasa-sayimlari/{documentSerie}/{documentOrderNo}`
+
+### Legacy E-Irsaliye Koprusu
+
+Eski arayuz kendi login sistemini kullandigi ve FurpaMerkezApi JWT token'i uretemedigi icin, e-irsaliye gonderimi icin dar kapsamli legacy kopru endpoint'i vardir. Normal JWT'li endpointler degismez; yeni ekranlar yine `/api/sevk-islemleri/.../e-irsaliye` ve `/api/iade-islemleri/.../e-irsaliye` route'larini kullanmalidir.
+
+Config:
+
+```json
+{
+  "LegacyEDespatchBridge": {
+    "Enabled": false,
+    "AllowedOrigins": [
+      "http://10.0.0.100:5002"
+    ],
+    "AllowedWarehouseNos": []
+  }
+}
+```
+
+Kural:
+
+- `Enabled=false` ise endpoint `404 Not Found` doner.
+- `warehouseNo` query zorunludur; JWT olmadigi icin backend kullanici deposu cozemez.
+- `AllowedOrigins` doluysa browser `Origin`/`Referer` bu listede olmalidir.
+- `AllowedWarehouseNos` doluysa sadece listedeki depolar adina gonderim yapilir.
+- Bu endpoint legacy uyumluluk icin anonim acilir. Canlida mumkunse `AllowedOrigins` ve `AllowedWarehouseNos` bos birakilmamalidir.
+- Iceride mevcut `EDespatchService.SendAsync` calisir; belge no, tekrar gonderim kontrolu, Mikro isaretleme ve document flow kaydi mevcut ana akisla aynidir.
+
+Endpoint:
+
+```text
+POST /api/legacy/e-irsaliye/{documentKind}/{documentSerie}/{documentOrderNo}/gonder?warehouseNo=56
+POST /api/legacy/e-irsaliye/{documentKind}/giden/{documentSerie}/{documentOrderNo}/gonder?warehouseNo=56
+```
+
+`documentKind` degerleri:
+
+```text
+depolar-arasi-sevkler  Depolar arasi giden sevk
+depo-iadeleri          Giden depo iadesi
+firma-sevkleri         Giden firma sevki
+firma-iadeleri         Firma iadesi
+```
+
+Ornek:
+
+```text
+POST /api/legacy/e-irsaliye/depolar-arasi-sevkler/giden/F56/86102/gonder?warehouseNo=56
+POST /api/legacy/e-irsaliye/depo-iadeleri/giden/F56/123/gonder?warehouseNo=56
+POST /api/legacy/e-irsaliye/firma-sevkleri/giden/F56/124/gonder?warehouseNo=56
+POST /api/legacy/e-irsaliye/firma-iadeleri/F56/125/gonder?warehouseNo=56
+```
+
+Body:
+
+```json
+{
+  "driverId": "25a9f3ea-a55a-4558-bb82-8109c3f14cd4",
+  "plaque": "16BZU759",
+  "driverNameSurname": "SINAN BERKER",
+  "driverTckn": "11111111111"
+}
+```
+
+Not:
+
+- `driverId` verilirse aktif sofor kaydindan plaka/ad soyad/TCKN doldurulur.
+- `driverId` verilmezse `plaque`, `driverNameSurname` ve `driverTckn` zorunludur.
+- Bu route acildiginda login/JWT kontrolu yoktur. E-irsaliye gercek belge urettigi icin canlida origin, CORS ve depo listesi dar tutulmalidir.
 
 ### Tum Depo Yetki Modeli
 
@@ -13854,6 +13932,40 @@ UI kasa seciminde `GET /api/kasa-islemleri/kasa-sayimlari/kasalar?branchNo=...` 
 
 `odeme-tipleri/yemek-ceki` response'unda yemek ceki tipi adi `paymentName` alanindadir. Backend eski API ile uyumlu olarak `PaymentTypes.PaymentGenus = 2` olan yemek ceki odeme tiplerini listeler ve `accountCode` alanini `PaymentTypes.AccountCode` degeriyle doldurur. UI yemek ceki seciminde gorunen ad olarak `paymentName`, kayit payload'inda odeme tipi olarak `paymentTypeNo` kullanmalidir.
 
+`odeme-tipleri/online`, `PaymentTypes.PaymentGenus = 5` olan kayitlari ve geriye uyumluluk icin `PaymentName` icinde `online` gecen kayitlari birlikte dondurur. Response'taki `paymentGenus` Mikro kaydinin gercek turudur. Canli Mikro tanimiyla beklenen temel satirlar:
+
+```json
+[
+  {
+    "paymentName": "Online Ödeme",
+    "paymentTypeNo": 10,
+    "terminalId": "",
+    "paymentGenus": 1,
+    "accountCode": "0021",
+    "amountValue": 0,
+    "slipNumber": 0
+  },
+  {
+    "paymentName": "Trendyol",
+    "paymentTypeNo": 600,
+    "terminalId": "",
+    "paymentGenus": 5,
+    "accountCode": "0013",
+    "amountValue": 0,
+    "slipNumber": 0
+  },
+  {
+    "paymentName": "Yemek Sepeti",
+    "paymentTypeNo": 601,
+    "terminalId": "",
+    "paymentGenus": 5,
+    "accountCode": "0014",
+    "amountValue": 0,
+    "slipNumber": 0
+  }
+]
+```
+
 Kisa response ornekleri:
 
 ```json
@@ -15814,7 +15926,7 @@ Tried series: FRP26, FRP.
 
 Bu mesaj backend'in hem `FRP26` hem `FRP` serisini denedigini, fakat aramayi `EArsiv` filtresiyle yaptigini gosterir. Secilen satir `EFatura` ise once frontend body'deki `scenario` duzeltilmelidir.
 
-Not: Kayit `EBELGE_EVRAK_HAREKETLERI.ebh_related_uid = iade faturasi cha_Guid` uzerinden update/insert edilir. `send` sirasinda iade referansi halen bos ise backend fallback'i otomatik deneyip kaydeder; fallback bulunamazsa gonderim durdurulur.
+Not: Kayit `EBELGE_EVRAK_HAREKETLERI.ebh_related_uid = iade faturasi cha_Guid` uzerinden update/insert edilir. `send` sirasinda iade referansi halen bos ise backend fallback'i otomatik deneyip kaydeder; fallback bulunamazsa gonderim durdurulur. `MikroWriteRouting:InvoiceReturnReference=Database` dogrudan DB yolunu, `MikroApi` ise `KayitKaydetTopluV2` tablo `597` yolunu kullanir. Mikro API yolunda referans no/tarih DB readback ile dogrulanmadan islem basarili sayilmaz. `DualShadow`, API dry-run destegi olmadigi icin yalniz DB yolunu calistirir.
 
 ### Fatura Gonderimi Detay
 

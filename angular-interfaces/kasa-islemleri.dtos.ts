@@ -1147,6 +1147,7 @@ export interface PaymentTypeItemDto {
   paymentName: string;
   paymentTypeId?: number | null;
   paymentTypeNo: number;
+  paymentGenus?: number | null;
   terminalId: string;
   accountCode: string;
   slipNumber: number;
@@ -1545,6 +1546,7 @@ export interface IFurpaPaymentTypeLookupItemApiDto {
   paymentName: string;
   paymentTypeId?: number | null;
   paymentTypeNo: number;
+  paymentGenus?: number | null;
   terminalId: string;
   accountCode: string;
   slipNumber: number;

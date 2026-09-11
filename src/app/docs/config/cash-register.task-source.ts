@@ -434,6 +434,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'UI sifir tutar/adetli odeme, banknot, hediye ceki veya magaza gideri satirlarini gondermez',
         'Gider Pusulasi paymentTypes icinde paymentTypeNo = 100 olarak, Magaza giderleri storeExpenses icinden dogru tip ve kullanici aciklamasi ile gonderilir',
         'Magaza gider tipi secimi /odeme-tipleri/magaza-masrafi endpointinden yapilir; PaymentTypeNo 110-113 araligi secilebilir gelmelidir',
+        'Online odeme lookupu PaymentGenus 5 kayitlariyla geriye uyumlu olarak adinda online gecen kayitlari birlikte dondurur; UI paymentName gosterir, paymentTypeNo gonderir ve secildigi Online/Vadeli kategorisini korur',
         'Belge serisi backend tarafinda F{loginDepoNo}.{cashNo} olarak uretilir',
         'API route ailesi geriye uyumluluk icin kasa-sayimlari altinda kalir'
       ],
@@ -479,6 +480,12 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/banka?cashRegisterNo=CR-01',
               description: 'Banka odeme tipi lookup kayitlarini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/online',
+              description:
+                'Online, Trendyol ve Yemek Sepeti gibi odeme tipi lookup kayitlarini gercek paymentGenus bilgisiyle getirir'
             },
             {
               method: 'GET',
