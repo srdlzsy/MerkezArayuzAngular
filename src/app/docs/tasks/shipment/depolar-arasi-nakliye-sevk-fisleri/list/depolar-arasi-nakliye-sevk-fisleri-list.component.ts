@@ -116,7 +116,8 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
       maxWidth: '96vw',
       data: {
         ...this.buildEDespatchDialogData(row),
-        onSuccess: refreshAfterSuccess
+        onSuccess: refreshAfterSuccess,
+        onRefreshRequired: refreshAfterSuccess
       }
     })
       .closed.pipe(takeUntilDestroyed(this.destroyRef))

@@ -39,6 +39,7 @@ export interface EDespatchDialogData {
   pageTitle: string;
   row: EDespatchDialogRowSummary;
   onSuccess?: (response: IFurpaSendEDespatchResponseApiDto) => void;
+  onRefreshRequired?: () => void;
 }
 
 const DRIVER_LIST_PERMISSION = 'ayar-islemleri.soforler.list';
@@ -73,6 +74,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   };
 
   protected readonly submitting = signal(false);
+  protected readonly requiresDocumentRefresh = signal(false);
   protected readonly pdfLoading = signal(false);
   protected readonly submitError = signal('');
   protected readonly pdfError = signal('');
@@ -130,7 +132,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   }
 
   protected submit(): void {
-    if (this.submitting() || this.response()) {
+    if (this.submitting() || this.response() || this.requiresDocumentRefresh()) {
       return;
     }
 
@@ -152,11 +154,13 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
           this.dialogData.onSuccess?.(response);
         },
         error: (error: HttpErrorResponse) => {
+          if (error.status === 409) {
+            this.requiresDocumentRefresh.set(true);
+            this.dialogData.onRefreshRequired?.();
+          }
+
           this.submitError.set(
-            this.resolveError(
-              error,
-              'E-irsaliye gonderimi basarisiz oldu. Bilgileri kontrol edip tekrar deneyin.'
-            )
+            this.resolveSubmitError(error)
           );
         }
       });
@@ -482,5 +486,18 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
     }
 
     return fallback;
+  }
+
+  private resolveSubmitError(error: HttpErrorResponse): string {
+    const message = this.resolveError(
+      error,
+      'E-irsaliye gonderimi basarisiz oldu. Bilgileri kontrol edip tekrar deneyin.'
+    );
+
+    if (error.status !== 409) {
+      return message;
+    }
+
+    return `${message} Liste yenilendi. Bu pencereyi kapatip guncel evraki yeniden acarak tekrar deneyin.`;
   }
 }

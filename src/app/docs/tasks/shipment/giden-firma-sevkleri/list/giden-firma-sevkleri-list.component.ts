@@ -113,7 +113,8 @@ export class GidenFirmaSevkleriListComponent extends ApiTaskListPageBase<IFurpaC
       maxWidth: '96vw',
       data: {
         ...this.buildEDespatchDialogData(row),
-        onSuccess: refreshAfterSuccess
+        onSuccess: refreshAfterSuccess,
+        onRefreshRequired: refreshAfterSuccess
       }
     })
       .closed.pipe(takeUntilDestroyed(this.destroyRef))

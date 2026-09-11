@@ -55,6 +55,13 @@
     </div>
 
     <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+    <article class="notice-card" *ngIf="requiresDocumentRefresh()">
+      <h3>Evrak yenilenmeli</h3>
+      <p>
+        Gonderim oncesinde evrak satirlarinin degistigi belirlendi. Ayni pencereden tekrar gonderim
+        yapilamaz; pencereyi kapatip yenilenen listeden evraki yeniden ac.
+      </p>
+    </article>
     <div class="feedback feedback-error" *ngIf="pdfError()">{{ pdfError() }}</div>
 
     <div class="transport-layout">
@@ -179,7 +186,11 @@
 
     <footer class="form-actions">
       <button type="button" class="secondary-button" (click)="closeDialog()">Vazgec</button>
-      <button type="submit" class="primary-button" [disabled]="submitting()">
+      <button
+        type="submit"
+        class="primary-button"
+        [disabled]="submitting() || requiresDocumentRefresh()"
+      >
         {{ submitting() ? 'Gonderiliyor...' : 'E-Irsaliyeye Donustur' }}
       </button>
     </footer>

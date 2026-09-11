@@ -16,6 +16,7 @@ export const SHIPMENT_TASK_SOURCE = {
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
         'E-irsaliye gonderim ve PDF alias route ailesi aktif',
         'Firma e-irsaliye alici aliasini backend VKN/TCKN ile Uyumsofttan cozer; UI alias secmez ve request bodyye Mikro aliasi yazmaz',
+        'E-irsaliye gonderiminde 409 Conflict donerse liste yenilenir ve eski dialogdan tekrar gonderim engellenir',
         'Bu JWTli ekran normal /api/sevk-islemleri routeunu kullanir; anonim /api/legacy/e-irsaliye koprusu yalniz eski arayuz icindir'
       ],
       listTitle: 'Controller',
@@ -115,6 +116,7 @@ export const SHIPMENT_TASK_SOURCE = {
         'Guncelleme update/add/delete satir aksiyonlariyla calisir; update/delete movementGuid, add stockCode kullanir',
         'Canonical ve giden alias route uzerinden e-irsaliye PDF alinabilir',
         'Depolar arasi e-irsaliyede hedef cari olmadigi icin firma alici alias cozumleme adimi calismaz',
+        'E-irsaliye gonderiminde 409 Conflict donerse liste yenilenir ve eski dialogdan tekrar gonderim engellenir',
         'Bu JWTli ekran normal /api/sevk-islemleri routeunu kullanir; anonim /api/legacy/e-irsaliye koprusu yalniz eski arayuz icindir'
       ],
       listTitle: 'Controller',
