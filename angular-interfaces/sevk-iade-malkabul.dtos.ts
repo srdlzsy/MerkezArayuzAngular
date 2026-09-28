@@ -664,6 +664,8 @@ export interface SendEDespatchHttpRequest {
   plaque?: string | null;
   driverNameSurname?: string | null;
   driverTckn?: string | null;
+  deliverer?: string | null;
+  receiver?: string | null;
 }
 
 export enum EDespatchDocumentType {
