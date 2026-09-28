@@ -1337,3 +1337,114 @@ export interface IPosAccountingBatchResultApiDto {
 
 export type IPosAccountingModuleActionScaffoldResponseApiDto =
   IModuleActionScaffoldResponseApiDto;
+
+export interface ITrendyolGoConnectionStatusApiDto {
+  enabled?: boolean;
+  configured?: boolean;
+  isConnected?: boolean;
+  environment?: string | null;
+  baseUrl?: string | null;
+  supplierId?: number | null;
+  storeCount?: number | null;
+  message?: string | null;
+  [key: string]: unknown;
+}
+
+export interface ITrendyolGoStoreMappingApiDto {
+  storeId: number;
+  warehouseNo: number;
+  storeName: string;
+}
+
+export interface ITrendyolGoOrdersQueryApiDto {
+  storeId: number;
+  startDate?: number | null;
+  endDate?: number | null;
+  page?: number | null;
+  size?: number | null;
+  status?: readonly string[];
+  sortDirection?: 'ASC' | 'DESC' | null;
+}
+
+export type ITrendyolGoJsonApiDto = Record<string, unknown> | readonly unknown[];
+
+export interface ITrendyolGoInvoiceRequestApiDto {
+  invoiceAmount: number;
+  bagCount: number;
+  receiptLink?: string | null;
+  invoiceTaxAmount?: number | null;
+}
+
+export interface ITrendyolGoBrandsQueryApiDto {
+  page?: number | null;
+  size?: number | null;
+  name?: string | null;
+}
+
+export interface ITrendyolGoProductsQueryApiDto {
+  storeId: number;
+  listType?: string | null;
+  barcode?: string | null;
+  stockCode?: string | null;
+  startDate?: number | null;
+  endDate?: number | null;
+  brandIds?: readonly number[];
+  page?: number | null;
+  size?: number | null;
+}
+
+export interface ITrendyolGoClaimsQueryApiDto {
+  claimItemStatus?: string | null;
+  startDate?: number | null;
+  endDate?: number | null;
+  page?: number | null;
+  size?: number | null;
+}
+
+export interface ITrendyolGoBatchItemsRequestApiDto {
+  items: readonly Record<string, unknown>[];
+}
+
+export interface ITrendyolGoInvoiceLinkRequestApiDto {
+  invoiceLink: string;
+  shipmentPackageId: number;
+}
+
+export interface ITrendyolGoPriceStockPreviewItemApiDto {
+  barcode: string;
+  stockCode: string | null;
+  productName: string | null;
+  trendyolPrice: number | null;
+  trendyolQuantity: number | null;
+  mikroPrice: number | null;
+  mikroQuantity: number | null;
+  status: 'Ready' | 'Skipped' | 'Unchanged';
+  reason: string | null;
+}
+
+export interface ITrendyolGoPriceStockPreviewApiDto {
+  storeId: number;
+  warehouseNo: number;
+  storeName: string;
+  page: number;
+  size: number;
+  totalPages: number;
+  totalElements: number;
+  previewHash: string;
+  readyCount: number;
+  skippedCount: number;
+  items: ITrendyolGoPriceStockPreviewItemApiDto[];
+}
+
+export interface ITrendyolGoPriceStockDispatchHttpRequestApiDto {
+  storeId: number;
+  page: number;
+  size: number;
+  previewHash: string;
+  barcodes: string[];
+}
+
+export interface ITrendyolGoPriceStockDispatchApiDto {
+  upstreamResponse?: Record<string, unknown> | null;
+  [key: string]: unknown;
+}

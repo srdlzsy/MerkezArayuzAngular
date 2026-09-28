@@ -62,6 +62,10 @@ export class BaseApiService {
     return this.http.put<TResponse>(this.buildUrl(path), body);
   }
 
+  protected putWithoutBody<TResponse>(path: string): Observable<TResponse> {
+    return this.http.put<TResponse>(this.buildUrl(path), null);
+  }
+
   protected patch<TResponse, TRequest>(path: string, body: TRequest): Observable<TResponse> {
     return this.http.patch<TResponse>(this.buildUrl(path), body);
   }

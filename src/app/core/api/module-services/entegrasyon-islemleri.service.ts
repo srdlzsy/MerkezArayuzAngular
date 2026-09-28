@@ -80,7 +80,20 @@ import type {
   IUyumsoftConnectedServiceOverviewApiDto,
   IUyumsoftOperationDefinitionApiDto,
   IUyumsoftOperationRequestApiDto,
-  IUyumsoftOperationResponseApiDto
+  IUyumsoftOperationResponseApiDto,
+  ITrendyolGoConnectionStatusApiDto,
+  ITrendyolGoPriceStockPreviewApiDto,
+  ITrendyolGoPriceStockDispatchApiDto,
+  ITrendyolGoPriceStockDispatchHttpRequestApiDto,
+  ITrendyolGoBatchItemsRequestApiDto,
+  ITrendyolGoBrandsQueryApiDto,
+  ITrendyolGoClaimsQueryApiDto,
+  ITrendyolGoInvoiceRequestApiDto,
+  ITrendyolGoInvoiceLinkRequestApiDto,
+  ITrendyolGoJsonApiDto,
+  ITrendyolGoOrdersQueryApiDto,
+  ITrendyolGoProductsQueryApiDto,
+  ITrendyolGoStoreMappingApiDto
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
@@ -158,6 +171,11 @@ export type UyumsoftConnectedServiceOverviewDto =
   IUyumsoftConnectedServiceOverviewApiDto;
 export type UyumsoftOperationDefinitionDto = IUyumsoftOperationDefinitionApiDto;
 export type UyumsoftOperationResponseDto = IUyumsoftOperationResponseApiDto;
+export type TrendyolGoConnectionStatusDto = ITrendyolGoConnectionStatusApiDto;
+export type TrendyolGoStoreMappingDto = ITrendyolGoStoreMappingApiDto;
+export type TrendyolGoJsonDto = ITrendyolGoJsonApiDto;
+export type TrendyolGoPriceStockPreviewDto = ITrendyolGoPriceStockPreviewApiDto;
+export type TrendyolGoPriceStockDispatchDto = ITrendyolGoPriceStockDispatchApiDto;
 
 export function isAxataJobTerminalStatus(status: string | null | undefined): boolean {
   const normalizedStatus = status?.trim().toLocaleLowerCase('tr-TR') ?? '';
@@ -867,6 +885,193 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   getUyumsoftEInvoiceOverview() {
     return this.get<UyumsoftConnectedServiceOverviewDto>(
       'entegrasyon-islemleri/uyumsoft/e-fatura'
+    );
+  }
+
+  getTrendyolGoStatus() {
+    return this.get<TrendyolGoConnectionStatusDto>(
+      'entegrasyon-islemleri/trendyol-go/status'
+    );
+  }
+
+  getTrendyolGoStores() {
+    return this.get<TrendyolGoStoreMappingDto[]>(
+      'entegrasyon-islemleri/trendyol-go/stores'
+    );
+  }
+
+  testTrendyolGoConnection(storeId: number) {
+    return this.getWithQuery<TrendyolGoConnectionStatusDto>(
+      'entegrasyon-islemleri/trendyol-go/connection-test',
+      { storeId }
+    );
+  }
+
+  getTrendyolGoOrders(query: ITrendyolGoOrdersQueryApiDto) {
+    return this.getWithQuery<TrendyolGoJsonDto, ITrendyolGoOrdersQueryApiDto>(
+      'entegrasyon-islemleri/trendyol-go/orders',
+      query
+    );
+  }
+
+  getTrendyolGoOrderByNumber(orderNumber: string) {
+    return this.get<TrendyolGoJsonDto>(
+      `entegrasyon-islemleri/trendyol-go/orders/by-number/${encodeURIComponent(orderNumber)}`
+    );
+  }
+
+  markTrendyolGoPackagePicked(packageId: string) {
+    return this.putWithoutBody<TrendyolGoJsonDto | null>(
+      `entegrasyon-islemleri/trendyol-go/packages/${encodeURIComponent(packageId)}/picked`
+    );
+  }
+
+  getTrendyolGoInvoiceAmount(orderId: string) {
+    return this.get<TrendyolGoJsonDto>(
+      `entegrasyon-islemleri/trendyol-go/orders/${encodeURIComponent(orderId)}/invoice-amount`
+    );
+  }
+
+  markTrendyolGoPackageInvoiced(
+    packageId: string,
+    request: ITrendyolGoInvoiceRequestApiDto
+  ) {
+    return this.put<TrendyolGoJsonDto | null, ITrendyolGoInvoiceRequestApiDto>(
+      `entegrasyon-islemleri/trendyol-go/packages/${encodeURIComponent(packageId)}/invoiced`,
+      request
+    );
+  }
+
+  getTrendyolGoBrands(query: ITrendyolGoBrandsQueryApiDto) {
+    return this.getWithQuery<TrendyolGoJsonDto, ITrendyolGoBrandsQueryApiDto>(
+      'entegrasyon-islemleri/trendyol-go/brands',
+      query
+    );
+  }
+
+  getTrendyolGoProducts(query: ITrendyolGoProductsQueryApiDto) {
+    return this.getWithQuery<TrendyolGoJsonDto, ITrendyolGoProductsQueryApiDto>(
+      'entegrasyon-islemleri/trendyol-go/products',
+      query
+    );
+  }
+
+  getTrendyolGoPriceStockPreview(storeId: number, page: number, size: number) {
+    return this.getWithQuery<TrendyolGoPriceStockPreviewDto>(
+      'entegrasyon-islemleri/trendyol-go/price-stock/preview',
+      { storeId, page, size }
+    );
+  }
+
+  dispatchTrendyolGoPriceStock(request: ITrendyolGoPriceStockDispatchHttpRequestApiDto) {
+    return this.post<TrendyolGoPriceStockDispatchDto, ITrendyolGoPriceStockDispatchHttpRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/price-stock/dispatch',
+      request
+    );
+  }
+
+  createTrendyolGoProducts(request: ITrendyolGoBatchItemsRequestApiDto) {
+    return this.post<TrendyolGoJsonDto | null, ITrendyolGoBatchItemsRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/products',
+      request
+    );
+  }
+
+  updateTrendyolGoProducts(request: ITrendyolGoBatchItemsRequestApiDto) {
+    return this.put<TrendyolGoJsonDto | null, ITrendyolGoBatchItemsRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/products',
+      request
+    );
+  }
+
+  updateTrendyolGoProductPriceAndInventory(request: ITrendyolGoBatchItemsRequestApiDto) {
+    return this.post<TrendyolGoJsonDto | null, ITrendyolGoBatchItemsRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/products/price-and-inventory',
+      request
+    );
+  }
+
+  getTrendyolGoProductBatchRequest(batchRequestId: string) {
+    return this.get<TrendyolGoJsonDto>(
+      `entegrasyon-islemleri/trendyol-go/products/batch-requests/${encodeURIComponent(batchRequestId)}`
+    );
+  }
+
+  setTrendyolGoProductsSaleState(
+    saleState: 'on' | 'off',
+    request: ITrendyolGoBatchItemsRequestApiDto
+  ) {
+    return this.put<TrendyolGoJsonDto | null, ITrendyolGoBatchItemsRequestApiDto>(
+      `entegrasyon-islemleri/trendyol-go/products/sale-${saleState}`,
+      request
+    );
+  }
+
+  updateTrendyolGoProductSellerAttributes(request: ITrendyolGoBatchItemsRequestApiDto) {
+    return this.post<TrendyolGoJsonDto | null, ITrendyolGoBatchItemsRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/products/seller-attributes',
+      request
+    );
+  }
+
+  getTrendyolGoPackagesByIds(packageIds: readonly string[]) {
+    return this.getWithQuery<TrendyolGoJsonDto>(
+      'entegrasyon-islemleri/trendyol-go/packages/by-ids',
+      { id: packageIds }
+    );
+  }
+
+  markTrendyolGoPackageUnsupplied(packageId: string, request: Record<string, unknown>) {
+    return this.put<TrendyolGoJsonDto | null, Record<string, unknown>>(
+      `entegrasyon-islemleri/trendyol-go/packages/${encodeURIComponent(packageId)}/items/unsupplied`,
+      request
+    );
+  }
+
+  markTrendyolGoPackageAlternative(packageId: string, request: Record<string, unknown>) {
+    return this.put<TrendyolGoJsonDto | null, Record<string, unknown>>(
+      `entegrasyon-islemleri/trendyol-go/packages/${encodeURIComponent(packageId)}/mark-alternative`,
+      request
+    );
+  }
+
+  markTrendyolGoPackageManualState(packageId: string, state: 'shipped' | 'delivered') {
+    return this.putWithoutBody<TrendyolGoJsonDto | null>(
+      `entegrasyon-islemleri/trendyol-go/packages/${encodeURIComponent(packageId)}/manual-${state}`
+    );
+  }
+
+  createTrendyolGoInvoiceLink(request: ITrendyolGoInvoiceLinkRequestApiDto) {
+    return this.post<TrendyolGoJsonDto | null, ITrendyolGoInvoiceLinkRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/invoice-links',
+      request
+    );
+  }
+
+  getTrendyolGoClaims(query: ITrendyolGoClaimsQueryApiDto) {
+    return this.getWithQuery<TrendyolGoJsonDto, ITrendyolGoClaimsQueryApiDto>(
+      'entegrasyon-islemleri/trendyol-go/claims',
+      query
+    );
+  }
+
+  updateTrendyolGoClaim(claimId: string, action: 'accept' | 'reject', request: Record<string, unknown>) {
+    return this.put<TrendyolGoJsonDto | null, Record<string, unknown>>(
+      `entegrasyon-islemleri/trendyol-go/claims/${encodeURIComponent(claimId)}/${action}`,
+      request
+    );
+  }
+
+  getTrendyolGoObjectionableClaimItems(claimId: string) {
+    return this.get<TrendyolGoJsonDto>(
+      `entegrasyon-islemleri/trendyol-go/claims/${encodeURIComponent(claimId)}/items/objectionable`
+    );
+  }
+
+  createTrendyolGoClaimObjections(claimId: string, request: Record<string, unknown>) {
+    return this.post<TrendyolGoJsonDto | null, Record<string, unknown>>(
+      `entegrasyon-islemleri/trendyol-go/claims/${encodeURIComponent(claimId)}/items/objections`,
+      request
     );
   }
 

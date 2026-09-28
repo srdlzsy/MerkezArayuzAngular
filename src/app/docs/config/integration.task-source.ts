@@ -349,6 +349,57 @@ export const INTEGRATION_TASK_SOURCE = {
       ]
     }
   ),
+  'trendyol-go': singleRouteTask(
+    {
+      id: 'trendyol-go',
+      title: 'Trendyol Go',
+      subtitle: 'Magaza bazli siparis, fiyat/stok onizleme ve manuel gonderim operasyon ekrani.',
+      baseRouteOrFile: '/api/entegrasyon-islemleri/trendyol-go',
+      highlights: [
+        'Baglanti durumu ve magaza eslemeleri',
+        'Tarih, durum ve sayfa filtreli siparis listesi',
+        'Siparis numarasi ile detay sorgulama',
+        'Picked siparis kabul bildirimi',
+        'Fatura tutar araligi kontrolu ve invoiced bildirimi',
+        'Secili magaza ve sayfada Mikro fiyat/stok onizlemesi',
+        'Yalnizca hazir kalemleri hash kontroluyle gonderme ve batch takip',
+        'Mikro evragi olusturmaz'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'TrendyolGoController',
+          description: 'Trendyol Go Market baglanti ve siparis operasyonlarini sunar.',
+          endpoints: [
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/status', description: 'Baglanti durumunu getirir' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/stores', description: 'Magaza ve Mikro depo eslemelerini getirir' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/connection-test?storeId=...', description: 'Secili magaza baglantisini test eder' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/orders', description: 'Siparisleri filtreli ve sayfali getirir' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/orders/by-number/{orderNumber}', description: 'Siparisi numarasiyla getirir' },
+            { method: 'PUT', path: '/api/entegrasyon-islemleri/trendyol-go/packages/{packageId}/picked', description: 'Siparis kabulunu bildirir' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/orders/{orderId}/invoice-amount', description: 'Izin verilen fatura tutar araligini getirir' },
+            { method: 'PUT', path: '/api/entegrasyon-islemleri/trendyol-go/packages/{packageId}/invoiced', description: 'Hazirlanan siparisin fatura tutarini bildirir', payload: 'TrendyolGoInvoiceRequest' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/preview', description: 'Secili magazanin bir katalog sayfasini Mikro fiyat ve stokla karsilastirir' },
+            { method: 'POST', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/dispatch', description: 'Secili hazir barkodlari previewHash ile gonderir', payload: 'TrendyolGoPriceStockDispatchHttpRequest' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/products/batch-requests/{batchRequestId}', description: 'Gonderim batch sonucunu getirir' }
+          ]
+        }
+      ],
+      codeSample: `{
+  "invoiceAmount": 1250.50,
+  "bagCount": 3,
+  "receiptLink": null,
+  "invoiceTaxAmount": 113.68
+}`
+    },
+    () =>
+      import('../tasks/integration/trendyol-go/list/trendyol-go-list.component').then(
+        (m) => m.TrendyolGoListComponent
+      ),
+    {
+      accessKeyAliases: ['trendyol-go', 'TrendyolGo', 'entegrasyon-islemleri']
+    }
+  ),
   'pos-muhasebe-aktarimi': singleRouteTask(
     {
       id: 'pos-muhasebe-aktarimi',

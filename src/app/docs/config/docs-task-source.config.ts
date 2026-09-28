@@ -89,6 +89,7 @@ const DOCS_TASK_ROUTE_PERMISSION_CODES: Readonly<Record<string, readonly string[
   'urun-dagilimlari': ['operasyon-islemleri.urun-dagilimlari.page'],
   'mikro-evrak-duzenleme': ['duzeltme-islemleri.mikro-evrak-duzenleme.page'],
   'axata-senkronizasyonu': ['entegrasyon-islemleri.axata-senkronizasyonu.page'],
+  'trendyol-go': ['entegrasyon-islemleri.trendyol-go.page'],
   'pos-muhasebe-aktarimi': ['entegrasyon-islemleri.pos-muhasebe-aktarimi.page'],
   'uyumsoft-e-fatura': ['entegrasyon-islemleri.uyumsoft-e-fatura.page'],
   'uyumsoft-e-irsaliye': ['entegrasyon-islemleri.uyumsoft-e-irsaliye.page'],
