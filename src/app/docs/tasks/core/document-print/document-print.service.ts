@@ -29,6 +29,7 @@ export interface DocumentPrintRequest {
   title: string;
   subtitle?: string;
   branch?: string;
+  orientation?: 'portrait' | 'landscape';
   sections: readonly DocumentPrintSection[];
   lineTitle: string;
   columns: readonly DocumentPrintColumn[];
@@ -89,7 +90,7 @@ export class DocumentPrintService {
 <head>
   <meta charset="utf-8">
   <title>${this.escapeHtml(request.title)}</title>
-  <style>${this.buildStyles()}</style>
+  <style>${this.buildStyles(request.orientation ?? 'portrait')}</style>
 </head>
 <body>
   <main class="sheet">
@@ -273,10 +274,12 @@ export class DocumentPrintService {
     return this.escapeHtml(value).replace(/;/g, '');
   }
 
-  private buildStyles(): string {
+  private buildStyles(orientation: 'portrait' | 'landscape'): string {
+    const sheetWidth = orientation === 'landscape' ? '277mm' : '190mm';
+
     return `
       @page {
-        size: A4 portrait;
+        size: A4 ${orientation};
         margin: 11mm;
       }
 
@@ -295,7 +298,7 @@ export class DocumentPrintService {
       }
 
       .sheet {
-        width: 190mm;
+        width: ${sheetWidth};
         min-height: 277mm;
         margin: 0 auto;
         padding: 9mm;

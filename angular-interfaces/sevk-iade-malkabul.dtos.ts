@@ -184,6 +184,8 @@ export interface CompanyMovementListItemDto {
   documentType: number;
   movementType: number;
   returnType: number;
+  deliverer: string;
+  receiver: string;
   description: string;
   lineCount: number;
   totalQuantity: number;
@@ -211,6 +213,8 @@ export interface CompanyMovementHeaderDto {
   documentType: number;
   movementType: number;
   returnType: number;
+  deliverer: string;
+  receiver: string;
   description: string;
   lineCount: number;
   totalQuantity: number;

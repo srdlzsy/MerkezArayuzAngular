@@ -67,6 +67,14 @@
           <h3>Firma Unvani</h3>
           <p>{{ resolveCompanyTitle(header) || '-' }}</p>
         </article>
+        <article class="summary-card">
+          <h3>Teslim Eden</h3>
+          <p>{{ getHeaderText(header, 'deliverer') || '-' }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Teslim Alan</h3>
+          <p>{{ getHeaderText(header, 'receiver') || '-' }}</p>
+        </article>
       </section>
 
       <section class="task-block">

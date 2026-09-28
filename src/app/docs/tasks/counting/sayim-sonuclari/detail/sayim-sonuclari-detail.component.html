@@ -6,7 +6,18 @@
       <p class="subtitle">Kayit Bilgisi: {{ requestIdentity() }}</p>
     </div>
 
-    <button type="button" class="close-button" (click)="close()">Kapat</button>
+    <div class="dialog-actions">
+      <button
+        type="button"
+        class="print-button"
+        (click)="printCurrentDocument()"
+        [disabled]="isLoading() || !currentDetail()"
+      >
+        <i class="fa-solid fa-print"></i>
+        <span>Yazdir</span>
+      </button>
+      <button type="button" class="close-button" (click)="close()">Kapat</button>
+    </div>
   </header>
 
   <div class="dialog-body">
@@ -29,6 +40,11 @@
     <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
       <h3>Detay Yuklenemedi</h3>
       <p>{{ errorMessage }}</p>
+    </article>
+
+    <article class="state-card state-card-error" *ngIf="printError() as message">
+      <h3>Yazdirma Baslatilamadi</h3>
+      <p>{{ message }}</p>
     </article>
 
     <ng-container *ngIf="!isLoading() && currentDetail() as detail">

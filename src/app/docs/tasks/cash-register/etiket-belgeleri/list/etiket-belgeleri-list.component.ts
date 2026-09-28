@@ -468,37 +468,6 @@ export class EtiketBelgeleriListComponent {
           return;
         }
 
-        const key = this.getProductIdentityKey(product);
-        const exists = this.products().some(
-          (item) => this.getProductIdentityKey(item) === key
-        );
-
-        if (exists) {
-          const hiddenProduct = this.products().find(
-            (item) =>
-              this.getProductIdentityKey(item) === key &&
-              this.hiddenProductKeys().has(this.getProductRowKey(item))
-          );
-
-          if (hiddenProduct) {
-            this.setProductHidden(this.getProductRowKey(hiddenProduct), false);
-            this.currentPage.set(1);
-            this.setFeedback(
-              'success',
-              'Urun geri alindi',
-              `${this.getProductDisplayName(product)} tum etiket tiplerinin yazdirma listesine geri eklendi.`
-            );
-            return;
-          }
-
-          this.setFeedback(
-            'info',
-            'Urun zaten listede',
-            `${this.getProductDisplayName(product)} listede bulundugu icin yeniden eklenmedi.`
-          );
-          return;
-        }
-
         const productWithRowKey = this.withProductRowKey(product);
 
         this.products.update((items) => [...items, productWithRowKey]);
@@ -510,7 +479,7 @@ export class EtiketBelgeleriListComponent {
         this.setFeedback(
           'success',
           'Urun eklendi',
-          `${this.getProductDisplayName(product)} etiket listesine eklendi.`
+          `${this.getProductDisplayName(product)} etiket listesine yeni satir olarak eklendi.`
         );
       });
   }

@@ -113,6 +113,8 @@ Kural:
 - `AllowedWarehouseNos` doluysa sadece listedeki depolar adina gonderim yapilir.
 - Bu endpoint legacy uyumluluk icin anonim acilir. Canlida mumkunse `AllowedOrigins` ve `AllowedWarehouseNos` bos birakilmamalidir.
 - Iceride mevcut `EDespatchService.SendAsync` calisir; belge no, tekrar gonderim kontrolu, Mikro isaretleme ve document flow kaydi mevcut ana akisla aynidir.
+- Eski arayuzde sevk/iade ayrimi her zaman guvenilir olmadigi icin legacy kopru, gonderimden once Mikro `STOK_HAREKETLERI` satirlarindaki `sth_evraktip`, `sth_tip`, `sth_normal_iade` ve depo bilgisini kontrol eder. Istenen `documentKind` ile Mikro'daki gercek hareket tipi uyusmazsa sadece legacy akista belge tipi otomatik duzeltilir; yeni JWT'li endpointlerde bu otomatik duzeltme yoktur.
+- Ornek: `firma-iadeleri` olarak cagrilan bir belge Mikro'da `sth_normal_iade=0` firma sevki ise backend gonderimi `OutgoingCompanyShipment` olarak calistirir ve belge akis anahtari `CompanyShipment:{warehouseNo}:{documentSerie}:{documentOrderNo}` olur.
 
 Endpoint:
 
@@ -1551,6 +1553,7 @@ Olasi durumlar:
 - `404` kayit bulunamadi
 - `409` conflict/is kurali cakisiyor
 - `501` route acik ama backend henuz implement edilmedi
+- `503` SQL Server/veritabani servisine gecici olarak ulasilamiyor; create retry gerekiyorsa UI ayni payload ve ayni `clientRequestId` ile tekrar denemelidir
 
 ## Kimlik Akisi
 
@@ -11317,6 +11320,7 @@ Not:
 
 - response modeli firma sevk detay response modeliyle aynidir
 - filtre `sth_evraktip = 1`, `sth_tip = 1`, `sth_normal_iade = 1`, `sth_cikis_depo_no = warehouseNo` olarak uygulanir
+- `header.deliverer` teslim eden kisiyi, `header.receiver` teslim alan kisiyi dondurur. Degerler Mikro `sth_HareketGrupKodu2` ve `sth_HareketGrupKodu3` alanlarindan okunur.
 - bu endpoint Mikro veritabaninda sadece SELECT yapar; insert/update/delete yoktur
 
 ### Firma Iadesini E-Irsaliyeye Cevir
@@ -20672,6 +20676,8 @@ public sealed record CompanyMovementListItemDto(
     byte DocumentType,
     byte MovementType,
     byte ReturnType,
+    string Deliverer,
+    string Receiver,
     string Description,
     int LineCount,
     double TotalQuantity,

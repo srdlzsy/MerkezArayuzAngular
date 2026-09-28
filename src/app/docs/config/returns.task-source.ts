@@ -15,6 +15,8 @@ export const RETURNS_TASK_SOURCE = {
         'Create endpointi aktif',
         'Create requestinde guvenli retry icin clientRequestId uretilir',
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
+        'Gecici 503 hatasinda create istegi ayni payload ve ayni clientRequestId ile yeniden gonderilir',
+        'Detay cevabindaki deliverer ve receiver alanlari baskida Teslim Eden ve Teslim Alan olarak kullanilir',
         'E-irsaliye gonderim ve PDF route aktif',
         'Firma e-irsaliye alici aliasini backend VKN/TCKN ile Uyumsofttan cozer; UI alias secmez ve request bodyye Mikro aliasi yazmaz',
         'E-irsaliye gonderiminde 409 Conflict donerse liste yenilenir ve eski dialogdan tekrar gonderim engellenir',
@@ -34,7 +36,7 @@ export const RETURNS_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/iade-islemleri/firma-iadeleri/{seri}/{sira}',
-              description: 'Firma iade detayini getirir'
+              description: 'Firma iade detayini teslim eden ve teslim alan bilgileriyle getirir'
             },
             {
               method: 'POST',

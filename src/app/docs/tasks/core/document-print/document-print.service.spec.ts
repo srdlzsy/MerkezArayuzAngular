@@ -56,6 +56,29 @@ describe('DocumentPrintService', () => {
     expect(popup.print).toHaveBeenCalledTimes(1);
   });
 
+  it('uses an A4 landscape sheet when requested', () => {
+    const popup = {
+      document: {
+        open: jasmine.createSpy('open'),
+        write: jasmine.createSpy('write'),
+        close: jasmine.createSpy('close')
+      },
+      focus: jasmine.createSpy('focus'),
+      print: jasmine.createSpy('print'),
+      setTimeout: (callback: () => void) => {
+        callback();
+        return 1;
+      }
+    };
+    spyOn(window, 'open').and.returnValue(popup as unknown as Window);
+
+    service.print({ ...request, orientation: 'landscape' });
+
+    const markup = popup.document.write.calls.mostRecent().args[0] as string;
+    expect(markup).toContain('size: A4 landscape');
+    expect(markup).toContain('width: 277mm');
+  });
+
   it('prints custom markup and closes disposable report windows', () => {
     const popup = {
       document: {

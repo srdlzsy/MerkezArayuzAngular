@@ -5,6 +5,10 @@ import { of, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
 
 import { DocsContentPage } from '../../../models/docs.models';
+import {
+  DocumentPrintRequest,
+  DocumentPrintService
+} from '../document-print/document-print.service';
 import { KalemliTaskDetailBase } from './kalemli-task-detail.base';
 
 interface TestDetailRecord {
@@ -43,7 +47,10 @@ class TestKalemliDetailComponent extends KalemliTaskDetailBase<TestDetailRecord>
 }
 
 describe('KalemliTaskDetailBase', () => {
+  let printSpy: jasmine.Spy<(request: DocumentPrintRequest) => boolean>;
+
   function configure(data: unknown): void {
+    printSpy = jasmine.createSpy('print').and.returnValue(true);
     TestBed.configureTestingModule({
       imports: [TestKalemliDetailComponent],
       providers: [
@@ -56,6 +63,10 @@ describe('KalemliTaskDetailBase', () => {
           useValue: {
             close: jasmine.createSpy('close')
           }
+        },
+        {
+          provide: DocumentPrintService,
+          useValue: { print: printSpy }
         }
       ]
     });
@@ -100,5 +111,38 @@ describe('KalemliTaskDetailBase', () => {
 
     expect(component.detail()).toBeNull();
     expect(component.errorMessage()).toBe('Yukleme hatasi');
+  });
+
+  it('passes company deliverer and receiver to document print fields and signatures', () => {
+    configure({ seri: 'FI', sira: 18 });
+    const fixture = TestBed.createComponent(TestKalemliDetailComponent);
+    const component = fixture.componentInstance as any;
+
+    component.responses.push(
+      of({
+        header: {
+          documentSerie: 'FI',
+          documentOrderNo: 18,
+          documentDate: '2026-09-28',
+          customerCode: '120.01.001',
+          customerTitle: 'Ornek Firma',
+          deliverer: 'Ahmet Yilmaz',
+          receiver: 'Mehmet Kaya'
+        },
+        items: [{ stockCode: 'STK-1' }]
+      })
+    );
+    fixture.detectChanges();
+
+    component.printCurrentDocument();
+
+    const request = printSpy.calls.mostRecent().args[0];
+    const fields = request.sections.flatMap((section) => section.fields);
+    expect(fields).toContain(jasmine.objectContaining({ label: 'Teslim Eden', value: 'Ahmet Yilmaz' }));
+    expect(fields).toContain(jasmine.objectContaining({ label: 'Teslim Alan', value: 'Mehmet Kaya' }));
+    expect(request.signatures).toEqual([
+      { label: 'Teslim Eden', value: 'Ahmet Yilmaz' },
+      { label: 'Teslim Alan', value: 'Mehmet Kaya' }
+    ]);
   });
 });
