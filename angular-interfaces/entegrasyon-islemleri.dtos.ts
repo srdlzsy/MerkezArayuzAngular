@@ -1432,7 +1432,10 @@ export interface ITrendyolGoPriceStockPreviewApiDto {
   totalElements: number;
   previewHash: string;
   readyCount: number;
+  unchangedCount: number;
   skippedCount: number;
+  view: 'actionable' | 'issues' | 'all';
+  visibleCount: number;
   items: ITrendyolGoPriceStockPreviewItemApiDto[];
 }
 

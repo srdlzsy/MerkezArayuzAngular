@@ -956,10 +956,13 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     );
   }
 
-  getTrendyolGoPriceStockPreview(storeId: number, page: number, size: number) {
+  getTrendyolGoPriceStockPreview(
+    storeId: number,
+    view?: 'issues' | 'all'
+  ) {
     return this.getWithQuery<TrendyolGoPriceStockPreviewDto>(
       'entegrasyon-islemleri/trendyol-go/price-stock/preview',
-      { storeId, page, size }
+      { storeId, view: view ?? undefined }
     );
   }
 

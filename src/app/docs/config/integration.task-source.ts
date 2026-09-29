@@ -361,8 +361,8 @@ export const INTEGRATION_TASK_SOURCE = {
         'Siparis numarasi ile detay sorgulama',
         'Picked siparis kabul bildirimi',
         'Fatura tutar araligi kontrolu ve invoiced bildirimi',
-        'Secili magaza ve sayfada Mikro fiyat/stok onizlemesi',
-        'Yalnizca hazir kalemleri hash kontroluyle gonderme ve batch takip',
+        'Secili magazanin tum katalog farklari icin Mikro fiyat/stok onizlemesi',
+        'Yalnizca hazir kalemleri hash kontroluyle 100luk paketlerde gonderme ve batch takip',
         'Trendyol Go icin ayrilan fiyat listesi 3; genel satis fiyati fallback kullanilmaz',
         'Opsiyonel sube POS aktarimi asenkron kuyrukta calisir',
         'Mikro evragi olusturmaz'
@@ -381,7 +381,7 @@ export const INTEGRATION_TASK_SOURCE = {
             { method: 'PUT', path: '/api/entegrasyon-islemleri/trendyol-go/packages/{packageId}/picked', description: 'Siparis kabulunu bildirir' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/orders/{orderId}/invoice-amount', description: 'Izin verilen fatura tutar araligini getirir' },
             { method: 'PUT', path: '/api/entegrasyon-islemleri/trendyol-go/packages/{packageId}/invoiced', description: 'Hazirlanan siparisin fatura tutarini bildirir', payload: 'TrendyolGoInvoiceRequest' },
-            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/preview', description: 'Secili magazanin bir katalog sayfasini Mikro fiyat ve stokla karsilastirir' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/preview?storeId=...', description: 'Secili magazanin tum katalog farklarini Mikro fiyat ve stokla karsilastirir; issues/all gorunumleri opsiyoneldir' },
             { method: 'POST', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/dispatch', description: 'Secili hazir barkodlari previewHash ile TGOya gonderir; opsiyonel POS aktarimi kuyrukta asenkron calisir', payload: 'TrendyolGoPriceStockDispatchHttpRequest' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/products/batch-requests/{batchRequestId}', description: 'Gonderim batch sonucunu getirir' }
           ]

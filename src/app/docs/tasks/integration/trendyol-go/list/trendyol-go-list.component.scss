@@ -136,12 +136,7 @@
   flex: 1 1 230px;
 }
 
-.price-stock-page-fields {
-  display: flex;
-  gap: 0.5rem;
-}
-
-.price-stock-page-fields .field {
+.price-stock-controls > .compact-field {
   width: 90px;
 }
 
@@ -192,11 +187,19 @@
 }
 
 .batch-tracking {
-  align-items: center;
+  display: grid;
+  align-items: stretch;
   border-top: 1px solid #e2e8f0;
 }
 
-.batch-tracking .json-block {
+.batch-item {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  flex-wrap: wrap;
+}
+
+.batch-item .json-block {
   flex-basis: 100%;
 }
 

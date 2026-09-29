@@ -23,16 +23,26 @@ describe('Trendyol Go price/stock API', () => {
 
   afterEach(() => http.verify());
 
-  it('previews only the requested store and page', () => {
-    service.getTrendyolGoPriceStockPreview(402535, 1, 100).subscribe();
+  it('previews the full actionable catalog for the selected store by default', () => {
+    service.getTrendyolGoPriceStockPreview(402535).subscribe();
     const request = http.expectOne((candidate) =>
       candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/price-stock/preview')
     );
     expect(request.request.method).toBe('GET');
     expect(request.request.params.get('storeId')).toBe('402535');
-    expect(request.request.params.get('page')).toBe('1');
-    expect(request.request.params.get('size')).toBe('100');
-    request.flush({ items: [], storeId: 402535, page: 1, size: 100 });
+    expect(request.request.params.has('page')).toBeFalse();
+    expect(request.request.params.has('size')).toBeFalse();
+    expect(request.request.params.has('view')).toBeFalse();
+    request.flush({ items: [], storeId: 402535, page: -1, size: 100 });
+  });
+
+  it('requests an explicit diagnostic preview view when selected', () => {
+    service.getTrendyolGoPriceStockPreview(402535, 'issues').subscribe();
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/price-stock/preview')
+    );
+    expect(request.request.params.get('view')).toBe('issues');
+    request.flush({ items: [], storeId: 402535, page: -1, size: 100 });
   });
 
   it('dispatches selected barcodes with the preview hash', () => {

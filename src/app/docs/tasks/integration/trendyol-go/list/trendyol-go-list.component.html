@@ -206,12 +206,7 @@
     <div class="section-head">
       <div>
         <h3>Magaza Fiyat ve Stok</h3>
-        <span *ngIf="priceStockPreview() as preview">{{ preview.storeName }} / Depo {{ preview.warehouseNo }} / {{ preview.totalElements }} urun</span>
-      </div>
-      <div class="pager" *ngIf="priceStockPreview() as preview">
-        <button type="button" title="Onceki sayfa" (click)="changePriceStockPage(-1)" [disabled]="preview.page === 0 || loadingPriceStock()"><i class="fa-solid fa-chevron-left"></i></button>
-        <strong>{{ preview.page + 1 }} / {{ preview.totalPages || 1 }}</strong>
-        <button type="button" title="Sonraki sayfa" (click)="changePriceStockPage(1)" [disabled]="preview.page + 1 >= preview.totalPages || loadingPriceStock()"><i class="fa-solid fa-chevron-right"></i></button>
+        <span *ngIf="priceStockPreview() as preview">{{ preview.storeName }} / Depo {{ preview.warehouseNo }} / {{ preview.totalElements }} katalog urunu</span>
       </div>
     </div>
 
@@ -223,10 +218,14 @@
           <option *ngFor="let store of stores(); trackBy: trackByStore" [ngValue]="store.storeId">{{ store.storeName }} / Depo {{ store.warehouseNo }}</option>
         </select>
       </label>
-      <div class="price-stock-page-fields" [formGroup]="priceStockForm">
-        <label class="field compact-field"><span>Sayfa</span><input type="number" min="0" formControlName="page" /></label>
-        <label class="field compact-field"><span>Boyut</span><input type="number" min="1" max="100" formControlName="size" /></label>
-      </div>
+      <label class="field compact-field" [formGroup]="priceStockForm">
+        <span>Gorunum</span>
+        <select formControlName="view">
+          <option value="actionable">Gonderime hazir</option>
+          <option value="issues">Sorunlu satirlar</option>
+          <option value="all">Tum katalog</option>
+        </select>
+      </label>
       <button type="button" class="secondary-button" (click)="loadPriceStockPreview()" [disabled]="loadingPriceStock() || !selectedStore()">
         <i class="fa-solid fa-arrows-rotate"></i>
         <span>{{ loadingPriceStock() ? 'Yukleniyor' : 'Onizlemeyi Getir' }}</span>
@@ -240,7 +239,9 @@
     <ng-container *ngIf="priceStockPreview() as preview; else priceStockEmpty">
       <div class="price-stock-summary">
         <span>Hazir: <strong>{{ preview.readyCount }}</strong></span>
+        <span>Degismeyen: <strong>{{ preview.unchangedCount }}</strong></span>
         <span>Atlanan: <strong>{{ preview.skippedCount }}</strong></span>
+        <span>Gosterilen: <strong>{{ preview.visibleCount }}</strong></span>
         <span>Secili: <strong>{{ selectedReadyCount() }}</strong></span>
         <button type="button" class="secondary-button" (click)="toggleAllReadyItems()" [disabled]="!readyItems().length">
           {{ selectedReadyCount() === readyItems().length && readyItems().length ? 'Secimi Temizle' : 'Hazirlari Sec' }}
@@ -273,10 +274,12 @@
     <ng-template #priceStockEmpty>
       <div class="empty-state">{{ loadingPriceStock() ? 'Onizleme yukleniyor...' : 'Magazayi secip onizlemeyi getirin.' }}</div>
     </ng-template>
-    <div class="batch-tracking" *ngIf="priceStockBatchId()">
-      <strong>Batch: {{ priceStockBatchId() }}</strong>
-      <button type="button" class="secondary-button" (click)="checkPriceStockBatch()" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
-      <details class="json-block" *ngIf="priceStockBatchResult()"><summary>Batch sonucu</summary><pre>{{ priceStockBatchResult() | json }}</pre></details>
+    <div class="batch-tracking" *ngIf="priceStockBatchIds().length">
+      <div class="batch-item" *ngFor="let batchId of priceStockBatchIds()">
+        <strong>Batch: {{ batchId }}</strong>
+        <button type="button" class="secondary-button" (click)="checkPriceStockBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
+        <details class="json-block" *ngIf="priceStockBatchResults()[batchId] as result"><summary>Batch sonucu</summary><pre>{{ result | json }}</pre></details>
+      </div>
     </div>
   </section>
 
