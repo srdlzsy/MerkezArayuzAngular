@@ -383,27 +383,33 @@
         </div>
       </article>
 
-      <article class="detail-card" *ngIf="creditCards().length">
+      <article class="detail-card credit-card-detail" *ngIf="creditCards().length">
         <div class="detail-card-head">
           <h3>Kredi Kartlari</h3>
           <span>{{ creditCardsQuantity() }} Slip</span>
         </div>
-        <div class="table-wrap">
+        <div class="table-wrap credit-card-table">
           <table>
+            <colgroup>
+              <col class="credit-card-type-column" />
+              <col class="credit-card-terminal-column" />
+              <col class="credit-card-slip-column" />
+              <col class="credit-card-amount-column" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Tip</th>
                 <th>Terminal</th>
                 <th>Slip</th>
-                <th>Tutar</th>
+                <th class="amount-column">Tutar</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let item of creditCards()">
                 <td>{{ getPaymentDisplayName(item) }}</td>
-                <td>{{ item.terminalId || '-' }}</td>
-                <td>{{ item.slipNumber }}</td>
-                <td>{{ item.amount | number:'1.2-2' }} TL</td>
+                <td class="terminal-column">{{ item.terminalId || '-' }}</td>
+                <td class="slip-column">{{ item.slipNumber }}</td>
+                <td class="amount-column">{{ item.amount | number:'1.2-2' }} TL</td>
               </tr>
             </tbody>
           </table>

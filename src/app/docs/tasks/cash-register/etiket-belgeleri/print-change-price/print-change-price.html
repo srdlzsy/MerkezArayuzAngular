@@ -1,14 +1,38 @@
 <div class="page">
   <div class="header">
     <div class="header-inner">
-      <h2>FIYAT DEGISIM ETIKETLERI</h2>
+      <div>
+        <p class="eyebrow">Etiket Belgeleri / Degisim Dokumu</p>
+        <h2>FIYAT DEGISIM ETIKETLERI</h2>
+        <p class="warehouse-label">{{ warehouseLabel || 'Depo bilgisi yok' }}</p>
+      </div>
       <div class="print-date">
-        {{ today | date:'dd.MM.yyyy HH:mm' }}
+        <span>Basim zamani</span>
+        <strong>{{ today | date:'dd.MM.yyyy HH:mm' }}</strong>
       </div>
     </div>
   </div>
 
   <div class="content">
+    <section class="print-summary" aria-label="Degisim dokumu ozeti">
+      <article>
+        <span>Yazdirilacak Etiket</span>
+        <strong>{{ productsToPrint.length }}</strong>
+      </article>
+      <article class="summary-up">
+        <span>Fiyati Artan</span>
+        <strong>{{ increasedCount() }}</strong>
+      </article>
+      <article class="summary-down">
+        <span>Fiyati Azalan</span>
+        <strong>{{ decreasedCount() }}</strong>
+      </article>
+      <article class="summary-warning">
+        <span>Barkod Eksik</span>
+        <strong>{{ missingBarcodeCount() }}</strong>
+      </article>
+    </section>
+
     <table class="price-change-table">
       <thead>
         <tr>
@@ -17,18 +41,20 @@
           <th>Urun Adi</th>
           <th>Eski Fiyat</th>
           <th>Yeni Fiyat</th>
-          <th>Fark</th>
+          <th>Degisim</th>
           <th>Degisiklik Tarihi ve Saati</th>
         </tr>
       </thead>
       <tbody>
         <tr *ngFor="let product of productsToPrint">
           <td>{{ product.productCode }}</td>
-          <td>{{ product.barcode }}</td>
+          <td>{{ product.barcode || '-' }}</td>
           <td>{{ product.productName }}</td>
-          <td>{{ product.oldPrice.toFixed(2) }}</td>
-          <td>{{ product.price.toFixed(2) }}</td>
-          <td>{{ (product.price - product.oldPrice).toFixed(2) }}</td>
+          <td>{{ product.oldPrice | number:'1.2-2' }} TL</td>
+          <td>{{ product.price | number:'1.2-2' }} TL</td>
+          <td [class.price-up]="priceDifference(product) > 0" [class.price-down]="priceDifference(product) < 0">
+            {{ priceDifference(product) > 0 ? '+' : '' }}{{ priceDifference(product) | number:'1.2-2' }} TL
+          </td>
           <td>{{ product.priceChangeDate || '-' }}</td>
         </tr>
       </tbody>

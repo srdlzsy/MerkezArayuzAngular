@@ -179,3 +179,31 @@
 @page :first {
   margin-top: 15mm;
 }
+
+/* Degisim dokumu ozet alani: component kapsama stili disinda yazdirma icin. */
+.print-summary {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  margin-bottom: 15px;
+  border: 1px solid #cbd5e1;
+}
+
+.print-summary article {
+  display: grid;
+  gap: 4px;
+  padding: 9px 10px;
+  border-right: 1px solid #cbd5e1;
+}
+
+.print-summary article:last-child { border-right: 0; }
+.print-summary span { color: #475569; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+.print-summary strong { color: #0f172a; font-size: 19px; }
+.print-summary .summary-up strong, .price-change-table td.price-up { color: #166534; }
+.print-summary .summary-down strong, .price-change-table td.price-down { color: #b45309; }
+.print-summary .summary-warning strong { color: #b91c1c; }
+.eyebrow, .warehouse-label { margin: 0; }
+.eyebrow { color: #475569; font-size: 10px; font-weight: bold; text-transform: uppercase; }
+.warehouse-label { margin-top: 4px; color: #334155; font-size: 13px; font-weight: bold; }
+.print-date { display: grid; gap: 3px; text-align: right; font-size: 12px; }
+.print-date span { font-size: 10px; }
+.print-date strong { font-size: 14px; }

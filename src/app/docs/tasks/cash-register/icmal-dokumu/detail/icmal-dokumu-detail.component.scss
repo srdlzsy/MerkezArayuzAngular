@@ -271,6 +271,10 @@
   min-width: 0;
 }
 
+.credit-card-detail {
+  grid-column: 1 / -1;
+}
+
 .edit-panel {
   display: grid;
   gap: 0.66rem;
@@ -562,6 +566,43 @@ th {
 .detail-grid th:nth-child(2),
 .detail-grid th:nth-child(3) {
   font-variant-numeric: tabular-nums;
+}
+
+.credit-card-table {
+  overflow: auto;
+  overscroll-behavior: contain;
+}
+
+.credit-card-table table {
+  min-width: 560px;
+  table-layout: fixed;
+}
+
+.credit-card-type-column {
+  width: 38%;
+}
+
+.credit-card-terminal-column {
+  width: 24%;
+}
+
+.credit-card-slip-column {
+  width: 14%;
+}
+
+.credit-card-amount-column {
+  width: 24%;
+}
+
+.credit-card-table .terminal-column,
+.credit-card-table .slip-column,
+.credit-card-table .amount-column {
+  white-space: nowrap;
+  font-variant-numeric: tabular-nums;
+}
+
+.credit-card-table .amount-column {
+  text-align: right;
 }
 
 .empty-row {

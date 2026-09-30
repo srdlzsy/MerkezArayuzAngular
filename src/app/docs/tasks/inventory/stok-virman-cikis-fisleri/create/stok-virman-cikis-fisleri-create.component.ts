@@ -43,6 +43,8 @@ type VirmanLineFormGroup = FormGroup<{
   projectCode: FormControl<string>;
 }>;
 
+const VIRMAN_STOCK_SEARCH_TAKE = 100;
+
 @Component({
   selector: 'app-stok-virman-cikis-fisleri-create',
   standalone: true,
@@ -158,7 +160,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     loading.set(true);
 
     this.aramaService
-      .searchStock(query, 20, this.resolveIncludeDelisted())
+      .searchStock(query, VIRMAN_STOCK_SEARCH_TAKE, this.resolveIncludeDelisted())
       .pipe(finalize(() => {
         const currentRequestId = target === 'outgoing' ? this.outgoingStockRequestId : this.incomingStockRequestId;
         if (requestId === currentRequestId) {
@@ -304,9 +306,8 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       return '';
     }
 
-    const stockCode = stock.stockCode?.trim();
     const stockName = stock.stockName?.trim();
-    return [stockCode, stockName].filter(Boolean).join(' - ');
+    return stockName || stock.stockCode?.trim() || '';
   }
 
   protected getMovementLabel(movementType: number | null): string {

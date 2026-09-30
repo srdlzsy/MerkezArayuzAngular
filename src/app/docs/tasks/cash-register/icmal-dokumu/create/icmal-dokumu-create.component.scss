@@ -574,6 +574,68 @@ button.count-card:focus-visible {
   background: #f8fafc;
 }
 
+.difference-card {
+  gap: 0.65rem;
+}
+
+.difference-card-heading {
+  display: grid;
+  gap: 0.2rem;
+}
+
+.difference-card-metrics {
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.45rem;
+  margin-top: auto;
+}
+
+.difference-card-metrics > div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  padding-left: 0.5rem;
+  border-left: 1px solid #cbd5e1;
+}
+
+.difference-card-metrics > div:first-child {
+  padding-left: 0;
+  border-left: 0;
+}
+
+.difference-card-metrics span {
+  color: #475569;
+  font-size: 0.68rem;
+  font-weight: 750;
+  line-height: 1.2;
+}
+
+.difference-card-metrics strong {
+  color: #0f172a;
+  font-size: 0.82rem;
+  font-variant-numeric: tabular-nums;
+  line-height: 1.2;
+  white-space: nowrap;
+}
+
+.difference-card-metrics .difference-base strong {
+  color: #0f766e;
+}
+
+@media (max-width: 680px) {
+  .difference-card-metrics {
+    grid-template-columns: 1fr;
+  }
+
+  .difference-card-metrics > div,
+  .difference-card-metrics > div:first-child {
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: baseline;
+    padding-left: 0;
+    border-left: 0;
+  }
+}
+
 .drawer-backdrop {
   position: fixed;
   inset: 0;

@@ -462,6 +462,7 @@
         <app-print-change-price
           *ngIf="printPreviewProducts().length"
           [productsToPrint]="printPreviewProducts()"
+          [warehouseLabel]="branchLabel()"
         ></app-print-change-price>
       </ng-template>
     </div>

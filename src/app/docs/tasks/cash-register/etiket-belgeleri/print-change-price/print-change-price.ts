@@ -11,6 +11,23 @@ import type { IEtiketBasimProduct } from '@interfaces';
 })
 export class PrintChangePrice {
   @Input() productsToPrint: readonly IEtiketBasimProduct[] = [];
+  @Input() warehouseLabel = '';
 
   protected readonly today: Date = new Date();
+
+  protected increasedCount(): number {
+    return this.productsToPrint.filter((product) => product.price > product.oldPrice).length;
+  }
+
+  protected decreasedCount(): number {
+    return this.productsToPrint.filter((product) => product.price < product.oldPrice).length;
+  }
+
+  protected missingBarcodeCount(): number {
+    return this.productsToPrint.filter((product) => !product.barcode?.trim()).length;
+  }
+
+  protected priceDifference(product: IEtiketBasimProduct): number {
+    return product.price - product.oldPrice;
+  }
 }
