@@ -5,6 +5,7 @@ import type { IFurpaWarehouseShippingListItemApiDto } from '@interfaces';
 import { finalize } from 'rxjs';
 
 import { SevkIslemleriService } from '../../../../../core/api/module-services/sevk-islemleri.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
@@ -52,19 +53,33 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
   protected readonly createComponent = DepolarArasiNakliyeSevkFisleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.sevkIslemleriService.getDepolarArasiNakliyeSevkFisleri(zamanlama, warehouseNo);
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaWarehouseShippingListItemApiDto>[] {
-    return this.getPdfLoadingRowActions(ROW_ACTIONS);
+    return this.getPdfLoadingRowActions([
+      ...ROW_ACTIONS,
+      {
+        key: 'delete-shipment',
+        label: 'Sil',
+        tone: 'neutral',
+        isVisible: () => this.hasTaskActionPermission('delete')
+      }
+    ]);
   }
 
   protected override handleAdditionalRowAction(
     event: ApiListTableActionEvent<IFurpaWarehouseShippingListItemApiDto>
   ): void {
     const row = event.row;
+
+    if (event.actionKey === 'delete-shipment') {
+      void this.deleteShipment(row);
+      return;
+    }
 
     if (event.actionKey === 'show-pdf') {
       this.errorMessage.set(null);
@@ -124,6 +139,38 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
       .subscribe((result: unknown) => {
         if (result) {
           refreshAfterSuccess();
+        }
+      });
+  }
+
+  private async deleteShipment(row: IFurpaWarehouseShippingListItemApiDto): Promise<void> {
+    const documentLabel = row.documentNo?.trim() || `${row.documentSerie}/${row.documentOrderNo}`;
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Sevk fisi silinsin mi?',
+      message: `${documentLabel} numarali sevk fisi ve ${row.lineCount} kalemi kalici olarak silinecek.`,
+      confirmText: 'Sil',
+      tone: 'danger'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.errorMessage.set(null);
+    this.activityMessage.set(`${documentLabel} siliniyor.`);
+
+    this.sevkIslemleriService
+      .deleteGidenDepolarArasiSevk(row.documentSerie, row.documentOrderNo, row.sourceWarehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.activityMessage.set(null))
+      )
+      .subscribe({
+        next: () => this.loadRows(),
+        error: (error: unknown) => {
+          this.errorMessage.set(
+            this.resolveHttpErrorMessage(error, 'Sevk fisi silinemedi. Belge durumunu kontrol edip tekrar deneyin.')
+          );
         }
       });
   }

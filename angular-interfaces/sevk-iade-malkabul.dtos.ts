@@ -160,6 +160,17 @@ export interface UpdateWarehouseMovementResponse {
   writeConnectionName: string;
 }
 
+export interface DeleteWarehouseShippingResponse {
+  documentSerie: string;
+  documentOrderNo: number;
+  sourceWarehouseNo: number;
+  targetWarehouseNo: number;
+  deletedLineCount: number;
+  deletedAt: string;
+  updateUser: number;
+  writeConnectionName: string;
+}
+
 // ============================================================================
 // Firma Sevk / Firma İadesi Ortak Modelleri
 // ============================================================================

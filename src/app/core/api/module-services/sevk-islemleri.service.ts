@@ -8,6 +8,7 @@ import type {
   IFurpaCreateCompanyMovementResponseApiDto,
   IFurpaCreateWarehouseShippingRequestApiDto,
   IFurpaCreateWarehouseShippingResponseApiDto,
+  DeleteWarehouseShippingResponse,
   IFurpaSendEDespatchRequestApiDto,
   IFurpaSendEDespatchResponseApiDto,
   IFurpaUpdateWarehouseShippingRequestApiDto,
@@ -132,6 +133,19 @@ export class SevkIslemleriService extends BaseApiService {
         warehouseNo
       ),
       request
+    );
+  }
+
+  deleteGidenDepolarArasiSevk(
+    documentSerie: string,
+    documentOrderNo: number,
+    warehouseNo?: number
+  ): Observable<DeleteWarehouseShippingResponse> {
+    return this.delete<DeleteWarehouseShippingResponse>(
+      this.withWarehouseQuery(
+        `sevk-islemleri/depolar-arasi-sevkler/giden/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
+        warehouseNo
+      )
     );
   }
 
