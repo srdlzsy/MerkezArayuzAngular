@@ -76,6 +76,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   protected readonly submitting = signal(false);
   protected readonly requiresDocumentRefresh = signal(false);
   protected readonly pdfLoading = signal(false);
+  protected readonly pdfRetrying = signal(false);
   protected readonly submitError = signal('');
   protected readonly pdfError = signal('');
   protected readonly pdfPreviewBlob = signal<Blob | null>(null);
@@ -110,6 +111,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   protected readonly form = new FormGroup(this.controls);
   private driverSearchRequestId = 0;
   private driverSearchTimer: ReturnType<typeof setTimeout> | null = null;
+  private pdfRetryTimer: ReturnType<typeof setTimeout> | null = null;
 
   constructor() {
     super();
@@ -122,7 +124,10 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((value: string) => this.scheduleDriverSearch(value));
 
-    this.destroyRef.onDestroy(() => this.clearDriverSearchTimer());
+    this.destroyRef.onDestroy(() => {
+      this.clearDriverSearchTimer();
+      this.clearPdfRetryTimer();
+    });
 
     this.updateTransportValidators();
 
@@ -172,15 +177,30 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
     }
 
     this.pdfLoading.set(true);
+    this.pdfRetrying.set(false);
     this.pdfError.set('');
+    this.clearPdfRetryTimer();
+    this.loadPdf();
+  }
 
+  private loadPdf(attempt = 0): void {
     this.resolvePdfRequest()
-      .pipe(finalize(() => this.pdfLoading.set(false)))
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (blob: Blob) => {
           this.pdfPreviewBlob.set(blob);
+          this.pdfLoading.set(false);
+          this.pdfRetrying.set(false);
         },
         error: (error: HttpErrorResponse) => {
+          if (attempt < 2 && this.isPdfTemporarilyUnavailable(error)) {
+            this.pdfRetrying.set(true);
+            this.pdfRetryTimer = window.setTimeout(() => this.loadPdf(attempt + 1), (attempt + 1) * 1_000);
+            return;
+          }
+
+          this.pdfLoading.set(false);
+          this.pdfRetrying.set(false);
           this.pdfError.set(
             this.resolveError(
               error,
@@ -498,6 +518,27 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
       return message;
     }
 
-    return `${message} Liste yenilendi. Bu pencereyi kapatip guncel evraki yeniden acarak tekrar deneyin.`;
+    return `${message} Liste yenilendi. Bu pencereyi kapatip guncel evraki inceleyin; yeni e-irsaliye gonderimi yapmadan once belge durumunu kontrol edin.`;
+  }
+
+  private isPdfTemporarilyUnavailable(error: unknown): boolean {
+    if (!(error instanceof HttpErrorResponse)) {
+      return false;
+    }
+
+    return (
+      error.status === 0 ||
+      error.status === 404 ||
+      error.status === 408 ||
+      error.status === 429 ||
+      error.status >= 500
+    );
+  }
+
+  private clearPdfRetryTimer(): void {
+    if (this.pdfRetryTimer !== null) {
+      window.clearTimeout(this.pdfRetryTimer);
+      this.pdfRetryTimer = null;
+    }
   }
 }

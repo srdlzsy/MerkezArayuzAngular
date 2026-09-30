@@ -58,8 +58,8 @@
     <article class="notice-card" *ngIf="requiresDocumentRefresh()">
       <h3>Evrak yenilenmeli</h3>
       <p>
-        Gonderim oncesinde evrak satirlarinin degistigi belirlendi. Ayni pencereden tekrar gonderim
-        yapilamaz; pencereyi kapatip yenilenen listeden evraki yeniden ac.
+        Belge verisi veya mevcut e-irsaliye metadata kaydi yeniden incelenmeli. Ayni pencereden tekrar
+        gonderim yapilamaz; pencereyi kapatip yenilenen listeden evraki yeniden ac.
       </p>
     </article>
     <div class="feedback feedback-error" *ngIf="pdfError()">{{ pdfError() }}</div>
@@ -206,7 +206,7 @@
 
       <div class="result-actions">
         <button type="button" class="secondary-button" (click)="openPdf()" [disabled]="pdfLoading()">
-          {{ pdfLoading() ? 'PDF Hazirlaniyor...' : 'PDF Goster' }}
+          {{ pdfRetrying() ? 'PDF Tekrar Deneniyor...' : pdfLoading() ? 'PDF Hazirlaniyor...' : 'PDF Goster' }}
         </button>
         <button type="button" class="primary-button" (click)="closeDialog()">Tamam</button>
       </div>
