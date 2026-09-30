@@ -71,7 +71,12 @@ const DOCUMENT_TYPE_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: 'CustomerCard', label: 'Cari Karti' },
   { value: 'StockSalesPrice', label: 'Stok Satis Fiyati' },
   { value: 'StockMovementDocument', label: 'Stok Hareket Evraki' },
-  { value: 'CustomerMovementDocument', label: 'Cari Hareket Evraki' }
+  { value: 'CustomerMovementDocument', label: 'Cari Hareket Evraki' },
+  { value: 'CashSummary', label: 'Kasa Icmali' },
+  { value: 'OutageReceipt', label: 'Zayiat Fisi' },
+  { value: 'ExpenseReceipt', label: 'Masraf Fisi' },
+  { value: 'Virman', label: 'Stok Virmani' },
+  { value: 'InventoryCount', label: 'Stok Sayimi' }
 ];
 
 const STATUS_OPTIONS: readonly DocumentFlowFilterOption[] = [
@@ -150,6 +155,16 @@ function resolveDocumentTypeLabel(value: string | null | undefined): string {
       return 'Stok Hareket Evraki';
     case 'CustomerMovementDocument':
       return 'Cari Hareket Evraki';
+    case 'CashSummary':
+      return 'Kasa Icmali';
+    case 'OutageReceipt':
+      return 'Zayiat Fisi';
+    case 'ExpenseReceipt':
+      return 'Masraf Fisi';
+    case 'Virman':
+      return 'Stok Virmani';
+    case 'InventoryCount':
+      return 'Stok Sayimi';
     default:
       return value?.trim() || '-';
   }

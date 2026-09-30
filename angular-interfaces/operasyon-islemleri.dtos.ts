@@ -118,7 +118,12 @@ export type DocumentFlowType =
   | 'CustomerCard'
   | 'StockSalesPrice'
   | 'StockMovementDocument'
-  | 'CustomerMovementDocument';
+  | 'CustomerMovementDocument'
+  | 'CashSummary'
+  | 'OutageReceipt'
+  | 'ExpenseReceipt'
+  | 'Virman'
+  | 'InventoryCount';
 
 export type DocumentFlowStatus = 'Succeeded' | 'Failed';
 

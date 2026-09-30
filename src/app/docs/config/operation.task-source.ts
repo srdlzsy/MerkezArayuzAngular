@@ -150,10 +150,11 @@ export const OPERATION_TASK_SOURCE = {
       id: 'belge-akis-takibi',
       title: 'Belge Akis ve Hata Takibi',
       subtitle:
-        'Sevk, iade, mal kabul, siparis ve e-irsaliye akislarini olay timeline ile izler.',
+        'Sevk, iade, mal kabul, siparis, kasa ve stok belgelerinin akislarini olay timeline ile izler.',
       baseRouteOrFile: '/api/operasyon-islemleri/belge-akis-takibi',
       highlights: [
         'Auth DB document_flows ve document_flow_events kayitlarini okur',
+        'Kasa icmali, zayiat, masraf fisi, virman ve stok sayimi hareketlerini de izler',
         'Mikro API teknik yazma audit kayitlari bu ekrandaki belge akislarindan ayridir',
         'mikro_api_write_audits icin UI endpointi yayinlanana kadar audit alanlari bu response modelinde beklenmez',
         'Depo kullanicisi yalnizca kendi deposuyla iliskili akislarini gorur',

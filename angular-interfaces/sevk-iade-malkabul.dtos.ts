@@ -686,5 +686,6 @@ export interface SendEDespatchResponse {
   sentAt: string;
   endpointUrl: string;
   localMikroMetadataUpdated?: boolean;
+  localMikroMetadataUpdateQueued?: boolean;
   warning?: string | null;
 }

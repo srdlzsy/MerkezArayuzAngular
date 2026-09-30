@@ -212,15 +212,25 @@
       </div>
     </div>
 
+    <article class="notice-card" *ngIf="result.localMikroMetadataUpdateQueued">
+      <h3>Yerel Mikro Bilgisi Kuyrukta</h3>
+      <p>
+        {{
+          result.warning ||
+            'E-irsaliye gonderimi tamamlandi. Mikro evrak bilgisi arka planda isaretlenecek; bu evraki tekrar gondermeyin.'
+        }}
+      </p>
+    </article>
+
     <article
-      class="notice-card"
-      *ngIf="result.warning || result.localMikroMetadataUpdated === false"
+      class="notice-card notice-card-warning"
+      *ngIf="!result.localMikroMetadataUpdateQueued && (result.warning || result.localMikroMetadataUpdated === false)"
     >
       <h3>Yerel Mikro Bilgisi</h3>
       <p>
         {{
           result.warning ||
-            'Uyumsoft gonderimi basarili; ancak Mikro evrak metadata bilgisi yerelde isaretlenemedi. Bu evrak tekrar gonderilmemeli, belge no ve UUID ile yerel metadata onarimi yapilmali.'
+            'E-irsaliye gonderimi tamamlandi; ancak Mikro evrak bilgisi yerelde isaretlenemedi. Bu evraki tekrar gondermeyin; belge no ve UUID ile yerel metadata onarimi yapilmali.'
         }}
       </p>
     </article>
