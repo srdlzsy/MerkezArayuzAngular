@@ -83,6 +83,7 @@ import type {
   IUyumsoftOperationResponseApiDto,
   ITrendyolGoConnectionStatusApiDto,
   ITrendyolGoPriceStockPreviewApiDto,
+  ITrendyolGoPriceStockRefreshStatusApiDto,
   ITrendyolGoPriceStockDispatchApiDto,
   ITrendyolGoPriceStockDispatchHttpRequestApiDto,
   ITrendyolGoBatchItemsRequestApiDto,
@@ -175,6 +176,7 @@ export type TrendyolGoConnectionStatusDto = ITrendyolGoConnectionStatusApiDto;
 export type TrendyolGoStoreMappingDto = ITrendyolGoStoreMappingApiDto;
 export type TrendyolGoJsonDto = ITrendyolGoJsonApiDto;
 export type TrendyolGoPriceStockPreviewDto = ITrendyolGoPriceStockPreviewApiDto;
+export type TrendyolGoPriceStockRefreshStatusDto = ITrendyolGoPriceStockRefreshStatusApiDto;
 export type TrendyolGoPriceStockDispatchDto = ITrendyolGoPriceStockDispatchApiDto;
 
 export function isAxataJobTerminalStatus(status: string | null | undefined): boolean {
@@ -958,11 +960,18 @@ export class EntegrasyonIslemleriService extends BaseApiService {
 
   getTrendyolGoPriceStockPreview(
     storeId: number,
-    view?: 'issues' | 'all'
+    view: 'actionable' | 'issues' | 'all' = 'actionable'
   ) {
     return this.getWithQuery<TrendyolGoPriceStockPreviewDto>(
       'entegrasyon-islemleri/trendyol-go/price-stock/preview',
-      { storeId, view: view ?? undefined }
+      { storeId, view }
+    );
+  }
+
+  refreshTrendyolGoPriceStockPreview(storeId: number) {
+    return this.postWithQuery<TrendyolGoPriceStockRefreshStatusDto>(
+      'entegrasyon-islemleri/trendyol-go/price-stock/preview/refresh',
+      { storeId }
     );
   }
 

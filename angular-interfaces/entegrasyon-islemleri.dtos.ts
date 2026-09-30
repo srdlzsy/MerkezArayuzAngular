@@ -1426,9 +1426,7 @@ export interface ITrendyolGoPriceStockPreviewApiDto {
   storeId: number;
   warehouseNo: number;
   storeName: string;
-  page: number;
-  size: number;
-  totalPages: number;
+  totalPages: number | null;
   totalElements: number;
   previewHash: string;
   readyCount: number;
@@ -1436,18 +1434,29 @@ export interface ITrendyolGoPriceStockPreviewApiDto {
   skippedCount: number;
   view: 'actionable' | 'issues' | 'all';
   visibleCount: number;
+  snapshotStatus: 'Preparing' | 'Ready' | 'Refreshing' | 'Failed';
+  isStale: boolean;
+  generatedAtUtc: string | null;
+  refreshStartedAtUtc: string | null;
+  refreshCompletedAtUtc: string | null;
+  refreshError: string | null;
   items: ITrendyolGoPriceStockPreviewItemApiDto[];
+}
+
+export interface ITrendyolGoPriceStockRefreshStatusApiDto {
+  storeId: number;
+  snapshotStatus: 'Preparing' | 'Ready' | 'Refreshing' | 'Failed';
+  message?: string | null;
 }
 
 export interface ITrendyolGoPriceStockDispatchHttpRequestApiDto {
   storeId: number;
-  page: number;
-  size: number;
   previewHash: string;
+  sendAll: boolean;
   barcodes: string[];
 }
 
 export interface ITrendyolGoPriceStockDispatchApiDto {
-  upstreamResponse?: Record<string, unknown> | null;
+  upstreamResponses?: readonly Record<string, unknown>[] | null;
   [key: string]: unknown;
 }

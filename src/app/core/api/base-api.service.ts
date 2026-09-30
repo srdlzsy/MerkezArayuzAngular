@@ -54,6 +54,15 @@ export class BaseApiService {
     return this.http.post<TResponse>(this.buildUrl(path), body);
   }
 
+  protected postWithQuery<TResponse, TQuery extends object = object>(
+    path: string,
+    query: TQuery
+  ): Observable<TResponse> {
+    return this.http.post<TResponse>(this.buildUrl(path), null, {
+      params: this.buildParams(query)
+    });
+  }
+
   protected postBlob<TRequest>(path: string, body: TRequest): Observable<Blob> {
     return this.http.post(this.buildUrl(path), body, { responseType: 'blob' });
   }

@@ -156,6 +156,31 @@
   line-height: 1.45;
 }
 
+.snapshot-state {
+  display: flex;
+  gap: 0.45rem;
+  align-items: baseline;
+  margin: 0.65rem 0 0;
+  padding: 0.55rem 0.7rem;
+  border-left: 3px solid #0f766e;
+  background: #f0fdfa;
+  color: #134e4a;
+  font-size: 0.78rem;
+}
+
+.snapshot-state.is-preparing,
+.snapshot-state.is-refreshing {
+  border-left-color: #a16207;
+  background: #fffbeb;
+  color: #713f12;
+}
+
+.snapshot-state.is-failed {
+  border-left-color: #b91c1c;
+  background: #fef2f2;
+  color: #7f1d1d;
+}
+
 .price-stock-summary .primary-button {
   margin-left: auto;
 }

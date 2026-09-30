@@ -362,7 +362,7 @@ export const INTEGRATION_TASK_SOURCE = {
         'Picked siparis kabul bildirimi',
         'Fatura tutar araligi kontrolu ve invoiced bildirimi',
         'Secili magazanin tum katalog farklari icin Mikro fiyat/stok onizlemesi',
-        'Yalnizca hazir kalemleri hash kontroluyle 100luk paketlerde gonderme ve batch takip',
+        'Secili veya tum hazir kalemleri hash kontroluyle gonderme ve batch takip',
         'Trendyol Go icin ayrilan fiyat listesi 3; genel satis fiyati fallback kullanilmaz',
         'Opsiyonel sube POS aktarimi asenkron kuyrukta calisir',
         'Mikro evragi olusturmaz'
@@ -382,7 +382,7 @@ export const INTEGRATION_TASK_SOURCE = {
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/orders/{orderId}/invoice-amount', description: 'Izin verilen fatura tutar araligini getirir' },
             { method: 'PUT', path: '/api/entegrasyon-islemleri/trendyol-go/packages/{packageId}/invoiced', description: 'Hazirlanan siparisin fatura tutarini bildirir', payload: 'TrendyolGoInvoiceRequest' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/preview?storeId=...', description: 'Secili magazanin tum katalog farklarini Mikro fiyat ve stokla karsilastirir; issues/all gorunumleri opsiyoneldir' },
-            { method: 'POST', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/dispatch', description: 'Secili hazir barkodlari previewHash ile TGOya gonderir; opsiyonel POS aktarimi kuyrukta asenkron calisir', payload: 'TrendyolGoPriceStockDispatchHttpRequest' },
+            { method: 'POST', path: '/api/entegrasyon-islemleri/trendyol-go/price-stock/dispatch', description: 'Secili barkodlari veya sendAll ile tum hazir farklari previewHash ile TGOya gonderir; backend batch paketlerini yonetir', payload: 'TrendyolGoPriceStockDispatchHttpRequest' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/products/batch-requests/{batchRequestId}', description: 'Gonderim batch sonucunu getirir' }
           ]
         }

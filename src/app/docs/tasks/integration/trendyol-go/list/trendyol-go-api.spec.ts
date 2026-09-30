@@ -32,8 +32,8 @@ describe('Trendyol Go price/stock API', () => {
     expect(request.request.params.get('storeId')).toBe('402535');
     expect(request.request.params.has('page')).toBeFalse();
     expect(request.request.params.has('size')).toBeFalse();
-    expect(request.request.params.has('view')).toBeFalse();
-    request.flush({ items: [], storeId: 402535, page: -1, size: 100 });
+    expect(request.request.params.get('view')).toBe('actionable');
+    request.flush({ items: [], storeId: 402535, snapshotStatus: 'Preparing' });
   });
 
   it('requests an explicit diagnostic preview view when selected', () => {
@@ -42,16 +42,15 @@ describe('Trendyol Go price/stock API', () => {
       candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/price-stock/preview')
     );
     expect(request.request.params.get('view')).toBe('issues');
-    request.flush({ items: [], storeId: 402535, page: -1, size: 100 });
+    request.flush({ items: [], storeId: 402535, snapshotStatus: 'Preparing' });
   });
 
   it('dispatches selected barcodes with the preview hash', () => {
     const body = {
       storeId: 402535,
-      page: 1,
-      size: 100,
       previewHash: 'A1B2',
-      barcodes: ['8690000000000']
+      sendAll: true,
+      barcodes: []
     };
     service.dispatchTrendyolGoPriceStock(body).subscribe();
     const request = http.expectOne((candidate) =>
@@ -59,6 +58,17 @@ describe('Trendyol Go price/stock API', () => {
     );
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(body);
-    request.flush({ upstreamResponse: { batchRequestId: 'batch-1' } });
+    request.flush({ upstreamResponses: [{ batchRequestId: 'batch-1' }] });
+  });
+
+  it('queues a price-stock snapshot refresh for the selected store', () => {
+    service.refreshTrendyolGoPriceStockPreview(402535).subscribe();
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/price-stock/preview/refresh')
+    );
+    expect(request.request.method).toBe('POST');
+    expect(request.request.params.get('storeId')).toBe('402535');
+    expect(request.request.body).toBeNull();
+    request.flush({ storeId: 402535, snapshotStatus: 'Preparing' });
   });
 });

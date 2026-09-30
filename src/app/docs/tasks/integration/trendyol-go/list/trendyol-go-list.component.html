@@ -230,6 +230,10 @@
         <i class="fa-solid fa-arrows-rotate"></i>
         <span>{{ loadingPriceStock() ? 'Yukleniyor' : 'Onizlemeyi Getir' }}</span>
       </button>
+      <button type="button" class="secondary-button" (click)="refreshPriceStockPreview()" [disabled]="!selectedStore() || busyAction() !== null">
+        <i class="fa-solid fa-rotate"></i>
+        <span>{{ busyAction() === 'price-stock-refresh' ? 'Kuyruga Aliniyor' : 'Yenile' }}</span>
+      </button>
     </div>
 
     <p class="price-stock-note">
@@ -237,17 +241,27 @@
     </p>
 
     <ng-container *ngIf="priceStockPreview() as preview; else priceStockEmpty">
+      <p class="snapshot-state" [class.is-preparing]="preview.snapshotStatus === 'Preparing'" [class.is-refreshing]="preview.snapshotStatus === 'Refreshing'" [class.is-failed]="preview.snapshotStatus === 'Failed'">
+        <strong>{{ preview.snapshotStatus }}</strong>
+        <span *ngIf="preview.snapshotStatus === 'Preparing'">Katalog hazirlaniyor; ekran otomatik yenilenecek.</span>
+        <span *ngIf="preview.snapshotStatus === 'Refreshing'">Yeni snapshot hazirlaniyor; son hazir liste ekranda tutuluyor.</span>
+        <span *ngIf="preview.snapshotStatus === 'Ready'">Snapshot hazir.</span>
+        <span *ngIf="preview.snapshotStatus === 'Failed'">{{ preview.refreshError || 'Yenileme tamamlanamadi.' }}</span>
+      </p>
       <div class="price-stock-summary">
         <span>Hazir: <strong>{{ preview.readyCount }}</strong></span>
         <span>Degismeyen: <strong>{{ preview.unchangedCount }}</strong></span>
         <span>Atlanan: <strong>{{ preview.skippedCount }}</strong></span>
         <span>Gosterilen: <strong>{{ preview.visibleCount }}</strong></span>
         <span>Secili: <strong>{{ selectedReadyCount() }}</strong></span>
-        <button type="button" class="secondary-button" (click)="toggleAllReadyItems()" [disabled]="!readyItems().length">
+        <button type="button" class="secondary-button" (click)="toggleAllReadyItems()" [disabled]="!canDispatchPriceStock() || !readyItems().length">
           {{ selectedReadyCount() === readyItems().length && readyItems().length ? 'Secimi Temizle' : 'Hazirlari Sec' }}
         </button>
-        <button type="button" class="primary-button" (click)="dispatchPriceStock()" [disabled]="!canUpdate() || !selectedReadyCount() || busyAction() !== null">
+        <button type="button" class="primary-button" (click)="dispatchPriceStock()" [disabled]="!canUpdate() || !canDispatchPriceStock() || !selectedReadyCount() || busyAction() !== null">
           <i class="fa-solid fa-paper-plane"></i><span>Secilenleri Gonder</span>
+        </button>
+        <button type="button" class="primary-button" (click)="dispatchPriceStock(true)" [disabled]="!canUpdate() || !canDispatchPriceStock() || busyAction() !== null">
+          <i class="fa-solid fa-layer-group"></i><span>Tum Hazirlari Gonder</span>
         </button>
       </div>
       <div class="table-wrap price-stock-table">

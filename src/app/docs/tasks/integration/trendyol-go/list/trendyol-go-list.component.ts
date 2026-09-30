@@ -9,7 +9,7 @@ import type {
   ITrendyolGoInvoiceRequestApiDto,
   ITrendyolGoPriceStockPreviewItemApiDto
 } from '@interfaces';
-import { finalize, firstValueFrom, Observable } from 'rxjs';
+import { finalize, Observable } from 'rxjs';
 
 import {
   EntegrasyonIslemleriService,
@@ -17,6 +17,7 @@ import {
   TrendyolGoJsonDto,
   TrendyolGoStoreMappingDto,
   TrendyolGoPriceStockPreviewDto,
+  TrendyolGoPriceStockRefreshStatusDto,
   TrendyolGoPriceStockDispatchDto
 } from '../../../../../core/api/module-services/entegrasyon-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
@@ -56,6 +57,7 @@ export class TrendyolGoListComponent {
   private readonly service = inject(EntegrasyonIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private previewRequestId = 0;
+  private priceStockPollTimer: number | undefined;
 
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
   protected readonly statuses = [
@@ -126,6 +128,10 @@ export class TrendyolGoListComponent {
   protected readonly selectedReadyCount = computed(() =>
     this.readyItems().filter((item) => this.selectedBarcodes().has(item.barcode)).length
   );
+  protected readonly canDispatchPriceStock = computed(() => {
+    const preview = this.priceStockPreview();
+    return !!preview && preview.snapshotStatus === 'Ready' && !!preview.previewHash && preview.readyCount > 0;
+  });
   protected readonly selectedOrderJson = computed(() =>
     this.selectedOrder() ? JSON.stringify(this.selectedOrder(), null, 2) : ''
   );
@@ -190,6 +196,7 @@ export class TrendyolGoListComponent {
   });
 
   constructor() {
+    this.destroyRef.onDestroy(() => this.clearPriceStockPolling());
     if (this.canList()) {
       this.loadConnectionStatus();
       this.loadStores();
@@ -521,7 +528,7 @@ export class TrendyolGoListComponent {
     this.executeOperation('product-batch', request$, 'Urun batch istegi gonderildi. Batch sonucunu ID ile takip edin.');
   }
 
-  protected loadPriceStockPreview(): void {
+  protected loadPriceStockPreview(silent = false): void {
     const storeId = this.selectedStoreId();
     if (!storeId || !this.canList()) {
       this.setFeedback('error', 'Fiyat/stok onizlemesi icin magaza secin.');
@@ -530,12 +537,10 @@ export class TrendyolGoListComponent {
 
     const view = this.priceStockForm.controls.view.value;
     const requestId = ++this.previewRequestId;
-    this.priceStockPreview.set(null);
-    this.selectedBarcodes.set(new Set());
     this.loadingPriceStock.set(true);
     this.service.getTrendyolGoPriceStockPreview(
       storeId,
-      view === 'actionable' ? undefined : view
+      view
     )
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => {
         if (requestId === this.previewRequestId) this.loadingPriceStock.set(false);
@@ -544,12 +549,32 @@ export class TrendyolGoListComponent {
         next: (preview: TrendyolGoPriceStockPreviewDto) => {
           if (requestId !== this.previewRequestId || this.selectedStoreId() !== storeId) return;
           this.priceStockPreview.set(preview);
+          this.keepSelectableBarcodes(preview);
+          this.schedulePriceStockPolling(preview);
         },
         error: (error: unknown) => {
-          if (requestId === this.previewRequestId) {
+          if (!silent && requestId === this.previewRequestId) {
             this.setFeedback('error', getErrorMessage(error, 'Fiyat/stok onizlemesi alinamadi.'));
           }
         }
+      });
+  }
+
+  protected refreshPriceStockPreview(): void {
+    const storeId = this.selectedStoreId();
+    if (!storeId || !this.canList() || this.busyAction()) return;
+
+    this.clearPriceStockPolling();
+    this.busyAction.set('price-stock-refresh');
+    this.service.refreshTrendyolGoPriceStockPreview(storeId)
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busyAction.set(null)))
+      .subscribe({
+        next: (result: TrendyolGoPriceStockRefreshStatusDto) => {
+          this.setFeedback('info', result.message?.trim() || 'Onizleme yenilemesi arka planda hazirlaniyor.');
+          this.loadPriceStockPreview(true);
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Fiyat/stok yenilemesi baslatilamadi.'))
       });
   }
 
@@ -567,65 +592,58 @@ export class TrendyolGoListComponent {
     this.selectedBarcodes.set(allSelected ? new Set() : new Set(ready.map((item) => item.barcode)));
   }
 
-  protected async dispatchPriceStock(): Promise<void> {
+  protected async dispatchPriceStock(sendAll = false): Promise<void> {
     const preview = this.priceStockPreview();
     const barcodes = Array.from(new Set(this.readyItems()
       .filter((item) => this.selectedBarcodes().has(item.barcode))
       .map((item) => item.barcode)));
-    if (!this.canUpdate() || !preview || !barcodes.length || this.busyAction()) return;
+    if (!this.canUpdate() || !this.canDispatchPriceStock() || !preview || (!sendAll && !barcodes.length) || this.busyAction()) return;
     if (preview.storeId !== this.selectedStoreId() ||
       preview.view !== this.priceStockForm.controls.view.value) {
       this.invalidatePriceStockPreview();
       this.setFeedback('error', 'Magaza veya gorunum degisti. Onizlemeyi yenileyin.');
       return;
     }
-    const batches = this.splitIntoBatches(barcodes, 100);
+    const dispatchCount = sendAll ? preview.readyCount : barcodes.length;
     const confirmed = await this.confirmDialog.confirm({
       title: 'Fiyat ve stok gonderilsin mi?',
-      message: `${preview.storeName}: ${barcodes.length} hazir urun Trendyol Go'ya ${batches.length} paket halinde gonderilecek.`,
+      message: `${preview.storeName}: ${dispatchCount} hazir urun Trendyol Go'ya gonderilecek. Paketleme Trendyol limitine gore sistem tarafinda yapilacak.`,
       confirmText: 'Gonder',
       tone: 'warning'
     });
     if (!confirmed || this.priceStockPreview() !== preview) return;
 
     this.busyAction.set('price-stock-dispatch');
-    const batchIds: string[] = [];
-
-    try {
-      for (const batch of batches) {
-        const result: TrendyolGoPriceStockDispatchDto = await firstValueFrom(
-          this.service.dispatchTrendyolGoPriceStock({
-            storeId: preview.storeId,
-            page: preview.page,
-            size: preview.size,
-            previewHash: preview.previewHash,
-            barcodes: batch
-          })
-        );
-        const batchId = result.upstreamResponse?.['batchRequestId'];
-        if (batchId !== null && batchId !== undefined) {
-          batchIds.push(String(batchId));
+    this.service.dispatchTrendyolGoPriceStock({
+      storeId: preview.storeId,
+      previewHash: preview.previewHash,
+      sendAll,
+      barcodes: sendAll ? [] : barcodes
+    })
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busyAction.set(null)))
+      .subscribe({
+        next: (result: TrendyolGoPriceStockDispatchDto) => {
+          const batchIds = (result.upstreamResponses ?? [])
+            .map((response) => response['batchRequestId'])
+            .filter((batchId): batchId is string | number => batchId !== null && batchId !== undefined)
+            .map(String);
+          this.priceStockBatchIds.set(batchIds);
+          this.priceStockBatchResults.set({});
+          this.invalidatePriceStockPreview();
+          this.setFeedback('success', batchIds.length
+            ? `Gonderim kabul edildi. ${batchIds.length} batch sonucunu kontrol edin.`
+            : 'Gonderim kabul edildi. Guncel onizlemeyi kontrol edin.');
+        },
+        error: (error: unknown) => {
+          if (error instanceof HttpErrorResponse && error.status === 409) {
+            this.invalidatePriceStockPreview();
+            this.setFeedback('error', 'Veri degisti. Onizleme yenileniyor; secimi tekrar yapin.');
+            this.loadPriceStockPreview();
+            return;
+          }
+          this.setFeedback('error', getErrorMessage(error, 'Fiyat/stok gonderilemedi.'));
         }
-      }
-    } catch (error: unknown) {
-      if (error instanceof HttpErrorResponse && error.status === 409) {
-        this.invalidatePriceStockPreview();
-        this.setFeedback('error', 'Veri degisti. Onizleme yenileniyor; secimi tekrar yapin.');
-        this.loadPriceStockPreview();
-        return;
-      }
-      this.setFeedback('error', getErrorMessage(error, 'Fiyat/stok gonderilemedi.'));
-      return;
-    } finally {
-      this.busyAction.set(null);
-    }
-
-    this.priceStockBatchIds.set(batchIds);
-    this.priceStockBatchResults.set({});
-    this.invalidatePriceStockPreview();
-    this.setFeedback('success', batchIds.length
-      ? `${batches.length} gonderim kabul edildi. Batch sonuclarini kontrol edin.`
-      : `${batches.length} gonderim kabul edildi. Guncel onizlemeyi kontrol edin.`);
+      });
   }
 
   protected checkPriceStockBatch(batchId: string): void {
@@ -645,17 +663,34 @@ export class TrendyolGoListComponent {
 
   private invalidatePriceStockPreview(): void {
     this.previewRequestId++;
+    this.clearPriceStockPolling();
     this.priceStockPreview.set(null);
     this.selectedBarcodes.set(new Set());
     this.loadingPriceStock.set(false);
   }
 
-  private splitIntoBatches<T>(items: readonly T[], batchSize: number): T[][] {
-    const batches: T[][] = [];
-    for (let index = 0; index < items.length; index += batchSize) {
-      batches.push(items.slice(index, index + batchSize));
+  private keepSelectableBarcodes(preview: TrendyolGoPriceStockPreviewDto): void {
+    const selectable = new Set(preview.items
+      .filter((item) => item.status === 'Ready' && !!item.barcode)
+      .map((item) => item.barcode));
+    this.selectedBarcodes.update((current) => new Set([...current].filter((barcode) => selectable.has(barcode))));
+  }
+
+  private schedulePriceStockPolling(preview: TrendyolGoPriceStockPreviewDto): void {
+    this.clearPriceStockPolling();
+    if (preview.snapshotStatus !== 'Preparing' && preview.snapshotStatus !== 'Refreshing') return;
+
+    const requestId = this.previewRequestId;
+    this.priceStockPollTimer = window.setTimeout(() => {
+      if (requestId === this.previewRequestId) this.loadPriceStockPreview(true);
+    }, 3_000);
+  }
+
+  private clearPriceStockPolling(): void {
+    if (this.priceStockPollTimer !== undefined) {
+      window.clearTimeout(this.priceStockPollTimer);
+      this.priceStockPollTimer = undefined;
     }
-    return batches;
   }
 
   protected async submitPackageAction(): Promise<void> {
