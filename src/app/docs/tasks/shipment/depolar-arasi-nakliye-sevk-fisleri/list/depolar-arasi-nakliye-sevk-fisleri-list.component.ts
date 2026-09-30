@@ -66,7 +66,8 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
         key: 'delete-shipment',
         label: 'Sil',
         tone: 'neutral',
-        isVisible: () => this.hasTaskActionPermission('delete')
+        isVisible: (row) =>
+          this.hasTaskActionPermission('delete') && !row.documentNo?.trim()
       }
     ]);
   }
