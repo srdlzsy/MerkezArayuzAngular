@@ -37,6 +37,7 @@ interface AuthSession {
 }
 
 const AUTH_STORAGE_KEY = 'angularv20.auth.session';
+const WEB_DEVICE_ID_STORAGE_KEY = 'angularv20.auth.web-device-id';
 const MAX_AUTH_TOKEN_LENGTH = 4096;
 
 @Injectable({
@@ -171,7 +172,9 @@ export class AuthService {
 
     const data: LoginRequest = {
       usernameOrEmail: normalizedIdentifier,
-      password
+      password,
+      clientType: 'web',
+      deviceId: this.getWebDeviceId()
     };
 
     return this.http.post<LoginResponse>(this.buildUrl('auth/login'), data).pipe(
@@ -476,6 +479,18 @@ export class AuthService {
     const trimmedBaseUrl = this.apiBaseUrl.replace(/\/+$/, '');
     const trimmedPath = path.replace(/^\/+/, '');
     return `${trimmedBaseUrl}/${trimmedPath}`;
+  }
+
+  private getWebDeviceId(): string {
+    const storedDeviceId = this.storage.getItem(WEB_DEVICE_ID_STORAGE_KEY)?.trim();
+
+    if (storedDeviceId) {
+      return storedDeviceId.slice(0, 100);
+    }
+
+    const generatedDeviceId = `web-${globalThis.crypto?.randomUUID?.() ?? `${Date.now()}-${Math.random().toString(36).slice(2)}`}`;
+    this.storage.setItem(WEB_DEVICE_ID_STORAGE_KEY, generatedDeviceId);
+    return generatedDeviceId;
   }
 
   private normalizeAccessToken(value: unknown): string | null {

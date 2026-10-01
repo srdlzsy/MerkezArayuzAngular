@@ -10,6 +10,8 @@
 export interface LoginUserRequest {
   usernameOrEmail: string;
   password: string;
+  clientType?: 'web' | 'terminal';
+  deviceId?: string | null;
 }
 
 export interface RegisterUserRequest {

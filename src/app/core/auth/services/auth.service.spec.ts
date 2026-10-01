@@ -7,6 +7,7 @@ import { API_BASE_URL } from '../../api/api-base-url.token';
 import { AuthService } from './auth.service';
 
 const AUTH_STORAGE_KEY = 'angularv20.auth.session';
+const WEB_DEVICE_ID_STORAGE_KEY = 'angularv20.auth.web-device-id';
 
 describe('AuthService', () => {
   let service: AuthService;
@@ -35,6 +36,7 @@ describe('AuthService', () => {
   beforeEach(() => {
     localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(WEB_DEVICE_ID_STORAGE_KEY);
 
     TestBed.configureTestingModule({
       providers: [
@@ -55,6 +57,7 @@ describe('AuthService', () => {
     httpMock.verify();
     localStorage.removeItem(AUTH_STORAGE_KEY);
     sessionStorage.removeItem(AUTH_STORAGE_KEY);
+    localStorage.removeItem(WEB_DEVICE_ID_STORAGE_KEY);
   });
 
   it('returns false and skips HTTP calls for empty credentials', () => {
@@ -77,10 +80,14 @@ describe('AuthService', () => {
 
     const loginRequest = httpMock.expectOne('http://api.test/auth/login');
     expect(loginRequest.request.method).toBe('POST');
-    expect(loginRequest.request.body).toEqual({
-      usernameOrEmail: 'user@example.com',
-      password: ' pass123 '
-    });
+    expect(loginRequest.request.body).toEqual(
+      jasmine.objectContaining({
+        usernameOrEmail: 'user@example.com',
+        password: ' pass123 ',
+        clientType: 'web'
+      })
+    );
+    expect(loginRequest.request.body.deviceId).toMatch(/^web-/);
     loginRequest.flush({
       tokenType: 'Bearer',
       accessToken: 'access-token',

@@ -60,6 +60,8 @@ export interface CurrentUser {
 export interface LoginRequest {
   usernameOrEmail: string;
   password: string;
+  clientType: 'web';
+  deviceId: string;
 }
 
 export interface RefreshTokenRequest {
