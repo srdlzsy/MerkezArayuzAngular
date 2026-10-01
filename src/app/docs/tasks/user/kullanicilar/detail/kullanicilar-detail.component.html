@@ -191,7 +191,7 @@
               </label>
 
               <label class="field field-wide">
-                <span>Roller</span>
+                <span>Genel / Teknik Roller</span>
                 <select multiple class="role-select" (change)="onUserRoleSelectionChange($event)">
                   <option
                     *ngFor="let role of roles(); trackBy: trackByRole"
@@ -204,6 +204,65 @@
               </label>
             </div>
           </form>
+
+          <section class="form-card client-role-card">
+            <div class="client-role-heading">
+              <div>
+                <p class="eyebrow small">ISTEMCI YETKI PROFILLERI</p>
+                <h4>Web ve Terminal Rolleri</h4>
+              </div>
+              <span class="loader-inline" *ngIf="clientRolesLoading()">Yukleniyor...</span>
+            </div>
+
+            <div class="feedback feedback-error" *ngIf="clientRoleError()">{{ clientRoleError() }}</div>
+            <div class="feedback feedback-success" *ngIf="clientRoleSuccess()">{{ clientRoleSuccess() }}</div>
+
+            <div class="client-role-grid" [formGroup]="clientRoleForm">
+              <div class="client-role-column">
+                <label class="field">
+                  <span>Web Rolleri</span>
+                  <select multiple class="role-select" formControlName="web" [attr.aria-busy]="clientRolesLoading()">
+                    <option *ngFor="let role of activeClientRoles(); trackBy: trackByRole" [value]="role.id">
+                      {{ role.name }}
+                    </option>
+                  </select>
+                </label>
+                <small class="field-hint" *ngIf="clientRoleControls.web.touched && clientRoleControls.web.invalid">
+                  En az bir aktif rol secin.
+                </small>
+                <button
+                  type="button"
+                  class="primary-button"
+                  (click)="saveClientRoles('web')"
+                  [disabled]="clientRolesLoading() || !!clientRoleSaving()"
+                >
+                  {{ clientRoleSaving() === 'web' ? 'Kaydediliyor...' : 'Web Rollerini Kaydet' }}
+                </button>
+              </div>
+
+              <div class="client-role-column">
+                <label class="field">
+                  <span>Terminal Rolleri</span>
+                  <select multiple class="role-select" formControlName="terminal" [attr.aria-busy]="clientRolesLoading()">
+                    <option *ngFor="let role of activeClientRoles(); trackBy: trackByRole" [value]="role.id">
+                      {{ role.name }}
+                    </option>
+                  </select>
+                </label>
+                <small class="field-hint" *ngIf="clientRoleControls.terminal.touched && clientRoleControls.terminal.invalid">
+                  En az bir aktif rol secin.
+                </small>
+                <button
+                  type="button"
+                  class="primary-button"
+                  (click)="saveClientRoles('terminal')"
+                  [disabled]="clientRolesLoading() || !!clientRoleSaving()"
+                >
+                  {{ clientRoleSaving() === 'terminal' ? 'Kaydediliyor...' : 'Terminal Rollerini Kaydet' }}
+                </button>
+              </div>
+            </div>
+          </section>
 
           <section class="catalog-card" *ngIf="getVisibleCatalogModules().length > 0">
             <div class="catalog-head">

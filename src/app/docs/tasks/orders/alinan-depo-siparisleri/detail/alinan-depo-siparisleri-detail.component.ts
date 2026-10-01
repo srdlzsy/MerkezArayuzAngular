@@ -80,13 +80,12 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 </head>
 <body>
   <main class="sheet">
-    <h1>Gelen Siparisler</h1>
+    <h1>Manav Siparis Formu</h1>
 
     <section class="meta">
-      <p>
-        <strong>Siparis Tarihi:</strong>${this.escapeHtml(this.formatPrintDate(header.documentDate))}
-        <span>${this.escapeHtml(this.resolveRequesterWarehouseLabel(header))}</span>
-      </p>
+      <p><strong>Siparis No:</strong> ${this.escapeHtml(this.orderIdentity())}</p>
+      <p><strong>Siparis Tarihi:</strong> ${this.escapeHtml(this.formatPrintDate(header.documentDate))}</p>
+      <p><strong>Siparis Veren Depo:</strong> ${this.escapeHtml(this.resolveRequesterWarehouseLabel(header))}</p>
       <p><strong>Siparis Verilen Depo:</strong> ${this.escapeHtml(this.resolveManavWarehouseLabel(header))}</p>
     </section>
 
@@ -103,31 +102,22 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
     const rows = items
       .map(
-        (item, index) => `<tr>
-          <td class="line-no">${this.escapeHtml(this.formatPrintNumber(index + 1))}</td>
-          <td class="barcode">${this.escapeHtml(this.resolveLineBarcode(item))}</td>
+        (item) => `<tr>
           <td class="product">${this.escapeHtml(item.stockName || '-')}</td>
           <td class="quantity">${this.escapeHtml(this.formatPrintNumber(item.quantity))}</td>
-          <td class="unit">${this.escapeHtml(item.unitName || '-')}</td>
         </tr>`
       )
       .join('');
 
     return `<table>
       <colgroup>
-        <col class="col-no">
-        <col class="col-barcode">
         <col>
         <col class="col-quantity">
-        <col class="col-unit">
       </colgroup>
       <thead>
         <tr>
-          <th>#</th>
-          <th>Barkod</th>
           <th>Urun Adi</th>
-          <th class="quantity">Miktar</th>
-          <th class="unit">Birim</th>
+          <th>Miktar</th>
         </tr>
       </thead>
       <tbody>${rows}</tbody>
@@ -160,22 +150,6 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
     const manavWarehouse = candidates.find((candidate) => candidate.no === this.manavWarehouseNo);
 
     return manavWarehouse?.name?.trim() || 'MANAV DEPO';
-  }
-
-  private resolveLineBarcode(item: WarehouseOrderLineItemDto): string {
-    const rawItem = item as WarehouseOrderLineItemDto & {
-      barcode?: string | null;
-      barkodu?: string | null;
-      stockBarcode?: string | null;
-    };
-
-    return (
-      rawItem.barcode?.trim() ||
-      rawItem.barkodu?.trim() ||
-      rawItem.stockBarcode?.trim() ||
-      item.stockCode?.trim() ||
-      '-'
-    );
   }
 
   private joinWarehouse(warehouseNo: number | null | undefined, warehouseName: string | null | undefined): string {
@@ -247,7 +221,8 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
         padding: 0;
         color: #000;
         background: #d9dadd;
-        font-family: "Times New Roman", Times, serif;
+        font-family: Arial, sans-serif;
+        text-align: left;
       }
 
       .sheet {
@@ -259,30 +234,25 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
       }
 
       h1 {
-        margin: 0 0 16px;
-        text-align: center;
-        font-size: 29px;
-        line-height: 1.1;
+        margin: 0 0 14px;
+        text-align: left;
+        font-size: 22px;
+        line-height: 1.2;
         font-weight: 700;
       }
 
       .meta {
-        margin: 0 0 12px;
-        font-size: 14px;
-        line-height: 1.35;
-        font-weight: 700;
+        margin: 0 0 16px;
+        font-size: 13px;
+        line-height: 1.45;
       }
 
       .meta p {
-        margin: 0 0 3px;
+        margin: 0 0 2px;
       }
 
       .meta strong {
         margin-right: 2px;
-      }
-
-      .meta span {
-        margin-left: 10px;
       }
 
       table {
@@ -291,45 +261,30 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
         table-layout: fixed;
       }
 
-      .col-no {
-        width: 25px;
-      }
-
-      .col-barcode {
-        width: 86px;
-      }
-
       .col-quantity {
-        width: 72px;
-      }
-
-      .col-unit {
-        width: 64px;
+        width: 36mm;
       }
 
       th,
       td {
+        padding: 5px 6px 5px 0;
         border: 0;
-        padding: 1px 7px;
-        vertical-align: top;
+        border-bottom: 1px solid #d1d5db;
+        vertical-align: middle;
+        text-align: left;
         font-size: 13px;
-        line-height: 1.12;
+        line-height: 1.25;
       }
 
       th {
-        padding-bottom: 4px;
-        text-align: left;
-        font-size: 15px;
+        padding-top: 0;
+        border-bottom: 1.5px solid #111;
+        font-size: 13px;
         font-weight: 700;
       }
 
-      .line-no,
       .quantity {
-        text-align: right;
-      }
-
-      .unit {
-        text-align: center;
+        text-align: left;
       }
 
       .product {

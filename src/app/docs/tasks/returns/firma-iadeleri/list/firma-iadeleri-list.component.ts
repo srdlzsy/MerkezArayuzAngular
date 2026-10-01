@@ -35,6 +35,12 @@ const ROW_ACTIONS: readonly ApiListTableRowAction<IFurpaCompanyMovementListItemA
     label: 'PDF Goster',
     tone: 'neutral',
     isVisible: (row) => !!row.documentNo?.trim()
+  },
+  {
+    key: 'print-pdf',
+    label: 'Yazdir',
+    tone: 'primary',
+    isVisible: (row) => !!row.documentNo?.trim()
   }
 ];
 
@@ -67,10 +73,12 @@ export class FirmaIadeleriListComponent extends ApiTaskListPageBase<IFurpaCompan
   ): void {
     const row = event.row;
 
-    if (event.actionKey === 'show-pdf') {
+    if (event.actionKey === 'show-pdf' || event.actionKey === 'print-pdf') {
+      const shouldPrint = event.actionKey === 'print-pdf';
+      const documentLabel = row.documentNo || `${row.documentSerie}/${row.documentOrderNo}`;
       this.errorMessage.set(null);
       this.activityMessage.set(
-        `${row.documentNo || `${row.documentSerie}-${row.documentOrderNo}`} PDF yukleniyor.`
+        shouldPrint ? `${documentLabel} yazdirma icin hazirlaniyor.` : `${documentLabel} PDF yukleniyor.`
       );
       this.iadeIslemleriService
         .getFirmaIadeEirsaliyePdf(row.documentSerie, row.documentOrderNo, row.warehouseNo)
@@ -80,13 +88,20 @@ export class FirmaIadeleriListComponent extends ApiTaskListPageBase<IFurpaCompan
         )
         .subscribe({
           next: (blob: Blob) => {
-            this.openBlobInDialog(blob, row.documentNo || `${row.documentSerie}/${row.documentOrderNo}`);
+            if (shouldPrint) {
+              this.printPdfBlob(blob, documentLabel);
+              return;
+            }
+
+            this.openBlobInDialog(blob, documentLabel);
           },
           error: (error: unknown) => {
             this.errorMessage.set(
               this.resolveHttpErrorMessage(
                 error,
-                'E-irsaliye PDF dosyasi acilamadi. Evrak daha once gonderilmemis olabilir.'
+                shouldPrint
+                  ? 'E-irsaliye PDF dosyasi yazdirma icin alinamadi.'
+                  : 'E-irsaliye PDF dosyasi acilamadi. Evrak daha once gonderilmemis olabilir.'
               )
             );
           }

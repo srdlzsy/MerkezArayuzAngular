@@ -14,6 +14,9 @@ import {
   IFurpaSaveRoleRequestApiDto,
   IFurpaUpdateUserRequestApiDto,
   IFurpaUserApiDto,
+  IFurpaUserClientRoleApiDto,
+  IFurpaUserClientRoleAssignRequestApiDto,
+  IFurpaUserClientTypeApiDto,
   IFurpaUserRoleAssignRequestApiDto,
   UserDto,
   RoleDto,
@@ -394,6 +397,27 @@ export class KullaniciIslemleriService extends BaseApiService {
   assignUserRoles(userId: string, roleIds: string[] | IFurpaUserRoleAssignRequestApiDto): Observable<any> {
     const nextRoleIds = Array.isArray(roleIds) ? roleIds : roleIds.roleIds;
     return this.assignRolesToUser(userId, nextRoleIds);
+  }
+
+  getUserClientRoles(userId: string): Observable<IFurpaUserClientRoleApiDto[]> {
+    return this.get<IFurpaUserClientRoleApiDto[]>(
+      `users/${encodeURIComponent(userId)}/client-roles`
+    );
+  }
+
+  assignUserClientRoles(
+    userId: string,
+    clientType: IFurpaUserClientTypeApiDto,
+    roleIds: string[] | IFurpaUserClientRoleAssignRequestApiDto
+  ): Observable<IFurpaUserClientRoleApiDto[]> {
+    const request: IFurpaUserClientRoleAssignRequestApiDto = {
+      roleIds: Array.isArray(roleIds) ? roleIds : roleIds.roleIds
+    };
+
+    return this.put<IFurpaUserClientRoleApiDto[], IFurpaUserClientRoleAssignRequestApiDto>(
+      `users/${encodeURIComponent(userId)}/client-roles/${encodeURIComponent(clientType)}`,
+      request
+    );
   }
 
   /**

@@ -120,6 +120,18 @@ export interface AssignRolesBody {
   roleIds: string[];
 }
 
+export type UserClientType = 'web' | 'terminal';
+
+export interface UserClientRoleDto {
+  clientType: UserClientType;
+  roleId: string;
+  roleName: string;
+}
+
+export interface AssignClientRolesBody {
+  roleIds: string[];
+}
+
 // ============================================================================
 // User Management Modelleri
 // ============================================================================

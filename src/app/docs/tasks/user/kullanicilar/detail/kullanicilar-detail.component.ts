@@ -11,6 +11,8 @@ import type {
   IFurpaSaveRoleRequestApiDto,
   IFurpaUpdateUserRequestApiDto,
   IFurpaUserApiDto,
+  IFurpaUserClientRoleApiDto,
+  IFurpaUserClientTypeApiDto,
   IFurpaUserRoleAssignRequestApiDto
 } from '@interfaces';
 import { catchError, finalize, map, of, switchMap } from 'rxjs';
@@ -79,11 +81,18 @@ export class KullanicilarDetailComponent implements OnInit {
   protected readonly error = signal('');
   protected readonly saveError = signal('');
   protected readonly saveSuccess = signal('');
+  protected readonly clientRolesLoading = signal(false);
+  protected readonly clientRoleSaving = signal<IFurpaUserClientTypeApiDto | null>(null);
+  protected readonly clientRoleError = signal('');
+  protected readonly clientRoleSuccess = signal('');
   protected readonly entitySearch = signal('');
   protected readonly detailSearch = signal('');
   protected readonly showSelectedOnly = signal(false);
   protected readonly users = signal<IFurpaUserApiDto[]>([]);
   protected readonly roles = signal<IFurpaRoleApiDto[]>([]);
+  protected readonly activeClientRoles = computed(() =>
+    this.roles().filter((role: IFurpaRoleApiDto) => role.isActive)
+  );
   protected readonly permissions = signal<IFurpaPermissionListItemApiDto[]>([]);
   protected readonly permissionCatalog = signal<IFurpaPermissionCatalogModuleApiDto[]>([]);
   protected readonly activeUserId = signal<string | null>(null);
@@ -216,6 +225,18 @@ export class KullanicilarDetailComponent implements OnInit {
     roleIds: new FormControl<string[]>([], { nonNullable: true })
   };
   protected readonly userForm = new FormGroup(this.userControls);
+  protected readonly clientRoleControls = {
+    web: new FormControl<string[]>([], { nonNullable: true, validators: [Validators.required] }),
+    terminal: new FormControl<string[]>([], {
+      nonNullable: true,
+      validators: [Validators.required]
+    })
+  };
+  protected readonly clientRoleForm = new FormGroup(this.clientRoleControls);
+  private loadedClientRoleIds: Record<IFurpaUserClientTypeApiDto, string[]> = {
+    web: [],
+    terminal: []
+  };
 
   protected readonly roleControls = {
     name: new FormControl('', { nonNullable: true, validators: [Validators.required] }),
@@ -266,6 +287,7 @@ export class KullanicilarDetailComponent implements OnInit {
     this.patchUserForm(this.selectedUser());
     this.navigateToSelection(userId);
     this.clearSaveMessages();
+    this.loadUserClientRoles(userId);
   }
 
   protected selectRole(roleId: string): void {
@@ -376,6 +398,52 @@ export class KullanicilarDetailComponent implements OnInit {
 
   protected isRoleAssigned(roleId: string): boolean {
     return this.userControls.roleIds.value.includes(roleId);
+  }
+
+  protected saveClientRoles(clientType: IFurpaUserClientTypeApiDto): void {
+    const userId = this.activeUserId();
+    const control = this.clientRoleControls[clientType];
+    const roleIds = this.normalizeRoleIds(control.value);
+
+    this.clientRoleError.set('');
+    this.clientRoleSuccess.set('');
+
+    if (!userId || this.clientRoleSaving()) {
+      return;
+    }
+
+    if (!roleIds.length) {
+      control.markAsTouched();
+      this.clientRoleError.set(`${this.getClientTypeLabel(clientType)} icin en az bir aktif rol secin.`);
+      return;
+    }
+
+    if (this.areRoleSetsEqual(roleIds, this.loadedClientRoleIds[clientType])) {
+      this.clientRoleSuccess.set(`${this.getClientTypeLabel(clientType)} rollerinde degisiklik yok.`);
+      return;
+    }
+
+    this.clientRoleSaving.set(clientType);
+    this.kullaniciIslemleriService
+      .assignUserClientRoles(userId, clientType, roleIds)
+      .pipe(finalize(() => this.clientRoleSaving.set(null)))
+      .subscribe({
+        next: (mappings: IFurpaUserClientRoleApiDto[]) => {
+          this.applyClientRoleMappings(mappings ?? []);
+          this.clientRoleSuccess.set(
+            `${this.getClientTypeLabel(clientType)} rolleri guncellendi. Bu istemcideki acik oturumlar yeniden giris yapmalidir.`
+          );
+        },
+        error: (error: HttpErrorResponse) => {
+          this.clientRoleError.set(
+            this.resolveError(error, `${this.getClientTypeLabel(clientType)} rolleri kaydedilemedi.`)
+          );
+        }
+      });
+  }
+
+  protected getClientTypeLabel(clientType: IFurpaUserClientTypeApiDto): string {
+    return clientType === 'web' ? 'Web' : 'Terminal';
   }
 
   protected getUserDisplayName(user: IFurpaUserApiDto | null): string {
@@ -535,6 +603,9 @@ export class KullanicilarDetailComponent implements OnInit {
           this.patchUserForm(
             sortedUsers.find((user: IFurpaUserApiDto) => user.id === nextId) ?? null
           );
+          if (nextId) {
+            this.loadUserClientRoles(nextId);
+          }
           })
         )
       )
@@ -755,6 +826,65 @@ export class KullanicilarDetailComponent implements OnInit {
         )
         .filter(Boolean)
     });
+  }
+
+  private loadUserClientRoles(userId: string): void {
+    this.clientRolesLoading.set(true);
+    this.clientRoleError.set('');
+    this.clientRoleSuccess.set('');
+    this.resetClientRoleControls();
+
+    this.kullaniciIslemleriService
+      .getUserClientRoles(userId)
+      .pipe(finalize(() => {
+        if (this.activeUserId() === userId) {
+          this.clientRolesLoading.set(false);
+        }
+      }))
+      .subscribe({
+        next: (mappings: IFurpaUserClientRoleApiDto[]) => {
+          if (this.activeUserId() === userId) {
+            this.applyClientRoleMappings(mappings ?? []);
+          }
+        },
+        error: (error: HttpErrorResponse) => {
+          if (this.activeUserId() === userId) {
+            this.clientRoleError.set(
+              this.resolveError(error, 'Web ve terminal rol eslesmeleri yuklenemedi.')
+            );
+          }
+        }
+      });
+  }
+
+  private applyClientRoleMappings(mappings: IFurpaUserClientRoleApiDto[]): void {
+    const nextRoleIds: Record<IFurpaUserClientTypeApiDto, string[]> = {
+      web: this.normalizeRoleIds(
+        mappings.filter((item) => item.clientType === 'web').map((item) => item.roleId)
+      ),
+      terminal: this.normalizeRoleIds(
+        mappings.filter((item) => item.clientType === 'terminal').map((item) => item.roleId)
+      )
+    };
+
+    this.loadedClientRoleIds = nextRoleIds;
+    this.clientRoleForm.reset({ web: [...nextRoleIds.web], terminal: [...nextRoleIds.terminal] });
+  }
+
+  private resetClientRoleControls(): void {
+    this.loadedClientRoleIds = { web: [], terminal: [] };
+    this.clientRoleForm.reset({ web: [], terminal: [] });
+  }
+
+  private normalizeRoleIds(roleIds: string[]): string[] {
+    return [...new Set(roleIds.map((roleId) => roleId.trim()).filter(Boolean))].sort();
+  }
+
+  private areRoleSetsEqual(left: string[], right: string[]): boolean {
+    const normalizedLeft = this.normalizeRoleIds(left);
+    const normalizedRight = this.normalizeRoleIds(right);
+    return normalizedLeft.length === normalizedRight.length &&
+      normalizedLeft.every((roleId, index) => roleId === normalizedRight[index]);
   }
 
   private patchRoleForm(role: IFurpaRoleApiDto | null): void {

@@ -17,6 +17,7 @@ import {
   PdfPreviewDialogComponent,
   PdfPreviewDialogData
 } from '../pdf-preview-dialog/pdf-preview-dialog.component';
+import { PdfPrintService } from '../document-print/pdf-print.service';
 import {
   buildAllWarehousesPermissionCode,
   currentUserHasPermission,
@@ -43,6 +44,7 @@ export abstract class ApiTaskListPageBase<
 
   protected readonly dialog = inject(Dialog);
   protected readonly destroyRef = inject(DestroyRef);
+  private readonly pdfPrintService = inject(PdfPrintService);
   private readonly listAuthService = inject(AuthService);
   private activeRequestId = 0;
 
@@ -260,13 +262,17 @@ export abstract class ApiTaskListPageBase<
     const activityMessage = this.activityMessage();
 
     return actions.map((action) => {
-      if (action.key !== 'show-pdf') {
+      if (action.key !== 'show-pdf' && action.key !== 'print-pdf') {
         return action;
       }
 
       return {
         ...action,
-        label: activityMessage ? 'PDF Yukleniyor...' : action.label,
+        label: activityMessage
+          ? action.key === 'print-pdf'
+            ? 'Yazdirma Hazirlaniyor...'
+            : 'PDF Yukleniyor...'
+          : action.label,
         isDisabled: (row: TRow) => !!activityMessage || (action.isDisabled?.(row) ?? false)
       };
     });
@@ -461,6 +467,17 @@ export abstract class ApiTaskListPageBase<
     this.dialog.open<void, PdfPreviewDialogData>(PdfPreviewDialogComponent, {
       data: { blob, title },
       hasBackdrop: false
+    });
+  }
+
+  protected printPdfBlob(blob: Blob, title = 'PDF'): void {
+    void this.pdfPrintService.print({ blob, title }).catch((error: unknown) => {
+      this.errorMessage.set(
+        this.resolveHttpErrorMessage(
+          error,
+          'PDF yazdirma ekrani acilamadi. Tarayicinin yazdirma iznini kontrol edin.'
+        )
+      );
     });
   }
 

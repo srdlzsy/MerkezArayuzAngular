@@ -1,5 +1,6 @@
 import type {
   AssignPermissionsBody,
+  AssignClientRolesBody,
   AssignRolesBody,
   AuthResponse,
   LoginUserRequest,
@@ -12,6 +13,8 @@ import type {
   SavePermissionBody,
   SaveRoleBody,
   UpdateUserBody,
+  UserClientRoleDto,
+  UserClientType,
   UserDto
 } from './auth.dtos';
 
@@ -83,6 +86,9 @@ export type IFurpaUserApiDto = UserDto;
 export type IFurpaRegisterRequestApiDto = RegisterUserRequest;
 export type IFurpaRolePermissionAssignRequestApiDto = AssignPermissionsBody;
 export type IFurpaUserRoleAssignRequestApiDto = AssignRolesBody;
+export type IFurpaUserClientRoleApiDto = UserClientRoleDto;
+export type IFurpaUserClientRoleAssignRequestApiDto = AssignClientRolesBody;
+export type IFurpaUserClientTypeApiDto = UserClientType;
 export type IFurpaLoginRequestApiDto = LoginUserRequest;
 export type IFurpaSavePermissionRequestApiDto = SavePermissionBody;
 export type IFurpaSaveRoleRequestApiDto = SaveRoleBody;
