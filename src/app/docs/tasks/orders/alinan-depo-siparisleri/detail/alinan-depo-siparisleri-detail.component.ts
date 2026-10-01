@@ -256,13 +256,15 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
       }
 
       table {
-        width: 100%;
+        width: 125mm;
+        max-width: 100%;
+        margin: 0;
         border-collapse: collapse;
         table-layout: fixed;
       }
 
       .col-quantity {
-        width: 36mm;
+        width: 26mm;
       }
 
       th,
