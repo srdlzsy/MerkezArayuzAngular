@@ -197,6 +197,35 @@ describe('AuthService', () => {
     expect(service.getAccessToken()).toBe('new-token');
   });
 
+  it('shares one refresh request between concurrent callers', async () => {
+    service.login('user@example.com', 'pass123').subscribe();
+    completeSuccessfulLogin('old-token', 'old-refresh');
+
+    const firstRefresh = firstValueFrom(service.refreshAccessToken());
+    const secondRefresh = firstValueFrom(service.refreshAccessToken());
+    const refreshRequests = httpMock.match('http://api.test/auth/refresh');
+
+    expect(refreshRequests.length).toBe(1);
+    refreshRequests[0].flush({
+      tokenType: 'Bearer',
+      accessToken: 'new-token',
+      refreshToken: 'new-refresh',
+      expiresIn: 3600,
+      currentUser: {
+        ad: 'Updated',
+        soyad: 'User',
+        depoNo: 5,
+        depoIsmi: 'Sube',
+        roller: ['Operator'],
+        sorumluluklar: []
+      }
+    });
+
+    await expectAsync(firstRefresh).toBeResolvedTo('new-token');
+    await expectAsync(secondRefresh).toBeResolvedTo('new-token');
+    expect(service.getAccessToken()).toBe('new-token');
+  });
+
   it('refreshes current user and updates the stored permission tree', async () => {
     service.login('user@example.com', 'pass123').subscribe();
     completeSuccessfulLogin();

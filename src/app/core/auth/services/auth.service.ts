@@ -51,6 +51,7 @@ export class AuthService {
   private readonly storedSession = this.readStoredSession();
   private readonly sessionSignal = signal<AuthSession | null>(this.storedSession);
   private hydrationRequest$: Observable<CurrentUser | null> | null = null;
+  private refreshAccessTokenRequest$: Observable<string> | null = null;
   private hasRefreshedHydratedSession = !this.storedSession?.accessToken;
 
   readonly isAuthenticated = computed(() => !!this.sessionSignal()?.accessToken);
@@ -214,6 +215,7 @@ export class AuthService {
 
     this.hasRefreshedHydratedSession = true;
     this.hydrationRequest$ = null;
+    this.refreshAccessTokenRequest$ = null;
     this.sessionSignal.set(null);
     this.clearStoredSession();
   }
@@ -227,6 +229,12 @@ export class AuthService {
   }
 
   refreshAccessToken(): Observable<string> {
+    const activeRequest = this.refreshAccessTokenRequest$;
+
+    if (activeRequest) {
+      return activeRequest;
+    }
+
     const session = this.sessionSignal();
 
     if (!session?.refreshToken) {
@@ -237,7 +245,7 @@ export class AuthService {
       refreshToken: session.refreshToken
     };
 
-    return this.http.post<LoginResponse>(this.buildUrl('auth/refresh'), request).pipe(
+    const refreshRequest$ = this.http.post<LoginResponse>(this.buildUrl('auth/refresh'), request).pipe(
       switchMap((response: LoginResponse) => {
         const accessToken = this.normalizeAccessToken(response.accessToken);
 
@@ -265,8 +273,15 @@ export class AuthService {
         }
 
         return this.refreshCurrentUser().pipe(map(() => nextSession.accessToken));
-      })
+      }),
+      finalize(() => {
+        this.refreshAccessTokenRequest$ = null;
+      }),
+      shareReplay({ bufferSize: 1, refCount: false })
     );
+
+    this.refreshAccessTokenRequest$ = refreshRequest$;
+    return refreshRequest$;
   }
 
   private storeSession(
