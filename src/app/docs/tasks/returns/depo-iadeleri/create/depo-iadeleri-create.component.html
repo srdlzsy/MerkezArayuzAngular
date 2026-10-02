@@ -8,15 +8,23 @@
 
     <div class="header-actions">
       <button type="button" class="ghost-button" (click)="close()">Kapat</button>
-      <button type="submit" class="primary-button" [disabled]="submitting()" form="depo-iade-form">
+      <button type="submit" class="primary-button" [disabled]="submitting() || !!safeCreateFailure()?.blocksSubmit" form="depo-iade-form">
         {{ submitting() ? 'Kaydediliyor...' : 'Iadeyi Kaydet' }}
       </button>
     </div>
   </header>
 
   <div class="dialog-body">
-    <form id="depo-iade-form" class="form-shell" [formGroup]="form" (ngSubmit)="submit()">
+    <form id="depo-iade-form" class="form-shell" [attr.inert]="safeCreateFailure()?.retryable ? '' : null" [formGroup]="form" (ngSubmit)="submit()">
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <button
+        *ngIf="safeCreateFailure()?.allowsNewAttempt"
+        type="button"
+        class="ghost-button"
+        (click)="startNewCreateAttempt()"
+      >
+        Yeni Islem Olarak Kaydet
+      </button>
 
       <section class="panel">
         <div class="panel-head">

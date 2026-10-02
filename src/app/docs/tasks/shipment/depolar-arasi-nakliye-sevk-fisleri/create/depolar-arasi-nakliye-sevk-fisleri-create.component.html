@@ -11,7 +11,7 @@
       <button
         type="submit"
         class="primary-button"
-        [disabled]="submitting()"
+        [disabled]="submitting() || !!safeCreateFailure()?.blocksSubmit"
         form="depolar-arasi-nakliye-sevk-fisleri-form"
       >
         {{ submitting() ? 'Kaydediliyor...' : 'Sevk Fisini Kaydet' }}
@@ -23,10 +23,19 @@
     <form
       id="depolar-arasi-nakliye-sevk-fisleri-form"
       class="form-shell"
+      [attr.inert]="safeCreateFailure()?.retryable ? '' : null"
       [formGroup]="form"
       (ngSubmit)="submit()"
     >
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <button
+        *ngIf="safeCreateFailure()?.allowsNewAttempt"
+        type="button"
+        class="ghost-button"
+        (click)="startNewCreateAttempt()"
+      >
+        Yeni Islem Olarak Kaydet
+      </button>
 
       <section class="panel">
         <div class="panel-head">

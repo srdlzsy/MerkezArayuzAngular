@@ -25,7 +25,11 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
-import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
+import {
+  SafeCreateFailure,
+  SafeCreateRetryDraft,
+  classifySafeCreateFailure
+} from '../../../core/safe-create-retry.helpers';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -116,6 +120,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   protected readonly stockError = signal('');
   protected readonly returnableProductsError = signal('');
   protected readonly submitError = signal('');
+  protected readonly safeCreateFailure = signal<SafeCreateFailure | null>(null);
   protected readonly submitting = signal(false);
   private warehouseRequestId = 0;
   private stockRequestId = 0;
@@ -467,7 +472,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected submit(): void {
-    if (this.submitting()) {
+    if (this.submitting() || this.safeCreateFailure()?.blocksSubmit) {
       return;
     }
 
@@ -500,11 +505,22 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
-          this.submitError.set(
-            this.resolveErrorMessage(error, 'Depo iade kaydedilirken hata olustu.')
-          );
+          this.applySafeCreateFailure(error, 'Depo iade kaydedilirken hata olustu.');
         }
       });
+  }
+
+  protected startNewCreateAttempt(): void {
+    this.safeCreateRetry.reset();
+    this.safeCreateFailure.set(null);
+    this.submitError.set('');
+    this.submit();
+  }
+
+  private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
+    const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateFailure.set(failure);
+    this.submitError.set(failure.message);
   }
 
   protected kalemCount(): number {

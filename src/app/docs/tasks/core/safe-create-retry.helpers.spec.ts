@@ -1,4 +1,9 @@
-import { SafeCreateRetryDraft } from './safe-create-retry.helpers';
+import { HttpErrorResponse } from '@angular/common/http';
+
+import {
+  SafeCreateRetryDraft,
+  classifySafeCreateFailure
+} from './safe-create-retry.helpers';
 
 interface TestCreateRequest {
   clientRequestId?: string;
@@ -49,3 +54,68 @@ describe('SafeCreateRetryDraft', () => {
     expect(nextDocument.clientRequestId).not.toBe(completed.clientRequestId);
   });
 });
+
+describe('classifySafeCreateFailure', () => {
+  it('allows a safe retry for an unconfirmed Mikro write', () => {
+    const failure = classifySafeCreateFailure(
+      createConflict('MIKRO_WRITE_OUTCOME_UNCONFIRMED', true),
+      'Kayit basarisiz.'
+    );
+
+    expect(failure.retryable).toBeTrue();
+    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.allowsNewAttempt).toBeFalse();
+  });
+
+  it('blocks retry when the Mikro document content differs', () => {
+    const failure = classifySafeCreateFailure(
+      createConflict('MIKRO_DOCUMENT_CONTENT_MISMATCH', false),
+      'Kayit basarisiz.'
+    );
+
+    expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.allowsNewAttempt).toBeFalse();
+    expect(failure.message).toContain('Yetkili incelemesi');
+  });
+
+  it('requires an explicit new attempt for a changed payload', () => {
+    const failure = classifySafeCreateFailure(
+      createConflict('CLIENT_REQUEST_PAYLOAD_MISMATCH', false),
+      'Kayit basarisiz.'
+    );
+
+    expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.allowsNewAttempt).toBeTrue();
+  });
+
+  it('blocks an unclassified conflict', () => {
+    const failure = classifySafeCreateFailure(
+      new HttpErrorResponse({ status: 409, error: { detail: 'Genel cakisma.' } }),
+      'Kayit basarisiz.'
+    );
+
+    expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.allowsNewAttempt).toBeFalse();
+  });
+
+  it('preserves the request identity after a network failure', () => {
+    const failure = classifySafeCreateFailure(
+      new HttpErrorResponse({ status: 0, error: new ProgressEvent('error') }),
+      'Baglanti kurulamadi.'
+    );
+
+    expect(failure.retryable).toBeTrue();
+    expect(failure.blocksSubmit).toBeFalse();
+  });
+});
+
+function createConflict(errorCode: string, retryable: boolean): HttpErrorResponse {
+  return new HttpErrorResponse({
+    status: 409,
+    error: {
+      detail: 'Create istegi tamamlanamadi.',
+      errorCode,
+      retryable
+    }
+  });
+}

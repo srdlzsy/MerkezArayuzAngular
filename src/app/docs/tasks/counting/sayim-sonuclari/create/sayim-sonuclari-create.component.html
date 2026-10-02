@@ -12,7 +12,7 @@
         type="submit"
         class="primary-button"
         form="sayim-create-form"
-        [disabled]="submitting()"
+        [disabled]="submitting() || !!safeCreateFailure()?.blocksSubmit"
       >
         {{ submitting() ? 'Kaydediliyor...' : 'Sayimi Kaydet' }}
       </button>
@@ -23,10 +23,19 @@
     <form
       id="sayim-create-form"
       class="form-shell"
+      [attr.inert]="safeCreateFailure()?.retryable ? '' : null"
       [formGroup]="form"
       (ngSubmit)="submit()"
     >
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <button
+        *ngIf="safeCreateFailure()?.allowsNewAttempt"
+        type="button"
+        class="ghost-button"
+        (click)="startNewCreateAttempt()"
+      >
+        Yeni Islem Olarak Kaydet
+      </button>
 
       <section class="panel">
         <div class="panel-head">

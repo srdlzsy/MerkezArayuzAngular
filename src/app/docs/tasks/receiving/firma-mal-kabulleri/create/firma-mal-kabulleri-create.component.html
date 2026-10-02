@@ -8,15 +8,23 @@
 
     <div class="header-actions">
       <button type="button" class="ghost-button" (click)="closeDialog()">Kapat</button>
-      <button type="submit" class="primary-button" [disabled]="submitting() || !!createdReceiptResult()" form="toptan-giris-form">
+      <button type="submit" class="primary-button" [disabled]="submitting() || !!createdReceiptResult() || !!safeCreateFailure()?.blocksSubmit" form="toptan-giris-form">
         {{ createdReceiptResult() ? 'Kayit Tamamlandi' : (submitting() ? 'Kaydediliyor...' : 'Irsaliyeyi Kaydet') }}
       </button>
     </div>
   </header>
 
   <div class="dialog-body">
-    <form id="toptan-giris-form" class="form-shell" [formGroup]="form" (ngSubmit)="submit()">
+    <form id="toptan-giris-form" class="form-shell" [attr.inert]="safeCreateFailure()?.retryable ? '' : null" [formGroup]="form" (ngSubmit)="submit()">
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <button
+        *ngIf="safeCreateFailure()?.allowsNewAttempt"
+        type="button"
+        class="ghost-button"
+        (click)="startNewCreateAttempt()"
+      >
+        Yeni Islem Olarak Kaydet
+      </button>
       <div class="feedback feedback-success" *ngIf="createdReceiptResult() as result">
         <strong>{{ result.documentNo || (result.documentSerie + '/' + result.documentOrderNo) }}</strong>
         mal kabul kaydi olustu.

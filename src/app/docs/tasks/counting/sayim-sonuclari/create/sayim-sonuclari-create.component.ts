@@ -21,7 +21,11 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
-import { SafeCreateRetryDraft } from '../../../core/safe-create-retry.helpers';
+import {
+  SafeCreateFailure,
+  SafeCreateRetryDraft,
+  classifySafeCreateFailure
+} from '../../../core/safe-create-retry.helpers';
 import { resolveHttpErrorMessage } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -54,6 +58,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   protected readonly stockLoading = signal(false);
   protected readonly stockError = signal('');
   protected readonly submitError = signal('');
+  protected readonly safeCreateFailure = signal<SafeCreateFailure | null>(null);
   protected readonly submitting = signal(false);
 
   private readonly aramaService = inject(AramaService);
@@ -159,7 +164,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   }
 
   protected submit(): void {
-    if (this.submitting()) {
+    if (this.submitting() || this.safeCreateFailure()?.blocksSubmit) {
       return;
     }
 
@@ -195,11 +200,27 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
       .createSayimSonucu(this.buildRequest())
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
-        next: (result: unknown) => this.close({ created: true, result }),
+        next: (result: unknown) => {
+          this.safeCreateRetry.reset();
+          this.close({ created: true, result });
+        },
         error: (error: HttpErrorResponse) => {
-          this.submitError.set(this.resolveErrorMessage(error, 'Sayim sonucu kaydedilemedi.'));
+          this.applySafeCreateFailure(error, 'Sayim sonucu kaydedilemedi.');
         }
       });
+  }
+
+  protected startNewCreateAttempt(): void {
+    this.safeCreateRetry.reset();
+    this.safeCreateFailure.set(null);
+    this.submitError.set('');
+    this.submit();
+  }
+
+  private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
+    const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateFailure.set(failure);
+    this.submitError.set(failure.message);
   }
 
   protected readonly trackByStock = (
