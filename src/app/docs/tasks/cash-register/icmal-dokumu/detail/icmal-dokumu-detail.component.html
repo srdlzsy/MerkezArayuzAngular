@@ -1,4 +1,4 @@
-<section class="dialog-page" *ngIf="page as current">
+<section class="dialog-page" [class.is-editing]="isEditing()" *ngIf="page as current">
   <header class="dialog-header icmal-print-hidden">
     <div class="dialog-heading">
       <p class="eyebrow">{{ current.title }}</p>
@@ -406,8 +406,26 @@
             <h3>Hareket detayları</h3>
           </div>
         </div>
+        <div class="detail-tabs" role="tablist" aria-label="Hareket detayı seçimi">
+          <button
+            type="button"
+            role="tab"
+            class="detail-tab"
+            *ngFor="let tab of detailTabs(); trackBy: trackDetailTab"
+            [class.is-active]="selectedDetailView() === tab.key"
+            [attr.aria-selected]="selectedDetailView() === tab.key"
+            (click)="selectDetailView(tab.key)"
+          >
+            <span>{{ tab.label }}</span>
+            <small>{{ tab.count }}</small>
+          </button>
+        </div>
         <div class="detail-grid">
-      <article class="detail-card detail-card-cash" *ngIf="banknoteMovements().length">
+      <article
+        class="detail-card detail-card-cash"
+        [class.is-active]="selectedDetailView() === 'cash'"
+        *ngIf="banknoteMovements().length"
+      >
         <div class="detail-card-head">
           <h3>Nakit Hareketleri</h3>
           <span>{{ banknoteQuantity() }} Adet</span>
@@ -432,7 +450,11 @@
         </div>
       </article>
 
-      <article class="detail-card detail-card-card credit-card-detail" *ngIf="creditCards().length">
+      <article
+        class="detail-card detail-card-card credit-card-detail"
+        [class.is-active]="selectedDetailView() === 'card'"
+        *ngIf="creditCards().length"
+      >
         <div class="detail-card-head">
           <h3>Kredi Kartlari</h3>
           <span>{{ creditCardsQuantity() }} Slip</span>
@@ -465,7 +487,11 @@
         </div>
       </article>
 
-      <article class="detail-card detail-card-food" *ngIf="foodChecks().length">
+      <article
+        class="detail-card detail-card-food"
+        [class.is-active]="selectedDetailView() === 'foodCheck'"
+        *ngIf="foodChecks().length"
+      >
         <div class="detail-card-head">
           <h3>Yemek Cekleri</h3>
           <span>{{ foodChecksQuantity() }} Adet</span>
@@ -490,7 +516,11 @@
         </div>
       </article>
 
-      <article class="detail-card detail-card-gift" *ngIf="giftCheckMovements().length">
+      <article
+        class="detail-card detail-card-gift"
+        [class.is-active]="selectedDetailView() === 'giftCheck'"
+        *ngIf="giftCheckMovements().length"
+      >
         <div class="detail-card-head">
           <h3>Hediye Cekleri</h3>
           <span>{{ giftCheckQuantity() }} Adet</span>
@@ -515,7 +545,11 @@
         </div>
       </article>
 
-      <article class="detail-card detail-card-online" *ngIf="onlineSales().length">
+      <article
+        class="detail-card detail-card-online"
+        [class.is-active]="selectedDetailView() === 'onlineSale'"
+        *ngIf="onlineSales().length"
+      >
         <div class="detail-card-head">
           <h3>Online Satislar</h3>
           <span>{{ onlineSalesQuantity() }} Fis</span>
@@ -540,7 +574,11 @@
         </div>
       </article>
 
-      <article class="detail-card detail-card-voucher" *ngIf="expenseCompass().length">
+      <article
+        class="detail-card detail-card-voucher"
+        [class.is-active]="selectedDetailView() === 'expenseVoucher'"
+        *ngIf="expenseCompass().length"
+      >
         <div class="detail-card-head">
           <h3>Gider Pusulalari</h3>
           <span>{{ expenseCompassQuantity() }} Fis</span>
@@ -565,7 +603,11 @@
         </div>
       </article>
 
-      <article class="detail-card detail-card-expense" *ngIf="storeExpenses().length">
+      <article
+        class="detail-card detail-card-expense"
+        [class.is-active]="selectedDetailView() === 'storeExpense'"
+        *ngIf="storeExpenses().length"
+      >
         <div class="detail-card-head">
           <h3>Magaza Giderleri</h3>
           <span>{{ storeExpenses().length }} Kalem</span>
@@ -590,7 +632,7 @@
         </div>
       </article>
 
-      <article class="detail-card register-detail">
+      <article class="detail-card register-detail" [class.is-active]="selectedDetailView() === 'register'">
         <div class="detail-card-head">
           <h3>Kasa Bilgisi</h3>
           <span>{{ cashRegisterDetail()?.cashNo || currentSummary.cashNo }}</span>

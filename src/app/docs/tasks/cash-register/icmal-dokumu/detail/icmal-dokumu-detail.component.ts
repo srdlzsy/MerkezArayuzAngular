@@ -79,6 +79,21 @@ type EditablePaymentCategory =
   | 'storeExpense'
   | 'onlineSale';
 type EditableDetailCategory = EditablePaymentCategory | 'unknown';
+type DetailView =
+  | 'cash'
+  | 'card'
+  | 'foodCheck'
+  | 'giftCheck'
+  | 'onlineSale'
+  | 'expenseVoucher'
+  | 'storeExpense'
+  | 'register';
+
+interface DetailTabView {
+  key: DetailView;
+  label: string;
+  count: string;
+}
 
 const TASK_ID = 'kasa-sayimlari';
 const PERMISSION_PREFIX = 'kasa-islemleri.kasa-sayimlari';
@@ -114,6 +129,7 @@ export class IcmalDokumuDetailComponent
   protected readonly isEditing = signal(false);
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
+  protected readonly activeDetailView = signal<DetailView>('card');
   protected readonly editableDetails = signal<ISummariesDetailsCT[]>([]);
   protected readonly editableBanknoteMovements = signal<IBanknoteMovementsCT[]>([]);
   protected readonly editableGiftCheckMovements = signal<IGiftCheckMovementsCT[]>([]);
@@ -305,6 +321,46 @@ export class IcmalDokumuDetailComponent
         return 'Kasa açığı';
     }
   });
+  protected readonly detailTabs = computed<DetailTabView[]>(() => {
+    const tabs: DetailTabView[] = [];
+
+    if (this.banknoteMovements().length) {
+      tabs.push({ key: 'cash', label: 'Nakit', count: `${this.banknoteQuantity()} adet` });
+    }
+
+    if (this.creditCards().length) {
+      tabs.push({ key: 'card', label: 'Kredi Kartı', count: `${this.creditCardsQuantity()} slip` });
+    }
+
+    if (this.foodChecks().length) {
+      tabs.push({ key: 'foodCheck', label: 'Yemek Çeki', count: `${this.foodChecksQuantity()} adet` });
+    }
+
+    if (this.giftCheckMovements().length) {
+      tabs.push({ key: 'giftCheck', label: 'Hediye Çeki', count: `${this.giftCheckQuantity()} adet` });
+    }
+
+    if (this.onlineSales().length) {
+      tabs.push({ key: 'onlineSale', label: 'Vadeli / Online', count: `${this.onlineSalesQuantity()} fiş` });
+    }
+
+    if (this.expenseCompass().length) {
+      tabs.push({ key: 'expenseVoucher', label: 'Gider Pusulası', count: `${this.expenseCompassQuantity()} fiş` });
+    }
+
+    if (this.storeExpenses().length) {
+      tabs.push({ key: 'storeExpense', label: 'Mağaza Gideri', count: `${this.storeExpenses().length} kalem` });
+    }
+
+    tabs.push({ key: 'register', label: 'Kasa Bilgisi', count: `${this.summary?.cashNo ?? '-'}` });
+    return tabs;
+  });
+  protected readonly selectedDetailView = computed<DetailView>(() => {
+    const selected = this.activeDetailView();
+    return this.detailTabs().some((tab) => tab.key === selected)
+      ? selected
+      : (this.detailTabs()[0]?.key ?? 'register');
+  });
   protected readonly printModel = computed<IcmalSummaryPrintModel | null>(() => {
     const summary = this.summary;
 
@@ -364,6 +420,10 @@ export class IcmalDokumuDetailComponent
     }
 
     void this.printWithStylesheet('/assets/summaryPrint.css');
+  }
+
+  protected selectDetailView(view: DetailView): void {
+    this.activeDetailView.set(view);
   }
 
   protected startEdit(): void {
@@ -539,6 +599,8 @@ export class IcmalDokumuDetailComponent
   protected readonly trackEditableGiftCheck = (_: number, row: EditableGiftCheckRowView): string => {
     return `${row.index}|${row.typeSelection}`;
   };
+
+  protected readonly trackDetailTab = (_: number, tab: DetailTabView): DetailView => tab.key;
 
   protected applyEditableDetailTypeSelection(index: number, templateKey: string): void {
     const currentItem = this.editableDetails()[index];

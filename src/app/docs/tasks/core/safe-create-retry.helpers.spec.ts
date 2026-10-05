@@ -67,6 +67,20 @@ describe('classifySafeCreateFailure', () => {
     expect(failure.allowsNewAttempt).toBeFalse();
   });
 
+  it('allows the queued warehouse shipment to retry with the same request identity', () => {
+    const failure = classifySafeCreateFailure(
+      createConflict('MIKRO_WRITE_QUEUE_BUSY', true),
+      'Sevk kaydi basarisiz.'
+    );
+
+    expect(failure.errorCode).toBe('MIKRO_WRITE_QUEUE_BUSY');
+    expect(failure.retryable).toBeTrue();
+    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.allowsNewAttempt).toBeFalse();
+    expect(failure.message).toContain('Mikro yazimi henuz baslamadi');
+    expect(failure.message).toContain('ayni istek kimligiyle');
+  });
+
   it('blocks retry when the Mikro document content differs', () => {
     const failure = classifySafeCreateFailure(
       createConflict('MIKRO_DOCUMENT_CONTENT_MISMATCH', false),

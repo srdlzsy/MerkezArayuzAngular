@@ -8,6 +8,7 @@ export interface ClientRequestPayload {
 }
 
 export type SafeCreateConflictCode =
+  | 'MIKRO_WRITE_QUEUE_BUSY'
   | 'MIKRO_WRITE_IN_PROGRESS'
   | 'MIKRO_WRITE_OUTCOME_UNCONFIRMED'
   | 'MIKRO_DOCUMENT_CONTENT_MISMATCH'
@@ -60,12 +61,18 @@ export function classifySafeCreateFailure(
   const retryable = typeof body?.retryable === 'boolean' ? body.retryable : null;
 
   if (
-    (errorCode === 'MIKRO_WRITE_IN_PROGRESS' ||
+    (errorCode === 'MIKRO_WRITE_QUEUE_BUSY' ||
+      errorCode === 'MIKRO_WRITE_IN_PROGRESS' ||
       errorCode === 'MIKRO_WRITE_OUTCOME_UNCONFIRMED') &&
     retryable === true
   ) {
+    const retryGuidance =
+      errorCode === 'MIKRO_WRITE_QUEUE_BUSY'
+        ? 'Mikro yazimi henuz baslamadi. Kisa bir sure sonra ayni istek kimligiyle tekrar deneyebilirsiniz.'
+        : 'Ayni istek kimligi korunarak tekrar deneyebilirsiniz.';
+
     return {
-      message: `${message} Ayni istek kimligi korunarak tekrar deneyebilirsiniz.`,
+      message: `${message} ${retryGuidance}`,
       errorCode,
       retryable: true,
       blocksSubmit: false,
