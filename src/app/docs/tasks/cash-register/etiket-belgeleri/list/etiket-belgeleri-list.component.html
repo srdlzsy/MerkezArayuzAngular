@@ -282,34 +282,46 @@
       <table>
         <thead>
           <tr>
-            <th>
-              <button type="button" class="sort-button" (click)="setProductSort('productName')">
-                Ürün <span>{{ getProductSortIcon('productName') }}</span>
+            <th [attr.aria-sort]="getProductSortAriaState('productName')">
+              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'productName'" [attr.aria-label]="getProductSortAriaLabel('productName', 'Ürün')" [attr.title]="getProductSortAriaLabel('productName', 'Ürün')" (click)="setProductSort('productName')">
+                Ürün
+                <span class="sort-icon" aria-hidden="true">{{ getProductSortIcon('productName') }}</span>
+                <small class="sort-state" *ngIf="getProductSortStateLabel('productName') as state">{{ state }}</small>
               </button>
             </th>
-            <th>
-              <button type="button" class="sort-button" (click)="setProductSort('barcode')">
-                Barkod <span>{{ getProductSortIcon('barcode') }}</span>
+            <th [attr.aria-sort]="getProductSortAriaState('barcode')">
+              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'barcode'" [attr.aria-label]="getProductSortAriaLabel('barcode', 'Barkod')" [attr.title]="getProductSortAriaLabel('barcode', 'Barkod')" (click)="setProductSort('barcode')">
+                Barkod
+                <span class="sort-icon" aria-hidden="true">{{ getProductSortIcon('barcode') }}</span>
+                <small class="sort-state" *ngIf="getProductSortStateLabel('barcode') as state">{{ state }}</small>
               </button>
             </th>
-            <th>
-              <button type="button" class="sort-button" (click)="setProductSort('price')">
-                Fiyat <span>{{ getProductSortIcon('price') }}</span>
+            <th [attr.aria-sort]="getProductSortAriaState('price')">
+              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'price'" [attr.aria-label]="getProductSortAriaLabel('price', 'Fiyat')" [attr.title]="getProductSortAriaLabel('price', 'Fiyat')" (click)="setProductSort('price')">
+                Fiyat
+                <span class="sort-icon" aria-hidden="true">{{ getProductSortIcon('price') }}</span>
+                <small class="sort-state" *ngIf="getProductSortStateLabel('price') as state">{{ state }}</small>
               </button>
             </th>
-            <th>
-              <button type="button" class="sort-button" (click)="setProductSort('status')">
-                Durum <span>{{ getProductSortIcon('status') }}</span>
+            <th [attr.aria-sort]="getProductSortAriaState('status')">
+              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'status'" [attr.aria-label]="getProductSortAriaLabel('status', 'Durum')" [attr.title]="getProductSortAriaLabel('status', 'Durum')" (click)="setProductSort('status')">
+                Durum
+                <span class="sort-icon" aria-hidden="true">{{ getProductSortIcon('status') }}</span>
+                <small class="sort-state" *ngIf="getProductSortStateLabel('status') as state">{{ state }}</small>
               </button>
             </th>
-            <th>
-              <button type="button" class="sort-button" (click)="setProductSort('unit')">
-                Birim / Koli <span>{{ getProductSortIcon('unit') }}</span>
+            <th [attr.aria-sort]="getProductSortAriaState('unit')">
+              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'unit'" [attr.aria-label]="getProductSortAriaLabel('unit', 'Birim / Koli')" [attr.title]="getProductSortAriaLabel('unit', 'Birim / Koli')" (click)="setProductSort('unit')">
+                Birim / Koli
+                <span class="sort-icon" aria-hidden="true">{{ getProductSortIcon('unit') }}</span>
+                <small class="sort-state" *ngIf="getProductSortStateLabel('unit') as state">{{ state }}</small>
               </button>
             </th>
-            <th>
-              <button type="button" class="sort-button" (click)="setProductSort('priceChangeDate')">
-                Değişiklik <span>{{ getProductSortIcon('priceChangeDate') }}</span>
+            <th [attr.aria-sort]="getProductSortAriaState('priceChangeDate')">
+              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'priceChangeDate'" [attr.aria-label]="getProductSortAriaLabel('priceChangeDate', 'Değişiklik')" [attr.title]="getProductSortAriaLabel('priceChangeDate', 'Değişiklik')" (click)="setProductSort('priceChangeDate')">
+                Değişiklik
+                <span class="sort-icon" aria-hidden="true">{{ getProductSortIcon('priceChangeDate') }}</span>
+                <small class="sort-state" *ngIf="getProductSortStateLabel('priceChangeDate') as state">{{ state }}</small>
               </button>
             </th>
             <th><span class="visually-hidden">İşlem</span></th>

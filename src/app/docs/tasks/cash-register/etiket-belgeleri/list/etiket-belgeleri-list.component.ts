@@ -206,12 +206,8 @@ export class EtiketBelgeleriListComponent {
       ? this.promotionProducts()
       : this.activeProducts();
   });
-  protected readonly labelPrintProducts = computed(() =>
-    this.applyProductTools(this.previewProducts())
-  );
-  protected readonly priceChangePrintProducts = computed(() =>
-    this.applyProductTools(this.priceChangeProducts())
-  );
+  protected readonly labelPrintProducts = computed(() => [...this.previewProducts()]);
+  protected readonly priceChangePrintProducts = computed(() => [...this.priceChangeProducts()]);
   protected readonly activePreviewCount = computed(() =>
     this.previewMode() === 'price-changes'
       ? this.priceChangePrintProducts().length
@@ -593,10 +589,53 @@ export class EtiketBelgeleriListComponent {
 
   protected getProductSortIcon(key: ProductSortKey): string {
     if (this.productSortKey() !== key) {
+      return '↕';
+    }
+
+    return this.productSortDirection() === 'asc' ? '↑' : '↓';
+  }
+
+  protected getProductSortStateLabel(key: ProductSortKey): string {
+    if (this.productSortKey() !== key) {
       return '';
     }
 
-    return this.productSortDirection() === 'asc' ? '^' : 'v';
+    const isAscending = this.productSortDirection() === 'asc';
+
+    switch (key) {
+      case 'productName':
+      case 'status':
+      case 'unit':
+        return isAscending ? 'A-Z' : 'Z-A';
+      case 'barcode':
+        return isAscending ? '0-9' : '9-0';
+      case 'price':
+        return isAscending ? 'Düşük-Yüksek' : 'Yüksek-Düşük';
+      case 'priceChangeDate':
+        return isAscending ? 'Eski-Yeni' : 'Yeni-Eski';
+    }
+  }
+
+  protected getProductSortAriaState(
+    key: ProductSortKey
+  ): 'none' | 'ascending' | 'descending' {
+    if (this.productSortKey() !== key) {
+      return 'none';
+    }
+
+    return this.productSortDirection() === 'asc' ? 'ascending' : 'descending';
+  }
+
+  protected getProductSortAriaLabel(key: ProductSortKey, columnLabel: string): string {
+    if (this.productSortKey() !== key) {
+      return `${columnLabel}: artan sıralamak için tıklayın.`;
+    }
+
+    if (this.productSortDirection() === 'asc') {
+      return `${columnLabel}: artan sıralı. Azalan sıralamak için tıklayın.`;
+    }
+
+    return `${columnLabel}: azalan sıralı. Sıralamayı kaldırmak için tıklayın.`;
   }
 
   protected printLabels(): void {
