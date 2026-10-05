@@ -260,12 +260,15 @@
     <ng-container *ngIf="!isEditing()">
       <section class="summary-overview icmal-print-hidden">
         <div class="summary-identity">
-          <p class="summary-eyebrow">Icmal Kaydi</p>
+          <div class="summary-identity-topline">
+            <p class="summary-eyebrow">İcmal Kaydı</p>
+            <span class="record-status">Kayıtlı</span>
+          </div>
           <h3>{{ warehouseNo() }} / {{ warehouseName() }}</h3>
           <p>{{ formatSummaryDate(currentSummary.summaryDate) }}</p>
           <div class="summary-badges">
-            <span class="summary-badge">{{ currentSummary.documentSerie }}</span>
-            <span class="summary-badge">{{ currentSummary.documentOrderNo }}</span>
+            <span class="summary-badge">Seri {{ currentSummary.documentSerie }}</span>
+            <span class="summary-badge">Sıra {{ currentSummary.documentOrderNo }}</span>
           </div>
         </div>
 
@@ -296,23 +299,35 @@
       <section class="reconciliation-section icmal-print-hidden">
         <div class="section-heading">
           <div>
-            <p class="section-eyebrow">Finansal Sonuc</p>
-            <h3>Kasa Ozeti</h3>
+            <p class="section-eyebrow">Finansal sonuç</p>
+            <h3>Kasa özeti</h3>
           </div>
+          <span class="difference-status" [ngClass]="'is-' + differenceStatus()">
+            {{ differenceStatusLabel() }}
+          </span>
         </div>
         <div class="reconciliation-grid">
           <article class="reconciliation-card reconciliation-card-primary">
-            <span>Kasa Genel Toplam</span>
+            <div class="metric-title">
+              <span>Kasa genel toplam</span>
+              <small>Sayım toplamı</small>
+            </div>
             <strong>{{ generalTotal() | number:'1.2-2' }} TL</strong>
           </article>
 
           <article class="reconciliation-card reconciliation-card-info">
-            <span>Z Raporu Tutari</span>
+            <div class="metric-title">
+              <span>Z raporu tutarı</span>
+              <small>Beklenen toplam</small>
+            </div>
             <strong>{{ (zTotalValue() ?? 0) | number:'1.2-2' }} TL</strong>
           </article>
 
-          <article class="reconciliation-card reconciliation-card-warning">
-            <span>Kasa Fark Tutari</span>
+          <article class="reconciliation-card reconciliation-card-difference" [ngClass]="'is-' + differenceStatus()">
+            <div class="metric-title">
+              <span>Kasa farkı</span>
+              <small>{{ differenceStatusLabel() }}</small>
+            </div>
             <strong>{{ differenceTotal() | number:'1.2-2' }} TL</strong>
           </article>
         </div>
@@ -321,51 +336,65 @@
       <section class="payment-section icmal-print-hidden">
         <div class="section-heading">
           <div>
-            <p class="section-eyebrow">Dagilim</p>
-            <h3>Odeme Turleri</h3>
+            <p class="section-eyebrow">Dağılım</p>
+            <h3>Ödeme kanalları</h3>
           </div>
         </div>
         <div class="payment-metrics">
-          <article class="payment-metric">
-            <span>Nakit</span>
+          <article class="payment-metric payment-metric-cash">
+            <div class="payment-metric-head">
+              <span>Nakit</span>
+              <small>{{ banknoteQuantity() }} adet</small>
+            </div>
             <strong>{{ banknoteTotal() | number:'1.2-2' }} TL</strong>
-            <small>{{ banknoteQuantity() }} adet</small>
           </article>
 
-          <article class="payment-metric">
-            <span>Kredi Karti</span>
+          <article class="payment-metric payment-metric-card">
+            <div class="payment-metric-head">
+              <span>Kredi kartı</span>
+              <small>{{ creditCardsQuantity() }} slip</small>
+            </div>
             <strong>{{ creditCardsTotal() | number:'1.2-2' }} TL</strong>
-            <small>{{ creditCardsQuantity() }} slip</small>
           </article>
 
-          <article class="payment-metric">
-            <span>Yemek Ceki</span>
+          <article class="payment-metric payment-metric-food">
+            <div class="payment-metric-head">
+              <span>Yemek çeki</span>
+              <small>{{ foodChecksQuantity() }} adet</small>
+            </div>
             <strong>{{ foodChecksTotal() | number:'1.2-2' }} TL</strong>
-            <small>{{ foodChecksQuantity() }} adet</small>
           </article>
 
-          <article class="payment-metric">
-            <span>Vadeli / Online</span>
+          <article class="payment-metric payment-metric-online">
+            <div class="payment-metric-head">
+              <span>Vadeli / Online</span>
+              <small>{{ onlineSalesQuantity() }} fiş</small>
+            </div>
             <strong>{{ onlineSalesTotal() | number:'1.2-2' }} TL</strong>
-            <small>{{ onlineSalesQuantity() }} fis</small>
           </article>
 
-          <article class="payment-metric">
-            <span>Gider Pusulasi</span>
+          <article class="payment-metric payment-metric-voucher">
+            <div class="payment-metric-head">
+              <span>Gider pusulası</span>
+              <small>{{ expenseCompassQuantity() }} fiş</small>
+            </div>
             <strong>{{ expenseCompassTotal() | number:'1.2-2' }} TL</strong>
-            <small>{{ expenseCompassQuantity() }} fis</small>
           </article>
 
-          <article class="payment-metric">
-            <span>Magaza Gideri</span>
+          <article class="payment-metric payment-metric-expense">
+            <div class="payment-metric-head">
+              <span>Mağaza gideri</span>
+              <small>{{ storeExpenses().length }} kalem</small>
+            </div>
             <strong>{{ storeExpensesTotal() | number:'1.2-2' }} TL</strong>
-            <small>{{ storeExpenses().length }} kalem</small>
           </article>
 
-          <article class="payment-metric">
-            <span>Hediye Ceki</span>
+          <article class="payment-metric payment-metric-gift">
+            <div class="payment-metric-head">
+              <span>Hediye çeki</span>
+              <small>{{ giftCheckQuantity() }} adet</small>
+            </div>
             <strong>{{ giftCheckTotal() | number:'1.2-2' }} TL</strong>
-            <small>{{ giftCheckQuantity() }} adet</small>
           </article>
         </div>
       </section>
@@ -374,11 +403,11 @@
         <div class="section-heading">
           <div>
             <p class="section-eyebrow">Kalemler</p>
-            <h3>Hareket Detaylari</h3>
+            <h3>Hareket detayları</h3>
           </div>
         </div>
         <div class="detail-grid">
-      <article class="detail-card" *ngIf="banknoteMovements().length">
+      <article class="detail-card detail-card-cash" *ngIf="banknoteMovements().length">
         <div class="detail-card-head">
           <h3>Nakit Hareketleri</h3>
           <span>{{ banknoteQuantity() }} Adet</span>
@@ -403,7 +432,7 @@
         </div>
       </article>
 
-      <article class="detail-card credit-card-detail" *ngIf="creditCards().length">
+      <article class="detail-card detail-card-card credit-card-detail" *ngIf="creditCards().length">
         <div class="detail-card-head">
           <h3>Kredi Kartlari</h3>
           <span>{{ creditCardsQuantity() }} Slip</span>
@@ -436,7 +465,7 @@
         </div>
       </article>
 
-      <article class="detail-card" *ngIf="foodChecks().length">
+      <article class="detail-card detail-card-food" *ngIf="foodChecks().length">
         <div class="detail-card-head">
           <h3>Yemek Cekleri</h3>
           <span>{{ foodChecksQuantity() }} Adet</span>
@@ -461,7 +490,7 @@
         </div>
       </article>
 
-      <article class="detail-card" *ngIf="giftCheckMovements().length">
+      <article class="detail-card detail-card-gift" *ngIf="giftCheckMovements().length">
         <div class="detail-card-head">
           <h3>Hediye Cekleri</h3>
           <span>{{ giftCheckQuantity() }} Adet</span>
@@ -486,7 +515,7 @@
         </div>
       </article>
 
-      <article class="detail-card" *ngIf="onlineSales().length">
+      <article class="detail-card detail-card-online" *ngIf="onlineSales().length">
         <div class="detail-card-head">
           <h3>Online Satislar</h3>
           <span>{{ onlineSalesQuantity() }} Fis</span>
@@ -511,7 +540,7 @@
         </div>
       </article>
 
-      <article class="detail-card" *ngIf="expenseCompass().length">
+      <article class="detail-card detail-card-voucher" *ngIf="expenseCompass().length">
         <div class="detail-card-head">
           <h3>Gider Pusulalari</h3>
           <span>{{ expenseCompassQuantity() }} Fis</span>
@@ -536,7 +565,7 @@
         </div>
       </article>
 
-      <article class="detail-card" *ngIf="storeExpenses().length">
+      <article class="detail-card detail-card-expense" *ngIf="storeExpenses().length">
         <div class="detail-card-head">
           <h3>Magaza Giderleri</h3>
           <span>{{ storeExpenses().length }} Kalem</span>
@@ -561,7 +590,7 @@
         </div>
       </article>
 
-      <article class="detail-card">
+      <article class="detail-card register-detail">
         <div class="detail-card-head">
           <h3>Kasa Bilgisi</h3>
           <span>{{ cashRegisterDetail()?.cashNo || currentSummary.cashNo }}</span>

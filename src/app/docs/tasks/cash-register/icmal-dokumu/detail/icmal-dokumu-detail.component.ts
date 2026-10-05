@@ -286,6 +286,25 @@ export class IcmalDokumuDetailComponent
   protected readonly differenceTotal = computed(
     () => this.generalTotal() - (this.zTotalValue() ?? 0)
   );
+  protected readonly differenceStatus = computed<'balanced' | 'surplus' | 'deficit'>(() => {
+    const difference = this.differenceTotal();
+
+    if (Math.abs(difference) < 0.01) {
+      return 'balanced';
+    }
+
+    return difference > 0 ? 'surplus' : 'deficit';
+  });
+  protected readonly differenceStatusLabel = computed(() => {
+    switch (this.differenceStatus()) {
+      case 'balanced':
+        return 'Kasa dengede';
+      case 'surplus':
+        return 'Kasa fazlası';
+      case 'deficit':
+        return 'Kasa açığı';
+    }
+  });
   protected readonly printModel = computed<IcmalSummaryPrintModel | null>(() => {
     const summary = this.summary;
 
