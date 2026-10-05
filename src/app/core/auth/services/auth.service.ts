@@ -30,6 +30,7 @@ import {
 interface AuthSession {
   tokenType: string;
   accessToken: string;
+  expiresAtUtc: string | null;
   refreshToken: string | null;
   refreshTokenExpiresAtUtc: string | null;
   expiresIn: number | null;
@@ -56,6 +57,7 @@ export class AuthService {
 
   readonly isAuthenticated = computed(() => !!this.sessionSignal()?.accessToken);
   readonly currentUser = computed(() => this.sessionSignal()?.currentUser ?? null);
+  readonly isHydratingSession = signal(!!this.storedSession?.accessToken);
 
   hasTaskAccess(taskId: string): boolean {
     const currentUser = this.currentUser();
@@ -139,14 +141,17 @@ export class AuthService {
     const session = this.sessionSignal();
 
     if (!session?.accessToken) {
+      this.isHydratingSession.set(false);
       return of(null);
     }
 
     if (this.hasRefreshedHydratedSession) {
+      this.isHydratingSession.set(false);
       return of(session.currentUser);
     }
 
     if (!this.hydrationRequest$) {
+      this.isHydratingSession.set(true);
       this.hydrationRequest$ = this.refreshCurrentUser().pipe(
         catchError((error: unknown) => {
           this.logout();
@@ -155,6 +160,7 @@ export class AuthService {
         finalize(() => {
           this.hasRefreshedHydratedSession = true;
           this.hydrationRequest$ = null;
+          this.isHydratingSession.set(false);
         }),
         shareReplay(1)
       );
@@ -216,12 +222,21 @@ export class AuthService {
     this.hasRefreshedHydratedSession = true;
     this.hydrationRequest$ = null;
     this.refreshAccessTokenRequest$ = null;
+    this.isHydratingSession.set(false);
     this.sessionSignal.set(null);
     this.clearStoredSession();
   }
 
   getAccessToken(): string {
     return this.normalizeAccessToken(this.sessionSignal()?.accessToken) ?? '';
+  }
+
+  getAccessTokenExpiresAtUtc(): string | null {
+    return this.sessionSignal()?.expiresAtUtc ?? null;
+  }
+
+  getRefreshTokenExpiresAtUtc(): string | null {
+    return this.sessionSignal()?.refreshTokenExpiresAtUtc ?? null;
   }
 
   getTokenType(): string {
@@ -258,6 +273,7 @@ export class AuthService {
           ...session,
           tokenType: this.normalizeTokenType(response.tokenType),
           accessToken,
+          expiresAtUtc: response.expiresAtUtc ?? session.expiresAtUtc,
           refreshToken: response.refreshToken ?? session.refreshToken,
           refreshTokenExpiresAtUtc:
             response.refreshTokenExpiresAtUtc ?? session.refreshTokenExpiresAtUtc,
@@ -268,11 +284,7 @@ export class AuthService {
         this.sessionSignal.set(nextSession);
         this.storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(nextSession));
 
-        if (embeddedCurrentUser) {
-          return of(nextSession.accessToken);
-        }
-
-        return this.refreshCurrentUser().pipe(map(() => nextSession.accessToken));
+        return of(nextSession.accessToken);
       }),
       finalize(() => {
         this.refreshAccessTokenRequest$ = null;
@@ -298,6 +310,7 @@ export class AuthService {
     const session: AuthSession = {
       tokenType: this.normalizeTokenType(response.tokenType),
       accessToken,
+      expiresAtUtc: response.expiresAtUtc ?? null,
       refreshToken: response.refreshToken ?? null,
       refreshTokenExpiresAtUtc: response.refreshTokenExpiresAtUtc ?? null,
       expiresIn: response.expiresIn ?? null,
@@ -306,6 +319,7 @@ export class AuthService {
 
     this.hasRefreshedHydratedSession = true;
     this.hydrationRequest$ = null;
+    this.isHydratingSession.set(false);
     this.sessionSignal.set(session);
     this.storage.setItem(AUTH_STORAGE_KEY, JSON.stringify(session));
   }
@@ -472,6 +486,7 @@ export class AuthService {
       const nextSession = {
         tokenType: this.normalizeTokenType(session.tokenType),
         accessToken,
+        expiresAtUtc: session.expiresAtUtc ?? null,
         refreshToken: session.refreshToken ?? null,
         refreshTokenExpiresAtUtc: session.refreshTokenExpiresAtUtc ?? null,
         expiresIn: session.expiresIn ?? null,

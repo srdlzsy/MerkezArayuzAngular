@@ -439,6 +439,10 @@
               [formGroup]="group"
             >
               <label class="field">
+                <span>Hediye Ceki</span>
+                <input type="text" formControlName="giftCheckTypeName" readonly tabindex="-1" />
+              </label>
+              <label class="field">
                 <span>Deger</span>
                 <input type="number" step="0.01" min="0" inputmode="decimal" formControlName="value" (focus)="clearZeroOnFocus(group.controls.value)" (input)="recalculateGiftCheckTotal(index)" (blur)="normalizeGiftCheckLine(index)" />
               </label>

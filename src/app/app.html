@@ -1,2 +1,15 @@
+@if (authService.isHydratingSession()) {
+  <main class="session-startup" role="status" aria-live="polite" aria-label="Oturum dogrulaniyor">
+    <div class="session-startup-content">
+      <img src="assets/furpa-login.png" alt="Furpa Online" />
+      <div class="session-startup-copy">
+        <strong>Oturum dogrulaniyor</strong>
+        <span>Sube ve yetki bilgileriniz hazirlaniyor.</span>
+      </div>
+      <span class="session-startup-progress" aria-hidden="true"></span>
+    </div>
+  </main>
+}
+
 <router-outlet />
 <app-confirm-dialog />

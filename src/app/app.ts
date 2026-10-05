@@ -1,6 +1,7 @@
-import { Component } from '@angular/core';
+import { Component, inject } from '@angular/core';
 import { RouterOutlet } from '@angular/router';
 
+import { AuthService } from './core/auth/services/auth.service';
 import { AppConfirmDialogComponent } from './core/ui/app-confirm-dialog/app-confirm-dialog.component';
 
 @Component({
@@ -9,4 +10,6 @@ import { AppConfirmDialogComponent } from './core/ui/app-confirm-dialog/app-conf
   templateUrl: './app.html',
   styleUrl: './app.scss'
 })
-export class App {}
+export class App {
+  protected readonly authService = inject(AuthService);
+}

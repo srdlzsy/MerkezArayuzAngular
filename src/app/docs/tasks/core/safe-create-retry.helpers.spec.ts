@@ -98,6 +98,21 @@ describe('classifySafeCreateFailure', () => {
     expect(failure.allowsNewAttempt).toBeFalse();
   });
 
+  it('includes the backend correlation id in the user-visible failure', () => {
+    const failure = classifySafeCreateFailure(
+      new HttpErrorResponse({
+        status: 409,
+        error: {
+          detail: 'Genel cakisma.',
+          correlationId: 'request-123'
+        }
+      }),
+      'Kayit basarisiz.'
+    );
+
+    expect(failure.message).toContain('Takip No: request-123');
+  });
+
   it('preserves the request identity after a network failure', () => {
     const failure = classifySafeCreateFailure(
       new HttpErrorResponse({ status: 0, error: new ProgressEvent('error') }),

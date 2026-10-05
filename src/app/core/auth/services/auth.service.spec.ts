@@ -91,7 +91,9 @@ describe('AuthService', () => {
     loginRequest.flush({
       tokenType: 'Bearer',
       accessToken: 'access-token',
+      expiresAtUtc: '2026-10-05T14:00:00Z',
       refreshToken: 'refresh-token',
+      refreshTokenExpiresAtUtc: '2026-10-19T14:00:00Z',
       expiresIn: 3600
     });
 
@@ -112,6 +114,8 @@ describe('AuthService', () => {
     expect(loginResult).toBeTrue();
     expect(service.isAuthenticated()).toBeTrue();
     expect(service.getAccessToken()).toBe('access-token');
+    expect(service.getAccessTokenExpiresAtUtc()).toBe('2026-10-05T14:00:00Z');
+    expect(service.getRefreshTokenExpiresAtUtc()).toBe('2026-10-19T14:00:00Z');
     expect(service.getTokenType()).toBe('Bearer');
     expect(service.currentUser()).toEqual({
       ad: 'Test',
@@ -167,7 +171,7 @@ describe('AuthService', () => {
     });
   });
 
-  it('refreshes access token using stored refresh token', async () => {
+  it('refreshes access token without issuing a second current-user request', async () => {
     service.login('user@example.com', 'pass123').subscribe();
     completeSuccessfulLogin('old-token', 'old-refresh');
 
@@ -179,22 +183,19 @@ describe('AuthService', () => {
     refreshRequest.flush({
       tokenType: 'Bearer',
       accessToken: 'new-token',
+      expiresAtUtc: '2026-10-05T15:00:00Z',
       refreshToken: 'new-refresh',
+      refreshTokenExpiresAtUtc: '2026-10-19T15:00:00Z',
       expiresIn: 3600
     });
 
-    const currentUserRequest = httpMock.expectOne('http://api.test/auth/me');
-    currentUserRequest.flush({
-      ad: 'Updated',
-      soyad: 'User',
-      depoNo: 5,
-      depoIsmi: 'Sube',
-      roller: ['Operator'],
-      sorumluluklar: []
-    });
+    httpMock.expectNone('http://api.test/auth/me');
 
     await expectAsync(refreshPromise).toBeResolvedTo('new-token');
     expect(service.getAccessToken()).toBe('new-token');
+    expect(service.getAccessTokenExpiresAtUtc()).toBe('2026-10-05T15:00:00Z');
+    expect(service.getRefreshTokenExpiresAtUtc()).toBe('2026-10-19T15:00:00Z');
+    expect(service.currentUser()?.displayName).toBe('Test User');
   });
 
   it('shares one refresh request between concurrent callers', async () => {

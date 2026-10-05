@@ -22,35 +22,45 @@ const FIELD_LABELS: Record<string, string> = {
 
 export function resolveHttpErrorMessage(error: HttpErrorResponse, fallback: string): string {
   if (typeof error.error === 'string' && error.error.trim()) {
-    return error.error.trim();
+    return appendHttpErrorCorrelation(error, error.error.trim());
   }
 
   if (typeof error.error !== 'object' || error.error === null) {
-    return fallback;
+    return appendHttpErrorCorrelation(error, fallback);
   }
 
   const body = error.error as Record<string, unknown>;
   const validationMessage = resolveValidationErrors(body['errors']);
   if (validationMessage) {
-    return validationMessage;
+    return appendHttpErrorCorrelation(error, validationMessage);
   }
 
   const message = body['message'];
   if (typeof message === 'string' && message.trim()) {
-    return message.trim();
+    return appendHttpErrorCorrelation(error, message.trim());
   }
 
   const detail = body['detail'];
   if (typeof detail === 'string' && detail.trim()) {
-    return detail.trim();
+    return appendHttpErrorCorrelation(error, detail.trim());
   }
 
   const title = body['title'];
   if (typeof title === 'string' && title.trim()) {
-    return title.trim();
+    return appendHttpErrorCorrelation(error, title.trim());
   }
 
-  return fallback;
+  return appendHttpErrorCorrelation(error, fallback);
+}
+
+export function appendHttpErrorCorrelation(error: unknown, message: string): string {
+  const correlationId = resolveHttpErrorCorrelationId(error);
+
+  if (!correlationId || message.includes(correlationId)) {
+    return message;
+  }
+
+  return `${message} (Takip No: ${correlationId})`;
 }
 
 export function trimToMaxLength(value: string | null | undefined, maxLength: number): string {
@@ -103,4 +113,40 @@ function resolveValidationErrors(errors: unknown): string {
 function normalizeFieldName(field: string): string {
   const parts = field.split('.');
   return (parts[parts.length - 1] ?? field).trim();
+}
+
+function resolveHttpErrorCorrelationId(error: unknown): string {
+  if (!error || typeof error !== 'object') {
+    return '';
+  }
+
+  const httpError = error as {
+    error?: unknown;
+    headers?: { get(name: string): string | null };
+  };
+
+  if (httpError.error && typeof httpError.error === 'object') {
+    const body = httpError.error as Record<string, unknown>;
+    const bodyCorrelationId =
+      readNonEmptyText(body['correlationId']) || readNonEmptyText(body['traceId']);
+
+    if (bodyCorrelationId) {
+      return bodyCorrelationId;
+    }
+  }
+
+  const headers = httpError.headers;
+  if (!headers || typeof headers.get !== 'function') {
+    return '';
+  }
+
+  return (
+    readNonEmptyText(headers.get('x-correlation-id')) ||
+    readNonEmptyText(headers.get('correlation-id')) ||
+    readNonEmptyText(headers.get('x-request-id'))
+  );
+}
+
+function readNonEmptyText(value: unknown): string {
+  return typeof value === 'string' ? value.trim() : '';
 }

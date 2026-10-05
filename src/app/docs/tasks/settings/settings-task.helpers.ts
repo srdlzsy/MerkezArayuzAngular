@@ -1,6 +1,8 @@
 import { AuthService } from '../../../core/auth/services/auth.service';
 import type { SettingsTypeOptionDto } from '@interfaces';
 
+import { appendHttpErrorCorrelation } from '../core/api-error.helpers';
+
 export interface ActionFeedback {
   tone: 'error' | 'info' | 'success';
   title: string;
@@ -48,25 +50,24 @@ export function getErrorMessage(error: unknown, fallback: string): string {
   }
 
   const httpError = error as { error?: unknown; message?: unknown };
+  let message = fallback;
 
   if (typeof httpError.error === 'string' && httpError.error.trim()) {
-    return httpError.error;
-  }
-
-  if (typeof httpError.error === 'object' && httpError.error !== null) {
+    message = httpError.error.trim();
+  } else if (typeof httpError.error === 'object' && httpError.error !== null) {
     const body = httpError.error as Record<string, unknown>;
     const bodyMessage = body['message'] ?? body['title'] ?? body['detail'];
 
     if (typeof bodyMessage === 'string' && bodyMessage.trim()) {
-      return bodyMessage;
+      message = bodyMessage.trim();
     }
   }
 
-  if (typeof httpError.message === 'string' && httpError.message.trim()) {
-    return httpError.message;
+  if (message === fallback && typeof httpError.message === 'string' && httpError.message.trim()) {
+    message = httpError.message.trim();
   }
 
-  return fallback;
+  return appendHttpErrorCorrelation(error, message);
 }
 
 export function toOptionalNumber(value: unknown): number | null {

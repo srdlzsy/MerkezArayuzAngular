@@ -44,6 +44,7 @@ type BanknoteLineFormGroup = FormGroup<{
 }>;
 
 type GiftCheckLineFormGroup = FormGroup<{
+  giftCheckTypeName: FormControl<string>;
   value: FormControl<number | null>;
   giftCheckType: FormControl<number | null>;
   quantity: FormControl<number | null>;
@@ -1828,6 +1829,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
     template?: Partial<IFurpaGiftCheckTypeItemApiDto>
   ): GiftCheckLineFormGroup {
     return new FormGroup({
+      giftCheckTypeName: new FormControl(template?.giftCheckTypeName?.trim() ?? '', {
+        nonNullable: true
+      }),
       value: new FormControl<number | null>(template?.value ?? 0, {
         validators: [Validators.required, Validators.min(0)]
       }),

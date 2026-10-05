@@ -1,6 +1,7 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
 import { generateClientRequestId } from '../../../core/api/furpa-merkez-api.utils';
+import { appendHttpErrorCorrelation } from './api-error.helpers';
 
 export interface ClientRequestPayload {
   clientRequestId?: string;
@@ -38,7 +39,7 @@ export function classifySafeCreateFailure(
     readText(body?.message) ||
     readText(body?.error) ||
     readText(error.error);
-  const message = detail || error.message || fallbackMessage;
+  const message = appendHttpErrorCorrelation(error, detail || error.message || fallbackMessage);
 
   if (error.status !== 409) {
     const outcomeIsUnconfirmed =
