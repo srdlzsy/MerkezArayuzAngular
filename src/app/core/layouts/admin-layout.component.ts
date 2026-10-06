@@ -13,6 +13,12 @@ import { DocsNavigationService } from '../../docs/services/docs-navigation.servi
 import { AuthService } from '../auth/services/auth.service';
 import { OrtakIslemlerService } from '../api/module-services/ortak-islemler.service';
 import { environment } from '../../../environments/environment';
+import {
+  ADMIN_LAYOUT_EXPAND_MIN_WIDTH,
+  createExclusiveOpenSections,
+  isAdminDesktopLayout,
+  resolveSidebarCollapsed
+} from './admin-layout-responsive.util';
 
 @Component({
   selector: 'app-admin-layout',
@@ -24,8 +30,6 @@ import { environment } from '../../../environments/environment';
 export class AdminLayoutComponent {
   @ViewChild('contentWrapper') private contentWrapper?: ElementRef<HTMLElement>;
 
-  private readonly sidebarZoomInCollapseWidth = 1280;
-  private readonly sidebarZoomOutExpandWidth = 1760;
   private readonly sidebarCollapsedStorageKey = 'furpa.adminLayout.sidebarCollapsed';
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
@@ -263,11 +267,7 @@ export class AdminLayoutComponent {
     }
 
     const nextValue = !this.isSectionOpen(id);
-
-    this.openSections.update((state) => ({
-      ...state,
-      [id]: nextValue
-    }));
+    this.openSections.set(this.createOpenSectionsState(nextValue ? id : null));
   }
 
   protected isGroupActive(group: DocsMenuSection): boolean {
@@ -337,7 +337,7 @@ export class AdminLayoutComponent {
   @HostListener('window:resize')
   protected handleWindowResize(): void {
     const width = window.innerWidth;
-    const isDesktop = width >= 961;
+    const isDesktop = isAdminDesktopLayout(width);
 
     this.isDesktopLayout.set(isDesktop);
 
@@ -350,18 +350,11 @@ export class AdminLayoutComponent {
   }
 
   private syncSidebarWithViewportWidth(width = this.readViewportWidth()): void {
-    if (width < 961) {
+    if (!isAdminDesktopLayout(width)) {
       return;
     }
 
-    if (width <= this.sidebarZoomInCollapseWidth) {
-      this.setSidebarCollapsed(true);
-      return;
-    }
-
-    if (width >= this.sidebarZoomOutExpandWidth) {
-      this.setSidebarCollapsed(false);
-    }
+    this.setSidebarCollapsed(resolveSidebarCollapsed(width, this.isSidebarCollapsed()));
   }
 
   private setSidebarCollapsed(isCollapsed: boolean): void {
@@ -376,7 +369,7 @@ export class AdminLayoutComponent {
 
   private readViewportWidth(): number {
     if (typeof window === 'undefined') {
-      return this.sidebarZoomOutExpandWidth;
+      return ADMIN_LAYOUT_EXPAND_MIN_WIDTH;
     }
 
     return window.innerWidth;
@@ -401,7 +394,7 @@ export class AdminLayoutComponent {
       return true;
     }
 
-    return window.innerWidth >= 961;
+    return isAdminDesktopLayout(window.innerWidth);
   }
 
   private readSidebarCollapsedPreference(): boolean {
@@ -461,9 +454,16 @@ export class AdminLayoutComponent {
         continue;
       }
 
-      this.openSections.update((state) => ({ ...state, [group.id]: true }));
+      this.openSections.set(this.createOpenSectionsState(group.id));
       return;
     }
+  }
+
+  private createOpenSectionsState(openSectionId: string | null): Record<string, boolean> {
+    return createExclusiveOpenSections(
+      this.menuGroups().map((group) => group.id),
+      openSectionId
+    );
   }
 
   private syncActiveTaskId(): void {

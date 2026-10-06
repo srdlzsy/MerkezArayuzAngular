@@ -40,3 +40,13 @@
   --operation-compact-control-font-size: 0.8rem;
   --operation-compact-body-font-size: 0.78rem;
 }
+
+/* Keep 1366x768 workstations usable at browser zoom 100 without shrinking text. */
+@media (max-width: 1440px), (max-height: 800px) {
+  :root {
+    --operation-control-height: 34px;
+    --operation-panel-padding: 0.44rem 0.52rem;
+    --operation-grid-gap: 0.38rem;
+    --operation-compact-control-height: 29px;
+  }
+}
