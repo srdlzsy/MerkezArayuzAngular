@@ -129,11 +129,11 @@
   min-height: var(--operation-control-height);
   border-radius: var(--operation-control-radius);
   padding: 0.34rem 0.62rem;
-  font-size: 0.78rem;
+  font-size: var(--operation-control-font-size);
   box-shadow: none;
 }
 
 .operational-shell :where(.task-page, .lookup-page) :where(th, td) {
   padding: 0.44rem 0.52rem;
-  font-size: 0.78rem;
+  font-size: var(--operation-body-font-size);
 }

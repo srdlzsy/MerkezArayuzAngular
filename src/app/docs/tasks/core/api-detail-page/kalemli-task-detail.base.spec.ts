@@ -34,6 +34,12 @@ class TestKalemliDetailComponent extends KalemliTaskDetailBase<TestDetailRecord>
   readonly responses: Observable<TestDetailRecord>[] = [];
   lastRequestKey: { seri: string; sira: number } | null = null;
 
+  readonly getKalemCount = () => this.kalemCount();
+  readonly getOrderIdentity = () => this.orderIdentity();
+  readonly getErrorMessage = () => this.errorMessage();
+  readonly getDetail = () => this.detail();
+  readonly printDocument = () => this.printCurrentDocument();
+
   protected override loadDetail(): void {
     this.loadDetailRequest(
       (seri: string, sira: number) => {
@@ -75,7 +81,7 @@ describe('KalemliTaskDetailBase', () => {
   it('loads detail on init with the dialog key', () => {
     configure({ seri: 'AA', sira: 5 });
     const fixture = TestBed.createComponent(TestKalemliDetailComponent);
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
 
     component.responses.push(
       of({
@@ -86,37 +92,37 @@ describe('KalemliTaskDetailBase', () => {
     fixture.detectChanges();
 
     expect(component.lastRequestKey).toEqual({ seri: 'AA', sira: 5 });
-    expect(component.kalemCount()).toBe(1);
-    expect(component.orderIdentity()).toBe('AA-5');
+    expect(component.getKalemCount()).toBe(1);
+    expect(component.getOrderIdentity()).toBe('AA-5');
   });
 
   it('sets the missing-key message when dialog data is incomplete', () => {
     configure({ seri: '', sira: 5 });
     const fixture = TestBed.createComponent(TestKalemliDetailComponent);
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
 
     fixture.detectChanges();
 
     expect(component.responses.length).toBe(0);
-    expect(component.errorMessage()).toBe('Eksik anahtar');
+    expect(component.getErrorMessage()).toBe('Eksik anahtar');
   });
 
   it('stores the load error when the request fails', () => {
     configure({ seri: 'BB', sira: 7 });
     const fixture = TestBed.createComponent(TestKalemliDetailComponent);
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
 
     component.responses.push(throwError(() => new Error('boom')));
     fixture.detectChanges();
 
-    expect(component.detail()).toBeNull();
-    expect(component.errorMessage()).toBe('Yukleme hatasi');
+    expect(component.getDetail()).toBeNull();
+    expect(component.getErrorMessage()).toBe('Yukleme hatasi');
   });
 
   it('passes company deliverer and receiver to document print fields and signatures', () => {
     configure({ seri: 'FI', sira: 18 });
     const fixture = TestBed.createComponent(TestKalemliDetailComponent);
-    const component = fixture.componentInstance as any;
+    const component = fixture.componentInstance;
 
     component.responses.push(
       of({
@@ -134,7 +140,7 @@ describe('KalemliTaskDetailBase', () => {
     );
     fixture.detectChanges();
 
-    component.printCurrentDocument();
+    component.printDocument();
 
     const request = printSpy.calls.mostRecent().args[0];
     const fields = request.sections.flatMap((section) => section.fields);

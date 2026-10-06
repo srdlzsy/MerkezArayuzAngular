@@ -1219,7 +1219,7 @@ export class ManavRaporlariListComponent {
   private async exportReport(
     tab: ReportTab,
     reportName: string,
-    sheets: readonly ExcelExportSheet<any>[]
+    sheets: readonly ExcelExportSheet<object>[]
   ): Promise<void> {
     const exportSheets = sheets.filter((sheet) => sheet.rows.length > 0);
 

@@ -4,7 +4,7 @@ type BivariantCallback<Arg, Result> = {
   bivarianceHack(arg: Arg): Result;
 }['bivarianceHack'];
 
-export interface ApiListTableColumn<Row = any> {
+export interface ApiListTableColumn<Row extends object = object> {
   key: Extract<keyof Row, string> | string;
   label: string;
   type?: ApiListTableColumnType;
@@ -14,7 +14,7 @@ export interface ApiListTableColumn<Row = any> {
 
 export type ApiListTableRowActionTone = 'primary' | 'success' | 'neutral';
 
-export interface ApiListTableRowAction<Row = any> {
+export interface ApiListTableRowAction<Row extends object = object> {
   key: string;
   label: string;
   tone?: ApiListTableRowActionTone;
@@ -22,7 +22,7 @@ export interface ApiListTableRowAction<Row = any> {
   isDisabled?: BivariantCallback<Row, boolean>;
 }
 
-export interface ApiListTableActionEvent<Row = any> {
+export interface ApiListTableActionEvent<Row extends object = object> {
   actionKey: string;
   row: Row;
 }

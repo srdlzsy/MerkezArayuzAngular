@@ -22,6 +22,7 @@ export interface DocsTaskDialogOptions<TData = unknown> {
   disableClose?: boolean;
   ariaLabel?: string;
   data?: TData;
+  density?: 'comfortable' | 'compact';
   panelClass?: string | string[];
   backdropClass?: string | string[];
 }
@@ -40,12 +41,19 @@ export function openDocsTaskDialog<TComponent, TData = unknown>(
   component: ComponentType<TComponent>,
   options: DocsTaskDialogOptions<TData> = {}
 ) {
+  const { density = 'comfortable', ...dialogOptions } = options;
+  const densityClass = density === 'compact' ? 'docs-task-dialog-compact' : undefined;
+
   return dialog.open(component, {
     ...DOCS_TASK_DIALOG_CONFIG,
-    ...options,
-    panelClass: mergeClasses(DOCS_TASK_DIALOG_CONFIG.panelClass, options.panelClass),
+    ...dialogOptions,
+    panelClass: mergeClasses(
+      DOCS_TASK_DIALOG_CONFIG.panelClass,
+      densityClass
+        ? mergeClasses(densityClass, options.panelClass)
+        : options.panelClass
+    ),
     backdropClass: mergeClasses(DOCS_TASK_DIALOG_CONFIG.backdropClass, options.backdropClass),
     disableClose: options.disableClose ?? true
-
   });
 }

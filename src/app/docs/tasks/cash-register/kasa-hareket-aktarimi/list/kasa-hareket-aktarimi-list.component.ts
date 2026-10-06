@@ -1123,7 +1123,7 @@ export class KasaHareketAktarimiListComponent {
 
   private getComparisonDetailExportSheets(
     detail: KasaHareketDetailDto
-  ): readonly ExcelExportSheet<any>[] {
+  ): readonly ExcelExportSheet<object>[] {
     return [
       {
         sheetName: 'Ozet',

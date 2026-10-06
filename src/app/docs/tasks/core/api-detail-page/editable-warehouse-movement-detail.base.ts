@@ -523,14 +523,14 @@ export abstract class EditableWarehouseMovementDetailBase
       .some((permission) => permission === normalizedTarget);
   }
 
-  private isEDespatchSent(header: unknown): boolean {
+  private isEDespatchSent(header: object): boolean {
     const documentNo = this.getHeaderText(header, 'documentNo', 'eDespatchDocumentNo');
     const ettn = this.getHeaderText(header, 'descriptionEttn', 'eDespatchUuid');
 
     return !!ettn || /^FRM/i.test(documentNo);
   }
 
-  private isWarehouseAccepted(header: unknown): boolean {
+  private isWarehouseAccepted(header: object): boolean {
     return this.getHeaderNumber(header, 'shippingState') === 1;
   }
 

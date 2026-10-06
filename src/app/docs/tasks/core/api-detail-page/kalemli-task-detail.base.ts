@@ -18,13 +18,20 @@ interface SeriSiraPayload {
 
 type KalemliPrintMode = 'company' | 'warehouse' | 'stock';
 
-interface KalemliPrintColumn extends DocumentPrintColumn {
-  value: (kalem: any, index: number) => unknown;
+type DetailHeader<TDetail> = NonNullable<
+  TDetail extends { header?: infer THeader } ? THeader : never
+> & object;
+type DetailLine<TDetail> = (
+  TDetail extends { items?: readonly (infer TLine)[] | null } ? TLine : never
+) & object;
+
+interface KalemliPrintColumn<TLine extends object> extends DocumentPrintColumn {
+  value: (kalem: TLine, index: number) => unknown;
 }
 
 @Directive()
 export abstract class KalemliTaskDetailBase<
-  TDetail extends { header?: unknown; items?: readonly unknown[] | null }
+  TDetail extends { header?: object | null; items?: readonly object[] | null }
 >
   extends ApiTaskDetailBase<SeriSiraPayload, TDetail>
 {
@@ -33,8 +40,12 @@ export abstract class KalemliTaskDetailBase<
   protected readonly printDocumentTitle: string = '';
   protected readonly printDocumentNoLabel: string = 'Kayit No';
   protected readonly printLineTitle: string = 'Kalemler';
-  protected readonly header = computed<any>(() => (this.detail() as any)?.header ?? null);
-  protected readonly kalemler = computed<any[]>(() => ((this.detail() as any)?.items as any[] | null) ?? []);
+  protected readonly header = computed<DetailHeader<TDetail> | null>(
+    () => (this.detail()?.header ?? null) as DetailHeader<TDetail> | null
+  );
+  protected readonly kalemler = computed<DetailLine<TDetail>[]>(
+    () => [...(this.detail()?.items ?? [])] as DetailLine<TDetail>[]
+  );
   protected readonly canPrintDocument = computed(() => !this.isLoading() && !!this.header());
   protected readonly kalemCount = computed(() => this.kalemler().length);
   protected readonly orderIdentity = computed(() => {
@@ -87,7 +98,7 @@ export abstract class KalemliTaskDetailBase<
     return 'status-pill-neutral';
   }
 
-  protected readonly trackByKalem = (index: number, kalem: any): string =>
+  protected readonly trackByKalem = (index: number, kalem: DetailLine<TDetail>): string =>
     [
       this.getLineText(kalem, 'stockCode', 'stokKodu'),
       this.getLineText(kalem, 'barcode', 'barkodu'),
@@ -100,34 +111,34 @@ export abstract class KalemliTaskDetailBase<
 
   private readonly documentPrintService = inject(DocumentPrintService);
 
-  protected getHeaderText(header: any, ...keys: string[]): string {
+  protected getHeaderText(header: object | null | undefined, ...keys: string[]): string {
     return this.getRecordText(header, ...keys);
   }
 
-  protected getHeaderNumber(header: any, ...keys: string[]): number | null {
+  protected getHeaderNumber(header: object | null | undefined, ...keys: string[]): number | null {
     return this.getRecordNumber(header, ...keys);
   }
 
-  protected getLineText(line: any, ...keys: string[]): string {
+  protected getLineText(line: object | null | undefined, ...keys: string[]): string {
     return this.getRecordText(line, ...keys);
   }
 
-  protected getLineNumber(line: any, ...keys: string[]): number | null {
+  protected getLineNumber(line: object | null | undefined, ...keys: string[]): number | null {
     return this.getRecordNumber(line, ...keys);
   }
 
-  protected resolvePrimaryDate(header: any): string {
+  protected resolvePrimaryDate(header: object): string {
     return this.getHeaderText(header, 'documentDate', 'movementDate', 'tarih');
   }
 
-  protected resolveCompanyPerson(header: any): string {
+  protected resolveCompanyPerson(header: object): string {
     return (
       this.getHeaderText(header, 'customerDisplayName', 'muhatapAdSoyad', 'customerName') ||
       this.getHeaderText(header, 'customerTitle')
     );
   }
 
-  protected resolveCompanyTitle(header: any): string {
+  protected resolveCompanyTitle(header: object): string {
     return (
       this.getHeaderText(header, 'customerDisplayName', 'muhatapFirmaUnvan') ||
       joinTruthy([
@@ -137,8 +148,8 @@ export abstract class KalemliTaskDetailBase<
     );
   }
 
-  protected resolveCompanyStatus(header: any): string {
-    const isClosed = header?.isClosed;
+  protected resolveCompanyStatus(header: object): string {
+    const isClosed = this.readRecordValue(header, 'isClosed');
 
     if (typeof isClosed === 'boolean') {
       return isClosed ? 'Kapali' : 'Acik';
@@ -152,19 +163,20 @@ export abstract class KalemliTaskDetailBase<
     return totalAmount !== null && totalAmount > 0 ? 'Hazir' : 'Acik';
   }
 
-  protected resolveWarehouseStatus(header: any): string {
+  protected resolveWarehouseStatus(header: object): string {
     return this.getHeaderNumber(header, 'shippingState') === 1 ? 'Tamamlandi' : 'Bekliyor';
   }
 
-  protected resolveWarehouseOrderNumbers(header: any): string {
+  protected resolveWarehouseOrderNumbers(header: object): string {
     const headerOrderNo = this.getHeaderText(header, 'warehouseOrderNo');
 
     if (headerOrderNo) {
       return headerOrderNo;
     }
 
-    if (Array.isArray(header?.warehouseOrderNos)) {
-      const headerOrderNos = header.warehouseOrderNos
+    const warehouseOrderNos = this.readRecordValue(header, 'warehouseOrderNos');
+    if (Array.isArray(warehouseOrderNos)) {
+      const headerOrderNos = warehouseOrderNos
         .map((orderNo: unknown) => `${orderNo ?? ''}`.trim())
         .filter(Boolean);
 
@@ -180,7 +192,7 @@ export abstract class KalemliTaskDetailBase<
     return Array.from(new Set(lineOrderNos)).join(', ');
   }
 
-  protected resolveWarehouseName(header: any, side: 'source' | 'target'): string {
+  protected resolveWarehouseName(header: object, side: 'source' | 'target'): string {
     return this.getHeaderText(
       header,
       side === 'source' ? 'sourceWarehouse' : 'targetWarehouse',
@@ -189,7 +201,7 @@ export abstract class KalemliTaskDetailBase<
     );
   }
 
-  protected resolveWarehouseNo(header: any, side: 'source' | 'target'): number | null {
+  protected resolveWarehouseNo(header: object, side: 'source' | 'target'): number | null {
     return this.getHeaderNumber(
       header,
       side === 'source' ? 'sourceWarehouseNo' : 'targetWarehouseNo',
@@ -197,7 +209,7 @@ export abstract class KalemliTaskDetailBase<
     );
   }
 
-  protected resolveStockReceiptOwner(header: any): string {
+  protected resolveStockReceiptOwner(header: object): string {
     return this.getHeaderText(header, 'creator', 'acceptor', 'ekleyenAdSoyad');
   }
 
@@ -228,7 +240,7 @@ export abstract class KalemliTaskDetailBase<
     return this.printDocumentTitle || joinTruthy([this.page.title, this.screenTitle], ' - ');
   }
 
-  private resolvePrintMode(header: any): KalemliPrintMode {
+  private resolvePrintMode(header: object): KalemliPrintMode {
     if (
       this.getHeaderText(header, 'customerCode', 'customerDisplayName', 'customerTitle') ||
       this.getHeaderNumber(header, 'inputWarehouseNo', 'outputWarehouseNo') !== null
@@ -246,7 +258,7 @@ export abstract class KalemliTaskDetailBase<
     return 'stock';
   }
 
-  private resolvePrintBranch(header: any, mode: KalemliPrintMode): string {
+  private resolvePrintBranch(header: object, mode: KalemliPrintMode): string {
     if (mode === 'warehouse') {
       return this.joinCodeAndName(
         this.getHeaderNumber(header, 'targetWarehouseNo', 'shippingWarehouseNo'),
@@ -260,7 +272,7 @@ export abstract class KalemliTaskDetailBase<
     );
   }
 
-  private buildPrintSections(header: any, mode: KalemliPrintMode) {
+  private buildPrintSections(header: object, mode: KalemliPrintMode) {
     const commonFields: DocumentPrintField[] = [
       { label: 'Evrak Seri', value: this.getHeaderText(header, 'documentSerie') },
       { label: 'Evrak Sira', value: this.getHeaderNumber(header, 'documentOrderNo') },
@@ -311,7 +323,7 @@ export abstract class KalemliTaskDetailBase<
           fields: [
             {
               label: 'Tip',
-              value: header?.isReturn ? 'Depo Iadesi' : 'Depo Sevki'
+              value: this.readRecordValue(header, 'isReturn') ? 'Depo Iadesi' : 'Depo Sevki'
             },
             {
               label: 'Cikis Depo',
@@ -365,7 +377,9 @@ export abstract class KalemliTaskDetailBase<
           { label: 'Is Emri', value: this.getHeaderText(header, 'workOrderExpenseCode'), optional: true },
           {
             label: 'Hareket Tipleri',
-            value: Array.isArray(header?.movementTypes) ? header.movementTypes.join(', ') : '',
+            value: Array.isArray(this.readRecordValue(header, 'movementTypes'))
+              ? (this.readRecordValue(header, 'movementTypes') as unknown[]).join(', ')
+              : '',
             optional: true
           },
           { label: 'Aciklama', value: this.getHeaderText(header, 'description'), wide: true, optional: true }
@@ -382,11 +396,11 @@ export abstract class KalemliTaskDetailBase<
     ];
   }
 
-  private buildPrintColumns(mode: KalemliPrintMode): KalemliPrintColumn[] {
+  private buildPrintColumns(mode: KalemliPrintMode): KalemliPrintColumn<DetailLine<TDetail>>[] {
     const lines = this.kalemler();
     const isCompanyReceiving =
       mode === 'company' && this.hasAnyLineNumber(lines, 'dispatchQuantity', 'physicalAcceptedQuantity');
-    const columns: KalemliPrintColumn[] = [
+    const columns: KalemliPrintColumn<DetailLine<TDetail>>[] = [
       {
         label: 'Sira',
         width: '9mm',
@@ -498,7 +512,7 @@ export abstract class KalemliTaskDetailBase<
     return columns;
   }
 
-  private buildPrintSignatures(header: any, mode: KalemliPrintMode) {
+  private buildPrintSignatures(header: object, mode: KalemliPrintMode) {
     if (mode === 'stock') {
       return [
         { label: 'Olusturan', value: this.getHeaderText(header, 'creator') },
@@ -519,15 +533,15 @@ export abstract class KalemliTaskDetailBase<
     ];
   }
 
-  private hasAnyLineText(lines: readonly any[], ...keys: string[]): boolean {
+  private hasAnyLineText(lines: readonly object[], ...keys: string[]): boolean {
     return lines.some((line) => !!this.getLineText(line, ...keys));
   }
 
-  private hasAnyLineNumber(lines: readonly any[], ...keys: string[]): boolean {
+  private hasAnyLineNumber(lines: readonly object[], ...keys: string[]): boolean {
     return lines.some((line) => this.getLineNumber(line, ...keys) !== null);
   }
 
-  private hasAnyLineNonZero(lines: readonly any[], ...keys: string[]): boolean {
+  private hasAnyLineNonZero(lines: readonly object[], ...keys: string[]): boolean {
     return lines.some((line) => {
       const value = this.getLineNumber(line, ...keys);
       return value !== null && value !== 0;
@@ -538,9 +552,9 @@ export abstract class KalemliTaskDetailBase<
     return joinTruthy([code === null ? '' : `${code}`, name], ' - ');
   }
 
-  private getRecordText(record: any, ...keys: string[]): string {
+  private getRecordText(record: object | null | undefined, ...keys: string[]): string {
     for (const key of keys) {
-      const value = record?.[key];
+      const value = this.readRecordValue(record, key);
 
       if (typeof value === 'string') {
         const normalized = value.trim();
@@ -553,9 +567,9 @@ export abstract class KalemliTaskDetailBase<
     return '';
   }
 
-  private getRecordNumber(record: any, ...keys: string[]): number | null {
+  private getRecordNumber(record: object | null | undefined, ...keys: string[]): number | null {
     for (const key of keys) {
-      const value = record?.[key];
+      const value = this.readRecordValue(record, key);
 
       if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -570,5 +584,9 @@ export abstract class KalemliTaskDetailBase<
     }
 
     return null;
+  }
+
+  private readRecordValue(record: object | null | undefined, key: string): unknown {
+    return record ? (record as Record<string, unknown>)[key] : undefined;
   }
 }

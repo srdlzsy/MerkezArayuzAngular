@@ -240,32 +240,32 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel .eyebrow {
   margin: 0 !important;
   color: var(--op-accent) !important;
-  font-size: 0.68rem !important;
+  font-size: var(--operation-caption-size) !important;
   letter-spacing: 0 !important;
 }
 
 .docs-task-dialog-panel .dialog-heading h2 {
   margin: 0 !important;
   color: var(--op-text) !important;
-  font-size: 0.96rem !important;
+  font-size: 1rem !important;
   line-height: 1.18 !important;
 }
 
-.docs-task-dialog-panel .subtitle,
-.docs-task-dialog-panel .helper-text,
-.docs-task-dialog-panel .query-path,
-.docs-task-dialog-panel .request-path,
-.docs-task-dialog-panel .request-preview,
-.docs-task-dialog-panel .request-card,
-.docs-task-dialog-panel .request-inline,
-.docs-task-dialog-panel .route-strip,
-.docs-task-dialog-panel .field-preview,
-.docs-task-dialog-panel .sample,
-.docs-task-dialog-panel .json-block,
-.docs-task-dialog-panel .json-details,
-.docs-task-dialog-panel .task-item .table-wrap,
-.docs-task-dialog-panel .request-line code,
-.docs-task-dialog-panel .task-item-head p {
+.docs-task-dialog-panel.docs-task-dialog-compact .subtitle,
+.docs-task-dialog-panel.docs-task-dialog-compact .helper-text,
+.docs-task-dialog-panel.docs-task-dialog-compact .query-path,
+.docs-task-dialog-panel.docs-task-dialog-compact .request-path,
+.docs-task-dialog-panel.docs-task-dialog-compact .request-preview,
+.docs-task-dialog-panel.docs-task-dialog-compact .request-card,
+.docs-task-dialog-panel.docs-task-dialog-compact .request-inline,
+.docs-task-dialog-panel.docs-task-dialog-compact .route-strip,
+.docs-task-dialog-panel.docs-task-dialog-compact .field-preview,
+.docs-task-dialog-panel.docs-task-dialog-compact .sample,
+.docs-task-dialog-panel.docs-task-dialog-compact .json-block,
+.docs-task-dialog-panel.docs-task-dialog-compact .json-details,
+.docs-task-dialog-panel.docs-task-dialog-compact .task-item .table-wrap,
+.docs-task-dialog-panel.docs-task-dialog-compact .request-line code,
+.docs-task-dialog-panel.docs-task-dialog-compact .task-item-head p {
   display: none !important;
 }
 
@@ -320,7 +320,7 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel .summary-card h3 {
   margin: 0 !important;
   color: #475569 !important;
-  font-size: 0.7rem !important;
+  font-size: var(--operation-caption-size) !important;
   line-height: 1.15 !important;
   letter-spacing: 0 !important;
   text-transform: uppercase !important;
@@ -330,7 +330,7 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel .info-card p,
 .docs-task-dialog-panel .summary-card p {
   margin: 0 !important;
-  font-size: 0.76rem !important;
+  font-size: var(--operation-body-font-size) !important;
   line-height: 1.25 !important;
 }
 
@@ -346,7 +346,7 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel .contact-field label {
   margin: 0 !important;
   color: var(--op-muted) !important;
-  font-size: 0.68rem !important;
+  font-size: var(--operation-caption-size) !important;
   line-height: 1.1 !important;
   letter-spacing: 0 !important;
   text-transform: uppercase !important;
@@ -355,11 +355,11 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel input,
 .docs-task-dialog-panel select,
 .docs-task-dialog-panel textarea {
-  min-height: 30px !important;
+  min-height: var(--operation-control-height) !important;
   padding: 0.32rem 0.48rem !important;
   border: 1px solid #cfd9e7 !important;
   border-radius: 6px !important;
-  font-size: 0.8rem !important;
+  font-size: var(--operation-control-font-size) !important;
   background: #fff !important;
 }
 
@@ -374,10 +374,10 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel .task-action,
 .docs-task-dialog-panel .row-action,
 .docs-task-dialog-panel .close-button {
-  min-height: 30px !important;
+  min-height: var(--operation-control-height) !important;
   border-radius: 6px !important;
   padding: 0.32rem 0.62rem !important;
-  font-size: 0.78rem !important;
+  font-size: var(--operation-control-font-size) !important;
   font-weight: 700 !important;
   box-shadow: none !important;
 }
@@ -394,13 +394,13 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel th,
 .docs-task-dialog-panel td {
   padding: 0.38rem 0.48rem !important;
-  font-size: 0.78rem !important;
+  font-size: var(--operation-body-font-size) !important;
   line-height: 1.25 !important;
 }
 
 .docs-task-dialog-panel th {
   color: #475569 !important;
-  font-size: 0.68rem !important;
+  font-size: var(--operation-caption-size) !important;
   letter-spacing: 0 !important;
 }
 
@@ -418,7 +418,14 @@ body :where(.main-content, .content-wrapper),
 .docs-task-dialog-panel .feedback-error {
   padding: 0.42rem 0.52rem !important;
   border-radius: 8px !important;
-  font-size: 0.74rem !important;
+  font-size: var(--operation-body-font-size) !important;
+}
+
+.docs-task-dialog-panel.docs-task-dialog-compact {
+  --operation-control-height: var(--operation-compact-control-height);
+  --operation-caption-size: var(--operation-compact-caption-size);
+  --operation-control-font-size: var(--operation-compact-control-font-size);
+  --operation-body-font-size: var(--operation-compact-body-font-size);
 }
 
 .docs-task-dialog-panel.icmal-detail-dialog .cdk-dialog-container {

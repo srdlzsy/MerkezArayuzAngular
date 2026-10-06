@@ -1,6 +1,9 @@
 import type { Cell, Sheet, SheetData } from 'write-excel-file/browser';
 
 type BrowserFileContent = File | Blob | ArrayBuffer;
+type BivariantValueResolver<Row extends object> = {
+  bivarianceHack(row: Row): unknown;
+}['bivarianceHack'];
 
 export type ExcelExportColumnType =
   | 'text'
@@ -10,26 +13,26 @@ export type ExcelExportColumnType =
   | 'datetime'
   | 'boolean';
 
-export interface ExcelExportColumn<Row = unknown> {
+export interface ExcelExportColumn<Row extends object = object> {
   label: string;
-  value: Extract<keyof Row, string> | string | ((row: Row) => unknown);
+  value: Extract<keyof Row, string> | string | BivariantValueResolver<Row>;
   type?: ExcelExportColumnType;
   format?: string;
 }
 
-export interface ExcelExportSheet<Row = unknown> {
+export interface ExcelExportSheet<Row extends object = object> {
   sheetName: string;
   rows: readonly Row[];
   columns: readonly ExcelExportColumn<Row>[];
 }
 
-export interface ExcelExportSingleSheetOptions<Row = unknown> extends ExcelExportSheet<Row> {
+export interface ExcelExportSingleSheetOptions<Row extends object = object> extends ExcelExportSheet<Row> {
   fileName: string;
 }
 
 export interface ExcelExportWorkbookOptions {
   fileName: string;
-  sheets: readonly ExcelExportSheet<any>[];
+  sheets: readonly ExcelExportSheet<object>[];
 }
 
 interface PreparedExcelSheet extends Sheet<BrowserFileContent> {
@@ -37,11 +40,11 @@ interface PreparedExcelSheet extends Sheet<BrowserFileContent> {
   columns: Array<{ width: number }>;
 }
 
-type ExcelExportOptions<Row = unknown> =
+type ExcelExportOptions<Row extends object = object> =
   | ExcelExportSingleSheetOptions<Row>
   | ExcelExportWorkbookOptions;
 
-export async function exportRowsToExcel<Row>(
+export async function exportRowsToExcel<Row extends object>(
   options: ExcelExportOptions<Row>
 ): Promise<void> {
   const preparedSheets = prepareExcelSheets(options);
@@ -88,7 +91,7 @@ export function normalizeExcelSheetName(value: string): string {
   return normalized || 'Rapor';
 }
 
-function prepareExcelSheets<Row>(options: ExcelExportOptions<Row>): PreparedExcelSheet[] {
+function prepareExcelSheets<Row extends object>(options: ExcelExportOptions<Row>): PreparedExcelSheet[] {
   const sheets = 'sheets' in options
     ? options.sheets
     : [
@@ -105,7 +108,7 @@ function prepareExcelSheets<Row>(options: ExcelExportOptions<Row>): PreparedExce
     .map((sheet, index) => prepareExcelSheet(sheet, usedSheetNames, index));
 }
 
-function prepareExcelSheet<Row>(
+function prepareExcelSheet<Row extends object>(
   sheet: ExcelExportSheet<Row>,
   usedSheetNames: Set<string>,
   index: number
@@ -119,7 +122,7 @@ function prepareExcelSheet<Row>(
   };
 }
 
-function buildExcelSheetData<Row>(
+function buildExcelSheetData<Row extends object>(
   rows: readonly Row[],
   columns: readonly ExcelExportColumn<Row>[]
 ): SheetData {
@@ -134,7 +137,7 @@ function buildExcelSheetData<Row>(
   ];
 }
 
-function buildExcelCell<Row>(row: Row, column: ExcelExportColumn<Row>): Cell {
+function buildExcelCell<Row extends object>(row: Row, column: ExcelExportColumn<Row>): Cell {
   const value = resolveColumnValue(row, column);
 
   if (value === null || value === undefined) {
@@ -184,7 +187,7 @@ function buildExcelCell<Row>(row: Row, column: ExcelExportColumn<Row>): Cell {
   return `${value}`;
 }
 
-function resolveColumnValue<Row>(row: Row, column: ExcelExportColumn<Row>): unknown {
+function resolveColumnValue<Row extends object>(row: Row, column: ExcelExportColumn<Row>): unknown {
   if (typeof column.value === 'function') {
     return column.value(row);
   }
@@ -192,7 +195,7 @@ function resolveColumnValue<Row>(row: Row, column: ExcelExportColumn<Row>): unkn
   return (row as Record<string, unknown>)[column.value];
 }
 
-function buildExcelColumnWidths<Row>(
+function buildExcelColumnWidths<Row extends object>(
   columns: readonly ExcelExportColumn<Row>[],
   sheetData: SheetData
 ): Array<{ width: number }> {

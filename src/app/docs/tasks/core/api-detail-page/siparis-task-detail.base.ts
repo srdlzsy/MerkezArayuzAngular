@@ -18,13 +18,20 @@ interface SeriSiraPayload {
 
 type SiparisPrintMode = 'company' | 'warehouse';
 
-interface SiparisPrintColumn extends DocumentPrintColumn {
-  value: (item: any, index: number) => unknown;
+type DetailHeader<TDetail> = NonNullable<
+  TDetail extends { header?: infer THeader } ? THeader : never
+> & object;
+type DetailItem<TDetail> = (
+  TDetail extends { items?: readonly (infer TItem)[] | null } ? TItem : never
+) & object;
+
+interface SiparisPrintColumn<TItem extends object> extends DocumentPrintColumn {
+  value: (item: TItem, index: number) => unknown;
 }
 
 @Directive()
 export abstract class SiparisTaskDetailBase<
-  TDetail extends { header?: unknown; items?: readonly unknown[] | null }
+  TDetail extends { header?: object | null; items?: readonly object[] | null }
 >
   extends ApiTaskDetailBase<SeriSiraPayload, TDetail>
 {
@@ -72,12 +79,12 @@ export abstract class SiparisTaskDetailBase<
     return isClosed ? 'status-pill-success' : 'status-pill-warn';
   }
 
-  protected hasGreenGrocerCase(item: any): boolean {
-    return !!item?.greenGrocerCase;
+  protected hasGreenGrocerCase(item: object): boolean {
+    return !!this.readRecordValue(item, 'greenGrocerCase');
   }
 
-  protected formatGreenGrocerCase(item: any): string {
-    const caseInfo = item?.greenGrocerCase;
+  protected formatGreenGrocerCase(item: object): string {
+    const caseInfo = this.readRecordObject(item, 'greenGrocerCase');
 
     if (!caseInfo) {
       return '';
@@ -91,8 +98,8 @@ export abstract class SiparisTaskDetailBase<
     return `${this.formatNumber(inputQuantity)} ${inputMode} ~= ${this.formatNumber(estimatedQuantity)} ${microUnit}`.trim();
   }
 
-  protected formatGreenGrocerAverage(item: any): string {
-    const caseInfo = item?.greenGrocerCase;
+  protected formatGreenGrocerAverage(item: object): string {
+    const caseInfo = this.readRecordObject(item, 'greenGrocerCase');
 
     if (!caseInfo) {
       return '';
@@ -113,7 +120,7 @@ export abstract class SiparisTaskDetailBase<
     return this.getRecordText(caseInfo, 'confidence', 'status');
   }
 
-  protected readonly trackByItem = (index: number, item: any): string =>
+  protected readonly trackByItem = (index: number, item: DetailItem<TDetail>): string =>
     [
       this.getRecordText(item, 'stockCode'),
       this.getRecordText(item, 'orderGuid', 'lineGuid'),
@@ -124,7 +131,7 @@ export abstract class SiparisTaskDetailBase<
 
   protected printCurrentDocument(): void {
     const order = this.detail();
-    const header = order?.header as any;
+    const header = (order?.header ?? null) as DetailHeader<TDetail> | null;
 
     if (!header) {
       return;
@@ -146,17 +153,17 @@ export abstract class SiparisTaskDetailBase<
     });
   }
 
-  private items(): any[] {
-    return ((this.detail() as any)?.items as any[] | null) ?? [];
+  private items(): DetailItem<TDetail>[] {
+    return [...(this.detail()?.items ?? [])] as DetailItem<TDetail>[];
   }
 
-  private resolvePrintMode(header: any): SiparisPrintMode {
+  private resolvePrintMode(header: object): SiparisPrintMode {
     return this.getRecordText(header, 'customerCode', 'customerDisplayName', 'customerTitle')
       ? 'company'
       : 'warehouse';
   }
 
-  private resolvePrintBranch(header: any, mode: SiparisPrintMode): string {
+  private resolvePrintBranch(header: object, mode: SiparisPrintMode): string {
     if (mode === 'warehouse') {
       return this.joinCodeAndName(
         this.getRecordNumber(header, 'warehouseNo', 'inWarehouseNo', 'outWarehouseNo'),
@@ -170,7 +177,7 @@ export abstract class SiparisTaskDetailBase<
     );
   }
 
-  private buildPrintSections(header: any, mode: SiparisPrintMode) {
+  private buildPrintSections(header: object, mode: SiparisPrintMode) {
     const commonFields: DocumentPrintField[] = [
       { label: 'Evrak Seri', value: this.getRecordText(header, 'documentSerie') },
       { label: 'Evrak Sira', value: this.getRecordNumber(header, 'documentOrderNo') },
@@ -229,18 +236,18 @@ export abstract class SiparisTaskDetailBase<
     ];
   }
 
-  private buildTotalFields(header: any): DocumentPrintField[] {
+  private buildTotalFields(header: object): DocumentPrintField[] {
     return [
       { label: 'Kalem Sayisi', value: this.itemCount() },
       { label: 'Toplam Miktar', value: this.formatNumber(this.getRecordNumber(header, 'totalQuantity')) },
       { label: 'Teslim', value: this.formatNumber(this.getRecordNumber(header, 'totalDeliveredQuantity')), optional: true },
       { label: 'Kalan', value: this.formatNumber(this.getRecordNumber(header, 'totalRemainingQuantity')), optional: true },
       { label: 'Toplam Tutar', value: this.formatNumber(this.getRecordNumber(header, 'totalAmount')) },
-      { label: 'Durum', value: this.getStatusLabel(!!header?.isClosed) }
+      { label: 'Durum', value: this.getStatusLabel(!!this.readRecordValue(header, 'isClosed')) }
     ];
   }
 
-  private buildPrintColumns(): SiparisPrintColumn[] {
+  private buildPrintColumns(): SiparisPrintColumn<DetailItem<TDetail>>[] {
     return [
       {
         label: 'Sira',
@@ -301,7 +308,7 @@ export abstract class SiparisTaskDetailBase<
     ];
   }
 
-  private buildPrintSignatures(header: any, mode: SiparisPrintMode) {
+  private buildPrintSignatures(header: object, mode: SiparisPrintMode) {
     if (mode === 'company') {
       return [
         { label: 'Teslim Eden', value: this.getRecordText(header, 'deliverer') },
@@ -336,9 +343,9 @@ export abstract class SiparisTaskDetailBase<
     }
   }
 
-  private getRecordText(record: any, ...keys: string[]): string {
+  private getRecordText(record: object | null | undefined, ...keys: string[]): string {
     for (const key of keys) {
-      const value = record?.[key];
+      const value = this.readRecordValue(record, key);
 
       if (typeof value === 'string') {
         const normalizedValue = value.trim();
@@ -352,9 +359,9 @@ export abstract class SiparisTaskDetailBase<
     return '';
   }
 
-  private getRecordNumber(record: any, ...keys: string[]): number | null {
+  private getRecordNumber(record: object | null | undefined, ...keys: string[]): number | null {
     for (const key of keys) {
-      const value = record?.[key];
+      const value = this.readRecordValue(record, key);
 
       if (typeof value === 'number' && Number.isFinite(value)) {
         return value;
@@ -370,5 +377,14 @@ export abstract class SiparisTaskDetailBase<
     }
 
     return null;
+  }
+
+  private readRecordObject(record: object | null | undefined, key: string): object | null {
+    const value = this.readRecordValue(record, key);
+    return typeof value === 'object' && value !== null ? value : null;
+  }
+
+  private readRecordValue(record: object | null | undefined, key: string): unknown {
+    return record ? (record as Record<string, unknown>)[key] : undefined;
   }
 }

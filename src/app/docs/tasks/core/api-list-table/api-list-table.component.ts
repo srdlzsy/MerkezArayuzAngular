@@ -14,7 +14,6 @@ import {
 } from '../excel-export/excel-export.utils';
 import { InPlacePrintService } from '../document-print/in-place-print.service';
 
-type ApiListRow = object;
 type SortDirection = 'asc' | 'desc' | null;
 
 @Component({
@@ -24,15 +23,15 @@ type SortDirection = 'asc' | 'desc' | null;
   templateUrl: './api-list-table.component.html',
   styleUrl: './api-list-table.component.scss'
 })
-export class ApiListTableComponent {
+export class ApiListTableComponent<Row extends object = object> {
   private readonly inPlacePrintService = inject(InPlacePrintService);
 
-  readonly rows = input.required<readonly ApiListRow[]>();
-  readonly columns = input.required<readonly ApiListTableColumn[]>();
+  readonly rows = input.required<readonly Row[]>();
+  readonly columns = input.required<readonly ApiListTableColumn<Row>[]>();
   readonly actionLabel = input('Detay');
   readonly showRowAction = input(true);
   readonly fitToWidth = input(false);
-  readonly additionalActions = input<readonly ApiListTableRowAction[]>([]);
+  readonly additionalActions = input<readonly ApiListTableRowAction<Row>[]>([]);
   readonly filterPlaceholder = input('Seri, sira, firma, depo veya durum ara');
   readonly showPrint = input(true);
   readonly printTitle = input('');
@@ -44,15 +43,15 @@ export class ApiListTableComponent {
   readonly exportSheetName = input('Rapor');
   readonly showSelection = input(false);
   readonly selectedRowKeys = input<ReadonlySet<string>>(new Set());
-  readonly selectionKey = input<(row: ApiListRow) => string | null>(() => null);
+  readonly selectionKey = input<(row: Row) => string | null>(() => null);
   readonly selectionActionLabel = input('Secilenleri Yazdir');
   readonly selectionActionDisabled = input(true);
   readonly showSelectionAllAction = input(false);
   readonly selectionAllActionLabel = input('Tumunu Yazdir');
   readonly selectionAllActionDisabled = input(true);
   readonly selectionActionLoading = input(false);
-  readonly rowAction = output<any>();
-  readonly additionalRowAction = output<ApiListTableActionEvent>();
+  readonly rowAction = output<Row>();
+  readonly additionalRowAction = output<ApiListTableActionEvent<Row>>();
   readonly selectionChanged = output<ReadonlySet<string>>();
   readonly selectionActionRequested = output<void>();
   readonly selectionAllActionRequested = output<void>();
@@ -241,12 +240,12 @@ export class ApiListTableComponent {
     return this.sortDirection() === 'asc' ? 'ascending' : 'descending';
   }
 
-  protected isRowSelected(row: ApiListRow): boolean {
+  protected isRowSelected(row: Row): boolean {
     const key = this.getSelectionKey(row);
     return !!key && this.selectedRowKeys().has(key);
   }
 
-  protected toggleRowSelection(row: ApiListRow, checked: boolean): void {
+  protected toggleRowSelection(row: Row, checked: boolean): void {
     const key = this.getSelectionKey(row);
 
     if (!key) {
@@ -282,13 +281,13 @@ export class ApiListTableComponent {
     this.selectionChanged.emit(selectedKeys);
   }
 
-  protected readonly trackByColumn = (_index: number, column: ApiListTableColumn): string => column.key;
+  protected readonly trackByColumn = (_index: number, column: ApiListTableColumn<Row>): string => column.key;
   protected readonly trackByAdditionalAction = (
     _index: number,
-    action: ApiListTableRowAction
+    action: ApiListTableRowAction<Row>
   ): string => action.key;
 
-  protected readonly trackByRow = (index: number, row: ApiListRow): string | number => {
+  protected readonly trackByRow = (index: number, row: Row): string | number => {
     const seri = this.readValue(row, 'seri') ?? this.readValue(row, 'documentSerie');
     const sira = this.readValue(row, 'sira') ?? this.readValue(row, 'documentOrderNo');
 
@@ -299,7 +298,7 @@ export class ApiListTableComponent {
     return index;
   };
 
-  protected readCell(row: ApiListRow, column: ApiListTableColumn): unknown {
+  protected readCell(row: Row, column: ApiListTableColumn<Row>): unknown {
     return this.resolveCellValue(row, column);
   }
 
@@ -358,20 +357,20 @@ export class ApiListTableComponent {
     return 'status-pill-neutral';
   }
 
-  protected emitAdditionalRowAction(actionKey: string, row: ApiListRow): void {
+  protected emitAdditionalRowAction(actionKey: string, row: Row): void {
     this.additionalRowAction.emit({
       actionKey,
       row
     });
   }
 
-  protected getVisibleAdditionalActions(row: ApiListRow): readonly ApiListTableRowAction[] {
+  protected getVisibleAdditionalActions(row: Row): readonly ApiListTableRowAction<Row>[] {
     return this.additionalActions().filter((action) => action.isVisible?.(row) ?? true);
   }
 
   protected isAdditionalActionDisabled(
-    action: ApiListTableRowAction,
-    row: ApiListRow
+    action: ApiListTableRowAction<Row>,
+    row: Row
   ): boolean {
     return action.isDisabled?.(row) ?? false;
   }
@@ -399,7 +398,7 @@ export class ApiListTableComponent {
 
     try {
       const columns = this.columns();
-      const exportColumns: ExcelExportColumn<ApiListRow>[] = columns.map((column) => ({
+      const exportColumns: ExcelExportColumn<Row>[] = columns.map((column) => ({
         label: column.label,
         value: (row) => this.resolveCellValue(row, column),
         type: column.type === 'date' ? 'datetime' : 'text'
@@ -474,7 +473,7 @@ export class ApiListTableComponent {
     }
   }
 
-  protected formatPrintCell(row: ApiListRow, column: ApiListTableColumn): string {
+  protected formatPrintCell(row: Row, column: ApiListTableColumn<Row>): string {
     const value = this.readCell(row, column);
 
     if (column.type === 'date') {
@@ -484,7 +483,7 @@ export class ApiListTableComponent {
     return this.formatText(value, column.emptyValue || '-');
   }
 
-  private buildSearchText(row: ApiListRow, columns: readonly ApiListTableColumn[]): string {
+  private buildSearchText(row: Row, columns: readonly ApiListTableColumn<Row>[]): string {
     return columns
       .map((column) => {
         const value = this.resolveCellValue(row, column);
@@ -500,13 +499,13 @@ export class ApiListTableComponent {
       .toLocaleLowerCase('tr-TR');
   }
 
-  protected getSelectionKey(row: ApiListRow): string | null {
+  protected getSelectionKey(row: Row): string | null {
     return this.selectionKey()(row)?.trim() || null;
   }
 
   private compareRows(
-    left: ApiListRow,
-    right: ApiListRow,
+    left: Row,
+    right: Row,
     key: string,
     direction: Exclude<SortDirection, null>
   ): number {
@@ -584,11 +583,11 @@ export class ApiListTableComponent {
     return text.toLocaleLowerCase('tr-TR');
   }
 
-  private readValue(row: ApiListRow, key: string): unknown {
+  private readValue(row: Row, key: string): unknown {
     return (row as Record<string, unknown>)[key];
   }
 
-  private resolveCellValue(row: ApiListRow, column: ApiListTableColumn): unknown {
+  private resolveCellValue(row: Row, column: ApiListTableColumn<Row>): unknown {
     return column.resolveValue ? column.resolveValue(row) : this.readValue(row, column.key);
   }
 

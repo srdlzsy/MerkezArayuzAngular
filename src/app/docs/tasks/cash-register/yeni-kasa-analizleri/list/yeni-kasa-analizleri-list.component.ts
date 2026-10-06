@@ -309,7 +309,7 @@ export class YeniKasaAnalizleriListComponent {
   protected readonly excelExportErrorMessage = signal<string | null>(null);
 
   protected readonly activeRows = computed(() => this.rowsByTab()[this.activeTab()]);
-  protected readonly activeColumns = computed<readonly ApiListTableColumn[]>(() => {
+  protected readonly activeColumns = computed<readonly ApiListTableColumn<YeniKasaAnalizRow>[]>(() => {
     switch (this.activeTab()) {
       case 'saglik-ozeti':
         return SAGLIK_OZETI_COLUMNS;
@@ -718,7 +718,7 @@ export class YeniKasaAnalizleriListComponent {
 
   private async exportDetailWorkbook(
     fileName: string,
-    sheets: readonly ExcelExportSheet<any>[]
+    sheets: readonly ExcelExportSheet<object>[]
   ): Promise<void> {
     if (this.receiptDetailExporting()) {
       return;

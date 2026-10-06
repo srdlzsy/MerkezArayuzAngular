@@ -385,7 +385,7 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
       return;
     }
 
-    const sheets: ExcelExportSheet<any>[] = [
+    const sheets: ExcelExportSheet<object>[] = [
       {
         sheetName: 'Gunluk Ozet',
         rows: [overview],
