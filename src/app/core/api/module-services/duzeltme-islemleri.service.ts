@@ -8,6 +8,9 @@ import type {
   CompanyOrderDocumentDto,
   CompanyOrderDocumentLookupHttpRequest,
   CompanyOrderDocumentUpdateResponse,
+  CustomerAddressDto,
+  CustomerAddressPatchHttpRequest,
+  CustomerAddressUpdateResponse,
   CustomerCardDetailDto,
   CustomerCardListItemDto,
   CustomerCardPatchHttpRequest,
@@ -124,6 +127,23 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   ): Observable<CustomerCardUpdateResponse> {
     return this.put<CustomerCardUpdateResponse, CustomerCardPatchHttpRequest>(
       `${ROOT}/cariler/${encodeURIComponent(customerCode)}`,
+      request
+    );
+  }
+
+  getCustomerAddresses(customerCode: string): Observable<CustomerAddressDto[]> {
+    return this.get<CustomerAddressDto[]>(
+      `${ROOT}/cariler/${encodeURIComponent(customerCode)}/adresler`
+    );
+  }
+
+  updateCustomerAddress(
+    customerCode: string,
+    addressNo: number,
+    request: CustomerAddressPatchHttpRequest
+  ): Observable<CustomerAddressUpdateResponse> {
+    return this.put<CustomerAddressUpdateResponse, CustomerAddressPatchHttpRequest>(
+      `${ROOT}/cariler/${encodeURIComponent(customerCode)}/adresler/${addressNo}`,
       request
     );
   }

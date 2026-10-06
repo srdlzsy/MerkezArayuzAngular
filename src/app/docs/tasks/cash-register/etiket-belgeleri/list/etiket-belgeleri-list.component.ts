@@ -20,7 +20,6 @@ import type {
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
-import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
@@ -96,7 +95,6 @@ export class EtiketBelgeleriListComponent {
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly inPlacePrintService = inject(InPlacePrintService);
-  private readonly confirmDialog = inject(AppConfirmDialogService);
 
   private activeLoadId = 0;
   private productRowSequence = 0;
@@ -126,7 +124,6 @@ export class EtiketBelgeleriListComponent {
   protected readonly printPreviewMode = signal<PreviewMode>('labels');
   protected readonly printPreviewProducts = signal<readonly IEtiketBasimProduct[]>([]);
   protected readonly printPreviewLabelConfig = signal<IEtiketTipiConfig | null>(null);
-  protected readonly hasManualListChanges = signal(false);
 
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
@@ -419,7 +416,6 @@ export class EtiketBelgeleriListComponent {
   protected clearList(): void {
     this.products.set([]);
     this.hiddenProductKeysState.set([]);
-    this.hasManualListChanges.set(false);
     this.resetPrintPreview();
     this.clearProductTableTools();
     this.currentPage.set(1);
@@ -452,7 +448,6 @@ export class EtiketBelgeleriListComponent {
 
         this.products.update((items) => [...items, productWithRowKey]);
         this.setProductHidden(this.getProductRowKey(productWithRowKey), false);
-        this.hasManualListChanges.set(true);
         this.clearProductTableTools();
         this.currentPage.set(this.totalPages());
         this.lastLoadedSource.set('Manuel urun ekleme');
@@ -468,7 +463,6 @@ export class EtiketBelgeleriListComponent {
     const key = this.getProductRowKey(product);
 
     this.setProductHidden(key, true);
-    this.hasManualListChanges.set(true);
     this.currentPage.set(Math.min(this.currentPageSafe(), this.totalPages()));
 
     this.setFeedback(
@@ -486,7 +480,6 @@ export class EtiketBelgeleriListComponent {
     const count = this.hiddenProductCount();
 
     this.clearHiddenProducts();
-    this.hasManualListChanges.set(true);
     this.currentPage.set(1);
     this.setFeedback(
       'success',
@@ -499,7 +492,6 @@ export class EtiketBelgeleriListComponent {
     const key = this.getProductRowKey(product);
 
     this.setProductHidden(key, false);
-    this.hasManualListChanges.set(true);
     this.setFeedback(
       'success',
       'Urun geri alindi',
@@ -712,25 +704,7 @@ export class EtiketBelgeleriListComponent {
     requestFactory: () => ReturnType<KasaIslemleriService['getUrunEtiketleri']>,
     sourceLabel: string
   ): void {
-    if (!this.hasManualListChanges()) {
-      this.fetchProducts(requestFactory(), sourceLabel);
-      return;
-    }
-
-    void this.confirmDialog
-      .confirm({
-        title: 'Mevcut liste degistirilsin mi?',
-        message: 'Manuel eklenen veya yazdirmadan cikarilan urunler bulunuyor.',
-        details: 'Yeni kaynak yuklendiginde bu degisiklikler temizlenecek.',
-        confirmText: 'Yeni Listeyi Yukle',
-        cancelText: 'Mevcut Listeyi Koru',
-        tone: 'warning'
-      })
-      .then((confirmed) => {
-        if (confirmed) {
-          this.fetchProducts(requestFactory(), sourceLabel);
-        }
-      });
+    this.fetchProducts(requestFactory(), sourceLabel);
   }
 
   private fetchProducts(
@@ -761,7 +735,6 @@ export class EtiketBelgeleriListComponent {
 
           this.products.set(productRows);
           this.hiddenProductKeysState.set([]);
-          this.hasManualListChanges.set(false);
           this.clearProductTableTools();
           this.currentPage.set(1);
           this.lastLoadedSource.set(sourceLabel);

@@ -5,7 +5,6 @@ import { of } from 'rxjs';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
-import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 import { ETIKET_TIPLERI } from '../etiket-belgeleri.config';
 
@@ -84,7 +83,6 @@ describe('EtiketBelgeleriListComponent document print order', () => {
         { provide: AuthService, useValue: { currentUser: signal(null) } },
         { provide: KasaIslemleriService, useValue: { getEtiketBelgesi } },
         { provide: InPlacePrintService, useValue: {} },
-        { provide: AppConfirmDialogService, useValue: { confirm: () => Promise.resolve(true) } },
         { provide: Dialog, useValue: {} }
       ]
     });
@@ -113,7 +111,6 @@ describe('EtiketBelgeleriListComponent document print order', () => {
         { provide: AuthService, useValue: { currentUser: signal(null) } },
         { provide: KasaIslemleriService, useValue: { getEtiketBelgesi } },
         { provide: InPlacePrintService, useValue: {} },
-        { provide: AppConfirmDialogService, useValue: { confirm: () => Promise.resolve(true) } },
         { provide: Dialog, useValue: {} }
       ]
     });
@@ -150,16 +147,14 @@ describe('EtiketBelgeleriListComponent document print order', () => {
     expect(component.printPreviewProducts().map((product: any) => product.productCode)).toEqual(['B', 'A']);
   });
 
-  it('keeps manual list changes when replacement confirmation is cancelled', async () => {
+  it('replaces manual list changes immediately without confirmation', () => {
     const getEtiketBelgesi = jasmine.createSpy('getEtiketBelgesi').and.returnValue(of([]));
-    const confirm = jasmine.createSpy('confirm').and.returnValue(Promise.resolve(false));
 
     TestBed.configureTestingModule({
       providers: [
         { provide: AuthService, useValue: { currentUser: signal(null) } },
         { provide: KasaIslemleriService, useValue: { getEtiketBelgesi } },
         { provide: InPlacePrintService, useValue: {} },
-        { provide: AppConfirmDialogService, useValue: { confirm } },
         { provide: Dialog, useValue: {} }
       ]
     });
@@ -168,15 +163,12 @@ describe('EtiketBelgeleriListComponent document print order', () => {
       () => new EtiketBelgeleriListComponent()
     ) as any;
     component.products.set([{ productCode: 'A', productName: 'Manuel Urun', barcode: '111' }]);
-    component.hasManualListChanges.set(true);
     component.filtersForm.controls.documentSearch.setValue('456');
 
     component.searchDocument();
-    await Promise.resolve();
 
-    expect(confirm).toHaveBeenCalled();
-    expect(getEtiketBelgesi).not.toHaveBeenCalled();
-    expect(component.products().map((product: any) => product.productCode)).toEqual(['A']);
+    expect(getEtiketBelgesi).toHaveBeenCalledOnceWith(456);
+    expect(component.products()).toEqual([]);
   });
 });
 

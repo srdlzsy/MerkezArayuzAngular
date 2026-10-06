@@ -1,0 +1,126 @@
+<section class="customer-address-editor">
+  <header class="address-section-head">
+    <div>
+      <p class="address-kicker">CARI_HESAP_ADRESLERI</p>
+      <h4>Cari adresleri</h4>
+    </div>
+    <div class="address-head-actions">
+      <span class="address-count">{{ addresses().length }} adres</span>
+      <button
+        type="button"
+        class="address-secondary-action"
+        [disabled]="!canDetail || isLoading()"
+        title="Adresleri yenile"
+        (click)="loadAddresses()"
+      >
+        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+        {{ isLoading() ? 'Yukleniyor...' : 'Yenile' }}
+      </button>
+    </div>
+  </header>
+
+  <div
+    *ngIf="feedback() as state"
+    class="address-feedback"
+    [class.address-feedback-error]="state.tone === 'error'"
+    [class.address-feedback-success]="state.tone === 'success'"
+  >
+    <strong>{{ state.title }}</strong>
+    <span>{{ state.message }}</span>
+  </div>
+
+  <div class="address-selector" *ngIf="addresses().length">
+    <button
+      *ngFor="let address of addresses(); trackBy: trackByAddressNo"
+      type="button"
+      class="address-option"
+      [class.is-selected]="selectedAddress()?.addressNo === address.addressNo"
+      (click)="selectAddress(address)"
+    >
+      <span>Adres {{ address.addressNo }}</span>
+      <strong>{{ getAddressTitle(address) }}</strong>
+      <small>{{ address.postalCode || 'Posta kodu yok' }}</small>
+    </button>
+  </div>
+
+  <ng-container *ngIf="addressDraft() as draft">
+    <div class="address-editor-head">
+      <div>
+        <strong>Adres {{ draft.addressNo }}</strong>
+        <span>{{ draft.customerCode }}</span>
+      </div>
+      <span class="address-change-badge">{{ changedFieldCount() }} degisiklik</span>
+    </div>
+
+    <div class="address-form-grid">
+      <label
+        *ngFor="let field of textFields; trackBy: trackByField"
+        class="address-field"
+        [class.address-field-wide]="field.wide"
+      >
+        <span>{{ field.label }}</span>
+        <input
+          type="text"
+          [attr.maxlength]="field.maxLength || null"
+          [ngModel]="fieldValue(draft, field)"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="setAddressField(draft, field, $event)"
+        />
+      </label>
+    </div>
+
+    <div class="address-coordinate-grid">
+      <label
+        *ngFor="let field of numberFields; trackBy: trackByField"
+        class="address-field"
+      >
+        <span>{{ field.label }}</span>
+        <input
+          type="number"
+          step="any"
+          [ngModel]="fieldValue(draft, field)"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="setAddressField(draft, field, $event)"
+        />
+      </label>
+    </div>
+
+    <div class="address-toggle-grid">
+      <label
+        *ngFor="let field of booleanFields; trackBy: trackByField"
+        class="address-toggle"
+      >
+        <input
+          type="checkbox"
+          [ngModel]="fieldValue(draft, field)"
+          [ngModelOptions]="{ standalone: true }"
+          (ngModelChange)="setAddressField(draft, field, $event)"
+        />
+        <span>{{ field.label }}</span>
+      </label>
+    </div>
+
+    <footer class="address-actions">
+      <span class="address-updated-at">
+        Son guncelleme:
+        {{ draft.lastUpdatedAt ? (draft.lastUpdatedAt | date: 'dd.MM.yyyy HH:mm') : '-' }}
+      </span>
+      <button type="button" class="address-secondary-action" (click)="resetAddress()">
+        Degisiklikleri Geri Al
+      </button>
+      <button
+        type="button"
+        class="address-primary-action"
+        [disabled]="!canUpdate || !changedFieldCount() || isSaving()"
+        (click)="saveAddress()"
+      >
+        {{ isSaving() ? 'Kaydediliyor...' : 'Adresi Guncelle' }}
+      </button>
+    </footer>
+  </ng-container>
+
+  <div class="address-empty" *ngIf="!isLoading() && !addresses().length && !feedback()">
+    <i class="fa-solid fa-location-dot" aria-hidden="true"></i>
+    <span>Bu cari kartina bagli adres bulunmuyor.</span>
+  </div>
+</section>

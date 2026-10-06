@@ -342,6 +342,78 @@ export interface CustomerCardUpdateResponse {
   customerCard: Partial<CustomerCardDetailDto> & Pick<CustomerCardDetailDto, 'customerCode'>;
 }
 
+export interface CustomerAddressDto {
+  addressGuid: string;
+  customerCode: string;
+  addressNo: number;
+  isPrintEnabled: boolean;
+  street: string;
+  neighborhood: string;
+  avenue: string;
+  quarter: string;
+  apartmentNo: string;
+  apartmentUnitNo: string;
+  postalCode: string;
+  district: string;
+  city: string;
+  country: string;
+  addressCode: string;
+  phoneCountryCode: string;
+  phoneAreaCode: string;
+  phoneNo1: string;
+  phoneNo2: string;
+  faxNo: string;
+  representativeCode: string;
+  note: string;
+  latitude: number;
+  longitude: number;
+  eInvoiceAlias: string;
+  eDespatchAlias: string;
+  isPassive: boolean;
+  isHidden: boolean;
+  isLocked: boolean;
+  createdAt: string | null;
+  lastUpdatedAt: string | null;
+}
+
+export type CustomerAddressPatchField =
+  | 'isPrintEnabled'
+  | 'street'
+  | 'neighborhood'
+  | 'avenue'
+  | 'quarter'
+  | 'apartmentNo'
+  | 'apartmentUnitNo'
+  | 'postalCode'
+  | 'district'
+  | 'city'
+  | 'country'
+  | 'addressCode'
+  | 'phoneCountryCode'
+  | 'phoneAreaCode'
+  | 'phoneNo1'
+  | 'phoneNo2'
+  | 'faxNo'
+  | 'representativeCode'
+  | 'note'
+  | 'latitude'
+  | 'longitude'
+  | 'eInvoiceAlias'
+  | 'eDespatchAlias'
+  | 'isPassive'
+  | 'isHidden'
+  | 'isLocked';
+
+export type CustomerAddressPatchHttpRequest = {
+  [Key in CustomerAddressPatchField]?: CustomerAddressDto[Key] | null;
+};
+
+export interface CustomerAddressUpdateResponse {
+  summary: MikroUpdateSummaryDto;
+  address: Partial<CustomerAddressDto> &
+    Pick<CustomerAddressDto, 'customerCode' | 'addressNo'>;
+}
+
 export interface BanknoteTrackDetailDto {
   banknoteTrackId: string;
   banknoteTrackDate: string;

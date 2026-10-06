@@ -873,6 +873,12 @@
               {{ isBusy('customer-card-save') ? 'Kaydediliyor...' : 'Cari Kartini Guncelle' }}
             </button>
           </div>
+
+          <app-customer-address-editor
+            [customerCode]="draft.customerCode"
+            [canDetail]="canDetail()"
+            [canUpdate]="canUpdate()"
+          />
         </ng-container>
 
         <ng-template #noCustomerCard>

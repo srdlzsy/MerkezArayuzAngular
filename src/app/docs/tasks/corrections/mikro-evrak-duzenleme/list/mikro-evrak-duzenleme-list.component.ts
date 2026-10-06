@@ -63,6 +63,7 @@ import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dial
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
+import { CustomerAddressEditorComponent } from './customer-address-editor/customer-address-editor.component';
 
 type EditorTab =
   | 'stock-card'
@@ -537,7 +538,7 @@ const BANKNOTE_TRACK_FIELDS: readonly FieldDefinition[] = [
 @Component({
   selector: 'app-mikro-evrak-duzenleme-list',
   standalone: true,
-  imports: [CommonModule, FormsModule],
+  imports: [CommonModule, FormsModule, CustomerAddressEditorComponent],
   templateUrl: './mikro-evrak-duzenleme-list.component.html',
   styleUrl: './mikro-evrak-duzenleme-list.component.scss'
 })
