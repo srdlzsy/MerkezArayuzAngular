@@ -40,13 +40,16 @@ for (const file of componentStyleFiles) {
   assertMaximumLines(file, 1750, 'component stylesheet');
 }
 
-assertMaximumOccurrences('src/styles.scss', '!important', 97);
+assertMaximumOccurrences('src/styles.scss', '!important', 0);
 assertMaximumOccurrences('src/styles/_operational-shell.scss', '!important', 0);
+assertMaximumOccurrences('src/styles/_task-dialog-overrides.scss', '!important', 0);
 assertMaximumPatternOccurrences(
-  taskTypeScriptFiles.filter((file) => !file.endsWith('.spec.ts')),
+  walk(join(root, 'src/app')).filter(
+    (file) => extname(file) === '.ts' && !file.endsWith('.spec.ts'),
+  ),
   /\bany\b/g,
   0,
-  'explicit any types in production task code',
+  'explicit any types in production application code',
 );
 assertMaximumPatternOccurrences(
   walk(join(root, 'src')).filter((file) => extname(file) === '.scss'),
@@ -63,6 +66,8 @@ assertForbiddenText(
 const criticalBehaviorSpecs = [
   'src/app/core/auth/guards/auth.guards.spec.ts',
   'src/app/core/auth/services/auth.service.spec.ts',
+  'src/app/core/api/module-services/critical-create-api.spec.ts',
+  'src/app/docs/tasks/core/critical-create-components.spec.ts',
   'src/app/docs/tasks/core/api-detail-page/kalemli-task-detail.base.spec.ts',
   'src/app/docs/tasks/core/api-list-page/api-task-list-page.base.spec.ts',
   'src/app/docs/tasks/core/api-list-table/api-list-table.component.spec.ts',

@@ -224,9 +224,12 @@ export class StokIslemleriService extends BaseApiService {
    * @param request Zayiat fişi oluşturma isteği
    */
   createZayiatFisi(
-    request: any
-  ): Observable<any> {
-    return this.post('stok-islemleri/zayiat-fisleri', request);
+    request: IFurpaCreateStockReceiptRequestApiDto
+  ): Observable<IFurpaCreateStockReceiptResponseApiDto> {
+    return this.post<IFurpaCreateStockReceiptResponseApiDto, IFurpaCreateStockReceiptRequestApiDto>(
+      'stok-islemleri/zayiat-fisleri',
+      request
+    );
   }
 
   /**
@@ -252,8 +255,11 @@ export class StokIslemleriService extends BaseApiService {
    */
   createSayimSonucuV2(
     request: CreateInventoryCountHttpRequest
-  ): Observable<any> {
-    return this.post('stok-islemleri/sayim-sonuclari', request);
+  ): Observable<IFurpaCreateInventoryCountResponseApiDto> {
+    return this.post<IFurpaCreateInventoryCountResponseApiDto, CreateInventoryCountHttpRequest>(
+      'stok-islemleri/sayim-sonuclari',
+      request
+    );
   }
 
   /**
@@ -294,8 +300,11 @@ export class StokIslemleriService extends BaseApiService {
    */
   createVirmanFisi(
     request: CreateVirmanHttpRequest
-  ): Observable<any> {
-    return this.post('stok-islemleri/virmanlar', request);
+  ): Observable<IFurpaCreateVirmanResponseApiDto> {
+    return this.post<IFurpaCreateVirmanResponseApiDto, CreateVirmanHttpRequest>(
+      'stok-islemleri/virmanlar',
+      request
+    );
   }
 
   getStockAnomalies(

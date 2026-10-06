@@ -20,22 +20,14 @@ import type {
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
-import { FiyatetiketComponent } from '../a4-fiyat-etiketi/fiyatetiket.component';
-import { A5DortluFiyatEtiketiComponent } from '../a5-dortlu-fiyat-etiketi/a5-dortlu-fiyat-etiketi.component';
-import { A5IkiliFurparaKartEtiketiComponent } from '../a5-ikili-furpara-kart-etiketi/a5-ikili-furpara-kart-etiketi.component';
-import { A5IkiliAyinEtiketiComponent } from '../a5-ikili-ayin-etiketi/a5-ikili-ayin-etiketi.component';
-import { A5IkiliFiyatEtiketiComponent } from '../a5-ikili-fiyat-etiketi/a5-ikili-fiyat-etiketi.component';
-import { A5TekliFiyatEtiketiComponent } from '../a5-tekli-fiyat-etiketi/a5-tekli-fiyat-etiketi.component';
 import { AddLabel } from '../add-label/add-label';
 import { renderBarcodeSvg, type BarcodeRenderOptions } from '../etiket-barcode.util';
 import { ETIKET_TIPLERI, IEtiketTipiConfig } from '../etiket-belgeleri.config';
 import { PrintChangePrice } from '../print-change-price/print-change-price';
-import { RafEtiketA5Component } from '../raf-etiket-a5/raf-etiket-a5.component';
-import { RafetiketiComponent } from '../raf-etiketi/rafetiketi.component';
-import { A5IkiliAyinUrunuFiyatEtiketi } from '../a5-ikili-ayin-urunu-fiyat-etiketi/a5-ikili-ayin-urunu-fiyat-etiketi';
 
 type PreviewMode = 'labels' | 'price-changes';
 
@@ -70,20 +62,7 @@ type SortDirection = 'asc' | 'desc';
 @Component({
   selector: 'app-etiket-belgeleri-list',
   standalone: true,
-  imports: [
-    CommonModule,
-    ReactiveFormsModule,
-    FiyatetiketComponent,
-    A5IkiliFiyatEtiketiComponent,
-    A5DortluFiyatEtiketiComponent,
-    A5IkiliFurparaKartEtiketiComponent,
-    A5TekliFiyatEtiketiComponent,
-    A5IkiliAyinUrunuFiyatEtiketi,
-    RafetiketiComponent,
-    RafEtiketA5Component,
-    A5IkiliAyinEtiketiComponent,
-    PrintChangePrice
-  ],
+  imports: [CommonModule, ReactiveFormsModule, PrintChangePrice],
   templateUrl: './etiket-belgeleri-list.component.html',
   styleUrl: './etiket-belgeleri-list.component.scss',
   changeDetection: ChangeDetectionStrategy.OnPush
@@ -117,13 +96,13 @@ export class EtiketBelgeleriListComponent {
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly inPlacePrintService = inject(InPlacePrintService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
 
   private activeLoadId = 0;
   private productRowSequence = 0;
   private productSearchDebounceId: number | undefined;
   private lastProductSearchQuery = '';
   private recentDocumentsWarehouseNo: number | null = null;
-  private lastHandledDocumentId: number | null = null;
   private readonly productSearchTerm = signal('');
   private readonly currentPage = signal(1);
   protected readonly pageSize = signal(25);
@@ -141,13 +120,13 @@ export class EtiketBelgeleriListComponent {
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly isLoadingProducts = signal(false);
   protected readonly isLoadingDocuments = signal(false);
-  protected readonly previewMode = signal<PreviewMode>('labels');
   protected readonly lastLoadedSource = signal('Henuz veri yuklenmedi');
   protected readonly printState = signal<'idle' | 'preparing'>('idle');
   protected readonly isPrintPreviewMounted = signal(false);
   protected readonly printPreviewMode = signal<PreviewMode>('labels');
   protected readonly printPreviewProducts = signal<readonly IEtiketBasimProduct[]>([]);
   protected readonly printPreviewLabelConfig = signal<IEtiketTipiConfig | null>(null);
+  protected readonly hasManualListChanges = signal(false);
 
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
@@ -206,13 +185,22 @@ export class EtiketBelgeleriListComponent {
       ? this.promotionProducts()
       : this.activeProducts();
   });
-  protected readonly labelPrintProducts = computed(() => [...this.previewProducts()]);
-  protected readonly priceChangePrintProducts = computed(() => [...this.priceChangeProducts()]);
-  protected readonly activePreviewCount = computed(() =>
-    this.previewMode() === 'price-changes'
-      ? this.priceChangePrintProducts().length
-      : this.labelPrintProducts().length
+  protected readonly labelPrintProducts = computed(() =>
+    this.applyProductFilters(this.previewProducts())
   );
+  protected readonly priceChangePrintProducts = computed(() =>
+    this.applyProductFilters(this.priceChangeProducts())
+  );
+  protected readonly printPageCount = computed(() => {
+    const capacity = Math.max(1, this.selectedEtiket()?.sayfaKapasitesi ?? 1);
+    return Math.ceil(this.labelPrintProducts().length / capacity);
+  });
+  protected readonly printMissingBarcodeCount = computed(
+    () => this.labelPrintProducts().filter((product) => !product.barcode.trim()).length
+  );
+  protected readonly labelPreviewInputs = computed<Record<string, unknown>>(() => ({
+    productsToPrint: this.printPreviewProducts()
+  }));
   protected readonly visibleProducts = computed(() => {
     return this.applyProductTools(this.activeProducts());
   });
@@ -310,30 +298,23 @@ export class EtiketBelgeleriListComponent {
       this.loadRecentDocumentsInternal(warehouseNo);
     });
 
-    this.filtersForm.controls.documentId.valueChanges
-      .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((documentId: number | null) => {
-        if (typeof documentId !== 'number' || Number.isNaN(documentId)) {
-          this.lastHandledDocumentId = null;
-          return;
-        }
-
-        if (this.lastHandledDocumentId === documentId) {
-          return;
-        }
-
-        this.lastHandledDocumentId = documentId;
-        this.loadSelectedDocument();
-      });
-
     this.filtersForm.controls.labelType.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((labelType: string | null) => {
         const nextLabelType = labelType?.trim() || ETIKET_TIPLERI[0]?.etiketTipi || '';
 
         this.selectedLabelType.set(nextLabelType);
-        this.previewMode.set('labels');
         this.currentPage.set(1);
+      });
+
+    this.filtersForm.controls.documentId.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((documentId: number | null) => {
+        if (!documentId || Number.isNaN(Number(documentId))) {
+          return;
+        }
+
+        this.loadSelectedDocument();
       });
 
     this.filtersForm.controls.productSearch.valueChanges
@@ -377,7 +358,10 @@ export class EtiketBelgeleriListComponent {
     const zamanlama = `aralik-${this.formatZamanlamaDate(startDate)}-${this.formatZamanlamaDate(endDate)}`;
     const sourceLabel = `Tarih araligi: ${this.formatReadableDate(startDate)} - ${this.formatReadableDate(endDate)}`;
 
-    this.fetchProducts(this.kasaIslemleriService.getUrunEtiketleri(zamanlama), sourceLabel);
+    this.replaceProducts(
+      () => this.kasaIslemleriService.getUrunEtiketleri(zamanlama),
+      sourceLabel
+    );
   }
 
   protected loadSelectedDocument(): void {
@@ -392,8 +376,8 @@ export class EtiketBelgeleriListComponent {
       return;
     }
 
-    this.fetchProducts(
-      this.kasaIslemleriService.getEtiketBelgesi(documentId),
+    this.replaceProducts(
+      () => this.kasaIslemleriService.getEtiketBelgesi(documentId),
       `Belge yuklendi: #${documentId}`
     );
   }
@@ -411,8 +395,8 @@ export class EtiketBelgeleriListComponent {
       return;
     }
 
-    this.fetchProducts(
-      this.kasaIslemleriService.getEtiketBelgesi(documentId),
+    this.replaceProducts(
+      () => this.kasaIslemleriService.getEtiketBelgesi(documentId),
       `Belge arandi: #${documentId}`
     );
   }
@@ -435,8 +419,8 @@ export class EtiketBelgeleriListComponent {
   protected clearList(): void {
     this.products.set([]);
     this.hiddenProductKeysState.set([]);
+    this.hasManualListChanges.set(false);
     this.resetPrintPreview();
-    this.previewMode.set('labels');
     this.clearProductTableTools();
     this.currentPage.set(1);
     this.lastLoadedSource.set('Liste temizlendi');
@@ -468,7 +452,7 @@ export class EtiketBelgeleriListComponent {
 
         this.products.update((items) => [...items, productWithRowKey]);
         this.setProductHidden(this.getProductRowKey(productWithRowKey), false);
-        this.previewMode.set('labels');
+        this.hasManualListChanges.set(true);
         this.clearProductTableTools();
         this.currentPage.set(this.totalPages());
         this.lastLoadedSource.set('Manuel urun ekleme');
@@ -484,6 +468,7 @@ export class EtiketBelgeleriListComponent {
     const key = this.getProductRowKey(product);
 
     this.setProductHidden(key, true);
+    this.hasManualListChanges.set(true);
     this.currentPage.set(Math.min(this.currentPageSafe(), this.totalPages()));
 
     this.setFeedback(
@@ -501,6 +486,7 @@ export class EtiketBelgeleriListComponent {
     const count = this.hiddenProductCount();
 
     this.clearHiddenProducts();
+    this.hasManualListChanges.set(true);
     this.currentPage.set(1);
     this.setFeedback(
       'success',
@@ -509,8 +495,16 @@ export class EtiketBelgeleriListComponent {
     );
   }
 
-  protected setPreviewMode(mode: PreviewMode): void {
-    this.previewMode.set(mode);
+  protected restoreHiddenProduct(product: IEtiketBasimProduct): void {
+    const key = this.getProductRowKey(product);
+
+    this.setProductHidden(key, false);
+    this.hasManualListChanges.set(true);
+    this.setFeedback(
+      'success',
+      'Urun geri alindi',
+      `${this.getProductDisplayName(product)} yeniden yazdirma listesine eklendi.`
+    );
   }
 
   protected getPriceTrendLabel(product: IEtiketBasimProduct): string {
@@ -665,7 +659,6 @@ export class EtiketBelgeleriListComponent {
 
     const productsToPrint = this.labelPrintProducts();
 
-    this.previewMode.set('labels');
     this.printPreviewMode.set('labels');
     this.printPreviewLabelConfig.set(selectedEtiket);
     this.printPreviewProducts.set(productsToPrint);
@@ -689,7 +682,6 @@ export class EtiketBelgeleriListComponent {
 
     const productsToPrint = this.priceChangePrintProducts();
 
-    this.previewMode.set('price-changes');
     this.printPreviewMode.set('price-changes');
     this.printPreviewLabelConfig.set(null);
     this.printPreviewProducts.set(productsToPrint);
@@ -714,6 +706,31 @@ export class EtiketBelgeleriListComponent {
     }
 
     return this.formatReadableDate(parsedDate);
+  }
+
+  private replaceProducts(
+    requestFactory: () => ReturnType<KasaIslemleriService['getUrunEtiketleri']>,
+    sourceLabel: string
+  ): void {
+    if (!this.hasManualListChanges()) {
+      this.fetchProducts(requestFactory(), sourceLabel);
+      return;
+    }
+
+    void this.confirmDialog
+      .confirm({
+        title: 'Mevcut liste degistirilsin mi?',
+        message: 'Manuel eklenen veya yazdirmadan cikarilan urunler bulunuyor.',
+        details: 'Yeni kaynak yuklendiginde bu degisiklikler temizlenecek.',
+        confirmText: 'Yeni Listeyi Yukle',
+        cancelText: 'Mevcut Listeyi Koru',
+        tone: 'warning'
+      })
+      .then((confirmed) => {
+        if (confirmed) {
+          this.fetchProducts(requestFactory(), sourceLabel);
+        }
+      });
   }
 
   private fetchProducts(
@@ -744,7 +761,7 @@ export class EtiketBelgeleriListComponent {
 
           this.products.set(productRows);
           this.hiddenProductKeysState.set([]);
-          this.previewMode.set('labels');
+          this.hasManualListChanges.set(false);
           this.clearProductTableTools();
           this.currentPage.set(1);
           this.lastLoadedSource.set(sourceLabel);
@@ -944,6 +961,10 @@ export class EtiketBelgeleriListComponent {
   }
 
   private applyProductTools(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[] {
+    return this.applyProductSort(this.applyProductFilters(products));
+  }
+
+  private applyProductFilters(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[] {
     const filter = this.productTableFilter();
     const query = this.productSearchTerm();
     let items = [...products];
@@ -976,7 +997,7 @@ export class EtiketBelgeleriListComponent {
       );
     }
 
-    return this.applyProductSort(items);
+    return items;
   }
 
   private applyProductSort(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[] {
@@ -1087,7 +1108,6 @@ export class EtiketBelgeleriListComponent {
     const currentValue = documentControl.getRawValue();
 
     if (!documents.length) {
-      this.lastHandledDocumentId = null;
       documentControl.setValue(null, { emitEvent: false });
       documentControl.disable({ emitEvent: false });
       return;
@@ -1100,7 +1120,6 @@ export class EtiketBelgeleriListComponent {
     const hasCurrentSelection = documents.some((document) => document.documentId === currentValue);
 
     if (!hasCurrentSelection) {
-      this.lastHandledDocumentId = null;
       documentControl.setValue(null, { emitEvent: false });
     }
   }

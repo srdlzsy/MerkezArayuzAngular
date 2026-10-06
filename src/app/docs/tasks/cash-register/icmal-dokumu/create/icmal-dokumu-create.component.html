@@ -305,12 +305,6 @@
 
       <ng-container [ngSwitch]="activePanel()">
         <section *ngSwitchCase="'banknotes'" class="drawer-body">
-          <div class="drawer-toolbar">
-            <button type="button" class="action-button action-button-ghost compact-button" (click)="addEmptyBanknote()">
-              Banknot Ekle
-            </button>
-          </div>
-
           <div class="editor-list" formArrayName="banknoteMovements" *ngIf="banknoteMovements.length > 0; else emptyBanknotes">
             <article
               class="editor-row banknote-row"
@@ -334,41 +328,31 @@
           </div>
 
           <ng-template #emptyBanknotes>
-            <article class="empty-state">Banknot satiri yok.</article>
+            <article class="empty-state lookup-empty-state">
+              <div>
+                <strong>Banknot tanimlari bulunamadi</strong>
+                <span>Tanimlari yeniden yukleyip tekrar kontrol edin.</span>
+              </div>
+              <button type="button" class="text-button" (click)="loadLookupData()" [disabled]="lookupLoading()">
+                {{ lookupLoading() ? 'Yukleniyor...' : 'Tanimlari Yenile' }}
+              </button>
+            </article>
           </ng-template>
         </section>
 
         <section *ngSwitchCase="'cards'" class="drawer-body">
-          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('card').length === 0">
-            <button type="button" class="action-button action-button-ghost compact-button" (click)="addEmptyPaymentType('card')">
-              Slip Ekle
-            </button>
-          </div>
-
           <ng-container
             *ngTemplateOutlet="paymentEditor; context: { source: 'card', emptyText: 'Kredi karti slipi yok.' }"
           ></ng-container>
         </section>
 
         <section *ngSwitchCase="'foodChecks'" class="drawer-body">
-          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('foodCheck').length === 0">
-            <button type="button" class="action-button action-button-ghost compact-button" (click)="addEmptyPaymentType('foodCheck')">
-              Satir Ekle
-            </button>
-          </div>
-
           <ng-container
             *ngTemplateOutlet="paymentEditor; context: { source: 'foodCheck', emptyText: 'Yemek ceki satiri yok.' }"
           ></ng-container>
         </section>
 
         <section *ngSwitchCase="'storeExpenses'" class="drawer-body">
-          <div class="drawer-toolbar">
-            <button type="button" class="action-button action-button-ghost compact-button" (click)="addEmptyStoreExpense()">
-              Gider Ekle
-            </button>
-          </div>
-
           <div class="editor-list" formArrayName="storeExpenses" *ngIf="storeExpenses.length > 0; else emptyExpenses">
             <article
               class="editor-row store-row"
@@ -405,33 +389,25 @@
           </div>
 
           <ng-template #emptyExpenses>
-            <article class="empty-state">Magaza gideri yok.</article>
+            <article class="empty-state lookup-empty-state">
+              <div>
+                <strong>Magaza gideri tanimlari bulunamadi</strong>
+                <span>Tanimlari yeniden yukleyip tekrar kontrol edin.</span>
+              </div>
+              <button type="button" class="text-button" (click)="loadLookupData()" [disabled]="lookupLoading()">
+                {{ lookupLoading() ? 'Yukleniyor...' : 'Tanimlari Yenile' }}
+              </button>
+            </article>
           </ng-template>
         </section>
 
         <section *ngSwitchCase="'expenseVouchers'" class="drawer-body">
-          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('expenseVoucher').length === 0">
-            <button
-              type="button"
-              class="action-button action-button-ghost compact-button"
-              (click)="addEmptyPaymentType('expenseVoucher')"
-            >
-              Pusula Ekle
-            </button>
-          </div>
-
           <ng-container
             *ngTemplateOutlet="paymentEditor; context: { source: 'expenseVoucher', emptyText: 'Gider pusulasi yok.' }"
           ></ng-container>
         </section>
 
         <section *ngSwitchCase="'giftChecks'" class="drawer-body">
-          <div class="drawer-toolbar">
-            <button type="button" class="action-button action-button-ghost compact-button" (click)="addEmptyGiftCheck()">
-              Cek Ekle
-            </button>
-          </div>
-
           <div class="editor-list" formArrayName="giftCheckMovements" *ngIf="giftCheckMovements.length > 0; else emptyGiftChecks">
             <article
               class="editor-row gift-row"
@@ -459,21 +435,19 @@
           </div>
 
           <ng-template #emptyGiftChecks>
-            <article class="empty-state">Hediye ceki yok.</article>
+            <article class="empty-state lookup-empty-state">
+              <div>
+                <strong>Hediye ceki tanimlari bulunamadi</strong>
+                <span>Tanimlari yeniden yukleyip tekrar kontrol edin.</span>
+              </div>
+              <button type="button" class="text-button" (click)="loadLookupData()" [disabled]="lookupLoading()">
+                {{ lookupLoading() ? 'Yukleniyor...' : 'Tanimlari Yenile' }}
+              </button>
+            </article>
           </ng-template>
         </section>
 
         <section *ngSwitchCase="'deferredSales'" class="drawer-body">
-          <div class="drawer-toolbar" *ngIf="getPaymentTypeTemplates('deferredSale').length === 0">
-            <button
-              type="button"
-              class="action-button action-button-ghost compact-button"
-              (click)="addEmptyPaymentType('deferredSale')"
-            >
-              Satis Ekle
-            </button>
-          </div>
-
           <ng-container
             *ngTemplateOutlet="paymentEditor; context: { source: 'deferredSale', emptyText: 'Vadeli satis satiri yok.' }"
           ></ng-container>
@@ -519,7 +493,15 @@
       </div>
 
       <ng-template #emptyPayments>
-        <article class="empty-state">{{ emptyText }}</article>
+        <article class="empty-state lookup-empty-state">
+          <div>
+            <strong>{{ emptyText }}</strong>
+            <span>Odeme tanimlarini yeniden yukleyip tekrar kontrol edin.</span>
+          </div>
+          <button type="button" class="text-button" (click)="loadLookupData()" [disabled]="lookupLoading()">
+            {{ lookupLoading() ? 'Yukleniyor...' : 'Tanimlari Yenile' }}
+          </button>
+        </article>
       </ng-template>
     </ng-template>
   </form>

@@ -832,23 +832,6 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.managerSearchError.set('');
   }
 
-  protected addEmptyPaymentType(source: CashDrawerPaymentSource = 'other'): void {
-    const defaultTemplate = this.getPaymentTypeTemplates(source)[0];
-
-    this.paymentTypes.push(
-      this.createPaymentTypeGroup(
-        defaultTemplate ?? {
-          paymentName: this.getDefaultPaymentName(source),
-          paymentTypeNo: 0,
-          slipNumber: 0,
-          amountValue: 0
-        },
-        source
-      )
-    );
-    this.refreshComputedFormState();
-  }
-
   protected addPaymentTypeTemplate(
     template: IFurpaPaymentTypeLookupItemApiDto,
     source: CashDrawerPaymentSource = 'other'
@@ -859,23 +842,6 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected removePaymentType(index: number): void {
     this.paymentTypes.removeAt(index);
-    this.refreshComputedFormState();
-  }
-
-  protected addEmptyStoreExpense(): void {
-    const defaultTemplate = this.storeExpenseTemplates()[0];
-
-    this.storeExpenses.push(
-      this.createStoreExpenseGroup(
-        defaultTemplate
-          ? {
-              storeExpensesType: defaultTemplate.paymentTypeNo ?? null,
-              description: '',
-              amountValue: defaultTemplate.amountValue ?? 0
-            }
-          : undefined
-      )
-    );
     this.refreshComputedFormState();
   }
 
@@ -892,15 +858,6 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected removeStoreExpense(index: number): void {
     this.storeExpenses.removeAt(index);
-    this.refreshComputedFormState();
-  }
-
-  protected addEmptyBanknote(): void {
-    const defaultTemplate = [...this.banknoteTypes()].sort(
-      (left, right) => right.value - left.value
-    )[0];
-
-    this.banknoteMovements.push(this.createBanknoteGroup(defaultTemplate));
     this.refreshComputedFormState();
   }
 
@@ -921,11 +878,6 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
     group.controls.total.setValue(this.roundCurrency(quantity * value));
     group.controls.total.markAsDirty();
-    this.refreshComputedFormState();
-  }
-
-  protected addEmptyGiftCheck(): void {
-    this.giftCheckMovements.push(this.createGiftCheckGroup(this.giftCheckTypes()[0]));
     this.refreshComputedFormState();
   }
 

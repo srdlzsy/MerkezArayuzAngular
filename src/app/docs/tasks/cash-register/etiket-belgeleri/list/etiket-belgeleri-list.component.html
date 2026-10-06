@@ -17,11 +17,15 @@
       </span>
       <span>
         <b>Yazdirilacak</b>
-        <strong>{{ activePreviewCount() }}</strong>
+        <strong>{{ labelPrintProducts().length }}</strong>
       </span>
-      <span [class.has-warning]="missingBarcodeProducts().length > 0">
-        <b>Eksik</b>
-        <strong>{{ missingBarcodeProducts().length }}</strong>
+      <span>
+        <b>Sayfa</b>
+        <strong>{{ printPageCount() }}</strong>
+      </span>
+      <span [class.has-warning]="printMissingBarcodeCount() > 0">
+        <b>Barkod eksik</b>
+        <strong>{{ printMissingBarcodeCount() }}</strong>
       </span>
     </div>
 
@@ -65,8 +69,12 @@
         <label class="field filter-field-label-type">
           <span>Etiket türü</span>
           <select formControlName="labelType">
-            <option *ngFor="let tip of etiketTipleri" [value]="tip.etiketTipi">
-              {{ tip.etiketIsmi }}
+            <option
+              *ngFor="let tip of etiketTipleri"
+              [value]="tip.etiketTipi"
+              [disabled]="!tip.kullanimaHazir"
+            >
+              {{ tip.etiketIsmi }}{{ tip.kullanimaHazir ? '' : ' - Hazir degil' }}
             </option>
           </select>
         </label>
@@ -125,14 +133,6 @@
         <div class="button-group document-actions">
           <button
             type="button"
-            class="button button-primary"
-            [disabled]="isBusy() || !filtersForm.controls.documentId.value"
-            (click)="loadSelectedDocument()"
-          >
-            Belgeyi Yükle
-          </button>
-          <button
-            type="button"
             class="button button-secondary"
             [disabled]="!canSearchDocument()"
             (click)="searchDocument()"
@@ -186,6 +186,10 @@
       <div class="selected-label">
         <strong>{{ selectedEtiket()?.etiketIsmi || 'Etiket seçilmedi' }}</strong>
         <small>{{ labelPrintProducts().length }} etiket hazır</small>
+        <small>{{ printPageCount() }} sayfa</small>
+        <small [class.has-warning]="printMissingBarcodeCount()">
+          {{ printMissingBarcodeCount() }} barkod eksik
+        </small>
         <small *ngIf="hiddenProductCount()">{{ hiddenProductCount() }} urun tum etiketlerde gizli</small>
       </div>
     </header>
@@ -277,6 +281,24 @@
         Gizlenenleri geri al ({{ hiddenProductCount() }})
       </button>
     </div>
+
+    <details class="hidden-products-panel" *ngIf="hiddenProductCount()">
+      <summary>Yazdırmadan çıkarılan ürünler ({{ hiddenProductCount() }})</summary>
+      <div class="hidden-products-list">
+        <div
+          class="hidden-product-row"
+          *ngFor="let product of hiddenProducts(); trackBy: trackByProduct"
+        >
+          <span>
+            <strong>{{ product.productName }}</strong>
+            <small>{{ product.productCode }} · {{ product.barcode || 'Barkod yok' }}</small>
+          </span>
+          <button type="button" class="text-button" (click)="restoreHiddenProduct(product)">
+            Geri al
+          </button>
+        </div>
+      </div>
+    </details>
 
     <div class="table-container" *ngIf="visibleProducts().length; else emptyProducts">
       <table>
@@ -421,51 +443,12 @@
     <div class="preview-stage">
       <ng-container *ngIf="printPreviewMode() === 'labels'; else priceChangePreview">
         <ng-container *ngIf="printPreviewLabelConfig() as previewEtiket">
-          <ng-container *ngIf="previewEtiket.kullanimaHazir && printPreviewProducts().length">
-            <app-rafetiketi
-              *ngIf="previewEtiket.sunumTipi === 'rack_label'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-rafetiketi>
-
-            <app-raf-etiket-a5
-              *ngIf="previewEtiket.sunumTipi === 'rack_label_a4'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-raf-etiket-a5>
-
-            <app-fiyatetiket
-              *ngIf="previewEtiket.sunumTipi === 'a4_pricelabel'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-fiyatetiket>
-
-            <app-a5-ikili-fiyat-etiketi
-              *ngIf="previewEtiket.sunumTipi === 'a5_pricelabel'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-a5-ikili-fiyat-etiketi>
-
-            <app-a5-dortlu-fiyat-etiketi
-              *ngIf="previewEtiket.sunumTipi === 'a5_quad_pricelabel'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-a5-dortlu-fiyat-etiketi>
-
-            <app-a5-ikili-furpara-kart-etiketi
-              *ngIf="previewEtiket.sunumTipi === 'a5_cardlabel'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-a5-ikili-furpara-kart-etiketi>
-
-            <app-a5-tekli-fiyat-etiketi
-              *ngIf="previewEtiket.sunumTipi === 'a5_single_pricelabel'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-a5-tekli-fiyat-etiketi>
-
-            <app-a5-ikili-ayin-etiketi
-              *ngIf="previewEtiket.sunumTipi === 'a5_pricelabel_advantage'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-a5-ikili-ayin-etiketi>
-
-            <app-a5-ikili-ayin-urunu-fiyat-etiketi
-              *ngIf="previewEtiket.sunumTipi === 'a5_pricelabel_advantage_product'"
-              [productsToPrint]="printPreviewProducts()"
-            ></app-a5-ikili-ayin-urunu-fiyat-etiketi>
+          <ng-container
+            *ngIf="previewEtiket.kullanimaHazir && previewEtiket.component && printPreviewProducts().length"
+          >
+            <ng-container
+              *ngComponentOutlet="previewEtiket.component; inputs: labelPreviewInputs()"
+            ></ng-container>
           </ng-container>
         </ng-container>
       </ng-container>

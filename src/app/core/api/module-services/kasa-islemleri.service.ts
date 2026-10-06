@@ -893,7 +893,7 @@ export class KasaIslemleriService extends BaseApiService {
     }
     return this.getWithQuery<CashSummaryListItemDto[]>(
       'kasa-islemleri/kasa-sayimlari',
-      request as any
+      request
     );
   }
 
@@ -906,7 +906,7 @@ export class KasaIslemleriService extends BaseApiService {
     dateToGet: string,
     warehouseNo?: number
   ): Observable<CashSummaryReportItemDto[]> {
-    const params: Record<string, any> = { dateToGet };
+    const params: CashSummaryDateHttpRequest = { dateToGet };
     if (warehouseNo) {
       params['warehouseNo'] = warehouseNo;
     }

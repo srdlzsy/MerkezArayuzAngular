@@ -387,14 +387,17 @@ export class KullaniciIslemleriService extends BaseApiService {
    * @param userId Kullanıcı ID
    * @param roleIds Rol ID'leri
    */
-  assignRolesToUser(userId: string, roleIds: string[]): Observable<any> {
-    return this.post(
+  assignRolesToUser(userId: string, roleIds: string[]): Observable<IFurpaUserApiDto> {
+    return this.post<IFurpaUserApiDto, IFurpaUserRoleAssignRequestApiDto>(
       `users/${encodeURIComponent(userId)}/roles`,
       { roleIds }
     );
   }
 
-  assignUserRoles(userId: string, roleIds: string[] | IFurpaUserRoleAssignRequestApiDto): Observable<any> {
+  assignUserRoles(
+    userId: string,
+    roleIds: string[] | IFurpaUserRoleAssignRequestApiDto
+  ): Observable<IFurpaUserApiDto> {
     const nextRoleIds = Array.isArray(roleIds) ? roleIds : roleIds.roleIds;
     return this.assignRolesToUser(userId, nextRoleIds);
   }
@@ -425,7 +428,7 @@ export class KullaniciIslemleriService extends BaseApiService {
    * @param userId Kullanıcı ID
    * @param roleId Rol ID
    */
-  removeRoleFromUser(userId: string, roleId: string): Observable<any> {
+  removeRoleFromUser(userId: string, roleId: string): Observable<IFurpaUserApiDto> {
     return this.getUser(userId).pipe(
       switchMap((user: UserDto) =>
         this.listRoles().pipe(
@@ -458,8 +461,13 @@ export class KullaniciIslemleriService extends BaseApiService {
   /**
    * Rol'e izin ata
    */
-  assignRolePermissions(roleId: string, request: IFurpaRolePermissionAssignRequestApiDto): Observable<any> {
-    return this.post(`roles/${encodeURIComponent(roleId)}/permissions`, request);
+  assignRolePermissions(
+    roleId: string,
+    request: IFurpaRolePermissionAssignRequestApiDto
+  ): Observable<IFurpaRoleApiDto> {
+    return this.post<IFurpaRoleApiDto, IFurpaRolePermissionAssignRequestApiDto>(
+      `roles/${encodeURIComponent(roleId)}/permissions`,
+      request
+    );
   }
 }
-
