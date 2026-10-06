@@ -38,7 +38,6 @@ import {
   IFurpaUpdateCashSummaryDetailsResponseApiDto,
   IGiftCheckMovementsCT,
   ILabelDocument,
-  IProductPromotion,
   ISummariesCT,
   ISummariesDetailsCT,
   IKunyeTag,
@@ -167,10 +166,6 @@ export class KasaIslemleriService extends BaseApiService {
       warehouseNo: warehouseNo ?? undefined,
       take: 10
     });
-  }
-
-  getEtiketPromosyonlari(_pluNo: number): Observable<IProductPromotion[]> {
-    return of([]);
   }
 
   getKunyeler(tarih: string, warehouseNo?: number | null): Observable<IKunyeTag[]> {

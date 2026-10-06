@@ -1,2 +1,144 @@
-﻿@use '../../../core/api-detail-page/api-detail-page.shared';
+@use '../../../core/api-detail-page/api-detail-page.shared';
 
+.dialog-page {
+  width: min(1240px, 100%);
+}
+
+.summary-grid {
+  grid-template-columns: 0.75fr 0.9fr 1.35fr minmax(180px, 2fr) 0.85fr 1fr;
+}
+
+.summary-card {
+  min-height: 58px;
+  justify-content: center;
+}
+
+.summary-card p {
+  font-size: 0.84rem;
+  font-weight: 700;
+}
+
+.quantity-card {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+}
+
+.table-heading {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.42rem 0.58rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.table-heading > div {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.table-heading strong {
+  color: #0f172a;
+  font-size: 0.8rem;
+}
+
+.section-kicker {
+  color: #0f766e;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.line-count {
+  flex: 0 0 auto;
+  padding: 0.2rem 0.46rem;
+  color: #0f766e;
+  font-size: 0.7rem;
+  font-weight: 800;
+  border-radius: 999px;
+  background: #ccfbf1;
+}
+
+.table-wrap {
+  max-height: min(66vh, 680px);
+}
+
+.count-lines-table {
+  min-width: 980px;
+  table-layout: fixed;
+}
+
+.col-row {
+  width: 4%;
+}
+
+.col-code {
+  width: 8%;
+}
+
+.col-name {
+  width: 28%;
+}
+
+.col-barcode {
+  width: 13%;
+}
+
+.col-unit,
+.col-pointer {
+  width: 6%;
+}
+
+.col-quantity {
+  width: 7%;
+}
+
+.count-lines-table th,
+.count-lines-table td {
+  padding: 0.4rem 0.42rem;
+}
+
+.row-number,
+.numeric-cell {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.stock-code,
+.barcode {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.stock-code,
+.stock-name,
+.quantity-value {
+  color: #0f172a;
+  font-weight: 700;
+}
+
+.stock-name {
+  line-height: 1.22;
+}
+
+.zero-value {
+  color: #94a3b8;
+}
+
+@media (max-width: 1000px) {
+  .summary-grid {
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+}
+
+@media (max-width: 700px) {
+  .summary-grid {
+    grid-template-columns: 1fr 1fr;
+  }
+
+  .count-name-card {
+    grid-column: span 2;
+  }
+}

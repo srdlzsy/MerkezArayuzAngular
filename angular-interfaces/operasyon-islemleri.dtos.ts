@@ -234,6 +234,47 @@ export interface WarehouseOperationPanelResponse {
 }
 
 // ============================================================================
+// Firma Evrak Takibi Modelleri
+// ============================================================================
+
+export type CompanyDocumentTrackingKind = 'CompanyReceiving' | 'CompanyReturn';
+
+export interface CompanyDocumentTrackingHttpRequest {
+  date: string;
+  warehouseNo?: number | null;
+}
+
+export interface CompanyDocumentTrackingItemDto {
+  documentKind: CompanyDocumentTrackingKind | string;
+  documentKindName: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  documentNo: string;
+  customerCode: string;
+  customerName: string;
+  customerTitle: string;
+  customerDisplayName: string;
+  documentDate: string;
+  movementCreateDate: string;
+  deliverer: string | null;
+  receiver: string | null;
+  warehouseNo: number;
+  warehouseName: string;
+  lineCount: number;
+  totalQuantity: number;
+}
+
+export interface CompanyDocumentTrackingResponse {
+  date: string;
+  generatedAtUtc: string;
+  warehouseNo: number;
+  documentCount: number;
+  companyReceivingCount: number;
+  companyReturnCount: number;
+  items: CompanyDocumentTrackingItemDto[];
+}
+
+// ============================================================================
 // Urun Dagilimlari Modelleri
 // ============================================================================
 

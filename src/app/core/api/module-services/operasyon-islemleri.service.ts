@@ -1,6 +1,8 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  CompanyDocumentTrackingHttpRequest,
+  CompanyDocumentTrackingResponse,
   DocumentFlowDetailDto,
   DocumentFlowListHttpRequest,
   DocumentFlowListResponse,
@@ -101,6 +103,15 @@ export class OperasyonIslemleriService extends BaseApiService {
   ): Observable<WarehouseOperationPanelResponse> {
     return this.getWithQuery<WarehouseOperationPanelResponse, WarehouseOperationPanelHttpRequest>(
       'operasyon-islemleri/depo-operasyon-paneli',
+      request
+    );
+  }
+
+  getCompanyDocumentTracking(
+    request: CompanyDocumentTrackingHttpRequest
+  ): Observable<CompanyDocumentTrackingResponse> {
+    return this.getWithQuery<CompanyDocumentTrackingResponse, CompanyDocumentTrackingHttpRequest>(
+      'operasyon-islemleri/firma-evrak-takibi',
       request
     );
   }

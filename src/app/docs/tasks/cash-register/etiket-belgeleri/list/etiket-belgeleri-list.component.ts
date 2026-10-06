@@ -11,11 +11,10 @@ import {
 } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { catchError, finalize, of } from 'rxjs';
+import { finalize } from 'rxjs';
 import type {
   IEtiketBasimProduct,
-  ILabelDocument,
-  IProductPromotion
+  ILabelDocument
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -745,7 +744,6 @@ export class EtiketBelgeleriListComponent {
               ? `${productRows.length} urun etiket listesine alindi.`
               : 'Secilen kaynaktan yazdirilabilir urun kaydi donmedi.'
           );
-          this.attachPromotions(productRows, loadId);
         },
         error: () => {
           if (loadId !== this.activeLoadId) {
@@ -761,43 +759,6 @@ export class EtiketBelgeleriListComponent {
           );
         }
       });
-  }
-
-  private attachPromotions(products: readonly IEtiketBasimProduct[], loadId: number): void {
-    const promotionCandidates = products.filter((product) => product.pluNo > 0);
-
-    if (!promotionCandidates.length) {
-      return;
-    }
-
-    promotionCandidates.forEach((product) => {
-      this.kasaIslemleriService
-        .getEtiketPromosyonlari(product.pluNo)
-        .pipe(
-          takeUntilDestroyed(this.destroyRef),
-          catchError(() => of([] as IProductPromotion[]))
-        )
-        .subscribe((promotions: IProductPromotion[]) => {
-          if (loadId !== this.activeLoadId || !promotions.length) {
-            return;
-          }
-
-          const promotion = promotions[0];
-          const key = this.getProductIdentityKey(product);
-
-          this.products.update((items) =>
-            items.map((item) =>
-              this.getProductIdentityKey(item) === key
-                ? {
-                    ...item,
-                    promotionPrice: this.calculatePromotionPrice(item.price, promotion),
-                    expirationDate: promotion.expirationDate || item.expirationDate
-                  }
-                : item
-            )
-          );
-        });
-    });
   }
 
   private loadRecentDocumentsInternal(
@@ -838,21 +799,6 @@ export class EtiketBelgeleriListComponent {
       });
   }
 
-  private calculatePromotionPrice(
-    currentPrice: number,
-    promotion: IProductPromotion
-  ): number {
-    if (promotion.discountAmount > 0) {
-      return Math.max(0, currentPrice - promotion.discountAmount);
-    }
-
-    if (promotion.discountRate > 0) {
-      return Math.max(0, currentPrice - currentPrice * (promotion.discountRate / 100));
-    }
-
-    return 0;
-  }
-
   private getProductIdentityKey(product: IEtiketBasimProduct): string {
     return [
       product.productCode,
@@ -871,7 +817,34 @@ export class EtiketBelgeleriListComponent {
   }
 
   private withProductRowKeys(products: readonly IEtiketBasimProduct[]): IEtiketBasimProduct[] {
-    return products.map((product) => this.withProductRowKey(product));
+    return products.map((product) => this.withProductRowKey(this.withApiPromotion(product)));
+  }
+
+  private withApiPromotion(product: IEtiketBasimProduct): IEtiketBasimProduct {
+    const promotion = product.promotion;
+
+    if (!promotion?.isActive || promotion.promotionPrice <= 0) {
+      return product;
+    }
+
+    return {
+      ...product,
+      promotionPrice: promotion.promotionPrice,
+      expirationDate:
+        this.formatPromotionDate(promotion.expirationDate) || product.expirationDate
+    };
+  }
+
+  private formatPromotionDate(value: string | null | undefined): string {
+    const normalizedValue = value?.trim();
+
+    if (!normalizedValue) {
+      return '';
+    }
+
+    const datePart = normalizedValue.slice(0, 10);
+    const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(datePart);
+    return match ? `${match[3]}.${match[2]}.${match[1]}` : normalizedValue;
   }
 
   private withProductRowKey(product: IEtiketBasimProduct): IEtiketBasimProduct {

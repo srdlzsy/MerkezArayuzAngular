@@ -187,6 +187,20 @@ export interface LabelDocumentListItemDto {
   warehouseNo: number;
 }
 
+export interface LabelPromotionDto {
+  isActive: boolean;
+  promotionCode: string;
+  promotionType: string;
+  promotionName: string;
+  description: string;
+  normalPrice: number;
+  promotionPrice: number;
+  discountRate: number;
+  discountAmount: number;
+  startDate: string | null;
+  expirationDate: string | null;
+}
+
 export interface LabelDocumentProductDto {
   package: string;
   packageFactor: string;
@@ -223,6 +237,7 @@ export interface LabelDocumentProductDto {
   deliveredQuantity: number;
   documentOrderNo: number;
   categoryCode: string;
+  promotion?: LabelPromotionDto | null;
 }
 
 export interface LabelPriceChangedProductDto {
@@ -239,6 +254,7 @@ export interface LabelPriceChangedProductDto {
   priceChangeDate: string;
   unitPriceFactor: number;
   unitName: string;
+  promotion?: LabelPromotionDto | null;
 }
 
 export interface LabelTagDto {

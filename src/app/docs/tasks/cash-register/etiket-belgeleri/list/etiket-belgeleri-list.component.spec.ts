@@ -26,6 +26,35 @@ describe('EtiketBelgeleriListComponent manual product rows', () => {
     expect(firstRow.productCode).toBe(secondRow.productCode);
     expect(firstRow.__etiketRowKey).not.toBe(secondRow.__etiketRowKey);
   });
+
+  it('maps the active promotion returned with the product without another request', () => {
+    const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
+    const product = {
+      productCode: '001234',
+      productName: 'Promosyonlu Urun',
+      barcode: '8690000000001',
+      price: 100,
+      promotion: {
+        isActive: true,
+        promotionCode: 'PROMO-1',
+        promotionType: 'Discount',
+        promotionName: 'Haftanin Urunu',
+        description: '',
+        normalPrice: 100,
+        promotionPrice: 79.9,
+        discountRate: 20.1,
+        discountAmount: 20.1,
+        startDate: '2026-10-01T00:00:00',
+        expirationDate: '2026-10-15T23:59:59'
+      }
+    };
+
+    const mapped = component.withApiPromotion(product);
+
+    expect(mapped.promotionPrice).toBe(79.9);
+    expect(mapped.expirationDate).toBe('15.10.2026');
+    expect(mapped.promotion.promotionName).toBe('Haftanin Urunu');
+  });
 });
 
 describe('EtiketBelgeleriListComponent product sorting', () => {

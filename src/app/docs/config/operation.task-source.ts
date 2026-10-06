@@ -145,6 +145,55 @@ export const OPERATION_TASK_SOURCE = {
       ]
     }
   ),
+  'firma-evrak-takibi': singleRouteTask(
+    {
+      id: 'firma-evrak-takibi',
+      title: 'Firma Evrak Takibi',
+      subtitle:
+        'Secilen gundeki firma mal kabul ve firma iade evraklarini teslim bilgileriyle birlikte izler.',
+      baseRouteOrFile: '/api/operasyon-islemleri/firma-evrak-takibi',
+      highlights: [
+        'Firma mal kabulleri sisteme giris tarihine gore listelenir',
+        'Firma iadeleri belge tarihine gore listelenir',
+        'Teslim eden, teslim alan, satir ve toplam miktar bilgileri birlikte gosterilir',
+        'Baska depo secimi yalniz all-warehouses yetkisiyle kullanilir',
+        'Liste salt okunurdur ve Mikro kaydi olusturmaz'
+      ],
+      listTitle: 'Endpoint',
+      items: [
+        {
+          name: 'CompanyDocumentTrackingController',
+          description:
+            'Secilen depo ve gundeki firma mal kabul ve firma iade evraklarini tek listede dondurur.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/operasyon-islemleri/firma-evrak-takibi?date=2026-10-06&warehouseNo=149',
+              description: 'Firma evraklarini tarih ve yetkili depo kapsaminda getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "date": "2026-10-06",
+  "warehouseNo": 149,
+  "documentCount": 2,
+  "companyReceivingCount": 1,
+  "companyReturnCount": 1
+}`
+    },
+    () =>
+      import('../tasks/operation/firma-evrak-takibi/list/firma-evrak-takibi-list.component').then(
+        (m) => m.FirmaEvrakTakibiListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'operasyon-islemleri.firma-evrak-takibi',
+        'FirmaEvrakTakibi',
+        'CompanyDocumentTracking'
+      ]
+    }
+  ),
   'belge-akis-takibi': singleRouteTask(
     {
       id: 'belge-akis-takibi',

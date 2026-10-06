@@ -1,0 +1,119 @@
+<section class="task-page" *ngIf="page as current">
+  <header class="hero">
+    <div class="welcome-box">
+      <h2>{{ current.title }}</h2>
+    </div>
+  </header>
+
+  <section class="task-block">
+    <article class="query-card">
+      <div class="query-grid">
+        <label class="field date-field">
+          <span>Tarih</span>
+          <input
+            type="date"
+            [value]="selectedDate()"
+            (input)="setSelectedDate($any($event.target).value ?? '')"
+            (keyup.enter)="loadDocuments()"
+          />
+        </label>
+
+        <label class="field warehouse-field" *ngIf="canUseAllWarehouses(); else lockedWarehouse">
+          <span>Depo No</span>
+          <input
+            type="number"
+            min="1"
+            inputmode="numeric"
+            placeholder="Depo"
+            [value]="selectedWarehouseNo() ?? ''"
+            (input)="setSelectedWarehouseNo($any($event.target).value ?? '')"
+            (keyup.enter)="loadDocuments()"
+          />
+        </label>
+
+        <ng-template #lockedWarehouse>
+          <div class="warehouse-scope-pill" title="Kullanici deposu">
+            <span>Depo</span>
+            <strong>{{ currentWarehouseLabel() }}</strong>
+          </div>
+        </ng-template>
+
+        <label class="field document-kind-field">
+          <span>Evrak Turu</span>
+          <select
+            [value]="documentKindFilter()"
+            (change)="setDocumentKindFilter($any($event.target).value ?? 'All')"
+          >
+            <option value="All">Tum Evraklar</option>
+            <option value="CompanyReceiving">Firma Mal Kabul</option>
+            <option value="CompanyReturn">Firma Iade</option>
+          </select>
+        </label>
+
+        <button
+          type="button"
+          class="task-action task-action-primary query-submit"
+          [disabled]="loading() || !canList()"
+          (click)="loadDocuments()"
+        >
+          {{ loading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+      </div>
+    </article>
+
+    <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
+      <h3>Liste Yuklenemedi</h3>
+      <p>{{ errorMessage }}</p>
+    </article>
+
+    <article class="state-card" *ngIf="loading()">
+      <h3>Liste Yukleniyor</h3>
+      <p>Secilen tarih ve depo icin firma evraklari getiriliyor.</p>
+    </article>
+
+    <section class="summary-strip" *ngIf="!loading() && response() as report">
+      <div>
+        <span>Toplam Evrak</span>
+        <strong>{{ report.documentCount | number: '1.0-0' }}</strong>
+      </div>
+      <div class="is-success">
+        <span>Firma Mal Kabul</span>
+        <strong>{{ report.companyReceivingCount | number: '1.0-0' }}</strong>
+      </div>
+      <div class="is-warning">
+        <span>Firma Iade</span>
+        <strong>{{ report.companyReturnCount | number: '1.0-0' }}</strong>
+      </div>
+      <div>
+        <span>Kalem</span>
+        <strong>{{ visibleLineCount() | number: '1.0-0' }}</strong>
+      </div>
+      <div>
+        <span>Miktar</span>
+        <strong>{{ visibleQuantity() | number: '1.0-3' }}</strong>
+      </div>
+    </section>
+
+    <app-api-list-table
+      *ngIf="!loading() && visibleItems().length"
+      [rows]="visibleItems()"
+      [columns]="tableColumns"
+      [showRowAction]="false"
+      [filterPlaceholder]="'Evrak, cari, teslim eden veya teslim alan ara'"
+      [showExport]="true"
+      [exportFileName]="'firma-evrak-takibi-' + selectedDate()"
+      [exportSheetName]="'Firma Evrak Takibi'"
+      [printTitle]="current.title"
+      [printSubtitle]="currentWarehouseLabel() + ' / ' + formatDate(selectedDate())"
+      [printNotes]="['Firma mal kabul ve firma iade evraklari kontrol listesidir.']"
+    ></app-api-list-table>
+
+    <article
+      class="state-card"
+      *ngIf="!loading() && !errorMessage() && response() && !visibleItems().length"
+    >
+      <h3>Kayit Bulunamadi</h3>
+      <p>Secilen tarih, depo ve evrak turu icin firma evraki bulunmuyor.</p>
+    </article>
+  </section>
+</section>

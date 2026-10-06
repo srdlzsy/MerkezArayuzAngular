@@ -21,17 +21,6 @@
   </header>
 
   <div class="dialog-body">
-    <section class="info-grid">
-      <article class="info-card emphasis-card">
-        <h3>Aktif Depo</h3>
-        <p>{{ activeDepoNo() ?? '-' }}</p>
-      </article>
-      <article class="info-card">
-        <h3>Kalem Sayisi</h3>
-        <p>{{ kalemCount() }}</p>
-      </article>
-    </section>
-
     <article class="state-card" *ngIf="isLoading()">
       <h3>Detay Yukleniyor</h3>
       <p>Secilen sayim sonucunun ayrintisi getiriliyor.</p>
@@ -55,27 +44,46 @@
         </article>
         <article class="summary-card">
           <h3>Tarih</h3>
-          <p>{{ formatDate(detail.documentDate) }}</p>
-        </article>
-        <article class="summary-card">
-          <h3>Depo No</h3>
-          <p>{{ detail.warehouseNo }}</p>
+          <p>{{ formatDocumentDate(detail.documentDate) }}</p>
         </article>
         <article class="summary-card">
           <h3>Depo</h3>
-          <p>{{ detail.warehouseName || '-' }}</p>
+          <p>{{ detail.warehouseNo }} - {{ detail.warehouseName || 'Depo' }}</p>
         </article>
-        <article class="summary-card summary-card-wide">
+        <article class="summary-card count-name-card">
           <h3>Sayim Adi</h3>
           <p>{{ detail.name || '-' }}</p>
+        </article>
+        <article class="summary-card">
+          <h3>Kalem Sayisi</h3>
+          <p>{{ detail.lineCount || kalemCount() }}</p>
+        </article>
+        <article class="summary-card quantity-card">
+          <h3>Toplam Miktar</h3>
+          <p>{{ formatNumber(detail.totalQuantity) }}</p>
         </article>
       </section>
 
       <section class="task-block">
-        <div class="task-title">Sayim Kalemleri</div>
+        <header class="table-heading">
+          <div>
+            <span class="section-kicker">Sayim Kalemleri</span>
+            <strong>Stok ve miktar detaylari</strong>
+          </div>
+          <span class="line-count">{{ kalemCount() }} kalem</span>
+        </header>
 
         <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
-          <table>
+          <table class="count-lines-table">
+            <colgroup>
+              <col class="col-row" />
+              <col class="col-code" />
+              <col class="col-name" />
+              <col class="col-barcode" />
+              <col class="col-unit" />
+              <col class="col-pointer" />
+              <col class="col-quantity" span="5" />
+            </colgroup>
             <thead>
               <tr>
                 <th>Satir</th>
@@ -83,27 +91,27 @@
                 <th>Stok Ismi</th>
                 <th>Barkod</th>
                 <th>Birim</th>
-                <th>Birim Musiri</th>
-                <th>Miktar 1</th>
-                <th>Miktar 2</th>
-                <th>Miktar 3</th>
-                <th>Miktar 4</th>
-                <th>Miktar 5</th>
+                <th class="numeric-cell">Birim No</th>
+                <th class="numeric-cell">Miktar 1</th>
+                <th class="numeric-cell">Miktar 2</th>
+                <th class="numeric-cell">Miktar 3</th>
+                <th class="numeric-cell">Miktar 4</th>
+                <th class="numeric-cell">Miktar 5</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let kalem of kalemler(); let i = index; trackBy: trackByKalem">
-                <td>{{ i + 1 }}</td>
-                <td>{{ kalem.stockCode || '-' }}</td>
-                <td>{{ kalem.stockName || '-' }}</td>
-                <td>{{ kalem.barcode || '-' }}</td>
+                <td class="row-number">{{ kalem.rowNo || i + 1 }}</td>
+                <td class="stock-code">{{ kalem.stockCode || '-' }}</td>
+                <td class="stock-name">{{ kalem.stockName || '-' }}</td>
+                <td class="barcode">{{ kalem.barcode || '-' }}</td>
                 <td>{{ kalem.unitName || '-' }}</td>
-                <td>{{ kalem.unitPointer }}</td>
-                <td>{{ formatNumber(kalem.quantity1) }}</td>
-                <td>{{ formatNumber(kalem.quantity2) }}</td>
-                <td>{{ formatNumber(kalem.quantity3) }}</td>
-                <td>{{ formatNumber(kalem.quantity4) }}</td>
-                <td>{{ formatNumber(kalem.quantity5) }}</td>
+                <td class="numeric-cell">{{ kalem.unitPointer }}</td>
+                <td class="numeric-cell quantity-value">{{ formatNumber(kalem.quantity1) }}</td>
+                <td class="numeric-cell" [class.zero-value]="kalem.quantity2 === 0">{{ formatNumber(kalem.quantity2) }}</td>
+                <td class="numeric-cell" [class.zero-value]="kalem.quantity3 === 0">{{ formatNumber(kalem.quantity3) }}</td>
+                <td class="numeric-cell" [class.zero-value]="kalem.quantity4 === 0">{{ formatNumber(kalem.quantity4) }}</td>
+                <td class="numeric-cell" [class.zero-value]="kalem.quantity5 === 0">{{ formatNumber(kalem.quantity5) }}</td>
               </tr>
             </tbody>
           </table>
@@ -111,10 +119,6 @@
       </section>
     </ng-container>
 
-    <section class="sample" *ngIf="current.codeSample">
-      <h3>Ornek</h3>
-      <pre><code>{{ current.codeSample }}</code></pre>
-    </section>
   </div>
 </section>
 

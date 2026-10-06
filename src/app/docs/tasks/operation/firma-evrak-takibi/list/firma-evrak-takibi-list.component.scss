@@ -1,0 +1,116 @@
+@use '../../../core/api-list-page/api-list-page.shared';
+
+.query-grid > .date-field {
+  order: 1;
+}
+
+.query-grid > .warehouse-field,
+.query-grid > .warehouse-scope-pill {
+  order: 2;
+}
+
+.query-grid > .document-kind-field {
+  order: 3;
+}
+
+.query-grid > .query-submit {
+  order: 4;
+}
+
+.document-kind-field {
+  width: 180px;
+}
+
+.document-kind-field select {
+  width: 100%;
+  min-height: 32px;
+  box-sizing: border-box;
+  border: 1px solid var(--operation-border-color);
+  border-radius: var(--operation-control-radius);
+  padding: 0.34rem 0.52rem;
+  color: var(--operation-text);
+  background: var(--operation-surface);
+  font: inherit;
+  font-size: 0.8rem;
+}
+
+.document-kind-field select:focus {
+  border-color: var(--operation-focus-border);
+  outline: 2px solid var(--operation-focus-ring);
+}
+
+.summary-strip {
+  display: grid;
+  grid-template-columns: repeat(5, minmax(0, 1fr));
+  overflow: hidden;
+  border: 1px solid var(--operation-border-soft);
+  border-radius: var(--operation-panel-radius);
+  background: var(--operation-surface);
+}
+
+.summary-strip > div {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  border-right: 1px solid var(--operation-border-soft);
+  padding: 0.42rem 0.56rem;
+}
+
+.summary-strip > div:last-child {
+  border-right: 0;
+}
+
+.summary-strip span {
+  overflow: hidden;
+  color: var(--operation-muted);
+  font-size: var(--operation-caption-size);
+  font-weight: 800;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.summary-strip strong {
+  color: var(--operation-text);
+  font-size: 0.9rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.summary-strip .is-success strong {
+  color: #166534;
+}
+
+.summary-strip .is-warning strong {
+  color: #9a3412;
+}
+
+@media (max-width: 920px) {
+  .document-kind-field {
+    width: 100%;
+  }
+
+  .summary-strip {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .summary-strip > div:nth-child(even) {
+    border-right: 0;
+  }
+}
+
+@media (max-width: 700px) {
+  .summary-strip {
+    grid-template-columns: 1fr;
+  }
+
+  .summary-strip > div {
+    border-right: 0;
+    border-bottom: 1px solid var(--operation-border-soft);
+  }
+
+  .summary-strip > div:last-child {
+    border-bottom: 0;
+  }
+}

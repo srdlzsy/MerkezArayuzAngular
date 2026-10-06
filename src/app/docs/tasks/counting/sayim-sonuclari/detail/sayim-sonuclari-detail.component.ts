@@ -53,8 +53,22 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
       return '-';
     }
 
-    return `${payload.evrakNo} / ${depoNo} / ${payload.tarih}`;
+    return `${payload.evrakNo} / Depo ${depoNo} / ${this.formatDocumentDate(payload.tarih)}`;
   });
+
+  protected formatDocumentDate(value: string | null | undefined): string {
+    if (!value?.trim()) {
+      return '-';
+    }
+
+    const date = new Date(value);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short' }).format(date);
+  }
 
   protected trackByKalem(index: number, kalem: IFurpaInventoryCountItemApiDto): string {
     return [
@@ -86,7 +100,7 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
           title: 'Belge Bilgileri',
           fields: [
             { label: 'Evrak No', value: detail.documentNo },
-            { label: 'Tarih', value: this.formatDate(detail.documentDate) },
+            { label: 'Tarih', value: this.formatDocumentDate(detail.documentDate) },
             { label: 'Depo No', value: detail.warehouseNo },
             { label: 'Depo', value: detail.warehouseName },
             { label: 'Sayim Adi', value: detail.name, wide: true },

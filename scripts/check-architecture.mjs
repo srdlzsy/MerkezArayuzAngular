@@ -1,5 +1,5 @@
 import { existsSync, readFileSync, readdirSync } from 'node:fs';
-import { extname, join } from 'node:path';
+import { extname, join, sep } from 'node:path';
 
 const root = process.cwd();
 const failures = [];
@@ -29,6 +29,9 @@ const taskFiles = walk(join(root, 'src/app/docs/tasks'));
 const taskTypeScriptFiles = taskFiles.filter((file) => extname(file) === '.ts');
 const componentTypeScriptFiles = taskTypeScriptFiles.filter((file) => file.endsWith('.component.ts'));
 const componentStyleFiles = taskFiles.filter((file) => file.endsWith('.component.scss'));
+const detailTemplateFiles = taskFiles.filter(
+  (file) => file.endsWith('.component.html') && file.includes(`${sep}detail${sep}`),
+);
 
 for (const file of componentTypeScriptFiles) {
   if (!legacyBudgetFiles.has(file)) {
@@ -62,6 +65,16 @@ assertForbiddenText(
   '\n.docs-task-dialog-panel .subtitle,',
   'Dialog subtitles must stay visible by default; compact hiding requires the opt-in class.',
 );
+
+for (const file of detailTemplateFiles) {
+  const content = readAbsolute(file);
+
+  if (content.includes('current.codeSample') || content.includes('page.codeSample')) {
+    failures.push(
+      `${file}: API code samples belong to documentation pages, not operational detail dialogs.`,
+    );
+  }
+}
 
 const criticalBehaviorSpecs = [
   'src/app/core/auth/guards/auth.guards.spec.ts',
