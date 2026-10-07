@@ -265,51 +265,6 @@
       </article>
     </section>
 
-    <article class="cash-register-detail" *ngIf="cashRegisterDetail() as detail">
-      <div>
-        <span>Mali Bellek</span>
-        <strong>{{ detail.cashRegisterNo || '-' }}</strong>
-      </div>
-      <div>
-        <span>Finans No</span>
-        <strong>{{ detail.cashFinanceNumber || '-' }}</strong>
-      </div>
-      <div>
-        <span>Banka</span>
-        <strong>{{ detail.bank || '-' }}</strong>
-      </div>
-      <div>
-        <span>Terminal</span>
-        <strong>{{ detail.terminalId || '-' }}</strong>
-      </div>
-      <div>
-        <span>Merchant</span>
-        <strong>{{ detail.merchantNo || '-' }}</strong>
-      </div>
-    </article>
-
-    <section
-      class="entry-status"
-      [class.entry-status-ready]="form.valid && hasRequiredFinancialLines()"
-      aria-label="Kayit durumu"
-    >
-      <div>
-        <span>Kasa</span>
-        <strong>{{ controls.cashNo.value || '-' }}</strong>
-      </div>
-      <div>
-        <span>Z Raporu</span>
-        <strong>{{ controls.zReportNo.value || '-' }}</strong>
-      </div>
-      <div>
-        <span>Dolu Bolum</span>
-        <strong>{{ completedSectionCount() }} / {{ summaryCards().length }}</strong>
-      </div>
-      <div>
-        <span>Kayit Durumu</span>
-        <strong>{{ form.valid && hasRequiredFinancialLines() ? 'Kayda Hazir' : 'Giris Bekliyor' }}</strong>
-      </div>
-    </section>
 
     <section class="count-board" aria-label="Icmal kaydi kartlari">
       <button
