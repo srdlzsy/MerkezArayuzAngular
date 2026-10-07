@@ -252,6 +252,7 @@
   align-items: center;
   gap: 0.9rem;
   min-width: 0;
+  flex: 1 1 auto;
 }
 
 .home-link {
@@ -317,9 +318,10 @@
   display: flex;
   align-items: center;
   min-width: 0;
+  max-width: min(48%, 360px);
   gap: 1rem;
   margin-left: auto;
-  flex: 0 0 auto;
+  flex: 0 1 auto;
 }
 
 .topbar-divider {
@@ -329,6 +331,10 @@
 }
 
 .topbar-branch {
+  min-width: 0;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
   color: #7b8498;
   font-size: 0.74rem;
   font-weight: 600;
@@ -482,11 +488,14 @@
     align-items: center;
     justify-content: space-between;
     gap: 0.65rem;
+    min-width: 0;
   }
 
   .mobile-user {
     gap: 0.45rem;
     justify-content: space-between;
+    min-width: 0;
+    max-width: 55%;
   }
 
   .mobile-trigger {
@@ -497,6 +506,7 @@
 
   .mobile-page-title {
     max-width: none;
+    flex: 1 1 auto;
     font-size: 0.95rem;
     font-weight: 700;
     line-height: 1.2;

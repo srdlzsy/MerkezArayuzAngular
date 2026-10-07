@@ -292,8 +292,30 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
   }
 }
 
-@media (max-width: 700px) {
-  :root {
+@media screen and (max-height: 650px) {
+  html:root {
+    --docs-task-dialog-height: calc(100dvh - 1rem);
+    --docs-task-dialog-max-height: calc(100dvh - 1rem);
+    --docs-dialog-page-height: calc(100dvh - 1rem);
+  }
+
+  body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel.icmal-detail-dialog {
+    .cdk-dialog-container {
+      overflow: hidden;
+    }
+
+    .dialog-page:not(.is-editing) {
+      --dialog-page-height: var(--docs-task-dialog-height);
+      --dialog-page-max-height: var(--docs-task-dialog-max-height);
+      --dialog-page-overflow: hidden;
+      --dialog-body-overflow: auto;
+      grid-template-rows: auto minmax(0, 1fr);
+    }
+  }
+}
+
+@media screen and (max-width: 700px) {
+  html:root {
     --docs-task-dialog-height: min(720px, calc(100dvh - 1.5rem));
     --docs-task-dialog-max-height: calc(100dvh - 1.5rem);
     --docs-dialog-page-height: calc(100dvh - 1.5rem);

@@ -50,6 +50,20 @@ degiskenleri kullanilir.
 }
 ```
 
+## Ekran Boyutlari
+
+Operasyon ekranlari tarayici olcegi `%100` iken 1024x768, 1152x864, 1280x600,
+1280x720, 1280x768, 1280x800, 1280x960, 1280x1024, 1360x768, 1366x768,
+1440x900, 1440x1050, 1600x900, 1680x1050 ve 1920x1080 ekranlarda
+kullanilabilir olmalidir. Tarayici ust cubugu ve Windows olcegi kullanilabilir
+viewport'u kuculttugunden en dar ve en kisa boyutlar ayrica kontrol edilir.
+
+- Sayfa yatay kaymaz; genis evrak tablosu yalniz kendi alaninda yatay kayar.
+- Baslik, depo bilgisi ve ana komutlar kirpilmaz veya ust uste binmez.
+- Kisa ekranda dialog basligi ve kapatma komutu gorunur; govde kendi icinde kayar.
+- Okunurlugu korumak icin tarayici zoom'u dusurulmez veya yazi olcegi kucultulmez.
+- Baski sablonlarinin `mm` olculeri ekran kirilimlarindan etkilenmez.
+
 ## Baski
 
 - Tablo ve DOM tabanli baskida `InPlacePrintService` kullanilir.
