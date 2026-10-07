@@ -333,7 +333,7 @@
         </div>
       </section>
 
-      <section class="payment-section icmal-print-hidden">
+      <section class="payment-section icmal-print-hidden" *ngIf="hasPaymentBreakdown()">
         <div class="section-heading">
           <div>
             <p class="section-eyebrow">Dağılım</p>
@@ -341,7 +341,7 @@
           </div>
         </div>
         <div class="payment-metrics">
-          <article class="payment-metric payment-metric-cash">
+          <article class="payment-metric payment-metric-cash" *ngIf="banknoteQuantity() || banknoteTotal()">
             <div class="payment-metric-head">
               <span>Nakit</span>
               <small>{{ banknoteQuantity() }} adet</small>
@@ -349,7 +349,7 @@
             <strong>{{ banknoteTotal() | number:'1.2-2' }} TL</strong>
           </article>
 
-          <article class="payment-metric payment-metric-card">
+          <article class="payment-metric payment-metric-card" *ngIf="creditCardsQuantity() || creditCardsTotal()">
             <div class="payment-metric-head">
               <span>Kredi kartı</span>
               <small>{{ creditCardsQuantity() }} slip</small>
@@ -357,7 +357,7 @@
             <strong>{{ creditCardsTotal() | number:'1.2-2' }} TL</strong>
           </article>
 
-          <article class="payment-metric payment-metric-food">
+          <article class="payment-metric payment-metric-food" *ngIf="foodChecksQuantity() || foodChecksTotal()">
             <div class="payment-metric-head">
               <span>Yemek çeki</span>
               <small>{{ foodChecksQuantity() }} adet</small>
@@ -365,7 +365,7 @@
             <strong>{{ foodChecksTotal() | number:'1.2-2' }} TL</strong>
           </article>
 
-          <article class="payment-metric payment-metric-online">
+          <article class="payment-metric payment-metric-online" *ngIf="onlineSalesQuantity() || onlineSalesTotal()">
             <div class="payment-metric-head">
               <span>Vadeli / Online</span>
               <small>{{ onlineSalesQuantity() }} fiş</small>
@@ -373,7 +373,7 @@
             <strong>{{ onlineSalesTotal() | number:'1.2-2' }} TL</strong>
           </article>
 
-          <article class="payment-metric payment-metric-voucher">
+          <article class="payment-metric payment-metric-voucher" *ngIf="expenseCompassQuantity() || expenseCompassTotal()">
             <div class="payment-metric-head">
               <span>Gider pusulası</span>
               <small>{{ expenseCompassQuantity() }} fiş</small>
@@ -381,7 +381,7 @@
             <strong>{{ expenseCompassTotal() | number:'1.2-2' }} TL</strong>
           </article>
 
-          <article class="payment-metric payment-metric-expense">
+          <article class="payment-metric payment-metric-expense" *ngIf="storeExpenses().length || storeExpensesTotal()">
             <div class="payment-metric-head">
               <span>Mağaza gideri</span>
               <small>{{ storeExpenses().length }} kalem</small>
@@ -389,7 +389,7 @@
             <strong>{{ storeExpensesTotal() | number:'1.2-2' }} TL</strong>
           </article>
 
-          <article class="payment-metric payment-metric-gift">
+          <article class="payment-metric payment-metric-gift" *ngIf="giftCheckQuantity() || giftCheckTotal()">
             <div class="payment-metric-head">
               <span>Hediye çeki</span>
               <small>{{ giftCheckQuantity() }} adet</small>
@@ -399,7 +399,7 @@
         </div>
       </section>
 
-      <section class="detail-section icmal-print-hidden">
+      <section class="detail-section icmal-print-hidden" *ngIf="false">
         <div class="section-heading">
           <div>
             <p class="section-eyebrow">Kalemler</p>

@@ -162,6 +162,8 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected readonly managerSearchError = signal('');
   protected readonly cashierSearchResults = signal<IFurpaCashierSearchItemApiDto[]>([]);
   protected readonly managerSearchResults = signal<IFurpaCashierSearchItemApiDto[]>([]);
+  protected readonly selectedCashier = signal<IFurpaCashierSearchItemApiDto | null>(null);
+  protected readonly selectedManager = signal<IFurpaCashierSearchItemApiDto | null>(null);
   protected readonly cashRegisters = signal<IFurpaCashRegistryItemApiDto[]>([]);
   protected readonly banknoteTypes = signal<IFurpaBanknoteTypeItemApiDto[]>([]);
   protected readonly giftCheckTypes = signal<IFurpaGiftCheckTypeItemApiDto[]>([]);
@@ -327,7 +329,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
         id: 'storeExpenses',
         title: 'Magaza Giderleri',
         description: 'Kasadan odenen gider',
-        quantity: this.storeExpenses.length,
+        quantity: this.storeExpenseLineCount(),
         quantityLabel: 'Satir',
         total: this.storeExpensesTotal(),
         tone: 'expense'
@@ -361,6 +363,9 @@ export class IcmalDokumuCreateComponent implements OnInit {
       }
     ];
   });
+  protected readonly completedSectionCount = computed(
+    () => this.summaryCards().filter((card) => card.quantity > 0 || card.total > 0).length
+  );
 
   ngOnInit(): void {
     this.configureWarehouseControl();
@@ -819,6 +824,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       this.controls.cashierNo.markAsDirty();
       this.controls.cashierNo.markAsTouched();
       this.cashierSearchQuery.setValue(label);
+      this.selectedCashier.set(item);
       this.cashierSearchResults.set([]);
       this.cashierSearchError.set('');
       return;
@@ -828,8 +834,38 @@ export class IcmalDokumuCreateComponent implements OnInit {
     this.controls.managerNo.markAsDirty();
     this.controls.managerNo.markAsTouched();
     this.managerSearchQuery.setValue(label);
+    this.selectedManager.set(item);
     this.managerSearchResults.set([]);
     this.managerSearchError.set('');
+  }
+
+  protected onPersonQueryChanged(target: 'cashier' | 'manager'): void {
+    const queryControl = target === 'cashier' ? this.cashierSearchQuery : this.managerSearchQuery;
+    const selected = target === 'cashier' ? this.selectedCashier() : this.selectedManager();
+
+    if (!selected || queryControl.value.trim() === this.getCashierLabel(selected)) {
+      return;
+    }
+
+    this.clearPersonSelection(target, false);
+  }
+
+  protected clearPersonSelection(target: 'cashier' | 'manager', clearQuery = true): void {
+    const personControl = target === 'cashier' ? this.controls.cashierNo : this.controls.managerNo;
+    const queryControl = target === 'cashier' ? this.cashierSearchQuery : this.managerSearchQuery;
+    const selected = target === 'cashier' ? this.selectedCashier : this.selectedManager;
+    const results = target === 'cashier' ? this.cashierSearchResults : this.managerSearchResults;
+    const error = target === 'cashier' ? this.cashierSearchError : this.managerSearchError;
+
+    personControl.setValue(null);
+    personControl.markAsDirty();
+    selected.set(null);
+    results.set([]);
+    error.set('');
+
+    if (clearQuery) {
+      queryControl.setValue('');
+    }
   }
 
   protected addPaymentTypeTemplate(
@@ -1613,9 +1649,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
     }
 
     return sourceControls.filter(
-      (group) =>
-        this.toSafeNumber(group.controls.amountValue.value) > 0 ||
-        group.controls.paymentName.value.trim().length > 0
+      (group) => this.toSafeNumber(group.controls.amountValue.value) > 0
     ).length;
   }
 
@@ -1625,6 +1659,13 @@ export class IcmalDokumuCreateComponent implements OnInit {
       (group) =>
         group.controls.source.value === source &&
         !this.isBackendGeneratedCashPaymentGroup(group)
+    ).length;
+  }
+
+  private storeExpenseLineCount(): number {
+    this.formRevision();
+    return this.storeExpenses.controls.filter(
+      (group) => this.toNonNegativeNumber(group.controls.amountValue.value) > 0
     ).length;
   }
 

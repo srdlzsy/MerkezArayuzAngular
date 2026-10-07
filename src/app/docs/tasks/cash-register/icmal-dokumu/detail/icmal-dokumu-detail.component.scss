@@ -461,10 +461,6 @@
 .payment-metric-expense { border-left-color: #dc2626; }
 .payment-metric-gift { border-left-color: #db2777; }
 
-.payment-metric-gift {
-  grid-column: span 2;
-}
-
 .detail-grid {
   display: grid;
   grid-template-columns: minmax(0, 1fr);

@@ -263,7 +263,7 @@
 .document-entry-card .entry-head-actions {
   flex: 0 0 auto;
   gap: 0.4rem;
-  flex-wrap: nowrap;
+  flex-wrap: wrap;
 }
 
 .document-entry-card .compact-button {
@@ -273,18 +273,17 @@
 }
 
 .document-field-grid {
-  grid-template-columns:
-    minmax(82px, 0.68fr)
-    minmax(118px, 0.85fr)
-    minmax(108px, 0.78fr)
-    minmax(124px, 0.92fr)
-    minmax(78px, 0.52fr)
-    minmax(214px, 1.52fr)
-    minmax(214px, 1.52fr)
-    minmax(110px, 0.78fr)
-    minmax(110px, 0.78fr);
-  gap: 0.46rem;
+  grid-template-columns: repeat(12, minmax(0, 1fr));
+  gap: 0.52rem;
   align-items: start;
+}
+
+.document-field-grid :is(.field-target, .field-date, .field-cash) {
+  grid-column: span 2;
+}
+
+.document-field-grid :is(.field-fiscal, .field-z, .field-person, .field-total) {
+  grid-column: span 3;
 }
 
 .document-field-grid .field {
@@ -292,7 +291,7 @@
 }
 
 .document-field-grid .field span {
-  font-size: 0.62rem;
+  font-size: 0.7rem;
 }
 
 .document-field-grid .field input,
@@ -374,6 +373,67 @@
   min-width: 0;
 }
 
+.selected-person {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0.42rem 0.5rem;
+  border: 1px solid #b7e2db;
+  border-radius: 8px;
+  background: #f0fdfa;
+}
+
+.selected-person > div {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr);
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.selected-person span {
+  color: #0f766e;
+  font-size: 0.7rem;
+}
+
+.selected-person strong {
+  color: #0f172a;
+  font-size: 0.82rem;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
+.selected-person small {
+  color: #475569;
+  font-size: 0.72rem;
+  font-weight: 700;
+  overflow-wrap: anywhere;
+}
+
+.selected-person-clear {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  flex: 0 0 auto;
+  width: 28px;
+  height: 28px;
+  padding: 0;
+  color: #475569;
+  border: 0;
+  border-radius: 6px;
+  background: #fff;
+  font: inherit;
+  font-size: 0.72rem;
+  font-weight: 900;
+  cursor: pointer;
+}
+
+.selected-person-clear:hover {
+  color: #991b1b;
+  background: #fef2f2;
+}
+
 .person-hint {
   display: inline-flex;
   width: fit-content;
@@ -410,6 +470,10 @@
 }
 
 .inline-search-result {
+  display: grid;
+  grid-template-columns: minmax(64px, auto) minmax(0, 1fr);
+  align-items: center;
+  gap: 0.55rem;
   padding: 0.48rem 0.55rem;
   color: #0f172a;
   text-align: left;
@@ -421,12 +485,67 @@
   cursor: pointer;
 }
 
+.inline-search-result span {
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 850;
+}
+
+.inline-search-result strong {
+  color: #0f172a;
+  font-size: 0.82rem;
+  line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
 .inline-search-result:hover {
   background: #f1f5f9;
 }
 
 .cashier-card {
   min-height: 0;
+}
+
+.entry-status {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0;
+  border-block: 1px solid var(--operation-border-color);
+  background: #f8fafc;
+}
+
+.entry-status > div {
+  display: grid;
+  gap: 0.18rem;
+  min-width: 0;
+  padding: 0.62rem 0.78rem;
+}
+
+.entry-status > div + div {
+  border-left: 1px solid var(--operation-border-color);
+}
+
+.entry-status span {
+  color: var(--operation-muted);
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0.04em;
+  text-transform: uppercase;
+}
+
+.entry-status strong {
+  color: var(--operation-text);
+  font-size: 0.92rem;
+  line-height: 1.25;
+  overflow-wrap: anywhere;
+}
+
+.entry-status-ready > div:last-child {
+  background: var(--operation-success-surface);
+}
+
+.entry-status-ready > div:last-child strong {
+  color: #166534;
 }
 
 .lookup-row {
@@ -475,7 +594,6 @@
   min-height: 116px;
   gap: 0.5rem;
   padding: 0.88rem 0.95rem 0.88rem 1rem;
-  overflow: hidden;
   text-align: left;
   border-color: #cbd5e1;
   border-left: 5px solid var(--card-accent, #0f766e);
@@ -537,7 +655,8 @@ button.count-card:focus-visible {
   color: #0f172a;
   font-size: 1.12rem;
   font-weight: 850;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
+  text-align: right;
 }
 
 .tone-cash {
@@ -614,7 +733,7 @@ button.count-card:focus-visible {
   font-variant-numeric: tabular-nums;
   line-height: 1.2;
   text-align: right;
-  white-space: nowrap;
+  overflow-wrap: anywhere;
 }
 
 .difference-card-metrics .difference-base strong {
@@ -826,6 +945,18 @@ button.count-card:focus-visible {
     grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
+  .document-field-grid {
+    grid-template-columns: repeat(6, minmax(0, 1fr));
+  }
+
+  .document-field-grid :is(.field-target, .field-date, .field-cash, .field-fiscal, .field-z) {
+    grid-column: span 2;
+  }
+
+  .document-field-grid :is(.field-person, .field-total) {
+    grid-column: span 3;
+  }
+
   .entry-layout {
     grid-template-columns: 1fr;
   }
@@ -879,6 +1010,23 @@ button.count-card:focus-visible {
   .editor-row,
   .store-row {
     grid-template-columns: 1fr;
+  }
+
+  .document-field-grid > .field {
+    grid-column: auto;
+  }
+
+  .entry-status {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .entry-status > div:nth-child(3) {
+    border-left: 0;
+    border-top: 1px solid var(--operation-border-color);
+  }
+
+  .entry-status > div:nth-child(4) {
+    border-top: 1px solid var(--operation-border-color);
   }
 
   .field-grow,

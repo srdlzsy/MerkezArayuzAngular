@@ -219,15 +219,17 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
     .cdk-dialog-container {
       width: 100%;
       max-width: none;
-      overflow: visible;
+      max-height: calc(100dvh - 1.25rem);
+      overflow: hidden;
     }
 
     .dialog-page {
       --dialog-page-height: auto;
-      --dialog-page-max-height: none;
-      --dialog-page-overflow: visible;
-      --dialog-body-overflow: visible;
+      --dialog-page-max-height: calc(100dvh - 1.25rem);
+      --dialog-page-overflow: hidden;
+      --dialog-body-overflow: auto;
       --dialog-table-min-width: 0;
+      grid-template-rows: auto minmax(0, 1fr);
     }
 
     .dialog-page.is-editing {

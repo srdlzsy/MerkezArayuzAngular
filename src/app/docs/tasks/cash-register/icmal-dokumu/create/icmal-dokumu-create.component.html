@@ -165,21 +165,42 @@
               <input
                 type="search"
                 [formControl]="cashierSearchQuery"
-                placeholder="Kod veya ad ara"
+                placeholder="Kod veya ad yazip Enter'a basin"
                 autocomplete="off"
+                aria-label="Kasiyer ara"
+                aria-controls="cashier-search-results"
+                [attr.aria-expanded]="cashierSearchResults().length > 0"
+                (input)="onPersonQueryChanged('cashier')"
                 (keydown.enter)="$event.preventDefault(); searchCashiersFor('cashier', true)"
               />
               <input type="hidden" formControlName="cashierNo" />
             </div>
             <small class="field-hint person-hint" *ngIf="cashierSearchError()">{{ cashierSearchError() }}</small>
-            <div class="inline-search-results" *ngIf="cashierSearchResults().length > 0">
+            <div class="selected-person" *ngIf="selectedCashier() as cashier">
+              <div>
+                <span>Secilen Kasiyer</span>
+                <strong>{{ cashier.cashierName || '-' }}</strong>
+                <small>Kod: {{ cashier.cashierCode || '-' }}</small>
+              </div>
+              <button
+                type="button"
+                class="selected-person-clear"
+                aria-label="Kasiyer secimini temizle"
+                title="Secimi temizle"
+                (click)="clearPersonSelection('cashier')"
+              >
+                X
+              </button>
+            </div>
+            <div id="cashier-search-results" class="inline-search-results" *ngIf="cashierSearchResults().length > 0">
               <button
                 type="button"
                 class="inline-search-result"
                 *ngFor="let cashier of cashierSearchResults(); trackBy: trackByIndex"
                 (click)="applyCashier(cashier, 'cashier')"
               >
-                {{ getCashierLabel(cashier) }}
+                <span>{{ cashier.cashierCode || '-' }}</span>
+                <strong>{{ cashier.cashierName || '-' }}</strong>
               </button>
             </div>
           </div>
@@ -190,21 +211,42 @@
               <input
                 type="search"
                 [formControl]="managerSearchQuery"
-                placeholder="Kod veya ad ara"
+                placeholder="Kod veya ad yazip Enter'a basin"
                 autocomplete="off"
+                aria-label="Duzenleyen ara"
+                aria-controls="manager-search-results"
+                [attr.aria-expanded]="managerSearchResults().length > 0"
+                (input)="onPersonQueryChanged('manager')"
                 (keydown.enter)="$event.preventDefault(); searchCashiersFor('manager', true)"
               />
               <input type="hidden" formControlName="managerNo" />
             </div>
             <small class="field-hint person-hint" *ngIf="managerSearchError()">{{ managerSearchError() }}</small>
-            <div class="inline-search-results" *ngIf="managerSearchResults().length > 0">
+            <div class="selected-person" *ngIf="selectedManager() as manager">
+              <div>
+                <span>Secilen Duzenleyen</span>
+                <strong>{{ manager.cashierName || '-' }}</strong>
+                <small>Kod: {{ manager.cashierCode || '-' }}</small>
+              </div>
+              <button
+                type="button"
+                class="selected-person-clear"
+                aria-label="Duzenleyen secimini temizle"
+                title="Secimi temizle"
+                (click)="clearPersonSelection('manager')"
+              >
+                X
+              </button>
+            </div>
+            <div id="manager-search-results" class="inline-search-results" *ngIf="managerSearchResults().length > 0">
               <button
                 type="button"
                 class="inline-search-result"
                 *ngFor="let cashier of managerSearchResults(); trackBy: trackByIndex"
                 (click)="applyCashier(cashier, 'manager')"
               >
-                {{ getCashierLabel(cashier) }}
+                <span>{{ cashier.cashierCode || '-' }}</span>
+                <strong>{{ cashier.cashierName || '-' }}</strong>
               </button>
             </div>
           </div>
@@ -246,6 +288,29 @@
       </div>
     </article>
 
+    <section
+      class="entry-status"
+      [class.entry-status-ready]="form.valid && hasRequiredFinancialLines()"
+      aria-label="Kayit durumu"
+    >
+      <div>
+        <span>Kasa</span>
+        <strong>{{ controls.cashNo.value || '-' }}</strong>
+      </div>
+      <div>
+        <span>Z Raporu</span>
+        <strong>{{ controls.zReportNo.value || '-' }}</strong>
+      </div>
+      <div>
+        <span>Dolu Bolum</span>
+        <strong>{{ completedSectionCount() }} / {{ summaryCards().length }}</strong>
+      </div>
+      <div>
+        <span>Kayit Durumu</span>
+        <strong>{{ form.valid && hasRequiredFinancialLines() ? 'Kayda Hazir' : 'Giris Bekliyor' }}</strong>
+      </div>
+    </section>
+
     <section class="count-board" aria-label="Icmal kaydi kartlari">
       <button
         type="button"
@@ -253,6 +318,8 @@
         *ngFor="let card of summaryCards(); trackBy: trackByCardId"
         [ngClass]="'tone-' + card.tone"
         [class.count-card-active]="activePanel() === card.id"
+        aria-haspopup="dialog"
+        [attr.aria-label]="card.title + ', ' + (card.total | number:'1.2-2') + ' TL'"
         (click)="openPanel(card.id)"
       >
         <span class="card-title">{{ card.title }}</span>
@@ -455,8 +522,7 @@
       </ng-container>
 
       <footer class="drawer-footer">
-        <button type="button" class="action-button action-button-ghost" (click)="closePanel()">Kapat</button>
-        <button type="button" class="action-button action-button-primary" (click)="closePanel()">Kaydet</button>
+        <button type="button" class="action-button action-button-primary" (click)="closePanel()">Tamam</button>
       </footer>
     </section>
 

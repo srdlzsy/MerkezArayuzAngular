@@ -291,6 +291,16 @@ export class IcmalDokumuDetailComponent
   protected readonly storeExpensesTotal = computed(() =>
     this.sumBy(this.storeExpenses(), (item) => item.amount)
   );
+  protected readonly hasPaymentBreakdown = computed(
+    () =>
+      this.banknoteTotal() !== 0 ||
+      this.creditCardsTotal() !== 0 ||
+      this.foodChecksTotal() !== 0 ||
+      this.onlineSalesTotal() !== 0 ||
+      this.expenseCompassTotal() !== 0 ||
+      this.storeExpensesTotal() !== 0 ||
+      this.giftCheckTotal() !== 0
+  );
   protected readonly generalTotal = computed(
     () =>
       this.banknoteTotal() +
