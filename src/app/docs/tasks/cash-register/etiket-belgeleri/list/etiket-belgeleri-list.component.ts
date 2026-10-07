@@ -153,7 +153,7 @@ export class EtiketBelgeleriListComponent {
   );
   protected readonly hiddenProductCount = computed(() => this.hiddenProducts().length);
   protected readonly promotionProducts = computed(() =>
-    this.activeProducts().filter((product) => product.promotionPrice ? product.promotionPrice > 0 : false)
+    this.activeProducts().filter((product) => this.hasActivePromotion(product))
   );
   protected readonly priceChangeProducts = computed(() =>
     this.activeProducts().filter((product) => this.hasPriceChanged(product))
@@ -355,9 +355,29 @@ export class EtiketBelgeleriListComponent {
     const sourceLabel = `Tarih araligi: ${this.formatReadableDate(startDate)} - ${this.formatReadableDate(endDate)}`;
 
     this.replaceProducts(
-      () => this.kasaIslemleriService.getUrunEtiketleri(zamanlama),
+      () => this.kasaIslemleriService.getUrunEtiketleri(zamanlama, this.currentWarehouseNo()),
       sourceLabel
     );
+  }
+
+  protected loadActivePromotions(): void {
+    this.replaceProducts(
+      () => this.kasaIslemleriService.getAktifPromosyonluUrunler(this.currentWarehouseNo()),
+      'Aktif promosyonlar'
+    );
+  }
+
+  protected getCampaignText(product: IEtiketBasimProduct): string {
+    if (!this.hasActivePromotion(product)) {
+      return '';
+    }
+
+    return product.promotion?.campaignText?.trim() || product.promotion?.promotionName?.trim() || '';
+  }
+
+  protected hasActivePromotion(product: IEtiketBasimProduct): boolean {
+    return product.promotion?.isActive === true ||
+      (!product.promotion && !!product.promotionPrice && product.promotionPrice > 0);
   }
 
   protected loadSelectedDocument(): void {
@@ -823,13 +843,21 @@ export class EtiketBelgeleriListComponent {
   private withApiPromotion(product: IEtiketBasimProduct): IEtiketBasimProduct {
     const promotion = product.promotion;
 
-    if (!promotion?.isActive || promotion.promotionPrice <= 0) {
+    if (!promotion?.isActive) {
       return product;
     }
 
     return {
       ...product,
-      promotionPrice: promotion.promotionPrice,
+      promotionPrice: promotion.effectiveUnitPrice === null
+        ? product.price
+        : promotion.effectiveUnitPrice !== undefined &&
+            Number.isFinite(promotion.effectiveUnitPrice) &&
+            promotion.effectiveUnitPrice > 0
+          ? promotion.effectiveUnitPrice
+          : promotion.promotionPrice > 0
+            ? promotion.promotionPrice
+            : product.price,
       expirationDate:
         this.formatPromotionDate(promotion.expirationDate) || product.expirationDate
     };
@@ -916,7 +944,7 @@ export class EtiketBelgeleriListComponent {
     let items = [...products];
 
     if (filter === 'promotions') {
-      items = items.filter((product) => product.promotionPrice ? product.promotionPrice > 0 : false);
+      items = items.filter((product) => this.hasActivePromotion(product));
     } else if (filter === 'price-changes') {
       items = items.filter((product) => this.hasPriceChanged(product));
     } else if (filter === 'price-increased') {
@@ -938,7 +966,9 @@ export class EtiketBelgeleriListComponent {
           product.priceChangeDate,
           product.packageFactor,
           product.unitName,
-          product.alternativeUnitName
+          product.alternativeUnitName,
+          product.promotion?.campaignText,
+          product.promotion?.promotionName
         ].some((value) => `${value ?? ''}`.toLocaleLowerCase('tr-TR').includes(query))
       );
     }
@@ -994,7 +1024,7 @@ export class EtiketBelgeleriListComponent {
         return product.barcode?.trim() || this.getAlternativeBarcodeLabel(product);
       case 'status':
         return [
-          product.promotionPrice && product.promotionPrice > 0 ? 'Promosyonlu' : 'Standart',
+          this.hasActivePromotion(product) ? 'Promosyonlu' : 'Standart',
           this.getPriceTrendLabel(product)
         ].join(' ');
       case 'unit':

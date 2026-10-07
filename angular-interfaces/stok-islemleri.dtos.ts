@@ -188,13 +188,23 @@ export interface LabelDocumentListItemDto {
 }
 
 export interface LabelPromotionDto {
+  source?: string;
   isActive: boolean;
   promotionCode: string;
   promotionType: string;
   promotionName: string;
   description: string;
+  campaignText?: string;
+  productRole?: string;
+  requiredProductCode?: string | null;
+  requiredQuantity?: number | null;
+  discountedProductCode?: string | null;
+  discountedQuantity?: number | null;
+  discountType?: string | null;
+  discountValue?: number | null;
   normalPrice: number;
   promotionPrice: number;
+  effectiveUnitPrice?: number | null;
   discountRate: number;
   discountAmount: number;
   startDate: string | null;
@@ -244,15 +254,15 @@ export interface LabelPriceChangedProductDto {
   productCode: string;
   productName: string;
   pluNo: number;
-  alternativeUnitName: string;
+  alternativeUnitName?: string;
   barcode: string;
-  barcodes: string[];
-  isDomestic: number;
-  oldPrice: number;
-  origin: string;
+  barcodes?: string[];
+  isDomestic?: number;
+  oldPrice?: number;
+  origin?: string;
   price: number;
-  priceChangeDate: string;
-  unitPriceFactor: number;
+  priceChangeDate?: string;
+  unitPriceFactor?: number;
   unitName: string;
   promotion?: LabelPromotionDto | null;
 }
@@ -282,6 +292,10 @@ export interface LabelTagListHttpRequest {
 export interface LabelPriceChangedProductListHttpRequest {
   warehouseNo?: number;
   dateTimeFilter: string;
+}
+
+export interface ActivePromotionProductListHttpRequest {
+  warehouseNo?: number;
 }
 
 export interface KunyeLabelTagDto extends LabelTagDto {

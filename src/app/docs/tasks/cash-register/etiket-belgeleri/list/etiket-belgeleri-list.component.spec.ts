@@ -55,6 +55,78 @@ describe('EtiketBelgeleriListComponent manual product rows', () => {
     expect(mapped.expirationDate).toBe('15.10.2026');
     expect(mapped.promotion.promotionName).toBe('Haftanin Urunu');
   });
+
+  it('keeps a cross-product gift active and shows its campaign text without a false discount', () => {
+    const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
+    const product = {
+      productCode: '016222',
+      productName: 'Kampanyali Urun',
+      barcode: '4023103246638',
+      price: 299.5,
+      promotion: {
+        isActive: true,
+        campaignText: 'Bu urunu alana farkli urun hediye',
+        promotionName: 'Hediye Kampanyasi',
+        promotionPrice: 299.5,
+        effectiveUnitPrice: null,
+        expirationDate: '2026-10-08T00:00:00'
+      }
+    };
+
+    const mapped = component.withApiPromotion(product);
+
+    expect(component.hasActivePromotion(mapped)).toBeTrue();
+    expect(component.getCampaignText(mapped)).toBe('Bu urunu alana farkli urun hediye');
+    expect(mapped.promotionPrice).toBe(299.5);
+    expect(mapped.expirationDate).toBe('08.10.2026');
+  });
+
+  it('uses the calculated unit price for a same-product campaign', () => {
+    const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
+    const mapped = component.withApiPromotion({
+      price: 299.5,
+      promotion: {
+        isActive: true,
+        promotionPrice: 149.75,
+        effectiveUnitPrice: 149.75
+      }
+    });
+
+    expect(mapped.promotionPrice).toBe(149.75);
+  });
+});
+
+describe('EtiketBelgeleriListComponent promotion source', () => {
+  it('loads active promotions only when selected and replaces the price-change rows', () => {
+    const priceProducts = [{ productCode: 'A', productName: 'Fiyati Degisen', barcode: '111', price: 10 }];
+    const promotionProducts = [{
+      productCode: 'B', productName: 'Kampanyali', barcode: '222', price: 20,
+      promotion: { isActive: true, campaignText: '2 al 1 ode', effectiveUnitPrice: 10 }
+    }];
+    const getUrunEtiketleri = jasmine.createSpy('getUrunEtiketleri').and.returnValue(of(priceProducts));
+    const getAktifPromosyonluUrunler = jasmine.createSpy('getAktifPromosyonluUrunler')
+      .and.returnValue(of(promotionProducts));
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { currentUser: signal(null) } },
+        { provide: KasaIslemleriService, useValue: { getUrunEtiketleri, getAktifPromosyonluUrunler } },
+        { provide: InPlacePrintService, useValue: {} },
+        { provide: Dialog, useValue: {} }
+      ]
+    });
+
+    const component = TestBed.runInInjectionContext(() => new EtiketBelgeleriListComponent()) as any;
+    component.loadByDate();
+    expect(component.products().map((product: any) => product.productCode)).toEqual(['A']);
+    expect(getAktifPromosyonluUrunler).not.toHaveBeenCalled();
+
+    component.loadActivePromotions();
+    expect(getAktifPromosyonluUrunler).toHaveBeenCalledOnceWith(null);
+    expect(component.products().map((product: any) => product.productCode)).toEqual(['B']);
+    expect(component.promotionProducts().length).toBe(1);
+    expect(component.lastLoadedSource()).toBe('Aktif promosyonlar');
+  });
 });
 
 describe('EtiketBelgeleriListComponent product sorting', () => {

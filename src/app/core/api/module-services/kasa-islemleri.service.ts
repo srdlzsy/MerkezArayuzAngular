@@ -8,6 +8,7 @@ import {
   IEtiketBasimProduct,
   IFurpaLabelDocumentListItemApiDto,
   IFurpaLabelDocumentProductApiDto,
+  IFurpaLabelPriceChangedProductApiDto,
   IFurpaLabelTagApiDto,
   IFurpaBanknoteMovementItemApiDto,
   IFurpaBanknoteTrackApiDto,
@@ -106,6 +107,7 @@ import {
   ManavMalKabulVeEtiketMicroGoodsReceiptDocumentDto,
   ManavMalKabulVeEtiketMicroGoodsReceiptQueryHttpRequest,
   SaveEtiketBasimAcceptanceRecordHttpRequest,
+  ActivePromotionProductListHttpRequest,
   LabelPriceChangedProductListHttpRequest,
   LabelTagListHttpRequest,
   WarehouseOrderDateRangeHttpRequest,
@@ -152,9 +154,67 @@ export class KasaIslemleriService extends BaseApiService {
     };
 
     return this.getWithQuery<
-      IFurpaLabelDocumentProductApiDto[],
+      IFurpaLabelPriceChangedProductApiDto[],
       LabelPriceChangedProductListHttpRequest
-    >('kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler', request);
+    >('kasa-islemleri/etiket-belgeleri/fiyati-degisen-urunler', request).pipe(
+      map((products: IFurpaLabelPriceChangedProductApiDto[]) =>
+        products.map((product) => this.toLabelProduct(product))
+      )
+    );
+  }
+
+  getAktifPromosyonluUrunler(
+    warehouseNo?: number | null
+  ): Observable<IEtiketBasimProduct[]> {
+    const request: ActivePromotionProductListHttpRequest = {
+      warehouseNo: warehouseNo ?? undefined
+    };
+
+    return this.getWithQuery<
+      IFurpaLabelPriceChangedProductApiDto[],
+      ActivePromotionProductListHttpRequest
+    >('kasa-islemleri/etiket-belgeleri/aktif-promosyonlu-urunler', request).pipe(
+      map((products: IFurpaLabelPriceChangedProductApiDto[]) =>
+        products.map((product) => this.toLabelProduct(product))
+      )
+    );
+  }
+
+  private toLabelProduct(product: IFurpaLabelPriceChangedProductApiDto): IEtiketBasimProduct {
+    return {
+      package: '',
+      packageFactor: '',
+      lastUpdateDate: '',
+      barcodeContent: product.barcode ?? '',
+      bulkSaleTaxRate: 0,
+      retailSaleTaxRate: 0,
+      supplierCode: '',
+      isClosedToSale: 0,
+      isClosedToOrder: 0,
+      isClosedToReceiving: 0,
+      isPassive: false,
+      unitName2: '',
+      typeCode: '',
+      sectorCode: '',
+      shelfLife: 0,
+      type: '',
+      orderGuid: null,
+      canBeCalled: true,
+      quantity: 0,
+      deliveredQuantity: 0,
+      documentOrderNo: 0,
+      categoryCode: '',
+      ...product,
+      barcode: product.barcode ?? '',
+      barcodes: product.barcodes ?? [],
+      oldPrice: product.oldPrice ?? 0,
+      priceChangeDate: product.priceChangeDate ?? '',
+      origin: product.origin ?? '',
+      isDomestic: product.isDomestic ?? 0,
+      unitPriceFactor: product.unitPriceFactor ?? 0,
+      alternativeUnitName: product.alternativeUnitName ?? '',
+      unitName: product.unitName ?? ''
+    };
   }
 
   getEtiketBelgesi(docId: number): Observable<IEtiketBasimProduct[]> {

@@ -91,7 +91,15 @@
             [disabled]="!canLoadByDate()"
             (click)="loadByDate()"
           >
-            Tarihe Göre Getir
+            Fiyatı Değişenleri Getir
+          </button>
+          <button
+            type="button"
+            class="button button-secondary"
+            [disabled]="isBusy()"
+            (click)="loadActivePromotions()"
+          >
+            Aktif Promosyonları Getir
           </button>
           <button
             type="button"
@@ -178,6 +186,7 @@
     <header class="product-panel-header">
       <div>
         <h3>Kalem Listesi</h3>
+        <p class="loaded-source">{{ lastLoadedSource() }}</p>
         <p *ngIf="visibleProducts().length">
           {{ visibleProducts().length }} ürün · {{ pageStartIndex() }}-{{ pageEndIndex() }} arası
         </p>
@@ -363,6 +372,9 @@
             </td>
             <td data-label="Fiyat">
               <strong>{{ product.price | number:'1.2-2' }} TL</strong>
+              <span class="old-price" *ngIf="product.promotion?.effectiveUnitPrice as effectivePrice">
+                Kampanya birim fiyatı: {{ effectivePrice | number:'1.2-2' }} TL
+              </span>
               <span class="old-price" *ngIf="product.oldPrice && product.oldPrice !== product.price">
                 Önceki: {{ product.oldPrice | number:'1.2-2' }} TL
               </span>
@@ -370,13 +382,16 @@
             <td data-label="Durum">
               <span
                 class="table-badge"
-                [class.table-badge-success]="product.promotionPrice && product.promotionPrice > 0"
+                [class.table-badge-success]="hasActivePromotion(product)"
               >
                 {{
-                  product.promotionPrice && product.promotionPrice > 0
+                  hasActivePromotion(product)
                     ? 'Promosyonlu'
                     : 'Standart'
                 }}
+              </span>
+              <span class="campaign-text" *ngIf="getCampaignText(product) as campaignText">
+                {{ campaignText }}
               </span>
               <span class="table-badge price-trend-badge" [ngClass]="getPriceTrendClass(product)">
                 {{ getPriceTrendLabel(product) }}
