@@ -325,6 +325,69 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       requiredPermissionCodes: ['ayar-islemleri.soforler.manage']
     }
   ),
+  'veritabani-izleme': singleRouteTask(
+    {
+      id: 'veritabani-izleme',
+      title: 'Veritabani Izleme',
+      subtitle:
+        'Mikro SQL Server aktif sorgularini, kilit zincirlerini ve kontrollu oturum sonlandirmalarini izler.',
+      baseRouteOrFile: '/api/ayar-islemleri/veritabani-izleme',
+      highlights: [
+        'Canli veri 10 saniyelik yenileme ile izlenir',
+        'Oturum sonlandirma sadece terminate-session yetkisiyle ve secili oturumun kimligi tekrar dogrulanarak yapilir',
+        'KILL sonrasi rollback durumu ayri endpointten izlenir'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AyarIslemleri Veritabani Izleme',
+          description: 'SQL Server DMV ve kontrollu oturum yonetimi endpointlerini sunar.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/anlik',
+              description: 'Anlik sorgu, kilit, transaction ve bekleme ozetini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/olaylar?take=100',
+              description: 'Kaydedilmis izleme olaylarini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/oturum-sonlandirma-gecmisi?take=100',
+              description: 'Oturum sonlandirma audit gecmisini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/veritabani-izleme/oturumlar/{sessionId}/sonlandir',
+              description: 'Oturum kimligini tekrar dogrulayarak sonlandirir',
+              payload: 'TerminateDatabaseSessionHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/oturumlar/{sessionId}/rollback-durumu',
+              description: 'Sonlandirilan oturumun rollback durumunu getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "expectedLoginTime": "2026-10-07T11:30:54.227",
+  "expectedHostProcessId": 9572,
+  "expectedProgramName": "Mikro API",
+  "reason": "Root blocker kontrol edildi."
+}`
+    },
+    () =>
+      import('../tasks/settings/veritabani-izleme/list/veritabani-izleme-list.component').then(
+        (m) => m.VeritabaniIzlemeListComponent
+      ),
+    {
+      accessKeyAliases: ['VeritabaniIzleme', 'database-monitoring'],
+      requiredPermissionCodes: ['ayar-islemleri.veritabani-izleme.manage']
+    }
+  ),
   'b2b-ayarlari': singleRouteTask(
     {
       id: 'b2b-ayarlari',

@@ -1,0 +1,417 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="settings-workspace database-monitor-workspace">
+    <header class="page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ayar Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p class="subtitle">{{ current.subtitle }}</p>
+        <p class="server-line" *ngIf="snapshot() as currentSnapshot">
+          {{ currentSnapshot.serverName || 'SQL Server' }}
+          <span aria-hidden="true">/</span>
+          {{ currentSnapshot.databaseName || 'Veritabani' }}
+        </p>
+      </div>
+
+      <div class="metric-strip monitor-metrics">
+        <article
+          class="health-metric"
+          [class.metric-warning]="snapshot()?.overallStatus === 'warning'"
+          [class.metric-critical]="snapshot()?.overallStatus === 'critical'"
+        >
+          <span>Genel Durum</span>
+          <strong>{{ statusLabel(snapshot()?.overallStatus) }}</strong>
+        </article>
+        <article>
+          <span>Aktif Istek</span>
+          <strong>{{ snapshot()?.activeRequestCount ?? 0 }}</strong>
+        </article>
+        <article [class.metric-critical]="(snapshot()?.rootBlockerCount ?? 0) > 0">
+          <span>Root Blocker</span>
+          <strong>{{ snapshot()?.rootBlockerCount ?? 0 }}</strong>
+        </article>
+        <article [class.metric-warning]="(snapshot()?.openTransactionCount ?? 0) > 0">
+          <span>Acik Transaction</span>
+          <strong>{{ snapshot()?.openTransactionCount ?? 0 }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <nav class="tab-strip" aria-label="Veritabani izleme sekmeleri">
+      <button
+        type="button"
+        class="task-action"
+        [class.task-action-primary]="tab() === 'live'"
+        (click)="setTab('live')"
+      >
+        <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
+        Canli Izleme
+      </button>
+      <button
+        type="button"
+        class="task-action"
+        *ngIf="canViewHistory()"
+        [class.task-action-primary]="tab() === 'incidents'"
+        (click)="setTab('incidents')"
+      >
+        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        Olaylar
+        <span class="button-count">{{ incidents().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="task-action"
+        *ngIf="canViewHistory()"
+        [class.task-action-primary]="tab() === 'audits'"
+        (click)="setTab('audits')"
+      >
+        <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+        Sonlandirma Gecmisi
+        <span class="button-count">{{ terminations().length }}</span>
+      </button>
+      <span class="toolbar-spacer"></span>
+      <span class="refresh-note" *ngIf="tab() === 'live'">
+        Son okuma: {{ formatDate(lastUpdated()) }}
+      </span>
+      <button
+        type="button"
+        class="task-action task-action-secondary"
+        *ngIf="tab() === 'live'; else historyRefresh"
+        (click)="refresh()"
+        [disabled]="isLoading() || !canList()"
+      >
+        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+        {{ isLoading() ? 'Yenileniyor' : 'Yenile' }}
+      </button>
+      <ng-template #historyRefresh>
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="refreshHistory()"
+          [disabled]="isHistoryLoading()"
+        >
+          <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+          {{ isHistoryLoading() ? 'Yenileniyor' : 'Gecmisi Yenile' }}
+        </button>
+      </ng-template>
+    </nav>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <ng-container *ngIf="tab() === 'live'">
+      <section class="recommendation-list" *ngIf="recommendations().length > 0">
+        <article
+          class="recommendation-item"
+          *ngFor="let recommendation of recommendations(); trackBy: trackByRecommendation"
+          [ngClass]="'severity-' + (recommendation.severity || 'info')"
+        >
+          <i class="fa-solid fa-circle-exclamation" aria-hidden="true"></i>
+          <div>
+            <div class="recommendation-title">
+              <strong>{{ recommendation.title || 'Kontrol onerisi' }}</strong>
+              <span>{{ recommendation.affectedSessionCount }} oturum</span>
+            </div>
+            <p>{{ recommendation.description || '-' }}</p>
+          </div>
+        </article>
+      </section>
+
+      <section class="content-grid monitor-main-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="panel-kicker">Canli DMV</span>
+              <h3>Aktif SQL Istekleri</h3>
+            </div>
+            <span class="table-meta">{{ refreshSeconds() }} saniyede bir yenilenir</span>
+          </div>
+
+          <div class="table-wrap active-request-table" *ngIf="activeRequests().length > 0; else noRequests">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>SPID</th>
+                  <th>Seviye</th>
+                  <th>Durum / Komut</th>
+                  <th>Bekleme</th>
+                  <th>Bloklayan</th>
+                  <th>Gecen Sure</th>
+                  <th>Program</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let request of activeRequests(); trackBy: trackByRequest"
+                  [class.is-selected]="selectedSession()?.sessionId === request.sessionId"
+                  (click)="selectRequest(request)"
+                >
+                  <td><strong>{{ request.sessionId }}</strong></td>
+                  <td>
+                    <span
+                      class="status-badge"
+                      [class.status-danger]="request.severity === 'critical'"
+                      [class.status-warn]="request.severity === 'warning'"
+                      [class.status-info]="request.severity === 'info'"
+                    >
+                      {{ statusLabel(request.severity) }}
+                    </span>
+                  </td>
+                  <td>
+                    {{ request.status || '-' }}
+                    <span class="table-meta">{{ request.command || '-' }}</span>
+                  </td>
+                  <td>
+                    {{ request.waitType || '-' }}
+                    <span class="table-meta">{{ formatDuration(request.waitMilliseconds) }}</span>
+                  </td>
+                  <td>{{ request.blockingSessionId ?? '-' }}</td>
+                  <td>{{ formatDuration(request.elapsedMilliseconds) }}</td>
+                  <td>
+                    {{ request.programName || '-' }}
+                    <span class="table-meta">{{ request.loginName || '-' }}</span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noRequests>
+            <article class="state-card state-card-info empty-state">
+              <h3>Aktif istek yok</h3>
+              <p>Izleme sorgusu disinda aktif SQL istegi bulunmuyor.</p>
+            </article>
+          </ng-template>
+        </section>
+
+        <aside class="panel session-panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="panel-kicker">Kontrollu Islem</span>
+              <h3>Secili Oturum</h3>
+            </div>
+          </div>
+
+          <ng-container *ngIf="selectedSession() as selected; else selectHint">
+            <div class="selected-session-head">
+              <div>
+                <span>SPID</span>
+                <strong>{{ selected.sessionId }}</strong>
+              </div>
+              <span
+                class="status-badge"
+                [class.status-danger]="selected.severity === 'critical'"
+                [class.status-warn]="selected.severity === 'warning'"
+                [class.status-info]="selected.severity === 'info'"
+              >
+                {{ statusLabel(selected.severity) }}
+              </span>
+            </div>
+
+            <dl class="detail-grid session-detail-grid">
+              <div><dt>Kaynak</dt><dd>{{ selected.source === 'request' ? 'Aktif istek' : 'Acik transaction' }}</dd></div>
+              <div><dt>Login</dt><dd>{{ selected.loginName || '-' }}</dd></div>
+              <div><dt>Program</dt><dd [title]="selected.programName || ''">{{ selected.programName || '-' }}</dd></div>
+              <div><dt>Host / PID</dt><dd>{{ selected.hostName || '-' }} / {{ selected.hostProcessId ?? '-' }}</dd></div>
+              <div><dt>Login Zamani</dt><dd>{{ formatDate(selected.loginTime) }}</dd></div>
+              <div><dt>Veritabani</dt><dd>{{ selected.databaseName || '-' }}</dd></div>
+            </dl>
+
+            <div class="sql-preview">
+              <span>Maskelenmis SQL</span>
+              <code>{{ selected.sqlText || 'SQL metni bulunmuyor.' }}</code>
+            </div>
+
+            <article class="session-recommendation" *ngIf="selected.recommendation">
+              <strong>Oneri</strong>
+              <p>{{ selected.recommendation }}</p>
+            </article>
+
+            <form
+              class="form-panel terminate-form"
+              *ngIf="canTerminate(); else terminatePermissionHint"
+              [formGroup]="terminateForm"
+              (ngSubmit)="terminateSelectedSession()"
+            >
+              <label class="field">
+                <span>Sonlandirma Gerekcesi</span>
+                <textarea
+                  rows="3"
+                  formControlName="reason"
+                  maxlength="500"
+                  placeholder="Kontrol edilen kilidi ve is nedenini yazin"
+                ></textarea>
+                <small
+                  class="validation-message"
+                  *ngIf="terminateForm.controls.reason.touched && terminateForm.controls.reason.invalid"
+                >
+                  En az 10, en fazla 500 karakter girin.
+                </small>
+              </label>
+              <button
+                type="submit"
+                class="task-action task-action-danger"
+                [disabled]="!canTerminateSelected() || isTerminating()"
+                [title]="selected.canTerminate ? 'Oturumu sonlandir' : 'Backend bu oturumu sonlandirilabilir olarak isaretlemedi'"
+              >
+                <i class="fa-solid fa-stop" aria-hidden="true"></i>
+                {{ isTerminating() ? 'Sonlandiriliyor' : 'Oturumu Sonlandir' }}
+              </button>
+            </form>
+            <ng-template #terminatePermissionHint>
+              <article class="state-card state-card-info compact-state">
+                <p>Bu oturumu sonlandirma yetkiniz bulunmuyor.</p>
+              </article>
+            </ng-template>
+
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              *ngIf="canViewHistory()"
+              (click)="loadRollbackStatus()"
+              [disabled]="isRollbackLoading()"
+            >
+              <i class="fa-solid fa-clock-rotate-left" aria-hidden="true"></i>
+              {{ isRollbackLoading() ? 'Sorgulaniyor' : 'Rollback Durumunu Sorgula' }}
+            </button>
+
+            <article
+              class="state-card compact-state"
+              *ngIf="rollback() as status"
+              [class.state-card-info]="status.isRollingBack"
+              [class.state-card-success]="!status.isRollingBack"
+            >
+              <h3>{{ status.isRollingBack ? 'Rollback devam ediyor' : 'Aktif rollback yok' }}</h3>
+              <p>{{ status.message || 'SQL Server aktif rollback bildirmedi.' }}</p>
+              <p>Kontrol: {{ formatDate(status.checkedAtUtc) }}</p>
+            </article>
+          </ng-container>
+
+          <ng-template #selectHint>
+            <article class="state-card state-card-info empty-state">
+              <h3>Oturum secin</h3>
+              <p>Detay ve kontrollu islemler icin aktif istek veya transaction satirini secin.</p>
+            </article>
+          </ng-template>
+        </aside>
+      </section>
+
+      <section class="split-grid monitor-secondary-grid">
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="panel-kicker">Kilit Zinciri</span>
+              <h3>Bloklanan Oturumlar</h3>
+            </div>
+            <span class="status-badge" [class.status-danger]="blockingEdges().length > 0">
+              {{ blockingEdges().length }} baglanti
+            </span>
+          </div>
+          <div class="table-wrap compact-table-wrap" *ngIf="blockingEdges().length > 0; else noBlocking">
+            <table class="data-table compact-table">
+              <thead><tr><th>Root</th><th>Bloklayan</th><th>Bloklanan</th><th>Derinlik</th><th>Bekleme</th></tr></thead>
+              <tbody>
+                <tr
+                  *ngFor="let edge of blockingEdges(); trackBy: trackByBlockingEdge"
+                  (click)="selectSessionById(edge.rootSessionId)"
+                >
+                  <td><strong>{{ edge.rootSessionId }}</strong></td>
+                  <td>{{ edge.blockingSessionId }}</td>
+                  <td>{{ edge.blockedSessionId }}</td>
+                  <td>{{ edge.depth }}</td>
+                  <td>{{ edge.waitType || '-' }} <span class="table-meta">{{ formatDuration(edge.waitMilliseconds) }}</span></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noBlocking><p class="panel-empty">Aktif kilit zinciri bulunmuyor.</p></ng-template>
+        </section>
+
+        <section class="panel">
+          <div class="panel-head">
+            <div class="panel-head-text">
+              <span class="panel-kicker">Transaction</span>
+              <h3>Uzun Acik Islemler</h3>
+            </div>
+            <span class="status-badge" [class.status-warn]="openTransactions().length > 0">
+              {{ openTransactions().length }} acik
+            </span>
+          </div>
+          <div class="table-wrap compact-table-wrap" *ngIf="openTransactions().length > 0; else noTransactions">
+            <table class="data-table compact-table">
+              <thead><tr><th>SPID</th><th>Baslangic</th><th>Sure</th><th>Program</th></tr></thead>
+              <tbody>
+                <tr
+                  *ngFor="let transaction of openTransactions(); trackBy: trackByTransaction"
+                  [class.is-selected]="selectedSession()?.sessionId === transaction.sessionId"
+                  (click)="selectOpenTransaction(transaction)"
+                >
+                  <td><strong>{{ transaction.sessionId }}</strong></td>
+                  <td>{{ formatDate(transaction.transactionBeginTime) }}</td>
+                  <td>{{ formatDuration(transaction.ageMilliseconds) }}</td>
+                  <td>{{ transaction.programName || '-' }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+          <ng-template #noTransactions><p class="panel-empty">Esigi asan acik transaction bulunmuyor.</p></ng-template>
+        </section>
+      </section>
+    </ng-container>
+
+    <section class="panel history-panel" *ngIf="tab() === 'incidents' && canViewHistory()">
+      <div class="panel-head">
+        <div class="panel-head-text"><span class="panel-kicker">Olay Gecmisi</span><h3>Izleme Olaylari</h3></div>
+        <span class="table-meta">{{ incidents().length }} kayit</span>
+      </div>
+      <div class="table-wrap history-table-wrap" *ngIf="incidents().length > 0; else noIncidents">
+        <table class="data-table">
+          <thead><tr><th>Son Gorulme</th><th>Tip</th><th>Seviye</th><th>SPID</th><th>Bloklayan</th><th>Sure</th><th>Tekrar</th><th>Durum</th><th>Oneri</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let incident of incidents(); trackBy: trackByIncident">
+              <td>{{ formatDate(incident.lastSeenAtUtc) }}</td>
+              <td>{{ incident.type || '-' }}</td>
+              <td><span class="status-badge" [class.status-danger]="incident.severity === 'critical'" [class.status-warn]="incident.severity === 'warning'">{{ statusLabel(incident.severity) }}</span></td>
+              <td>{{ incident.sessionId }}</td>
+              <td>{{ incident.blockingSessionId ?? '-' }}</td>
+              <td>{{ formatDuration(incident.elapsedMilliseconds) }}</td>
+              <td>{{ incident.occurrenceCount }}</td>
+              <td>{{ incident.resolvedAtUtc ? 'Cozuldu' : 'Aktif' }}</td>
+              <td class="wrap-cell">{{ incident.recommendation || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noIncidents><article class="state-card state-card-info empty-state"><h3>Olay bulunamadi</h3><p>Kayitli kilit, uzun sorgu veya acik transaction olayi yok.</p></article></ng-template>
+    </section>
+
+    <section class="panel history-panel" *ngIf="tab() === 'audits' && canViewHistory()">
+      <div class="panel-head">
+        <div class="panel-head-text"><span class="panel-kicker">Denetim Gecmisi</span><h3>Oturum Sonlandirmalari</h3></div>
+        <span class="table-meta">{{ terminations().length }} kayit</span>
+      </div>
+      <div class="table-wrap history-table-wrap" *ngIf="terminations().length > 0; else noTerminations">
+        <table class="data-table">
+          <thead><tr><th>Istek Zamani</th><th>SPID</th><th>Sonuc</th><th>Login / Program</th><th>Gerekce</th><th>Tamamlanma</th><th>Hata</th></tr></thead>
+          <tbody>
+            <tr *ngFor="let termination of terminations(); trackBy: trackByTermination">
+              <td>{{ formatDate(termination.requestedAtUtc) }}</td>
+              <td><strong>{{ termination.sessionId }}</strong></td>
+              <td><span class="status-badge" [class.status-success]="termination.isSucceeded" [class.status-danger]="!termination.isSucceeded">{{ termination.isSucceeded ? 'Basarili' : 'Basarisiz' }}</span></td>
+              <td>{{ termination.loginName || '-' }}<span class="table-meta">{{ termination.programName || '-' }}</span></td>
+              <td class="wrap-cell">{{ termination.reason || '-' }}</td>
+              <td>{{ formatDate(termination.completedAtUtc) }}</td>
+              <td class="wrap-cell">{{ termination.error || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noTerminations><article class="state-card state-card-info empty-state"><h3>Sonlandirma kaydi yok</h3><p>Henuz kaydedilmis bir oturum sonlandirma denemesi bulunmuyor.</p></article></ng-template>
+    </section>
+  </article>
+</section>

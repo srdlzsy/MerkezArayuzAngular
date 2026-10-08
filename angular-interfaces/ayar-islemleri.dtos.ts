@@ -254,3 +254,151 @@ export interface UpdateB2BUserHttpRequest {
   menus?: string | null;
   userEndDate?: string | null;
 }
+
+export type DatabaseMonitoringSeverity = 'info' | 'warning' | 'critical' | string;
+export type DatabaseMonitoringOverallStatus = 'healthy' | 'warning' | 'critical' | string;
+
+export interface DatabaseActiveRequestDto {
+  sessionId: number;
+  requestId: number;
+  loginTime: string;
+  hostProcessId: number | null;
+  programName: string | null;
+  hostName: string | null;
+  clientAddress: string | null;
+  databaseName: string | null;
+  loginName: string | null;
+  status: string | null;
+  command: string | null;
+  waitType: string | null;
+  waitMilliseconds: number;
+  waitResource: string | null;
+  blockingSessionId: number | null;
+  startTime: string;
+  elapsedMilliseconds: number;
+  cpuMilliseconds: number;
+  reads: number;
+  logicalReads: number;
+  writes: number;
+  openTransactionCount: number;
+  percentComplete: number;
+  severity: DatabaseMonitoringSeverity | null;
+  recommendation: string | null;
+  canTerminate: boolean;
+  sqlText: string | null;
+}
+
+export interface DatabaseBlockingEdgeDto {
+  rootSessionId: number;
+  blockingSessionId: number;
+  blockedSessionId: number;
+  depth: number;
+  waitType: string | null;
+  waitMilliseconds: number;
+  blockedSqlText: string | null;
+}
+
+export interface DatabaseOpenTransactionDto {
+  sessionId: number;
+  loginTime: string;
+  hostProcessId: number | null;
+  transactionId: number;
+  transactionBeginTime: string;
+  ageMilliseconds: number;
+  transactionState: string | null;
+  openTransactionCount: number;
+  loginName: string | null;
+  hostName: string | null;
+  programName: string | null;
+  clientAddress: string | null;
+  severity: DatabaseMonitoringSeverity | null;
+  recommendation: string | null;
+  canTerminate: boolean;
+  lastSqlText: string | null;
+}
+
+export interface DatabaseRecommendationDto {
+  code: string | null;
+  severity: DatabaseMonitoringSeverity | null;
+  title: string | null;
+  description: string | null;
+  affectedSessionCount: number;
+}
+
+export interface DatabaseMonitoringThresholdsDto {
+  blockingSeconds: number;
+  longRunningSeconds: number;
+  openTransactionSeconds: number;
+  refreshSeconds: number;
+  retentionHours: number;
+  maxIncidentCount: number;
+}
+
+export interface DatabaseMonitoringSnapshotDto {
+  generatedAtUtc: string;
+  serverName: string | null;
+  databaseName: string | null;
+  overallStatus: DatabaseMonitoringOverallStatus | null;
+  activeRequestCount: number;
+  blockedRequestCount: number;
+  rootBlockerCount: number;
+  longRunningRequestCount: number;
+  openTransactionCount: number;
+  thresholds: DatabaseMonitoringThresholdsDto;
+  requests: DatabaseActiveRequestDto[] | null;
+  blocking: DatabaseBlockingEdgeDto[] | null;
+  openTransactions: DatabaseOpenTransactionDto[] | null;
+  recommendations: DatabaseRecommendationDto[] | null;
+}
+
+export interface DatabaseMonitoringIncidentDto {
+  id: string;
+  type: string | null;
+  severity: DatabaseMonitoringSeverity | null;
+  sessionId: number;
+  blockingSessionId: number | null;
+  databaseName: string | null;
+  loginName: string | null;
+  hostName: string | null;
+  programName: string | null;
+  waitType: string | null;
+  elapsedMilliseconds: number;
+  sqlText: string | null;
+  recommendation: string | null;
+  firstSeenAtUtc: string;
+  lastSeenAtUtc: string;
+  occurrenceCount: number;
+  resolvedAtUtc: string | null;
+}
+
+export interface DatabaseSessionTerminationDto {
+  id: string;
+  sessionId: number;
+  loginTime: string;
+  hostProcessId: number | null;
+  loginName: string | null;
+  hostName: string | null;
+  programName: string | null;
+  databaseName: string | null;
+  sqlText: string | null;
+  reason: string | null;
+  requestedByUserId: string;
+  requestedAtUtc: string;
+  isSucceeded: boolean;
+  completedAtUtc: string | null;
+  error: string | null;
+}
+
+export interface TerminateDatabaseSessionHttpRequest {
+  expectedLoginTime: string;
+  expectedHostProcessId: number | null;
+  expectedProgramName: string | null;
+  reason: string;
+}
+
+export interface DatabaseRollbackStatusDto {
+  sessionId: number;
+  isRollingBack: boolean;
+  message: string | null;
+  checkedAtUtc: string;
+}

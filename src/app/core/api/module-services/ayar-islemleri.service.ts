@@ -6,6 +6,10 @@ import type {
   B2BUserDetailDto,
   B2BUserDto,
   B2BUserListHttpRequest,
+  DatabaseMonitoringIncidentDto,
+  DatabaseMonitoringSnapshotDto,
+  DatabaseRollbackStatusDto,
+  DatabaseSessionTerminationDto,
   BranchDetailDto,
   BranchSettingsLookupsDto,
   CashierDto,
@@ -26,6 +30,7 @@ import type {
   DespatchDriverListHttpRequest,
   SaveDespatchDriverHttpRequest,
   SaveB2BBulletinHttpRequest,
+  TerminateDatabaseSessionHttpRequest,
   UpdateBranchSettingsHttpRequest,
   UpdateB2BUserHttpRequest,
   UpdateCashierHttpRequest
@@ -125,6 +130,46 @@ export class AyarIslemleriService extends BaseApiService {
   getBranchMessageStatuses(branchNo: number): Observable<CashRegisterMessageStatusDto[]> {
     return this.get<CashRegisterMessageStatusDto[]>(
       `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/mesaj-durumlari`
+    );
+  }
+
+  getDatabaseMonitoringSnapshot(): Observable<DatabaseMonitoringSnapshotDto> {
+    return this.get<DatabaseMonitoringSnapshotDto>(
+      'ayar-islemleri/veritabani-izleme/anlik'
+    );
+  }
+
+  getDatabaseMonitoringIncidents(take = 100): Observable<DatabaseMonitoringIncidentDto[]> {
+    return this.getWithQuery<DatabaseMonitoringIncidentDto[]>(
+      'ayar-islemleri/veritabani-izleme/olaylar',
+      { take }
+    );
+  }
+
+  getDatabaseSessionTerminationAudits(
+    take = 100
+  ): Observable<DatabaseSessionTerminationDto[]> {
+    return this.getWithQuery<DatabaseSessionTerminationDto[]>(
+      'ayar-islemleri/veritabani-izleme/oturum-sonlandirma-gecmisi',
+      { take }
+    );
+  }
+
+  terminateDatabaseSession(
+    sessionId: number,
+    request: TerminateDatabaseSessionHttpRequest
+  ): Observable<DatabaseSessionTerminationDto> {
+    return this.post<DatabaseSessionTerminationDto, TerminateDatabaseSessionHttpRequest>(
+      `ayar-islemleri/veritabani-izleme/oturumlar/${sessionId}/sonlandir`,
+      request
+    );
+  }
+
+  getDatabaseSessionRollbackStatus(
+    sessionId: number
+  ): Observable<DatabaseRollbackStatusDto> {
+    return this.get<DatabaseRollbackStatusDto>(
+      `ayar-islemleri/veritabani-izleme/oturumlar/${sessionId}/rollback-durumu`
     );
   }
 
