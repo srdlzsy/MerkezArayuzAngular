@@ -30,6 +30,9 @@ import type {
   DespatchDriverListHttpRequest,
   SaveDespatchDriverHttpRequest,
   SaveB2BBulletinHttpRequest,
+  TerminalInstallationDto,
+  TerminalInstallationListHttpRequest,
+  TerminalInstallationSummaryDto,
   TerminateDatabaseSessionHttpRequest,
   UpdateBranchSettingsHttpRequest,
   UpdateB2BUserHttpRequest,
@@ -170,6 +173,37 @@ export class AyarIslemleriService extends BaseApiService {
   ): Observable<DatabaseRollbackStatusDto> {
     return this.get<DatabaseRollbackStatusDto>(
       `ayar-islemleri/veritabani-izleme/oturumlar/${sessionId}/rollback-durumu`
+    );
+  }
+
+  getTerminalInstallationSummary(
+    warehouseNo?: number | null
+  ): Observable<TerminalInstallationSummaryDto> {
+    return this.getWithQuery<TerminalInstallationSummaryDto>(
+      'ayar-islemleri/terminal-cihazlari/ozet',
+      { warehouseNo: warehouseNo ?? undefined }
+    );
+  }
+
+  getTerminalInstallations(
+    request: TerminalInstallationListHttpRequest = {}
+  ): Observable<TerminalInstallationDto[]> {
+    return this.getWithQuery<TerminalInstallationDto[]>(
+      'ayar-islemleri/terminal-cihazlari',
+      {
+        warehouseNo: request.warehouseNo ?? undefined,
+        search: request.search?.trim() || undefined,
+        appVersion: request.appVersion?.trim() || undefined,
+        isCurrentVersion: request.isCurrentVersion ?? undefined,
+        activeWithinDays: request.activeWithinDays ?? undefined,
+        take: request.take ?? 100
+      }
+    );
+  }
+
+  getTerminalInstallation(id: string): Observable<TerminalInstallationDto> {
+    return this.get<TerminalInstallationDto>(
+      `ayar-islemleri/terminal-cihazlari/${encodeURIComponent(id)}`
     );
   }
 

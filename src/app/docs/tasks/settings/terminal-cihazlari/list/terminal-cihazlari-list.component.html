@@ -1,0 +1,369 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="settings-workspace terminal-workspace">
+    <header class="page-head terminal-page-head">
+      <div class="title-block">
+        <span class="section-kicker">Ayar Islemleri</span>
+        <h2>{{ current.title }}</h2>
+        <p class="subtitle">{{ current.subtitle }}</p>
+        <p class="scope-line">
+          <i class="fa-solid fa-warehouse" aria-hidden="true"></i>
+          {{ canUseAllWarehouses() ? 'Yetkili depo kapsami' : currentWarehouseLabel() }}
+        </p>
+      </div>
+
+      <div class="metric-strip terminal-metrics">
+        <article>
+          <span>Kayitli Kurulum</span>
+          <strong>{{ summary()?.registeredInstallationCount ?? 0 }}</strong>
+        </article>
+        <article class="metric-active">
+          <span>Son 24 Saat</span>
+          <strong>{{ summary()?.activeLast24HoursCount ?? 0 }}</strong>
+        </article>
+        <article>
+          <span>Son 7 Gun</span>
+          <strong>{{ summary()?.activeLast7DaysCount ?? 0 }}</strong>
+        </article>
+        <article>
+          <span>Son 30 Gun</span>
+          <strong>{{ summary()?.activeLast30DaysCount ?? 0 }}</strong>
+        </article>
+        <article class="metric-warning">
+          <span>Eski Surum</span>
+          <strong>{{ summary()?.outdatedInstallationCount ?? '-' }}</strong>
+        </article>
+        <article>
+          <span>Depo Degistiren</span>
+          <strong>{{ summary()?.warehouseChangedInstallationCount ?? 0 }}</strong>
+        </article>
+      </div>
+    </header>
+
+    <article
+      class="manifest-state"
+      [class.manifest-state-warning]="summary() && !summary()?.isVersionManifestAvailable"
+    >
+      <div>
+        <span>Guncel Terminal Surumu</span>
+        <strong>
+          {{ getVersionLabel(summary()?.currentAppVersion, summary()?.currentBuildNumber) }}
+        </strong>
+      </div>
+      <div>
+        <span>Manifest</span>
+        <strong>{{ summary()?.isVersionManifestAvailable ? 'Erisilebilir' : 'Okunamadi' }}</strong>
+      </div>
+      <div>
+        <span>Son Kontrol</span>
+        <strong>{{ formatDate(summary()?.versionManifestCheckedAtUtc) }}</strong>
+      </div>
+      <button
+        type="button"
+        class="task-action task-action-secondary"
+        (click)="refresh()"
+        [disabled]="isLoading()"
+      >
+        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+        {{ isLoading() ? 'Yenileniyor' : 'Yenile' }}
+      </button>
+    </article>
+
+    <form class="filter-bar terminal-filter" (ngSubmit)="applyFilters()">
+      <label class="field warehouse-field">
+        <span>Depo</span>
+        <select
+          name="warehouseNo"
+          [(ngModel)]="selectedWarehouseNo"
+          [disabled]="!canUseAllWarehouses() || isWarehouseLoading()"
+        >
+          <option [ngValue]="null" *ngIf="canUseAllWarehouses()">Tum depolar</option>
+          <option
+            *ngFor="let warehouse of warehouses(); trackBy: trackByWarehouse"
+            [ngValue]="warehouse.warehouseNo"
+          >
+            {{ warehouse.warehouseNo }} - {{ warehouse.warehouseName }}
+          </option>
+          <option
+            *ngIf="!canUseAllWarehouses() && selectedWarehouseNo !== null"
+            [ngValue]="selectedWarehouseNo"
+          >
+            {{ currentWarehouseLabel() }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field search-field">
+        <span>Ara</span>
+        <input
+          type="search"
+          name="search"
+          [(ngModel)]="search"
+          placeholder="Cihaz, kullanici veya IP"
+        />
+      </label>
+
+      <label class="field">
+        <span>Uygulama Surumu</span>
+        <select name="appVersion" [(ngModel)]="appVersion">
+          <option value="">Tum surumler</option>
+          <option *ngFor="let version of versions(); trackBy: trackByVersion" [value]="version.appVersion || ''">
+            {{ getVersionLabel(version.appVersion, version.buildNumber) }}
+          </option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Surum Durumu</span>
+        <select name="versionFilter" [(ngModel)]="versionFilter">
+          <option value="all">Tumu</option>
+          <option value="current">Yalniz guncel</option>
+          <option value="outdated">Yalniz eski</option>
+        </select>
+      </label>
+
+      <label class="field">
+        <span>Aktiflik</span>
+        <select name="activeWithinDays" [(ngModel)]="activeWithinDays">
+          <option [ngValue]="null">Tum kayitlar</option>
+          <option [ngValue]="1">Son 24 saat</option>
+          <option [ngValue]="7">Son 7 gun</option>
+          <option [ngValue]="30">Son 30 gun</option>
+        </select>
+      </label>
+
+      <label class="field take-field">
+        <span>Limit</span>
+        <select name="take" [(ngModel)]="take">
+          <option [ngValue]="50">50</option>
+          <option [ngValue]="100">100</option>
+          <option [ngValue]="200">200</option>
+        </select>
+      </label>
+
+      <div class="filter-actions">
+        <button type="submit" class="task-action task-action-primary" [disabled]="isListLoading()">
+          <i class="fa-solid fa-filter" aria-hidden="true"></i>
+          Uygula
+        </button>
+        <button type="button" class="task-action" (click)="clearFilters()" [disabled]="isListLoading()">
+          Temizle
+        </button>
+      </div>
+    </form>
+
+    <article
+      class="state-card"
+      *ngIf="feedback() as currentFeedback"
+      [class.state-card-error]="currentFeedback.tone === 'error'"
+      [class.state-card-success]="currentFeedback.tone === 'success'"
+    >
+      <h3>{{ currentFeedback.title }}</h3>
+      <p>{{ currentFeedback.message }}</p>
+    </article>
+
+    <section class="content-grid terminal-main-grid">
+      <section class="panel installation-panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Kurulumlar</span>
+            <h3>Terminal Cihaz Listesi</h3>
+          </div>
+          <span class="status-badge">{{ installations().length }} kayit</span>
+        </div>
+
+        <div class="table-wrap installation-table-wrap" *ngIf="installations().length > 0; else emptyList">
+          <table class="data-table installation-table">
+            <thead>
+              <tr>
+                <th>Durum</th>
+                <th>Depo</th>
+                <th>Cihaz</th>
+                <th>Surum / Build</th>
+                <th>Kullanici</th>
+                <th>Son Gorulme</th>
+                <th>IP</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr
+                *ngFor="let installation of installations(); trackBy: trackByInstallation"
+                [class.is-selected]="selectedInstallation()?.id === installation.id"
+                [class.is-clickable]="canDetail()"
+                (click)="selectInstallation(installation)"
+              >
+                <td>
+                  <span
+                    class="status-badge"
+                    [class.status-success]="installation.isCurrentVersion === true"
+                    [class.status-danger]="installation.isCurrentVersion === false"
+                  >
+                    {{ getVersionStatusLabel(installation.isCurrentVersion) }}
+                  </span>
+                  <span class="activity-line" [class.is-offline]="!installation.isActiveLast24Hours">
+                    {{ installation.isActiveLast24Hours ? '24 saatte aktif' : '24 saattir gorulmedi' }}
+                  </span>
+                </td>
+                <td>
+                  <strong>{{ installation.warehouseNo }}</strong>
+                  <span class="table-meta" *ngIf="installation.previousWarehouseNo !== null">
+                    Onceki: {{ installation.previousWarehouseNo }}
+                  </span>
+                </td>
+                <td>
+                  {{ getDeviceLabel(installation) }}
+                  <span class="table-meta" [title]="installation.deviceId || ''">
+                    {{ installation.deviceId || '-' }}
+                  </span>
+                </td>
+                <td>
+                  <strong>{{ installation.appVersion || '-' }}</strong>
+                  <span class="table-meta">Build {{ installation.buildNumber }}</span>
+                </td>
+                <td>
+                  {{ installation.userFullName || installation.username || '-' }}
+                  <span class="table-meta" *ngIf="installation.userFullName && installation.username">
+                    {{ installation.username }}
+                  </span>
+                </td>
+                <td [title]="formatDate(installation.lastSeenAtUtc)">
+                  {{ formatRelativeDate(installation.lastSeenAtUtc) }}
+                </td>
+                <td>{{ installation.lastIpAddress || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #emptyList>
+          <article class="state-card state-card-info empty-state">
+            <h3>Terminal kurulumu bulunamadi</h3>
+            <p>Secili filtrelerle eslesen kayit yok.</p>
+          </article>
+        </ng-template>
+      </section>
+
+      <aside class="panel detail-panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Cihaz Detayi</span>
+            <h3>Secili Kurulum</h3>
+          </div>
+          <button
+            type="button"
+            class="icon-action"
+            *ngIf="selectedInstallation()"
+            title="Detayi kapat"
+            aria-label="Detayi kapat"
+            (click)="closeDetail()"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+          </button>
+        </div>
+
+        <ng-container *ngIf="selectedInstallation() as selected; else detailHint">
+          <div class="detail-identity">
+            <div>
+              <strong>{{ getDeviceLabel(selected) }}</strong>
+              <span>{{ getVersionLabel(selected.appVersion, selected.buildNumber) }}</span>
+            </div>
+            <span
+              class="status-badge"
+              [class.status-success]="selected.isCurrentVersion === true"
+              [class.status-danger]="selected.isCurrentVersion === false"
+            >
+              {{ getVersionStatusLabel(selected.isCurrentVersion) }}
+            </span>
+          </div>
+
+          <p class="detail-loading" *ngIf="isDetailLoading()">Detay yenileniyor...</p>
+
+          <dl class="detail-grid terminal-detail-grid">
+            <div><dt>Depo</dt><dd>{{ getWarehouseLabel(selected.warehouseNo) }}</dd></div>
+            <div><dt>Onceki Depo</dt><dd>{{ getWarehouseLabel(selected.previousWarehouseNo) }}</dd></div>
+            <div><dt>Kullanici</dt><dd>{{ selected.userFullName || selected.username || '-' }}</dd></div>
+            <div><dt>Kullanici Kodu</dt><dd>{{ selected.username || '-' }}</dd></div>
+            <div><dt>Android</dt><dd>{{ selected.androidVersion || '-' }} / SDK {{ selected.androidSdk ?? '-' }}</dd></div>
+            <div><dt>ABI</dt><dd>{{ selected.supportedAbis?.join(', ') || '-' }}</dd></div>
+            <div><dt>Ilk Gorulme</dt><dd>{{ formatDate(selected.firstSeenAtUtc) }}</dd></div>
+            <div><dt>Son Gorulme</dt><dd>{{ formatDate(selected.lastSeenAtUtc) }}</dd></div>
+            <div><dt>Surum Degisimi</dt><dd>{{ formatDate(selected.versionChangedAtUtc) }}</dd></div>
+            <div><dt>Depo Degisimi</dt><dd>{{ selected.warehouseChangeCount }} kez</dd></div>
+            <div><dt>Son IP</dt><dd>{{ selected.lastIpAddress || '-' }}</dd></div>
+            <div><dt>7 Gun Aktif</dt><dd>{{ selected.isActiveLast7Days ? 'Evet' : 'Hayir' }}</dd></div>
+          </dl>
+
+          <div class="device-id-block">
+            <span>Kurulum Kimligi</span>
+            <code>{{ selected.deviceId || '-' }}</code>
+          </div>
+        </ng-container>
+
+        <ng-template #detailHint>
+          <article class="state-card state-card-info empty-state">
+            <h3>{{ canDetail() ? 'Cihaz secin' : 'Detay yetkisi gerekli' }}</h3>
+            <p *ngIf="canDetail()">Kurulum detayini gormek icin tablodan bir satir secin.</p>
+            <p *ngIf="!canDetail()">Cihaz detayini acma yetkiniz bulunmuyor.</p>
+          </article>
+        </ng-template>
+      </aside>
+    </section>
+
+    <section class="split-grid distribution-grid">
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Dagilim</span>
+            <h3>Surumler</h3>
+          </div>
+        </div>
+        <div class="distribution-list" *ngIf="versions().length > 0; else noVersions">
+          <button
+            type="button"
+            class="distribution-row"
+            *ngFor="let version of versions(); trackBy: trackByVersion"
+            (click)="selectVersion(version)"
+          >
+            <span>
+              <strong>{{ getVersionLabel(version.appVersion, version.buildNumber) }}</strong>
+              <small>{{ version.activeLast7DaysCount }} aktif</small>
+            </span>
+            <span class="distribution-value">{{ version.installationCount }}</span>
+            <span
+              class="status-badge"
+              [class.status-success]="version.isCurrentVersion === true"
+              [class.status-danger]="version.isCurrentVersion === false"
+            >
+              {{ getVersionStatusLabel(version.isCurrentVersion) }}
+            </span>
+          </button>
+        </div>
+        <ng-template #noVersions><p class="panel-empty">Surum dagilimi bulunmuyor.</p></ng-template>
+      </section>
+
+      <section class="panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Dagilim</span>
+            <h3>Depolar</h3>
+          </div>
+        </div>
+        <div class="distribution-list" *ngIf="warehouseDistribution().length > 0; else noWarehouses">
+          <button
+            type="button"
+            class="distribution-row warehouse-distribution-row"
+            *ngFor="let warehouse of warehouseDistribution(); trackBy: trackByWarehouseDistribution"
+            [disabled]="!canUseAllWarehouses()"
+            (click)="selectWarehouse(warehouse.warehouseNo)"
+          >
+            <span>
+              <strong>{{ getWarehouseLabel(warehouse.warehouseNo) }}</strong>
+              <small>{{ warehouse.activeLast7DaysCount }} aktif</small>
+            </span>
+            <span class="distribution-value">{{ warehouse.installationCount }}</span>
+            <span class="outdated-value">{{ warehouse.outdatedCount ?? '-' }} eski</span>
+          </button>
+        </div>
+        <ng-template #noWarehouses><p class="panel-empty">Depo dagilimi bulunmuyor.</p></ng-template>
+      </section>
+    </section>
+  </article>
+</section>

@@ -388,6 +388,61 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       requiredPermissionCodes: ['ayar-islemleri.veritabani-izleme.manage']
     }
   ),
+  'terminal-cihazlari': singleRouteTask(
+    {
+      id: 'terminal-cihazlari',
+      title: 'Terminal Cihazlari',
+      subtitle:
+        'Terminal uygulamasi kurulumlarini, aktifliklerini ve kullanilan surumleri depo bazinda izler.',
+      baseRouteOrFile: '/api/ayar-islemleri/terminal-cihazlari',
+      highlights: [
+        'Metrikler APK indirme sayisini degil tekil uygulama kurulumlarini gosterir',
+        'Guncel surum bilgisi version manifestinden okunur ve manifest durumu ayrica gosterilir',
+        'All-warehouses yetkisi olmayan kullanici yalniz kendi deposunu izler'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AyarIslemleri Terminal Cihazlari',
+          description: 'Terminal kurulumlarini, surumlerini ve son gorulme bilgilerini listeler.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/terminal-cihazlari/ozet?warehouseNo=110',
+              description: 'Kurulum, aktiflik, surum ve depo dagilim ozetini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/terminal-cihazlari?warehouseNo=110&activeWithinDays=7&take=100',
+              description: 'Terminal kurulumlarini filtreli olarak listeler',
+              payload: 'TerminalInstallationListHttpRequest'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/terminal-cihazlari/{id}',
+              description: 'Secili terminal kurulumunun detayini getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: `{
+  "warehouseNo": 110,
+  "search": "TC21",
+  "appVersion": "1.1.90",
+  "isCurrentVersion": false,
+  "activeWithinDays": 7,
+  "take": 100
+}`
+    },
+    () =>
+      import('../tasks/settings/terminal-cihazlari/list/terminal-cihazlari-list.component').then(
+        (m) => m.TerminalCihazlariListComponent
+      ),
+    {
+      accessKeyAliases: ['TerminalCihazlari', 'terminal-installations'],
+      requiredPermissionCodes: ['ayar-islemleri.terminal-cihazlari.manage']
+    }
+  ),
   'b2b-ayarlari': singleRouteTask(
     {
       id: 'b2b-ayarlari',

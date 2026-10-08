@@ -402,3 +402,79 @@ export interface DatabaseRollbackStatusDto {
   message: string | null;
   checkedAtUtc: string;
 }
+
+export interface TerminalInstallationListHttpRequest {
+  warehouseNo?: number | null;
+  search?: string | null;
+  appVersion?: string | null;
+  isCurrentVersion?: boolean | null;
+  activeWithinDays?: number | null;
+  take?: number | null;
+}
+
+export interface TerminalInstallationDto {
+  id: string;
+  deviceId: string | null;
+  appVersion: string | null;
+  buildNumber: number;
+  warehouseNo: number;
+  previousWarehouseNo: number | null;
+  warehouseChangeCount: number;
+  warehouseChangedAtUtc: string | null;
+  userId: string;
+  username: string | null;
+  userFullName: string | null;
+  manufacturer: string | null;
+  deviceModel: string | null;
+  androidVersion: string | null;
+  androidSdk: number | null;
+  supportedAbis: string[] | null;
+  firstSeenAtUtc: string;
+  lastSeenAtUtc: string;
+  lastIpAddress: string | null;
+  versionChangedAtUtc: string | null;
+  isActiveLast24Hours: boolean;
+  isActiveLast7Days: boolean;
+  isCurrentVersion: boolean | null;
+}
+
+export interface TerminalVersionDistributionDto {
+  appVersion: string | null;
+  buildNumber: number;
+  installationCount: number;
+  activeLast7DaysCount: number;
+  isCurrentVersion: boolean | null;
+}
+
+export interface TerminalWarehouseDistributionDto {
+  warehouseNo: number;
+  installationCount: number;
+  activeLast7DaysCount: number;
+  outdatedCount: number | null;
+}
+
+export interface TerminalInstallationSummaryDto {
+  generatedAtUtc: string;
+  currentAppVersion: string | null;
+  currentBuildNumber: number | null;
+  versionManifestCheckedAtUtc: string | null;
+  isVersionManifestAvailable: boolean;
+  registeredInstallationCount: number;
+  activeLast24HoursCount: number;
+  activeLast7DaysCount: number;
+  activeLast30DaysCount: number;
+  outdatedInstallationCount: number | null;
+  warehouseChangedInstallationCount: number;
+  versions: TerminalVersionDistributionDto[] | null;
+  warehouses: TerminalWarehouseDistributionDto[] | null;
+}
+
+export interface TerminalHeartbeatHttpRequest {
+  appVersion: string;
+  buildNumber: number;
+  manufacturer?: string | null;
+  deviceModel?: string | null;
+  androidVersion?: string | null;
+  androidSdk?: number | null;
+  supportedAbis?: string[] | null;
+}
