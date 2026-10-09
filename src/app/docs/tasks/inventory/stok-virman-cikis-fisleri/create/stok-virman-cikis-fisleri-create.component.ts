@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -10,7 +11,8 @@ import {
 } from '@angular/forms';
 import type {
   IFurpaCreateVirmanRequestApiDto,
-  IFurpaProductSearchItemApiDto
+  IFurpaProductSearchItemApiDto,
+  VirmanConversionSuggestionDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -47,6 +49,13 @@ type VirmanLineFormGroup = FormGroup<{
   projectCode: FormControl<string>;
 }>;
 
+interface VirmanStockSelection {
+  stockCode: string;
+  stockName: string;
+  barcode?: string | null;
+  unitName?: string | null;
+}
+
 const VIRMAN_STOCK_SEARCH_TAKE = 100;
 
 @Component({
@@ -69,10 +78,13 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly outgoingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
   protected readonly incomingStockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
   protected hideDelistedProducts = false;
-  protected readonly selectedOutgoingStock = signal<IFurpaProductSearchItemApiDto | null>(null);
-  protected readonly selectedIncomingStock = signal<IFurpaProductSearchItemApiDto | null>(null);
+  protected readonly selectedOutgoingStock = signal<VirmanStockSelection | null>(null);
+  protected readonly selectedIncomingStock = signal<VirmanStockSelection | null>(null);
   protected readonly outgoingStockLoading = signal(false);
   protected readonly incomingStockLoading = signal(false);
+  protected readonly conversionSuggestionLoading = signal(false);
+  protected readonly conversionSuggestion = signal<VirmanConversionSuggestionDto | null>(null);
+  protected readonly conversionSuggestionError = signal('');
   protected readonly stockError = signal('');
   protected readonly submitError = signal('');
   protected readonly safeCreateFailure = signal<SafeCreateFailure | null>(null);
@@ -81,10 +93,12 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly stokIslemleriService = inject(StokIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateVirmanRequestApiDto>();
   private outgoingStockRequestId = 0;
   private incomingStockRequestId = 0;
+  private conversionSuggestionRequestId = 0;
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
       this.authService.currentUser(),
@@ -109,6 +123,14 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     description: new FormControl('Reyon duzenleme virmani', { nonNullable: true, validators: [Validators.maxLength(50)] }),
     lines: new FormArray<VirmanLineFormGroup>([])
   });
+
+  constructor() {
+    super();
+
+    this.outgoingQuantity.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((quantity: number | null) => this.refreshSuggestedTargetQuantity(quantity));
+  }
 
   protected get lines(): FormArray<VirmanLineFormGroup> {
     return this.form.controls.lines;
@@ -204,9 +226,12 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       this.selectedOutgoingStock.set(stock);
       this.outgoingStockQuery.setValue(label);
       this.outgoingStockResults.set([]);
+      this.resetIncomingSelection();
+      this.loadVirmanConversionSuggestion(stock);
       return;
     }
 
+    this.cancelConversionSuggestion();
     this.selectedIncomingStock.set(stock);
     this.incomingStockQuery.setValue(label);
     this.incomingStockResults.set([]);
@@ -230,8 +255,8 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    if (outgoingQuantity <= 0 || incomingQuantity <= 0) {
-      this.stockError.set('Cikis ve giris miktarlari sifirdan buyuk olmali.');
+    if (!this.isValidVirmanQuantity(outgoingQuantity) || !this.isValidVirmanQuantity(incomingQuantity)) {
+      this.stockError.set('Cikis ve giris miktarlari en az 1 olmali.');
       return;
     }
 
@@ -269,7 +294,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     const invalidLine = this.lines.controls.find(
       (line) =>
         !line.controls.stockCode.value.trim() ||
-        this.normalizeNumber(line.controls.quantity.value) <= 0 ||
+        !this.isValidVirmanQuantity(this.normalizeNumber(line.controls.quantity.value)) ||
         this.normalizeNumber(line.controls.unitPointer.value) <= 0 ||
         this.normalizeNumber(line.controls.movementType.value) < 0
     );
@@ -319,7 +344,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     control: VirmanLineFormGroup
   ): string => control.controls.stockCode.value.trim() || `${index}`;
 
-  protected getStockLabel(stock: IFurpaProductSearchItemApiDto | null): string {
+  protected getStockLabel(stock: VirmanStockSelection | null): string {
     if (!stock) {
       return '';
     }
@@ -364,7 +389,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private createLineFormGroup(
-    stock?: IFurpaProductSearchItemApiDto,
+    stock?: VirmanStockSelection,
     movementType = 1,
     quantity = 1
   ): VirmanLineFormGroup {
@@ -407,6 +432,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private clearVirmanPairForm(): void {
+    this.cancelConversionSuggestion();
     this.selectedOutgoingStock.set(null);
     this.selectedIncomingStock.set(null);
     this.outgoingStockQuery.setValue('');
@@ -417,13 +443,120 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     this.incomingStockResults.set([]);
   }
 
-  private getStockKey(stock: IFurpaProductSearchItemApiDto): string {
+  private loadVirmanConversionSuggestion(stock: VirmanStockSelection): void {
+    const sourceStockCode = stock.stockCode.trim();
+    const sourceQuantity = this.normalizeNumber(this.outgoingQuantity.value);
+
+    this.cancelConversionSuggestion();
+
+    if (!sourceStockCode || !this.isValidVirmanQuantity(sourceQuantity)) {
+      this.conversionSuggestionError.set(
+        'Otomatik donusum icin cikis miktarini en az 1 gir.'
+      );
+      return;
+    }
+
+    const requestId = ++this.conversionSuggestionRequestId;
+    this.conversionSuggestionLoading.set(true);
+
+    this.stokIslemleriService
+      .getVirmanConversionSuggestion(sourceStockCode, sourceQuantity)
+      .pipe(finalize(() => {
+        if (requestId === this.conversionSuggestionRequestId) {
+          this.conversionSuggestionLoading.set(false);
+        }
+      }))
+      .subscribe({
+        next: (suggestion: VirmanConversionSuggestionDto) => {
+          if (requestId !== this.conversionSuggestionRequestId) {
+            return;
+          }
+
+          this.applyVirmanConversionSuggestion(suggestion);
+        },
+        error: (error: HttpErrorResponse) => {
+          if (requestId !== this.conversionSuggestionRequestId) {
+            return;
+          }
+
+          this.conversionSuggestionError.set(
+            this.resolveErrorMessage(
+              error,
+              'Otomatik donusum onerisi alinamadi. Hedef urunu ve miktari manuel sec.'
+            )
+          );
+        }
+      });
+  }
+
+  private applyVirmanConversionSuggestion(suggestion: VirmanConversionSuggestionDto): void {
+    this.conversionSuggestion.set(suggestion);
+    this.conversionSuggestionError.set('');
+
+    const targetStockCode = suggestion.targetStockCode?.trim() ?? '';
+    const multiplier = this.normalizeNumber(suggestion.multiplier);
+
+    if (!suggestion.isReliable || !targetStockCode || multiplier <= 0) {
+      return;
+    }
+
+    const targetStock: VirmanStockSelection = {
+      stockCode: targetStockCode,
+      stockName: suggestion.targetStockName?.trim() || targetStockCode,
+      unitName: suggestion.targetUnitName?.trim() || ''
+    };
+
+    this.selectedIncomingStock.set(targetStock);
+    this.incomingStockQuery.setValue(this.getStockLabel(targetStock));
+    this.incomingStockResults.set([]);
+    this.refreshSuggestedTargetQuantity(this.outgoingQuantity.value);
+  }
+
+  private refreshSuggestedTargetQuantity(quantity: number | null): void {
+    const suggestion = this.conversionSuggestion();
+    const multiplier = this.normalizeNumber(suggestion?.multiplier);
+    const sourceQuantity = this.normalizeNumber(quantity);
+
+    if (
+      !suggestion?.isReliable ||
+      multiplier <= 0 ||
+      !this.isValidVirmanQuantity(sourceQuantity)
+    ) {
+      return;
+    }
+
+    this.incomingQuantity.setValue(this.roundQuantity(sourceQuantity * multiplier));
+  }
+
+  private resetIncomingSelection(): void {
+    this.selectedIncomingStock.set(null);
+    this.incomingStockQuery.setValue('');
+    this.incomingQuantity.setValue(1);
+    this.incomingStockResults.set([]);
+  }
+
+  private cancelConversionSuggestion(): void {
+    this.conversionSuggestionRequestId += 1;
+    this.conversionSuggestionLoading.set(false);
+    this.conversionSuggestion.set(null);
+    this.conversionSuggestionError.set('');
+  }
+
+  private getStockKey(stock: VirmanStockSelection): string {
     return (stock.stockCode?.trim() || stock.barcode?.trim() || '').toLocaleUpperCase('tr-TR');
+  }
+
+  private roundQuantity(value: number): number {
+    return Math.round((value + Number.EPSILON) * 1_000_000) / 1_000_000;
   }
 
   private normalizeNumber(value: number | null | undefined): number {
     const normalizedValue = Number(value ?? 0);
     return Number.isFinite(normalizedValue) ? normalizedValue : 0;
+  }
+
+  private isValidVirmanQuantity(value: number): boolean {
+    return value >= 1;
   }
 
   private isExpandedVirmanLine(control: VirmanLineFormGroup): boolean {

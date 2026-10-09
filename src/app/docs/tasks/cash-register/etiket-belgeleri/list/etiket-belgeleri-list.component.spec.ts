@@ -170,6 +170,22 @@ describe('EtiketBelgeleriListComponent product sorting', () => {
   });
 });
 
+describe('EtiketBelgeleriListComponent price filters', () => {
+  it('lists only products whose comparable old and new prices are equal', () => {
+    const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
+    component.productTableFilter = signal('price-unchanged');
+    component.productSearchTerm = signal('');
+
+    const products = component.applyProductFilters([
+      { productCode: 'SAME', oldPrice: 50, price: 50, barcode: '1' },
+      { productCode: 'UP', oldPrice: 50, price: 60, barcode: '2' },
+      { productCode: 'NO-OLD', oldPrice: 0, price: 50, barcode: '3' }
+    ]);
+
+    expect(products.map((product: any) => product.productCode)).toEqual(['SAME']);
+  });
+});
+
 describe('EtiketBelgeleriListComponent document print order', () => {
   it('loads a recent document immediately when it is selected', () => {
     const documentProducts = [

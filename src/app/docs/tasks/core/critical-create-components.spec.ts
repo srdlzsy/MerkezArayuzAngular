@@ -1,10 +1,12 @@
 import { signal } from '@angular/core';
+import { FormControl } from '@angular/forms';
 import type {
   IFurpaCreateCompanyReceiptRequestApiDto,
   IFurpaCreateCompanyShipmentRequestApiDto,
   IFurpaCreateVirmanRequestApiDto,
   IFurpaCreateWarehouseOrderRequestApiDto,
-  IFurpaCreateWarehouseReturnRequestApiDto
+  IFurpaCreateWarehouseReturnRequestApiDto,
+  VirmanConversionSuggestionDto
 } from '@interfaces';
 
 import { StokVirmanCikisFisleriCreateComponent } from '../inventory/stok-virman-cikis-fisleri/create/stok-virman-cikis-fisleri-create.component';
@@ -19,6 +21,17 @@ interface RequestBuilder<TRequest> {
 
 interface SubmitHarness {
   submit(): void;
+}
+
+interface VirmanSuggestionHarness {
+  applyVirmanConversionSuggestion(suggestion: VirmanConversionSuggestionDto): void;
+  refreshSuggestedTargetQuantity(quantity: number | null): void;
+}
+
+interface VirmanSuggestionState {
+  selectedIncomingStock(): { stockCode: string } | null;
+  incomingStockQuery: FormControl<string>;
+  incomingQuantity: FormControl<number | null>;
 }
 
 const safeCreateRetry = {
@@ -272,5 +285,51 @@ describe('critical create component behavior', () => {
         lotNo: 0
       })
     );
+  });
+
+  it('applies a reliable stock transfer suggestion and recalculates its target quantity', () => {
+    const subject = createSubject(StokVirmanCikisFisleriCreateComponent, {
+      selectedIncomingStock: signal(null),
+      incomingStockQuery: new FormControl('', { nonNullable: true }),
+      incomingStockResults: signal([]),
+      outgoingQuantity: new FormControl<number | null>(6),
+      incomingQuantity: new FormControl<number | null>(1),
+      conversionSuggestion: signal(null),
+      conversionSuggestionError: signal('')
+    });
+    const suggestion: VirmanConversionSuggestionDto = {
+      confidencePercent: 98.4,
+      isReliable: true,
+      lookbackEndDate: '2026-10-09T00:00:00',
+      lookbackStartDate: '2025-10-09T00:00:00',
+      maximumSampleCount: 500,
+      minimumConfidencePercent: 95,
+      minimumSampleCount: 10,
+      multiplier: 6,
+      multiplierConfidencePercent: 98.4,
+      multiplierMatchCount: 492,
+      sampleCount: 500,
+      sourceQuantity: 6,
+      sourceStockCode: '015550',
+      sourceStockName: "SODA SADE 6'LI",
+      sourceUnitName: 'ADET',
+      suggestionSource: 'VirmanHistory',
+      targetConfidencePercent: 100,
+      targetMatchCount: 500,
+      targetQuantity: 36,
+      targetStockCode: '015733',
+      targetStockName: 'SODA SADE TEKLI',
+      targetUnitName: 'ADET',
+      warning: null
+    };
+    const harness = subject as unknown as VirmanSuggestionHarness;
+    const state = subject as unknown as VirmanSuggestionState;
+
+    harness.applyVirmanConversionSuggestion(suggestion);
+    harness.refreshSuggestedTargetQuantity(4);
+
+    expect(state.selectedIncomingStock()?.stockCode).toBe('015733');
+    expect(state.incomingStockQuery.value).toBe('SODA SADE TEKLI');
+    expect(state.incomingQuantity.value).toBe(24);
   });
 });

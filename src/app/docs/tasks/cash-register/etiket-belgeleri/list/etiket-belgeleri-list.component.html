@@ -265,6 +265,14 @@
         </button>
         <button
           type="button"
+          class="filter-tab filter-tab-same"
+          [class.is-active]="productTableFilter() === 'price-unchanged'"
+          (click)="setProductTableFilter('price-unchanged')"
+        >
+          Fiyat aynı <strong>{{ priceUnchangedProducts().length }}</strong>
+        </button>
+        <button
+          type="button"
           class="filter-tab"
           [class.is-active]="productTableFilter() === 'missing-barcode'"
           (click)="setProductTableFilter('missing-barcode')"
@@ -473,6 +481,8 @@
           *ngIf="printPreviewProducts().length"
           [productsToPrint]="printPreviewProducts()"
           [warehouseLabel]="branchLabel()"
+          [sourceLabel]="lastLoadedSource()"
+          [scopeLabel]="priceChangeReportScope()"
         ></app-print-change-price>
       </ng-template>
     </div>

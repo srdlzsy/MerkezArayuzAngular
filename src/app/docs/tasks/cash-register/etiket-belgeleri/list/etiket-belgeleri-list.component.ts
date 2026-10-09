@@ -45,6 +45,7 @@ type ProductListFilter =
   | 'price-changes'
   | 'price-increased'
   | 'price-decreased'
+  | 'price-unchanged'
   | 'missing-barcode';
 
 type ProductSortKey =
@@ -164,6 +165,9 @@ export class EtiketBelgeleriListComponent {
   protected readonly priceDecreasedProducts = computed(() =>
     this.activeProducts().filter((product) => this.hasPriceDecreased(product))
   );
+  protected readonly priceUnchangedProducts = computed(() =>
+    this.activeProducts().filter((product) => this.hasPriceUnchanged(product))
+  );
   protected readonly missingBarcodeProducts = computed(() =>
     this.activeProducts().filter((product) => !product.barcode.trim())
   );
@@ -184,9 +188,28 @@ export class EtiketBelgeleriListComponent {
   protected readonly labelPrintProducts = computed(() =>
     this.applyProductFilters(this.previewProducts())
   );
-  protected readonly priceChangePrintProducts = computed(() =>
-    this.applyProductFilters(this.priceChangeProducts())
-  );
+  protected readonly priceChangePrintProducts = computed(() => {
+    const reportProducts = this.productTableFilter() === 'price-unchanged'
+      ? this.activeProducts()
+      : this.priceChangeProducts();
+
+    return this.applyProductFilters(reportProducts);
+  });
+  protected readonly priceChangeReportScope = computed(() => {
+    const filterLabels: Record<ProductListFilter, string> = {
+      all: 'Fiyatı değişen tüm ürünler',
+      promotions: 'Promosyonlu ve fiyatı değişen ürünler',
+      'price-changes': 'Fiyatı değişen ürünler',
+      'price-increased': 'Yalnızca fiyatı artan ürünler',
+      'price-decreased': 'Yalnızca fiyatı azalan ürünler',
+      'price-unchanged': 'Yalnızca fiyatı aynı kalan ürünler',
+      'missing-barcode': 'Barkodu eksik ve fiyatı değişen ürünler'
+    };
+    const searchTerm = this.productSearchTerm();
+    const scope = filterLabels[this.productTableFilter()];
+
+    return searchTerm ? `${scope} · Arama: ${searchTerm}` : scope;
+  });
   protected readonly printPageCount = computed(() => {
     const capacity = Math.max(1, this.selectedEtiket()?.sayfaKapasitesi ?? 1);
     return Math.ceil(this.labelPrintProducts().length / capacity);
@@ -951,6 +974,8 @@ export class EtiketBelgeleriListComponent {
       items = items.filter((product) => this.hasPriceIncreased(product));
     } else if (filter === 'price-decreased') {
       items = items.filter((product) => this.hasPriceDecreased(product));
+    } else if (filter === 'price-unchanged') {
+      items = items.filter((product) => this.hasPriceUnchanged(product));
     } else if (filter === 'missing-barcode') {
       items = items.filter((product) => !product.barcode.trim());
     }
@@ -1073,6 +1098,10 @@ export class EtiketBelgeleriListComponent {
 
   private hasPriceDecreased(product: IEtiketBasimProduct): boolean {
     return this.hasComparablePrice(product) && product.price < product.oldPrice;
+  }
+
+  private hasPriceUnchanged(product: IEtiketBasimProduct): boolean {
+    return this.hasComparablePrice(product) && product.price === product.oldPrice;
   }
 
   private hasComparablePrice(product: IEtiketBasimProduct): boolean {

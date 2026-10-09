@@ -1,31 +1,51 @@
 <div class="page">
-  <div class="header">
-    <div class="header-inner">
-      <div>
-        <p class="eyebrow">Etiket Belgeleri / Degisim Dokumu</p>
-        <h2>FIYAT DEGISIM ETIKETLERI</h2>
-        <p class="warehouse-label">{{ warehouseLabel || 'Depo bilgisi yok' }}</p>
-      </div>
-      <div class="print-date">
-        <span>Basim zamani</span>
-        <strong>{{ today | date:'dd.MM.yyyy HH:mm' }}</strong>
-      </div>
+  <header class="report-header">
+    <div class="report-title">
+      <p class="eyebrow">Etiket Belgeleri</p>
+      <h2>Fiyat Değişim Dökümü</h2>
+      <p class="warehouse-label">{{ warehouseLabel || 'Depo bilgisi yok' }}</p>
     </div>
-  </div>
 
-  <div class="content">
-    <section class="print-summary" aria-label="Degisim dokumu ozeti">
+    <dl class="report-meta">
+      <div>
+        <dt>Basım zamanı</dt>
+        <dd>{{ today | date:'dd.MM.yyyy HH:mm' }}</dd>
+      </div>
+      <div>
+        <dt>Satır sayısı</dt>
+        <dd>{{ productsToPrint.length }}</dd>
+      </div>
+    </dl>
+  </header>
+
+  <main class="content">
+    <div class="report-context">
+      <span><b>Kapsam:</b> {{ scopeLabel || 'Fiyatı değişen ürünler' }}</span>
+      <span><b>Kaynak:</b> {{ sourceLabel || 'Etiket ürün listesi' }}</span>
+    </div>
+
+    <section class="print-summary" aria-label="Değişim dökümü özeti">
       <article>
-        <span>Yazdirilacak Etiket</span>
+        <span>Toplam Ürün</span>
         <strong>{{ productsToPrint.length }}</strong>
       </article>
       <article class="summary-up">
-        <span>Fiyati Artan</span>
+        <span>Fiyatı Artan</span>
         <strong>{{ increasedCount() }}</strong>
       </article>
       <article class="summary-down">
-        <span>Fiyati Azalan</span>
+        <span>Fiyatı Azalan</span>
         <strong>{{ decreasedCount() }}</strong>
+      </article>
+      <article class="summary-same">
+        <span>Fiyatı Aynı</span>
+        <strong>{{ unchangedCount() }}</strong>
+      </article>
+      <article class="summary-net">
+        <span>Net Fiyat Farkı</span>
+        <strong>
+          {{ totalPriceDifference() > 0 ? '+' : '' }}{{ totalPriceDifference() | number:'1.2-2' }} TL
+        </strong>
       </article>
       <article class="summary-warning">
         <span>Barkod Eksik</span>
@@ -34,30 +54,60 @@
     </section>
 
     <table class="price-change-table">
+      <colgroup>
+        <col class="column-row" />
+        <col class="column-product" />
+        <col class="column-barcode" />
+        <col class="column-price" />
+        <col class="column-price" />
+        <col class="column-change" />
+        <col class="column-date" />
+      </colgroup>
       <thead>
         <tr>
-          <th>Urun Kodu</th>
-          <th>Barkod</th>
-          <th>Urun Adi</th>
-          <th>Eski Fiyat</th>
-          <th>Yeni Fiyat</th>
-          <th>Degisim</th>
-          <th>Degisiklik Tarihi ve Saati</th>
+          <th scope="col">#</th>
+          <th scope="col">Ürün</th>
+          <th scope="col">Barkod</th>
+          <th scope="col" class="numeric-column">Eski Fiyat</th>
+          <th scope="col" class="numeric-column">Yeni Fiyat</th>
+          <th scope="col">Değişim</th>
+          <th scope="col">Değişiklik Tarihi</th>
         </tr>
       </thead>
       <tbody>
-        <tr *ngFor="let product of productsToPrint">
-          <td>{{ product.productCode }}</td>
-          <td>{{ product.barcode || '-' }}</td>
-          <td>{{ product.productName }}</td>
-          <td>{{ product.oldPrice | number:'1.2-2' }} TL</td>
-          <td>{{ product.price | number:'1.2-2' }} TL</td>
-          <td [class.price-up]="priceDifference(product) > 0" [class.price-down]="priceDifference(product) < 0">
-            {{ priceDifference(product) > 0 ? '+' : '' }}{{ priceDifference(product) | number:'1.2-2' }} TL
+        <tr
+          *ngFor="let product of productsToPrint; let rowIndex = index; trackBy: trackByProduct"
+          [class.row-unchanged]="priceDifference(product) === 0"
+        >
+          <td class="row-number">{{ rowIndex + 1 }}</td>
+          <td class="product-cell">
+            <strong>{{ product.productName || '-' }}</strong>
+            <small>Kod: {{ product.productCode || '-' }}</small>
           </td>
-          <td>{{ product.priceChangeDate || '-' }}</td>
+          <td class="barcode-cell">{{ product.barcode || 'Barkod yok' }}</td>
+          <td class="numeric-column">{{ product.oldPrice | number:'1.2-2' }} TL</td>
+          <td class="numeric-column new-price">{{ product.price | number:'1.2-2' }} TL</td>
+          <td
+            class="change-cell"
+            [class.price-up]="priceDifference(product) > 0"
+            [class.price-down]="priceDifference(product) < 0"
+          >
+            <strong>{{ priceTrendLabel(product) }}</strong>
+            <span>
+              {{ priceDifference(product) > 0 ? '+' : '' }}{{ priceDifference(product) | number:'1.2-2' }} TL
+            </span>
+            <small *ngIf="priceDifferencePercent(product) as differencePercent">
+              {{ differencePercent > 0 ? '+' : '' }}{{ differencePercent | number:'1.1-1' }}%
+            </small>
+          </td>
+          <td class="date-cell">{{ formatChangeDate(product.priceChangeDate) }}</td>
         </tr>
       </tbody>
     </table>
-  </div>
+  </main>
+
+  <footer class="report-footer">
+    <span>Fiyatlar KDV dahil satış fiyatıdır.</span>
+    <span>{{ warehouseLabel || 'Depo bilgisi yok' }}</span>
+  </footer>
 </div>

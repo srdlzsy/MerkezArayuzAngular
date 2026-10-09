@@ -41,6 +41,7 @@ export interface ProductLookupItemDto {
   delistReason?: string | null;
   unitName: string;
   unitMultiplier: number;
+  matchedUnitMultiplier: number;
   secondaryUnitName: string;
   secondaryUnitMultiplier: number;
   salesBlockCode: number | null;

@@ -1,209 +1,325 @@
-/* Genel Sayfa Stili */
 .page {
-  width: 210mm; /* A4 genişlik */
-  min-height: auto;
+  width: 297mm;
+  min-height: 210mm;
   margin: 0 auto;
-  padding: 15mm;
+  padding: 10mm;
   box-sizing: border-box;
-  font-family: 'Arial', sans-serif;
-  font-size: 12px;
-  background: white;
-  color: black;
+  color: #111827;
+  background: #ffffff;
+  font-family: Arial, Helvetica, sans-serif;
+  font-size: 8.5pt;
+  print-color-adjust: exact;
+  -webkit-print-color-adjust: exact;
 }
 
-/* Yazdırma için ek ayarlar */
-@media print {
-  body {
-    margin: 0;
-    padding: 0;
-    background: white;
-  }
-  
-  .page {
-    width: 100%;
-    min-height: 0;
-    height: auto;
-    margin: 0;
-    padding: 15mm;
-    break-after: auto;
-    page-break-after: auto;
-    break-inside: auto;
-    page-break-inside: auto;
-  }
-  
-  .header, .content {
-    -webkit-print-color-adjust: exact;
-    print-color-adjust: exact;
-  }
+.report-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 10mm;
+  align-items: end;
+  margin-bottom: 4mm;
+  padding-bottom: 3mm;
+  border-bottom: 0.7mm solid #111827;
 }
 
-/* HEADER */
-.header {
-  border-bottom: 3px solid #333;
-  margin-bottom: 20px;
-  padding-bottom: 10px;
-}
-
-.header-inner {
-  display: flex;
-  justify-content: space-between;
-  align-items: flex-end;
-}
-
-.header h2 {
+.report-title,
+.report-title h2,
+.report-title p {
   margin: 0;
-  font-size: 24px;
-  font-weight: bold;
 }
 
-.print-date {
-  font-size: 14px;
-  font-weight: bold;
-  color: #555;
+.eyebrow {
+  color: #475569;
+  font-size: 7pt;
+  font-weight: 700;
+  text-transform: uppercase;
 }
 
-/* TABLO */
+.report-title h2 {
+  margin-top: 0.8mm;
+  font-size: 18pt;
+  line-height: 1.05;
+}
+
+.warehouse-label {
+  margin-top: 1.3mm !important;
+  color: #334155;
+  font-size: 9pt;
+  font-weight: 700;
+}
+
+.report-meta {
+  display: grid;
+  grid-template-columns: repeat(2, auto);
+  gap: 7mm;
+  margin: 0;
+}
+
+.report-meta div {
+  display: grid;
+  gap: 0.6mm;
+}
+
+.report-meta dt {
+  color: #64748b;
+  font-size: 6.8pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.report-meta dd {
+  margin: 0;
+  color: #111827;
+  font-size: 9pt;
+  font-weight: 700;
+  white-space: nowrap;
+}
+
 .content {
   width: 100%;
-  overflow: hidden;
+}
+
+.report-context {
+  display: flex;
+  justify-content: space-between;
+  gap: 6mm;
+  margin-bottom: 2.2mm;
+  color: #475569;
+  font-size: 6.8pt;
+}
+
+.report-context span {
+  min-width: 0;
+  overflow-wrap: anywhere;
+}
+
+.report-context b {
+  color: #1e293b;
+}
+
+.print-summary {
+  display: grid;
+  grid-template-columns: repeat(6, minmax(0, 1fr));
+  margin-bottom: 2.6mm;
+  border: 0.3mm solid #cbd5e1;
+  background: #f8fafc;
+}
+
+.print-summary article {
+  display: grid;
+  gap: 0.7mm;
+  min-width: 0;
+  padding: 1.7mm 2.2mm;
+  border-right: 0.3mm solid #cbd5e1;
+}
+
+.print-summary article:last-child {
+  border-right: 0;
+}
+
+.print-summary span {
+  color: #64748b;
+  font-size: 6.5pt;
+  font-weight: 700;
+  text-transform: uppercase;
+}
+
+.print-summary strong {
+  color: #0f172a;
+  font-size: 12pt;
+  line-height: 1;
+  white-space: nowrap;
+}
+
+.summary-up strong,
+.price-up {
+  color: #166534;
+}
+
+.summary-down strong,
+.price-down {
+  color: #b45309;
+}
+
+.summary-same strong {
+  color: #475569;
+}
+
+.summary-net strong {
+  color: #1d4ed8;
+}
+
+.summary-warning strong {
+  color: #b91c1c;
 }
 
 .price-change-table {
   width: 100%;
   border-collapse: collapse;
   table-layout: fixed;
+  border: 0.3mm solid #94a3b8;
+  font-variant-numeric: tabular-nums;
 }
 
 .price-change-table thead {
-  background-color: #f2f2f2;
-  border-bottom: 2px solid #333;
+  display: table-header-group;
+  background: #e2e8f0;
 }
 
 .price-change-table th {
-  padding: 10px 8px;
+  padding: 1.45mm 1.5mm;
+  color: #1e293b;
+  border-right: 0.2mm solid #94a3b8;
+  border-bottom: 0.45mm solid #475569;
+  font-size: 7pt;
+  font-weight: 700;
+  line-height: 1.15;
   text-align: left;
-  font-weight: bold;
-  font-size: 13px;
-  border-right: 1px solid #ddd;
-  word-wrap: break-word;
-  vertical-align: top;
+  text-transform: uppercase;
 }
 
-.price-change-table th:last-child {
-  border-right: none;
+.price-change-table td {
+  padding: 1.2mm 1.5mm;
+  border-right: 0.2mm solid #cbd5e1;
+  border-bottom: 0.2mm solid #cbd5e1;
+  font-size: 7.6pt;
+  line-height: 1.2;
+  vertical-align: middle;
+  overflow-wrap: anywhere;
+}
+
+.price-change-table th:last-child,
+.price-change-table td:last-child {
+  border-right: 0;
 }
 
 .price-change-table tbody tr {
-  border-bottom: 1px solid #ddd;
+  break-inside: avoid;
   page-break-inside: avoid;
 }
 
 .price-change-table tbody tr:nth-child(even) {
-  background-color: #f9f9f9;
+  background: #f8fafc;
 }
 
-.price-change-table td {
-  padding: 8px;
-  font-size: 12px;
-  border-right: 1px solid #ddd;
-  word-wrap: break-word;
-  vertical-align: top;
+.price-change-table tbody tr.row-unchanged {
+  color: #475569;
+  background: #f1f5f9;
 }
 
-.price-change-table td:last-child {
-  border-right: none;
+.column-row {
+  width: 4%;
 }
 
-/* Sütun Genişlikleri */
-.price-change-table th:nth-child(1),
-.price-change-table td:nth-child(1) {
-  width: 12%; /* Ürün Kodu */
+.column-product {
+  width: 31%;
 }
 
-.price-change-table th:nth-child(2),
-.price-change-table td:nth-child(2) {
-  width: 15%; /* Barkodu */
+.column-barcode {
+  width: 15%;
 }
 
-.price-change-table th:nth-child(3),
-.price-change-table td:nth-child(3) {
-  width: 25%; /* Ürün Adı */
+.column-price {
+  width: 11%;
 }
 
-.price-change-table th:nth-child(4),
-.price-change-table td:nth-child(4) {
-  width: 10%; /* Eski Fiyat */
-  text-align: right;
+.column-change {
+  width: 15%;
 }
 
-.price-change-table th:nth-child(5),
-.price-change-table td:nth-child(5) {
-  width: 10%; /* Yeni Fiyat */
-  text-align: right;
+.column-date {
+  width: 13%;
 }
 
-.price-change-table th:nth-child(6),
-.price-change-table td:nth-child(6) {
-  width: 8%; /* Fark */
-  text-align: right;
-  font-weight: bold;
-}
-
-.price-change-table th:nth-child(7),
-.price-change-table td:nth-child(7) {
-  width: 20%; /* Değişiklik Tarihi */
+.row-number {
+  color: #64748b;
   text-align: center;
 }
 
-/* Sayfa Sonu Kontrolleri */
+.product-cell strong,
+.product-cell small,
+.change-cell strong,
+.change-cell span,
+.change-cell small {
+  display: block;
+}
+
+.product-cell strong {
+  color: #111827;
+  font-size: 8pt;
+}
+
+.product-cell small {
+  margin-top: 0.5mm;
+  color: #64748b;
+  font-size: 6.8pt;
+}
+
+.barcode-cell {
+  font-family: 'Courier New', monospace;
+  font-size: 7.2pt;
+}
+
+.numeric-column {
+  text-align: right;
+  white-space: nowrap;
+}
+
+.new-price {
+  color: #0f172a;
+  font-size: 8.2pt;
+  font-weight: 700;
+}
+
+.change-cell {
+  white-space: nowrap;
+}
+
+.change-cell strong {
+  font-size: 7.5pt;
+}
+
+.change-cell span,
+.change-cell small {
+  margin-top: 0.35mm;
+  font-size: 6.8pt;
+}
+
+.date-cell {
+  color: #334155;
+  text-align: center;
+  white-space: nowrap;
+}
+
+.report-footer {
+  display: flex;
+  justify-content: space-between;
+  gap: 8mm;
+  margin-top: 2.5mm;
+  padding-top: 1.5mm;
+  color: #64748b;
+  border-top: 0.2mm solid #cbd5e1;
+  font-size: 6.5pt;
+}
+
+@page {
+  size: A4 landscape;
+  margin: 10mm;
+}
+
 @media print {
-  tr {
+  .page {
+    width: auto;
+    min-height: 0;
+    margin: 0;
+    padding: 0;
+    background: #ffffff;
+  }
+
+  .report-header,
+  .print-summary,
+  .report-footer {
+    break-inside: avoid;
     page-break-inside: avoid;
   }
-  
-  tbody tr:last-child {
-    page-break-after: avoid;
-  }
 }
-
-/* Fiyat renklendirmesi */
-.price-change-table td:nth-child(6) {
-  color: #c00;
-}
-
-/* Sayfa numarası (opsiyonel) */
-@page {
-  margin: 15mm;
-}
-
-@page :first {
-  margin-top: 15mm;
-}
-
-/* Degisim dokumu ozet alani: component kapsama stili disinda yazdirma icin. */
-.print-summary {
-  display: grid;
-  grid-template-columns: repeat(4, 1fr);
-  margin-bottom: 15px;
-  border: 1px solid #cbd5e1;
-}
-
-.print-summary article {
-  display: grid;
-  gap: 4px;
-  padding: 9px 10px;
-  border-right: 1px solid #cbd5e1;
-}
-
-.print-summary article:last-child { border-right: 0; }
-.print-summary span { color: #475569; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-.print-summary strong { color: #0f172a; font-size: 19px; }
-.print-summary .summary-up strong, .price-change-table td.price-up { color: #166534; }
-.print-summary .summary-down strong, .price-change-table td.price-down { color: #b45309; }
-.print-summary .summary-warning strong { color: #b91c1c; }
-.eyebrow, .warehouse-label { margin: 0; }
-.eyebrow { color: #475569; font-size: 10px; font-weight: bold; text-transform: uppercase; }
-.warehouse-label { margin-top: 4px; color: #334155; font-size: 13px; font-weight: bold; }
-.print-date { display: grid; gap: 3px; text-align: right; font-size: 12px; }
-.print-date span { font-size: 10px; }
-.print-date strong { font-size: 14px; }

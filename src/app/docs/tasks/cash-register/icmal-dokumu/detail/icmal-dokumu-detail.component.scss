@@ -1,6 +1,8 @@
 :host {
   display: block;
-  height: auto;
+  height: 100%;
+  min-height: 0;
+  overflow: hidden;
 }
 
 .dialog-page {
@@ -12,7 +14,8 @@
 
 .dialog-page.is-editing {
   grid-template-rows: auto minmax(0, 1fr);
-  height: min(900px, calc(100dvh - 1rem));
+  height: 100%;
+  max-height: 100%;
 }
 
 .dialog-header {
@@ -129,14 +132,20 @@
 
 .dialog-body {
   display: grid;
+  align-content: start;
   gap: 0.62rem;
+  min-height: 0;
   padding: 0.68rem 0.8rem 0.78rem;
   overflow: visible;
 }
 
 .is-editing .dialog-body {
-  overflow: auto;
+  height: 100%;
+  padding-bottom: 1.25rem;
+  overflow-y: auto;
   overflow-x: hidden;
+  overscroll-behavior: contain;
+  scrollbar-gutter: stable;
 }
 
 .summary-overview {
@@ -560,35 +569,14 @@
 }
 
 .edit-panel {
+  --edit-tabs-offset: 44px;
+  --edit-table-offset: 86px;
   display: grid;
-  gap: 0.66rem;
-  padding: 0.72rem;
-  border: 1px solid #bfdbfe;
-  border-radius: 10px;
-  background: #f8fbff;
-}
-
-.edit-panel-head {
-  display: flex;
-  align-items: start;
-  justify-content: space-between;
-  gap: 0.75rem;
-  margin: -0.72rem -0.72rem 0;
-  padding: 0.62rem 0.72rem;
-  border-bottom: 1px solid #dbeafe;
-  background: #fff;
-}
-
-.edit-panel-head h3 {
-  margin: 0;
-  color: #0f172a;
-  font-size: 1rem;
-}
-
-.edit-panel-head p {
-  margin: 0.25rem 0 0;
-  color: #526579;
-  font-size: 0.84rem;
+  align-content: start;
+  align-self: start;
+  gap: 0.5rem;
+  min-width: 0;
+  padding: 0;
 }
 
 .edit-panel-actions {
@@ -597,14 +585,70 @@
   gap: 0.55rem;
 }
 
+.edit-section-tabs {
+  position: sticky;
+  top: 0;
+  z-index: 4;
+  display: grid;
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+  gap: 0.4rem;
+  padding: 0.26rem;
+  border: 1px solid #dbe3ea;
+  border-radius: 8px;
+  background: rgba(255, 255, 255, 0.97);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.05);
+  backdrop-filter: blur(6px);
+}
+
+.edit-section-tabs button {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.45rem;
+  min-width: 0;
+  height: 34px;
+  min-height: 34px;
+  padding: 0.32rem 0.5rem;
+  color: #526579;
+  border: 1px solid transparent;
+  border-radius: 7px;
+  background: transparent;
+  cursor: pointer;
+  font-weight: 800;
+}
+
+.edit-section-tabs button:hover {
+  color: #1d4ed8;
+  background: #eff6ff;
+}
+
+.edit-section-tabs button.is-active {
+  color: #fff;
+  border-color: #1d4ed8;
+  background: #2563eb;
+  box-shadow: 0 2px 6px rgba(37, 99, 235, 0.2);
+}
+
+.edit-section-tabs span,
+.edit-section-tabs small {
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.edit-section-tabs small {
+  color: inherit;
+  font-size: 0.7rem;
+  opacity: 0.82;
+}
+
 .edit-section {
-  padding: 0.68rem;
-  border: 1px solid #dbeafe;
-  border-radius: 10px;
+  min-width: 0;
+  padding: 0;
+  overflow: visible;
+  border: 1px solid #dbe3ea;
+  border-radius: 8px;
   background: #fff;
-  contain: content;
-  content-visibility: auto;
-  contain-intrinsic-size: 240px;
 }
 
 .edit-section-actions {
@@ -615,19 +659,28 @@
   gap: 0.55rem;
 }
 
-.payment-add-grid {
-  display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(132px, max-content));
+.payment-add-control {
+  display: flex;
   align-items: center;
-  gap: 0.55rem;
-  margin: -0.2rem 0 0.85rem;
+  gap: 0.4rem;
+}
+
+.payment-add-control select {
+  width: 180px;
+  min-height: 32px;
+  padding: 0.34rem 0.48rem;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  font: inherit;
 }
 
 .add-line-button,
 .remove-line-button {
-  min-height: 34px;
-  border-radius: 8px;
-  padding: 0.42rem 0.68rem;
+  min-height: 30px;
+  border-radius: 7px;
+  padding: 0.32rem 0.58rem;
   font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
@@ -663,31 +716,37 @@
 }
 
 .edit-table-wrap {
-  max-height: min(52vh, 520px);
-  overflow: auto;
-  overscroll-behavior: contain;
+  width: 100%;
+  max-height: none;
+  overflow: visible;
   box-shadow: none;
 }
 
 .edit-table {
-  min-width: 1040px !important;
+  width: 100%;
+  min-width: 0 !important;
   table-layout: fixed;
 }
 
 .edit-table-narrow {
-  min-width: 720px !important;
+  min-width: 0 !important;
   table-layout: fixed;
 }
 
 .edit-table th {
-  position: static;
+  position: sticky;
+  top: var(--edit-table-offset);
+  z-index: 2;
 }
 
 .edit-table input,
 .edit-table select {
+  display: block;
   width: 100%;
-  min-height: 36px !important;
-  padding: 0.42rem 0.52rem !important;
+  min-width: 0;
+  max-width: 100%;
+  min-height: 31px !important;
+  padding: 0.3rem 0.44rem !important;
   color: #0f172a;
   border: 1px solid #cbd5e1;
   border-radius: 7px;
@@ -711,8 +770,8 @@
 .category-pill {
   display: inline-flex;
   align-items: center;
-  min-height: 30px;
-  padding: 0.3rem 0.52rem;
+  min-height: 26px;
+  padding: 0.22rem 0.42rem;
   border-radius: 999px;
   color: #0f172a;
   background: #f1f5f9;
@@ -752,11 +811,17 @@
   align-items: center;
   justify-content: space-between;
   gap: 0.5rem;
-  min-height: 38px;
+  min-height: 42px;
   margin-bottom: 0;
-  padding: 0.46rem 0.62rem;
+  padding: 0.38rem 0.52rem;
   border-bottom: 1px solid #eef2f6;
   background: #fbfcfd;
+}
+
+.edit-section > .detail-card-head {
+  position: sticky;
+  top: var(--edit-tabs-offset);
+  z-index: 3;
 }
 
 .detail-card-head h3,
@@ -805,7 +870,7 @@
 }
 
 .edit-table-wrap {
-  overflow: auto;
+  overflow: visible;
   box-shadow: none;
 }
 
@@ -827,6 +892,11 @@ td {
   overflow-wrap: break-word;
   word-break: normal;
   white-space: normal;
+}
+
+.edit-table th,
+.edit-table td {
+  padding: 0.28rem 0.48rem;
 }
 
 td {
@@ -1054,51 +1124,159 @@ th {
 
 .edit-table th:nth-child(1),
 .edit-table td:nth-child(1) {
-  width: 130px;
+  width: 13%;
 }
 
 .edit-table th:nth-child(2),
 .edit-table td:nth-child(2) {
-  width: 290px;
+  width: 24%;
 }
 
 .edit-table th:nth-child(3),
 .edit-table td:nth-child(3) {
-  width: 140px;
+  width: 12%;
 }
 
 .edit-table th:nth-child(4),
 .edit-table td:nth-child(4),
 .edit-table th:nth-child(5),
 .edit-table td:nth-child(5) {
-  width: 112px;
+  width: 11%;
 }
 
 .edit-table th:nth-child(6),
 .edit-table td:nth-child(6) {
-  width: 160px;
+  width: 21%;
 }
 
 .edit-table th:nth-child(7),
 .edit-table td:nth-child(7) {
-  width: 78px;
+  width: 8%;
 }
 
 .edit-table-narrow th:nth-child(1),
 .edit-table-narrow td:nth-child(1) {
-  width: 250px;
+  width: 34%;
 }
 
 .edit-table-narrow th:nth-child(2),
 .edit-table-narrow td:nth-child(2),
 .edit-table-narrow th:nth-child(3),
-.edit-table-narrow td:nth-child(3),
+.edit-table-narrow td:nth-child(3) {
+  width: 15%;
+}
+
 .edit-table-narrow th:nth-child(4),
 .edit-table-narrow td:nth-child(4) {
-  width: 120px;
+  width: 24%;
 }
 
 .edit-table-narrow th:nth-child(5),
 .edit-table-narrow td:nth-child(5) {
-  width: 78px;
+  width: 12%;
+}
+
+@media (max-width: 900px) {
+  .dialog-page.is-editing {
+    height: 100%;
+  }
+
+  .edit-panel {
+    padding: 0;
+  }
+
+  .edit-section {
+    padding: 0;
+  }
+
+  .edit-section > .detail-card-head {
+    position: static;
+  }
+
+  .edit-table,
+  .edit-table tbody,
+  .edit-table tr,
+  .edit-table td {
+    display: block;
+    width: 100% !important;
+  }
+
+  .edit-table thead {
+    position: absolute;
+    width: 1px;
+    height: 1px;
+    padding: 0;
+    margin: -1px;
+    overflow: hidden;
+    clip: rect(0, 0, 0, 0);
+    white-space: nowrap;
+    border: 0;
+  }
+
+  .edit-table tbody {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.6rem;
+  }
+
+  .edit-table tr {
+    padding: 0.62rem;
+    border: 1px solid #dbe3ea;
+    border-radius: 9px;
+    background: #fbfcfd;
+  }
+
+  .edit-table td {
+    display: grid;
+    grid-template-columns: minmax(82px, 0.34fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 0.55rem;
+    padding: 0.3rem 0;
+    border: 0;
+  }
+
+  .edit-table td::before {
+    content: attr(data-label);
+    color: #64748b;
+    font-size: 0.66rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .edit-table td:last-child {
+    padding-top: 0.48rem;
+  }
+
+  .edit-table .remove-line-button {
+    width: 100%;
+  }
+
+  .edit-table .empty-row {
+    display: block;
+    grid-column: 1 / -1;
+    padding: 1rem;
+  }
+
+  .edit-table .empty-row::before {
+    content: none;
+  }
+}
+
+@media (max-width: 620px) {
+  .edit-table tbody {
+    grid-template-columns: 1fr;
+  }
+
+  .edit-section-actions,
+  .payment-add-control {
+    width: 100%;
+  }
+
+  .payment-add-control select {
+    width: 100%;
+  }
+
+  .edit-table td {
+    grid-template-columns: 78px minmax(0, 1fr);
+  }
 }

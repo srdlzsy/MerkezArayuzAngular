@@ -581,6 +581,12 @@
   color: #166534;
 }
 
+.filter-tab-same.is-active {
+  border-color: #64748b;
+  background: #f1f5f9;
+  color: #334155;
+}
+
 .hidden-products-panel {
   border: 1px solid var(--operation-info-border);
   border-radius: var(--operation-panel-radius);

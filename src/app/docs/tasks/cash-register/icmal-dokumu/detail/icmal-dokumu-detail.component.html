@@ -30,15 +30,15 @@
         <button type="button" class="delete-button" *ngIf="canDelete()" [disabled]="isDeleting()" (click)="deleteSummary()">
           {{ isDeleting() ? 'Siliniyor...' : 'Sil' }}
         </button>
+        <button type="button" class="print-button" [disabled]="!printModel()" (click)="printSummary()">
+          Yazdir
+        </button>
+        <button type="button" class="close-button" (click)="close()">Kapat</button>
       </ng-template>
-      <button type="button" class="print-button" [disabled]="!printModel()" (click)="printSummary()">
-        Yazdir
-      </button>
-      <button type="button" class="close-button" (click)="close()">Kapat</button>
     </div>
   </header>
 
-  <div class="dialog-body" *ngIf="summary as currentSummary; else missingSummary">
+  <div #dialogBody class="dialog-body" *ngIf="summary as currentSummary; else missingSummary">
     <article
       class="state-card feedback-card icmal-print-hidden"
       *ngIf="feedback() as currentFeedback"
@@ -54,30 +54,67 @@
     </article>
 
     <section class="edit-panel icmal-print-hidden" *ngIf="isEditing()">
-      <div class="edit-panel-head">
-        <div>
-          <h3>Icmal Duzenleme</h3>
-          <p>Odeme satirlari, banknotlar ve fiziksel hediye ceklerini kontrol edip kaydedin.</p>
-        </div>
-      </div>
+      <nav class="edit-section-tabs" aria-label="Duzenlenecek icmal bolumu">
+        <button
+          type="button"
+          [class.is-active]="activeEditableSection() === 'payments'"
+          [attr.aria-pressed]="activeEditableSection() === 'payments'"
+          (click)="selectEditableSection('payments')"
+        >
+          <span>Odemeler</span>
+          <small>{{ editableDetails().length }} kalem</small>
+        </button>
+        <button
+          type="button"
+          [class.is-active]="activeEditableSection() === 'banknotes'"
+          [attr.aria-pressed]="activeEditableSection() === 'banknotes'"
+          (click)="selectEditableSection('banknotes')"
+        >
+          <span>Banknotlar</span>
+          <small>{{ editableBanknoteMovements().length }} kalem</small>
+        </button>
+        <button
+          type="button"
+          [class.is-active]="activeEditableSection() === 'giftChecks'"
+          [attr.aria-pressed]="activeEditableSection() === 'giftChecks'"
+          (click)="selectEditableSection('giftChecks')"
+        >
+          <span>Hediye Cekleri</span>
+          <small>{{ editableGiftCheckMovements().length }} kalem</small>
+        </button>
+      </nav>
 
-      <article class="edit-section">
+      <article class="edit-section" *ngIf="activeEditableSection() === 'payments'">
         <div class="detail-card-head">
           <h3>Odeme Satirlari</h3>
           <div class="edit-section-actions">
             <span>{{ editableDetails().length }} Kalem</span>
+            <label class="payment-add-control">
+              <select
+                aria-label="Eklenecek odeme turu"
+                [value]="selectedEditablePaymentCategory()"
+                [disabled]="isSaving() || editLookupLoading()"
+                (change)="selectedEditablePaymentCategory.set($any($event.target).value)"
+              >
+                <option value="">Odeme turu secin</option>
+                <option
+                  *ngFor="let category of editablePaymentCategories; trackBy: trackEditablePaymentCategory"
+                  [value]="category"
+                  [disabled]="!canAddEditableDetail(category)"
+                >
+                  {{ getEditablePaymentCategoryLabel(category) }}
+                </option>
+              </select>
+              <button
+                type="button"
+                class="add-line-button"
+                [disabled]="isSaving() || editLookupLoading() || !selectedEditablePaymentCategory()"
+                (click)="addEditableDetail($any(selectedEditablePaymentCategory())); selectedEditablePaymentCategory.set('')"
+              >
+                Satir Ekle
+              </button>
+            </label>
           </div>
-        </div>
-        <div class="payment-add-grid">
-          <button
-            type="button"
-            class="add-line-button"
-            *ngFor="let category of editablePaymentCategories; trackBy: trackEditablePaymentCategory"
-            [disabled]="isSaving() || editLookupLoading() || !canAddEditableDetail(category)"
-            (click)="addEditableDetail(category)"
-          >
-            {{ getEditablePaymentCategoryLabel(category) }} Ekle
-          </button>
         </div>
         <div class="table-wrap edit-table-wrap">
           <table class="edit-table">
@@ -94,12 +131,12 @@
             </thead>
             <tbody>
               <tr *ngFor="let row of editableDetailRows(); trackBy: trackEditableDetail">
-                <td>
+                <td data-label="Kategori">
                   <span class="category-pill" [ngClass]="row.categoryClass">
                     {{ row.categoryLabel }}
                   </span>
                 </td>
-                <td>
+                <td data-label="Tip">
                   <select
                     [value]="row.typeSelection"
                     (change)="applyEditableDetailTypeSelection(row.index, $any($event.target).value)"
@@ -112,19 +149,19 @@
                     </option>
                   </select>
                 </td>
-                <td>
+                <td data-label="Terminal">
                   <input [value]="row.item.terminalId" readonly />
                 </td>
-                <td>
+                <td data-label="Slip">
                   <input type="number" min="0" [value]="row.item.slipNumber" (input)="updateEditableDetail(row.index, 'slipNumber', $any($event.target).value)" />
                 </td>
-                <td>
+                <td data-label="Tutar">
                   <input type="number" min="0" step="0.01" [value]="row.item.amount" (input)="updateEditableDetail(row.index, 'amount', $any($event.target).value)" />
                 </td>
-                <td>
+                <td data-label="Aciklama">
                   <input [value]="row.item.description" (input)="updateEditableDetail(row.index, 'description', $any($event.target).value)" />
                 </td>
-                <td>
+                <td data-label="Islem">
                   <button type="button" class="remove-line-button" [disabled]="isSaving()" (click)="removeEditableDetail(row.index)">
                     Kaldir
                   </button>
@@ -138,7 +175,7 @@
         </div>
       </article>
 
-      <article class="edit-section">
+      <article class="edit-section" *ngIf="activeEditableSection() === 'banknotes'">
         <div class="detail-card-head">
           <h3>Banknot Satirlari</h3>
           <div class="edit-section-actions">
@@ -161,7 +198,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let row of editableBanknoteRows(); trackBy: trackEditableBanknote">
-                <td>
+                <td data-label="Deger">
                   <select
                     [value]="row.typeSelection"
                     (change)="applyEditableBanknoteTypeSelection(row.index, $any($event.target).value)"
@@ -174,16 +211,16 @@
                     </option>
                   </select>
                 </td>
-                <td>
+                <td data-label="Tip No">
                   <input type="number" min="0" [value]="row.typeSelection" readonly />
                 </td>
-                <td>
+                <td data-label="Adet">
                   <input type="number" min="0" [value]="row.item.quantity" (input)="updateEditableBanknote(row.index, 'quantity', $any($event.target).value)" />
                 </td>
-                <td>
+                <td data-label="Toplam">
                   <input type="number" min="0" step="0.01" [value]="row.item.total" (input)="updateEditableBanknote(row.index, 'total', $any($event.target).value)" />
                 </td>
-                <td>
+                <td data-label="Islem">
                   <button type="button" class="remove-line-button" [disabled]="isSaving()" (click)="removeEditableBanknote(row.index)">
                     Kaldir
                   </button>
@@ -197,7 +234,7 @@
         </div>
       </article>
 
-      <article class="edit-section">
+      <article class="edit-section" *ngIf="activeEditableSection() === 'giftChecks'">
         <div class="detail-card-head">
           <h3>Hediye Ceki Satirlari</h3>
           <div class="edit-section-actions">
@@ -220,7 +257,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let row of editableGiftCheckRows(); trackBy: trackEditableGiftCheck">
-                <td>
+                <td data-label="Deger">
                   <select
                     [value]="row.typeSelection"
                     (change)="applyEditableGiftCheckTypeSelection(row.index, $any($event.target).value)"
@@ -233,16 +270,16 @@
                     </option>
                   </select>
                 </td>
-                <td>
+                <td data-label="Tip No">
                   <input type="number" min="0" [value]="row.typeSelection" readonly />
                 </td>
-                <td>
+                <td data-label="Adet">
                   <input type="number" min="0" [value]="row.item.quantity" (input)="updateEditableGiftCheck(row.index, 'quantity', $any($event.target).value)" />
                 </td>
-                <td>
+                <td data-label="Toplam">
                   <input type="number" min="0" step="0.01" [value]="row.item.total" (input)="updateEditableGiftCheck(row.index, 'total', $any($event.target).value)" />
                 </td>
-                <td>
+                <td data-label="Islem">
                   <button type="button" class="remove-line-button" [disabled]="isSaving()" (click)="removeEditableGiftCheck(row.index)">
                     Kaldir
                   </button>

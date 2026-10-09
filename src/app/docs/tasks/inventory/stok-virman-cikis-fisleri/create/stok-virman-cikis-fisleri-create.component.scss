@@ -344,6 +344,89 @@ button:disabled {
   justify-content: flex-end;
 }
 
+.conversion-status {
+  display: grid;
+  grid-template-columns: 10px minmax(0, 1fr);
+  gap: 0.55rem;
+  align-items: start;
+  padding: 0.58rem 0.68rem;
+  color: #334155;
+  border: 1px solid #cbd5e1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.conversion-status-mark {
+  width: 8px;
+  height: 8px;
+  margin-top: 0.22rem;
+  border-radius: 50%;
+  background: #64748b;
+}
+
+.conversion-status strong {
+  display: block;
+  color: #0f172a;
+  font-size: 0.78rem;
+}
+
+.conversion-status p {
+  margin: 0.14rem 0 0;
+  font-size: 0.74rem;
+  line-height: 1.35;
+}
+
+.conversion-status-loading .conversion-status-mark {
+  background: #2563eb;
+  box-shadow: 0 0 0 4px #dbeafe;
+}
+
+.conversion-status-success {
+  color: #166534;
+  border-color: #86efac;
+  background: #f0fdf4;
+}
+
+.conversion-status-success .conversion-status-mark {
+  background: #16a34a;
+  box-shadow: 0 0 0 4px #dcfce7;
+}
+
+.conversion-status-warning {
+  color: #92400e;
+  border-color: #fdba74;
+  background: #fff7ed;
+}
+
+.conversion-status-warning .conversion-status-mark {
+  background: #ea580c;
+  box-shadow: 0 0 0 4px #ffedd5;
+}
+
+.conversion-status-content {
+  min-width: 0;
+}
+
+.conversion-metrics {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+  margin-top: 0.38rem;
+}
+
+.conversion-metrics span {
+  display: inline-flex;
+  min-height: 22px;
+  align-items: center;
+  padding: 0 0.45rem;
+  color: #166534;
+  border: 1px solid #bbf7d0;
+  border-radius: 999px;
+  background: #ffffff;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
 .add-pair-btn {
   min-width: 190px;
 }

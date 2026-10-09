@@ -392,6 +392,32 @@ export interface VirmanDetailDto {
   items: VirmanLineItemDto[];
 }
 
+export interface VirmanConversionSuggestionDto {
+  confidencePercent: number;
+  isReliable: boolean;
+  lookbackEndDate: string;
+  lookbackStartDate: string;
+  maximumSampleCount: number;
+  minimumConfidencePercent: number;
+  minimumSampleCount: number;
+  multiplier: number | null;
+  multiplierConfidencePercent: number;
+  multiplierMatchCount: number;
+  sampleCount: number;
+  sourceQuantity: number;
+  sourceStockCode: string | null;
+  sourceStockName: string | null;
+  sourceUnitName: string | null;
+  suggestionSource: string | null;
+  targetConfidencePercent: number;
+  targetMatchCount: number;
+  targetQuantity: number | null;
+  targetStockCode: string | null;
+  targetStockName: string | null;
+  targetUnitName: string | null;
+  warning: string | null;
+}
+
 export interface CreateVirmanHttpRequest {
   warehouseNo?: number;
   clientRequestId?: string;

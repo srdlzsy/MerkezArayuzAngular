@@ -162,6 +162,53 @@
           </div>
         </div>
 
+        <div class="conversion-status conversion-status-loading" *ngIf="conversionSuggestionLoading()">
+          <span class="conversion-status-mark" aria-hidden="true"></span>
+          <div>
+            <strong>Gecmis virmanlar kontrol ediliyor</strong>
+            <p>Bu cikis urunu icin guvenilir hedef urun ve miktar araniyor.</p>
+          </div>
+        </div>
+
+        <ng-container *ngIf="conversionSuggestion() as suggestion">
+          <div
+            class="conversion-status"
+            [class.conversion-status-success]="suggestion.isReliable"
+            [class.conversion-status-warning]="!suggestion.isReliable"
+          >
+            <span class="conversion-status-mark" aria-hidden="true"></span>
+            <div class="conversion-status-content">
+              <strong>
+                {{ suggestion.isReliable ? 'Otomatik donusum uygulandi' : 'Manuel hedef secimi gerekli' }}
+              </strong>
+
+              <p *ngIf="suggestion.isReliable">
+                {{ suggestion.sourceStockName || suggestion.sourceStockCode }} icin
+                {{ suggestion.targetStockName || suggestion.targetStockCode }} ve
+                {{ incomingQuantity.value | number:'1.0-6' }} {{ suggestion.targetUnitName || 'birim' }}
+                forma yerlestirildi.
+              </p>
+              <p *ngIf="!suggestion.isReliable">
+                {{ suggestion.warning || 'Guvenilir otomatik donusum bulunamadi. Hedef urunu ve miktari manuel sec.' }}
+              </p>
+
+              <div class="conversion-metrics" *ngIf="suggestion.isReliable">
+                <span>Katsayi: x{{ suggestion.multiplier | number:'1.0-6' }}</span>
+                <span>Guven: %{{ suggestion.confidencePercent | number:'1.0-2' }}</span>
+                <span>{{ suggestion.sampleCount }} gecmis kayit</span>
+              </div>
+            </div>
+          </div>
+        </ng-container>
+
+        <div class="conversion-status conversion-status-warning" *ngIf="conversionSuggestionError()">
+          <span class="conversion-status-mark" aria-hidden="true"></span>
+          <div>
+            <strong>Otomatik oneri kullanilamadi</strong>
+            <p>{{ conversionSuggestionError() }}</p>
+          </div>
+        </div>
+
         <div class="entry-actions-row">
           <button type="button" class="small-btn add-pair-btn" (click)="addVirmanPair()">
             Urunleri Listeye Ekle

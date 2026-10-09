@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, switchMap } from 'rxjs';
 import type {
@@ -72,6 +72,7 @@ type IcmalActionPermission = 'update' | 'delete';
 type EditableDetailField = keyof ISummariesDetailsCT;
 type EditableBanknoteField = keyof IBanknoteMovementsCT;
 type EditableGiftCheckField = keyof IGiftCheckMovementsCT;
+type EditableSection = 'payments' | 'banknotes' | 'giftChecks';
 type EditablePaymentCategory =
   | 'card'
   | 'foodCheck'
@@ -108,6 +109,9 @@ const PERMISSION_PREFIX = 'kasa-islemleri.kasa-sayimlari';
 export class IcmalDokumuDetailComponent
   extends DocsTaskDialogBase<ISummariesCT>
   implements OnInit {
+  @ViewChild('dialogBody')
+  private readonly dialogBody?: ElementRef<HTMLElement>;
+
   protected readonly page: DocsContentPage = DOCS_PAGES['kasa-sayimlari'];
   protected readonly summary = this.data;
 
@@ -130,6 +134,8 @@ export class IcmalDokumuDetailComponent
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly activeDetailView = signal<DetailView>('card');
+  protected readonly activeEditableSection = signal<EditableSection>('payments');
+  protected readonly selectedEditablePaymentCategory = signal<EditablePaymentCategory | ''>('');
   protected readonly editableDetails = signal<ISummariesDetailsCT[]>([]);
   protected readonly editableBanknoteMovements = signal<IBanknoteMovementsCT[]>([]);
   protected readonly editableGiftCheckMovements = signal<IGiftCheckMovementsCT[]>([]);
@@ -455,7 +461,15 @@ export class IcmalDokumuDetailComponent
     this.editableGiftCheckMovements.set(
       this.giftCheckMovements().map((item) => this.normalizeEditableGiftCheck(item))
     );
+    this.activeEditableSection.set('payments');
+    this.selectedEditablePaymentCategory.set('');
     this.isEditing.set(true);
+    this.scrollDialogToTop();
+  }
+
+  protected selectEditableSection(section: EditableSection): void {
+    this.activeEditableSection.set(section);
+    this.scrollDialogToTop();
   }
 
   protected cancelEdit(): void {
@@ -467,6 +481,7 @@ export class IcmalDokumuDetailComponent
     this.editableDetails.set([]);
     this.editableBanknoteMovements.set([]);
     this.editableGiftCheckMovements.set([]);
+    this.scrollDialogToTop();
   }
 
   protected canAddEditableDetail(category: EditablePaymentCategory): boolean {
@@ -590,9 +605,7 @@ export class IcmalDokumuDetailComponent
     );
   }
 
-  protected readonly trackEditablePaymentCategory = (_: number, category: EditablePaymentCategory): string => {
-    return category;
-  };
+  protected readonly trackEditablePaymentCategory = (_: number, category: EditablePaymentCategory): string => category;
 
   protected readonly trackEditableDetail = (_: number, row: EditableDetailRowView): string => {
     return `${row.index}|${row.typeSelection}`;
@@ -1008,6 +1021,7 @@ export class IcmalDokumuDetailComponent
       .subscribe({
         next: () => {
           this.isEditing.set(false);
+          this.scrollDialogToTop();
           this.feedback.set({
             tone: 'info',
             title: 'Icmal guncellendi',
@@ -1023,6 +1037,12 @@ export class IcmalDokumuDetailComponent
           });
         }
       });
+  }
+
+  private scrollDialogToTop(): void {
+    window.requestAnimationFrame(() => {
+      this.dialogBody?.nativeElement.scrollTo({ top: 0, left: 0, behavior: 'auto' });
+    });
   }
 
   protected async deleteSummary(): Promise<void> {

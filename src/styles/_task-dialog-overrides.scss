@@ -233,8 +233,8 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
     }
 
     .dialog-page.is-editing {
-      --dialog-page-height: min(900px, calc(100dvh - 1rem));
-      --dialog-page-max-height: calc(100dvh - 1rem);
+      --dialog-page-height: 100%;
+      --dialog-page-max-height: 100%;
       --dialog-page-overflow: hidden;
       --dialog-body-overflow: auto;
     }
@@ -286,8 +286,8 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
 @media (max-width: 820px) {
   body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel.icmal-detail-dialog {
     .dialog-page {
-      --dialog-page-height: calc(100dvh - 1rem);
-      --dialog-page-max-height: calc(100dvh - 1rem);
+      --dialog-page-height: 100%;
+      --dialog-page-max-height: 100%;
       --dialog-page-overflow: hidden;
       --dialog-body-overflow: auto hidden;
     }

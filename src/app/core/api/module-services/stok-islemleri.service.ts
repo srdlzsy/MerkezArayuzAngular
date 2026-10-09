@@ -23,6 +23,7 @@ import {
   InventoryCountListItemDto,
   LabelDocumentListItemDto,
   VirmanListItemDto,
+  VirmanConversionSuggestionDto,
   CreateInventoryCountHttpRequest,
   CreateVirmanHttpRequest,
   StockAnomalyDetailDto,
@@ -129,6 +130,19 @@ export class StokIslemleriService extends BaseApiService {
     return this.getWithQuery<IFurpaVirmanDetailApiDto>(
       `stok-islemleri/virmanlar/${encodeURIComponent(seri)}/${sira}`,
       { warehouseNo }
+    );
+  }
+
+  getVirmanConversionSuggestion(
+    sourceStockCode: string,
+    sourceQuantity: number
+  ): Observable<VirmanConversionSuggestionDto> {
+    return this.getWithQuery<VirmanConversionSuggestionDto>(
+      'stok-islemleri/virmanlar/donusum-onerisi',
+      {
+        SourceStockCode: sourceStockCode,
+        SourceQuantity: sourceQuantity
+      }
     );
   }
 
