@@ -1,6 +1,4 @@
 export const ADMIN_LAYOUT_OVERLAY_MAX_WIDTH = 1100;
-export const ADMIN_LAYOUT_COLLAPSE_MAX_WIDTH = 1440;
-export const ADMIN_LAYOUT_EXPAND_MIN_WIDTH = 1760;
 
 export function isAdminDesktopLayout(viewportWidth: number): boolean {
   return viewportWidth > ADMIN_LAYOUT_OVERLAY_MAX_WIDTH;
@@ -10,15 +8,7 @@ export function resolveSidebarCollapsed(
   viewportWidth: number,
   currentValue: boolean
 ): boolean {
-  if (viewportWidth <= ADMIN_LAYOUT_COLLAPSE_MAX_WIDTH) {
-    return true;
-  }
-
-  if (viewportWidth >= ADMIN_LAYOUT_EXPAND_MIN_WIDTH) {
-    return false;
-  }
-
-  return currentValue;
+  return isAdminDesktopLayout(viewportWidth) ? currentValue : false;
 }
 
 export function createExclusiveOpenSections(

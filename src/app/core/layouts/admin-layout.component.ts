@@ -14,7 +14,6 @@ import { AuthService } from '../auth/services/auth.service';
 import { OrtakIslemlerService } from '../api/module-services/ortak-islemler.service';
 import { environment } from '../../../environments/environment';
 import {
-  ADMIN_LAYOUT_EXPAND_MIN_WIDTH,
   createExclusiveOpenSections,
   isAdminDesktopLayout,
   resolveSidebarCollapsed
@@ -30,7 +29,7 @@ import {
 export class AdminLayoutComponent {
   @ViewChild('contentWrapper') private contentWrapper?: ElementRef<HTMLElement>;
 
-  private readonly sidebarCollapsedStorageKey = 'furpa.adminLayout.sidebarCollapsed';
+  private readonly sidebarCollapsedStorageKey = 'furpa.adminLayout.sidebarCollapsed.v2';
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly activatedRoute = inject(ActivatedRoute);
@@ -369,7 +368,7 @@ export class AdminLayoutComponent {
 
   private readViewportWidth(): number {
     if (typeof window === 'undefined') {
-      return ADMIN_LAYOUT_EXPAND_MIN_WIDTH;
+      return 1920;
     }
 
     return window.innerWidth;

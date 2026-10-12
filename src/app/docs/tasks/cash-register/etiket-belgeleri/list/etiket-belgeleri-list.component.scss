@@ -11,6 +11,7 @@
 }
 
 .label-workspace {
+  container: label-workspace / inline-size;
   display: grid;
   gap: 0.5rem;
   color: var(--text);
@@ -216,7 +217,7 @@
   column-gap: 0.42rem;
   row-gap: 0.34rem;
   padding: var(--operation-panel-padding);
-  overflow-x: auto;
+  overflow-x: visible;
   border: 1px solid var(--line);
   border-radius: var(--operation-panel-radius);
   background: var(--surface);
@@ -309,6 +310,11 @@
 
 .document-actions {
   grid-area: documentActions;
+}
+
+.utility-actions {
+  grid-area: utilityActions;
+  justify-content: flex-end;
 }
 
 .field {
@@ -519,7 +525,7 @@
 }
 
 .search-field {
-  min-width: 260px;
+  min-width: 0;
 }
 
 .filter-tabs {
@@ -536,7 +542,7 @@
 }
 
 .sort-field {
-  min-width: 210px;
+  min-width: 0;
 }
 
 .sort-field > span {
@@ -667,7 +673,7 @@
 
 table {
   width: 100%;
-  min-width: 1080px;
+  min-width: 960px;
   border-collapse: collapse;
 }
 
@@ -926,6 +932,64 @@ tbody tr:hover {
   overflow: hidden;
   opacity: 0;
   pointer-events: none;
+}
+
+@container label-workspace (max-width: 1280px) {
+  .setup-section {
+    grid-template-columns: minmax(150px, 0.75fr) minmax(190px, 0.9fr) minmax(0, 2.4fr);
+    grid-template-areas:
+      'labelType startDate sourceActions'
+      'recentDocument documentSearch documentActions'
+      'utilityActions utilityActions utilityActions';
+  }
+
+  .source-actions,
+  .document-actions {
+    min-width: 0;
+  }
+
+  .form-layout .source-actions,
+  .setup-section .source-actions {
+    flex-wrap: wrap;
+  }
+
+  .product-tools {
+    grid-template-columns: minmax(220px, 1fr) 92px minmax(190px, 220px);
+  }
+
+  .filter-tabs {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+}
+
+@container label-workspace (max-width: 1050px) {
+  .page-header {
+    grid-template-columns: minmax(0, 1fr) auto;
+  }
+
+  .header-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-start;
+  }
+
+  .setup-section {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    grid-template-areas:
+      'labelType startDate'
+      'sourceActions sourceActions'
+      'recentDocument documentSearch'
+      'documentActions utilityActions';
+  }
+
+  .document-actions,
+  .utility-actions {
+    align-self: end;
+  }
+
+  .utility-actions {
+    justify-content: flex-end;
+  }
 }
 
 @media (max-width: 1100px) {
