@@ -343,6 +343,12 @@
   background: #fff1f2;
 }
 
+.difference-status.is-unavailable {
+  color: #475569;
+  border-color: #cbd5e1;
+  background: #f1f5f9;
+}
+
 .reconciliation-grid {
   display: grid;
   grid-template-columns: 1.2fr 1fr 1fr;
@@ -416,6 +422,11 @@
 .reconciliation-card-difference.is-deficit {
   border-top-color: #dc2626;
   background: #fff1f2;
+}
+
+.reconciliation-card-difference.is-unavailable {
+  border-top-color: #94a3b8;
+  background: #f8fafc;
 }
 
 .payment-metrics {

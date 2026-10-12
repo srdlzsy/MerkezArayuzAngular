@@ -41,11 +41,15 @@
     </div>
     <div>
       <span>Z Raporu</span>
-      <strong>{{ (model().zTotalValue ?? 0) | number:'1.2-2' }} TL</strong>
+      <strong *ngIf="model().zTotalValue !== null; else missingPrintZTotal">
+        {{ model().zTotalValue | number:'1.2-2' }} TL
+      </strong>
     </div>
     <div>
       <span>Fark</span>
-      <strong>{{ model().differenceTotal | number:'1.2-2' }} TL</strong>
+      <strong *ngIf="model().differenceTotal !== null; else missingPrintDifference">
+        {{ model().differenceTotal | number:'1.2-2' }} TL
+      </strong>
     </div>
     <div>
       <span>Nakit</span>
@@ -60,6 +64,9 @@
       <strong>{{ model().foodChecksTotal | number:'1.2-2' }} TL</strong>
     </div>
   </section>
+
+  <ng-template #missingPrintZTotal><strong>-</strong></ng-template>
+  <ng-template #missingPrintDifference><strong>-</strong></ng-template>
 
   <section class="print-grid">
     <article class="print-block banknote-block" *ngIf="model().banknoteMovements.length">
@@ -127,7 +134,12 @@
           </tr>
           <tr class="total-row">
             <td>Fark</td>
-            <td colspan="2">{{ model().differenceTotal | number:'1.2-2' }} TL</td>
+            <td colspan="2">
+              <ng-container *ngIf="model().differenceTotal !== null; else missingTableDifference">
+                {{ model().differenceTotal | number:'1.2-2' }} TL
+              </ng-container>
+              <ng-template #missingTableDifference>-</ng-template>
+            </td>
           </tr>
         </tbody>
       </table>

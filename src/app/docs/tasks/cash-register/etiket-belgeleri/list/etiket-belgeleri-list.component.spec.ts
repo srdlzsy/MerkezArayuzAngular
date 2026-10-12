@@ -134,6 +134,10 @@ describe('EtiketBelgeleriListComponent product sorting', () => {
     const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
     component.productSortKey = signal(null);
     component.productSortDirection = signal('asc');
+    component.productSortOptions = [
+      { value: 'productName:asc', label: 'Urun adi: A-Z' },
+      { value: 'productName:desc', label: 'Urun adi: Z-A' }
+    ];
     component.currentPage = signal(3);
     return component;
   }
@@ -153,7 +157,7 @@ describe('EtiketBelgeleriListComponent product sorting', () => {
 
     component.setProductSort('price');
     expect(component.getProductSortIcon('price')).toBe('↕');
-    expect(component.getProductSortStateLabel('price')).toBe('');
+    expect(component.getProductSortStateLabel('price')).toBe('Sırala');
     expect(component.getProductSortAriaState('price')).toBe('none');
     expect(component.currentPage()).toBe(1);
   });
@@ -167,6 +171,16 @@ describe('EtiketBelgeleriListComponent product sorting', () => {
     component.setProductSort('priceChangeDate');
     component.setProductSort('priceChangeDate');
     expect(component.getProductSortStateLabel('priceChangeDate')).toBe('Yeni-Eski');
+  });
+
+  it('applies an explicit sort menu selection', () => {
+    const component = createSortComponent();
+
+    component.setProductSortSelection('productName:desc');
+
+    expect(component.productSortKey()).toBe('productName');
+    expect(component.productSortDirection()).toBe('desc');
+    expect(component.currentPage()).toBe(1);
   });
 });
 
@@ -215,7 +229,7 @@ describe('EtiketBelgeleriListComponent document print order', () => {
     expect(component.products().map((product: any) => product.productCode)).toEqual(['A']);
   });
 
-  it('prints A, B, A in API order after sorting the table and skips only the hidden row', () => {
+  it('prints products in the active table sort and skips only the hidden row', () => {
     const documentProducts = [
       { productCode: 'A', productName: 'Urun A', barcode: '111', price: 30, oldPrice: 25, pluNo: 0 },
       { productCode: 'B', productName: 'Urun B', barcode: '222', price: 10, oldPrice: 12, pluNo: 0 },
@@ -250,7 +264,12 @@ describe('EtiketBelgeleriListComponent document print order', () => {
     component.setProductSort('price');
     expect(component.visibleProducts().map((product: any) => product.productCode)).toEqual(['B', 'A', 'A']);
     component.printLabels();
-    expect(component.printPreviewProducts().map((product: any) => product.productCode)).toEqual(['A', 'B', 'A']);
+    expect(component.printPreviewProducts().map((product: any) => product.productCode)).toEqual(['B', 'A', 'A']);
+
+    component.setProductSort('productName');
+    expect(component.visibleProducts().map((product: any) => product.productCode)).toEqual(['A', 'A', 'B']);
+    component.printLabels();
+    expect(component.printPreviewProducts().map((product: any) => product.productCode)).toEqual(['A', 'A', 'B']);
 
     component.setProductTableFilter('price-decreased');
     component.printLabels();
@@ -261,7 +280,7 @@ describe('EtiketBelgeleriListComponent document print order', () => {
 
     component.removeProduct(component.products()[0]);
     component.printLabels();
-    expect(component.printPreviewProducts().map((product: any) => product.productCode)).toEqual(['B', 'A']);
+    expect(component.printPreviewProducts().map((product: any) => product.productCode)).toEqual(['A', 'B']);
   });
 
   it('replaces manual list changes immediately without confirmation', () => {

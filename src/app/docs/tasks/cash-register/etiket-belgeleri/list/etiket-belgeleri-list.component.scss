@@ -509,7 +509,7 @@
 
 .product-tools {
   display: grid;
-  grid-template-columns: minmax(260px, 1fr) minmax(86px, auto) auto;
+  grid-template-columns: minmax(260px, 1fr) minmax(86px, auto) minmax(210px, 240px) auto;
   align-items: flex-end;
   gap: 0.42rem;
   padding: 0.34rem;
@@ -533,6 +533,25 @@
 
 .page-size-field select {
   padding-inline: 0.42rem;
+}
+
+.sort-field {
+  min-width: 210px;
+}
+
+.sort-field > span {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.sort-field small {
+  color: #0f766e;
+  font-size: 0.7rem;
+  font-weight: 800;
+  letter-spacing: 0;
+  text-transform: none;
 }
 
 .filter-tab {
@@ -648,7 +667,7 @@
 
 table {
   width: 100%;
-  min-width: 900px;
+  min-width: 1080px;
   border-collapse: collapse;
 }
 
@@ -677,11 +696,16 @@ th {
 }
 
 .sort-button {
-  display: inline-flex;
+  display: inline-grid;
+  grid-template-areas:
+    'label icon'
+    'state state';
+  grid-template-columns: minmax(0, auto) 1rem;
   align-items: center;
-  gap: 0.32rem;
-  min-height: 28px;
-  padding: 0.2rem 0.34rem;
+  column-gap: 0.35rem;
+  row-gap: 0.2rem;
+  min-height: 42px;
+  padding: 0.3rem 0.42rem;
   border: 1px solid transparent;
   border-radius: 5px;
   background: transparent;
@@ -690,6 +714,11 @@ th {
   letter-spacing: inherit;
   text-align: left;
   text-transform: inherit;
+}
+
+.sort-label {
+  grid-area: label;
+  white-space: nowrap;
 }
 
 .sort-button:hover {
@@ -705,6 +734,7 @@ th {
 }
 
 .sort-icon {
+  grid-area: icon;
   display: inline-grid;
   width: 1rem;
   height: 1rem;
@@ -720,6 +750,7 @@ th {
 }
 
 .sort-state {
+  grid-area: state;
   display: inline-flex;
   align-items: center;
   min-height: 18px;
@@ -733,6 +764,12 @@ th {
   line-height: 1;
   text-transform: none;
   white-space: nowrap;
+}
+
+.sort-state.is-idle {
+  background: #eef2f6;
+  color: #64748b;
+  font-weight: 750;
 }
 
 td {

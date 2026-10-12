@@ -69,6 +69,7 @@ import {
   CashTurnoverRouteSource,
   CashSummaryListItemDto,
   CashSummaryReportItemDto,
+  CashSummaryZReportTotalDto,
   CreateCashSummaryHttpRequest,
   CreateCashSummaryResponse,
   UpdateCashSummaryDetailsHttpRequest,
@@ -481,6 +482,19 @@ export class KasaIslemleriService extends BaseApiService {
       map((items: IFurpaCashSummaryDetailItemApiDto[]) =>
         items.map((item: IFurpaCashSummaryDetailItemApiDto) => this.mapSummaryDetail(item))
       )
+    );
+  }
+
+  getKayitliIcmalZReportToplami(
+    documentSerie: string,
+    documentOrderNo: number,
+    warehouseNo?: number | null
+  ): Observable<CashSummaryZReportTotalDto> {
+    return this.getWithQuery<CashSummaryZReportTotalDto>(
+      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/z-rapor-toplam`,
+      {
+        warehouseNo: warehouseNo ?? undefined
+      }
     );
   }
 

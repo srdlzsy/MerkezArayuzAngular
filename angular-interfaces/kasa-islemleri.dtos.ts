@@ -72,6 +72,10 @@ export interface CashSummaryDetailItemDto {
   paymentTypeKey?: string | null;
 }
 
+export interface CashSummaryZReportTotalDto {
+  zTotalValue: number | null;
+}
+
 // ============================================================================
 // Kasa Ciro Modelleri
 // ============================================================================

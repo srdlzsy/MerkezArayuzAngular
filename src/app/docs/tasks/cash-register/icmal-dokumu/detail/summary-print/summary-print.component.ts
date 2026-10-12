@@ -31,7 +31,7 @@ export interface IcmalSummaryPrintModel {
   expenseCompassQuantity: number;
   storeExpensesTotal: number;
   generalTotal: number;
-  differenceTotal: number;
+  differenceTotal: number | null;
   cashierName: string;
   managerName: string;
   zTotalValue: number | null;

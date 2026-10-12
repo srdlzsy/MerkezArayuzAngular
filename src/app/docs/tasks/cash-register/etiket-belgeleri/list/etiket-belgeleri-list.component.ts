@@ -58,6 +58,11 @@ type ProductSortKey =
 
 type SortDirection = 'asc' | 'desc';
 
+interface ProductSortOption {
+  value: `${ProductSortKey}:${SortDirection}`;
+  label: string;
+}
+
 @Component({
   selector: 'app-etiket-belgeleri-list',
   standalone: true,
@@ -105,12 +110,30 @@ export class EtiketBelgeleriListComponent {
   private readonly currentPage = signal(1);
   protected readonly pageSize = signal(25);
   protected readonly readonlyPageSizeOptions = [25, 50, 100] as const;
+  protected readonly productSortOptions: readonly ProductSortOption[] = [
+    { value: 'productName:asc', label: 'Ürün adı: A-Z' },
+    { value: 'productName:desc', label: 'Ürün adı: Z-A' },
+    { value: 'barcode:asc', label: 'Barkod: 0-9' },
+    { value: 'barcode:desc', label: 'Barkod: 9-0' },
+    { value: 'price:asc', label: 'Fiyat: düşükten yükseğe' },
+    { value: 'price:desc', label: 'Fiyat: yüksekten düşüğe' },
+    { value: 'status:asc', label: 'Durum: A-Z' },
+    { value: 'status:desc', label: 'Durum: Z-A' },
+    { value: 'unit:asc', label: 'Birim / koli: A-Z' },
+    { value: 'unit:desc', label: 'Birim / koli: Z-A' },
+    { value: 'priceChangeDate:desc', label: 'Değişiklik: yeniden eskiye' },
+    { value: 'priceChangeDate:asc', label: 'Değişiklik: eskiden yeniye' }
+  ];
   private readonly selectedLabelType = signal<string>(
     ETIKET_TIPLERI[0]?.etiketTipi ?? ''
   );
   protected readonly productTableFilter = signal<ProductListFilter>('all');
   protected readonly productSortKey = signal<ProductSortKey | null>(null);
   protected readonly productSortDirection = signal<SortDirection>('asc');
+  protected readonly productSortSelection = computed(() => {
+    const key = this.productSortKey();
+    return key ? `${key}:${this.productSortDirection()}` : '';
+  });
 
   protected readonly products = signal<IEtiketBasimProduct[]>([]);
   private readonly hiddenProductKeysState = signal<readonly string[]>([]);
@@ -186,14 +209,14 @@ export class EtiketBelgeleriListComponent {
       : this.activeProducts();
   });
   protected readonly labelPrintProducts = computed(() =>
-    this.applyProductFilters(this.previewProducts())
+    this.applyProductTools(this.previewProducts())
   );
   protected readonly priceChangePrintProducts = computed(() => {
     const reportProducts = this.productTableFilter() === 'price-unchanged'
       ? this.activeProducts()
       : this.priceChangeProducts();
 
-    return this.applyProductFilters(reportProducts);
+    return this.applyProductTools(reportProducts);
   });
   protected readonly priceChangeReportScope = computed(() => {
     const filterLabels: Record<ProductListFilter, string> = {
@@ -615,6 +638,21 @@ export class EtiketBelgeleriListComponent {
     this.currentPage.set(1);
   }
 
+  protected setProductSortSelection(value: string): void {
+    const option = this.productSortOptions.find((item) => item.value === value);
+
+    if (!option) {
+      this.productSortKey.set(null);
+      this.productSortDirection.set('asc');
+    } else {
+      const [key, direction] = option.value.split(':') as [ProductSortKey, SortDirection];
+      this.productSortKey.set(key);
+      this.productSortDirection.set(direction);
+    }
+
+    this.currentPage.set(1);
+  }
+
   protected getProductSortIcon(key: ProductSortKey): string {
     if (this.productSortKey() !== key) {
       return '↕';
@@ -625,7 +663,7 @@ export class EtiketBelgeleriListComponent {
 
   protected getProductSortStateLabel(key: ProductSortKey): string {
     if (this.productSortKey() !== key) {
-      return '';
+      return 'Sırala';
     }
 
     const isAscending = this.productSortDirection() === 'asc';

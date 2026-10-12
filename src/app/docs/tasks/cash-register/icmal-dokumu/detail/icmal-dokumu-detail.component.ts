@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, switchMap } from 'rxjs';
 import type {
   IBanknoteMovementsCT,
+  CashSummaryZReportTotalDto,
   ICashier,
   ICashRegisterDetails,
   IFurpaBanknoteTypeItemApiDto,
@@ -315,11 +316,16 @@ export class IcmalDokumuDetailComponent
       this.storeExpensesTotal() +
       this.onlineSalesTotal()
   );
-  protected readonly differenceTotal = computed(
-    () => this.generalTotal() - (this.zTotalValue() ?? 0)
-  );
-  protected readonly differenceStatus = computed<'balanced' | 'surplus' | 'deficit'>(() => {
+  protected readonly differenceTotal = computed<number | null>(() => {
+    const zTotalValue = this.zTotalValue();
+    return zTotalValue === null ? null : this.generalTotal() - zTotalValue;
+  });
+  protected readonly differenceStatus = computed<'balanced' | 'surplus' | 'deficit' | 'unavailable'>(() => {
     const difference = this.differenceTotal();
+
+    if (difference === null) {
+      return 'unavailable';
+    }
 
     if (Math.abs(difference) < 0.01) {
       return 'balanced';
@@ -327,16 +333,12 @@ export class IcmalDokumuDetailComponent
 
     return difference > 0 ? 'surplus' : 'deficit';
   });
-  protected readonly differenceStatusLabel = computed(() => {
-    switch (this.differenceStatus()) {
-      case 'balanced':
-        return 'Kasa dengede';
-      case 'surplus':
-        return 'Kasa fazlası';
-      case 'deficit':
-        return 'Kasa açığı';
-    }
-  });
+  protected readonly differenceStatusLabel = computed(() => ({
+    balanced: 'Kasa dengede',
+    surplus: 'Kasa fazlası',
+    deficit: 'Kasa açığı',
+    unavailable: 'Z toplamı bulunamadı'
+  })[this.differenceStatus()]);
   protected readonly detailTabs = computed<DetailTabView[]>(() => {
     const tabs: DetailTabView[] = [];
 
@@ -1121,14 +1123,11 @@ export class IcmalDokumuDetailComponent
       return;
     }
 
-    const warehouseNo = this.warehouseNo();
-    const canRequestZTotal = warehouseNo > 0;
-
     this.feedback.set(null);
     this.loadIssues.set([]);
     this.isLoading.set(true);
     const issues: string[] = [];
-    let pendingRequests = canRequestZTotal ? 6 : 5;
+    let pendingRequests = 6;
 
     const finalizeRequest = () => {
       pendingRequests -= 1;
@@ -1237,29 +1236,26 @@ export class IcmalDokumuDetailComponent
         }
       });
 
-    if (!canRequestZTotal) {
-      this.zTotalValue.set(null);
-      issues.push('Depo numarasi bulunamadigi icin Z raporu tutari alinmadi.');
-      finalizeRequest();
-      return;
-    }
-
     this.kasaIslemleriService
-      .getZRaporuToplamDeger(summary.documentSerie, warehouseNo, summary.zReportNo, summary.cashNo)
+      .getKayitliIcmalZReportToplami(
+        summary.documentSerie,
+        summary.documentOrderNo,
+        this.resolveRequestWarehouseNo()
+      )
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
-        next: (value: number | null) => {
-          this.zTotalValue.set(value);
+        next: (response: CashSummaryZReportTotalDto) => {
+          this.zTotalValue.set(response.zTotalValue);
 
-          if (value === null) {
-            issues.push('Z raporu toplami getirilemedi.');
+          if (response.zTotalValue === null) {
+            issues.push('Kayitli Z raporu toplami bulunamadi.');
           }
 
           finalizeRequest();
         },
         error: () => {
           this.zTotalValue.set(null);
-          issues.push('Z raporu toplami getirilemedi.');
+          issues.push('Kayitli Z raporu toplami getirilemedi.');
           finalizeRequest();
         }
       });

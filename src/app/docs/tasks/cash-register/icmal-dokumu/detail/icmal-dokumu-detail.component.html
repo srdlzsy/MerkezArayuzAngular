@@ -355,9 +355,11 @@
           <article class="reconciliation-card reconciliation-card-info">
             <div class="metric-title">
               <span>Z raporu tutarı</span>
-              <small>Beklenen toplam</small>
+              <small>Kayıtlı Z toplamı</small>
             </div>
-            <strong>{{ (zTotalValue() ?? 0) | number:'1.2-2' }} TL</strong>
+            <strong *ngIf="zTotalValue() !== null; else missingZTotal">
+              {{ zTotalValue() | number:'1.2-2' }} TL
+            </strong>
           </article>
 
           <article class="reconciliation-card reconciliation-card-difference" [ngClass]="'is-' + differenceStatus()">
@@ -365,9 +367,13 @@
               <span>Kasa farkı</span>
               <small>{{ differenceStatusLabel() }}</small>
             </div>
-            <strong>{{ differenceTotal() | number:'1.2-2' }} TL</strong>
+            <strong *ngIf="differenceTotal() !== null; else missingDifference">
+              {{ differenceTotal() | number:'1.2-2' }} TL
+            </strong>
           </article>
         </div>
+        <ng-template #missingZTotal><strong>-</strong></ng-template>
+        <ng-template #missingDifference><strong>-</strong></ng-template>
       </section>
 
       <section class="payment-section icmal-print-hidden" *ngIf="hasPaymentBreakdown()">
