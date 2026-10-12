@@ -25,6 +25,7 @@ import { InPlacePrintService } from '../../../core/document-print/in-place-print
 import { AddLabel } from '../add-label/add-label';
 import { renderBarcodeSvg, type BarcodeRenderOptions } from '../etiket-barcode.util';
 import { ETIKET_TIPLERI, IEtiketTipiConfig } from '../etiket-belgeleri.config';
+import { resolveEtiketPrintCalibration } from '../etiket-print-calibration';
 import { PrintChangePrice } from '../print-change-price/print-change-price';
 
 type PreviewMode = 'labels' | 'price-changes';
@@ -1169,6 +1170,22 @@ export class EtiketBelgeleriListComponent {
 
   private async printWithStylesheet(stylesheetHref: string): Promise<void> {
     this.printState.set('preparing');
+    await this.waitForNextPaint();
+
+    const printRoot = document.querySelector<HTMLElement>('.etiket-print-root');
+
+    if (!printRoot) {
+      this.printState.set('idle');
+      this.resetPrintPreview();
+      this.setFeedback(
+        'error',
+        'Baski hazirlanamadi',
+        'Etiket baski alani olusturulamadi. Lutfen tekrar deneyin.'
+      );
+      return;
+    }
+
+    const restorePrintCalibration = this.applyPrintCalibration(printRoot);
     const cacheBustedStylesheet = `${stylesheetHref}${stylesheetHref.includes('?') ? '&' : '?'}v=${Date.now()}`;
     const started = await this.inPlacePrintService.print({
       styleId: 'etiket-belgeleri-print-shell',
@@ -1218,6 +1235,23 @@ export class EtiketBelgeleriListComponent {
           display: block !important;
         }
 
+        html.etiket-belgeleri-printing,
+        body.etiket-belgeleri-printing {
+          width: auto !important;
+          min-width: 0 !important;
+          margin: 0 !important;
+          padding: 0 !important;
+          overflow: visible !important;
+        }
+
+        body.etiket-belgeleri-printing > app-root {
+          display: none !important;
+        }
+
+        body.etiket-belgeleri-printing > .etiket-print-root {
+          display: block !important;
+        }
+
         .app-sidebar,
         .topbar,
         .topbar-mobile,
@@ -1248,14 +1282,20 @@ export class EtiketBelgeleriListComponent {
           href: cacheBustedStylesheet
         }
       ],
+      mount: {
+        element: printRoot,
+        documentClassName: 'etiket-belgeleri-printing'
+      },
       beforePrint: () => this.renderPrintBarcodes(),
       afterPrint: () => {
+        restorePrintCalibration();
         this.printState.set('idle');
         this.resetPrintPreview();
       }
     });
 
     if (!started) {
+      restorePrintCalibration();
       this.printState.set('idle');
       this.resetPrintPreview();
       this.setFeedback(
@@ -1264,6 +1304,39 @@ export class EtiketBelgeleriListComponent {
         'Etiket baski stili yuklenemedi. Lutfen tekrar deneyin.'
       );
     }
+  }
+
+  private applyPrintCalibration(printRoot: HTMLElement): () => void {
+    const xProperty = '--rack-label-page-offset-x';
+    const yProperty = '--rack-label-page-offset-y';
+    const calibrationClass = 'has-rack-label-page-calibration';
+    const previousX = printRoot.style.getPropertyValue(xProperty);
+    const previousY = printRoot.style.getPropertyValue(yProperty);
+    const hadCalibrationClass = printRoot.classList.contains(calibrationClass);
+    const calibration = resolveEtiketPrintCalibration(
+      this.currentWarehouseNo(),
+      this.printPreviewLabelConfig()?.etiketTipi
+    );
+    const hasCalibration = calibration.offsetXmm !== 0 || calibration.offsetYmm !== 0;
+
+    printRoot.style.setProperty(xProperty, `${calibration.offsetXmm}mm`);
+    printRoot.style.setProperty(yProperty, `${calibration.offsetYmm}mm`);
+    printRoot.classList.toggle(calibrationClass, hasCalibration);
+
+    return () => {
+      this.restoreStyleProperty(printRoot, xProperty, previousX);
+      this.restoreStyleProperty(printRoot, yProperty, previousY);
+      printRoot.classList.toggle(calibrationClass, hadCalibrationClass);
+    };
+  }
+
+  private restoreStyleProperty(element: HTMLElement, property: string, value: string): void {
+    if (value) {
+      element.style.setProperty(property, value);
+      return;
+    }
+
+    element.style.removeProperty(property);
   }
 
   private waitForNextPaint(): Promise<void> {

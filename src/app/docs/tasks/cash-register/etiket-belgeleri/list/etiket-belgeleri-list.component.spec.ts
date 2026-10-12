@@ -11,6 +11,83 @@ import { ETIKET_TIPLERI } from '../etiket-belgeleri.config';
 import { EtiketBelgeleriListComponent } from './etiket-belgeleri-list.component';
 
 describe('EtiketBelgeleriListComponent manual product rows', () => {
+  it('isolates the label root from the application layout while printing', async () => {
+    const print = jasmine.createSpy('print').and.resolveTo(true);
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { currentUser: signal(null) } },
+        { provide: KasaIslemleriService, useValue: {} },
+        { provide: InPlacePrintService, useValue: { print } },
+        { provide: Dialog, useValue: {} }
+      ]
+    });
+
+    const component = TestBed.runInInjectionContext(
+      () => new EtiketBelgeleriListComponent()
+    ) as any;
+    const printRoot = document.createElement('section');
+    printRoot.className = 'etiket-print-root';
+    document.body.appendChild(printRoot);
+    spyOn(component, 'waitForNextPaint').and.resolveTo();
+
+    try {
+      await component.printWithStylesheet('/assets/rack-label-a5-landscape-print.css');
+
+      expect(print).toHaveBeenCalled();
+      const request = print.calls.mostRecent().args[0];
+      expect(request.mount).toEqual({
+        element: printRoot,
+        documentClassName: 'etiket-belgeleri-printing'
+      });
+      expect(request.styles).toContain('body.etiket-belgeleri-printing > app-root');
+    } finally {
+      printRoot.remove();
+    }
+  });
+
+  it('applies and restores the warehouse 165 legacy rack-label calibration', async () => {
+    const print = jasmine.createSpy('print').and.callFake(async (request: any) => {
+      const printRoot = request.mount.element as HTMLElement;
+
+      expect(printRoot.classList).toContain('has-rack-label-page-calibration');
+      expect(printRoot.style.getPropertyValue('--rack-label-page-offset-x')).toBe('0mm');
+      expect(printRoot.style.getPropertyValue('--rack-label-page-offset-y')).toBe('3mm');
+      request.afterPrint();
+      return true;
+    });
+
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { currentUser: signal({ depoNo: 165 }) } },
+        { provide: KasaIslemleriService, useValue: {} },
+        { provide: InPlacePrintService, useValue: { print } },
+        { provide: Dialog, useValue: {} }
+      ]
+    });
+
+    const component = TestBed.runInInjectionContext(
+      () => new EtiketBelgeleriListComponent()
+    ) as any;
+    const printRoot = document.createElement('section');
+    printRoot.className = 'etiket-print-root';
+    document.body.appendChild(printRoot);
+    component.printPreviewLabelConfig.set(
+      ETIKET_TIPLERI.find((label) => label.etiketTipi === 'rack_label_a4') ?? null
+    );
+    spyOn(component, 'waitForNextPaint').and.resolveTo();
+
+    try {
+      await component.printWithStylesheet('/assets/rack-label-a4-print.css');
+
+      expect(printRoot.classList).not.toContain('has-rack-label-page-calibration');
+      expect(printRoot.style.getPropertyValue('--rack-label-page-offset-x')).toBe('');
+      expect(printRoot.style.getPropertyValue('--rack-label-page-offset-y')).toBe('');
+    } finally {
+      printRoot.remove();
+    }
+  });
+
   it('assigns a distinct row key when the same product is added repeatedly', () => {
     const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
     component.productRowSequence = 0;
@@ -327,5 +404,6 @@ describe('Etiket Belgeleri label registry', () => {
     expect(physicalA5Label?.ozelCss).toBe('/assets/rack-label-a5-landscape-print.css');
     expect(physicalA5Label?.component).toBe(legacyLabel?.component);
     expect(physicalA5Label?.sayfaKapasitesi).toBe(12);
+    expect(physicalA5Label?.kullanimaHazir).toBeFalse();
   });
 });

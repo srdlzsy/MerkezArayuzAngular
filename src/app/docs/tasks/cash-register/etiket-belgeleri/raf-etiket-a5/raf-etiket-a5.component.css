@@ -1,1 +1,3 @@
-@import '../../../../../../assets/rack-label-a4-print.css';
+:host {
+  display: block;
+}

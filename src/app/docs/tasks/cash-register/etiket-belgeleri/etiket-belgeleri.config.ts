@@ -56,15 +56,15 @@ export const ETIKET_TIPLERI: readonly IEtiketTipiConfig[] = [
     aciklama: 'Coklu raf etiketi sayfa duzeni ile baski alir.'
   },
   {
-    etiketIsmi: 'Raf Etiketi A5 Yatay (%100)',
+    etiketIsmi: 'Raf Etiketi A5 (%100 - Dikey Besleme)',
     etiketTipi: 'rack_label_a5_landscape',
     ozelCss: '/assets/rack-label-a5-landscape-print.css',
     sunumTipi: 'rack_label_a5_landscape',
     veriKumesi: 'tum-urunler',
-    kullanimaHazir: true,
+    kullanimaHazir: false,
     component: RafEtiketA5Component,
     sayfaKapasitesi: 12,
-    aciklama: 'A5 yatay kagitta yuzde 100 olcekle 12 raf etiketi basar.'
+    aciklama: 'Yazici suruculerinde tutarli sonuc vermedigi icin kullanima kapatildi.'
   },
   {
     etiketIsmi: 'A4 Fiyat Etiketi',
