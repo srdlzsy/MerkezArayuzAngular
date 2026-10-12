@@ -26,6 +26,24 @@ for (const stylesheet of new Set(configuredStylesheets)) {
 
 const contracts = [
   {
+    file: 'src/assets/rack-label-a4-print.css',
+    checks: [
+      ['A4 page contract', /size:\s*A4/i],
+      ['209mm safe print width', /\.print-half-page\s*\{[\s\S]*?width:\s*209mm/i],
+      ['146mm safe print height', /\.print-half-page\s*\{[\s\S]*?height:\s*146mm/i],
+      ['four 34mm rows', /grid-template-rows:\s*repeat\(4,\s*34mm\)/i],
+      ['page fragmentation guard', /break-inside:\s*avoid-page/i],
+    ],
+  },
+  {
+    file: 'src/assets/rack-label-a5-landscape-print.css',
+    checks: [
+      ['shared rack label layout', /@import\s+url\(['"]?\/assets\/rack-label-a4-print\.css['"]?\)/i],
+      ['A5 landscape page', /size:\s*A5 landscape/i],
+      ['zero page margin', /margin:\s*0/i],
+    ],
+  },
+  {
     file: 'src/assets/a5-quad-price-print.css',
     checks: [
       ['A5 landscape page', /size:\s*A5 landscape/i],

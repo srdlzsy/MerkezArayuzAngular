@@ -10,21 +10,33 @@
     padding: 0;
   }
 
+  :host,
+  app-raf-etiket-a5 {
+    display: block !important;
+    width: 209mm !important;
+    height: auto !important;
+    margin: 0 !important;
+    padding: 0 !important;
+    line-height: 0 !important;
+  }
+
   .print-half-page {
-    width: 210mm;
-    height: 148mm;
+    width: 209mm;
+    height: 146mm;
     box-sizing: border-box;
     padding: 4mm 4mm 0 5mm;
 
     display: grid !important;
     grid-template-columns: repeat(3, 1fr) !important;
-    grid-template-rows: repeat(4, 34.8mm) !important;
+    grid-template-rows: repeat(4, 34mm) !important;
 
     column-gap: 1.5mm !important;
     row-gap: 1mm !important;
 
     align-content: start !important;
     overflow: hidden;
+    page-break-inside: avoid;
+    break-inside: avoid-page;
 
     page-break-after: always;
     break-after: page;

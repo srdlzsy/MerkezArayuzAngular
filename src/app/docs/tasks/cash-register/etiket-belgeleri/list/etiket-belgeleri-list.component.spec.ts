@@ -316,4 +316,16 @@ describe('Etiket Belgeleri label registry', () => {
     expect(readyLabels.every((label) => !!label.component)).toBeTrue();
     expect(readyLabels.every((label) => label.sayfaKapasitesi > 0)).toBeTrue();
   });
+
+  it('keeps legacy and physical A5 rack labels as separate options', () => {
+    const legacyLabel = ETIKET_TIPLERI.find((label) => label.etiketTipi === 'rack_label_a4');
+    const physicalA5Label = ETIKET_TIPLERI.find(
+      (label) => label.etiketTipi === 'rack_label_a5_landscape'
+    );
+
+    expect(legacyLabel?.ozelCss).toBe('/assets/rack-label-a4-print.css');
+    expect(physicalA5Label?.ozelCss).toBe('/assets/rack-label-a5-landscape-print.css');
+    expect(physicalA5Label?.component).toBe(legacyLabel?.component);
+    expect(physicalA5Label?.sayfaKapasitesi).toBe(12);
+  });
 });

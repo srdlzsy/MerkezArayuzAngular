@@ -16,6 +16,7 @@ export interface IEtiketTipiConfig {
   sunumTipi:
     | 'rack_label'
     | 'rack_label_a4'
+    | 'rack_label_a5_landscape'
     | 'a4_pricelabel'
     | 'a5_pricelabel'
     | 'a5_quad_pricelabel'
@@ -53,6 +54,17 @@ export const ETIKET_TIPLERI: readonly IEtiketTipiConfig[] = [
     component: RafEtiketA5Component,
     sayfaKapasitesi: 12,
     aciklama: 'Coklu raf etiketi sayfa duzeni ile baski alir.'
+  },
+  {
+    etiketIsmi: 'Raf Etiketi A5 Yatay (%100)',
+    etiketTipi: 'rack_label_a5_landscape',
+    ozelCss: '/assets/rack-label-a5-landscape-print.css',
+    sunumTipi: 'rack_label_a5_landscape',
+    veriKumesi: 'tum-urunler',
+    kullanimaHazir: true,
+    component: RafEtiketA5Component,
+    sayfaKapasitesi: 12,
+    aciklama: 'A5 yatay kagitta yuzde 100 olcekle 12 raf etiketi basar.'
   },
   {
     etiketIsmi: 'A4 Fiyat Etiketi',

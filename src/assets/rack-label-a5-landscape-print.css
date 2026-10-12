@@ -1,0 +1,8 @@
+@import url('/assets/rack-label-a4-print.css');
+
+@media print {
+  @page {
+    size: A5 landscape;
+    margin: 0;
+  }
+}
