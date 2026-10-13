@@ -212,22 +212,18 @@ export class EtiketBelgeleriListComponent {
   protected readonly labelPrintProducts = computed(() =>
     this.applyProductTools(this.previewProducts())
   );
-  protected readonly priceChangePrintProducts = computed(() => {
-    const reportProducts = this.productTableFilter() === 'price-unchanged'
-      ? this.activeProducts()
-      : this.priceChangeProducts();
-
-    return this.applyProductTools(reportProducts);
-  });
+  protected readonly priceChangePrintProducts = computed(() =>
+    this.applyProductTools(this.activeProducts())
+  );
   protected readonly priceChangeReportScope = computed(() => {
     const filterLabels: Record<ProductListFilter, string> = {
-      all: 'Fiyatı değişen tüm ürünler',
-      promotions: 'Promosyonlu ve fiyatı değişen ürünler',
+      all: 'Listedeki tüm ürünler',
+      promotions: 'Promosyonlu ürünler',
       'price-changes': 'Fiyatı değişen ürünler',
       'price-increased': 'Yalnızca fiyatı artan ürünler',
       'price-decreased': 'Yalnızca fiyatı azalan ürünler',
       'price-unchanged': 'Yalnızca fiyatı aynı kalan ürünler',
-      'missing-barcode': 'Barkodu eksik ve fiyatı değişen ürünler'
+      'missing-barcode': 'Barkodu eksik ürünler'
     };
     const searchTerm = this.productSearchTerm();
     const scope = filterLabels[this.productTableFilter()];
@@ -747,8 +743,8 @@ export class EtiketBelgeleriListComponent {
     if (!this.priceChangePrintProducts().length) {
       this.setFeedback(
         'error',
-        'Fiyat degisim listesi bos',
-        'Eski fiyat ile yeni fiyat arasinda fark olan urun bulunamadi.'
+        'Dokum listesi bos',
+        'Secili filtreye uygun yazdirilacak urun bulunamadi.'
       );
       return;
     }

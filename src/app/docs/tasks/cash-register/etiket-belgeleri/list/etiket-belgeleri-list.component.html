@@ -16,12 +16,16 @@
         <strong>{{ products().length }}</strong>
       </span>
       <span>
-        <b>Yazdirilacak</b>
+        <b>Etiket</b>
         <strong>{{ labelPrintProducts().length }}</strong>
       </span>
       <span>
-        <b>Sayfa</b>
+        <b>Etiket sayfasi</b>
         <strong>{{ printPageCount() }}</strong>
+      </span>
+      <span>
+        <b>Dokum satiri</b>
+        <strong>{{ priceChangePrintProducts().length }}</strong>
       </span>
       <span [class.has-warning]="printMissingBarcodeCount() > 0">
         <b>Barkod eksik</b>

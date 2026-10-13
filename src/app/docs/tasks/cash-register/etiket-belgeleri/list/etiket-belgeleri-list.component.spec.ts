@@ -275,6 +275,49 @@ describe('EtiketBelgeleriListComponent price filters', () => {
 
     expect(products.map((product: any) => product.productCode)).toEqual(['SAME']);
   });
+
+  it('prints every row in the active filter without silently removing unchanged prices', () => {
+    TestBed.configureTestingModule({
+      providers: [
+        { provide: AuthService, useValue: { currentUser: signal(null) } },
+        { provide: KasaIslemleriService, useValue: {} },
+        { provide: InPlacePrintService, useValue: {} },
+        { provide: Dialog, useValue: {} }
+      ]
+    });
+
+    const component = TestBed.runInInjectionContext(
+      () => new EtiketBelgeleriListComponent()
+    ) as any;
+    component.products.set([
+      {
+        productCode: 'CHANGED',
+        productName: 'Fiyati Degisen Promosyonlu Urun',
+        barcode: '1',
+        oldPrice: 50,
+        price: 60,
+        promotion: { isActive: true }
+      },
+      {
+        productCode: 'UNCHANGED',
+        productName: 'Fiyati Ayni Promosyonlu Urun',
+        barcode: '2',
+        oldPrice: 40,
+        price: 40,
+        promotion: { isActive: true }
+      }
+    ]);
+    component.setProductTableFilter('promotions');
+
+    expect(component.visibleProducts().map((product: any) => product.productCode)).toEqual([
+      'CHANGED',
+      'UNCHANGED'
+    ]);
+    expect(component.priceChangePrintProducts().map((product: any) => product.productCode)).toEqual([
+      'CHANGED',
+      'UNCHANGED'
+    ]);
+  });
 });
 
 describe('EtiketBelgeleriListComponent document print order', () => {

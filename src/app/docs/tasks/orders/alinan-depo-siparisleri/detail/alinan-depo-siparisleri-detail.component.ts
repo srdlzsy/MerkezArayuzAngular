@@ -102,7 +102,8 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
     const rows = items
       .map(
-        (item) => `<tr>
+        (item, index) => `<tr>
+          <td class="row-number">${index + 1}</td>
           <td class="product">${this.escapeHtml(item.stockName || '-')}</td>
           <td class="quantity">${this.escapeHtml(this.formatPrintNumber(item.quantity))}</td>
         </tr>`
@@ -111,11 +112,13 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
     return `<table>
       <colgroup>
+        <col class="col-row-number">
         <col>
         <col class="col-quantity">
       </colgroup>
       <thead>
         <tr>
+          <th class="row-number">#</th>
           <th>Urun Adi</th>
           <th>Miktar</th>
         </tr>
@@ -267,6 +270,10 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
         width: 26mm;
       }
 
+      .col-row-number {
+        width: 10mm;
+      }
+
       th,
       td {
         padding: 5px 6px 5px 0;
@@ -287,6 +294,12 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
       .quantity {
         text-align: left;
+      }
+
+      .row-number {
+        color: #4b5563;
+        text-align: left;
+        font-variant-numeric: tabular-nums;
       }
 
       .product {
