@@ -26,6 +26,17 @@ for (const stylesheet of new Set(configuredStylesheets)) {
 
 const contracts = [
   {
+    file: 'src/assets/price-change-list-print.css',
+    checks: [
+      ['A4 portrait page', /size:\s*A4 portrait/i],
+      ['7mm page margin', /@page\s*\{[\s\S]*?margin:\s*7mm/i],
+      ['compact table header', /\.price-change-table th\s*\{[\s\S]*?padding:\s*0\.7mm 0\.9mm/i],
+      ['compact table rows', /\.price-change-table td\s*\{[\s\S]*?padding:\s*0\.55mm 0\.9mm/i],
+      ['repeating table header', /\.price-change-table thead\s*\{[\s\S]*?display:\s*table-header-group/i],
+      ['row fragmentation guard', /\.price-change-table tbody tr\s*\{[\s\S]*?break-inside:\s*avoid/i],
+    ],
+  },
+  {
     file: 'src/assets/rack-label-a4-print.css',
     checks: [
       ['A4 page contract', /size:\s*A4/i],
