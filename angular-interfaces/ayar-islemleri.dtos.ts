@@ -371,8 +371,10 @@ export interface DatabaseMonitoringIncidentDto {
   resolvedAtUtc: string | null;
 }
 
+export type SafeWriteMonitoringStatus = 'Processing' | 'Completed' | 'Failed';
+
 export interface SafeWriteMonitoringListHttpRequest {
-  status?: string | null;
+  status?: SafeWriteMonitoringStatus | null;
   operationCode?: string | null;
   warehouseNo?: number | null;
   retryable?: boolean | null;
@@ -386,7 +388,7 @@ export interface SafeWriteMonitoringItemDto {
   requestedByUserId: string;
   warehouseNo: number;
   clientRequestId: string;
-  status: string | null;
+  status: SafeWriteMonitoringStatus | null;
   errorCode: string | null;
   retryable: boolean | null;
   errorMessage: string | null;

@@ -12,7 +12,8 @@ import type {
   DatabaseRecommendationDto,
   DatabaseRollbackStatusDto,
   DatabaseSessionTerminationDto,
-  SafeWriteMonitoringItemDto
+  SafeWriteMonitoringItemDto,
+  SafeWriteMonitoringListHttpRequest
 } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
@@ -26,6 +27,13 @@ import {
   getOptionalText,
   hasSettingsPermission
 } from '../../settings-task.helpers';
+import {
+  buildSafeWriteMonitoringRequest,
+  getSafeWriteStatusPresentation,
+  type SafeWriteRetryableFilter,
+  type SafeWriteStatusFilter,
+  type SafeWriteStatusTone
+} from './safe-write-monitoring.helpers';
 
 type MonitorTab = 'live' | 'safeWrites' | 'incidents' | 'audits';
 
@@ -67,6 +75,7 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly isHistoryLoading = signal(false);
+  protected readonly isSafeWriteLoading = signal(false);
   protected readonly isTerminating = signal(false);
   protected readonly isRollbackLoading = signal(false);
 
@@ -78,12 +87,22 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly refreshSeconds = computed(
     () => this.snapshot()?.thresholds.refreshSeconds ?? 10
   );
+  protected readonly isCurrentHistoryLoading = computed(() =>
+    this.tab() === 'safeWrites' ? this.isSafeWriteLoading() : this.isHistoryLoading()
+  );
 
   protected readonly terminateForm = new FormGroup({
     reason: new FormControl('', {
       nonNullable: true,
       validators: [Validators.required, Validators.minLength(10), Validators.maxLength(500)]
     })
+  });
+  protected readonly safeWriteFilterForm = new FormGroup({
+    status: new FormControl<SafeWriteStatusFilter>('', { nonNullable: true }),
+    operationCode: new FormControl('', { nonNullable: true }),
+    warehouseNo: new FormControl<number | null>(null),
+    retryable: new FormControl<SafeWriteRetryableFilter>('all', { nonNullable: true }),
+    includeCompleted: new FormControl(false, { nonNullable: true })
   });
 
   private readonly authService = inject(AuthService);
@@ -137,9 +156,30 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   }
 
   protected refreshHistory(): void {
-    if (this.canViewHistory() && !this.isHistoryLoading()) {
+    if (!this.canViewHistory()) {
+      return;
+    }
+
+    if (this.tab() === 'safeWrites') {
+      this.loadSafeWrites(true);
+    } else if (!this.isHistoryLoading()) {
       this.loadHistory(true);
     }
+  }
+
+  protected applySafeWriteFilters(): void {
+    this.loadSafeWrites(true);
+  }
+
+  protected resetSafeWriteFilters(): void {
+    this.safeWriteFilterForm.reset({
+      status: '',
+      operationCode: '',
+      warehouseNo: null,
+      retryable: 'all',
+      includeCompleted: false
+    });
+    this.loadSafeWrites(true);
   }
 
   protected selectRequest(request: DatabaseActiveRequestDto): void {
@@ -321,6 +361,19 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     }
   }
 
+  protected safeWriteStatusLabel(item: SafeWriteMonitoringItemDto): string {
+    return getSafeWriteStatusPresentation(item).label;
+  }
+
+  protected safeWriteStatusClass(item: SafeWriteMonitoringItemDto): string {
+    const tone: SafeWriteStatusTone = getSafeWriteStatusPresentation(item).tone;
+    return tone === 'neutral' ? '' : `status-${tone}`;
+  }
+
+  protected safeWriteRetryLabel(item: SafeWriteMonitoringItemDto): string {
+    return getSafeWriteStatusPresentation(item).retryLabel;
+  }
+
   protected trackByRequest(_: number, request: DatabaseActiveRequestDto): string {
     return `${request.sessionId}-${request.requestId}`;
   }
@@ -450,7 +503,7 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     }
 
     this.isHistoryLoading.set(true);
-    let pendingRequestCount = 3;
+    let pendingRequestCount = 2;
     let hasError = false;
     const finishRequest = (): void => {
       pendingRequestCount -= 1;
@@ -500,15 +553,36 @@ export class VeritabaniIzlemeListComponent implements OnInit {
         error: handleError
       });
 
+    this.loadSafeWrites(false);
+  }
+
+  private loadSafeWrites(showFeedback: boolean): void {
+    if (!this.canViewHistory() || this.isSafeWriteLoading()) {
+      return;
+    }
+
+    const request: SafeWriteMonitoringListHttpRequest = buildSafeWriteMonitoringRequest(
+      this.safeWriteFilterForm.getRawValue()
+    );
+    this.isSafeWriteLoading.set(true);
     this.api
-      .getSafeWriteMonitoringItems({ includeCompleted: false, take: 100 })
+      .getSafeWriteMonitoringItems(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(finishRequest)
+        finalize(() => this.isSafeWriteLoading.set(false))
       )
       .subscribe({
-        next: (items: SafeWriteMonitoringItemDto[]) => this.safeWrites.set(items ?? []),
-        error: handleError
+        next: (items: SafeWriteMonitoringItemDto[]) => {
+          this.safeWrites.set(items ?? []);
+          if (showFeedback) {
+            this.showSuccess('Guvenli yazmalar yenilendi', `${items?.length ?? 0} kayit listelendi.`);
+          }
+        },
+        error: (error: unknown) =>
+          this.showError(
+            'Guvenli yazmalar alinamadi',
+            getErrorMessage(error, 'Guvenli create kayitlari okunamadi.')
+          )
       });
   }
 

@@ -90,7 +90,7 @@ describe('AyarIslemleriService database monitoring', () => {
 
   it('gets incomplete safe writes with normalized monitoring filters', () => {
     service.getSafeWriteMonitoringItems({
-      status: ' Failed ',
+      status: 'Failed',
       operationCode: ' inventory-count.create ',
       warehouseNo: 120,
       retryable: true,

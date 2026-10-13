@@ -98,10 +98,10 @@
           type="button"
           class="task-action task-action-secondary"
           (click)="refreshHistory()"
-          [disabled]="isHistoryLoading()"
+          [disabled]="isCurrentHistoryLoading()"
         >
           <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-          {{ isHistoryLoading() ? 'Yenileniyor' : 'Gecmisi Yenile' }}
+          {{ isCurrentHistoryLoading() ? 'Yenileniyor' : 'Gecmisi Yenile' }}
         </button>
       </ng-template>
     </nav>
@@ -379,27 +379,67 @@
       <div class="panel-head">
         <div class="panel-head-text">
           <span class="panel-kicker">Guvenli Create Takibi</span>
-          <h3>Tamamlanmamis Yazmalar</h3>
+          <h3>Guvenli Yazmalar</h3>
         </div>
-        <span class="table-meta">{{ safeWrites().length }} kayit</span>
+        <span class="table-meta">{{ isSafeWriteLoading() ? 'Yukleniyor' : safeWrites().length + ' kayit' }}</span>
       </div>
+      <form class="filter-bar safe-write-filter" [formGroup]="safeWriteFilterForm" (ngSubmit)="applySafeWriteFilters()">
+        <label class="field">
+          <span>Durum</span>
+          <select formControlName="status">
+            <option value="">Tamamlanmamis kayitlar</option>
+            <option value="Processing">Isleniyor / Uzlastirma Bekliyor</option>
+            <option value="Failed">Basarisiz</option>
+            <option value="Completed">Tamamlandi</option>
+          </select>
+        </label>
+        <label class="field">
+          <span>Tekrar Durumu</span>
+          <select formControlName="retryable">
+            <option value="all">Tumu</option>
+            <option value="true">Kontrol edilebilir</option>
+            <option value="false">Manuel inceleme</option>
+          </select>
+        </label>
+        <label class="field safe-write-operation-field">
+          <span>Operasyon Kodu</span>
+          <input type="text" formControlName="operationCode" placeholder="Orn. inventory-count.create" />
+        </label>
+        <label class="field">
+          <span>Depo No</span>
+          <input type="number" formControlName="warehouseNo" min="1" step="1" placeholder="120" />
+        </label>
+        <label class="safe-write-toggle">
+          <input type="checkbox" formControlName="includeCompleted" />
+          <span>Tamamlananlari dahil et</span>
+        </label>
+        <div class="filter-actions safe-write-filter-actions">
+          <button type="submit" class="task-action task-action-primary" [disabled]="isSafeWriteLoading()">
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+            Filtrele
+          </button>
+          <button type="button" class="task-action" [disabled]="isSafeWriteLoading()" (click)="resetSafeWriteFilters()">
+            Temizle
+          </button>
+        </div>
+      </form>
       <div class="table-wrap history-table-wrap" *ngIf="safeWrites().length > 0; else noSafeWrites">
         <table class="data-table">
           <thead>
-            <tr><th>Durum</th><th>Islem</th><th>Depo</th><th>Takip Kimligi</th><th>Bekleme</th><th>Tekrar</th><th>Hata</th><th>Son Guncelleme</th></tr>
+            <tr><th>Durum</th><th>Islem</th><th>Depo</th><th>Takip Kimligi</th><th>Son Guncelleme Yasi</th><th>Karar</th><th>Hata</th><th>Son Guncelleme</th></tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of safeWrites(); trackBy: trackBySafeWrite">
               <td>
-                <span class="status-badge" [class.status-warn]="item.status === 'Processing'" [class.status-danger]="item.status === 'Failed'">
-                  {{ item.status || '-' }}
+                <span class="status-badge safe-write-status" [ngClass]="safeWriteStatusClass(item)">
+                  {{ safeWriteStatusLabel(item) }}
                 </span>
               </td>
               <td>{{ item.operationCode || '-' }}<span class="table-meta">{{ item.requestedByUserId || '-' }}</span></td>
               <td>{{ item.warehouseNo }}</td>
               <td [title]="item.clientRequestId"><strong>{{ item.clientRequestId | slice:0:8 }}</strong></td>
               <td>{{ formatDuration(item.ageSeconds * 1000) }}</td>
-              <td>{{ item.retryable === true ? 'Uygun' : item.retryable === false ? 'Inceleme' : '-' }}</td>
+              <td>{{ safeWriteRetryLabel(item) }}</td>
               <td class="wrap-cell">{{ item.errorCode || '-' }}<span class="table-meta">{{ item.errorMessage || '-' }}</span></td>
               <td>{{ formatDate(item.updatedAtUtc || item.createdAtUtc) }}</td>
             </tr>
@@ -407,7 +447,7 @@
         </table>
       </div>
       <ng-template #noSafeWrites>
-        <article class="state-card state-card-success empty-state"><h3>Bekleyen yazma yok</h3><p>Tamamlanmamis veya inceleme bekleyen guvenli kayit bulunmuyor.</p></article>
+        <article class="state-card state-card-success empty-state"><h3>Kayit bulunamadi</h3><p>Secilen filtrelere uygun guvenli yazma kaydi yok.</p></article>
       </ng-template>
     </section>
 
