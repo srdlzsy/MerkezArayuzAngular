@@ -6,6 +6,7 @@
     "start": "ng serve",
     "clean:dist": "node -e \"require('fs').rmSync('dist', { recursive: true, force: true })\"",
     "build": "npm run clean:dist && ng build",
+    "publish:iis": "powershell -NoProfile -ExecutionPolicy Bypass -File scripts/publish-iis.ps1",
     "watch": "ng build --watch --configuration development",
     "test": "ng test",
     "test:ci": "ng test --watch=false --progress=false --browsers=ChromeHeadless",

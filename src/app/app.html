@@ -13,3 +13,13 @@
 
 <router-outlet />
 <app-confirm-dialog />
+
+@if (appUpdateService.updateAvailable()) {
+  <aside class="app-update-notice" role="status" aria-live="polite">
+    <div>
+      <strong>Yeni surum hazir</strong>
+      <span>Guncel ekrana gecmek icin yenileyin.</span>
+    </div>
+    <button type="button" (click)="appUpdateService.reload()">Guncelle</button>
+  </aside>
+}

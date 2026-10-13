@@ -1496,7 +1496,48 @@ Bu liste pratikte commit oncesi kullanilabilir.
 - `npx tsc -p tsconfig.app.json --noEmit` gecti.
 - `npm run verify` gecti.
 
-## 20. Commit Hazirligi
+## 20. IIS Yayini ve Uygulama Guncellemesi
+
+Canli IIS klasoru her yayinda silinmemelidir. Acik tarayici oturumlari onceki
+build'in hashli lazy chunk dosyalarini kullanmaya devam edebilir. Klasor silinirse
+bu istekler `404` olur ve kullanici ancak sert yenilemeyle toparlayabilir.
+
+Guvenli yayin sirasi:
+
+1. Production build alinir.
+2. Yeni hashli JS, CSS ve asset dosyalari hedefe kopyalanir.
+3. Eski hashli dosyalar acik oturumlar icin korunur.
+4. `index.html` en son degistirilir.
+5. Eski dosyalar yayin aninda degil, uygun bir saklama suresinden sonra temizlenir.
+
+Bu akis icin proje kokunde su komut kullanilir:
+
+```powershell
+npm run publish:iis -- -DestinationPath "D:\IIS\FurpaAngularUI"
+```
+
+Build daha once alinmissa tekrar almadan yayinlamak icin:
+
+```powershell
+npm run publish:iis -- -DestinationPath "D:\IIS\FurpaAngularUI" -SkipBuild
+```
+
+Hedef yol gercek IIS fiziksel yayin klasoruyle degistirilmelidir. Betik mevcut
+klasoru silmez, dosyalari once kopyalar ve `index.html` dosyasini en son yeniler.
+Kullanilmayan eski hashli JS/CSS dosyalari varsayilan olarak 14 gun korunur;
+farkli saklama suresi gerekiyorsa komuta `-RetainDays 30` eklenebilir.
+
+Uygulama production build kimligini ilk acilista ve pencere yeniden odaklaninca
+kontrol eder. Periyodik sorgu yapmaz; art arda odak olaylari da 30 saniyelik
+bekleme ile birlestirilir. Yeni build algilanirsa kullanicinin isini zorla kesmez; ekranda
+`Yeni surum hazir` bildirimi ve `Guncelle` butonu gosterir. Buton normal yenilemeyle
+yeni hashli dosyalara gecer, `Ctrl+Shift+R` gerekmez.
+
+`public/web.config` icindeki `index.html`/uygulama cache politikasinin IIS'e
+kopyalandigi ayrica kontrol edilmelidir. Proxy veya load balancer varsa ayni
+no-cache davranisi bu katmanlarda da korunmalidir.
+
+## 21. Commit Hazirligi
 
 Commit oncesi kontrol:
 
@@ -1524,7 +1565,7 @@ feat(reports): rapor tablolarini responsive alanlarla guncelle
 docs(project): gelistirme rehberi ekle
 ```
 
-## 21. Gelistirme Prensibi
+## 22. Gelistirme Prensibi
 
 Bu projede iyi ekran su demektir:
 
@@ -1544,7 +1585,7 @@ Bu endpoint kullaniciya hangi isi yaptiracak?
 
 Cevap netse ekran sade olur. Cevap karisiksa once akis sadelestirilmeli, sonra kod yazilmalidir.
 
-## 22. Olceklenebilirlik Icin Karar Rehberi
+## 23. Olceklenebilirlik Icin Karar Rehberi
 
 Yeni bir ihtiyacta dosya acmadan once asagidaki karar agaci kullanilir:
 
