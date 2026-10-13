@@ -37,4 +37,38 @@ describe('IcmalDokumuDetailComponent payment category', () => {
     expect(result.source).toBe('onlineSale');
     expect(result.category).toBe('Online/Vadeli');
   });
+
+  it('excludes canonical and legacy cash totals without dropping named expense rows', () => {
+    const subject = createSubject();
+    subject.editableDetails = () => [
+      createDetail(500, 'Nakit'),
+      createDetail(0, ' NAKIT '),
+      createDetail(110, 'Kasadan Nakit Cikis')
+    ];
+
+    const request = subject.buildEditableDetailsRequest();
+
+    expect(request.length).toBe(1);
+    expect(request[0]).toEqual(jasmine.objectContaining({
+      paymentTypeId: 110,
+      typeName: 'Kasadan Nakit Cikis'
+    }));
+  });
+
+  function createDetail(paymentTypeID: number, typeName: string): Record<string, unknown> {
+    return {
+      typeName,
+      paymentName: '',
+      paymentTypeID,
+      paymentTypeNo: paymentTypeID,
+      accountCode: '',
+      slipNumber: 0,
+      amount: 10,
+      terminalId: '',
+      source: '',
+      category: '',
+      description: '',
+      paymentTypeKey: ''
+    };
+  }
 });

@@ -1903,7 +1903,7 @@ export class IcmalDokumuDetailComponent
   private buildEditableDetailsRequest(): UpdateCashSummaryDetailLineHttpRequest[] {
     return this.editableDetails()
       .filter((item) => !this.isEmptyDetailRow(item))
-      .filter((item) => this.toSafeNumber(item.paymentTypeID) !== 500)
+      .filter((item) => !this.isCashTotalDetail(item))
       .map((item) => ({
         typeName: this.getPaymentDisplayName(item),
         paymentTypeId: this.toSafeNumber(item.paymentTypeID),
@@ -1913,6 +1913,19 @@ export class IcmalDokumuDetailComponent
         terminalId: this.toSafeString(item.terminalId),
         description: this.toSafeString(item.description)
       }));
+  }
+
+  private isCashTotalDetail(item: ISummariesDetailsCT): boolean {
+    const paymentTypeId = this.toSafeNumber(item.paymentTypeID);
+
+    if (paymentTypeId > 0) {
+      return paymentTypeId === 500;
+    }
+
+    return this.toSafeString(item.typeName)
+      .trim()
+      .toUpperCase()
+      .replaceAll('\u0130', 'I') === 'NAKIT';
   }
 
   private buildEditableBanknotesRequest(): UpdateCashSummaryBanknoteLineHttpRequest[] {
