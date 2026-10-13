@@ -30,6 +30,7 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from '../../../core/safe-create-retry.helpers';
+import { SafeCreatePendingStore, buildSafeCreatePendingScope } from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -84,10 +85,18 @@ interface ReturnLineProduct {
 })
 export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly aramaService = inject(AramaService);
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
   private readonly today = formatDateOnly(new Date());
-  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseReturnRequestApiDto>();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseReturnRequestApiDto>({
+    store: this.pendingStore,
+    resolveScope: (request) => buildSafeCreatePendingScope(
+      this.authService.currentUser(),
+      'warehouse-return.create',
+      request
+    )
+  });
 
   protected readonly page: DocsContentPage =
     DOCS_PAGES[((this.data as DepoIadeleriCreateDialogData | null)?.pageId ?? 'giden-depo-iadeleri')] ??
@@ -494,10 +503,17 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    this.submitting.set(true);
+    let request: IFurpaCreateWarehouseReturnRequestApiDto;
+    try {
+      request = this.buildRequest();
+    } catch (error: unknown) {
+      this.submitError.set(error instanceof Error ? error.message : 'Depo iadesi guvenli olarak hazirlanamadi.');
+      return;
+    }
 
+    this.submitting.set(true);
     this.iadeIslemleriService
-      .createDepoIade(this.buildRequest())
+      .createDepoIade(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
@@ -519,6 +535,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
 
   private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
     const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
     this.safeCreateFailure.set(failure);
     this.submitError.set(failure.message);
   }

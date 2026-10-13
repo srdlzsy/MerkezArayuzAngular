@@ -30,6 +30,8 @@ import type {
   DespatchDriverListHttpRequest,
   SaveDespatchDriverHttpRequest,
   SaveB2BBulletinHttpRequest,
+  SafeWriteMonitoringItemDto,
+  SafeWriteMonitoringListHttpRequest,
   TerminalInstallationDto,
   TerminalInstallationListHttpRequest,
   TerminalInstallationSummaryDto,
@@ -146,6 +148,22 @@ export class AyarIslemleriService extends BaseApiService {
     return this.getWithQuery<DatabaseMonitoringIncidentDto[]>(
       'ayar-islemleri/veritabani-izleme/olaylar',
       { take }
+    );
+  }
+
+  getSafeWriteMonitoringItems(
+    request: SafeWriteMonitoringListHttpRequest = {}
+  ): Observable<SafeWriteMonitoringItemDto[]> {
+    return this.getWithQuery<SafeWriteMonitoringItemDto[]>(
+      'ayar-islemleri/veritabani-izleme/guvenli-yazmalar',
+      {
+        status: request.status?.trim() || undefined,
+        operationCode: request.operationCode?.trim() || undefined,
+        warehouseNo: request.warehouseNo ?? undefined,
+        retryable: request.retryable ?? undefined,
+        includeCompleted: request.includeCompleted ?? false,
+        take: request.take ?? 100
+      }
     );
   }
 

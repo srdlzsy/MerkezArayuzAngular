@@ -27,6 +27,7 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from '../../../core/safe-create-retry.helpers';
+import { SafeCreatePendingStore, buildSafeCreatePendingScope } from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -69,10 +70,18 @@ type KalemFormGroup = FormGroup<{
 })
 export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly aramaService = inject(AramaService);
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
   private readonly today = formatDateOnly(new Date());
-  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseShippingRequestApiDto>();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseShippingRequestApiDto>({
+    store: this.pendingStore,
+    resolveScope: (request) => buildSafeCreatePendingScope(
+      this.authService.currentUser(),
+      'inter-warehouse-shipment.create',
+      request
+    )
+  });
 
   protected readonly page: DocsContentPage = DOCS_PAGES['gelen-depolar-arasi-sevkler'];
   protected readonly isAdminUser = computed(() =>
@@ -319,10 +328,17 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    this.submitting.set(true);
+    let request: IFurpaCreateWarehouseShippingRequestApiDto;
+    try {
+      request = this.buildRequest();
+    } catch (error: unknown) {
+      this.submitError.set(error instanceof Error ? error.message : 'Sevk guvenli olarak hazirlanamadi.');
+      return;
+    }
 
+    this.submitting.set(true);
     this.sevkIslemleriService
-      .createDepoDagitimSevkFisi(this.buildRequest())
+      .createDepoDagitimSevkFisi(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
@@ -344,6 +360,7 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
 
   private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
     const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
     this.safeCreateFailure.set(failure);
     this.submitError.set(failure.message);
   }

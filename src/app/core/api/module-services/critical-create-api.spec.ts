@@ -10,10 +10,12 @@ import type {
 } from '@interfaces';
 
 import { API_BASE_URL } from '../api-base-url.token';
+import { GreenGrocerService } from './green-grocer.service';
 import { IadeIslemleriService } from './iade-islemleri.service';
 import { MalKabulIslemleriService } from './mal-kabul-islemleri.service';
 import { SevkIslemleriService } from './sevk-islemleri.service';
 import { SiparisIslemleriService } from './siparis-islemleri.service';
+import { StokIslemleriService } from './stok-islemleri.service';
 
 describe('critical create API contracts', () => {
   let httpTesting: HttpTestingController;
@@ -183,5 +185,57 @@ describe('critical create API contracts', () => {
       jasmine.objectContaining({ dispatchQuantity: 10, acceptedQuantity: 8 })
     );
     httpRequest.flush({ documentSerie: 'FMK', documentOrderNo: 401, lines: [] });
+  });
+
+  it('uses the documented offline status routes for every critical create family', () => {
+    const requestId = '11111111-1111-4111-8111-111111111111';
+    const sevk = TestBed.inject(SevkIslemleriService);
+    const iade = TestBed.inject(IadeIslemleriService);
+    const malKabul = TestBed.inject(MalKabulIslemleriService);
+    const stok = TestBed.inject(StokIslemleriService);
+    const greenGrocer = TestBed.inject(GreenGrocerService);
+
+    sevk.getGidenFirmaSevkOfflineStatus(requestId).subscribe();
+    sevk.getDepolarArasiSevkOfflineStatus(requestId).subscribe();
+    iade.getFirmaIadeOfflineStatus(requestId).subscribe();
+    iade.getDepoIadeOfflineStatus(requestId).subscribe();
+    malKabul.getCompanyReceiptOfflineStatus(requestId).subscribe();
+    stok.getSayimSonucuOfflineStatus(requestId).subscribe();
+    stok.getVirmanOfflineStatus(requestId).subscribe();
+    stok.getMasrafFisiOfflineStatus(requestId).subscribe();
+    stok.getZayiatFisiOfflineStatus(requestId).subscribe();
+    greenGrocer.getOperationsAdjustmentOfflineStatus(requestId).subscribe();
+
+    const paths = [
+      'sevk-islemleri/firma-sevkleri/giden',
+      'sevk-islemleri/depolar-arasi-sevkler/giden',
+      'iade-islemleri/firma-iadeleri',
+      'iade-islemleri/depo-iadeleri/giden',
+      'mal-kabul-islemleri/firma-mal-kabulleri',
+      'stok-islemleri/sayim-sonuclari',
+      'stok-islemleri/virmanlar',
+      'stok-islemleri/masraf-fisleri',
+      'stok-islemleri/zayiat-fisleri',
+      'green-grocer/operations/adjustments'
+    ];
+
+    for (const path of paths) {
+      const request = httpTesting.expectOne(
+        `https://api.test/api/${path}/offline-sync/${requestId}`
+      );
+      expect(request.request.method).toBe('GET');
+      request.flush({
+        clientRequestId: requestId,
+        operationCode: 'test',
+        status: 'Processing',
+        createdAtUtc: '2026-10-13T00:00:00Z',
+        completedAtUtc: null,
+        errorMessage: null,
+        errorCode: null,
+        retryable: true,
+        retryAfterSeconds: 5,
+        result: null
+      });
+    }
   });
 });

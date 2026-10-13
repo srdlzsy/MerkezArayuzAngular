@@ -197,6 +197,30 @@ export class StokIslemleriService extends BaseApiService {
     >(`stok-islemleri/sayim-sonuclari/offline-sync/${encodeURIComponent(clientRequestId)}`);
   }
 
+  getZayiatFisiOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<IFurpaCreateStockReceiptResponseApiDto>> {
+    return this.get<IOfflineOperationResponseApiDto<IFurpaCreateStockReceiptResponseApiDto>>(
+      `stok-islemleri/zayiat-fisleri/offline-sync/${encodeURIComponent(clientRequestId)}`
+    );
+  }
+
+  getMasrafFisiOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<IFurpaCreateStockReceiptResponseApiDto>> {
+    return this.get<IOfflineOperationResponseApiDto<IFurpaCreateStockReceiptResponseApiDto>>(
+      `stok-islemleri/masraf-fisleri/offline-sync/${encodeURIComponent(clientRequestId)}`
+    );
+  }
+
+  getVirmanOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<IFurpaCreateVirmanResponseApiDto>> {
+    return this.get<IOfflineOperationResponseApiDto<IFurpaCreateVirmanResponseApiDto>>(
+      `stok-islemleri/virmanlar/offline-sync/${encodeURIComponent(clientRequestId)}`
+    );
+  }
+
   getStokRaporlari<TResponse = unknown>(_queryPath = ''): Observable<TResponse> {
     return throwError(() => buildProblemError('Stok raporlari endpointi bu dokumanda tanimli degil.'));
   }

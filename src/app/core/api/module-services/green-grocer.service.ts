@@ -19,6 +19,7 @@ import type {
   IFurpaGreenGrocerDeleteOrderResponseApiDto,
   IFurpaGreenGrocerProductReportApiResponse,
   IFurpaGreenGrocerSummaryReportItemApiDto,
+  IOfflineOperationResponseApiDto,
   SaveGreenGrocerProductCaseProfileHttpRequest
 } from '@interfaces';
 
@@ -155,6 +156,14 @@ export class GreenGrocerService extends BaseApiService {
       GreenGrocerOperationsAdjustmentApplyDto,
       GreenGrocerOperationsAdjustmentApplyHttpRequest
     >(`${this.operationsPath}/adjustments`, request);
+  }
+
+  getOperationsAdjustmentOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<GreenGrocerOperationsAdjustmentApplyDto>> {
+    return this.get<IOfflineOperationResponseApiDto<GreenGrocerOperationsAdjustmentApplyDto>>(
+      `${this.operationsPath}/adjustments/offline-sync/${encodeURIComponent(clientRequestId)}`
+    );
   }
 
   private buildReportDateRequest(

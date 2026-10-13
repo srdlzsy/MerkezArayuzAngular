@@ -47,6 +47,8 @@ export interface KullaniciResponse {
 }
 
 export interface CurrentUser {
+  userId?: string | null;
+  username?: string | null;
   ad: string | null;
   soyad: string | null;
   depoNo: number | null;

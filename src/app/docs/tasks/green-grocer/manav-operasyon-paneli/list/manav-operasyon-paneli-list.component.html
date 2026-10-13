@@ -86,6 +86,14 @@
       <p>{{ currentFeedback.message }}</p>
     </article>
 
+    <article class="state-card state-card-info" *ngIf="pendingAdjustmentCount() > 0">
+      <h3>{{ pendingAdjustmentCount() }} guvenli MNV kaydi kontrol bekliyor</h3>
+      <p>Bu kayitlar yeni duzeltme acmanizi engellemez.</p>
+      <button type="button" class="task-action task-action-secondary" (click)="checkPendingAdjustments()">
+        Durumlari Kontrol Et
+      </button>
+    </article>
+
     <section class="metric-strip" aria-label="Manav operasyon metrikleri">
       <article class="metric-card" *ngFor="let metric of metricCards(); trackBy: trackByMetric">
         <span>{{ metric.label }}</span>

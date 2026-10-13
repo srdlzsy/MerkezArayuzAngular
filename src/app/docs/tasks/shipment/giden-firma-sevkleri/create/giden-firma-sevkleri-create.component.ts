@@ -27,6 +27,7 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from '../../../core/safe-create-retry.helpers';
+import { SafeCreatePendingStore, buildSafeCreatePendingScope } from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -71,8 +72,16 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
-  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyShipmentRequestApiDto>();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyShipmentRequestApiDto>({
+    store: this.pendingStore,
+    resolveScope: (request) => buildSafeCreatePendingScope(
+      this.authService.currentUser(),
+      'company-shipment.create',
+      request
+    )
+  });
 
   protected readonly page: DocsContentPage = DOCS_PAGES['giden-firma-sevkleri'];
   protected readonly customerQuery = new FormControl('', { nonNullable: true });
@@ -330,10 +339,17 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    this.submitting.set(true);
+    let request: IFurpaCreateCompanyShipmentRequestApiDto;
+    try {
+      request = this.buildRequest();
+    } catch (error: unknown) {
+      this.submitError.set(error instanceof Error ? error.message : 'Sevk guvenli olarak hazirlanamadi.');
+      return;
+    }
 
+    this.submitting.set(true);
     this.sevkIslemleriService
-      .createToptanCikisIrsaliyesi(this.buildRequest())
+      .createToptanCikisIrsaliyesi(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
@@ -358,6 +374,7 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
 
   private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
     const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
     this.safeCreateFailure.set(failure);
     this.submitError.set(failure.message);
   }

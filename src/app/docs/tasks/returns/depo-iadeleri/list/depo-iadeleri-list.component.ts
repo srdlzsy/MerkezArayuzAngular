@@ -124,6 +124,10 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
       return;
     }
 
+    if (this.handleSafeCreatePendingBeforeOpen()) {
+      return;
+    }
+
     openDocsTaskDialog(this.dialog, this.createComponent, {
       data: {
         direction: this.direction,

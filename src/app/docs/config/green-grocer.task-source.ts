@@ -214,6 +214,11 @@ export const GREEN_GROCER_TASK_SOURCE = {
               method: 'POST',
               path: '/api/green-grocer/operations/adjustments',
               description: 'Ayni clientRequestId ile kontrollu MNV duzeltme evragini yazar'
+            },
+            {
+              method: 'GET',
+              path: '/api/green-grocer/operations/adjustments/offline-sync/{clientRequestId}',
+              description: 'MNV duzeltmesinin guvenli yazma sonucunu sorgular'
             }
           ]
         }

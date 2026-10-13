@@ -26,6 +26,7 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from '../../../core/safe-create-retry.helpers';
+import { SafeCreatePendingStore, buildSafeCreatePendingScope } from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -67,8 +68,16 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly stokIslemleriService = inject(StokIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
-  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateStockReceiptRequestApiDto>();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateStockReceiptRequestApiDto>({
+    store: this.pendingStore,
+    resolveScope: (request) => buildSafeCreatePendingScope(
+      this.authService.currentUser(),
+      'expense-receipt.create',
+      request
+    )
+  });
   private stockRequestId = 0;
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
@@ -207,10 +216,17 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    this.submitting.set(true);
+    let request: IFurpaCreateStockReceiptRequestApiDto;
+    try {
+      request = this.buildRequest();
+    } catch (error: unknown) {
+      this.submitError.set(error instanceof Error ? error.message : 'Masraf fisi guvenli olarak hazirlanamadi.');
+      return;
+    }
 
+    this.submitting.set(true);
     this.stokIslemleriService
-      .createSubeIci('SarfDepoCikisFisleri', this.buildRequest())
+      .createSubeIci('SarfDepoCikisFisleri', request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: (result: unknown) => {
@@ -232,6 +248,7 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
 
   private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
     const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
     this.safeCreateFailure.set(failure);
     this.submitError.set(failure.message);
   }

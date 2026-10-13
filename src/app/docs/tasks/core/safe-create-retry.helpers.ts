@@ -2,9 +2,18 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { generateClientRequestId } from '../../../core/api/furpa-merkez-api.utils';
 import { appendHttpErrorCorrelation } from './api-error.helpers';
+import {
+  SafeCreatePendingStore,
+  type SafeCreatePendingScope
+} from './safe-create-pending.store';
 
 export interface ClientRequestPayload {
   clientRequestId?: string;
+}
+
+export interface SafeCreatePersistenceOptions<TRequest extends ClientRequestPayload> {
+  store: SafeCreatePendingStore;
+  resolveScope: (request: TRequest) => SafeCreatePendingScope;
 }
 
 export type SafeCreateConflictCode =
@@ -112,24 +121,56 @@ export function classifySafeCreateFailure(
 export class SafeCreateRetryDraft<TRequest extends ClientRequestPayload> {
   private clientRequestId = '';
   private payloadSnapshot = '';
+  private activeScope: SafeCreatePendingScope | null = null;
 
-  withClientRequestId(request: Omit<TRequest, 'clientRequestId'>): TRequest {
-    const nextPayloadSnapshot = JSON.stringify(request);
+  constructor(
+    private readonly persistence: SafeCreatePersistenceOptions<TRequest> | null = null
+  ) {}
+
+  withClientRequestId(requestWithoutId: Omit<TRequest, 'clientRequestId'>): TRequest {
+    const nextPayloadSnapshot = JSON.stringify(requestWithoutId);
 
     if (!this.clientRequestId || this.payloadSnapshot !== nextPayloadSnapshot) {
       this.clientRequestId = generateClientRequestId();
       this.payloadSnapshot = nextPayloadSnapshot;
     }
 
-    return {
-      ...request,
+    const request = {
+      ...requestWithoutId,
       clientRequestId: this.clientRequestId
     } as TRequest;
+
+    if (this.persistence) {
+      const scope = this.persistence.resolveScope(request);
+      this.persistence.store.save(scope, request);
+      this.activeScope = scope;
+    }
+
+    return request;
   }
 
   reset(): void {
+    if (this.persistence && this.activeScope) {
+      this.persistence.store.remove(this.activeScope, this.clientRequestId);
+    }
+
     this.clientRequestId = '';
     this.payloadSnapshot = '';
+    this.activeScope = null;
+  }
+
+  recordFailure(failure: SafeCreateFailure, httpStatus: number): void {
+    if (!this.persistence || !this.activeScope) {
+      return;
+    }
+
+    if (failure.retryable === true || httpStatus === 409) {
+      this.persistence.store.markFailure(this.activeScope, this.clientRequestId, failure);
+      return;
+    }
+
+    this.persistence.store.remove(this.activeScope, this.clientRequestId);
+    this.activeScope = null;
   }
 }
 

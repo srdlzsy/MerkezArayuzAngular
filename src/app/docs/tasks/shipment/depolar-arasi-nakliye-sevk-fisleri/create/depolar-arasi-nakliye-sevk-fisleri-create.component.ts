@@ -30,6 +30,10 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from '../../../core/safe-create-retry.helpers';
+import {
+  SafeCreatePendingStore,
+  buildSafeCreatePendingScope
+} from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -83,8 +87,16 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
   private readonly aramaService = inject(AramaService);
   private readonly taslakService = inject(TaslakService);
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
-  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseShippingRequestApiDto>();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseShippingRequestApiDto>({
+    store: this.pendingStore,
+    resolveScope: (request) => buildSafeCreatePendingScope(
+      this.authService.currentUser(),
+      'inter-warehouse-shipment.create',
+      request
+    )
+  });
 
   protected readonly page: DocsContentPage = DOCS_PAGES['giden-depolar-arasi-sevkler'];
   protected readonly isAdminUser = computed(() =>
@@ -497,10 +509,20 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       return;
     }
 
+    let request: IFurpaCreateWarehouseShippingRequestApiDto;
+    try {
+      request = this.buildRequest();
+    } catch (error: unknown) {
+      this.submitError.set(
+        error instanceof Error ? error.message : 'Sevk guvenli bekleyen islemler alanina kaydedilemedi.'
+      );
+      return;
+    }
+
     this.submitting.set(true);
 
     this.sevkIslemleriService
-      .createDepolarArasiNakliyeSevkFisi(this.buildRequest())
+      .createDepolarArasiNakliyeSevkFisi(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
@@ -508,10 +530,12 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
-          this.applySafeCreateFailure(
+          const failure = this.applySafeCreateFailure(
             error,
             'Depolar arasi nakliye sevk fisi kaydedilirken hata olustu.'
           );
+
+          this.safeCreateRetry.recordFailure(failure, error.status);
         }
       });
   }
@@ -523,10 +547,11 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     this.submit();
   }
 
-  private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
+  private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): SafeCreateFailure {
     const failure = classifySafeCreateFailure(error, fallbackMessage);
     this.safeCreateFailure.set(failure);
     this.submitError.set(failure.message);
+    return failure;
   }
 
   protected kalemCount(): number {

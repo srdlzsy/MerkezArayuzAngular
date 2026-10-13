@@ -371,6 +371,31 @@ export interface DatabaseMonitoringIncidentDto {
   resolvedAtUtc: string | null;
 }
 
+export interface SafeWriteMonitoringListHttpRequest {
+  status?: string | null;
+  operationCode?: string | null;
+  warehouseNo?: number | null;
+  retryable?: boolean | null;
+  includeCompleted?: boolean | null;
+  take?: number | null;
+}
+
+export interface SafeWriteMonitoringItemDto {
+  id: string;
+  operationCode: string | null;
+  requestedByUserId: string;
+  warehouseNo: number;
+  clientRequestId: string;
+  status: string | null;
+  errorCode: string | null;
+  retryable: boolean | null;
+  errorMessage: string | null;
+  createdAtUtc: string;
+  updatedAtUtc: string | null;
+  completedAtUtc: string | null;
+  ageSeconds: number;
+}
+
 export interface DatabaseSessionTerminationDto {
   id: string;
   sessionId: number;

@@ -14,6 +14,7 @@ import type {
   IFurpaUpdateWarehouseReturnResponseApiDto,
   IFurpaWarehouseReturnDetailApiDto,
   IFurpaWarehouseReturnListItemApiDto,
+  IOfflineOperationResponseApiDto,
   WarehouseReturnableProductsResponseDto,
   WarehouseOrderDateRangeHttpRequest
 } from '@interfaces';
@@ -66,6 +67,14 @@ export class IadeIslemleriService extends BaseApiService {
     );
   }
 
+  getFirmaIadeOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<IFurpaCreateCompanyMovementResponseApiDto>> {
+    return this.get<IOfflineOperationResponseApiDto<IFurpaCreateCompanyMovementResponseApiDto>>(
+      `iade-islemleri/firma-iadeleri/offline-sync/${encodeURIComponent(clientRequestId)}`
+    );
+  }
+
   listWarehouseReturns(
     direction: DepoIadeDirection,
     request: WarehouseOrderDateRangeHttpRequest
@@ -109,6 +118,14 @@ export class IadeIslemleriService extends BaseApiService {
     return this.post<IFurpaCreateWarehouseReturnResponseApiDto, IFurpaCreateWarehouseReturnRequestApiDto>(
       'iade-islemleri/depo-iadeleri/giden',
       request
+    );
+  }
+
+  getDepoIadeOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<IFurpaCreateWarehouseReturnResponseApiDto>> {
+    return this.get<IOfflineOperationResponseApiDto<IFurpaCreateWarehouseReturnResponseApiDto>>(
+      `iade-islemleri/depo-iadeleri/giden/offline-sync/${encodeURIComponent(clientRequestId)}`
     );
   }
 

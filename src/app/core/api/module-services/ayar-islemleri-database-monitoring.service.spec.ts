@@ -88,6 +88,29 @@ describe('AyarIslemleriService database monitoring', () => {
     auditRequest.flush([]);
   });
 
+  it('gets incomplete safe writes with normalized monitoring filters', () => {
+    service.getSafeWriteMonitoringItems({
+      status: ' Failed ',
+      operationCode: ' inventory-count.create ',
+      warehouseNo: 120,
+      retryable: true,
+      includeCompleted: false,
+      take: 50
+    }).subscribe();
+
+    const request = httpTesting.expectOne((call) =>
+      call.url.endsWith('/ayar-islemleri/veritabani-izleme/guvenli-yazmalar')
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('status')).toBe('Failed');
+    expect(request.request.params.get('operationCode')).toBe('inventory-count.create');
+    expect(request.request.params.get('warehouseNo')).toBe('120');
+    expect(request.request.params.get('retryable')).toBe('true');
+    expect(request.request.params.get('includeCompleted')).toBe('false');
+    expect(request.request.params.get('take')).toBe('50');
+    request.flush([]);
+  });
+
   it('posts the verified session identity and termination reason', () => {
     const payload: TerminateDatabaseSessionHttpRequest = {
       expectedLoginTime: '2026-10-08T09:15:00Z',

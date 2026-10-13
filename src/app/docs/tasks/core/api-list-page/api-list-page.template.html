@@ -66,6 +66,37 @@
       </div>
     </article>
 
+    <article class="state-card state-card-info" *ngIf="safeCreatePendingRecords().length as pendingCount">
+      <h3>Bekleyen Guvenli Kayitlar ({{ pendingCount }})</h3>
+      <div class="task-list">
+        <div class="task-list-item" *ngFor="let pending of safeCreatePendingRecords()">
+          <div>
+            <strong>Takip {{ getSafeCreatePendingLabel(pending) }}</strong>
+            <p>{{ getSafeCreatePendingMessage(pending) }}</p>
+          </div>
+          <div class="task-actions">
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              [disabled]="isSafeCreatePendingBusy(pending)"
+              (click)="checkSafeCreatePending(pending, false)"
+            >
+              {{ isSafeCreatePendingBusy(pending) ? 'Kontrol ediliyor...' : 'Durumu Kontrol Et' }}
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-primary"
+              *ngIf="pending.failure?.retryable === true"
+              [disabled]="isSafeCreatePendingBusy(pending)"
+              (click)="retrySafeCreatePending(pending)"
+            >
+              Ayni Kaydi Tekrar Dene
+            </button>
+          </div>
+        </div>
+      </div>
+    </article>
+
     <article class="state-card state-card-error" *ngIf="errorMessage() as errorMessage">
       <h3>{{ getErrorTitle() }}</h3>
       <p>{{ errorMessage }}</p>

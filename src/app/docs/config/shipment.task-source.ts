@@ -111,6 +111,7 @@ export const SHIPMENT_TASK_SOURCE = {
         'Retry sonucu ayri durum endpointi olmadan ayni clientRequestId ile tekrar POST edilerek toparlanir',
         'MIKRO_WRITE_QUEUE_BUSY durumunda Mikro yazimi baslamamistir; form korunur ve kisa bir beklemeden sonra ayni payload ile ayni clientRequestId yeniden gonderilir',
         'Timeout/belirsiz sonuc sonrasi ayni sevki yeni clientRequestId ile gondermek ikinci evrak olusturabilir',
+        'Sonuclanmamis create istegi kullanici, istemci, kaynak depo ve islem bazinda yerelde korunur; ekran yeniden acildiginda ayni payload ve clientRequestId ile guvenli recovery yapilir',
         'warehouseOrderLineGuid yoksa backend ayara gore otomatik depo siparisi baglayabilir',
         'Manav depo 56 akisi varsayilan olarak siparis satir GUID baglantisi gondermez',
         'Giden sevk guncelleme sadece e-irsaliye gonderilmemis ve karsi depo kabul etmemis evraklarda calisir',

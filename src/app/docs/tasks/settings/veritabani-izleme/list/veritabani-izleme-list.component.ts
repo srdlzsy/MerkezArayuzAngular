@@ -11,7 +11,8 @@ import type {
   DatabaseOpenTransactionDto,
   DatabaseRecommendationDto,
   DatabaseRollbackStatusDto,
-  DatabaseSessionTerminationDto
+  DatabaseSessionTerminationDto,
+  SafeWriteMonitoringItemDto
 } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
@@ -26,7 +27,7 @@ import {
   hasSettingsPermission
 } from '../../settings-task.helpers';
 
-type MonitorTab = 'live' | 'incidents' | 'audits';
+type MonitorTab = 'live' | 'safeWrites' | 'incidents' | 'audits';
 
 interface DatabaseSessionCandidate {
   sessionId: number;
@@ -59,6 +60,7 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly snapshot = signal<DatabaseMonitoringSnapshotDto | null>(null);
   protected readonly incidents = signal<DatabaseMonitoringIncidentDto[]>([]);
   protected readonly terminations = signal<DatabaseSessionTerminationDto[]>([]);
+  protected readonly safeWrites = signal<SafeWriteMonitoringItemDto[]>([]);
   protected readonly selectedSession = signal<DatabaseSessionCandidate | null>(null);
   protected readonly rollback = signal<DatabaseRollbackStatusDto | null>(null);
   protected readonly rollbackSessionId = signal<number | null>(null);
@@ -346,6 +348,10 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     return termination.id;
   }
 
+  protected trackBySafeWrite(_: number, item: SafeWriteMonitoringItemDto): string {
+    return item.id || item.clientRequestId;
+  }
+
   private startPolling(): void {
     timer(0, 10000)
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -444,7 +450,7 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     }
 
     this.isHistoryLoading.set(true);
-    let pendingRequestCount = 2;
+    let pendingRequestCount = 3;
     let hasError = false;
     const finishRequest = (): void => {
       pendingRequestCount -= 1;
@@ -491,6 +497,17 @@ export class VeritabaniIzlemeListComponent implements OnInit {
       .subscribe({
         next: (terminations: DatabaseSessionTerminationDto[]) =>
           this.terminations.set(terminations ?? []),
+        error: handleError
+      });
+
+    this.api
+      .getSafeWriteMonitoringItems({ includeCompleted: false, take: 100 })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(finishRequest)
+      )
+      .subscribe({
+        next: (items: SafeWriteMonitoringItemDto[]) => this.safeWrites.set(items ?? []),
         error: handleError
       });
   }

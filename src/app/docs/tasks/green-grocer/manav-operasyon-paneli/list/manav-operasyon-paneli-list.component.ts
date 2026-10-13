@@ -14,7 +14,8 @@ import type {
   GreenGrocerOperationsOverviewHttpRequest,
   GreenGrocerOperationsOverviewItemDto,
   GreenGrocerOperationsStatusSummaryDto,
-  GreenGrocerOperationsTypeCode
+  GreenGrocerOperationsTypeCode,
+  IOfflineOperationResponseApiDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -27,6 +28,12 @@ import {
   formatCurrentWarehouseLabel,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import {
+  SafeCreatePendingStore,
+  buildSafeCreatePendingScope,
+  buildSafeCreateUserId
+} from '../../../core/safe-create-pending.store';
+import { classifySafeCreateFailure } from '../../../core/safe-create-retry.helpers';
 
 type FeedbackTone = 'error' | 'info' | 'success';
 type SortDirection = 'asc' | 'desc';
@@ -62,6 +69,7 @@ const TASK_ID = 'green-grocer-operations';
 const LIST_PERMISSION = 'green-grocer.operations.list';
 const CREATE_PERMISSION = 'green-grocer.operations.create';
 const ALL_WAREHOUSES_PERMISSION = 'green-grocer.operations.all-warehouses';
+const ADJUSTMENT_OPERATION_CODE = 'green-grocer-adjustment.create';
 
 const TYPE_OPTIONS: readonly SelectOption<GreenGrocerOperationsTypeCode>[] = [
   { value: 'all', label: 'Tum Tipler' },
@@ -150,6 +158,7 @@ export class ManavOperasyonPaneliListComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly greenGrocerService = inject(GreenGrocerService);
+  private readonly safeCreatePendingStore = inject(SafeCreatePendingStore);
   private readonly quantityFormatter = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 0,
     maximumFractionDigits: 2
@@ -176,6 +185,13 @@ export class ManavOperasyonPaneliListComponent {
   protected readonly adjustmentResult = signal<GreenGrocerOperationsAdjustmentApplyDto | null>(null);
   protected readonly clientRequestId = signal('');
   protected readonly adjustmentClientRequestId = computed(() => this.clientRequestId());
+  protected readonly pendingAdjustmentCount = computed(() =>
+    this.safeCreatePendingStore.findForOperation<GreenGrocerOperationsAdjustmentApplyHttpRequest>(
+      buildSafeCreateUserId(this.currentUser()),
+      'web',
+      ADJUSTMENT_OPERATION_CODE
+    ).length
+  );
   protected readonly previewSignature = signal('');
 
   protected readonly permissionCodes = computed(() =>
@@ -292,6 +308,7 @@ export class ManavOperasyonPaneliListComponent {
       });
 
     this.loadOverview();
+    this.checkPendingAdjustments();
   }
 
   protected loadOverview(successFeedback?: PageFeedback): void {
@@ -510,6 +527,15 @@ export class ManavOperasyonPaneliListComponent {
     }
 
     const request = this.buildAdjustmentApplyRequest();
+    const pendingScope = {
+      ...buildSafeCreatePendingScope(
+        this.currentUser(),
+        ADJUSTMENT_OPERATION_CODE,
+        request
+      ),
+      warehouseNo: request.warehouseNo ?? this.currentUser()?.depoNo ?? 0
+    };
+    this.safeCreatePendingStore.save(pendingScope, request);
 
     this.isSaving.set(true);
     this.adjustmentFeedback.set(null);
@@ -521,6 +547,7 @@ export class ManavOperasyonPaneliListComponent {
       )
       .subscribe({
         next: (result: GreenGrocerOperationsAdjustmentApplyDto) => {
+          this.safeCreatePendingStore.remove(pendingScope, request.clientRequestId);
           this.adjustmentResult.set(result);
           this.adjustmentFeedback.set({
             tone: 'success',
@@ -533,14 +560,63 @@ export class ManavOperasyonPaneliListComponent {
             message: 'MNV duzeltmesi sonrasi operasyon ozeti yenilendi.'
           });
         },
-        error: (error: unknown) => {
+        error: (error: HttpErrorResponse) => {
+          const failure = classifySafeCreateFailure(error, 'MNV duzeltmesi kaydedilemedi.');
+          if (failure.retryable === true || error.status === 409) {
+            this.safeCreatePendingStore.markFailure(
+              pendingScope,
+              request.clientRequestId,
+              failure
+            );
+          } else {
+            this.safeCreatePendingStore.remove(pendingScope, request.clientRequestId);
+          }
           this.adjustmentFeedback.set({
             tone: 'error',
             title: 'Kayit Basarisiz',
-            message: this.getErrorMessage(error)
+            message: failure.message
           });
         }
       });
+  }
+
+  protected checkPendingAdjustments(): void {
+    const records = this.safeCreatePendingStore
+      .findForOperation<GreenGrocerOperationsAdjustmentApplyHttpRequest>(
+        buildSafeCreateUserId(this.currentUser()),
+        'web',
+        ADJUSTMENT_OPERATION_CODE
+      );
+
+    for (const record of records) {
+      const clientRequestId = record.request.clientRequestId;
+      this.greenGrocerService
+        .getOperationsAdjustmentOfflineStatus(clientRequestId)
+        .pipe(takeUntilDestroyed(this.destroyRef))
+        .subscribe({
+          next: (status: IOfflineOperationResponseApiDto<GreenGrocerOperationsAdjustmentApplyDto>) => {
+            const normalizedStatus = status.status.trim().toLocaleLowerCase('tr-TR');
+            if (normalizedStatus === 'completed') {
+              this.safeCreatePendingStore.remove(record.scope, clientRequestId);
+              return;
+            }
+
+            this.safeCreatePendingStore.markFailure(record.scope, clientRequestId, {
+              message: status.errorMessage
+                || (normalizedStatus === 'processing'
+                  ? 'MNV duzeltmesi backend tarafinda isleniyor.'
+                  : 'MNV duzeltmesi tamamlanamadi.'),
+              errorCode: status.errorCode,
+              retryable: normalizedStatus === 'processing' ? true : status.retryable,
+              blocksSubmit: normalizedStatus !== 'processing' && status.retryable !== true,
+              allowsNewAttempt: false
+            });
+          },
+          error: () => {
+            // Yerel istek korunur; kullanici yeni bir duzeltme acmaya devam edebilir.
+          }
+        });
+    }
   }
 
   protected formatQuantity(value: number | null | undefined): string {

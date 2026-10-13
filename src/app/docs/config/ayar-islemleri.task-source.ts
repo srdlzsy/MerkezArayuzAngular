@@ -359,6 +359,11 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
               description: 'Oturum sonlandirma audit gecmisini getirir'
             },
             {
+              method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?includeCompleted=false&take=100',
+              description: 'Bekleyen ve basarisiz guvenli create yazmalarini getirir'
+            },
+            {
               method: 'POST',
               path: '/api/ayar-islemleri/veritabani-izleme/oturumlar/{sessionId}/sonlandir',
               description: 'Oturum kimligini tekrar dogrulayarak sonlandirir',

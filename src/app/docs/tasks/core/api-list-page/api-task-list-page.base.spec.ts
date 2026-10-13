@@ -7,6 +7,7 @@ import type { Observable } from 'rxjs';
 import { AuthService } from '../../../../core/auth/services/auth.service';
 import { DocsContentPage } from '../../../models/docs.models';
 import { ApiTaskListPageBase } from './api-task-list-page.base';
+import { SafeCreateRecoveryService } from '../safe-create-recovery.service';
 
 interface TestRow {
   seri?: string;
@@ -78,6 +79,13 @@ describe('ApiTaskListPageBase', () => {
               permissions: [],
               sorumluluklar: []
             })
+          }
+        },
+        {
+          provide: SafeCreateRecoveryService,
+          useValue: {
+            getOperationCode: () => null,
+            recover: () => null
           }
         }
       ]

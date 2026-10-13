@@ -35,6 +35,7 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from '../../../core/safe-create-retry.helpers';
+import { SafeCreatePendingStore, buildSafeCreatePendingScope } from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import { MalKabulIslemleriService, TaslakService } from '@core/api/module-services';
 import {
@@ -112,11 +113,19 @@ const positiveIntegerValidator: ValidatorFn = (control: AbstractControl): Valida
 })
 export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
   private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly aramaService = inject(AramaService);
   private readonly taslakService = inject(TaslakService);
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
   private readonly today = formatDateOnly(new Date());
-  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyReceiptRequestApiDto>();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyReceiptRequestApiDto>({
+    store: this.pendingStore,
+    resolveScope: (request) => buildSafeCreatePendingScope(
+      this.authService.currentUser(),
+      'company-receiving.create',
+      request
+    )
+  });
 
   protected readonly page: DocsContentPage = DOCS_PAGES['firma-mal-kabulleri'];
   protected readonly isAdminUser = computed(() =>
@@ -674,10 +683,17 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    this.submitting.set(true);
+    let request: IFurpaCreateCompanyReceiptRequestApiDto;
+    try {
+      request = this.buildRequest();
+    } catch (error: unknown) {
+      this.submitError.set(error instanceof Error ? error.message : 'Mal kabul guvenli olarak hazirlanamadi.');
+      return;
+    }
 
+    this.submitting.set(true);
     this.malKabulIslemleriService
-      .createToptanGirisIrsaliyesi(this.buildRequest())
+      .createToptanGirisIrsaliyesi(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: (result: IFurpaCreateCompanyReceiptResponseApiDto) => {
@@ -702,6 +718,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
   private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
     const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
     this.safeCreateFailure.set(failure);
     this.submitError.set(failure.message);
   }

@@ -377,6 +377,8 @@ export class AuthService {
       const sorumluluklar = this.mapModulesToResponsibilities(response.modules ?? []);
 
       return {
+        userId: response.id,
+        username: response.username,
         ad: response.firstName ?? null,
         soyad: response.lastName ?? null,
         depoNo: warehouseNo,

@@ -4,6 +4,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Directive, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, finalize } from 'rxjs';
+import type { IOfflineOperationResponseApiDto } from '@interfaces';
 
 import { DocsContentPage } from '../../../models/docs.models';
 import { AuthService } from '../../../../core/auth/services/auth.service';
@@ -23,8 +24,19 @@ import {
   currentUserHasPermission,
   currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../admin-warehouse.helpers';
+import {
+  SafeCreatePendingStore,
+  buildSafeCreateUserId,
+  type SafeCreatePendingRecord
+} from '../safe-create-pending.store';
+import { SafeCreateRecoveryService } from '../safe-create-recovery.service';
+import {
+  classifySafeCreateFailure,
+  type ClientRequestPayload
+} from '../safe-create-retry.helpers';
 
 @Directive()
 export abstract class ApiTaskListPageBase<
@@ -46,6 +58,9 @@ export abstract class ApiTaskListPageBase<
   protected readonly destroyRef = inject(DestroyRef);
   private readonly pdfPrintService = inject(PdfPrintService);
   private readonly listAuthService = inject(AuthService);
+  private readonly safeCreatePendingStore = inject(SafeCreatePendingStore);
+  private readonly safeCreateRecoveryService = inject(SafeCreateRecoveryService);
+  private readonly safeCreateRecoveryInProgressId = signal<string | null>(null);
   private activeRequestId = 0;
 
   protected readonly startDate = signal(this.getInitialStartDate());
@@ -96,6 +111,27 @@ export abstract class ApiTaskListPageBase<
     return preview || this.page.baseRouteOrFile;
   });
   protected readonly totalCount = computed(() => this.rows().length);
+  private readonly safeCreateOperationCode = computed(() =>
+    this.safeCreateRecoveryService.getOperationCode(this.page.id)
+  );
+  protected readonly safeCreatePendingRecords = computed(() => {
+    const operationCode = this.safeCreateOperationCode();
+    const warehouseNo = this.isAdminUser()
+      ? toPositiveWarehouseNo(this.adminWarehouseNo())
+      : getCurrentWarehouseNo(this.listAuthService.currentUser());
+
+    if (!operationCode || !warehouseNo) {
+      return [];
+    }
+
+    return this.safeCreatePendingStore
+      .findForOperation<ClientRequestPayload>(
+        buildSafeCreateUserId(this.listAuthService.currentUser()),
+        'web',
+        operationCode
+      )
+      .filter((record) => record.scope.warehouseNo === warehouseNo);
+  });
   protected readonly statusSummary = computed(() => {
     const counts = new Map<string, number>();
 
@@ -117,6 +153,16 @@ export abstract class ApiTaskListPageBase<
 
   ngOnInit(): void {
     this.loadRows();
+    const pending = this.safeCreatePendingRecords().find((record) =>
+      !this.safeCreatePendingStore.wasRecoveryAttemptedInSession(
+        record.scope,
+        record.request.clientRequestId ?? ''
+      )
+    );
+
+    if (pending) {
+      this.checkSafeCreatePending(pending, true);
+    }
   }
 
   protected abstract fetchRows(zamanlama: string, warehouseNo?: number): Observable<Row[]>;
@@ -358,6 +404,155 @@ export abstract class ApiTaskListPageBase<
         }
 
         this.loadRows();
+      });
+  }
+
+  protected handleSafeCreatePendingBeforeOpen(): boolean {
+    return false;
+  }
+
+  protected isSafeCreatePendingBusy(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): boolean {
+    return this.safeCreateRecoveryInProgressId() === pending.request.clientRequestId;
+  }
+
+  protected getSafeCreatePendingLabel(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): string {
+    const requestId = pending.request.clientRequestId ?? '';
+    return requestId ? requestId.slice(0, 8).toUpperCase() : 'Bilinmeyen istek';
+  }
+
+  protected getSafeCreatePendingMessage(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): string {
+    return pending.failure?.message
+      || (pending.state === 'needsReview'
+        ? 'Kayit yetkili incelemesi bekliyor.'
+        : 'Kaydin backend sonucu kontrol edilmeyi bekliyor.');
+  }
+
+  protected checkSafeCreatePending(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>,
+    automatic: boolean
+  ): void {
+    const clientRequestId = pending.request.clientRequestId?.trim();
+    if (!clientRequestId || this.safeCreateRecoveryInProgressId()) {
+      return;
+    }
+
+    const request = this.safeCreateRecoveryService.getStatus(this.page.id, clientRequestId);
+    if (!request) {
+      return;
+    }
+
+    this.safeCreateRecoveryInProgressId.set(clientRequestId);
+    this.errorMessage.set(null);
+    this.activityMessage.set(
+      automatic ? 'Yarim kalan kaydin durumu kontrol ediliyor.' : 'Bekleyen kayit kontrol ediliyor.'
+    );
+    this.safeCreatePendingStore.markRecoveryAttemptedInSession(pending.scope, clientRequestId);
+
+    request
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.safeCreateRecoveryInProgressId.set(null);
+          this.activityMessage.set(null);
+        })
+      )
+      .subscribe({
+        next: (status: IOfflineOperationResponseApiDto<unknown>) => {
+          this.applySafeCreateStatus(pending, status);
+        },
+        error: (error: HttpErrorResponse) => {
+          if (error.status === 404) {
+            this.safeCreateRecoveryInProgressId.set(null);
+            this.recoverSafeCreatePending(pending);
+            return;
+          }
+
+          const failure = classifySafeCreateFailure(
+            error,
+            'Bekleyen kaydin sonucu kontrol edilemedi.'
+          );
+          this.safeCreatePendingStore.markFailure(pending.scope, clientRequestId, failure);
+          this.errorMessage.set(failure.message);
+        }
+      });
+  }
+
+  protected retrySafeCreatePending(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): void {
+    this.recoverSafeCreatePending(pending);
+  }
+
+  private applySafeCreateStatus(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>,
+    response: IOfflineOperationResponseApiDto<unknown>
+  ): void {
+    const clientRequestId = pending.request.clientRequestId ?? '';
+    const status = response.status.trim().toLocaleLowerCase('tr-TR');
+
+    if (status === 'completed') {
+      this.safeCreatePendingStore.remove(pending.scope, clientRequestId);
+      this.loadRows();
+      return;
+    }
+
+    const retryDelay = response.retryAfterSeconds
+      ? ` ${response.retryAfterSeconds} saniye sonra tekrar kontrol edin.`
+      : '';
+    const failure = {
+      message: response.errorMessage
+        || (status === 'processing'
+          ? `Kayit backend tarafinda isleniyor.${retryDelay}`
+          : `Kayit tamamlanamadi.${retryDelay}`),
+      errorCode: response.errorCode,
+      retryable: status === 'processing' ? true : response.retryable,
+      blocksSubmit: response.retryable !== true && status !== 'processing',
+      allowsNewAttempt: false
+    };
+
+    this.safeCreatePendingStore.markFailure(pending.scope, clientRequestId, failure);
+    this.errorMessage.set(failure.message);
+  }
+
+  private recoverSafeCreatePending(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): void {
+    const clientRequestId = pending.request.clientRequestId?.trim();
+    if (!clientRequestId || this.safeCreateRecoveryInProgressId()) {
+      return;
+    }
+
+    const request = this.safeCreateRecoveryService.recover(this.page.id, pending.request);
+    if (!request) {
+      return;
+    }
+
+    this.safeCreateRecoveryInProgressId.set(clientRequestId);
+    this.activityMessage.set('Ayni istek kimligiyle guvenli tekrar deneniyor.');
+    request
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.safeCreateRecoveryInProgressId.set(null);
+          this.activityMessage.set(null);
+        })
+      )
+      .subscribe({
+        next: () => {
+          this.safeCreatePendingStore.remove(pending.scope, clientRequestId);
+          this.loadRows();
+        },
+        error: (error: HttpErrorResponse) => {
+          const failure = classifySafeCreateFailure(error, 'Bekleyen kayit tamamlanamadi.');
+          this.safeCreatePendingStore.markFailure(pending.scope, clientRequestId, failure);
+          this.errorMessage.set(failure.message);
+        }
       });
   }
 

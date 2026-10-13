@@ -15,6 +15,7 @@ import type {
   IFurpaUpdateWarehouseShippingResponseApiDto,
   IFurpaWarehouseShippingDetailApiDto,
   IFurpaWarehouseShippingListItemApiDto,
+  IOfflineOperationResponseApiDto,
   WarehouseOrderDateRangeHttpRequest,
   WarehouseShippingDetailDto,
   WarehouseShippingListItemDto
@@ -74,6 +75,14 @@ export class SevkIslemleriService extends BaseApiService {
     );
   }
 
+  getGidenFirmaSevkOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<IFurpaCreateCompanyMovementResponseApiDto>> {
+    return this.get<IOfflineOperationResponseApiDto<IFurpaCreateCompanyMovementResponseApiDto>>(
+      `sevk-islemleri/firma-sevkleri/giden/offline-sync/${encodeURIComponent(clientRequestId)}`
+    );
+  }
+
   getGidenDepolarArasiSevkler(
     warehouseNo: number | undefined,
     startDate: string,
@@ -115,6 +124,14 @@ export class SevkIslemleriService extends BaseApiService {
     >(
       'sevk-islemleri/depolar-arasi-sevkler/giden',
       request
+    );
+  }
+
+  getDepolarArasiSevkOfflineStatus(
+    clientRequestId: string
+  ): Observable<IOfflineOperationResponseApiDto<IFurpaCreateWarehouseShippingResponseApiDto>> {
+    return this.get<IOfflineOperationResponseApiDto<IFurpaCreateWarehouseShippingResponseApiDto>>(
+      `sevk-islemleri/depolar-arasi-sevkler/giden/offline-sync/${encodeURIComponent(clientRequestId)}`
     );
   }
 

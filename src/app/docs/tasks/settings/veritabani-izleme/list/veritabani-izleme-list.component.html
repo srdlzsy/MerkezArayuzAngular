@@ -50,6 +50,17 @@
         type="button"
         class="task-action"
         *ngIf="canViewHistory()"
+        [class.task-action-primary]="tab() === 'safeWrites'"
+        (click)="setTab('safeWrites')"
+      >
+        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+        Guvenli Yazmalar
+        <span class="button-count">{{ safeWrites().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="task-action"
+        *ngIf="canViewHistory()"
         [class.task-action-primary]="tab() === 'incidents'"
         (click)="setTab('incidents')"
       >
@@ -363,6 +374,42 @@
         </section>
       </section>
     </ng-container>
+
+    <section class="panel history-panel" *ngIf="tab() === 'safeWrites' && canViewHistory()">
+      <div class="panel-head">
+        <div class="panel-head-text">
+          <span class="panel-kicker">Guvenli Create Takibi</span>
+          <h3>Tamamlanmamis Yazmalar</h3>
+        </div>
+        <span class="table-meta">{{ safeWrites().length }} kayit</span>
+      </div>
+      <div class="table-wrap history-table-wrap" *ngIf="safeWrites().length > 0; else noSafeWrites">
+        <table class="data-table">
+          <thead>
+            <tr><th>Durum</th><th>Islem</th><th>Depo</th><th>Takip Kimligi</th><th>Bekleme</th><th>Tekrar</th><th>Hata</th><th>Son Guncelleme</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of safeWrites(); trackBy: trackBySafeWrite">
+              <td>
+                <span class="status-badge" [class.status-warn]="item.status === 'Processing'" [class.status-danger]="item.status === 'Failed'">
+                  {{ item.status || '-' }}
+                </span>
+              </td>
+              <td>{{ item.operationCode || '-' }}<span class="table-meta">{{ item.requestedByUserId || '-' }}</span></td>
+              <td>{{ item.warehouseNo }}</td>
+              <td [title]="item.clientRequestId"><strong>{{ item.clientRequestId | slice:0:8 }}</strong></td>
+              <td>{{ formatDuration(item.ageSeconds * 1000) }}</td>
+              <td>{{ item.retryable === true ? 'Uygun' : item.retryable === false ? 'Inceleme' : '-' }}</td>
+              <td class="wrap-cell">{{ item.errorCode || '-' }}<span class="table-meta">{{ item.errorMessage || '-' }}</span></td>
+              <td>{{ formatDate(item.updatedAtUtc || item.createdAtUtc) }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <ng-template #noSafeWrites>
+        <article class="state-card state-card-success empty-state"><h3>Bekleyen yazma yok</h3><p>Tamamlanmamis veya inceleme bekleyen guvenli kayit bulunmuyor.</p></article>
+      </ng-template>
+    </section>
 
     <section class="panel history-panel" *ngIf="tab() === 'incidents' && canViewHistory()">
       <div class="panel-head">

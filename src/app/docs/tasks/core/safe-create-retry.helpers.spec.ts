@@ -4,6 +4,10 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from './safe-create-retry.helpers';
+import {
+  SafeCreatePendingStore,
+  type SafeCreatePendingScope
+} from './safe-create-pending.store';
 
 interface TestCreateRequest {
   clientRequestId?: string;
@@ -12,6 +16,16 @@ interface TestCreateRequest {
 }
 
 describe('SafeCreateRetryDraft', () => {
+  const persistentScope: SafeCreatePendingScope = {
+    userId: 'user-120',
+    clientType: 'web',
+    warehouseNo: 120,
+    operationCode: 'inventory-count.create'
+  };
+
+  beforeEach(() => clearSafeCreateStorage());
+  afterEach(() => clearSafeCreateStorage());
+
   it('keeps the same clientRequestId while the payload is unchanged', () => {
     const draft = new SafeCreateRetryDraft<TestCreateRequest>();
     const payload = {
@@ -52,6 +66,67 @@ describe('SafeCreateRetryDraft', () => {
     const nextDocument = draft.withClientRequestId(payload);
 
     expect(nextDocument.clientRequestId).not.toBe(completed.clientRequestId);
+  });
+
+  it('persists the exact request before it can be submitted', () => {
+    const store = new SafeCreatePendingStore();
+    const draft = new SafeCreateRetryDraft<TestCreateRequest>({
+      store,
+      resolveScope: () => persistentScope
+    });
+
+    const request = draft.withClientRequestId({
+      warehouseNo: 120,
+      lines: [{ stockCode: '016445', quantity: 6 }]
+    });
+
+    expect(store.read<TestCreateRequest>(persistentScope, request.clientRequestId ?? '')?.request).toEqual(request);
+  });
+
+  it('keeps a retryable failure pending and removes it after success', () => {
+    const store = new SafeCreatePendingStore();
+    const draft = new SafeCreateRetryDraft<TestCreateRequest>({
+      store,
+      resolveScope: () => persistentScope
+    });
+    const request = draft.withClientRequestId({ warehouseNo: 120, lines: [] });
+
+    draft.recordFailure({
+      message: 'Baglanti kesildi.',
+      errorCode: null,
+      retryable: true,
+      blocksSubmit: false,
+      allowsNewAttempt: false
+    }, 0);
+    expect(store.read(persistentScope, request.clientRequestId ?? '')?.state).toBe('pending');
+
+    draft.reset();
+    expect(store.read(persistentScope, request.clientRequestId ?? '')).toBeNull();
+  });
+
+  it('keeps unresolved requests for different documents independently', () => {
+    const store = new SafeCreatePendingStore();
+    const firstDraft = new SafeCreateRetryDraft<TestCreateRequest>({
+      store,
+      resolveScope: () => persistentScope
+    });
+    const secondDraft = new SafeCreateRetryDraft<TestCreateRequest>({
+      store,
+      resolveScope: () => persistentScope
+    });
+    const original = firstDraft.withClientRequestId({
+      warehouseNo: 120,
+      lines: [{ stockCode: '016445', quantity: 6 }]
+    });
+
+    const second = secondDraft.withClientRequestId({
+      warehouseNo: 120,
+      lines: [{ stockCode: '016445', quantity: 12 }]
+    });
+    expect(store.read<TestCreateRequest>(persistentScope, original.clientRequestId ?? '')?.request)
+      .toEqual(original);
+    expect(store.read<TestCreateRequest>(persistentScope, second.clientRequestId ?? '')?.request)
+      .toEqual(second);
   });
 });
 
@@ -147,4 +222,17 @@ function createConflict(errorCode: string, retryable: boolean): HttpErrorRespons
       retryable
     }
   });
+}
+
+function clearSafeCreateStorage(): void {
+  for (const storage of [localStorage, sessionStorage]) {
+    const keys: string[] = [];
+    for (let index = 0; index < storage.length; index += 1) {
+      const key = storage.key(index);
+      if (key?.startsWith('furpa.safe-create.pending.v2.')) {
+        keys.push(key);
+      }
+    }
+    keys.forEach((key) => storage.removeItem(key));
+  }
 }

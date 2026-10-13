@@ -26,6 +26,7 @@ import {
   SafeCreateRetryDraft,
   classifySafeCreateFailure
 } from '../../../core/safe-create-retry.helpers';
+import { SafeCreatePendingStore, buildSafeCreatePendingScope } from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
@@ -64,8 +65,16 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly sayimIslemleriService = inject(SayimIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
-  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateInventoryCountRequestApiDto>();
+  private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateInventoryCountRequestApiDto>({
+    store: this.pendingStore,
+    resolveScope: (request) => buildSafeCreatePendingScope(
+      this.authService.currentUser(),
+      'inventory-count.create',
+      request
+    )
+  });
   private stockRequestId = 0;
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
@@ -194,10 +203,17 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
       return;
     }
 
-    this.submitting.set(true);
+    let request: IFurpaCreateInventoryCountRequestApiDto;
+    try {
+      request = this.buildRequest();
+    } catch (error: unknown) {
+      this.submitError.set(error instanceof Error ? error.message : 'Sayim guvenli olarak hazirlanamadi.');
+      return;
+    }
 
+    this.submitting.set(true);
     this.sayimIslemleriService
-      .createSayimSonucu(this.buildRequest())
+      .createSayimSonucu(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: (result: unknown) => {
@@ -219,6 +235,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
 
   private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
     const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
     this.safeCreateFailure.set(failure);
     this.submitError.set(failure.message);
   }

@@ -41,5 +41,8 @@ export interface IOfflineOperationResponseApiDto<T = unknown> {
   createdAtUtc: string | null;
   completedAtUtc: string | null;
   errorMessage: string | null;
+  errorCode: string | null;
+  retryable: boolean | null;
+  retryAfterSeconds: number | null;
   result: T | null;
 }
