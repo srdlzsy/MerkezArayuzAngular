@@ -35,37 +35,27 @@ import {
   formatCurrentWarehouseLabel,
   normalizePermissionCode
 } from '../../../core/admin-warehouse.helpers';
-
-type BanknoteLineFormGroup = FormGroup<{
-  banknoteType: FormControl<number | null>;
-  quantity: FormControl<number | null>;
-  total: FormControl<number | null>;
-  value: FormControl<number | null>;
-}>;
-
-type GiftCheckLineFormGroup = FormGroup<{
-  giftCheckTypeName: FormControl<string>;
-  value: FormControl<number | null>;
-  giftCheckType: FormControl<number | null>;
-  quantity: FormControl<number | null>;
-  total: FormControl<number | null>;
-}>;
-
-type PaymentTypeLineFormGroup = FormGroup<{
-  source: FormControl<CashDrawerPaymentSource>;
-  paymentName: FormControl<string>;
-  paymentTypeNo: FormControl<number | null>;
-  accountCode: FormControl<string>;
-  terminalId: FormControl<string>;
-  slipNumber: FormControl<number | null>;
-  amountValue: FormControl<number | null>;
-}>;
-
-type StoreExpenseLineFormGroup = FormGroup<{
-  storeExpensesType: FormControl<number | null>;
-  description: FormControl<string>;
-  amountValue: FormControl<number | null>;
-}>;
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
+import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  createBanknoteGroup,
+  createGiftCheckGroup,
+  createIcmalDraftPayload,
+  createPaymentTypeGroup,
+  createStoreExpenseGroup,
+  getIcmalDraftLineCount,
+  getIcmalDraftTitle,
+  isIcmalDraftMeaningful,
+  resetIcmalDraftForm,
+  restoreIcmalDraftForm,
+  type BanknoteLineFormGroup,
+  type CashDrawerPaymentSource,
+  type GiftCheckLineFormGroup,
+  type IcmalCreateControls,
+  type IcmalCreateDraftPayload,
+  type PaymentTypeLineFormGroup,
+  type StoreExpenseLineFormGroup
+} from './icmal-dokumu-create-draft';
 
 type CashDrawerPanelId =
   | 'banknotes'
@@ -75,8 +65,6 @@ type CashDrawerPanelId =
   | 'expenseVouchers'
   | 'giftChecks'
   | 'deferredSales';
-
-type CashDrawerPaymentSource = 'card' | 'foodCheck' | 'expenseVoucher' | 'deferredSale' | 'other';
 
 type DrawerNoticeTone = 'warning' | 'error' | 'success';
 
@@ -102,11 +90,11 @@ const TASK_ID = 'icmal-kaydi-girisi';
 @Component({
   selector: 'app-icmal-dokumu-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent],
   templateUrl: './icmal-dokumu-create.component.html',
   styleUrl: './icmal-dokumu-create.component.scss'
 })
-export class IcmalDokumuCreateComponent implements OnInit {
+export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements OnInit {
   private readonly router = inject(Router);
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
@@ -175,7 +163,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   protected readonly onlineCashRegisterDetails = signal<IFurpaOnlineCashRegisterDetailApiDto[]>([]);
   protected readonly cashRegisterDetail = signal<ICashRegisterDetails | null>(null);
 
-  protected readonly controls = {
+  protected readonly controls: IcmalCreateControls = {
     cashNo: new FormControl<number | null>(null, {
       validators: [Validators.required, Validators.min(1)]
     }),
@@ -369,6 +357,20 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   ngOnInit(): void {
     this.configureWarehouseControl();
+    this.setupBrowserDraft<IcmalCreateDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'cash-register',
+      operationCode: 'cash-summary.create',
+      changes$: this.form.valueChanges,
+      capture: () =>
+        createIcmalDraftPayload(this.form, this.selectedCashier(), this.selectedManager()),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraft(),
+      isMeaningful: isIcmalDraftMeaningful,
+      title: getIcmalDraftTitle,
+      lineCount: getIcmalDraftLineCount,
+      warehouseNo: () => this.resolveCreateWarehouseNo()
+    });
     this.form.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.refreshComputedFormState());
@@ -653,6 +655,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected goBack(): void {
+    this.saveBrowserDraftNow();
     void this.router.navigateByUrl('/docs/api/kasa-sayimlari');
   }
 
@@ -872,7 +875,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
     template: IFurpaPaymentTypeLookupItemApiDto,
     source: CashDrawerPaymentSource = 'other'
   ): void {
-    this.paymentTypes.push(this.createPaymentTypeGroup(template, source));
+    this.paymentTypes.push(createPaymentTypeGroup(template, source));
     this.refreshComputedFormState();
   }
 
@@ -883,7 +886,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
 
   protected addStoreExpenseTemplate(template: IFurpaPaymentTypeLookupItemApiDto): void {
     this.storeExpenses.push(
-      this.createStoreExpenseGroup({
+      createStoreExpenseGroup({
         storeExpensesType: template.paymentTypeNo ?? null,
         description: '',
         amountValue: template.amountValue ?? 0
@@ -898,7 +901,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected addBanknoteTemplate(template: IFurpaBanknoteTypeItemApiDto): void {
-    this.banknoteMovements.push(this.createBanknoteGroup(template));
+    this.banknoteMovements.push(createBanknoteGroup(template));
     this.refreshComputedFormState();
   }
 
@@ -918,7 +921,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
   }
 
   protected addGiftCheckTemplate(template: IFurpaGiftCheckTypeItemApiDto): void {
-    this.giftCheckMovements.push(this.createGiftCheckGroup(template));
+    this.giftCheckMovements.push(createGiftCheckGroup(template));
     this.refreshComputedFormState();
   }
 
@@ -1083,6 +1086,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: (response: IFurpaCreateCashSummaryResponseApiDto) => {
+          this.completeBrowserDraft();
           this.createdResponse.set(response);
           this.closePanel();
           this.submitSuccess.set(
@@ -1383,7 +1387,7 @@ export class IcmalDokumuCreateComponent implements OnInit {
       if (reusableGroup) {
         this.applyPaymentTypeTemplateToGroup(reusableGroup, template);
       } else {
-        this.paymentTypes.push(this.createPaymentTypeGroup(template, source));
+        this.paymentTypes.push(createPaymentTypeGroup(template, source));
       }
 
       existingKeys.add(key);
@@ -1799,95 +1803,6 @@ export class IcmalDokumuCreateComponent implements OnInit {
     });
   }
 
-  private createBanknoteGroup(
-    template?: Partial<IFurpaBanknoteTypeItemApiDto>
-  ): BanknoteLineFormGroup {
-    return new FormGroup({
-      banknoteType: new FormControl<number | null>(template?.banknoteType ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      quantity: new FormControl<number | null>(template?.quantity ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      total: new FormControl<number | null>(template?.total ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      value: new FormControl<number | null>(template?.value ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      })
-    });
-  }
-
-  private createGiftCheckGroup(
-    template?: Partial<IFurpaGiftCheckTypeItemApiDto>
-  ): GiftCheckLineFormGroup {
-    return new FormGroup({
-      giftCheckTypeName: new FormControl(template?.giftCheckTypeName?.trim() ?? '', {
-        nonNullable: true
-      }),
-      value: new FormControl<number | null>(template?.value ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      giftCheckType: new FormControl<number | null>(template?.giftCheckType ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      quantity: new FormControl<number | null>(template?.quantity ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      total: new FormControl<number | null>(template?.total ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      })
-    });
-  }
-
-  private createPaymentTypeGroup(
-    template?: Partial<IFurpaPaymentTypeLookupItemApiDto>,
-    source: CashDrawerPaymentSource = 'other'
-  ): PaymentTypeLineFormGroup {
-    return new FormGroup({
-      source: new FormControl(source, { nonNullable: true }),
-      paymentName: new FormControl(template?.paymentName?.trim() ?? '', {
-        nonNullable: true,
-        validators: [Validators.required]
-      }),
-      paymentTypeNo: new FormControl<number | null>(template?.paymentTypeNo ?? null, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      accountCode: new FormControl(template?.accountCode?.trim() ?? '', {
-        nonNullable: true
-      }),
-      terminalId: new FormControl(template?.terminalId?.trim() ?? '', {
-        nonNullable: true
-      }),
-      slipNumber: new FormControl<number | null>(template?.slipNumber ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      }),
-      amountValue: new FormControl<number | null>(template?.amountValue ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      })
-    });
-  }
-
-  private createStoreExpenseGroup(
-    template?: Partial<{
-      storeExpensesType: number | null;
-      description: string;
-      amountValue: number;
-    }>
-  ): StoreExpenseLineFormGroup {
-    return new FormGroup({
-      storeExpensesType: new FormControl<number | null>(template?.storeExpensesType ?? null, {
-        validators: [Validators.required]
-      }),
-      description: new FormControl(template?.description?.trim() ?? '', {
-        nonNullable: true
-      }),
-      amountValue: new FormControl<number | null>(template?.amountValue ?? 0, {
-        validators: [Validators.required, Validators.min(0)]
-      })
-    });
-  }
-
   private buildRequest(): CreateCashSummaryHttpRequest {
     const rawValue = this.form.getRawValue();
 
@@ -1936,29 +1851,47 @@ export class IcmalDokumuCreateComponent implements OnInit {
     };
   }
 
-  private buildRequestPreview(): Record<string, unknown> {
-    const rawValue = this.form.getRawValue();
+  private restoreBrowserDraft(payload: IcmalCreateDraftPayload): void {
+    const previousWarehouseNo = this.resolveCreateWarehouseNo();
+    const people = restoreIcmalDraftForm(this.form, payload);
 
-    return {
-      cashNo: rawValue.cashNo,
-      zReportNo: rawValue.zReportNo,
-      cashierNo: rawValue.cashierNo,
-      managerNo: rawValue.managerNo,
-      zTotalValue: rawValue.zTotalValue,
-      total: 0,
-      summaryDate: rawValue.summaryDate,
-      warehouseNo: this.isAdminUser() ? this.resolveCreateWarehouseNo() : undefined,
-      giftCheckMovements: rawValue.giftCheckMovements.filter((line) =>
-        this.isWritableGiftCheckLine(line)
-      ),
-      banknoteMovements: rawValue.banknoteMovements.filter((line) =>
-        this.isWritableBanknoteLine(line)
-      ),
-      paymentTypes: rawValue.paymentTypes.filter((line) => this.isWritablePaymentTypeLine(line)),
-      storeExpenses: rawValue.storeExpenses.filter((line) =>
-        this.isWritableStoreExpenseLine(line)
-      )
-    };
+    this.selectedCashier.set(people.cashier);
+    this.selectedManager.set(people.manager);
+    this.cashierSearchQuery.setValue(people.cashier ? this.getCashierLabel(people.cashier) : '');
+    this.managerSearchQuery.setValue(people.manager ? this.getCashierLabel(people.manager) : '');
+    this.clearDraftTransientState();
+    this.refreshComputedFormState();
+
+    if (previousWarehouseNo !== this.resolveCreateWarehouseNo()) {
+      this.cashRegisters.set([]);
+      this.loadLookupData();
+    }
+  }
+
+  private resetBrowserDraft(): void {
+    resetIcmalDraftForm(this.form, this.today, this.currentWarehouseNo());
+    this.selectedCashier.set(null);
+    this.selectedManager.set(null);
+    this.cashierSearchQuery.setValue('');
+    this.managerSearchQuery.setValue('');
+    this.cashRegisterDetail.set(null);
+    this.bankPaymentTypes.set([]);
+    this.clearDraftTransientState();
+    this.refreshComputedFormState();
+  }
+
+  private clearDraftTransientState(): void {
+    this.cashierSearchResults.set([]);
+    this.managerSearchResults.set([]);
+    this.cashierSearchError.set('');
+    this.managerSearchError.set('');
+    this.cashRegisterMessage.set('');
+    this.zReportMessage.set('');
+    this.submitError.set('');
+    this.submitSuccess.set('');
+    this.createdResponse.set(null);
+    this.activePanel.set(null);
+    this.drawerNotice.set(null);
   }
 
   private buildCashSummaryDocumentSerie(

@@ -25,6 +25,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import {
   SafeCreateFailure,
   SafeCreateRetryDraft,
@@ -59,6 +60,21 @@ interface KalemFormValue {
   modelKodu: string;
 }
 
+interface DepolarArasiNakliyeSevkDraftPayload {
+  form: {
+    muhatapDepoNo: number | null;
+    muhatapAdSoyad: string;
+    transitWarehouseNo: number | null;
+    movementDate: string;
+    documentDate: string;
+    adminWarehouseNo: number | null;
+    documentNo: string;
+    description: string;
+    kalemler: KalemFormValue[];
+  };
+  selectedWarehouse: IFurpaWarehouseSearchItemApiDto | null;
+}
+
 type KalemFormGroup = FormGroup<{
   taslakGuid: FormControl<string>;
   siparisGuid: FormControl<string>;
@@ -78,7 +94,7 @@ type KalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-depolar-arasi-nakliye-sevk-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent],
   templateUrl: './depolar-arasi-nakliye-sevk-fisleri-create.component.html',
   styleUrl: './depolar-arasi-nakliye-sevk-fisleri-create.component.scss'
 })
@@ -162,6 +178,25 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       } else {
         this.stockQuery.disable({ emitEvent: false });
       }
+    });
+
+    this.setupBrowserDraft<DepolarArasiNakliyeSevkDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'shipment',
+      operationCode: 'inter-warehouse-transport-shipment.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({
+        form: this.form.getRawValue(),
+        selectedWarehouse: this.selectedWarehouse()
+      }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) => this.isBrowserDraftMeaningful(payload),
+      title: (payload) => payload.selectedWarehouse
+        ? this.getWarehouseLabel(payload.selectedWarehouse)
+        : 'Yeni depolar arasi sevk',
+      lineCount: (payload) => payload.form.kalemler.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
     });
   }
 
@@ -527,6 +562,7 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
@@ -586,26 +622,104 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     this.getOrderKey(order);
 
   private createKalemFormGroup(stock: IFurpaProductSearchItemApiDto): KalemFormGroup {
+    return this.createKalemFormGroupFromValue({
+      taslakGuid: '',
+      siparisGuid: '',
+      siparisReferansi: '',
+      stokKodu: stock.stockCode?.trim() ?? '',
+      stokIsmi: stock.stockName?.trim() ?? '',
+      barkodu: stock.barcode?.trim() ?? '',
+      birim: stock.unitName?.trim() ?? '',
+      birimKatsayisi: stock.unitMultiplier ?? null,
+      siparisMiktari: null,
+      miktar: 1,
+      aciklama: '',
+      skt: '',
+      modelKodu: ''
+    });
+  }
+
+  private createKalemFormGroupFromValue(value: KalemFormValue): KalemFormGroup {
+    const quantityValidators = [Validators.required, Validators.min(0.01)];
+    if (Number(value.siparisMiktari ?? 0) > 0) {
+      quantityValidators.push(Validators.max(Number(value.siparisMiktari)));
+    }
+
     return new FormGroup({
-      taslakGuid: new FormControl('', { nonNullable: true }),
-      siparisGuid: new FormControl('', { nonNullable: true }),
-      siparisReferansi: new FormControl('', { nonNullable: true }),
-      stokKodu: new FormControl(stock.stockCode?.trim() ?? '', {
+      taslakGuid: new FormControl(value.taslakGuid, { nonNullable: true }),
+      siparisGuid: new FormControl(value.siparisGuid, { nonNullable: true }),
+      siparisReferansi: new FormControl(value.siparisReferansi, { nonNullable: true }),
+      stokKodu: new FormControl(value.stokKodu, {
         nonNullable: true,
         validators: [Validators.required]
       }),
-      stokIsmi: new FormControl(stock.stockName?.trim() ?? '', { nonNullable: true }),
-      barkodu: new FormControl(stock.barcode?.trim() ?? '', { nonNullable: true }),
-      birim: new FormControl(stock.unitName?.trim() ?? '', { nonNullable: true }),
-      birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
-      siparisMiktari: new FormControl<number | null>(null),
-      miktar: new FormControl<number | null>(1, {
-        validators: [Validators.required, Validators.min(0.01)]
-      }),
-      aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
-      skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
+      stokIsmi: new FormControl(value.stokIsmi, { nonNullable: true }),
+      barkodu: new FormControl(value.barkodu, { nonNullable: true }),
+      birim: new FormControl(value.birim, { nonNullable: true }),
+      birimKatsayisi: new FormControl(value.birimKatsayisi),
+      siparisMiktari: new FormControl<number | null>(value.siparisMiktari),
+      miktar: new FormControl<number | null>(value.miktar, { validators: quantityValidators }),
+      aciklama: new FormControl(value.aciklama, { nonNullable: true, validators: [Validators.maxLength(50)] }),
+      skt: new FormControl(value.skt, { nonNullable: true }),
+      modelKodu: new FormControl(value.modelKodu, { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
+  }
+
+  private restoreBrowserDraft(payload: DepolarArasiNakliyeSevkDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.kalemler)) {
+      throw new Error('Gecersiz depolar arasi sevk taslagi.');
+    }
+
+    const { kalemler, ...header } = payload.form;
+    this.kalemler.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    kalemler.forEach((kalem) => this.kalemler.push(this.createKalemFormGroupFromValue(kalem), { emitEvent: false }));
+    this.selectedWarehouse.set(payload.selectedWarehouse);
+    this.warehouseQuery.setValue(
+      payload.selectedWarehouse ? this.getWarehouseLabel(payload.selectedWarehouse) : '',
+      { emitEvent: false }
+    );
+    this.warehouseResults.set([]);
+    this.stockResults.set([]);
+    this.availableOrders.set([]);
+    this.selectedOrderKeys.set([]);
+    this.warehouseError.set('');
+    this.stockError.set('');
+    this.orderError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.kalemler.clear({ emitEvent: false });
+    this.form.reset({
+      muhatapDepoNo: null,
+      muhatapAdSoyad: '',
+      transitWarehouseNo: 60,
+      movementDate: this.today,
+      documentDate: this.today,
+      adminWarehouseNo: null,
+      documentNo: '',
+      description: ''
+    }, { emitEvent: false });
+    this.selectedWarehouse.set(null);
+    this.warehouseQuery.setValue('', { emitEvent: false });
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.warehouseResults.set([]);
+    this.stockResults.set([]);
+    this.availableOrders.set([]);
+    this.selectedOrderKeys.set([]);
+    this.warehouseError.set('');
+    this.stockError.set('');
+    this.orderError.set('');
+    this.submitError.set('');
+  }
+
+  private isBrowserDraftMeaningful(payload: DepolarArasiNakliyeSevkDraftPayload): boolean {
+    const form = payload.form;
+    return !!payload.selectedWarehouse
+      || form.kalemler.length > 0
+      || !!form.documentNo.trim()
+      || !!form.description.trim()
+      || !!form.muhatapAdSoyad.trim();
   }
 
   private addOrMergeKalemFromSiparis(kalem: IFurpaWarehouseOrderItemApiDto, siparisReferansi: string): boolean {

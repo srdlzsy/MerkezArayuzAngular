@@ -25,6 +25,16 @@
     <article class="feedback feedback-error" *ngIf="lookupError()">{{ lookupError() }}</article>
     <article class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</article>
     <article class="feedback feedback-success" *ngIf="submitSuccess()">{{ submitSuccess() }}</article>
+    <app-browser-create-draft-bar
+      [records]="browserDrafts()"
+      [moduleDraftCount]="browserDraftModuleCount()"
+      [activeDraftId]="browserDraftActiveId()"
+      [status]="browserDraftStatus()"
+      [hasError]="browserDraftHasError()"
+      (openDraft)="openBrowserDraft($event)"
+      (deleteDraft)="deleteBrowserDraft($event)"
+      (newDraft)="startNewBrowserDraft()"
+    />
 
     <article
       class="feedback drawer-notice"

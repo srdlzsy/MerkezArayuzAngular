@@ -1,0 +1,54 @@
+<section class="draft-bar" [class.draft-bar-error]="hasError">
+  <div class="draft-summary">
+    <i class="fa-solid fa-file-pen" aria-hidden="true"></i>
+    <span class="draft-title">Tarayici Taslaklari</span>
+    <span class="draft-count">{{ moduleDraftCount }}/{{ maxDraftCount }}</span>
+  </div>
+
+  <div class="draft-controls">
+    <select
+      aria-label="Kayitli taslak"
+      [value]="selectedDraftId"
+      [disabled]="records.length === 0"
+      (change)="selectDraft($any($event.target).value)"
+    >
+      <option value="" *ngIf="records.length === 0">Kayitli taslak yok</option>
+      <option *ngFor="let record of records" [value]="record.id">
+        {{ getRecordLabel(record) }}
+      </option>
+    </select>
+
+    <button
+      type="button"
+      class="draft-button"
+      title="Secili taslagi forma yukle"
+      [disabled]="!selectedDraftId"
+      (click)="openSelectedDraft()"
+    >
+      <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
+      <span>Ac</span>
+    </button>
+    <button
+      type="button"
+      class="draft-icon-button draft-delete"
+      aria-label="Secili taslagi sil"
+      title="Secili taslagi sil"
+      [disabled]="!selectedDraftId"
+      (click)="deleteSelectedDraft()"
+    >
+      <i class="fa-solid fa-trash" aria-hidden="true"></i>
+    </button>
+    <button
+      type="button"
+      class="draft-button"
+      title="Bos bir taslakla devam et"
+      [disabled]="moduleDraftCount >= maxDraftCount"
+      (click)="newDraft.emit()"
+    >
+      <i class="fa-solid fa-plus" aria-hidden="true"></i>
+      <span>Yeni Taslak</span>
+    </button>
+  </div>
+
+  <p class="draft-status" *ngIf="status">{{ status }}</p>
+</section>

@@ -22,6 +22,7 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import {
   SafeCreateFailure,
   SafeCreateRetryDraft,
@@ -49,6 +50,22 @@ interface KalemFormValue {
   modelKodu: string;
 }
 
+interface GidenFirmaSevkDraftPayload {
+  form: {
+    muhatapFirmaCariKod: string;
+    muhatapFirmaUnvani: string;
+    muhatapAdSoyad: string;
+    deliverer: string;
+    movementDate: string;
+    documentDate: string;
+    documentNo: string;
+    description: string;
+    adminWarehouseNo: number | null;
+    kalemler: KalemFormValue[];
+  };
+  selectedCustomer: IFurpaCustomerSearchItemApiDto | null;
+}
+
 type KalemFormGroup = FormGroup<{
   stokKodu: FormControl<string>;
   stokIsmi: FormControl<string>;
@@ -64,7 +81,7 @@ type KalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-giden-firma-sevkleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent],
   templateUrl: './giden-firma-sevkleri-create.component.html',
   styleUrl: './giden-firma-sevkleri-create.component.scss'
 })
@@ -150,6 +167,25 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
       } else {
         this.stockQuery.disable({ emitEvent: false });
       }
+    });
+
+    this.setupBrowserDraft<GidenFirmaSevkDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'shipment',
+      operationCode: 'company-shipment.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({
+        form: this.form.getRawValue(),
+        selectedCustomer: this.selectedCustomer()
+      }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) => this.isBrowserDraftMeaningful(payload),
+      title: (payload) => payload.selectedCustomer
+        ? this.getCustomerLabel(payload.selectedCustomer)
+        : 'Yeni firma sevki',
+      lineCount: (payload) => payload.form.kalemler.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
     });
   }
 
@@ -354,6 +390,7 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
@@ -411,22 +448,89 @@ export class GidenFirmaSevkleriCreateComponent extends DocsTaskDialogBase {
     control.controls.stokKodu.value.trim() || `${index}`;
 
   private createKalemFormGroup(stock: IFurpaProductSearchItemApiDto): KalemFormGroup {
+    return this.createKalemFormGroupFromValue({
+      stokKodu: stock.stockCode?.trim() ?? '',
+      stokIsmi: stock.stockName?.trim() ?? '',
+      barkodu: stock.barcode?.trim() ?? '',
+      birim: stock.unitName?.trim() ?? '',
+      birimKatsayisi: stock.unitMultiplier ?? null,
+      siparisMiktari: 1,
+      aciklama: '',
+      skt: '',
+      modelKodu: ''
+    });
+  }
+
+  private createKalemFormGroupFromValue(value: KalemFormValue): KalemFormGroup {
     return new FormGroup({
-      stokKodu: new FormControl(stock.stockCode?.trim() ?? '', {
+      stokKodu: new FormControl(value.stokKodu, {
         nonNullable: true,
         validators: [Validators.required]
       }),
-      stokIsmi: new FormControl(stock.stockName?.trim() ?? '', { nonNullable: true }),
-      barkodu: new FormControl(stock.barcode?.trim() ?? '', { nonNullable: true }),
-      birim: new FormControl(stock.unitName?.trim() ?? '', { nonNullable: true }),
-      birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
-      siparisMiktari: new FormControl<number | null>(1, {
+      stokIsmi: new FormControl(value.stokIsmi, { nonNullable: true }),
+      barkodu: new FormControl(value.barkodu, { nonNullable: true }),
+      birim: new FormControl(value.birim, { nonNullable: true }),
+      birimKatsayisi: new FormControl(value.birimKatsayisi),
+      siparisMiktari: new FormControl<number | null>(value.siparisMiktari, {
         validators: [Validators.required, Validators.min(0.01)]
       }),
-      aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
-      skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
+      aciklama: new FormControl(value.aciklama, { nonNullable: true, validators: [Validators.maxLength(50)] }),
+      skt: new FormControl(value.skt, { nonNullable: true }),
+      modelKodu: new FormControl(value.modelKodu, { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
+  }
+
+  private restoreBrowserDraft(payload: GidenFirmaSevkDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.kalemler)) {
+      throw new Error('Gecersiz firma sevk taslagi.');
+    }
+
+    const { kalemler, ...header } = payload.form;
+    this.kalemler.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    kalemler.forEach((kalem) => this.kalemler.push(this.createKalemFormGroupFromValue(kalem), { emitEvent: false }));
+    this.selectedCustomer.set(payload.selectedCustomer);
+    this.customerQuery.setValue(
+      payload.selectedCustomer ? this.getCustomerLabel(payload.selectedCustomer) : '',
+      { emitEvent: false }
+    );
+    this.customerResults.set([]);
+    this.stockResults.set([]);
+    this.customerError.set('');
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.kalemler.clear({ emitEvent: false });
+    this.form.reset({
+      muhatapFirmaCariKod: '',
+      muhatapFirmaUnvani: '',
+      muhatapAdSoyad: '',
+      deliverer: '',
+      movementDate: this.today,
+      documentDate: this.today,
+      documentNo: '',
+      description: '',
+      adminWarehouseNo: null
+    }, { emitEvent: false });
+    this.selectedCustomer.set(null);
+    this.customerQuery.setValue('', { emitEvent: false });
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.customerResults.set([]);
+    this.stockResults.set([]);
+    this.customerError.set('');
+    this.stockError.set('');
+    this.submitError.set('');
+  }
+
+  private isBrowserDraftMeaningful(payload: GidenFirmaSevkDraftPayload): boolean {
+    const form = payload.form;
+    return !!payload.selectedCustomer
+      || form.kalemler.length > 0
+      || !!form.documentNo.trim()
+      || !!form.description.trim()
+      || !!form.deliverer.trim()
+      || !!form.muhatapAdSoyad.trim();
   }
 
   private buildRequest(): IFurpaCreateCompanyShipmentRequestApiDto {
