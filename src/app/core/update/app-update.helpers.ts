@@ -1,11 +1,11 @@
 const VERSIONED_APP_ASSET_PATTERN = /(?:^|\/)(?:main|polyfills|styles)-[a-z0-9]+\.(?:js|css)$/i;
 
 export function createAppAssetSignature(assetUrls: Iterable<string>): string {
-  return Array.from(assetUrls)
+  const versionedAssets = Array.from(assetUrls)
     .map((url) => normalizeAssetPath(url))
-    .filter((url) => VERSIONED_APP_ASSET_PATTERN.test(url))
-    .sort()
-    .join('|');
+    .filter((url) => VERSIONED_APP_ASSET_PATTERN.test(url));
+
+  return Array.from(new Set(versionedAssets)).sort().join('|');
 }
 
 export function extractAppAssetSignature(html: string): string {

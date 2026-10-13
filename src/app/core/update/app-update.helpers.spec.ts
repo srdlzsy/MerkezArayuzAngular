@@ -4,6 +4,7 @@ describe('app update helpers', () => {
   it('creates a stable signature from hashed application assets', () => {
     const signature = createAppAssetSignature([
       'styles-STYLE123.css',
+      'styles-STYLE123.css',
       'https://cdn.example.com/vendor.css',
       'https://sube.example.com/furpa/main-MAIN123.js?cache=1',
       '/furpa/polyfills-POLY123.js'
