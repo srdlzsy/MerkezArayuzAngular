@@ -600,6 +600,12 @@
   color: #991b1b;
 }
 
+.filter-tab-initial.is-active {
+  border-color: #2563eb;
+  background: #dbeafe;
+  color: #1e40af;
+}
+
 .filter-tab-down.is-active {
   border-color: #22c55e;
   background: #dcfce7;
@@ -850,6 +856,11 @@ tbody tr:hover {
 .table-badge-price-down {
   background: #dcfce7;
   color: #166534;
+}
+
+.table-badge-price-initial {
+  background: #dbeafe;
+  color: #1e40af;
 }
 
 .table-badge-neutral {

@@ -269,11 +269,38 @@ describe('EtiketBelgeleriListComponent price filters', () => {
 
     const products = component.applyProductFilters([
       { productCode: 'SAME', oldPrice: 50, price: 50, barcode: '1' },
+      { productCode: 'SAME-TEXT', oldPrice: '25.50', price: '25.50', barcode: '4' },
+      { productCode: 'SAME-CENTS', oldPrice: 10, price: 10.0000001, barcode: '5' },
       { productCode: 'UP', oldPrice: 50, price: 60, barcode: '2' },
       { productCode: 'NO-OLD', oldPrice: 0, price: 50, barcode: '3' }
     ]);
 
-    expect(products.map((product: any) => product.productCode)).toEqual(['SAME']);
+    expect(products.map((product: any) => product.productCode)).toEqual([
+      'SAME',
+      'SAME-TEXT',
+      'SAME-CENTS'
+    ]);
+  });
+
+  it('does not present a missing old price as an unchanged price', () => {
+    const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
+
+    expect(component.getPriceTrendLabel({ oldPrice: 0, price: 50 })).toBe('Yeni fiyat tanımı');
+    expect(component.getPriceTrendLabel({ oldPrice: 50, price: 50 })).toBe('Fiyat aynı');
+  });
+
+  it('lists initial price definitions separately from unchanged prices', () => {
+    const component = Object.create(EtiketBelgeleriListComponent.prototype) as any;
+    component.productTableFilter = signal('price-initial');
+    component.productSearchTerm = signal('');
+
+    const products = component.applyProductFilters([
+      { productCode: 'INITIAL', oldPrice: 0, price: 50, barcode: '1' },
+      { productCode: 'SAME', oldPrice: 50, price: 50, barcode: '2' },
+      { productCode: 'UP', oldPrice: 40, price: 50, barcode: '3' }
+    ]);
+
+    expect(products.map((product: any) => product.productCode)).toEqual(['INITIAL']);
   });
 
   it('prints every row in the active filter without silently removing unchanged prices', () => {

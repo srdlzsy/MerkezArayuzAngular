@@ -1,6 +1,12 @@
 import { CommonModule } from '@angular/common';
 import { Component, Input } from '@angular/core';
 import type { IEtiketBasimProduct } from '@interfaces';
+import {
+  getLabelPriceDifference,
+  type LabelPriceChangeStatus,
+  normalizeLabelPrice,
+  resolveLabelPriceChangeStatus
+} from '../price-change-status';
 
 @Component({
   selector: 'app-print-change-price',
@@ -18,52 +24,71 @@ export class PrintChangePrice {
   protected readonly today: Date = new Date();
 
   protected increasedCount(): number {
-    return this.productsToPrint.filter((product) => product.price > product.oldPrice).length;
+    return this.countByStatus('increased');
   }
 
   protected decreasedCount(): number {
-    return this.productsToPrint.filter((product) => product.price < product.oldPrice).length;
+    return this.countByStatus('decreased');
   }
 
   protected unchangedCount(): number {
-    return this.productsToPrint.filter((product) => product.price === product.oldPrice).length;
+    return this.countByStatus('unchanged');
+  }
+
+  protected initialPriceCount(): number {
+    return this.countByStatus('initial');
   }
 
   protected missingBarcodeCount(): number {
     return this.productsToPrint.filter((product) => !product.barcode?.trim()).length;
   }
 
-  protected priceDifference(product: IEtiketBasimProduct): number {
-    return product.price - product.oldPrice;
+  protected priceDifference(product: IEtiketBasimProduct): number | null {
+    return getLabelPriceDifference(product);
   }
 
   protected totalPriceDifference(): number {
     return this.productsToPrint.reduce(
-      (total, product) => total + this.priceDifference(product),
+      (total, product) => total + (this.priceDifference(product) ?? 0),
       0
     );
   }
 
   protected priceDifferencePercent(product: IEtiketBasimProduct): number | null {
-    if (!Number.isFinite(product.oldPrice) || product.oldPrice <= 0) {
+    const difference = this.priceDifference(product);
+    const oldPrice = normalizeLabelPrice(product.oldPrice);
+
+    if (difference === null || oldPrice === null || oldPrice <= 0) {
       return null;
     }
 
-    return (this.priceDifference(product) / product.oldPrice) * 100;
+    return (difference / oldPrice) * 100;
   }
 
   protected priceTrendLabel(product: IEtiketBasimProduct): string {
-    const difference = this.priceDifference(product);
+    const labels: Record<LabelPriceChangeStatus, string> = {
+      initial: 'Yeni fiyat tanımı',
+      increased: 'Fiyat arttı',
+      decreased: 'Fiyat düştü',
+      unchanged: 'Fiyat aynı',
+      unavailable: 'Fiyat bilgisi yok'
+    };
 
-    if (difference > 0) {
-      return 'Arttı';
-    }
+    return labels[this.priceStatus(product)];
+  }
 
-    if (difference < 0) {
-      return 'Azaldı';
-    }
+  protected priceStatus(product: IEtiketBasimProduct): LabelPriceChangeStatus {
+    return resolveLabelPriceChangeStatus(product);
+  }
 
-    return 'Aynı';
+  protected hasPreviousPrice(product: IEtiketBasimProduct): boolean {
+    const status = this.priceStatus(product);
+    return status !== 'initial' && status !== 'unavailable';
+  }
+
+  protected hasPriceDifference(product: IEtiketBasimProduct): boolean {
+    const status = this.priceStatus(product);
+    return status === 'increased' || status === 'decreased';
   }
 
   protected formatChangeDate(value: string | null | undefined): string {
@@ -87,4 +112,8 @@ export class PrintChangePrice {
     index: number,
     product: IEtiketBasimProduct
   ): string => `${product.productCode}-${product.barcode}-${index}`;
+
+  private countByStatus(status: LabelPriceChangeStatus): number {
+    return this.productsToPrint.filter((product) => this.priceStatus(product) === status).length;
+  }
 }

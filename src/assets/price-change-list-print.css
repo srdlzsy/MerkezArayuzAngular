@@ -101,7 +101,7 @@
 
 .print-summary {
   display: grid;
-  grid-template-columns: repeat(6, minmax(0, 1fr));
+  grid-template-columns: repeat(7, minmax(0, 1fr));
   margin-bottom: 1.4mm;
   border: 0.3mm solid #cbd5e1;
   background: #f8fafc;
@@ -138,6 +138,10 @@
 .summary-up strong,
 .price-up {
   color: #166534;
+}
+
+.summary-initial strong {
+  color: #1d4ed8;
 }
 
 .summary-down strong,

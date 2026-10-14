@@ -26,6 +26,10 @@ import { AddLabel } from '../add-label/add-label';
 import { renderBarcodeSvg, type BarcodeRenderOptions } from '../etiket-barcode.util';
 import { ETIKET_TIPLERI, IEtiketTipiConfig } from '../etiket-belgeleri.config';
 import { resolveEtiketPrintCalibration } from '../etiket-print-calibration';
+import {
+  type LabelPriceChangeStatus,
+  resolveLabelPriceChangeStatus
+} from '../price-change-status';
 import { PrintChangePrice } from '../print-change-price/print-change-price';
 
 type PreviewMode = 'labels' | 'price-changes';
@@ -44,6 +48,7 @@ type ProductListFilter =
   | 'all'
   | 'promotions'
   | 'price-changes'
+  | 'price-initial'
   | 'price-increased'
   | 'price-decreased'
   | 'price-unchanged'
@@ -183,6 +188,9 @@ export class EtiketBelgeleriListComponent {
   protected readonly priceChangeProducts = computed(() =>
     this.activeProducts().filter((product) => this.hasPriceChanged(product))
   );
+  protected readonly initialPriceProducts = computed(() =>
+    this.activeProducts().filter((product) => this.hasInitialPrice(product))
+  );
   protected readonly priceIncreasedProducts = computed(() =>
     this.activeProducts().filter((product) => this.hasPriceIncreased(product))
   );
@@ -220,6 +228,7 @@ export class EtiketBelgeleriListComponent {
       all: 'Listedeki tüm ürünler',
       promotions: 'Promosyonlu ürünler',
       'price-changes': 'Fiyatı değişen ürünler',
+      'price-initial': 'Yeni fiyat tanımlanan ürünler',
       'price-increased': 'Yalnızca fiyatı artan ürünler',
       'price-decreased': 'Yalnızca fiyatı azalan ürünler',
       'price-unchanged': 'Yalnızca fiyatı aynı kalan ürünler',
@@ -562,27 +571,37 @@ export class EtiketBelgeleriListComponent {
   }
 
   protected getPriceTrendLabel(product: IEtiketBasimProduct): string {
-    if (this.hasPriceIncreased(product)) {
-      return 'Fiyat artti';
-    }
+    const labels: Record<LabelPriceChangeStatus, string> = {
+      initial: 'Yeni fiyat tanımı',
+      increased: 'Fiyat arttı',
+      decreased: 'Fiyat düştü',
+      unchanged: 'Fiyat aynı',
+      unavailable: 'Fiyat bilgisi yok'
+    };
 
-    if (this.hasPriceDecreased(product)) {
-      return 'Fiyat azaldi';
-    }
-
-    return 'Fiyat ayni';
+    return labels[this.getPriceTrend(product)];
   }
 
   protected getPriceTrendClass(product: IEtiketBasimProduct): string {
-    if (this.hasPriceIncreased(product)) {
+    const trend = this.getPriceTrend(product);
+
+    if (trend === 'initial') {
+      return 'table-badge-price-initial';
+    }
+
+    if (trend === 'increased') {
       return 'table-badge-price-up';
     }
 
-    if (this.hasPriceDecreased(product)) {
+    if (trend === 'decreased') {
       return 'table-badge-price-down';
     }
 
     return 'table-badge-neutral';
+  }
+
+  protected shouldShowOldPrice(product: IEtiketBasimProduct): boolean {
+    return this.hasPriceChanged(product);
   }
 
   protected setProductTableFilter(filter: ProductListFilter): void {
@@ -1005,6 +1024,8 @@ export class EtiketBelgeleriListComponent {
       items = items.filter((product) => this.hasActivePromotion(product));
     } else if (filter === 'price-changes') {
       items = items.filter((product) => this.hasPriceChanged(product));
+    } else if (filter === 'price-initial') {
+      items = items.filter((product) => this.hasInitialPrice(product));
     } else if (filter === 'price-increased') {
       items = items.filter((product) => this.hasPriceIncreased(product));
     } else if (filter === 'price-decreased') {
@@ -1124,23 +1145,28 @@ export class EtiketBelgeleriListComponent {
   }
 
   private hasPriceChanged(product: IEtiketBasimProduct): boolean {
-    return this.hasComparablePrice(product) && product.oldPrice !== product.price;
+    const status = this.getPriceTrend(product);
+    return status === 'increased' || status === 'decreased';
+  }
+
+  private hasInitialPrice(product: IEtiketBasimProduct): boolean {
+    return this.getPriceTrend(product) === 'initial';
   }
 
   private hasPriceIncreased(product: IEtiketBasimProduct): boolean {
-    return this.hasComparablePrice(product) && product.price > product.oldPrice;
+    return this.getPriceTrend(product) === 'increased';
   }
 
   private hasPriceDecreased(product: IEtiketBasimProduct): boolean {
-    return this.hasComparablePrice(product) && product.price < product.oldPrice;
+    return this.getPriceTrend(product) === 'decreased';
   }
 
   private hasPriceUnchanged(product: IEtiketBasimProduct): boolean {
-    return this.hasComparablePrice(product) && product.price === product.oldPrice;
+    return this.getPriceTrend(product) === 'unchanged';
   }
 
-  private hasComparablePrice(product: IEtiketBasimProduct): boolean {
-    return Number.isFinite(product.oldPrice) && product.oldPrice > 0 && Number.isFinite(product.price);
+  private getPriceTrend(product: IEtiketBasimProduct): LabelPriceChangeStatus {
+    return resolveLabelPriceChangeStatus(product);
   }
 
   private syncRecentDocumentControl(documents: readonly ILabelDocument[]): void {
