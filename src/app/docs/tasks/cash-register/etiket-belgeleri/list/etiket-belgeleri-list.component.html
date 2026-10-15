@@ -385,8 +385,8 @@
               </button>
             </th>
             <th [attr.aria-sort]="getProductSortAriaState('priceChangeDate')">
-              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'priceChangeDate'" [attr.aria-label]="getProductSortAriaLabel('priceChangeDate', 'Değişiklik')" [attr.title]="getProductSortAriaLabel('priceChangeDate', 'Değişiklik')" (click)="setProductSort('priceChangeDate')">
-                <span class="sort-label">Değişiklik</span>
+              <button type="button" class="sort-button" [class.is-active]="productSortKey() === 'priceChangeDate'" [attr.aria-label]="getProductSortAriaLabel('priceChangeDate', 'Değişim Tarihi')" [attr.title]="getProductSortAriaLabel('priceChangeDate', 'Değişim Tarihi')" (click)="setProductSort('priceChangeDate')">
+                <span class="sort-label">Değişim Tarihi</span>
                 <span class="sort-icon" aria-hidden="true">{{ getProductSortIcon('priceChangeDate') }}</span>
                 <small class="sort-state" [class.is-idle]="productSortKey() !== 'priceChangeDate'">{{ getProductSortStateLabel('priceChangeDate') }}</small>
               </button>
@@ -434,7 +434,7 @@
               </span>
             </td>
             <td data-label="Birim / Koli">{{ getProductUnitLabel(product) }}</td>
-            <td data-label="Değişiklik">{{ product.priceChangeDate || '-' }}</td>
+            <td data-label="Değişim Tarihi">{{ formatPriceChangeDate(product.priceChangeDate) }}</td>
             <td class="row-actions" data-label="İşlem">
               <button type="button" class="remove-button" (click)="removeProduct(product)">
                 Kaldır

@@ -127,8 +127,8 @@ export class EtiketBelgeleriListComponent {
     { value: 'status:desc', label: 'Durum: Z-A' },
     { value: 'unit:asc', label: 'Birim / koli: A-Z' },
     { value: 'unit:desc', label: 'Birim / koli: Z-A' },
-    { value: 'priceChangeDate:desc', label: 'Değişiklik: yeniden eskiye' },
-    { value: 'priceChangeDate:asc', label: 'Değişiklik: eskiden yeniye' }
+    { value: 'priceChangeDate:desc', label: 'Değişim tarihi: yeniden eskiye' },
+    { value: 'priceChangeDate:asc', label: 'Değişim tarihi: eskiden yeniye' }
   ];
   private readonly selectedLabelType = signal<string>(
     ETIKET_TIPLERI[0]?.etiketTipi ?? ''
@@ -794,6 +794,21 @@ export class EtiketBelgeleriListComponent {
     }
 
     return this.formatReadableDate(parsedDate);
+  }
+
+  protected formatPriceChangeDate(value: string | null | undefined): string {
+    const normalized = value?.trim();
+
+    if (!normalized) {
+      return '-';
+    }
+
+    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
+    if (dateOnlyMatch) {
+      return `${dateOnlyMatch[3]}.${dateOnlyMatch[2]}.${dateOnlyMatch[1]}`;
+    }
+
+    return this.formatDocumentDate(normalized);
   }
 
   private replaceProducts(

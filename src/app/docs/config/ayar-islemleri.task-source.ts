@@ -330,10 +330,12 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       id: 'veritabani-izleme',
       title: 'Veritabani Izleme',
       subtitle:
-        'Mikro SQL Server aktif sorgularini, kilit zincirlerini ve kontrollu oturum sonlandirmalarini izler.',
+        'Mikro SQL Server, worker, olay ve guvenli yazma sagligini tek operasyon ekraninda izler.',
       baseRouteOrFile: '/api/ayar-islemleri/veritabani-izleme',
       highlights: [
+        'Genel bakis; veritabani, worker, olay ve guvenli yazma durumlarini tek operasyonal ozette birlestirir',
         'Canli veri 10 saniyelik yenileme ile izlenir',
+        'AXATA worker ve scheduler heartbeat, kuyruk ve en eski bekleyen is bilgileri izlenir',
         'Oturum sonlandirma sadece terminate-session yetkisiyle ve secili oturumun kimligi tekrar dogrulanarak yapilir',
         'KILL sonrasi rollback durumu ayri endpointten izlenir'
       ],
@@ -345,8 +347,18 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/genel-bakis',
+              description: 'Veritabani, worker, olay ve guvenli yazma sagligini bir arada getirir'
+            },
+            {
+              method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/anlik',
               description: 'Anlik sorgu, kilit, transaction ve bekleme ozetini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/workerlar',
+              description: 'Worker heartbeat, aktivite ve kuyruk sagligini getirir'
             },
             {
               method: 'GET',

@@ -32,13 +32,15 @@ import type {
   SaveB2BBulletinHttpRequest,
   SafeWriteMonitoringItemDto,
   SafeWriteMonitoringListHttpRequest,
+  MonitoringOverviewDto,
   TerminalInstallationDto,
   TerminalInstallationListHttpRequest,
   TerminalInstallationSummaryDto,
   TerminateDatabaseSessionHttpRequest,
   UpdateBranchSettingsHttpRequest,
   UpdateB2BUserHttpRequest,
-  UpdateCashierHttpRequest
+  UpdateCashierHttpRequest,
+  WorkerMonitoringSnapshotDto
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
@@ -141,6 +143,18 @@ export class AyarIslemleriService extends BaseApiService {
   getDatabaseMonitoringSnapshot(): Observable<DatabaseMonitoringSnapshotDto> {
     return this.get<DatabaseMonitoringSnapshotDto>(
       'ayar-islemleri/veritabani-izleme/anlik'
+    );
+  }
+
+  getDatabaseMonitoringOverview(): Observable<MonitoringOverviewDto> {
+    return this.get<MonitoringOverviewDto>(
+      'ayar-islemleri/veritabani-izleme/genel-bakis'
+    );
+  }
+
+  getWorkerMonitoringSnapshot(): Observable<WorkerMonitoringSnapshotDto> {
+    return this.get<WorkerMonitoringSnapshotDto>(
+      'ayar-islemleri/veritabani-izleme/workerlar'
     );
   }
 

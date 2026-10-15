@@ -86,6 +86,9 @@ import type {
   ITrendyolGoPriceStockRefreshStatusApiDto,
   ITrendyolGoPriceStockDispatchApiDto,
   ITrendyolGoPriceStockDispatchHttpRequestApiDto,
+  ITrendyolGoCatalogPreviewApiDto,
+  ITrendyolGoCatalogDispatchApiDto,
+  ITrendyolGoCatalogDispatchHttpRequestApiDto,
   ITrendyolGoBatchItemsRequestApiDto,
   ITrendyolGoBrandsQueryApiDto,
   ITrendyolGoClaimsQueryApiDto,
@@ -178,6 +181,8 @@ export type TrendyolGoJsonDto = ITrendyolGoJsonApiDto;
 export type TrendyolGoPriceStockPreviewDto = ITrendyolGoPriceStockPreviewApiDto;
 export type TrendyolGoPriceStockRefreshStatusDto = ITrendyolGoPriceStockRefreshStatusApiDto;
 export type TrendyolGoPriceStockDispatchDto = ITrendyolGoPriceStockDispatchApiDto;
+export type TrendyolGoCatalogPreviewDto = ITrendyolGoCatalogPreviewApiDto;
+export type TrendyolGoCatalogDispatchDto = ITrendyolGoCatalogDispatchApiDto;
 
 export function isAxataJobTerminalStatus(status: string | null | undefined): boolean {
   const normalizedStatus = status?.trim().toLocaleLowerCase('tr-TR') ?? '';
@@ -978,6 +983,25 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   dispatchTrendyolGoPriceStock(request: ITrendyolGoPriceStockDispatchHttpRequestApiDto) {
     return this.post<TrendyolGoPriceStockDispatchDto, ITrendyolGoPriceStockDispatchHttpRequestApiDto>(
       'entegrasyon-islemleri/trendyol-go/price-stock/dispatch',
+      request
+    );
+  }
+
+  getTrendyolGoCatalogPreview(
+    storeId: number,
+    view: 'actionable' | 'issues' | 'all' | 'existing' = 'actionable',
+    take = 500,
+    search?: string | null
+  ) {
+    return this.getWithQuery<TrendyolGoCatalogPreviewDto>(
+      'entegrasyon-islemleri/trendyol-go/catalog/preview',
+      { storeId, view, take, search: search?.trim() || undefined }
+    );
+  }
+
+  dispatchTrendyolGoCatalog(request: ITrendyolGoCatalogDispatchHttpRequestApiDto) {
+    return this.post<TrendyolGoCatalogDispatchDto, ITrendyolGoCatalogDispatchHttpRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/catalog/dispatch',
       request
     );
   }

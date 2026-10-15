@@ -12,8 +12,11 @@ import type {
   DatabaseRecommendationDto,
   DatabaseRollbackStatusDto,
   DatabaseSessionTerminationDto,
+  MonitoringOverviewDto,
   SafeWriteMonitoringItemDto,
-  SafeWriteMonitoringListHttpRequest
+  SafeWriteMonitoringListHttpRequest,
+  WorkerMonitoringItemDto,
+  WorkerMonitoringSnapshotDto
 } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
@@ -35,7 +38,7 @@ import {
   type SafeWriteStatusTone
 } from './safe-write-monitoring.helpers';
 
-type MonitorTab = 'live' | 'safeWrites' | 'incidents' | 'audits';
+type MonitorTab = 'live' | 'workers' | 'safeWrites' | 'incidents' | 'audits';
 
 interface DatabaseSessionCandidate {
   sessionId: number;
@@ -65,7 +68,9 @@ const PERMISSION_PREFIX = 'ayar-islemleri.veritabani-izleme';
 export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
   protected readonly tab = signal<MonitorTab>('live');
+  protected readonly monitoringOverview = signal<MonitoringOverviewDto | null>(null);
   protected readonly snapshot = signal<DatabaseMonitoringSnapshotDto | null>(null);
+  protected readonly workerSnapshot = signal<WorkerMonitoringSnapshotDto | null>(null);
   protected readonly incidents = signal<DatabaseMonitoringIncidentDto[]>([]);
   protected readonly terminations = signal<DatabaseSessionTerminationDto[]>([]);
   protected readonly safeWrites = signal<SafeWriteMonitoringItemDto[]>([]);
@@ -74,21 +79,47 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly rollbackSessionId = signal<number | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly isLoading = signal(false);
+  protected readonly isOverviewLoading = signal(false);
+  protected readonly isWorkerLoading = signal(false);
   protected readonly isHistoryLoading = signal(false);
   protected readonly isSafeWriteLoading = signal(false);
   protected readonly isTerminating = signal(false);
   protected readonly isRollbackLoading = signal(false);
 
-  protected readonly lastUpdated = computed(() => this.snapshot()?.generatedAtUtc ?? null);
+  protected readonly lastUpdated = computed(
+    () => this.monitoringOverview()?.generatedAtUtc ?? this.snapshot()?.generatedAtUtc ?? null
+  );
   protected readonly activeRequests = computed(() => this.snapshot()?.requests ?? []);
   protected readonly blockingEdges = computed(() => this.snapshot()?.blocking ?? []);
   protected readonly openTransactions = computed(() => this.snapshot()?.openTransactions ?? []);
   protected readonly recommendations = computed(() => this.snapshot()?.recommendations ?? []);
+  protected readonly workers = computed(() => this.workerSnapshot()?.workers ?? []);
+  protected readonly queuedWorkerJobCount = computed(() =>
+    this.workers().reduce((total, worker) => total + worker.queuedCount, 0)
+  );
+  protected readonly unhealthyWorkerCount = computed(() =>
+    this.workers().filter((worker) =>
+      worker.requiresAttention || worker.status?.toLocaleLowerCase('tr-TR') === 'unhealthy'
+    ).length
+  );
+  protected readonly safeWriteAttentionCount = computed(() => {
+    const safeWrites = this.monitoringOverview()?.safeWrites;
+    return safeWrites
+      ? safeWrites.staleProcessingCount
+        + safeWrites.retryableFailureCount
+        + safeWrites.manualReviewCount
+        + safeWrites.unclassifiedFailureCount
+      : 0;
+  });
   protected readonly refreshSeconds = computed(
     () => this.snapshot()?.thresholds.refreshSeconds ?? 10
   );
   protected readonly isCurrentHistoryLoading = computed(() =>
-    this.tab() === 'safeWrites' ? this.isSafeWriteLoading() : this.isHistoryLoading()
+    this.tab() === 'workers'
+      ? this.isWorkerLoading()
+      : this.tab() === 'safeWrites'
+        ? this.isSafeWriteLoading()
+        : this.isHistoryLoading()
   );
 
   protected readonly terminateForm = new FormGroup({
@@ -138,11 +169,16 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   }
 
   protected setTab(tab: MonitorTab): void {
-    if (tab !== 'live' && !this.canViewHistory()) {
+    if (tab !== 'live' && tab !== 'workers' && !this.canViewHistory()) {
       return;
     }
 
     this.tab.set(tab);
+
+    if (tab === 'workers') {
+      this.loadWorkerSnapshot(false);
+      return;
+    }
 
     if (tab !== 'live' && !this.isHistoryLoading()) {
       this.loadHistory();
@@ -151,11 +187,17 @@ export class VeritabaniIzlemeListComponent implements OnInit {
 
   protected refresh(): void {
     if (!this.isLoading()) {
+      this.loadMonitoringOverview(false);
       this.loadSnapshot(true);
     }
   }
 
   protected refreshHistory(): void {
+    if (this.tab() === 'workers') {
+      this.loadWorkerSnapshot(true);
+      return;
+    }
+
     if (!this.canViewHistory()) {
       return;
     }
@@ -353,11 +395,28 @@ export class VeritabaniIzlemeListComponent implements OnInit {
       case 'healthy':
         return 'Saglikli';
       case 'warning':
+      case 'degraded':
         return 'Uyari';
       case 'critical':
+      case 'unhealthy':
         return 'Kritik';
+      case 'disabled':
+        return 'Kapali';
       default:
         return value?.trim() || 'Bilinmiyor';
+    }
+  }
+
+  protected overviewStatusClass(value: string | null | undefined): string {
+    switch (value?.toLocaleLowerCase('tr-TR')) {
+      case 'warning':
+      case 'degraded':
+        return 'metric-warning';
+      case 'critical':
+      case 'unhealthy':
+        return 'metric-critical';
+      default:
+        return '';
     }
   }
 
@@ -372,6 +431,33 @@ export class VeritabaniIzlemeListComponent implements OnInit {
 
   protected safeWriteRetryLabel(item: SafeWriteMonitoringItemDto): string {
     return getSafeWriteStatusPresentation(item).retryLabel;
+  }
+
+  protected workerStatusClass(worker: WorkerMonitoringItemDto): string {
+    if (worker.requiresAttention && worker.status?.toLocaleLowerCase('tr-TR') === 'healthy') {
+      return 'status-warning';
+    }
+
+    switch (worker.status?.toLocaleLowerCase('tr-TR')) {
+      case 'healthy':
+        return 'status-good';
+      case 'degraded':
+        return 'status-warning';
+      case 'unhealthy':
+        return 'status-critical';
+      case 'disabled':
+        return 'status-disabled';
+      default:
+        return '';
+    }
+  }
+
+  protected workerStatusLabel(worker: WorkerMonitoringItemDto): string {
+    return worker.statusName?.trim() || this.statusLabel(worker.status);
+  }
+
+  protected formatSeconds(seconds: number | null | undefined): string {
+    return this.formatDuration(Number(seconds ?? 0) * 1000);
   }
 
   protected trackByRequest(_: number, request: DatabaseActiveRequestDto): string {
@@ -405,10 +491,50 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     return item.id || item.clientRequestId;
   }
 
+  protected trackByWorker(index: number, worker: WorkerMonitoringItemDto): string {
+    return worker.code || worker.name || `${index}`;
+  }
+
   private startPolling(): void {
     timer(0, 10000)
       .pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe(() => this.loadSnapshot(false));
+      .subscribe(() => {
+        this.loadMonitoringOverview(false);
+        if (this.tab() !== 'workers') {
+          this.loadSnapshot(false);
+        }
+      });
+  }
+
+  private loadMonitoringOverview(showFeedback: boolean): void {
+    if (!this.canList() || this.isOverviewLoading()) {
+      return;
+    }
+
+    this.isOverviewLoading.set(true);
+    this.api
+      .getDatabaseMonitoringOverview()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isOverviewLoading.set(false))
+      )
+      .subscribe({
+        next: (overview: MonitoringOverviewDto) => {
+          this.monitoringOverview.set(overview);
+          this.workerSnapshot.set(overview.workers);
+          if (showFeedback) {
+            this.showSuccess('Operasyon ozeti yenilendi', overview.headline || 'Izleme ozeti guncellendi.');
+          }
+        },
+        error: (error: unknown) => {
+          if (showFeedback) {
+            this.showError(
+              'Operasyon ozeti alinamadi',
+              getErrorMessage(error, 'Birlesik izleme ozeti okunamadi.')
+            );
+          }
+        }
+      });
   }
 
   private loadSnapshot(showFeedback: boolean): void {
@@ -485,6 +611,36 @@ export class VeritabaniIzlemeListComponent implements OnInit {
           : null
       );
     }
+  }
+
+  private loadWorkerSnapshot(showFeedback: boolean): void {
+    if (!this.canList() || this.isWorkerLoading()) {
+      return;
+    }
+
+    this.isWorkerLoading.set(true);
+    this.api
+      .getWorkerMonitoringSnapshot()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isWorkerLoading.set(false))
+      )
+      .subscribe({
+        next: (snapshot: WorkerMonitoringSnapshotDto) => {
+          this.workerSnapshot.set(snapshot);
+          if (showFeedback) {
+            this.showSuccess(
+              'Worker durumu yenilendi',
+              `${snapshot.workers?.length ?? 0} arka plan sureci kontrol edildi.`
+            );
+          }
+        },
+        error: (error: unknown) =>
+          this.showError(
+            'Worker durumu alinamadi',
+            getErrorMessage(error, 'Arka plan sureclerinin durumu okunamadi.')
+          )
+      });
   }
 
   private setSelectedSession(session: DatabaseSessionCandidate): void {

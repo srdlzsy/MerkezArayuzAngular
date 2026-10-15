@@ -22,6 +22,7 @@
   <nav class="view-tabs" aria-label="Trendyol Go bolumleri">
     <button type="button" [class.is-active]="activeView() === 'orders'" (click)="activeView.set('orders')">Siparisler</button>
     <button type="button" [class.is-active]="activeView() === 'price-stock'" (click)="activeView.set('price-stock')">Fiyat ve Stok</button>
+    <button type="button" [class.is-active]="activeView() === 'catalog-sync'" (click)="activeView.set('catalog-sync')">Katalog Aktarimi</button>
     <button type="button" [class.is-active]="activeView() === 'advanced'" (click)="activeView.set('advanced')">Diger Islemler</button>
   </nav>
 
@@ -226,6 +227,14 @@
           <option value="all">Tum katalog</option>
         </select>
       </label>
+      <label class="field dispatch-mode-field" [formGroup]="priceStockForm">
+        <span>Gonderim kapsami</span>
+        <select formControlName="dispatchMode">
+          <option value="selected">Secili hazir urunler</option>
+          <option value="changed">Tum fiyat/stok farklari</option>
+          <option value="all-existing">TGO'da mevcut tum gecerli urunler</option>
+        </select>
+      </label>
       <button type="button" class="secondary-button" (click)="loadPriceStockPreview()" [disabled]="loadingPriceStock() || !selectedStore()">
         <i class="fa-solid fa-arrows-rotate"></i>
         <span>{{ loadingPriceStock() ? 'Yukleniyor' : 'Onizlemeyi Getir' }}</span>
@@ -257,11 +266,8 @@
         <button type="button" class="secondary-button" (click)="toggleAllReadyItems()" [disabled]="!canDispatchPriceStock() || !readyItems().length">
           {{ selectedReadyCount() === readyItems().length && readyItems().length ? 'Secimi Temizle' : 'Hazirlari Sec' }}
         </button>
-        <button type="button" class="primary-button" (click)="dispatchPriceStock()" [disabled]="!canUpdate() || !canDispatchPriceStock() || !selectedReadyCount() || busyAction() !== null">
-          <i class="fa-solid fa-paper-plane"></i><span>Secilenleri Gonder</span>
-        </button>
-        <button type="button" class="primary-button" (click)="dispatchPriceStock(true)" [disabled]="!canUpdate() || !canDispatchPriceStock() || busyAction() !== null">
-          <i class="fa-solid fa-layer-group"></i><span>Tum Hazirlari Gonder</span>
+        <button type="button" class="primary-button" (click)="dispatchPriceStock()" [disabled]="!canUpdate() || !canSubmitPriceStock() || busyAction() !== null">
+          <i class="fa-solid fa-paper-plane"></i><span>Gonder ({{ priceStockDispatchCount() }})</span>
         </button>
       </div>
       <div class="table-wrap price-stock-table">
@@ -293,6 +299,103 @@
         <strong>Batch: {{ batchId }}</strong>
         <button type="button" class="secondary-button" (click)="checkPriceStockBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
         <details class="json-block" *ngIf="priceStockBatchResults()[batchId] as result"><summary>Batch sonucu</summary><pre>{{ result | json }}</pre></details>
+      </div>
+    </div>
+  </section>
+
+  <section class="catalog-sync-workspace" *ngIf="activeView() === 'catalog-sync'">
+    <div class="section-head">
+      <div>
+        <h3>Katalog Aktarimi</h3>
+        <span *ngIf="catalogSyncPreview() as preview">{{ preview.storeName || selectedStore()?.storeName }} / {{ preview.totalCount }} urun</span>
+      </div>
+    </div>
+
+    <div class="price-stock-controls">
+      <label class="field store-field" [formGroup]="filterForm">
+        <span>Magaza</span>
+        <select formControlName="storeId">
+          <option [ngValue]="null" disabled>Magaza secin</option>
+          <option *ngFor="let store of stores(); trackBy: trackByStore" [ngValue]="store.storeId">{{ store.storeName }} / Depo {{ store.warehouseNo }}</option>
+        </select>
+      </label>
+      <label class="field compact-field" [formGroup]="catalogSyncForm">
+        <span>Gorunum</span>
+        <select formControlName="view">
+          <option value="actionable">Aktarilabilir</option>
+          <option value="issues">Sorunlu satirlar</option>
+          <option value="existing">TGO'da mevcut</option>
+          <option value="all">Tum katalog</option>
+        </select>
+      </label>
+      <label class="field catalog-search-field" [formGroup]="catalogSyncForm">
+        <span>Urun ara</span>
+        <input
+          type="search"
+          formControlName="search"
+          placeholder="Stok kodu, urun adi veya barkod"
+          autocomplete="off"
+          (keydown.enter)="$event.preventDefault(); loadCatalogSyncPreview()"
+        />
+      </label>
+      <label class="field compact-field catalog-take-field" [formGroup]="catalogSyncForm">
+        <span>Limit</span>
+        <input type="number" min="1" max="5000" formControlName="take" />
+      </label>
+      <button type="button" class="secondary-button" (click)="loadCatalogSyncPreview()" [disabled]="loadingCatalogSync() || !selectedStore() || catalogSyncForm.invalid">
+        <i class="fa-solid fa-arrows-rotate"></i>
+        <span>{{ loadingCatalogSync() ? 'Yukleniyor' : 'Onizlemeyi Getir' }}</span>
+      </button>
+    </div>
+
+    <p class="price-stock-note">
+      Mikro'da bulunup TGO'da olmayan yeni urunler gonderilir. Eslesen urunler aktarim listesine dahil edilmez; mapping gereken satirlar guvenli olarak atlanir.
+    </p>
+
+    <ng-container *ngIf="catalogSyncPreview() as preview; else catalogSyncEmpty">
+      <div class="price-stock-summary">
+        <span>Mevcut: <strong>{{ preview.existingCount }}</strong></span>
+        <span>Hazir: <strong>{{ preview.readyCount }}</strong></span>
+        <span>Mapping gerekli: <strong>{{ preview.mappingRequiredCount }}</strong></span>
+        <span>Atlanan: <strong>{{ preview.skippedCount }}</strong></span>
+        <span>Secili: <strong>{{ selectedCatalogReadyCount() }}</strong></span>
+        <button type="button" class="secondary-button" (click)="toggleAllCatalogReadyItems()" [disabled]="!canDispatchCatalog() || !catalogReadyItems().length">
+          {{ selectedCatalogReadyCount() === catalogReadyItems().length && catalogReadyItems().length ? 'Secimi Temizle' : 'Hazirlari Sec' }}
+        </button>
+        <button type="button" class="primary-button" (click)="dispatchCatalog(false)" [disabled]="!canUpdate() || !canDispatchCatalog() || !selectedCatalogReadyCount() || busyAction() !== null">
+          <i class="fa-solid fa-paper-plane"></i><span>Secilenleri Gonder</span>
+        </button>
+        <button type="button" class="primary-button" (click)="dispatchCatalog(true)" [disabled]="!canUpdate() || !canDispatchCatalog() || busyAction() !== null">
+          <i class="fa-solid fa-layer-group"></i><span>Tum Hazirlari Gonder</span>
+        </button>
+      </div>
+      <div class="table-wrap price-stock-table">
+        <table>
+          <thead>
+            <tr><th>Sec</th><th>Urun</th><th>Barkod</th><th>Durum</th><th>Marka</th><th>Kategori</th><th>Neden</th></tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of preview.items || []">
+              <td><input type="checkbox" [checked]="selectedCatalogBarcodes().has(item.barcode || '')" [disabled]="item.status !== 'Ready' || !item.barcode" (change)="toggleCatalogItem(item)" [attr.aria-label]="item.productName || item.barcode" /></td>
+              <td><strong>{{ item.productName || '-' }}</strong><small>{{ item.stockCode || '-' }}</small></td>
+              <td>{{ item.barcode }}</td>
+              <td><span class="status-pill" [class.is-ready]="item.status === 'Ready'" [class.is-warning]="item.status === 'MappingRequired'">{{ item.status }}</span></td>
+              <td>{{ item.mikroBrandCode || '-' }}<small *ngIf="item.trendyolBrandId">TGO ID {{ item.trendyolBrandId }}</small></td>
+              <td>{{ item.mikroCategoryCode || '-' }}<small *ngIf="item.trendyolCategoryId">TGO ID {{ item.trendyolCategoryId }}</small></td>
+              <td>{{ item.reason || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+    </ng-container>
+    <ng-template #catalogSyncEmpty>
+      <div class="empty-state">{{ loadingCatalogSync() ? 'Katalog onizlemesi yukleniyor...' : 'Magazayi secip katalog onizlemesini getirin.' }}</div>
+    </ng-template>
+    <div class="batch-tracking" *ngIf="catalogBatchIds().length">
+      <div class="batch-item" *ngFor="let batchId of catalogBatchIds()">
+        <strong>Batch: {{ batchId }}</strong>
+        <button type="button" class="secondary-button" (click)="checkCatalogBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
+        <details class="json-block" *ngIf="catalogBatchResults()[batchId] as result"><summary>Batch sonucu</summary><pre>{{ result | json }}</pre></details>
       </div>
     </div>
   </section>

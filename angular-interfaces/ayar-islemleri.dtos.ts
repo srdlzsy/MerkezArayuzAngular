@@ -398,6 +398,79 @@ export interface SafeWriteMonitoringItemDto {
   ageSeconds: number;
 }
 
+export type WorkerMonitoringStatus =
+  | 'Healthy'
+  | 'Degraded'
+  | 'Unhealthy'
+  | 'Disabled'
+  | string;
+
+export interface WorkerMonitoringItemDto {
+  code: string | null;
+  name: string | null;
+  isCritical: boolean;
+  isEnabled: boolean;
+  status: WorkerMonitoringStatus | null;
+  statusName: string | null;
+  activity: string | null;
+  registeredAtUtc: string;
+  lastHeartbeatAtUtc: string | null;
+  heartbeatAgeSeconds: number | null;
+  lastSuccessAtUtc: string | null;
+  lastFailureAtUtc: string | null;
+  lastError: string | null;
+  hasUnresolvedFailure: boolean;
+  requiresAttention: boolean;
+  recommendation: string | null;
+  queuedCount: number;
+  runningCount: number;
+  oldestQueuedAtUtc: string | null;
+  oldestQueuedAgeSeconds: number | null;
+  staleAfterSeconds: number;
+}
+
+export interface WorkerMonitoringSnapshotDto {
+  generatedAtUtc: string;
+  overallStatus: WorkerMonitoringStatus | null;
+  workers: WorkerMonitoringItemDto[] | null;
+}
+
+export interface DatabaseIncidentOverviewDto {
+  openCount: number;
+  criticalCount: number;
+  warningCount: number;
+  lastSeenAtUtc: string | null;
+}
+
+export interface DatabaseMonitoringOverviewDto {
+  status: string | null;
+  activeRequestCount: number;
+  blockedRequestCount: number;
+  longRunningRequestCount: number;
+  openTransactionCount: number;
+}
+
+export interface SafeWriteMonitoringOverviewDto {
+  windowHours: number;
+  processingCount: number;
+  staleProcessingCount: number;
+  retryableFailureCount: number;
+  manualReviewCount: number;
+  unclassifiedFailureCount: number;
+  completedCount: number;
+}
+
+export interface MonitoringOverviewDto {
+  generatedAtUtc: string;
+  overallStatus: string | null;
+  overallStatusName: string | null;
+  headline: string | null;
+  database: DatabaseMonitoringOverviewDto;
+  workers: WorkerMonitoringSnapshotDto;
+  incidents: DatabaseIncidentOverviewDto;
+  safeWrites: SafeWriteMonitoringOverviewDto;
+}
+
 export interface DatabaseSessionTerminationDto {
   id: string;
   sessionId: number;

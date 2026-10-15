@@ -4,7 +4,9 @@ import { TestBed } from '@angular/core/testing';
 import type {
   DatabaseMonitoringSnapshotDto,
   DatabaseSessionTerminationDto,
-  TerminateDatabaseSessionHttpRequest
+  MonitoringOverviewDto,
+  TerminateDatabaseSessionHttpRequest,
+  WorkerMonitoringSnapshotDto
 } from '@interfaces';
 
 import { API_BASE_URL } from '../api-base-url.token';
@@ -65,6 +67,100 @@ describe('AyarIslemleriService database monitoring', () => {
     });
 
     expect(result.serverName).toBe('SQL01');
+  });
+
+  it('gets the background worker heartbeat and backlog snapshot', () => {
+    let result!: WorkerMonitoringSnapshotDto;
+
+    service
+      .getWorkerMonitoringSnapshot()
+      .subscribe((value: WorkerMonitoringSnapshotDto) => (result = value));
+
+    const request = httpTesting.expectOne(
+      'https://api.test/api/ayar-islemleri/veritabani-izleme/workerlar'
+    );
+    expect(request.request.method).toBe('GET');
+
+    request.flush({
+      generatedAtUtc: '2026-10-14T09:00:00Z',
+      overallStatus: 'Degraded',
+      workers: [{
+        code: 'axata-synchronization-worker',
+        name: 'AXATA Synchronization Worker',
+        isCritical: true,
+        isEnabled: true,
+        status: 'Degraded',
+        statusName: 'Dikkat Gerekiyor',
+        activity: 'Kuyruk bekleniyor',
+        registeredAtUtc: '2026-10-14T08:00:00Z',
+        lastHeartbeatAtUtc: '2026-10-14T08:59:55Z',
+        heartbeatAgeSeconds: 5,
+        lastSuccessAtUtc: '2026-10-14T08:58:00Z',
+        lastFailureAtUtc: null,
+        lastError: null,
+        hasUnresolvedFailure: false,
+        requiresAttention: true,
+        recommendation: 'Kuyruk yasini kontrol edin.',
+        queuedCount: 4,
+        runningCount: 1,
+        oldestQueuedAtUtc: '2026-10-14T08:52:00Z',
+        oldestQueuedAgeSeconds: 480,
+        staleAfterSeconds: 60
+      }]
+    });
+
+    expect(result.overallStatus).toBe('Degraded');
+    expect(result.workers?.[0].queuedCount).toBe(4);
+  });
+
+  it('gets the consolidated operational monitoring overview', () => {
+    let result!: MonitoringOverviewDto;
+
+    service
+      .getDatabaseMonitoringOverview()
+      .subscribe((value: MonitoringOverviewDto) => (result = value));
+
+    const request = httpTesting.expectOne(
+      'https://api.test/api/ayar-islemleri/veritabani-izleme/genel-bakis'
+    );
+    expect(request.request.method).toBe('GET');
+
+    request.flush({
+      generatedAtUtc: '2026-10-15T09:00:00Z',
+      overallStatus: 'warning',
+      overallStatusName: 'Dikkat Gerekiyor',
+      headline: 'Bir worker ve iki guvenli yazma kaydi incelenmeli.',
+      database: {
+        status: 'healthy',
+        activeRequestCount: 2,
+        blockedRequestCount: 0,
+        longRunningRequestCount: 0,
+        openTransactionCount: 1
+      },
+      workers: {
+        generatedAtUtc: '2026-10-15T09:00:00Z',
+        overallStatus: 'Degraded',
+        workers: []
+      },
+      incidents: {
+        openCount: 1,
+        criticalCount: 0,
+        warningCount: 1,
+        lastSeenAtUtc: '2026-10-15T08:58:00Z'
+      },
+      safeWrites: {
+        windowHours: 24,
+        processingCount: 1,
+        staleProcessingCount: 0,
+        retryableFailureCount: 1,
+        manualReviewCount: 0,
+        unclassifiedFailureCount: 0,
+        completedCount: 14
+      }
+    });
+
+    expect(result.overallStatusName).toBe('Dikkat Gerekiyor');
+    expect(result.safeWrites.retryableFailureCount).toBe(1);
   });
 
   it('sends take for incident and termination histories', () => {

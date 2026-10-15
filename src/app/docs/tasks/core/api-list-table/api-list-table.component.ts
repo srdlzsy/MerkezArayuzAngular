@@ -38,6 +38,7 @@ export class ApiListTableComponent<Row extends object = object> {
   readonly printSubtitle = input('');
   readonly printNotes = input<readonly string[]>([]);
   readonly printSignatureTitle = input('Kontrol Eden');
+  readonly compactPrint = input(false);
   readonly showExport = input(false);
   readonly exportFileName = input('rapor');
   readonly exportSheetName = input('Rapor');
@@ -424,13 +425,14 @@ export class ApiListTableComponent<Row extends object = object> {
 
     this.printGeneratedAt.set(this.formatPrintDate(new Date()));
     this.isPrinting.set(true);
+    const pageMargin = this.compactPrint() ? '6mm 7mm' : '11mm 12mm';
 
     const started = await this.inPlacePrintService.print({
       styleId: `${this.printRootId}-style`,
       styles: `
       @page {
         size: A4 portrait;
-        margin: 11mm 12mm;
+        margin: ${pageMargin};
       }
 
       @media print {

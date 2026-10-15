@@ -18,6 +18,7 @@ interface TableTestAccess {
   sortedRows(): TestRow[];
   pagedRows(): TestRow[];
   getSortIndicator(key: string): string;
+  printList(): Promise<void>;
 }
 
 describe('ApiListTableComponent', () => {
@@ -74,5 +75,23 @@ describe('ApiListTableComponent', () => {
 
     component.updateFilter('armut');
     expect(component.pagedRows().map((row) => row.id)).toEqual([2]);
+  });
+
+  it('uses reduced A4 margins when compact printing is enabled', async () => {
+    const print = jasmine.createSpy('print').and.resolveTo(true);
+    TestBed.configureTestingModule({
+      imports: [ApiListTableComponent],
+      providers: [{ provide: InPlacePrintService, useValue: { print } }]
+    });
+    const fixture = TestBed.createComponent(ApiListTableComponent<TestRow>);
+    fixture.componentRef.setInput('rows', rows);
+    fixture.componentRef.setInput('columns', columns);
+    fixture.componentRef.setInput('compactPrint', true);
+    fixture.detectChanges();
+
+    await (fixture.componentInstance as unknown as TableTestAccess).printList();
+
+    expect(print).toHaveBeenCalled();
+    expect(print.calls.mostRecent().args[0].styles).toContain('margin: 6mm 7mm');
   });
 });

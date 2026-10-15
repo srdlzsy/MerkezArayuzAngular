@@ -45,11 +45,12 @@ describe('Trendyol Go price/stock API', () => {
     request.flush({ items: [], storeId: 402535, snapshotStatus: 'Preparing' });
   });
 
-  it('dispatches selected barcodes with the preview hash', () => {
+  it('dispatches the explicit price-stock mode with the preview hash', () => {
     const body = {
       storeId: 402535,
       previewHash: 'A1B2',
-      sendAll: true,
+      mode: 'all-existing' as const,
+      sendAll: false,
       barcodes: []
     };
     service.dispatchTrendyolGoPriceStock(body).subscribe();
@@ -59,6 +60,35 @@ describe('Trendyol Go price/stock API', () => {
     expect(request.request.method).toBe('POST');
     expect(request.request.body).toEqual(body);
     request.flush({ upstreamResponses: [{ batchRequestId: 'batch-1' }] });
+  });
+
+  it('previews Mikro products missing from the selected TGO store catalog', () => {
+    service.getTrendyolGoCatalogPreview(402535, 'issues', 250, '  ayran  ').subscribe();
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/catalog/preview')
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('storeId')).toBe('402535');
+    expect(request.request.params.get('view')).toBe('issues');
+    expect(request.request.params.get('take')).toBe('250');
+    expect(request.request.params.get('search')).toBe('ayran');
+    request.flush({ storeId: 402535, previewHash: 'CAT-1', readyCount: 0, items: [] });
+  });
+
+  it('dispatches only the selected catalog-ready barcodes', () => {
+    const body = {
+      storeId: 402535,
+      previewHash: 'CAT-1',
+      sendAll: false,
+      barcodes: ['8690000000001']
+    };
+    service.dispatchTrendyolGoCatalog(body).subscribe();
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/catalog/dispatch')
+    );
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(body);
+    request.flush({ upstreamResponses: [{ batchRequestId: 'catalog-batch-1' }] });
   });
 
   it('queues a price-stock snapshot refresh for the selected store', () => {

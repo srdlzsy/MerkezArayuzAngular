@@ -15,15 +15,14 @@
       <div class="metric-strip monitor-metrics">
         <article
           class="health-metric"
-          [class.metric-warning]="snapshot()?.overallStatus === 'warning'"
-          [class.metric-critical]="snapshot()?.overallStatus === 'critical'"
+          [ngClass]="overviewStatusClass(monitoringOverview()?.overallStatus || snapshot()?.overallStatus)"
         >
           <span>Genel Durum</span>
-          <strong>{{ statusLabel(snapshot()?.overallStatus) }}</strong>
+          <strong>{{ monitoringOverview()?.overallStatusName || statusLabel(snapshot()?.overallStatus) }}</strong>
         </article>
         <article>
           <span>Aktif Istek</span>
-          <strong>{{ snapshot()?.activeRequestCount ?? 0 }}</strong>
+          <strong>{{ monitoringOverview()?.database?.activeRequestCount ?? snapshot()?.activeRequestCount ?? 0 }}</strong>
         </article>
         <article [class.metric-critical]="(snapshot()?.rootBlockerCount ?? 0) > 0">
           <span>Root Blocker</span>
@@ -31,10 +30,31 @@
         </article>
         <article [class.metric-warning]="(snapshot()?.openTransactionCount ?? 0) > 0">
           <span>Acik Transaction</span>
-          <strong>{{ snapshot()?.openTransactionCount ?? 0 }}</strong>
+          <strong>{{ monitoringOverview()?.database?.openTransactionCount ?? snapshot()?.openTransactionCount ?? 0 }}</strong>
         </article>
       </div>
     </header>
+
+    <section class="operations-overview" *ngIf="monitoringOverview() as overview">
+      <div class="operations-overview-copy">
+        <span class="panel-kicker">Operasyon Ozeti</span>
+        <strong>{{ overview.headline || 'Izlenen servisler calisiyor.' }}</strong>
+      </div>
+      <div class="operations-overview-facts">
+        <span [class.fact-alert]="overview.incidents.criticalCount > 0">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          {{ overview.incidents.openCount }} acik olay
+        </span>
+        <span [class.fact-alert]="unhealthyWorkerCount() > 0">
+          <i class="fa-solid fa-gears" aria-hidden="true"></i>
+          {{ unhealthyWorkerCount() }} dikkat isteyen worker
+        </span>
+        <span [class.fact-alert]="safeWriteAttentionCount() > 0">
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          {{ safeWriteAttentionCount() }} guvenli yazma incelemesi
+        </span>
+      </div>
+    </section>
 
     <nav class="tab-strip" aria-label="Veritabani izleme sekmeleri">
       <button
@@ -45,6 +65,16 @@
       >
         <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
         Canli Izleme
+      </button>
+      <button
+        type="button"
+        class="task-action"
+        [class.task-action-primary]="tab() === 'workers'"
+        (click)="setTab('workers')"
+      >
+        <i class="fa-solid fa-gears" aria-hidden="true"></i>
+        Workerlar
+        <span class="button-count">{{ workers().length }}</span>
       </button>
       <button
         type="button"
@@ -83,6 +113,9 @@
       <span class="refresh-note" *ngIf="tab() === 'live'">
         Son okuma: {{ formatDate(lastUpdated()) }}
       </span>
+      <span class="refresh-note" *ngIf="tab() === 'workers'">
+        Son okuma: {{ formatDate(workerSnapshot()?.generatedAtUtc) }}
+      </span>
       <button
         type="button"
         class="task-action task-action-secondary"
@@ -101,7 +134,7 @@
           [disabled]="isCurrentHistoryLoading()"
         >
           <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-          {{ isCurrentHistoryLoading() ? 'Yenileniyor' : 'Gecmisi Yenile' }}
+          {{ isCurrentHistoryLoading() ? 'Yenileniyor' : (tab() === 'workers' ? 'Workerlari Yenile' : 'Gecmisi Yenile') }}
         </button>
       </ng-template>
     </nav>
@@ -374,6 +407,95 @@
         </section>
       </section>
     </ng-container>
+
+    <section class="worker-monitor" *ngIf="tab() === 'workers'">
+      <div class="worker-summary" *ngIf="workerSnapshot() as currentWorkers">
+        <article [ngClass]="'worker-overall-' + (currentWorkers.overallStatus || 'unknown').toLocaleLowerCase()">
+          <span>Genel Durum</span>
+          <strong>{{ statusLabel(currentWorkers.overallStatus) }}</strong>
+        </article>
+        <article>
+          <span>Izlenen Surec</span>
+          <strong>{{ workers().length }}</strong>
+        </article>
+        <article [class.worker-summary-warning]="queuedWorkerJobCount() > 0">
+          <span>Kuyrukta</span>
+          <strong>{{ queuedWorkerJobCount() }}</strong>
+        </article>
+        <article [class.worker-summary-critical]="unhealthyWorkerCount() > 0">
+          <span>Kritik Surec</span>
+          <strong>{{ unhealthyWorkerCount() }}</strong>
+        </article>
+      </div>
+
+      <section class="panel worker-panel">
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">Heartbeat ve Backlog</span>
+            <h3>Arka Plan Surecleri</h3>
+          </div>
+          <span class="table-meta">10 saniyede bir yenilenir</span>
+        </div>
+
+        <div class="table-wrap worker-table-wrap" *ngIf="workers().length > 0; else noWorkers">
+          <table class="data-table worker-table">
+            <thead>
+              <tr>
+                <th>Surec</th>
+                <th>Durum</th>
+                <th>Aktivite</th>
+                <th>Heartbeat</th>
+                <th>Kuyruk / Calisan</th>
+                <th>En Eski Is</th>
+                <th>Son Sonuc</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let worker of workers(); trackBy: trackByWorker" [class.worker-needs-attention]="worker.requiresAttention">
+                <td>
+                  <strong>{{ worker.name || worker.code || 'Worker' }}</strong>
+                  <span class="table-meta">{{ worker.code || '-' }}</span>
+                  <span class="table-meta">{{ worker.isCritical ? 'Kritik surec' : 'Destek sureci' }}</span>
+                </td>
+                <td>
+                  <span class="status-badge worker-status" [ngClass]="workerStatusClass(worker)">
+                    {{ workerStatusLabel(worker) }}
+                  </span>
+                  <span class="table-meta" *ngIf="!worker.isEnabled">Konfigurasyonla kapali</span>
+                </td>
+                <td class="wrap-cell">{{ worker.activity || '-' }}</td>
+                <td>
+                  {{ formatDate(worker.lastHeartbeatAtUtc) }}
+                  <span class="table-meta" *ngIf="worker.heartbeatAgeSeconds != null">{{ formatSeconds(worker.heartbeatAgeSeconds) }} once</span>
+                  <span class="table-meta">Esik: {{ formatSeconds(worker.staleAfterSeconds) }}</span>
+                </td>
+                <td>
+                  <strong>{{ worker.queuedCount }} / {{ worker.runningCount }}</strong>
+                  <span class="table-meta">bekleyen / calisan</span>
+                </td>
+                <td>
+                  {{ formatDate(worker.oldestQueuedAtUtc) }}
+                  <span class="table-meta">{{ worker.oldestQueuedAgeSeconds == null ? '-' : formatSeconds(worker.oldestQueuedAgeSeconds) }}</span>
+                </td>
+                <td class="wrap-cell">
+                  <span *ngIf="worker.lastError; else workerSuccess" class="worker-error">{{ worker.lastError }}</span>
+                  <ng-template #workerSuccess>
+                    {{ formatDate(worker.lastSuccessAtUtc) }}
+                  </ng-template>
+                  <span class="table-meta" *ngIf="worker.lastFailureAtUtc">Son hata: {{ formatDate(worker.lastFailureAtUtc) }}</span>
+                  <span class="worker-recommendation" *ngIf="worker.recommendation">{{ worker.recommendation }}</span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noWorkers>
+          <p class="panel-empty">
+            {{ isWorkerLoading() ? 'Worker bilgileri okunuyor.' : 'Izlenen worker kaydi bulunmuyor.' }}
+          </p>
+        </ng-template>
+      </section>
+    </section>
 
     <section class="panel history-panel" *ngIf="tab() === 'safeWrites' && canViewHistory()">
       <div class="panel-head">

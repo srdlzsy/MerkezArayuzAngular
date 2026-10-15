@@ -1452,11 +1452,57 @@ export interface ITrendyolGoPriceStockRefreshStatusApiDto {
 export interface ITrendyolGoPriceStockDispatchHttpRequestApiDto {
   storeId: number;
   previewHash: string;
-  sendAll: boolean;
+  mode?: 'selected' | 'changed' | 'all-existing' | null;
+  sendAll?: boolean;
   barcodes: string[];
 }
 
 export interface ITrendyolGoPriceStockDispatchApiDto {
   upstreamResponses?: readonly Record<string, unknown>[] | null;
   [key: string]: unknown;
+}
+
+export interface ITrendyolGoCatalogPreviewItemApiDto {
+  stockCode: string | null;
+  productName: string | null;
+  barcode: string | null;
+  mikroBrandCode: string | null;
+  trendyolBrandId: number | null;
+  mikroCategoryCode: string | null;
+  trendyolCategoryId: number | null;
+  vatRate: number | null;
+  mikroPrice: number | null;
+  status: 'Existing' | 'Ready' | 'MappingRequired' | 'Skipped' | string | null;
+  reason: string | null;
+}
+
+export interface ITrendyolGoCatalogPreviewApiDto {
+  storeId: number;
+  warehouseNo: number;
+  storeName: string | null;
+  previewHash: string | null;
+  totalCount: number;
+  existingCount: number;
+  readyCount: number;
+  mappingRequiredCount: number;
+  skippedCount: number;
+  view: 'actionable' | 'issues' | 'all' | string | null;
+  visibleCount: number;
+  items: ITrendyolGoCatalogPreviewItemApiDto[] | null;
+}
+
+export interface ITrendyolGoCatalogDispatchHttpRequestApiDto {
+  storeId: number;
+  previewHash: string;
+  sendAll: boolean;
+  barcodes: string[];
+}
+
+export interface ITrendyolGoCatalogDispatchApiDto {
+  storeId: number;
+  warehouseNo: number;
+  sentCount: number;
+  batchCount: number;
+  nextStep: string | null;
+  upstreamResponses?: readonly Record<string, unknown>[] | null;
 }

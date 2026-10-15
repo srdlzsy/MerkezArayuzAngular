@@ -250,6 +250,13 @@ describe('EtiketBelgeleriListComponent product sorting', () => {
     expect(component.getProductSortStateLabel('priceChangeDate')).toBe('Yeni-Eski');
   });
 
+  it('formats a price change date clearly without shifting date-only values', () => {
+    const component = createSortComponent();
+
+    expect(component.formatPriceChangeDate('2026-10-15')).toBe('15.10.2026');
+    expect(component.formatPriceChangeDate('')).toBe('-');
+  });
+
   it('applies an explicit sort menu selection', () => {
     const component = createSortComponent();
 
