@@ -26,7 +26,7 @@ Bu kontrol tum endpointlerin uctan uca canli onayi degildir. Yayin oncesi migrat
 - Ilgili `*.all-warehouses` yetkisi olmayan kullanici farkli `WarehouseNo`, `BranchNo` veya islem deposu gonderirse API `403 Forbidden` doner.
 - Tarih aralikli liste endpointlerinde `StartDate` ve `EndDate` zorunludur; depo yetkisi yoksa `WarehouseNo` verilmez ve backend JWT icindeki depoyu kullanir.
 - CORS originleri ortama gore konfigurasyondan okunur. Development icin `appsettings.Development.json`, canli icin `appsettings.Production.json` altindaki `Cors:AllowedOrigins` listesi esas alinmalidir; kaynak koddaki veya bu dokumandaki eski origin listelerine guvenilmemelidir.
-- Canli web UI origin'i `http://10.0.0.100:7575`, API adresi `http://10.0.0.100:7508` olarak tanimlidir. Eski arayuz `http://10.0.0.100:5002` ayri legacy origin'idir.
+- Canli web UI originleri `http://10.0.0.100:7575` ve `http://denetim.furpa.com.tr:31445`, API adresi `http://10.0.0.100:7508` olarak tanimlidir. Eski arayuz `http://10.0.0.100:5002` ayri legacy origin'idir.
 
 Timeout ve tekrar deneme notu:
 
@@ -34,7 +34,7 @@ Timeout ve tekrar deneme notu:
 - `MikroReadSeconds` liste/detay/rapor okumalari, `MikroWriteSeconds` create/update/delete yazma islemleri icin kullanilir. `AuthSeconds`, `FurpaSeconds`, `AxataSeconds`, `PuanSeconds` ve `ShopigoCiroSeconds` ilgili DB context'leri icindir.
 - Raw SQL ile yazilmis liste/arama/rapor komutlari da genel olarak `300` saniye bekleyecek sekilde ayarlanmistir.
 - `MikroApi:TimeoutSeconds` varsayilan appsettings'te `300` saniyedir. Yazma rotasi `MikroApi` ise UI bu sureyi de dikkate almalidir.
-- Yazma yollari `MikroWriteRouting` ile secilir. Mevcut calisma profilinde belge/siparis olusturan insert rotalari (`InventoryCount`, `IssuedWarehouseOrder`, `IssuedCompanyOrder`, `StockReceipt`, `Virman`, `InterWarehouseShipment`, `WarehouseReturn`, `CompanyMovement`, `CompanyReceiving`, `GreenGrocerOperations`, `ProductDistribution`, `GreenGrocerGoodsReceipt`, `PosAccountingSlip`, `AxataDynamicCensus`) `MikroApi` degerindedir. Mevcut kaydi guncelleyen, isaretleyen veya silen rotalar `Database` kalir; bunlara `WarehouseOrderSentFlag`, `CompanyOrderSentFlag`, `WarehouseReceivingAcceptance`, `WarehouseShippingUpdate`, `GreenGrocerOrderDelete`, `MicroDocumentEditing`, `ProductDistributionStockUpdate`, fatura/e-irsaliye marker ve iade referans rotalari dahildir. UI request modeli degismez.
+- Yazma yollari `MikroWriteRouting` ile secilir. Mevcut varsayilan ve Production calisma profilinde insert, update, isaretleme ve silme rotalarinin tamami `Database` degerindedir. Kodda desteklenen `MikroApi` yolu konfigurasyonla yeniden acilabilir; UI request modeli degismez.
 - Mikro API create cevabi tek basina basari kaniti degildir. Backend olusan aktif Mikro satirlarini stok, miktar, depo, satir sayisi ve akisa ozel trace/link alanlariyla DB'den geri okumadan create islemini tamamlanmis saymaz. Mikro API yazma audit rezervasyonu acildiktan sonra upstream POST ve onu izleyen readback kullanicinin HTTP baglantisindan bagimsiz devam eder; `HttpClient` ve readback'in kendi sure sinirlari yine uygulanir. Normal basarida kisa readback uygulanir; timeout, baglanti kopmasi veya duplicate cevabinda ayni belge 180 saniyeye kadar readback ile aranir ve ikinci create yazisi uretilmez.
 - Mikro API'de guvenilir bir karsiligi bulunmayan yardimci/ozel tablo insertleri bu profile zorlanmaz. Kasa sayimi alt tablolari, cihaz/terminal tanimlari ve AXATA C04 legacy tablo yazimi gibi akislar kontrollu DB yolu ile devam eder.
 - Terminal, mobil ve web istemcileri liste isteklerinde HTTP client timeout degerini en az `300` saniye yapmalidir. `MikroApi` yazma rotasindaki create istekleri, konfigurasyondaki 300 saniyelik ust Mikro API timeout ile sonrasindaki 180 saniyelik readback penceresini ve ag payini kapsayabilmek icin en az `540` saniye beklemelidir. Canlida Mikro kendi icinden yaklasik 130 saniyede timeout dondururse istek daha erken tamamlanir. Subede internet zayifsa istemci erken vazgecerse kullanici timeout gorur ve kontrolsuz tekrar basabilir.
@@ -5763,7 +5763,7 @@ Yetki:
 
 Onemli not:
 
-- Yazma yolu `MikroWriteRouting:IssuedWarehouseOrder` ile secilir. Mevcut Production ayari `MikroApi` degerindedir; `Database` fallback yolu da ayni request ve readback sozlesmesini uygular.
+- Yazma yolu `MikroWriteRouting:IssuedWarehouseOrder` ile secilir. Mevcut Production ayari `Database` degerindedir; `MikroApi` yolu da ayni request ve readback sozlesmesini uygular.
 - `MikroApi` yolunda `/Api/apiMethods/DepolarArasiSiparisKaydetV2` cagrilir; basarili/timeout/duplicate cevabindan sonra Mikro DB satirlari readback ile dogrulanir.
 - `Database` yolunda EF Core `MikroWriteDbContext` ile transaction commit edilir ve commit sonrasinda ayni tam readback yapilir. Iki yolda da belge dogrulanmadan guvenli islem `Completed` olmaz.
 - `documentSerie` backend tarafinda `F{islemDepoNo}` olarak uretilir.
@@ -6746,7 +6746,7 @@ Yetki:
 
 Onemli not:
 
-- Yazma yolu `MikroWriteRouting:InterWarehouseShipment` ile secilir; mevcut config'te deger `MikroApi`dir.
+- Yazma yolu `MikroWriteRouting:InterWarehouseShipment` ile secilir; mevcut config'te deger `Database`tir.
 - `Database` modunda EF Core uzerinden ayri `MikroWriteDbContext` ile yazma yapar. Write hedefi canli `MikroConnection` degil; `MikroWriteConnection` yoksa `testMikroConnection` kullanilir.
 - `MikroWriteBatching:InterWarehouseShipmentEnabled`, `CompanyReceivingEnabled` ve `CompanyReturnEnabled` ayarlari ilgili `Database` yazma yollarini birbirinden bagimsiz acip kapatir. Ayar acikken bir evrakin `STOK_HAREKETLERI` satirlari mevcut transaction icinde tek SQL bulk batch olarak yazilir. Mikro trigger ve constraint kontrolleri acik kalir; hedef, cok satirli evrakta trigger'i satir basina degil belge batch'i basina bir kez calistirmaktir.
 - Firma mal kabulde normal kabul hareketleri tek batch, otomatik olusan firma iade evraki varsa onun satirlari ayri bir batch olarak yazilir. Boylece her belge kendi trigger calismasini bir kez yapar ve iki belge ayni transaction icinde birlikte commit/rollback olur.
@@ -7217,7 +7217,7 @@ Yetki:
 
 Onemli not:
 
-- Yazma yolu `MikroWriteRouting:CompanyMovement` ile belirlenir; mevcut config'te deger `MikroApi`dir.
+- Yazma yolu `MikroWriteRouting:CompanyMovement` ile belirlenir; mevcut config'te deger `Database`tir.
 - `Database` modunda EF Core uzerinden ayri `MikroWriteDbContext` ile `STOK_HAREKETLERI` yazilir. Commit sonrasinda ayni write DB'den tum belge satirlari geri okunur; satir icerigi ve olusturulan `sth_Guid` kumesi dogrulanmadan create basarili sayilmaz.
 - `MikroApi` modunda `POST /Api/apiMethods/IrsaliyeKaydetV2` kullanilir ve olusan hareketler response/geri okuma ile mevcut response modeline cevrilir.
 - Firma giden sevki hareketi `sth_evraktip = 1`, `sth_tip = 1`, `sth_cins = 0`, `sth_normal_iade = 0` olarak olusur.
@@ -8029,6 +8029,8 @@ Onemli not:
 - `clientRequestId` kaydi Auth DB'de rezerve edildikten sonra terminalin HTTP baglantisinin kopmasi veya request'i iptal etmesi baslamis Mikro transaction'ini iptal etmez. Yazma kendi SQL/Mikro command timeout sinirlari icinde tamamlanir ve sonucu offline kaydina yazilir.
 - Eski kayitlarda ham `A task was canceled.` gibi siniflandirilmamis bir hata varsa durum veya ayni kimlikle retry akisi once trace readback yapar. Belge bulunamazsa kayit `MIKRO_WRITE_OUTCOME_UNCONFIRMED`, `retryable=true` olarak makine-okunur bicimde guncellenir.
 - `MikroWriteRouting:CompanyReceiving=Database` iken onceki deneme transaction rollback ile kapanmis ve trace readback hic hareket bulamamissa ayni payload + ayni `clientRequestId` yeniden yazilabilir. Bu yeni bir mantiksal fis degildir ve yeni GUID uretilmez.
+- `Database` firma mal kabul yazmalari depo bazli kuyrukta en fazla 300 saniye bekler. Bu sure yazma command timeout'u degil, ayni depodaki onceki mal kabul yaziminin bitmesini bekleme suresidir. Terminal baglantisi daha once kapansa bile kalici istek kaydi sahibi olan sunucu islemi surdurur; UI yeni kimlik uretmeden `offline-sync/{clientRequestId}` ile sonucu kontrol eder.
+- Deadlock, lock timeout, SQL command timeout veya gecici baglanti hatasinda transaction rollback kesin olarak tamamlanmissa API kaydi `MIKRO_WRITE_QUEUE_BUSY`, `retryable=true` yapar. Bu durumda Mikro'ya commit edilmis satir yoktur; UI ayni payload ve ayni `clientRequestId` ile tekrar deneyebilir. Commit sonucu kanitlanamiyorsa bu siniflandirma kullanilmaz; kayit `MIKRO_WRITE_OUTCOME_UNCONFIRMED` kalir ve 180 saniyelik readback/durum kontrolu uygulanir.
 - `MikroWriteRouting:CompanyReceiving=MikroApi` iken belirsiz sonuc sonrasi ayni kimlik yeni Mikro API create cagrisi baslatmaz; yalniz readback ile kesin sonuc aranir ve bulunamiyorsa islem kontrol bekleyen durumda kalir.
 
 Create body validasyonlari:
@@ -12864,7 +12866,7 @@ Notlar:
 - `driverId` ile birlikte gelen dolu manuel alanlar secili sofor kaydinin ustune yazilir; bos manuel alanlar sofor tanimindan doldurulur.
 - Uyumsoft cagrilmadan once FRM numarasi, UUID, sofor/teslim bilgileri ve gonderilecek Mikro satirlarinin sabit kopyasi Auth DB `edespatch_submissions` tablosuna kaydedilir. Bu kayit yazilamazsa gonderim yapilmaz.
 - Uyumsoft basarili cevap verdikten sonra basari durumu, belge akis olayi ve bekleyen Mikro isaretleme isi ayni Auth DB kaydetme islemiyle kalicilastirilir. HTTP `200` cevabi Mikro API isaretlemesini beklemeden doner. Basari kaydi hatasi yutulmaz.
-- Mikro yazma yolu `MikroWriteRouting:EDespatchMarkAsSent=MikroApi` olarak korunur. Worker `DahiliStokHareketDuzeltV2` kullanir; API hatasinda SQL yazma fallback'i yapilmaz.
+- Mevcut Production profilinde `MikroWriteRouting:EDespatchMarkAsSent=Database` kullanilir. Bu modda worker Mikro hareket metadata alanlarini dogrudan DB uzerinden gunceller ve sonucu geri okuyarak dogrular. Ayar ileride `MikroApi` yapilirsa `DahiliStokHareketDuzeltV2` kullanilir ve API hatasinda SQL yazma fallback'i yapilmaz.
 - Mikro hareket satirlarinin kilit, FRM/ETTN, plaka, teslim eden/alani ve sofor TCKN metadata guncellemesi kalici is kaydindan calisir. Gecici hatalar artan bekleme suresiyle (en fazla 15 dakika ara) yeniden denenir; besinci hatada is kaybedilmez. Bir belgenin tekrar deneme beklemesi diger isleri uyutmaz.
 - Normal hizli response'ta `localMikroMetadataUpdated=false` ve `localMikroMetadataUpdateQueued=true` gelir. Bu hata degildir; Uyumsoft gonderimi basarili, Mikro isaretleme kuyruktadir. UI islemi basarili gostermeli ve tekrar gonder butonunu acmamalidir.
 - `localMikroMetadataUpdated=true` gelirse Mikro satirlari zaten FRM/ETTN ile tam isaretlidir. `localMikroMetadataUpdateQueued=false` ve `localMikroMetadataUpdated=false` birlikte gelirse gercek lokal metadata uyarisi olarak ele alinabilir.
@@ -15391,7 +15393,7 @@ Route'lar:
 - `GET /api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/magaza-masrafi`
 - `GET /api/kasa-islemleri/kasa-sayimlari/online-kasa-detaylari`
 
-`odeme-tipleri/banka` eski `Summaries/GetPaymentTypesByBanks` davranisi ile uyumludur. Backend `cashRegisterNo` ile `CashRegisterDetails` satirlarini bulur, bu satirlardaki `Bank` degeri ile `PaymentTypes.PaymentName` alanini eslestirir ve sadece `PaymentGenus = 1` banka odeme tiplerini dondurur. Ayni kasa numarasina bagli birden fazla banka/terminal varsa response birden fazla satir dondurur; UI bunlari tek bankaya dusurmemelidir. `terminalId` ilgili `CashRegisterDetails.TerminalId`, `accountCode` ilgili `PaymentTypes.AccountCode` degeridir. Terminal tanimlama ekranindaki banka secimi icin de `GET /api/ayar-islemleri/kasa-pos-terminalleri/secenekler` response'undaki `terminalBanks` kullanilmalidir; boylece buradaki eslestirme kayit sonrasinda dogru calisir.
+`odeme-tipleri/banka` eski `Summaries/GetPaymentTypesByBanks` davranisi ile uyumludur. Backend `cashRegisterNo` ile hem Furpa hem Mikro `CashRegisterDetails` satirlarini bulur. Furpa ana kaynak olarak once eklenir; Mikro'daki yalniz Furpa'da karsiligi olmayan terminaller cevaba tamamlanir. Ayni banka terminali iki kaynakta da varsa terminal no veya uye isyeri no ile birebir eslestirilir ve Furpa satiri tek kez kullanilir. Eslesme kaynaklar arasinda bire bir yapildigi icin ayni uye isyeri numarasini kullanan gercekten farkli terminaller kaybolmaz. Bu sayede Mikro'ya ozel TEB gibi bir terminal de, yalniz Furpa'da bulunan Ziraat veya Yapi Kredi gibi terminaller de gorunur; ortak Is Bankasi terminali iki kez donmez. Birlesen satirlardaki `Bank` degeri Mikro `PaymentTypes.PaymentName` alaniyla eslestirilir ve sadece `PaymentGenus = 1` banka odeme tipleri dondurulur. Ayni kasa numarasina bagli gercekten farkli banka/terminal kayitlari response'ta ayri satir doner; UI bunlari tek bankaya dusurmemelidir. `terminalId` ilgili `CashRegisterDetails.TerminalId`, `accountCode` ilgili Mikro `PaymentTypes.AccountCode` degeridir. Terminal tanimlama ekranindaki banka secimi icin de `GET /api/ayar-islemleri/kasa-pos-terminalleri/secenekler` response'undaki `terminalBanks` kullanilmalidir; boylece buradaki eslestirme kayit sonrasinda dogru calisir.
 
 UI kasa seciminde `GET /api/kasa-islemleri/kasa-sayimlari/kasalar?branchNo=...` veya ayar ekranindaki `GET /api/ayar-islemleri/sube-ayarlari/{branchNo}/kasalar` response'undan gelen `cashFinanceNumber` degeri varsa, banka odeme tipi endpointine `cashRegisterNo` olarak bu deger gonderilmelidir. Ornek: kullanici `Kasa 130` secer, satirda `cashFinanceNumber=PAV210010584` varsa cagri `GET /api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/banka?cashRegisterNo=PAV210010584` olmalidir. `cashNo=130` sadece sube icindeki kasa numarasidir.
 
@@ -19509,7 +19511,7 @@ Not: Bu listede eski teknik route'lar da bulunabilir. Yeni UI icin oncelikli rou
   - response `AxataSynchronizationManualDispatchDto`
   - su an `issued-warehouse-order-sync`, `warehouse-inbound-order-sync` ve `company-receiving-sync` icin tanimlidir
   - `issued-warehouse-order-sync` worker parity icin `C01` hareket kodu ile `addOutboundOrder*` operasyonunu kullanir
-  - `issued-warehouse-order-sync` basarili donerse `ssip_special1=1` bayragi ayri `MikroWriteRouting:WarehouseOrderSentFlag` ayarina gore yazilir. Mevcut profilde bu update rotasi `Database`tir; `IssuedWarehouseOrder=MikroApi` yalniz yeni depo siparisi insertini belirler
+  - `issued-warehouse-order-sync` basarili donerse `ssip_special1=1` bayragi ayri `MikroWriteRouting:WarehouseOrderSentFlag` ayarina gore yazilir. Mevcut profilde hem bu update rotasi hem de yeni depo siparisi insertini belirleyen `IssuedWarehouseOrder` rotasi `Database`tir
   - `warehouse-inbound-order-sync` worker parity icin `G02` hareket kodu ile `addInboundOrder*` operasyonunu kullanir; basarili donerse `ssip_special1=1` bayragi `ssip_girdepo = warehouseNo` evreninde isaretlenir
   - `company-receiving-sync` worker parity icin verilen firma/satinalma siparisini `G01` hareket kodu ile `addInboundOrder*` operasyonuna gonderir; basarili donerse `sip_special1=1` bayragi isaretlenir
 - `POST /api/integrations/axata-sync/manual/tasks/{taskCode}/documents/dispatch-batch`
@@ -19523,6 +19525,8 @@ Not: Bu listede eski teknik route'lar da bulunabilir. Yeni UI icin oncelikli rou
 - `POST /api/integrations/axata-sync/live/axata/outbound-deliveries/c01/import`
   - AXATA C01 bekleyen teslimatlarini Mikro depolar arasi sevk fisine cevirir
   - Mikro fis ve `STOK_HAREKETLERI_EK` linkleri basarili yazildiktan sonra AXATA `AxataServicePoolEXT.svc/updIntegrationTableAsync` ile `ENT006.S06STAT=1` yapar
+  - JWT'deki talep eden kullanici kimligi backend tarafindan alt depolar arasi sevk create request'ine aktarilir. UI body icinde `requestedByUserId` veya `clientRequestId` gondermez
+  - Alt create akisi kalici guvenli yazma rezervasyonu acar. Mikro yazimi baslamadan once bu rezervasyon olusamazsa AXATA ack atilmaz
   - response `AxataOutboundDeliveryImportExecuteDto`
 - `GET /api/integrations/axata-sync/live/axata/outbound-deliveries/c02/preview?take=20`
   - AXATA `getOutBoundDeliveryListAsync` uzerinden `MovementType=C02`, `Status=0` bekleyen firma sevk teslimatlarini okur
@@ -19564,6 +19568,7 @@ Not: Bu listede eski teknik route'lar da bulunabilir. Yeni UI icin oncelikli rou
   - AXATA'da teslimati kesilmis ama Mikro sevk linki eksik C01 belgeyi Mikro depolar arasi sevk fisine cevirir
   - AXATA satirlari Mikro siparis satirlariyla guvenli eslesmezse veya AXATA miktari Mikro kalan siparis miktarini asarsa veri yazmaz
   - Guvenli eslesme sirasi: `S07KALN + S07SKOD`, 1-bazli satir no farki, son olarak tekil stok + kalan miktar eslesmesi
+  - Talep eden kullanici ve guvenli create kimligi backend tarafinda yonetilir; UI bunlari body'ye eklemez
   - body `AxataOutboundDeliveryDocumentImportExecuteHttpRequest`
   - response `AxataOutboundDeliveryImportExecuteDto`
 - `GET /api/integrations/axata-sync/live/axata/inbound-deliveries/g02/preview?take=20`
@@ -19874,6 +19879,19 @@ C01/C02/C03/C04/G02 import execute response ortak ana alanlari:
 - `movementDate`: Mikro hareket tarihi. C01 defaultta import gunudur; `dateMode=axata` verilirse AXATA tarihi olur.
 - `documentDate`: Mikro belge tarihi. Bos birakilirsa `movementDate` ile ayni yazilir.
 - `movementDocumentNo`: UI'da gostermek icin olusan Mikro evrak numarasi (`movementSerie-movementOrderNo`).
+- `requestedDocumentCount`, bu calistirmada analiz edilen belge sayisidir. `succeededDocumentCount` gercekten Mikro yazimi/ack basarisi olanlari, `failedDocumentCount` `failures` dizisindeki neden sayisini, `skippedDocumentCount` ise yazma denenmeyen belgeleri gosterir.
+- Mevcut ortak response sozlesmesinde `skippedDocumentCount`, `failedDocumentCount` icinden ayri bir matematik kumesi olmak zorunda degildir. Ornegin iptal/sifir miktar veya kaynak siparis bulunamadi kaydi hem yazma denenmedigi icin `skippedDocumentCount` icinde hem de nedeni `failures` dizisinde bulunabilir. UI `requested = succeeded + failed + skipped` hesabi yapmamali; sayaclari ayri gostermeli ve belge kararini `results`/`failures` satirindan vermelidir.
+
+C01 import hata/uyari kararlari:
+
+| `errorMessage` / durum | Anlam | UI davranisi |
+|---|---|---|
+| `Requested by user id is required when clientRequestId is provided.` | Backend alt guvenli create request'ine JWT kullanici kimligini aktaramamistir. Mikro yazimi ve AXATA ack baslamamistir; UI request body'sinde eksik alan yoktur. | Otomatik body degistirme veya yeni kimlik uretme. `Sunucu surumu/yapilandirmasi kontrol edilmeli` diyerek destek ayrintisinda belge no ve correlation bilgisini goster. Duzeltilmis backend yayinlandiktan sonra C01 import yeniden calistirilabilir. |
+| `AXATA sevki iptal/zero-quantity olarak gorunuyor; Mikro sevk fisi beklenmez.` | AXATA kaydi iptal veya sifir miktarlidir; Mikro'da sevk fisi olmamasi beklenen durumdur. | `Atlandi - AXATA'da iptal` goster; manuel Mikro fisi veya otomatik retry onerme. |
+| `Mikro depolar arasi siparis bulunamadi.` | AXATA teslimati vardir ancak baglanacagi Mikro kaynak siparis bulunamamistir. | `Kaynak siparis bulunamadi - inceleme gerekli` goster. C01 create'i zorlamadan belge seri/sira, kaynak depo ve Mikro siparis kaydini kontrol ettir. |
+| `AXATA teslimat satirlari Mikro siparis satirlariyla guvenli eslesmedi.` | Siparis vardir fakat satir/stok/miktar baglantisi kesin kurulamamistir. | Otomatik import/ack yapma; satir farklarini inceleme ekraninda goster. |
+
+Bu hatalar tam ekran veya modul seviyesinde kilit olusturmamalidir. Toplu importta diger belgeler `continueOnError=true` ile devam eder; UI sorunlu satiri belge bazinda isaretler ve diger AXATA ekranlarini kullanilabilir tutar.
 
 G01 preview response ana farklari:
 
@@ -20287,6 +20305,8 @@ Import davranisi:
 - Mikro tarih kuralÄ±: C01 sevk Mikro'ya hangi gun import ediliyorsa `STOK_HAREKETLERI.sth_tarih` ve `sth_belge_tarih` o gun olur. AXATA `ENT006.S06ITAR` siparis/sevk izleme ve filtreleme bilgisidir; Mikro fis tarihi olarak kullanilmaz.
 - AXATA ack: Mikro yazim basarili olursa `AxataServicePoolEXT.svc/updIntegrationTableAsync` ile `ENT006.S06STAT=1`, `IDField=S06SIRA`
 - `acknowledge=false` verilirse Mikro yazilir ama AXATA status guncellenmez; bu sadece kontrollu test/kurtarma icin kullanilmalidir
+- C01 route'u JWT'deki kullaniciyi backend icinde guvenli depolar arasi sevk create request'ine aktarir ve kalici `clientRequestId` rezervasyonunu backend olusturur. UI bu iki teknik kimligi request body'ye eklememelidir.
+- Guvenli rezervasyon veya Mikro yazimi tamamlanmadan AXATA ack atilmaz. Bu nedenle kullanici kimligi/rezervasyon asamasindaki bir backend hatasindan sonra ayni AXATA belge kuyrukta kalir ve duzeltilmis yayin sonrasinda yeniden degerlendirilebilir.
 
 Ornek C01 belge bazli rescue preview:
 

@@ -1213,6 +1213,23 @@
   grid-template-columns: repeat(3, minmax(90px, 1fr));
 }
 
+.import-counter-note {
+  margin: 0.4rem 0;
+  color: var(--a-sub);
+  font-size: 0.78rem;
+  line-height: 1.35;
+}
+
+.import-failure-table {
+  margin-top: 0.55rem;
+}
+
+.import-failure-table .table-row {
+  grid-template-columns: minmax(130px, 0.8fr) minmax(150px, 0.9fr) minmax(220px, 1.4fr) minmax(240px, 1.6fr);
+  min-width: 900px;
+  align-items: start;
+}
+
 .missing-table .table-row {
   grid-template-columns: 1fr 0.9fr 1.05fr 1.05fr 0.75fr;
   min-width: 760px;

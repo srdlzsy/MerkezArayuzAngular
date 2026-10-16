@@ -100,6 +100,10 @@ import {
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import {
+  buildAxataImportFailureViews
+} from './axata-import-failure.helpers';
+import type { AxataImportFailureView } from './axata-import-failure.helpers';
 
 type FeedbackTone = 'success' | 'error' | 'info';
 type AxataQueueMovementType = 'C02' | 'C03' | 'C4';
@@ -4311,6 +4315,10 @@ export class AxataSenkronizasyonuListComponent {
     return this.getFirstNumberField(value, ['succeededDocumentCount', 'succeededLineCount']) ?? 0;
   }
 
+  protected getLiveImportRequestedCount(value: unknown): number {
+    return this.getFirstNumberField(value, ['requestedDocumentCount', 'requestedLineCount']) ?? 0;
+  }
+
   protected getLiveImportFailedCount(value: unknown): number {
     return this.getFirstNumberField(value, ['failedDocumentCount', 'failedLineCount']) ?? 0;
   }
@@ -4322,6 +4330,15 @@ export class AxataSenkronizasyonuListComponent {
   protected getLiveImportCreatedQuantity(value: unknown): number {
     return this.getFirstNumberField(value, ['createdMovementQuantity', 'createdQuantity']) ?? 0;
   }
+
+  protected getLiveImportFailureViews(value: unknown): AxataImportFailureView[] {
+    return buildAxataImportFailureViews(value);
+  }
+
+  protected trackByLiveImportFailure = (
+    _index: number,
+    failure: AxataImportFailureView
+  ): string => failure.key;
 
   protected formatLiveImportRowAxata(row: unknown): string {
     const sequence = this.getFirstTextField(row, ['axataSequenceNo', 'rowNo']);

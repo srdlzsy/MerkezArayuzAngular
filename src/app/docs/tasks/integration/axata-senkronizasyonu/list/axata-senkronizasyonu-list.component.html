@@ -1808,6 +1808,10 @@
       <ng-container *ngIf="liveImportResult() as liveResult">
         <div class="status-grid">
           <div class="status-card">
+            <span>Istenen</span>
+            <strong>{{ getLiveImportRequestedCount(liveResult) }}</strong>
+          </div>
+          <div class="status-card">
             <span>Basarili</span>
             <strong>{{ getLiveImportSucceededCount(liveResult) }}</strong>
           </div>
@@ -1824,6 +1828,9 @@
             <strong>{{ getLiveImportCreatedQuantity(liveResult) | number:'1.0-2' }}</strong>
           </div>
         </div>
+        <p class="import-counter-note">
+          Basarili, hatali ve atlanan sayaclari ayri sonuclardir; birbirleriyle toplanarak istenen belge sayisi hesaplanmaz.
+        </p>
         <div class="compact-table" *ngIf="getLiveImportResultRows(liveResult).length">
           <div class="table-row table-head">
             <span>Mikro Fis</span>
@@ -1837,6 +1844,35 @@
             <span>{{ formatLiveImportResultDates(item) }}</span>
             <span>{{ formatLiveImportResultState(item) }}</span>
           </div>
+        </div>
+        <div
+          class="compact-table import-failure-table"
+          *ngIf="getLiveImportFailureViews(liveResult) as failureViews"
+        >
+          <ng-container *ngIf="failureViews.length">
+            <div class="table-row table-head">
+              <span>Belge</span>
+              <span>Karar</span>
+              <span>Backend Mesaji</span>
+              <span>Yapilacak Islem</span>
+            </div>
+            <div
+              class="table-row"
+              *ngFor="let failure of failureViews; trackBy: trackByLiveImportFailure"
+            >
+              <span>{{ failure.reference }}</span>
+              <span
+                class="status-pill"
+                [class.status-pill-danger]="failure.tone === 'danger'"
+                [class.status-pill-warn]="failure.tone === 'warning'"
+                [class.status-pill-neutral]="failure.tone === 'neutral'"
+              >
+                {{ failure.state }}
+              </span>
+              <span>{{ failure.message }}</span>
+              <span>{{ failure.guidance }}</span>
+            </div>
+          </ng-container>
         </div>
         <details class="json-details">
           <summary>Canli Import Isleme Detayi</summary>
