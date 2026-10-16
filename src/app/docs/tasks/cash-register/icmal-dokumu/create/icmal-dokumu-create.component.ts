@@ -1,6 +1,15 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, DestroyRef, HostListener, OnInit, computed, inject, signal } from '@angular/core';
+import {
+  Component,
+  DestroyRef,
+  ElementRef,
+  HostListener,
+  OnInit,
+  computed,
+  inject,
+  signal
+} from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
@@ -25,6 +34,7 @@ import { finalize } from 'rxjs';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
@@ -96,9 +106,12 @@ const TASK_ID = 'icmal-kaydi-girisi';
 })
 export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements OnInit {
   private readonly router = inject(Router);
+  private readonly hostElement = inject<ElementRef<HTMLElement>>(ElementRef);
+  private readonly listRoute = '/docs/api/kasa-sayimlari';
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly today = this.formatAsInputDate(new Date());
   private readonly formRevision = signal(0);
 
@@ -134,6 +147,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
   protected readonly zReportLoading = signal(false);
   protected readonly zReportMessage = signal('');
   protected readonly submitting = signal(false);
+  protected readonly confirmingSubmit = signal(false);
   protected readonly submitError = signal('');
   protected readonly submitSuccess = signal('');
   protected readonly createdResponse = signal<IFurpaCreateCashSummaryResponseApiDto | null>(null);
@@ -656,7 +670,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
 
   protected goBack(): void {
     this.saveBrowserDraftNow();
-    void this.router.navigateByUrl('/docs/api/kasa-sayimlari');
+    void this.router.navigateByUrl(this.listRoute);
   }
 
   protected onWarehouseNoChanged(): void {
@@ -1045,8 +1059,8 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
       });
   }
 
-  protected submit(): void {
-    if (this.submitting()) {
+  protected async submit(): Promise<void> {
+    if (this.submitting() || this.confirmingSubmit() || this.createdResponse()) {
       return;
     }
 
@@ -1059,30 +1073,40 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
       return;
     }
 
-    if (this.isAdminUser() && !this.resolveCreateWarehouseNo()) {
-      this.controls.warehouseNo.markAsTouched();
-      this.submitError.set('Tum depo yetkisinde icmal kaydi icin hedef sube secmelisin.');
+    if (this.form.invalid || !this.hasRequiredFinancialLines()) {
+      this.form.markAllAsTouched();
+      this.submitError.set(this.buildFormValidationMessage());
+      this.focusFirstInvalidField();
       return;
     }
 
-    if (!this.hasRequiredFinancialLines()) {
-      this.submitError.set(
-        'Kaydetmek icin en az bir icmal kartina satir eklemelisin.'
-      );
-    }
+    const request = this.buildRequest();
+    this.confirmingSubmit.set(true);
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Icmal kaydi gonderilsin mi?',
+      message: `Kasa ${request.cashNo}, Z No ${request.zReportNo} icmali gonderilecek.`,
+      details: [
+        this.targetWarehouseLabel(),
+        `Tahsilat: ${this.formatCurrency(this.collectionTotal())}`,
+        `Magaza gideri: ${this.formatCurrency(this.storeExpensesTotal())}`,
+        `Fark bazi: ${this.formatCurrency(this.zDifferenceBaseTotal())}`,
+        `Z toplami: ${this.formatCurrency(request.zTotalValue)}`,
+        `Z farki: ${this.formatCurrency(this.totalDifference())}`
+      ].join('\n'),
+      confirmText: 'Icmali Gonder',
+      cancelText: 'Kontrol Et',
+      tone: 'warning'
+    });
+    this.confirmingSubmit.set(false);
 
-    if (this.form.invalid) {
-      this.form.markAllAsTouched();
-    }
-
-    if (this.form.invalid || !this.hasRequiredFinancialLines()) {
+    if (!confirmed || this.createdResponse()) {
       return;
     }
 
     this.submitting.set(true);
 
     this.kasaIslemleriService
-      .createCashSummary(this.buildRequest())
+      .createCashSummary(request)
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: (response: IFurpaCreateCashSummaryResponseApiDto) => {
@@ -1092,6 +1116,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
           this.submitSuccess.set(
             `${response.documentSerie}/${response.documentOrderNo} basariyla olusturuldu.`
           );
+          void this.router.navigateByUrl(this.listRoute);
         },
         error: (error: HttpErrorResponse) => {
           this.submitError.set(
@@ -1960,6 +1985,71 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
 
   private roundCurrency(value: number): number {
     return Math.round(value * 100) / 100;
+  }
+
+  private formatCurrency(value: number): string {
+    return `${new Intl.NumberFormat('tr-TR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    }).format(value)} TL`;
+  }
+
+  private buildFormValidationMessage(): string {
+    const issues: string[] = [];
+
+    if (this.isAdminUser() && this.controls.warehouseNo.invalid) {
+      issues.push('Hedef Sube');
+    }
+
+    const requiredControls: Array<[FormControl<unknown>, string]> = [
+      [this.controls.summaryDate, 'Tarih'],
+      [this.controls.cashNo, 'Kasa No'],
+      [this.controls.zReportNo, 'Z No'],
+      [this.controls.cashierNo, 'Kasiyer'],
+      [this.controls.managerNo, 'Duzenleyen'],
+      [this.controls.zTotalValue, 'Z Toplami']
+    ];
+
+    requiredControls.forEach(([control, label]) => {
+      if (control.invalid) {
+        issues.push(label);
+      }
+    });
+
+    if (this.paymentTypes.invalid) {
+      issues.push('Odeme satirlari');
+    }
+
+    if (this.storeExpenses.invalid) {
+      issues.push('Magaza gideri satirlari');
+    }
+
+    if (this.banknoteMovements.invalid) {
+      issues.push('Banknot satirlari');
+    }
+
+    if (this.giftCheckMovements.invalid) {
+      issues.push('Hediye ceki satirlari');
+    }
+
+    if (!this.hasRequiredFinancialLines()) {
+      issues.push('En az bir kartta miktar veya tutar');
+    }
+
+    return `Kayit tamamlanamadi. Kontrol edilmesi gerekenler: ${issues.join(', ')}.`;
+  }
+
+  private focusFirstInvalidField(): void {
+    setTimeout(() => {
+      const target =
+        this.hostElement.nativeElement.querySelector<HTMLElement>(
+          '.field-invalid input:not([type="hidden"]), .field-invalid select'
+        ) ??
+        this.hostElement.nativeElement.querySelector<HTMLElement>('#icmal-count-board button');
+
+      target?.focus();
+      target?.scrollIntoView({ behavior: 'smooth', block: 'center' });
+    });
   }
 
   private normalizeIntegerControl(control: FormControl<number | null>): void {

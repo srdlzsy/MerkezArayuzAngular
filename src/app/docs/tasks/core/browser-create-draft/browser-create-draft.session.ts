@@ -145,6 +145,7 @@ export class BrowserCreateDraftSession {
     }
 
     this.runWhileRestoring(() => {
+      this.completed = false;
       config.reset();
       this.activeId.set(null);
       this.setStatus('Yeni bos taslak hazir. Degisiklikler otomatik kaydedilecek.');

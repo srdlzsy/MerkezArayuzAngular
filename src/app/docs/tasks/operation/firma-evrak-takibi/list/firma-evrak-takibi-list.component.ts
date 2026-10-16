@@ -65,6 +65,56 @@ export class FirmaEvrakTakibiListComponent implements OnInit {
     { key: 'lineCount', label: 'Kalem' },
     { key: 'totalQuantity', label: 'Miktar' }
   ];
+  protected readonly printColumns: readonly ApiListTableColumn<CompanyDocumentTrackingItemDto>[] = [
+    { key: 'documentKindName', label: 'Tur', printWidth: '9%' },
+    { key: 'documentNo', label: 'Evrak', printWidth: '10%' },
+    {
+      key: 'customerSummary',
+      label: 'Cari',
+      printWidth: '23%',
+      resolveValue: (item) => this.formatCustomer(item)
+    },
+    {
+      key: 'documentDatePrint',
+      label: 'Belge',
+      printWidth: '9%',
+      resolveValue: (item) => this.formatTemporal(item.documentDate, false)
+    },
+    {
+      key: 'movementCreateDatePrint',
+      label: 'Giris',
+      printWidth: '11%',
+      resolveValue: (item) => this.formatTemporal(item.movementCreateDate, true)
+    },
+    { key: 'deliverer', label: 'Teslim Eden', printWidth: '13%' },
+    { key: 'receiver', label: 'Teslim Alan', printWidth: '13%' },
+    { key: 'lineCount', label: 'Kalem', printWidth: '5%', printAlign: 'right' },
+    { key: 'totalQuantity', label: 'Miktar', printWidth: '7%', printAlign: 'right' }
+  ];
+  protected readonly resolvePrintSummary = (
+    items: readonly CompanyDocumentTrackingItemDto[]
+  ): readonly string[] => {
+    const receivingCount = items.filter(
+      (item) => item.documentKind === 'CompanyReceiving'
+    ).length;
+    const returnCount = items.filter((item) => item.documentKind === 'CompanyReturn').length;
+    const lineCount = items.reduce(
+      (total, item) => total + this.toSafeNumber(item.lineCount),
+      0
+    );
+    const quantity = items.reduce(
+      (total, item) => total + this.toSafeNumber(item.totalQuantity),
+      0
+    );
+
+    return [
+      `${items.length} evrak`,
+      `${receivingCount} mal kabul`,
+      `${returnCount} firma iade`,
+      `${lineCount} kalem`,
+      `${this.formatNumber(quantity, 3)} miktar`
+    ];
+  };
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
@@ -189,6 +239,21 @@ export class FirmaEvrakTakibiListComponent implements OnInit {
     return this.formatTemporal(value, false);
   }
 
+  protected getPrintSubtitle(): string {
+    const warehouseNo = this.response()?.warehouseNo;
+    const warehouseLabel = warehouseNo
+      ? `Depo ${warehouseNo}`
+      : this.currentWarehouseLabel();
+    const kindLabel =
+      this.documentKindFilter() === 'CompanyReceiving'
+        ? 'Firma Mal Kabul'
+        : this.documentKindFilter() === 'CompanyReturn'
+          ? 'Firma Iade'
+          : 'Tum Evraklar';
+
+    return `${warehouseLabel} / ${this.formatDate(this.selectedDate())} / ${kindLabel}`;
+  }
+
   private resolveWarehouseNo(): number | null {
     return this.canUseAllWarehouses() ? this.selectedWarehouseNo() : null;
   }
@@ -231,6 +296,15 @@ export class FirmaEvrakTakibiListComponent implements OnInit {
   private toSafeNumber(value: unknown): number {
     const numberValue = Number(value);
     return Number.isFinite(numberValue) ? numberValue : 0;
+  }
+
+  private formatCustomer(item: CompanyDocumentTrackingItemDto): string {
+    const parts = [item.customerCode?.trim(), item.customerDisplayName?.trim()].filter(Boolean);
+    return parts.join(' - ') || '-';
+  }
+
+  private formatNumber(value: number, maximumFractionDigits: number): string {
+    return new Intl.NumberFormat('tr-TR', { maximumFractionDigits }).format(value);
   }
 
   private getToday(): string {

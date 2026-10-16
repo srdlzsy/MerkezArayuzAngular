@@ -437,12 +437,30 @@
 }
 
 .print-page h1 {
-  margin: 0 0 5mm;
+  margin: 0 0 2mm;
   color: #000;
   font-size: 16pt;
   font-weight: 500;
   line-height: 1.15;
   text-align: center;
+}
+
+.print-summary {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1.5mm;
+  margin: 0 0 2mm;
+  padding: 1.5mm 0;
+  border-top: 0.2mm solid #000;
+  border-bottom: 0.2mm solid #000;
+  font-size: 8pt;
+  font-weight: 700;
+}
+
+.print-summary span + span::before {
+  content: '|';
+  margin-right: 1.5mm;
+  font-weight: 400;
 }
 
 .print-table {
@@ -478,90 +496,71 @@
 }
 
 .is-compact-print .print-notes {
-  margin-bottom: 0.8mm;
-  font-size: 7.2pt;
-  line-height: 1.15;
+  margin-bottom: 1mm;
+  font-size: 7.8pt;
+  line-height: 1.2;
 }
 
 .is-compact-print .print-meta {
   gap: 3mm;
-  margin: 1mm 0 0.8mm;
-  font-size: 7pt;
+  margin: 0 0 1mm;
+  font-size: 7.6pt;
 }
 
 .is-compact-print .print-page h1 {
-  margin-bottom: 2mm;
+  margin-bottom: 1mm;
   font-size: 12pt;
   font-weight: 700;
+  text-align: left;
+}
+
+.is-compact-print .print-summary {
+  gap: 1mm;
+  margin-bottom: 1mm;
+  padding: 0.8mm 0;
+  font-size: 7.4pt;
 }
 
 .is-compact-print .print-table {
-  font-size: 6.4pt;
-  line-height: 1.1;
+  font-size: 7.2pt;
+  line-height: 1.15;
 }
 
 .is-compact-print .print-table th,
 .is-compact-print .print-table td {
-  padding: 0.45mm 0.65mm;
+  padding: 0.5mm 0.7mm;
   border-bottom-width: 0.15mm;
 }
 
 .is-compact-print .print-table th {
-  font-size: 6.1pt;
-}
-
-.is-compact-print .print-table th:nth-child(1),
-.is-compact-print .print-table td:nth-child(1) {
-  width: 8%;
-}
-
-.is-compact-print .print-table th:nth-child(2),
-.is-compact-print .print-table td:nth-child(2) {
-  width: 9%;
-}
-
-.is-compact-print .print-table th:nth-child(3),
-.is-compact-print .print-table td:nth-child(3) {
-  width: 16%;
-}
-
-.is-compact-print .print-table th:nth-child(4),
-.is-compact-print .print-table td:nth-child(4) {
-  width: 9%;
-}
-
-.is-compact-print .print-table th:nth-child(5),
-.is-compact-print .print-table td:nth-child(5) {
-  width: 9%;
-}
-
-.is-compact-print .print-table th:nth-child(6),
-.is-compact-print .print-table td:nth-child(6) {
-  width: 11%;
-}
-
-.is-compact-print .print-table th:nth-child(7),
-.is-compact-print .print-table td:nth-child(7),
-.is-compact-print .print-table th:nth-child(8),
-.is-compact-print .print-table td:nth-child(8) {
-  width: 12%;
-}
-
-.is-compact-print .print-table th:nth-child(9),
-.is-compact-print .print-table td:nth-child(9) {
-  width: 6%;
-}
-
-.is-compact-print .print-table th:nth-child(10),
-.is-compact-print .print-table td:nth-child(10) {
-  width: 8%;
+  font-size: 6.8pt;
 }
 
 .is-compact-print .print-signature {
-  gap: 2.5mm;
+  gap: 2mm;
   width: 72mm;
-  margin-top: 10mm;
-  font-size: 8pt;
+  margin-top: 7mm;
+  font-size: 7.5pt;
+}
+
+.is-compact-print.is-dense-print .print-notes,
+.is-compact-print.is-dense-print .print-meta,
+.is-compact-print.is-dense-print .print-summary {
+  font-size: 6.8pt;
+}
+
+.is-compact-print.is-dense-print .print-table {
+  font-size: 6.4pt;
+  line-height: 1.08;
+}
+
+.is-compact-print.is-dense-print .print-table th,
+.is-compact-print.is-dense-print .print-table td {
+  padding: 0.36mm 0.5mm;
+}
+
+.is-compact-print.is-dense-print .print-table th {
+  font-size: 6pt;
 }
 
 @media (max-width: 1100px) {
@@ -692,5 +691,9 @@
   .print-table tr {
     break-inside: avoid;
     page-break-inside: avoid;
+  }
+
+  .print-table thead {
+    display: table-header-group;
   }
 }

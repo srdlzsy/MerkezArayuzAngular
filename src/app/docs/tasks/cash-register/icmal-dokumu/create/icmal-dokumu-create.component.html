@@ -16,14 +16,28 @@
         <button type="button" class="action-button action-button-ghost" (click)="goBack()">
           Listeye Don
         </button>
-        <button type="submit" class="action-button action-button-primary" [disabled]="submitting() || !canCreate()">
-          {{ submitting() ? 'Kaydediliyor...' : 'Icmal Kaydini Kaydet' }}
+        <button
+          *ngIf="createdResponse()"
+          type="button"
+          class="action-button action-button-ghost"
+          (click)="startNewBrowserDraft()"
+        >
+          Yeni Icmal
+        </button>
+        <button
+          type="submit"
+          class="action-button action-button-primary"
+          [disabled]="submitting() || confirmingSubmit() || !canCreate() || !!createdResponse()"
+        >
+          {{ submitting() ? 'Kaydediliyor...' : confirmingSubmit() ? 'Onay bekleniyor...' : createdResponse() ? 'Icmal Kaydedildi' : 'Icmal Kaydini Kaydet' }}
         </button>
       </div>
     </header>
 
     <article class="feedback feedback-error" *ngIf="lookupError()">{{ lookupError() }}</article>
-    <article class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</article>
+    <article id="icmal-submit-error" class="feedback feedback-error" role="alert" *ngIf="submitError()">
+      {{ submitError() }}
+    </article>
     <article class="feedback feedback-success" *ngIf="submitSuccess()">{{ submitSuccess() }}</article>
     <app-browser-create-draft-bar
       [records]="browserDrafts()"
@@ -124,12 +138,22 @@
             </small>
           </label>
 
-          <label class="field field-date">
+          <label
+            class="field field-date"
+            [class.field-invalid]="controls.summaryDate.touched && controls.summaryDate.invalid"
+          >
             <span>Tarih</span>
             <input type="date" formControlName="summaryDate" />
+            <small class="field-hint" *ngIf="controls.summaryDate.touched && controls.summaryDate.invalid">
+              Tarih gerekli
+            </small>
           </label>
 
-          <label class="field field-cash" *ngIf="cashRegisters().length > 0; else manualCashNo">
+          <label
+            class="field field-cash"
+            *ngIf="cashRegisters().length > 0; else manualCashNo"
+            [class.field-invalid]="controls.cashNo.touched && controls.cashNo.invalid"
+          >
             <span>Kasa No</span>
             <select formControlName="cashNo" (change)="onCashNoChanged()">
               <option [ngValue]="null">Seciniz</option>
@@ -137,10 +161,16 @@
                 {{ getCashRegisterLabel(register) }}
               </option>
             </select>
+            <small class="field-hint" *ngIf="controls.cashNo.touched && controls.cashNo.invalid">
+              Kasa secimi gerekli
+            </small>
           </label>
 
           <ng-template #manualCashNo>
-            <label class="field field-cash">
+            <label
+              class="field field-cash"
+              [class.field-invalid]="controls.cashNo.touched && controls.cashNo.invalid"
+            >
               <span>Kasa No</span>
               <input
                 type="number"
@@ -151,6 +181,9 @@
                 inputmode="numeric"
                 (change)="onCashNoChanged()"
               />
+              <small class="field-hint" *ngIf="controls.cashNo.touched && controls.cashNo.invalid">
+                Gecerli bir kasa numarasi gerekli
+              </small>
             </label>
           </ng-template>
 
@@ -164,12 +197,22 @@
             />
           </label>
 
-          <label class="field field-z">
+          <label
+            class="field field-z"
+            [class.field-invalid]="controls.zReportNo.touched && controls.zReportNo.invalid"
+          >
             <span>Z No</span>
             <input type="number" formControlName="zReportNo" placeholder="1643" min="1" step="1" inputmode="numeric" />
+            <small class="field-hint" *ngIf="controls.zReportNo.touched && controls.zReportNo.invalid">
+              Gecerli bir Z numarasi gerekli
+            </small>
           </label>
 
-          <div class="field field-person person-lookup-field" [class.has-search-error]="cashierSearchError()">
+          <div
+            class="field field-person person-lookup-field"
+            [class.has-search-error]="cashierSearchError()"
+            [class.field-invalid]="controls.cashierNo.touched && controls.cashierNo.invalid"
+          >
             <span>Kasiyer</span>
             <div class="person-lookup-row">
               <input
@@ -186,6 +229,9 @@
               <input type="hidden" formControlName="cashierNo" />
             </div>
             <small class="field-hint person-hint" *ngIf="cashierSearchError()">{{ cashierSearchError() }}</small>
+            <small class="field-hint person-hint" *ngIf="controls.cashierNo.touched && controls.cashierNo.invalid">
+              Listeden bir kasiyer secmelisin
+            </small>
             <div class="selected-person" *ngIf="selectedCashier() as cashier">
               <div>
                 <span>Secilen Kasiyer</span>
@@ -215,7 +261,11 @@
             </div>
           </div>
 
-          <div class="field field-person person-lookup-field" [class.has-search-error]="managerSearchError()">
+          <div
+            class="field field-person person-lookup-field"
+            [class.has-search-error]="managerSearchError()"
+            [class.field-invalid]="controls.managerNo.touched && controls.managerNo.invalid"
+          >
             <span>Duzenleyen</span>
             <div class="person-lookup-row">
               <input
@@ -232,6 +282,9 @@
               <input type="hidden" formControlName="managerNo" />
             </div>
             <small class="field-hint person-hint" *ngIf="managerSearchError()">{{ managerSearchError() }}</small>
+            <small class="field-hint person-hint" *ngIf="controls.managerNo.touched && controls.managerNo.invalid">
+              Listeden bir duzenleyen secmelisin
+            </small>
             <div class="selected-person" *ngIf="selectedManager() as manager">
               <div>
                 <span>Secilen Duzenleyen</span>
@@ -261,9 +314,15 @@
             </div>
           </div>
 
-          <label class="field field-total">
+          <label
+            class="field field-total"
+            [class.field-invalid]="controls.zTotalValue.touched && controls.zTotalValue.invalid"
+          >
             <span>Z Toplami</span>
             <input type="number" step="0.01" min="0" inputmode="decimal" formControlName="zTotalValue" placeholder="0.00" (focus)="clearZeroOnFocus(controls.zTotalValue)" (blur)="normalizeCurrencyInput(controls.zTotalValue)" />
+            <small class="field-hint" *ngIf="controls.zTotalValue.touched && controls.zTotalValue.invalid">
+              Z toplami gerekli
+            </small>
           </label>
 
           <label class="field field-total">
@@ -276,7 +335,7 @@
     </section>
 
 
-    <section class="count-board" aria-label="Icmal kaydi kartlari">
+    <section id="icmal-count-board" class="count-board" aria-label="Icmal kaydi kartlari">
       <button
         type="button"
         class="count-card"

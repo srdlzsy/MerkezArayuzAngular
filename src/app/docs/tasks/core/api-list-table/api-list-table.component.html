@@ -218,13 +218,12 @@
     class="api-list-print-root"
     [class.is-active-print]="isPrinting()"
     [class.is-compact-print]="compactPrint()"
+    [class.is-dense-print]="usesDensePrintLayout()"
     [id]="printRootId"
     aria-hidden="true"
   >
     <div class="print-page">
-      <div class="print-notes">
-        <p *ngFor="let note of resolvedPrintNotes()">** {{ note }}</p>
-      </div>
+      <h1>{{ resolvedPrintTitle() }}</h1>
 
       <div class="print-meta">
         <span>{{ printGeneratedAt() }}</span>
@@ -232,17 +231,32 @@
         <span>{{ filteredCount() }} kayit</span>
       </div>
 
-      <h1>{{ resolvedPrintTitle() }}</h1>
+      <div class="print-summary" *ngIf="resolvedPrintSummary().length">
+        <span *ngFor="let item of resolvedPrintSummary()">{{ item }}</span>
+      </div>
+
+      <div class="print-notes">
+        <p *ngFor="let note of resolvedPrintNotes()">** {{ note }}</p>
+      </div>
 
       <table class="print-table">
         <thead>
           <tr>
-            <th *ngFor="let column of columns(); trackBy: trackByColumn">{{ column.label }}</th>
+            <th
+              *ngFor="let column of resolvedPrintColumns(); trackBy: trackByColumn"
+              [style.width]="column.printWidth || null"
+              [style.text-align]="column.printAlign || null"
+            >
+              {{ column.label }}
+            </th>
           </tr>
         </thead>
         <tbody>
           <tr *ngFor="let row of sortedRows(); trackBy: trackByRow">
-            <td *ngFor="let column of columns(); trackBy: trackByColumn">
+            <td
+              *ngFor="let column of resolvedPrintColumns(); trackBy: trackByColumn"
+              [style.text-align]="column.printAlign || null"
+            >
               {{ formatPrintCell(row, column) }}
             </td>
           </tr>

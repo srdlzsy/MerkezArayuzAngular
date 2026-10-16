@@ -15,6 +15,7 @@ import {
 import { InPlacePrintService } from '../document-print/in-place-print.service';
 
 type SortDirection = 'asc' | 'desc' | null;
+type PrintOrientation = 'auto' | 'portrait' | 'landscape';
 
 @Component({
   selector: 'app-api-list-table',
@@ -28,6 +29,7 @@ export class ApiListTableComponent<Row extends object = object> {
 
   readonly rows = input.required<readonly Row[]>();
   readonly columns = input.required<readonly ApiListTableColumn<Row>[]>();
+  readonly printColumns = input<readonly ApiListTableColumn<Row>[] | null>(null);
   readonly actionLabel = input('Detay');
   readonly showRowAction = input(true);
   readonly fitToWidth = input(false);
@@ -37,8 +39,10 @@ export class ApiListTableComponent<Row extends object = object> {
   readonly printTitle = input('');
   readonly printSubtitle = input('');
   readonly printNotes = input<readonly string[]>([]);
+  readonly printSummaryResolver = input<(rows: readonly Row[]) => readonly string[]>(() => []);
   readonly printSignatureTitle = input('Kontrol Eden');
-  readonly compactPrint = input(false);
+  readonly compactPrint = input(true);
+  readonly printOrientation = input<PrintOrientation>('auto');
   readonly showExport = input(false);
   readonly exportFileName = input('rapor');
   readonly exportSheetName = input('Rapor');
@@ -94,6 +98,22 @@ export class ApiListTableComponent<Row extends object = object> {
     return rows.sort((left, right) => this.compareRows(left, right, sortKey, sortDirection));
   });
   protected readonly filteredCount = computed(() => this.sortedRows().length);
+  protected readonly resolvedPrintColumns = computed(() => this.printColumns() ?? this.columns());
+  protected readonly resolvedPrintOrientation = computed<'portrait' | 'landscape'>(() => {
+    const orientation = this.printOrientation();
+
+    if (orientation !== 'auto') {
+      return orientation;
+    }
+
+    return this.resolvedPrintColumns().length >= 9 ? 'landscape' : 'portrait';
+  });
+  protected readonly usesDensePrintLayout = computed(
+    () => this.resolvedPrintColumns().length >= 9
+  );
+  protected readonly resolvedPrintSummary = computed(() =>
+    this.printSummaryResolver()(this.sortedRows())
+  );
   protected readonly totalPages = computed(() => {
     const totalRows = this.filteredCount();
 
@@ -425,13 +445,14 @@ export class ApiListTableComponent<Row extends object = object> {
 
     this.printGeneratedAt.set(this.formatPrintDate(new Date()));
     this.isPrinting.set(true);
-    const pageMargin = this.compactPrint() ? '6mm 7mm' : '11mm 12mm';
+    const pageMargin = this.compactPrint() ? '5mm 6mm' : '11mm 12mm';
+    const pageOrientation = this.resolvedPrintOrientation();
 
     const started = await this.inPlacePrintService.print({
       styleId: `${this.printRootId}-style`,
       styles: `
       @page {
-        size: A4 portrait;
+        size: A4 ${pageOrientation};
         margin: ${pageMargin};
       }
 

@@ -10,6 +10,8 @@ import { SiparisIslemleriService } from '../../../../../core/api/module-services
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { SiparisTaskDetailBase } from '../../../core/api-detail-page/siparis-task-detail.base';
+import { resolveWarehouseOrderPrintProfile } from './warehouse-order-print-profile';
+import type { WarehouseOrderPrintProfile } from './warehouse-order-print-profile';
 
 @Component({
   selector: 'app-alinan-depo-siparisleri-detail',
@@ -21,7 +23,6 @@ import { SiparisTaskDetailBase } from '../../../core/api-detail-page/siparis-tas
 export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
   IFurpaWarehouseOrderDetailApiDto
 > {
-  private readonly manavWarehouseNo = 56;
   protected readonly page: DocsContentPage = DOCS_PAGES['alinan-depo-siparisleri'];
   protected readonly screenTitle = 'Alinan Depo Siparis Detayi';
   protected override readonly printDocumentTitle = 'Alinan Depo Siparis Evraki';
@@ -40,62 +41,65 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
     );
   }
 
-  protected canPrintManavOrderForm(): boolean {
+  protected canPrintSpecialWarehouseOrderForm(): boolean {
     const header = this.detail()?.header;
 
-    return !!header && this.hasManavWarehouse(header);
+    return !!header && !!resolveWarehouseOrderPrintProfile(header);
   }
 
-  protected printManavOrderForm(): void {
-    const order = this.detail();
+  protected specialWarehouseOrderPrintLabel(): string {
+    const header = this.detail()?.header;
 
-    if (!order?.header) {
+    return header
+      ? resolveWarehouseOrderPrintProfile(header)?.buttonLabel ?? 'Siparis Formu'
+      : 'Siparis Formu';
+  }
+
+  protected printSpecialWarehouseOrderForm(): void {
+    const order = this.detail();
+    const profile = order?.header
+      ? resolveWarehouseOrderPrintProfile(order.header)
+      : null;
+
+    if (!order?.header || !profile) {
       return;
     }
 
     this.documentPrintService.printHtml({
-      markup: this.buildManavOrderPrintMarkup(order.header, order.items ?? [])
+      markup: this.buildWarehouseOrderPrintMarkup(order.header, order.items ?? [], profile)
     });
   }
 
-  private hasManavWarehouse(header: WarehouseOrderHeaderDto): boolean {
-    return [
-      header.warehouseNo,
-      header.relatedWarehouseNo,
-      header.inWarehouseNo,
-      header.outWarehouseNo
-    ].includes(this.manavWarehouseNo);
-  }
-
-  private buildManavOrderPrintMarkup(
+  private buildWarehouseOrderPrintMarkup(
     header: WarehouseOrderHeaderDto,
-    items: WarehouseOrderLineItemDto[]
+    items: WarehouseOrderLineItemDto[],
+    profile: WarehouseOrderPrintProfile
   ): string {
     return `<!doctype html>
 <html lang="tr">
 <head>
   <meta charset="utf-8">
-  <title>Manav Siparis Formu</title>
-  <style>${this.buildManavOrderPrintStyles()}</style>
+  <title>${this.escapeHtml(profile.title)}</title>
+  <style>${this.buildWarehouseOrderPrintStyles()}</style>
 </head>
 <body>
   <main class="sheet">
-    <h1>Manav Siparis Formu</h1>
+    <h1>${this.escapeHtml(profile.title)}</h1>
 
     <section class="meta">
       <p><strong>Siparis No:</strong> ${this.escapeHtml(this.orderIdentity())}</p>
       <p><strong>Siparis Tarihi:</strong> ${this.escapeHtml(this.formatPrintDate(header.documentDate))}</p>
-      <p><strong>Siparis Veren Depo:</strong> ${this.escapeHtml(this.resolveRequesterWarehouseLabel(header))}</p>
-      <p><strong>Siparis Verilen Depo:</strong> ${this.escapeHtml(this.resolveManavWarehouseLabel(header))}</p>
+      <p><strong>Siparis Veren Depo:</strong> ${this.escapeHtml(this.resolveRequesterWarehouseLabel(header, profile.warehouseNo))}</p>
+      <p><strong>Siparis Verilen Depo:</strong> ${this.escapeHtml(this.resolveSpecialWarehouseLabel(header, profile))}</p>
     </section>
 
-    ${this.renderManavOrderRows(items)}
+    ${this.renderWarehouseOrderRows(items)}
   </main>
 </body>
 </html>`;
   }
 
-  private renderManavOrderRows(items: WarehouseOrderLineItemDto[]): string {
+  private renderWarehouseOrderRows(items: WarehouseOrderLineItemDto[]): string {
     if (!items.length) {
       return '<p class="empty">Siparis kalemi bulunamadi.</p>';
     }
@@ -127,32 +131,40 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
     </table>`;
   }
 
-  private resolveRequesterWarehouseLabel(header: WarehouseOrderHeaderDto): string {
-    if (header.outWarehouseNo === this.manavWarehouseNo) {
+  private resolveRequesterWarehouseLabel(
+    header: WarehouseOrderHeaderDto,
+    specialWarehouseNo: number
+  ): string {
+    if (header.outWarehouseNo === specialWarehouseNo) {
       return this.joinWarehouse(header.inWarehouseNo, header.inWarehouseName);
     }
 
-    if (header.inWarehouseNo === this.manavWarehouseNo) {
+    if (header.inWarehouseNo === specialWarehouseNo) {
       return this.joinWarehouse(header.outWarehouseNo, header.outWarehouseName);
     }
 
-    if (header.relatedWarehouseNo && header.relatedWarehouseNo !== this.manavWarehouseNo) {
+    if (header.relatedWarehouseNo && header.relatedWarehouseNo !== specialWarehouseNo) {
       return this.joinWarehouse(header.relatedWarehouseNo, header.relatedWarehouseName);
     }
 
     return this.joinWarehouse(header.warehouseNo, header.warehouseName);
   }
 
-  private resolveManavWarehouseLabel(header: WarehouseOrderHeaderDto): string {
+  private resolveSpecialWarehouseLabel(
+    header: WarehouseOrderHeaderDto,
+    profile: WarehouseOrderPrintProfile
+  ): string {
     const candidates = [
       { no: header.outWarehouseNo, name: header.outWarehouseName },
       { no: header.warehouseNo, name: header.warehouseName },
       { no: header.relatedWarehouseNo, name: header.relatedWarehouseName },
       { no: header.inWarehouseNo, name: header.inWarehouseName }
     ];
-    const manavWarehouse = candidates.find((candidate) => candidate.no === this.manavWarehouseNo);
+    const specialWarehouse = candidates.find(
+      (candidate) => candidate.no === profile.warehouseNo
+    );
 
-    return manavWarehouse?.name?.trim() || 'MANAV DEPO';
+    return specialWarehouse?.name?.trim() || profile.fallbackWarehouseName;
   }
 
   private joinWarehouse(warehouseNo: number | null | undefined, warehouseName: string | null | undefined): string {
@@ -208,7 +220,7 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
     });
   }
 
-  private buildManavOrderPrintStyles(): string {
+  private buildWarehouseOrderPrintStyles(): string {
     return `
       @page {
         size: A4 portrait;

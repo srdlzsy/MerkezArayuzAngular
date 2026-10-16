@@ -83,6 +83,21 @@ describe('BrowserCreateDraftSession', () => {
     expect(session.drafts()).toEqual([]);
     expect(store.countForModule('unknown-user:unknown-warehouse', 'shipment')).toBe(0);
   }));
+
+  it('starts saving again after a completed record is followed by a new draft', fakeAsync(() => {
+    currentPayload = { description: 'Tamamlanan sevk', lines: ['016445'] };
+    changeControl.setValue(1);
+    tick(650);
+    session.complete();
+
+    session.startNew();
+    currentPayload = { description: 'Yeni sevk', lines: ['075876'] };
+    changeControl.setValue(2);
+    tick(650);
+
+    expect(session.drafts().length).toBe(1);
+    expect(session.drafts()[0].title).toBe('Yeni sevk');
+  }));
 });
 
 class TestDestroyRef extends DestroyRef {

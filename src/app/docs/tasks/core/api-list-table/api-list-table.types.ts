@@ -10,6 +10,8 @@ export interface ApiListTableColumn<Row extends object = object> {
   type?: ApiListTableColumnType;
   emptyValue?: string;
   resolveValue?: BivariantCallback<Row, unknown>;
+  printWidth?: string;
+  printAlign?: 'left' | 'center' | 'right';
 }
 
 export type ApiListTableRowActionTone = 'primary' | 'success' | 'neutral';

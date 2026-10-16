@@ -92,6 +92,49 @@ describe('ApiListTableComponent', () => {
     await (fixture.componentInstance as unknown as TableTestAccess).printList();
 
     expect(print).toHaveBeenCalled();
-    expect(print.calls.mostRecent().args[0].styles).toContain('margin: 6mm 7mm');
+    expect(print.calls.mostRecent().args[0].styles).toContain('margin: 5mm 6mm');
+    expect(print.calls.mostRecent().args[0].styles).toContain('size: A4 portrait');
+  });
+
+  it('uses landscape A4 automatically for dense tables', async () => {
+    const print = jasmine.createSpy('print').and.resolveTo(true);
+    TestBed.configureTestingModule({
+      imports: [ApiListTableComponent],
+      providers: [{ provide: InPlacePrintService, useValue: { print } }]
+    });
+    const fixture = TestBed.createComponent(ApiListTableComponent<TestRow>);
+    const denseColumns = Array.from({ length: 9 }, (_, index) => ({
+      key: index % 2 === 0 ? 'name' : 'amount',
+      label: `Kolon ${index + 1}`
+    })) satisfies ApiListTableColumn<TestRow>[];
+    fixture.componentRef.setInput('rows', rows);
+    fixture.componentRef.setInput('columns', denseColumns);
+    fixture.detectChanges();
+
+    await (fixture.componentInstance as unknown as TableTestAccess).printList();
+
+    expect(print.calls.mostRecent().args[0].styles).toContain('size: A4 landscape');
+    expect(print.calls.mostRecent().args[0].styles).toContain('margin: 5mm 6mm');
+  });
+
+  it('allows a dense report to keep portrait orientation explicitly', async () => {
+    const print = jasmine.createSpy('print').and.resolveTo(true);
+    TestBed.configureTestingModule({
+      imports: [ApiListTableComponent],
+      providers: [{ provide: InPlacePrintService, useValue: { print } }]
+    });
+    const fixture = TestBed.createComponent(ApiListTableComponent<TestRow>);
+    const denseColumns = Array.from({ length: 9 }, (_, index) => ({
+      key: index % 2 === 0 ? 'name' : 'amount',
+      label: `Kolon ${index + 1}`
+    })) satisfies ApiListTableColumn<TestRow>[];
+    fixture.componentRef.setInput('rows', rows);
+    fixture.componentRef.setInput('columns', denseColumns);
+    fixture.componentRef.setInput('printOrientation', 'portrait');
+    fixture.detectChanges();
+
+    await (fixture.componentInstance as unknown as TableTestAccess).printList();
+
+    expect(print.calls.mostRecent().args[0].styles).toContain('size: A4 portrait');
   });
 });

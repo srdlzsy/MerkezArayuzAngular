@@ -91,4 +91,28 @@ describe('FirmaEvrakTakibiListComponent', () => {
       warehouseNo: 149
     });
   });
+
+  it('builds the compact print summary from the rows being printed', () => {
+    const { component } = createComponent();
+    const items = [
+      {
+        documentKind: 'CompanyReceiving',
+        lineCount: 3,
+        totalQuantity: 12.5
+      },
+      {
+        documentKind: 'CompanyReturn',
+        lineCount: 2,
+        totalQuantity: 4
+      }
+    ];
+
+    expect(component.resolvePrintSummary(items)).toEqual([
+      '2 evrak',
+      '1 mal kabul',
+      '1 firma iade',
+      '5 kalem',
+      '16,5 miktar'
+    ]);
+  });
 });

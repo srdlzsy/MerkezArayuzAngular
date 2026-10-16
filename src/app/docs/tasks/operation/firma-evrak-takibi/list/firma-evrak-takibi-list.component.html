@@ -98,15 +98,18 @@
       *ngIf="!loading() && visibleItems().length"
       [rows]="visibleItems()"
       [columns]="tableColumns"
+      [printColumns]="printColumns"
       [showRowAction]="false"
       [filterPlaceholder]="'Evrak, cari, teslim eden veya teslim alan ara'"
       [showExport]="true"
       [exportFileName]="'firma-evrak-takibi-' + selectedDate()"
       [exportSheetName]="'Firma Evrak Takibi'"
       [printTitle]="current.title"
-      [printSubtitle]="currentWarehouseLabel() + ' / ' + formatDate(selectedDate())"
-      [printNotes]="['Firma mal kabul ve firma iade evraklari kontrol listesidir.']"
+      [printSubtitle]="getPrintSubtitle()"
+      [printSummaryResolver]="resolvePrintSummary"
+      printSignatureTitle="Evraklari Kontrol Eden"
       [compactPrint]="true"
+      [printOrientation]="'portrait'"
     ></app-api-list-table>
 
     <article
