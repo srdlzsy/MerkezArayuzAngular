@@ -3,20 +3,41 @@
     <div class="dialog-heading">
       <p class="eyebrow">DEPO SIPARISI</p>
       <h2>{{ current.title }} Olustur</h2>
-      <p class="subtitle">Depoyu ara veya listeden sec, istersen onerilenleri getir, kalemleri duzenle ve siparisi kaydet.</p>
+      <p class="subtitle">
+        Depoyu ara veya listeden sec, istersen onerilenleri getir, kalemleri duzenle ve siparisi
+        kaydet.
+      </p>
     </div>
 
     <div class="header-actions">
       <button type="button" class="ghost-button" (click)="close()">Kapat</button>
-      <button type="submit" class="primary-button" [disabled]="submitting()" form="verilen-depo-siparis-form">
+      <button
+        type="submit"
+        class="primary-button"
+        [disabled]="submitting() || !!safeCreateFailure()?.blocksSubmit"
+        form="verilen-depo-siparis-form"
+      >
         {{ submitting() ? 'Kaydediliyor...' : 'Siparisi Kaydet' }}
       </button>
     </div>
   </header>
 
   <div class="dialog-body">
-    <form id="verilen-depo-siparis-form" class="form-shell" [formGroup]="form" (ngSubmit)="submit()">
+    <form
+      id="verilen-depo-siparis-form"
+      class="form-shell"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
+    >
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <button
+        *ngIf="safeCreateFailure()?.allowsNewAttempt"
+        type="button"
+        class="ghost-button"
+        (click)="startNewCreateAttempt()"
+      >
+        Yeni Islem Olarak Kaydet
+      </button>
 
       <section class="panel">
         <div class="panel-head">
@@ -33,17 +54,19 @@
                 placeholder="Depo adi veya unvan..."
                 (keydown.enter)="$event.preventDefault(); searchWarehouse()"
               />
-              <button type="button" class="small-btn" [disabled]="warehouseLoading()" (click)="searchWarehouse()">
+              <button
+                type="button"
+                class="small-btn"
+                [disabled]="warehouseLoading()"
+                (click)="searchWarehouse()"
+              >
                 {{ warehouseLoading() ? '...' : 'Ara' }}
               </button>
             </div>
 
             <div class="search-label search-label-secondary">Depo Sec</div>
             <div class="search-input-group">
-              <select
-                [formControl]="warehouseSelect"
-                (change)="selectWarehouseFromDropdown()"
-              >
+              <select [formControl]="warehouseSelect" (change)="selectWarehouseFromDropdown()">
                 <option value="">
                   {{ warehouseOptionsLoading() ? 'Depolar yukleniyor...' : 'Listeden depo sec...' }}
                 </option>
@@ -63,7 +86,9 @@
                 [disabled]="presetProductsLoading() || !selectedWarehouse()"
                 (click)="loadRecommendedKalemler()"
               >
-                {{ presetProductsAction() === 'recommended' ? 'Getiriliyor...' : 'Onerilenleri Getir' }}
+                {{
+                  presetProductsAction() === 'recommended' ? 'Getiriliyor...' : 'Onerilenleri Getir'
+                }}
               </button>
               <button
                 type="button"
@@ -71,16 +96,23 @@
                 [disabled]="presetProductsLoading() || !selectedWarehouse()"
                 (click)="loadSourceProducts()"
               >
-                {{ presetProductsAction() === 'source' ? 'Getiriliyor...' : 'Kaynak Urunleri Getir' }}
+                {{
+                  presetProductsAction() === 'source' ? 'Getiriliyor...' : 'Kaynak Urunleri Getir'
+                }}
               </button>
             </div>
 
             <p class="helper-text">
-              Onerilen miktarlari hesaplatabilir veya kaynak depoya tanimli urunleri miktarsiz olarak tabloya cekebilirsin.
+              Onerilen miktarlari hesaplatabilir veya kaynak depoya tanimli urunleri miktarsiz
+              olarak tabloya cekebilirsin.
             </p>
 
-            <div class="feedback-error mini-error" *ngIf="warehouseError()">{{ warehouseError() }}</div>
-            <div class="feedback-error mini-error" *ngIf="warehouseOptionsError()">{{ warehouseOptionsError() }}</div>
+            <div class="feedback-error mini-error" *ngIf="warehouseError()">
+              {{ warehouseError() }}
+            </div>
+            <div class="feedback-error mini-error" *ngIf="warehouseOptionsError()">
+              {{ warehouseOptionsError() }}
+            </div>
 
             <div class="selected-item" *ngIf="selectedWarehouse() as warehouse">
               <span class="selected-text">{{ getWarehouseLabel(warehouse) }}</span>
@@ -135,11 +167,17 @@
             <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
 
             <div class="search-results stock-results-list" *ngIf="stockResults().length">
-              <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
+              <div
+                class="result-item stock-result"
+                *ngFor="let stock of stockResults(); trackBy: trackByStock"
+                (click)="addKalem(stock)"
+              >
                 <div class="stock-result-main">
                   <strong>{{ stock.stockName }}</strong>
                   <span class="stock-code">{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
-                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
+                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1"
+                    >Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span
+                  >
                   <div class="stock-source-badges" *ngIf="getStockSourceBadges(stock).length">
                     <span
                       *ngFor="let badge of getStockSourceBadges(stock)"
@@ -162,19 +200,32 @@
         <div class="contact-row">
           <div class="contact-field">
             <label>Muhatap Ad Soyad *</label>
-            <input type="text" formControlName="muhatapAdSoyad" maxlength="25" placeholder="Depo yetkilisi" />
-            <small class="field-error" *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched">
+            <input
+              type="text"
+              formControlName="muhatapAdSoyad"
+              maxlength="25"
+              placeholder="Depo yetkilisi"
+            />
+            <small
+              class="field-error"
+              *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched"
+            >
               Zorunlu
             </small>
           </div>
           <div class="contact-field" *ngIf="isAdminUser()">
             <label>Depo No</label>
-            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
-            <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
+            <input
+              type="number"
+              min="1"
+              formControlName="adminWarehouseNo"
+              placeholder="Aktif depo"
+            />
+            <small class="helper-inline"
+              >Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small
+            >
           </div>
         </div>
-
-
       </section>
 
       <section class="panel kalem-panel">
@@ -195,7 +246,8 @@
         </div>
 
         <div class="empty-state" *ngIf="!kalemCount()">
-          Depo secip yukaridan stok arayarak kalem ekleyin veya listeden depo secip onerilenleri getirin
+          Depo secip yukaridan stok arayarak kalem ekleyin veya listeden depo secip onerilenleri
+          getirin
         </div>
 
         <div class="kalem-table-head" *ngIf="kalemCount()">
@@ -205,14 +257,26 @@
         </div>
 
         <div class="kalem-list" *ngIf="kalemCount()">
-          <div class="kalem-row" *ngFor="let kalem of kalemler.controls; let i = index; trackBy: trackByKalem" [formGroup]="kalem">
+          <div
+            class="kalem-row"
+            *ngFor="let kalem of kalemler.controls; let i = index; trackBy: trackByKalem"
+            [formGroup]="kalem"
+          >
             <div class="col-stok">
               <div class="kalem-info">
-                <strong>{{ kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value }}</strong>
+                <strong>{{
+                  kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value
+                }}</strong>
                 <span class="kalem-kod">{{ kalem.controls.stokKodu.value }}</span>
-                <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
-                <span class="kalem-barkod" *ngIf="kalem.controls.koliBarkodu.value">Koli barkodu: {{ kalem.controls.koliBarkodu.value }}</span>
-                <span class="package-note" *ngIf="hasPackageInput(kalem)">{{ getPackageHint(kalem) }}</span>
+                <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value"
+                  >Barkod: {{ kalem.controls.barkodu.value }}</span
+                >
+                <span class="kalem-barkod" *ngIf="kalem.controls.koliBarkodu.value"
+                  >Koli barkodu: {{ kalem.controls.koliBarkodu.value }}</span
+                >
+                <span class="package-note" *ngIf="hasPackageInput(kalem)">{{
+                  getPackageHint(kalem)
+                }}</span>
                 <span
                   class="resolution-note"
                   *ngIf="isGreenGrocerOrder() && getLineResolutionLabel(kalem)"
@@ -240,13 +304,20 @@
                   [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
                   formControlName="siparisMiktari"
                   placeholder="Miktar"
-                  [class.error]="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched"
+                  [class.error]="
+                    kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched
+                  "
                   (input)="clearPackageQuantity(kalem)"
                   (change)="resolveGreenGrocerLine(kalem)"
                   (blur)="resolveGreenGrocerLine(kalem)"
                 />
               </div>
-              <small class="field-error" *ngIf="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched">
+              <small
+                class="field-error"
+                *ngIf="
+                  kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched
+                "
+              >
                 Gecerli miktar
               </small>
               <small class="package-warning" *ngIf="getPackageMultipleWarning(kalem)">
@@ -254,7 +325,9 @@
               </small>
             </div>
             <div class="col-islem">
-              <button type="button" class="remove-btn" (click)="removeKalem(i)" title="Kaldir">Sil</button>
+              <button type="button" class="remove-btn" (click)="removeKalem(i)" title="Kaldir">
+                Sil
+              </button>
             </div>
           </div>
         </div>

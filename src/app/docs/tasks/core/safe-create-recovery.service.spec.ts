@@ -4,6 +4,7 @@ import { of } from 'rxjs';
 import { IadeIslemleriService } from '../../../core/api/module-services/iade-islemleri.service';
 import { MalKabulIslemleriService } from '../../../core/api/module-services/mal-kabul-islemleri.service';
 import { SevkIslemleriService } from '../../../core/api/module-services/sevk-islemleri.service';
+import { SiparisIslemleriService } from '../../../core/api/module-services/siparis-islemleri.service';
 import { StokIslemleriService } from '../../../core/api/module-services/stok-islemleri.service';
 import { SafeCreateRecoveryService } from './safe-create-recovery.service';
 
@@ -13,6 +14,7 @@ describe('SafeCreateRecoveryService', () => {
   let iade: jasmine.SpyObj<IadeIslemleriService>;
   let malKabul: jasmine.SpyObj<MalKabulIslemleriService>;
   let stok: jasmine.SpyObj<StokIslemleriService>;
+  let siparis: jasmine.SpyObj<SiparisIslemleriService>;
 
   beforeEach(() => {
     sevk = jasmine.createSpyObj('SevkIslemleriService', [
@@ -20,17 +22,17 @@ describe('SafeCreateRecoveryService', () => {
       'createDepolarArasiNakliyeSevkFisi',
       'createDepoDagitimSevkFisi',
       'getGidenFirmaSevkOfflineStatus',
-      'getDepolarArasiSevkOfflineStatus'
+      'getDepolarArasiSevkOfflineStatus',
     ]);
     iade = jasmine.createSpyObj('IadeIslemleriService', [
       'createFirmaIade',
       'createDepoIade',
       'getFirmaIadeOfflineStatus',
-      'getDepoIadeOfflineStatus'
+      'getDepoIadeOfflineStatus',
     ]);
     malKabul = jasmine.createSpyObj('MalKabulIslemleriService', [
       'createToptanGirisIrsaliyesi',
-      'getCompanyReceiptOfflineStatus'
+      'getCompanyReceiptOfflineStatus',
     ]);
     stok = jasmine.createSpyObj('StokIslemleriService', [
       'createSayimSonucu',
@@ -39,7 +41,17 @@ describe('SafeCreateRecoveryService', () => {
       'getSayimSonucuOfflineStatus',
       'getVirmanOfflineStatus',
       'getMasrafFisiOfflineStatus',
-      'getZayiatFisiOfflineStatus'
+      'getZayiatFisiOfflineStatus',
+    ]);
+    siparis = jasmine.createSpyObj('SiparisIslemleriService', [
+      'createIssuedWarehouseOrder',
+      'convertSuggestedWarehouseOrder',
+      'createIssuedCompanyOrder',
+      'convertSuggestedCompanyOrder',
+      'getIssuedWarehouseOrderOfflineStatus',
+      'getSuggestedWarehouseOrderOfflineStatus',
+      'getIssuedCompanyOrderOfflineStatus',
+      'getSuggestedCompanyOrderOfflineStatus',
     ]);
 
     for (const spy of [
@@ -51,7 +63,11 @@ describe('SafeCreateRecoveryService', () => {
       malKabul.createToptanGirisIrsaliyesi,
       stok.createSayimSonucu,
       stok.createVirman,
-      stok.createSubeIci
+      stok.createSubeIci,
+      siparis.createIssuedWarehouseOrder,
+      siparis.convertSuggestedWarehouseOrder,
+      siparis.createIssuedCompanyOrder,
+      siparis.convertSuggestedCompanyOrder,
     ]) {
       spy.and.returnValue(of({}));
     }
@@ -65,7 +81,11 @@ describe('SafeCreateRecoveryService', () => {
       stok.getSayimSonucuOfflineStatus,
       stok.getVirmanOfflineStatus,
       stok.getMasrafFisiOfflineStatus,
-      stok.getZayiatFisiOfflineStatus
+      stok.getZayiatFisiOfflineStatus,
+      siparis.getIssuedWarehouseOrderOfflineStatus,
+      siparis.getSuggestedWarehouseOrderOfflineStatus,
+      siparis.getIssuedCompanyOrderOfflineStatus,
+      siparis.getSuggestedCompanyOrderOfflineStatus,
     ]) {
       spy.and.returnValue(of({ status: 'Processing' } as never));
     }
@@ -76,8 +96,9 @@ describe('SafeCreateRecoveryService', () => {
         { provide: SevkIslemleriService, useValue: sevk },
         { provide: IadeIslemleriService, useValue: iade },
         { provide: MalKabulIslemleriService, useValue: malKabul },
-        { provide: StokIslemleriService, useValue: stok }
-      ]
+        { provide: StokIslemleriService, useValue: stok },
+        { provide: SiparisIslemleriService, useValue: siparis },
+      ],
     });
     service = TestBed.inject(SafeCreateRecoveryService);
   });
@@ -85,10 +106,10 @@ describe('SafeCreateRecoveryService', () => {
   it('maps every supported create page to its persistent operation scope', () => {
     expect(service.getOperationCode('giden-firma-sevkleri')).toBe('company-shipment.create');
     expect(service.getOperationCode('giden-depolar-arasi-sevkler')).toBe(
-      'inter-warehouse-shipment.create'
+      'inter-warehouse-shipment.create',
     );
     expect(service.getOperationCode('gelen-depolar-arasi-sevkler')).toBe(
-      'inter-warehouse-shipment.create'
+      'inter-warehouse-shipment.create',
     );
     expect(service.getOperationCode('firma-mal-kabulleri')).toBe('company-receiving.create');
     expect(service.getOperationCode('firma-iadeleri')).toBe('company-return.create');
@@ -97,6 +118,18 @@ describe('SafeCreateRecoveryService', () => {
     expect(service.getOperationCode('virmanlar')).toBe('stock-transfer.create');
     expect(service.getOperationCode('masraf-fisleri')).toBe('expense-receipt.create');
     expect(service.getOperationCode('zayiat-fisleri')).toBe('wastage-receipt.create');
+    expect(service.getOperationCode('verilen-depo-siparisleri')).toBe(
+      'siparis-islemleri.verilen-depo-siparisleri.create',
+    );
+    expect(service.getOperationCode('onerilen-depo-siparisleri')).toBe(
+      'siparis-islemleri.onerilen-depo-siparisleri.create',
+    );
+    expect(service.getOperationCode('verilen-firma-siparisleri')).toBe(
+      'siparis-islemleri.verilen-firma-siparisleri.create',
+    );
+    expect(service.getOperationCode('onerilen-firma-siparisleri')).toBe(
+      'siparis-islemleri.onerilen-firma-siparisleri.create',
+    );
     expect(service.getOperationCode('desteklenmeyen-sayfa')).toBeNull();
   });
 
@@ -113,9 +146,15 @@ describe('SafeCreateRecoveryService', () => {
     service.recover('virmanlar', request);
     service.recover('masraf-fisleri', request);
     service.recover('zayiat-fisleri', request);
+    service.recover('verilen-depo-siparisleri', request);
+    service.recover('onerilen-depo-siparisleri', request);
+    service.recover('verilen-firma-siparisleri', request);
+    service.recover('onerilen-firma-siparisleri', request);
 
     expect(sevk.createToptanCikisIrsaliyesi.calls.mostRecent().args[0]).toBe(request as never);
-    expect(sevk.createDepolarArasiNakliyeSevkFisi.calls.mostRecent().args[0]).toBe(request as never);
+    expect(sevk.createDepolarArasiNakliyeSevkFisi.calls.mostRecent().args[0]).toBe(
+      request as never,
+    );
     expect(sevk.createDepoDagitimSevkFisi.calls.mostRecent().args[0]).toBe(request as never);
     expect(malKabul.createToptanGirisIrsaliyesi.calls.mostRecent().args[0]).toBe(request as never);
     expect(iade.createFirmaIade.calls.mostRecent().args[0]).toBe(request as never);
@@ -123,12 +162,16 @@ describe('SafeCreateRecoveryService', () => {
     expect(stok.createSayimSonucu.calls.mostRecent().args[0]).toBe(request as never);
     expect(stok.createVirman.calls.mostRecent().args).toEqual([
       'StokVirmanCikisFisleri',
-      request as never
+      request as never,
     ]);
     expect(stok.createSubeIci.calls.allArgs()).toEqual([
       ['SarfDepoCikisFisleri', request as never],
-      ['FireDepoCikisFisleri', request as never]
+      ['FireDepoCikisFisleri', request as never],
     ]);
+    expect(siparis.createIssuedWarehouseOrder).toHaveBeenCalledWith(request as never);
+    expect(siparis.convertSuggestedWarehouseOrder).toHaveBeenCalledWith(request as never);
+    expect(siparis.createIssuedCompanyOrder).toHaveBeenCalledWith(request as never);
+    expect(siparis.convertSuggestedCompanyOrder).toHaveBeenCalledWith(request as never);
   });
 
   it('checks each stored request through the matching offline status endpoint', () => {
@@ -143,6 +186,10 @@ describe('SafeCreateRecoveryService', () => {
     service.getStatus('virmanlar', requestId);
     service.getStatus('masraf-fisleri', requestId);
     service.getStatus('zayiat-fisleri', requestId);
+    service.getStatus('verilen-depo-siparisleri', requestId);
+    service.getStatus('onerilen-depo-siparisleri', requestId);
+    service.getStatus('verilen-firma-siparisleri', requestId);
+    service.getStatus('onerilen-firma-siparisleri', requestId);
 
     expect(sevk.getGidenFirmaSevkOfflineStatus).toHaveBeenCalledWith(requestId);
     expect(sevk.getDepolarArasiSevkOfflineStatus).toHaveBeenCalledWith(requestId);
@@ -153,5 +200,9 @@ describe('SafeCreateRecoveryService', () => {
     expect(stok.getVirmanOfflineStatus).toHaveBeenCalledWith(requestId);
     expect(stok.getMasrafFisiOfflineStatus).toHaveBeenCalledWith(requestId);
     expect(stok.getZayiatFisiOfflineStatus).toHaveBeenCalledWith(requestId);
+    expect(siparis.getIssuedWarehouseOrderOfflineStatus).toHaveBeenCalledWith(requestId);
+    expect(siparis.getSuggestedWarehouseOrderOfflineStatus).toHaveBeenCalledWith(requestId);
+    expect(siparis.getIssuedCompanyOrderOfflineStatus).toHaveBeenCalledWith(requestId);
+    expect(siparis.getSuggestedCompanyOrderOfflineStatus).toHaveBeenCalledWith(requestId);
   });
 });

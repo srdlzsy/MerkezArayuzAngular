@@ -129,8 +129,7 @@ export interface IFurpaGreenGrocerProductReportResponseApiDto {
 }
 
 export type IFurpaGreenGrocerProductReportApiResponse =
-  | IFurpaGreenGrocerProductReportItemApiDto[]
-  | IFurpaGreenGrocerProductReportResponseApiDto;
+  IFurpaGreenGrocerProductReportItemApiDto[] | IFurpaGreenGrocerProductReportResponseApiDto;
 
 export interface IFurpaGreenGrocerDeleteOrderResponseApiDto {
   documentSerie: string;
@@ -142,12 +141,7 @@ export interface IFurpaGreenGrocerDeleteOrderResponseApiDto {
 }
 
 export type GreenGrocerProductCaseInputMode =
-  | 'Case'
-  | 'Pack'
-  | 'Piece'
-  | 'KgDirect'
-  | 'Sarf'
-  | string;
+  'Case' | 'Pack' | 'Piece' | 'KgDirect' | 'Sarf' | string;
 
 export type GreenGrocerProductCaseConversionMode =
   | 'LabelAverageKgPerCase'
@@ -184,8 +178,7 @@ export interface SaveGreenGrocerProductCaseProfileHttpRequest {
   notes?: string | null;
 }
 
-export interface GreenGrocerProductCaseProfileDto
-  extends SaveGreenGrocerProductCaseProfileHttpRequest {
+export interface GreenGrocerProductCaseProfileDto extends SaveGreenGrocerProductCaseProfileHttpRequest {
   id: string;
   stockCode: string;
   stockName: string;
@@ -360,9 +353,9 @@ export interface GreenGrocerOperationsAdjustmentPreviewDto {
   totalAmount: number;
 }
 
-export interface GreenGrocerOperationsAdjustmentApplyHttpRequest
-  extends GreenGrocerOperationsAdjustmentPreviewHttpRequest {
+export interface GreenGrocerOperationsAdjustmentApplyHttpRequest extends GreenGrocerOperationsAdjustmentPreviewHttpRequest {
   clientRequestId: string;
+  forceCreateNew?: boolean;
   documentDate?: string | null;
   documentNo?: string | null;
   counterWarehouseNo?: number | null;
@@ -371,8 +364,7 @@ export interface GreenGrocerOperationsAdjustmentApplyHttpRequest
   acceptor?: string | null;
 }
 
-export interface GreenGrocerOperationsAdjustmentApplyDto
-  extends GreenGrocerOperationsAdjustmentPreviewDto {
+export interface GreenGrocerOperationsAdjustmentApplyDto extends GreenGrocerOperationsAdjustmentPreviewDto {
   clientRequestId: string;
   status: string;
   documentOrderNo: number;

@@ -78,6 +78,7 @@ export interface WarehouseShippingDetailDto {
 
 export interface CreateInterWarehouseShipmentHttpRequest {
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   sourceWarehouseNo?: number;
   targetWarehouseNo: number;
   transitWarehouseNo?: number;
@@ -276,6 +277,7 @@ export interface CompanyMovementDetailDto {
 
 export interface CreateCompanyMovementHttpRequest {
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   warehouseNo?: number;
   customerCode: string;
   movementDate: string;
@@ -321,6 +323,7 @@ export interface CreateCompanyMovementResponse {
 
 export interface CreateWarehouseReturnHttpRequest {
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   sourceWarehouseNo?: number;
   targetWarehouseNo: number;
   transitWarehouseNo?: number;
@@ -473,6 +476,7 @@ export interface GoodsAcceptanceDifferenceDto {
 export interface CreateCompanyReceivingHttpRequest {
   warehouseNo?: number;
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   customerCode: string;
   movementDate: string;
   documentDate: string;
@@ -683,7 +687,7 @@ export enum EDespatchDocumentType {
   OutgoingCompanyShipment = 1,
   CompanyReturn = 2,
   InterWarehouseShipment = 3,
-  WarehouseReturn = 4
+  WarehouseReturn = 4,
 }
 
 export interface SendEDespatchResponse {

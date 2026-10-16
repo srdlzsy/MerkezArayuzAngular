@@ -15,6 +15,7 @@ import type {
   CreateIssuedWarehouseOrderLineHttpRequest,
   CreateIssuedWarehouseOrderResponse,
   IssuedCompanyOrderListHttpRequest,
+  IOfflineOperationResponseApiDto,
   SuggestedCompanyOrderListHttpRequest,
   SuggestedCompanyOrderListItemDto,
   SuggestedWarehouseOrderCreateLineDto,
@@ -24,72 +25,67 @@ import type {
   WarehouseOrderDetailDto,
   WarehouseOrderListItemDto,
   WarehouseOrderDateRangeHttpRequest,
-  SuggestedWarehouseSourceProductDto
+  SuggestedWarehouseSourceProductDto,
 } from '@interfaces';
 
-import {
-  getDefaultDateRange,
-  parseDateRangeToken
-} from '../furpa-merkez-api.utils';
+import { getDefaultDateRange, parseDateRangeToken } from '../furpa-merkez-api.utils';
 import { BaseApiService } from '../base-api.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class SiparisIslemleriService extends BaseApiService {
   listIssuedWarehouseOrders(
-    request: WarehouseOrderDateRangeHttpRequest
+    request: WarehouseOrderDateRangeHttpRequest,
   ): Observable<WarehouseOrderListItemDto[]> {
     return this.getWithQuery<WarehouseOrderListItemDto[]>(
       'siparis-islemleri/verilen-depo-siparisleri',
       {
         WarehouseNo: request.warehouseNo,
         StartDate: request.startDate,
-        EndDate: request.endDate
-      }
+        EndDate: request.endDate,
+      },
     );
   }
 
   listReceivedWarehouseOrders(
-    request: WarehouseOrderDateRangeHttpRequest
+    request: WarehouseOrderDateRangeHttpRequest,
   ): Observable<WarehouseOrderListItemDto[]> {
     return this.getWithQuery<WarehouseOrderListItemDto[]>(
       'siparis-islemleri/alinan-depo-siparisleri',
       {
         WarehouseNo: request.warehouseNo,
         StartDate: request.startDate,
-        EndDate: request.endDate
-      }
+        EndDate: request.endDate,
+      },
     );
   }
 
   getIssuedWarehouseOrderDetail(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseOrderDetailDto> {
     return this.getWithQuery<WarehouseOrderDetailDto>(
       `siparis-islemleri/verilen-depo-siparisleri/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
-      { warehouseNo }
+      { warehouseNo },
     );
   }
 
   getReceivedWarehouseOrderDetail(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseOrderDetailDto> {
     return this.getWithQuery<WarehouseOrderDetailDto>(
       `siparis-islemleri/alinan-depo-siparisleri/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
-      { warehouseNo }
+      { warehouseNo },
     );
   }
 
-  getReceivedWarehouseOrderDetailByKey(
-    documentKey: string
-  ): Observable<WarehouseOrderDetailDto> {
+  getReceivedWarehouseOrderDetailByKey(documentKey: string): Observable<WarehouseOrderDetailDto> {
     return this.get<WarehouseOrderDetailDto>(
-      `siparis-islemleri/alinan-depo-siparisleri/key/${encodeURIComponent(documentKey)}`
+      `siparis-islemleri/alinan-depo-siparisleri/key/${encodeURIComponent(documentKey)}`,
     );
   }
 
@@ -97,34 +93,40 @@ export class SiparisIslemleriService extends BaseApiService {
     return this.postBlob('siparis-islemleri/alinan-depo-siparisleri/toplu-yazdir', request);
   }
 
-  getIssuedWarehouseOrderDetailByKey(
-    documentKey: string
-  ): Observable<WarehouseOrderDetailDto> {
+  getIssuedWarehouseOrderDetailByKey(documentKey: string): Observable<WarehouseOrderDetailDto> {
     return this.get<WarehouseOrderDetailDto>(
-      `siparis-islemleri/verilen-depo-siparisleri/key/${encodeURIComponent(documentKey)}`
+      `siparis-islemleri/verilen-depo-siparisleri/key/${encodeURIComponent(documentKey)}`,
     );
   }
 
   createIssuedWarehouseOrder(
-    request: CreateIssuedWarehouseOrderHttpRequest
+    request: CreateIssuedWarehouseOrderHttpRequest,
   ): Observable<CreateIssuedWarehouseOrderResponse> {
     return this.post<CreateIssuedWarehouseOrderResponse, CreateIssuedWarehouseOrderHttpRequest>(
       'siparis-islemleri/verilen-depo-siparisleri',
-      request
+      request,
+    );
+  }
+
+  getIssuedWarehouseOrderOfflineStatus(
+    clientRequestId: string,
+  ): Observable<IOfflineOperationResponseApiDto<CreateIssuedWarehouseOrderResponse>> {
+    return this.get<IOfflineOperationResponseApiDto<CreateIssuedWarehouseOrderResponse>>(
+      `siparis-islemleri/verilen-depo-siparisleri/offline-sync/${encodeURIComponent(clientRequestId)}`,
     );
   }
 
   createReceivedWarehouseOrder(
-    request: CreateIssuedWarehouseOrderHttpRequest
+    request: CreateIssuedWarehouseOrderHttpRequest,
   ): Observable<CreateIssuedWarehouseOrderResponse> {
     return this.post<CreateIssuedWarehouseOrderResponse, CreateIssuedWarehouseOrderHttpRequest>(
       'siparis-islemleri/alinan-depo-siparisleri',
-      request
+      request,
     );
   }
 
   listSuggestedWarehouseOrders(
-    request: SuggestedWarehouseOrderListHttpRequest
+    request: SuggestedWarehouseOrderListHttpRequest,
   ): Observable<SuggestedWarehouseOrderListItemDto[]> {
     return this.getWithQuery<SuggestedWarehouseOrderListItemDto[]>(
       'siparis-islemleri/onerilen-depo-siparisleri',
@@ -132,31 +134,39 @@ export class SiparisIslemleriService extends BaseApiService {
         SourceWarehouseNo: request.sourceWarehouseNo,
         TargetWarehouseNo: request.targetWarehouseNo,
         LookbackDays: request.lookbackDays,
-        FallbackRecommendedDay: request.fallbackRecommendedDay
-      }
+        FallbackRecommendedDay: request.fallbackRecommendedDay,
+      },
     );
   }
 
   listSuggestedWarehouseSourceProducts(
-    sourceWarehouseNo: number
+    sourceWarehouseNo: number,
   ): Observable<SuggestedWarehouseSourceProductDto[]> {
     return this.getWithQuery<SuggestedWarehouseSourceProductDto[]>(
       'siparis-islemleri/onerilen-depo-siparisleri/kaynak-depo-urunleri',
-      { sourceWarehouseNo }
+      { sourceWarehouseNo },
     );
   }
 
   convertSuggestedWarehouseOrder(
-    request: ConvertSuggestedWarehouseOrderHttpRequest
+    request: ConvertSuggestedWarehouseOrderHttpRequest,
   ): Observable<CreateIssuedWarehouseOrderResponse> {
     return this.post<CreateIssuedWarehouseOrderResponse, ConvertSuggestedWarehouseOrderHttpRequest>(
       'siparis-islemleri/onerilen-depo-siparisleri/convert-to-order',
-      request
+      request,
+    );
+  }
+
+  getSuggestedWarehouseOrderOfflineStatus(
+    clientRequestId: string,
+  ): Observable<IOfflineOperationResponseApiDto<CreateIssuedWarehouseOrderResponse>> {
+    return this.get<IOfflineOperationResponseApiDto<CreateIssuedWarehouseOrderResponse>>(
+      `siparis-islemleri/onerilen-depo-siparisleri/offline-sync/${encodeURIComponent(clientRequestId)}`,
     );
   }
 
   listIssuedCompanyOrders(
-    request: IssuedCompanyOrderListHttpRequest
+    request: IssuedCompanyOrderListHttpRequest,
   ): Observable<CompanyOrderListItemDto[]> {
     return this.getWithQuery<CompanyOrderListItemDto[]>(
       'siparis-islemleri/verilen-firma-siparisleri',
@@ -165,13 +175,13 @@ export class SiparisIslemleriService extends BaseApiService {
         StartDate: request.startDate,
         EndDate: request.endDate,
         CustomerCode: request.customerCode,
-        OnlyOpen: request.onlyOpen
-      }
+        OnlyOpen: request.onlyOpen,
+      },
     );
   }
 
   listReceivedCompanyOrders(
-    request: IssuedCompanyOrderListHttpRequest
+    request: IssuedCompanyOrderListHttpRequest,
   ): Observable<CompanyOrderListItemDto[]> {
     return this.getWithQuery<CompanyOrderListItemDto[]>(
       'siparis-islemleri/alinan-firma-siparisleri',
@@ -180,56 +190,64 @@ export class SiparisIslemleriService extends BaseApiService {
         StartDate: request.startDate,
         EndDate: request.endDate,
         CustomerCode: request.customerCode,
-        OnlyOpen: request.onlyOpen
-      }
+        OnlyOpen: request.onlyOpen,
+      },
     );
   }
 
   getIssuedCompanyOrderDetail(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderDetailDto> {
     return this.getWithQuery<CompanyOrderDetailDto>(
       `siparis-islemleri/verilen-firma-siparisleri/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
-      { warehouseNo }
+      { warehouseNo },
     );
   }
 
   getReceivedCompanyOrderDetail(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderDetailDto> {
     return this.getWithQuery<CompanyOrderDetailDto>(
       `siparis-islemleri/alinan-firma-siparisleri/${encodeURIComponent(documentSerie)}/${documentOrderNo}`,
-      { warehouseNo }
+      { warehouseNo },
     );
   }
 
   getReceivedCompanyOrderDetailByKey(documentKey: string): Observable<CompanyOrderDetailDto> {
     return this.get<CompanyOrderDetailDto>(
-      `siparis-islemleri/alinan-firma-siparisleri/key/${encodeURIComponent(documentKey)}`
+      `siparis-islemleri/alinan-firma-siparisleri/key/${encodeURIComponent(documentKey)}`,
     );
   }
 
   getIssuedCompanyOrderDetailByKey(documentKey: string): Observable<CompanyOrderDetailDto> {
     return this.get<CompanyOrderDetailDto>(
-      `siparis-islemleri/verilen-firma-siparisleri/key/${encodeURIComponent(documentKey)}`
+      `siparis-islemleri/verilen-firma-siparisleri/key/${encodeURIComponent(documentKey)}`,
     );
   }
 
   createIssuedCompanyOrder(
-    request: CreateIssuedCompanyOrderHttpRequest
+    request: CreateIssuedCompanyOrderHttpRequest,
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.post<CreateIssuedCompanyOrderResponse, CreateIssuedCompanyOrderHttpRequest>(
       'siparis-islemleri/verilen-firma-siparisleri',
-      request
+      request,
+    );
+  }
+
+  getIssuedCompanyOrderOfflineStatus(
+    clientRequestId: string,
+  ): Observable<IOfflineOperationResponseApiDto<CreateIssuedCompanyOrderResponse>> {
+    return this.get<IOfflineOperationResponseApiDto<CreateIssuedCompanyOrderResponse>>(
+      `siparis-islemleri/verilen-firma-siparisleri/offline-sync/${encodeURIComponent(clientRequestId)}`,
     );
   }
 
   listIssuedCompanyOrderCustomerProducts(
-    request: CompanyOrderCustomerProductListHttpRequest
+    request: CompanyOrderCustomerProductListHttpRequest,
   ): Observable<CompanyOrderCustomerProductDto[]> {
     return this.getWithQuery<CompanyOrderCustomerProductDto[]>(
       'siparis-islemleri/verilen-firma-siparisleri/firma-urunleri',
@@ -237,22 +255,22 @@ export class SiparisIslemleriService extends BaseApiService {
         customerCode: request.customerCode,
         warehouseNo: request.warehouseNo ?? undefined,
         search: request.search?.trim() || undefined,
-        take: request.take ?? 500
-      }
+        take: request.take ?? 500,
+      },
     );
   }
 
   createReceivedCompanyOrder(
-    request: CreateIssuedCompanyOrderHttpRequest
+    request: CreateIssuedCompanyOrderHttpRequest,
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.post<CreateIssuedCompanyOrderResponse, CreateIssuedCompanyOrderHttpRequest>(
       'siparis-islemleri/alinan-firma-siparisleri',
-      request
+      request,
     );
   }
 
   listSuggestedCompanyOrders(
-    request: SuggestedCompanyOrderListHttpRequest
+    request: SuggestedCompanyOrderListHttpRequest,
   ): Observable<SuggestedCompanyOrderListItemDto[]> {
     const supplierCode = request.supplierCode.trim();
 
@@ -262,33 +280,41 @@ export class SiparisIslemleriService extends BaseApiService {
         WarehouseNo: request.warehouseNo,
         SupplierCode: supplierCode,
         LookbackDays: request.lookbackDays,
-        FallbackRecommendedDay: request.fallbackRecommendedDay
-      }
+        FallbackRecommendedDay: request.fallbackRecommendedDay,
+      },
     );
   }
 
   convertSuggestedCompanyOrder(
-    request: ConvertSuggestedCompanyOrderHttpRequest
+    request: ConvertSuggestedCompanyOrderHttpRequest,
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.post<CreateIssuedCompanyOrderResponse, ConvertSuggestedCompanyOrderHttpRequest>(
       'siparis-islemleri/onerilen-firma-siparisleri/convert-to-order',
-      request
+      request,
+    );
+  }
+
+  getSuggestedCompanyOrderOfflineStatus(
+    clientRequestId: string,
+  ): Observable<IOfflineOperationResponseApiDto<CreateIssuedCompanyOrderResponse>> {
+    return this.get<IOfflineOperationResponseApiDto<CreateIssuedCompanyOrderResponse>>(
+      `siparis-islemleri/onerilen-firma-siparisleri/offline-sync/${encodeURIComponent(clientRequestId)}`,
     );
   }
 
   getVerilenDepoSiparisleri(
     warehouseNo: number,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Observable<WarehouseOrderListItemDto[]>;
   getVerilenDepoSiparisleri(
     zamanlama: string,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseOrderListItemDto[]>;
   getVerilenDepoSiparisleri(
     arg1: number | string,
     arg2?: string | number,
-    arg3?: string
+    arg3?: string,
   ): Observable<WarehouseOrderListItemDto[]> {
     const request = this.resolveRangeRequest(arg1, arg2, arg3);
     return this.listIssuedWarehouseOrders(request);
@@ -297,16 +323,16 @@ export class SiparisIslemleriService extends BaseApiService {
   getAlinanDepoSiparisleri(
     warehouseNo: number,
     startDate: string,
-    endDate: string
+    endDate: string,
   ): Observable<WarehouseOrderListItemDto[]>;
   getAlinanDepoSiparisleri(
     zamanlama: string,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseOrderListItemDto[]>;
   getAlinanDepoSiparisleri(
     arg1: number | string,
     arg2?: string | number,
-    arg3?: string
+    arg3?: string,
   ): Observable<WarehouseOrderListItemDto[]> {
     const request = this.resolveRangeRequest(arg1, arg2, arg3);
     return this.listReceivedWarehouseOrders(request);
@@ -315,7 +341,7 @@ export class SiparisIslemleriService extends BaseApiService {
   getVerilenDepoSiparisDetay(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseOrderDetailDto> {
     return this.getIssuedWarehouseOrderDetail(documentSerie, documentOrderNo, warehouseNo);
   }
@@ -323,7 +349,7 @@ export class SiparisIslemleriService extends BaseApiService {
   getAlinanDepoSiparisDetay(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseOrderDetailDto> {
     return this.getReceivedWarehouseOrderDetail(documentSerie, documentOrderNo, warehouseNo);
   }
@@ -337,45 +363,45 @@ export class SiparisIslemleriService extends BaseApiService {
   }
 
   createVerilenDepoSiparis(
-    request: CreateIssuedWarehouseOrderHttpRequest
+    request: CreateIssuedWarehouseOrderHttpRequest,
   ): Observable<CreateIssuedWarehouseOrderResponse> {
     return this.createIssuedWarehouseOrder(request);
   }
 
   createAlinanDepoSiparis(
-    request: CreateIssuedWarehouseOrderHttpRequest
+    request: CreateIssuedWarehouseOrderHttpRequest,
   ): Observable<CreateIssuedWarehouseOrderResponse> {
     return this.createReceivedWarehouseOrder(request);
   }
 
   getVerilenSiparisler(
     zamanlama: string,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderListItemDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
     return this.listIssuedCompanyOrders({
       warehouseNo,
       startDate: range.startDate,
-      endDate: range.endDate
+      endDate: range.endDate,
     });
   }
 
   getAlinanSiparisler(
     zamanlama: string,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderListItemDto[]> {
     const range = parseDateRangeToken(zamanlama) ?? getDefaultDateRange();
     return this.listReceivedCompanyOrders({
       warehouseNo,
       startDate: range.startDate,
-      endDate: range.endDate
+      endDate: range.endDate,
     });
   }
 
   getVerilenSiparisDetay(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderDetailDto> {
     return this.getIssuedCompanyOrderDetail(documentSerie, documentOrderNo, warehouseNo);
   }
@@ -383,7 +409,7 @@ export class SiparisIslemleriService extends BaseApiService {
   getAlinanSiparisDetay(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderDetailDto> {
     return this.getReceivedCompanyOrderDetail(documentSerie, documentOrderNo, warehouseNo);
   }
@@ -393,14 +419,14 @@ export class SiparisIslemleriService extends BaseApiService {
     startDate: string,
     endDate: string,
     onlyOpen?: boolean,
-    customerCode?: string
+    customerCode?: string,
   ): Observable<CompanyOrderListItemDto[]> {
     return this.listIssuedCompanyOrders({
       warehouseNo,
       startDate,
       endDate,
       onlyOpen,
-      customerCode
+      customerCode,
     });
   }
 
@@ -409,21 +435,21 @@ export class SiparisIslemleriService extends BaseApiService {
     startDate: string,
     endDate: string,
     onlyOpen?: boolean,
-    customerCode?: string
+    customerCode?: string,
   ): Observable<CompanyOrderListItemDto[]> {
     return this.listReceivedCompanyOrders({
       warehouseNo,
       startDate,
       endDate,
       onlyOpen,
-      customerCode
+      customerCode,
     });
   }
 
   getVerilenFirmaSiparisDetay(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderDetailDto> {
     return this.getIssuedCompanyOrderDetail(documentSerie, documentOrderNo, warehouseNo);
   }
@@ -431,7 +457,7 @@ export class SiparisIslemleriService extends BaseApiService {
   getAlinanFirmaSiparisDetay(
     documentSerie: string,
     documentOrderNo: number,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CompanyOrderDetailDto> {
     return this.getReceivedCompanyOrderDetail(documentSerie, documentOrderNo, warehouseNo);
   }
@@ -445,32 +471,32 @@ export class SiparisIslemleriService extends BaseApiService {
   }
 
   createVerilenFirmaSiparis(
-    request: CreateIssuedCompanyOrderHttpRequest
+    request: CreateIssuedCompanyOrderHttpRequest,
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.createIssuedCompanyOrder(request);
   }
 
   createAlinanFirmaSiparis(
-    request: CreateIssuedCompanyOrderHttpRequest
+    request: CreateIssuedCompanyOrderHttpRequest,
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.createReceivedCompanyOrder(request);
   }
 
   createVerilenSiparis(
-    request: CreateIssuedCompanyOrderHttpRequest
+    request: CreateIssuedCompanyOrderHttpRequest,
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.createIssuedCompanyOrder(request);
   }
 
   createAlinanSiparis(
-    request: CreateIssuedCompanyOrderHttpRequest
+    request: CreateIssuedCompanyOrderHttpRequest,
   ): Observable<CreateIssuedCompanyOrderResponse> {
     return this.createReceivedCompanyOrder(request);
   }
 
   getFirmaIcinOnerilenSiparisKalemleri(
     customerCode: string,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<CreateIssuedCompanyOrderLineHttpRequest[]> {
     return this.listSuggestedCompanyOrders({ supplierCode: customerCode, warehouseNo }).pipe(
       map((items: SuggestedCompanyOrderListItemDto[]) =>
@@ -485,17 +511,20 @@ export class SiparisIslemleriService extends BaseApiService {
           packageCode: '',
           projectCode: '',
           customerResponsibilityCenter: '',
-          productResponsibilityCenter: ''
-        }))
-      )
+          productResponsibilityCenter: '',
+        })),
+      ),
     );
   }
 
   getDepoIcinOnerilenSiparisKalemleri(
     warehouseNo: number,
-    targetWarehouseNo?: number
+    targetWarehouseNo?: number,
   ): Observable<SuggestedWarehouseOrderCreateLineDto[]> {
-    return this.listSuggestedWarehouseOrders({ sourceWarehouseNo: warehouseNo, targetWarehouseNo }).pipe(
+    return this.listSuggestedWarehouseOrders({
+      sourceWarehouseNo: warehouseNo,
+      targetWarehouseNo,
+    }).pipe(
       map((items: SuggestedWarehouseOrderListItemDto[]) =>
         (items ?? []).map((item: SuggestedWarehouseOrderListItemDto) => ({
           stockCode: item.stockCode,
@@ -511,30 +540,30 @@ export class SiparisIslemleriService extends BaseApiService {
           description: '',
           packageCode: '',
           projectCode: '',
-          responsibilityCenter: ''
-        }))
-      )
+          responsibilityCenter: '',
+        })),
+      ),
     );
   }
 
   private resolveRangeRequest(
     arg1: number | string,
     arg2?: string | number,
-    arg3?: string
+    arg3?: string,
   ): WarehouseOrderDateRangeHttpRequest {
     if (typeof arg1 === 'string') {
       const range = parseDateRangeToken(arg1) ?? getDefaultDateRange();
       return {
         warehouseNo: typeof arg2 === 'number' ? arg2 : undefined,
         startDate: range.startDate,
-        endDate: range.endDate
+        endDate: range.endDate,
       };
     }
 
     return {
       warehouseNo: arg1,
       startDate: String(arg2 ?? ''),
-      endDate: String(arg3 ?? '')
+      endDate: String(arg3 ?? ''),
     };
   }
 }

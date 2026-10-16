@@ -61,9 +61,7 @@
         </button>
       </div>
 
-      <p class="deduction-note">
-        Acik depo siparisleri ihtiyac hesabinda dikkate alinir.
-      </p>
+      <p class="deduction-note">Acik depo siparisleri ihtiyac hesabinda dikkate alinir.</p>
       <p class="deduction-note" *ngIf="sourceWarehousesError()">
         {{ sourceWarehousesError() }}
       </p>
@@ -142,25 +140,53 @@
                 </td>
                 <td>
                   <div class="metric-lines">
-                    <span>Hedef <strong>{{ formatNumber(line.item.targetOnHand) }}</strong></span>
-                    <span>Kaynak <strong>{{ formatNumber(line.item.sourceOnHand) }}</strong></span>
-                    <span>Satis <strong>{{ formatNumber(line.item.salesQuantity) }}</strong></span>
-                    <span>Acik <strong>{{ formatNumber(line.item.openIncomingOrderQuantity) }}</strong></span>
+                    <span
+                      >Hedef <strong>{{ formatNumber(line.item.targetOnHand) }}</strong></span
+                    >
+                    <span
+                      >Kaynak <strong>{{ formatNumber(line.item.sourceOnHand) }}</strong></span
+                    >
+                    <span
+                      >Satis <strong>{{ formatNumber(line.item.salesQuantity) }}</strong></span
+                    >
+                    <span
+                      >Acik
+                      <strong>{{ formatNumber(line.item.openIncomingOrderQuantity) }}</strong></span
+                    >
                   </div>
                 </td>
                 <td>
                   <div class="metric-lines">
-                    <span>Ihtiyac <strong [class.warning-text]="line.item.needQuantity > 0">{{ formatNumber(line.item.needQuantity) }}</strong></span>
-                    <span>Min <strong>{{ formatNumber(line.item.minDay) }}</strong></span>
-                    <span>Gun <strong>{{ formatNumber(line.item.recommendedDay) }}</strong></span>
-                    <span>Max <strong>{{ formatNumber(line.item.maxDay) }}</strong></span>
+                    <span
+                      >Ihtiyac
+                      <strong [class.warning-text]="line.item.needQuantity > 0">{{
+                        formatNumber(line.item.needQuantity)
+                      }}</strong></span
+                    >
+                    <span
+                      >Min <strong>{{ formatNumber(line.item.minDay) }}</strong></span
+                    >
+                    <span
+                      >Gun <strong>{{ formatNumber(line.item.recommendedDay) }}</strong></span
+                    >
+                    <span
+                      >Max <strong>{{ formatNumber(line.item.maxDay) }}</strong></span
+                    >
                   </div>
                 </td>
                 <td>
                   <div class="metric-lines">
-                    <span>Koli <strong>{{ formatNumber(getUnitMultiplier(line.item)) }}</strong></span>
-                    <span>Stok <strong>{{ formatNumber(line.item.recommendedStockQuantity) }}</strong></span>
-                    <span>Siparis <strong>{{ formatNumber(line.item.suggestedOrderQuantity) }}</strong></span>
+                    <span
+                      >Koli <strong>{{ formatNumber(getUnitMultiplier(line.item)) }}</strong></span
+                    >
+                    <span
+                      >Stok
+                      <strong>{{ formatNumber(line.item.recommendedStockQuantity) }}</strong></span
+                    >
+                    <span
+                      >Siparis
+                      <strong>{{ formatNumber(line.item.suggestedOrderQuantity) }}</strong></span
+                    >
                   </div>
                 </td>
                 <td>
@@ -216,7 +242,9 @@
         <div class="summary-grid">
           <article class="summary-card">
             <span class="mini-label">Kaynak Depo</span>
-            <strong class="summary-value">{{ filterForm.controls.sourceWarehouseNo.value || '-' }}</strong>
+            <strong class="summary-value">{{
+              filterForm.controls.sourceWarehouseNo.value || '-'
+            }}</strong>
           </article>
           <article class="summary-card">
             <span class="mini-label">Secili Satir</span>
@@ -244,7 +272,11 @@
 
         <label class="field">
           <span>Aciklama</span>
-          <textarea rows="3" maxlength="250" [formControl]="filterForm.controls.description"></textarea>
+          <textarea
+            rows="3"
+            maxlength="250"
+            [formControl]="filterForm.controls.description"
+          ></textarea>
         </label>
 
         <article
@@ -274,10 +306,21 @@
           Vazgec
         </button>
         <button
+          *ngIf="safeCreateFailure()?.allowsNewAttempt"
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="startNewCreateAttempt()"
+          [disabled]="isConverting()"
+        >
+          Yeni Islem Olarak Kaydet
+        </button>
+        <button
           type="button"
           class="task-action task-action-primary"
           (click)="convertToOrder()"
-          [disabled]="isConverting() || selectedCount() === 0"
+          [disabled]="
+            isConverting() || selectedCount() === 0 || !!safeCreateFailure()?.blocksSubmit
+          "
         >
           {{ isConverting() ? 'Olusturuluyor...' : 'Siparis Olustur' }}
         </button>

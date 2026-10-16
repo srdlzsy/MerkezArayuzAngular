@@ -468,10 +468,19 @@
         {{ isPreviewing() ? 'Onizleniyor...' : 'Onizle' }}
       </button>
       <button
+        *ngIf="adjustmentFailure()?.allowsNewAttempt"
+        type="button"
+        class="task-action task-action-secondary"
+        (click)="startNewAdjustmentAttempt()"
+        [disabled]="isSaving() || isPreviewing()"
+      >
+        Yeni Islem Olarak Kaydet
+      </button>
+      <button
         type="button"
         class="task-action task-action-primary"
         (click)="saveAdjustment()"
-        [disabled]="isSaving() || isPreviewing() || !adjustmentPreview()"
+        [disabled]="isSaving() || isPreviewing() || !adjustmentPreview() || !!adjustmentFailure()?.blocksSubmit"
       >
         {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
       </button>

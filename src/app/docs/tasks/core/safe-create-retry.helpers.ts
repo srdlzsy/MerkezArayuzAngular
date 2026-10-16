@@ -2,13 +2,11 @@ import { HttpErrorResponse } from '@angular/common/http';
 
 import { generateClientRequestId } from '../../../core/api/furpa-merkez-api.utils';
 import { appendHttpErrorCorrelation } from './api-error.helpers';
-import {
-  SafeCreatePendingStore,
-  type SafeCreatePendingScope
-} from './safe-create-pending.store';
+import { SafeCreatePendingStore, type SafeCreatePendingScope } from './safe-create-pending.store';
 
 export interface ClientRequestPayload {
   clientRequestId?: string;
+  forceCreateNew?: boolean;
 }
 
 export interface SafeCreatePersistenceOptions<TRequest extends ClientRequestPayload> {
@@ -41,7 +39,7 @@ interface ProblemDetailsBody {
 
 export function classifySafeCreateFailure(
   error: HttpErrorResponse,
-  fallbackMessage: string
+  fallbackMessage: string,
 ): SafeCreateFailure {
   const body = isProblemDetailsBody(error.error) ? error.error : null;
   const detail =
@@ -62,7 +60,7 @@ export function classifySafeCreateFailure(
       errorCode: null,
       retryable: outcomeIsUnconfirmed ? true : null,
       blocksSubmit: false,
-      allowsNewAttempt: false
+      allowsNewAttempt: false,
     };
   }
 
@@ -85,17 +83,17 @@ export function classifySafeCreateFailure(
       errorCode,
       retryable: true,
       blocksSubmit: false,
-      allowsNewAttempt: false
+      allowsNewAttempt: false,
     };
   }
 
   if (errorCode === 'CLIENT_REQUEST_PAYLOAD_MISMATCH') {
     return {
-      message: `${message} Devam etmek icin Yeni islem olarak kaydet aksiyonunu kullanin.`,
+      message: `${message} Orijinal istek ve onceki sonuc uzlastirilmadan yeni islem acilamaz.`,
       errorCode,
       retryable: false,
       blocksSubmit: true,
-      allowsNewAttempt: true
+      allowsNewAttempt: false,
     };
   }
 
@@ -105,7 +103,7 @@ export function classifySafeCreateFailure(
       errorCode,
       retryable: false,
       blocksSubmit: true,
-      allowsNewAttempt: false
+      allowsNewAttempt: false,
     };
   }
 
@@ -114,7 +112,7 @@ export function classifySafeCreateFailure(
     errorCode,
     retryable,
     blocksSubmit: true,
-    allowsNewAttempt: false
+    allowsNewAttempt: false,
   };
 }
 
@@ -122,10 +120,9 @@ export class SafeCreateRetryDraft<TRequest extends ClientRequestPayload> {
   private clientRequestId = '';
   private payloadSnapshot = '';
   private activeScope: SafeCreatePendingScope | null = null;
+  private forceCreateNew = false;
 
-  constructor(
-    private readonly persistence: SafeCreatePersistenceOptions<TRequest> | null = null
-  ) {}
+  constructor(private readonly persistence: SafeCreatePersistenceOptions<TRequest> | null = null) {}
 
   withClientRequestId(requestWithoutId: Omit<TRequest, 'clientRequestId'>): TRequest {
     const nextPayloadSnapshot = JSON.stringify(requestWithoutId);
@@ -137,7 +134,8 @@ export class SafeCreateRetryDraft<TRequest extends ClientRequestPayload> {
 
     const request = {
       ...requestWithoutId,
-      clientRequestId: this.clientRequestId
+      ...(this.forceCreateNew ? { forceCreateNew: true } : {}),
+      clientRequestId: this.clientRequestId,
     } as TRequest;
 
     if (this.persistence) {
@@ -157,6 +155,14 @@ export class SafeCreateRetryDraft<TRequest extends ClientRequestPayload> {
     this.clientRequestId = '';
     this.payloadSnapshot = '';
     this.activeScope = null;
+    this.forceCreateNew = false;
+  }
+
+  startNewAttempt(): void {
+    this.clientRequestId = '';
+    this.payloadSnapshot = '';
+    this.activeScope = null;
+    this.forceCreateNew = true;
   }
 
   recordFailure(failure: SafeCreateFailure, httpStatus: number): void {

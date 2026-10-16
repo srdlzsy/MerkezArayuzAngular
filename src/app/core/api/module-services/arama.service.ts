@@ -16,13 +16,10 @@ import {
   SourceWarehouseLookupItemDto,
   VarYokLookupItemDto,
   WarehouseLookupItemDto,
-  WarehouseSearchHttpRequest
+  WarehouseSearchHttpRequest,
 } from '@interfaces';
 
-import {
-  toBooleanValue,
-  toStringValue
-} from '../furpa-merkez-api.utils';
+import { toBooleanValue, toStringValue } from '../furpa-merkez-api.utils';
 import { BaseApiService } from '../base-api.service';
 
 export interface CariBulResultDto {
@@ -43,28 +40,28 @@ export interface CariBulResultDto {
 }
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AramaService extends BaseApiService {
   private buildProductSearchQuery(
-    query: string
+    query: string,
   ): Partial<Pick<ProductSearchHttpRequest, 'barcode' | 'stockCode' | 'stockName'>> {
     const normalizedQuery = query.trim();
 
     if (/^\d{2,}$/.test(normalizedQuery)) {
       return {
-        stockName: normalizedQuery
+        stockName: normalizedQuery,
       };
     }
 
     if (/^[0-9._-]{2,}$/.test(normalizedQuery)) {
       return {
-        stockCode: normalizedQuery
+        stockCode: normalizedQuery,
       };
     }
 
     return {
-      stockName: normalizedQuery
+      stockName: normalizedQuery,
     };
   }
 
@@ -75,27 +72,26 @@ export class AramaService extends BaseApiService {
 
   private normalizeProductCustomerSuggestionRequest(
     requestOrTake?: ProductCustomerSuggestionHttpRequest | number | null,
-    take?: number
+    take?: number,
   ): ProductCustomerSuggestionHttpRequest {
     if (typeof requestOrTake === 'object' && requestOrTake !== null) {
       return {
         warehouseNo: requestOrTake.warehouseNo,
-        take: requestOrTake.take
+        take: requestOrTake.take,
       };
     }
 
     if (typeof requestOrTake === 'number' && take === undefined) {
       return {
-        take: requestOrTake
+        take: requestOrTake,
       };
     }
 
     return {
       warehouseNo: typeof requestOrTake === 'number' ? requestOrTake : undefined,
-      take
+      take,
     };
   }
-
 
   /**
    * Ürün ara
@@ -115,7 +111,8 @@ export class AramaService extends BaseApiService {
     supplierCode?: string,
     companyCode?: string,
     take: number = 150,
-    includeDelisted?: boolean
+    includeDelisted?: boolean,
+    sourceWarehouseNo?: number,
   ): Observable<ProductLookupItemDto[]> {
     const normalizedBarcode = this.normalizeOptionalText(barcode);
     const normalizedStockCode = this.normalizeOptionalText(stockCode);
@@ -133,31 +130,38 @@ export class AramaService extends BaseApiService {
       return of([]);
     }
 
-    if (normalizedStockName && normalizedStockName.length < 2 && !normalizedBarcode && !normalizedStockCode) {
+    if (
+      normalizedStockName &&
+      normalizedStockName.length < 2 &&
+      !normalizedBarcode &&
+      !normalizedStockCode
+    ) {
       return of([]);
     }
 
     const request: ProductSearchHttpRequest = {
       warehouseNo,
+      sourceWarehouseNo,
       barcode: normalizedBarcode,
       stockCode: normalizedStockCode,
       stockName: normalizedStockName,
       supplierCode: normalizedSupplierCode,
       companyCode: normalizedCompanyCode,
       includeDelisted,
-      take
+      take,
     };
 
     return this.getWithQuery<ProductLookupItemDto[]>('arama-islemleri/urunler', {
       ...request,
-      take: Math.min(take, 150)
+      take: Math.min(take, 150),
     });
   }
 
   searchStock(
     query: string,
     take: number = 20,
-    includeDelisted?: boolean
+    includeDelisted?: boolean,
+    sourceWarehouseNo?: number,
   ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
     return this.searchProducts(
@@ -168,7 +172,8 @@ export class AramaService extends BaseApiService {
       undefined,
       undefined,
       take,
-      includeDelisted
+      includeDelisted,
+      sourceWarehouseNo,
     );
   }
 
@@ -176,7 +181,8 @@ export class AramaService extends BaseApiService {
     query: string,
     warehouseNo?: number,
     take: number = 20,
-    includeDelisted?: boolean
+    includeDelisted?: boolean,
+    sourceWarehouseNo?: number,
   ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
 
@@ -186,11 +192,12 @@ export class AramaService extends BaseApiService {
 
     return this.getWithQuery<ProductLookupItemDto[]>('arama-islemleri/fiyat-gor', {
       warehouseNo,
+      sourceWarehouseNo,
       barcode: filters.barcode,
       stockCode: filters.stockCode,
       stockName: filters.stockName,
       includeDelisted,
-      take: Math.min(take, 100)
+      take: Math.min(take, 100),
     });
   }
 
@@ -198,7 +205,7 @@ export class AramaService extends BaseApiService {
     query: string,
     warehouseNo?: number,
     take: number = 20,
-    includeDelisted?: boolean
+    includeDelisted?: boolean,
   ): Observable<VarYokLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
 
@@ -212,14 +219,14 @@ export class AramaService extends BaseApiService {
       stockCode: filters.stockCode,
       stockName: filters.stockName,
       includeDelisted,
-      take: Math.min(take, 100)
+      take: Math.min(take, 100),
     });
   }
 
   getByFilterForLabel(
     query: string,
     take: number = 20,
-    includeDelisted?: boolean
+    includeDelisted?: boolean,
   ): Observable<ProductLookupItemDto[]> {
     return this.searchStock(query, take, includeDelisted);
   }
@@ -238,11 +245,14 @@ export class AramaService extends BaseApiService {
 
     return this.getWithQuery<CustomerLookupItemDto[]>('arama-islemleri/cariler', {
       searchText: normalizedSearchText,
-      take: Math.min(take, 100)
+      take: Math.min(take, 100),
     });
   }
 
-  searchCustomerAccount(searchText: string, take: number = 20): Observable<CustomerLookupItemDto[]> {
+  searchCustomerAccount(
+    searchText: string,
+    take: number = 20,
+  ): Observable<CustomerLookupItemDto[]> {
     return this.searchCustomers(searchText, take);
   }
 
@@ -254,7 +264,7 @@ export class AramaService extends BaseApiService {
   searchWarehouses(
     searchText?: string,
     take: number = 50,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseLookupItemDto[]> {
     const normalizedSearchText = this.normalizeOptionalText(searchText);
 
@@ -265,7 +275,7 @@ export class AramaService extends BaseApiService {
     const request: WarehouseSearchHttpRequest = {
       searchText: normalizedSearchText,
       warehouseNo,
-      take: Math.min(take, 100)
+      take: Math.min(take, 100),
     };
 
     return this.getWithQuery<WarehouseLookupItemDto[]>('arama-islemleri/depolar', request);
@@ -274,7 +284,7 @@ export class AramaService extends BaseApiService {
   searchWarehouse(
     searchText?: string,
     take: number = 50,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseLookupItemDto[]> {
     return this.searchWarehouses(searchText, take, warehouseNo);
   }
@@ -285,21 +295,18 @@ export class AramaService extends BaseApiService {
    */
   listAllWarehouses(
     take: number = 100,
-    warehouseNo?: number
+    warehouseNo?: number,
   ): Observable<WarehouseLookupItemDto[]> {
     return this.searchWarehouses(undefined, take, warehouseNo);
   }
 
-  listWarehouses(
-    take: number = 100,
-    warehouseNo?: number
-  ): Observable<WarehouseLookupItemDto[]> {
+  listWarehouses(take: number = 100, warehouseNo?: number): Observable<WarehouseLookupItemDto[]> {
     return this.listAllWarehouses(take, warehouseNo);
   }
 
   searchSourceWarehouses(
     searchText?: string,
-    take: number = 100
+    take: number = 100,
   ): Observable<SourceWarehouseLookupItemDto[]> {
     const normalizedSearchText = this.normalizeOptionalText(searchText);
 
@@ -309,7 +316,7 @@ export class AramaService extends BaseApiService {
 
     return this.getWithQuery<SourceWarehouseLookupItemDto[]>('arama-islemleri/depolar/kaynaklar', {
       searchText: normalizedSearchText,
-      take: Math.min(take, 100)
+      take: Math.min(take, 100),
     });
   }
 
@@ -323,7 +330,7 @@ export class AramaService extends BaseApiService {
     customerCode: string,
     searchText: string,
     take: number = 20,
-    includeDelisted?: boolean
+    includeDelisted?: boolean,
   ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(searchText);
 
@@ -335,7 +342,7 @@ export class AramaService extends BaseApiService {
       undefined,
       this.normalizeOptionalText(customerCode),
       take,
-      includeDelisted
+      includeDelisted,
     );
   }
 
@@ -343,7 +350,7 @@ export class AramaService extends BaseApiService {
     searchText: string,
     customerCode: string,
     take: number = 20,
-    includeDelisted?: boolean
+    includeDelisted?: boolean,
   ): Observable<ProductLookupItemDto[]> {
     return this.searchProductsByCustomer(customerCode, searchText, take, includeDelisted);
   }
@@ -351,7 +358,7 @@ export class AramaService extends BaseApiService {
   resolveBarcode(
     barcode: string,
     warehouseNoOrRequest?: number | BarcodeResolutionHttpRequest,
-    screenCode?: string
+    screenCode?: string,
   ): Observable<BarcodeResolutionDto> {
     const request: BarcodeResolutionHttpRequest =
       typeof warehouseNoOrRequest === 'object'
@@ -362,23 +369,23 @@ export class AramaService extends BaseApiService {
             supplierCode: this.normalizeOptionalText(warehouseNoOrRequest.supplierCode),
             companyCode: this.normalizeOptionalText(warehouseNoOrRequest.companyCode),
             isRefund: warehouseNoOrRequest.isRefund,
-            screenCode: this.normalizeOptionalText(warehouseNoOrRequest.screenCode)
+            screenCode: this.normalizeOptionalText(warehouseNoOrRequest.screenCode),
           }
         : {
             warehouseNo: warehouseNoOrRequest,
-            screenCode: this.normalizeOptionalText(screenCode)
+            screenCode: this.normalizeOptionalText(screenCode),
           };
 
     return this.getWithQuery<BarcodeResolutionDto>(
       `arama-islemleri/barkodlar/${encodeURIComponent(barcode.trim())}/cozumle`,
-      request
+      request,
     );
   }
 
   getProductCustomerSuggestions(
     stockCode: string,
     requestOrTake?: ProductCustomerSuggestionHttpRequest | number | null,
-    take?: number
+    take?: number,
   ): Observable<ProductCustomerSuggestionsDto> {
     const request = this.normalizeProductCustomerSuggestionRequest(requestOrTake, take);
 
@@ -386,8 +393,8 @@ export class AramaService extends BaseApiService {
       `arama-islemleri/urunler/${encodeURIComponent(stockCode.trim())}/cari-onerileri`,
       {
         warehouseNo: request.warehouseNo ?? undefined,
-        take: Math.min(Math.max(request.take ?? 10, 1), 25)
-      }
+        take: Math.min(Math.max(request.take ?? 10, 1), 25),
+      },
     );
   }
 
@@ -395,8 +402,8 @@ export class AramaService extends BaseApiService {
     return this.getWithQuery<ProductLastTagDto | null>(
       `arama-islemleri/urunler/${encodeURIComponent(stockCode.trim())}/son-kunye`,
       {
-        warehouseNo
-      }
+        warehouseNo,
+      },
     );
   }
 
@@ -411,7 +418,7 @@ export class AramaService extends BaseApiService {
   searchCustomerByBarcode(
     barcode: string,
     warehouseNo?: number,
-    take: number = 10
+    take: number = 10,
   ): Observable<CariBulResultDto> {
     const normalizedBarcode = barcode.trim();
 
@@ -430,17 +437,14 @@ export class AramaService extends BaseApiService {
         unitMultiplier: null,
         defaultSupplierCode: null,
         defaultSupplierName: null,
-        suggestions: []
+        suggestions: [],
       });
     }
 
-    return this.getWithQuery<CariBulResultDto>(
-      'arama-islemleri/cari-bul',
-      {
-        barcode: normalizedBarcode,
-        warehouseNo,
-        take: Math.min(Math.max(take, 1), 25)
-      }
-    );
+    return this.getWithQuery<CariBulResultDto>('arama-islemleri/cari-bul', {
+      barcode: normalizedBarcode,
+      warehouseNo,
+      take: Math.min(Math.max(take, 1), 25),
+    });
   }
 }

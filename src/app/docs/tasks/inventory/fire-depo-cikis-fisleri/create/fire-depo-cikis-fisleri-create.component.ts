@@ -240,7 +240,7 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected startNewCreateAttempt(): void {
-    this.safeCreateRetry.reset();
+    this.safeCreateRetry.startNewAttempt();
     this.safeCreateFailure.set(null);
     this.submitError.set('');
     this.submit();

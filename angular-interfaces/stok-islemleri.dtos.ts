@@ -73,6 +73,7 @@ export interface StockReceiptDetailDto {
 export interface CreateStockReceiptHttpRequest {
   warehouseNo?: number;
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   creator: string;
   acceptor: string;
   movementDate: string;
@@ -155,6 +156,7 @@ export interface InventoryCountDetailDto {
 export interface CreateInventoryCountHttpRequest {
   warehouseNo?: number;
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   name: string;
   documentDate: string;
   lines: CreateInventoryCountLineHttpRequest[];
@@ -421,6 +423,7 @@ export interface VirmanConversionSuggestionDto {
 export interface CreateVirmanHttpRequest {
   warehouseNo?: number;
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   movementDate: string;
   documentDate: string;
   documentNo: string;

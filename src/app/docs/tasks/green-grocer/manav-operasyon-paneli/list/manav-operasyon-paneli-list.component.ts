@@ -33,7 +33,10 @@ import {
   buildSafeCreatePendingScope,
   buildSafeCreateUserId
 } from '../../../core/safe-create-pending.store';
-import { classifySafeCreateFailure } from '../../../core/safe-create-retry.helpers';
+import {
+  SafeCreateFailure,
+  classifySafeCreateFailure
+} from '../../../core/safe-create-retry.helpers';
 
 type FeedbackTone = 'error' | 'info' | 'success';
 type SortDirection = 'asc' | 'desc';
@@ -172,6 +175,7 @@ export class ManavOperasyonPaneliListComponent {
   protected readonly overview = signal<GreenGrocerOperationsOverviewDto | null>(null);
   protected readonly feedback = signal<PageFeedback | null>(null);
   protected readonly adjustmentFeedback = signal<PageFeedback | null>(null);
+  protected readonly adjustmentFailure = signal<SafeCreateFailure | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly isPreviewing = signal(false);
   protected readonly isSaving = signal(false);
@@ -184,6 +188,7 @@ export class ManavOperasyonPaneliListComponent {
   protected readonly adjustmentPreview = signal<GreenGrocerOperationsAdjustmentPreviewDto | null>(null);
   protected readonly adjustmentResult = signal<GreenGrocerOperationsAdjustmentApplyDto | null>(null);
   protected readonly clientRequestId = signal('');
+  protected readonly forceCreateNew = signal(false);
   protected readonly adjustmentClientRequestId = computed(() => this.clientRequestId());
   protected readonly pendingAdjustmentCount = computed(() =>
     this.safeCreatePendingStore.findForOperation<GreenGrocerOperationsAdjustmentApplyHttpRequest>(
@@ -427,6 +432,8 @@ export class ManavOperasyonPaneliListComponent {
 
     this.adjustmentSourceItem.set(item);
     this.clientRequestId.set(this.generateClientRequestId());
+    this.forceCreateNew.set(false);
+    this.adjustmentFailure.set(null);
     this.adjustmentPreview.set(null);
     this.adjustmentResult.set(null);
     this.previewSignature.set('');
@@ -513,7 +520,7 @@ export class ManavOperasyonPaneliListComponent {
   }
 
   protected saveAdjustment(): void {
-    if (!this.canCreateAdjustment()) {
+    if (!this.canCreateAdjustment() || this.adjustmentFailure()?.blocksSubmit) {
       return;
     }
 
@@ -548,6 +555,8 @@ export class ManavOperasyonPaneliListComponent {
       .subscribe({
         next: (result: GreenGrocerOperationsAdjustmentApplyDto) => {
           this.safeCreatePendingStore.remove(pendingScope, request.clientRequestId);
+          this.forceCreateNew.set(false);
+          this.adjustmentFailure.set(null);
           this.adjustmentResult.set(result);
           this.adjustmentFeedback.set({
             tone: 'success',
@@ -562,6 +571,7 @@ export class ManavOperasyonPaneliListComponent {
         },
         error: (error: HttpErrorResponse) => {
           const failure = classifySafeCreateFailure(error, 'MNV duzeltmesi kaydedilemedi.');
+          this.adjustmentFailure.set(failure);
           if (failure.retryable === true || error.status === 409) {
             this.safeCreatePendingStore.markFailure(
               pendingScope,
@@ -578,6 +588,14 @@ export class ManavOperasyonPaneliListComponent {
           });
         }
       });
+  }
+
+  protected startNewAdjustmentAttempt(): void {
+    this.clientRequestId.set(this.generateClientRequestId());
+    this.forceCreateNew.set(true);
+    this.adjustmentFailure.set(null);
+    this.adjustmentFeedback.set(null);
+    this.saveAdjustment();
   }
 
   protected checkPendingAdjustments(): void {
@@ -725,6 +743,7 @@ export class ManavOperasyonPaneliListComponent {
     return {
       ...this.buildAdjustmentPreviewRequest(),
       clientRequestId: this.clientRequestId(),
+      ...(this.forceCreateNew() ? { forceCreateNew: true } : {}),
       documentDate: raw.documentDate || null,
       documentNo: raw.documentNo.trim() || null,
       counterWarehouseNo: toPositiveWarehouseNo(raw.counterWarehouseNo),

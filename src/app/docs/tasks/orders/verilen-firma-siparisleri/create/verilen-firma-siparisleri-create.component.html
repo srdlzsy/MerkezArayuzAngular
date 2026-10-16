@@ -3,12 +3,19 @@
     <div class="dialog-heading">
       <p class="eyebrow">FIRMA SIPARISI</p>
       <h2>{{ current.title }} Olustur</h2>
-      <p class="subtitle">Firmayi sec, istersen onerilenleri getir, kalemleri duzenle ve siparisi kaydet.</p>
+      <p class="subtitle">
+        Firmayi sec, istersen onerilenleri getir, kalemleri duzenle ve siparisi kaydet.
+      </p>
     </div>
 
     <div class="header-actions">
       <button type="button" class="ghost-button" (click)="close()">Kapat</button>
-      <button type="submit" class="primary-button" [disabled]="submitting()" form="verilen-siparis-form">
+      <button
+        type="submit"
+        class="primary-button"
+        [disabled]="submitting() || !!safeCreateFailure()?.blocksSubmit"
+        form="verilen-siparis-form"
+      >
         {{ submitting() ? 'Kaydediliyor...' : 'Siparisi Kaydet' }}
       </button>
     </div>
@@ -17,6 +24,14 @@
   <div class="dialog-body">
     <form id="verilen-siparis-form" class="form-shell" [formGroup]="form" (ngSubmit)="submit()">
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <button
+        *ngIf="safeCreateFailure()?.allowsNewAttempt"
+        type="button"
+        class="ghost-button"
+        (click)="startNewCreateAttempt()"
+      >
+        Yeni Islem Olarak Kaydet
+      </button>
 
       <section class="panel">
         <div class="panel-head">
@@ -33,7 +48,12 @@
                 placeholder="Cari kod veya unvan..."
                 (keydown.enter)="$event.preventDefault(); searchCustomer()"
               />
-              <button type="button" class="small-btn" [disabled]="customerLoading()" (click)="searchCustomer()">
+              <button
+                type="button"
+                class="small-btn"
+                [disabled]="customerLoading()"
+                (click)="searchCustomer()"
+              >
                 {{ customerLoading() ? '...' : 'Ara' }}
               </button>
             </div>
@@ -49,7 +69,9 @@
               </button>
             </div>
 
-            <div class="feedback-error mini-error" *ngIf="customerError()">{{ customerError() }}</div>
+            <div class="feedback-error mini-error" *ngIf="customerError()">
+              {{ customerError() }}
+            </div>
 
             <div class="selected-item" *ngIf="selectedCustomer() as customer">
               <span class="selected-text">{{ getCustomerLabel(customer) }}</span>
@@ -62,12 +84,19 @@
                 *ngFor="let customer of customerResults(); trackBy: trackByCustomer"
                 [class.customer-result-disabled]="customer.isLocked || customer.isClosed"
                 [attr.aria-disabled]="customer.isLocked || customer.isClosed"
-                [title]="customer.isLocked || customer.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
+                [title]="
+                  customer.isLocked || customer.isClosed
+                    ? 'Kilitli veya kapali cari secilemez.'
+                    : null
+                "
                 (click)="!customer.isLocked && !customer.isClosed && selectCustomer(customer)"
               >
                 <strong>{{ customer.customerCode }}</strong>
                 <span>{{ getCustomerLabel(customer) }}</span>
-                <small class="customer-result-status" *ngIf="customer.isLocked || customer.isClosed">
+                <small
+                  class="customer-result-status"
+                  *ngIf="customer.isLocked || customer.isClosed"
+                >
                   {{ customer.isLocked ? 'Kilitli' : 'Kapali' }}
                 </small>
               </div>
@@ -109,11 +138,17 @@
             <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
 
             <div class="search-results stock-results-list" *ngIf="stockResults().length">
-              <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
+              <div
+                class="result-item stock-result"
+                *ngFor="let stock of stockResults(); trackBy: trackByStock"
+                (click)="addKalem(stock)"
+              >
                 <div>
                   <strong>{{ stock.stockName }}</strong>
                   <span class="stock-code">{{ stock.stockCode }}</span>
-                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
+                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1"
+                    >Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span
+                  >
                 </div>
                 <button type="button" class="add-mini">+</button>
               </div>
@@ -145,7 +180,9 @@
             </div>
           </div>
 
-          <div class="feedback-error mini-error" *ngIf="customerProductsError()">{{ customerProductsError() }}</div>
+          <div class="feedback-error mini-error" *ngIf="customerProductsError()">
+            {{ customerProductsError() }}
+          </div>
 
           <div class="customer-products-list" *ngIf="customerProducts().length">
             <button
@@ -158,7 +195,10 @@
                 <strong>{{ product.stockName }}</strong>
                 <small>{{ product.stockCode }} · {{ product.barcode || '-' }}</small>
               </span>
-              <span class="product-package" *ngIf="(resolveProductUnitMultiplier(product) || 0) > 1">
+              <span
+                class="product-package"
+                *ngIf="(resolveProductUnitMultiplier(product) || 0) > 1"
+              >
                 Koli ici {{ resolveProductUnitMultiplier(product) }} {{ product.unitName }}
               </span>
               <span class="product-price">{{ product.unitPrice | number: '1.2-2' }} TL</span>
@@ -170,22 +210,33 @@
         <div class="contact-row">
           <div class="contact-field">
             <label>Muhatap Ad Soyad *</label>
-            <input type="text" formControlName="muhatapAdSoyad" maxlength="25" placeholder="Firma yetkilisi" />
-            <small class="field-error" *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched">
+            <input
+              type="text"
+              formControlName="muhatapAdSoyad"
+              maxlength="25"
+              placeholder="Firma yetkilisi"
+            />
+            <small
+              class="field-error"
+              *ngIf="controls.muhatapAdSoyad.invalid && controls.muhatapAdSoyad.touched"
+            >
               Zorunlu
             </small>
           </div>
 
           <div class="contact-field" *ngIf="isAdminUser()">
             <label>Depo No</label>
-            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
-            <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
+            <input
+              type="number"
+              min="1"
+              formControlName="adminWarehouseNo"
+              placeholder="Aktif depo"
+            />
+            <small class="helper-inline"
+              >Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small
+            >
           </div>
         </div>
-
-
-
-
       </section>
 
       <section class="panel kalem-panel">
@@ -208,13 +259,23 @@
         </div>
 
         <div class="kalem-list" *ngIf="kalemCount()">
-          <div class="kalem-row" *ngFor="let kalem of kalemler.controls; let i = index; trackBy: trackByKalem" [formGroup]="kalem">
+          <div
+            class="kalem-row"
+            *ngFor="let kalem of kalemler.controls; let i = index; trackBy: trackByKalem"
+            [formGroup]="kalem"
+          >
             <div class="col-stok">
               <div class="kalem-info">
-                <strong>{{ kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value }}</strong>
+                <strong>{{
+                  kalem.controls.stokIsmi.value || kalem.controls.stokKodu.value
+                }}</strong>
                 <span class="kalem-kod">{{ kalem.controls.stokKodu.value }}</span>
-                <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
-                <span class="package-note" *ngIf="hasPackageInput(kalem)">{{ getPackageHint(kalem) }}</span>
+                <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value"
+                  >Barkod: {{ kalem.controls.barkodu.value }}</span
+                >
+                <span class="package-note" *ngIf="hasPackageInput(kalem)">{{
+                  getPackageHint(kalem)
+                }}</span>
               </div>
             </div>
             <div class="col-miktar">
@@ -224,9 +285,16 @@
                 [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
                 formControlName="siparisMiktari"
                 placeholder="Miktar"
-                [class.error]="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched"
+                [class.error]="
+                  kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched
+                "
               />
-              <small class="field-error" *ngIf="kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched">
+              <small
+                class="field-error"
+                *ngIf="
+                  kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched
+                "
+              >
                 Gecerli miktar
               </small>
               <small class="package-warning" *ngIf="getPackageMultipleWarning(kalem)">
@@ -234,7 +302,9 @@
               </small>
             </div>
             <div class="col-islem">
-              <button type="button" class="remove-btn" (click)="removeKalem(i)" title="Kaldir">Sil</button>
+              <button type="button" class="remove-btn" (click)="removeKalem(i)" title="Kaldir">
+                Sil
+              </button>
             </div>
           </div>
         </div>

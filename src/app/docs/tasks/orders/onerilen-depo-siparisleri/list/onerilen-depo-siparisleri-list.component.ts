@@ -8,14 +8,25 @@ import type {
   ConvertSuggestedWarehouseOrderHttpRequest,
   CreateIssuedWarehouseOrderResponse,
   IFurpaSourceWarehouseSearchItemApiDto,
-  SuggestedWarehouseOrderListItemDto
+  SuggestedWarehouseOrderListItemDto,
 } from '@interfaces';
 
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { SiparisIslemleriService } from '../../../../../core/api/module-services/siparis-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { getCurrentWarehouseNo } from '../../../core/admin-warehouse.helpers';
+import {
+  SafeCreateFailure,
+  SafeCreateRetryDraft,
+  classifySafeCreateFailure,
+} from '../../../core/safe-create-retry.helpers';
+import {
+  SafeCreatePendingStore,
+  buildSafeCreatePendingScope,
+} from '../../../core/safe-create-pending.store';
 
 interface SuggestedWarehouseLineState {
   item: SuggestedWarehouseOrderListItemDto;
@@ -34,45 +45,58 @@ interface PageFeedback {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './onerilen-depo-siparisleri-list.component.html',
-  styleUrl: '../../_suggested-orders-page.scss'
+  styleUrl: '../../_suggested-orders-page.scss',
 })
 export class OnerilenDepoSiparisleriListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['onerilen-depo-siparisleri'];
   private readonly destroyRef = inject(DestroyRef);
   private readonly aramaService = inject(AramaService);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
+  private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry =
+    new SafeCreateRetryDraft<ConvertSuggestedWarehouseOrderHttpRequest>({
+      store: this.pendingStore,
+      resolveScope: (request) =>
+        buildSafeCreatePendingScope(
+          this.authService.currentUser(),
+          'siparis-islemleri.onerilen-depo-siparisleri.create',
+          request,
+        ),
+    });
   private requestId = 0;
 
   protected readonly filterForm = new FormGroup({
     sourceWarehouseNo: new FormControl<number | null>(null, {
-      validators: [Validators.required, Validators.min(1)]
+      validators: [Validators.required, Validators.min(1)],
     }),
     lookbackDays: new FormControl<number>(43, {
       nonNullable: true,
-      validators: [Validators.min(1), Validators.max(365)]
+      validators: [Validators.min(1), Validators.max(365)],
     }),
     fallbackRecommendedDay: new FormControl<number>(7, {
       nonNullable: true,
-      validators: [Validators.min(1), Validators.max(60)]
+      validators: [Validators.min(1), Validators.max(60)],
     }),
     orderDate: new FormControl<string>(this.today, {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     deliveryDate: new FormControl<string>(this.today, {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     description: new FormControl<string>('Onerilen siparisten olustu', {
       nonNullable: true,
-      validators: [Validators.maxLength(250)]
-    })
+      validators: [Validators.maxLength(250)],
+    }),
   });
 
   protected readonly lines = signal<SuggestedWarehouseLineState[]>([]);
   protected readonly feedback = signal<PageFeedback | null>(null);
   protected readonly convertFeedback = signal<PageFeedback | null>(null);
+  protected readonly safeCreateFailure = signal<SafeCreateFailure | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly sourceWarehouses = signal<IFurpaSourceWarehouseSearchItemApiDto[]>([]);
   protected readonly sourceWarehousesLoading = signal(false);
@@ -84,13 +108,16 @@ export class OnerilenDepoSiparisleriListComponent {
   protected readonly selectedLines = computed(() => this.lines().filter((line) => line.selected));
   protected readonly selectedCount = computed(() => this.selectedLines().length);
   protected readonly totalSuggested = computed(() =>
-    this.lines().reduce((total, line) => total + this.safeNumber(line.item.suggestedOrderQuantity), 0)
+    this.lines().reduce(
+      (total, line) => total + this.safeNumber(line.item.suggestedOrderQuantity),
+      0,
+    ),
   );
   protected readonly totalNeed = computed(() =>
-    this.lines().reduce((total, line) => total + this.safeNumber(line.item.needQuantity), 0)
+    this.lines().reduce((total, line) => total + this.safeNumber(line.item.needQuantity), 0),
   );
   protected readonly selectedQuantity = computed(() =>
-    this.selectedLines().reduce((total, line) => total + this.safeNumber(line.quantity), 0)
+    this.selectedLines().reduce((total, line) => total + this.safeNumber(line.quantity), 0),
   );
   protected readonly requestPath = computed(() => {
     const formValue = this.filterForm.getRawValue();
@@ -115,7 +142,7 @@ export class OnerilenDepoSiparisleriListComponent {
       .searchSourceWarehouses(undefined, 100)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.sourceWarehousesLoading.set(false))
+        finalize(() => this.sourceWarehousesLoading.set(false)),
       )
       .subscribe({
         next: (warehouses: IFurpaSourceWarehouseSearchItemApiDto[]) => {
@@ -127,23 +154,26 @@ export class OnerilenDepoSiparisleriListComponent {
             this.feedback.set({
               tone: 'info',
               title: 'Kaynak depo yok',
-              message: 'Siparis verilebilir kaynak depo bulunamadi.'
+              message: 'Siparis verilebilir kaynak depo bulunamadi.',
             });
             return;
           }
 
           const currentWarehouseNo = this.filterForm.controls.sourceWarehouseNo.value;
-          const selectedWarehouse = normalizedWarehouses.find(
-            (warehouse) => warehouse.sourceWarehouseNo === currentWarehouseNo
-          ) ?? normalizedWarehouses[0];
+          const selectedWarehouse =
+            normalizedWarehouses.find(
+              (warehouse) => warehouse.sourceWarehouseNo === currentWarehouseNo,
+            ) ?? normalizedWarehouses[0];
 
           this.filterForm.controls.sourceWarehouseNo.setValue(selectedWarehouse.sourceWarehouseNo);
           this.loadSuggestions();
         },
         error: (error: unknown) => {
           this.sourceWarehouses.set([]);
-          this.sourceWarehousesError.set(this.resolveErrorMessage(error, 'Kaynak depo listesi alinamadi.'));
-        }
+          this.sourceWarehousesError.set(
+            this.resolveErrorMessage(error, 'Kaynak depo listesi alinamadi.'),
+          );
+        },
       });
   }
 
@@ -157,7 +187,7 @@ export class OnerilenDepoSiparisleriListComponent {
       this.feedback.set({
         tone: 'info',
         title: 'Kaynak depo gerekli',
-        message: 'Oneri listesi icin kaynak depo no girilmelidir.'
+        message: 'Oneri listesi icin kaynak depo no girilmelidir.',
       });
       return;
     }
@@ -167,7 +197,7 @@ export class OnerilenDepoSiparisleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Filtre hatali',
-        message: 'Gun ve depo alanlarini kontrol edin.'
+        message: 'Gun ve depo alanlarini kontrol edin.',
       });
       return;
     }
@@ -182,7 +212,7 @@ export class OnerilenDepoSiparisleriListComponent {
       .listSuggestedWarehouseOrders({
         sourceWarehouseNo: Number(formValue.sourceWarehouseNo),
         lookbackDays: formValue.lookbackDays,
-        fallbackRecommendedDay: formValue.fallbackRecommendedDay
+        fallbackRecommendedDay: formValue.fallbackRecommendedDay,
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -190,7 +220,7 @@ export class OnerilenDepoSiparisleriListComponent {
           if (requestId === this.requestId) {
             this.isLoading.set(false);
           }
-        })
+        }),
       )
       .subscribe({
         next: (items: SuggestedWarehouseOrderListItemDto[]) => {
@@ -202,15 +232,15 @@ export class OnerilenDepoSiparisleriListComponent {
             (items ?? []).map((item) => ({
               item,
               selected: this.safeNumber(item.suggestedOrderQuantity) > 0,
-              quantity: this.safeNumber(item.suggestedOrderQuantity)
-            }))
+              quantity: this.safeNumber(item.suggestedOrderQuantity),
+            })),
           );
 
           if (!items?.length) {
             this.feedback.set({
               tone: 'info',
               title: 'Oneri bulunamadi',
-              message: 'Secilen kaynak depo icin siparise cevrilecek satir donmedi.'
+              message: 'Secilen kaynak depo icin siparise cevrilecek satir donmedi.',
             });
           }
         },
@@ -223,9 +253,9 @@ export class OnerilenDepoSiparisleriListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Liste yuklenemedi',
-            message: this.resolveErrorMessage(error, 'Onerilen depo siparisleri alinamadi.')
+            message: this.resolveErrorMessage(error, 'Onerilen depo siparisleri alinamadi.'),
           });
-        }
+        },
       });
   }
 
@@ -238,7 +268,7 @@ export class OnerilenDepoSiparisleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Kaynak depo eksik',
-        message: 'Siparise cevirmek icin once kaynak depo no girin.'
+        message: 'Siparise cevirmek icin once kaynak depo no girin.',
       });
       return;
     }
@@ -247,7 +277,7 @@ export class OnerilenDepoSiparisleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Satir secilmedi',
-        message: 'Siparise cevirmek icin en az bir satir secin.'
+        message: 'Siparise cevirmek icin en az bir satir secin.',
       });
       return;
     }
@@ -265,7 +295,7 @@ export class OnerilenDepoSiparisleriListComponent {
   }
 
   protected convertToOrder(): void {
-    if (this.isConverting()) {
+    if (this.isConverting() || this.safeCreateFailure()?.blocksSubmit) {
       return;
     }
 
@@ -274,7 +304,7 @@ export class OnerilenDepoSiparisleriListComponent {
       this.convertFeedback.set({
         tone: 'error',
         title: 'Siparis bilgisi eksik',
-        message: 'Kaynak depo, siparis tarihi ve teslim tarihi zorunludur.'
+        message: 'Kaynak depo, siparis tarihi ve teslim tarihi zorunludur.',
       });
       return;
     }
@@ -285,7 +315,7 @@ export class OnerilenDepoSiparisleriListComponent {
       this.convertFeedback.set({
         tone: 'error',
         title: 'Satir secilmedi',
-        message: 'Siparise cevirmek icin en az bir satir secin.'
+        message: 'Siparise cevirmek icin en az bir satir secin.',
       });
       return;
     }
@@ -300,46 +330,67 @@ export class OnerilenDepoSiparisleriListComponent {
       .convertSuggestedWarehouseOrder(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isConverting.set(false))
+        finalize(() => this.isConverting.set(false)),
       )
       .subscribe({
         next: (response: CreateIssuedWarehouseOrderResponse) => {
+          this.safeCreateRetry.reset();
+          this.safeCreateFailure.set(null);
           this.lastResponse.set(response);
           this.convertFeedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`
+            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
           this.feedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`
+            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
         },
         error: (error: unknown) => {
+          if (error instanceof HttpErrorResponse) {
+            this.applySafeCreateFailure(error, 'Oneriler siparise cevrilirken hata olustu.');
+            return;
+          }
+
           this.convertFeedback.set({
             tone: 'error',
             title: 'Siparis olusturulamadi',
-            message: this.resolveErrorMessage(error, 'Oneriler siparise cevrilirken hata olustu.')
+            message: this.resolveErrorMessage(error, 'Oneriler siparise cevrilirken hata olustu.'),
           });
-        }
+        },
       });
+  }
+
+  protected startNewCreateAttempt(): void {
+    this.safeCreateRetry.startNewAttempt();
+    this.safeCreateFailure.set(null);
+    this.convertFeedback.set(null);
+    this.convertToOrder();
+  }
+
+  private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
+    const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
+    this.safeCreateFailure.set(failure);
+    this.convertFeedback.set({
+      tone: 'error',
+      title: 'Siparis olusturulamadi',
+      message: failure.message,
+    });
   }
 
   protected setLineSelected(stockCode: string, selected: boolean): void {
     this.lines.update((lines) =>
-      lines.map((line) =>
-        line.item.stockCode === stockCode ? { ...line, selected } : line
-      )
+      lines.map((line) => (line.item.stockCode === stockCode ? { ...line, selected } : line)),
     );
   }
 
   protected updateQuantity(stockCode: string, value: string): void {
     const quantity = Math.max(0, Number(value) || 0);
     this.lines.update((lines) =>
-      lines.map((line) =>
-        line.item.stockCode === stockCode ? { ...line, quantity } : line
-      )
+      lines.map((line) => (line.item.stockCode === stockCode ? { ...line, quantity } : line)),
     );
   }
 
@@ -347,8 +398,8 @@ export class OnerilenDepoSiparisleriListComponent {
     this.lines.update((lines) =>
       lines.map((line) => ({
         ...line,
-        selected: this.safeNumber(line.quantity) > 0
-      }))
+        selected: this.safeNumber(line.quantity) > 0,
+      })),
     );
   }
 
@@ -358,7 +409,7 @@ export class OnerilenDepoSiparisleriListComponent {
 
   protected formatNumber(value: number | null | undefined): string {
     return new Intl.NumberFormat('tr-TR', {
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(this.safeNumber(value));
   }
 
@@ -371,20 +422,25 @@ export class OnerilenDepoSiparisleriListComponent {
 
   protected readonly trackBySourceWarehouse = (
     _index: number,
-    warehouse: IFurpaSourceWarehouseSearchItemApiDto
+    warehouse: IFurpaSourceWarehouseSearchItemApiDto,
   ): string => `${warehouse.sourceWarehouseNo}-${warehouse.displayName?.trim() || _index}`;
 
   protected getSourceWarehouseLabel(warehouse: IFurpaSourceWarehouseSearchItemApiDto): string {
-    return warehouse.displayName?.trim()
-      || `${warehouse.sourceWarehouseNo} - ${warehouse.sourceWarehouseName?.trim() || 'Depo'}`;
+    return (
+      warehouse.displayName?.trim() ||
+      `${warehouse.sourceWarehouseNo} - ${warehouse.sourceWarehouseName?.trim() || 'Depo'}`
+    );
   }
 
   private buildConvertRequest(
-    selectedLines: SuggestedWarehouseLineState[]
+    selectedLines: SuggestedWarehouseLineState[],
   ): ConvertSuggestedWarehouseOrderHttpRequest {
     const formValue = this.filterForm.getRawValue();
 
-    return {
+    const targetWarehouseNo = getCurrentWarehouseNo(this.authService.currentUser());
+
+    return this.safeCreateRetry.withClientRequestId({
+      ...(targetWarehouseNo ? { targetWarehouseNo } : {}),
       sourceWarehouseNo: Number(formValue.sourceWarehouseNo),
       orderDate: formValue.orderDate,
       deliveryDate: formValue.deliveryDate,
@@ -398,9 +454,9 @@ export class OnerilenDepoSiparisleriListComponent {
         description: '',
         packageCode: '',
         projectCode: '',
-        responsibilityCenter: ''
-      }))
-    };
+        responsibilityCenter: '',
+      })),
+    });
   }
 
   private safeNumber(value: number | null | undefined): number {
@@ -408,14 +464,14 @@ export class OnerilenDepoSiparisleriListComponent {
   }
 
   private normalizeSourceWarehouses(
-    warehouses: IFurpaSourceWarehouseSearchItemApiDto[]
+    warehouses: IFurpaSourceWarehouseSearchItemApiDto[],
   ): IFurpaSourceWarehouseSearchItemApiDto[] {
     const uniqueWarehouses = new Map<number, IFurpaSourceWarehouseSearchItemApiDto>();
 
     for (const warehouse of warehouses) {
       if (
-        !Number.isFinite(warehouse.sourceWarehouseNo)
-        || uniqueWarehouses.has(warehouse.sourceWarehouseNo)
+        !Number.isFinite(warehouse.sourceWarehouseNo) ||
+        uniqueWarehouses.has(warehouse.sourceWarehouseNo)
       ) {
         continue;
       }
@@ -424,7 +480,7 @@ export class OnerilenDepoSiparisleriListComponent {
     }
 
     return Array.from(uniqueWarehouses.values()).sort(
-      (left, right) => left.sourceWarehouseNo - right.sourceWarehouseNo
+      (left, right) => left.sourceWarehouseNo - right.sourceWarehouseNo,
     );
   }
 

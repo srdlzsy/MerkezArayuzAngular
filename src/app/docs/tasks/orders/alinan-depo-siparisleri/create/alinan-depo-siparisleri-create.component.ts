@@ -265,7 +265,7 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockLoading.set(true);
 
     this.aramaService
-      .searchStock(query, 20, this.resolveIncludeDelisted())
+      .searchStock(query, 20, this.resolveIncludeDelisted(), this.selectedWarehouse()?.sourceWarehouseNo)
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {

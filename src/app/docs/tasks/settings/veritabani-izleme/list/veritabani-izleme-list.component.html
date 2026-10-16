@@ -15,14 +15,22 @@
       <div class="metric-strip monitor-metrics">
         <article
           class="health-metric"
-          [ngClass]="overviewStatusClass(monitoringOverview()?.overallStatus || snapshot()?.overallStatus)"
+          [ngClass]="
+            overviewStatusClass(monitoringOverview()?.overallStatus || snapshot()?.overallStatus)
+          "
         >
           <span>Genel Durum</span>
-          <strong>{{ monitoringOverview()?.overallStatusName || statusLabel(snapshot()?.overallStatus) }}</strong>
+          <strong>{{
+            monitoringOverview()?.overallStatusName || statusLabel(snapshot()?.overallStatus)
+          }}</strong>
         </article>
         <article>
           <span>Aktif Istek</span>
-          <strong>{{ monitoringOverview()?.database?.activeRequestCount ?? snapshot()?.activeRequestCount ?? 0 }}</strong>
+          <strong>{{
+            monitoringOverview()?.database?.activeRequestCount ??
+              snapshot()?.activeRequestCount ??
+              0
+          }}</strong>
         </article>
         <article [class.metric-critical]="(snapshot()?.rootBlockerCount ?? 0) > 0">
           <span>Root Blocker</span>
@@ -30,7 +38,11 @@
         </article>
         <article [class.metric-warning]="(snapshot()?.openTransactionCount ?? 0) > 0">
           <span>Acik Transaction</span>
-          <strong>{{ monitoringOverview()?.database?.openTransactionCount ?? snapshot()?.openTransactionCount ?? 0 }}</strong>
+          <strong>{{
+            monitoringOverview()?.database?.openTransactionCount ??
+              snapshot()?.openTransactionCount ??
+              0
+          }}</strong>
         </article>
       </div>
     </header>
@@ -134,7 +146,13 @@
           [disabled]="isCurrentHistoryLoading()"
         >
           <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-          {{ isCurrentHistoryLoading() ? 'Yenileniyor' : (tab() === 'workers' ? 'Workerlari Yenile' : 'Gecmisi Yenile') }}
+          {{
+            isCurrentHistoryLoading()
+              ? 'Yenileniyor'
+              : tab() === 'workers'
+                ? 'Workerlari Yenile'
+                : 'Gecmisi Yenile'
+          }}
         </button>
       </ng-template>
     </nav>
@@ -177,7 +195,10 @@
             <span class="table-meta">{{ refreshSeconds() }} saniyede bir yenilenir</span>
           </div>
 
-          <div class="table-wrap active-request-table" *ngIf="activeRequests().length > 0; else noRequests">
+          <div
+            class="table-wrap active-request-table"
+            *ngIf="activeRequests().length > 0; else noRequests"
+          >
             <table class="data-table">
               <thead>
                 <tr>
@@ -196,7 +217,9 @@
                   [class.is-selected]="selectedSession()?.sessionId === request.sessionId"
                   (click)="selectRequest(request)"
                 >
-                  <td><strong>{{ request.sessionId }}</strong></td>
+                  <td>
+                    <strong>{{ request.sessionId }}</strong>
+                  </td>
                   <td>
                     <span
                       class="status-badge"
@@ -258,12 +281,30 @@
             </div>
 
             <dl class="detail-grid session-detail-grid">
-              <div><dt>Kaynak</dt><dd>{{ selected.source === 'request' ? 'Aktif istek' : 'Acik transaction' }}</dd></div>
-              <div><dt>Login</dt><dd>{{ selected.loginName || '-' }}</dd></div>
-              <div><dt>Program</dt><dd [title]="selected.programName || ''">{{ selected.programName || '-' }}</dd></div>
-              <div><dt>Host / PID</dt><dd>{{ selected.hostName || '-' }} / {{ selected.hostProcessId ?? '-' }}</dd></div>
-              <div><dt>Login Zamani</dt><dd>{{ formatDate(selected.loginTime) }}</dd></div>
-              <div><dt>Veritabani</dt><dd>{{ selected.databaseName || '-' }}</dd></div>
+              <div>
+                <dt>Kaynak</dt>
+                <dd>{{ selected.source === 'request' ? 'Aktif istek' : 'Acik transaction' }}</dd>
+              </div>
+              <div>
+                <dt>Login</dt>
+                <dd>{{ selected.loginName || '-' }}</dd>
+              </div>
+              <div>
+                <dt>Program</dt>
+                <dd [title]="selected.programName || ''">{{ selected.programName || '-' }}</dd>
+              </div>
+              <div>
+                <dt>Host / PID</dt>
+                <dd>{{ selected.hostName || '-' }} / {{ selected.hostProcessId ?? '-' }}</dd>
+              </div>
+              <div>
+                <dt>Login Zamani</dt>
+                <dd>{{ formatDate(selected.loginTime) }}</dd>
+              </div>
+              <div>
+                <dt>Veritabani</dt>
+                <dd>{{ selected.databaseName || '-' }}</dd>
+              </div>
             </dl>
 
             <div class="sql-preview">
@@ -292,7 +333,9 @@
                 ></textarea>
                 <small
                   class="validation-message"
-                  *ngIf="terminateForm.controls.reason.touched && terminateForm.controls.reason.invalid"
+                  *ngIf="
+                    terminateForm.controls.reason.touched && terminateForm.controls.reason.invalid
+                  "
                 >
                   En az 10, en fazla 500 karakter girin.
                 </small>
@@ -301,7 +344,11 @@
                 type="submit"
                 class="task-action task-action-danger"
                 [disabled]="!canTerminateSelected() || isTerminating()"
-                [title]="selected.canTerminate ? 'Oturumu sonlandir' : 'Backend bu oturumu sonlandirilabilir olarak isaretlemedi'"
+                [title]="
+                  selected.canTerminate
+                    ? 'Oturumu sonlandir'
+                    : 'Backend bu oturumu sonlandirilabilir olarak isaretlemedi'
+                "
               >
                 <i class="fa-solid fa-stop" aria-hidden="true"></i>
                 {{ isTerminating() ? 'Sonlandiriliyor' : 'Oturumu Sonlandir' }}
@@ -356,24 +403,42 @@
               {{ blockingEdges().length }} baglanti
             </span>
           </div>
-          <div class="table-wrap compact-table-wrap" *ngIf="blockingEdges().length > 0; else noBlocking">
+          <div
+            class="table-wrap compact-table-wrap"
+            *ngIf="blockingEdges().length > 0; else noBlocking"
+          >
             <table class="data-table compact-table">
-              <thead><tr><th>Root</th><th>Bloklayan</th><th>Bloklanan</th><th>Derinlik</th><th>Bekleme</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>Root</th>
+                  <th>Bloklayan</th>
+                  <th>Bloklanan</th>
+                  <th>Derinlik</th>
+                  <th>Bekleme</th>
+                </tr>
+              </thead>
               <tbody>
                 <tr
                   *ngFor="let edge of blockingEdges(); trackBy: trackByBlockingEdge"
                   (click)="selectSessionById(edge.rootSessionId)"
                 >
-                  <td><strong>{{ edge.rootSessionId }}</strong></td>
+                  <td>
+                    <strong>{{ edge.rootSessionId }}</strong>
+                  </td>
                   <td>{{ edge.blockingSessionId }}</td>
                   <td>{{ edge.blockedSessionId }}</td>
                   <td>{{ edge.depth }}</td>
-                  <td>{{ edge.waitType || '-' }} <span class="table-meta">{{ formatDuration(edge.waitMilliseconds) }}</span></td>
+                  <td>
+                    {{ edge.waitType || '-' }}
+                    <span class="table-meta">{{ formatDuration(edge.waitMilliseconds) }}</span>
+                  </td>
                 </tr>
               </tbody>
             </table>
           </div>
-          <ng-template #noBlocking><p class="panel-empty">Aktif kilit zinciri bulunmuyor.</p></ng-template>
+          <ng-template #noBlocking
+            ><p class="panel-empty">Aktif kilit zinciri bulunmuyor.</p></ng-template
+          >
         </section>
 
         <section class="panel">
@@ -386,16 +451,28 @@
               {{ openTransactions().length }} acik
             </span>
           </div>
-          <div class="table-wrap compact-table-wrap" *ngIf="openTransactions().length > 0; else noTransactions">
+          <div
+            class="table-wrap compact-table-wrap"
+            *ngIf="openTransactions().length > 0; else noTransactions"
+          >
             <table class="data-table compact-table">
-              <thead><tr><th>SPID</th><th>Baslangic</th><th>Sure</th><th>Program</th></tr></thead>
+              <thead>
+                <tr>
+                  <th>SPID</th>
+                  <th>Baslangic</th>
+                  <th>Sure</th>
+                  <th>Program</th>
+                </tr>
+              </thead>
               <tbody>
                 <tr
                   *ngFor="let transaction of openTransactions(); trackBy: trackByTransaction"
                   [class.is-selected]="selectedSession()?.sessionId === transaction.sessionId"
                   (click)="selectOpenTransaction(transaction)"
                 >
-                  <td><strong>{{ transaction.sessionId }}</strong></td>
+                  <td>
+                    <strong>{{ transaction.sessionId }}</strong>
+                  </td>
                   <td>{{ formatDate(transaction.transactionBeginTime) }}</td>
                   <td>{{ formatDuration(transaction.ageMilliseconds) }}</td>
                   <td>{{ transaction.programName || '-' }}</td>
@@ -403,14 +480,20 @@
               </tbody>
             </table>
           </div>
-          <ng-template #noTransactions><p class="panel-empty">Esigi asan acik transaction bulunmuyor.</p></ng-template>
+          <ng-template #noTransactions
+            ><p class="panel-empty">Esigi asan acik transaction bulunmuyor.</p></ng-template
+          >
         </section>
       </section>
     </ng-container>
 
     <section class="worker-monitor" *ngIf="tab() === 'workers'">
       <div class="worker-summary" *ngIf="workerSnapshot() as currentWorkers">
-        <article [ngClass]="'worker-overall-' + (currentWorkers.overallStatus || 'unknown').toLocaleLowerCase()">
+        <article
+          [ngClass]="
+            'worker-overall-' + (currentWorkers.overallStatus || 'unknown').toLocaleLowerCase()
+          "
+        >
           <span>Genel Durum</span>
           <strong>{{ statusLabel(currentWorkers.overallStatus) }}</strong>
         </article>
@@ -425,6 +508,10 @@
         <article [class.worker-summary-critical]="unhealthyWorkerCount() > 0">
           <span>Kritik Surec</span>
           <strong>{{ unhealthyWorkerCount() }}</strong>
+        </article>
+        <article [class.worker-summary-critical]="unresolvedWorkerFailureCount() > 0">
+          <span>Acik Is Hatasi</span>
+          <strong>{{ unresolvedWorkerFailureCount() }}</strong>
         </article>
       </div>
 
@@ -443,7 +530,7 @@
               <tr>
                 <th>Surec</th>
                 <th>Durum</th>
-                <th>Aktivite</th>
+                <th>Aktivite / Aktif Is</th>
                 <th>Heartbeat</th>
                 <th>Kuyruk / Calisan</th>
                 <th>En Eski Is</th>
@@ -451,11 +538,16 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let worker of workers(); trackBy: trackByWorker" [class.worker-needs-attention]="worker.requiresAttention">
+              <tr
+                *ngFor="let worker of workers(); trackBy: trackByWorker"
+                [class.worker-needs-attention]="worker.requiresAttention"
+              >
                 <td>
                   <strong>{{ worker.name || worker.code || 'Worker' }}</strong>
                   <span class="table-meta">{{ worker.code || '-' }}</span>
-                  <span class="table-meta">{{ worker.isCritical ? 'Kritik surec' : 'Destek sureci' }}</span>
+                  <span class="table-meta">{{
+                    worker.isCritical ? 'Kritik surec' : 'Destek sureci'
+                  }}</span>
                 </td>
                 <td>
                   <span class="status-badge worker-status" [ngClass]="workerStatusClass(worker)">
@@ -463,11 +555,25 @@
                   </span>
                   <span class="table-meta" *ngIf="!worker.isEnabled">Konfigurasyonla kapali</span>
                 </td>
-                <td class="wrap-cell">{{ worker.activity || '-' }}</td>
+                <td class="wrap-cell">
+                  <span>{{ worker.activity || '-' }}</span>
+                  <div class="worker-job" *ngIf="worker.currentJob as job">
+                    <strong>{{ job.taskName || job.taskCode || 'Calisan is' }}</strong>
+                    <span>
+                      {{ job.warehouseNo ? 'Depo ' + job.warehouseNo : 'Genel' }}
+                      · {{ statusLabel(job.status) }}
+                    </span>
+                    <span>Baslangic: {{ formatDate(job.startedAtUtc || job.createdAtUtc) }}</span>
+                  </div>
+                </td>
                 <td>
                   {{ formatDate(worker.lastHeartbeatAtUtc) }}
-                  <span class="table-meta" *ngIf="worker.heartbeatAgeSeconds != null">{{ formatSeconds(worker.heartbeatAgeSeconds) }} once</span>
-                  <span class="table-meta">Esik: {{ formatSeconds(worker.staleAfterSeconds) }}</span>
+                  <span class="table-meta" *ngIf="worker.heartbeatAgeSeconds != null"
+                    >{{ formatSeconds(worker.heartbeatAgeSeconds) }} once</span
+                  >
+                  <span class="table-meta"
+                    >Esik: {{ formatSeconds(worker.staleAfterSeconds) }}</span
+                  >
                 </td>
                 <td>
                   <strong>{{ worker.queuedCount }} / {{ worker.runningCount }}</strong>
@@ -475,15 +581,44 @@
                 </td>
                 <td>
                   {{ formatDate(worker.oldestQueuedAtUtc) }}
-                  <span class="table-meta">{{ worker.oldestQueuedAgeSeconds == null ? '-' : formatSeconds(worker.oldestQueuedAgeSeconds) }}</span>
+                  <span class="table-meta">{{
+                    worker.oldestQueuedAgeSeconds == null
+                      ? '-'
+                      : formatSeconds(worker.oldestQueuedAgeSeconds)
+                  }}</span>
                 </td>
                 <td class="wrap-cell">
-                  <span *ngIf="worker.lastError; else workerSuccess" class="worker-error">{{ worker.lastError }}</span>
+                  <div class="worker-job worker-job-last" *ngIf="worker.lastJob as job">
+                    <strong>{{ job.taskName || job.taskCode || 'Son is' }}</strong>
+                    <span>
+                      {{ statusLabel(job.status) }}
+                      · {{ job.affectedRecordCount }} kayit
+                      <ng-container *ngIf="job.durationSeconds != null">
+                        · {{ formatSeconds(job.durationSeconds) }}</ng-container
+                      >
+                    </span>
+                    <span>{{
+                      formatDate(job.completedAtUtc || job.startedAtUtc || job.createdAtUtc)
+                    }}</span>
+                  </div>
+                  <span *ngIf="worker.lastError; else workerSuccess" class="worker-error">{{
+                    worker.lastError
+                  }}</span>
                   <ng-template #workerSuccess>
-                    {{ formatDate(worker.lastSuccessAtUtc) }}
+                    <span *ngIf="!worker.lastJob">{{ formatDate(worker.lastSuccessAtUtc) }}</span>
                   </ng-template>
-                  <span class="table-meta" *ngIf="worker.lastFailureAtUtc">Son hata: {{ formatDate(worker.lastFailureAtUtc) }}</span>
-                  <span class="worker-recommendation" *ngIf="worker.recommendation">{{ worker.recommendation }}</span>
+                  <span class="table-meta" *ngIf="worker.lastFailureAtUtc"
+                    >Son hata: {{ formatDate(worker.lastFailureAtUtc) }}</span
+                  >
+                  <span class="worker-failure-count" *ngIf="worker.unresolvedFailureCount > 0">
+                    {{ worker.unresolvedFailureCount }} cozulmemis is hatasi
+                  </span>
+                  <span class="worker-error" *ngIf="worker.lastFailedJob?.errorMessage">
+                    {{ worker.lastFailedJob?.errorMessage }}
+                  </span>
+                  <span class="worker-recommendation" *ngIf="worker.recommendation">{{
+                    worker.recommendation
+                  }}</span>
                 </td>
               </tr>
             </tbody>
@@ -491,7 +626,9 @@
         </div>
         <ng-template #noWorkers>
           <p class="panel-empty">
-            {{ isWorkerLoading() ? 'Worker bilgileri okunuyor.' : 'Izlenen worker kaydi bulunmuyor.' }}
+            {{
+              isWorkerLoading() ? 'Worker bilgileri okunuyor.' : 'Izlenen worker kaydi bulunmuyor.'
+            }}
           </p>
         </ng-template>
       </section>
@@ -503,9 +640,15 @@
           <span class="panel-kicker">Guvenli Create Takibi</span>
           <h3>Guvenli Yazmalar</h3>
         </div>
-        <span class="table-meta">{{ isSafeWriteLoading() ? 'Yukleniyor' : safeWrites().length + ' kayit' }}</span>
+        <span class="table-meta">{{
+          isSafeWriteLoading() ? 'Yukleniyor' : safeWrites().length + ' kayit'
+        }}</span>
       </div>
-      <form class="filter-bar safe-write-filter" [formGroup]="safeWriteFilterForm" (ngSubmit)="applySafeWriteFilters()">
+      <form
+        class="filter-bar safe-write-filter"
+        [formGroup]="safeWriteFilterForm"
+        (ngSubmit)="applySafeWriteFilters()"
+      >
         <label class="field">
           <span>Durum</span>
           <select formControlName="status">
@@ -525,7 +668,11 @@
         </label>
         <label class="field safe-write-operation-field">
           <span>Operasyon Kodu</span>
-          <input type="text" formControlName="operationCode" placeholder="Orn. inventory-count.create" />
+          <input
+            type="text"
+            formControlName="operationCode"
+            placeholder="Orn. inventory-count.create"
+          />
         </label>
         <label class="field">
           <span>Depo No</span>
@@ -536,11 +683,20 @@
           <span>Tamamlananlari dahil et</span>
         </label>
         <div class="filter-actions safe-write-filter-actions">
-          <button type="submit" class="task-action task-action-primary" [disabled]="isSafeWriteLoading()">
+          <button
+            type="submit"
+            class="task-action task-action-primary"
+            [disabled]="isSafeWriteLoading()"
+          >
             <i class="fa-solid fa-filter" aria-hidden="true"></i>
             Filtrele
           </button>
-          <button type="button" class="task-action" [disabled]="isSafeWriteLoading()" (click)="resetSafeWriteFilters()">
+          <button
+            type="button"
+            class="task-action"
+            [disabled]="isSafeWriteLoading()"
+            (click)="resetSafeWriteFilters()"
+          >
             Temizle
           </button>
         </div>
@@ -548,7 +704,16 @@
       <div class="table-wrap history-table-wrap" *ngIf="safeWrites().length > 0; else noSafeWrites">
         <table class="data-table">
           <thead>
-            <tr><th>Durum</th><th>Islem</th><th>Depo</th><th>Takip Kimligi</th><th>Son Guncelleme Yasi</th><th>Karar</th><th>Hata</th><th>Son Guncelleme</th></tr>
+            <tr>
+              <th>Durum</th>
+              <th>Islem</th>
+              <th>Depo</th>
+              <th>Takip Kimligi</th>
+              <th>Son Guncelleme Yasi</th>
+              <th>Karar</th>
+              <th>Hata</th>
+              <th>Son Guncelleme</th>
+            </tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of safeWrites(); trackBy: trackBySafeWrite">
@@ -557,35 +722,68 @@
                   {{ safeWriteStatusLabel(item) }}
                 </span>
               </td>
-              <td>{{ item.operationCode || '-' }}<span class="table-meta">{{ item.requestedByUserId || '-' }}</span></td>
+              <td>
+                {{ item.operationCode || '-'
+                }}<span class="table-meta">{{ item.requestedByUserId || '-' }}</span>
+              </td>
               <td>{{ item.warehouseNo }}</td>
-              <td [title]="item.clientRequestId"><strong>{{ item.clientRequestId | slice:0:8 }}</strong></td>
+              <td [title]="item.clientRequestId">
+                <strong>{{ item.clientRequestId | slice: 0 : 8 }}</strong>
+              </td>
               <td>{{ formatDuration(item.ageSeconds * 1000) }}</td>
               <td>{{ safeWriteRetryLabel(item) }}</td>
-              <td class="wrap-cell">{{ item.errorCode || '-' }}<span class="table-meta">{{ item.errorMessage || '-' }}</span></td>
+              <td class="wrap-cell">
+                {{ item.errorCode || '-'
+                }}<span class="table-meta">{{ item.errorMessage || '-' }}</span>
+              </td>
               <td>{{ formatDate(item.updatedAtUtc || item.createdAtUtc) }}</td>
             </tr>
           </tbody>
         </table>
       </div>
       <ng-template #noSafeWrites>
-        <article class="state-card state-card-success empty-state"><h3>Kayit bulunamadi</h3><p>Secilen filtrelere uygun guvenli yazma kaydi yok.</p></article>
+        <article class="state-card state-card-success empty-state">
+          <h3>Kayit bulunamadi</h3>
+          <p>Secilen filtrelere uygun guvenli yazma kaydi yok.</p>
+        </article>
       </ng-template>
     </section>
 
     <section class="panel history-panel" *ngIf="tab() === 'incidents' && canViewHistory()">
       <div class="panel-head">
-        <div class="panel-head-text"><span class="panel-kicker">Olay Gecmisi</span><h3>Izleme Olaylari</h3></div>
+        <div class="panel-head-text">
+          <span class="panel-kicker">Olay Gecmisi</span>
+          <h3>Izleme Olaylari</h3>
+        </div>
         <span class="table-meta">{{ incidents().length }} kayit</span>
       </div>
       <div class="table-wrap history-table-wrap" *ngIf="incidents().length > 0; else noIncidents">
         <table class="data-table">
-          <thead><tr><th>Son Gorulme</th><th>Tip</th><th>Seviye</th><th>SPID</th><th>Bloklayan</th><th>Sure</th><th>Tekrar</th><th>Durum</th><th>Oneri</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Son Gorulme</th>
+              <th>Tip</th>
+              <th>Seviye</th>
+              <th>SPID</th>
+              <th>Bloklayan</th>
+              <th>Sure</th>
+              <th>Tekrar</th>
+              <th>Durum</th>
+              <th>Oneri</th>
+            </tr>
+          </thead>
           <tbody>
             <tr *ngFor="let incident of incidents(); trackBy: trackByIncident">
               <td>{{ formatDate(incident.lastSeenAtUtc) }}</td>
               <td>{{ incident.type || '-' }}</td>
-              <td><span class="status-badge" [class.status-danger]="incident.severity === 'critical'" [class.status-warn]="incident.severity === 'warning'">{{ statusLabel(incident.severity) }}</span></td>
+              <td>
+                <span
+                  class="status-badge"
+                  [class.status-danger]="incident.severity === 'critical'"
+                  [class.status-warn]="incident.severity === 'warning'"
+                  >{{ statusLabel(incident.severity) }}</span
+                >
+              </td>
               <td>{{ incident.sessionId }}</td>
               <td>{{ incident.blockingSessionId ?? '-' }}</td>
               <td>{{ formatDuration(incident.elapsedMilliseconds) }}</td>
@@ -596,23 +794,56 @@
           </tbody>
         </table>
       </div>
-      <ng-template #noIncidents><article class="state-card state-card-info empty-state"><h3>Olay bulunamadi</h3><p>Kayitli kilit, uzun sorgu veya acik transaction olayi yok.</p></article></ng-template>
+      <ng-template #noIncidents
+        ><article class="state-card state-card-info empty-state">
+          <h3>Olay bulunamadi</h3>
+          <p>Kayitli kilit, uzun sorgu veya acik transaction olayi yok.</p>
+        </article></ng-template
+      >
     </section>
 
     <section class="panel history-panel" *ngIf="tab() === 'audits' && canViewHistory()">
       <div class="panel-head">
-        <div class="panel-head-text"><span class="panel-kicker">Denetim Gecmisi</span><h3>Oturum Sonlandirmalari</h3></div>
+        <div class="panel-head-text">
+          <span class="panel-kicker">Denetim Gecmisi</span>
+          <h3>Oturum Sonlandirmalari</h3>
+        </div>
         <span class="table-meta">{{ terminations().length }} kayit</span>
       </div>
-      <div class="table-wrap history-table-wrap" *ngIf="terminations().length > 0; else noTerminations">
+      <div
+        class="table-wrap history-table-wrap"
+        *ngIf="terminations().length > 0; else noTerminations"
+      >
         <table class="data-table">
-          <thead><tr><th>Istek Zamani</th><th>SPID</th><th>Sonuc</th><th>Login / Program</th><th>Gerekce</th><th>Tamamlanma</th><th>Hata</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Istek Zamani</th>
+              <th>SPID</th>
+              <th>Sonuc</th>
+              <th>Login / Program</th>
+              <th>Gerekce</th>
+              <th>Tamamlanma</th>
+              <th>Hata</th>
+            </tr>
+          </thead>
           <tbody>
             <tr *ngFor="let termination of terminations(); trackBy: trackByTermination">
               <td>{{ formatDate(termination.requestedAtUtc) }}</td>
-              <td><strong>{{ termination.sessionId }}</strong></td>
-              <td><span class="status-badge" [class.status-success]="termination.isSucceeded" [class.status-danger]="!termination.isSucceeded">{{ termination.isSucceeded ? 'Basarili' : 'Basarisiz' }}</span></td>
-              <td>{{ termination.loginName || '-' }}<span class="table-meta">{{ termination.programName || '-' }}</span></td>
+              <td>
+                <strong>{{ termination.sessionId }}</strong>
+              </td>
+              <td>
+                <span
+                  class="status-badge"
+                  [class.status-success]="termination.isSucceeded"
+                  [class.status-danger]="!termination.isSucceeded"
+                  >{{ termination.isSucceeded ? 'Basarili' : 'Basarisiz' }}</span
+                >
+              </td>
+              <td>
+                {{ termination.loginName || '-'
+                }}<span class="table-meta">{{ termination.programName || '-' }}</span>
+              </td>
               <td class="wrap-cell">{{ termination.reason || '-' }}</td>
               <td>{{ formatDate(termination.completedAtUtc) }}</td>
               <td class="wrap-cell">{{ termination.error || '-' }}</td>
@@ -620,7 +851,12 @@
           </tbody>
         </table>
       </div>
-      <ng-template #noTerminations><article class="state-card state-card-info empty-state"><h3>Sonlandirma kaydi yok</h3><p>Henuz kaydedilmis bir oturum sonlandirma denemesi bulunmuyor.</p></article></ng-template>
+      <ng-template #noTerminations
+        ><article class="state-card state-card-info empty-state">
+          <h3>Sonlandirma kaydi yok</h3>
+          <p>Henuz kaydedilmis bir oturum sonlandirma denemesi bulunmuyor.</p>
+        </article></ng-template
+      >
     </section>
   </article>
 </section>

@@ -9,6 +9,7 @@
 
 export interface ProductSearchHttpRequest {
   warehouseNo?: number;
+  sourceWarehouseNo?: number;
   barcode?: string;
   stockCode?: string;
   stockName?: string;

@@ -1,16 +1,11 @@
 import { HttpErrorResponse } from '@angular/common/http';
 
-import {
-  SafeCreateRetryDraft,
-  classifySafeCreateFailure
-} from './safe-create-retry.helpers';
-import {
-  SafeCreatePendingStore,
-  type SafeCreatePendingScope
-} from './safe-create-pending.store';
+import { SafeCreateRetryDraft, classifySafeCreateFailure } from './safe-create-retry.helpers';
+import { SafeCreatePendingStore, type SafeCreatePendingScope } from './safe-create-pending.store';
 
 interface TestCreateRequest {
   clientRequestId?: string;
+  forceCreateNew?: boolean;
   warehouseNo: number;
   lines: Array<{ stockCode: string; quantity: number }>;
 }
@@ -20,7 +15,7 @@ describe('SafeCreateRetryDraft', () => {
     userId: 'user-120',
     clientType: 'web',
     warehouseNo: 120,
-    operationCode: 'inventory-count.create'
+    operationCode: 'inventory-count.create',
   };
 
   beforeEach(() => clearSafeCreateStorage());
@@ -30,7 +25,7 @@ describe('SafeCreateRetryDraft', () => {
     const draft = new SafeCreateRetryDraft<TestCreateRequest>();
     const payload = {
       warehouseNo: 120,
-      lines: [{ stockCode: '016445', quantity: 1 }]
+      lines: [{ stockCode: '016445', quantity: 1 }],
     };
 
     const first = draft.withClientRequestId(payload);
@@ -44,11 +39,11 @@ describe('SafeCreateRetryDraft', () => {
     const draft = new SafeCreateRetryDraft<TestCreateRequest>();
     const first = draft.withClientRequestId({
       warehouseNo: 120,
-      lines: [{ stockCode: '016445', quantity: 1 }]
+      lines: [{ stockCode: '016445', quantity: 1 }],
     });
     const changed = draft.withClientRequestId({
       warehouseNo: 120,
-      lines: [{ stockCode: '016445', quantity: 2 }]
+      lines: [{ stockCode: '016445', quantity: 2 }],
     });
 
     expect(changed.clientRequestId).not.toBe(first.clientRequestId);
@@ -58,7 +53,7 @@ describe('SafeCreateRetryDraft', () => {
     const draft = new SafeCreateRetryDraft<TestCreateRequest>();
     const payload = {
       warehouseNo: 120,
-      lines: [{ stockCode: '016445', quantity: 1 }]
+      lines: [{ stockCode: '016445', quantity: 1 }],
     };
     const completed = draft.withClientRequestId(payload);
 
@@ -68,36 +63,66 @@ describe('SafeCreateRetryDraft', () => {
     expect(nextDocument.clientRequestId).not.toBe(completed.clientRequestId);
   });
 
+  it('keeps the unresolved request and marks an explicit new attempt', () => {
+    const store = new SafeCreatePendingStore();
+    const draft = new SafeCreateRetryDraft<TestCreateRequest>({
+      store,
+      resolveScope: () => persistentScope,
+    });
+    const payload = {
+      warehouseNo: 120,
+      lines: [{ stockCode: '016445', quantity: 1 }],
+    };
+    const unresolved = draft.withClientRequestId(payload);
+
+    draft.startNewAttempt();
+    const newAttempt = draft.withClientRequestId(payload);
+
+    expect(newAttempt.clientRequestId).not.toBe(unresolved.clientRequestId);
+    expect(newAttempt.forceCreateNew).toBeTrue();
+    expect(
+      store.read<TestCreateRequest>(persistentScope, unresolved.clientRequestId ?? ''),
+    ).not.toBeNull();
+    expect(
+      store.read<TestCreateRequest>(persistentScope, newAttempt.clientRequestId ?? '')?.request,
+    ).toEqual(newAttempt);
+  });
+
   it('persists the exact request before it can be submitted', () => {
     const store = new SafeCreatePendingStore();
     const draft = new SafeCreateRetryDraft<TestCreateRequest>({
       store,
-      resolveScope: () => persistentScope
+      resolveScope: () => persistentScope,
     });
 
     const request = draft.withClientRequestId({
       warehouseNo: 120,
-      lines: [{ stockCode: '016445', quantity: 6 }]
+      lines: [{ stockCode: '016445', quantity: 6 }],
     });
 
-    expect(store.read<TestCreateRequest>(persistentScope, request.clientRequestId ?? '')?.request).toEqual(request);
+    expect(
+      store.read<TestCreateRequest>(persistentScope, request.clientRequestId ?? '')?.request,
+    ).toEqual(request);
   });
 
   it('keeps a retryable failure pending and removes it after success', () => {
     const store = new SafeCreatePendingStore();
     const draft = new SafeCreateRetryDraft<TestCreateRequest>({
       store,
-      resolveScope: () => persistentScope
+      resolveScope: () => persistentScope,
     });
     const request = draft.withClientRequestId({ warehouseNo: 120, lines: [] });
 
-    draft.recordFailure({
-      message: 'Baglanti kesildi.',
-      errorCode: null,
-      retryable: true,
-      blocksSubmit: false,
-      allowsNewAttempt: false
-    }, 0);
+    draft.recordFailure(
+      {
+        message: 'Baglanti kesildi.',
+        errorCode: null,
+        retryable: true,
+        blocksSubmit: false,
+        allowsNewAttempt: false,
+      },
+      0,
+    );
     expect(store.read(persistentScope, request.clientRequestId ?? '')?.state).toBe('pending');
 
     draft.reset();
@@ -108,25 +133,27 @@ describe('SafeCreateRetryDraft', () => {
     const store = new SafeCreatePendingStore();
     const firstDraft = new SafeCreateRetryDraft<TestCreateRequest>({
       store,
-      resolveScope: () => persistentScope
+      resolveScope: () => persistentScope,
     });
     const secondDraft = new SafeCreateRetryDraft<TestCreateRequest>({
       store,
-      resolveScope: () => persistentScope
+      resolveScope: () => persistentScope,
     });
     const original = firstDraft.withClientRequestId({
       warehouseNo: 120,
-      lines: [{ stockCode: '016445', quantity: 6 }]
+      lines: [{ stockCode: '016445', quantity: 6 }],
     });
 
     const second = secondDraft.withClientRequestId({
       warehouseNo: 120,
-      lines: [{ stockCode: '016445', quantity: 12 }]
+      lines: [{ stockCode: '016445', quantity: 12 }],
     });
-    expect(store.read<TestCreateRequest>(persistentScope, original.clientRequestId ?? '')?.request)
-      .toEqual(original);
-    expect(store.read<TestCreateRequest>(persistentScope, second.clientRequestId ?? '')?.request)
-      .toEqual(second);
+    expect(
+      store.read<TestCreateRequest>(persistentScope, original.clientRequestId ?? '')?.request,
+    ).toEqual(original);
+    expect(
+      store.read<TestCreateRequest>(persistentScope, second.clientRequestId ?? '')?.request,
+    ).toEqual(second);
   });
 });
 
@@ -134,7 +161,7 @@ describe('classifySafeCreateFailure', () => {
   it('allows a safe retry for an unconfirmed Mikro write', () => {
     const failure = classifySafeCreateFailure(
       createConflict('MIKRO_WRITE_OUTCOME_UNCONFIRMED', true),
-      'Kayit basarisiz.'
+      'Kayit basarisiz.',
     );
 
     expect(failure.retryable).toBeTrue();
@@ -145,7 +172,7 @@ describe('classifySafeCreateFailure', () => {
   it('allows the queued warehouse shipment to retry with the same request identity', () => {
     const failure = classifySafeCreateFailure(
       createConflict('MIKRO_WRITE_QUEUE_BUSY', true),
-      'Sevk kaydi basarisiz.'
+      'Sevk kaydi basarisiz.',
     );
 
     expect(failure.errorCode).toBe('MIKRO_WRITE_QUEUE_BUSY');
@@ -159,7 +186,7 @@ describe('classifySafeCreateFailure', () => {
   it('blocks retry when the Mikro document content differs', () => {
     const failure = classifySafeCreateFailure(
       createConflict('MIKRO_DOCUMENT_CONTENT_MISMATCH', false),
-      'Kayit basarisiz.'
+      'Kayit basarisiz.',
     );
 
     expect(failure.blocksSubmit).toBeTrue();
@@ -167,20 +194,21 @@ describe('classifySafeCreateFailure', () => {
     expect(failure.message).toContain('Yetkili incelemesi');
   });
 
-  it('requires an explicit new attempt for a changed payload', () => {
+  it('blocks a changed payload until the original request is reconciled', () => {
     const failure = classifySafeCreateFailure(
       createConflict('CLIENT_REQUEST_PAYLOAD_MISMATCH', false),
-      'Kayit basarisiz.'
+      'Kayit basarisiz.',
     );
 
     expect(failure.blocksSubmit).toBeTrue();
-    expect(failure.allowsNewAttempt).toBeTrue();
+    expect(failure.allowsNewAttempt).toBeFalse();
+    expect(failure.message).toContain('uzlastirilmadan yeni islem acilamaz');
   });
 
   it('blocks an unclassified conflict', () => {
     const failure = classifySafeCreateFailure(
       new HttpErrorResponse({ status: 409, error: { detail: 'Genel cakisma.' } }),
-      'Kayit basarisiz.'
+      'Kayit basarisiz.',
     );
 
     expect(failure.blocksSubmit).toBeTrue();
@@ -193,10 +221,10 @@ describe('classifySafeCreateFailure', () => {
         status: 409,
         error: {
           detail: 'Genel cakisma.',
-          correlationId: 'request-123'
-        }
+          correlationId: 'request-123',
+        },
       }),
-      'Kayit basarisiz.'
+      'Kayit basarisiz.',
     );
 
     expect(failure.message).toContain('Takip No: request-123');
@@ -205,7 +233,7 @@ describe('classifySafeCreateFailure', () => {
   it('preserves the request identity after a network failure', () => {
     const failure = classifySafeCreateFailure(
       new HttpErrorResponse({ status: 0, error: new ProgressEvent('error') }),
-      'Baglanti kurulamadi.'
+      'Baglanti kurulamadi.',
     );
 
     expect(failure.retryable).toBeTrue();
@@ -219,8 +247,8 @@ function createConflict(errorCode: string, retryable: boolean): HttpErrorRespons
     error: {
       detail: 'Create istegi tamamlanamadi.',
       errorCode,
-      retryable
-    }
+      retryable,
+    },
   });
 }
 

@@ -58,11 +58,15 @@
           class="result-button"
           *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier"
           [disabled]="supplier.isLocked || supplier.isClosed"
-          [title]="supplier.isLocked || supplier.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
+          [title]="
+            supplier.isLocked || supplier.isClosed ? 'Kilitli veya kapali cari secilemez.' : null
+          "
           (click)="selectSupplier(supplier)"
         >
           <strong>{{ getSupplierLabel(supplier) }}</strong>
-          <span class="table-meta">{{ supplier.taxNumber || '-' }} {{ supplier.representativeName || '' }}</span>
+          <span class="table-meta"
+            >{{ supplier.taxNumber || '-' }} {{ supplier.representativeName || '' }}</span
+          >
           <span class="customer-result-status" *ngIf="supplier.isLocked || supplier.isClosed">
             {{ supplier.isLocked ? 'Kilitli' : 'Kapali' }}
           </span>
@@ -70,7 +74,12 @@
       </div>
     </section>
 
-    <form class="query-card compact-panel" [formGroup]="filterForm" (ngSubmit)="loadSuggestions()" novalidate>
+    <form
+      class="query-card compact-panel"
+      [formGroup]="filterForm"
+      (ngSubmit)="loadSuggestions()"
+      novalidate
+    >
       <div class="query-grid">
         <label class="field">
           <span>Geri Gun</span>
@@ -90,9 +99,7 @@
         </button>
       </div>
 
-      <p class="deduction-note">
-        Acik firma siparisleri ihtiyac hesabinda dikkate alinir.
-      </p>
+      <p class="deduction-note">Acik firma siparisleri ihtiyac hesabinda dikkate alinir.</p>
     </form>
 
     <section class="selection-toolbar" *ngIf="lines().length">
@@ -158,37 +165,78 @@
                   <input
                     type="checkbox"
                     [checked]="line.selected"
-                    (change)="setLineSelected(line.item.stockCode, line.item.supplierCode, $any($event.target).checked)"
+                    (change)="
+                      setLineSelected(
+                        line.item.stockCode,
+                        line.item.supplierCode,
+                        $any($event.target).checked
+                      )
+                    "
                   />
                 </td>
                 <td class="stacked-cell">
                   <strong>{{ line.item.stockCode }}</strong>
                   <div class="table-meta">{{ line.item.stockName }}</div>
-                  <div class="table-meta">{{ line.item.barcode || '-' }} / {{ line.item.modelCode || '-' }}</div>
-                  <div class="table-meta">{{ line.item.supplierCode }} {{ line.item.supplierName || '' }}</div>
-                </td>
-                <td>
-                  <div class="metric-lines">
-                    <span>Mevcut <strong>{{ formatNumber(line.item.targetOnHand) }}</strong></span>
-                    <span>Satis <strong>{{ formatNumber(line.item.salesQuantity) }}</strong></span>
-                    <span>Acik <strong>{{ formatNumber(line.item.openCompanyOrderQuantity) }}</strong></span>
-                    <span>Ihtiyac <strong [class.warning-text]="line.item.needQuantity > 0">{{ formatNumber(line.item.needQuantity) }}</strong></span>
+                  <div class="table-meta">
+                    {{ line.item.barcode || '-' }} / {{ line.item.modelCode || '-' }}
+                  </div>
+                  <div class="table-meta">
+                    {{ line.item.supplierCode }} {{ line.item.supplierName || '' }}
                   </div>
                 </td>
                 <td>
                   <div class="metric-lines">
-                    <span>Koli <strong>{{ formatNumber(getUnitMultiplier(line.item)) }}</strong></span>
-                    <span>Asgari <strong>{{ formatNumber(line.item.minimumPurchaseQuantity) }}</strong></span>
-                    <span>Alis <strong>{{ formatCurrency(line.item.purchasePrice) }}</strong></span>
-                    <span>Teslim <strong>{{ line.item.deliveryDay ?? '-' }}</strong></span>
+                    <span
+                      >Mevcut <strong>{{ formatNumber(line.item.targetOnHand) }}</strong></span
+                    >
+                    <span
+                      >Satis <strong>{{ formatNumber(line.item.salesQuantity) }}</strong></span
+                    >
+                    <span
+                      >Acik
+                      <strong>{{ formatNumber(line.item.openCompanyOrderQuantity) }}</strong></span
+                    >
+                    <span
+                      >Ihtiyac
+                      <strong [class.warning-text]="line.item.needQuantity > 0">{{
+                        formatNumber(line.item.needQuantity)
+                      }}</strong></span
+                    >
                   </div>
                 </td>
                 <td>
                   <div class="metric-lines">
-                    <span>Stok <strong>{{ formatNumber(line.item.recommendedStockQuantity) }}</strong></span>
-                    <span>Siparis <strong>{{ formatNumber(line.item.suggestedOrderQuantity) }}</strong></span>
-                    <span>Min <strong>{{ formatNumber(line.item.minDay) }}</strong></span>
-                    <span>Gun <strong>{{ formatNumber(line.item.recommendedDay) }}</strong></span>
+                    <span
+                      >Koli <strong>{{ formatNumber(getUnitMultiplier(line.item)) }}</strong></span
+                    >
+                    <span
+                      >Asgari
+                      <strong>{{ formatNumber(line.item.minimumPurchaseQuantity) }}</strong></span
+                    >
+                    <span
+                      >Alis <strong>{{ formatCurrency(line.item.purchasePrice) }}</strong></span
+                    >
+                    <span
+                      >Teslim <strong>{{ line.item.deliveryDay ?? '-' }}</strong></span
+                    >
+                  </div>
+                </td>
+                <td>
+                  <div class="metric-lines">
+                    <span
+                      >Stok
+                      <strong>{{ formatNumber(line.item.recommendedStockQuantity) }}</strong></span
+                    >
+                    <span
+                      >Siparis
+                      <strong>{{ formatNumber(line.item.suggestedOrderQuantity) }}</strong></span
+                    >
+                    <span
+                      >Min <strong>{{ formatNumber(line.item.minDay) }}</strong></span
+                    >
+                    <span
+                      >Gun <strong>{{ formatNumber(line.item.recommendedDay) }}</strong></span
+                    >
                   </div>
                 </td>
                 <td>
@@ -198,7 +246,13 @@
                     min="0"
                     step="0.01"
                     [value]="line.quantity"
-                    (input)="updateQuantity(line.item.stockCode, line.item.supplierCode, $any($event.target).value)"
+                    (input)="
+                      updateQuantity(
+                        line.item.stockCode,
+                        line.item.supplierCode,
+                        $any($event.target).value
+                      )
+                    "
                   />
                 </td>
               </tr>
@@ -301,10 +355,21 @@
           Vazgec
         </button>
         <button
+          *ngIf="safeCreateFailure()?.allowsNewAttempt"
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="startNewCreateAttempt()"
+          [disabled]="isConverting()"
+        >
+          Yeni Islem Olarak Kaydet
+        </button>
+        <button
           type="button"
           class="task-action task-action-primary"
           (click)="convertToOrder()"
-          [disabled]="isConverting() || selectedCount() === 0"
+          [disabled]="
+            isConverting() || selectedCount() === 0 || !!safeCreateFailure()?.blocksSubmit
+          "
         >
           {{ isConverting() ? 'Olusturuluyor...' : 'Siparis Olustur' }}
         </button>

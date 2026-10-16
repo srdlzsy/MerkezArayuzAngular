@@ -8,14 +8,25 @@ import type {
   ConvertSuggestedCompanyOrderHttpRequest,
   CreateIssuedCompanyOrderResponse,
   CustomerLookupItemDto,
-  SuggestedCompanyOrderListItemDto
+  SuggestedCompanyOrderListItemDto,
 } from '@interfaces';
 
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { SiparisIslemleriService } from '../../../../../core/api/module-services/siparis-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { getCurrentWarehouseNo } from '../../../core/admin-warehouse.helpers';
+import {
+  SafeCreateFailure,
+  SafeCreateRetryDraft,
+  classifySafeCreateFailure,
+} from '../../../core/safe-create-retry.helpers';
+import {
+  SafeCreatePendingStore,
+  buildSafeCreatePendingScope,
+} from '../../../core/safe-create-pending.store';
 
 interface SuggestedCompanyLineState {
   item: SuggestedCompanyOrderListItemDto;
@@ -34,54 +45,66 @@ interface PageFeedback {
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './onerilen-firma-siparisleri-list.component.html',
-  styleUrl: '../../_suggested-orders-page.scss'
+  styleUrl: '../../_suggested-orders-page.scss',
 })
 export class OnerilenFirmaSiparisleriListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['onerilen-firma-siparisleri'];
   private readonly aramaService = inject(AramaService);
   private readonly destroyRef = inject(DestroyRef);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
+  private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry =
+    new SafeCreateRetryDraft<ConvertSuggestedCompanyOrderHttpRequest>({
+      store: this.pendingStore,
+      resolveScope: (request) =>
+        buildSafeCreatePendingScope(
+          this.authService.currentUser(),
+          'siparis-islemleri.onerilen-firma-siparisleri.create',
+          request,
+        ),
+    });
   private requestId = 0;
   private supplierRequestId = 0;
 
   protected readonly filterForm = new FormGroup({
     supplierCode: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(50)]
+      validators: [Validators.required, Validators.maxLength(50)],
     }),
     lookbackDays: new FormControl<number>(43, {
       nonNullable: true,
-      validators: [Validators.min(1), Validators.max(365)]
+      validators: [Validators.min(1), Validators.max(365)],
     }),
     fallbackRecommendedDay: new FormControl<number>(7, {
       nonNullable: true,
-      validators: [Validators.min(1), Validators.max(60)]
+      validators: [Validators.min(1), Validators.max(60)],
     }),
     orderDate: new FormControl<string>(this.today, {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     deliveryDate: new FormControl<string>(this.today, {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     description1: new FormControl<string>('Onerilen siparisten olustu', {
       nonNullable: true,
-      validators: [Validators.maxLength(250)]
+      validators: [Validators.maxLength(250)],
     }),
     description2: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.maxLength(250)]
+      validators: [Validators.maxLength(250)],
     }),
     deliverer: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.maxLength(80)]
+      validators: [Validators.maxLength(80)],
     }),
     receiver: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.maxLength(80)]
-    })
+      validators: [Validators.maxLength(80)],
+    }),
   });
   protected readonly supplierQuery = new FormControl<string>('', { nonNullable: true });
 
@@ -89,6 +112,7 @@ export class OnerilenFirmaSiparisleriListComponent {
   protected readonly supplierResults = signal<CustomerLookupItemDto[]>([]);
   protected readonly feedback = signal<PageFeedback | null>(null);
   protected readonly convertFeedback = signal<PageFeedback | null>(null);
+  protected readonly safeCreateFailure = signal<SafeCreateFailure | null>(null);
   protected readonly supplierFeedback = signal<string>('');
   protected readonly isLoading = signal(false);
   protected readonly isSupplierLoading = signal(false);
@@ -99,19 +123,23 @@ export class OnerilenFirmaSiparisleriListComponent {
   protected readonly selectedLines = computed(() => this.lines().filter((line) => line.selected));
   protected readonly selectedCount = computed(() => this.selectedLines().length);
   protected readonly totalSuggested = computed(() =>
-    this.lines().reduce((total, line) => total + this.safeNumber(line.item.suggestedOrderQuantity), 0)
+    this.lines().reduce(
+      (total, line) => total + this.safeNumber(line.item.suggestedOrderQuantity),
+      0,
+    ),
   );
   protected readonly totalNeed = computed(() =>
-    this.lines().reduce((total, line) => total + this.safeNumber(line.item.needQuantity), 0)
+    this.lines().reduce((total, line) => total + this.safeNumber(line.item.needQuantity), 0),
   );
   protected readonly selectedQuantity = computed(() =>
-    this.selectedLines().reduce((total, line) => total + this.safeNumber(line.quantity), 0)
+    this.selectedLines().reduce((total, line) => total + this.safeNumber(line.quantity), 0),
   );
   protected readonly selectedAmount = computed(() =>
     this.selectedLines().reduce(
-      (total, line) => total + this.safeNumber(line.quantity) * this.safeNumber(line.item.purchasePrice),
-      0
-    )
+      (total, line) =>
+        total + this.safeNumber(line.quantity) * this.safeNumber(line.item.purchasePrice),
+      0,
+    ),
   );
   protected readonly selectedSupplierCodes = computed(() => {
     const codes = new Set<string>();
@@ -141,7 +169,8 @@ export class OnerilenFirmaSiparisleriListComponent {
     this.feedback.set({
       tone: 'info',
       title: 'Tedarikci secin',
-      message: 'Onerilen firma siparislerini listelemek icin once firma/tedarikci kodu secilmelidir.'
+      message:
+        'Onerilen firma siparislerini listelemek icin once firma/tedarikci kodu secilmelidir.',
     });
   }
 
@@ -167,7 +196,7 @@ export class OnerilenFirmaSiparisleriListComponent {
           if (requestId === this.supplierRequestId) {
             this.isSupplierLoading.set(false);
           }
-        })
+        }),
       )
       .subscribe({
         next: (results: CustomerLookupItemDto[]) => {
@@ -186,8 +215,10 @@ export class OnerilenFirmaSiparisleriListComponent {
             return;
           }
 
-          this.supplierFeedback.set(this.resolveErrorMessage(error, 'Tedarikci aramasi yapilamadi.'));
-        }
+          this.supplierFeedback.set(
+            this.resolveErrorMessage(error, 'Tedarikci aramasi yapilamadi.'),
+          );
+        },
       });
   }
 
@@ -207,7 +238,7 @@ export class OnerilenFirmaSiparisleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Tedarikci gerekli',
-        message: 'Firma siparisi onerileri firma bazli calisir; SupplierCode zorunludur.'
+        message: 'Firma siparisi onerileri firma bazli calisir; SupplierCode zorunludur.',
       });
       return;
     }
@@ -222,7 +253,7 @@ export class OnerilenFirmaSiparisleriListComponent {
       .listSuggestedCompanyOrders({
         supplierCode: formValue.supplierCode.trim(),
         lookbackDays: formValue.lookbackDays,
-        fallbackRecommendedDay: formValue.fallbackRecommendedDay
+        fallbackRecommendedDay: formValue.fallbackRecommendedDay,
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
@@ -230,7 +261,7 @@ export class OnerilenFirmaSiparisleriListComponent {
           if (requestId === this.requestId) {
             this.isLoading.set(false);
           }
-        })
+        }),
       )
       .subscribe({
         next: (items: SuggestedCompanyOrderListItemDto[]) => {
@@ -242,15 +273,15 @@ export class OnerilenFirmaSiparisleriListComponent {
             (items ?? []).map((item) => ({
               item,
               selected: this.safeNumber(item.suggestedOrderQuantity) > 0,
-              quantity: this.safeNumber(item.suggestedOrderQuantity)
-            }))
+              quantity: this.safeNumber(item.suggestedOrderQuantity),
+            })),
           );
 
           if (!items?.length) {
             this.feedback.set({
               tone: 'info',
               title: 'Oneri bulunamadi',
-              message: 'Secilen filtrelerle firma siparisi onerisi donmedi.'
+              message: 'Secilen filtrelerle firma siparisi onerisi donmedi.',
             });
           }
         },
@@ -263,9 +294,9 @@ export class OnerilenFirmaSiparisleriListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Liste yuklenemedi',
-            message: this.resolveErrorMessage(error, 'Onerilen firma siparisleri alinamadi.')
+            message: this.resolveErrorMessage(error, 'Onerilen firma siparisleri alinamadi.'),
           });
-        }
+        },
       });
   }
 
@@ -280,7 +311,7 @@ export class OnerilenFirmaSiparisleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Satir secilmedi',
-        message: 'Siparise cevirmek icin en az bir satir secin.'
+        message: 'Siparise cevirmek icin en az bir satir secin.',
       });
       return;
     }
@@ -289,7 +320,7 @@ export class OnerilenFirmaSiparisleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Tedarikci belirsiz',
-        message: 'Siparise cevrilecek satirlar tek tedarikciye ait olmalidir.'
+        message: 'Siparise cevrilecek satirlar tek tedarikciye ait olmalidir.',
       });
       return;
     }
@@ -307,7 +338,7 @@ export class OnerilenFirmaSiparisleriListComponent {
   }
 
   protected convertToOrder(): void {
-    if (this.isConverting()) {
+    if (this.isConverting() || this.safeCreateFailure()?.blocksSubmit) {
       return;
     }
 
@@ -316,7 +347,7 @@ export class OnerilenFirmaSiparisleriListComponent {
       this.convertFeedback.set({
         tone: 'error',
         title: 'Siparis bilgisi eksik',
-        message: 'Siparis tarihi, teslim tarihi ve aciklama alanlarini kontrol edin.'
+        message: 'Siparis tarihi, teslim tarihi ve aciklama alanlarini kontrol edin.',
       });
       return;
     }
@@ -328,7 +359,7 @@ export class OnerilenFirmaSiparisleriListComponent {
       this.convertFeedback.set({
         tone: 'error',
         title: 'Satir secilmedi',
-        message: 'Siparise cevirmek icin en az bir satir secin.'
+        message: 'Siparise cevirmek icin en az bir satir secin.',
       });
       return;
     }
@@ -337,7 +368,7 @@ export class OnerilenFirmaSiparisleriListComponent {
       this.convertFeedback.set({
         tone: 'error',
         title: 'Tedarikci belirsiz',
-        message: 'Siparise cevrilecek satirlar tek tedarikciye ait olmalidir.'
+        message: 'Siparise cevrilecek satirlar tek tedarikciye ait olmalidir.',
       });
       return;
     }
@@ -352,30 +383,55 @@ export class OnerilenFirmaSiparisleriListComponent {
       .convertSuggestedCompanyOrder(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isConverting.set(false))
+        finalize(() => this.isConverting.set(false)),
       )
       .subscribe({
         next: (response: CreateIssuedCompanyOrderResponse) => {
+          this.safeCreateRetry.reset();
+          this.safeCreateFailure.set(null);
           this.lastResponse.set(response);
           this.convertFeedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`
+            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
           this.feedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`
+            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
         },
         error: (error: unknown) => {
+          if (error instanceof HttpErrorResponse) {
+            this.applySafeCreateFailure(error, 'Oneriler siparise cevrilirken hata olustu.');
+            return;
+          }
+
           this.convertFeedback.set({
             tone: 'error',
             title: 'Siparis olusturulamadi',
-            message: this.resolveErrorMessage(error, 'Oneriler siparise cevrilirken hata olustu.')
+            message: this.resolveErrorMessage(error, 'Oneriler siparise cevrilirken hata olustu.'),
           });
-        }
+        },
       });
+  }
+
+  protected startNewCreateAttempt(): void {
+    this.safeCreateRetry.startNewAttempt();
+    this.safeCreateFailure.set(null);
+    this.convertFeedback.set(null);
+    this.convertToOrder();
+  }
+
+  private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
+    const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
+    this.safeCreateFailure.set(failure);
+    this.convertFeedback.set({
+      tone: 'error',
+      title: 'Siparis olusturulamadi',
+      message: failure.message,
+    });
   }
 
   protected setLineSelected(stockCode: string, supplierCode: string, selected: boolean): void {
@@ -383,8 +439,8 @@ export class OnerilenFirmaSiparisleriListComponent {
       lines.map((line) =>
         line.item.stockCode === stockCode && line.item.supplierCode === supplierCode
           ? { ...line, selected }
-          : line
-      )
+          : line,
+      ),
     );
   }
 
@@ -394,8 +450,8 @@ export class OnerilenFirmaSiparisleriListComponent {
       lines.map((line) =>
         line.item.stockCode === stockCode && line.item.supplierCode === supplierCode
           ? { ...line, quantity }
-          : line
-      )
+          : line,
+      ),
     );
   }
 
@@ -403,8 +459,8 @@ export class OnerilenFirmaSiparisleriListComponent {
     this.lines.update((lines) =>
       lines.map((line) => ({
         ...line,
-        selected: this.safeNumber(line.quantity) > 0
-      }))
+        selected: this.safeNumber(line.quantity) > 0,
+      })),
     );
   }
 
@@ -430,7 +486,7 @@ export class OnerilenFirmaSiparisleriListComponent {
 
   protected formatNumber(value: number | null | undefined): string {
     return new Intl.NumberFormat('tr-TR', {
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(this.safeNumber(value));
   }
 
@@ -438,7 +494,7 @@ export class OnerilenFirmaSiparisleriListComponent {
     return new Intl.NumberFormat('tr-TR', {
       style: 'currency',
       currency: 'TRY',
-      maximumFractionDigits: 2
+      maximumFractionDigits: 2,
     }).format(this.safeNumber(value));
   }
 
@@ -463,8 +519,8 @@ export class OnerilenFirmaSiparisleriListComponent {
       new Set(
         selectedLines
           .map((line) => line.item.supplierCode?.trim())
-          .filter((value): value is string => !!value)
-      )
+          .filter((value): value is string => !!value),
+      ),
     );
 
     return supplierCodes.length === 1 ? supplierCodes[0] : '';
@@ -472,11 +528,14 @@ export class OnerilenFirmaSiparisleriListComponent {
 
   private buildConvertRequest(
     supplierCode: string,
-    selectedLines: SuggestedCompanyLineState[]
+    selectedLines: SuggestedCompanyLineState[],
   ): ConvertSuggestedCompanyOrderHttpRequest {
     const formValue = this.filterForm.getRawValue();
 
-    return {
+    const warehouseNo = getCurrentWarehouseNo(this.authService.currentUser());
+
+    return this.safeCreateRetry.withClientRequestId({
+      ...(warehouseNo ? { warehouseNo } : {}),
       supplierCode,
       orderDate: formValue.orderDate,
       deliveryDate: formValue.deliveryDate,
@@ -495,9 +554,9 @@ export class OnerilenFirmaSiparisleriListComponent {
         packageCode: '',
         projectCode: '',
         customerResponsibilityCenter: '',
-        productResponsibilityCenter: ''
-      }))
-    };
+        productResponsibilityCenter: '',
+      })),
+    });
   }
 
   private safeNumber(value: number | null | undefined): number {

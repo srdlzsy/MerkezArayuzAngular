@@ -194,6 +194,7 @@ describe('critical create API contracts', () => {
     const malKabul = TestBed.inject(MalKabulIslemleriService);
     const stok = TestBed.inject(StokIslemleriService);
     const greenGrocer = TestBed.inject(GreenGrocerService);
+    const siparis = TestBed.inject(SiparisIslemleriService);
 
     sevk.getGidenFirmaSevkOfflineStatus(requestId).subscribe();
     sevk.getDepolarArasiSevkOfflineStatus(requestId).subscribe();
@@ -205,6 +206,10 @@ describe('critical create API contracts', () => {
     stok.getMasrafFisiOfflineStatus(requestId).subscribe();
     stok.getZayiatFisiOfflineStatus(requestId).subscribe();
     greenGrocer.getOperationsAdjustmentOfflineStatus(requestId).subscribe();
+    siparis.getIssuedWarehouseOrderOfflineStatus(requestId).subscribe();
+    siparis.getSuggestedWarehouseOrderOfflineStatus(requestId).subscribe();
+    siparis.getIssuedCompanyOrderOfflineStatus(requestId).subscribe();
+    siparis.getSuggestedCompanyOrderOfflineStatus(requestId).subscribe();
 
     const paths = [
       'sevk-islemleri/firma-sevkleri/giden',
@@ -216,7 +221,11 @@ describe('critical create API contracts', () => {
       'stok-islemleri/virmanlar',
       'stok-islemleri/masraf-fisleri',
       'stok-islemleri/zayiat-fisleri',
-      'green-grocer/operations/adjustments'
+      'green-grocer/operations/adjustments',
+      'siparis-islemleri/verilen-depo-siparisleri',
+      'siparis-islemleri/onerilen-depo-siparisleri',
+      'siparis-islemleri/verilen-firma-siparisleri',
+      'siparis-islemleri/onerilen-firma-siparisleri'
     ];
 
     for (const path of paths) {

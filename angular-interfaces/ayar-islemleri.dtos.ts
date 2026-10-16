@@ -398,12 +398,24 @@ export interface SafeWriteMonitoringItemDto {
   ageSeconds: number;
 }
 
-export type WorkerMonitoringStatus =
-  | 'Healthy'
-  | 'Degraded'
-  | 'Unhealthy'
-  | 'Disabled'
-  | string;
+export type WorkerMonitoringStatus = 'Healthy' | 'Degraded' | 'Unhealthy' | 'Disabled' | string;
+
+export interface WorkerJobMonitoringDto {
+  jobId: string;
+  taskCode: string | null;
+  taskName: string | null;
+  warehouseNo: number | null;
+  status: string | null;
+  triggerSource: string | null;
+  executionMode: string | null;
+  createdAtUtc: string;
+  startedAtUtc: string | null;
+  completedAtUtc: string | null;
+  durationSeconds: number | null;
+  affectedRecordCount: number;
+  message: string | null;
+  errorMessage: string | null;
+}
 
 export interface WorkerMonitoringItemDto {
   code: string | null;
@@ -427,6 +439,10 @@ export interface WorkerMonitoringItemDto {
   oldestQueuedAtUtc: string | null;
   oldestQueuedAgeSeconds: number | null;
   staleAfterSeconds: number;
+  currentJob: WorkerJobMonitoringDto | null;
+  lastJob: WorkerJobMonitoringDto | null;
+  unresolvedFailureCount: number;
+  lastFailedJob: WorkerJobMonitoringDto | null;
 }
 
 export interface WorkerMonitoringSnapshotDto {

@@ -352,7 +352,7 @@
 
 .worker-summary {
   display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
+  grid-template-columns: repeat(5, minmax(0, 1fr));
   border: 1px solid var(--settings-border);
   border-radius: 8px;
   overflow: hidden;
@@ -431,8 +431,41 @@
 }
 
 .worker-error {
+  display: block;
   color: var(--monitor-critical);
   font-weight: 700;
+}
+
+.worker-job {
+  display: grid;
+  gap: 0.12rem;
+  margin-top: 0.35rem;
+  border-left: 2px solid #0f766e;
+  padding-left: 0.45rem;
+}
+
+.worker-job strong {
+  color: var(--settings-ink);
+  font-size: 0.75rem;
+}
+
+.worker-job span {
+  color: var(--settings-muted);
+  font-size: 0.68rem;
+  line-height: 1.3;
+}
+
+.worker-job-last {
+  margin: 0 0 0.3rem;
+  border-left-color: #2563eb;
+}
+
+.worker-failure-count {
+  display: block;
+  margin-top: 0.28rem;
+  color: var(--monitor-critical);
+  font-size: 0.7rem;
+  font-weight: 800;
 }
 
 .worker-table tr.worker-needs-attention td:first-child {
@@ -449,7 +482,10 @@
 }
 
 .safe-write-filter {
-  grid-template-columns: minmax(145px, 0.7fr) minmax(160px, 0.8fr) minmax(220px, 1.35fr) minmax(100px, 0.45fr) auto auto;
+  grid-template-columns: minmax(145px, 0.7fr) minmax(160px, 0.8fr) minmax(220px, 1.35fr) minmax(
+      100px,
+      0.45fr
+    ) auto auto;
   margin: 0.55rem 0;
   border: 0;
   border-top: 1px solid var(--settings-border);

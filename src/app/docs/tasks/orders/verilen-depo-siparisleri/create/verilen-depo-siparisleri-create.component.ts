@@ -2,13 +2,7 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import {
-  FormArray,
-  FormControl,
-  FormGroup,
-  ReactiveFormsModule,
-  Validators
-} from '@angular/forms';
+import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import type {
   GreenGrocerOrderLineSnapshotHttpRequest,
   GreenGrocerProductCaseResolutionDto,
@@ -17,7 +11,7 @@ import type {
   IFurpaCreateWarehouseOrderLineRequestApiDto,
   IFurpaProductSearchItemApiDto,
   SuggestedWarehouseOrderCreateLineDto,
-  SuggestedWarehouseSourceProductDto
+  SuggestedWarehouseSourceProductDto,
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -29,13 +23,22 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import {
+  SafeCreateFailure,
+  SafeCreateRetryDraft,
+  classifySafeCreateFailure,
+} from '../../../core/safe-create-retry.helpers';
+import {
+  SafeCreatePendingStore,
+  buildSafeCreatePendingScope,
+} from '../../../core/safe-create-pending.store';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel,
   getCurrentWarehouseNo,
-  toPositiveWarehouseNo
+  toPositiveWarehouseNo,
 } from '../../../core/admin-warehouse.helpers';
 
 const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58]);
@@ -95,7 +98,7 @@ type KalemFormGroup = FormGroup<{
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './verilen-depo-siparisleri-create.component.html',
-  styleUrl: './verilen-depo-siparisleri-create.component.scss'
+  styleUrl: './verilen-depo-siparisleri-create.component.scss',
 })
 export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   private readonly destroyRef = inject(DestroyRef);
@@ -103,7 +106,18 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   private readonly greenGrocerService = inject(GreenGrocerService);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
+  private readonly safeCreateRetry =
+    new SafeCreateRetryDraft<IFurpaCreateWarehouseOrderRequestApiDto>({
+      store: this.pendingStore,
+      resolveScope: (request) =>
+        buildSafeCreatePendingScope(
+          this.authService.currentUser(),
+          'siparis-islemleri.verilen-depo-siparisleri.create',
+          request,
+        ),
+    });
   private readonly lineResolutionRequestIds = new WeakMap<KalemFormGroup, number>();
   private greenGrocerResolutionDisabled = false;
 
@@ -111,15 +125,21 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
       this.authService.currentUser(),
-      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
-    )
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile),
+    ),
   );
   protected readonly currentWarehouseLabel = computed(() =>
-    formatCurrentWarehouseLabel(this.authService.currentUser())
+    formatCurrentWarehouseLabel(this.authService.currentUser()),
   );
   protected readonly warehouseQuery = new FormControl('', { nonNullable: true });
-  protected readonly warehouseSelect = new FormControl({ value: '', disabled: true }, { nonNullable: true });
-  protected readonly stockQuery = new FormControl({ value: '', disabled: true }, { nonNullable: true });
+  protected readonly warehouseSelect = new FormControl(
+    { value: '', disabled: true },
+    { nonNullable: true },
+  );
+  protected readonly stockQuery = new FormControl(
+    { value: '', disabled: true },
+    { nonNullable: true },
+  );
   protected readonly warehouseResults = signal<IFurpaSourceWarehouseSearchItemApiDto[]>([]);
   protected readonly warehouseOptions = signal<IFurpaSourceWarehouseSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
@@ -134,6 +154,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected readonly warehouseOptionsError = signal('');
   protected readonly stockError = signal('');
   protected readonly submitError = signal('');
+  protected readonly safeCreateFailure = signal<SafeCreateFailure | null>(null);
   protected readonly submitting = signal(false);
   private warehouseRequestId = 0;
   private warehouseOptionsRequestId = 0;
@@ -144,23 +165,23 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     muhatapDepoNo: new FormControl<number | null>(null, { validators: [Validators.required] }),
     muhatapAdSoyad: new FormControl('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(25)]
+      validators: [Validators.required, Validators.maxLength(25)],
     }),
     ekleyenAdSoyad: new FormControl(this.getCurrentDisplayName(), {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(25)]
+      validators: [Validators.required, Validators.maxLength(25)],
     }),
     orderDate: new FormControl(this.today, {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     deliveryDate: new FormControl(this.today, {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     description: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
     adminWarehouseNo: new FormControl<number | null>(null),
-    kalemler: new FormArray<KalemFormGroup>([])
+    kalemler: new FormArray<KalemFormGroup>([]),
   };
   protected readonly form = new FormGroup(this.controls);
 
@@ -202,7 +223,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchSourceWarehouses(query)
-      .pipe(finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false)))
+      .pipe(
+        finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false)),
+      )
       .subscribe({
         next: (results: IFurpaSourceWarehouseSearchItemApiDto[]) => {
           if (requestId !== this.warehouseRequestId) {
@@ -222,7 +245,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           }
 
           this.warehouseError.set(this.resolveErrorMessage(error, 'Depo aramasi yapilamadi.'));
-        }
+        },
       });
   }
 
@@ -239,7 +262,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     }
 
     const selectedDepotNo = Number(selectedValue);
-    const warehouse = this.warehouseOptions().find((item) => item.sourceWarehouseNo === selectedDepotNo);
+    const warehouse = this.warehouseOptions().find(
+      (item) => item.sourceWarehouseNo === selectedDepotNo,
+    );
 
     if (!warehouse) {
       this.warehouseError.set('Secilen depo listede bulunamadi.');
@@ -290,7 +315,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockLoading.set(true);
 
     this.aramaService
-      .searchStock(query, STOCK_SEARCH_TAKE, this.resolveIncludeDelisted())
+      .searchStock(
+        query,
+        STOCK_SEARCH_TAKE,
+        this.resolveIncludeDelisted(),
+        this.selectedWarehouse()?.sourceWarehouseNo,
+      )
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
@@ -311,14 +341,15 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           }
 
           this.stockError.set(this.resolveErrorMessage(error, 'Stok aramasi yapilamadi.'));
-        }
+        },
       });
   }
 
   protected addKalem(stock: IFurpaProductSearchItemApiDto): void {
     const normalizedStockCode = stock.stockCode.trim().toLocaleUpperCase('tr-TR');
     const existingControl = this.kalemler.controls.find(
-      (control) => control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
+      (control) =>
+        control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode,
     );
 
     if (existingControl) {
@@ -366,11 +397,17 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockError.set('');
 
     this.siparisIslemleriService
-      .getDepoIcinOnerilenSiparisKalemleri(warehouse.sourceWarehouseNo, this.resolveRequestWarehouseNo())
+      .getDepoIcinOnerilenSiparisKalemleri(
+        warehouse.sourceWarehouseNo,
+        this.resolveRequestWarehouseNo(),
+      )
       .pipe(finalize(() => this.finishPresetProductsRequest(requestId)))
       .subscribe({
         next: (results: SuggestedWarehouseOrderCreateLineDto[]) => {
-          if (requestId !== this.presetProductsRequestId || this.selectedWarehouse()?.sourceWarehouseNo !== warehouse.sourceWarehouseNo) {
+          if (
+            requestId !== this.presetProductsRequestId ||
+            this.selectedWarehouse()?.sourceWarehouseNo !== warehouse.sourceWarehouseNo
+          ) {
             return;
           }
 
@@ -389,7 +426,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
             }
 
             const existingControl = this.kalemler.controls.find(
-              (control) => control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
+              (control) =>
+                control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') ===
+                normalizedStockCode,
             );
 
             if (existingControl) {
@@ -410,8 +449,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
             return;
           }
 
-          this.stockError.set(this.resolveErrorMessage(error, 'Secilen deponun onerilen kalemleri getirilemedi.'));
-        }
+          this.stockError.set(
+            this.resolveErrorMessage(error, 'Secilen deponun onerilen kalemleri getirilemedi.'),
+          );
+        },
       });
   }
 
@@ -455,7 +496,8 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
             const normalizedStockCode = kalem.stockCode.trim().toLocaleUpperCase('tr-TR');
             const existingControl = this.kalemler.controls.find(
               (control) =>
-                control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') === normalizedStockCode
+                control.controls.stokKodu.value.trim().toLocaleUpperCase('tr-TR') ===
+                normalizedStockCode,
             );
 
             if (existingControl) {
@@ -469,7 +511,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           this.stockQuery.setValue('');
           this.stockResults.set([]);
           this.stockError.set(
-            addedCount ? '' : 'Kaynak depo urunleri zaten siparis satirlarinda bulunuyor.'
+            addedCount ? '' : 'Kaynak depo urunleri zaten siparis satirlarinda bulunuyor.',
           );
         },
         error: (error: HttpErrorResponse) => {
@@ -477,8 +519,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
             return;
           }
 
-          this.stockError.set(this.resolveErrorMessage(error, 'Kaynak depo urun listesi getirilemedi.'));
-        }
+          this.stockError.set(
+            this.resolveErrorMessage(error, 'Kaynak depo urun listesi getirilemedi.'),
+          );
+        },
       });
   }
 
@@ -492,7 +536,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected submit(): void {
-    if (this.submitting()) {
+    if (this.submitting() || this.safeCreateFailure()?.blocksSubmit) {
       return;
     }
 
@@ -530,14 +574,27 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
+          this.safeCreateRetry.reset();
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
-          this.submitError.set(
-            this.resolveErrorMessage(error, 'Verilen depo siparisi kaydedilirken hata olustu.')
-          );
-        }
+          this.applySafeCreateFailure(error, 'Verilen depo siparisi kaydedilirken hata olustu.');
+        },
       });
+  }
+
+  protected startNewCreateAttempt(): void {
+    this.safeCreateRetry.startNewAttempt();
+    this.safeCreateFailure.set(null);
+    this.submitError.set('');
+    this.submit();
+  }
+
+  private applySafeCreateFailure(error: HttpErrorResponse, fallbackMessage: string): void {
+    const failure = classifySafeCreateFailure(error, fallbackMessage);
+    this.safeCreateRetry.recordFailure(failure, error.status);
+    this.safeCreateFailure.set(failure);
+    this.submitError.set(failure.message);
   }
 
   protected kalemCount(): number {
@@ -547,19 +604,19 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   protected toplamSiparisMiktari(): number {
     return this.kalemler.controls.reduce(
       (total, control) => total + this.resolveLineOrderQuantity(control.getRawValue()),
-      0
+      0,
     );
   }
 
   protected emptyKalemCount(): number {
     return this.kalemler.controls.filter(
-      (control) => this.resolveLineOrderQuantity(control.getRawValue()) <= 0
+      (control) => this.resolveLineOrderQuantity(control.getRawValue()) <= 0,
     ).length;
   }
 
   private getPositiveOrderLineCount(): number {
     return this.kalemler.controls.filter(
-      (control) => this.resolveLineOrderQuantity(control.getRawValue()) > 0
+      (control) => this.resolveLineOrderQuantity(control.getRawValue()) > 0,
     ).length;
   }
 
@@ -619,7 +676,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         inputQuantity,
         sourceWarehouseNo,
         targetWarehouseNo,
-        orderDate: this.controls.orderDate.value
+        orderDate: this.controls.orderDate.value,
       })
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
@@ -648,9 +705,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           control.controls.cozumMesaj.setValue('', { emitEvent: false });
           control.controls.cozumHata.setValue(
             this.resolveErrorMessage(error, 'Kaynak depo urunu cozumlemesi yapilamadi.'),
-            { emitEvent: false }
+            { emitEvent: false },
           );
-        }
+        },
       });
   }
 
@@ -708,10 +765,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     const unitName = control.controls.birim.value.trim() || 'birim';
 
     if (
-      !Number.isFinite(packageFactor)
-      || packageFactor <= 1
-      || !Number.isFinite(quantity)
-      || quantity <= 0
+      !Number.isFinite(packageFactor) ||
+      packageFactor <= 1 ||
+      !Number.isFinite(quantity) ||
+      quantity <= 0
     ) {
       return '';
     }
@@ -730,16 +787,16 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
 
     if (
-      !Number.isFinite(packageQuantity)
-      || packageQuantity <= 0
-      || !Number.isFinite(packageFactor)
-      || packageFactor <= 1
+      !Number.isFinite(packageQuantity) ||
+      packageQuantity <= 0 ||
+      !Number.isFinite(packageFactor) ||
+      packageFactor <= 1
     ) {
       return;
     }
 
     control.controls.siparisMiktari.setValue(this.roundQuantity(packageQuantity * packageFactor), {
-      emitEvent: false
+      emitEvent: false,
     });
     this.clearLineResolution(control);
   }
@@ -753,15 +810,21 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected getWarehouseLabel(warehouse: IFurpaSourceWarehouseSearchItemApiDto): string {
-    return warehouse.displayName?.trim()
-      || `${warehouse.sourceWarehouseNo} - ${warehouse.sourceWarehouseName?.trim() || 'Depo'}`;
+    return (
+      warehouse.displayName?.trim() ||
+      `${warehouse.sourceWarehouseNo} - ${warehouse.sourceWarehouseName?.trim() || 'Depo'}`
+    );
   }
 
-  protected readonly trackByWarehouse = (_index: number, warehouse: IFurpaSourceWarehouseSearchItemApiDto): string =>
-    `${warehouse.sourceWarehouseNo}-${warehouse.displayName?.trim() || _index}`;
+  protected readonly trackByWarehouse = (
+    _index: number,
+    warehouse: IFurpaSourceWarehouseSearchItemApiDto,
+  ): string => `${warehouse.sourceWarehouseNo}-${warehouse.displayName?.trim() || _index}`;
 
-  protected readonly trackByStock = (_index: number, stock: IFurpaProductSearchItemApiDto): string =>
-    stock.stockCode?.trim() || stock.barcode?.trim() || `${_index}`;
+  protected readonly trackByStock = (
+    _index: number,
+    stock: IFurpaProductSearchItemApiDto,
+  ): string => stock.stockCode?.trim() || stock.barcode?.trim() || `${_index}`;
 
   protected getStockSourceBadges(stock: IFurpaProductSearchItemApiDto): StockSourceBadge[] {
     const badges: StockSourceBadge[] = [];
@@ -788,11 +851,14 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         label: warehouseName
           ? `Kaynak ${warehouse.warehouseNo} - ${warehouseName}`
           : `Kaynak ${warehouse.warehouseNo}`,
-        tone: 'warehouse'
+        tone: 'warehouse',
       });
     }
 
-    const hiddenWarehouseCount = Math.max(0, allSourceWarehouses.length - visibleSourceWarehouses.length);
+    const hiddenWarehouseCount = Math.max(
+      0,
+      allSourceWarehouses.length - visibleSourceWarehouses.length,
+    );
 
     if (hiddenWarehouseCount > 0) {
       badges.push({ label: `+${hiddenWarehouseCount} kaynak`, tone: 'muted' });
@@ -820,7 +886,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.controls.muhatapDepoNo.setValue(warehouse.sourceWarehouseNo);
     this.controls.muhatapDepoNo.markAsDirty();
     this.controls.muhatapDepoNo.markAsTouched();
-    this.controls.muhatapAdSoyad.setValue(trimToMaxLength(this.resolveWarehouseContact(warehouse), 25));
+    this.controls.muhatapAdSoyad.setValue(
+      trimToMaxLength(this.resolveWarehouseContact(warehouse), 25),
+    );
     this.controls.muhatapAdSoyad.markAsDirty();
 
     this.warehouseQuery.setValue(this.getWarehouseLabel(warehouse));
@@ -840,7 +908,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     return new FormGroup({
       stokKodu: new FormControl(stock.stockCode?.trim() ?? '', {
         nonNullable: true,
-        validators: [Validators.required]
+        validators: [Validators.required],
       }),
       stokIsmi: new FormControl(stock.stockName?.trim() ?? '', { nonNullable: true }),
       barkodu: new FormControl(stock.barcode?.trim() ?? '', { nonNullable: true }),
@@ -848,12 +916,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
       ikinciBirim: new FormControl(stock.secondaryUnitName?.trim() ?? '', { nonNullable: true }),
       koliKatsayisi: new FormControl<number | null>(
-        this.normalizePositiveNumber(stock.secondaryUnitMultiplier ?? null)
+        this.normalizePositiveNumber(stock.secondaryUnitMultiplier ?? null),
       ),
       koliBarkodu: new FormControl('', { nonNullable: true }),
       koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(1, {
-        validators: [Validators.required, Validators.min(0.01)]
+        validators: [Validators.required, Validators.min(0.01)],
       }),
       cozumMiktari: new FormControl<number | null>(null),
       cozumBirim: new FormControl('', { nonNullable: true }),
@@ -863,32 +931,35 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
       aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
+      modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] }),
     });
   }
 
   private createRecommendedKalemFormGroup(
-    kalem: SuggestedWarehouseOrderCreateLineDto
+    kalem: SuggestedWarehouseOrderCreateLineDto,
   ): KalemFormGroup {
     const siparisMiktari = this.resolveRecommendedQuantity(kalem);
-    const unitMultiplier = this.normalizePositiveNumber(kalem.unitMultiplier ?? null) ?? kalem.unitPointer ?? 1;
+    const unitMultiplier =
+      this.normalizePositiveNumber(kalem.unitMultiplier ?? null) ?? kalem.unitPointer ?? 1;
     const modelCode = kalem.modelCode?.trim() || kalem.packageCode?.trim() || '';
 
     return new FormGroup({
       stokKodu: new FormControl(kalem.stockCode?.trim() ?? '', {
         nonNullable: true,
-        validators: [Validators.required]
+        validators: [Validators.required],
       }),
       stokIsmi: new FormControl(kalem.stockName?.trim() ?? '', { nonNullable: true }),
       barkodu: new FormControl(kalem.barcode?.trim() ?? '', { nonNullable: true }),
       birim: new FormControl('', { nonNullable: true }),
       birimKatsayisi: new FormControl<number | null>(unitMultiplier),
       ikinciBirim: new FormControl('', { nonNullable: true }),
-      koliKatsayisi: new FormControl<number | null>(this.normalizePositiveNumber(kalem.packageFactor ?? null)),
+      koliKatsayisi: new FormControl<number | null>(
+        this.normalizePositiveNumber(kalem.packageFactor ?? null),
+      ),
       koliBarkodu: new FormControl('', { nonNullable: true }),
       koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(siparisMiktari, {
-        validators: [Validators.required, Validators.min(0.01)]
+        validators: [Validators.required, Validators.min(0.01)],
       }),
       cozumMiktari: new FormControl<number | null>(null),
       cozumBirim: new FormControl('', { nonNullable: true }),
@@ -896,14 +967,20 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       cozumDurum: new FormControl('', { nonNullable: true }),
       cozumHata: new FormControl('', { nonNullable: true }),
       greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
-      aciklama: new FormControl(trimToMaxLength(kalem.description, 50), { nonNullable: true, validators: [Validators.maxLength(50)] }),
+      aciklama: new FormControl(trimToMaxLength(kalem.description, 50), {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)],
+      }),
       skt: new FormControl('', { nonNullable: true }),
-      modelKodu: new FormControl(trimToMaxLength(modelCode, 25), { nonNullable: true, validators: [Validators.maxLength(25)] })
+      modelKodu: new FormControl(trimToMaxLength(modelCode, 25), {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)],
+      }),
     });
   }
 
   private createSourceWarehouseProductFormGroup(
-    kalem: SuggestedWarehouseSourceProductDto
+    kalem: SuggestedWarehouseSourceProductDto,
   ): KalemFormGroup {
     const packageFactor =
       this.normalizePositiveNumber(kalem.unitMultiplier ?? null) ??
@@ -912,7 +989,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     return new FormGroup({
       stokKodu: new FormControl(kalem.stockCode.trim(), {
         nonNullable: true,
-        validators: [Validators.required]
+        validators: [Validators.required],
       }),
       stokIsmi: new FormControl(kalem.stockName.trim(), { nonNullable: true }),
       barkodu: new FormControl(kalem.barcode?.trim() ?? '', { nonNullable: true }),
@@ -923,7 +1000,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       koliBarkodu: new FormControl(kalem.caseBarcode?.trim() ?? '', { nonNullable: true }),
       koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
       siparisMiktari: new FormControl<number | null>(0, {
-        validators: [Validators.required, Validators.min(0)]
+        validators: [Validators.required, Validators.min(0)],
       }),
       cozumMiktari: new FormControl<number | null>(null),
       cozumBirim: new FormControl('', { nonNullable: true }),
@@ -933,13 +1010,13 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(null),
       aciklama: new FormControl(trimToMaxLength(kalem.stockName, 50), {
         nonNullable: true,
-        validators: [Validators.maxLength(50)]
+        validators: [Validators.maxLength(50)],
       }),
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl(trimToMaxLength(kalem.modelCode, 25), {
         nonNullable: true,
-        validators: [Validators.maxLength(25)]
-      })
+        validators: [Validators.maxLength(25)],
+      }),
     });
   }
 
@@ -947,7 +1024,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     const rawValue = this.form.getRawValue();
     const inWarehouseNo = this.resolveCreateInWarehouseNo();
 
-    return {
+    return this.safeCreateRetry.withClientRequestId({
       ...(inWarehouseNo ? { inWarehouseNo } : {}),
       outWarehouseNo: rawValue.muhatapDepoNo ?? 0,
       orderDate: rawValue.orderDate,
@@ -955,8 +1032,8 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       description: trimToMaxLength(rawValue.description, 50),
       lines: rawValue.kalemler
         .filter((kalem) => this.resolveLineOrderQuantity(kalem) > 0)
-        .map((kalem) => this.mapKalem(kalem))
-    };
+        .map((kalem) => this.mapKalem(kalem)),
+    });
   }
 
   private mapKalem(kalem: KalemFormValue) {
@@ -973,13 +1050,13 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       packageCode: trimToMaxLength(kalem.modelKodu, 25),
       projectCode: '',
       responsibilityCenter: '',
-      ...(greenGrocerCase ? { greenGrocerCase } : {})
+      ...(greenGrocerCase ? { greenGrocerCase } : {}),
     };
   }
 
   private applyLineResolution(
     control: KalemFormGroup,
-    resolution: GreenGrocerProductCaseResolutionDto
+    resolution: GreenGrocerProductCaseResolutionDto,
   ): void {
     const estimatedQuantity = Number(resolution.estimatedQuantity ?? 0);
     const inputMode = this.getInputModeLabel(resolution.inputMode);
@@ -997,7 +1074,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       control.controls.cozumMesaj.setValue('', { emitEvent: false });
       control.controls.cozumHata.setValue(
         resolution.errors?.[0] ?? 'Bu kaynak depo urunu icin kasa cozumlemesi kullanilamaz.',
-        { emitEvent: false }
+        { emitEvent: false },
       );
       return;
     }
@@ -1005,18 +1082,21 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     control.controls.cozumMiktari.setValue(estimatedQuantity, { emitEvent: false });
     control.controls.greenGrocerCase.setValue(
       this.buildGreenGrocerCaseSnapshot(resolution, estimatedQuantity, outputUnit),
-      { emitEvent: false }
+      { emitEvent: false },
     );
     control.controls.cozumMesaj.setValue(baseMessage, { emitEvent: false });
     control.controls.cozumHata.setValue(resolution.warnings?.[0] ?? '', { emitEvent: false });
     control.controls.cozumDurum.setValue(
       resolution.confidence === 'Medium' || resolution.warnings?.length ? 'warning' : 'ready',
-      { emitEvent: false }
+      { emitEvent: false },
     );
   }
 
   private clearLineResolution(control: KalemFormGroup): void {
-    this.lineResolutionRequestIds.set(control, (this.lineResolutionRequestIds.get(control) ?? 0) + 1);
+    this.lineResolutionRequestIds.set(
+      control,
+      (this.lineResolutionRequestIds.get(control) ?? 0) + 1,
+    );
     control.controls.cozumMiktari.setValue(null, { emitEvent: false });
     control.controls.cozumBirim.setValue('', { emitEvent: false });
     control.controls.greenGrocerCase.setValue(null, { emitEvent: false });
@@ -1031,7 +1111,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     }
 
     const pendingLine = this.kalemler.controls.find(
-      (control) => control.controls.cozumDurum.value === 'loading'
+      (control) => control.controls.cozumDurum.value === 'loading',
     );
 
     if (pendingLine) {
@@ -1040,11 +1120,13 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     }
 
     const failedLine = this.kalemler.controls.find(
-      (control) => control.controls.cozumDurum.value === 'error'
+      (control) => control.controls.cozumDurum.value === 'error',
     );
 
     if (failedLine) {
-      this.stockError.set(failedLine.controls.cozumHata.value || 'Kaynak depo urunu cozumlemesi hatali kalem var.');
+      this.stockError.set(
+        failedLine.controls.cozumHata.value || 'Kaynak depo urunu cozumlemesi hatali kalem var.',
+      );
       return false;
     }
 
@@ -1063,7 +1145,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
   private resolveLineGreenGrocerCase(
     kalem: KalemFormValue,
-    quantity: number
+    quantity: number,
   ): GreenGrocerOrderLineSnapshotHttpRequest | null {
     if (!this.isGreenGrocerOrder() || !kalem.greenGrocerCase) {
       return null;
@@ -1081,7 +1163,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   private buildGreenGrocerCaseSnapshot(
     resolution: GreenGrocerProductCaseResolutionDto,
     estimatedQuantity: number,
-    outputUnit: string
+    outputUnit: string,
   ): GreenGrocerOrderLineSnapshotHttpRequest {
     return {
       inputQuantity: Number(resolution.inputQuantity ?? 0),
@@ -1095,7 +1177,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       averageRecordCount: resolution.averageRecordCount ?? null,
       averageCaseCount: resolution.averageCaseCount ?? null,
       coefficientOfVariation: resolution.coefficientOfVariation ?? null,
-      confidence: resolution.confidence
+      confidence: resolution.confidence,
     };
   }
 
@@ -1123,7 +1205,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     return new Intl.NumberFormat('tr-TR', {
       minimumFractionDigits: 0,
-      maximumFractionDigits: 3
+      maximumFractionDigits: 3,
     }).format(value);
   }
 
@@ -1135,7 +1217,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchSourceWarehouses(undefined, 100)
-      .pipe(finalize(() => requestId === this.warehouseOptionsRequestId && this.warehouseOptionsLoading.set(false)))
+      .pipe(
+        finalize(
+          () =>
+            requestId === this.warehouseOptionsRequestId && this.warehouseOptionsLoading.set(false),
+        ),
+      )
       .subscribe({
         next: (results: IFurpaSourceWarehouseSearchItemApiDto[]) => {
           if (requestId !== this.warehouseOptionsRequestId) {
@@ -1156,26 +1243,37 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           }
 
           this.warehouseSelect.enable({ emitEvent: false });
-          this.warehouseOptionsError.set(this.resolveErrorMessage(error, 'Depo listesi alinamadi.'));
-        }
+          this.warehouseOptionsError.set(
+            this.resolveErrorMessage(error, 'Depo listesi alinamadi.'),
+          );
+        },
       });
   }
 
-  private normalizeWarehouses(results: IFurpaSourceWarehouseSearchItemApiDto[]): IFurpaSourceWarehouseSearchItemApiDto[] {
+  private normalizeWarehouses(
+    results: IFurpaSourceWarehouseSearchItemApiDto[],
+  ): IFurpaSourceWarehouseSearchItemApiDto[] {
     const uniqueWarehouses = new Map<number, IFurpaSourceWarehouseSearchItemApiDto>();
 
     for (const warehouse of results) {
-      if (!Number.isFinite(warehouse.sourceWarehouseNo) || uniqueWarehouses.has(warehouse.sourceWarehouseNo)) {
+      if (
+        !Number.isFinite(warehouse.sourceWarehouseNo) ||
+        uniqueWarehouses.has(warehouse.sourceWarehouseNo)
+      ) {
         continue;
       }
 
       uniqueWarehouses.set(warehouse.sourceWarehouseNo, warehouse);
     }
 
-    return Array.from(uniqueWarehouses.values()).sort((left, right) => left.sourceWarehouseNo - right.sourceWarehouseNo);
+    return Array.from(uniqueWarehouses.values()).sort(
+      (left, right) => left.sourceWarehouseNo - right.sourceWarehouseNo,
+    );
   }
 
-  private normalizeStocks(results: IFurpaProductSearchItemApiDto[]): IFurpaProductSearchItemApiDto[] {
+  private normalizeStocks(
+    results: IFurpaProductSearchItemApiDto[],
+  ): IFurpaProductSearchItemApiDto[] {
     const uniqueStocks = new Map<string, IFurpaProductSearchItemApiDto>();
 
     for (const stock of results) {
@@ -1189,12 +1287,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     }
 
     return Array.from(uniqueStocks.values()).sort((left, right) =>
-      (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr')
+      (left.stockName ?? '').localeCompare(right.stockName ?? '', 'tr'),
     );
   }
 
   private normalizeRecommendedKalemler(
-    results: SuggestedWarehouseOrderCreateLineDto[]
+    results: SuggestedWarehouseOrderCreateLineDto[],
   ): SuggestedWarehouseOrderCreateLineDto[] {
     const uniqueKalemler = new Map<string, SuggestedWarehouseOrderCreateLineDto>();
 
@@ -1217,17 +1315,17 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         description: kalem.description?.trim() ?? '',
         packageCode: kalem.packageCode?.trim() ?? '',
         projectCode: kalem.projectCode?.trim() ?? '',
-        responsibilityCenter: kalem.responsibilityCenter?.trim() ?? ''
+        responsibilityCenter: kalem.responsibilityCenter?.trim() ?? '',
       });
     }
 
     return Array.from(uniqueKalemler.values()).sort((left, right) =>
-      (left.stockName || left.stockCode).localeCompare(right.stockName || right.stockCode, 'tr')
+      (left.stockName || left.stockCode).localeCompare(right.stockName || right.stockCode, 'tr'),
     );
   }
 
   private normalizeSourceWarehouseProducts(
-    results: SuggestedWarehouseSourceProductDto[]
+    results: SuggestedWarehouseSourceProductDto[],
   ): SuggestedWarehouseSourceProductDto[] {
     const uniqueKalemler = new Map<string, SuggestedWarehouseSourceProductDto>();
 
@@ -1255,20 +1353,22 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         quantity: 0,
         recommendedQuantity: 0,
         unitPrice: kalem.unitPrice ?? 0,
-        unitPointer: kalem.unitPointer ?? 1
+        unitPointer: kalem.unitPointer ?? 1,
       });
     }
 
     return Array.from(uniqueKalemler.values()).sort((left, right) =>
-      (left.stockName || left.stockCode).localeCompare(right.stockName || right.stockCode, 'tr')
+      (left.stockName || left.stockCode).localeCompare(right.stockName || right.stockCode, 'tr'),
     );
   }
 
   private resolveRecommendedQuantity(kalem: IFurpaCreateWarehouseOrderLineRequestApiDto): number {
-    return this.normalizePositiveNumber(kalem.recommendedQuantity)
-      ?? this.normalizePositiveNumber(kalem.quantity)
-      ?? this.normalizePositiveNumber(kalem.unitPointer)
-      ?? 1;
+    return (
+      this.normalizePositiveNumber(kalem.recommendedQuantity) ??
+      this.normalizePositiveNumber(kalem.quantity) ??
+      this.normalizePositiveNumber(kalem.unitPointer) ??
+      1
+    );
   }
 
   private normalizePositiveNumber(value: number | null | undefined): number | null {
@@ -1296,14 +1396,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value)
       : null;
 
-    return adminWarehouseNo
-      ?? getCurrentWarehouseNo(this.authService.currentUser())
-      ?? undefined;
+    return adminWarehouseNo ?? getCurrentWarehouseNo(this.authService.currentUser()) ?? undefined;
   }
 
   private resolveCreateInWarehouseNo(): number | undefined {
     return this.isAdminUser()
-      ? toPositiveWarehouseNo(this.controls.adminWarehouseNo.value) ?? undefined
+      ? (toPositiveWarehouseNo(this.controls.adminWarehouseNo.value) ?? undefined)
       : undefined;
   }
 

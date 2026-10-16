@@ -1,5 +1,9 @@
 import { Injectable, inject } from '@angular/core';
 import type {
+  ConvertSuggestedCompanyOrderHttpRequest,
+  ConvertSuggestedWarehouseOrderHttpRequest,
+  CreateIssuedCompanyOrderHttpRequest,
+  CreateIssuedWarehouseOrderHttpRequest,
   IOfflineOperationResponseApiDto,
   IFurpaCreateCompanyReceiptRequestApiDto,
   IFurpaCreateCompanyShipmentRequestApiDto,
@@ -7,13 +11,14 @@ import type {
   IFurpaCreateStockReceiptRequestApiDto,
   IFurpaCreateVirmanRequestApiDto,
   IFurpaCreateWarehouseReturnRequestApiDto,
-  IFurpaCreateWarehouseShippingRequestApiDto
+  IFurpaCreateWarehouseShippingRequestApiDto,
 } from '@interfaces';
 import type { Observable } from 'rxjs';
 
 import { IadeIslemleriService } from '../../../core/api/module-services/iade-islemleri.service';
 import { MalKabulIslemleriService } from '../../../core/api/module-services/mal-kabul-islemleri.service';
 import { SevkIslemleriService } from '../../../core/api/module-services/sevk-islemleri.service';
+import { SiparisIslemleriService } from '../../../core/api/module-services/siparis-islemleri.service';
 import { StokIslemleriService } from '../../../core/api/module-services/stok-islemleri.service';
 import type { ClientRequestPayload } from './safe-create-retry.helpers';
 
@@ -27,7 +32,11 @@ const OPERATION_BY_PAGE_ID: Readonly<Record<string, string>> = {
   'sayim-sonuclari': 'inventory-count.create',
   virmanlar: 'stock-transfer.create',
   'masraf-fisleri': 'expense-receipt.create',
-  'zayiat-fisleri': 'wastage-receipt.create'
+  'zayiat-fisleri': 'wastage-receipt.create',
+  'verilen-depo-siparisleri': 'siparis-islemleri.verilen-depo-siparisleri.create',
+  'onerilen-depo-siparisleri': 'siparis-islemleri.onerilen-depo-siparisleri.create',
+  'verilen-firma-siparisleri': 'siparis-islemleri.verilen-firma-siparisleri.create',
+  'onerilen-firma-siparisleri': 'siparis-islemleri.onerilen-firma-siparisleri.create',
 };
 
 @Injectable({ providedIn: 'root' })
@@ -36,6 +45,7 @@ export class SafeCreateRecoveryService {
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
   private readonly stokIslemleriService = inject(StokIslemleriService);
+  private readonly siparisIslemleriService = inject(SiparisIslemleriService);
 
   getOperationCode(pageId: string): string | null {
     return OPERATION_BY_PAGE_ID[pageId] ?? null;
@@ -43,7 +53,7 @@ export class SafeCreateRecoveryService {
 
   getStatus(
     pageId: string,
-    clientRequestId: string
+    clientRequestId: string,
   ): Observable<IOfflineOperationResponseApiDto<unknown>> | null {
     switch (pageId) {
       case 'giden-firma-sevkleri':
@@ -65,6 +75,16 @@ export class SafeCreateRecoveryService {
         return this.stokIslemleriService.getMasrafFisiOfflineStatus(clientRequestId);
       case 'zayiat-fisleri':
         return this.stokIslemleriService.getZayiatFisiOfflineStatus(clientRequestId);
+      case 'verilen-depo-siparisleri':
+        return this.siparisIslemleriService.getIssuedWarehouseOrderOfflineStatus(clientRequestId);
+      case 'onerilen-depo-siparisleri':
+        return this.siparisIslemleriService.getSuggestedWarehouseOrderOfflineStatus(
+          clientRequestId,
+        );
+      case 'verilen-firma-siparisleri':
+        return this.siparisIslemleriService.getIssuedCompanyOrderOfflineStatus(clientRequestId);
+      case 'onerilen-firma-siparisleri':
+        return this.siparisIslemleriService.getSuggestedCompanyOrderOfflineStatus(clientRequestId);
       default:
         return null;
     }
@@ -74,46 +94,62 @@ export class SafeCreateRecoveryService {
     switch (pageId) {
       case 'giden-firma-sevkleri':
         return this.sevkIslemleriService.createToptanCikisIrsaliyesi(
-          request as IFurpaCreateCompanyShipmentRequestApiDto
+          request as IFurpaCreateCompanyShipmentRequestApiDto,
         );
       case 'giden-depolar-arasi-sevkler':
         return this.sevkIslemleriService.createDepolarArasiNakliyeSevkFisi(
-          request as IFurpaCreateWarehouseShippingRequestApiDto
+          request as IFurpaCreateWarehouseShippingRequestApiDto,
         );
       case 'gelen-depolar-arasi-sevkler':
         return this.sevkIslemleriService.createDepoDagitimSevkFisi(
-          request as IFurpaCreateWarehouseShippingRequestApiDto
+          request as IFurpaCreateWarehouseShippingRequestApiDto,
         );
       case 'firma-mal-kabulleri':
         return this.malKabulIslemleriService.createToptanGirisIrsaliyesi(
-          request as IFurpaCreateCompanyReceiptRequestApiDto
+          request as IFurpaCreateCompanyReceiptRequestApiDto,
         );
       case 'firma-iadeleri':
         return this.iadeIslemleriService.createFirmaIade(
-          request as IFurpaCreateCompanyShipmentRequestApiDto
+          request as IFurpaCreateCompanyShipmentRequestApiDto,
         );
       case 'giden-depo-iadeleri':
         return this.iadeIslemleriService.createDepoIade(
-          request as IFurpaCreateWarehouseReturnRequestApiDto
+          request as IFurpaCreateWarehouseReturnRequestApiDto,
         );
       case 'sayim-sonuclari':
         return this.stokIslemleriService.createSayimSonucu(
-          request as IFurpaCreateInventoryCountRequestApiDto
+          request as IFurpaCreateInventoryCountRequestApiDto,
         );
       case 'virmanlar':
         return this.stokIslemleriService.createVirman(
           'StokVirmanCikisFisleri',
-          request as IFurpaCreateVirmanRequestApiDto
+          request as IFurpaCreateVirmanRequestApiDto,
         );
       case 'masraf-fisleri':
         return this.stokIslemleriService.createSubeIci(
           'SarfDepoCikisFisleri',
-          request as IFurpaCreateStockReceiptRequestApiDto
+          request as IFurpaCreateStockReceiptRequestApiDto,
         );
       case 'zayiat-fisleri':
         return this.stokIslemleriService.createSubeIci(
           'FireDepoCikisFisleri',
-          request as IFurpaCreateStockReceiptRequestApiDto
+          request as IFurpaCreateStockReceiptRequestApiDto,
+        );
+      case 'verilen-depo-siparisleri':
+        return this.siparisIslemleriService.createIssuedWarehouseOrder(
+          request as CreateIssuedWarehouseOrderHttpRequest,
+        );
+      case 'onerilen-depo-siparisleri':
+        return this.siparisIslemleriService.convertSuggestedWarehouseOrder(
+          request as ConvertSuggestedWarehouseOrderHttpRequest,
+        );
+      case 'verilen-firma-siparisleri':
+        return this.siparisIslemleriService.createIssuedCompanyOrder(
+          request as CreateIssuedCompanyOrderHttpRequest,
+        );
+      case 'onerilen-firma-siparisleri':
+        return this.siparisIslemleriService.convertSuggestedCompanyOrder(
+          request as ConvertSuggestedCompanyOrderHttpRequest,
         );
       default:
         return null;

@@ -32,7 +32,7 @@ export class SafeCreatePendingStore {
 
   save<TRequest extends ClientRequestPayload>(
     scope: SafeCreatePendingScope,
-    request: TRequest
+    request: TRequest,
   ): SafeCreatePendingRecord<TRequest> {
     const clientRequestId = requireClientRequestId(request);
     const existing = this.read<TRequest>(scope, clientRequestId);
@@ -44,7 +44,7 @@ export class SafeCreatePendingStore {
       state: 'pending',
       createdAtUtc: existing?.createdAtUtc ?? now,
       updatedAtUtc: now,
-      failure: null
+      failure: null,
     };
 
     localStorage.setItem(this.buildStorageKey(scope, clientRequestId), JSON.stringify(record));
@@ -55,7 +55,7 @@ export class SafeCreatePendingStore {
   markFailure<TRequest extends ClientRequestPayload>(
     scope: SafeCreatePendingScope,
     clientRequestId: string,
-    failure: SafeCreateFailure
+    failure: SafeCreateFailure,
   ): SafeCreatePendingRecord<TRequest> | null {
     const existing = this.read<TRequest>(scope, clientRequestId);
     if (!existing) {
@@ -64,13 +64,13 @@ export class SafeCreatePendingStore {
 
     const normalizedFailure: SafeCreateFailure = {
       ...failure,
-      message: failure.message.slice(0, MAX_FAILURE_MESSAGE_LENGTH)
+      message: failure.message.slice(0, MAX_FAILURE_MESSAGE_LENGTH),
     };
     const record: SafeCreatePendingRecord<TRequest> = {
       ...existing,
       state: failure.retryable === true ? 'pending' : 'needsReview',
       updatedAtUtc: new Date().toISOString(),
-      failure: normalizedFailure
+      failure: normalizedFailure,
     };
 
     try {
@@ -84,7 +84,7 @@ export class SafeCreatePendingStore {
 
   read<TRequest extends ClientRequestPayload>(
     scope: SafeCreatePendingScope,
-    clientRequestId: string
+    clientRequestId: string,
   ): SafeCreatePendingRecord<TRequest> | null {
     this.revision();
     return this.readByKey<TRequest>(this.buildStorageKey(scope, clientRequestId));
@@ -93,7 +93,7 @@ export class SafeCreatePendingStore {
   findForOperation<TRequest extends ClientRequestPayload>(
     userId: string,
     clientType: SafeCreatePendingScope['clientType'],
-    operationCode: string
+    operationCode: string,
   ): SafeCreatePendingRecord<TRequest>[] {
     this.revision();
     const normalizedUserId = normalizeScopePart(userId);
@@ -121,9 +121,10 @@ export class SafeCreatePendingStore {
       return [];
     }
 
-    return records.sort((left, right) =>
-      left.createdAtUtc.localeCompare(right.createdAtUtc)
-      || left.scope.warehouseNo - right.scope.warehouseNo
+    return records.sort(
+      (left, right) =>
+        left.createdAtUtc.localeCompare(right.createdAtUtc) ||
+        left.scope.warehouseNo - right.scope.warehouseNo,
     );
   }
 
@@ -137,10 +138,7 @@ export class SafeCreatePendingStore {
     this.touch();
   }
 
-  wasRecoveryAttemptedInSession(
-    scope: SafeCreatePendingScope,
-    clientRequestId: string
-  ): boolean {
+  wasRecoveryAttemptedInSession(scope: SafeCreatePendingScope, clientRequestId: string): boolean {
     try {
       return sessionStorage.getItem(this.buildRecoveryMarkerKey(scope, clientRequestId)) === '1';
     } catch {
@@ -148,10 +146,7 @@ export class SafeCreatePendingStore {
     }
   }
 
-  markRecoveryAttemptedInSession(
-    scope: SafeCreatePendingScope,
-    clientRequestId: string
-  ): void {
+  markRecoveryAttemptedInSession(scope: SafeCreatePendingScope, clientRequestId: string): void {
     try {
       sessionStorage.setItem(this.buildRecoveryMarkerKey(scope, clientRequestId), '1');
     } catch {
@@ -168,7 +163,7 @@ export class SafeCreatePendingStore {
   }
 
   private readByKey<TRequest extends ClientRequestPayload>(
-    key: string
+    key: string,
   ): SafeCreatePendingRecord<TRequest> | null {
     try {
       const rawValue = localStorage.getItem(key);
@@ -189,14 +184,13 @@ export class SafeCreatePendingStore {
       scope.clientType,
       scope.warehouseNo,
       scope.operationCode,
-      clientRequestId
-    ].map((value) => encodeURIComponent(normalizeScopePart(String(value)))).join('.')}`;
+      clientRequestId,
+    ]
+      .map((value) => encodeURIComponent(normalizeScopePart(String(value))))
+      .join('.')}`;
   }
 
-  private buildRecoveryMarkerKey(
-    scope: SafeCreatePendingScope,
-    clientRequestId: string
-  ): string {
+  private buildRecoveryMarkerKey(scope: SafeCreatePendingScope, clientRequestId: string): string {
     return `${this.buildStorageKey(scope, clientRequestId)}.recovery-attempted`;
   }
 
@@ -216,28 +210,39 @@ function requireClientRequestId(request: ClientRequestPayload): string {
 }
 
 export function buildSafeCreateUserId(user: CurrentUser | null | undefined): string {
-  return user?.userId?.trim()
-    || user?.username?.trim()
-    || `${user?.displayName?.trim() || 'unknown-user'}:${user?.depoNo ?? 'unknown-warehouse'}`;
+  return (
+    user?.userId?.trim() ||
+    user?.username?.trim() ||
+    `${user?.displayName?.trim() || 'unknown-user'}:${user?.depoNo ?? 'unknown-warehouse'}`
+  );
 }
 
 export function buildSafeCreatePendingScope(
   user: CurrentUser | null | undefined,
   operationCode: string,
-  request: ClientRequestPayload
+  request: ClientRequestPayload,
 ): SafeCreatePendingScope {
   const values = request as ClientRequestPayload & {
     warehouseNo?: unknown;
     sourceWarehouseNo?: unknown;
+    targetWarehouseNo?: unknown;
+    inWarehouseNo?: unknown;
+    outWarehouseNo?: unknown;
   };
-  const rawWarehouseNo = values.warehouseNo ?? values.sourceWarehouseNo;
+  const rawWarehouseNo =
+    values.warehouseNo ??
+    values.inWarehouseNo ??
+    values.targetWarehouseNo ??
+    values.sourceWarehouseNo ??
+    values.outWarehouseNo ??
+    user?.depoNo;
   const warehouseNo = Number(rawWarehouseNo);
 
   return {
     userId: buildSafeCreateUserId(user),
     clientType: 'web',
     warehouseNo: Number.isFinite(warehouseNo) && warehouseNo > 0 ? Math.trunc(warehouseNo) : 0,
-    operationCode
+    operationCode,
   };
 }
 
@@ -246,24 +251,26 @@ function normalizeScopePart(value: string): string {
 }
 
 function isPendingRecord<TRequest extends ClientRequestPayload>(
-  value: unknown
+  value: unknown,
 ): value is SafeCreatePendingRecord<TRequest> {
   if (!value || typeof value !== 'object') {
     return false;
   }
 
   const record = value as Partial<SafeCreatePendingRecord<TRequest>>;
-  return record.version === STORAGE_VERSION
-    && !!record.scope
-    && typeof record.scope.userId === 'string'
-    && (record.scope.clientType === 'web' || record.scope.clientType === 'terminal')
-    && typeof record.scope.warehouseNo === 'number'
-    && Number.isFinite(record.scope.warehouseNo)
-    && typeof record.scope.operationCode === 'string'
-    && !!record.request
-    && typeof record.request === 'object'
-    && typeof record.request.clientRequestId === 'string'
-    && (record.state === 'pending' || record.state === 'needsReview')
-    && typeof record.createdAtUtc === 'string'
-    && typeof record.updatedAtUtc === 'string';
+  return (
+    record.version === STORAGE_VERSION &&
+    !!record.scope &&
+    typeof record.scope.userId === 'string' &&
+    (record.scope.clientType === 'web' || record.scope.clientType === 'terminal') &&
+    typeof record.scope.warehouseNo === 'number' &&
+    Number.isFinite(record.scope.warehouseNo) &&
+    typeof record.scope.operationCode === 'string' &&
+    !!record.request &&
+    typeof record.request === 'object' &&
+    typeof record.request.clientRequestId === 'string' &&
+    (record.state === 'pending' || record.state === 'needsReview') &&
+    typeof record.createdAtUtc === 'string' &&
+    typeof record.updatedAtUtc === 'string'
+  );
 }

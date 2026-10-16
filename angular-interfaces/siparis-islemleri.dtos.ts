@@ -6,7 +6,7 @@
 import type {
   GreenGrocerProductCaseConfidence,
   GreenGrocerProductCaseConversionMode,
-  GreenGrocerProductCaseInputMode
+  GreenGrocerProductCaseInputMode,
 } from './green-grocer.dtos';
 
 // ============================================================================
@@ -85,6 +85,8 @@ export interface WarehouseOrderBulkPrintHttpRequest {
 }
 
 export interface CreateIssuedWarehouseOrderHttpRequest {
+  clientRequestId?: string;
+  forceCreateNew?: boolean;
   inWarehouseNo?: number;
   outWarehouseNo: number;
   orderDate: string;
@@ -172,6 +174,8 @@ export interface SuggestedWarehouseOrderListHttpRequest {
 }
 
 export interface ConvertSuggestedWarehouseOrderHttpRequest {
+  clientRequestId?: string;
+  forceCreateNew?: boolean;
   targetWarehouseNo?: number;
   sourceWarehouseNo: number;
   orderDate: string;
@@ -207,8 +211,7 @@ export interface GreenGrocerOrderLineSnapshotHttpRequest {
   confidence: GreenGrocerProductCaseConfidence;
 }
 
-export interface WarehouseOrderLineGreenGrocerCaseDto
-  extends GreenGrocerOrderLineSnapshotHttpRequest {
+export interface WarehouseOrderLineGreenGrocerCaseDto extends GreenGrocerOrderLineSnapshotHttpRequest {
   actualShippedQuantity?: number | null;
   actualShippedCaseCount?: number | null;
   status?: string | null;
@@ -305,6 +308,8 @@ export interface IssuedCompanyOrderListHttpRequest {
 }
 
 export interface CreateIssuedCompanyOrderHttpRequest {
+  clientRequestId?: string;
+  forceCreateNew?: boolean;
   warehouseNo?: number;
   customerCode: string;
   orderDate: string;
@@ -404,6 +409,8 @@ export interface SuggestedCompanyOrderListHttpRequest {
 }
 
 export interface ConvertSuggestedCompanyOrderHttpRequest {
+  clientRequestId?: string;
+  forceCreateNew?: boolean;
   warehouseNo?: number;
   supplierCode: string;
   orderDate: string;
