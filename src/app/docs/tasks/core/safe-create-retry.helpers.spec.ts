@@ -254,6 +254,28 @@ describe('classifySafeCreateFailure', () => {
     expect(failure.blocksSubmit).toBeTrue();
     expect(failure.recommendedAction).toBe('WaitAndCheck');
   });
+
+  it('allows correction on pre-write business conflicts', () => {
+    const failure = classifySafeCreateFailure(
+      createConflict('MIKRO_DOCUMENT_IDENTITY_CONFLICT', false, 'EditAndRetry'),
+      'Kayit basarisiz.',
+    );
+
+    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.allowsNewAttempt).toBeTrue();
+    expect(failure.recommendedAction).toBe('EditAndRetry');
+  });
+
+  it('allows list refresh when the referenced order line is already closed', () => {
+    const failure = classifySafeCreateFailure(
+      createConflict('WAREHOUSE_ORDER_LINE_CLOSED', false, 'RefreshList'),
+      'Kayit basarisiz.',
+    );
+
+    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.allowsNewAttempt).toBeTrue();
+    expect(failure.recommendedAction).toBe('RefreshList');
+  });
 });
 
 function createConflict(

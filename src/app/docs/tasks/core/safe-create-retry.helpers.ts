@@ -20,6 +20,11 @@ export type SafeCreateConflictCode =
   | 'MIKRO_WRITE_OUTCOME_UNCONFIRMED'
   | 'MIKRO_DOCUMENT_INCOMPLETE'
   | 'MIKRO_DOCUMENT_CONTENT_MISMATCH'
+  | 'MIKRO_DOCUMENT_IDENTITY_CONFLICT'
+  | 'MIKRO_OFFICIAL_DOCUMENT_ALREADY_RECEIVED'
+  | 'WAREHOUSE_ORDER_LINE_CLOSED'
+  | 'CREATE_REFERENCE_NOT_FOUND'
+  | 'MIKRO_BUSINESS_RULE_REJECTED'
   | 'SAFE_WRITE_RETRY_ALLOWED'
   | 'SAFE_WRITE_CANCELLED'
   | 'CLIENT_REQUEST_PAYLOAD_MISMATCH';
@@ -29,6 +34,8 @@ export type SafeCreateRecommendedAction =
   | 'WaitAndCheck'
   | 'RetrySameRequest'
   | 'RecheckExisting'
+  | 'EditAndRetry'
+  | 'RefreshList'
   | 'RestoreOriginalRequest'
   | 'NeedsReview'
   | 'ClearCancelled';
@@ -96,6 +103,39 @@ export function classifySafeCreateFailure(
       recommendedAction: 'RetrySameRequest',
       blocksSubmit: false,
       allowsNewAttempt: false,
+    };
+  }
+
+  if (
+    recommendedAction === 'EditAndRetry' ||
+    errorCode === 'MIKRO_DOCUMENT_IDENTITY_CONFLICT' ||
+    errorCode === 'CREATE_REFERENCE_NOT_FOUND' ||
+    errorCode === 'MIKRO_BUSINESS_RULE_REJECTED'
+  ) {
+    return {
+      message: `${message} Bilgileri duzeltip yeniden kaydedebilirsiniz.`,
+      errorCode,
+      retryable: false,
+      recoveryState,
+      recommendedAction: 'EditAndRetry',
+      blocksSubmit: false,
+      allowsNewAttempt: true,
+    };
+  }
+
+  if (
+    recommendedAction === 'RefreshList' ||
+    errorCode === 'MIKRO_OFFICIAL_DOCUMENT_ALREADY_RECEIVED' ||
+    errorCode === 'WAREHOUSE_ORDER_LINE_CLOSED'
+  ) {
+    return {
+      message: `${message} Listeyi yenileyip guncel kayitla devam edin.`,
+      errorCode,
+      retryable: false,
+      recoveryState,
+      recommendedAction: 'RefreshList',
+      blocksSubmit: false,
+      allowsNewAttempt: true,
     };
   }
 
@@ -206,7 +246,10 @@ export class SafeCreateRetryDraft<TRequest extends ClientRequestPayload> {
       return;
     }
 
-    if (failure.retryable === true || httpStatus === 409) {
+    if (
+      (failure.retryable === true || httpStatus === 409) &&
+      !failure.allowsNewAttempt
+    ) {
       this.persistence.store.markFailure(this.activeScope, this.clientRequestId, failure);
       return;
     }
