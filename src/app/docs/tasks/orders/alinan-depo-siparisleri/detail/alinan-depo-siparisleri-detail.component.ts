@@ -12,6 +12,7 @@ import { DocsContentPage } from '../../../../models/docs.models';
 import { SiparisTaskDetailBase } from '../../../core/api-detail-page/siparis-task-detail.base';
 import { resolveWarehouseOrderPrintProfile } from './warehouse-order-print-profile';
 import type { WarehouseOrderPrintProfile } from './warehouse-order-print-profile';
+import { buildWarehouseOrderPrintLayout } from './warehouse-order-print-layout';
 
 @Component({
   selector: 'app-alinan-depo-siparisleri-detail',
@@ -83,7 +84,7 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
   <style>${this.buildWarehouseOrderPrintStyles()}</style>
 </head>
 <body>
-  <main class="sheet">
+  <main class="sheet" data-print-sheet>
     <h1>${this.escapeHtml(profile.title)}</h1>
 
     <section class="meta">
@@ -95,6 +96,7 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
     ${this.renderWarehouseOrderRows(items)}
   </main>
+  <script>${this.buildSinglePageFitScript()}</script>
 </body>
 </html>`;
   }
@@ -104,31 +106,54 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
       return '<p class="empty">Siparis kalemi bulunamadi.</p>';
     }
 
-    const rows = items
-      .map(
-        (item, index) => `<tr>
-          <td class="row-number">${index + 1}</td>
-          <td class="product">${this.escapeHtml(item.stockName || '-')}</td>
-          <td class="quantity">${this.escapeHtml(this.formatPrintNumber(item.quantity))}</td>
-        </tr>`
-      )
+    const layout = buildWarehouseOrderPrintLayout(items);
+    const tables = layout.columns
+      .map((column) => {
+        const rows = column.items
+          .map(
+            (item, index) => `<tr>
+              <td class="row-number">${column.startIndex + index + 1}</td>
+              <td class="product">${this.escapeHtml(item.stockName || '-')}</td>
+              <td class="quantity">${this.escapeHtml(this.formatPrintNumber(item.quantity))}</td>
+            </tr>`
+          )
+          .join('');
+
+        return `<table>
+          <colgroup>
+            <col class="col-row-number">
+            <col>
+            <col class="col-quantity">
+          </colgroup>
+          <thead>
+            <tr>
+              <th class="row-number">#</th>
+              <th>Urun Adi</th>
+              <th class="quantity">Miktar</th>
+            </tr>
+          </thead>
+          <tbody>${rows}</tbody>
+        </table>`;
+      })
       .join('');
 
-    return `<table>
-      <colgroup>
-        <col class="col-row-number">
-        <col>
-        <col class="col-quantity">
-      </colgroup>
-      <thead>
-        <tr>
-          <th class="row-number">#</th>
-          <th>Urun Adi</th>
-          <th>Miktar</th>
-        </tr>
-      </thead>
-      <tbody>${rows}</tbody>
-    </table>`;
+    return `<section class="order-grid columns-${layout.columnCount} density-${layout.density}">${tables}</section>`;
+  }
+
+  private buildSinglePageFitScript(): string {
+    return `(() => {
+      const sheet = document.querySelector('[data-print-sheet]');
+      if (!sheet) return;
+      const probe = document.createElement('div');
+      probe.style.cssText = 'position:absolute;visibility:hidden;height:277mm;width:1px;';
+      document.body.appendChild(probe);
+      const availableHeight = probe.getBoundingClientRect().height;
+      probe.remove();
+      const contentHeight = sheet.scrollHeight;
+      if (contentHeight > availableHeight) {
+        sheet.style.zoom = String(availableHeight / contentHeight);
+      }
+    })();`;
   }
 
   private resolveRequesterWarehouseLabel(
@@ -224,7 +249,7 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
     return `
       @page {
         size: A4 portrait;
-        margin: 16mm 20mm;
+        margin: 10mm 12mm;
       }
 
       * {
@@ -241,25 +266,30 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
       }
 
       .sheet {
-        width: 170mm;
-        min-height: 257mm;
+        width: 186mm;
         margin: 0 auto;
-        padding: 12mm 8mm;
+        padding: 7mm;
         background: #fff;
+        transform-origin: top left;
       }
 
       h1 {
-        margin: 0 0 14px;
+        width: 125mm;
+        margin: 0 0 6px;
         text-align: left;
-        font-size: 22px;
+        font-size: 17px;
         line-height: 1.2;
         font-weight: 700;
       }
 
       .meta {
-        margin: 0 0 16px;
-        font-size: 13px;
-        line-height: 1.45;
+        display: grid;
+        grid-template-columns: 1fr 1fr;
+        width: 125mm;
+        gap: 1px 8mm;
+        margin: 0 0 7px;
+        font-size: 9.5px;
+        line-height: 1.25;
       }
 
       .meta p {
@@ -271,41 +301,44 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
       }
 
       table {
-        width: 125mm;
-        max-width: 100%;
+        width: 100%;
         margin: 0;
         border-collapse: collapse;
         table-layout: fixed;
       }
 
       .col-quantity {
-        width: 26mm;
+        width: 18mm;
       }
 
       .col-row-number {
-        width: 10mm;
+        width: 7mm;
+      }
+
+      .order-grid {
+        width: 125mm;
       }
 
       th,
       td {
-        padding: 5px 6px 5px 0;
+        padding: 2.5px 3px 2.5px 0;
         border: 0;
         border-bottom: 1px solid #d1d5db;
         vertical-align: middle;
         text-align: left;
-        font-size: 13px;
-        line-height: 1.25;
+        font-size: 10px;
+        line-height: 1.15;
       }
 
       th {
         padding-top: 0;
         border-bottom: 1.5px solid #111;
-        font-size: 13px;
+        font-size: 9px;
         font-weight: 700;
       }
 
       .quantity {
-        text-align: left;
+        text-align: right;
       }
 
       .row-number {
@@ -316,6 +349,29 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
       .product {
         overflow-wrap: anywhere;
+      }
+
+      .density-compact th,
+      .density-compact td {
+        padding-top: 1.7px;
+        padding-bottom: 1.7px;
+        font-size: 8.5px;
+      }
+
+      .density-dense th,
+      .density-dense td {
+        padding-top: 1px;
+        padding-bottom: 1px;
+        font-size: 7.5px;
+        line-height: 1.08;
+      }
+
+      .density-ultra th,
+      .density-ultra td {
+        padding-top: 0.5px;
+        padding-bottom: 0.5px;
+        font-size: 6.5px;
+        line-height: 1;
       }
 
       .empty {
@@ -330,7 +386,6 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
         .sheet {
           width: auto;
-          min-height: auto;
           margin: 0;
           padding: 0;
         }
