@@ -95,6 +95,7 @@ describe('critical create component behavior', () => {
           ]
         })
       },
+      safeCreateRetry,
       resolveCreateInWarehouseNo: () => 120,
       isGreenGrocerOrder: () => false
     });

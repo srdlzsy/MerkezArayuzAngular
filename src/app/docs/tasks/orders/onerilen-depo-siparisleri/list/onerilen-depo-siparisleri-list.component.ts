@@ -27,6 +27,11 @@ import {
   SafeCreatePendingStore,
   buildSafeCreatePendingScope,
 } from '../../../core/safe-create-pending.store';
+import {
+  CENTRAL_WAREHOUSE_NO,
+  buildPackageQuantityMessage,
+  getPackageQuantityViolation,
+} from '../../warehouse-order-package.rules';
 
 interface SuggestedWarehouseLineState {
   item: SuggestedWarehouseOrderListItemDto;
@@ -282,6 +287,16 @@ export class OnerilenDepoSiparisleriListComponent {
       return;
     }
 
+    const packageError = this.getSelectedPackageQuantityError();
+    if (packageError) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Koli miktari hatali',
+        message: packageError,
+      });
+      return;
+    }
+
     this.isConvertDialogOpen.set(true);
   }
 
@@ -316,6 +331,16 @@ export class OnerilenDepoSiparisleriListComponent {
         tone: 'error',
         title: 'Satir secilmedi',
         message: 'Siparise cevirmek icin en az bir satir secin.',
+      });
+      return;
+    }
+
+    const packageError = this.getSelectedPackageQuantityError();
+    if (packageError) {
+      this.convertFeedback.set({
+        tone: 'error',
+        title: 'Koli miktari hatali',
+        message: packageError,
       });
       return;
     }
@@ -414,7 +439,26 @@ export class OnerilenDepoSiparisleriListComponent {
   }
 
   protected getUnitMultiplier(item: SuggestedWarehouseOrderListItemDto): number {
-    return this.safeNumber(item.unitMultiplier ?? item.packageFactor);
+    const unitMultiplier = this.safeNumber(item.unitMultiplier);
+    return unitMultiplier > 0 ? unitMultiplier : this.safeNumber(item.packageFactor);
+  }
+
+  protected getQuantityStep(item: SuggestedWarehouseOrderListItemDto): number {
+    const packageFactor = this.getUnitMultiplier(item);
+    return this.isCentralWarehouseSelected() && packageFactor > 1 ? packageFactor : 0.01;
+  }
+
+  protected getPackageQuantityWarning(line: SuggestedWarehouseLineState): string {
+    if (!this.isCentralWarehouseSelected()) {
+      return '';
+    }
+
+    const violation = getPackageQuantityViolation(
+      this.safeNumber(line.quantity),
+      this.getUnitMultiplier(line.item),
+    );
+
+    return violation ? buildPackageQuantityMessage(violation) : '';
   }
 
   protected readonly trackByLine = (_index: number, line: SuggestedWarehouseLineState): string =>
@@ -461,6 +505,29 @@ export class OnerilenDepoSiparisleriListComponent {
 
   private safeNumber(value: number | null | undefined): number {
     return typeof value === 'number' && Number.isFinite(value) ? value : 0;
+  }
+
+  private isCentralWarehouseSelected(): boolean {
+    return Number(this.filterForm.controls.sourceWarehouseNo.value) === CENTRAL_WAREHOUSE_NO;
+  }
+
+  private getSelectedPackageQuantityError(): string | null {
+    if (!this.isCentralWarehouseSelected()) {
+      return null;
+    }
+
+    for (const line of this.selectedLines()) {
+      const violation = getPackageQuantityViolation(
+        this.safeNumber(line.quantity),
+        this.getUnitMultiplier(line.item),
+      );
+
+      if (violation) {
+        return `${line.item.stockCode}: ${buildPackageQuantityMessage(violation)}`;
+      }
+    }
+
+    return null;
   }
 
   private normalizeSourceWarehouses(

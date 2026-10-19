@@ -194,10 +194,13 @@
                     class="quantity-input"
                     type="number"
                     min="0"
-                    step="0.01"
+                    [step]="getQuantityStep(line.item)"
                     [value]="line.quantity"
                     (input)="updateQuantity(line.item.stockCode, $any($event.target).value)"
                   />
+                  <small class="warning-text" *ngIf="getPackageQuantityWarning(line)">
+                    {{ getPackageQuantityWarning(line) }}
+                  </small>
                 </td>
               </tr>
             </tbody>

@@ -40,6 +40,11 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo,
 } from '../../../core/admin-warehouse.helpers';
+import {
+  CENTRAL_WAREHOUSE_NO,
+  buildPackageQuantityMessage,
+  getPackageQuantityViolation,
+} from '../../warehouse-order-package.rules';
 
 const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58]);
 const STOCK_SEARCH_TAKE = 150;
@@ -353,7 +358,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     );
 
     if (existingControl) {
-      const step = stock.unitMultiplier ?? existingControl.controls.birimKatsayisi.value ?? 1;
+      const step =
+        this.normalizePositiveNumber(stock.secondaryUnitMultiplier) ??
+        this.normalizePositiveNumber(stock.unitMultiplier) ??
+        this.normalizePositiveNumber(existingControl.controls.birimKatsayisi.value) ??
+        1;
       const current = Number(existingControl.controls.siparisMiktari.value ?? 0);
       existingControl.controls.siparisMiktari.setValue(current + step);
       existingControl.controls.siparisMiktari.markAsDirty();
@@ -556,6 +565,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     if (this.kalemler.length > 0 && this.getPositiveOrderLineCount() === 0) {
       this.stockError.set('Siparise cevrilecek en az bir kalemde miktar 0dan buyuk olmalidir.');
+      return;
+    }
+
+    if (!this.validateCentralWarehousePackageQuantities()) {
       return;
     }
 
@@ -763,23 +776,9 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
     const quantity = Number(control.controls.siparisMiktari.value ?? 0);
     const unitName = control.controls.birim.value.trim() || 'birim';
+    const violation = getPackageQuantityViolation(quantity, packageFactor);
 
-    if (
-      !Number.isFinite(packageFactor) ||
-      packageFactor <= 1 ||
-      !Number.isFinite(quantity) ||
-      quantity <= 0
-    ) {
-      return '';
-    }
-
-    const ratio = quantity / packageFactor;
-
-    if (Math.abs(ratio - Math.round(ratio)) < 0.0001) {
-      return '';
-    }
-
-    return `Koli ici ${this.formatQuantity(packageFactor)} ${unitName}. Girilen miktar koli kati degil.`;
+    return violation ? buildPackageQuantityMessage(violation, unitName) : '';
   }
 
   protected applyPackageQuantity(control: KalemFormGroup): void {
@@ -905,6 +904,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   private createKalemFormGroup(stock: IFurpaProductSearchItemApiDto): KalemFormGroup {
+    const packageFactor = this.normalizePositiveNumber(stock.secondaryUnitMultiplier ?? null);
+    const isCentralWarehouseOrder =
+      this.selectedWarehouse()?.sourceWarehouseNo === CENTRAL_WAREHOUSE_NO;
+    const initialQuantity =
+      isCentralWarehouseOrder && packageFactor && packageFactor > 1 ? packageFactor : 1;
+
     return new FormGroup({
       stokKodu: new FormControl(stock.stockCode?.trim() ?? '', {
         nonNullable: true,
@@ -915,12 +920,13 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       birim: new FormControl(stock.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
       ikinciBirim: new FormControl(stock.secondaryUnitName?.trim() ?? '', { nonNullable: true }),
-      koliKatsayisi: new FormControl<number | null>(
-        this.normalizePositiveNumber(stock.secondaryUnitMultiplier ?? null),
-      ),
+      koliKatsayisi: new FormControl<number | null>(packageFactor),
       koliBarkodu: new FormControl('', { nonNullable: true }),
-      koliMiktari: new FormControl<number | null>(null, { validators: [Validators.min(0)] }),
-      siparisMiktari: new FormControl<number | null>(1, {
+      koliMiktari: new FormControl<number | null>(
+        isCentralWarehouseOrder && packageFactor && packageFactor > 1 ? 1 : null,
+        { validators: [Validators.min(0)] },
+      ),
+      siparisMiktari: new FormControl<number | null>(initialQuantity, {
         validators: [Validators.required, Validators.min(0.01)],
       }),
       cozumMiktari: new FormControl<number | null>(null),
@@ -1127,6 +1133,32 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       this.stockError.set(
         failedLine.controls.cozumHata.value || 'Kaynak depo urunu cozumlemesi hatali kalem var.',
       );
+      return false;
+    }
+
+    return true;
+  }
+
+  private validateCentralWarehousePackageQuantities(): boolean {
+    if (this.selectedWarehouse()?.sourceWarehouseNo !== CENTRAL_WAREHOUSE_NO) {
+      return true;
+    }
+
+    for (const control of this.kalemler.controls) {
+      const quantity = this.resolveLineOrderQuantity(control.getRawValue());
+      const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+      const violation = getPackageQuantityViolation(quantity, packageFactor);
+
+      if (!violation) {
+        continue;
+      }
+
+      const stockCode = control.controls.stokKodu.value.trim();
+      const unitName = control.controls.birim.value.trim() || 'birim';
+      this.stockError.set(
+        `${stockCode}: ${buildPackageQuantityMessage(violation, unitName)}`,
+      );
+      control.controls.siparisMiktari.markAsTouched();
       return false;
     }
 
