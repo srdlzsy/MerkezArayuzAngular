@@ -56,6 +56,7 @@ import {
   type SendInvoiceDocumentsResponseDto
 } from '../../../../../core/api/module-services/fatura-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { DocumentPrintService } from '../../../core/document-print/document-print.service';
 import { PdfPrintService } from '../../../core/document-print/pdf-print.service';
 
 type WorkspaceMode = 'viewing' | 'sending';
@@ -174,6 +175,7 @@ export class FaturaIslemleriListComponent {
   private readonly sanitizer = inject(DomSanitizer);
   private readonly authService = inject(AuthService);
   private readonly faturaIslemleriService = inject(FaturaIslemleriService);
+  private readonly documentPrintService = inject(DocumentPrintService);
   private readonly pdfPrintService = inject(PdfPrintService);
   private readonly previewObjectUrlCache = new Map<string, string>();
   private readonly previewResourceUrlCache = new Map<string, SafeResourceUrl>();
@@ -2095,6 +2097,38 @@ export class FaturaIslemleriListComponent {
     this.previewResourceUrlCache.set(normalizedHtml, resourceUrl);
 
     return resourceUrl;
+  }
+
+  protected printSendingHtmlPreview(): void {
+    const htmlContent = this.sendingDetail()?.document.htmlContent?.trim();
+
+    if (!htmlContent) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirilacak onizleme yok',
+        message: 'Faturayi yazdirmadan once HTML onizlemenin yuklenmesini bekleyin.'
+      });
+      return;
+    }
+
+    const opened = this.documentPrintService.printHtml({
+      markup: htmlContent,
+      printDelayMs: 400
+    });
+
+    this.feedback.set(
+      opened
+        ? {
+            tone: 'info',
+            title: 'Yazdirma hazir',
+            message: 'Fatura onizlemesi yazdirma penceresinde acildi.'
+          }
+        : {
+            tone: 'error',
+            title: 'Yazdirma penceresi acilamadi',
+            message: 'Tarayicida bu site icin acilir pencereye izin verip tekrar deneyin.'
+          }
+    );
   }
 
   protected getSelectedViewingSearchOption(): ViewingSearchFieldOption | null {
