@@ -1950,13 +1950,16 @@ Mevcut font olcekleri:
 
 | Alan | Font |
 |---|---:|
-| Stok adi | `10pt` |
-| Tedarikci, barkod metni, tarih | `7pt` |
-| Meta chip | `0.72rem` ekran temelinde, printte dar alana sigacak sekilde |
+| Stok adi | `8.5pt`, en fazla iki satir |
+| Tedarikci | `6.3pt`, tek satir |
+| Barkod metni | `6pt` |
+| Tarih | `5.8pt` |
+| Meta baslik/deger | `4.7pt` / `6.6pt` |
 
 Bu etiketin hedefi guzel gorunmekten once hizli ve hatasiz okutulmaktir. Bu
-yuzden alanlar buyutulurken barkod slotu ve fiziksel `57.9mm x 38.9mm` kutu
-asla buyutulmamali; gerekirse uzun metin kesilmelidir.
+yuzden alanlar buyutulurken `60mm x 40mm` fiziksel sayfa ve sayfa icindeki
+`57.9mm x 38.9mm` guvenli tasarim alani asilmamali; gerekirse uzun metin
+kesilmelidir.
 
 ### 23.3. Gizli print root
 
@@ -2024,28 +2027,29 @@ Bu etiket A4 veya A5 degildir. Ozel rulo etikettir.
 
 | Ozellik | Deger |
 |---|---|
-| `@page` | `57.9mm 38.9mm` |
+| `@page` | `60mm 40mm` |
 | Margin | `0` |
 | Sayfa basina etiket | `1` |
-| Dis etiket kutusu | `57.9mm x 38.9mm` |
+| Dis etiket kutusu | `60mm x 40mm` |
 | Ic tasarim alani | `57.9mm x 38.9mm` |
-| Ic padding | `2.1mm` |
+| Ic padding | Ust/yatay/alt `1.2mm / 1.5mm / 1mm` |
 | Icerik yonu | Duz yatay, `transform: none` |
 | Rulo akisi | Etiketler alt alta, asagi dogru |
 | Yazim modu | `horizontal-tb` |
 
-Kagit rulo uzerinde asagi dogru ilerler. Her etiket kendi fiziksel sayfasinda
-duz yatay `57.9mm x 38.9mm` alana basilir; icerik ayrica dondurulmez:
+Kagit rulo uzerinde asagi dogru ilerler. Her etiket kendi `60mm x 40mm`
+fiziksel sayfasinda, ortalanmis `57.9mm x 38.9mm` guvenli alana basilir;
+icerik ayrica dondurulmez:
 
 ```css
 @page {
-  size: 57.9mm 38.9mm;
+  size: 60mm 40mm;
   margin: 0;
 }
 
 .print-label {
-  width: 57.9mm;
-  height: 38.9mm;
+  width: 60mm;
+  height: 40mm;
   margin: 0;
   padding: 0;
   overflow: hidden;
@@ -2057,7 +2061,7 @@ duz yatay `57.9mm x 38.9mm` alana basilir; icerik ayrica dondurulmez:
   width: 57.9mm;
   height: 38.9mm;
   box-sizing: border-box;
-  padding: 2.1mm;
+  padding: 1.2mm 1.5mm 1mm;
   transform: none;
   transform-origin: initial;
   writing-mode: horizontal-tb;
@@ -2106,8 +2110,8 @@ Baski root'u:
   position: absolute !important;
   top: 0 !important;
   left: 0 !important;
-  width: 57.9mm !important;
-  min-width: 57.9mm !important;
+  width: 60mm !important;
+  min-width: 60mm !important;
   display: flex !important;
   flex-direction: column !important;
   align-items: flex-start !important;
@@ -2141,11 +2145,11 @@ marginTop: 2
 Fiziksel baski barkodu:
 
 ```text
-barWidth: 1
-barHeight: 28
-fontSize: 8
-marginX: 2
-marginTop: 1
+barWidth: 1.15
+barHeight: 36
+fontSize: 0
+marginX: 1
+marginTop: 0
 ```
 
 SCSS tarafinda barkod icin minimum yukseklik korunur:
@@ -2184,14 +2188,14 @@ kalabilir veya tekrar yazdirmada eski style yeni baskiya karisabilir.
 Fiziksel yazicida kagit boyutu da uygulamadaki olcuyle ayni tanimli olmalidir:
 
 ```text
-57.9mm x 38.9mm
+60mm x 40mm
 ```
 
 Tarayici/yazici ayarlari:
 
 | Ayar | Deger |
 |---|---|
-| Kagit boyutu | `57.9 x 38.9 mm` ozel boyut |
+| Kagit boyutu | `60 x 40 mm` ozel boyut |
 | Olcek | `%100` |
 | Kenar boslugu | Yok |
 | Sayfa basina | 1 |
@@ -2211,27 +2215,28 @@ tasarlanmamıştır. Özel ölçülü, dikey ilerleyen rulo etikete basılır.
 
 | Özellik | Değer |
 |---|---|
-| Yazıcı kağıt ölçüsü | `57,9 mm × 38,9 mm` |
-| `@page` ölçüsü | `57.9mm 38.9mm` |
+| Yazıcı kağıt ölçüsü | `60 mm × 40 mm` |
+| `@page` ölçüsü | `60mm 40mm` |
 | Sayfa kenar boşluğu | `0` |
 | Bir sayfadaki etiket | `1` |
-| Etiket dış kutusu | `57,9 mm × 38,9 mm` |
+| Etiket dış kutusu | `60 mm × 40 mm` |
 | İçerik tasarım alanı | `57,9 mm × 38,9 mm` |
-| İç boşluk | `2,1 mm` |
+| İç boşluk | Üst/yatay/alt `1,2 mm / 1,5 mm / 1 mm` |
 | Baskı yönü | Düz yatay; içerik döndürülmez |
 
-Rulo akışı aşağı doğrudur. Her etiket `57.9mm x 38.9mm` yatay sayfa olarak
-basılır ve kopyalar alt alta ilerler:
+Rulo akışı aşağı doğrudur. Her etiket `60mm x 40mm` yatay sayfa olarak basılır;
+`57.9mm x 38.9mm` güvenli tasarım alanı sayfada ortalanır ve kopyalar alt alta
+ilerler:
 
 ```css
 @page {
-  size: 57.9mm 38.9mm;
+  size: 60mm 40mm;
   margin: 0;
 }
 
 .print-label {
-  width: 57.9mm;
-  height: 38.9mm;
+  width: 60mm;
+  height: 40mm;
   overflow: hidden;
   break-after: page;
 }
@@ -2239,7 +2244,7 @@ basılır ve kopyalar alt alta ilerler:
 .print-label-content {
   width: 57.9mm;
   height: 38.9mm;
-  padding: 2.1mm;
+  padding: 1.2mm 1.5mm 1mm;
   transform: none;
   transform-origin: initial;
 }
@@ -2280,11 +2285,11 @@ labelBarcode
 Barkod SVG olarak, baskıdan hemen önce yeniden üretilir. Baskı ayarları:
 
 ```text
-barWidth: 1
-barHeight: 28
-fontSize: 8
-marginX: 2
-marginTop: 1
+barWidth: 1.15
+barHeight: 36
+fontSize: 0
+marginX: 1
+marginTop: 0
 ```
 
 `barcodeSymbology` API response'unda taşınır. Barkodun asıl değeri ve kontrol
@@ -2300,7 +2305,7 @@ hanesi backend tarafından hazırlanır; UI bu değeri değiştirmeden görselle
 
 ### Yazıcı ayarı
 
-Fiziksel çıktıda yazıcı sürücüsünde de özel kağıt boyutu `57,9 × 38,9 mm`
+Fiziksel çıktıda yazıcı sürücüsünde de özel kağıt boyutu `60 × 40 mm`
 tanımlı olmalıdır. Ölçek `%100`, kenar boşluğu `Yok` olmalıdır. Sürücü ayrıca
 sayfayı döndürürse içerik ikinci kez döneceği için otomatik yönlendirme veya
 otomatik döndürme kapatılmalıdır.
@@ -2371,7 +2376,7 @@ Güncel fiziksel sözleşmeler:
 | Manav künye | `A4 portrait`, sheet `198 x 285 mm` | 2 adet `190 x 133 mm` etiket |
 | Standart künye | `A4 portrait`, sheet `198 x 285 mm` | 4 adet `90 x 106 mm` etiket |
 | Ayın ürünü | component sheet `210 x 148 mm` | İki adet `%49.5` kolon |
-| Argox rulo | `57.9 x 38.9 mm` | Tek etiket, `transform: none` |
+| Argox rulo | `60 x 40 mm`, güvenli alan `57.9 x 38.9 mm` | Tek etiket, `transform: none` |
 
 Yeni kritik tasarım eklenince yalnız CSS dosyasını eklemek yeterli değildir;
 `check-print-layouts.mjs` içine ölçü sözleşmesi de eklenmelidir.
@@ -2434,7 +2439,7 @@ Her şube/yazıcı için kaydedilecek bilgiler:
 | Şube/depo | `120 - Yunuseli` |
 | Yazıcı | `Canon LBP6030/6040`, `Konica Minolta 367S`, `Argox OS-2140 PPLA` |
 | Sürücü ve sürüm | Windows yazıcı özelliklerinden |
-| Kağıt | A4, A5 veya `57.9 x 38.9 mm` özel boyut |
+| Kağıt | A4, A5 veya `60 x 40 mm` özel boyut |
 | Tepsi/besleme | Kaset, bypass veya rulo |
 | Yön | Dikey/yatay; otomatik döndürme açık mı? |
 | Ölçek | `%100` veya Varsayılan |

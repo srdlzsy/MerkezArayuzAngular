@@ -158,18 +158,19 @@ describe('SafeCreateRetryDraft', () => {
 });
 
 describe('classifySafeCreateFailure', () => {
-  it('allows a safe retry for an unconfirmed Mikro write', () => {
+  it('waits for readback instead of retrying an unconfirmed Mikro write', () => {
     const failure = classifySafeCreateFailure(
       createConflict('MIKRO_WRITE_OUTCOME_UNCONFIRMED', true),
       'Kayit basarisiz.',
     );
 
     expect(failure.retryable).toBeTrue();
-    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.recommendedAction).toBe('WaitAndCheck');
     expect(failure.allowsNewAttempt).toBeFalse();
   });
 
-  it('allows the queued warehouse shipment to retry with the same request identity', () => {
+  it('keeps a queued warehouse shipment in status-check mode', () => {
     const failure = classifySafeCreateFailure(
       createConflict('MIKRO_WRITE_QUEUE_BUSY', true),
       'Sevk kaydi basarisiz.',
@@ -177,10 +178,21 @@ describe('classifySafeCreateFailure', () => {
 
     expect(failure.errorCode).toBe('MIKRO_WRITE_QUEUE_BUSY');
     expect(failure.retryable).toBeTrue();
-    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.recommendedAction).toBe('WaitAndCheck');
     expect(failure.allowsNewAttempt).toBeFalse();
-    expect(failure.message).toContain('Mikro yazimi henuz baslamadi');
-    expect(failure.message).toContain('ayni istek kimligiyle');
+    expect(failure.message).toContain('yeniden gonderim yapilmayacak');
+  });
+
+  it('allows the exact stored request only after explicit backend approval', () => {
+    const failure = classifySafeCreateFailure(
+      createConflict('SAFE_WRITE_RETRY_ALLOWED', true, 'RetrySameRequest'),
+      'Kayit basarisiz.',
+    );
+
+    expect(failure.retryable).toBeTrue();
+    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.recommendedAction).toBe('RetrySameRequest');
   });
 
   it('blocks retry when the Mikro document content differs', () => {
@@ -190,6 +202,7 @@ describe('classifySafeCreateFailure', () => {
     );
 
     expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.recommendedAction).toBe('RecheckExisting');
     expect(failure.allowsNewAttempt).toBeFalse();
     expect(failure.message).toContain('Yetkili incelemesi');
   });
@@ -201,6 +214,7 @@ describe('classifySafeCreateFailure', () => {
     );
 
     expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.recommendedAction).toBe('RestoreOriginalRequest');
     expect(failure.allowsNewAttempt).toBeFalse();
     expect(failure.message).toContain('uzlastirilmadan yeni islem acilamaz');
   });
@@ -237,17 +251,23 @@ describe('classifySafeCreateFailure', () => {
     );
 
     expect(failure.retryable).toBeTrue();
-    expect(failure.blocksSubmit).toBeFalse();
+    expect(failure.blocksSubmit).toBeTrue();
+    expect(failure.recommendedAction).toBe('WaitAndCheck');
   });
 });
 
-function createConflict(errorCode: string, retryable: boolean): HttpErrorResponse {
+function createConflict(
+  errorCode: string,
+  retryable: boolean,
+  recommendedAction?: string,
+): HttpErrorResponse {
   return new HttpErrorResponse({
     status: 409,
     error: {
       detail: 'Create istegi tamamlanamadi.',
       errorCode,
       retryable,
+      recommendedAction,
     },
   });
 }

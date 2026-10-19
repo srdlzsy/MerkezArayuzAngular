@@ -32,6 +32,9 @@ import type {
   SaveB2BBulletinHttpRequest,
   SafeWriteMonitoringItemDto,
   SafeWriteMonitoringListHttpRequest,
+  SafeWriteReviewAuditDto,
+  SafeWriteReviewHttpRequest,
+  SafeWriteReviewResultDto,
   MonitoringOverviewDto,
   TerminalInstallationDto,
   TerminalInstallationListHttpRequest,
@@ -178,6 +181,42 @@ export class AyarIslemleriService extends BaseApiService {
         includeCompleted: request.includeCompleted ?? false,
         take: request.take ?? 100
       }
+    );
+  }
+
+  getSafeWriteReviewHistory(id: string): Observable<SafeWriteReviewAuditDto[]> {
+    return this.get<SafeWriteReviewAuditDto[]>(
+      `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/inceleme-gecmisi`
+    );
+  }
+
+  recheckSafeWrite(
+    id: string,
+    request: SafeWriteReviewHttpRequest
+  ): Observable<SafeWriteReviewResultDto> {
+    return this.post<SafeWriteReviewResultDto, SafeWriteReviewHttpRequest>(
+      `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/yeniden-dogrula`,
+      request
+    );
+  }
+
+  reopenSafeWrite(
+    id: string,
+    request: SafeWriteReviewHttpRequest
+  ): Observable<SafeWriteReviewResultDto> {
+    return this.post<SafeWriteReviewResultDto, SafeWriteReviewHttpRequest>(
+      `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/tekrar-ac`,
+      request
+    );
+  }
+
+  cancelSafeWrite(
+    id: string,
+    request: SafeWriteReviewHttpRequest
+  ): Observable<SafeWriteReviewResultDto> {
+    return this.post<SafeWriteReviewResultDto, SafeWriteReviewHttpRequest>(
+      `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/iptal`,
+      request
     );
   }
 

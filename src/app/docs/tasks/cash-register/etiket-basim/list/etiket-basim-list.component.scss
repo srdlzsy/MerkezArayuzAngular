@@ -1348,10 +1348,12 @@ input:disabled {
 }
 
 .print-label {
-  width: 57.9mm;
-  height: 38.9mm;
+  width: 60mm;
+  height: 40mm;
   box-sizing: border-box;
   padding: 0;
+  display: grid;
+  place-items: center;
   overflow: hidden;
   break-after: page;
   page-break-after: always;
@@ -1361,57 +1363,127 @@ input:disabled {
   width: 57.9mm;
   height: 38.9mm;
   box-sizing: border-box;
-  padding: 2.1mm;
+  padding: 1.2mm 1.5mm 1mm;
   display: grid;
-  grid-template-rows: auto auto auto minmax(12mm, 1fr) auto auto;
-  align-content: start;
-  gap: 0.7mm;
+  grid-template-rows: minmax(5.4mm, auto) 3.2mm 6.4mm minmax(13mm, 1fr) 2.6mm;
+  align-content: stretch;
+  gap: 0.35mm;
+  overflow: hidden;
+  border: 0.25mm solid #111;
+  font-family: Arial, Helvetica, sans-serif;
   transform: none;
   transform-origin: initial;
 }
 
-.print-label strong {
-  font-size: 10pt;
-  font-weight: 800;
-  line-height: 1.05;
-}
-
-.print-label span,
-.print-label small {
-  font-size: 7pt;
-  line-height: 1.05;
-}
-
-.print-label .barcode-svg {
-  justify-self: center;
-  align-self: center;
-  width: 42mm;
-  min-height: 12mm;
-}
-
-.print-label .print-label-meta {
-  flex-wrap: nowrap;
-  gap: 1mm;
+.print-label-header {
   min-width: 0;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  align-items: start;
+  gap: 1mm;
   overflow: hidden;
 }
 
-.print-label .print-label-meta b {
-  min-width: 0;
-  border-radius: 2px;
-  font-size: 6.5pt;
+.print-label-header strong {
+  max-height: 7.6mm;
+  overflow: hidden;
+  font-size: 8.5pt;
+  font-weight: 900;
+  line-height: 1.08;
+  text-transform: uppercase;
+  overflow-wrap: anywhere;
+}
+
+.print-label-header time {
+  padding-top: 0.25mm;
+  font-size: 5.8pt;
+  font-weight: 700;
   line-height: 1;
   white-space: nowrap;
 }
 
-.print-label small {
-  justify-self: center;
+.print-label-supplier {
+  min-width: 0;
+  overflow: hidden;
+  font-size: 6.3pt;
+  font-weight: 700;
+  line-height: 1.05;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
 }
 
-.print-label em {
-  justify-self: end;
-  font-size: 6.5pt;
+.print-label .print-label-meta {
+  min-width: 0;
+  display: grid;
+  grid-template-columns: 1fr 1.1fr 0.9fr;
+  gap: 0;
+  overflow: hidden;
+  border-top: 0.2mm solid #333;
+  border-bottom: 0.2mm solid #333;
+}
+
+.print-label .print-label-meta > span {
+  min-width: 0;
+  padding: 0.5mm 0.6mm 0.35mm;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+  text-align: center;
+}
+
+.print-label .print-label-meta > span + span {
+  border-left: 0.2mm solid #555;
+}
+
+.print-label .print-label-meta small {
+  overflow: hidden;
+  font-size: 4.7pt;
+  font-weight: 700;
   line-height: 1;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.print-label .print-label-meta b {
+  max-width: 100%;
+  margin-top: 0.35mm;
+  overflow: hidden;
+  font-size: 6.6pt;
+  font-weight: 900;
+  line-height: 1;
+  text-overflow: ellipsis;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.print-label-barcode {
+  min-width: 0;
+  min-height: 0;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  overflow: hidden;
+}
+
+.print-label .barcode-svg {
+  width: 49mm;
+  height: 12.5mm;
+  min-height: 0;
+  display: block;
+}
+
+.print-label-code {
+  justify-self: center;
+  overflow: hidden;
+  font-size: 6pt;
+  font-weight: 700;
+  line-height: 1;
+  letter-spacing: 0.15mm;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 @media (max-width: 1180px) {

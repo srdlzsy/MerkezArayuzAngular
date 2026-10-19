@@ -2,7 +2,7 @@
   <article class="etiket-basim-screen surface-card">
     <header class="page-head">
       <div class="title-block">
-        <span>Kasa Islemleri</span>
+        <span>Kasa İşlemleri</span>
         <h2>{{ current.title }}</h2>
       </div>
 
@@ -35,17 +35,17 @@
       <article>
         <span>1</span>
         <strong>Gelen Fatura</strong>
-        <small>{{ incomingInvoiceSummary().ready }} hazir / {{ incomingInvoiceSummary().total }} belge</small>
+        <small>{{ incomingInvoiceSummary().ready }} hazır / {{ incomingInvoiceSummary().total }} belge</small>
       </article>
       <article>
         <span>2</span>
-        <strong>Tartim ve Etiket</strong>
-        <small>{{ listSummary().waiting }} bekleyen kayit</small>
+        <strong>Tartım ve Etiket</strong>
+        <small>{{ listSummary().waiting }} bekleyen kayıt</small>
       </article>
       <article>
         <span>3</span>
         <strong>Mikro Kontrol</strong>
-        <small>{{ listSummary().transferred }} aktarilan</small>
+        <small>{{ listSummary().transferred }} aktarılan</small>
       </article>
       <article>
         <span>4</span>
@@ -81,7 +81,7 @@
             />
           </label>
           <label class="field search-field">
-            <span>Tedarikci</span>
+            <span>Tedarikçi</span>
             <input
               type="search"
               placeholder="Mikro cari ara"
@@ -129,7 +129,7 @@
             (click)="loadInvoiceDetailByEttn()"
             [disabled]="isInvoiceDetailLoading() || !invoiceEttn.trim() || !canDetail()"
           >
-            {{ isInvoiceDetailLoading() ? 'Yukleniyor...' : 'ETTN Getir' }}
+            {{ isInvoiceDetailLoading() ? 'Yükleniyor...' : 'ETTN Getir' }}
           </button>
           <button
             type="button"
@@ -137,7 +137,7 @@
             (click)="loadIncomingInvoices()"
             [disabled]="isIncomingInvoiceLoading() || !canList()"
           >
-            {{ isIncomingInvoiceLoading() ? 'Yukleniyor...' : 'Faturalari Getir' }}
+            {{ isIncomingInvoiceLoading() ? 'Yükleniyor...' : 'Faturaları Getir' }}
           </button>
           <button
             type="button"
@@ -261,7 +261,7 @@
         <div class="panel-head compact">
           <div class="title-block">
             <span>Fatura Kalemleri</span>
-            <h3>{{ invoiceLineSummary().matched }} hazir / {{ invoiceLineSummary().total }} satir</h3>
+            <h3>{{ invoiceLineSummary().matched }} hazır / {{ invoiceLineSummary().total }} satır</h3>
           </div>
           <button
             type="button"
@@ -269,7 +269,7 @@
             (click)="loadSelectedInvoiceDetail()"
             [disabled]="isInvoiceDetailLoading() || !selectedIncomingInvoice()"
           >
-            {{ isInvoiceDetailLoading() ? 'Yukleniyor...' : 'Kalemleri Yenile' }}
+            {{ isInvoiceDetailLoading() ? 'Yükleniyor...' : 'Kalemleri Yenile' }}
           </button>
         </div>
 
@@ -282,7 +282,7 @@
             <thead>
               <tr>
                 <th>#</th>
-                <th>Fatura Urunu</th>
+                <th>Fatura Ürünü</th>
                 <th>Miktar</th>
                 <th>Fiyat</th>
                 <th>KDV</th>
@@ -297,7 +297,7 @@
                 (click)="selectInvoiceLine(line)"
               >
                 <td data-label="#">{{ i + 1 }}</td>
-                <td data-label="Fatura Urunu">
+                <td data-label="Fatura Ürünü">
                   <strong>{{ line.stockName || '-' }}</strong>
                   <span>{{ line.stockCode || '-' }} / {{ line.barcode || '-' }}</span>
                 </td>
@@ -328,7 +328,7 @@
         <ng-template #emptyInvoiceLines>
           <article class="empty-state compact-empty">
             <strong>Fatura kalemi yok</strong>
-            <span>Bu belge icin detay kalemi gelmedi.</span>
+            <span>Bu belge için detay kalemi gelmedi.</span>
           </article>
         </ng-template>
       </section>
@@ -375,7 +375,7 @@
           <div class="entry-caption">
             <strong>{{ draftModeLabel() }}</strong>
             <span>
-              {{ selectedIncomingInvoice() ? 'Fatura uzerinden' : 'Manuel taslak' }} /
+              {{ selectedIncomingInvoice() ? 'Fatura üzerinden' : 'Manuel taslak' }} /
               {{ selectedRecordLabel() }}
             </span>
           </div>
@@ -393,7 +393,7 @@
               <input type="text" [(ngModel)]="draft.supplierCode" (ngModelChange)="onDraftTextChange()" />
             </label>
             <label class="field field-wide">
-              <span>Tedarikci Firma</span>
+              <span>Tedarikçi Firma</span>
               <input type="text" [(ngModel)]="draft.supplierName" (ngModelChange)="onDraftTextChange()" />
             </label>
             <label class="field">
@@ -410,7 +410,7 @@
             </label>
 
             <label class="field field-wide">
-              <span>Stok Adi</span>
+              <span>Stok Adı</span>
               <input type="text" [(ngModel)]="draft.stockName" (ngModelChange)="onDraftTextChange()" />
             </label>
             <label class="field field-small">
@@ -431,15 +431,15 @@
               <input type="number" step="0.01" [ngModel]="draft.grossWeight" (ngModelChange)="onDraftNumberChange('grossWeight', $event)" />
             </label>
             <label class="field field-small">
-              <span>Kasa Sayisi</span>
+              <span>Kasa Sayısı</span>
               <input type="number" min="1" step="1" [ngModel]="draft.caseCount" (ngModelChange)="onDraftNumberChange('caseCount', $event)" />
             </label>
             <label class="field field-small">
-              <span>Kasa Darasi</span>
+              <span>Kasa Darası</span>
               <input type="number" step="0.01" [ngModel]="draft.caseTare" (ngModelChange)="onDraftNumberChange('caseTare', $event)" />
             </label>
             <label class="field field-small">
-              <span>Palet Darasi</span>
+              <span>Palet Darası</span>
               <input type="number" step="0.01" [ngModel]="draft.palletTare" (ngModelChange)="onDraftNumberChange('palletTare', $event)" />
             </label>
             <label class="field">
@@ -454,22 +454,22 @@
 
           <div class="entry-search">
             <label class="field">
-              <span>Tedarikci Ara</span>
+              <span>Tedarikçi Ara</span>
               <input type="search" placeholder="Kod veya ad" [(ngModel)]="supplierQuery" (keydown.enter)="searchSuppliers()" />
             </label>
             <button type="button" class="task-action" (click)="searchSuppliers()" [disabled]="isSupplierSearching()">
-              {{ isSupplierSearching() ? 'Araniyor...' : 'Firma Ara' }}
+              {{ isSupplierSearching() ? 'Aranıyor...' : 'Firma Ara' }}
             </button>
             <label class="field">
               <span>Stok Ara</span>
-              <input type="search" placeholder="Stok adi, kodu veya barkod" [(ngModel)]="stockQuery" (keydown.enter)="searchStocks()" />
+              <input type="search" placeholder="Stok adı, kodu veya barkod" [(ngModel)]="stockQuery" (keydown.enter)="searchStocks()" />
             </label>
             <label class="field prefix-field">
               <span>Prefix</span>
               <input type="text" [(ngModel)]="stockPrefix" />
             </label>
             <button type="button" class="task-action" (click)="searchStocks()" [disabled]="isStockSearching()">
-              {{ isStockSearching() ? 'Araniyor...' : 'Stok Ara' }}
+              {{ isStockSearching() ? 'Aranıyor...' : 'Stok Ara' }}
             </button>
           </div>
 
@@ -511,23 +511,23 @@
                 <span></span>
               </div>
               <small>{{ calculation()?.labelBarcode || draft.stockBarcode || '000000' }}</small>
-              <em>Kayit No: {{ selectedRecord()?.id || '-' }}</em>
+              <em>Kayıt No: {{ selectedRecord()?.id || '-' }}</em>
             </div>
           </div>
         </section>
 
         <aside class="operation-actions">
           <button type="button" class="task-action" (click)="startNewRecord()" [disabled]="!canCreate()">
-            Yeni Kayit
+            Yeni Kayıt
           </button>
           <button type="button" class="task-action task-action-primary" (click)="saveDraft()" [disabled]="!canSaveDraft()">
             {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
           </button>
           <button type="button" class="task-action" (click)="calculateDraft()" [disabled]="isCalculating()">
-            {{ isCalculating() ? 'Hesaplaniyor...' : 'Hesapla' }}
+            {{ isCalculating() ? 'Hesaplanıyor...' : 'Hesapla' }}
           </button>
           <button type="button" class="task-action" (click)="printCurrentLabel()" [disabled]="isLabelLoading() || isPrinting()">
-            {{ isLabelLoading() ? 'Hazirlaniyor...' : 'Barkod Yazdir' }}
+            {{ isLabelLoading() ? 'Hazırlanıyor...' : 'Etiket Yazdır' }}
           </button>
           <button
             type="button"
@@ -535,20 +535,20 @@
             (click)="transferCurrentRecordToMicro()"
             [disabled]="!canTransferCurrentRecord()"
           >
-            {{ isTransferring() ? 'Aktariliyor...' : 'Mikroya Aktar' }}
+            {{ isTransferring() ? 'Aktarılıyor...' : 'Mikro\'ya Aktar' }}
           </button>
           <button type="button" class="task-action task-action-danger" (click)="deleteRecord()" [disabled]="!selectedRecord() || !!selectedRecord()?.microTransferred || isDeleting() || !canDelete()">
             Sil
           </button>
           <button type="button" class="task-action" (click)="loadDailyWorkspace()" [disabled]="isLoading() || isIncomingInvoiceLoading() || !canList()">
-            {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+            {{ isLoading() ? 'Yükleniyor...' : 'Listele' }}
           </button>
         </aside>
       </div>
 
       <section class="metric-strip">
         <article class="metric-card">
-          <span>Kayit</span>
+          <span>Kayıt</span>
           <strong>{{ listSummary().total }}</strong>
         </article>
         <article class="metric-card">
@@ -556,7 +556,7 @@
           <strong>{{ listSummary().waiting }}</strong>
         </article>
         <article class="metric-card">
-          <span>Aktarilan</span>
+          <span>Aktarılan</span>
           <strong>{{ listSummary().transferred }}</strong>
         </article>
         <article class="metric-card">
@@ -568,8 +568,8 @@
       <section class="records-panel legacy-records">
         <div class="panel-head">
           <div class="title-block">
-            <span>Gunluk Liste</span>
-            <h3>{{ visibleRecords().length }} / {{ records().length }} kayit</h3>
+            <span>Günlük Liste</span>
+            <h3>{{ visibleRecords().length }} / {{ records().length }} kayıt</h3>
           </div>
 
           <div class="list-tools">
@@ -578,7 +578,7 @@
               <input type="search" placeholder="Cari, evrak, stok veya barkod" [ngModel]="recordSearch()" (ngModelChange)="recordSearch.set($event)" />
             </label>
             <label class="field sort-field">
-              <span>Siralama</span>
+              <span>Sıralama</span>
               <select [ngModel]="sortKey()" (ngModelChange)="setSort($event)">
                 <option *ngFor="let column of sortColumns" [value]="column.key">{{ column.label }}</option>
               </select>
@@ -591,49 +591,49 @@
             <thead>
               <tr>
                 <th>ID</th>
-                <th><button type="button" (click)="setSort('supplierName')">Tedarikci Firma {{ sortIcon('supplierName') }}</button></th>
+                <th><button type="button" (click)="setSort('supplierName')">Tedarikçi Firma {{ sortIcon('supplierName') }}</button></th>
                 <th><button type="button" (click)="setSort('seriesAndNumber')">Evrak No {{ sortIcon('seriesAndNumber') }}</button></th>
                 <th>Stok Kodu</th>
                 <th>Barkodu</th>
-                <th><button type="button" (click)="setSort('stockName')">Stok Adi {{ sortIcon('stockName') }}</button></th>
+                <th><button type="button" (click)="setSort('stockName')">Stok Adı {{ sortIcon('stockName') }}</button></th>
                 <th><button type="button" (click)="setSort('grossWeight')">Toplam Miktar {{ sortIcon('grossWeight') }}</button></th>
                 <th>Kasa Darasi</th>
                 <th><button type="button" (click)="setSort('caseCount')">Kasa Sayisi {{ sortIcon('caseCount') }}</button></th>
                 <th>Kasa Toplam Dara</th>
                 <th>Palet Dara</th>
                 <th><button type="button" (click)="setSort('averageCaseWeight')">Kasa Ortalama {{ sortIcon('averageCaseWeight') }}</button></th>
-                <th><button type="button" (click)="setSort('netReceivedWeight')">Net Alinan Miktar {{ sortIcon('netReceivedWeight') }}</button></th>
+                <th><button type="button" (click)="setSort('netReceivedWeight')">Net Alınan Miktar {{ sortIcon('netReceivedWeight') }}</button></th>
                 <th>Teslim Alan</th>
                 <th>Mikro</th>
                 <th>Kasa Tipi</th>
-                <th>Islem</th>
+                <th>İşlem</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let record of visibleRecords(); trackBy: trackByRecord" [class.is-selected]="isSelectedRecord(record)" (click)="selectRecord(record)">
                 <td data-label="ID">{{ record.id }}</td>
-                <td data-label="Tedarikci Firma"><strong>{{ record.supplierName }}</strong><span>{{ record.supplierCode }}</span></td>
+                <td data-label="Tedarikçi Firma"><strong>{{ record.supplierName }}</strong><span>{{ record.supplierCode }}</span></td>
                 <td data-label="Evrak No">{{ record.seriesAndNumber || record.documentNo || '-' }}</td>
                 <td data-label="Stok Kodu">{{ record.stockCode }}</td>
                 <td data-label="Barkodu">{{ record.stockBarcode || '-' }}</td>
-                <td data-label="Stok Adi"><strong>{{ record.stockName }}</strong></td>
+                <td data-label="Stok Adı"><strong>{{ record.stockName }}</strong></td>
                 <td data-label="Toplam Miktar">{{ record.grossWeight | number:'1.2-2' }}</td>
                 <td data-label="Kasa Darasi">{{ record.caseTare | number:'1.2-2' }}</td>
                 <td data-label="Kasa Sayisi">{{ record.caseCount }}</td>
                 <td data-label="Kasa Toplam Dara">{{ record.caseTotalTare | number:'1.2-2' }}</td>
                 <td data-label="Palet Dara">{{ record.palletTare | number:'1.2-2' }}</td>
                 <td data-label="Kasa Ortalama">{{ record.averageCaseWeight | number:'1.2-2' }}</td>
-                <td data-label="Net Alinan Miktar">{{ record.netReceivedWeight | number:'1.2-2' }}</td>
+                <td data-label="Net Alınan Miktar">{{ record.netReceivedWeight | number:'1.2-2' }}</td>
                 <td data-label="Teslim Alan">{{ record.receivedBy || '-' }}</td>
                 <td data-label="Mikro">
                   <span class="status-pill" [ngClass]="getStatusClass(record)">
-                    {{ record.microTransferred ? 'Aktarildi' : 'Bekliyor' }}
+                    {{ record.microTransferred ? 'Aktarıldı' : 'Bekliyor' }}
                   </span>
                 </td>
                 <td data-label="Kasa Tipi">{{ record.caseType || '-' }}</td>
-                <td data-label="Islem" class="action-cell">
+                <td data-label="İşlem" class="action-cell">
                   <button type="button" class="icon-action" (click)="selectRecord(record); $event.stopPropagation()">Sec</button>
-                  <button type="button" class="icon-action" (click)="printRecordLabel(record); $event.stopPropagation()" [disabled]="isLabelLoading() || isPrinting() || !canDetail()">Yazdir</button>
+                  <button type="button" class="icon-action" (click)="printRecordLabel(record); $event.stopPropagation()" [disabled]="isLabelLoading() || isPrinting() || !canDetail()">Yazdır</button>
                 </td>
               </tr>
             </tbody>
@@ -642,7 +642,7 @@
 
         <ng-template #emptyRecords>
           <article class="empty-state">
-            <strong>Kayit bulunamadi</strong>
+            <strong>Kayıt bulunamadı</strong>
             <span>Tarih veya arama filtresini degistirip tekrar listeleyin.</span>
           </article>
         </ng-template>
@@ -681,10 +681,10 @@
           (click)="loadReport()"
           [disabled]="isReportLoading()"
         >
-          {{ isReportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
+          {{ isReportLoading() ? 'Yükleniyor...' : 'Raporu Getir' }}
         </button>
         <button type="button" class="task-action" (click)="setActiveTab('records')">
-          Kayit Ekrani
+          Kayıt Ekranı
         </button>
       </div>
 
@@ -723,7 +723,7 @@
                 <span>{{ row.labelRowCount || 0 }} etiket / {{ row.microRowCount || 0 }} mikro</span>
               </td>
               <td data-label="Durum">
-                {{ row.microTransferred ? 'Aktarildi' : row.status || 'Bekliyor' }}
+                {{ row.microTransferred ? 'Aktarıldı' : row.status || 'Bekliyor' }}
               </td>
             </tr>
           </tbody>
@@ -780,7 +780,7 @@
             <tr>
               <th>Depo</th>
               <th>Stok</th>
-              <th>Tedarikci</th>
+              <th>Tedarikçi</th>
               <th>Miktar</th>
               <th>Son Kabul</th>
             </tr>
@@ -792,7 +792,7 @@
                 <strong>{{ row.stockName || '-' }}</strong>
                 <span>{{ row.stockCode || row.barcode || row.stockBarcode || '-' }} / {{ row.unitName || '-' }}</span>
               </td>
-              <td data-label="Tedarikci">{{ row.supplierName || '-' }}</td>
+              <td data-label="Tedarikçi">{{ row.supplierName || '-' }}</td>
               <td data-label="Miktar">
                 <strong>{{ (row.netReceivedWeight || row.totalQuantity || row.quantity || 0) | number:'1.2-2' }}</strong>
                 <span>{{ row.caseCount || 0 }} kasa / {{ (row.averageCaseWeight || 0) | number:'1.2-2' }} ort.</span>
@@ -811,16 +811,33 @@
       *ngFor="let label of printCopies(); let copyIndex = index; trackBy: trackByPrintCopy"
     >
       <div class="print-label-content">
-        <strong>{{ label.stockName }}</strong>
-        <span>{{ label.supplierName }}</span>
+        <header class="print-label-header">
+          <strong>{{ label.stockName || '-' }}</strong>
+          <time>{{ label.labelDate | date:'dd.MM.yyyy' }}</time>
+        </header>
+
+        <span class="print-label-supplier">{{ label.supplierName || '-' }}</span>
+
         <div class="print-label-meta">
-          <b>{{ label.averageCaseWeight | number:'1.2-2' }} KG</b>
-          <b>{{ label.caseType || '-' }}</b>
-          <b>{{ label.caseTare | number:'1.2-2' }} dara</b>
+          <span>
+            <small>Ort. kasa</small>
+            <b>{{ label.averageCaseWeight | number:'1.2-2' }} kg</b>
+          </span>
+          <span>
+            <small>Kasa tipi</small>
+            <b>{{ label.caseType || '-' }}</b>
+          </span>
+          <span>
+            <small>Dara</small>
+            <b>{{ label.caseTare | number:'1.2-2' }} kg</b>
+          </span>
         </div>
-        <svg #printBarcode class="barcode-svg"></svg>
-        <small>{{ label.labelBarcode || label.stockBarcode || '-' }}</small>
-        <em>{{ label.labelDate | date:'dd.MM.yyyy' }}</em>
+
+        <div class="print-label-barcode">
+          <svg #printBarcode class="barcode-svg"></svg>
+        </div>
+
+        <small class="print-label-code">{{ label.labelBarcode || label.stockBarcode || '-' }}</small>
       </div>
     </article>
   </section>

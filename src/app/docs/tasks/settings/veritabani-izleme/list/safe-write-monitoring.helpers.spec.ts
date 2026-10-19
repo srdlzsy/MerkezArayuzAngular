@@ -60,12 +60,12 @@ describe('safe write monitoring helpers', () => {
   });
 
   it('distinguishes recent and old processing records by last-update age', () => {
-    expect(getSafeWriteStatusPresentation(createItem({ ageSeconds: 300 }))).toEqual({
+    expect(getSafeWriteStatusPresentation(createItem({ ageSeconds: 720 }))).toEqual({
       label: 'Isleniyor',
       tone: 'info',
       retryLabel: 'Bekle'
     });
-    expect(getSafeWriteStatusPresentation(createItem({ ageSeconds: 301 }))).toEqual({
+    expect(getSafeWriteStatusPresentation(createItem({ ageSeconds: 721 }))).toEqual({
       label: 'Uzlastirma Bekliyor',
       tone: 'warn',
       retryLabel: 'Durumu kontrol et'
@@ -82,7 +82,16 @@ describe('safe write monitoring helpers', () => {
       status: 'Failed',
       retryable: true
     }))).toEqual({
-      label: 'Guvenli Tekrar Kontrol Edilebilir',
+      label: 'Sonuc Kontrol Edilebilir',
+      tone: 'warn',
+      retryLabel: 'Durumu kontrol et'
+    });
+    expect(getSafeWriteStatusPresentation(createItem({
+      status: 'Failed',
+      errorCode: 'SAFE_WRITE_RETRY_ALLOWED',
+      retryable: true
+    }))).toEqual({
+      label: 'Yeniden Gonderime Hazir',
       tone: 'warn',
       retryLabel: 'Ayni kimlikle'
     });
@@ -98,6 +107,11 @@ describe('safe write monitoring helpers', () => {
       label: 'Siniflandirilmamis / Eski Hata',
       tone: 'neutral',
       retryLabel: 'Otomatik tekrar yok'
+    });
+    expect(getSafeWriteStatusPresentation(createItem({ status: 'Cancelled' }))).toEqual({
+      label: 'Yetkili Tarafindan Iptal Edildi',
+      tone: 'neutral',
+      retryLabel: 'Yerel kaydi temizle'
     });
   });
 });

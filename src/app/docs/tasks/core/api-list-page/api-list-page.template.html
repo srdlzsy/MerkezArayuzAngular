@@ -86,11 +86,20 @@
             <button
               type="button"
               class="task-action task-action-primary"
-              *ngIf="pending.failure?.retryable === true"
+              *ngIf="canRetrySafeCreatePending(pending)"
               [disabled]="isSafeCreatePendingBusy(pending)"
               (click)="retrySafeCreatePending(pending)"
             >
               Ayni Kaydi Tekrar Dene
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-primary"
+              *ngIf="canRecheckSafeCreatePending(pending)"
+              [disabled]="isSafeCreatePendingBusy(pending)"
+              (click)="retrySafeCreatePending(pending)"
+            >
+              Mikro Kaydini Dogrula
             </button>
           </div>
         </div>

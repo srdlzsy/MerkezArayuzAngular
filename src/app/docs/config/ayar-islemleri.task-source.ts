@@ -336,6 +336,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'Genel bakis; veritabani, worker, olay ve guvenli yazma durumlarini tek operasyonal ozette birlestirir',
         'Canli veri 10 saniyelik yenileme ile izlenir',
         'AXATA worker ve scheduler heartbeat, kuyruk ve en eski bekleyen is bilgileri izlenir',
+        'Guvenli yazmalar salt-okuma yeniden dogrulama, kontrollu tekrar acma, iptal ve audit gecmisiyle kayit bazinda sonuclandirilir',
         'Oturum sonlandirma sadece terminate-session yetkisiyle ve secili oturumun kimligi tekrar dogrulanarak yapilir',
         'KILL sonrasi rollback durumu ayri endpointten izlenir'
       ],
@@ -374,6 +375,29 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?includeCompleted=false&take=100',
               description: 'Bekleyen ve basarisiz guvenli create yazmalarini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/inceleme-gecmisi',
+              description: 'Secili guvenli yazmanin inceleme audit gecmisini getirir'
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/yeniden-dogrula',
+              description: 'Mikro kaydini yeni yazma yapmadan tekrar dogrular',
+              payload: 'SafeWriteReviewHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/tekrar-ac',
+              description: 'Belge bulunmadigi kesinlesirse ayni istek icin kontrollu retry izni verir',
+              payload: 'SafeWriteReviewHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/iptal',
+              description: 'Takip kaydini gerekceyle iptal eder; Mikro belgesini silmez',
+              payload: 'SafeWriteReviewHttpRequest'
             },
             {
               method: 'POST',

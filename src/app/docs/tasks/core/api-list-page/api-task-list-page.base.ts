@@ -3,8 +3,11 @@ import { ComponentType } from '@angular/cdk/portal';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Directive, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, finalize } from 'rxjs';
-import type { IOfflineOperationResponseApiDto } from '@interfaces';
+import { Observable, finalize, timer } from 'rxjs';
+import type {
+  IOfflineOperationResponseApiDto,
+  SafeWriteReviewResultDto
+} from '@interfaces';
 
 import { DocsContentPage } from '../../../models/docs.models';
 import { AuthService } from '../../../../core/auth/services/auth.service';
@@ -61,6 +64,7 @@ export abstract class ApiTaskListPageBase<
   private readonly safeCreatePendingStore = inject(SafeCreatePendingStore);
   private readonly safeCreateRecoveryService = inject(SafeCreateRecoveryService);
   private readonly safeCreateRecoveryInProgressId = signal<string | null>(null);
+  private readonly scheduledSafeCreateChecks = new Set<string>();
   private activeRequestId = 0;
 
   protected readonly startDate = signal(this.getInitialStartDate());
@@ -468,8 +472,28 @@ export abstract class ApiTaskListPageBase<
         },
         error: (error: HttpErrorResponse) => {
           if (error.status === 404) {
-            this.safeCreateRecoveryInProgressId.set(null);
-            this.recoverSafeCreatePending(pending);
+            const failure = {
+              message:
+                'Backend takip kaydi bulunamadi. Saklanan ayni istek kimligiyle bir kez yeniden gonderiliyor.',
+              errorCode: null,
+              retryable: true,
+              recoveryState: 'NotStarted',
+              recommendedAction: 'RetrySameRequest',
+              blocksSubmit: false,
+              allowsNewAttempt: false
+            };
+            this.safeCreatePendingStore.markFailure(pending.scope, clientRequestId, failure);
+            timer(0)
+              .pipe(takeUntilDestroyed(this.destroyRef))
+              .subscribe(() => {
+                const current = this.safeCreatePendingStore.read<ClientRequestPayload>(
+                  pending.scope,
+                  clientRequestId,
+                );
+                if (current?.failure?.recommendedAction === 'RetrySameRequest') {
+                  this.recoverSafeCreatePending(current);
+                }
+              });
             return;
           }
 
@@ -486,7 +510,31 @@ export abstract class ApiTaskListPageBase<
   protected retrySafeCreatePending(
     pending: SafeCreatePendingRecord<ClientRequestPayload>
   ): void {
-    this.recoverSafeCreatePending(pending);
+    const action = pending.failure?.recommendedAction;
+
+    if (action === 'RetrySameRequest') {
+      this.recoverSafeCreatePending(pending);
+      return;
+    }
+
+    if (action === 'RecheckExisting') {
+      this.recheckSafeCreatePending(pending);
+      return;
+    }
+
+    this.checkSafeCreatePending(pending, false);
+  }
+
+  protected canRetrySafeCreatePending(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): boolean {
+    return pending.failure?.recommendedAction === 'RetrySameRequest';
+  }
+
+  protected canRecheckSafeCreatePending(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): boolean {
+    return pending.failure?.recommendedAction === 'RecheckExisting';
   }
 
   private applySafeCreateStatus(
@@ -495,10 +543,19 @@ export abstract class ApiTaskListPageBase<
   ): void {
     const clientRequestId = pending.request.clientRequestId ?? '';
     const status = response.status.trim().toLocaleLowerCase('tr-TR');
+    const recommendedAction = response.recommendedAction?.trim() || null;
 
-    if (status === 'completed') {
+    if (status === 'completed' || recommendedAction === 'Completed') {
+      this.scheduledSafeCreateChecks.delete(clientRequestId);
       this.safeCreatePendingStore.remove(pending.scope, clientRequestId);
       this.loadRows();
+      return;
+    }
+
+    if (status === 'cancelled' || recommendedAction === 'ClearCancelled') {
+      this.scheduledSafeCreateChecks.delete(clientRequestId);
+      this.safeCreatePendingStore.remove(pending.scope, clientRequestId);
+      this.errorMessage.set('Yetkili tarafindan iptal edilen bekleyen kayit temizlendi.');
       return;
     }
 
@@ -512,12 +569,96 @@ export abstract class ApiTaskListPageBase<
           : `Kayit tamamlanamadi.${retryDelay}`),
       errorCode: response.errorCode,
       retryable: status === 'processing' ? true : response.retryable,
-      blocksSubmit: response.retryable !== true && status !== 'processing',
+      recoveryState: response.recoveryState,
+      recommendedAction: recommendedAction || (status === 'processing' ? 'WaitAndCheck' : 'NeedsReview'),
+      blocksSubmit: recommendedAction !== 'RetrySameRequest',
       allowsNewAttempt: false
     };
 
     this.safeCreatePendingStore.markFailure(pending.scope, clientRequestId, failure);
     this.errorMessage.set(failure.message);
+
+    if (failure.recommendedAction === 'WaitAndCheck') {
+      this.scheduleSafeCreateStatusCheck(
+        pending,
+        Math.max(1, response.retryAfterSeconds ?? 5),
+      );
+    }
+  }
+
+  private scheduleSafeCreateStatusCheck(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>,
+    delaySeconds: number,
+  ): void {
+    const clientRequestId = pending.request.clientRequestId?.trim();
+    if (!clientRequestId || this.scheduledSafeCreateChecks.has(clientRequestId)) {
+      return;
+    }
+
+    this.scheduledSafeCreateChecks.add(clientRequestId);
+    timer(delaySeconds * 1000)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.scheduledSafeCreateChecks.delete(clientRequestId);
+        const current = this.safeCreatePendingStore.read<ClientRequestPayload>(
+          pending.scope,
+          clientRequestId,
+        );
+        if (current?.failure?.recommendedAction === 'WaitAndCheck') {
+          this.checkSafeCreatePending(current, true);
+        }
+      });
+  }
+
+  private recheckSafeCreatePending(
+    pending: SafeCreatePendingRecord<ClientRequestPayload>
+  ): void {
+    const clientRequestId = pending.request.clientRequestId?.trim();
+    if (!clientRequestId || this.safeCreateRecoveryInProgressId()) {
+      return;
+    }
+
+    const request = this.safeCreateRecoveryService.recheck(this.page.id, clientRequestId);
+    if (!request) {
+      return;
+    }
+
+    this.safeCreateRecoveryInProgressId.set(clientRequestId);
+    this.activityMessage.set('Mikro kaydi yeniden dogrulaniyor. Yeni evrak yazilmayacak.');
+    request
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.safeCreateRecoveryInProgressId.set(null);
+          this.activityMessage.set(null);
+        })
+      )
+      .subscribe({
+        next: (result: SafeWriteReviewResultDto) => {
+          this.applySafeCreateStatus(pending, {
+            clientRequestId,
+            operationCode: pending.scope.operationCode,
+            status: result.safeWrite.status || 'Failed',
+            createdAtUtc: result.safeWrite.createdAtUtc,
+            completedAtUtc: result.safeWrite.completedAtUtc,
+            errorMessage: result.message || result.safeWrite.errorMessage,
+            errorCode: result.safeWrite.errorCode,
+            retryable: result.safeWrite.retryable,
+            retryAfterSeconds: null,
+            result: result.result,
+            recoveryState: result.recoveryState,
+            recommendedAction: result.recommendedAction
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          const failure = classifySafeCreateFailure(
+            error,
+            'Mikro kaydi yeniden dogrulanamadi.'
+          );
+          this.safeCreatePendingStore.markFailure(pending.scope, clientRequestId, failure);
+          this.errorMessage.set(failure.message);
+        }
+      });
   }
 
   private recoverSafeCreatePending(
@@ -525,6 +666,13 @@ export abstract class ApiTaskListPageBase<
   ): void {
     const clientRequestId = pending.request.clientRequestId?.trim();
     if (!clientRequestId || this.safeCreateRecoveryInProgressId()) {
+      return;
+    }
+
+    if (pending.failure?.recommendedAction !== 'RetrySameRequest') {
+      this.errorMessage.set(
+        'Backend yeniden gonderim izni vermedi. Once mevcut kaydin durumunu kontrol edin.'
+      );
       return;
     }
 

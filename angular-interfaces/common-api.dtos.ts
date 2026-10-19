@@ -32,7 +32,31 @@ export interface IModuleActionScaffoldResponseApiDto {
 
 export type IFurpaEDespatchDocumentType = 1 | 2 | 3 | 4;
 
-export type IOfflineOperationStatusApiDto = 'Processing' | 'Completed' | 'Failed';
+export type IOfflineOperationStatusApiDto =
+  | 'Processing'
+  | 'Completed'
+  | 'Failed'
+  | 'Cancelled';
+
+export type ISafeWriteRecoveryStateApiDto =
+  | 'Checking'
+  | 'ExactMatch'
+  | 'NotStarted'
+  | 'Missing'
+  | 'Incomplete'
+  | 'Mismatch'
+  | 'RequestChanged'
+  | 'Unknown'
+  | 'Cancelled';
+
+export type ISafeWriteRecommendedActionApiDto =
+  | 'Completed'
+  | 'WaitAndCheck'
+  | 'RetrySameRequest'
+  | 'RecheckExisting'
+  | 'RestoreOriginalRequest'
+  | 'NeedsReview'
+  | 'ClearCancelled';
 
 export interface IOfflineOperationResponseApiDto<T = unknown> {
   clientRequestId: string;
@@ -45,4 +69,6 @@ export interface IOfflineOperationResponseApiDto<T = unknown> {
   retryable: boolean | null;
   retryAfterSeconds: number | null;
   result: T | null;
+  recoveryState: ISafeWriteRecoveryStateApiDto | string | null;
+  recommendedAction: ISafeWriteRecommendedActionApiDto | string | null;
 }

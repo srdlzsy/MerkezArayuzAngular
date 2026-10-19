@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
-import { finalize, timer } from 'rxjs';
+import { Observable, finalize, timer } from 'rxjs';
 import type {
   DatabaseActiveRequestDto,
   DatabaseBlockingEdgeDto,
@@ -15,6 +15,9 @@ import type {
   MonitoringOverviewDto,
   SafeWriteMonitoringItemDto,
   SafeWriteMonitoringListHttpRequest,
+  SafeWriteReviewAuditDto,
+  SafeWriteReviewHttpRequest,
+  SafeWriteReviewResultDto,
   WorkerMonitoringItemDto,
   WorkerMonitoringSnapshotDto,
 } from '@interfaces';
@@ -39,6 +42,7 @@ import {
 } from './safe-write-monitoring.helpers';
 
 type MonitorTab = 'live' | 'workers' | 'safeWrites' | 'incidents' | 'audits';
+type SafeWriteReviewAction = 'recheck' | 'reopen' | 'cancel';
 
 interface DatabaseSessionCandidate {
   sessionId: number;
@@ -74,6 +78,8 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly incidents = signal<DatabaseMonitoringIncidentDto[]>([]);
   protected readonly terminations = signal<DatabaseSessionTerminationDto[]>([]);
   protected readonly safeWrites = signal<SafeWriteMonitoringItemDto[]>([]);
+  protected readonly selectedSafeWrite = signal<SafeWriteMonitoringItemDto | null>(null);
+  protected readonly safeWriteReviewHistory = signal<SafeWriteReviewAuditDto[]>([]);
   protected readonly selectedSession = signal<DatabaseSessionCandidate | null>(null);
   protected readonly rollback = signal<DatabaseRollbackStatusDto | null>(null);
   protected readonly rollbackSessionId = signal<number | null>(null);
@@ -83,6 +89,8 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly isWorkerLoading = signal(false);
   protected readonly isHistoryLoading = signal(false);
   protected readonly isSafeWriteLoading = signal(false);
+  protected readonly isSafeWriteReviewLoading = signal(false);
+  protected readonly isSafeWriteActionRunning = signal(false);
   protected readonly isTerminating = signal(false);
   protected readonly isRollbackLoading = signal(false);
 
@@ -143,6 +151,12 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     retryable: new FormControl<SafeWriteRetryableFilter>('all', { nonNullable: true }),
     includeCompleted: new FormControl(false, { nonNullable: true }),
   });
+  protected readonly safeWriteReviewForm = new FormGroup({
+    reason: new FormControl('', {
+      nonNullable: true,
+      validators: [Validators.required, Validators.minLength(10), Validators.maxLength(500)],
+    }),
+  });
 
   private readonly authService = inject(AuthService);
   private readonly api = inject(AyarIslemleriService);
@@ -156,6 +170,13 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly canTerminate = computed(() =>
     this.hasPermission(`${PERMISSION_PREFIX}.terminate-session`),
   );
+  protected readonly canResolveSafeWrites = computed(() =>
+    this.hasPermission(`${PERMISSION_PREFIX}.resolve-safe-write`),
+  );
+  protected readonly canReviewSelectedSafeWrite = computed(() => {
+    const status = this.selectedSafeWrite()?.status;
+    return this.canResolveSafeWrites() && status !== 'Completed' && status !== 'Cancelled';
+  });
   protected readonly canTerminateSelected = computed(
     () => this.canTerminate() && !!this.selectedSession()?.canTerminate,
   );
@@ -230,6 +251,95 @@ export class VeritabaniIzlemeListComponent implements OnInit {
       includeCompleted: false,
     });
     this.loadSafeWrites(true);
+  }
+
+  protected selectSafeWrite(item: SafeWriteMonitoringItemDto): void {
+    this.selectedSafeWrite.set(item);
+    this.safeWriteReviewForm.reset({ reason: '' });
+    this.loadSafeWriteReviewHistory(item.id);
+  }
+
+  protected closeSafeWriteReview(): void {
+    this.selectedSafeWrite.set(null);
+    this.safeWriteReviewHistory.set([]);
+    this.safeWriteReviewForm.reset({ reason: '' });
+  }
+
+  protected async runSafeWriteReviewAction(action: SafeWriteReviewAction): Promise<void> {
+    const item = this.selectedSafeWrite();
+    if (!item || !this.canReviewSelectedSafeWrite() || this.isSafeWriteActionRunning()) {
+      return;
+    }
+
+    this.safeWriteReviewForm.markAllAsTouched();
+    if (this.safeWriteReviewForm.invalid) {
+      return;
+    }
+
+    const actionLabel = this.safeWriteReviewActionLabel(action);
+    const confirmed = await this.confirmDialog.confirm({
+      title: `${actionLabel}: ${item.clientRequestId.slice(0, 8).toUpperCase()}`,
+      message:
+        action === 'cancel'
+          ? 'Bu islem Mikro belgesini silmez. Yalniz guvenli yazma takip kaydini iptal eder.'
+          : 'Backend mevcut Mikro kaydini salt-okuma ile kontrol edecek. Sonuc kesinlesmeden yeni belge yazilmayacak.',
+      confirmText: actionLabel,
+      tone: action === 'cancel' ? 'danger' : 'info',
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const requestBody: SafeWriteReviewHttpRequest = {
+      reason: this.safeWriteReviewForm.controls.reason.value.trim(),
+    };
+    let request: Observable<SafeWriteReviewResultDto>;
+    if (action === 'recheck') {
+      request = this.api.recheckSafeWrite(item.id, requestBody);
+    } else if (action === 'reopen') {
+      request = this.api.reopenSafeWrite(item.id, requestBody);
+    } else {
+      request = this.api.cancelSafeWrite(item.id, requestBody);
+    }
+
+    this.isSafeWriteActionRunning.set(true);
+    this.feedback.set(null);
+    request
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSafeWriteActionRunning.set(false)),
+      )
+      .subscribe({
+        next: (result: SafeWriteReviewResultDto) => {
+          this.selectedSafeWrite.set(result.safeWrite);
+          this.safeWrites.update((items) =>
+            items.map((current) => current.id === result.safeWrite.id ? result.safeWrite : current),
+          );
+          this.safeWriteReviewForm.reset({ reason: '' });
+          this.loadSafeWriteReviewHistory(result.safeWrite.id);
+          this.loadMonitoringOverview(false);
+          this.showSuccess(
+            `${actionLabel} tamamlandi`,
+            result.message || `Sonuc: ${result.outcome || 'Kayit guncellendi'}.`,
+          );
+        },
+        error: (error: unknown) =>
+          this.showError(
+            `${actionLabel} tamamlanamadi`,
+            getErrorMessage(error, 'Guvenli yazma inceleme islemi tamamlanamadi.'),
+          ),
+      });
+  }
+
+  protected safeWriteReviewActionLabel(action: SafeWriteReviewAction): string {
+    switch (action) {
+      case 'recheck':
+        return 'Yeniden Dogrula';
+      case 'reopen':
+        return 'Tekrar Ac';
+      case 'cancel':
+        return 'Iptal Et';
+    }
   }
 
   protected selectRequest(request: DatabaseActiveRequestDto): void {
@@ -499,6 +609,10 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     return item.id || item.clientRequestId;
   }
 
+  protected trackBySafeWriteReview(_: number, item: SafeWriteReviewAuditDto): string {
+    return item.id;
+  }
+
   protected trackByWorker(index: number, worker: WorkerMonitoringItemDto): string {
     return worker.code || worker.name || `${index}`;
   }
@@ -734,6 +848,10 @@ export class VeritabaniIzlemeListComponent implements OnInit {
       .subscribe({
         next: (items: SafeWriteMonitoringItemDto[]) => {
           this.safeWrites.set(items ?? []);
+          const selectedId = this.selectedSafeWrite()?.id;
+          if (selectedId) {
+            this.selectedSafeWrite.set(items?.find((item) => item.id === selectedId) ?? null);
+          }
           if (showFeedback) {
             this.showSuccess(
               'Guvenli yazmalar yenilendi',
@@ -745,6 +863,29 @@ export class VeritabaniIzlemeListComponent implements OnInit {
           this.showError(
             'Guvenli yazmalar alinamadi',
             getErrorMessage(error, 'Guvenli create kayitlari okunamadi.'),
+          ),
+      });
+  }
+
+  private loadSafeWriteReviewHistory(id: string): void {
+    if (!this.canViewHistory() || this.isSafeWriteReviewLoading()) {
+      return;
+    }
+
+    this.isSafeWriteReviewLoading.set(true);
+    this.api
+      .getSafeWriteReviewHistory(id)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isSafeWriteReviewLoading.set(false)),
+      )
+      .subscribe({
+        next: (items: SafeWriteReviewAuditDto[]) =>
+          this.safeWriteReviewHistory.set(items ?? []),
+        error: (error: unknown) =>
+          this.showError(
+            'Inceleme gecmisi alinamadi',
+            getErrorMessage(error, 'Guvenli yazma inceleme gecmisi okunamadi.'),
           ),
       });
   }

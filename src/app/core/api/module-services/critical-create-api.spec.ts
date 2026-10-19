@@ -13,6 +13,7 @@ import { API_BASE_URL } from '../api-base-url.token';
 import { GreenGrocerService } from './green-grocer.service';
 import { IadeIslemleriService } from './iade-islemleri.service';
 import { MalKabulIslemleriService } from './mal-kabul-islemleri.service';
+import { MobileSyncService } from './mobile-sync.service';
 import { SevkIslemleriService } from './sevk-islemleri.service';
 import { SiparisIslemleriService } from './siparis-islemleri.service';
 import { StokIslemleriService } from './stok-islemleri.service';
@@ -243,8 +244,36 @@ describe('critical create API contracts', () => {
         errorCode: null,
         retryable: true,
         retryAfterSeconds: 5,
-        result: null
+        result: null,
+        recoveryState: 'Checking',
+        recommendedAction: 'WaitAndCheck'
       });
     }
+  });
+
+  it('uses the operation-specific and common read-only recheck routes', () => {
+    const requestId = '11111111-1111-4111-8111-111111111111';
+    const malKabul = TestBed.inject(MalKabulIslemleriService);
+    const mobileSync = TestBed.inject(MobileSyncService);
+
+    malKabul.recheckCompanyReceiptSafeWrite(requestId).subscribe();
+    mobileSync
+      .recheckSafeWrite(requestId, 'mal-kabul-islemleri.firma-mal-kabulleri.create')
+      .subscribe();
+
+    const companyRequest = httpTesting.expectOne(
+      `https://api.test/api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/${requestId}/yeniden-dogrula`
+    );
+    expect(companyRequest.request.method).toBe('POST');
+    companyRequest.flush({});
+
+    const commonRequest = httpTesting.expectOne(
+      `https://api.test/api/mobile-sync/guvenli-yazmalar/${requestId}/yeniden-dogrula`
+    );
+    expect(commonRequest.request.method).toBe('POST');
+    expect(commonRequest.request.body).toEqual({
+      operationCode: 'mal-kabul-islemleri.firma-mal-kabulleri.create'
+    });
+    commonRequest.flush({});
   });
 });

@@ -5,6 +5,7 @@ import type {
   CreateIssuedCompanyOrderHttpRequest,
   CreateIssuedWarehouseOrderHttpRequest,
   IOfflineOperationResponseApiDto,
+  SafeWriteReviewResultDto,
   IFurpaCreateCompanyReceiptRequestApiDto,
   IFurpaCreateCompanyShipmentRequestApiDto,
   IFurpaCreateInventoryCountRequestApiDto,
@@ -17,6 +18,7 @@ import type { Observable } from 'rxjs';
 
 import { IadeIslemleriService } from '../../../core/api/module-services/iade-islemleri.service';
 import { MalKabulIslemleriService } from '../../../core/api/module-services/mal-kabul-islemleri.service';
+import { MobileSyncService } from '../../../core/api/module-services/mobile-sync.service';
 import { SevkIslemleriService } from '../../../core/api/module-services/sevk-islemleri.service';
 import { SiparisIslemleriService } from '../../../core/api/module-services/siparis-islemleri.service';
 import { StokIslemleriService } from '../../../core/api/module-services/stok-islemleri.service';
@@ -39,11 +41,29 @@ const OPERATION_BY_PAGE_ID: Readonly<Record<string, string>> = {
   'onerilen-firma-siparisleri': 'siparis-islemleri.onerilen-firma-siparisleri.create',
 };
 
+const RECHECK_OPERATION_BY_PAGE_ID: Readonly<Record<string, string>> = {
+  'giden-firma-sevkleri': 'sevk-islemleri.giden-firma-sevkleri.create',
+  'giden-depolar-arasi-sevkler': 'sevk-islemleri.giden-depolar-arasi-sevkler.create',
+  'gelen-depolar-arasi-sevkler': 'sevk-islemleri.giden-depolar-arasi-sevkler.create',
+  'firma-mal-kabulleri': 'mal-kabul-islemleri.firma-mal-kabulleri.create',
+  'firma-iadeleri': 'iade-islemleri.firma-iadeleri.create',
+  'giden-depo-iadeleri': 'iade-islemleri.giden-depo-iadeleri.create',
+  'sayim-sonuclari': 'stok-islemleri.sayim-sonuclari.create',
+  virmanlar: 'stok-islemleri.virmanlar.create',
+  'masraf-fisleri': 'stok-islemleri.masraf-fisleri.create',
+  'zayiat-fisleri': 'stok-islemleri.zayiat-fisleri.create',
+  'verilen-depo-siparisleri': 'siparis-islemleri.verilen-depo-siparisleri.create',
+  'onerilen-depo-siparisleri': 'siparis-islemleri.onerilen-depo-siparisleri.create',
+  'verilen-firma-siparisleri': 'siparis-islemleri.verilen-firma-siparisleri.create',
+  'onerilen-firma-siparisleri': 'siparis-islemleri.onerilen-firma-siparisleri.create',
+};
+
 @Injectable({ providedIn: 'root' })
 export class SafeCreateRecoveryService {
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
+  private readonly mobileSyncService = inject(MobileSyncService);
   private readonly stokIslemleriService = inject(StokIslemleriService);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
 
@@ -88,6 +108,16 @@ export class SafeCreateRecoveryService {
       default:
         return null;
     }
+  }
+
+  recheck(
+    pageId: string,
+    clientRequestId: string,
+  ): Observable<SafeWriteReviewResultDto> | null {
+    const operationCode = RECHECK_OPERATION_BY_PAGE_ID[pageId] ?? null;
+    return operationCode
+      ? this.mobileSyncService.recheckSafeWrite(clientRequestId, operationCode)
+      : null;
   }
 
   recover(pageId: string, request: ClientRequestPayload): Observable<unknown> | null {

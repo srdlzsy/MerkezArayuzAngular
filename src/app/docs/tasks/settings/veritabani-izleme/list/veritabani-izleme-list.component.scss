@@ -522,6 +522,62 @@
   white-space: normal;
 }
 
+.safe-write-review-button {
+  min-height: 1.85rem;
+  padding: 0.28rem 0.48rem;
+  white-space: nowrap;
+}
+
+.safe-write-review {
+  display: grid;
+  gap: 0.62rem;
+  margin-top: 0.65rem;
+  border-top: 2px solid var(--settings-accent);
+  padding-top: 0.65rem;
+}
+
+.safe-write-detail-grid {
+  grid-template-columns: repeat(3, minmax(0, 1fr));
+}
+
+.safe-write-detail-grid dd {
+  white-space: normal;
+  overflow-wrap: anywhere;
+}
+
+.safe-write-review-form {
+  display: grid;
+  gap: 0.48rem;
+  border-top: 1px solid var(--settings-border);
+  border-bottom: 1px solid var(--settings-border);
+  padding: 0.62rem 0;
+}
+
+.safe-write-readonly-note {
+  border-left: 3px solid #2563eb;
+  padding: 0.5rem 0.58rem;
+  color: #1e3a5f;
+  background: var(--monitor-info-soft);
+  font-size: 0.76rem;
+  font-weight: 700;
+  line-height: 1.4;
+}
+
+.safe-write-history-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.safe-write-review-history {
+  max-height: 290px;
+}
+
+.safe-write-review-history .data-table {
+  min-width: 960px;
+}
+
 .data-table .wrap-cell {
   min-width: 220px;
   max-width: 340px;
@@ -548,6 +604,10 @@
 
   .safe-write-filter {
     grid-template-columns: repeat(3, minmax(0, 1fr));
+  }
+
+  .safe-write-detail-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .worker-summary {
@@ -598,6 +658,10 @@
   .safe-write-operation-field,
   .safe-write-filter-actions {
     grid-column: 1 / -1;
+  }
+
+  .safe-write-detail-grid {
+    grid-template-columns: 1fr;
   }
 }
 

@@ -371,7 +371,7 @@ export interface DatabaseMonitoringIncidentDto {
   resolvedAtUtc: string | null;
 }
 
-export type SafeWriteMonitoringStatus = 'Processing' | 'Completed' | 'Failed';
+export type SafeWriteMonitoringStatus = 'Processing' | 'Completed' | 'Failed' | 'Cancelled';
 
 export interface SafeWriteMonitoringListHttpRequest {
   status?: SafeWriteMonitoringStatus | null;
@@ -396,6 +396,39 @@ export interface SafeWriteMonitoringItemDto {
   updatedAtUtc: string | null;
   completedAtUtc: string | null;
   ageSeconds: number;
+}
+
+export interface SafeWriteReviewHttpRequest {
+  reason: string;
+}
+
+export interface RecheckMobileSafeWriteHttpRequest {
+  operationCode: string;
+}
+
+export interface SafeWriteReviewResultDto<T = unknown> {
+  action: string | null;
+  outcome: string | null;
+  message: string | null;
+  safeWrite: SafeWriteMonitoringItemDto;
+  result: T | null;
+  recoveryState: string | null;
+  recommendedAction: string | null;
+}
+
+export interface SafeWriteReviewAuditDto {
+  id: string;
+  safeWriteId: string;
+  action: string | null;
+  outcome: string | null;
+  reason: string | null;
+  reviewedByUserId: string;
+  reviewedAtUtc: string;
+  previousStatus: string | null;
+  previousErrorCode: string | null;
+  resultStatus: string | null;
+  resultErrorCode: string | null;
+  message: string | null;
 }
 
 export type WorkerMonitoringStatus = 'Healthy' | 'Degraded' | 'Unhealthy' | 'Disabled' | string;

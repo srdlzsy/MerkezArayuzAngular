@@ -51,10 +51,10 @@ export const PRINT_LAYOUT_PROFILES: readonly PrintLayoutProfile[] = [
     id: 'argox-roll-label',
     name: 'Argox Rulo Etiketi',
     styles: ETIKET_BASIM_PRINT_STYLES,
-    pageSize: '57.9mm 38.9mm',
+    pageSize: '60mm 40mm',
     pageSelector: '.print-label',
-    pageWidthMm: 57.9,
-    pageHeightMm: 38.9,
+    pageWidthMm: 60,
+    pageHeightMm: 40,
     itemSelector: '.print-label-content',
     itemsPerPage: 1
   }

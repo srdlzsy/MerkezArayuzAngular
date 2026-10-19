@@ -13,6 +13,7 @@ import type {
   IFurpaGoodsAcceptanceDifferenceListQueryApiDto,
   IFurpaGoodsAcceptanceDifferenceScopeApiDto,
   IOfflineOperationResponseApiDto,
+  SafeWriteReviewResultDto,
   IFurpaWarehouseReceiptListItemApiDto,
   IFurpaWarehouseReceiptDetailApiDto,
   WarehouseReceivingEDespatchPreviewDto,
@@ -83,6 +84,15 @@ export class MalKabulIslemleriService extends BaseApiService {
       IOfflineOperationResponseApiDto<IFurpaCreateCompanyReceiptResponseApiDto>
     >(
       `mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/${encodeURIComponent(clientRequestId)}`
+    );
+  }
+
+  recheckCompanyReceiptSafeWrite(
+    clientRequestId: string
+  ): Observable<SafeWriteReviewResultDto<IFurpaCreateCompanyReceiptResponseApiDto>> {
+    return this.post<SafeWriteReviewResultDto<IFurpaCreateCompanyReceiptResponseApiDto>, undefined>(
+      `mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/${encodeURIComponent(clientRequestId)}/yeniden-dogrula`,
+      undefined
     );
   }
 

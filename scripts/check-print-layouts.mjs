@@ -89,6 +89,15 @@ const contracts = [
     ],
   },
   {
+    file: 'src/app/docs/tasks/green-grocer/manav-raporlari/list/manav-raporlari-list.component.ts',
+    checks: [
+      ['A4 portrait report page', /@page\s*\{[\s\S]*?size:\s*A4 portrait/i],
+      ['compact portrait margins', /@page\s*\{[\s\S]*?margin:\s*10mm 9mm 12mm/i],
+      ['repeating report table header', /thead\s*\{\s*display:\s*table-header-group/i],
+      ['report row fragmentation guard', /tr\s*\{[\s\S]*?break-inside:\s*avoid/i],
+    ],
+  },
+  {
     file: 'src/assets/tagLabel.css',
     checks: [
       ['A4 portrait page', /size:\s*A4 portrait/i],
@@ -101,9 +110,11 @@ const contracts = [
   {
     file: 'src/app/docs/tasks/cash-register/etiket-basim/list/etiket-basim-print.styles.ts',
     checks: [
-      ['57.9mm x 38.9mm page', /size:\s*57\.9mm 38\.9mm/i],
-      ['57.9mm label width', /\.print-label[\s\S]*?width:\s*57\.9mm/i],
-      ['38.9mm label height', /\.print-label[\s\S]*?height:\s*38\.9mm/i],
+      ['60mm x 40mm roll page', /size:\s*60mm 40mm/i],
+      ['60mm outer label width', /\.print-label\s*\{[\s\S]*?width:\s*60mm/i],
+      ['40mm outer label height', /\.print-label\s*\{[\s\S]*?height:\s*40mm/i],
+      ['57.9mm safe content width', /\.print-label-content\s*\{[\s\S]*?width:\s*57\.9mm/i],
+      ['38.9mm safe content height', /\.print-label-content\s*\{[\s\S]*?height:\s*38\.9mm/i],
       ['unrotated roll flow', /transform:\s*none/i]
     ]
   },

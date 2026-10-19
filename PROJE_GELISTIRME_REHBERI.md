@@ -1510,17 +1510,38 @@ Guvenli yayin sirasi:
 4. `index.html` en son degistirilir.
 5. Eski dosyalar yayin aninda degil, uygun bir saklama suresinden sonra temizlenir.
 
-Bu akis icin proje kokunde su komut kullanilir:
+Kurum ici/local IIS yayini icin varsayilan profil kullanilir. Bu profil API'yi
+dogrudan `http://10.0.0.100:7508/api` adresinden cagirir:
 
 ```powershell
 npm run publish:iis -- -DestinationPath "D:\IIS\FurpaAngularUI"
 ```
+
+Internete acik domain yayini icin `internet` profili secilir. Bu profil API
+adresini ayni-origin `/api` yapar ve reverse proxy kuralli `web.config` uretir:
+
+```powershell
+npm run publish:iis -- -DestinationPath "D:\IIS\FurpaAngularUI" -BuildProfile internet
+```
+
+Yalniz build klasoru hazirlanacaksa kullanilacak komutlar:
+
+```powershell
+npm run build:local
+npm run build:internet
+```
+
+`npm run build` geriye uyumluluk icin `build:local` ile aynidir.
 
 Build daha once alinmissa tekrar almadan yayinlamak icin:
 
 ```powershell
 npm run publish:iis -- -DestinationPath "D:\IIS\FurpaAngularUI" -SkipBuild
 ```
+
+`-SkipBuild` kullanirken `dist` klasorunun en son hangi profille derlendiginden
+emin olunmalidir. Profil karisikligini onlemek icin normal yayinda build adimini
+atlamamak tercih edilir.
 
 Hedef yol gercek IIS fiziksel yayin klasoruyle degistirilmelidir. Betik mevcut
 klasoru silmez, dosyalari once kopyalar ve `index.html` dosyasini en son yeniler.
@@ -1536,6 +1557,51 @@ yeni hashli dosyalara gecer, `Ctrl+Shift+R` gerekmez.
 `public/web.config` icindeki `index.html`/uygulama cache politikasinin IIS'e
 kopyalandigi ayrica kontrol edilmelidir. Proxy veya load balancer varsa ayni
 no-cache davranisi bu katmanlarda da korunmalidir.
+
+### Ayni origin API reverse proxy
+
+Yalniz `build:internet` / `-BuildProfile internet` ile uretilen paket API'yi
+dogrudan ozel ag adresinden cagirmak yerine `/api` goreli yolunu kullanir. Build
+sonunda internet profiline ait `web.config`, bu yolu asagidaki adrese aktarir:
+
+```text
+Tarayici:  http://denetim.furpa.com.tr:31445/api/...
+IIS:       http://10.0.0.100:7508/api/...
+```
+
+Bu yapi tarayicinin public bir adresten `10.0.0.100` ozel ag adresine dogrudan
+istek atmasini engeller. Chrome Local Network Access denetimi ve CORS, tarayici
+ile API arasinda devreye girmez; disaridan gorulen UI ve API origin'i aynidir.
+
+`build:local` paketindeki `web.config` API reverse proxy kurali icermez. Kurum
+ici istemci API'ye dogrudan gider; IIS tarafinda ARR kurulumu gerekmez.
+
+IIS sunucusunda bir defaya mahsus su bilesenler kurulu olmalidir:
+
+- IIS URL Rewrite Module 2
+- Application Request Routing (ARR) 3
+- ARR icinde `Enable Proxy` ayari
+
+ARR proxy ayari yonetici PowerShell/cmd oturumunda su komutla da acilabilir:
+
+```powershell
+& "$env:windir\System32\inetsrv\appcmd.exe" set config `
+  -section:system.webServer/proxy `
+  /enabled:"True" `
+  /preserveHostHeader:"False" `
+  /commit:apphost
+```
+
+Kurulumdan sonra kontrol:
+
+```text
+http://denetim.furpa.com.tr:31445/api/auth/login
+```
+
+Bu adresin artik Angular `index.html` cevabi degil API cevabi vermesi gerekir.
+`src/environments/environment.ts` gelistirme ortaminda dogrudan yerel API'yi
+kullanmaya devam eder. Production local profil dogrudan API'yi, production
+internet profili ise `/api` ayni-origin yolunu kullanir.
 
 ## 21. Commit Hazirligi
 

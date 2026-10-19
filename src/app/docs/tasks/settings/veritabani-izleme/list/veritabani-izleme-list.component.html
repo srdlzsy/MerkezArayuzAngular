@@ -656,6 +656,7 @@
             <option value="Processing">Isleniyor / Uzlastirma Bekliyor</option>
             <option value="Failed">Basarisiz</option>
             <option value="Completed">Tamamlandi</option>
+            <option value="Cancelled">Yetkili Tarafindan Iptal Edildi</option>
           </select>
         </label>
         <label class="field">
@@ -713,6 +714,7 @@
               <th>Karar</th>
               <th>Hata</th>
               <th>Son Guncelleme</th>
+              <th>Inceleme</th>
             </tr>
           </thead>
           <tbody>
@@ -737,9 +739,138 @@
                 }}<span class="table-meta">{{ item.errorMessage || '-' }}</span>
               </td>
               <td>{{ formatDate(item.updatedAtUtc || item.createdAtUtc) }}</td>
+              <td>
+                <button
+                  type="button"
+                  class="task-action task-action-secondary safe-write-review-button"
+                  [class.task-action-primary]="selectedSafeWrite()?.id === item.id"
+                  (click)="selectSafeWrite(item)"
+                  title="Inceleme gecmisini ve yetkili aksiyonlarini ac"
+                >
+                  <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+                  Incele
+                </button>
+              </td>
             </tr>
           </tbody>
         </table>
+      </div>
+      <div class="safe-write-review" *ngIf="selectedSafeWrite() as selected">
+        <div class="selected-session-head">
+          <div>
+            <span>Guvenli Yazma Incelemesi</span>
+            <strong>{{ selected.clientRequestId | slice: 0 : 8 }}</strong>
+          </div>
+          <button
+            type="button"
+            class="task-action"
+            (click)="closeSafeWriteReview()"
+            title="Inceleme panelini kapat"
+          >
+            <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+            Kapat
+          </button>
+        </div>
+
+        <dl class="detail-grid safe-write-detail-grid">
+          <div><dt>Durum</dt><dd>{{ safeWriteStatusLabel(selected) }}</dd></div>
+          <div><dt>Operasyon</dt><dd>{{ selected.operationCode || '-' }}</dd></div>
+          <div><dt>Depo</dt><dd>{{ selected.warehouseNo }}</dd></div>
+          <div><dt>Hata Kodu</dt><dd>{{ selected.errorCode || '-' }}</dd></div>
+          <div><dt>Takip Kimligi</dt><dd>{{ selected.clientRequestId }}</dd></div>
+          <div><dt>Son Guncelleme</dt><dd>{{ formatDate(selected.updatedAtUtc || selected.createdAtUtc) }}</dd></div>
+        </dl>
+
+        <form
+          class="safe-write-review-form"
+          [formGroup]="safeWriteReviewForm"
+          *ngIf="canReviewSelectedSafeWrite()"
+        >
+          <label class="field full-field">
+            <span>Inceleme Gerekcesi</span>
+            <textarea
+              rows="3"
+              maxlength="500"
+              formControlName="reason"
+              placeholder="Yapilan kontrolu ve bu kararin nedenini en az 10 karakterle yazin."
+            ></textarea>
+          </label>
+          <p
+            class="validation-message"
+            *ngIf="safeWriteReviewForm.controls.reason.touched && safeWriteReviewForm.controls.reason.invalid"
+          >
+            Gerekce 10-500 karakter olmalidir.
+          </p>
+          <div class="detail-actions">
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              [disabled]="isSafeWriteActionRunning()"
+              (click)="runSafeWriteReviewAction('recheck')"
+            >
+              <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+              Yeniden Dogrula
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-primary"
+              [disabled]="isSafeWriteActionRunning()"
+              (click)="runSafeWriteReviewAction('reopen')"
+            >
+              <i class="fa-solid fa-lock-open" aria-hidden="true"></i>
+              Tekrar Ac
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-danger"
+              [disabled]="isSafeWriteActionRunning()"
+              (click)="runSafeWriteReviewAction('cancel')"
+            >
+              <i class="fa-solid fa-ban" aria-hidden="true"></i>
+              Iptal Et
+            </button>
+          </div>
+        </form>
+
+        <div class="safe-write-readonly-note" *ngIf="!canResolveSafeWrites()">
+          Bu kaydin inceleme gecmisini gorebilirsiniz. Sonuclandirma aksiyonlari icin ek yetki gerekir.
+        </div>
+
+        <div class="safe-write-history-head">
+          <strong>Inceleme Gecmisi</strong>
+          <span class="table-meta">
+            {{ isSafeWriteReviewLoading() ? 'Yukleniyor' : safeWriteReviewHistory().length + ' kayit' }}
+          </span>
+        </div>
+        <div class="table-wrap safe-write-review-history" *ngIf="safeWriteReviewHistory().length > 0; else noSafeWriteReviewHistory">
+          <table class="data-table compact-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Aksiyon / Sonuc</th>
+                <th>Onceki</th>
+                <th>Sonraki</th>
+                <th>Gerekce</th>
+                <th>Mesaj</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let review of safeWriteReviewHistory(); trackBy: trackBySafeWriteReview">
+                <td>{{ formatDate(review.reviewedAtUtc) }}</td>
+                <td>{{ review.action || '-' }}<span class="table-meta">{{ review.outcome || '-' }}</span></td>
+                <td>{{ review.previousStatus || '-' }}<span class="table-meta">{{ review.previousErrorCode || '-' }}</span></td>
+                <td>{{ review.resultStatus || '-' }}<span class="table-meta">{{ review.resultErrorCode || '-' }}</span></td>
+                <td class="wrap-cell">{{ review.reason || '-' }}</td>
+                <td class="wrap-cell">{{ review.message || '-' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #noSafeWriteReviewHistory>
+          <div class="panel-empty">
+            {{ isSafeWriteReviewLoading() ? 'Inceleme gecmisi yukleniyor.' : 'Bu kayit icin henuz inceleme islemi yok.' }}
+          </div>
+        </ng-template>
       </div>
       <ng-template #noSafeWrites>
         <article class="state-card state-card-success empty-state">

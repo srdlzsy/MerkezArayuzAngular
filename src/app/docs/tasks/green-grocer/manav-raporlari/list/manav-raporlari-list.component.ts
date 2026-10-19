@@ -395,71 +395,11 @@ export class ManavRaporlariListComponent {
       return;
     }
 
-    const source = document.querySelector<HTMLElement>(`[data-report-print="${tab}"]`);
-
-    if (!source) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'Yazdirma hazirlanamadi',
-        message: 'Rapor alani bulunamadi.'
-      });
-      return;
-    }
-
-    const clonedReport = source.cloneNode(true) as HTMLElement;
-    clonedReport.querySelectorAll('details').forEach((details) => details.setAttribute('open', ''));
-    clonedReport
-      .querySelectorAll('app-excel-export-button, .print-action, .row-action, button')
-      .forEach((element) => element.remove());
-
     const reportTitle = this.getPrintReportTitle(tab);
-    const reportDate = this.lastLoadedDate();
-    const scope = this.warehouseScopeLabel();
 
     const opened = this.documentPrintService.printHtml({
-      markup: `<!doctype html>
-<html lang="tr">
-<head>
-  <meta charset="utf-8">
-  <title>${this.escapeHtml(reportTitle)}</title>
-  <style>
-    @page { size: A4 landscape; margin: 10mm; }
-    * { box-sizing: border-box; }
-    body { margin: 0; color: #0f172a; font-family: Arial, sans-serif; font-size: 11px; background: #fff; }
-    .print-header { display: flex; justify-content: space-between; gap: 16px; margin-bottom: 12px; padding-bottom: 8px; border-bottom: 1px solid #cbd5e1; }
-    .print-header h1 { margin: 0 0 4px; font-size: 18px; }
-    .print-meta { color: #475569; font-size: 11px; text-align: right; }
-    .report-panel, .summary-groups, .document-groups, .product-workspace, .lazy-branches, .product-detail { display: block; }
-    .panel-head, .group-head, .document-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 10px; margin-bottom: 8px; }
-    h3 { margin: 0; font-size: 14px; }
-    .section-kicker, small { color: #64748b; }
-    .panel-chip, .type-pill { display: inline-block; padding: 3px 6px; border: 1px solid #cbd5e1; border-radius: 4px; color: #0f172a; font-weight: 700; }
-    details { display: block; margin-bottom: 10px; break-inside: avoid; page-break-inside: avoid; }
-    summary { list-style: none; }
-    summary::-webkit-details-marker { display: none; }
-    .report-group, .document-card, .lazy-card, .product-detail { padding: 8px; border: 1px solid #cbd5e1; border-radius: 4px; background: #fff; }
-    .table-wrap { overflow: visible; }
-    table { width: 100%; border-collapse: collapse; table-layout: fixed; margin-top: 6px; }
-    th, td { padding: 5px 6px; border: 1px solid #cbd5e1; vertical-align: top; text-align: left; word-break: break-word; }
-    th { background: #f1f5f9; font-size: 10px; text-transform: uppercase; }
-    .number-cell { text-align: right; }
-    .product-name, .document-title { display: block; font-weight: 700; }
-    .lazy-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 6px; }
-    .report-tabs, .state-card, .feedback-card { display: none; }
-  </style>
-</head>
-<body>
-  <header class="print-header">
-    <div>
-      <h1>${this.escapeHtml(reportTitle)}</h1>
-      <div>${this.escapeHtml(reportDate)}</div>
-    </div>
-    <div class="print-meta">${this.escapeHtml(scope)}</div>
-  </header>
-  ${clonedReport.innerHTML}
-</body>
-</html>`,
-      windowFeatures: 'width=1200,height=900',
+      markup: this.buildPrintMarkup(tab, reportTitle),
+      windowFeatures: 'width=900,height=1100',
       closeAfterPrint: true
     });
 
@@ -1190,6 +1130,328 @@ export class ManavRaporlariListComponent {
     const day = String(date.getDate()).padStart(2, '0');
 
     return `${year}-${month}-${day}`;
+  }
+
+  private buildPrintMarkup(tab: ReportTab, reportTitle: string): string {
+    const reportDate = this.formatPrintDate(this.lastLoadedDate());
+    const scope = this.warehouseScopeLabel();
+    const generatedAt = new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'short',
+      timeStyle: 'short'
+    }).format(new Date());
+
+    return `<!doctype html>
+<html lang="tr">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>${this.escapeHtml(reportTitle)}</title>
+  <style>
+    @page { size: A4 portrait; margin: 10mm 9mm 12mm; }
+    * { box-sizing: border-box; }
+    html { -webkit-print-color-adjust: exact; print-color-adjust: exact; }
+    body {
+      margin: 0;
+      color: #172033;
+      font-family: Arial, Helvetica, sans-serif;
+      font-size: 9.5px;
+      line-height: 1.3;
+      background: #fff;
+    }
+    .report-sheet { width: 100%; }
+    .print-header {
+      display: grid;
+      grid-template-columns: minmax(0, 1fr) auto;
+      gap: 5mm;
+      align-items: end;
+      margin-bottom: 4mm;
+      padding: 0 0 3.5mm;
+      border-bottom: 2px solid #0f766e;
+    }
+    .brand { margin-bottom: 1.5mm; color: #0f766e; font-size: 9px; font-weight: 900; letter-spacing: 0.16em; }
+    h1 { margin: 0; color: #0f172a; font-size: 18px; line-height: 1.1; }
+    .print-meta { display: grid; gap: 1mm; min-width: 48mm; color: #475569; text-align: right; }
+    .print-meta strong { color: #0f172a; }
+    .print-stats {
+      display: grid;
+      grid-template-columns: repeat(3, minmax(0, 1fr));
+      gap: 2mm;
+      margin-bottom: 4mm;
+    }
+    .stat {
+      min-width: 0;
+      padding: 2.2mm 2.5mm;
+      border: 1px solid #cbd5e1;
+      border-radius: 2mm;
+      background: #f8fafc;
+    }
+    .stat span { display: block; color: #64748b; font-size: 7.5px; font-weight: 800; text-transform: uppercase; }
+    .stat strong { display: block; margin-top: 0.7mm; color: #0f172a; font-size: 11px; }
+    .print-section { margin: 0 0 4.5mm; }
+    .section-heading {
+      display: flex;
+      align-items: flex-end;
+      justify-content: space-between;
+      gap: 4mm;
+      margin-bottom: 1.5mm;
+      padding: 1.8mm 2.2mm;
+      border-left: 3px solid #0f766e;
+      background: #ecfdf5;
+      break-after: avoid-page;
+      page-break-after: avoid;
+    }
+    .section-heading h2 { margin: 0; color: #0f172a; font-size: 11.5px; line-height: 1.2; }
+    .section-heading p { margin: 0.7mm 0 0; color: #475569; font-size: 8px; }
+    .section-total { flex: 0 0 auto; color: #064e3b; font-size: 10px; font-weight: 900; text-align: right; }
+    table { width: 100%; border-collapse: collapse; table-layout: fixed; }
+    thead { display: table-header-group; }
+    tr { break-inside: avoid; page-break-inside: avoid; }
+    th, td { padding: 1.6mm 1.8mm; border: 1px solid #cbd5e1; vertical-align: top; overflow-wrap: anywhere; }
+    th { color: #334155; background: #eaf0f5; font-size: 7.5px; font-weight: 900; letter-spacing: 0.02em; text-transform: uppercase; }
+    td { font-size: 9px; }
+    tbody tr:nth-child(even) td { background: #f8fafc; }
+    .index-cell { width: 8mm; color: #64748b; text-align: center; }
+    .code-cell { width: 27mm; }
+    .type-cell { width: 25mm; }
+    .unit-cell { width: 16mm; text-align: center; }
+    .quantity-cell { width: 35mm; text-align: right; }
+    .document-cell { width: 32mm; }
+    .product-name { color: #0f172a; font-weight: 800; }
+    .subline { display: block; margin-top: 0.6mm; color: #64748b; font-size: 7.5px; line-height: 1.2; }
+    .case-line { color: #0f766e; font-weight: 700; }
+    .empty-line { margin: 0; padding: 3mm; border: 1px solid #cbd5e1; color: #64748b; background: #f8fafc; }
+    .lazy-section { margin-top: 6mm; break-before: auto; }
+    .lazy-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5mm; }
+    .lazy-card { padding: 2mm; border: 1px solid #cbd5e1; background: #f8fafc; break-inside: avoid; }
+    .lazy-card strong { display: block; color: #0f172a; }
+    .lazy-card span { display: block; margin-top: 0.5mm; color: #64748b; font-size: 8px; }
+    .print-note { margin-top: 5mm; padding-top: 2mm; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 7.5px; }
+  </style>
+</head>
+<body>
+  <main class="report-sheet">
+    <header class="print-header">
+      <div>
+        <div class="brand">FURPA</div>
+        <h1>${this.escapeHtml(reportTitle)}</h1>
+      </div>
+      <div class="print-meta">
+        <span>Rapor tarihi <strong>${this.escapeHtml(reportDate)}</strong></span>
+        <span>Kapsam <strong>${this.escapeHtml(scope)}</strong></span>
+        <span>Hazırlanma <strong>${this.escapeHtml(generatedAt)}</strong></span>
+      </div>
+    </header>
+    ${this.buildPrintStats(tab)}
+    ${this.buildPrintBody(tab)}
+    <footer class="print-note">Miktarlar rapor servisinden dönen birim ve kasa/koli bilgileriyle gösterilmiştir.</footer>
+  </main>
+</body>
+</html>`;
+  }
+
+  private buildPrintStats(tab: ReportTab): string {
+    let stats: readonly [string, string][];
+
+    switch (tab) {
+      case 'summary':
+        stats = [
+          ['Ürün', String(this.summaryItems().length)],
+          ['Ürün grubu', String(this.summaryGroups().length)],
+          ['Toplam miktar', this.formatQuantity(this.summaryTotalQuantity())]
+        ];
+        break;
+      case 'byBranch':
+        stats = [
+          ['Evrak', String(this.branchDocumentCount())],
+          ['Şube', String(this.branchCount())],
+          ['Sipariş girmeyen şube', String(this.lazyBranches().length)]
+        ];
+        break;
+      case 'byProduct':
+        stats = [
+          ['Ürün', String(this.productRows().length)],
+          ['Şube / evrak kırılımı', String(this.productBreakdownExportRows().length)],
+          [
+            'Toplam miktar',
+            this.formatQuantity(
+              this.productRows().reduce((total, item) => total + item.quantity, 0)
+            )
+          ]
+        ];
+        break;
+      case 'greens':
+        stats = [
+          ['Evrak', String(this.greenDocumentGroups().length)],
+          ['Satır', String(this.greenItems().length)],
+          ['Toplam miktar', this.formatQuantity(this.greenTotalQuantity())]
+        ];
+        break;
+    }
+
+    return `<section class="print-stats">${stats
+      .map(
+        ([label, value]) =>
+          `<div class="stat"><span>${this.escapeHtml(label)}</span><strong>${this.escapeHtml(value)}</strong></div>`
+      )
+      .join('')}</section>`;
+  }
+
+  private buildPrintBody(tab: ReportTab): string {
+    switch (tab) {
+      case 'summary':
+        return this.buildSummaryPrintBody();
+      case 'byBranch':
+        return `${this.buildDocumentPrintBody(this.branchDocumentGroups(), true)}${this.buildLazyBranchesPrintBody()}`;
+      case 'byProduct':
+        return this.buildProductPrintBody();
+      case 'greens':
+        return this.buildDocumentPrintBody(this.greenDocumentGroups(), false);
+    }
+  }
+
+  private buildSummaryPrintBody(): string {
+    return this.summaryGroups()
+      .map(
+        (group) => `<section class="print-section">
+          ${this.buildPrintSectionHeading(
+            group.typeLabel,
+            `${group.items.length} ürün`,
+            this.formatQuantity(group.totalQuantity)
+          )}
+          <table>
+            <thead><tr><th class="index-cell">#</th><th>Ürün</th><th class="code-cell">Kod</th><th class="unit-cell">Birim</th><th class="quantity-cell">Miktar</th></tr></thead>
+            <tbody>${group.items
+              .map(
+                (item, index) => `<tr>
+                  <td class="index-cell">${index + 1}</td>
+                  <td><span class="product-name">${this.escapeHtml(this.getProductName(item))}</span>${this.buildPrintSubline(item.stockName)}</td>
+                  <td class="code-cell">${this.escapeHtml(this.getProductCode(item))}</td>
+                  <td class="unit-cell">${this.escapeHtml(this.getUnitName(item) || '-')}</td>
+                  <td class="quantity-cell"><strong>${this.escapeHtml(this.formatQuantity(item.quantity))}</strong>${this.buildCasePrintLines(item.caseInfo)}</td>
+                </tr>`
+              )
+              .join('')}</tbody>
+          </table>
+        </section>`
+      )
+      .join('');
+  }
+
+  private buildDocumentPrintBody(groups: readonly DocumentGroup[], showType: boolean): string {
+    return groups
+      .map(
+        (group) => `<section class="print-section">
+          ${this.buildPrintSectionHeading(
+            group.branchLabel,
+            [this.formatDateTime(group.orderDate), group.documentLabel, ...group.typeLabels]
+              .filter(Boolean)
+              .join(' · '),
+            this.formatQuantity(group.totalQuantity)
+          )}
+          <table>
+            <thead><tr><th class="index-cell">#</th><th>Ürün</th><th class="code-cell">Kod</th>${showType ? '<th class="type-cell">Tip</th>' : ''}<th class="unit-cell">Birim</th><th class="quantity-cell">Miktar</th></tr></thead>
+            <tbody>${group.items
+              .map(
+                (item, index) => `<tr>
+                  <td class="index-cell">${index + 1}</td>
+                  <td><span class="product-name">${this.escapeHtml(this.getProductName(item))}</span></td>
+                  <td class="code-cell">${this.escapeHtml(this.getProductCode(item))}</td>
+                  ${showType ? `<td class="type-cell">${this.escapeHtml(this.getReportTypeLabel(item))}</td>` : ''}
+                  <td class="unit-cell">${this.escapeHtml(this.getUnitName(item) || '-')}</td>
+                  <td class="quantity-cell"><strong>${this.escapeHtml(this.formatQuantity(item.quantity))}</strong>${this.buildCasePrintLines(item.caseInfo)}</td>
+                </tr>`
+              )
+              .join('')}</tbody>
+          </table>
+        </section>`
+      )
+      .join('');
+  }
+
+  private buildProductPrintBody(): string {
+    return this.productRows()
+      .map(
+        (product) => `<section class="print-section">
+          ${this.buildPrintSectionHeading(
+            product.productName,
+            [product.typeLabel, product.productCode, product.unitName]
+              .filter(Boolean)
+              .join(' · '),
+            this.formatQuantity(product.quantity)
+          )}
+          ${
+            product.breakdownItems.length
+              ? `<table>
+                  <thead><tr><th class="index-cell">#</th><th>Şube</th><th class="document-cell">Evrak</th><th>Tarih</th><th class="quantity-cell">Miktar</th></tr></thead>
+                  <tbody>${product.breakdownItems
+                    .map(
+                      (item, index) => `<tr>
+                        <td class="index-cell">${index + 1}</td>
+                        <td><span class="product-name">${this.escapeHtml(this.formatBranch(item))}</span></td>
+                        <td class="document-cell">${this.escapeHtml(item.document?.documentNo?.trim() || this.formatDocument(item))}</td>
+                        <td>${this.escapeHtml(this.formatDateTime(item.latestCreateDate || item.orderDate))}</td>
+                        <td class="quantity-cell"><strong>${this.escapeHtml(this.formatQuantity(item.quantity))}</strong>${this.buildCasePrintLines(item.caseInfo)}</td>
+                      </tr>`
+                    )
+                    .join('')}</tbody>
+                </table>`
+              : '<p class="empty-line">Şube / evrak kırılımı bulunamadı.</p>'
+          }
+        </section>`
+      )
+      .join('');
+  }
+
+  private buildLazyBranchesPrintBody(): string {
+    if (!this.lazyBranches().length) {
+      return '';
+    }
+
+    return `<section class="print-section lazy-section">
+      ${this.buildPrintSectionHeading(
+        'Sipariş Girmeyen Şubeler',
+        'Seçilen rapor tarihinde evrakı bulunmayan şubeler',
+        String(this.lazyBranches().length)
+      )}
+      <div class="lazy-grid">${this.lazyBranches()
+        .map(
+          (branch) => `<article class="lazy-card">
+            <strong>${this.escapeHtml(branch.branchName?.trim() || `Şube ${branch.branchNo}`)}</strong>
+            <span>Şube ${this.escapeHtml(String(branch.branchNo ?? '-'))} · Bölge ${this.escapeHtml(branch.regionCode?.trim() || '-')}</span>
+          </article>`
+        )
+        .join('')}</div>
+    </section>`;
+  }
+
+  private buildPrintSectionHeading(title: string, subtitle: string, total: string): string {
+    return `<header class="section-heading">
+      <div><h2>${this.escapeHtml(title)}</h2><p>${this.escapeHtml(subtitle)}</p></div>
+      <div class="section-total">${this.escapeHtml(total)}</div>
+    </header>`;
+  }
+
+  private buildPrintSubline(value: string | null | undefined): string {
+    const text = value?.trim();
+    return text ? `<span class="subline">${this.escapeHtml(text)}</span>` : '';
+  }
+
+  private buildCasePrintLines(caseInfo: GreenGrocerProductCaseInfoDto | null | undefined): string {
+    const lines = [this.formatCaseInfo(caseInfo), this.formatCaseAverage(caseInfo)].filter(Boolean);
+
+    return lines.length
+      ? `<span class="subline case-line">${lines.map((line) => this.escapeHtml(line)).join('<br>')}</span>`
+      : '';
+  }
+
+  private formatPrintDate(value: string): string {
+    const date = new Date(`${value}T00:00:00`);
+
+    if (Number.isNaN(date.getTime())) {
+      return value;
+    }
+
+    return new Intl.DateTimeFormat('tr-TR', { dateStyle: 'long' }).format(date);
   }
 
   private getPrintReportTitle(tab: ReportTab): string {

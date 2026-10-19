@@ -5,6 +5,7 @@ import type {
   DatabaseMonitoringSnapshotDto,
   DatabaseSessionTerminationDto,
   MonitoringOverviewDto,
+  SafeWriteReviewHttpRequest,
   TerminateDatabaseSessionHttpRequest,
   WorkerMonitoringSnapshotDto
 } from '@interfaces';
@@ -205,6 +206,33 @@ describe('AyarIslemleriService database monitoring', () => {
     expect(request.request.params.get('includeCompleted')).toBe('false');
     expect(request.request.params.get('take')).toBe('50');
     request.flush([]);
+  });
+
+  it('uses the safe-write review and audit endpoints', () => {
+    const id = '8be01068-f54a-4298-8d9b-58a7a39b40b8';
+    const payload: SafeWriteReviewHttpRequest = {
+      reason: 'Mikro kaydi operasyon tarafinda kontrol edildi.'
+    };
+
+    service.getSafeWriteReviewHistory(id).subscribe();
+    service.recheckSafeWrite(id, payload).subscribe();
+    service.reopenSafeWrite(id, payload).subscribe();
+    service.cancelSafeWrite(id, payload).subscribe();
+
+    const history = httpTesting.expectOne(
+      `https://api.test/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${id}/inceleme-gecmisi`
+    );
+    expect(history.request.method).toBe('GET');
+    history.flush([]);
+
+    for (const action of ['yeniden-dogrula', 'tekrar-ac', 'iptal']) {
+      const request = httpTesting.expectOne(
+        `https://api.test/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${id}/${action}`
+      );
+      expect(request.request.method).toBe('POST');
+      expect(request.request.body).toEqual(payload);
+      request.flush({});
+    }
   });
 
   it('posts the verified session identity and termination reason', () => {

@@ -4,6 +4,9 @@ param(
 
   [switch]$SkipBuild,
 
+  [ValidateSet('local', 'internet')]
+  [string]$BuildProfile = 'local',
+
   [ValidateRange(1, 365)]
   [int]$RetainDays = 14
 )
@@ -15,7 +18,7 @@ $sourcePath = Join-Path $projectRoot 'dist\angularv20\browser'
 if (-not $SkipBuild) {
   Push-Location $projectRoot
   try {
-    & npm.cmd run build
+    & npm.cmd run "build:$BuildProfile"
     if ($LASTEXITCODE -ne 0) {
       throw "Build basarisiz oldu. Cikis kodu: $LASTEXITCODE"
     }
@@ -27,6 +30,21 @@ if (-not $SkipBuild) {
 
 if (-not (Test-Path -LiteralPath $sourcePath -PathType Container)) {
   throw "Yayin kaynagi bulunamadi: $sourcePath"
+}
+
+$distWebConfig = Join-Path $sourcePath 'web.config'
+if (-not (Test-Path -LiteralPath $distWebConfig -PathType Leaf)) {
+  throw "Yayin web.config dosyasi bulunamadi: $distWebConfig"
+}
+
+$hasApiReverseProxy = Select-String `
+  -LiteralPath $distWebConfig `
+  -SimpleMatch 'Furpa API Reverse Proxy' `
+  -Quiet
+$detectedBuildProfile = if ($hasApiReverseProxy) { 'internet' } else { 'local' }
+
+if ($detectedBuildProfile -ne $BuildProfile) {
+  throw "Dist profili '$detectedBuildProfile', istenen yayin profili '$BuildProfile'. Dogru profille yeniden build alin."
 }
 
 if (-not (Test-Path -LiteralPath $DestinationPath)) {
@@ -88,5 +106,6 @@ Get-ChildItem -LiteralPath $resolvedDestination -File | Where-Object {
 }
 
 Write-Host "IIS yayini tamamlandi: $resolvedDestination"
+Write-Host "Yayin profili: $BuildProfile"
 Write-Host "Eski hashli dosyalar $RetainDays gun boyunca acik kullanici oturumlari icin korunur."
 Write-Host "$removedBundleCount adet suresi dolmus bundle temizlendi."

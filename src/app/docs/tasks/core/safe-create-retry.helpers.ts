@@ -18,13 +18,27 @@ export type SafeCreateConflictCode =
   | 'MIKRO_WRITE_QUEUE_BUSY'
   | 'MIKRO_WRITE_IN_PROGRESS'
   | 'MIKRO_WRITE_OUTCOME_UNCONFIRMED'
+  | 'MIKRO_DOCUMENT_INCOMPLETE'
   | 'MIKRO_DOCUMENT_CONTENT_MISMATCH'
+  | 'SAFE_WRITE_RETRY_ALLOWED'
+  | 'SAFE_WRITE_CANCELLED'
   | 'CLIENT_REQUEST_PAYLOAD_MISMATCH';
+
+export type SafeCreateRecommendedAction =
+  | 'Completed'
+  | 'WaitAndCheck'
+  | 'RetrySameRequest'
+  | 'RecheckExisting'
+  | 'RestoreOriginalRequest'
+  | 'NeedsReview'
+  | 'ClearCancelled';
 
 export interface SafeCreateFailure {
   message: string;
   errorCode: SafeCreateConflictCode | string | null;
   retryable: boolean | null;
+  recoveryState?: string | null;
+  recommendedAction?: SafeCreateRecommendedAction | string | null;
   blocksSubmit: boolean;
   allowsNewAttempt: boolean;
 }
@@ -35,6 +49,8 @@ interface ProblemDetailsBody {
   error?: unknown;
   errorCode?: unknown;
   retryable?: unknown;
+  recoveryState?: unknown;
+  recommendedAction?: unknown;
 }
 
 export function classifySafeCreateFailure(
@@ -55,34 +71,48 @@ export function classifySafeCreateFailure(
 
     return {
       message: outcomeIsUnconfirmed
-        ? `${message} Ayni istek kimligi korunarak tekrar deneyebilirsiniz.`
+        ? `${message} Kayit sonucu kontrol edilecek; bu asamada yeniden gondermeyin.`
         : message,
       errorCode: null,
       retryable: outcomeIsUnconfirmed ? true : null,
-      blocksSubmit: false,
+      recoveryState: outcomeIsUnconfirmed ? 'Unknown' : null,
+      recommendedAction: outcomeIsUnconfirmed ? 'WaitAndCheck' : null,
+      blocksSubmit: outcomeIsUnconfirmed,
       allowsNewAttempt: false,
     };
   }
 
   const errorCode = readText(body?.errorCode)?.toLocaleUpperCase('tr-TR') || null;
   const retryable = typeof body?.retryable === 'boolean' ? body.retryable : null;
+  const recoveryState = readText(body?.recoveryState) || null;
+  const recommendedAction = readText(body?.recommendedAction) || null;
+
+  if (recommendedAction === 'RetrySameRequest' || errorCode === 'SAFE_WRITE_RETRY_ALLOWED') {
+    return {
+      message: `${message} Kayitli ayni istek guvenli olarak yeniden gonderilebilir.`,
+      errorCode,
+      retryable: true,
+      recoveryState,
+      recommendedAction: 'RetrySameRequest',
+      blocksSubmit: false,
+      allowsNewAttempt: false,
+    };
+  }
 
   if (
     (errorCode === 'MIKRO_WRITE_QUEUE_BUSY' ||
       errorCode === 'MIKRO_WRITE_IN_PROGRESS' ||
-      errorCode === 'MIKRO_WRITE_OUTCOME_UNCONFIRMED') &&
+      errorCode === 'MIKRO_WRITE_OUTCOME_UNCONFIRMED' ||
+      errorCode === 'MIKRO_DOCUMENT_INCOMPLETE') &&
     retryable === true
   ) {
-    const retryGuidance =
-      errorCode === 'MIKRO_WRITE_QUEUE_BUSY'
-        ? 'Mikro yazimi henuz baslamadi. Kisa bir sure sonra ayni istek kimligiyle tekrar deneyebilirsiniz.'
-        : 'Ayni istek kimligi korunarak tekrar deneyebilirsiniz.';
-
     return {
-      message: `${message} ${retryGuidance}`,
+      message: `${message} Kayit sonucu kontrol edilmeden yeniden gonderim yapilmayacak.`,
       errorCode,
       retryable: true,
-      blocksSubmit: false,
+      recoveryState,
+      recommendedAction: recommendedAction || 'WaitAndCheck',
+      blocksSubmit: true,
       allowsNewAttempt: false,
     };
   }
@@ -92,6 +122,8 @@ export function classifySafeCreateFailure(
       message: `${message} Orijinal istek ve onceki sonuc uzlastirilmadan yeni islem acilamaz.`,
       errorCode,
       retryable: false,
+      recoveryState: recoveryState || 'RequestChanged',
+      recommendedAction: recommendedAction || 'RestoreOriginalRequest',
       blocksSubmit: true,
       allowsNewAttempt: false,
     };
@@ -102,6 +134,8 @@ export function classifySafeCreateFailure(
       message: `${message} Yetkili incelemesi gerekli; bu kayit tekrar gonderilemez.`,
       errorCode,
       retryable: false,
+      recoveryState: recoveryState || 'Mismatch',
+      recommendedAction: recommendedAction || 'RecheckExisting',
       blocksSubmit: true,
       allowsNewAttempt: false,
     };
@@ -111,6 +145,8 @@ export function classifySafeCreateFailure(
     message: `${message} Bu cakisma otomatik olarak tekrar gonderilemez.`,
     errorCode,
     retryable,
+    recoveryState,
+    recommendedAction: recommendedAction || 'NeedsReview',
     blocksSubmit: true,
     allowsNewAttempt: false,
   };

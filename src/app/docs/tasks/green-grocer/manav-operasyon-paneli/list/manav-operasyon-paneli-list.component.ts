@@ -614,7 +614,13 @@ export class ManavOperasyonPaneliListComponent {
         .subscribe({
           next: (status: IOfflineOperationResponseApiDto<GreenGrocerOperationsAdjustmentApplyDto>) => {
             const normalizedStatus = status.status.trim().toLocaleLowerCase('tr-TR');
-            if (normalizedStatus === 'completed') {
+            const recommendedAction = status.recommendedAction?.trim() || null;
+            if (normalizedStatus === 'completed' || recommendedAction === 'Completed') {
+              this.safeCreatePendingStore.remove(record.scope, clientRequestId);
+              return;
+            }
+
+            if (normalizedStatus === 'cancelled' || recommendedAction === 'ClearCancelled') {
               this.safeCreatePendingStore.remove(record.scope, clientRequestId);
               return;
             }
@@ -626,7 +632,10 @@ export class ManavOperasyonPaneliListComponent {
                   : 'MNV duzeltmesi tamamlanamadi.'),
               errorCode: status.errorCode,
               retryable: normalizedStatus === 'processing' ? true : status.retryable,
-              blocksSubmit: normalizedStatus !== 'processing' && status.retryable !== true,
+              recoveryState: status.recoveryState,
+              recommendedAction:
+                recommendedAction || (normalizedStatus === 'processing' ? 'WaitAndCheck' : 'NeedsReview'),
+              blocksSubmit: recommendedAction !== 'RetrySameRequest',
               allowsNewAttempt: false
             });
           },

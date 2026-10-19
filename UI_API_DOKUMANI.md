@@ -2,7 +2,7 @@
 
 Bu dokuman, mevcut backend durumuna gore frontend/UI tasarimi ve entegrasyonu icin hazirlanmistir.
 
-Son hedefli kontrol: 2026-10-16. Kayitli 750 method/route ve 686 JSON modeli koddan uretilen sozlesmeyle; auth, CORS, dogrudan IIS barindirma, Mikro create/readback, firma e-irsaliye, guvenli retry, worker heartbeat/backlog ve veritabani izleme anlatimlari kaynak kod ve Production ayarlariyla karsilastirildi.
+Son hedefli kontrol: 2026-10-19. Kayitli 756 method/route ve 691 JSON modeli koddan uretilen sozlesmeyle; auth, CORS, dogrudan IIS barindirma, Mikro create/readback, firma e-irsaliye, guvenli retry, worker heartbeat/backlog ve veritabani izleme anlatimlari kaynak kod ve Production ayarlariyla karsilastirildi.
 Tum kayitli endpointlerin route, method, request/response ve yetki metadata referansi: [API Sozlesme Referansi](API_SOZLESME_REFERANSI.md). Makine formati: [OpenAPI Sozlesmesi](API_SOZLESMESI.json). Bu referans test ile koddan uretilir; anlatimdaki orneklerin yerine tam alan/alias listesi icin kullanilir.
 Bu kontrol tum endpointlerin uctan uca canli onayi degildir. Yayin oncesi migration, acik riskler ve smoke testleri icin [Canliya Gecis Kontrol Listesi](CANLIYA_GECIS_KONTROL_LISTESI.md) kullanilmalidir.
 
@@ -27,6 +27,8 @@ Bu kontrol tum endpointlerin uctan uca canli onayi degildir. Yayin oncesi migrat
 - Tarih aralikli liste endpointlerinde `StartDate` ve `EndDate` zorunludur; depo yetkisi yoksa `WarehouseNo` verilmez ve backend JWT icindeki depoyu kullanir.
 - CORS originleri ortama gore konfigurasyondan okunur. Development icin `appsettings.Development.json`, canli icin `appsettings.Production.json` altindaki `Cors:AllowedOrigins` listesi esas alinmalidir; kaynak koddaki veya bu dokumandaki eski origin listelerine guvenilmemelidir.
 - Canli web UI originleri `http://10.0.0.100:7575` ve `http://denetim.furpa.com.tr:31445`, API adresi `http://10.0.0.100:7508` olarak tanimlidir. Eski arayuz `http://10.0.0.100:5002` ayri legacy origin'idir.
+- `Cors:AllowedOrigins` kaydi yalniz standart CORS kontrolunu acar. `denetim.furpa.com.tr` public IP'ye cozulurken UI'nin dogrudan `10.0.0.100` ozel ag API adresini cagirmasi, Chrome 142 ve sonraki surumlerde ayrica Local Network Access kontrolune tabidir. Public `http` sayfa guvenli context olmadigi icin tarayici backend dogru `Access-Control-Allow-Origin` dondurse bile istegi engelleyebilir ve bunu CORS/network hatasi gibi gosterebilir.
+- `http://denetim.furpa.com.tr:31445` uzerinden yayinlanan UI icin onerilen kalici cozum, frontend sunucusunda ayni origin altinda `/api` reverse proxy tanimlamak ve UI'nin `http://10.0.0.100:7508` yerine goreli `/api` adresini kullanmasidir. Alternatif olarak kurum icindeki UI `http://10.0.0.100:7575` adresinden acilabilir. Tarayiciya ozel yerel ag izni veya kullanici ayari ana canli mimari olarak kabul edilmemelidir.
 
 Timeout ve tekrar deneme notu:
 
@@ -279,7 +281,7 @@ Bu tablo UI icin ana permission referansidir. Kaynak kod tarafi `PermissionCatal
 | `ayar-islemleri` | `kasiyerler` | `ayar-islemleri.kasiyerler.manage` | `ayar-islemleri.kasiyerler.list`<br>`ayar-islemleri.kasiyerler.detail`<br>`ayar-islemleri.kasiyerler.create`<br>`ayar-islemleri.kasiyerler.update` | `ayar-islemleri.kasiyerler.all-warehouses` |
 | `ayar-islemleri` | `soforler` | `ayar-islemleri.soforler.manage` | `ayar-islemleri.soforler.list`<br>`ayar-islemleri.soforler.detail`<br>`ayar-islemleri.soforler.create`<br>`ayar-islemleri.soforler.update`<br>`ayar-islemleri.soforler.delete` | `ayar-islemleri.soforler.all-warehouses` |
 | `ayar-islemleri` | `b2b-ayarlari` | `ayar-islemleri.b2b-ayarlari.manage` | `ayar-islemleri.b2b-ayarlari.list`<br>`ayar-islemleri.b2b-ayarlari.detail`<br>`ayar-islemleri.b2b-ayarlari.create`<br>`ayar-islemleri.b2b-ayarlari.update`<br>`ayar-islemleri.b2b-ayarlari.delete` | `ayar-islemleri.b2b-ayarlari.all-warehouses` |
-| `ayar-islemleri` | `veritabani-izleme` | `ayar-islemleri.veritabani-izleme.manage` | `ayar-islemleri.veritabani-izleme.list`<br>`ayar-islemleri.veritabani-izleme.detail`<br>`ayar-islemleri.veritabani-izleme.terminate-session` | `-` |
+| `ayar-islemleri` | `veritabani-izleme` | `ayar-islemleri.veritabani-izleme.manage` | `ayar-islemleri.veritabani-izleme.list`<br>`ayar-islemleri.veritabani-izleme.detail`<br>`ayar-islemleri.veritabani-izleme.resolve-safe-write`<br>`ayar-islemleri.veritabani-izleme.terminate-session` | `-` |
 | `ayar-islemleri` | `terminal-cihazlari` | `ayar-islemleri.terminal-cihazlari.manage` | `ayar-islemleri.terminal-cihazlari.list`<br>`ayar-islemleri.terminal-cihazlari.detail` | `ayar-islemleri.terminal-cihazlari.all-warehouses` |
 | `siparis-islemleri` | `alinan-depo-siparisleri` | `siparis-islemleri.alinan-depo-siparisleri.page` | `siparis-islemleri.alinan-depo-siparisleri.list`<br>`siparis-islemleri.alinan-depo-siparisleri.detail`<br>`siparis-islemleri.alinan-depo-siparisleri.create`<br>`siparis-islemleri.alinan-depo-siparisleri.update`<br>`siparis-islemleri.alinan-depo-siparisleri.print` | `siparis-islemleri.alinan-depo-siparisleri.all-warehouses` |
 | `siparis-islemleri` | `verilen-depo-siparisleri` | `siparis-islemleri.verilen-depo-siparisleri.page` | `siparis-islemleri.verilen-depo-siparisleri.list`<br>`siparis-islemleri.verilen-depo-siparisleri.detail`<br>`siparis-islemleri.verilen-depo-siparisleri.create`<br>`siparis-islemleri.verilen-depo-siparisleri.update` | `siparis-islemleri.verilen-depo-siparisleri.all-warehouses` |
@@ -1216,6 +1218,56 @@ Yetki ve kapsam:
 
 Bu bolum mobil uygulamanin offline iken olusturdugu fisleri internet geldiginde guvenli sekilde backend'e gondermesi icin create retry kurallarini anlatir.
 
+Terminal uygulama ekibi icin uygulanabilir kisa durum makinesi ve kabul kriterleri: [Terminal Guvenli Create Akisi](TERMINAL_GUVENLI_CREATE_AKISI.md).
+
+### Terminal Icin Nihai Kullanici Akisi
+
+Bu bolum guvenli create ekranlarinin ana UI sozlesmesidir. Terminal teknik `status`, `retryable` veya hata metninden kendi kararini turetmemeli; response'taki `recommendedAction` alanini esas almalidir.
+
+Kullanicinin gorecegi bes temel durum:
+
+```text
+Duzenleniyor             Form acik ve degistirilebilir.
+Kaydediliyor             Ayni ekran acik; form ve Kaydet yalniz bu evrak icin kilitli.
+Sonuc kontrol ediliyor   Ayni ekran acik; backend/readback devam ediyor.
+Kaydedildi               Kesin Mikro belge seri/sirasi gosterilir.
+Islem gerekiyor          Yalniz ilgili evrak korunur; kullanici diger evraklara devam edebilir.
+```
+
+Kaydet butonunun kesin davranisi:
+
+1. UI ilk Kaydet aninda GUID `clientRequestId` uretir ve gonderilecek body'nin degismez snapshot'ini yerel veritabanina atomik olarak yazar.
+2. UI formu kapatmaz veya liste/bulut ekranina zorunlu olarak yonlendirmez. Ayni ekranda `Kaydediliyor` gosterir.
+3. POST devam ederken yalniz bu formun alanlari ve Kaydet butonu kilitlenir. Geri/menu kullanilabilir; kullanici ayrilirsa islem `Bekleyen Islemler` ozetinden izlenebilir.
+4. `200/201` ve kesin business response gelirse seri/sira gosterilir, yerel pending kayit silinir; `Tamam` ve `Yeni Evrak` aksiyonlari acilir.
+5. HTTP baglantisi kopar, timeout olur veya `500/502/503/504` gelirse form silinmez ve yeni GUID uretilmez. UI once ilgili status GET'ini kullanir.
+6. UI ancak `recommendedAction=RetrySameRequest` aldiginda saklanan body snapshot'ini ayni `clientRequestId` ile POST eder. Form state'inden yeniden body uretmez.
+7. Kullanici ekrandan ayrilsa veya uygulama kapansa da snapshot/id korunur. Uygulama acilisinda once status/readback ile uzlastirilir.
+
+Backend sorumlulugu:
+
+- Request body tamamen alindiktan ve Auth DB rezervasyonu olustuktan sonra backend create islemini istemci baglantisindan bagimsiz, en fazla 10 dakikalik sinirli bir server token'iyle tamamlar.
+- `Processing` kaydi 12 dakikadan once sahipsiz kabul edilmez. Bu esik 10 dakikalik server calisma penceresinden uzundur; calisan islem erken ikinci yazima acilmaz.
+- Her kesin basari request snapshot'i ile Mikro readback sonucu birebir eslestirilmeden `Completed` olmaz.
+- Status GET ve `yeniden-dogrula` create/update/delete yapmaz; yalniz mevcut Mikro kaydini okur ve sonucu uzlastirir.
+- Tek bir sorunlu evrak modulu, `Yeni Ekle` butonunu veya diger kullanicilarin islemlerini global kilitlemez.
+
+UI karar alanlari:
+
+| `recommendedAction` | UI davranisi |
+|---|---|
+| `Completed` | `result` icindeki belgeyi goster, pending snapshot'i sil. |
+| `WaitAndCheck` | Ayni ekranda sonucu kontrol ediyor goster; `retryAfterSeconds` kadar bekleyip status GET yap. Create POST yapma. |
+| `RetrySameRequest` | Saklanan ayni body ve ayni `clientRequestId` ile POST'u yeniden dene. Yeni GUID/body/seri uretme. |
+| `RecheckExisting` | `POST /api/mobile-sync/guvenli-yazmalar/{clientRequestId}/yeniden-dogrula` ile salt-okuma kontrolu yap. Create POST yapma. |
+| `RestoreOriginalRequest` | Yerel orijinal snapshot'i geri yukle; degistirilmis body ile POST yapma. |
+| `NeedsReview` | Otomatik islem yapma; ilgili kaydi inceleme durumunda koru. Diger islemleri acik tut. |
+| `ClearCancelled` | Yerel pending kaydi temizle; `evrak olusturuldu` mesaji gosterme. |
+
+`recoveryState` degerleri `Checking`, `ExactMatch`, `NotStarted`, `Missing`, `Incomplete`, `Mismatch`, `RequestChanged`, `Unknown`, `Cancelled` olabilir. Bu alan teknik durumu gosterir; aksiyon icin asil kaynak `recommendedAction` alanidir.
+
+Kullaniciya ham `Processing`, `retryable=false`, `MIKRO_*` veya `clientRequestId` metinleri ana mesaj olarak gosterilmemelidir. Bu alanlar yalniz teknik ayrinti/destek panelinde bulunur.
+
 Kalici guvenli retry ve durum sorgusu olan create/yazma akislari:
 
 - `POST /api/mal-kabul-islemleri/firma-mal-kabulleri`
@@ -1247,7 +1299,9 @@ Bu endpointler legacy UI gibi normal online da kullanilabilir. Ancak mobil uygul
 - Ayni mantiksal payload son 6 saat icinde `Completed` olduysa farkli `clientRequestId` ile tekrar POST edilmesi yeni Mikro yazisi baslatmaz. Backend onceki belgeyi readback ile yeniden dogrular, ayni business response'u dondurur ve yeni kimligi de tamamlanmis alias kaydi olarak saklar.
 - Gercekten ayri fakat icerigi birebir ayni yeni bir evrak gerekiyorsa kullanici acik bir onay aksiyonuyla yeni `clientRequestId` ve `forceCreateNew=true` gonderir. Bu alan yalniz son 6 saatteki dogrulanmis `Completed` tekrarini asar; `Processing`, sonucu belirsiz veya `retryable=false` manuel inceleme kaydini asmaz.
 - Eski istemci `clientRequestId` gondermezse backend geriye uyumluluk icin islem kimligini kendisi uretir ve ayni icerik korumasini uygular. Ancak UI bu uretilen kimligi bilmeyecegi icin durum sorgulama ve iyi hata deneyimi kaybolur; yeni UI yine her zaman kendi GUID degerini gondermelidir.
-- POST cevabi cihaza ulasmadiysa mobil uygulama once ayni `clientRequestId` ile tekrar POST denemelidir.
+- Request body tamamen alinip `clientRequestId` kaydi Auth DB'de rezerve edildikten sonra create islemi terminalin HTTP baglantisindan ayrilir ve en fazla 10 dakikalik sunucu calisma penceresiyle devam eder. Baglanti acik kalirsa ayni POST kesin business sonucunu bekleyip doner. Terminal baglantiyi kaybederse backend baslamis islemi iptal etmez; UI ayni kimlikle `offline-sync/{clientRequestId}` durumunu sorgular.
+- Baglanti request body tamamen alinmadan koparsa controller ve kalici rezervasyon henuz calismamis olabilir. Bu durumda Mikro yazimi baslamaz; terminal sakladigi ayni payload ve ayni `clientRequestId` ile POST'u yeniden gonderir. UI yalniz HTTP isteginin baslamasini `sunucuda kayit basladi` kaniti olarak gostermemelidir.
+- POST cevabi cihaza ulasmadiysa mobil uygulama once ilgili `offline-sync/{clientRequestId}` status GET'ini cagirir. Yalniz backend `recommendedAction=RetrySameRequest` dondururse ayni snapshot ve ayni kimlikle POST'u tekrarlar.
 - Desteklenen tum akislar ilgili `offline-sync/{clientRequestId}` endpoint'iyle sorgulanabilir. Durum sorgusu yeni create yazisi baslatmaz; kayitli request snapshot'i ile Mikro readback yapar ve bulunan kesin sonucu kalici kayda isler.
 - Firma mal kabul, verilen depo/firma siparisi, depolar arasi sevk, depo iadesi, firma sevki/iadesi, zayiat, masraf ve virman Mikro API yaziminda timeout/istemci iptali gibi sonucu belirsiz bir hata olursa backend ayni cagrida Mikro DB readback yapar. Normal basarili Mikro cevaplarinda hizli readback penceresi 2,5 saniyedir. Timeout veya duplicate belge cevabinda Mikro satirlari gec gorunebilecegi icin readback, terminalin HTTP request token'ina bagli olmayan sunucu token'iyle en fazla 180 saniye devam eder; terminal ekrani kapansa bile baslamis uzlastirma durmaz. Bu uzun pencere normal basarili isteklere uygulanmaz. Evrak tum satirlari ve beklenen icerigiyle bulunursa cevap basarili doner ve Mikro API audit kaydi `RecoveredAfterUnknown` olur.
 - Verilen depo siparisi readback'i ayrilan seri/sira altindaki satirlarin tamamini stok kodu, miktar, birim, fiyat, hedef/kaynak depo ve temel satir alanlariyla karsilastirir. Eksik satir seti tamamlanana kadar beklenir; farkli veya fazla satir kalici `MIKRO_DOCUMENT_CONTENT_MISMATCH` kabul edilir.
@@ -1265,9 +1319,11 @@ Guvenli create `409 Conflict` response sozlesmesi:
 - Siniflandirilmis guvenli yazma/readback mesajlari API tarafinda kullaniciya acik Turkce metne cevrilir. Ayni ceviri `409 detail`, `offline-sync errorMessage` ve guvenli yazma izleme response'unda kullanilir; UI yine metin eslestirmemeli, kararini `errorCode` ve `retryable` alanlariyla vermelidir.
 - `MIKRO_WRITE_IN_PROGRESS`, `retryable=true`: ayni `clientRequestId` halen isleniyor veya onceki belirsiz yazmanin readback sonucu bekleniyor. UI payload snapshot'ini korur; yeni id uretmez.
 - `MIKRO_WRITE_QUEUE_BUSY`, `retryable=true`: depolar arasi sevkte ayni belge serisinin onceki islemi devam ettigi icin 180 saniyelik kuyruk bekleme siniri dolmustur. Bu istegin Mikro yazimi baslamamistir; UI ayni payload ve ayni `clientRequestId` ile kisa bir sure sonra yeniden deneyebilir. Yeni id uretilmemelidir.
-- `MIKRO_WRITE_OUTCOME_UNCONFIRMED`, `retryable=true`: Mikro yazma sonucu kanitlanamadi. UI ayni payload ve ayni `clientRequestId` ile guvenli retry yapabilir.
-- `MIKRO_DOCUMENT_CONTENT_MISMATCH`, `retryable=false`: Mikro'da ayni evrak anahtariyla kayit vardir fakat satir icerigi istekle tam eslesmemistir. UI `Tekrar Dene` aksiyonunu kapatip `Yetkili incelemesi gerekli` gostermelidir; otomatik veya yeni id ile POST yapmamalidir.
-- Bu manuel inceleme karari backend'de kalici saklanir. Ayni id tekrar gonderilse bile yeniden create veya otomatik recovery yapilmaz. Bu surum manuel incelemeyi kaldiran bir endpoint sunmaz; yetkili incelemesi ve kontrollu duzeltme gerekir.
+- `MIKRO_WRITE_OUTCOME_UNCONFIRMED`, `retryable=true`: Mikro yazma sonucu kanitlanamadi. `recommendedAction=WaitAndCheck`; UI create POST yapmaz, status/readback ile sonucu uzlastirir.
+- `MIKRO_DOCUMENT_INCOMPLETE`, `retryable=true`: Ayni trace'e ait bazi satirlar goruluyor ancak tam satir seti henuz olusmadi. `recommendedAction=WaitAndCheck`; eksik set basari sayilmaz ve ikinci create yazisi baslatilmaz.
+- `SAFE_WRITE_RETRY_ALLOWED`, `retryable=true`: Salt-okuma incelemesi Mikro'da bu istege ait hic belge olmadigini kesinlestirmistir. `recommendedAction=RetrySameRequest`; sadece bu durumda ayni snapshot/id ile create POST yeniden baslatilabilir.
+- `MIKRO_DOCUMENT_CONTENT_MISMATCH`, `retryable=false`: Mikro'da ayni evrak anahtariyla kayit vardir fakat satir icerigi istekle tam eslesmemistir. UI otomatik veya yeni id ile POST yapmamalidir. Firma mal kabulde kaydi olusturan kullanici once `POST .../offline-sync/{clientRequestId}/yeniden-dogrula` ile salt-okuma kontrolunu kendisi baslatabilir; tam eslesme bulunursa kayit otomatik `Completed` olur. Eslesme bulunmazsa yetkili incelemesi gerekir.
+- Bu manuel inceleme karari backend'de kalici saklanir. Ayni id tekrar gonderilse bile yeniden create baslatilmaz. Firma mal kabulde kullaniciya acik yeniden dogrulama yalniz mevcut Mikro satirlarini okur; `tekrar-ac` ve `iptal` kararlari yetkili guvenli yazma inceleme akisinda kalir.
 - Firma sevki/iadesi, zayiat/masraf ve virman readback'inde eksik satir seti basari sayilmaz. Eslesen fakat henuz tamamlanmamis set `MIKRO_WRITE_OUTCOME_UNCONFIRMED`, farkli stok/miktar/birim/trace veya fazla satir `MIKRO_DOCUMENT_CONTENT_MISMATCH` doner. Ham Mikro API cevabi tek basina basari kaniti degildir.
 - Verilen firma siparisi, firma sevki/iadesi, depolar arasi sevk, depo iadesi, zayiat/masraf, virman, sayim sonucu, firma mal kabul ve manav MNV duzeltmesi `Database` yazma yolunda transaction commit sonrasi Mikro'dan geri okunur. Belge anahtari, satir sayisi, stok, miktar, birim, tutar ve akisa ozgu trace/baglanti alanlari request snapshot'iyla dogrulanmadan offline kayit `Completed` olmaz; belge akis olayi basari olarak yazilmaz.
 - Dogal kaynak anahtari kullanan urun dagitimi, POS muhasebe aktarimi, manav mal kabul ve AXATA dinamik sayim akislarinda da rota guvenligi esittir. `Database` yolu commit/icerik readback'i yapar; `MikroApi` yolu timeout veya duplicate cevabinda ayni evragi readback ile arar. POS kaynak GUID'i, AXATA kaynak satir anahtari ve urun dagitimi/manav belge icerigi dogrulanmadan aktarim basarili sayilmaz. AXATA iki rotada da ayni SQL belge kilidini ve kilit icinde son duplicate kontrolunu kullanir.
@@ -1282,14 +1338,16 @@ UI hata ve ekran kilidi karar matrisi:
 |---|---|---|---|
 | `Processing` veya `MIKRO_WRITE_IN_PROGRESS`, `retryable=true` | `Kayit sonucu kontrol ediliyor` goster; `retryAfterSeconds` sonrasinda ilgili `offline-sync` endpointini sorgula. `relatedClientRequestId` doluysa sorguda bu kimligi kullan. | Yalniz ilgili taslagin alanlari ve Kaydet butonu kilitlenir. Liste, menu, `Yeni Ekle` ve diger taslaklar acik kalir. | Hemen destek gerekmez. Normal recovery akisi beklenir. |
 | `MIKRO_WRITE_QUEUE_BUSY`, `retryable=true` | Bu yazimin henuz baslamadigini bildir; ayni payload ve ayni `clientRequestId` ile belirtilen sure sonra tekrar dene. | Yalniz ilgili taslak bekletilir; modul global kilitlenmez. | Tekrarlayan uzun kuyruk veya SQL izleme bulgusu varsa destek gerekir. |
-| `MIKRO_WRITE_OUTCOME_UNCONFIRMED`, `retryable=true` | `Mikro sonucu henuz kesinlesmedi` goster; yeni id/seri/body uretmeden ayni kimlikle durum sorgula veya guvenli retry yap. | Yalniz bu mantiksal islem pending kalir. Kullanici baska bagimsiz bir isleme gecebilir. | Birden cok recovery denemesinden sonra durum degismiyorsa `operationCode`, `clientRequestId`, depo ve `correlationId` ile destek aksiyonu acilir. |
+| `MIKRO_WRITE_OUTCOME_UNCONFIRMED`, `retryable=true` | `Mikro sonucu kontrol ediliyor` goster; create POST yapmadan ayni kimlikle status/readback sorgula. | Yalniz bu mantiksal islem pending kalir. Kullanici baska bagimsiz bir isleme gecebilir. | Birden cok recovery denemesinden sonra durum degismiyorsa `operationCode`, `clientRequestId`, depo ve `correlationId` ile destek aksiyonu acilir. |
+| `MIKRO_DOCUMENT_INCOMPLETE`, `retryable=true` | `Belge satirlari tamamlaniyor` goster ve status sorgusuna devam et. | Yalniz ilgili taslak kilitli kalir. | Normalde destek gerekmez; uzun sure degismezse inceleme gerekir. |
+| `SAFE_WRITE_RETRY_ALLOWED`, `retryable=true` | Saklanan ayni snapshot ve ayni `clientRequestId` ile POST'u yeniden dene. | Yalniz ilgili taslak yeniden kaydedilir. | Destek gerekmez. |
 | `Completed` | `result` icindeki belge seri/sirasini goster; yerel pending snapshot'ini sil ve bu taslagin kilidini ac. | Kilit tamamen kalkar. | Destek gerekmez. |
-| `MIKRO_DOCUMENT_CONTENT_MISMATCH`, `retryable=false` | `Bu belge tekrar gonderilmemeli; yetkili incelemesi gerekli` goster. Otomatik retry, yeni id ve `forceCreateNew` kapali kalir. | Yalniz ilgili kayit `needsReview` olur. Tum modul veya diger kullanicilar kilitlenmez. | Evet; belge, istek kimligi ve satir farki incelenmelidir. |
+| `MIKRO_DOCUMENT_CONTENT_MISMATCH`, `retryable=false` | Otomatik retry, yeni id ve `forceCreateNew` kapali kalir. `recommendedAction=RecheckExisting` ile salt-okuma yeniden dogrulama sunulur. Tam eslesirse `Completed`, aksi halde inceleme durumu korunur. | Yalniz ilgili kayit `needsReview` olur. Tum modul veya diger kullanicilar kilitlenmez. | Kullanici dogrulamasi sonrasi uyusmazlik suruyorsa belge, istek kimligi ve satir farki yetkili tarafindan incelenmelidir. |
 | `CLIENT_REQUEST_PAYLOAD_MISMATCH`, `retryable=false` | Ayni kimligin body'sinin degistigini anlat. Once yereldeki orijinal snapshot geri yuklenir; sonuc belirsizken yeni islem acilmaz. | Yalniz cakisan kimlik/taslak kilitlenir. | Orijinal snapshot bulunamiyorsa veya onceki sonuc bilinmiyorsa destek gerekir. |
 | `400` validasyon | Alan hatasini goster, kullanicinin formu duzeltmesine izin ver. Mikro yazimi baslamamistir. | Form duzeltilebilir; global kilit yoktur. | Genelde gerekmez. |
 | `401` | Taslagi ve ayni `clientRequestId` degerini yerelde koruyup yeniden login iste. | Oturum disinda kalir; taslak silinmez. | Tekrarlayan auth sorunu varsa destek gerekir. |
 | `403` | Yetki/depo kapsami hatasini goster; otomatik retry yapma. | Sadece yetkisiz aksiyon kapatilir. | Yetki atamasi gerekiyorsa yoneticiye yonlendirilir. |
-| Status endpointinde `404` | Yerel pending kayit ile backend kaydi eslesmiyor. Sessizce yeni id uretip POST etme. | Yalniz bu taslak incelemeye alinir; diger ekranlar acik kalir. | Evet; eski surum kaydi veya silinmis Auth DB izi olabilir. |
+| Status endpointinde `404` | Backend rezervasyonu bulunamadi. Saklanan ayni snapshot/id ile create POST bir kez yeniden gonderilebilir; yeni id uretilmez. | Yalniz bu taslak yeniden denenir. | Ayni kimlikle POST sonrasinda da 404/uyumsuzluk surerse destek gerekir. |
 | HTTP `0`, `500`, `502`, `503`, `504` | Sonucu belirsiz kabul et; snapshot/id'yi koru ve once status/readback akisini calistir. | Yalniz bu taslak pending kalir. | Gecici hatada hemen gerekmez; art arda surerse correlation bilgileriyle destek gerekir. |
 
 UI `Destek Gerekli` durumunda dahi tam ekran engelleyici modal veya modul seviyesinde kalici kilit kullanmamalidir. Kayit bazli panelde en az `operationCode`, `clientRequestId`/`relatedClientRequestId`, `warehouseNo`, `errorCode`, `correlationId` ve son kontrol zamanini gostermeli; kullanici listeyi inceleyebilmeli ve farkli bir bagimsiz taslak acabilmelidir.
@@ -1313,8 +1371,8 @@ UI davranis kurali:
 - `clientRequestId` form ekraninin kimligi degildir; tek mantiksal kaydetme denemesinin kimligidir.
 - UI ilk `Kaydet` aninda `clientRequestId` uretmeli, gonderilen body'nin snapshot'ini bu id ile birlikte saklamalidir.
 - `clientRequestId` form acilisinda veya her render/submit denemesinde yeniden uretilmemelidir. Ayni kaydetme denemesi sonuc kesinlesene kadar ayni id ile yasar.
-- Request devam ederken kaydet butonu ve form alanlari kilitlenmelidir.
-- Timeout, network kopmasi veya belirsiz sonuc olursa UI ayni body snapshot'i ve ayni `clientRequestId` ile `Tekrar Dene` yapmalidir.
+- Request devam ederken kaydet butonu ve form alanlari kilitlenmeli, ayni create ekrani sonucu gostermeye devam etmelidir. Form basarili sonuc gelmeden otomatik kapatilmamalidir.
+- Timeout, network kopmasi veya belirsiz sonuc olursa UI once status/readback yapmalidir. Ayni body snapshot'i ile `Tekrar Dene` yalniz `recommendedAction=RetrySameRequest` sonrasinda calisir.
 - Timeout veya 500 cevabi sonrasi UI ayni fis icin yeni `clientRequestId` uretmemelidir. Backend yeni surumde ayni mantiksal payload'in onceki belirsiz kaydini bulursa ikinci yazimi `MIKRO_WRITE_IN_PROGRESS` ile durdurur; yine de UI ilk kimligi ve payload snapshot'ini kalici olarak saklamalidir.
 - Kullanici belirsiz kayit modundayken eski payload ve `clientRequestId` korunmalidir. Sonuc kesinlesmeden ayni fisin yerine yeni id ile kaydetme yapilmaz; form degisikligi pending kaydi dusurmemelidir.
 - Ayni `clientRequestId` ile farkli body gonderilip `CLIENT_REQUEST_PAYLOAD_MISMATCH` donerse UI bunu teknik retry gibi ele almamali; kullaniciya kayit denemesinin iceriginin degistigini anlatmalidir.
@@ -1327,7 +1385,16 @@ UI state ornegi:
 type PendingCreateState = {
   clientRequestId: string;
   payloadSnapshot: unknown;
-  status: "idle" | "sending" | "retryable" | "needsReview" | "completed";
+  operationCode: string;
+  status: "idle" | "sending" | "checking" | "needsReview" | "completed" | "cancelled";
+  recommendedAction?:
+    | "WaitAndCheck"
+    | "RetrySameRequest"
+    | "RecheckExisting"
+    | "RestoreOriginalRequest"
+    | "NeedsReview"
+    | "Completed"
+    | "ClearCancelled";
 };
 ```
 
@@ -1339,9 +1406,10 @@ Kaydetme akisi:
 3. Body icine ayni `clientRequestId` yazilir ve POST edilir.
 4. Request devam ederken Kaydet butonu ve form alanlari kilitlenir.
 5. Basarili response gelirse islem `completed` olur ve pending state temizlenir.
-6. Timeout, HTTP 0, network kopmasi veya belirsiz 500 durumunda islem `retryable` olur.
-7. Kullanici `Tekrar Dene` derse UI yeni body uretmez; saklanan snapshot'i ayni `clientRequestId` ile tekrar POST eder.
-8. retryable=false ve MIKRO_DOCUMENT_CONTENT_MISMATCH gelirse needsReview durumuna gec; snapshot/id korunur, tekrar gonderim kapatilir. Belirsiz veya incelemedeki fis yeni id ile yeniden kaydedilmez.
+6. Timeout, HTTP 0, network kopmasi veya belirsiz 500 durumunda `checking` olur; UI status GET baslatir.
+7. `recommendedAction=WaitAndCheck` boyunca yeni POST atilmaz. `RetrySameRequest` gelirse saklanan snapshot ayni `clientRequestId` ile POST edilir.
+8. `RecheckExisting` gelirse ortak `yeniden-dogrula` endpointi cagrilir; bu istek Mikro'ya yazmaz.
+9. `NeedsReview` durumunda snapshot/id korunur, tekrar gonderim kapatilir. Belirsiz veya incelemedeki fis yeni id ile yeniden kaydedilmez.
 ```
 
 Kalici pending state ve uygulama acilisi:
@@ -1352,7 +1420,7 @@ Kalici pending state ve uygulama acilisi:
 - Recovery POST'u `200 OK` donerse yerel pending kayit silinir, form kilidi kaldirilir ve `Yeni Ekle` yeniden acilir. Response mevcut Mikro evrakini recovery ile bulmus olsa da UI acisindan normal basarili create response'udur.
 - `409` ve `retryable=true` (`MIKRO_WRITE_IN_PROGRESS`, `MIKRO_WRITE_QUEUE_BUSY`, `MIKRO_WRITE_OUTCOME_UNCONFIRMED`) donerse ilgili pending kayit korunur ve o kaydin formu/snapshot'i icin `Tekrar Dene` sunulur. Backend ayni mantiksal payload'in belirsiz kaydi varken farkli `clientRequestId` ile ikinci yazimi da durdurur. Onceki kayit tamamlandiysa son 6 saat icindeki ayni payload varsayilan olarak onceki sonucu oynatir; bagimsiz yeni evrak ancak acik `forceCreateNew` onayiyla acilir. UI pending kaydi ayri bir bekleyen islemler listesinde gosterebilir ve `Yeni Ekle` butonunu sonsuza kadar kapatmamalidir.
 - Recovery readback sorgusu timeout, SQL baglanti hatasi veya gecici iptal nedeniyle tamamlanamazsa backend kaydi `Processing` durumunda sahipsiz birakmaz; `Failed + MIKRO_WRITE_OUTCOME_UNCONFIRMED + retryable=true` olarak saklar. Durum endpointi `retryAfterSeconds` ile tekrar kontrol zamanini bildirir. Bu siniflandirma ikinci yazmayi otomatik baslatmaz.
-- `Processing` kaydi 5 dakikalik islem suresini astigi halde ilgili `offline-sync/{clientRequestId}` durum/recovery akisi calistirilir ve readback tamamlanmis belge bulamazsa kayit `Failed + MIKRO_WRITE_OUTCOME_UNCONFIRMED + retryable=true` olur. Genel `guvenli-yazmalar` izleme endpointi recovery tetiklemez; eski ve tekrar sorgulanmamis kayitlar bu nedenle `Processing` gorunmeye devam edebilir. UI bu kaydi sonsuza kadar aktif istek gibi gostermemeli; ayni kimlikle ilgili operasyonun durum endpointinden uzlastirmalidir.
+- `Processing` kaydi 12 dakikalik lease suresini astigi halde ilgili `offline-sync/{clientRequestId}` durum/recovery akisi calistirilir ve readback tamamlanmis belge bulamazsa kayit `Failed + MIKRO_WRITE_OUTCOME_UNCONFIRMED + retryable=true` olur. Genel `guvenli-yazmalar` izleme endpointi recovery tetiklemez; eski ve tekrar sorgulanmamis kayitlar bu nedenle `Processing` gorunmeye devam edebilir. UI bu kaydi sonsuza kadar aktif istek gibi gostermemeli; ayni kimlikle ilgili operasyonun durum endpointinden uzlastirmalidir.
 - `retryable=false` donerse kayit sessizce silinmez. UI `needsReview` veya duzeltilebilir hata durumuna gecer, hata kodunu gosterir ve ilgili kurala gore kullanici aksiyonu bekler.
 - HTTP timeout, HTTP `0`, `502`, `503`, `504` veya sonucu belirsiz `500` durumunda yerel pending kayit silinmez. Onbellegi/uygulama verisini elle temizlemek normal is akisi olarak kullanilmamalidir; bu islem guvenli retry kimligini ve body snapshot'ini kaybettirebilir.
 - Uygulama basarili create response'u aldigi halde yerel pending kaydi silinemezse bunu loglamali ve sonraki acilista ayni recovery uzlastirmasini tekrar yapmalidir. Eski bir local kayit tum create ekranlarini global olarak kilitlememelidir.
@@ -1367,7 +1435,9 @@ Yeni backend davranisi: A belirsizse B `MIKRO_WRITE_IN_PROGRESS` ve `relatedClie
 
 Offline durum sorgu endpointleri:
 
+- `POST /api/mobile-sync/guvenli-yazmalar/{clientRequestId}/yeniden-dogrula`
 - `GET /api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/{clientRequestId}`
+- `POST /api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/{clientRequestId}/yeniden-dogrula`
 - `GET /api/stok-islemleri/sayim-sonuclari/offline-sync/{clientRequestId}`
 - `GET /api/siparis-islemleri/verilen-depo-siparisleri/offline-sync/{clientRequestId}`
 - `GET /api/siparis-islemleri/onerilen-depo-siparisleri/offline-sync/{clientRequestId}`
@@ -1388,6 +1458,22 @@ Offline durum sorgu endpointleri:
 
 Canonical ve alias route'lar ayni operasyon kaydini okur. Endpoint create yetkisini ister ve kaydi `requestedByUserId + operationCode + clientRequestId` ile sinirlar; baska kullanicinin ayni GUID degerli kaydi gorulemez.
 
+Ortak salt-okuma yeniden dogrulama endpointi:
+
+```text
+POST /api/mobile-sync/guvenli-yazmalar/{clientRequestId}/yeniden-dogrula
+```
+
+Body:
+
+```json
+{
+  "operationCode": "mal-kabul-islemleri.firma-mal-kabulleri.create"
+}
+```
+
+Bu endpoint login olan kullanicinin yalniz kendi `requestedByUserId`, JWT `warehouseNo`, `operationCode` ve `clientRequestId` kombinasyonundaki kaydini bulur. Baska kullanici/depo kaydi `404` doner. Mikro'ya create/update/delete gondermez. Desteklenen tum guvenli create operasyonlarinda ayni readback dispatcher'ini kullanir. Firma mal kabuldeki operasyon-ozel `POST .../offline-sync/{clientRequestId}/yeniden-dogrula` route'u geriye uyumlu alias olarak kalir.
+
 Ortak offline status response modeli:
 
 ```json
@@ -1401,7 +1487,9 @@ Ortak offline status response modeli:
   "errorCode": null,
   "retryable": null,
   "retryAfterSeconds": null,
-  "result": {}
+  "result": {},
+  "recoveryState": "ExactMatch",
+  "recommendedAction": "Completed"
 }
 ```
 
@@ -1411,6 +1499,7 @@ Ortak offline status response modeli:
 - `Completed`: istek basariyla tamamlandi; `result` alaninda asil business response bulunur
 - `Failed`: son deneme hata ile kapandi; `errorMessage` dolu olabilir. U17, validasyon veya benzeri kesin is kurali hatasi duzeltilmeden tekrar edilmemelidir. Hata metni timeout/iptal/`write outcome could not be confirmed` ise sonuc belirsizdir; sevk, iade, firma hareketi, zayiat, masraf, virman ve firma mal kabul akislarinda ayni id ile retry once readback yapar. Yazma rotasi `Database` veya `MikroApi` olsa da belirsiz sonuc uzlastirilmadan ikinci create yazisi baslatilmaz.
 - `errorCode` ve `retryable`, siniflandirilmis hata kararini ProblemDetails ile ayni makine-okunur alanlarla tasir. `retryable=true` ise `retryAfterSeconds` su an `5` doner; UI bu sure dolmadan ayni durumu veya ayni payload POST'unu tekrar etmemelidir.
+- `recoveryState` backend'in readback siniflandirmasidir; `recommendedAction` UI'nin uygulayacagi tekil karardir. UI hata mesaji veya `retryable` alanindan aksiyon turetmemelidir.
 - `Completed` durumda `errorCode`, `retryable` ve `retryAfterSeconds` null; `result` asil create response'udur. Firma sevki/iadesi durum endpointleri bu kaydi donmeden once Mikro belgesini tekrar dogrular; dogrulama basarisizsa durum artik `Completed` olarak sunulmaz.
 
 ## Mobil Urun-Fiyat Katalog Sync
@@ -2474,6 +2563,10 @@ Veri kaynaklari:
 
 Bu ekran Mikro SQL Server uzerindeki aktif istekleri, kilit zincirlerini, uzun acik transaction'lari ve temel bekleme nedenlerini canli gosterir. Ekran acilisi `manage`, canli veri `list`, olay/sonlandirma gecmisi `detail`, SQL oturumu sonlandirma ise ayri `terminate-session` yetkisine baglidir.
 
+Canli `STOK_HAREKETLERI` / `STOK_HAREKETLERI_OZET` kilit kok nedeni,
+uygulama duzeltmeleri ve yayin sirasi:
+`docs/MIKRO_STOK_HAREKETLERI_KILIT_ANALIZI.md`.
+
 Endpointler:
 
 ```text
@@ -2540,6 +2633,7 @@ Ekran yerlesimi:
 - `genel-bakis`, `anlik` ve `workerlar` ekran gorunurken 10 saniyede bir yenilenebilir. Onceki istek bitmeden yenisi baslatilmaz.
 - `olaylar` ve `guvenli-yazmalar` varsayilan olarak 30 saniyede bir veya kullanici yenilediginde sorgulanir.
 - `safeWrites` hata sayilari son 24 saati, `processingCount` ve `staleProcessingCount` tum halen Processing kayitlarini kapsar.
+- `staleProcessingCount`, 10 dakikalik dayanikli create ust suresi ve 2 dakikalik islem kirasi payi nedeniyle son guncellemesi 12 dakikadan eski `Processing` kayitlarini sayar. Bu kayitlar tek basina aktif SQL kilidi kaniti degildir.
 - `overallStatus=warning` uygulamanin durdugu anlamina gelmez; ilgili bolumdeki `recommendation` ve sayaclar incelenir.
 
 #### Anlik Izleme Response
@@ -2648,6 +2742,10 @@ Alan notlari:
 - `openTransactions`: acik kullanici transaction'laridir; aktif request olmasa da listede bulunabilir.
 - `canTerminate=true` teknik olarak sonlandirilabilir kullanici SPID'i oldugunu belirtir. Buton icin ayrica `terminate-session` permission'i zorunludur.
 - `sqlText`, `blockedSqlText` ve `lastSqlText` icindeki string literal degerler backend tarafinda `***` ile maskelenir.
+- `Guvenli Yazmalar` Auth DB'deki idempotency/sonuc kayitlarini, `Canli SQL` ise Mikro SQL Server'daki gercek request, transaction ve kilitleri gosterir. Bir guvenli yazma kaydi tek basina kilit olusturmaz; SQL kilidi veya yavaslik create sonucunu belirsiz birakip bu kaydin `Processing`/`Failed` gorunmesine neden olabilir.
+- Root blocker uzun bir `SELECT` ise once sorgunun endpointi ve eksik indexi bulunmalidir. Zayiat/masraf listeleri production SQL Server'da `ReadUncommitted` ile calisir; bu ekranlar create yazilarini bekletmemelidir. Kalici hiz icin `IX_FR_STH_StokFisi_Liste`, zayiat/masraf readback'i icin `IX_FR_STH_StokFisi_Trace` kurulmalidir.
+- `STOK_HAREKETLERI` indexleri 218 milyon ve benzeri buyuk tablolarda yogun saatte kurulmaz. Acil iki index icin `docs/STOK_HAREKETLERI_STOK_FISI_ACIL_INDEXLERI.sql`, tum liste indexleri icin `docs/STOK_HAREKETLERI_LISTE_INDEXLERI.sql` kullanilir.
+- `recommendations[].code=stock-summary-trigger-contention`, Mikro `mye_STOK_HAREKETLERI_Trigger` icindeki `STOK_HAREKETLERI_OZET` guncellemelerinin `LCK_M_U` ile kuyruklandigini gosterir. Bu durumda API'nin tek-satir trigger batch profilinin yayinda oldugu kontrol edilir; bekleyen tum SPID'ler topluca sonlandirilmaz.
 
 #### Worker Heartbeat ve Backlog
 
@@ -2754,7 +2852,7 @@ Yetki: `ayar-islemleri.veritabani-izleme.detail`
 Query:
 
 ```text
-status            opsiyonel; Processing, Completed veya Failed
+status            opsiyonel; Processing, Completed, Failed veya Cancelled
 operationCode     opsiyonel; tam operasyon kodu
 warehouseNo       opsiyonel; depo filtresi
 retryable         opsiyonel; true/false
@@ -2791,6 +2889,7 @@ Durum matrisi:
 | `Failed` | `true` | Son deneme kapanmistir fakat sonuc belirsizdir veya gecici kosul nedeniyle ayni kimlikle tekrar kontrol edilebilir. | Ayni payload ve ayni `clientRequestId` korunur. `retryAfterSeconds` kuralina uyarak ilgili operasyonun durum/retry akisi kullanilir. |
 | `Failed` | `false` | Kalici icerik uyusmazligi veya request kimligi/body cakismasi gibi otomatik tekrar edilmemesi gereken durumdur. | Otomatik retry ve yeni id ile yeniden create kapatilir; manuel inceleme veya acik kullanici karari gerekir. |
 | `Failed` | `null` | Typed hata alanlari eklenmeden once olusmus eski kayit veya siniflandirilmamis kesin is kurali hatasidir. | Otomatik retry yapilmaz. `errorMessage` gosterilir; gerekiyorsa belge ve operasyon ozelinde manuel kontrol edilir. |
+| `Cancelled` | `false` | Bekleyen kayit yetkili tarafindan gerekceyle iptal edilmistir. Mikro'ya yeni yazma yapilmaz. | Terminal yerel pending kaydi temizler ve kullaniciya iptal sonucunu gosterir. Ayni `clientRequestId` tekrar kullanilmaz. |
 
 Siniflandirilmis `errorCode` degerleri:
 
@@ -2798,15 +2897,18 @@ Siniflandirilmis `errorCode` degerleri:
 |---|---:|---|
 | `MIKRO_WRITE_IN_PROGRESS` | `true` | Ayni mantiksal istek halen isleniyor veya readback bekliyor. |
 | `MIKRO_WRITE_QUEUE_BUSY` | `true` | Yazma kuyrugu bekleme siniri doldu; bu denemenin Mikro yazimi baslamadi. |
-| `MIKRO_WRITE_OUTCOME_UNCONFIRMED` | `true` | Yazma sonucu kanitlanamadi; ayni kimlikle readback/guvenli retry gerekir. |
+| `MIKRO_WRITE_OUTCOME_UNCONFIRMED` | `true` | Yazma sonucu kanitlanamadi; ayni kimlikle readback gerekir, create POST yeniden baslatilmaz. |
+| `MIKRO_DOCUMENT_INCOMPLETE` | `true` | Ayni trace altinda eksik satir seti goruldu; belge tamamlanana kadar status/readback beklenir. |
 | `MIKRO_DOCUMENT_CONTENT_MISMATCH` | `false` | Mikro'daki belge istek snapshot'i ile tam eslesmiyor; manuel inceleme gerekir. |
 | `CLIENT_REQUEST_PAYLOAD_MISMATCH` | `false` | Ayni `clientRequestId` farkli body ile kullanildi. |
+| `SAFE_WRITE_RETRY_ALLOWED` | `true` | Salt-okuma kontrolu belgenin hic olusmadigini kesinlestirdi; ayni snapshot/id ile POST'a izin verildi. |
+| `SAFE_WRITE_CANCELLED` | `false` | Kayit yetkili incelemesiyle iptal edildi; terminal pending kaydi temizleyebilir. |
 
 Alan ve filtre kurallari:
 
-- `status` filtresi yalniz `Processing`, `Completed` veya `Failed` kabul eder; baska deger `400 Bad Request` doner.
+- `status` filtresi yalniz `Processing`, `Completed`, `Failed` veya `Cancelled` kabul eder; baska deger `400 Bad Request` doner.
 - `status` acikca verilmisse bu filtre onceliklidir. Ornek `status=Completed&includeCompleted=false` yine yalniz tamamlanan kayitlari dondurur.
-- `status` verilmez ve `includeCompleted=false` ise sorgu `Completed` disindaki `Processing` ve `Failed` kayitlari dondurur. Bu secenek "yalniz su anda aktif istekler" anlamina gelmez.
+- `status` verilmez ve `includeCompleted=false` ise sorgu yalniz dikkat bekleyen `Processing` ve `Failed` kayitlari dondurur; `Completed` ve `Cancelled` listeyi doldurmaz. Bu secenek "yalniz su anda aktif istekler" anlamina gelmez.
 - `retryable=true/false` yalniz typed degeri bu secimle eslesen kayitlari getirir; `retryable=null` olan eski/siniflandirilmamis kayitlar bu iki filtreye de girmez.
 - `ageSeconds`, response uretilirken `updatedAtUtc ?? createdAtUtc` ile su an arasindaki suredir. Islem calisma suresi degildir; tamamlanmis veya basarisiz kayitlarda son guncellemeden beri gecen sureyi gosterir.
 - Siralama once `Processing`, sonra son guncelleme tarihi azalan bicimdedir. Bu nedenle cok eski bir `Processing` kaydi yeni `Failed` kayitlardan once gorunebilir.
@@ -2818,12 +2920,13 @@ Alan ve filtre kurallari:
 UI gosterim onerisi:
 
 ```text
-Processing, ageSeconds <= 300   Isleniyor
-Processing, ageSeconds > 300    Uzlastirma Bekliyor
+Processing, ageSeconds <= 720   Isleniyor
+Processing, ageSeconds > 720    Uzlastirma Bekliyor
 Failed, retryable=true          Guvenli Tekrar Kontrol Edilebilir
 Failed, retryable=false         Manuel Inceleme Gerekli
 Failed, retryable=null          Siniflandirilmamis / Eski Hata
 Completed                       Tamamlandi
+Cancelled                       Yetkili Tarafindan Iptal Edildi
 ```
 
 Ornek filtreler:
@@ -2833,7 +2936,50 @@ GET /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?status=Processing&tak
 GET /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?status=Failed&retryable=true&take=100
 GET /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?status=Failed&retryable=false&take=100
 GET /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?status=Completed&take=100
+GET /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?status=Cancelled&take=100
 ```
+
+#### Guvenli Yazma Inceleme ve Sonuclandirma
+
+Yetki: `ayar-islemleri.veritabani-izleme.resolve-safe-write`
+
+Endpointler:
+
+```text
+POST /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/yeniden-dogrula
+POST /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/tekrar-ac
+POST /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/iptal
+GET  /api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/inceleme-gecmisi
+```
+
+`inceleme-gecmisi` endpointi `ayar-islemleri.veritabani-izleme.detail`, uc POST endpointi ayri `resolve-safe-write` yetkisini ister. Migration `AddSafeWriteReviewWorkflow`, audit tablosunu ve Administrator rolundeki bu yetkiyi olusturur.
+
+Ortak POST body:
+
+```json
+{
+  "reason": "Mikro belgesi kontrol edildi; hatali satir duzeltildikten sonra yeniden dogrulandi."
+}
+```
+
+`reason` zorunludur, 10-500 karakterdir. Her deneme; onceki/sonraki durum, hata kodu, yetkili kullanici ve zaman bilgisiyle `safe_write_review_audits` tablosuna yazilir.
+
+Kararlar:
+
+- `yeniden-dogrula` yalniz operasyonun mevcut recovery/readback sorgusunu calistirir; Mikro'ya create/update/delete yazisi gondermez. Belge request snapshot'iyla tam eslesirse `outcome=Completed` ve kayit `Completed` olur. Belge yoksa `outcome=NotFound`; kayit otomatik tekrar acilmaz. Icerik farkliysa `StillNeedsReview` kalir.
+- `tekrar-ac` once ayni salt-okuma kontrolunu yapar. Belge tam eslesirse tekrar acmak yerine `Completed` yapar. Farkli/eksik belge veya gecici SQL/aglanti hatasi varsa tekrar izni vermez. Yalniz readback basariyla tamamlanip Mikro'da belge bulunmazsa `outcome=RetryAllowed`, `errorCode=SAFE_WRITE_RETRY_ALLOWED`, `retryable=true`, `recommendedAction=RetrySameRequest` olur. Bu kod normal belirsiz sonuctan farklidir ve ortak create korumasi ayni payload/id icin bir sonraki POST'un gercekten baslamasina izin verir.
+- `iptal` Mikro belgesini silmez ve yeni yazma yapmaz. Auth DB kaydini `Cancelled + SAFE_WRITE_CANCELLED` yapar. Terminal sonraki status GET cevabinda `Cancelled` gorunce yerel pending snapshot'ini temizler; bunu basarili Mikro evraki gibi gostermemelidir.
+- `Completed` kayit iptal edilmez. `Cancelled` kayit yeniden dogrulanmaz veya tekrar acilmaz.
+- Endpoint response'undaki `outcome`: `Completed`, `NotFound`, `Incomplete`, `StillNeedsReview`, `CheckFailed`, `RetryAllowed`, `Cancelled`, `AlreadyCompleted` veya `AlreadyCancelled` olabilir. UI aksiyonunu yine `recommendedAction` belirler.
+
+Terminal davranisi:
+
+1. Normal kullanici `recommendedAction=RecheckExisting` gordugunde ortak veya operasyon-ozel `yeniden-dogrula` endpointini kendisi kullanabilir; bu islem salt-okumadir.
+2. Sonuc `Completed` ise terminal yerel kaydi temizler ve kesin Mikro belge numarasini gosterir.
+3. Sonuc `Incomplete` veya `CheckFailed` ise create POST yapmadan kontrollu aralikla yeniden kontrol eder.
+4. Sonuc `NotFound` veya kalici `StillNeedsReview` ise kayit bazli inceleme gerekir; kullanici diger islemlerine devam eder.
+5. Yetkili `tekrar-ac` kararini ancak salt-okuma kontrolu belgenin hic olusmadigini kesinlestirdiginde verir. Terminal yalniz `recommendedAction=RetrySameRequest` sonrasinda ayni snapshot/id ile POST yapar.
+6. Taslak gecersiz veya artik islenmeyecekse yetkili `iptal` kullanir. Terminal `ClearCancelled` sonucunda pending kaydi temizler; yeni evrak olusturuldu mesaji gostermez.
 
 #### Olay Gecmisi Response
 
@@ -6748,7 +6894,7 @@ Onemli not:
 
 - Yazma yolu `MikroWriteRouting:InterWarehouseShipment` ile secilir; mevcut config'te deger `Database`tir.
 - `Database` modunda EF Core uzerinden ayri `MikroWriteDbContext` ile yazma yapar. Write hedefi canli `MikroConnection` degil; `MikroWriteConnection` yoksa `testMikroConnection` kullanilir.
-- `MikroWriteBatching:InterWarehouseShipmentEnabled`, `CompanyReceivingEnabled` ve `CompanyReturnEnabled` ayarlari ilgili `Database` yazma yollarini birbirinden bagimsiz acip kapatir. Ayar acikken bir evrakin `STOK_HAREKETLERI` satirlari mevcut transaction icinde tek SQL bulk batch olarak yazilir. Mikro trigger ve constraint kontrolleri acik kalir; hedef, cok satirli evrakta trigger'i satir basina degil belge batch'i basina bir kez calistirmaktir.
+- `MikroWriteBatching:InterWarehouseShipmentEnabled`, `CompanyReceivingEnabled` ve `CompanyReturnEnabled` ayarlari ilgili `Database` yazma yollarini birbirinden bagimsiz acip kapatir. Ayar acikken bir evrakin `STOK_HAREKETLERI` satirlari ayni SQL transaction'i icinde `SqlBulkCopy` ile yazilir; atomiklik korunur. Mikro'nun `mye_STOK_HAREKETLERI_Trigger` trigger'i cok satirli batch'te 22 milyon satirli `STOK_HAREKETLERI_OZET` tablosunda sayfa taramasi ve `LCK_M_U` zinciri olusturdugu icin bulk kopya `BatchSize=1` kullanir. Boylece trigger her satirda kendi hizli tek-satir kolunu calistirir; belge ancak tum satirlar ve bagli guncellemeler basariliysa commit edilir.
 - Firma mal kabulde normal kabul hareketleri tek batch, otomatik olusan firma iade evraki varsa onun satirlari ayri bir batch olarak yazilir. Boylece her belge kendi trigger calismasini bir kez yapar ve iki belge ayni transaction icinde birlikte commit/rollback olur.
 - Bulk yazma yalniz satirlarin SQL'e gonderilme seklini degistirir. `clientRequestId`, trace, duplicate kontrolu, belge numarasi, transaction, rollback, readback ve recovery davranisi aynen korunur.
 - Bulk yolunun timeout degeri `MikroWriteBatching:BulkCopyTimeoutSeconds` ile belirlenir; varsayilan `300` saniyedir. Ozellik kapatilirsa ayni endpoint ve response korunarak eski EF insert yoluna donulur.
@@ -8241,6 +8387,28 @@ Onemli not:
 - Eski `Failed + A task was canceled. + errorCode=null` kaydi readback sonucunda belge bulunamazsa `Failed + MIKRO_WRITE_OUTCOME_UNCONFIRMED + retryable=true` olarak kalici siniflandirilir; ham iptal mesaji UI karar kaynagi olmamalidir.
 - Durum sorgusu tek basina yeni create yazisi baslatmaz. `Database` rotasinda readback belge bulamadiysa ayni body ve ayni `clientRequestId` ile yapilan sonraki POST kontrollu yeniden yazmayi baslatabilir.
 - `status = Completed` ise `result` icinde asagidaki `CreateCompanyReceivingResponse` modeli bulunur.
+
+Kullanici tarafindan Mikro kaydini yeniden dogrulama:
+
+`POST /api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/{clientRequestId}/yeniden-dogrula`
+
+Yetki:
+
+- `mal-kabul-islemleri.firma-mal-kabulleri.create`
+
+Request body yoktur. Endpoint yalniz oturumdaki kullanicinin, JWT deposundaki ve ayni `clientRequestId` degerli firma mal kabul kaydini bulur. Baska kullaniciya veya depoya ait kayit `404 Not Found` doner.
+
+Davranis:
+
+- UI bu aksiyonu `MIKRO_DOCUMENT_CONTENT_MISMATCH` gibi destek/inceleme durumunda `Mikro Kaydini Dogrula` olarak sunabilir.
+- Bulut/Uyumsoft tarafinda `ERS.5530` gibi kaynak evrakin gorunmesi tek basina mal kabulun Mikro'da dogru olustugunu kanitlamaz. Backend Mikro satirlarini `clientRequestId` izi, belge anahtari, cari, depo, stok, birim, satir, miktar ve tutarla kayitli request snapshot'ina gore karsilastirir.
+- Endpoint Mikro'ya create, update veya delete yazisi gondermez; yalniz salt-okuma readback yapar.
+- Tam eslesme bulunursa `outcome=Completed`; response `result` alaninda `CreateCompanyReceivingResponse` gelir. Terminal pending taslagini temizler ve Mikro belge numarasini gosterir.
+- Belge henuz bulunamazsa `outcome=NotFound`; ayni trace'e ait eksik satir seti varsa `outcome=Incomplete`; farkli/fazla icerik varsa `outcome=StillNeedsReview`; SQL/ag kontrolu tamamlanamazsa `outcome=CheckFailed` doner. Bu sonuclarda taslak korunur ve ikinci POST uretilmez.
+- Kullanici yeniden dogrulama ile kaydi `retryable=true` yapamaz veya iptal edemez. Mikro'da kesinlikle belge bulunmadiktan sonra `tekrar-ac` ve kaydi sonlandiran `iptal` aksiyonlari `ayar-islemleri.veritabani-izleme.resolve-safe-write` yetkili inceleme ekraninda kalir.
+- `Completed` kayit icin `outcome=AlreadyCompleted`, iptal kayit icin `outcome=AlreadyCancelled` donebilir.
+
+Response `SafeWriteReviewResultDto` modelidir. Terminal karari `recommendedAction` ile vermeli; `outcome`, `recoveryState` ve `safeWrite` teknik gosterim/izleme icindir. Mesaj metni eslestirilmemelidir.
 
 Ornek response:
 
@@ -10030,7 +10198,7 @@ Onemli not:
 - `sth_cari_kodu` bos yazilir; bu fislerde cari baglantisi yoktur
 - `creator` ve `acceptor` alanlari sirasiyla `sth_HareketGrupKodu1` ve `sth_HareketGrupKodu2` kolonlarina yazilir
 - `documentSerie` backend tarafinda `F{islemDepoNo}` olarak uretilir
-- `documentOrderNo` ayni seri ve zayiat fis turu icin write DB'deki mevcut maksimum sira okunarak uretilir
+- `documentOrderNo`, Mikro unique anahtariyla uyumlu olarak ayni `sth_evraktip = 0` ve seri altindaki tum hareket turlerinin maksimum sirasi okunarak uretilir. Zayiat ve masraf ayni seri numara havuzunu paylasir; eszamanli yazimlar ortak kilit ve duplicate retry ile siralanir
 - Satir tutari eski sistemle uyumlu olacak sekilde create aninda hesaplanir ve `STOK_HAREKETLERI.sth_tutar` alanina yazilir.
 - Birim fiyat icin ilgili stogun `SATINALMA_SARTLARI` tablosundaki en guncel kaydi kullanilir: `sas_net_alis_kdvli - (sas_isk_miktar1..6 toplamÄ±)`.
 - Ilgili stok icin satin alma sarti bulunamazsa satir tutari `0` yazilir ve backend log'a uyarÄ± duser.
@@ -10133,7 +10301,7 @@ Onemli not:
 - `sth_cari_kodu` bos yazilir; bu fislerde cari baglantisi yoktur
 - `creator` ve `acceptor` alanlari sirasiyla `sth_HareketGrupKodu1` ve `sth_HareketGrupKodu2` kolonlarina yazilir
 - `documentSerie` backend tarafinda `F{islemDepoNo}` olarak uretilir
-- `documentOrderNo` ayni seri ve masraf fis turu icin write DB'deki mevcut maksimum sira okunarak uretilir
+- `documentOrderNo`, Mikro unique anahtariyla uyumlu olarak ayni `sth_evraktip = 0` ve seri altindaki tum hareket turlerinin maksimum sirasi okunarak uretilir. Zayiat ve masraf ayni seri numara havuzunu paylasir; eszamanli yazimlar ortak kilit ve duplicate retry ile siralanir
 - Satir tutari eski sistemle uyumlu olacak sekilde create aninda hesaplanir ve `STOK_HAREKETLERI.sth_tutar` alanina yazilir.
 - Birim fiyat icin ilgili stogun `SATINALMA_SARTLARI` tablosundaki en guncel kaydi kullanilir: `sas_net_alis_kdvli - (sas_isk_miktar1..6 toplami)`.
 - Ilgili stok icin satin alma sarti bulunamazsa satir tutari `0` yazilir ve backend log'a uyari duser.
@@ -17592,7 +17760,7 @@ Response `ValidateInvoiceDocumentsResponse`:
       "customerCode": "",
       "customerTitle": "",
       "isValid": false,
-      "message": "Target customer alias/e-mail is required."
+      "message": "Target customer alias is required for E-Fatura."
     }
   ]
 }
@@ -17681,6 +17849,7 @@ Davranis:
 UBL / gonderim kurallari:
 
 - hedef alici alias'i `FaturaMail`, bos ise `Mail` fallback'i ile uretilir
+- `scenario=0 (EFatura)` icin hedef alici alias'i zorunludur. `scenario=1 (EArsiv)` icin alias/e-posta bos olabilir; e-arsiv belgesi UBL icindeki alici VKN/TCKN, unvan ve adres bilgileriyle gonderilir. E-arsivde e-posta degeri doluysa format kontrolu uygulanir.
 - supplier bilgisi config tabanli sabit musteri kodundan cekilir; mevcut konfigrasyonda bu kod `32004621`'dir
 - profil kurali:
   - e-fatura icin `EBelgeTuru = 0 -> TICARIFATURA`, diger durumda `TEMELFATURA`
@@ -25196,6 +25365,10 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | GET | `/api/ayar-islemleri/veritabani-izleme/anlik` | JWT + ayar-islemleri.veritabani-izleme.list |  | 401: ProblemDetails<br>403: ProblemDetails<br>200: DatabaseMonitoringSnapshotDto |
 | GET | `/api/ayar-islemleri/veritabani-izleme/genel-bakis` | JWT + ayar-islemleri.veritabani-izleme.list |  | 401: ProblemDetails<br>403: ProblemDetails<br>200: MonitoringOverviewDto |
 | GET | `/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar` | JWT + ayar-islemleri.veritabani-izleme.detail | query: Status / string<br>query: OperationCode / string<br>query: WarehouseNo / integer (int32)<br>query: Retryable / boolean<br>query: IncludeCompleted / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;SafeWriteMonitoringItemDto&gt;<br>400: ProblemDetails |
+| GET | `/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/inceleme-gecmisi` | JWT + ayar-islemleri.veritabani-izleme.detail | path: id / string (uuid) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;SafeWriteReviewAuditDto&gt;<br>404: ProblemDetails |
+| POST | `/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/iptal` | JWT + ayar-islemleri.veritabani-izleme.resolve-safe-write | path: id / string (uuid) (zorunlu)<br>body: request / SafeWriteReviewHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: SafeWriteReviewResultDto<br>404: ProblemDetails |
+| POST | `/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/tekrar-ac` | JWT + ayar-islemleri.veritabani-izleme.resolve-safe-write | path: id / string (uuid) (zorunlu)<br>body: request / SafeWriteReviewHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: SafeWriteReviewResultDto<br>404: ProblemDetails |
+| POST | `/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/yeniden-dogrula` | JWT + ayar-islemleri.veritabani-izleme.resolve-safe-write | path: id / string (uuid) (zorunlu)<br>body: request / SafeWriteReviewHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: SafeWriteReviewResultDto<br>404: ProblemDetails |
 | GET | `/api/ayar-islemleri/veritabani-izleme/olaylar` | JWT + ayar-islemleri.veritabani-izleme.detail | query: take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;DatabaseMonitoringIncidentDto&gt; |
 | GET | `/api/ayar-islemleri/veritabani-izleme/oturum-sonlandirma-gecmisi` | JWT + ayar-islemleri.veritabani-izleme.detail | query: take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;DatabaseSessionTerminationDto&gt; |
 | GET | `/api/ayar-islemleri/veritabani-izleme/oturumlar/{sessionId}/rollback-durumu` | JWT + ayar-islemleri.veritabani-izleme.detail | path: sessionId / integer (int32) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: DatabaseRollbackStatusDto |
@@ -25662,6 +25835,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | POST | `/api/mal-kabul-islemleri/firma-mal-kabulleri` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.create | body: request / CreateCompanyReceivingHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>201: CreateCompanyReceivingResponse<br>200: CreateCompanyReceivingResponse<br>400: ProblemDetails<br>404: ProblemDetails<br>409: ProblemDetails |
 | GET | `/api/mal-kabul-islemleri/firma-mal-kabulleri/e-irsaliye/ettn/{ettn}` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.create | path: ettn / string (zorunlu)<br>query: warehouseNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: InboundDespatchLookupResponse<br>400: ProblemDetails |
 | GET | `/api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/{clientRequestId}` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.create | path: clientRequestId / string (uuid) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: OfflineSyncStatusDto&lt;CreateCompanyReceivingResponse&gt;<br>404: ProblemDetails<br>409: ProblemDetails |
+| POST | `/api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/{clientRequestId}/yeniden-dogrula` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.create | path: clientRequestId / string (uuid) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: SafeWriteReviewResultDto<br>404: ProblemDetails<br>409: ProblemDetails |
 | GET | `/api/mal-kabul-islemleri/firma-mal-kabulleri/resmi-belge/ettn/{ettn}` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.create | path: ettn / string (zorunlu)<br>query: warehouseNo / integer (int32)<br>query: documentKind / string | 401: ProblemDetails<br>403: ProblemDetails<br>200: InboundDespatchLookupResponse<br>400: ProblemDetails |
 | GET | `/api/mal-kabul-islemleri/firma-mal-kabulleri/{documentSerie}/{documentOrderNo}` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.detail | path: documentSerie / string (zorunlu)<br>path: documentOrderNo / integer (int32) (zorunlu)<br>query: warehouseNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: CompanyMovementDetailDto<br>400: ProblemDetails<br>404: ProblemDetails |
 | PUT | `/api/mal-kabul-islemleri/firma-mal-kabulleri/{id}` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.update | path: id / string (zorunlu)<br>body: request / ModuleActionRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>501: ModuleActionScaffoldResponse |
@@ -25675,6 +25849,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | POST | `/api/mal-kabul-islemleri/mal-kabuller/firma` | JWT + mal-kabul-islemleri.firma-mal-kabulleri.create | body: request / CreateCompanyReceivingHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>201: CreateCompanyReceivingResponse<br>200: CreateCompanyReceivingResponse<br>400: ProblemDetails<br>404: ProblemDetails<br>409: ProblemDetails |
 | GET | `/api/mobile-sync/cari-katalogu` | JWT | query: Since / string (date-time)<br>query: Cursor / string<br>query: PageSize / integer (int32) | 401: ProblemDetails<br>200: MobileCustomerCatalogResponse<br>400: ProblemDetails |
 | GET | `/api/mobile-sync/depo-katalogu` | JWT | query: Since / string (date-time)<br>query: Cursor / string<br>query: PageSize / integer (int32) | 401: ProblemDetails<br>200: MobileWarehouseCatalogResponse<br>400: ProblemDetails |
+| POST | `/api/mobile-sync/guvenli-yazmalar/{clientRequestId}/yeniden-dogrula` | JWT | path: clientRequestId / string (uuid) (zorunlu)<br>body: request / RecheckMobileSafeWriteHttpRequest (zorunlu) | 401: ProblemDetails<br>200: SafeWriteReviewResultDto<br>400: ProblemDetails<br>404: ProblemDetails<br>409: ProblemDetails |
 | GET | `/api/mobile-sync/urun-fiyat-katalogu` | JWT + arama-islemleri.fiyat-gor.list | query: WarehouseNo / integer (int32)<br>query: Since / string (date-time)<br>query: Cursor / string<br>query: PageSize / integer (int32) | 401: ProblemDetails<br>200: MobileProductPriceCatalogResponse<br>400: ProblemDetails<br>403: ProblemDetails |
 | GET | `/api/operasyon-islemleri/belge-akis-takibi` | JWT + operasyon-islemleri.belge-akis-takibi.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time)<br>query: EndDate / string (date-time)<br>query: DocumentType / FurpaMerkezApi.Domain.Entities.DocumentFlowType<br>query: Status / FurpaMerkezApi.Domain.Entities.DocumentFlowStatus<br>query: Search / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: DocumentFlowListResponse<br>400: ProblemDetails |
 | GET | `/api/operasyon-islemleri/belge-akis-takibi/{id}` | JWT + operasyon-islemleri.belge-akis-takibi.detail | path: id / string (uuid) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: DocumentFlowDetailDto<br>404: ProblemDetails |
@@ -26784,6 +26959,35 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `unclassifiedFailureCount` | integer (int32) | Hayir |  |
 | `windowHours` | integer (int32) | Hayir |  |
 
+### FurpaMerkezApi.Application.Modules.AyarIslemleri.VeritabaniIzleme.SafeWriteReviewAuditDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `action` | string | Hayir | nullable |
+| `id` | string (uuid) | Hayir |  |
+| `message` | string | Hayir | nullable |
+| `outcome` | string | Hayir | nullable |
+| `previousErrorCode` | string | Hayir | nullable |
+| `previousStatus` | string | Hayir | nullable |
+| `reason` | string | Hayir | nullable |
+| `resultErrorCode` | string | Hayir | nullable |
+| `resultStatus` | string | Hayir | nullable |
+| `reviewedAtUtc` | string (date-time) | Hayir |  |
+| `reviewedByUserId` | string (uuid) | Hayir |  |
+| `safeWriteId` | string (uuid) | Hayir |  |
+
+### FurpaMerkezApi.Application.Modules.AyarIslemleri.VeritabaniIzleme.SafeWriteReviewResultDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `action` | string | Hayir | nullable |
+| `message` | string | Hayir | nullable |
+| `outcome` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
+| `result` |  | Hayir | nullable |
+| `safeWrite` | FurpaMerkezApi.Application.Modules.AyarIslemleri.VeritabaniIzleme.SafeWriteMonitoringItemDto | Hayir |  |
+
 ### FurpaMerkezApi.Application.Modules.AyarIslemleri.VeritabaniIzleme.WorkerJobMonitoringDto
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
@@ -26957,6 +27161,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.Common.CompanyMovements.CreateCompanyMovementResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -26972,6 +27178,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.GreenGrocer.Operations.GreenGrocerOperationsAdjustmentApplyResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -26987,6 +27195,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.IadeIslemleri.DepoIadeleri.Create.CreateWarehouseReturnResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -27002,6 +27212,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.MalKabulIslemleri.MalKabuller.CompanyReceiving.CreateCompanyReceivingResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -27017,6 +27229,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.SevkIslemleri.DepolarArasiSevkler.Create.CreateInterWarehouseShipmentResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -27032,6 +27246,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.SiparisIslemleri.VerilenDepoSiparisleri.Create.CreateIssuedWarehouseOrderResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -27047,6 +27263,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.SiparisIslemleri.VerilenFirmaSiparisleri.Create.CreateIssuedCompanyOrderResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -27062,6 +27280,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.StokIslemleri.Common.CreateStockReceiptResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -27077,6 +27297,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.StokIslemleri.SayimSonuclari.CreateInventoryCountResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -27092,6 +27314,8 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `errorCode` | string | Hayir | nullable |
 | `errorMessage` | string | Hayir | nullable |
 | `operationCode` | string | Hayir | nullable |
+| `recommendedAction` | string | Hayir | nullable |
+| `recoveryState` | string | Hayir | nullable |
 | `result` | FurpaMerkezApi.Application.Modules.StokIslemleri.Virmanlar.CreateVirmanResponse | Hayir |  |
 | `retryAfterSeconds` | integer (int32) | Hayir | nullable |
 | `retryable` | boolean | Hayir | nullable |
@@ -34007,6 +34231,12 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `poskonFolderPath` | string | Evet | minLength=0; maxLength=255 |
 | `scalesType` | integer (int32) | Evet | min=0; max=1 |
 
+### FurpaMerkezApi.WebApi.Controllers.Modules.AyarIslemleri.VeritabaniIzleme.SafeWriteReviewHttpRequest
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `reason` | string | Evet | minLength=10; maxLength=500 |
+
 ### FurpaMerkezApi.WebApi.Controllers.Modules.AyarIslemleri.VeritabaniIzleme.TerminateDatabaseSessionHttpRequest
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
@@ -35947,6 +36177,12 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `code` | string | Evet | minLength=0; maxLength=100 |
 | `description` | string | Hayir | minLength=0; maxLength=250; nullable |
 | `name` | string | Evet | minLength=0; maxLength=100 |
+
+### FurpaMerkezApi.WebApi.Controllers.RecheckMobileSafeWriteHttpRequest
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `operationCode` | string | Evet | minLength=1; maxLength=150 |
 
 ### FurpaMerkezApi.WebApi.Controllers.RolesController.AssignPermissionsBody
 

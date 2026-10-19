@@ -1,10 +1,15 @@
 export const ETIKET_BASIM_PRINT_STYLES = `
   @page {
-    size: 57.9mm 38.9mm;
+    size: 60mm 40mm;
     margin: 0;
   }
 
-  .print-label,
+  .print-label {
+    width: 60mm;
+    height: 40mm;
+    box-sizing: border-box;
+  }
+
   .print-label-content {
     width: 57.9mm;
     height: 38.9mm;
@@ -14,13 +19,15 @@ export const ETIKET_BASIM_PRINT_STYLES = `
   @media print {
     html,
     body {
-      width: 57.9mm !important;
-      min-width: 57.9mm !important;
+      width: 60mm !important;
+      min-width: 60mm !important;
       height: auto !important;
       margin: 0 !important;
       padding: 0 !important;
       background: #fff !important;
       overflow: visible !important;
+      -webkit-print-color-adjust: exact !important;
+      print-color-adjust: exact !important;
     }
 
     body * {
@@ -44,8 +51,8 @@ export const ETIKET_BASIM_PRINT_STYLES = `
       top: 0 !important;
       left: 0 !important;
       right: auto !important;
-      width: 57.9mm !important;
-      min-width: 57.9mm !important;
+      width: 60mm !important;
+      min-width: 60mm !important;
       margin: 0 !important;
       padding: 0 !important;
       display: flex !important;
@@ -62,10 +69,12 @@ export const ETIKET_BASIM_PRINT_STYLES = `
     }
 
     .print-label {
-      width: 57.9mm !important;
-      height: 38.9mm !important;
+      width: 60mm !important;
+      height: 40mm !important;
       margin: 0 !important;
       padding: 0 !important;
+      display: grid !important;
+      place-items: center !important;
       overflow: hidden !important;
       break-after: page !important;
       page-break-after: always !important;
@@ -75,6 +84,7 @@ export const ETIKET_BASIM_PRINT_STYLES = `
       width: 57.9mm !important;
       height: 38.9mm !important;
       box-sizing: border-box !important;
+      margin: 0 !important;
       transform: none !important;
       transform-origin: initial !important;
       writing-mode: horizontal-tb !important;

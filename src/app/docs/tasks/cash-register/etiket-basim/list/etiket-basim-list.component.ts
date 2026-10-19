@@ -251,13 +251,13 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     };
   });
   protected readonly draftModeLabel = computed(() =>
-    this.selectedRecord() ? 'Kayit Guncelle' : 'Yeni Kabul'
+    this.selectedRecord() ? 'Kayıt Güncelle' : 'Yeni Kabul'
   );
   protected readonly selectedRecordLabel = computed(() => {
     const record = this.selectedRecord();
 
     if (!record) {
-      return 'Yeni kayit';
+      return 'Yeni kayıt';
     }
 
     return record.seriesAndNumber || `${record.documentSeries}${record.documentNo}` || `#${record.id}`;
@@ -291,7 +291,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (!this.draft.supplierName.trim()) {
-      missing.push('Tedarikci firma');
+      missing.push('Tedarikçi firma');
     }
 
     if (!this.draft.documentNo.trim()) {
@@ -303,7 +303,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (!this.draft.stockName.trim()) {
-      missing.push('Stok adi');
+      missing.push('Stok adı');
     }
 
     if (!this.draft.stockBarcode.trim()) {
@@ -329,11 +329,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const selected = this.selectedRecord();
 
     if (this.isSaving()) {
-      return 'Kayit islemi devam ediyor.';
+      return 'Kayıt işlemi devam ediyor.';
     }
 
     if (selected?.microTransferred) {
-      return 'Mikro aktarilmis kayit guncellenemez.';
+      return 'Mikro\'ya aktarılmış kayıt güncellenemez.';
     }
 
     if (selected ? !this.canUpdate() : !this.canCreate()) {
@@ -361,25 +361,25 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (record.microTransferred) {
-      return 'Bu kayit daha once Mikroya aktarilmis.';
+      return 'Bu kayıt daha önce Mikro\'ya aktarılmış.';
     }
 
     if (!this.selectedInvoiceDetail()) {
-      return 'Mikro aktarim icin fatura detayi secin.';
+      return 'Mikro aktarımı için fatura detayı seçin.';
     }
 
     if (!line) {
-      return 'Mikro aktarim icin fatura kalemi secin.';
+      return 'Mikro aktarımı için fatura kalemi seçin.';
     }
 
     if (!this.draft.stockCode.trim()) {
-      return 'Fatura kalemi icin MNV stok eslestirin.';
+      return 'Fatura kalemi için MNV stok eşleştirin.';
     }
 
     const quantity = this.resolveTransferQuantity(record);
 
     if (quantity <= 0) {
-      return 'Net kilo/miktar sifirdan buyuk olmali.';
+      return 'Net kilo/miktar sıfırdan büyük olmalı.';
     }
 
     if (this.toSafeNumber(line.unitPrice) <= 0) {
@@ -391,7 +391,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (!this.draft.supplierCode.trim()) {
-      return 'Tedarikci cari kodu secili olmali.';
+      return 'Tedarikçi cari kodu seçili olmalı.';
     }
 
     return '';
@@ -443,12 +443,12 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const date = this.selectedDate().trim();
 
     if (!date) {
-      this.setFeedback('error', 'Tarih gerekli', 'Kabul kayitlarini getirmek icin tarih secin.');
+      this.setFeedback('error', 'Tarih gerekli', 'Kabul kayıtlarını getirmek için tarih seçin.');
       return;
     }
 
     if (!this.canList()) {
-      this.setFeedback('error', 'Yetki yok', 'Bu listeyi gormek icin list yetkisi gerekli.');
+      this.setFeedback('error', 'Yetki yok', 'Bu listeyi görmek için listeleme yetkisi gerekli.');
       return;
     }
 
@@ -466,15 +466,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.records.set(records ?? []);
 
           if (!records?.length) {
-            this.setFeedback('info', 'Kayit yok', 'Secilen gun icin kabul etiketi kaydi bulunamadi.');
+            this.setFeedback('info', 'Kayıt yok', 'Seçilen gün için kabul etiketi kaydı bulunamadı.');
           }
         },
         error: (error: unknown) => {
           this.records.set([]);
           this.setFeedback(
             'error',
-            'Liste alinamadi',
-            getErrorMessage(error, 'Kabul kayitlari yuklenirken hata olustu.')
+            'Liste alınamadı',
+            getErrorMessage(error, 'Kabul kayıtları yüklenirken hata oluştu.')
           );
         }
       });
@@ -489,7 +489,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (startDate > endDate) {
-      this.setFeedback('error', 'Tarih araligi hatali', 'Baslangic tarihi bitis tarihinden buyuk olamaz.');
+      this.setFeedback('error', 'Tarih aralığı hatalı', 'Başlangıç tarihi bitiş tarihinden büyük olamaz.');
       return;
     }
 
@@ -524,8 +524,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.incomingInvoices.set([]);
           this.setFeedback(
             'error',
-            'Fatura listesi alinamadi',
-            getErrorMessage(error, 'Gelen faturalar yuklenemedi.')
+            'Fatura listesi alınamadı',
+            getErrorMessage(error, 'Gelen faturalar yüklenemedi.')
           );
         }
       });
@@ -552,8 +552,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     if (!this.canStartInvoiceAcceptance(invoice)) {
       this.setFeedback(
         'error',
-        'Fatura kontrol gerekli',
-        invoice.message?.trim() || invoice.status?.trim() || 'Bu fatura icin kabul baslatilamaz.'
+        'Fatura kontrolü gerekli',
+        invoice.message?.trim() || invoice.status?.trim() || 'Bu fatura için kabul başlatılamaz.'
       );
       return;
     }
@@ -578,7 +578,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const lookupId = this.getIncomingInvoiceLookupId(invoice);
 
     if (!lookupId) {
-      this.setFeedback('error', 'Fatura detayi yok', 'Fatura kalemlerini almak icin belge anahtari okunamadi.');
+      this.setFeedback('error', 'Fatura detayı yok', 'Fatura kalemlerini almak için belge anahtarı okunamadı.');
       return;
     }
 
@@ -597,8 +597,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.selectedInvoiceLine.set(null);
           this.setFeedback(
             'error',
-            'Fatura detayi alinamadi',
-            getErrorMessage(error, 'Fatura kalemleri yuklenemedi.')
+            'Fatura detayı alınamadı',
+            getErrorMessage(error, 'Fatura kalemleri yüklenemedi.')
           );
         }
       });
@@ -608,7 +608,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const ettn = this.invoiceEttn.trim();
 
     if (!ettn) {
-      this.setFeedback('error', 'ETTN gerekli', 'Fatura detayi icin ETTN girin.');
+      this.setFeedback('error', 'ETTN gerekli', 'Fatura detayı için ETTN girin.');
       return;
     }
 
@@ -631,8 +631,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.selectedInvoiceLine.set(null);
           this.setFeedback(
             'error',
-            'ETTN detayi alinamadi',
-            getErrorMessage(error, 'Fatura ETTN ile yuklenemedi.')
+            'ETTN detayı alınamadı',
+            getErrorMessage(error, 'Fatura ETTN ile yüklenemedi.')
           );
         }
       });
@@ -658,7 +658,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       this.setFeedback(
         'info',
         'Stok eslestirme gerekli',
-        line.warnings?.[0] || 'Bu fatura kalemi icin MNV stok secin.'
+        line.warnings?.[0] || 'Bu fatura kalemi için MNV stok seçin.'
       );
       this.activeTab.set('form');
       return;
@@ -714,7 +714,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.setFeedback(
       'info',
       'Manuel kabul',
-      'Fatura bulunamadigi durumlarda manuel kabul taslagi acildi.'
+      'Fatura bulunamadığı durumlarda manuel kabul taslağı açıldı.'
     );
   }
 
@@ -756,12 +756,12 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       .subscribe({
         next: (items: EtiketBasimSupplierDto[]) => {
           this.supplierResults.set(items ?? []);
-          this.supplierSearchMessage.set(items?.length ? null : 'Tedarikci bulunamadi.');
+          this.supplierSearchMessage.set(items?.length ? null : 'Tedarikçi bulunamadı.');
         },
         error: (error: unknown) => {
           this.supplierResults.set([]);
           this.supplierSearchMessage.set(
-            getErrorMessage(error, 'Tedarikci aramasi yapilamadi.')
+            getErrorMessage(error, 'Tedarikçi araması yapılamadı.')
           );
         }
       });
@@ -805,11 +805,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       .subscribe({
         next: (items: EtiketBasimStockDto[]) => {
           this.stockResults.set(items ?? []);
-          this.stockSearchMessage.set(items?.length ? null : 'Stok bulunamadi.');
+          this.stockSearchMessage.set(items?.length ? null : 'Stok bulunamadı.');
         },
         error: (error: unknown) => {
           this.stockResults.set([]);
-          this.stockSearchMessage.set(getErrorMessage(error, 'Stok aramasi yapilamadi.'));
+          this.stockSearchMessage.set(getErrorMessage(error, 'Stok araması yapılamadı.'));
         }
       });
   }
@@ -889,8 +889,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           if (!silent) {
             this.setFeedback(
               'error',
-              'Hesaplama basarisiz',
-              getErrorMessage(error, 'Kilo hesaplamasi yapilamadi.')
+              'Hesaplama başarısız',
+              getErrorMessage(error, 'Kilo hesaplaması yapılamadı.')
             );
           }
         }
@@ -904,7 +904,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       this.setFeedback(
         'error',
         'Eksik bilgi',
-        this.saveBlockReason() || 'Kaydetmek icin zorunlu alanlari doldurun.'
+        this.saveBlockReason() || 'Kaydetmek için zorunlu alanları doldurun.'
       );
       return;
     }
@@ -912,12 +912,12 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const selected = this.selectedRecord();
 
     if (selected?.microTransferred) {
-      this.setFeedback('error', 'Aktarilmis kayit', 'Mikro aktarilmis kayit guncellenemez.');
+      this.setFeedback('error', 'Aktarılmış kayıt', 'Mikro\'ya aktarılmış kayıt güncellenemez.');
       return;
     }
 
     if (selected ? !this.canUpdate() : !this.canCreate()) {
-      this.setFeedback('error', 'Yetki yok', 'Bu islem icin yetkiniz bulunmuyor.');
+      this.setFeedback('error', 'Yetki yok', 'Bu işlem için yetkiniz bulunmuyor.');
       return;
     }
 
@@ -949,14 +949,14 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.labelCopyCount = Math.max(1, Math.trunc(this.toSafeNumber(record.caseCount) || 1));
           this.setFeedback(
             'success',
-            selected ? 'Kayit guncellendi' : 'Kayit olusturuldu',
-            `${record.seriesAndNumber || record.id} hazir.`
+            selected ? 'Kayıt güncellendi' : 'Kayıt oluşturuldu',
+            `${record.seriesAndNumber || record.id} hazır.`
           );
         },
         error: (error: unknown) => {
           this.setFeedback(
             'error',
-            'Kayit basarisiz',
+            'Kayıt başarısız',
             getErrorMessage(error, 'Kabul etiketi kaydedilemedi.')
           );
         }
@@ -967,7 +967,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const blockReason = this.microTransferBlockReason();
 
     if (blockReason) {
-      this.setFeedback('error', 'Mikro aktarim hazir degil', blockReason);
+      this.setFeedback('error', 'Mikro aktarımı hazır değil', blockReason);
       return;
     }
 
@@ -975,13 +975,13 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const record = this.selectedRecord();
 
     if (!request || !record) {
-      this.setFeedback('error', 'Mikro aktarim hazir degil', 'Aktarim istegi hazirlanamadi.');
+      this.setFeedback('error', 'Mikro aktarımı hazır değil', 'Aktarım isteği hazırlanamadı.');
       return;
     }
 
     const confirmed = await this.confirmDialog.confirm({
-      title: 'Mikro mal kabul olusturulsun mu?',
-      message: `${record.seriesAndNumber || record.id} kaydi Mikro alis/mal kabul evragina aktarilacak.`,
+      title: 'Mikro mal kabul oluşturulsun mu?',
+      message: `${record.seriesAndNumber || record.id} kaydı Mikro alış/mal kabul evrağına aktarılacak.`,
       confirmText: 'Aktar',
       tone: 'warning'
     });
@@ -1003,7 +1003,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.setFeedback(
             'success',
             'Mikro aktarim tamamlandi',
-            `${result.documentSeries || request.documentSeries || ''}${result.documentOrderNo || ''} evragi olusturuldu.`
+            `${result.documentSeries || request.documentSeries || ''}${result.documentOrderNo || ''} evrağı oluşturuldu.`
           );
           this.loadRecords();
           this.loadReport('comparison');
@@ -1011,8 +1011,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
         error: (error: unknown) => {
           this.setFeedback(
             'error',
-            'Mikro aktarim basarisiz',
-            getErrorMessage(error, 'Mikro mal kabul evragi olusturulamadi.')
+            'Mikro aktarımı başarısız',
+            getErrorMessage(error, 'Mikro mal kabul evrağı oluşturulamadı.')
           );
           this.loadReport('comparison');
         }
@@ -1027,7 +1027,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (targetRecord.microTransferred) {
-      this.setFeedback('error', 'Aktarilmis kayit', 'Mikro aktarilmis kayit silinemez.');
+      this.setFeedback('error', 'Aktarılmış kayıt', 'Mikro\'ya aktarılmış kayıt silinemez.');
       return;
     }
 
@@ -1065,14 +1065,14 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
           this.setFeedback(
             'success',
-            'Kayit silindi',
+            'Kayıt silindi',
             `${targetRecord.seriesAndNumber || targetRecord.id} kaldirildi.`
           );
         },
         error: (error: unknown) => {
           this.setFeedback(
             'error',
-            'Silme basarisiz',
+            'Silme başarısız',
             getErrorMessage(error, 'Kabul etiketi silinemedi.')
           );
         }
@@ -1090,7 +1090,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const request = this.buildSaveRequest();
 
     if (!request) {
-      this.setFeedback('error', 'Eksik bilgi', 'Etiket onizleme icin zorunlu alanlari doldurun.');
+      this.setFeedback('error', 'Eksik bilgi', 'Etiket önizlemesi için zorunlu alanları doldurun.');
       return;
     }
 
@@ -1108,8 +1108,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.printAfterLabelPreview = false;
           this.setFeedback(
             'error',
-            'Onizleme alinamadi',
-            getErrorMessage(error, 'Etiket verisi hazirlanamadi.')
+            'Önizleme alınamadı',
+            getErrorMessage(error, 'Etiket verisi hazırlanamadı.')
           );
         }
       });
@@ -1127,7 +1127,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected loadLabelForRecord(record: EtiketBasimAcceptanceRecordDto): void {
     if (!this.canDetail()) {
-      this.setFeedback('error', 'Yetki yok', 'Etiket datasini gormek icin detail yetkisi gerekli.');
+      this.setFeedback('error', 'Yetki yok', 'Etiket verisini görmek için detay yetkisi gerekli.');
       return;
     }
 
@@ -1146,8 +1146,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.printAfterLabelPreview = false;
           this.setFeedback(
             'error',
-            'Etiket alinamadi',
-            getErrorMessage(error, 'Kayitli etiket datasina ulasilamadi.')
+            'Etiket alınamadı',
+            getErrorMessage(error, 'Kayıtlı etiket verisine ulaşılamadı.')
           );
         }
       });
@@ -1172,6 +1172,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
     if (!started) {
       this.isPrinting.set(false);
+      this.setFeedback(
+        'error',
+        'Etiket yazdırılamadı',
+        'Baskı penceresi açılamadı. Yazıcı ve tarayıcı yazdırma ayarlarını kontrol edip tekrar deneyin.'
+      );
     }
   }
 
@@ -1179,7 +1184,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const date = this.selectedDate().trim();
 
     if (!date) {
-      this.setFeedback('error', 'Tarih gerekli', 'Rapor icin tarih secin.');
+      this.setFeedback('error', 'Tarih gerekli', 'Rapor için tarih seçin.');
       return;
     }
 
@@ -1198,15 +1203,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
             this.receivedReportRows.set(rows ?? []);
 
             if (!rows?.length) {
-              this.setFeedback('info', 'Rapor bos', 'Secilen gun icin gelen urun raporu bulunamadi.');
+              this.setFeedback('info', 'Rapor boş', 'Seçilen gün için gelen ürün raporu bulunamadı.');
             }
           },
           error: (error: unknown) => {
             this.receivedReportRows.set([]);
             this.setFeedback(
               'error',
-              'Rapor alinamadi',
-              getErrorMessage(error, 'Gelen urun raporu yuklenemedi.')
+              'Rapor alınamadı',
+              getErrorMessage(error, 'Gelen ürün raporu yüklenemedi.')
             );
           }
       });
@@ -1225,15 +1230,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
             this.comparisonReportRows.set(rows ?? []);
 
             if (!rows?.length) {
-              this.setFeedback('info', 'Rapor bos', 'Secilen gun icin Mikro karsilastirma kaydi bulunamadi.');
+              this.setFeedback('info', 'Rapor boş', 'Seçilen gün için Mikro karşılaştırma kaydı bulunamadı.');
             }
           },
           error: (error: unknown) => {
             this.comparisonReportRows.set([]);
             this.setFeedback(
               'error',
-              'Rapor alinamadi',
-              getErrorMessage(error, 'Mikro karsilastirma raporu yuklenemedi.')
+              'Rapor alınamadı',
+              getErrorMessage(error, 'Mikro karşılaştırma raporu yüklenemedi.')
             );
           }
         });
@@ -1244,7 +1249,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
     if (!warehouseNo) {
       this.isReportLoading.set(false);
-      this.setFeedback('error', 'Depo gerekli', 'Depo stok raporu icin depo no gerekli.');
+      this.setFeedback('error', 'Depo gerekli', 'Depo stok raporu için depo no gerekli.');
       return;
     }
 
@@ -1259,15 +1264,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
           this.depotReportRows.set(rows ?? []);
 
           if (!rows?.length) {
-            this.setFeedback('info', 'Rapor bos', 'Secilen depo ve gun icin stok raporu bulunamadi.');
+            this.setFeedback('info', 'Rapor boş', 'Seçilen depo ve gün için stok raporu bulunamadı.');
           }
         },
         error: (error: unknown) => {
           this.depotReportRows.set([]);
           this.setFeedback(
             'error',
-            'Rapor alinamadi',
-            getErrorMessage(error, 'Depo stok raporu yuklenemedi.')
+            'Rapor alınamadı',
+            getErrorMessage(error, 'Depo stok raporu yüklenemedi.')
           );
         }
       });
@@ -1387,7 +1392,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (this.canStartInvoiceAcceptance(invoice)) {
-      return 'Hazir';
+      return 'Hazır';
     }
 
     return invoice.status?.trim() || invoice.message?.trim() || 'Kontrol';
@@ -1489,11 +1494,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected getInvoiceLineStatusLabel(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
     if (this.isInvoiceLineMatched(line)) {
-      return 'Hazir';
+      return 'Hazır';
     }
 
     if (this.isInvoiceLineReady(line)) {
-      return 'Stok secildi';
+      return 'Stok seçildi';
     }
 
     return line.warnings?.[0] || 'Stok eslestir';
@@ -1739,7 +1744,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
 
     if (detail.warnings?.length) {
-      this.setFeedback('info', 'Fatura detayi yuklendi', detail.warnings.join(' '));
+      this.setFeedback('info', 'Fatura detayı yüklendi', detail.warnings.join(' '));
       return;
     }
 
@@ -1839,11 +1844,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
     elements.forEach((element) =>
       renderBarcodeSvg(element.nativeElement, barcode, {
-        barWidth: 1,
-        barHeight: 28,
-        fontSize: 8,
-        marginX: 2,
-        marginTop: 1
+        barWidth: 1.15,
+        barHeight: 36,
+        fontSize: 0,
+        marginX: 1,
+        marginTop: 0
       })
     );
   }

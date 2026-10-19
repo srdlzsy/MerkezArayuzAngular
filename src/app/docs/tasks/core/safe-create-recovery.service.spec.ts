@@ -3,6 +3,7 @@ import { of } from 'rxjs';
 
 import { IadeIslemleriService } from '../../../core/api/module-services/iade-islemleri.service';
 import { MalKabulIslemleriService } from '../../../core/api/module-services/mal-kabul-islemleri.service';
+import { MobileSyncService } from '../../../core/api/module-services/mobile-sync.service';
 import { SevkIslemleriService } from '../../../core/api/module-services/sevk-islemleri.service';
 import { SiparisIslemleriService } from '../../../core/api/module-services/siparis-islemleri.service';
 import { StokIslemleriService } from '../../../core/api/module-services/stok-islemleri.service';
@@ -13,6 +14,7 @@ describe('SafeCreateRecoveryService', () => {
   let sevk: jasmine.SpyObj<SevkIslemleriService>;
   let iade: jasmine.SpyObj<IadeIslemleriService>;
   let malKabul: jasmine.SpyObj<MalKabulIslemleriService>;
+  let mobileSync: jasmine.SpyObj<MobileSyncService>;
   let stok: jasmine.SpyObj<StokIslemleriService>;
   let siparis: jasmine.SpyObj<SiparisIslemleriService>;
 
@@ -34,6 +36,8 @@ describe('SafeCreateRecoveryService', () => {
       'createToptanGirisIrsaliyesi',
       'getCompanyReceiptOfflineStatus',
     ]);
+    mobileSync = jasmine.createSpyObj('MobileSyncService', ['recheckSafeWrite']);
+    mobileSync.recheckSafeWrite.and.returnValue(of({} as never));
     stok = jasmine.createSpyObj('StokIslemleriService', [
       'createSayimSonucu',
       'createVirman',
@@ -96,6 +100,7 @@ describe('SafeCreateRecoveryService', () => {
         { provide: SevkIslemleriService, useValue: sevk },
         { provide: IadeIslemleriService, useValue: iade },
         { provide: MalKabulIslemleriService, useValue: malKabul },
+        { provide: MobileSyncService, useValue: mobileSync },
         { provide: StokIslemleriService, useValue: stok },
         { provide: SiparisIslemleriService, useValue: siparis },
       ],
@@ -131,6 +136,16 @@ describe('SafeCreateRecoveryService', () => {
       'siparis-islemleri.onerilen-firma-siparisleri.create',
     );
     expect(service.getOperationCode('desteklenmeyen-sayfa')).toBeNull();
+  });
+
+  it('uses the common read-only recheck endpoint with the mapped operation code', () => {
+    service.recheck('firma-mal-kabulleri', 'request-1');
+
+    expect(mobileSync.recheckSafeWrite).toHaveBeenCalledWith(
+      'request-1',
+      'mal-kabul-islemleri.firma-mal-kabulleri.create',
+    );
+    expect(service.recheck('desteklenmeyen-sayfa', 'request-2')).toBeNull();
   });
 
   it('replays the exact stored request through the matching create endpoints', () => {

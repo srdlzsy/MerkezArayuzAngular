@@ -48,16 +48,24 @@ export function getSafeWriteStatusPresentation(
   }
 
   if (item.status === 'Processing') {
-    return item.ageSeconds > 300
+    return item.ageSeconds > 720
       ? { label: 'Uzlastirma Bekliyor', tone: 'warn', retryLabel: 'Durumu kontrol et' }
       : { label: 'Isleniyor', tone: 'info', retryLabel: 'Bekle' };
   }
 
   if (item.status === 'Failed' && item.retryable === true) {
+    if (item.errorCode === 'SAFE_WRITE_RETRY_ALLOWED') {
+      return {
+        label: 'Yeniden Gonderime Hazir',
+        tone: 'warn',
+        retryLabel: 'Ayni kimlikle'
+      };
+    }
+
     return {
-      label: 'Guvenli Tekrar Kontrol Edilebilir',
+      label: 'Sonuc Kontrol Edilebilir',
       tone: 'warn',
-      retryLabel: 'Ayni kimlikle'
+      retryLabel: 'Durumu kontrol et'
     };
   }
 
@@ -74,6 +82,14 @@ export function getSafeWriteStatusPresentation(
       label: 'Siniflandirilmamis / Eski Hata',
       tone: 'neutral',
       retryLabel: 'Otomatik tekrar yok'
+    };
+  }
+
+  if (item.status === 'Cancelled') {
+    return {
+      label: 'Yetkili Tarafindan Iptal Edildi',
+      tone: 'neutral',
+      retryLabel: 'Yerel kaydi temizle'
     };
   }
 
