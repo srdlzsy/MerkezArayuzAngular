@@ -13,6 +13,7 @@ import { StokVirmanCikisFisleriCreateComponent } from '../inventory/stok-virman-
 import { VerilenDepoSiparisleriCreateComponent } from '../orders/verilen-depo-siparisleri/create/verilen-depo-siparisleri-create.component';
 import { FirmaMalKabulleriCreateComponent } from '../receiving/firma-mal-kabulleri/create/firma-mal-kabulleri-create.component';
 import { DepoIadeleriCreateComponent } from '../returns/depo-iadeleri/create/depo-iadeleri-create.component';
+import { FirmaIadeleriCreateComponent } from '../returns/firma-iadeleri/create/firma-iadeleri-create.component';
 import { GidenFirmaSevkleriCreateComponent } from '../shipment/giden-firma-sevkleri/create/giden-firma-sevkleri-create.component';
 
 interface RequestBuilder<TRequest> {
@@ -125,7 +126,7 @@ describe('critical create component behavior', () => {
             {
               stokKodu: ' 016445 ',
               siparisMiktari: 3,
-              birimKatsayisi: null,
+              birimKatsayisi: 6,
               aciklama: ' Sade soda '
             }
           ]
@@ -142,6 +143,38 @@ describe('critical create component behavior', () => {
     expect(request.documentNo?.length).toBe(25);
     expect(request.lines[0]).toEqual(
       jasmine.objectContaining({ stockCode: '016445', quantity: 3, unitPointer: 1 })
+    );
+  });
+
+  it('keeps company return package multiplier separate from unit pointer', () => {
+    const subject = createSubject(FirmaIadeleriCreateComponent, {
+      form: {
+        getRawValue: () => ({
+          muhatapFirmaCariKod: ' C001 ',
+          movementDate: '2026-10-20',
+          documentDate: '2026-10-20',
+          documentNo: '',
+          description: 'Iade',
+          deliverer: 'Teslim Eden',
+          muhatapAdSoyad: 'Teslim Alan',
+          kalemler: [
+            {
+              stokKodu: ' 015681 ',
+              siparisMiktari: 18,
+              birimKatsayisi: 3,
+              aciklama: ''
+            }
+          ]
+        })
+      },
+      safeCreateRetry,
+      resolveRequestWarehouseNo: () => 51
+    });
+
+    const request = buildRequest<IFurpaCreateCompanyShipmentRequestApiDto>(subject);
+
+    expect(request.lines[0]).toEqual(
+      jasmine.objectContaining({ stockCode: '015681', quantity: 18, unitPointer: 1 })
     );
   });
 

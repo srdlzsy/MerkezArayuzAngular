@@ -447,7 +447,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
       stockCode: kalem.stokKodu.trim(),
       quantity: Number(kalem.siparisMiktari ?? 0),
       unitPrice: 0,
-      unitPointer: kalem.birimKatsayisi ?? 1,
+      unitPointer: 1,
       description: trimToMaxLength(kalem.aciklama, 50),
       partyCode: '',
       lotNo: 0,

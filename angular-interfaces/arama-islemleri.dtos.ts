@@ -41,6 +41,7 @@ export interface ProductLookupItemDto {
   isDelisted?: boolean;
   delistReason?: string | null;
   unitName: string;
+  unitPointer?: number;
   unitMultiplier: number;
   matchedUnitMultiplier: number;
   secondaryUnitName: string;
