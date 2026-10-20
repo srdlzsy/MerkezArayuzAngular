@@ -37,4 +37,16 @@ describe('buildWarehouseOrderPrintLayout', () => {
     expect(layout.columns.map((column) => column.startIndex)).toEqual([0]);
     expect(layout.columns.map((column) => column.items.length)).toEqual([43]);
   });
+
+  it('keeps common order sizes readable before using denser layouts', () => {
+    const createItems = (count: number) =>
+      Array.from({ length: count }, (_, index) => createItem(`Urun ${index + 1}`));
+
+    expect(buildWarehouseOrderPrintLayout(createItems(36)).density).toBe('comfortable');
+    expect(buildWarehouseOrderPrintLayout(createItems(37)).density).toBe('compact');
+    expect(buildWarehouseOrderPrintLayout(createItems(52)).density).toBe('compact');
+    expect(buildWarehouseOrderPrintLayout(createItems(53)).density).toBe('dense');
+    expect(buildWarehouseOrderPrintLayout(createItems(68)).density).toBe('dense');
+    expect(buildWarehouseOrderPrintLayout(createItems(69)).density).toBe('ultra');
+  });
 });

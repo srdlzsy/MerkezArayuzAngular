@@ -149,7 +149,10 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
       document.body.appendChild(probe);
       const availableHeight = probe.getBoundingClientRect().height;
       probe.remove();
-      const contentHeight = sheet.scrollHeight;
+      const sheetStyles = window.getComputedStyle(sheet);
+      const previewPadding =
+        parseFloat(sheetStyles.paddingTop || '0') + parseFloat(sheetStyles.paddingBottom || '0');
+      const contentHeight = Math.max(0, sheet.scrollHeight - previewPadding);
       if (contentHeight > availableHeight) {
         sheet.style.zoom = String(availableHeight / contentHeight);
       }
@@ -275,9 +278,9 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
       h1 {
         width: 125mm;
-        margin: 0 0 6px;
+        margin: 0 0 8px;
         text-align: left;
-        font-size: 17px;
+        font-size: 20px;
         line-height: 1.2;
         font-weight: 700;
       }
@@ -287,9 +290,9 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
         grid-template-columns: 1fr 1fr;
         width: 125mm;
         gap: 1px 8mm;
-        margin: 0 0 7px;
-        font-size: 9.5px;
-        line-height: 1.25;
+        margin: 0 0 9px;
+        font-size: 11px;
+        line-height: 1.3;
       }
 
       .meta p {
@@ -321,19 +324,19 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
       th,
       td {
-        padding: 2.5px 3px 2.5px 0;
+        padding: 3.2px 3px 3.2px 0;
         border: 0;
         border-bottom: 1px solid #d1d5db;
         vertical-align: middle;
         text-align: left;
-        font-size: 10px;
-        line-height: 1.15;
+        font-size: 13px;
+        line-height: 1.18;
       }
 
       th {
         padding-top: 0;
         border-bottom: 1.5px solid #111;
-        font-size: 9px;
+        font-size: 11px;
         font-weight: 700;
       }
 
@@ -353,25 +356,25 @@ export class AlinanDepoSiparisleriDetailComponent extends SiparisTaskDetailBase<
 
       .density-compact th,
       .density-compact td {
-        padding-top: 1.7px;
-        padding-bottom: 1.7px;
-        font-size: 8.5px;
+        padding-top: 2.4px;
+        padding-bottom: 2.4px;
+        font-size: 11.5px;
       }
 
       .density-dense th,
       .density-dense td {
-        padding-top: 1px;
-        padding-bottom: 1px;
-        font-size: 7.5px;
-        line-height: 1.08;
+        padding-top: 1.6px;
+        padding-bottom: 1.6px;
+        font-size: 10px;
+        line-height: 1.1;
       }
 
       .density-ultra th,
       .density-ultra td {
-        padding-top: 0.5px;
-        padding-bottom: 0.5px;
-        font-size: 6.5px;
-        line-height: 1;
+        padding-top: 1px;
+        padding-bottom: 1px;
+        font-size: 8.5px;
+        line-height: 1.05;
       }
 
       .empty {

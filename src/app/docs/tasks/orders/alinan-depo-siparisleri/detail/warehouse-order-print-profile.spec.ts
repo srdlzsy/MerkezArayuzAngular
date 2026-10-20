@@ -25,6 +25,19 @@ describe('resolveWarehouseOrderPrintProfile', () => {
     expect(profile?.title).toBe('Et-Sarkuteri Siparis Formu');
   });
 
+  it('selects the Unlu Uretim print form for warehouse 62', () => {
+    const profile = resolveWarehouseOrderPrintProfile(
+      createHeader({ outWarehouseNo: 62, inWarehouseNo: 120 })
+    );
+
+    expect(profile).toEqual({
+      warehouseNo: 62,
+      title: 'Unlu Uretim Siparis Formu',
+      buttonLabel: 'Unlu Uretim Siparis Formu',
+      fallbackWarehouseName: 'UNLU URETIM - ALEMDAR'
+    });
+  });
+
   it('does not offer a special print form for other warehouses', () => {
     const profile = resolveWarehouseOrderPrintProfile(
       createHeader({ outWarehouseNo: 50, inWarehouseNo: 120 })

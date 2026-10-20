@@ -35,11 +35,11 @@ export function buildWarehouseOrderPrintLayout(
   });
   const rowCount = Math.max(1, sortedItems.length);
   const density: WarehouseOrderPrintDensity =
-    rowCount <= 28
+    rowCount <= 36
       ? 'comfortable'
-      : rowCount <= 40
+      : rowCount <= 52
         ? 'compact'
-        : rowCount <= 54
+        : rowCount <= 68
           ? 'dense'
           : 'ultra';
   const columns: readonly WarehouseOrderPrintColumn[] = [

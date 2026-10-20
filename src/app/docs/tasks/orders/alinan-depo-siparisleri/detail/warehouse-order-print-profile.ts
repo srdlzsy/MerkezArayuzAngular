@@ -19,6 +19,12 @@ const WAREHOUSE_ORDER_PRINT_PROFILES: readonly WarehouseOrderPrintProfile[] = [
     title: 'Et-Sarkuteri Siparis Formu',
     buttonLabel: 'Et-Sarkuteri Siparis Formu',
     fallbackWarehouseName: 'ET-SARKUTERI DEPO'
+  },
+  {
+    warehouseNo: 62,
+    title: 'Unlu Uretim Siparis Formu',
+    buttonLabel: 'Unlu Uretim Siparis Formu',
+    fallbackWarehouseName: 'UNLU URETIM - ALEMDAR'
   }
 ];
 
