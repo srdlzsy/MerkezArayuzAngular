@@ -117,6 +117,12 @@ export interface CashierPasswordMutationDto {
   cashier: CashierDto;
 }
 
+export interface CashierPasswordDto {
+  cashierCode: number;
+  cashierName: string;
+  password: string;
+}
+
 export interface DespatchDriverDto {
   id: string;
   firstName: string;

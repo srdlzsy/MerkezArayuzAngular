@@ -173,6 +173,16 @@
                 <td>
                   <button
                     type="button"
+                    class="task-action task-action-secondary"
+                    (click)="editTerminal(terminal)"
+                    [disabled]="!canUpdate() || isLoading('terminal-save') || isLoading('delete')"
+                    title="Terminal satirini duzenle"
+                  >
+                    <i class="fa-solid fa-pen"></i>
+                    Duzenle
+                  </button>
+                  <button
+                    type="button"
                     class="task-action task-action-danger"
                     (click)="deleteTerminal(terminal)"
                     [disabled]="!canUpdate() || isLoading('delete')"
@@ -196,11 +206,21 @@
         <div class="panel-head">
           <div class="panel-head-text">
             <span class="panel-kicker">Yeni Kasa</span>
-            <h3>Kasa ve POS Terminali</h3>
+            <h3>{{ selectedCashRegistry() ? 'Secili Kasa' : 'Kasa ve POS Terminali' }}</h3>
           </div>
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="newCashRegister()"
+            [disabled]="!canCreate() || isLoading('create') || isLoading('terminal-save')"
+          >
+            <i class="fa-solid fa-plus"></i>
+            Yeni Kasa
+          </button>
         </div>
 
         <form
+          *ngIf="!selectedCashRegistry()"
           class="form-panel form-grid"
           [formGroup]="cashRegisterForm"
           (ngSubmit)="createCashRegister()"
@@ -238,10 +258,17 @@
           </button>
         </form>
 
-        <form class="form-panel form-grid two-col" [formGroup]="terminalDraftForm" (ngSubmit)="addTerminalDraft()" novalidate>
+        <div class="panel-head">
+          <div class="panel-head-text">
+            <span class="panel-kicker">POS Terminali</span>
+            <h3>{{ editingTerminal() ? 'Terminal Satirini Guncelle' : (selectedCashRegistry() ? 'Secili Kasaya Terminal Ekle' : 'Yeni Kasa Terminali') }}</h3>
+          </div>
+        </div>
+
+        <form class="form-panel form-grid two-col" [formGroup]="terminalDraftForm" (ngSubmit)="saveTerminal()" novalidate>
           <label class="field">
             <span>Terminal No</span>
-            <input type="text" maxlength="64" formControlName="terminalNo" />
+            <input type="text" maxlength="40" formControlName="terminalNo" />
           </label>
 
           <label class="field">
@@ -259,17 +286,32 @@
 
           <label class="field">
             <span>Terminal ID</span>
-            <input type="text" maxlength="80" formControlName="terminalId" />
+            <input type="text" maxlength="40" formControlName="terminalId" />
           </label>
 
           <label class="field">
             <span>Merchant No</span>
-            <input type="text" maxlength="80" formControlName="merchantNo" />
+            <input type="text" maxlength="40" formControlName="merchantNo" />
           </label>
 
-          <button type="submit" class="task-action task-action-secondary full-field">
-            <i class="fa-solid fa-plus"></i>
-            Terminal Ekle
+          <button
+            type="submit"
+            class="task-action task-action-secondary"
+            [disabled]="isLoading('terminal-save') || (selectedCashRegistry() ? (editingTerminal() ? !canUpdate() : !canCreate()) : !canCreate())"
+          >
+            <i class="fa-solid" [class.fa-floppy-disk]="editingTerminal()" [class.fa-plus]="!editingTerminal()"></i>
+            {{ isLoading('terminal-save') ? 'Kaydediliyor' : (editingTerminal() ? 'Guncelle' : 'Terminal Ekle') }}
+          </button>
+
+          <button
+            *ngIf="editingTerminal()"
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="cancelTerminalEdit()"
+            [disabled]="isLoading('terminal-save')"
+          >
+            <i class="fa-solid fa-xmark"></i>
+            Vazgec
           </button>
         </form>
 

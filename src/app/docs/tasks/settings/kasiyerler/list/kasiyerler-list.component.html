@@ -37,7 +37,7 @@
           <i class="fa-solid fa-rotate"></i>
           {{ isLoading('load') ? 'Yukleniyor' : 'Yenile' }}
         </button>
-        <button type="button" class="task-action task-action-secondary" (click)="newCashier()">
+        <button type="button" class="task-action task-action-secondary" (click)="newCashier()" [disabled]="!canCreate()">
           <i class="fa-solid fa-plus"></i>
           Yeni
         </button>
@@ -152,10 +152,21 @@
             <i class="fa-solid fa-key"></i>
             {{ isLoading('password') ? 'Sifirlaniyor' : 'Sifre Sifirla' }}
           </button>
+
+          <button
+            *ngIf="canViewPassword()"
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="showPassword()"
+            [disabled]="!selectedCashier() || isLoading('view-password')"
+          >
+            <i class="fa-solid fa-eye"></i>
+            {{ isLoading('view-password') ? 'Getiriliyor' : 'Sifreyi Goster' }}
+          </button>
         </form>
 
-        <article class="state-card state-card-success" *ngIf="generatedPassword() as password">
-          <h3>Tek seferlik sifre</h3>
+        <article class="state-card state-card-success" *ngIf="visiblePassword() as password">
+          <h3>Kasiyer sifresi</h3>
           <p><span class="password-chip">{{ password }}</span></p>
         </article>
 

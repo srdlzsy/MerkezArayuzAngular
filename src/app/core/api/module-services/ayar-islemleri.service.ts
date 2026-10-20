@@ -13,6 +13,7 @@ import type {
   BranchDetailDto,
   BranchSettingsLookupsDto,
   CashierDto,
+  CashierPasswordDto,
   CashierPasswordMutationDto,
   CashRegisterMessageStatusDto,
   CashRegisterResponse,
@@ -22,6 +23,7 @@ import type {
   CreateBranchSettingsHttpRequest,
   CreateCashierHttpRequest,
   CreateCashRegisterHttpRequest,
+  CreateCashRegisterTerminalHttpRequest,
   CreateDeviceHttpRequest,
   DeviceDto,
   DeviceStatusDto,
@@ -287,6 +289,29 @@ export class AyarIslemleriService extends BaseApiService {
     );
   }
 
+  createCashRegisterTerminal(
+    branchNo: number,
+    cashNo: number,
+    request: CreateCashRegisterTerminalHttpRequest
+  ): Observable<CashRegisterTerminalDto> {
+    return this.post<CashRegisterTerminalDto, CreateCashRegisterTerminalHttpRequest>(
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller`,
+      request
+    );
+  }
+
+  updateCashRegisterTerminal(
+    branchNo: number,
+    cashNo: number,
+    terminalId: number,
+    request: CreateCashRegisterTerminalHttpRequest
+  ): Observable<CashRegisterTerminalDto> {
+    return this.put<CashRegisterTerminalDto, CreateCashRegisterTerminalHttpRequest>(
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller/${terminalId}`,
+      request
+    );
+  }
+
   deleteBranchCashRegister(branchNo: number, cashNo: number): Observable<void> {
     return this.delete<void>(
       `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}`
@@ -301,6 +326,12 @@ export class AyarIslemleriService extends BaseApiService {
 
   getCashiers(): Observable<CashierDto[]> {
     return this.get<CashierDto[]>('ayar-islemleri/kasiyerler');
+  }
+
+  getCashierPassword(cashierCode: number): Observable<CashierPasswordDto> {
+    return this.get<CashierPasswordDto>(
+      `ayar-islemleri/kasiyerler/${cashierCode}/sifre`
+    );
   }
 
   createCashier(request: CreateCashierHttpRequest): Observable<CashierPasswordMutationDto> {

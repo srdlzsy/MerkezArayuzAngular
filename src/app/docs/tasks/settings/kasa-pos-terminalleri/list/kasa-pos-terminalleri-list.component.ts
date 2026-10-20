@@ -10,6 +10,7 @@ import type {
   CashRegisterTerminalDto,
   CashRegistryDto,
   CreateCashRegisterHttpRequest,
+  CreateCashRegisterTerminalHttpRequest,
   SettingsTypeOptionDto,
   TerminalBankOptionDto
 } from '@interfaces';
@@ -41,7 +42,7 @@ const DEFAULT_CASH_REGISTER_LOOKUPS: CashRegisterSettingsLookupsDto = {
   terminalBanks: []
 };
 
-type PosAction = 'cash' | 'terminals' | 'messages' | 'create' | 'delete';
+type PosAction = 'cash' | 'terminals' | 'messages' | 'create' | 'terminal-save' | 'delete';
 
 @Component({
   selector: 'app-kasa-pos-terminalleri-list',
@@ -68,19 +69,19 @@ export class KasaPosTerminalleriListComponent {
   protected readonly terminalDraftForm = new FormGroup({
     terminalNo: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(64)]
+      validators: [Validators.required, Validators.maxLength(40)]
     }),
     bank: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(80)]
+      validators: [Validators.required, Validators.maxLength(100)]
     }),
     terminalId: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.maxLength(80)]
+      validators: [Validators.required, Validators.maxLength(40)]
     }),
     merchantNo: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.maxLength(80)]
+      validators: [Validators.required, Validators.maxLength(40)]
     })
   });
 
@@ -97,6 +98,7 @@ export class KasaPosTerminalleriListComponent {
     DEFAULT_CASH_REGISTER_LOOKUPS
   );
   protected readonly selectedCashRegistry = signal<CashRegistryDto | null>(null);
+  protected readonly editingTerminal = signal<CashRegisterTerminalDto | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly loadingAction = signal<PosAction | null>(null);
   protected readonly lookupsLoading = signal(false);
@@ -306,7 +308,23 @@ export class KasaPosTerminalleriListComponent {
       cashNo: cashRegistry.cashNo,
       cashType: cashRegistry.cashType
     });
+    this.cancelTerminalEdit();
     this.loadTerminals();
+  }
+
+  protected newCashRegister(): void {
+    const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
+    this.selectedCashRegistry.set(null);
+    this.editingTerminal.set(null);
+    this.terminals.set([]);
+    this.terminalDrafts.set([]);
+    this.scopeForm.patchValue({ cashNo: null });
+    this.cashRegisterForm.reset({
+      branchNo,
+      cashNo: null,
+      cashType: this.cashTypeOptions()[0]?.value ?? 0
+    });
+    this.resetTerminalForm();
   }
 
   protected addTerminalDraft(): void {
@@ -318,11 +336,20 @@ export class KasaPosTerminalleriListComponent {
     const formValue = this.terminalDraftForm.getRawValue();
     const terminalNo = getOptionalText(formValue.terminalNo);
 
-    if (this.terminalDrafts().some((draft) => draft.terminalNo === terminalNo)) {
+    const bank = getOptionalText(formValue.bank);
+    const terminalId = getOptionalText(formValue.terminalId);
+    const merchantNo = getOptionalText(formValue.merchantNo);
+
+    if (this.terminalDrafts().some((draft) =>
+      draft.terminalNo === terminalNo &&
+      draft.bank === bank &&
+      draft.terminalId === terminalId &&
+      draft.merchantNo === merchantNo
+    )) {
       this.feedback.set({
         tone: 'error',
         title: 'Terminal tekrari',
-        message: `${terminalNo} terminali zaten eklendi.`
+        message: `${terminalNo} icin ayni banka terminal satiri zaten eklendi.`
       });
       return;
     }
@@ -332,17 +359,94 @@ export class KasaPosTerminalleriListComponent {
       {
         id: `${terminalNo}-${Date.now()}`,
         terminalNo,
-        bank: getOptionalText(formValue.bank),
-        terminalId: getOptionalText(formValue.terminalId),
-        merchantNo: getOptionalText(formValue.merchantNo)
+        bank,
+        terminalId,
+        merchantNo
       }
     ]);
+    this.resetTerminalForm();
+  }
+
+  protected saveTerminal(): void {
+    const selectedCash = this.selectedCashRegistry();
+
+    if (!selectedCash) {
+      this.addTerminalDraft();
+      return;
+    }
+
+    const editing = this.editingTerminal();
+    if ((editing && !this.canUpdate()) || (!editing && !this.canCreate())) {
+      return;
+    }
+
+    if (this.terminalDraftForm.invalid) {
+      this.terminalDraftForm.markAllAsTouched();
+      return;
+    }
+
+    const request = this.buildTerminalRequest();
+    const request$ = editing
+      ? this.ayarIslemleriService.updateCashRegisterTerminal(
+          selectedCash.branchNo,
+          selectedCash.cashNo,
+          editing.id,
+          request
+        )
+      : this.ayarIslemleriService.createCashRegisterTerminal(
+          selectedCash.branchNo,
+          selectedCash.cashNo,
+          request
+        );
+
+    this.loadingAction.set('terminal-save');
+    this.feedback.set(null);
+
+    request$
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingAction.set(null))
+      )
+      .subscribe({
+        next: (terminal: CashRegisterTerminalDto) => {
+          this.terminals.update((rows) => this.sortTerminals([
+            ...rows.filter((row) => row.id !== terminal.id),
+            terminal
+          ]));
+          this.cancelTerminalEdit();
+          this.feedback.set({
+            tone: 'success',
+            title: editing ? 'Terminal guncellendi' : 'Terminal eklendi',
+            message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} kaydedildi.`
+          });
+        },
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: editing ? 'Terminal guncellenemedi' : 'Terminal eklenemedi',
+            message: getErrorMessage(error, 'Terminal kaydi tamamlanamadi.')
+          });
+        }
+      });
+  }
+
+  protected editTerminal(terminal: CashRegisterTerminalDto): void {
+    if (!this.canUpdate()) {
+      return;
+    }
+
+    this.editingTerminal.set(terminal);
     this.terminalDraftForm.reset({
-      terminalNo: '',
-      bank: this.getDefaultTerminalBankName(),
-      terminalId: '',
-      merchantNo: ''
+      terminalNo: terminal.terminalNo,
+      bank: terminal.bank,
+      terminalId: terminal.terminalId,
+      merchantNo: terminal.merchantNo
     });
+  }
+
+  protected cancelTerminalEdit(): void {
+    this.editingTerminal.set(null);
+    this.resetTerminalForm();
   }
 
   protected removeTerminalDraft(draft: TerminalDraft): void {
@@ -416,6 +520,16 @@ export class KasaPosTerminalleriListComponent {
             ])
           );
           this.terminals.set(this.sortTerminals(response.terminals ?? []));
+          const selectedCash: CashRegistryDto = {
+            detailId: response.cashNo,
+            branchNo: response.branchNo,
+            cashNo: response.cashNo,
+            cashType: response.cashType,
+            cashTypeName: response.cashTypeName,
+            cashTypeDescription: response.cashTypeDescription,
+            cashFinanceNumber: response.terminals?.[0]?.terminalNo ?? ''
+          };
+          this.selectedCashRegistry.set(selectedCash);
           this.feedback.set({
             tone: 'success',
             title: 'Kasa olusturuldu',
@@ -496,7 +610,7 @@ export class KasaPosTerminalleriListComponent {
 
     const confirmed = await this.confirmDialog.confirm({
       title: 'Terminal kaydi silinsin mi?',
-      message: `${terminal.terminalNo} terminal kaydi silinecek.`,
+      message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} / ${terminal.terminalId} satiri silinecek.`,
       confirmText: 'Sil',
       tone: 'danger'
     });
@@ -521,10 +635,13 @@ export class KasaPosTerminalleriListComponent {
       .subscribe({
         next: () => {
           this.terminals.update((rows) => rows.filter((row) => row.id !== terminal.id));
+          if (this.editingTerminal()?.id === terminal.id) {
+            this.cancelTerminalEdit();
+          }
           this.feedback.set({
             tone: 'success',
             title: 'Terminal silindi',
-            message: `${terminal.terminalNo} terminali kaldirildi.`
+            message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} satiri kaldirildi.`
           });
         },
         error: (error: unknown) => {
@@ -630,13 +747,35 @@ export class KasaPosTerminalleriListComponent {
     };
   }
 
+  private buildTerminalRequest(): CreateCashRegisterTerminalHttpRequest {
+    const value = this.terminalDraftForm.getRawValue();
+    return {
+      terminalNo: getOptionalText(value.terminalNo),
+      bank: getOptionalText(value.bank),
+      terminalId: getOptionalText(value.terminalId),
+      merchantNo: getOptionalText(value.merchantNo)
+    };
+  }
+
+  private resetTerminalForm(): void {
+    this.terminalDraftForm.reset({
+      terminalNo: '',
+      bank: this.getDefaultTerminalBankName(),
+      terminalId: '',
+      merchantNo: ''
+    });
+  }
+
   private sortCashRegistries(rows: CashRegistryDto[]): CashRegistryDto[] {
     return [...rows].sort((left, right) => left.cashNo - right.cashNo);
   }
 
   private sortTerminals(rows: CashRegisterTerminalDto[]): CashRegisterTerminalDto[] {
-    return [...rows].sort((left, right) =>
-      left.terminalNo.localeCompare(right.terminalNo, 'tr')
+    return [...rows].sort(
+      (left, right) =>
+        left.terminalNo.localeCompare(right.terminalNo, 'tr') ||
+        left.bank.localeCompare(right.bank, 'tr') ||
+        left.terminalId.localeCompare(right.terminalId, 'tr')
     );
   }
 

@@ -3,7 +3,7 @@ import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
-import type { CashierDto, CashierPasswordMutationDto } from '@interfaces';
+import type { CashierDto, CashierPasswordDto, CashierPasswordMutationDto } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
@@ -17,7 +17,7 @@ import {
   hasSettingsPermission
 } from '../../settings-task.helpers';
 
-type CashierAction = 'load' | 'save' | 'password';
+type CashierAction = 'load' | 'save' | 'password' | 'view-password';
 
 @Component({
   selector: 'app-kasiyerler-list',
@@ -50,7 +50,7 @@ export class KasiyerlerListComponent {
 
   protected readonly cashiers = signal<CashierDto[]>([]);
   protected readonly selectedCashier = signal<CashierDto | null>(null);
-  protected readonly generatedPassword = signal<string | null>(null);
+  protected readonly visiblePassword = signal<string | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly loadingAction = signal<CashierAction | null>(null);
   private readonly filterVersion = signal(0);
@@ -60,6 +60,9 @@ export class KasiyerlerListComponent {
   );
   protected readonly canUpdate = computed(() =>
     hasSettingsPermission(this.authService, 'kasiyerler', 'ayar-islemleri.kasiyerler.update')
+  );
+  protected readonly canViewPassword = computed(() =>
+    hasSettingsPermission(this.authService, 'kasiyerler', 'ayar-islemleri.kasiyerler.detail')
   );
   protected readonly filteredCashiers = computed(() => {
     this.filterVersion();
@@ -132,7 +135,7 @@ export class KasiyerlerListComponent {
 
   protected selectCashier(cashier: CashierDto): void {
     this.selectedCashier.set(cashier);
-    this.generatedPassword.set(null);
+    this.visiblePassword.set(null);
     this.cashierForm.reset({
       cashierName: cashier.cashierName,
       cashierAuthorization: cashier.cashierAuthorization,
@@ -142,7 +145,7 @@ export class KasiyerlerListComponent {
 
   protected newCashier(): void {
     this.selectedCashier.set(null);
-    this.generatedPassword.set(null);
+    this.visiblePassword.set(null);
     this.cashierForm.reset({
       cashierName: '',
       cashierAuthorization: 'A',
@@ -173,7 +176,7 @@ export class KasiyerlerListComponent {
 
     this.loadingAction.set('save');
     this.feedback.set(null);
-    this.generatedPassword.set(null);
+    this.visiblePassword.set(null);
 
     const formValue = this.cashierForm.getRawValue();
 
@@ -212,7 +215,7 @@ export class KasiyerlerListComponent {
       )
       .subscribe({
         next: (mutation: CashierPasswordMutationDto) => {
-          this.generatedPassword.set(mutation.generatedPassword);
+          this.visiblePassword.set(mutation.generatedPassword);
           this.applyUpdatedCashier(mutation.cashier, 'Kasiyer olusturuldu');
         },
         error: (error: unknown) => {
@@ -245,7 +248,7 @@ export class KasiyerlerListComponent {
 
     this.loadingAction.set('password');
     this.feedback.set(null);
-    this.generatedPassword.set(null);
+    this.visiblePassword.set(null);
 
     this.ayarIslemleriService
       .resetCashierPassword(selected.cashierCode)
@@ -255,7 +258,7 @@ export class KasiyerlerListComponent {
       )
       .subscribe({
         next: (mutation: CashierPasswordMutationDto) => {
-          this.generatedPassword.set(mutation.generatedPassword);
+          this.visiblePassword.set(mutation.generatedPassword);
           this.applyUpdatedCashier(mutation.cashier, 'Sifre sifirlandi');
         },
         error: (error: unknown) => {
@@ -263,6 +266,37 @@ export class KasiyerlerListComponent {
             tone: 'error',
             title: 'Sifre sifirlanamadi',
             message: getErrorMessage(error, 'Sifre sifirlama istegi basarisiz oldu.')
+          });
+        }
+      });
+  }
+
+  protected showPassword(): void {
+    const selected = this.selectedCashier();
+
+    if (!selected || !this.canViewPassword()) {
+      return;
+    }
+
+    this.loadingAction.set('view-password');
+    this.feedback.set(null);
+    this.visiblePassword.set(null);
+
+    this.ayarIslemleriService
+      .getCashierPassword(selected.cashierCode)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingAction.set(null))
+      )
+      .subscribe({
+        next: (password: CashierPasswordDto) => {
+          this.visiblePassword.set(password.password);
+        },
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Sifre alinamadi',
+            message: getErrorMessage(error, 'Kasiyer sifresi alinamadi.')
           });
         }
       });

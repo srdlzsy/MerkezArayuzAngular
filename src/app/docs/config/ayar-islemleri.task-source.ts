@@ -140,7 +140,8 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       highlights: [
         'Kasa tipi ve terminal banka secimi /kasa-pos-terminalleri/secenekler lookup endpointinden gelir',
         'branchNo + cashNo duplicate ise backend 409 doner',
-        'Terminal silme islemi sube ve terminalNo ile branch scoped calisir',
+        'Terminal satirlari secili kasa altinda id ile eklenir, guncellenir ve silinir',
+        'Ayni terminal numarasi farkli banka satirlarinda tekrar kullanilabilir',
         'Mesaj durumlari POSKON MESAJ.xxx dosyalarindan stateName metniyle hesaplanir'
       ],
       listTitle: 'Endpointler',
@@ -169,6 +170,18 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
               path: '/api/ayar-islemleri/kasa-pos-terminalleri',
               description: 'Yeni kasa ve terminal tanimi olusturur',
               payload: 'CreateCashRegisterHttpRequest'
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminaller',
+              description: 'Mevcut kasaya terminal banka satiri ekler',
+              payload: 'CreateCashRegisterTerminalHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminaller/{terminalId}',
+              description: 'Secili terminal banka satirini gunceller',
+              payload: 'CreateCashRegisterTerminalHttpRequest'
             },
             {
               method: 'DELETE',
@@ -208,11 +221,12 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       id: 'kasiyerler',
       title: 'Kasiyerler',
       subtitle:
-        'Kasiyer tanimlarini sifresiz listeler, kasiyer olusturur, gunceller ve sifre sifirlar.',
+        'Kasiyer tanimlarini listeler; yetkili kullanici sifreyi gorur, sifirlar ve kaydi gunceller.',
       baseRouteOrFile: '/api/ayar-islemleri/kasiyerler',
       highlights: [
         'Liste endpointi kasiyer sifresi dondurmez',
-        'Olusturma ve sifre sifirlama uretilen sifreyi tek seferlik dondurur',
+        'Sifre yalniz detail yetkisiyle secili kasiyer icin ayri endpointten okunur',
+        'Olusturma ve sifre sifirlama uretilen sifreyi response icinde dondurur',
         'Update akisi kasiyer sifresini degistirmez'
       ],
       listTitle: 'Endpointler',
@@ -225,6 +239,11 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
               method: 'GET',
               path: '/api/ayar-islemleri/kasiyerler',
               description: 'Kasiyerleri sifresiz listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/kasiyerler/{cashierCode}/sifre',
+              description: 'Detail yetkisiyle secili kasiyerin sifresini getirir'
             },
             {
               method: 'POST',
