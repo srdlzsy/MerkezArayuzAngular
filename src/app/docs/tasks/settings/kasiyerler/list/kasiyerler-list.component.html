@@ -118,12 +118,12 @@
         <form class="form-panel form-grid two-col" [formGroup]="cashierForm" (ngSubmit)="saveCashier()" novalidate>
           <label class="field full-field">
             <span>Kasiyer Adi</span>
-            <input type="text" maxlength="120" formControlName="cashierName" />
+            <input type="text" maxlength="100" formControlName="cashierName" />
           </label>
 
           <label class="field">
             <span>Yetki</span>
-            <input type="text" maxlength="30" formControlName="cashierAuthorization" />
+            <input type="text" maxlength="1" formControlName="cashierAuthorization" />
           </label>
 
           <label class="field state-toggle">

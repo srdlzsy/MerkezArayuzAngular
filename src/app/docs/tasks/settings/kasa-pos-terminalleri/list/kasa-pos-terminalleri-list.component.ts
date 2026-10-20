@@ -509,7 +509,11 @@ export class KasaPosTerminalleriListComponent {
     this.feedback.set(null);
 
     this.ayarIslemleriService
-      .deleteBranchTerminal(branchNo, terminal.terminalNo)
+      .deleteBranchTerminal(
+        branchNo,
+        terminal.cashNo ?? toOptionalNumber(this.scopeForm.getRawValue().cashNo) ?? 0,
+        terminal.id
+      )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loadingAction.set(null))

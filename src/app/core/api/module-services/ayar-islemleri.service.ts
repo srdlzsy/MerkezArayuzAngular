@@ -293,9 +293,9 @@ export class AyarIslemleriService extends BaseApiService {
     );
   }
 
-  deleteBranchTerminal(branchNo: number, terminalNo: string): Observable<void> {
+  deleteBranchTerminal(branchNo: number, cashNo: number, terminalId: number): Observable<void> {
     return this.delete<void>(
-      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/terminaller/${encodeURIComponent(terminalNo)}`
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller/${terminalId}`
     );
   }
 

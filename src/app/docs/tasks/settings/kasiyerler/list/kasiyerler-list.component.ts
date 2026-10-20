@@ -34,11 +34,11 @@ export class KasiyerlerListComponent {
   protected readonly cashierForm = new FormGroup({
     cashierName: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(120)]
+      validators: [Validators.required, Validators.maxLength(100)]
     }),
     cashierAuthorization: new FormControl<string>('A', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(30)]
+      validators: [Validators.required, Validators.maxLength(1)]
     }),
     cashierState: new FormControl<boolean>(true, { nonNullable: true })
   });

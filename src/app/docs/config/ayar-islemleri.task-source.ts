@@ -177,8 +177,8 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             },
             {
               method: 'DELETE',
-              path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/terminaller/{terminalNo}',
-              description: 'Sube kapsaminda terminal tanimini siler'
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminaller/{terminalId}',
+              description: 'Secili kasa terminal satirini id ile siler'
             }
           ]
         }

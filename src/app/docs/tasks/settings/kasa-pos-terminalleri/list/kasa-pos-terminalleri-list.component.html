@@ -165,8 +165,7 @@
             <tbody>
               <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminal">
                 <td>
-                  <strong>{{ terminal.cashRegisterNo || terminal.terminalNo }}</strong>
-                  <span class="table-meta">{{ terminal.terminalNo }}</span>
+                  <strong>{{ terminal.terminalNo }}</strong>
                 </td>
                 <td>{{ getTerminalBankLabel(terminal.bank) }}</td>
                 <td>{{ terminal.terminalId || '-' }}</td>
