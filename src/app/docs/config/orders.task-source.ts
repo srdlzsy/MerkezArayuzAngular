@@ -169,6 +169,11 @@ export const ORDERS_TASK_SOURCE = {
               payload: 'WarehouseOrderBulkPrintHttpRequest'
             },
             {
+              method: 'GET',
+              path: '/api/siparis-islemleri/alinan-depo-siparisleri/unlu-uretim-raporu?Date=...&SourceWarehouseNo=...',
+              description: 'Unlu uretim toplu ve sube detayli baskilari icin rapor satirlarini getirir'
+            },
+            {
               method: 'POST',
               path: '/api/siparis-islemleri/alinan-depo-siparisleri',
               description: 'Create aksiyonu backend tarafinda scaffold olarak gorunur',

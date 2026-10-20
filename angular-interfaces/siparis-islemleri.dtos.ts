@@ -84,6 +84,25 @@ export interface WarehouseOrderBulkPrintHttpRequest {
   documentKeys: string[];
 }
 
+export interface BakeryProductionReportDto {
+  reportDate: string;
+  sourceWarehouseNo: number;
+  sourceWarehouseName: string;
+  items: BakeryProductionReportItemDto[];
+}
+
+export interface BakeryProductionReportItemDto {
+  branchNo: number;
+  branchName: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  productCode: string;
+  productName: string;
+  typeCode: string;
+  typeName: string;
+  quantity: number;
+}
+
 export interface CreateIssuedWarehouseOrderHttpRequest {
   clientRequestId?: string;
   forceCreateNew?: boolean;

@@ -63,6 +63,18 @@
         <button type="button" class="task-action task-action-primary query-submit" (click)="loadRows()" [disabled]="isLoading()">
           {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
         </button>
+
+        <button
+          type="button"
+          class="task-action task-action-secondary query-extra"
+          *ngFor="let action of getAdditionalQueryActions()"
+          [disabled]="isAdditionalQueryActionDisabled(action.key)"
+          [title]="action.title || action.label"
+          (click)="handleAdditionalQueryAction(action.key)"
+        >
+          <i *ngIf="action.iconClass" [class]="action.iconClass"></i>
+          <span>{{ action.label }}</span>
+        </button>
       </div>
     </article>
 

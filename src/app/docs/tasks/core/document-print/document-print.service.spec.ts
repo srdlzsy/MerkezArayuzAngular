@@ -106,4 +106,32 @@ describe('DocumentPrintService', () => {
     expect(popup.print).toHaveBeenCalledTimes(1);
     expect(popup.close).toHaveBeenCalledTimes(1);
   });
+
+  it('prints custom markup in a caller-provided window', () => {
+    const popup = {
+      document: {
+        open: jasmine.createSpy('open'),
+        write: jasmine.createSpy('write'),
+        close: jasmine.createSpy('documentClose')
+      },
+      focus: jasmine.createSpy('focus'),
+      print: jasmine.createSpy('print'),
+      close: jasmine.createSpy('windowClose'),
+      setTimeout: (callback: () => void) => {
+        callback();
+        return 1;
+      }
+    };
+    const openSpy = spyOn(window, 'open');
+
+    const result = service.printHtml({
+      markup: '<!doctype html><title>Unlu Uretim</title>',
+      targetWindow: popup as unknown as Window
+    });
+
+    expect(result).toBeTrue();
+    expect(openSpy).not.toHaveBeenCalled();
+    expect(popup.document.write).toHaveBeenCalledWith('<!doctype html><title>Unlu Uretim</title>');
+    expect(popup.print).toHaveBeenCalledTimes(1);
+  });
 });

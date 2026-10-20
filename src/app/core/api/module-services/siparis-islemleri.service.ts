@@ -2,6 +2,7 @@ import { Injectable } from '@angular/core';
 import { Observable, map } from 'rxjs';
 
 import type {
+  BakeryProductionReportDto,
   CompanyOrderDetailDto,
   CompanyOrderCustomerProductDto,
   CompanyOrderCustomerProductListHttpRequest,
@@ -91,6 +92,19 @@ export class SiparisIslemleriService extends BaseApiService {
 
   printReceivedWarehouseOrders(request: WarehouseOrderBulkPrintHttpRequest): Observable<Blob> {
     return this.postBlob('siparis-islemleri/alinan-depo-siparisleri/toplu-yazdir', request);
+  }
+
+  getBakeryProductionReport(
+    date: string,
+    sourceWarehouseNo?: number,
+  ): Observable<BakeryProductionReportDto> {
+    return this.getWithQuery<BakeryProductionReportDto>(
+      'siparis-islemleri/alinan-depo-siparisleri/unlu-uretim-raporu',
+      {
+        Date: date,
+        SourceWarehouseNo: sourceWarehouseNo,
+      },
+    );
   }
 
   getIssuedWarehouseOrderDetailByKey(documentKey: string): Observable<WarehouseOrderDetailDto> {

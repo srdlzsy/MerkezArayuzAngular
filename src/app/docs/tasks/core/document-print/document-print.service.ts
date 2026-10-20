@@ -40,6 +40,7 @@ export interface DocumentPrintRequest {
 
 export interface RawDocumentPrintRequest {
   markup: string;
+  targetWindow?: Window;
   windowFeatures?: string;
   printDelayMs?: number;
   closeAfterPrint?: boolean;
@@ -57,7 +58,7 @@ export class DocumentPrintService {
   }
 
   printHtml(request: RawDocumentPrintRequest): boolean {
-    const printWindow = window.open(
+    const printWindow = request.targetWindow ?? window.open(
       '',
       '_blank',
       request.windowFeatures ?? 'width=960,height=720'

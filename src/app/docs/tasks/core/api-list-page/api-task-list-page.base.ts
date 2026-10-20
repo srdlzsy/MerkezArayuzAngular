@@ -41,6 +41,13 @@ import {
   type ClientRequestPayload
 } from '../safe-create-retry.helpers';
 
+export interface ApiListQueryAction {
+  key: string;
+  label: string;
+  iconClass?: string;
+  title?: string;
+}
+
 @Directive()
 export abstract class ApiTaskListPageBase<
   Row extends object,
@@ -259,6 +266,16 @@ export abstract class ApiTaskListPageBase<
       ? `Bu islem icin ${permissionCode} yetkisi gerekiyor.`
       : 'Bu islemi yapmak icin yetki gerekiyor.';
   }
+
+  protected getAdditionalQueryActions(): readonly ApiListQueryAction[] {
+    return [];
+  }
+
+  protected isAdditionalQueryActionDisabled(_key: string): boolean {
+    return false;
+  }
+
+  protected handleAdditionalQueryAction(_key: string): void {}
 
   protected getAdditionalRowActions(): readonly ApiListTableRowAction<Row>[] {
     return [];

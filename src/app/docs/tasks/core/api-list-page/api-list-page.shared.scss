@@ -131,7 +131,8 @@
 .query-grid > .warehouse-field,
 .query-grid > .warehouse-scope-pill,
 .query-grid > .query-submit,
-.query-grid > .query-create {
+.query-grid > .query-create,
+.query-grid > .query-extra {
   flex: 0 0 auto;
 }
 
@@ -153,13 +154,18 @@
 }
 
 .query-grid > .query-create {
-  order: 5;
+  order: 6;
   margin-left: auto;
+}
+
+.query-grid > .query-extra {
+  order: 5;
+  min-height: 32px;
 }
 
 .query-help {
   flex: 1 1 100%;
-  order: 6;
+  order: 7;
   margin: -0.08rem 0 0;
   color: #64748b;
   font-size: 0.72rem;
@@ -333,6 +339,7 @@ pre {
 
   .query-create,
   .query-submit,
+  .query-extra,
   .warehouse-field,
   .warehouse-scope-pill {
     width: 100%;

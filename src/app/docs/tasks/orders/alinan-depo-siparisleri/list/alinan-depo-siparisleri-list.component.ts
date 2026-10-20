@@ -2,17 +2,32 @@ import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Component, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import type { IFurpaWarehouseOrderListItemApiDto } from '@interfaces';
+import type {
+  BakeryProductionReportDto,
+  IFurpaWarehouseOrderListItemApiDto
+} from '@interfaces';
 import { finalize } from 'rxjs';
 
 import { SiparisIslemleriService } from '../../../../../core/api/module-services/siparis-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { getCurrentWarehouseNo } from '../../../core/admin-warehouse.helpers';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { DEPOLAR_ARASI_SIPARIS_LIST_COLUMNS } from '../../../core/api-list-table/api-list-table-column-presets';
-import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
+import {
+  ApiListQueryAction,
+  ApiTaskListPageBase
+} from '../../../core/api-list-page/api-task-list-page.base';
+import { DocumentPrintService } from '../../../core/document-print/document-print.service';
 import { AlinanDepoSiparisleriCreateComponent } from '../create/alinan-depo-siparisleri-create.component';
 import { AlinanDepoSiparisleriDetailComponent } from '../detail/alinan-depo-siparisleri-detail.component';
+import {
+  BakeryProductionReportMode,
+  buildBakeryProductionReportMarkup
+} from './bakery-production-report-print';
+
+const BAKERY_SOURCE_WAREHOUSE_NOS = new Set([55, 62]);
 
 @Component({
   selector: 'app-alinan-depo-siparisleri-list',
@@ -31,6 +46,11 @@ export class AlinanDepoSiparisleriListComponent extends ApiTaskListPageBase<IFur
   protected readonly canBulkPrint = computed(() => this.hasTaskActionPermission('print'));
   protected readonly selectedDocumentKeys = signal<ReadonlySet<string>>(new Set());
   protected readonly bulkPrintLoading = signal(false);
+  protected readonly bakeryReportLoading = signal<BakeryProductionReportMode | null>(null);
+  protected readonly canPrintBakeryReport = computed(() => {
+    const warehouseNo = this.resolveBakerySourceWarehouseNo();
+    return this.canBulkPrint() && warehouseNo !== null && BAKERY_SOURCE_WAREHOUSE_NOS.has(warehouseNo);
+  });
   protected readonly printableDocumentKeys = computed(() => {
     const keys = new Set<string>();
 
@@ -48,6 +68,8 @@ export class AlinanDepoSiparisleriListComponent extends ApiTaskListPageBase<IFur
     return [...this.selectedDocumentKeys()].filter((key) => availableKeys.has(key));
   });
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
+  private readonly authService = inject(AuthService);
+  private readonly documentPrintService = inject(DocumentPrintService);
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.siparisIslemleriService.getAlinanDepoSiparisleri(zamanlama, warehouseNo);
@@ -55,6 +77,40 @@ export class AlinanDepoSiparisleriListComponent extends ApiTaskListPageBase<IFur
 
   protected override shouldShowTableSelection(): boolean {
     return this.canBulkPrint();
+  }
+
+  protected override getAdditionalQueryActions(): readonly ApiListQueryAction[] {
+    if (!this.canPrintBakeryReport()) {
+      return [];
+    }
+
+    const loading = this.bakeryReportLoading();
+    return [
+      {
+        key: 'bakery-summary',
+        label: loading === 'summary' ? 'Hazirlaniyor...' : 'Unlu Toplu Rapor',
+        iconClass: 'fa-solid fa-layer-group',
+        title: 'Unlu uretim siparislerini urun ve grup bazinda yazdir'
+      },
+      {
+        key: 'bakery-branch',
+        label: loading === 'branch' ? 'Hazirlaniyor...' : 'Unlu Sube Detayli',
+        iconClass: 'fa-solid fa-table-list',
+        title: 'Unlu uretim siparislerini sube ve evrak bazinda yazdir'
+      }
+    ];
+  }
+
+  protected override isAdditionalQueryActionDisabled(_key: string): boolean {
+    return this.isLoading() || this.bakeryReportLoading() !== null;
+  }
+
+  protected override handleAdditionalQueryAction(key: string): void {
+    if (key === 'bakery-summary') {
+      this.printBakeryProductionReport('summary');
+    } else if (key === 'bakery-branch') {
+      this.printBakeryProductionReport('branch');
+    }
   }
 
   protected override getTableSelectedRowKeys(): ReadonlySet<string> {
@@ -153,6 +209,64 @@ export class AlinanDepoSiparisleriListComponent extends ApiTaskListPageBase<IFur
           );
         }
       });
+  }
+
+  private printBakeryProductionReport(mode: BakeryProductionReportMode): void {
+    const reportDate = this.startDate().trim();
+    const sourceWarehouseNo = this.resolveBakerySourceWarehouseNo();
+
+    if (!reportDate || reportDate !== this.endDate().trim()) {
+      this.errorMessage.set('Unlu uretim raporu icin baslangic ve bitis tarihini ayni gun secin.');
+      return;
+    }
+
+    if (!sourceWarehouseNo || !BAKERY_SOURCE_WAREHOUSE_NOS.has(sourceWarehouseNo)) {
+      this.errorMessage.set('Unlu uretim raporu icin kaynak depo 55 veya 62 secilmelidir.');
+      return;
+    }
+
+    const previewWindow = window.open('', '_blank', 'width=960,height=720');
+    if (!previewWindow) {
+      this.errorMessage.set('Rapor penceresi acilamadi. Tarayicida acilir pencereye izin verin.');
+      return;
+    }
+
+    previewWindow.document.title = 'Unlu Uretim Raporu Hazirlaniyor';
+    previewWindow.document.body.textContent = 'Rapor hazirlaniyor...';
+    this.bakeryReportLoading.set(mode);
+    this.errorMessage.set(null);
+
+    this.siparisIslemleriService
+      .getBakeryProductionReport(reportDate, this.resolveListWarehouseNo())
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.bakeryReportLoading.set(null))
+      )
+      .subscribe({
+        next: (report: BakeryProductionReportDto) => {
+          if (!report.items.length) {
+            previewWindow.close();
+            this.errorMessage.set('Secilen tarihte unlu uretim siparisi bulunamadi.');
+            return;
+          }
+
+          this.documentPrintService.printHtml({
+            markup: buildBakeryProductionReportMarkup(report, mode),
+            targetWindow: previewWindow
+          });
+        },
+        error: (error: HttpErrorResponse) => {
+          previewWindow.close();
+          this.errorMessage.set(
+            this.resolveHttpErrorMessage(error, 'Unlu uretim raporu hazirlanamadi.')
+          );
+        }
+      });
+  }
+
+  private resolveBakerySourceWarehouseNo(): number | null {
+    return this.resolveListWarehouseNo()
+      ?? getCurrentWarehouseNo(this.authService.currentUser());
   }
 
   private getDocumentKey(row: IFurpaWarehouseOrderListItemApiDto): string | null {
