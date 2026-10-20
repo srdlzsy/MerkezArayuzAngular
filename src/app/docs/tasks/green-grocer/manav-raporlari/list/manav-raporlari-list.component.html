@@ -1,6 +1,11 @@
 <section class="task-page green-grocer-page" *ngIf="page as current">
   <section class="task-block report-shell">
-    <form class="query-card green-query" [formGroup]="filtersForm" (ngSubmit)="loadReports()" novalidate>
+    <form
+      class="query-card green-query"
+      [formGroup]="filtersForm"
+      (ngSubmit)="loadReports()"
+      novalidate
+    >
       <div class="report-command">
         <div>
           <span class="section-kicker">Manav Raporlari</span>
@@ -20,7 +25,11 @@
           <input type="number" formControlName="warehouseNo" min="1" placeholder="Tum Depolar" />
         </label>
 
-        <button type="submit" class="task-action task-action-primary query-submit" [disabled]="isLoading()">
+        <button
+          type="submit"
+          class="task-action task-action-primary query-submit"
+          [disabled]="isLoading()"
+        >
           {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
         </button>
       </div>
@@ -102,14 +111,27 @@
               [summary]="summaryItems().length + ' kayit'"
               (exportRequested)="exportSummaryReport()"
             ></app-excel-export-button>
-            <button type="button" class="print-action" [disabled]="!canPrintReport('summary')" (click)="printReport('summary')">
+            <button
+              type="button"
+              class="print-action"
+              [disabled]="!canPrintReport('summary')"
+              (click)="printReport('summary')"
+            >
               Yazdir
             </button>
           </div>
         </div>
 
         <section class="summary-groups" *ngIf="summaryGroups().length; else emptySummary">
-          <details class="report-group accordion-card" *ngFor="let group of summaryGroups(); trackBy: trackBySummaryGroup" open>
+          <details
+            class="report-group accordion-card"
+            *ngFor="
+              let group of summaryGroups();
+              let groupIndex = index;
+              trackBy: trackBySummaryGroup
+            "
+            [open]="groupIndex === 0"
+          >
             <summary class="group-head accordion-head">
               <div>
                 <span class="type-pill">{{ group.typeLabel }}</span>
@@ -138,8 +160,14 @@
                     <td>{{ getUnitName(item) || '-' }}</td>
                     <td class="number-cell">
                       <span>{{ formatQuantity(item.quantity) }}</span>
-                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
-                      <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">{{ averageText }}</small>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
+                        caseText
+                      }}</small>
+                      <small
+                        class="case-info case-info-muted"
+                        *ngIf="formatCaseAverage(item.caseInfo) as averageText"
+                        >{{ averageText }}</small
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -155,7 +183,11 @@
         </ng-template>
       </section>
 
-      <section class="task-item report-panel" data-report-print="byBranch" *ngSwitchCase="'byBranch'">
+      <section
+        class="task-item report-panel"
+        data-report-print="byBranch"
+        *ngSwitchCase="'byBranch'"
+      >
         <div class="panel-head">
           <div>
             <span class="section-kicker">Sube / Evrak Bazli Manav Raporu</span>
@@ -169,14 +201,27 @@
               [summary]="branchItems().length + lazyBranches().length + ' kayit'"
               (exportRequested)="exportBranchReport()"
             ></app-excel-export-button>
-            <button type="button" class="print-action" [disabled]="!canPrintReport('byBranch')" (click)="printReport('byBranch')">
+            <button
+              type="button"
+              class="print-action"
+              [disabled]="!canPrintReport('byBranch')"
+              (click)="printReport('byBranch')"
+            >
               Yazdir
             </button>
           </div>
         </div>
 
         <section class="document-groups" *ngIf="branchDocumentGroups().length; else emptyBranch">
-          <details class="document-card accordion-card" *ngFor="let group of branchDocumentGroups(); trackBy: trackByDocumentGroup" open>
+          <details
+            class="document-card accordion-card"
+            *ngFor="
+              let group of branchDocumentGroups();
+              let groupIndex = index;
+              trackBy: trackByDocumentGroup
+            "
+            [open]="groupIndex === 0"
+          >
             <summary class="document-head accordion-head">
               <div>
                 <span class="document-title">{{ group.branchLabel }}</span>
@@ -220,8 +265,14 @@
                     <td>{{ getUnitName(item) || '-' }}</td>
                     <td class="number-cell">
                       <span>{{ formatQuantity(item.quantity) }}</span>
-                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
-                      <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">{{ averageText }}</small>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
+                        caseText
+                      }}</small>
+                      <small
+                        class="case-info case-info-muted"
+                        *ngIf="formatCaseAverage(item.caseInfo) as averageText"
+                        >{{ averageText }}</small
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -246,7 +297,10 @@
           </div>
 
           <div class="lazy-grid">
-            <article class="lazy-card" *ngFor="let branch of lazyBranches(); trackBy: trackByLazyBranch">
+            <article
+              class="lazy-card"
+              *ngFor="let branch of lazyBranches(); trackBy: trackByLazyBranch"
+            >
               <strong>{{ branch.branchName }}</strong>
               <span>Sube {{ branch.branchNo }}</span>
               <small>Bolge {{ branch.regionCode }}</small>
@@ -255,7 +309,11 @@
         </section>
       </section>
 
-      <section class="task-item report-panel" data-report-print="byProduct" *ngSwitchCase="'byProduct'">
+      <section
+        class="task-item report-panel"
+        data-report-print="byProduct"
+        *ngSwitchCase="'byProduct'"
+      >
         <div class="panel-head">
           <div>
             <span class="section-kicker">Urun Bazli Manav Raporu</span>
@@ -269,7 +327,12 @@
               [summary]="productRows().length + productBreakdownExportRows().length + ' kayit'"
               (exportRequested)="exportProductReport()"
             ></app-excel-export-button>
-            <button type="button" class="print-action" [disabled]="!canPrintReport('byProduct')" (click)="printReport('byProduct')">
+            <button
+              type="button"
+              class="print-action"
+              [disabled]="!canPrintReport('byProduct')"
+              (click)="printReport('byProduct')"
+            >
               Yazdir
             </button>
           </div>
@@ -287,28 +350,52 @@
                 </tr>
               </thead>
               <tbody>
-                <tr
-                  *ngFor="let item of productRows(); trackBy: trackByProduct"
-                  [class.selected-row]="selectedProduct()?.key === item.key"
-                  (click)="selectProduct(item)"
-                >
-                  <td><span class="type-pill">{{ item.typeLabel }}</span></td>
-                  <td>
-                    <span class="product-name">{{ item.productName }}</span>
-                    <small>{{ item.productCode }}</small>
-                  </td>
-                  <td class="number-cell">
-                    <span>{{ formatQuantity(item.quantity) }}</span>
-                    <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
-                    <small class="case-info case-info-muted" *ngIf="formatCaseAverage(item.caseInfo) as averageText">{{ averageText }}</small>
-                  </td>
-                  <td class="number-cell">{{ item.breakdownItems.length }}</td>
-                </tr>
+                <ng-container *ngFor="let item of productRows(); trackBy: trackByProduct">
+                  <tr
+                    [class.selected-row]="selectedProduct()?.key === item.key"
+                    (click)="selectProduct(item)"
+                  >
+                    <td>
+                      <span class="type-pill">{{ item.typeLabel }}</span>
+                    </td>
+                    <td>
+                      <span class="product-name">{{ item.productName }}</span>
+                      <small>{{ item.productCode }}</small>
+                    </td>
+                    <td class="number-cell">
+                      <span>{{ formatQuantity(item.quantity) }}</span>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
+                        caseText
+                      }}</small>
+                      <small
+                        class="case-info case-info-muted"
+                        *ngIf="formatCaseAverage(item.caseInfo) as averageText"
+                        >{{ averageText }}</small
+                      >
+                    </td>
+                    <td class="number-cell">{{ item.breakdownItems.length }}</td>
+                  </tr>
+                  <tr class="mobile-product-detail" *ngIf="selectedProduct()?.key === item.key">
+                    <td colspan="4">
+                      <ng-container
+                        *ngTemplateOutlet="productDetail; context: { $implicit: item }"
+                      ></ng-container>
+                    </td>
+                  </tr>
+                </ng-container>
               </tbody>
             </table>
           </div>
 
           <article class="query-card product-detail" *ngIf="selectedProduct() as product">
+            <ng-container
+              *ngTemplateOutlet="productDetail; context: { $implicit: product }"
+            ></ng-container>
+          </article>
+        </section>
+
+        <ng-template #productDetail let-product>
+          <div class="product-detail-content">
             <div class="panel-head">
               <div>
                 <span class="section-kicker">Secili Urun</span>
@@ -317,7 +404,10 @@
               <span class="panel-chip">{{ formatQuantity(product.quantity) }}</span>
             </div>
 
-            <div class="table-wrap" *ngIf="product.breakdownItems.length; else emptyProductBreakdown">
+            <div
+              class="table-wrap"
+              *ngIf="product.breakdownItems.length; else emptyProductBreakdown"
+            >
               <table class="report-table compact-table">
                 <thead>
                   <tr>
@@ -335,7 +425,9 @@
                     <td>{{ item.document?.documentNo || formatDocument(item) }}</td>
                     <td class="number-cell">
                       <span>{{ formatQuantity(item.quantity) }}</span>
-                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
+                        caseText
+                      }}</small>
                     </td>
                   </tr>
                 </tbody>
@@ -347,8 +439,8 @@
                 <h3>Kirilim yok</h3>
               </article>
             </ng-template>
-          </article>
-        </section>
+          </div>
+        </ng-template>
 
         <ng-template #emptyProduct>
           <article class="state-card compact-state" *ngIf="!isLoading()">
@@ -371,14 +463,27 @@
               [summary]="greenItems().length + ' kayit'"
               (exportRequested)="exportGreensReport()"
             ></app-excel-export-button>
-            <button type="button" class="print-action" [disabled]="!canPrintReport('greens')" (click)="printReport('greens')">
+            <button
+              type="button"
+              class="print-action"
+              [disabled]="!canPrintReport('greens')"
+              (click)="printReport('greens')"
+            >
               Yazdir
             </button>
           </div>
         </div>
 
         <section class="document-groups" *ngIf="greenDocumentGroups().length; else emptyGreens">
-          <details class="document-card accordion-card" *ngFor="let group of greenDocumentGroups(); trackBy: trackByDocumentGroup" open>
+          <details
+            class="document-card accordion-card"
+            *ngFor="
+              let group of greenDocumentGroups();
+              let groupIndex = index;
+              trackBy: trackByDocumentGroup
+            "
+            [open]="groupIndex === 0"
+          >
             <summary class="document-head accordion-head">
               <div>
                 <span class="document-title">{{ group.branchLabel }}</span>
@@ -410,12 +515,16 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of group.items; trackBy: trackByBranchItem">
-                    <td><span class="product-name">{{ getProductName(item) }}</span></td>
+                    <td>
+                      <span class="product-name">{{ getProductName(item) }}</span>
+                    </td>
                     <td>{{ getProductCode(item) }}</td>
                     <td>{{ getUnitName(item) || '-' }}</td>
                     <td class="number-cell">
                       <span>{{ formatQuantity(item.quantity) }}</span>
-                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{ caseText }}</small>
+                      <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
+                        caseText
+                      }}</small>
                     </td>
                   </tr>
                 </tbody>

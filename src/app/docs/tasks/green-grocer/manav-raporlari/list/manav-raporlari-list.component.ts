@@ -13,7 +13,7 @@ import type {
   IFurpaGreenGrocerLazyBranchApiDto,
   IFurpaGreenGrocerProductReportApiResponse,
   IFurpaGreenGrocerProductReportItemApiDto,
-  IFurpaGreenGrocerSummaryReportItemApiDto
+  IFurpaGreenGrocerSummaryReportItemApiDto,
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -26,12 +26,12 @@ import { ExcelExportButtonComponent } from '../../../core/excel-export/excel-exp
 import {
   currentUserHasPermission,
   formatCurrentWarehouseLabel,
-  toPositiveWarehouseNo
+  toPositiveWarehouseNo,
 } from '../../../core/admin-warehouse.helpers';
 import {
   ExcelExportColumn,
   ExcelExportSheet,
-  exportRowsToExcel
+  exportRowsToExcel,
 } from '../../../core/excel-export/excel-export.utils';
 import { DocumentPrintService } from '../../../core/document-print/document-print.service';
 
@@ -117,23 +117,23 @@ const REPORT_TABS: readonly ReportTabOption[] = [
   {
     id: 'summary',
     label: 'Genel',
-    description: 'Urun ve tip bazinda toplam'
+    description: 'Urun ve tip bazinda toplam',
   },
   {
     id: 'byBranch',
     label: 'Sube / Evrak',
-    description: 'Siparis evraki kirilimi'
+    description: 'Siparis evraki kirilimi',
   },
   {
     id: 'byProduct',
     label: 'Urun',
-    description: 'Urun toplam ve evrak detayi'
+    description: 'Urun toplam ve evrak detayi',
   },
   {
     id: 'greens',
     label: 'Yesillik',
-    description: 'Tip 12 satirlari'
-  }
+    description: 'Tip 12 satirlari',
+  },
 ];
 
 @Component({
@@ -141,7 +141,7 @@ const REPORT_TABS: readonly ReportTabOption[] = [
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule, ExcelExportButtonComponent],
   templateUrl: './manav-raporlari-list.component.html',
-  styleUrl: './manav-raporlari-list.component.scss'
+  styleUrl: './manav-raporlari-list.component.scss',
 })
 export class ManavRaporlariListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
@@ -149,11 +149,11 @@ export class ManavRaporlariListComponent {
   protected readonly filtersForm = new FormGroup({
     targetDate: new FormControl<string>(this.getToday(), {
       nonNullable: true,
-      validators: [Validators.required]
+      validators: [Validators.required],
     }),
     warehouseNo: new FormControl<number | null>(null, {
-      validators: [Validators.min(1)]
-    })
+      validators: [Validators.min(1)],
+    }),
   });
   protected readonly maxTargetDate = this.getToday();
 
@@ -165,7 +165,7 @@ export class ManavRaporlariListComponent {
   private loadSequence = 0;
   private readonly quantityFormatter = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 0,
-    maximumFractionDigits: 2
+    maximumFractionDigits: 2,
   });
 
   protected readonly activeTab = signal<ReportTab>('summary');
@@ -184,11 +184,11 @@ export class ManavRaporlariListComponent {
   protected readonly exportErrorMessage = signal<string | null>(null);
 
   protected readonly permissionCodes = computed(() =>
-    this.uniquePermissionCodes(this.authService.getTaskPermissionCodes(TASK_ID))
+    this.uniquePermissionCodes(this.authService.getTaskPermissionCodes(TASK_ID)),
   );
   protected readonly currentUser = computed(() => this.authService.currentUser());
   protected readonly canUseAllWarehouses = computed(() =>
-    currentUserHasPermission(this.currentUser(), ALL_WAREHOUSES_PERMISSION)
+    currentUserHasPermission(this.currentUser(), ALL_WAREHOUSES_PERMISSION),
   );
   protected readonly warehouseScopeLabel = computed(() => {
     if (this.canUseAllWarehouses()) {
@@ -201,29 +201,29 @@ export class ManavRaporlariListComponent {
   protected readonly canViewReports = computed(
     () =>
       this.authService.hasTaskAccess(TASK_ID) ||
-      this.hasPermission(this.permissionCodes(), LIST_PERMISSION)
+      this.hasPermission(this.permissionCodes(), LIST_PERMISSION),
   );
   protected readonly canDeleteOrders = computed(() =>
-    this.hasPermission(this.permissionCodes(), UPDATE_PERMISSION)
+    this.hasPermission(this.permissionCodes(), UPDATE_PERMISSION),
   );
   protected readonly summaryTotalQuantity = computed(() =>
-    this.summaryItems().reduce((total, item) => total + this.toSafeNumber(item.quantity), 0)
+    this.summaryItems().reduce((total, item) => total + this.toSafeNumber(item.quantity), 0),
   );
   protected readonly branchDocumentCount = computed(() =>
-    this.countUniqueDocuments(this.branchItems())
+    this.countUniqueDocuments(this.branchItems()),
   );
   protected readonly branchCount = computed(() => this.countUniqueBranches(this.branchItems()));
   protected readonly greenTotalQuantity = computed(() =>
-    this.greenItems().reduce((total, item) => total + this.toSafeNumber(item.quantity), 0)
+    this.greenItems().reduce((total, item) => total + this.toSafeNumber(item.quantity), 0),
   );
   protected readonly summaryGroups = computed<SummaryGroup[]>(() =>
-    this.groupSummaryItems(this.summaryItems())
+    this.groupSummaryItems(this.summaryItems()),
   );
   protected readonly branchDocumentGroups = computed<DocumentGroup[]>(() =>
-    this.groupDocumentItems(this.branchItems(), true)
+    this.groupDocumentItems(this.branchItems(), true),
   );
   protected readonly greenDocumentGroups = computed<DocumentGroup[]>(() =>
-    this.groupDocumentItems(this.greenItems(), false)
+    this.groupDocumentItems(this.greenItems(), false),
   );
   protected readonly productRows = computed<ProductReportRow[]>(() =>
     this.productItems()
@@ -234,7 +234,7 @@ export class ManavRaporlariListComponent {
         }
 
         return left.productName.localeCompare(right.productName, 'tr-TR');
-      })
+      }),
   );
   protected readonly selectedProduct = computed<ProductReportRow | null>(() => {
     const rows = this.productRows();
@@ -249,16 +249,19 @@ export class ManavRaporlariListComponent {
         productName: this.getProductName(item) || product.productName,
         stockName: item.stockName?.trim() || item.product?.stockName?.trim() || product.stockName,
         unitName: this.getUnitName(item) || product.unitName,
-        primaryBarcode: item.primaryBarcode?.trim() || item.product?.primaryBarcode?.trim() || product.primaryBarcode,
+        primaryBarcode:
+          item.primaryBarcode?.trim() ||
+          item.product?.primaryBarcode?.trim() ||
+          product.primaryBarcode,
         orderDate: item.orderDate,
         branchNo: item.branchNo,
         branchName: item.branchName,
         documentLabel: this.formatDocument(item),
         quantity: this.toSafeNumber(item.quantity),
         caseText: this.formatCaseInfo(item.caseInfo),
-        caseAverageText: this.formatCaseAverage(item.caseInfo)
-      }))
-    )
+        caseAverageText: this.formatCaseAverage(item.caseInfo),
+      })),
+    ),
   );
   protected readonly hasAnyReportData = computed(
     () =>
@@ -266,25 +269,26 @@ export class ManavRaporlariListComponent {
       this.branchItems().length > 0 ||
       this.productItems().length > 0 ||
       this.greenItems().length > 0 ||
-      this.lazyBranches().length > 0
+      this.lazyBranches().length > 0,
   );
 
-  protected readonly trackBySummaryGroup = (_index: number, item: SummaryGroup): string => item.typeCode;
-  protected readonly trackByDocumentGroup = (_index: number, item: DocumentGroup): string => item.key;
+  protected readonly trackBySummaryGroup = (_index: number, item: SummaryGroup): string =>
+    item.typeCode;
+  protected readonly trackByDocumentGroup = (_index: number, item: DocumentGroup): string =>
+    item.key;
   protected readonly trackBySummary = (
     _index: number,
-    item: IFurpaGreenGrocerSummaryReportItemApiDto
+    item: IFurpaGreenGrocerSummaryReportItemApiDto,
   ): string => `${item.typeCode}|${item.productCode}`;
   protected readonly trackByBranchItem = (
     _index: number,
-    item: IFurpaGreenGrocerBranchReportItemApiDto
+    item: IFurpaGreenGrocerBranchReportItemApiDto,
   ): string => this.buildDocumentLineKey(item);
   protected readonly trackByLazyBranch = (
     _index: number,
-    item: IFurpaGreenGrocerLazyBranchApiDto
+    item: IFurpaGreenGrocerLazyBranchApiDto,
   ): string => `${item.branchNo}|${item.regionCode}`;
-  protected readonly trackByProduct = (_index: number, item: ProductReportRow): string =>
-    item.key;
+  protected readonly trackByProduct = (_index: number, item: ProductReportRow): string => item.key;
   protected readonly trackByTab = (_index: number, item: ReportTabOption): string => item.id;
 
   constructor() {
@@ -303,7 +307,7 @@ export class ManavRaporlariListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Tarih gerekli',
-        message: 'Manav raporlarini getirmek icin once bir gun secin.'
+        message: 'Manav raporlarini getirmek icin once bir gun secin.',
       });
       return;
     }
@@ -330,8 +334,8 @@ export class ManavRaporlariListComponent {
       {
         sheetName: 'Genel',
         rows: this.summaryItems(),
-        columns: this.getSummaryExportColumns()
-      }
+        columns: this.getSummaryExportColumns(),
+      },
     ]);
   }
 
@@ -340,13 +344,13 @@ export class ManavRaporlariListComponent {
       {
         sheetName: 'Evrak Satirlari',
         rows: this.branchItems(),
-        columns: this.getBranchExportColumns(true)
+        columns: this.getBranchExportColumns(true),
       },
       {
         sheetName: 'Eksik Subeler',
         rows: this.lazyBranches(),
-        columns: this.getLazyBranchExportColumns()
-      }
+        columns: this.getLazyBranchExportColumns(),
+      },
     ]);
   }
 
@@ -355,13 +359,13 @@ export class ManavRaporlariListComponent {
       {
         sheetName: 'Urun Toplamlari',
         rows: this.productRows(),
-        columns: this.getProductExportColumns()
+        columns: this.getProductExportColumns(),
       },
       {
         sheetName: 'Urun Kirilimi',
         rows: this.productBreakdownExportRows(),
-        columns: this.getProductBreakdownExportColumns()
-      }
+        columns: this.getProductBreakdownExportColumns(),
+      },
     ]);
   }
 
@@ -370,8 +374,8 @@ export class ManavRaporlariListComponent {
       {
         sheetName: 'Yesillik',
         rows: this.greenItems(),
-        columns: this.getBranchExportColumns(false)
-      }
+        columns: this.getBranchExportColumns(false),
+      },
     ]);
   }
 
@@ -400,14 +404,15 @@ export class ManavRaporlariListComponent {
     const opened = this.documentPrintService.printHtml({
       markup: this.buildPrintMarkup(tab, reportTitle),
       windowFeatures: 'width=900,height=1100',
-      closeAfterPrint: true
+      printDelayMs: 400,
+      closeAfterPrint: true,
     });
 
     if (!opened) {
       this.feedback.set({
         tone: 'error',
         title: 'Yazdirma acilamadi',
-        message: 'Tarayici yeni pencereyi engelledi. Pop-up iznini kontrol edin.'
+        message: 'Tarayici yeni pencereyi engelledi. Pop-up iznini kontrol edin.',
       });
     }
   }
@@ -417,7 +422,7 @@ export class ManavRaporlariListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Yetki gerekli',
-        message: 'Manav siparisi silmek icin green-grocer.reports.update yetkisi gerekiyor.'
+        message: 'Manav siparisi silmek icin green-grocer.reports.update yetkisi gerekiyor.',
       });
       return;
     }
@@ -427,7 +432,7 @@ export class ManavRaporlariListComponent {
       title: 'Manav evraki silinsin mi?',
       message: `${documentLabel} evraki silinecek.`,
       confirmText: 'Sil',
-      tone: 'danger'
+      tone: 'danger',
     });
 
     if (!confirmed) {
@@ -440,26 +445,23 @@ export class ManavRaporlariListComponent {
       .deleteOrder(item.documentSerie, this.toSafeNumber(item.documentOrderNo), item.branchNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.deletingKey.set(null))
+        finalize(() => this.deletingKey.set(null)),
       )
       .subscribe({
         next: (response: IFurpaGreenGrocerDeleteOrderResponseApiDto) => {
           this.loadReports({
             tone: 'success',
             title: 'Siparis silindi',
-            message: `${response.documentSerie}-${response.documentOrderNo} icin ${response.deletedLineCount} satir silindi.`
+            message: `${response.documentSerie}-${response.documentOrderNo} icin ${response.deletedLineCount} satir silindi.`,
           });
         },
         error: (error: HttpErrorResponse) => {
           this.feedback.set({
             tone: 'error',
             title: this.resolveDeleteErrorTitle(error),
-            message: this.resolveErrorMessage(
-              error,
-              'Manav siparisi silinirken bir hata olustu.'
-            )
+            message: this.resolveErrorMessage(error, 'Manav siparisi silinirken bir hata olustu.'),
           });
-        }
+        },
       });
   }
 
@@ -495,7 +497,7 @@ export class ManavRaporlariListComponent {
 
     return new Intl.DateTimeFormat('tr-TR', {
       dateStyle: 'short',
-      timeStyle: 'short'
+      timeStyle: 'short',
     }).format(parsedDate);
   }
 
@@ -503,9 +505,7 @@ export class ManavRaporlariListComponent {
     return this.quantityFormatter.format(this.toSafeNumber(value));
   }
 
-  protected formatCaseInfo(
-    caseInfo: GreenGrocerProductCaseInfoDto | null | undefined
-  ): string {
+  protected formatCaseInfo(caseInfo: GreenGrocerProductCaseInfoDto | null | undefined): string {
     if (!caseInfo) {
       return '';
     }
@@ -526,9 +526,7 @@ export class ManavRaporlariListComponent {
     return '';
   }
 
-  protected formatCaseAverage(
-    caseInfo: GreenGrocerProductCaseInfoDto | null | undefined
-  ): string {
+  protected formatCaseAverage(caseInfo: GreenGrocerProductCaseInfoDto | null | undefined): string {
     if (!caseInfo) {
       return '';
     }
@@ -580,7 +578,7 @@ export class ManavRaporlariListComponent {
       typeName?: string | null;
       product?: { modelName?: string | null; modelCode?: string | null } | null;
     },
-    fallback?: string | null
+    fallback?: string | null,
   ): string {
     return (
       row.typeName?.trim() ||
@@ -621,13 +619,13 @@ export class ManavRaporlariListComponent {
         },
         error: () => {
           this.typeOptions.set([]);
-        }
+        },
       });
   }
 
   private buildReportRequest(
     date: string,
-    warehouseNo: number | null
+    warehouseNo: number | null,
   ): GreenGrocerReportDateHttpRequest {
     return warehouseNo ? { date, warehouseNo } : { date };
   }
@@ -642,7 +640,7 @@ export class ManavRaporlariListComponent {
   private loadReportsInParallel(
     targetDate: string,
     warehouseNo: number | null,
-    feedbackAfterLoad?: PageFeedback
+    feedbackAfterLoad?: PageFeedback,
   ): void {
     const requestId = (this.loadSequence += 1);
     const request = this.buildReportRequest(targetDate, warehouseNo);
@@ -650,10 +648,10 @@ export class ManavRaporlariListComponent {
       summary: [],
       branchReport: {
         items: [],
-        lazyBranches: []
+        lazyBranches: [],
       },
       productReport: [],
-      greens: []
+      greens: [],
     };
     let completedCount = 0;
     let failed = false;
@@ -686,8 +684,8 @@ export class ManavRaporlariListComponent {
         title: 'Raporlar yuklenemedi',
         message: this.resolveErrorMessage(
           error,
-          'GreenGrocer raporlari alinirken bir hata olustu.'
-        )
+          'GreenGrocer raporlari alinirken bir hata olustu.',
+        ),
       });
     };
 
@@ -699,7 +697,7 @@ export class ManavRaporlariListComponent {
           bundle.summary = summary ?? [];
         },
         error: handleError,
-        complete: completeOne
+        complete: completeOne,
       });
 
     this.greenGrocerService
@@ -710,7 +708,7 @@ export class ManavRaporlariListComponent {
           bundle.branchReport = branchReport;
         },
         error: handleError,
-        complete: completeOne
+        complete: completeOne,
       });
 
     this.greenGrocerService
@@ -721,7 +719,7 @@ export class ManavRaporlariListComponent {
           bundle.productReport = productReport;
         },
         error: handleError,
-        complete: completeOne
+        complete: completeOne,
       });
 
     this.greenGrocerService
@@ -732,14 +730,14 @@ export class ManavRaporlariListComponent {
           bundle.greens = greens ?? [];
         },
         error: handleError,
-        complete: completeOne
+        complete: completeOne,
       });
   }
 
   private applyReportBundle(
     targetDate: string,
     bundle: GreenGrocerReportBundle,
-    feedbackAfterLoad?: PageFeedback
+    feedbackAfterLoad?: PageFeedback,
   ): void {
     const branchReport = this.normalizeBranchReport(bundle.branchReport);
 
@@ -760,7 +758,7 @@ export class ManavRaporlariListComponent {
       this.feedback.set({
         tone: 'info',
         title: 'Kayit bulunamadi',
-        message: 'Secilen tarih icin manav veya yesillik raporu donmedi.'
+        message: 'Secilen tarih icin manav veya yesillik raporu donmedi.',
       });
     }
   }
@@ -775,7 +773,7 @@ export class ManavRaporlariListComponent {
   }
 
   private groupSummaryItems(
-    items: readonly IFurpaGreenGrocerSummaryReportItemApiDto[]
+    items: readonly IFurpaGreenGrocerSummaryReportItemApiDto[],
   ): SummaryGroup[] {
     const groups = new Map<string, SummaryGroup>();
 
@@ -785,7 +783,7 @@ export class ManavRaporlariListComponent {
         typeCode,
         typeLabel: this.getReportTypeLabel(item),
         totalQuantity: 0,
-        items: []
+        items: [],
       };
 
       current.totalQuantity += this.toSafeNumber(item.quantity);
@@ -794,13 +792,13 @@ export class ManavRaporlariListComponent {
     }
 
     return Array.from(groups.values()).sort((left, right) =>
-      left.typeCode.localeCompare(right.typeCode, 'tr-TR', { numeric: true })
+      left.typeCode.localeCompare(right.typeCode, 'tr-TR', { numeric: true }),
     );
   }
 
   private groupDocumentItems(
     items: readonly IFurpaGreenGrocerBranchReportItemApiDto[],
-    includeTypes: boolean
+    includeTypes: boolean,
   ): DocumentGroup[] {
     const groups = new Map<string, DocumentGroup>();
 
@@ -816,7 +814,7 @@ export class ManavRaporlariListComponent {
         totalQuantity: 0,
         typeLabels: [],
         items: [],
-        canDelete: this.canDeleteOrders() && item.canDelete !== false
+        canDelete: this.canDeleteOrders() && item.canDelete !== false,
       };
       const typeLabel = this.getReportTypeLabel(item);
 
@@ -845,13 +843,19 @@ export class ManavRaporlariListComponent {
     stockCode?: string | null;
     product?: { stockCode?: string | null; productCode?: string | null } | null;
   }): string {
-    return row.stockCode?.trim() || row.product?.stockCode?.trim() || row.productCode?.trim() || '-';
+    return (
+      row.stockCode?.trim() || row.product?.stockCode?.trim() || row.productCode?.trim() || '-'
+    );
   }
 
   protected getProductName(row: {
     productName?: string | null;
     stockName?: string | null;
-    product?: { displayName?: string | null; productName?: string | null; stockName?: string | null } | null;
+    product?: {
+      displayName?: string | null;
+      productName?: string | null;
+      stockName?: string | null;
+    } | null;
   }): string {
     return (
       row.product?.displayName?.trim() ||
@@ -881,12 +885,12 @@ export class ManavRaporlariListComponent {
       primaryBarcode: item.primaryBarcode?.trim() || item.product?.primaryBarcode?.trim() || '',
       quantity: this.toSafeNumber(item.totalQuantity ?? item.quantity),
       caseInfo: item.caseInfo ?? null,
-      breakdownItems: this.getProductBreakdownItems(item)
+      breakdownItems: this.getProductBreakdownItems(item),
     };
   }
 
   private getProductBreakdownItems(
-    item: IFurpaGreenGrocerProductReportItemApiDto
+    item: IFurpaGreenGrocerProductReportItemApiDto,
   ): IFurpaGreenGrocerBranchReportItemApiDto[] {
     const candidates = [
       item.items,
@@ -895,23 +899,23 @@ export class ManavRaporlariListComponent {
       item.branchBreakdowns,
       item.documents,
       item.details,
-      item.lines
+      item.lines,
     ];
 
     return candidates.find((candidate) => Array.isArray(candidate) && candidate.length > 0) ?? [];
   }
 
   private normalizeBranchReport(
-    response: IFurpaGreenGrocerBranchReportResponseApiDto | null | undefined
+    response: IFurpaGreenGrocerBranchReportResponseApiDto | null | undefined,
   ): IFurpaGreenGrocerBranchReportResponseApiDto {
     return {
       items: Array.isArray(response?.items) ? response.items : [],
-      lazyBranches: Array.isArray(response?.lazyBranches) ? response.lazyBranches : []
+      lazyBranches: Array.isArray(response?.lazyBranches) ? response.lazyBranches : [],
     };
   }
 
   private normalizeProductResponse(
-    response: IFurpaGreenGrocerProductReportApiResponse | null | undefined
+    response: IFurpaGreenGrocerProductReportApiResponse | null | undefined,
   ): IFurpaGreenGrocerProductReportItemApiDto[] {
     if (Array.isArray(response)) {
       return this.sortProductItems(response);
@@ -921,7 +925,7 @@ export class ManavRaporlariListComponent {
   }
 
   private sortSummaryItems(
-    items: readonly IFurpaGreenGrocerSummaryReportItemApiDto[]
+    items: readonly IFurpaGreenGrocerSummaryReportItemApiDto[],
   ): IFurpaGreenGrocerSummaryReportItemApiDto[] {
     return [...items].sort((left, right) => {
       if (left.typeCode !== right.typeCode) {
@@ -933,7 +937,7 @@ export class ManavRaporlariListComponent {
   }
 
   private sortProductItems(
-    items: readonly IFurpaGreenGrocerProductReportItemApiDto[]
+    items: readonly IFurpaGreenGrocerProductReportItemApiDto[],
   ): IFurpaGreenGrocerProductReportItemApiDto[] {
     return [...items].sort((left, right) => {
       const rightQuantity = this.toSafeNumber(right.totalQuantity ?? right.quantity);
@@ -948,7 +952,7 @@ export class ManavRaporlariListComponent {
   }
 
   private sortBranchItems(
-    items: readonly IFurpaGreenGrocerBranchReportItemApiDto[]
+    items: readonly IFurpaGreenGrocerBranchReportItemApiDto[],
   ): IFurpaGreenGrocerBranchReportItemApiDto[] {
     return [...items].sort((left, right) => {
       const leftBranchNo = this.toSafeNumber(left.branchNo);
@@ -970,7 +974,7 @@ export class ManavRaporlariListComponent {
   }
 
   private sortLazyBranches(
-    items: readonly IFurpaGreenGrocerLazyBranchApiDto[]
+    items: readonly IFurpaGreenGrocerLazyBranchApiDto[],
   ): IFurpaGreenGrocerLazyBranchApiDto[] {
     return [...items].sort((left, right) => {
       const leftBranchNo = this.toSafeNumber(left.branchNo);
@@ -1137,7 +1141,7 @@ export class ManavRaporlariListComponent {
     const scope = this.warehouseScopeLabel();
     const generatedAt = new Intl.DateTimeFormat('tr-TR', {
       dateStyle: 'short',
-      timeStyle: 'short'
+      timeStyle: 'short',
     }).format(new Date());
 
     return `<!doctype html>
@@ -1154,78 +1158,79 @@ export class ManavRaporlariListComponent {
       margin: 0;
       color: #172033;
       font-family: Arial, Helvetica, sans-serif;
-      font-size: 9.5px;
-      line-height: 1.3;
+      font-size: 8.5px;
+      line-height: 1.25;
       background: #fff;
     }
+
     .report-sheet { width: 100%; }
     .print-header {
       display: grid;
       grid-template-columns: minmax(0, 1fr) auto;
-      gap: 5mm;
+      gap: 3mm;
       align-items: end;
-      margin-bottom: 4mm;
-      padding: 0 0 3.5mm;
-      border-bottom: 2px solid #0f766e;
+      margin-bottom: 3mm;
+      padding: 0 0 2mm;
+      border-bottom: 1.5px solid #0f766e;
     }
-    .brand { margin-bottom: 1.5mm; color: #0f766e; font-size: 9px; font-weight: 900; letter-spacing: 0.16em; }
-    h1 { margin: 0; color: #0f172a; font-size: 18px; line-height: 1.1; }
-    .print-meta { display: grid; gap: 1mm; min-width: 48mm; color: #475569; text-align: right; }
+    .brand { margin-bottom: 0.8mm; color: #0f766e; font-size: 7px; font-weight: 900; letter-spacing: 0.16em; }
+    h1 { margin: 0; color: #0f172a; font-size: 14px; line-height: 1.05; }
+    .print-meta { display: grid; gap: 0.5mm; min-width: 42mm; color: #475569; text-align: right; font-size: 7px; }
     .print-meta strong { color: #0f172a; }
     .print-stats {
       display: grid;
       grid-template-columns: repeat(3, minmax(0, 1fr));
-      gap: 2mm;
-      margin-bottom: 4mm;
+      gap: 1mm;
+      margin-bottom: 3mm;
     }
     .stat {
       min-width: 0;
-      padding: 2.2mm 2.5mm;
+      padding: 1.4mm 1.7mm;
       border: 1px solid #cbd5e1;
-      border-radius: 2mm;
+      border-radius: 1mm;
       background: #f8fafc;
     }
-    .stat span { display: block; color: #64748b; font-size: 7.5px; font-weight: 800; text-transform: uppercase; }
-    .stat strong { display: block; margin-top: 0.7mm; color: #0f172a; font-size: 11px; }
-    .print-section { margin: 0 0 4.5mm; }
+    .stat span { display: block; color: #64748b; font-size: 7px; font-weight: 800; text-transform: uppercase; }
+    .stat strong { display: block; margin-top: 0.4mm; color: #0f172a; font-size: 9px; }
+    .print-section { margin: 0 0 3.5mm; }
     .section-heading {
       display: flex;
       align-items: flex-end;
       justify-content: space-between;
-      gap: 4mm;
-      margin-bottom: 1.5mm;
-      padding: 1.8mm 2.2mm;
-      border-left: 3px solid #0f766e;
+      gap: 2mm;
+      margin-bottom: 1mm;
+      padding: 1.3mm 1.6mm;
+      border-left: 2px solid #0f766e;
       background: #ecfdf5;
       break-after: avoid-page;
       page-break-after: avoid;
     }
-    .section-heading h2 { margin: 0; color: #0f172a; font-size: 11.5px; line-height: 1.2; }
-    .section-heading p { margin: 0.7mm 0 0; color: #475569; font-size: 8px; }
-    .section-total { flex: 0 0 auto; color: #064e3b; font-size: 10px; font-weight: 900; text-align: right; }
+    .section-heading h2 { margin: 0; color: #0f172a; font-size: 9.5px; line-height: 1.15; }
+    .section-heading p { margin: 0.4mm 0 0; color: #475569; font-size: 7px; }
+    .section-total { flex: 0 0 auto; color: #064e3b; font-size: 8.5px; font-weight: 900; text-align: right; }
     table { width: 100%; border-collapse: collapse; table-layout: fixed; }
     thead { display: table-header-group; }
     tr { break-inside: avoid; page-break-inside: avoid; }
-    th, td { padding: 1.6mm 1.8mm; border: 1px solid #cbd5e1; vertical-align: top; overflow-wrap: anywhere; }
-    th { color: #334155; background: #eaf0f5; font-size: 7.5px; font-weight: 900; letter-spacing: 0.02em; text-transform: uppercase; }
-    td { font-size: 9px; }
+    th, td { padding: 1.1mm 1.3mm; border: 1px solid #cbd5e1; vertical-align: top; overflow-wrap: anywhere; }
+    th { color: #334155; background: #eaf0f5; font-size: 6.5px; font-weight: 900; letter-spacing: 0.02em; text-transform: uppercase; }
+    td { font-size: 8px; }
     tbody tr:nth-child(even) td { background: #f8fafc; }
-    .index-cell { width: 8mm; color: #64748b; text-align: center; }
-    .code-cell { width: 27mm; }
-    .type-cell { width: 25mm; }
-    .unit-cell { width: 16mm; text-align: center; }
-    .quantity-cell { width: 35mm; text-align: right; }
-    .document-cell { width: 32mm; }
+    .index-cell { width: 6mm; color: #64748b; text-align: center; }
+    .code-cell { width: 20mm; }
+    .type-cell { width: 19mm; }
+    .unit-cell { width: 12mm; text-align: center; }
+    .quantity-cell { width: 24mm; text-align: right; }
+    .document-cell { width: 24mm; }
     .product-name { color: #0f172a; font-weight: 800; }
-    .subline { display: block; margin-top: 0.6mm; color: #64748b; font-size: 7.5px; line-height: 1.2; }
+    .subline { display: block; margin-top: 0.35mm; color: #64748b; font-size: 6.5px; line-height: 1.15; }
     .case-line { color: #0f766e; font-weight: 700; }
-    .empty-line { margin: 0; padding: 3mm; border: 1px solid #cbd5e1; color: #64748b; background: #f8fafc; }
-    .lazy-section { margin-top: 6mm; break-before: auto; }
-    .lazy-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 1.5mm; }
-    .lazy-card { padding: 2mm; border: 1px solid #cbd5e1; background: #f8fafc; break-inside: avoid; }
+    .empty-line { margin: 0; padding: 2.5mm; border: 1px solid #cbd5e1; color: #64748b; background: #f8fafc; }
+    .lazy-section { margin-top: 4mm; break-before: auto; }
+    .lazy-grid { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 1.2mm; }
+    .lazy-card { padding: 1.3mm; border: 1px solid #cbd5e1; background: #f8fafc; break-inside: avoid; }
     .lazy-card strong { display: block; color: #0f172a; }
-    .lazy-card span { display: block; margin-top: 0.5mm; color: #64748b; font-size: 8px; }
-    .print-note { margin-top: 5mm; padding-top: 2mm; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 7.5px; }
+    .lazy-card span { display: block; margin-top: 0.3mm; color: #64748b; font-size: 6.5px; }
+    .print-note { margin-top: 4mm; padding-top: 1.5mm; border-top: 1px solid #cbd5e1; color: #64748b; font-size: 6.5px; }
   </style>
 </head>
 <body>
@@ -1257,14 +1262,14 @@ export class ManavRaporlariListComponent {
         stats = [
           ['Ürün', String(this.summaryItems().length)],
           ['Ürün grubu', String(this.summaryGroups().length)],
-          ['Toplam miktar', this.formatQuantity(this.summaryTotalQuantity())]
+          ['Toplam miktar', this.formatQuantity(this.summaryTotalQuantity())],
         ];
         break;
       case 'byBranch':
         stats = [
           ['Evrak', String(this.branchDocumentCount())],
           ['Şube', String(this.branchCount())],
-          ['Sipariş girmeyen şube', String(this.lazyBranches().length)]
+          ['Sipariş girmeyen şube', String(this.lazyBranches().length)],
         ];
         break;
       case 'byProduct':
@@ -1274,16 +1279,16 @@ export class ManavRaporlariListComponent {
           [
             'Toplam miktar',
             this.formatQuantity(
-              this.productRows().reduce((total, item) => total + item.quantity, 0)
-            )
-          ]
+              this.productRows().reduce((total, item) => total + item.quantity, 0),
+            ),
+          ],
         ];
         break;
       case 'greens':
         stats = [
           ['Evrak', String(this.greenDocumentGroups().length)],
           ['Satır', String(this.greenItems().length)],
-          ['Toplam miktar', this.formatQuantity(this.greenTotalQuantity())]
+          ['Toplam miktar', this.formatQuantity(this.greenTotalQuantity())],
         ];
         break;
     }
@@ -1291,7 +1296,7 @@ export class ManavRaporlariListComponent {
     return `<section class="print-stats">${stats
       .map(
         ([label, value]) =>
-          `<div class="stat"><span>${this.escapeHtml(label)}</span><strong>${this.escapeHtml(value)}</strong></div>`
+          `<div class="stat"><span>${this.escapeHtml(label)}</span><strong>${this.escapeHtml(value)}</strong></div>`,
       )
       .join('')}</section>`;
   }
@@ -1316,7 +1321,7 @@ export class ManavRaporlariListComponent {
           ${this.buildPrintSectionHeading(
             group.typeLabel,
             `${group.items.length} ürün`,
-            this.formatQuantity(group.totalQuantity)
+            this.formatQuantity(group.totalQuantity),
           )}
           <table>
             <thead><tr><th class="index-cell">#</th><th>Ürün</th><th class="code-cell">Kod</th><th class="unit-cell">Birim</th><th class="quantity-cell">Miktar</th></tr></thead>
@@ -1328,11 +1333,11 @@ export class ManavRaporlariListComponent {
                   <td class="code-cell">${this.escapeHtml(this.getProductCode(item))}</td>
                   <td class="unit-cell">${this.escapeHtml(this.getUnitName(item) || '-')}</td>
                   <td class="quantity-cell"><strong>${this.escapeHtml(this.formatQuantity(item.quantity))}</strong>${this.buildCasePrintLines(item.caseInfo)}</td>
-                </tr>`
+                </tr>`,
               )
               .join('')}</tbody>
           </table>
-        </section>`
+        </section>`,
       )
       .join('');
   }
@@ -1346,7 +1351,7 @@ export class ManavRaporlariListComponent {
             [this.formatDateTime(group.orderDate), group.documentLabel, ...group.typeLabels]
               .filter(Boolean)
               .join(' · '),
-            this.formatQuantity(group.totalQuantity)
+            this.formatQuantity(group.totalQuantity),
           )}
           <table>
             <thead><tr><th class="index-cell">#</th><th>Ürün</th><th class="code-cell">Kod</th>${showType ? '<th class="type-cell">Tip</th>' : ''}<th class="unit-cell">Birim</th><th class="quantity-cell">Miktar</th></tr></thead>
@@ -1359,11 +1364,11 @@ export class ManavRaporlariListComponent {
                   ${showType ? `<td class="type-cell">${this.escapeHtml(this.getReportTypeLabel(item))}</td>` : ''}
                   <td class="unit-cell">${this.escapeHtml(this.getUnitName(item) || '-')}</td>
                   <td class="quantity-cell"><strong>${this.escapeHtml(this.formatQuantity(item.quantity))}</strong>${this.buildCasePrintLines(item.caseInfo)}</td>
-                </tr>`
+                </tr>`,
               )
               .join('')}</tbody>
           </table>
-        </section>`
+        </section>`,
       )
       .join('');
   }
@@ -1374,10 +1379,8 @@ export class ManavRaporlariListComponent {
         (product) => `<section class="print-section">
           ${this.buildPrintSectionHeading(
             product.productName,
-            [product.typeLabel, product.productCode, product.unitName]
-              .filter(Boolean)
-              .join(' · '),
-            this.formatQuantity(product.quantity)
+            [product.typeLabel, product.productCode, product.unitName].filter(Boolean).join(' · '),
+            this.formatQuantity(product.quantity),
           )}
           ${
             product.breakdownItems.length
@@ -1391,13 +1394,13 @@ export class ManavRaporlariListComponent {
                         <td class="document-cell">${this.escapeHtml(item.document?.documentNo?.trim() || this.formatDocument(item))}</td>
                         <td>${this.escapeHtml(this.formatDateTime(item.latestCreateDate || item.orderDate))}</td>
                         <td class="quantity-cell"><strong>${this.escapeHtml(this.formatQuantity(item.quantity))}</strong>${this.buildCasePrintLines(item.caseInfo)}</td>
-                      </tr>`
+                      </tr>`,
                     )
                     .join('')}</tbody>
                 </table>`
               : '<p class="empty-line">Şube / evrak kırılımı bulunamadı.</p>'
           }
-        </section>`
+        </section>`,
       )
       .join('');
   }
@@ -1411,14 +1414,14 @@ export class ManavRaporlariListComponent {
       ${this.buildPrintSectionHeading(
         'Sipariş Girmeyen Şubeler',
         'Seçilen rapor tarihinde evrakı bulunmayan şubeler',
-        String(this.lazyBranches().length)
+        String(this.lazyBranches().length),
       )}
       <div class="lazy-grid">${this.lazyBranches()
         .map(
           (branch) => `<article class="lazy-card">
             <strong>${this.escapeHtml(branch.branchName?.trim() || `Şube ${branch.branchNo}`)}</strong>
             <span>Şube ${this.escapeHtml(String(branch.branchNo ?? '-'))} · Bölge ${this.escapeHtml(branch.regionCode?.trim() || '-')}</span>
-          </article>`
+          </article>`,
         )
         .join('')}</div>
     </section>`;
@@ -1481,7 +1484,7 @@ export class ManavRaporlariListComponent {
   private async exportReport(
     tab: ReportTab,
     reportName: string,
-    sheets: readonly ExcelExportSheet<object>[]
+    sheets: readonly ExcelExportSheet<object>[],
   ): Promise<void> {
     const exportSheets = sheets.filter((sheet) => sheet.rows.length > 0);
 
@@ -1495,7 +1498,7 @@ export class ManavRaporlariListComponent {
     try {
       await exportRowsToExcel({
         fileName: `${reportName} ${this.lastLoadedDate()}`,
-        sheets: exportSheets
+        sheets: exportSheets,
       });
     } catch {
       this.exportErrorMessage.set('Excel dosyasi olusturulamadi.');
@@ -1510,21 +1513,31 @@ export class ManavRaporlariListComponent {
       { label: 'Tip Kodu', value: 'typeCode' },
       { label: 'Stok Kodu', value: (row) => this.getProductCode(row) },
       { label: 'Liste Adi', value: (row) => this.getProductName(row) },
-      { label: 'Stok Adi', value: (row) => row.stockName?.trim() || row.product?.stockName?.trim() || '' },
+      {
+        label: 'Stok Adi',
+        value: (row) => row.stockName?.trim() || row.product?.stockName?.trim() || '',
+      },
       { label: 'Birim', value: (row) => this.getUnitName(row) },
-      { label: 'Barkod', value: (row) => row.primaryBarcode?.trim() || row.product?.primaryBarcode?.trim() || '' },
+      {
+        label: 'Barkod',
+        value: (row) => row.primaryBarcode?.trim() || row.product?.primaryBarcode?.trim() || '',
+      },
       { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
-      { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) }
+      { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
     ];
   }
 
   private getBranchExportColumns(
-    includeType: boolean
+    includeType: boolean,
   ): readonly ExcelExportColumn<IFurpaGreenGrocerBranchReportItemApiDto>[] {
     return [
       { label: 'Tarih', value: (row) => row.latestCreateDate || row.orderDate, type: 'datetime' },
-      { label: 'Sube No', value: (row) => this.toSafeNumber(row.branch?.warehouseNo ?? row.branchNo), type: 'number' },
+      {
+        label: 'Sube No',
+        value: (row) => this.toSafeNumber(row.branch?.warehouseNo ?? row.branchNo),
+        type: 'number',
+      },
       { label: 'Sube', value: (row) => row.branch?.warehouseName?.trim() || row.branchName },
       { label: 'Bolge', value: (row) => row.branch?.regionCode?.trim() || '' },
       { label: 'Evrak', value: (row) => this.formatDocument(row) },
@@ -1534,21 +1547,26 @@ export class ManavRaporlariListComponent {
         ? [
             {
               label: 'Tip',
-              value: (row: IFurpaGreenGrocerBranchReportItemApiDto) =>
-                this.getReportTypeLabel(row)
+              value: (row: IFurpaGreenGrocerBranchReportItemApiDto) => this.getReportTypeLabel(row),
             },
-            { label: 'Tip Kodu', value: 'typeCode' }
+            { label: 'Tip Kodu', value: 'typeCode' },
           ]
         : []),
       { label: 'Stok Kodu', value: (row) => this.getProductCode(row) },
       { label: 'Liste Adi', value: (row) => this.getProductName(row) },
-      { label: 'Stok Adi', value: (row) => row.stockName?.trim() || row.product?.stockName?.trim() || '' },
+      {
+        label: 'Stok Adi',
+        value: (row) => row.stockName?.trim() || row.product?.stockName?.trim() || '',
+      },
       { label: 'Birim', value: (row) => this.getUnitName(row) },
-      { label: 'Barkod', value: (row) => row.primaryBarcode?.trim() || row.product?.primaryBarcode?.trim() || '' },
+      {
+        label: 'Barkod',
+        value: (row) => row.primaryBarcode?.trim() || row.product?.primaryBarcode?.trim() || '',
+      },
       { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
       { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
-      { label: 'Silinebilir', value: (row) => (row.canDelete === false ? 'Hayir' : 'Evet') }
+      { label: 'Silinebilir', value: (row) => (row.canDelete === false ? 'Hayir' : 'Evet') },
     ];
   }
 
@@ -1556,7 +1574,7 @@ export class ManavRaporlariListComponent {
     return [
       { label: 'Sube No', value: 'branchNo', type: 'number' },
       { label: 'Sube', value: 'branchName' },
-      { label: 'Bolge', value: 'regionCode' }
+      { label: 'Bolge', value: 'regionCode' },
     ];
   }
 
@@ -1572,7 +1590,7 @@ export class ManavRaporlariListComponent {
       { label: 'Toplam Miktar', value: 'quantity', type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
       { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
-      { label: 'Kirilim Satiri', value: (row) => row.breakdownItems.length, type: 'number' }
+      { label: 'Kirilim Satiri', value: (row) => row.breakdownItems.length, type: 'number' },
     ];
   }
 
@@ -1591,7 +1609,7 @@ export class ManavRaporlariListComponent {
       { label: 'Evrak', value: 'documentLabel' },
       { label: 'Miktar', value: 'quantity', type: 'number' },
       { label: 'Kasa/Koli', value: 'caseText' },
-      { label: 'Ortalama', value: 'caseAverageText' }
+      { label: 'Ortalama', value: 'caseAverageText' },
     ];
   }
 }
