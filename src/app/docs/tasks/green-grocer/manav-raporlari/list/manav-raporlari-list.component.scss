@@ -421,6 +421,10 @@ td small {
   display: none;
 }
 
+.mobile-product-list {
+  display: none;
+}
+
 @media (max-width: 1180px) {
   .report-metrics {
     grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -445,7 +449,7 @@ td small {
 
   .report-metrics,
   .report-tabs {
-    grid-template-columns: 1fr;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .green-query-grid,
@@ -459,6 +463,7 @@ td small {
   .panel-actions,
   .document-actions {
     justify-content: stretch;
+    min-width: 0;
   }
 
   .print-action {
@@ -475,6 +480,15 @@ td small {
     align-items: center;
     gap: 0.55rem;
     padding: 0.72rem;
+    padding-right: 2.25rem;
+    position: relative;
+  }
+
+  .accordion-head::after {
+    position: absolute;
+    top: 50%;
+    right: 0.85rem;
+    margin-top: -5px;
   }
 
   .accordion-head .panel-chip {
@@ -498,8 +512,9 @@ td small {
   .compact-wrap,
   .product-list,
   .product-detail .table-wrap {
-    overflow-x: auto;
-    -webkit-overflow-scrolling: touch;
+    width: 100%;
+    min-width: 0;
+    overflow: visible;
   }
 
   .compact-table,
@@ -536,77 +551,61 @@ td small {
     line-height: 1.25;
   }
 
-  .report-table th,
-  .report-table td {
-    white-space: nowrap;
-  }
-
-  .number-cell {
-    white-space: nowrap;
-  }
-
   .compact-table,
-  .line-table {
-    min-width: 100%;
+  .line-table,
+  .compact-table tbody,
+  .line-table tbody {
+    display: grid;
+    width: 100%;
+    min-width: 0;
+    gap: 0.48rem;
   }
 
-  .compact-table th:nth-child(1),
-  .compact-table td:nth-child(1),
-  .line-table th:nth-child(1),
-  .line-table td:nth-child(1) {
-    width: 52%;
+  .compact-table thead,
+  .line-table thead {
+    display: none;
   }
 
-  .compact-table th:nth-child(2),
-  .compact-table td:nth-child(2),
-  .line-table th:nth-child(2),
-  .line-table td:nth-child(2) {
-    width: 18%;
+  .compact-table tbody tr,
+  .line-table tbody tr {
+    display: grid;
+    grid-template-columns: repeat(3, minmax(0, 1fr));
+    gap: 0.45rem 0.6rem;
+    min-width: 0;
+    padding: 0.65rem;
+    border: 1px solid #e2e8f0;
+    border-radius: 7px;
+    background: #fff;
   }
 
-  .compact-table th:nth-child(3),
-  .compact-table td:nth-child(3),
-  .line-table th:nth-child(3),
-  .line-table td:nth-child(3) {
-    width: 14%;
+  .compact-table tbody td,
+  .line-table tbody td {
+    display: block;
+    width: auto !important;
+    min-width: 0;
+    padding: 0;
+    border: 0;
+    text-align: left;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
-  .compact-table th:nth-child(4),
-  .compact-table td:nth-child(4),
-  .line-table th:nth-child(4),
-  .line-table td:nth-child(4) {
-    width: 16%;
+  .compact-table tbody td:first-child,
+  .line-table tbody td:first-child {
+    grid-column: 1 / -1;
+    padding-bottom: 0.45rem;
+    border-bottom: 1px solid #edf2f7;
   }
 
-  .product-table th:nth-child(1),
-  .product-table td:nth-child(1) {
-    width: 52%;
-  }
-
-  .product-table th:nth-child(2),
-  .product-table td:nth-child(2) {
-    width: 20%;
-  }
-
-  .product-table th:nth-child(3),
-  .product-table td:nth-child(3) {
-    width: 16%;
-  }
-
-  .product-table th:nth-child(4),
-  .product-table td:nth-child(4) {
-    width: 12%;
-  }
-
-  .report-table th,
-  .report-table td {
-    padding: 0.42rem 0.28rem;
-    font-size: 0.66rem;
-  }
-
-  .compact-table th:last-child,
-  .compact-table td:last-child {
-    width: 28%;
+  .compact-table tbody td:not(:first-child)::before,
+  .line-table tbody td:not(:first-child)::before {
+    content: attr(data-label);
+    display: block;
+    margin-bottom: 0.16rem;
+    color: #64748b;
+    font-size: 0.58rem;
+    font-weight: 800;
+    text-transform: uppercase;
   }
 
   .type-pill {
@@ -617,41 +616,79 @@ td small {
   .product-name {
     display: block;
     max-width: 100%;
-    overflow: hidden;
-    font-size: 0.7rem;
-    line-height: 1.1;
-    text-overflow: ellipsis;
-    white-space: nowrap;
+    overflow: visible;
+    font-size: 0.76rem;
+    line-height: 1.3;
+    overflow-wrap: anywhere;
+    text-overflow: clip;
+    white-space: normal;
   }
 
-  .product-detail {
+  .product-list,
+  .product-detail,
+  .mobile-product-detail {
     display: none;
   }
 
-  .mobile-product-detail {
-    display: table-row;
-  }
-
-  .mobile-product-detail > td {
-    padding: 0.65rem;
-    border-top: 0;
-    background: #f0fdfa;
-  }
-
-  .mobile-product-detail .product-detail-content {
+  .mobile-product-list {
     display: grid;
-    gap: 0.65rem;
-    padding: 0.7rem;
-    border: 1px solid #bbf7d0;
+    gap: 0.55rem;
+  }
+
+  .mobile-product-card {
+    min-width: 0;
+    overflow: hidden;
+    border: 1px solid #d8e3ed;
     border-radius: 8px;
     background: #fff;
   }
 
+  .mobile-product-head {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr) auto;
+    align-items: center;
+    gap: 0.65rem;
+    min-height: 72px;
+    padding: 0.72rem;
+    background: #f8fafc;
+  }
+
+  .mobile-product-head > div {
+    min-width: 0;
+  }
+
+  .mobile-product-head .product-name {
+    margin-top: 0.38rem;
+    font-size: 0.86rem;
+  }
+
+  .mobile-product-head small {
+    display: block;
+    margin-top: 0.24rem;
+    color: #64748b;
+    font-size: 0.68rem;
+  }
+
+  .mobile-product-body {
+    padding: 0.72rem;
+    border-top: 1px solid #e2e8f0;
+  }
+
+  .mobile-product-body .panel-head {
+    display: none;
+  }
+
+  .mobile-product-body .product-detail-content {
+    display: grid;
+    gap: 0.65rem;
+  }
+
   td small {
-    margin-top: 0.08rem;
-    font-size: 0.56rem;
-    line-height: 1.05;
-    white-space: nowrap;
+    margin-top: 0.12rem;
+    font-size: 0.64rem;
+    line-height: 1.2;
+    white-space: normal;
+    overflow-wrap: anywhere;
   }
 
   .case-info {
@@ -663,5 +700,22 @@ td small {
     min-height: 22px;
     padding: 0.18rem 0.42rem;
     font-size: 0.68rem;
+  }
+}
+
+@media (max-width: 390px) {
+  .report-metrics,
+  .report-tabs {
+    grid-template-columns: 1fr;
+  }
+
+  .compact-table tbody tr,
+  .line-table tbody tr {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .compact-table tbody td:last-child,
+  .line-table tbody td:last-child {
+    grid-column: 1 / -1;
   }
 }

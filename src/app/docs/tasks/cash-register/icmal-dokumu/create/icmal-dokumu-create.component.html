@@ -202,7 +202,7 @@
             [class.field-invalid]="controls.zReportNo.touched && controls.zReportNo.invalid"
           >
             <span>Z No</span>
-            <input type="number" formControlName="zReportNo" placeholder="1643" min="1" step="1" inputmode="numeric" />
+            <input type="number" formControlName="zReportNo" placeholder="1643" min="1" step="1" inputmode="numeric" (change)="onZReportNoChanged()" />
             <small class="field-hint" *ngIf="controls.zReportNo.touched && controls.zReportNo.invalid">
               Gecerli bir Z numarasi gerekli
             </small>
@@ -319,7 +319,10 @@
             [class.field-invalid]="controls.zTotalValue.touched && controls.zTotalValue.invalid"
           >
             <span>Z Toplami</span>
-            <input type="number" step="0.01" min="0" inputmode="decimal" formControlName="zTotalValue" placeholder="0.00" (focus)="clearZeroOnFocus(controls.zTotalValue)" (blur)="normalizeCurrencyInput(controls.zTotalValue)" />
+            <input type="number" step="0.01" min="0" inputmode="decimal" formControlName="zTotalValue" placeholder="0.00" [readonly]="isZTotalReadOnly()" (focus)="!isZTotalReadOnly() && clearZeroOnFocus(controls.zTotalValue)" (blur)="normalizeCurrencyInput(controls.zTotalValue)" />
+            <small class="field-hint" *ngIf="isLegacyCashRegister()">
+              Eski kasada Z toplami Z raporundan otomatik okunur.
+            </small>
             <small class="field-hint" *ngIf="controls.zTotalValue.touched && controls.zTotalValue.invalid">
               Z toplami gerekli
             </small>

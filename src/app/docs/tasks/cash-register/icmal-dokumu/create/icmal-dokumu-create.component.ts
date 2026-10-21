@@ -114,6 +114,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly today = this.formatAsInputDate(new Date());
   private readonly formRevision = signal(0);
+  private cashRegisterRequestId = 0;
 
   protected readonly page: DocsContentPage = DOCS_PAGES['icmal-kaydi-girisi'];
   protected readonly endpointPath = '/api/kasa-islemleri/kasa-sayimlari';
@@ -146,6 +147,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
   protected readonly cashRegisterMessage = signal('');
   protected readonly zReportLoading = signal(false);
   protected readonly zReportMessage = signal('');
+  private readonly loadedZReportKey = signal<string | null>(null);
   protected readonly submitting = signal(false);
   protected readonly confirmingSubmit = signal(false);
   protected readonly submitError = signal('');
@@ -176,6 +178,15 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
   protected readonly storeExpenseTemplates = signal<IFurpaPaymentTypeLookupItemApiDto[]>([]);
   protected readonly onlineCashRegisterDetails = signal<IFurpaOnlineCashRegisterDetailApiDto[]>([]);
   protected readonly cashRegisterDetail = signal<ICashRegisterDetails | null>(null);
+  protected readonly isNewCashRegister = computed(() =>
+    this.cashRegisterDetail()?.cashRegisterNo?.trim().toUpperCase().startsWith('PAV') === true
+  );
+  protected readonly isLegacyCashRegister = computed(
+    () => this.cashRegisterDetail() !== null && !this.isNewCashRegister()
+  );
+  protected readonly isZTotalReadOnly = computed(
+    () => this.toSafeNumber(this.controls?.cashNo?.value) > 0 && !this.isNewCashRegister()
+  );
 
   protected readonly controls: IcmalCreateControls = {
     cashNo: new FormControl<number | null>(null, {
@@ -689,26 +700,58 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
     this.cashRegisterDetail.set(null);
     this.bankPaymentTypes.set([]);
     this.cashRegisterMessage.set('');
+    this.zReportMessage.set('');
+    this.loadedZReportKey.set(null);
+    this.controls.zTotalValue.setValue(null);
     this.controls.cashRegisterFiscalNo.setValue('', { emitEvent: false });
     this.removePaymentTypesBySource('card');
     this.refreshComputedFormState();
 
     if (cashNo === null || cashNo === undefined || cashNo <= 0) {
+      this.cashRegisterRequestId += 1;
       return;
     }
 
+    this.loadCashRegisterDetail(cashNo);
+  }
+
+  private loadCashRegisterDetail(cashNo: number): void {
+    const requestId = ++this.cashRegisterRequestId;
     this.cashRegisterLoading.set(true);
 
     this.kasaIslemleriService
       .getKasaKayitDetayi(cashNo)
-      .pipe(finalize(() => this.cashRegisterLoading.set(false)))
+      .pipe(
+        finalize(() => {
+          if (requestId === this.cashRegisterRequestId) {
+            this.cashRegisterLoading.set(false);
+          }
+        })
+      )
       .subscribe({
         next: (detail: ICashRegisterDetails | null) => {
+          if (requestId !== this.cashRegisterRequestId) {
+            return;
+          }
+
           this.cashRegisterDetail.set(detail);
           const fiscalMemoryNo = detail?.cashRegisterNo?.trim() ?? '';
           const bankLookupCashRegisterNo =
             detail?.cashFinanceNumber?.trim() || fiscalMemoryNo;
           this.controls.cashRegisterFiscalNo.setValue(fiscalMemoryNo, { emitEvent: false });
+
+          if (detail && !this.isNewCashRegister()) {
+            this.controls.zTotalValue.setValue(null);
+            this.loadedZReportKey.set(null);
+
+            if (this.toSafeNumber(this.controls.zReportNo.value) > 0) {
+              this.loadZReportTotal();
+            } else {
+              this.zReportMessage.set(
+                'Eski kasada Z toplami elle girilemez. Z No girildiginde toplam otomatik okunur.'
+              );
+            }
+          }
 
           if (!bankLookupCashRegisterNo) {
             this.cashRegisterMessage.set(
@@ -723,11 +766,25 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
           this.loadBankPaymentTypes(bankLookupCashRegisterNo);
         },
         error: (error: HttpErrorResponse) => {
+          if (requestId !== this.cashRegisterRequestId) {
+            return;
+          }
+
           this.cashRegisterMessage.set(
             this.resolveErrorMessage(error, 'Kasa detayi getirilemedi.')
           );
         }
       });
+  }
+
+  protected onZReportNoChanged(): void {
+    this.controls.zTotalValue.setValue(null);
+    this.loadedZReportKey.set(null);
+    this.zReportMessage.set('');
+
+    if (this.isLegacyCashRegister() && this.canReadZReport()) {
+      this.loadZReportTotal();
+    }
   }
 
   protected searchCashiers(): void {
@@ -1019,6 +1076,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
     const warehouseNo = this.resolveCreateWarehouseNo();
     const zReportNo = this.controls.zReportNo.value;
     const cashNo = this.controls.cashNo.value;
+    const requestKey = this.buildZReportKey(warehouseNo, cashNo, zReportNo);
 
     this.zReportMessage.set('');
 
@@ -1038,10 +1096,27 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
         zReportNo,
         cashNo
       )
-      .pipe(finalize(() => this.zReportLoading.set(false)))
+      .pipe(
+        finalize(() => {
+          this.zReportLoading.set(false);
+
+          if (
+            this.isLegacyCashRegister() &&
+            this.canReadZReport() &&
+            this.buildCurrentZReportKey() !== requestKey
+          ) {
+            this.loadZReportTotal();
+          }
+        })
+      )
       .subscribe({
         next: (value: number | null) => {
+          if (requestKey !== this.buildCurrentZReportKey()) {
+            return;
+          }
+
           if (value === null) {
+            this.loadedZReportKey.set(null);
             this.zReportMessage.set('Z raporu toplami okunamadi.');
             return;
           }
@@ -1049,9 +1124,15 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
           this.controls.zTotalValue.setValue(value);
           this.controls.zTotalValue.markAsDirty();
           this.controls.zTotalValue.markAsTouched();
+          this.loadedZReportKey.set(requestKey);
           this.zReportMessage.set('Z raporu toplami forma yazildi.');
         },
         error: (error: HttpErrorResponse) => {
+          if (requestKey !== this.buildCurrentZReportKey()) {
+            return;
+          }
+
+          this.loadedZReportKey.set(null);
           this.zReportMessage.set(
             this.resolveErrorMessage(error, 'Z raporu toplami getirilemedi.')
           );
@@ -1070,6 +1151,21 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
 
     if (!this.canCreate()) {
       this.submitError.set('Bu icmal kaydini olusturmak icin kaydetme yetkin yok.');
+      return;
+    }
+
+    if (this.toSafeNumber(this.controls.cashNo.value) > 0 && !this.cashRegisterDetail()) {
+      this.submitError.set('Kasa detayi okunmadan icmal kaydi olusturulamaz. Kasayi yeniden secin.');
+      return;
+    }
+
+    if (
+      this.isLegacyCashRegister() &&
+      this.loadedZReportKey() !== this.buildCurrentZReportKey()
+    ) {
+      this.submitError.set(
+        'Eski kasada Z toplami elle girilemez. Gecerli Z No icin Z toplaminin okunmasini bekleyin.'
+      );
       return;
     }
 
@@ -1888,6 +1984,11 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
     this.clearDraftTransientState();
     this.refreshComputedFormState();
 
+    const restoredCashNo = this.toSafeNumber(this.controls.cashNo.value);
+    if (restoredCashNo > 0) {
+      this.loadCashRegisterDetail(restoredCashNo);
+    }
+
     if (previousWarehouseNo !== this.resolveCreateWarehouseNo()) {
       this.cashRegisters.set([]);
       this.loadLookupData();
@@ -1895,6 +1996,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
   }
 
   private resetBrowserDraft(): void {
+    this.cashRegisterRequestId += 1;
     resetIcmalDraftForm(this.form, this.today, this.currentWarehouseNo());
     this.selectedCashier.set(null);
     this.selectedManager.set(null);
@@ -1913,6 +2015,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
     this.managerSearchError.set('');
     this.cashRegisterMessage.set('');
     this.zReportMessage.set('');
+    this.loadedZReportKey.set(null);
     this.submitError.set('');
     this.submitSuccess.set('');
     this.createdResponse.set(null);
@@ -1927,6 +2030,28 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
     const warehousePart = warehouseNo ? String(warehouseNo) : '{loginDepoNo}';
     const cashPart = cashNo ? String(cashNo) : '{kasaNo}';
     return `F${warehousePart}.${cashPart}`;
+  }
+
+  private buildCurrentZReportKey(): string | null {
+    return this.buildZReportKey(
+      this.resolveCreateWarehouseNo(),
+      this.controls.cashNo.value,
+      this.controls.zReportNo.value
+    );
+  }
+
+  private buildZReportKey(
+    warehouseNo: number | null | undefined,
+    cashNo: number | null | undefined,
+    zReportNo: number | null | undefined
+  ): string | null {
+    const resolvedWarehouseNo = this.toSafeNumber(warehouseNo);
+    const resolvedCashNo = this.toSafeNumber(cashNo);
+    const resolvedZReportNo = this.toSafeNumber(zReportNo);
+
+    return resolvedWarehouseNo > 0 && resolvedCashNo > 0 && resolvedZReportNo > 0
+      ? `${resolvedWarehouseNo}:${resolvedCashNo}:${resolvedZReportNo}`
+      : null;
   }
 
   private configureWarehouseControl(): void {

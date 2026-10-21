@@ -152,13 +152,13 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of group.items; trackBy: trackBySummary">
-                    <td>
+                    <td data-label="Urun">
                       <span class="product-name">{{ getProductName(item) }}</span>
                       <small *ngIf="item.stockName">{{ item.stockName }}</small>
                     </td>
-                    <td>{{ getProductCode(item) }}</td>
-                    <td>{{ getUnitName(item) || '-' }}</td>
-                    <td class="number-cell">
+                    <td data-label="Kod">{{ getProductCode(item) }}</td>
+                    <td data-label="Birim">{{ getUnitName(item) || '-' }}</td>
+                    <td class="number-cell" data-label="Miktar">
                       <span>{{ formatQuantity(item.quantity) }}</span>
                       <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
                         caseText
@@ -257,13 +257,13 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of group.items; trackBy: trackByBranchItem">
-                    <td>
+                    <td data-label="Urun">
                       <span class="product-name">{{ getProductName(item) }}</span>
                       <small>{{ getReportTypeLabel(item) }}</small>
                     </td>
-                    <td>{{ getProductCode(item) }}</td>
-                    <td>{{ getUnitName(item) || '-' }}</td>
-                    <td class="number-cell">
+                    <td data-label="Kod">{{ getProductCode(item) }}</td>
+                    <td data-label="Birim">{{ getUnitName(item) || '-' }}</td>
+                    <td class="number-cell" data-label="Miktar">
                       <span>{{ formatQuantity(item.quantity) }}</span>
                       <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
                         caseText
@@ -387,6 +387,28 @@
             </table>
           </div>
 
+          <div class="mobile-product-list">
+            <details
+              class="mobile-product-card accordion-card"
+              *ngFor="let item of productRows(); let itemIndex = index; trackBy: trackByProduct"
+              [open]="itemIndex === 0"
+            >
+              <summary class="mobile-product-head accordion-head">
+                <div>
+                  <span class="type-pill">{{ item.typeLabel }}</span>
+                  <strong class="product-name">{{ item.productName }}</strong>
+                  <small>{{ item.productCode }} · {{ item.unitName || '-' }}</small>
+                </div>
+                <span class="panel-chip">{{ formatQuantity(item.quantity) }}</span>
+              </summary>
+              <div class="mobile-product-body">
+                <ng-container
+                  *ngTemplateOutlet="productDetail; context: { $implicit: item }"
+                ></ng-container>
+              </div>
+            </details>
+          </div>
+
           <article class="query-card product-detail" *ngIf="selectedProduct() as product">
             <ng-container
               *ngTemplateOutlet="productDetail; context: { $implicit: product }"
@@ -418,12 +440,14 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of product.breakdownItems; trackBy: trackByBranchItem">
-                    <td>
+                    <td data-label="Sube">
                       <span class="product-name">{{ formatBranch(item) }}</span>
                       <small>{{ formatDateTime(item.latestCreateDate || item.orderDate) }}</small>
                     </td>
-                    <td>{{ item.document?.documentNo || formatDocument(item) }}</td>
-                    <td class="number-cell">
+                    <td data-label="Evrak">
+                      {{ item.document?.documentNo || formatDocument(item) }}
+                    </td>
+                    <td class="number-cell" data-label="Miktar">
                       <span>{{ formatQuantity(item.quantity) }}</span>
                       <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
                         caseText
@@ -515,12 +539,12 @@
                 </thead>
                 <tbody>
                   <tr *ngFor="let item of group.items; trackBy: trackByBranchItem">
-                    <td>
+                    <td data-label="Urun">
                       <span class="product-name">{{ getProductName(item) }}</span>
                     </td>
-                    <td>{{ getProductCode(item) }}</td>
-                    <td>{{ getUnitName(item) || '-' }}</td>
-                    <td class="number-cell">
+                    <td data-label="Kod">{{ getProductCode(item) }}</td>
+                    <td data-label="Birim">{{ getUnitName(item) || '-' }}</td>
+                    <td class="number-cell" data-label="Miktar">
                       <span>{{ formatQuantity(item.quantity) }}</span>
                       <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
                         caseText
