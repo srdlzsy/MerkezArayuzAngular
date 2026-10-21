@@ -1213,6 +1213,7 @@ export interface CashRegisterDetailDto {
 export interface CreateCashSummaryHttpRequest {
   warehouseNo?: number;
   cashNo: number;
+  cashRegisterNo?: string;
   zReportNo: number;
   cashierNo: number;
   managerNo: number;
@@ -1605,6 +1606,7 @@ export interface IFurpaCreateStoreExpenseRequestApiDto {
 
 export interface IFurpaCreateCashSummaryRequestApiDto {
   cashNo: number;
+  cashRegisterNo?: string;
   zReportNo: number;
   cashierNo: number;
   managerNo: number;

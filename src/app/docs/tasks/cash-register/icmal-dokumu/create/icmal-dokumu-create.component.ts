@@ -1833,6 +1833,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
 
     return {
       cashNo: this.toSafeNumber(rawValue.cashNo),
+      cashRegisterNo: this.cashRegisterDetail()?.cashRegisterNo?.trim() || undefined,
       zReportNo: this.toSafeNumber(rawValue.zReportNo),
       cashierNo: this.toSafeNumber(rawValue.cashierNo),
       managerNo: this.toSafeNumber(rawValue.managerNo),
