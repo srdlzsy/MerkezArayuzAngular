@@ -20,49 +20,49 @@ export const RECEIVING_TASK_SOURCE = {
         'MikroApi modunda siparis teslim etkisi Mikro API tarafina birakilir',
         'ETTN/UUID endpointi create ekrani icin e-irsaliye veya e-fatura ust bilgi ve kalem on-dolumu saglar',
         'Resmi belge izi create bodyde officialDocumentKind/No/Date/Ettn alanlariyla Belge Akis Takibine aktarilir',
-        'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir'
+        'Siparisli ve siparissiz kalemler ayni fis icinde birlikte gonderilebilir',
       ],
       listTitle: 'Endpointler',
       items: [
         {
           name: 'ToptanGirisIrsaliyeleriController',
-          description:
-            'Firma mal kabul gecmisi, detay, ETTN cozumleme ve create akisini sunar.',
+          description: 'Firma mal kabul gecmisi, detay, ETTN cozumleme ve create akisini sunar.',
           endpoints: [
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/firma-mal-kabulleri?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'Yapilmis firma mal kabul fislerini belge tarihine gore listeler'
+              description: 'Yapilmis firma mal kabul fislerini belge tarihine gore listeler',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/firma-mal-kabulleri/{seri}/{sira}?warehouseNo=110',
-              description: 'Secilen firma mal kabul fisinin salt-okunur detayini getirir'
+              description: 'Secilen firma mal kabul fisinin salt-okunur detayini getirir',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/firma-mal-kabulleri/resmi-belge/ettn/{ettn}?warehouseNo=110&documentKind=auto',
-              description: 'ETTN/UUID ile resmi e-irsaliye veya e-fatura ust bilgi, stok eslesmeleri ve cari onerilerini getirir'
+              description:
+                'ETTN/UUID ile resmi e-irsaliye veya e-fatura ust bilgi, stok eslesmeleri ve cari onerilerini getirir',
             },
             {
               method: 'POST',
               path: '/api/mal-kabul-islemleri/firma-mal-kabulleri',
               description: 'Yeni firma mal kabul fisini olusturur',
-              payload: 'CreateCompanyReceivingHttpRequest'
+              payload: 'CreateCompanyReceivingHttpRequest',
             },
             {
               method: 'POST',
               path: '/api/mal-kabul-islemleri/mal-kabuller/firma',
               description: 'Firma mal kabul create endpoint aliasi',
-              payload: 'CreateCompanyReceivingHttpRequest'
+              payload: 'CreateCompanyReceivingHttpRequest',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/firma-mal-kabulleri/offline-sync/{clientRequestId}',
-              description: 'Offline retry icin create sonucunu sorgular'
-            }
-          ]
-        }
+              description: 'Offline retry icin create sonucunu sorgular',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "clientRequestId": "d8d0f3d6-5c62-4c67-b6b7-0f5d76b81b6f",
@@ -91,13 +91,13 @@ export const RECEIVING_TASK_SOURCE = {
       "orderGuid": "1bb2b4fe-b722-4e67-9d4b-050b6d87e800"
     }
   ]
-}`
+}`,
     },
     () =>
-      import(
-        '../tasks/receiving/firma-mal-kabulleri/list/firma-mal-kabulleri-list.component'
-      ).then((m) => m.FirmaMalKabulleriListComponent),
-    { accessKeyAliases: ['toptan-giris-irsaliyeleri'] }
+      import('../tasks/receiving/firma-mal-kabulleri/list/firma-mal-kabulleri-list.component').then(
+        (m) => m.FirmaMalKabulleriListComponent,
+      ),
+    { accessKeyAliases: ['toptan-giris-irsaliyeleri'] },
   ),
   'depo-mal-kabulleri': singleRouteTask(
     {
@@ -114,7 +114,10 @@ export const RECEIVING_TASK_SOURCE = {
         'Kabul icin gonderen taraf e-irsaliyesi zorunludur; e-irsaliye gonderilmeden kabul butonu acilmaz',
         'allowDiscrepancy false iken eksik/fazla kabul 409 Conflict ile engellenir',
         'allowDiscrepancy true iken fark sth_FormulMiktar uzerinde recorded-on-formula-quantity olarak izlenir',
-        'Kabul islemi mevcut sevk satirlarini gunceller, yeni ana hareket acmaz'
+        'Kaydet devam ederken buton kilitli tutulur ve ayni ekrandan ikinci paralel POST uretilmez',
+        'Ayni movementGuid ve receivedQuantity degerleriyle tekrarlanan kabul 200 OK donerse mevcut kabul normal basari gibi tamamlanir',
+        'Daha once kabul edilen evrak farkli satir veya miktarla 409 donerse otomatik tekrar yapilmaz; evrak detayi yeniden okunur',
+        'Kabul islemi mevcut sevk satirlarini gunceller, yeni ana hareket acmaz',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -126,26 +129,30 @@ export const RECEIVING_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/depo-mal-kabulleri?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'Bekleyen gelen depo sevklerini ve iadelerini mal kabul listesi olarak getirir'
+              description:
+                'Bekleyen gelen depo sevklerini ve iadelerini mal kabul listesi olarak getirir',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/depo-mal-kabulleri/{seri}/{sira}?warehouseNo=110',
-              description: 'Secilen bekleyen gelen sevk veya iade detayini ve kabul icin movementGuid satirlarini getirir'
+              description:
+                'Secilen bekleyen gelen sevk veya iade detayini ve kabul icin movementGuid satirlarini getirir',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/depo-mal-kabulleri/e-irsaliye/ettn/{ettn}?warehouseNo=110',
-              description: 'Gelen e-irsaliye ust bilgi ve satirlarini depo kabul baglaminda karsilastirma icin getirir'
+              description:
+                'Gelen e-irsaliye ust bilgi ve satirlarini depo kabul baglaminda karsilastirma icin getirir',
             },
             {
               method: 'POST',
               path: '/api/mal-kabul-islemleri/depo-mal-kabulleri/{seri}/{sira}/kabul',
-              description: 'Sayilan miktarlari movementGuid bazli kabul eder; fark varsa allowDiscrepancy kurali uygulanir',
-              payload: 'AcceptWarehouseReceivingHttpRequest'
-            }
-          ]
-        }
+              description:
+                'Sayilan miktarlari movementGuid bazli kabul eder; ayni icerikli tekrar idempotenttir, farkli icerikli tekrar 409 doner',
+              payload: 'AcceptWarehouseReceivingHttpRequest',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "allowDiscrepancy": false,
@@ -155,13 +162,13 @@ export const RECEIVING_TASK_SOURCE = {
       "receivedQuantity": 10
     }
   ]
-}`
+}`,
     },
     () =>
-      import(
-        '../tasks/receiving/depolar-arasi-nakliye-mal-kabul-fisleri/list/depolar-arasi-nakliye-mal-kabul-fisleri-list.component'
-      ).then((m) => m.DepolarArasiNakliyeMalKabulFisleriListComponent),
-    { accessKeyAliases: ['depolar-arasi-nakliye-mal-kabul-fisleri'] }
+      import('../tasks/receiving/depolar-arasi-nakliye-mal-kabul-fisleri/list/depolar-arasi-nakliye-mal-kabul-fisleri-list.component').then(
+        (m) => m.DepolarArasiNakliyeMalKabulFisleriListComponent,
+      ),
+    { accessKeyAliases: ['depolar-arasi-nakliye-mal-kabul-fisleri'] },
   ),
   'mal-kabul-farklari': singleRouteTask(
     {
@@ -175,7 +182,7 @@ export const RECEIVING_TASK_SOURCE = {
         'scope=created kullanicinin deposunun olusturdugu veya gonderdigi evraklari listeler',
         'Normal sevk ve depo iadesi ayni response icinde isReturn alanina gore ayrilir',
         'differenceQuantity = receivedQuantity - quantity mantigiyla hesaplanir',
-        'Sadece kabul edilmis satirlar doner'
+        'Sadece kabul edilmis satirlar doner',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -187,30 +194,31 @@ export const RECEIVING_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/mal-kabul-farklari?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30&scope=accepted',
-              description: 'Mal kabul farklarini accepted veya created kapsaminda listeler'
+              description: 'Mal kabul farklarini accepted veya created kapsaminda listeler',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/mal-kabul-farklari/accepted?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'Kullanicinin deposunun kabul ettigi evraklardaki farklari listeler'
+              description: 'Kullanicinin deposunun kabul ettigi evraklardaki farklari listeler',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/mal-kabul-farklari/created?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'Kullanicinin deposunun olusturdugu veya gonderdigi evraklardaki farklari listeler'
+              description:
+                'Kullanicinin deposunun olusturdugu veya gonderdigi evraklardaki farklari listeler',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/mal-kabul-farklari/kabul-ettigim?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'accepted kapsami icin Turkce alias'
+              description: 'accepted kapsami icin Turkce alias',
             },
             {
               method: 'GET',
               path: '/api/mal-kabul-islemleri/mal-kabul-farklari/olusturdugum?WarehouseNo=110&StartDate=2026-04-01&EndDate=2026-04-30',
-              description: 'created kapsami icin Turkce alias'
-            }
-          ]
-        }
+              description: 'created kapsami icin Turkce alias',
+            },
+          ],
+        },
       ],
       codeSample: `[
   {
@@ -236,19 +244,19 @@ export const RECEIVING_TASK_SOURCE = {
     "differenceType": "missing",
     "description": ""
   }
-]`
+]`,
     },
     () =>
-      import(
-        '../tasks/receiving/mal-kabul-farklari/list/mal-kabul-farklari-list.component'
-      ).then((m) => m.MalKabulFarklariListComponent),
+      import('../tasks/receiving/mal-kabul-farklari/list/mal-kabul-farklari-list.component').then(
+        (m) => m.MalKabulFarklariListComponent,
+      ),
     {
       accessKeyAliases: [
         'MalKabulFarklari',
         'kabul-ettigim',
         'olusturdugum',
-        'mal-kabul-islemleri-mal-kabul-farklari'
-      ]
-    }
-  )
+        'mal-kabul-islemleri-mal-kabul-farklari',
+      ],
+    },
+  ),
 } as const satisfies Record<string, DocsTaskSource>;
