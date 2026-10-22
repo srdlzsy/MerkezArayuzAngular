@@ -1,4 +1,5 @@
 import { CommonModule } from '@angular/common';
+import { HttpErrorResponse } from '@angular/common/http';
 import { Component, DestroyRef, ElementRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { finalize, switchMap } from 'rxjs';
@@ -24,6 +25,7 @@ import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dial
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
+import { resolveHttpErrorMessage } from '../../../core/api-error.helpers';
 import {
   currentUserHasPermission,
   normalizePermissionCode
@@ -73,7 +75,7 @@ type IcmalActionPermission = 'update' | 'delete';
 type EditableDetailField = keyof ISummariesDetailsCT;
 type EditableBanknoteField = keyof IBanknoteMovementsCT;
 type EditableGiftCheckField = keyof IGiftCheckMovementsCT;
-type EditableSection = 'payments' | 'banknotes' | 'giftChecks';
+type EditableSection = 'header' | 'payments' | 'banknotes' | 'giftChecks';
 type EditablePaymentCategory =
   | 'card'
   | 'foodCheck'
@@ -135,7 +137,10 @@ export class IcmalDokumuDetailComponent
   protected readonly isSaving = signal(false);
   protected readonly isDeleting = signal(false);
   protected readonly activeDetailView = signal<DetailView>('card');
-  protected readonly activeEditableSection = signal<EditableSection>('payments');
+  protected readonly activeEditableSection = signal<EditableSection>('header');
+  protected readonly editableZReportNo = signal(0);
+  protected readonly editableZTotalValue = signal(0);
+  protected readonly editableSummaryDate = signal('');
   protected readonly selectedEditablePaymentCategory = signal<EditablePaymentCategory | ''>('');
   protected readonly editableDetails = signal<ISummariesDetailsCT[]>([]);
   protected readonly editableBanknoteMovements = signal<IBanknoteMovementsCT[]>([]);
@@ -456,6 +461,9 @@ export class IcmalDokumuDetailComponent
 
     this.feedback.set(null);
     this.loadEditLookups();
+    this.editableZReportNo.set(this.toSafeNumber(this.summary?.zReportNo));
+    this.editableZTotalValue.set(this.toSafeNumber(this.zTotalValue()));
+    this.editableSummaryDate.set(this.toDateInputValue(this.summary?.summaryDate));
     this.editableDetails.set(this.summariesDetails().map((item) => ({ ...item })));
     this.editableBanknoteMovements.set(
       this.banknoteMovements().map((item) => this.normalizeEditableBanknote(item))
@@ -463,7 +471,7 @@ export class IcmalDokumuDetailComponent
     this.editableGiftCheckMovements.set(
       this.giftCheckMovements().map((item) => this.normalizeEditableGiftCheck(item))
     );
-    this.activeEditableSection.set('payments');
+    this.activeEditableSection.set('header');
     this.selectedEditablePaymentCategory.set('');
     this.isEditing.set(true);
     this.scrollDialogToTop();
@@ -472,6 +480,18 @@ export class IcmalDokumuDetailComponent
   protected selectEditableSection(section: EditableSection): void {
     this.activeEditableSection.set(section);
     this.scrollDialogToTop();
+  }
+
+  protected updateEditableZReportNo(value: unknown): void {
+    this.editableZReportNo.set(this.toSafeNumber(value));
+  }
+
+  protected updateEditableZTotalValue(value: unknown): void {
+    this.editableZTotalValue.set(this.toSafeNumber(value));
+  }
+
+  protected updateEditableSummaryDate(value: unknown): void {
+    this.editableSummaryDate.set(this.toSafeString(value).trim());
   }
 
   protected cancelEdit(): void {
@@ -973,6 +993,19 @@ export class IcmalDokumuDetailComponent
     }
 
     const warehouseNo = this.resolveRequestWarehouseNo();
+    const zReportNo = this.editableZReportNo();
+    const zTotalValue = this.editableZTotalValue();
+    const summaryDate = this.editableSummaryDate();
+    if (!Number.isInteger(zReportNo) || zReportNo < 0 || zTotalValue < 0 || !summaryDate) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Baslik bilgileri eksik',
+        message: 'Icmal tarihi, Z numarasi ve sifir veya pozitif Z toplami girilmelidir.'
+      });
+      this.activeEditableSection.set('header');
+      return;
+    }
+
     const validationMessage = this.validateEditableRows();
 
     if (validationMessage) {
@@ -988,15 +1021,27 @@ export class IcmalDokumuDetailComponent
     this.isSaving.set(true);
 
     this.kasaIslemleriService
-      .updateCashSummaryDetails(
+      .updateCashSummaryHeader(
         summary.documentSerie,
         summary.documentOrderNo,
         {
           warehouseNo,
-          details: this.buildEditableDetailsRequest()
+          zReportNo,
+          zTotalValue,
+          summaryDate
         }
       )
       .pipe(
+        switchMap(() =>
+          this.kasaIslemleriService.updateCashSummaryDetails(
+            summary.documentSerie,
+            summary.documentOrderNo,
+            {
+              warehouseNo,
+              details: this.buildEditableDetailsRequest()
+            }
+          )
+        ),
         switchMap(() =>
           this.kasaIslemleriService.updateCashSummaryBanknotes(
             summary.documentSerie,
@@ -1022,20 +1067,26 @@ export class IcmalDokumuDetailComponent
       )
       .subscribe({
         next: () => {
+          summary.zReportNo = zReportNo;
+          summary.summaryDate = new Date(`${summaryDate}T00:00:00`);
+          this.zTotalValue.set(zTotalValue);
           this.isEditing.set(false);
           this.scrollDialogToTop();
           this.feedback.set({
             tone: 'info',
             title: 'Icmal guncellendi',
-            message: 'Odeme, banknot ve hediye ceki satirlari yeni degerlerle kaydedildi.'
+            message: 'Tarih, Z bilgileri, odeme, banknot ve hediye ceki satirlari kaydedildi.'
           });
           this.loadDetailData();
         },
-        error: () => {
+        error: (error: HttpErrorResponse) => {
           this.feedback.set({
             tone: 'error',
             title: 'Guncelleme tamamlanamadi',
-            message: 'Icmal satirlari kaydedilirken bir hata olustu.'
+            message: resolveHttpErrorMessage(
+              error,
+              'Icmal bilgileri kaydedilirken bir hata olustu.'
+            )
           });
         }
       });
@@ -1213,7 +1264,7 @@ export class IcmalDokumuDetailComponent
       });
 
     this.kasaIslemleriService
-      .getKasaKayitDetayi(summary.cashNo)
+      .getKasaKayitDetayi(summary.cashNo, this.resolveRequestWarehouseNo())
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (detail: ICashRegisterDetails | null) => {
@@ -1323,15 +1374,37 @@ export class IcmalDokumuDetailComponent
     return value === null || value === undefined ? '' : String(value);
   }
 
-  private loadEditLookups(): void {
-    const cashRegisterNo = this.cashRegisterDetail()?.cashRegisterNo?.trim() ?? '';
+  private toDateInputValue(value: Date | string | null | undefined): string {
+    if (!value) {
+      return '';
+    }
 
-    if (this.editLookupLoading() || this.editLookupCashRegisterNo === cashRegisterNo) {
+    if (typeof value === 'string' && /^\d{4}-\d{2}-\d{2}/.test(value)) {
+      return value.slice(0, 10);
+    }
+
+    const parsed = value instanceof Date ? value : new Date(value);
+    if (Number.isNaN(parsed.getTime())) {
+      return '';
+    }
+
+    const year = parsed.getFullYear();
+    const month = String(parsed.getMonth() + 1).padStart(2, '0');
+    const day = String(parsed.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
+  }
+
+  private loadEditLookups(): void {
+    const cashNo = this.summary?.cashNo ?? 0;
+    const branchNo = this.resolveRequestWarehouseNo();
+    const cashScopeKey = `${branchNo ?? ''}:${cashNo}`;
+
+    if (this.editLookupLoading() || this.editLookupCashRegisterNo === cashScopeKey) {
       return;
     }
 
     this.editLookupLoading.set(true);
-    const totalRequests = cashRegisterNo ? 7 : 6;
+    const totalRequests = cashNo > 0 && branchNo ? 7 : 6;
     let completedRequests = 0;
     const finalizeRequest = () => {
       completedRequests += 1;
@@ -1340,11 +1413,11 @@ export class IcmalDokumuDetailComponent
         return;
       }
 
-      const latestCashRegisterNo = this.cashRegisterDetail()?.cashRegisterNo?.trim() ?? '';
-      this.editLookupCashRegisterNo = cashRegisterNo;
+      const latestCashScopeKey = `${this.resolveRequestWarehouseNo() ?? ''}:${this.summary?.cashNo ?? 0}`;
+      this.editLookupCashRegisterNo = cashScopeKey;
       this.editLookupLoading.set(false);
 
-      if (this.isEditing() && latestCashRegisterNo && latestCashRegisterNo !== cashRegisterNo) {
+      if (this.isEditing() && latestCashScopeKey !== cashScopeKey) {
         this.loadEditLookups();
       }
     };
@@ -1373,9 +1446,9 @@ export class IcmalDokumuDetailComponent
         complete: finalizeRequest
       });
 
-    if (cashRegisterNo) {
+    if (cashNo > 0 && branchNo) {
       this.kasaIslemleriService
-        .getBankaOdemeTipleri(cashRegisterNo)
+        .getBankaOdemeTipleri(cashNo, branchNo)
         .pipe(takeUntilDestroyed(this.destroyRef))
         .subscribe({
           next: (items: IFurpaPaymentTypeLookupItemApiDto[]) => this.bankPaymentTypes.set(items ?? []),

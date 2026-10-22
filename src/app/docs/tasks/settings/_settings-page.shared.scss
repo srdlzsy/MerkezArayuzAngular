@@ -144,6 +144,12 @@ h3 {
   min-width: 0;
 }
 
+.field-hint {
+  color: var(--settings-muted);
+  font-size: 0.72rem;
+  line-height: 1.35;
+}
+
 .field input,
 .field select,
 .field textarea {

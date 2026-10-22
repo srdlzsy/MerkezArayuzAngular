@@ -57,6 +57,15 @@
       <nav class="edit-section-tabs" aria-label="Duzenlenecek icmal bolumu">
         <button
           type="button"
+          [class.is-active]="activeEditableSection() === 'header'"
+          [attr.aria-pressed]="activeEditableSection() === 'header'"
+          (click)="selectEditableSection('header')"
+        >
+          <span>Baslik</span>
+          <small>Tarih ve Z</small>
+        </button>
+        <button
+          type="button"
           [class.is-active]="activeEditableSection() === 'payments'"
           [attr.aria-pressed]="activeEditableSection() === 'payments'"
           (click)="selectEditableSection('payments')"
@@ -83,6 +92,52 @@
           <small>{{ editableGiftCheckMovements().length }} kalem</small>
         </button>
       </nav>
+
+      <article class="edit-section header-edit-section" *ngIf="activeEditableSection() === 'header'">
+        <div class="detail-card-head">
+          <div>
+            <h3>Icmal Baslik Bilgileri</h3>
+            <p>Tarih ve Z bilgileri kaydin tum hareketlerinde birlikte guncellenir.</p>
+          </div>
+        </div>
+        <div class="header-edit-grid">
+          <label>
+            <span>Icmal Tarihi</span>
+            <input
+              type="date"
+              [value]="editableSummaryDate()"
+              (input)="updateEditableSummaryDate($any($event.target).value)"
+            />
+          </label>
+          <label>
+            <span>Z Rapor No</span>
+            <input
+              type="number"
+              min="0"
+              step="1"
+              inputmode="numeric"
+              [value]="editableZReportNo()"
+              (input)="updateEditableZReportNo($any($event.target).value)"
+            />
+          </label>
+          <label>
+            <span>Z Rapor Toplami</span>
+            <input
+              type="number"
+              min="0"
+              step="0.01"
+              inputmode="decimal"
+              [value]="editableZTotalValue()"
+              (input)="updateEditableZTotalValue($any($event.target).value)"
+            />
+          </label>
+          <div class="header-edit-note">
+            <span>Evrak</span>
+            <strong>{{ currentSummary.documentSerie }}/{{ currentSummary.documentOrderNo }}</strong>
+            <small>Evrak serisi ve sirasi degistirilmez.</small>
+          </div>
+        </div>
+      </article>
 
       <article class="edit-section" *ngIf="activeEditableSection() === 'payments'">
         <div class="detail-card-head">

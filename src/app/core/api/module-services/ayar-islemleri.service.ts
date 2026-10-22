@@ -19,11 +19,14 @@ import type {
   CashRegisterResponse,
   CashRegisterSettingsLookupsDto,
   CashRegisterTerminalDto,
+  CashRegisterTerminalLocationDto,
   CashRegistryDto,
   CreateBranchSettingsHttpRequest,
   CreateCashierHttpRequest,
   CreateCashRegisterHttpRequest,
   CreateCashRegisterTerminalHttpRequest,
+  MoveCashRegisterTerminalGroupHttpRequest,
+  UpdateCashRegisterTypeHttpRequest,
   CreateDeviceHttpRequest,
   DeviceDto,
   DeviceStatusDto,
@@ -121,9 +124,20 @@ export class AyarIslemleriService extends BaseApiService {
     );
   }
 
-  getCashRegisterTerminals(cashNo: number): Observable<CashRegisterTerminalDto[]> {
-    return this.get<CashRegisterTerminalDto[]>(
-      `ayar-islemleri/kasa-pos-terminalleri/kasalar/${cashNo}/terminaller`
+  getCashRegisterTerminals(cashNo: number, branchNo: number): Observable<CashRegisterTerminalDto[]> {
+    return this.getWithQuery<CashRegisterTerminalDto[]>(
+      `ayar-islemleri/kasa-pos-terminalleri/kasalar/${cashNo}/terminaller`,
+      { branchNo }
+    );
+  }
+
+  getCashRegisterTerminalLocations(
+    terminalNo: string,
+    branchNo?: number | null
+  ): Observable<CashRegisterTerminalLocationDto[]> {
+    return this.getWithQuery<CashRegisterTerminalLocationDto[]>(
+      'ayar-islemleri/kasa-pos-terminalleri/terminaller/konum',
+      { terminalNo, branchNo }
     );
   }
 
@@ -308,6 +322,29 @@ export class AyarIslemleriService extends BaseApiService {
   ): Observable<CashRegisterTerminalDto> {
     return this.put<CashRegisterTerminalDto, CreateCashRegisterTerminalHttpRequest>(
       `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller/${terminalId}`,
+      request
+    );
+  }
+
+  moveCashRegisterTerminalGroup(
+    sourceBranchNo: number,
+    sourceCashNo: number,
+    terminalNo: string,
+    request: MoveCashRegisterTerminalGroupHttpRequest
+  ): Observable<CashRegisterTerminalDto[]> {
+    return this.put<CashRegisterTerminalDto[], MoveCashRegisterTerminalGroupHttpRequest>(
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${sourceBranchNo}/kasalar/${sourceCashNo}/terminal-gruplari/${encodeURIComponent(terminalNo)}/tasi`,
+      request
+    );
+  }
+
+  updateCashRegisterType(
+    branchNo: number,
+    cashNo: number,
+    request: UpdateCashRegisterTypeHttpRequest
+  ): Observable<CashRegistryDto> {
+    return this.put<CashRegistryDto, UpdateCashRegisterTypeHttpRequest>(
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/tip`,
       request
     );
   }

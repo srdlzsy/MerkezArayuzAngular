@@ -26,6 +26,12 @@
       </div>
     </header>
 
+    <div class="setup-steps" aria-label="Kasa ve terminal islem sirasi">
+      <span class="is-active"><b>1</b> Sube kasalarini ac</span>
+      <span [class.is-active]="!!selectedCashRegistry()"><b>2</b> Fiziksel kasayi sec</span>
+      <span [class.is-active]="!!selectedCashRegistry()"><b>3</b> POS/PAV satirlarini duzenle</span>
+    </div>
+
     <form class="filter-bar pos-filter" [formGroup]="scopeForm" (ngSubmit)="loadCashRegistries()" novalidate>
       <label class="field">
         <span>Sube</span>
@@ -33,23 +39,19 @@
       </label>
 
       <label class="field">
-        <span>Kasa No</span>
-        <input type="number" min="1" formControlName="cashNo" placeholder="1" />
+        <span>Sube Kasasi</span>
+        <select formControlName="cashNo" (change)="onScopeCashNoChanged()" [disabled]="!cashRegistries().length">
+          <option [ngValue]="null">Once sube kasalarini yukleyin</option>
+          <option *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry" [ngValue]="cash.cashNo">
+            {{ getCashRegistryOptionLabel(cash) }}
+          </option>
+        </select>
       </label>
 
       <div class="filter-actions">
         <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('cash')">
           <i class="fa-solid fa-cash-register"></i>
           {{ isLoading('cash') ? 'Yukleniyor' : 'Kasalar' }}
-        </button>
-        <button
-          type="button"
-          class="task-action task-action-secondary"
-          (click)="loadTerminals()"
-          [disabled]="isLoading('terminals')"
-        >
-          <i class="fa-solid fa-credit-card"></i>
-          {{ isLoading('terminals') ? 'Yukleniyor' : 'Terminaller' }}
         </button>
         <button
           type="button"
@@ -62,7 +64,7 @@
         </button>
       </div>
 
-      <div class="state-card state-card-info">
+      <div class="state-card state-card-error" *ngIf="messageErrorCount() > 0">
         <h3>Hata</h3>
         <p>{{ messageErrorCount() }} mesaj satiri hata durumunda.</p>
       </div>
@@ -94,7 +96,7 @@
         </article>
 
         <div class="table-wrap compact-table" *ngIf="!isLoading('cash') && cashRegistries().length">
-          <table class="data-table">
+          <table class="data-table cash-table">
             <thead>
               <tr>
                 <th>Sube</th>
@@ -152,7 +154,7 @@
         </article>
 
         <div class="table-wrap compact-table" *ngIf="!isLoading('terminals') && terminals().length">
-          <table class="data-table">
+          <table class="data-table terminal-table">
             <thead>
               <tr>
                 <th>Terminal</th>
@@ -180,6 +182,16 @@
                   >
                     <i class="fa-solid fa-pen"></i>
                     Duzenle
+                  </button>
+                  <button
+                    type="button"
+                    class="task-action task-action-secondary"
+                    (click)="beginMoveTerminalGroup(terminal)"
+                    [disabled]="!canUpdate() || isLoading('move') || isLoading('delete')"
+                    title="Bu PAV grubundaki tum banka satirlarini baska kasaya tasi"
+                  >
+                    <i class="fa-solid fa-right-left"></i>
+                    Tasi
                   </button>
                   <button
                     type="button"
@@ -246,6 +258,7 @@
                 {{ getSettingsOptionSelectLabel(option) }}
               </option>
             </select>
+            <small class="field-hint">Bu, fiziksel kasanin POSKON sinifidir. Banka/PAV terminali asagida ayri tanimlanir.</small>
           </label>
 
           <button
@@ -258,6 +271,38 @@
           </button>
         </form>
 
+        <form
+          *ngIf="selectedCashRegistry() as selectedCash"
+          class="selected-cash-panel"
+          [formGroup]="cashRegisterForm"
+          (ngSubmit)="saveSelectedCashType()"
+        >
+          <div>
+            <span class="panel-kicker">Secili Fiziksel Kasa</span>
+            <strong>{{ selectedCash.branchNo }} sube / {{ selectedCash.cashNo }} kasa</strong>
+            <small>{{ selectedCash.cashFinanceNumber || 'Henuz POS/PAV grubu baglanmamis' }}</small>
+          </div>
+          <label class="field">
+            <span>Kasa Sinifi</span>
+            <select formControlName="cashType" [disabled]="lookupsLoading() || !canUpdate()">
+              <option
+                *ngFor="let option of cashTypeOptions(); trackBy: trackBySettingsOption"
+                [ngValue]="option.value"
+              >
+                {{ getSettingsOptionSelectLabel(option) }}
+              </option>
+            </select>
+          </label>
+          <button
+            type="submit"
+            class="task-action task-action-secondary"
+            [disabled]="!canUpdate() || isLoading('cash-type')"
+          >
+            <i class="fa-solid fa-floppy-disk"></i>
+            {{ isLoading('cash-type') ? 'Kaydediliyor' : 'Kasa Tipini Kaydet' }}
+          </button>
+        </form>
+
         <div class="panel-head">
           <div class="panel-head-text">
             <span class="panel-kicker">POS Terminali</span>
@@ -267,8 +312,17 @@
 
         <form class="form-panel form-grid two-col" [formGroup]="terminalDraftForm" (ngSubmit)="saveTerminal()" novalidate>
           <label class="field">
-            <span>Terminal No</span>
-            <input type="text" maxlength="40" formControlName="terminalNo" />
+            <span>PAV / Finans No</span>
+            <input
+              type="text"
+              maxlength="40"
+              formControlName="terminalNo"
+              placeholder="PAV210009468"
+              [readonly]="isEditingMultiBankGroup()"
+              (blur)="checkTerminalLocation()"
+            />
+            <small class="field-hint" *ngIf="!isEditingMultiBankGroup()">Ayni PAV grubundaki banka satirlari ayni fiziksel kasada tutulur.</small>
+            <small class="field-hint" *ngIf="isEditingMultiBankGroup()">Bu PAV birden fazla banka satiri iceriyor. Burada banka detayini duzeltin; kasa degisikligi icin Tasi kullanin.</small>
           </label>
 
           <label class="field">
@@ -310,6 +364,69 @@
             (click)="cancelTerminalEdit()"
             [disabled]="isLoading('terminal-save')"
           >
+            <i class="fa-solid fa-xmark"></i>
+            Vazgec
+          </button>
+        </form>
+
+        <article class="state-card state-card-info" *ngIf="isLoading('terminal-location')">
+          <h3>POS/PAV kontrol ediliyor</h3>
+          <p>Bu numaranin daha once hangi sube ve kasada kullanildigi araniyor.</p>
+        </article>
+
+        <div class="location-list" *ngIf="terminalLocations().length">
+          <div class="location-row" *ngFor="let location of terminalLocations()">
+            <i class="fa-solid fa-location-dot"></i>
+            <div>
+              <strong>{{ location.branchNo }} sube / {{ location.cashNo }} kasa</strong>
+              <span>{{ location.bankRowCount }} banka satiri: {{ location.banks.join(', ') || 'Banka bilgisi yok' }}</span>
+            </div>
+          </div>
+        </div>
+
+        <form
+          *ngIf="movingTerminalNo() as terminalNo"
+          class="move-panel form-grid two-col"
+          [formGroup]="moveTerminalForm"
+          (ngSubmit)="moveTerminalGroup()"
+          novalidate
+        >
+          <div class="move-title full-field">
+            <i class="fa-solid fa-right-left"></i>
+            <div>
+              <strong>{{ terminalNo }} grubunu dogru kasaya tasi</strong>
+              <span>Tum banka satirlari birlikte tasinir.</span>
+            </div>
+          </div>
+
+          <label class="field">
+            <span>Hedef Sube</span>
+            <input
+              type="number"
+              min="1"
+              formControlName="targetBranchNo"
+              (change)="loadMoveTargetCashRegistries()"
+            />
+          </label>
+
+          <label class="field">
+            <span>Hedef Fiziksel Kasa</span>
+            <select formControlName="targetCashNo" [disabled]="isLoading('target-cash')">
+              <option [ngValue]="null">Kasa secin</option>
+              <option
+                *ngFor="let cash of moveTargetCashRegistries(); trackBy: trackByCashRegistry"
+                [ngValue]="cash.cashNo"
+              >
+                {{ getCashRegistryOptionLabel(cash) }}
+              </option>
+            </select>
+          </label>
+
+          <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('move')">
+            <i class="fa-solid fa-right-left"></i>
+            {{ isLoading('move') ? 'Tasiniyor' : 'Dogru Kasaya Tasi' }}
+          </button>
+          <button type="button" class="task-action task-action-secondary" (click)="cancelMoveTerminalGroup()">
             <i class="fa-solid fa-xmark"></i>
             Vazgec
           </button>

@@ -61,11 +61,46 @@ body {
 .meta-grid,
 .summary-strip,
 .print-block,
+.final-summary,
 .signature-row > div {
   border: 1px solid #222 !important;
   border-radius: 0 !important;
   background: #fff !important;
   box-shadow: none !important;
+}
+
+.final-summary {
+  margin: 2.5mm 0 0 !important;
+  overflow: hidden !important;
+  border: 1.5px solid #111 !important;
+  page-break-inside: avoid !important;
+  break-inside: avoid !important;
+}
+
+.final-summary-title {
+  padding: 1.2mm 1.5mm !important;
+  border-bottom: 1px solid #555 !important;
+  background: #ededed !important;
+}
+
+.reconciliation-total {
+  display: grid !important;
+  grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+  border-top: 1.5px solid #111 !important;
+}
+
+.reconciliation-total > div {
+  min-width: 0 !important;
+  padding: 1.4mm 1.5mm !important;
+  border-right: 1px solid #555 !important;
+}
+
+.reconciliation-total > div:last-child {
+  border-right: 0 !important;
+}
+
+.reconciliation-total strong {
+  font-size: 9pt !important;
 }
 
 .title-area {

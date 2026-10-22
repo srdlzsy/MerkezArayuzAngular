@@ -92,6 +92,23 @@ export interface CashRegisterTerminalDto {
   cashNo: number | null;
 }
 
+export interface CashRegisterTerminalLocationDto {
+  terminalNo: string;
+  branchNo: number;
+  cashNo: number;
+  bankRowCount: number;
+  banks: string[];
+}
+
+export interface MoveCashRegisterTerminalGroupHttpRequest {
+  targetBranchNo: number;
+  targetCashNo: number;
+}
+
+export interface UpdateCashRegisterTypeHttpRequest {
+  cashType: number;
+}
+
 export interface CashRegisterMessageStatusDto {
   branchNo: number;
   cashNo: number;

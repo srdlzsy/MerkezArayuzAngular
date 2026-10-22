@@ -30,16 +30,15 @@ export const FALLBACK_CASH_TYPE_OPTIONS: readonly SettingsTypeOptionDto[] = [
   {
     value: 0,
     code: 'standard-pos-cash-register',
-    name: 'Standart POS Kasasi',
-    description: 'Subenin POSKON/MESAJ dosya islemlerine dahil edilen standart satis kasasi.',
+    name: 'Standart Kasa',
+    description: 'Ana fiziksel kasa. POSKON/MESAJ dosyalarina dahildir. Banka/POS terminali degildir.',
     isKnown: true
   },
   {
     value: 1,
     code: 'additional-pos-cash-register',
-    name: 'Ek POS Kasasi',
-    description:
-      'Subede standart kasa disinda tanimli ek POS kasasi; POSKON/MESAJ ve kasa hareket islemlerinde kasa no ile takip edilir.',
+    name: 'Ek Kasa',
+    description: 'Ana kasaya ek fiziksel kasa. Kendi kasa numarasiyla izlenir; banka/POS terminali ayri tanimlanir.',
     isKnown: true
   }
 ];

@@ -1274,6 +1274,24 @@ export interface UpdateCashSummaryDetailsHttpRequest {
   details: UpdateCashSummaryDetailLineHttpRequest[];
 }
 
+export interface UpdateCashSummaryHeaderHttpRequest {
+  warehouseNo?: number;
+  zReportNo: number;
+  zTotalValue: number;
+  summaryDate: string;
+}
+
+export interface UpdateCashSummaryHeaderResponse {
+  documentSerie: string;
+  documentOrderNo: number;
+  zReportNo: number;
+  zTotalValue: number;
+  summaryDate: string;
+  updatedSummaryLineCount: number;
+  updatedBanknoteLineCount: number;
+  updatedGiftCheckLineCount: number;
+}
+
 export interface UpdateCashSummaryDetailLineHttpRequest {
   typeName: string;
   paymentTypeId: number;

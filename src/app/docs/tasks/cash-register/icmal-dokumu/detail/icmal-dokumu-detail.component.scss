@@ -601,7 +601,7 @@
   top: 0;
   z-index: 4;
   display: grid;
-  grid-template-columns: repeat(3, minmax(0, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.4rem;
   padding: 0.26rem;
   border: 1px solid #dbe3ea;
@@ -660,6 +660,55 @@
   border: 1px solid #dbe3ea;
   border-radius: 8px;
   background: #fff;
+}
+
+.header-edit-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.65rem;
+  padding: 0.75rem;
+}
+
+.header-edit-grid label,
+.header-edit-note {
+  display: grid;
+  align-content: start;
+  gap: 0.3rem;
+  min-width: 0;
+}
+
+.header-edit-grid span {
+  color: #64748b;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.header-edit-grid input {
+  width: 100%;
+  min-height: 38px;
+  box-sizing: border-box;
+  padding: 0.42rem 0.5rem;
+  color: #0f172a;
+  border: 1px solid #cbd5e1;
+  border-radius: 7px;
+  background: #fff;
+  font: inherit;
+}
+
+.header-edit-note {
+  padding: 0.5rem 0.58rem;
+  border: 1px solid #dbe3ea;
+  border-radius: 7px;
+  background: #f8fafc;
+}
+
+.header-edit-note small,
+.header-edit-section .detail-card-head p {
+  margin: 0;
+  color: #64748b;
+  font-size: 0.72rem;
+  line-height: 1.35;
 }
 
 .edit-section-actions {
@@ -1200,6 +1249,10 @@ th {
     padding: 0;
   }
 
+  .header-edit-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
   .edit-section > .detail-card-head {
     position: static;
   }
@@ -1274,6 +1327,14 @@ th {
 }
 
 @media (max-width: 620px) {
+  .edit-section-tabs {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+
+  .header-edit-grid {
+    grid-template-columns: 1fr;
+  }
+
   .edit-table tbody {
     grid-template-columns: 1fr;
   }

@@ -74,6 +74,8 @@ import {
   CreateCashSummaryResponse,
   UpdateCashSummaryDetailsHttpRequest,
   UpdateCashSummaryDetailsResponse,
+  UpdateCashSummaryHeaderHttpRequest,
+  UpdateCashSummaryHeaderResponse,
   UpdateCashSummaryBanknotesHttpRequest,
   UpdateCashSummaryBanknotesResponse,
   UpdateCashSummaryGiftChecksHttpRequest,
@@ -601,9 +603,10 @@ export class KasaIslemleriService extends BaseApiService {
     }).pipe(map((value: unknown) => this.mapNullableNumber(value)));
   }
 
-  getKasaKayitDetayi(cashNo: number): Observable<ICashRegisterDetails | null> {
+  getKasaKayitDetayi(cashNo: number, branchNo?: number): Observable<ICashRegisterDetails | null> {
     return this.getWithQuery<IFurpaCashRegisterLookupItemApiDto>('kasa-islemleri/kasa-sayimlari/kasa-detayi', {
-      cashNo
+      cashNo,
+      branchNo
     }).pipe(map((item: IFurpaCashRegisterLookupItemApiDto) => this.mapCashRegister(item)));
   }
 
@@ -621,11 +624,12 @@ export class KasaIslemleriService extends BaseApiService {
     return this.get<IFurpaGiftCheckTypeItemApiDto[]>('kasa-islemleri/kasa-sayimlari/hediye-ceki-tipleri');
   }
 
-  getBankaOdemeTipleri(cashRegisterNo: string): Observable<IFurpaPaymentTypeLookupItemApiDto[]> {
+  getBankaOdemeTipleri(cashNo: number, branchNo: number): Observable<IFurpaPaymentTypeLookupItemApiDto[]> {
     return this.getWithQuery<IFurpaPaymentTypeLookupItemApiDto[]>(
       'kasa-islemleri/kasa-sayimlari/odeme-tipleri/banka',
       {
-        cashRegisterNo
+        cashNo,
+        branchNo
       }
     );
   }
@@ -1038,6 +1042,17 @@ export class KasaIslemleriService extends BaseApiService {
   ): Observable<UpdateCashSummaryDetailsResponse> {
     return this.put<UpdateCashSummaryDetailsResponse, UpdateCashSummaryDetailsHttpRequest>(
       `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/detaylar`,
+      request
+    );
+  }
+
+  updateCashSummaryHeader(
+    documentSerie: string,
+    documentOrderNo: number,
+    request: UpdateCashSummaryHeaderHttpRequest
+  ): Observable<UpdateCashSummaryHeaderResponse> {
+    return this.put<UpdateCashSummaryHeaderResponse, UpdateCashSummaryHeaderHttpRequest>(
+      `kasa-islemleri/kasa-sayimlari/${encodeURIComponent(documentSerie)}/${documentOrderNo}/baslik`,
       request
     );
   }

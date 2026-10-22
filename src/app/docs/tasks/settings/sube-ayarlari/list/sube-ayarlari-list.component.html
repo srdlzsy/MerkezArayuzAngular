@@ -20,8 +20,8 @@
           <strong>{{ totalCashCount() }}</strong>
         </article>
         <article>
-          <span>Secili</span>
-          <strong>{{ selectedBranch()?.branchNo || '-' }}</strong>
+          <span>Eksik PAV</span>
+          <strong>{{ missingFinanceNumberCount() }}</strong>
         </article>
       </div>
     </header>
@@ -70,7 +70,7 @@
         </article>
 
         <div class="table-wrap" *ngIf="!isLoading('load') && filteredBranchSettings().length">
-          <table class="data-table">
+          <table class="data-table branch-table">
             <thead>
               <tr>
                 <th>Sube</th>
@@ -135,12 +135,13 @@
 
           <label class="field">
             <span>Sube IP</span>
-            <input type="text" maxlength="64" formControlName="branchIpAddress" />
+            <input type="text" maxlength="100" formControlName="branchIpAddress" placeholder="192.168.1.5" />
+            <small class="field-hint">Subedeki POSKON ve cihaz dosyalarina erisilen sunucu IP adresi.</small>
           </label>
 
           <label class="field">
             <span>Terazi Klasoru</span>
-            <input type="text" maxlength="260" formControlName="branchScalesFolderPath" />
+            <input type="text" maxlength="255" formControlName="branchScalesFolderPath" placeholder="TERAZI" />
           </label>
 
           <label class="field">
@@ -157,12 +158,13 @@
 
           <label class="field">
             <span>POSKON</span>
-            <input type="text" maxlength="260" formControlName="poskonFolderPath" />
+            <input type="text" maxlength="255" formControlName="poskonFolderPath" placeholder="POSKON" />
+            <small class="field-hint">Kasa mesaj ve POSKON dosyalarinin klasoru.</small>
           </label>
 
           <label class="field">
             <span>POSGENEL</span>
-            <input type="text" maxlength="260" formControlName="posGenelFolderPath" />
+            <input type="text" maxlength="255" formControlName="posGenelFolderPath" placeholder="POSGENEL" />
           </label>
 
           <button
@@ -188,11 +190,16 @@
             <p>Secili subenin kasa tanimlari getiriliyor.</p>
           </article>
 
+          <article class="state-card state-card-error" *ngIf="!isLoading('cash') && missingFinanceNumberCount() > 0">
+            <h3>POS/PAV eslesmesi eksik</h3>
+            <p>{{ missingFinanceNumberCount() }} fiziksel kasada finans numarasi bulunmuyor. Kasa/POS Terminalleri ekranindan bu kasalara PAV ve banka satirlarini ekleyin.</p>
+          </article>
+
           <div class="draft-list" *ngIf="!isLoading('cash') && cashRegistries().length">
             <div class="draft-row" *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry">
               <div>
                 <strong>Kasa {{ cash.cashNo }}</strong>
-                <span>{{ cash.cashFinanceNumber || 'Finans no yok' }} / Detay {{ cash.detailId }}</span>
+                <span>{{ getCashTypeLabel(cash) }} / {{ cash.cashFinanceNumber || 'Eksik: POS/PAV baglantisi yok' }}</span>
                 <span class="table-meta">{{ getCashTypeDescription(cash) }}</span>
               </div>
             </div>
@@ -228,6 +235,7 @@
                   {{ getSettingsOptionSelectLabel(option) }}
                 </option>
               </select>
+              <small class="field-hint">Fiziksel kasa sinifidir; banka/POS terminali degildir. Terminal bilgilerini Kasa/POS Terminalleri ekraninda tanimlayin.</small>
             </label>
 
             <button type="submit" class="task-action task-action-secondary full-field">

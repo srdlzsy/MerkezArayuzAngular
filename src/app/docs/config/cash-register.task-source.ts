@@ -352,7 +352,9 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Liste ve detay list/detail yetkileriyle okunur',
         'Secili kayit guncelleme kasa-islemleri.kasa-sayimlari.update yetkisine baglidir',
         'Secili kayit silme kasa-islemleri.kasa-sayimlari.delete yetkisine baglidir',
+        'Icmal tarihi, Z rapor numarasi ve Z toplami belgeye bagli tum hareketlerle birlikte guncellenir',
         'Detay, banknot ve hediye ceki guncellemeleri patch degildir; UI kalacak tum satirlari son haliyle gonderir',
+        'A4 baskida hareket detaylari once, mutabakat ve son ozet sayfanin sonunda gosterilir',
         'Nakit/500 satiri UI tarafindan normal detay gibi yonetilmez; backend banknot toplamindan yeniden uretir',
         'Yeni icmal olusturma ayri Icmal Kaydi Girisi gorevinde acilir'
       ],
@@ -376,6 +378,12 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/detaylar',
               description: 'Icmal odeme detaylarini getirir'
+            },
+            {
+              method: 'PUT',
+              path: '/api/kasa-islemleri/kasa-sayimlari/{seri}/{sira}/baslik',
+              description: 'Icmal tarihi, Z rapor numarasi ve Z toplamini bagli hareketlerle birlikte gunceller',
+              payload: 'UpdateCashSummaryHeaderHttpRequest'
             },
             {
               method: 'PUT',
@@ -478,8 +486,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/banka?cashRegisterNo=CR-01',
-              description: 'Banka odeme tipi lookup kayitlarini getirir'
+              path: '/api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/banka?cashNo=103&branchNo=129',
+              description: 'Yalniz secilen sube ve fiziksel kasaya bagli banka terminallerini getirir'
             },
             {
               method: 'GET',

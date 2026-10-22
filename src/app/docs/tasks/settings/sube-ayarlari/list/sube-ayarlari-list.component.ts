@@ -57,22 +57,22 @@ export class SubeAyarlariListComponent {
       nonNullable: true,
       validators: [Validators.required, Validators.maxLength(64)]
     }),
-    branchScalesFolderPath: new FormControl<string>('', {
+    branchScalesFolderPath: new FormControl<string>('TERAZI', {
       nonNullable: true,
-      validators: [Validators.maxLength(260)]
+      validators: [Validators.required, Validators.maxLength(255)]
     }),
     scalesType: new FormControl<number | null>(1, [
       Validators.required,
       Validators.min(0),
       Validators.max(1)
     ]),
-    poskonFolderPath: new FormControl<string>('', {
+    poskonFolderPath: new FormControl<string>('POSKON', {
       nonNullable: true,
-      validators: [Validators.maxLength(260)]
+      validators: [Validators.required, Validators.maxLength(255)]
     }),
-    posGenelFolderPath: new FormControl<string>('', {
+    posGenelFolderPath: new FormControl<string>('POSGENEL', {
       nonNullable: true,
-      validators: [Validators.maxLength(260)]
+      validators: [Validators.required, Validators.maxLength(255)]
     })
   });
   protected readonly cashDraftForm = new FormGroup({
@@ -124,6 +124,9 @@ export class SubeAyarlariListComponent {
   });
   protected readonly totalCashCount = computed(
     () => this.cashRegistries().length + this.cashDrafts().length
+  );
+  protected readonly missingFinanceNumberCount = computed(
+    () => this.cashRegistries().filter((cash) => !cash.cashFinanceNumber?.trim()).length
   );
   protected readonly scalesTypeOptions = computed(() =>
     this.mergeLookupOptions(this.branchLookups().scalesTypes, FALLBACK_SCALE_TYPE_OPTIONS)
@@ -219,10 +222,10 @@ export class SubeAyarlariListComponent {
     this.settingsForm.reset({
       branchNo: null,
       branchIpAddress: '',
-      branchScalesFolderPath: '',
+      branchScalesFolderPath: 'TERAZI',
       scalesType: 1,
-      poskonFolderPath: '',
-      posGenelFolderPath: ''
+      poskonFolderPath: 'POSKON',
+      posGenelFolderPath: 'POSGENEL'
     });
     this.cashDraftForm.reset({
       cashNo: null,
@@ -287,7 +290,7 @@ export class SubeAyarlariListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Form eksik',
-        message: 'Sube no, IP adresi ve scales type alanlari zorunludur.'
+        message: 'Sube no, IP adresi, terazi tipi ve klasor adlari zorunludur.'
       });
       return;
     }

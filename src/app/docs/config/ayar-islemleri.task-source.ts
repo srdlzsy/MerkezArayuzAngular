@@ -142,6 +142,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'branchNo + cashNo duplicate ise backend 409 doner',
         'Terminal satirlari secili kasa altinda id ile eklenir, guncellenir ve silinir',
         'Ayni terminal numarasi farkli banka satirlarinda tekrar kullanilabilir',
+        'Yanlis kasaya baglanan POS/PAV grubu mevcut konumu gorulerek tum banka satirlariyla birlikte tasinabilir',
         'Mesaj durumlari POSKON MESAJ.xxx dosyalarindan stateName metniyle hesaplanir'
       ],
       listTitle: 'Endpointler',
@@ -157,8 +158,13 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             },
             {
               method: 'GET',
-              path: '/api/ayar-islemleri/kasa-pos-terminalleri/kasalar/{cashNo}/terminaller',
-              description: 'Kasa no icin terminal detaylarini getirir'
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/kasalar/{cashNo}/terminaller?branchNo=110',
+              description: 'Secilen sube ve fiziksel kasa icin Mikro terminal detaylarini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/terminaller/konum?terminalNo=PAV210009468',
+              description: 'POS/PAV numarasinin bagli oldugu sube, fiziksel kasa ve banka satirlarini getirir'
             },
             {
               method: 'GET',
@@ -182,6 +188,18 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminaller/{terminalId}',
               description: 'Secili terminal banka satirini gunceller',
               payload: 'CreateCashRegisterTerminalHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/tip',
+              description: 'Fiziksel kasanin sinifini terminal satirlarina dokunmadan gunceller',
+              payload: 'UpdateCashRegisterTypeHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminal-gruplari/{terminalNo}/tasi',
+              description: 'POS/PAV grubundaki tum banka satirlarini dogru sube ve fiziksel kasaya tasir',
+              payload: 'MoveCashRegisterTerminalGroupHttpRequest'
             },
             {
               method: 'DELETE',

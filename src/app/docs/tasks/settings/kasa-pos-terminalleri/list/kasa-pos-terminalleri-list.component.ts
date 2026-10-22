@@ -8,6 +8,7 @@ import type {
   CashRegisterResponse,
   CashRegisterSettingsLookupsDto,
   CashRegisterTerminalDto,
+  CashRegisterTerminalLocationDto,
   CashRegistryDto,
   CreateCashRegisterHttpRequest,
   CreateCashRegisterTerminalHttpRequest,
@@ -42,7 +43,17 @@ const DEFAULT_CASH_REGISTER_LOOKUPS: CashRegisterSettingsLookupsDto = {
   terminalBanks: []
 };
 
-type PosAction = 'cash' | 'terminals' | 'messages' | 'create' | 'terminal-save' | 'delete';
+type PosAction =
+  | 'cash'
+  | 'terminals'
+  | 'messages'
+  | 'create'
+  | 'cash-type'
+  | 'terminal-save'
+  | 'terminal-location'
+  | 'target-cash'
+  | 'move'
+  | 'delete';
 
 @Component({
   selector: 'app-kasa-pos-terminalleri-list',
@@ -84,6 +95,10 @@ export class KasaPosTerminalleriListComponent {
       validators: [Validators.required, Validators.maxLength(40)]
     })
   });
+  protected readonly moveTerminalForm = new FormGroup({
+    targetBranchNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
+    targetCashNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)])
+  });
 
   private readonly authService = inject(AuthService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
@@ -93,12 +108,15 @@ export class KasaPosTerminalleriListComponent {
   protected readonly cashRegistries = signal<CashRegistryDto[]>([]);
   protected readonly terminals = signal<CashRegisterTerminalDto[]>([]);
   protected readonly messageStatuses = signal<CashRegisterMessageStatusDto[]>([]);
+  protected readonly terminalLocations = signal<CashRegisterTerminalLocationDto[]>([]);
+  protected readonly moveTargetCashRegistries = signal<CashRegistryDto[]>([]);
   protected readonly terminalDrafts = signal<TerminalDraft[]>([]);
   protected readonly cashRegisterLookups = signal<CashRegisterSettingsLookupsDto>(
     DEFAULT_CASH_REGISTER_LOOKUPS
   );
   protected readonly selectedCashRegistry = signal<CashRegistryDto | null>(null);
   protected readonly editingTerminal = signal<CashRegisterTerminalDto | null>(null);
+  protected readonly movingTerminalNo = signal<string | null>(null);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly loadingAction = signal<PosAction | null>(null);
   protected readonly lookupsLoading = signal(false);
@@ -183,6 +201,10 @@ export class KasaPosTerminalleriListComponent {
       return;
     }
 
+    this.cashRegistries.set([]);
+    this.terminals.set([]);
+    this.selectedCashRegistry.set(null);
+    this.scopeForm.patchValue({ cashNo: null });
     this.loadingAction.set('cash');
     this.feedback.set(null);
 
@@ -217,13 +239,14 @@ export class KasaPosTerminalleriListComponent {
   }
 
   protected loadTerminals(): void {
+    const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
     const cashNo = toOptionalNumber(this.scopeForm.getRawValue().cashNo);
 
-    if (!cashNo) {
+    if (!branchNo || !cashNo) {
       this.feedback.set({
         tone: 'error',
-        title: 'Kasa gerekli',
-        message: 'Terminal listesini almak icin kasa no girin.'
+        title: 'Sube ve kasa secin',
+        message: 'Terminal listesi yalniz yuklenen subenin secili kasasi icin getirilir.'
       });
       return;
     }
@@ -232,7 +255,7 @@ export class KasaPosTerminalleriListComponent {
     this.feedback.set(null);
 
     this.ayarIslemleriService
-      .getCashRegisterTerminals(cashNo)
+      .getCashRegisterTerminals(cashNo, branchNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loadingAction.set(null))
@@ -245,7 +268,7 @@ export class KasaPosTerminalleriListComponent {
             this.feedback.set({
               tone: 'info',
               title: 'Terminal yok',
-              message: `${cashNo} no'lu kasa icin terminal donmedi.`
+              message: `${branchNo}/${cashNo} kasasi icin Mikro sube eslesmesinde terminal bulunmadi.`
             });
           }
         },
@@ -312,6 +335,20 @@ export class KasaPosTerminalleriListComponent {
     this.loadTerminals();
   }
 
+  protected onScopeCashNoChanged(): void {
+    const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
+    const cashNo = toOptionalNumber(this.scopeForm.getRawValue().cashNo);
+    const cashRegistry = this.cashRegistries().find(
+      (item) => item.branchNo === branchNo && item.cashNo === cashNo
+    );
+
+    this.terminals.set([]);
+    this.selectedCashRegistry.set(null);
+    if (cashRegistry) {
+      this.selectCashRegistry(cashRegistry);
+    }
+  }
+
   protected newCashRegister(): void {
     const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
     this.selectedCashRegistry.set(null);
@@ -325,6 +362,46 @@ export class KasaPosTerminalleriListComponent {
       cashType: this.cashTypeOptions()[0]?.value ?? 0
     });
     this.resetTerminalForm();
+  }
+
+  protected saveSelectedCashType(): void {
+    const selectedCash = this.selectedCashRegistry();
+    const cashType = toOptionalNumber(this.cashRegisterForm.controls.cashType.value);
+    if (!selectedCash || cashType === null || !this.canUpdate()) {
+      return;
+    }
+
+    this.loadingAction.set('cash-type');
+    this.feedback.set(null);
+    this.ayarIslemleriService
+      .updateCashRegisterType(selectedCash.branchNo, selectedCash.cashNo, { cashType })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingAction.set(null))
+      )
+      .subscribe({
+        next: (updated: CashRegistryDto) => {
+          this.cashRegistries.update((rows) => this.sortCashRegistries([
+            ...rows.filter(
+              (item) => !(item.branchNo === updated.branchNo && item.cashNo === updated.cashNo)
+            ),
+            updated
+          ]));
+          this.selectedCashRegistry.set(updated);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Kasa tipi guncellendi',
+            message: `${updated.branchNo}/${updated.cashNo} fiziksel kasasi ${this.getCashTypeLabel(updated)} olarak kaydedildi.`
+          });
+        },
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Kasa tipi guncellenemedi',
+            message: getErrorMessage(error, 'Fiziksel kasa tipi kaydedilemedi.')
+          });
+        }
+      });
   }
 
   protected addTerminalDraft(): void {
@@ -442,11 +519,176 @@ export class KasaPosTerminalleriListComponent {
       terminalId: terminal.terminalId,
       merchantNo: terminal.merchantNo
     });
+    this.terminalLocations.set([]);
+  }
+
+  protected isEditingMultiBankGroup(): boolean {
+    const terminalNo = this.editingTerminal()?.terminalNo;
+    return !!terminalNo && this.terminals().filter((item) => item.terminalNo === terminalNo).length > 1;
   }
 
   protected cancelTerminalEdit(): void {
     this.editingTerminal.set(null);
     this.resetTerminalForm();
+  }
+
+  protected checkTerminalLocation(): void {
+    const terminalNo = getOptionalText(this.terminalDraftForm.controls.terminalNo.value);
+    if (!terminalNo) {
+      this.terminalLocations.set([]);
+      return;
+    }
+
+    this.loadingAction.set('terminal-location');
+    this.terminalLocations.set([]);
+
+    this.ayarIslemleriService
+      .getCashRegisterTerminalLocations(terminalNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingAction.set(null))
+      )
+      .subscribe({
+        next: (locations: CashRegisterTerminalLocationDto[]) => {
+          this.terminalLocations.set(locations ?? []);
+          if (!locations?.length) {
+            return;
+          }
+
+          this.feedback.set({
+            tone: 'info',
+            title: 'POS/PAV zaten tanimli',
+            message: `${terminalNo} su anda ${locations
+              .map((item) => `${item.branchNo} sube / ${item.cashNo} kasa`)
+              .join(', ')} altinda bulunuyor.`
+          });
+        },
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Terminal konumu bulunamadi',
+            message: getErrorMessage(error, 'POS/PAV konumu kontrol edilemedi.')
+          });
+        }
+      });
+  }
+
+  protected beginMoveTerminalGroup(terminal: CashRegisterTerminalDto): void {
+    const selectedCash = this.selectedCashRegistry();
+    if (!this.canUpdate() || !selectedCash) {
+      return;
+    }
+
+    this.movingTerminalNo.set(terminal.terminalNo);
+    this.moveTerminalForm.reset({
+      targetBranchNo: selectedCash.branchNo,
+      targetCashNo: null
+    });
+    this.moveTargetCashRegistries.set(
+      this.cashRegistries().filter((item) => item.cashNo !== selectedCash.cashNo)
+    );
+  }
+
+  protected cancelMoveTerminalGroup(): void {
+    this.movingTerminalNo.set(null);
+    this.moveTargetCashRegistries.set([]);
+    this.moveTerminalForm.reset({ targetBranchNo: null, targetCashNo: null });
+  }
+
+  protected loadMoveTargetCashRegistries(): void {
+    const targetBranchNo = toOptionalNumber(this.moveTerminalForm.controls.targetBranchNo.value);
+    const selectedCash = this.selectedCashRegistry();
+    this.moveTerminalForm.controls.targetCashNo.setValue(null);
+
+    if (!targetBranchNo || !selectedCash) {
+      this.moveTargetCashRegistries.set([]);
+      return;
+    }
+
+    if (targetBranchNo === selectedCash.branchNo) {
+      this.moveTargetCashRegistries.set(
+        this.cashRegistries().filter((item) => item.cashNo !== selectedCash.cashNo)
+      );
+      return;
+    }
+
+    this.loadingAction.set('target-cash');
+    this.moveTargetCashRegistries.set([]);
+    this.ayarIslemleriService
+      .getBranchCashRegistries(targetBranchNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingAction.set(null))
+      )
+      .subscribe({
+        next: (rows: CashRegistryDto[]) => this.moveTargetCashRegistries.set(
+          this.sortCashRegistries(rows ?? [])
+        ),
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Hedef kasalar yuklenemedi',
+            message: getErrorMessage(error, 'Hedef subenin kasa listesi alinamadi.')
+          });
+        }
+      });
+  }
+
+  protected async moveTerminalGroup(): Promise<void> {
+    const selectedCash = this.selectedCashRegistry();
+    const terminalNo = this.movingTerminalNo();
+    if (!selectedCash || !terminalNo || this.moveTerminalForm.invalid || !this.canUpdate()) {
+      this.moveTerminalForm.markAllAsTouched();
+      return;
+    }
+
+    const targetBranchNo = toOptionalNumber(this.moveTerminalForm.controls.targetBranchNo.value);
+    const targetCashNo = toOptionalNumber(this.moveTerminalForm.controls.targetCashNo.value);
+    if (!targetBranchNo || !targetCashNo) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'POS/PAV grubu tasinsin mi?',
+      message: `${terminalNo} grubundaki tum banka satirlari ${selectedCash.branchNo}/${selectedCash.cashNo} kasasindan ${targetBranchNo}/${targetCashNo} kasasina tasinacak.`,
+      confirmText: 'Dogru Kasaya Tasi',
+      tone: 'warning'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    this.loadingAction.set('move');
+    this.feedback.set(null);
+    this.ayarIslemleriService
+      .moveCashRegisterTerminalGroup(
+        selectedCash.branchNo,
+        selectedCash.cashNo,
+        terminalNo,
+        { targetBranchNo, targetCashNo }
+      )
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingAction.set(null))
+      )
+      .subscribe({
+        next: (movedRows: CashRegisterTerminalDto[]) => {
+          this.terminals.update((rows) => rows.filter((item) => item.terminalNo !== terminalNo));
+          this.cancelMoveTerminalGroup();
+          this.feedback.set({
+            tone: 'success',
+            title: 'POS/PAV grubu tasindi',
+            message: `${terminalNo} ve ${movedRows.length} banka satiri ${targetBranchNo}/${targetCashNo} kasasina tasindi.`
+          });
+        },
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'POS/PAV grubu tasinamadi',
+            message: getErrorMessage(error, 'Terminal grubu tasima islemi tamamlanamadi.')
+          });
+        }
+      });
   }
 
   protected removeTerminalDraft(draft: TerminalDraft): void {
@@ -681,6 +923,14 @@ export class KasaPosTerminalleriListComponent {
       this.getSettingsOptionDescription(this.cashTypeOptions(), cash.cashType) ||
       `Tip ${cash.cashType}`
     );
+  }
+
+  protected getCashRegistryOptionLabel(cash: CashRegistryDto): string {
+    const financeNo = cash.cashFinanceNumber?.trim();
+    const typeName = this.getCashTypeLabel(cash);
+    return financeNo
+      ? `Kasa ${cash.cashNo} - ${financeNo} (${typeName})`
+      : `Kasa ${cash.cashNo} - ${typeName}`;
   }
 
   protected getSettingsOptionSelectLabel(option: SettingsTypeOptionDto): string {

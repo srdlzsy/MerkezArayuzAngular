@@ -7,3 +7,56 @@
 .data-table {
   min-width: 840px;
 }
+
+@media (max-width: 760px) {
+  .table-wrap {
+    overflow: visible;
+    border: 0;
+  }
+
+  .branch-table {
+    min-width: 0;
+  }
+
+  .branch-table thead {
+    display: none;
+  }
+
+  .branch-table tbody,
+  .branch-table tr {
+    display: grid;
+    gap: 0.22rem;
+  }
+
+  .branch-table tr {
+    margin-bottom: 0.5rem;
+    border: 1px solid var(--settings-border);
+    border-radius: 8px;
+    padding: 0.5rem;
+  }
+
+  .branch-table td {
+    display: grid;
+    grid-template-columns: minmax(88px, 0.34fr) minmax(0, 1fr);
+    gap: 0.45rem;
+    align-items: start;
+    border: 0;
+    padding: 0.2rem;
+    white-space: normal;
+    overflow-wrap: anywhere;
+  }
+
+  .branch-table td::before {
+    color: var(--settings-muted);
+    font-size: 0.7rem;
+    font-weight: 900;
+    text-transform: uppercase;
+  }
+
+  .branch-table td:nth-child(1)::before { content: 'Sube'; }
+  .branch-table td:nth-child(2)::before { content: 'IP'; }
+  .branch-table td:nth-child(3)::before { content: 'Terazi'; }
+  .branch-table td:nth-child(4)::before { content: 'Tip'; }
+  .branch-table td:nth-child(5)::before { content: 'POSKON'; }
+  .branch-table td:nth-child(6)::before { content: 'POSGENEL'; }
+}

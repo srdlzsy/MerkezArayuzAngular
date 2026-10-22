@@ -717,10 +717,17 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
 
   private loadCashRegisterDetail(cashNo: number): void {
     const requestId = ++this.cashRegisterRequestId;
+    const branchNo = this.resolveCreateWarehouseNo();
+    if (!branchNo) {
+      this.cashRegisterLoading.set(false);
+      this.cashRegisterMessage.set('Sube bilgisi bulunamadi; kasa banka secenekleri yuklenmedi.');
+      return;
+    }
+
     this.cashRegisterLoading.set(true);
 
     this.kasaIslemleriService
-      .getKasaKayitDetayi(cashNo)
+      .getKasaKayitDetayi(cashNo, branchNo)
       .pipe(
         finalize(() => {
           if (requestId === this.cashRegisterRequestId) {
@@ -736,8 +743,6 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
 
           this.cashRegisterDetail.set(detail);
           const fiscalMemoryNo = detail?.cashRegisterNo?.trim() ?? '';
-          const bankLookupCashRegisterNo =
-            detail?.cashFinanceNumber?.trim() || fiscalMemoryNo;
           this.controls.cashRegisterFiscalNo.setValue(fiscalMemoryNo, { emitEvent: false });
 
           if (detail && !this.isNewCashRegister()) {
@@ -753,17 +758,16 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
             }
           }
 
-          if (!bankLookupCashRegisterNo) {
-            this.cashRegisterMessage.set(
-              'Kasa detayi bulundu ancak banka odeme tiplerini getirmek icin cash register no okunamadi.'
-            );
+          if (!detail) {
+            this.bankPaymentTypes.set([]);
+            this.cashRegisterMessage.set('Secili sube ve kasaya ait POS terminal eslesmesi bulunamadi.');
             return;
           }
 
           this.cashRegisterMessage.set(
-            `${bankLookupCashRegisterNo} icin banka odeme tipleri yukleniyor.`
+            `Sube ${branchNo}, kasa ${cashNo} icin banka terminalleri yukleniyor.`
           );
-          this.loadBankPaymentTypes(bankLookupCashRegisterNo);
+          this.loadBankPaymentTypes(cashNo, branchNo, requestId);
         },
         error: (error: HttpErrorResponse) => {
           if (requestId !== this.cashRegisterRequestId) {
@@ -1232,7 +1236,7 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
     const financeNo = register.cashFinanceNumber?.trim();
 
     return financeNo
-      ? `Kasa ${register.cashRegisterNo} - ${financeNo}`
+      ? `Kasa ${register.cashRegisterNo} - ${typeName} - ${financeNo}`
       : `Kasa ${register.cashRegisterNo} - ${typeName}`;
   }
 
@@ -1898,9 +1902,13 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
     this.formRevision.update((value) => value + 1);
   }
 
-  private loadBankPaymentTypes(cashRegisterNo: string): void {
-    this.kasaIslemleriService.getBankaOdemeTipleri(cashRegisterNo).subscribe({
+  private loadBankPaymentTypes(cashNo: number, branchNo: number, requestId: number): void {
+    this.kasaIslemleriService.getBankaOdemeTipleri(cashNo, branchNo).subscribe({
       next: (items: IFurpaPaymentTypeLookupItemApiDto[]) => {
+        if (requestId !== this.cashRegisterRequestId) {
+          return;
+        }
+
         const paymentTypes = items ?? [];
 
         this.bankPaymentTypes.set(paymentTypes);
@@ -1911,11 +1919,15 @@ export class IcmalDokumuCreateComponent extends DocsTaskDialogBase implements On
 
         this.cashRegisterMessage.set(
           paymentTypes.length
-            ? `${cashRegisterNo} icin ${paymentTypes.length} banka odeme tipi hazir.`
-            : `${cashRegisterNo} icin banka odeme tipi bulunamadi.`
+            ? `Kasa ${cashNo} icin ${paymentTypes.length} banka odeme tipi hazir.`
+            : `Sube ${branchNo}, kasa ${cashNo} icin banka terminali bulunamadi.`
         );
       },
       error: (error: HttpErrorResponse) => {
+        if (requestId !== this.cashRegisterRequestId) {
+          return;
+        }
+
         this.bankPaymentTypes.set([]);
         this.cashRegisterMessage.set(
           this.resolveErrorMessage(error, 'Banka odeme tipleri getirilemedi.')
