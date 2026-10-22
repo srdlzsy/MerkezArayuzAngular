@@ -122,7 +122,28 @@
           </div>
           <div class="dialog-head-actions">
             <span class="panel-chip" *ngIf="isDetailLoading()">Yukleniyor</span>
-            <button type="button" class="dialog-close" title="Kapat" (click)="closeDetail()">
+            <button
+              type="button"
+              class="detail-delete-action"
+              *ngIf="selectedTrackDetail() && canDelete()"
+              [disabled]="isDeleting() || isDetailLoading()"
+              (click)="deleteDetail()"
+            >
+              <i
+                class="fa-solid"
+                [class.fa-spinner]="isDeleting()"
+                [class.fa-spin]="isDeleting()"
+                [class.fa-trash-can]="!isDeleting()"
+              ></i>
+              <span>{{ isDeleting() ? 'Siliniyor...' : 'Kaydi Sil' }}</span>
+            </button>
+            <button
+              type="button"
+              class="dialog-close"
+              title="Kapat"
+              [disabled]="isDeleting()"
+              (click)="closeDetail()"
+            >
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
@@ -347,4 +368,3 @@
     </section>
   </section>
 </section>
-

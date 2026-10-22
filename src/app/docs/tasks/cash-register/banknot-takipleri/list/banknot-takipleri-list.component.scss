@@ -558,6 +558,45 @@
   gap: 0.42rem;
 }
 
+.detail-delete-action {
+  display: inline-flex;
+  min-height: 32px;
+  align-items: center;
+  justify-content: center;
+  gap: 0.4rem;
+  padding: 0.38rem 0.68rem;
+  border: 1px solid #fecaca;
+  border-radius: 8px;
+  color: #b42318;
+  background: #fff5f5;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  cursor: pointer;
+  transition: border-color 0.16s ease, color 0.16s ease, background-color 0.16s ease;
+}
+
+.detail-delete-action i {
+  width: 0.9rem;
+  text-align: center;
+}
+
+.detail-delete-action:hover:not(:disabled) {
+  border-color: #fca5a5;
+  color: #991b1b;
+  background: #fee2e2;
+}
+
+.detail-delete-action:focus-visible {
+  outline: 3px solid rgba(220, 38, 38, 0.2);
+  outline-offset: 2px;
+}
+
+.detail-delete-action:disabled {
+  cursor: not-allowed;
+  opacity: 0.56;
+}
+
 .dialog-close {
   display: inline-grid;
   width: 32px;

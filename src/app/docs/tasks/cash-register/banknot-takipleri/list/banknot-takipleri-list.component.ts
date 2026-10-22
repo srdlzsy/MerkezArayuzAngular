@@ -11,12 +11,15 @@ import type {
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
+import { DuzeltmeIslemleriService } from '../../../../../core/api/module-services/duzeltme-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
+import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
 import { ApiListTableColumn } from '../../../core/api-list-table/api-list-table.types';
 import {
+  currentUserHasPermission,
   currentUserCanUseAllWarehouses,
   formatCurrentWarehouseLabel
 } from '../../../core/admin-warehouse.helpers';
@@ -150,6 +153,8 @@ export class BanknotTakipleriListComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly authService = inject(AuthService);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
+  private readonly duzeltmeIslemleriService = inject(DuzeltmeIslemleriService);
+  private readonly confirmDialog = inject(AppConfirmDialogService);
 
   protected readonly warehouseMode = signal<WarehouseMode>('current');
   protected readonly tracks = signal<IFurpaBanknoteTrackApiDto[]>([]);
@@ -164,6 +169,7 @@ export class BanknotTakipleriListComponent {
   );
   protected readonly isLoading = signal(false);
   protected readonly isDetailLoading = signal(false);
+  protected readonly isDeleting = signal(false);
   protected readonly isCreating = signal(false);
   protected readonly isSummaryTotalLoading = signal(false);
   protected readonly lastLoadedDate = signal(this.getToday());
@@ -175,6 +181,12 @@ export class BanknotTakipleriListComponent {
   );
   protected readonly canUseWarehouseScope = computed(() =>
     currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
+  );
+  protected readonly canDelete = computed(() =>
+    currentUserHasPermission(
+      this.authService.currentUser(),
+      'duzeltme-islemleri.mikro-evrak-duzenleme.delete'
+    )
   );
   protected readonly currentWarehouseLabel = computed(() =>
     formatCurrentWarehouseLabel(this.authService.currentUser())
@@ -391,10 +403,74 @@ export class BanknotTakipleriListComponent {
   }
 
   protected closeDetail(): void {
+    if (this.isDeleting()) {
+      return;
+    }
+
     this.activeDetailTrackId.set(null);
     this.selectedTrackDetail.set(null);
     this.detailError.set(null);
     this.isDetailLoading.set(false);
+  }
+
+  protected async deleteDetail(): Promise<void> {
+    const detail = this.selectedTrackDetail();
+
+    if (!detail || !this.canDelete() || this.isDeleting()) {
+      return;
+    }
+
+    const banknoteTrackId = this.toSafeText(detail.banknoteTrackId);
+    if (!banknoteTrackId) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.prompt({
+      title: 'Banknot takip kaydi silinsin mi?',
+      message: `${banknoteTrackId} numarali kayit kalici olarak silinecek. Devam etmek icin ID bilgisini yazin.`,
+      confirmText: 'Sil',
+      cancelText: 'Vazgec',
+      tone: 'danger',
+      input: {
+        label: 'Banknot takip ID',
+        placeholder: banknoteTrackId,
+        expectedValue: banknoteTrackId,
+        required: true
+      }
+    });
+
+    if (confirmed?.trim() !== banknoteTrackId) {
+      return;
+    }
+
+    this.isDeleting.set(true);
+    this.duzeltmeIslemleriService
+      .deleteBanknoteTrack(banknoteTrackId, detail.warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isDeleting.set(false))
+      )
+      .subscribe({
+        next: () => {
+          this.tracks.update((tracks) =>
+            tracks.filter((track) => this.toSafeText(track.banknoteTrackId) !== banknoteTrackId)
+          );
+          this.activeDetailTrackId.set(null);
+          this.selectedTrackDetail.set(null);
+          this.detailError.set(null);
+          this.isDetailLoading.set(false);
+          this.feedback.set({
+            tone: 'success',
+            title: 'Banknot takip silindi',
+            message: `${banknoteTrackId} numarali kayit silindi.`
+          });
+        },
+        error: (error: unknown) => {
+          this.detailError.set(
+            this.getErrorMessage(error, 'Banknot takip kaydi silinemedi.')
+          );
+        }
+      });
   }
 
   @HostListener('document:keydown.escape')
@@ -732,5 +808,3 @@ export class BanknotTakipleriListComponent {
     return `${year}-${month}-${day}`;
   }
 }
-
-
