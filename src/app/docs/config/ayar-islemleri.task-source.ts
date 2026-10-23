@@ -6,13 +6,12 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
     {
       id: 'cihazlar',
       title: 'Cihazlar',
-      subtitle:
-        'Sube bazli cihaz tanimlarini, cihaz tiplerini ve ping durumlarini yonetir.',
+      subtitle: 'Sube bazli cihaz tanimlarini, cihaz tiplerini ve ping durumlarini yonetir.',
       baseRouteOrFile: '/api/ayar-islemleri/cihazlar',
       highlights: [
         'Cihaz tipi dropdown kaynagi /cihazlar/tipler endpointidir',
         'Sube filtresi verilmezse tum cihaz kayitlari listelenir',
-        'Durum endpointi cihaz ping sonucunu online, latency ve hata alanlariyla dondurur'
+        'Durum endpointi cihaz ping sonucunu online, latency ve hata alanlariyla dondurur',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -23,58 +22,57 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ayar-islemleri/cihazlar/tipler',
-              description: 'Cihaz tipi listesini getirir'
+              description: 'Cihaz tipi listesini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/cihazlar?branchNo=110',
-              description: 'Cihaz tanimlarini sube filtresiyle listeler'
+              description: 'Cihaz tanimlarini sube filtresiyle listeler',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/cihazlar/durum?branchNo=110',
-              description: 'Cihaz ping durumlarini getirir'
+              description: 'Cihaz ping durumlarini getirir',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/cihazlar',
               description: 'Yeni cihaz tanimi olusturur',
-              payload: 'CreateDeviceHttpRequest'
+              payload: 'CreateDeviceHttpRequest',
             },
             {
               method: 'DELETE',
               path: '/api/ayar-islemleri/cihazlar/{id}',
-              description: 'Cihaz tanimini siler'
-            }
-          ]
-        }
+              description: 'Cihaz tanimini siler',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "branchNo": 110,
   "deviceTypeId": 1,
   "ipAddress": "192.168.1.10",
   "description": "Manav terazisi"
-}`
+}`,
     },
     () =>
       import('../tasks/settings/cihazlar/list/cihazlar-list.component').then(
-        (m) => m.CihazlarListComponent
+        (m) => m.CihazlarListComponent,
       ),
-    { accessKeyAliases: ['Cihazlar', 'ayar-cihazlar'] }
+    { accessKeyAliases: ['Cihazlar', 'ayar-cihazlar'] },
   ),
   'sube-ayarlari': singleRouteTask(
     {
       id: 'sube-ayarlari',
       title: 'Sube Ayarlari',
-      subtitle:
-        'Sube IP, terazi klasoru, POSKON/POSGENEL klasorleri ve kasa tanimlarini yonetir.',
+      subtitle: 'Sube IP, terazi klasoru, POSKON/POSGENEL klasorleri ve kasa tanimlarini yonetir.',
       baseRouteOrFile: '/api/ayar-islemleri/sube-ayarlari',
       highlights: [
         'Sube ayarlari branchNo asc siralanir',
         'Terazi tipi ve kasa tipi secimleri /sube-ayarlari/secenekler lookup endpointinden gelir',
         'scalesType yalniz 0=CAS 16 veya 1=CAS 500 olarak gonderilir',
         'Create akisi ilk kasa tanimlarini cashRegisters listesiyle alabilir',
-        'Update akisi yalniz sube ayar alanlarini gunceller'
+        'Update akisi yalniz sube ayar alanlarini gunceller',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -85,32 +83,32 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ayar-islemleri/sube-ayarlari/secenekler',
-              description: 'Terazi tipi ve kasa tipi lookup kataloglarini getirir'
+              description: 'Terazi tipi ve kasa tipi lookup kataloglarini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/sube-ayarlari',
-              description: 'Sube ayarlari listesini getirir'
+              description: 'Sube ayarlari listesini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/sube-ayarlari/{branchNo}/kasalar',
-              description: 'Subeye bagli kasa tanimlarini getirir'
+              description: 'Subeye bagli kasa tanimlarini getirir',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/sube-ayarlari',
               description: 'Yeni sube ayari olusturur',
-              payload: 'CreateBranchSettingsHttpRequest'
+              payload: 'CreateBranchSettingsHttpRequest',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/sube-ayarlari/{branchNo}',
               description: 'Sube ayarini gunceller',
-              payload: 'UpdateBranchSettingsHttpRequest'
-            }
-          ]
-        }
+              payload: 'UpdateBranchSettingsHttpRequest',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "branchNo": 110,
@@ -122,13 +120,13 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
   "cashRegisters": [
     { "cashNo": 1, "cashType": 1 }
   ]
-}`
+}`,
     },
     () =>
       import('../tasks/settings/sube-ayarlari/list/sube-ayarlari-list.component').then(
-        (m) => m.SubeAyarlariListComponent
+        (m) => m.SubeAyarlariListComponent,
       ),
-    { accessKeyAliases: ['SubeAyarlari', 'sube-ayari'] }
+    { accessKeyAliases: ['SubeAyarlari', 'sube-ayari'] },
   ),
   'kasa-pos-terminalleri': singleRouteTask(
     {
@@ -143,7 +141,9 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'Terminal satirlari secili kasa altinda id ile eklenir, guncellenir ve silinir',
         'Ayni terminal numarasi farkli banka satirlarinda tekrar kullanilabilir',
         'Yanlis kasaya baglanan POS/PAV grubu mevcut konumu gorulerek tum banka satirlariyla birlikte tasinabilir',
-        'Mesaj durumlari POSKON MESAJ.xxx dosyalarindan stateName metniyle hesaplanir'
+        'Banka adlari Mikro odeme katalogundan secilir; API katalog disi banka adini kaydetmez',
+        'Eksik PAV, katalog disi banka ve coklu PAV tanimlari sorun listesinde gorulur',
+        'Mesaj durumlari POSKON MESAJ.xxx dosyalarindan stateName metniyle hesaplanir',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -154,65 +154,72 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/secenekler',
-              description: 'Kasa tipi ve terminal banka lookup kataloglarini getirir'
+              description: 'Kasa tipi ve terminal banka lookup kataloglarini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/kasalar/{cashNo}/terminaller?branchNo=110',
-              description: 'Secilen sube ve fiziksel kasa icin Mikro terminal detaylarini getirir'
+              description: 'Secilen sube ve fiziksel kasa icin Furpa terminal detaylarini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/terminaller/konum?terminalNo=PAV210009468',
-              description: 'POS/PAV numarasinin bagli oldugu sube, fiziksel kasa ve banka satirlarini getirir'
+              description:
+                'POS/PAV numarasinin bagli oldugu sube, fiziksel kasa ve banka satirlarini getirir',
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/kasa-pos-terminalleri/tanim-sorunlari?branchNo=110',
+              description: 'Eksik veya cakisan kasa, PAV ve banka tanimlarini listeler',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/mesaj-durumlari',
-              description: 'Sube POSKON mesaj durumlarini getirir'
+              description: 'Sube POSKON mesaj durumlarini getirir',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri',
               description: 'Yeni kasa ve terminal tanimi olusturur',
-              payload: 'CreateCashRegisterHttpRequest'
+              payload: 'CreateCashRegisterHttpRequest',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminaller',
               description: 'Mevcut kasaya terminal banka satiri ekler',
-              payload: 'CreateCashRegisterTerminalHttpRequest'
+              payload: 'CreateCashRegisterTerminalHttpRequest',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminaller/{terminalId}',
               description: 'Secili terminal banka satirini gunceller',
-              payload: 'CreateCashRegisterTerminalHttpRequest'
+              payload: 'CreateCashRegisterTerminalHttpRequest',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/tip',
               description: 'Fiziksel kasanin sinifini terminal satirlarina dokunmadan gunceller',
-              payload: 'UpdateCashRegisterTypeHttpRequest'
+              payload: 'UpdateCashRegisterTypeHttpRequest',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminal-gruplari/{terminalNo}/tasi',
-              description: 'POS/PAV grubundaki tum banka satirlarini dogru sube ve fiziksel kasaya tasir',
-              payload: 'MoveCashRegisterTerminalGroupHttpRequest'
+              description:
+                'POS/PAV grubundaki tum banka satirlarini dogru sube ve fiziksel kasaya tasir',
+              payload: 'MoveCashRegisterTerminalGroupHttpRequest',
             },
             {
               method: 'DELETE',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}',
-              description: 'Sube kapsaminda kasa tanimini siler'
+              description: 'Sube kapsaminda kasa tanimini siler',
             },
             {
               method: 'DELETE',
               path: '/api/ayar-islemleri/kasa-pos-terminalleri/subeler/{branchNo}/kasalar/{cashNo}/terminaller/{terminalId}',
-              description: 'Secili kasa terminal satirini id ile siler'
-            }
-          ]
-        }
+              description: 'Secili kasa terminal satirini id ile siler',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "branchNo": 110,
@@ -226,13 +233,13 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       "merchantNo": "M123456"
     }
   ]
-}`
+}`,
     },
     () =>
-      import(
-        '../tasks/settings/kasa-pos-terminalleri/list/kasa-pos-terminalleri-list.component'
-      ).then((m) => m.KasaPosTerminalleriListComponent),
-    { accessKeyAliases: ['KasaPosTerminalleri', 'kasa-pos'] }
+      import('../tasks/settings/kasa-pos-terminalleri/list/kasa-pos-terminalleri-list.component').then(
+        (m) => m.KasaPosTerminalleriListComponent,
+      ),
+    { accessKeyAliases: ['KasaPosTerminalleri', 'kasa-pos'] },
   ),
   kasiyerler: singleRouteTask(
     {
@@ -245,7 +252,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'Liste endpointi kasiyer sifresi dondurmez',
         'Sifre yalniz detail yetkisiyle secili kasiyer icin ayri endpointten okunur',
         'Olusturma ve sifre sifirlama uretilen sifreyi response icinde dondurur',
-        'Update akisi kasiyer sifresini degistirmez'
+        'Update akisi kasiyer sifresini degistirmez',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -256,43 +263,43 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasiyerler',
-              description: 'Kasiyerleri sifresiz listeler'
+              description: 'Kasiyerleri sifresiz listeler',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/kasiyerler/{cashierCode}/sifre',
-              description: 'Detail yetkisiyle secili kasiyerin sifresini getirir'
+              description: 'Detail yetkisiyle secili kasiyerin sifresini getirir',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/kasiyerler',
               description: 'Yeni kasiyer olusturur',
-              payload: 'CreateCashierHttpRequest'
+              payload: 'CreateCashierHttpRequest',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/kasiyerler/{cashierCode}',
               description: 'Kasiyer bilgilerini gunceller',
-              payload: 'UpdateCashierHttpRequest'
+              payload: 'UpdateCashierHttpRequest',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/kasiyerler/{cashierCode}/sifre-sifirla',
-              description: 'Kasiyer sifresini sifirlar'
-            }
-          ]
-        }
+              description: 'Kasiyer sifresini sifirlar',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "cashierName": "Ali Veli",
   "cashierAuthorization": "A"
-}`
+}`,
     },
     () =>
       import('../tasks/settings/kasiyerler/list/kasiyerler-list.component').then(
-        (m) => m.KasiyerlerListComponent
+        (m) => m.KasiyerlerListComponent,
       ),
-    { accessKeyAliases: ['Kasiyerler', 'cashiers'] }
+    { accessKeyAliases: ['Kasiyerler', 'cashiers'] },
   ),
   soforler: singleRouteTask(
     {
@@ -305,7 +312,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'Menu ve route acilisi ayar-islemleri.soforler.manage yetkisiyle yapilir',
         'Liste endpointi ad, soyad, plaka veya TCKN ile arama destekler',
         'E-irsaliye modalinda driverId secilirse manuel plaka/sofor/TCKN zorunlulugu kalkar',
-        'Silme fiziksel degil, sofor kaydini pasife alma islemidir'
+        'Silme fiziksel degil, sofor kaydini pasife alma islemidir',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -317,32 +324,32 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
               method: 'GET',
               path: '/api/ayar-islemleri/soforler?search=ali&includeInactive=false&take=20',
               description: 'Soforleri ad, soyad, plaka veya TCKN ile listeler',
-              payload: 'DespatchDriverListHttpRequest'
+              payload: 'DespatchDriverListHttpRequest',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/soforler/{id}',
-              description: 'Sofor detayini getirir'
+              description: 'Sofor detayini getirir',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/soforler',
               description: 'Yeni sofor tanimi olusturur',
-              payload: 'SaveDespatchDriverHttpRequest'
+              payload: 'SaveDespatchDriverHttpRequest',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/soforler/{id}',
               description: 'Sofor tanimini gunceller',
-              payload: 'SaveDespatchDriverHttpRequest'
+              payload: 'SaveDespatchDriverHttpRequest',
             },
             {
               method: 'DELETE',
               path: '/api/ayar-islemleri/soforler/{id}',
-              description: 'Sofor kaydini pasife alir'
-            }
-          ]
-        }
+              description: 'Sofor kaydini pasife alir',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "firstName": "Ali",
@@ -351,16 +358,16 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
   "tckn": "11111111111",
   "isActive": true,
   "notes": "Ana sevk soforu"
-}`
+}`,
     },
     () =>
       import('../tasks/settings/soforler/list/soforler-list.component').then(
-        (m) => m.SoforlerListComponent
+        (m) => m.SoforlerListComponent,
       ),
     {
       accessKeyAliases: ['Soforler', 'DespatchDrivers', 'drivers'],
-      requiredPermissionCodes: ['ayar-islemleri.soforler.manage']
-    }
+      requiredPermissionCodes: ['ayar-islemleri.soforler.manage'],
+    },
   ),
   'veritabani-izleme': singleRouteTask(
     {
@@ -375,7 +382,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'AXATA worker ve scheduler heartbeat, kuyruk ve en eski bekleyen is bilgileri izlenir',
         'Guvenli yazmalar salt-okuma yeniden dogrulama, kontrollu tekrar acma, iptal ve audit gecmisiyle kayit bazinda sonuclandirilir',
         'Oturum sonlandirma sadece terminate-session yetkisiyle ve secili oturumun kimligi tekrar dogrulanarak yapilir',
-        'KILL sonrasi rollback durumu ayri endpointten izlenir'
+        'KILL sonrasi rollback durumu ayri endpointten izlenir',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -386,85 +393,86 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/genel-bakis',
-              description: 'Veritabani, worker, olay ve guvenli yazma sagligini bir arada getirir'
+              description: 'Veritabani, worker, olay ve guvenli yazma sagligini bir arada getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/anlik',
-              description: 'Anlik sorgu, kilit, transaction ve bekleme ozetini getirir'
+              description: 'Anlik sorgu, kilit, transaction ve bekleme ozetini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/workerlar',
-              description: 'Worker heartbeat, aktivite ve kuyruk sagligini getirir'
+              description: 'Worker heartbeat, aktivite ve kuyruk sagligini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/olaylar?take=100',
-              description: 'Kaydedilmis izleme olaylarini getirir'
+              description: 'Kaydedilmis izleme olaylarini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/oturum-sonlandirma-gecmisi?take=100',
-              description: 'Oturum sonlandirma audit gecmisini getirir'
+              description: 'Oturum sonlandirma audit gecmisini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar?includeCompleted=false&take=100',
-              description: 'Bekleyen ve basarisiz guvenli create yazmalarini getirir'
+              description: 'Bekleyen ve basarisiz guvenli create yazmalarini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/inceleme-gecmisi',
-              description: 'Secili guvenli yazmanin inceleme audit gecmisini getirir'
+              description: 'Secili guvenli yazmanin inceleme audit gecmisini getirir',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/yeniden-dogrula',
               description: 'Mikro kaydini yeni yazma yapmadan tekrar dogrular',
-              payload: 'SafeWriteReviewHttpRequest'
+              payload: 'SafeWriteReviewHttpRequest',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/tekrar-ac',
-              description: 'Belge bulunmadigi kesinlesirse ayni istek icin kontrollu retry izni verir',
-              payload: 'SafeWriteReviewHttpRequest'
+              description:
+                'Belge bulunmadigi kesinlesirse ayni istek icin kontrollu retry izni verir',
+              payload: 'SafeWriteReviewHttpRequest',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/veritabani-izleme/guvenli-yazmalar/{id}/iptal',
               description: 'Takip kaydini gerekceyle iptal eder; Mikro belgesini silmez',
-              payload: 'SafeWriteReviewHttpRequest'
+              payload: 'SafeWriteReviewHttpRequest',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/veritabani-izleme/oturumlar/{sessionId}/sonlandir',
               description: 'Oturum kimligini tekrar dogrulayarak sonlandirir',
-              payload: 'TerminateDatabaseSessionHttpRequest'
+              payload: 'TerminateDatabaseSessionHttpRequest',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/veritabani-izleme/oturumlar/{sessionId}/rollback-durumu',
-              description: 'Sonlandirilan oturumun rollback durumunu getirir'
-            }
-          ]
-        }
+              description: 'Sonlandirilan oturumun rollback durumunu getirir',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "expectedLoginTime": "2026-10-07T11:30:54.227",
   "expectedHostProcessId": 9572,
   "expectedProgramName": "Mikro API",
   "reason": "Root blocker kontrol edildi."
-}`
+}`,
     },
     () =>
       import('../tasks/settings/veritabani-izleme/list/veritabani-izleme-list.component').then(
-        (m) => m.VeritabaniIzlemeListComponent
+        (m) => m.VeritabaniIzlemeListComponent,
       ),
     {
       accessKeyAliases: ['VeritabaniIzleme', 'database-monitoring'],
-      requiredPermissionCodes: ['ayar-islemleri.veritabani-izleme.manage']
-    }
+      requiredPermissionCodes: ['ayar-islemleri.veritabani-izleme.manage'],
+    },
   ),
   'terminal-cihazlari': singleRouteTask(
     {
@@ -476,7 +484,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       highlights: [
         'Metrikler APK indirme sayisini degil tekil uygulama kurulumlarini gosterir',
         'Guncel surum bilgisi version manifestinden okunur ve manifest durumu ayrica gosterilir',
-        'All-warehouses yetkisi olmayan kullanici yalniz kendi deposunu izler'
+        'All-warehouses yetkisi olmayan kullanici yalniz kendi deposunu izler',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -487,21 +495,21 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
             {
               method: 'GET',
               path: '/api/ayar-islemleri/terminal-cihazlari/ozet?warehouseNo=110',
-              description: 'Kurulum, aktiflik, surum ve depo dagilim ozetini getirir'
+              description: 'Kurulum, aktiflik, surum ve depo dagilim ozetini getirir',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/terminal-cihazlari?warehouseNo=110&activeWithinDays=7&take=100',
               description: 'Terminal kurulumlarini filtreli olarak listeler',
-              payload: 'TerminalInstallationListHttpRequest'
+              payload: 'TerminalInstallationListHttpRequest',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/terminal-cihazlari/{id}',
-              description: 'Secili terminal kurulumunun detayini getirir'
-            }
-          ]
-        }
+              description: 'Secili terminal kurulumunun detayini getirir',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "warehouseNo": 110,
@@ -510,16 +518,16 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
   "isCurrentVersion": false,
   "activeWithinDays": 7,
   "take": 100
-}`
+}`,
     },
     () =>
       import('../tasks/settings/terminal-cihazlari/list/terminal-cihazlari-list.component').then(
-        (m) => m.TerminalCihazlariListComponent
+        (m) => m.TerminalCihazlariListComponent,
       ),
     {
       accessKeyAliases: ['TerminalCihazlari', 'terminal-installations'],
-      requiredPermissionCodes: ['ayar-islemleri.terminal-cihazlari.manage']
-    }
+      requiredPermissionCodes: ['ayar-islemleri.terminal-cihazlari.manage'],
+    },
   ),
   'b2b-ayarlari': singleRouteTask(
     {
@@ -531,7 +539,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
         'Menu ve route acilisi ayar-islemleri.b2b-ayarlari.manage yetkisiyle yapilir',
         'Bultenler baslik/link/tarih bilgisiyle yonetilir',
         'Kullanici guncelleme sifre veya hesap eslestirme alanlarini degistirmez',
-        'Sifre hash ve salt alanlari UI tarafinda hic gosterilmez'
+        'Sifre hash ve salt alanlari UI tarafinda hic gosterilmez',
       ],
       listTitle: 'Endpointler',
       items: [
@@ -543,44 +551,44 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
               method: 'GET',
               path: '/api/ayar-islemleri/b2b-ayarlari/bultenler?search=&take=100',
               description: 'B2B bultenlerini listeler',
-              payload: 'B2BBulletinListHttpRequest'
+              payload: 'B2BBulletinListHttpRequest',
             },
             {
               method: 'POST',
               path: '/api/ayar-islemleri/b2b-ayarlari/bultenler',
               description: 'Yeni B2B bulteni olusturur',
-              payload: 'SaveB2BBulletinHttpRequest'
+              payload: 'SaveB2BBulletinHttpRequest',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/b2b-ayarlari/bultenler/{id}',
               description: 'B2B bultenini gunceller',
-              payload: 'SaveB2BBulletinHttpRequest'
+              payload: 'SaveB2BBulletinHttpRequest',
             },
             {
               method: 'DELETE',
               path: '/api/ayar-islemleri/b2b-ayarlari/bultenler/{id}',
-              description: 'B2B bultenini siler'
+              description: 'B2B bultenini siler',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/b2b-ayarlari/kullanicilar?search=&includeInactive=false&take=100',
               description: 'B2B kullanicilarini listeler',
-              payload: 'B2BUserListHttpRequest'
+              payload: 'B2BUserListHttpRequest',
             },
             {
               method: 'GET',
               path: '/api/ayar-islemleri/b2b-ayarlari/kullanicilar/{userId}',
-              description: 'B2B kullanici detayini ve hesaplarini getirir'
+              description: 'B2B kullanici detayini ve hesaplarini getirir',
             },
             {
               method: 'PUT',
               path: '/api/ayar-islemleri/b2b-ayarlari/kullanicilar/{userId}',
               description: 'B2B kullanici temel bilgilerini gunceller',
-              payload: 'UpdateB2BUserHttpRequest'
-            }
-          ]
-        }
+              payload: 'UpdateB2BUserHttpRequest',
+            },
+          ],
+        },
       ],
       codeSample: `{
   "userFullName": "Ali Veli",
@@ -588,15 +596,15 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
   "status": true,
   "menus": "Orders,Reports",
   "userEndDate": "2026-12-31T23:59:00"
-}`
+}`,
     },
     () =>
       import('../tasks/settings/b2b-ayarlari/list/b2b-ayarlari-list.component').then(
-        (m) => m.B2BAyarlariListComponent
+        (m) => m.B2BAyarlariListComponent,
       ),
     {
       accessKeyAliases: ['B2BAyarlari', 'b2b-settings'],
-      requiredPermissionCodes: ['ayar-islemleri.b2b-ayarlari.manage']
-    }
-  )
+      requiredPermissionCodes: ['ayar-islemleri.b2b-ayarlari.manage'],
+    },
+  ),
 } as const satisfies Record<string, DocsTaskSource>;

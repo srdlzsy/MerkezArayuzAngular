@@ -23,6 +23,10 @@
           <span>Hazir</span>
           <strong>{{ readyMessageCount() }}/{{ messageStatuses().length }}</strong>
         </article>
+        <article>
+          <span>Tanim Sorunu</span>
+          <strong>{{ definitionIssues().length }}</strong>
+        </article>
       </div>
     </header>
 
@@ -32,7 +36,12 @@
       <span [class.is-active]="!!selectedCashRegistry()"><b>3</b> POS/PAV satirlarini duzenle</span>
     </div>
 
-    <form class="filter-bar pos-filter" [formGroup]="scopeForm" (ngSubmit)="loadCashRegistries()" novalidate>
+    <form
+      class="filter-bar pos-filter"
+      [formGroup]="scopeForm"
+      (ngSubmit)="loadCashRegistries()"
+      novalidate
+    >
       <label class="field">
         <span>Sube</span>
         <input type="number" min="1" formControlName="branchNo" placeholder="110" />
@@ -40,16 +49,27 @@
 
       <label class="field">
         <span>Sube Kasasi</span>
-        <select formControlName="cashNo" (change)="onScopeCashNoChanged()" [disabled]="!cashRegistries().length">
+        <select
+          formControlName="cashNo"
+          (change)="onScopeCashNoChanged()"
+          [disabled]="!cashRegistries().length"
+        >
           <option [ngValue]="null">Once sube kasalarini yukleyin</option>
-          <option *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry" [ngValue]="cash.cashNo">
+          <option
+            *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry"
+            [ngValue]="cash.cashNo"
+          >
             {{ getCashRegistryOptionLabel(cash) }}
           </option>
         </select>
       </label>
 
       <div class="filter-actions">
-        <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('cash')">
+        <button
+          type="submit"
+          class="task-action task-action-primary"
+          [disabled]="isLoading('cash')"
+        >
           <i class="fa-solid fa-cash-register"></i>
           {{ isLoading('cash') ? 'Yukleniyor' : 'Kasalar' }}
         </button>
@@ -80,6 +100,49 @@
       <h3>{{ currentFeedback.title }}</h3>
       <p>{{ currentFeedback.message }}</p>
     </article>
+
+    <section
+      class="definition-issues"
+      *ngIf="definitionIssuesLoading() || definitionIssues().length"
+    >
+      <div class="definition-issues-head">
+        <div>
+          <span class="panel-kicker">Kontrol</span>
+          <h3>Kasa ve Terminal Tanim Sorunlari</h3>
+        </div>
+        <strong
+          >{{ definitionErrorCount() }} kritik / {{ definitionIssues().length }} toplam</strong
+        >
+      </div>
+
+      <p class="definition-loading" *ngIf="definitionIssuesLoading()">Tanimlar kontrol ediliyor.</p>
+
+      <div class="definition-issue-list" *ngIf="!definitionIssuesLoading()">
+        <article
+          class="definition-issue-row"
+          *ngFor="let issue of definitionIssues(); trackBy: trackByDefinitionIssue"
+          [class.is-error]="issue.severity === 'error'"
+        >
+          <i
+            class="fa-solid"
+            [class.fa-triangle-exclamation]="issue.severity === 'error'"
+            [class.fa-circle-info]="issue.severity !== 'error'"
+          ></i>
+          <div>
+            <strong>{{ issue.branchNo }} / Kasa {{ issue.cashNo }}</strong>
+            <span>{{ issue.message }}</span>
+          </div>
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="openDefinitionIssue(issue)"
+          >
+            <i class="fa-solid fa-arrow-right"></i>
+            Kasayi Ac
+          </button>
+        </article>
+      </div>
+    </section>
 
     <section class="split-grid">
       <section class="panel">
@@ -258,7 +321,10 @@
                 {{ getSettingsOptionSelectLabel(option) }}
               </option>
             </select>
-            <small class="field-hint">Bu, fiziksel kasanin POSKON sinifidir. Banka/PAV terminali asagida ayri tanimlanir.</small>
+            <small class="field-hint"
+              >Bu, fiziksel kasanin POSKON sinifidir. Banka/PAV terminali asagida ayri
+              tanimlanir.</small
+            >
           </label>
 
           <button
@@ -306,11 +372,24 @@
         <div class="panel-head">
           <div class="panel-head-text">
             <span class="panel-kicker">POS Terminali</span>
-            <h3>{{ editingTerminal() ? 'Terminal Satirini Guncelle' : (selectedCashRegistry() ? 'Secili Kasaya Terminal Ekle' : 'Yeni Kasa Terminali') }}</h3>
+            <h3>
+              {{
+                editingTerminal()
+                  ? 'Terminal Satirini Guncelle'
+                  : selectedCashRegistry()
+                    ? 'Secili Kasaya Terminal Ekle'
+                    : 'Yeni Kasa Terminali'
+              }}
+            </h3>
           </div>
         </div>
 
-        <form class="form-panel form-grid two-col" [formGroup]="terminalDraftForm" (ngSubmit)="saveTerminal()" novalidate>
+        <form
+          class="form-panel form-grid two-col"
+          [formGroup]="terminalDraftForm"
+          (ngSubmit)="saveTerminal()"
+          novalidate
+        >
           <label class="field">
             <span>PAV / Finans No</span>
             <input
@@ -321,8 +400,13 @@
               [readonly]="isEditingMultiBankGroup()"
               (blur)="checkTerminalLocation()"
             />
-            <small class="field-hint" *ngIf="!isEditingMultiBankGroup()">Ayni PAV grubundaki banka satirlari ayni fiziksel kasada tutulur.</small>
-            <small class="field-hint" *ngIf="isEditingMultiBankGroup()">Bu PAV birden fazla banka satiri iceriyor. Burada banka detayini duzeltin; kasa degisikligi icin Tasi kullanin.</small>
+            <small class="field-hint" *ngIf="!isEditingMultiBankGroup()"
+              >Ayni PAV grubundaki banka satirlari ayni fiziksel kasada tutulur.</small
+            >
+            <small class="field-hint" *ngIf="isEditingMultiBankGroup()"
+              >Bu PAV birden fazla banka satiri iceriyor. Burada banka detayini duzeltin; kasa
+              degisikligi icin Tasi kullanin.</small
+            >
           </label>
 
           <label class="field">
@@ -351,10 +435,27 @@
           <button
             type="submit"
             class="task-action task-action-secondary"
-            [disabled]="isLoading('terminal-save') || (selectedCashRegistry() ? (editingTerminal() ? !canUpdate() : !canCreate()) : !canCreate())"
+            [disabled]="
+              isLoading('terminal-save') ||
+              (selectedCashRegistry()
+                ? editingTerminal()
+                  ? !canUpdate()
+                  : !canCreate()
+                : !canCreate())
+            "
           >
-            <i class="fa-solid" [class.fa-floppy-disk]="editingTerminal()" [class.fa-plus]="!editingTerminal()"></i>
-            {{ isLoading('terminal-save') ? 'Kaydediliyor' : (editingTerminal() ? 'Guncelle' : 'Terminal Ekle') }}
+            <i
+              class="fa-solid"
+              [class.fa-floppy-disk]="editingTerminal()"
+              [class.fa-plus]="!editingTerminal()"
+            ></i>
+            {{
+              isLoading('terminal-save')
+                ? 'Kaydediliyor'
+                : editingTerminal()
+                  ? 'Guncelle'
+                  : 'Terminal Ekle'
+            }}
           </button>
 
           <button
@@ -379,7 +480,10 @@
             <i class="fa-solid fa-location-dot"></i>
             <div>
               <strong>{{ location.branchNo }} sube / {{ location.cashNo }} kasa</strong>
-              <span>{{ location.bankRowCount }} banka satiri: {{ location.banks.join(', ') || 'Banka bilgisi yok' }}</span>
+              <span
+                >{{ location.bankRowCount }} banka satiri:
+                {{ location.banks.join(', ') || 'Banka bilgisi yok' }}</span
+              >
             </div>
           </div>
         </div>
@@ -422,23 +526,38 @@
             </select>
           </label>
 
-          <button type="submit" class="task-action task-action-primary" [disabled]="isLoading('move')">
+          <button
+            type="submit"
+            class="task-action task-action-primary"
+            [disabled]="isLoading('move')"
+          >
             <i class="fa-solid fa-right-left"></i>
             {{ isLoading('move') ? 'Tasiniyor' : 'Dogru Kasaya Tasi' }}
           </button>
-          <button type="button" class="task-action task-action-secondary" (click)="cancelMoveTerminalGroup()">
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="cancelMoveTerminalGroup()"
+          >
             <i class="fa-solid fa-xmark"></i>
             Vazgec
           </button>
         </form>
 
         <div class="draft-list" *ngIf="terminalDrafts().length">
-          <div class="draft-row" *ngFor="let draft of terminalDrafts(); trackBy: trackByTerminalDraft">
+          <div
+            class="draft-row"
+            *ngFor="let draft of terminalDrafts(); trackBy: trackByTerminalDraft"
+          >
             <div>
               <strong>{{ draft.terminalNo }}</strong>
               <span>{{ getTerminalBankLabel(draft.bank) }} / {{ draft.terminalId || '-' }}</span>
             </div>
-            <button type="button" class="task-action task-action-danger" (click)="removeTerminalDraft(draft)">
+            <button
+              type="button"
+              class="task-action task-action-danger"
+              (click)="removeTerminalDraft(draft)"
+            >
               <i class="fa-solid fa-trash"></i>
               Sil
             </button>

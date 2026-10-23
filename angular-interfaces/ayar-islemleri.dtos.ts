@@ -100,6 +100,16 @@ export interface CashRegisterTerminalLocationDto {
   banks: string[];
 }
 
+export interface CashRegisterDefinitionIssueDto {
+  code: string;
+  severity: 'error' | 'warning' | string;
+  branchNo: number;
+  cashNo: number;
+  terminalNo: string | null;
+  bank: string | null;
+  message: string;
+}
+
 export interface MoveCashRegisterTerminalGroupHttpRequest {
   targetBranchNo: number;
   targetCashNo: number;

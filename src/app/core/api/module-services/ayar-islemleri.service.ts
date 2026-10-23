@@ -16,6 +16,7 @@ import type {
   CashierPasswordDto,
   CashierPasswordMutationDto,
   CashRegisterMessageStatusDto,
+  CashRegisterDefinitionIssueDto,
   CashRegisterResponse,
   CashRegisterSettingsLookupsDto,
   CashRegisterTerminalDto,
@@ -48,13 +49,13 @@ import type {
   UpdateBranchSettingsHttpRequest,
   UpdateB2BUserHttpRequest,
   UpdateCashierHttpRequest,
-  WorkerMonitoringSnapshotDto
+  WorkerMonitoringSnapshotDto,
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
 
 @Injectable({
-  providedIn: 'root'
+  providedIn: 'root',
 })
 export class AyarIslemleriService extends BaseApiService {
   getDeviceTypes(): Observable<DeviceTypeDto[]> {
@@ -63,20 +64,18 @@ export class AyarIslemleriService extends BaseApiService {
 
   getDevices(branchNo?: number | null): Observable<DeviceDto[]> {
     return this.getWithQuery<DeviceDto[]>('ayar-islemleri/cihazlar', {
-      branchNo: branchNo ?? undefined
+      branchNo: branchNo ?? undefined,
     });
   }
 
   getDeviceStatuses(branchNo?: number | null): Observable<DeviceStatusDto[]> {
     return this.getWithQuery<DeviceStatusDto[]>('ayar-islemleri/cihazlar/durum', {
-      branchNo: branchNo ?? undefined
+      branchNo: branchNo ?? undefined,
     });
   }
 
   getBranchDeviceStatuses(branchNo: number): Observable<DeviceStatusDto[]> {
-    return this.get<DeviceStatusDto[]>(
-      `ayar-islemleri/cihazlar/subeler/${branchNo}/durum`
-    );
+    return this.get<DeviceStatusDto[]>(`ayar-islemleri/cihazlar/subeler/${branchNo}/durum`);
   }
 
   createDevice(request: CreateDeviceHttpRequest): Observable<DeviceDto> {
@@ -100,92 +99,92 @@ export class AyarIslemleriService extends BaseApiService {
   }
 
   getBranchCashRegistries(branchNo: number): Observable<CashRegistryDto[]> {
-    return this.get<CashRegistryDto[]>(
-      `ayar-islemleri/sube-ayarlari/${branchNo}/kasalar`
-    );
+    return this.get<CashRegistryDto[]>(`ayar-islemleri/sube-ayarlari/${branchNo}/kasalar`);
   }
 
-  createBranchSettings(
-    request: CreateBranchSettingsHttpRequest
-  ): Observable<BranchDetailDto> {
+  createBranchSettings(request: CreateBranchSettingsHttpRequest): Observable<BranchDetailDto> {
     return this.post<BranchDetailDto, CreateBranchSettingsHttpRequest>(
       'ayar-islemleri/sube-ayarlari',
-      request
+      request,
     );
   }
 
   updateBranchSettings(
     branchNo: number,
-    request: UpdateBranchSettingsHttpRequest
+    request: UpdateBranchSettingsHttpRequest,
   ): Observable<BranchDetailDto> {
     return this.put<BranchDetailDto, UpdateBranchSettingsHttpRequest>(
       `ayar-islemleri/sube-ayarlari/${branchNo}`,
-      request
+      request,
     );
   }
 
-  getCashRegisterTerminals(cashNo: number, branchNo: number): Observable<CashRegisterTerminalDto[]> {
+  getCashRegisterTerminals(
+    cashNo: number,
+    branchNo: number,
+  ): Observable<CashRegisterTerminalDto[]> {
     return this.getWithQuery<CashRegisterTerminalDto[]>(
       `ayar-islemleri/kasa-pos-terminalleri/kasalar/${cashNo}/terminaller`,
-      { branchNo }
+      { branchNo },
     );
   }
 
   getCashRegisterTerminalLocations(
     terminalNo: string,
-    branchNo?: number | null
+    branchNo?: number | null,
   ): Observable<CashRegisterTerminalLocationDto[]> {
     return this.getWithQuery<CashRegisterTerminalLocationDto[]>(
       'ayar-islemleri/kasa-pos-terminalleri/terminaller/konum',
-      { terminalNo, branchNo }
+      { terminalNo, branchNo },
+    );
+  }
+
+  getCashRegisterDefinitionIssues(branchNo: number): Observable<CashRegisterDefinitionIssueDto[]> {
+    return this.getWithQuery<CashRegisterDefinitionIssueDto[]>(
+      'ayar-islemleri/kasa-pos-terminalleri/tanim-sorunlari',
+      { branchNo },
     );
   }
 
   getCashRegisterSettingsLookups(): Observable<CashRegisterSettingsLookupsDto> {
     return this.get<CashRegisterSettingsLookupsDto>(
-      'ayar-islemleri/kasa-pos-terminalleri/secenekler'
+      'ayar-islemleri/kasa-pos-terminalleri/secenekler',
     );
   }
 
   getCurrentBranchMessageStatuses(): Observable<CashRegisterMessageStatusDto[]> {
     return this.get<CashRegisterMessageStatusDto[]>(
-      'ayar-islemleri/kasa-pos-terminalleri/mevcut-sube/mesaj-durumlari'
+      'ayar-islemleri/kasa-pos-terminalleri/mevcut-sube/mesaj-durumlari',
     );
   }
 
   getBranchMessageStatuses(branchNo: number): Observable<CashRegisterMessageStatusDto[]> {
     return this.get<CashRegisterMessageStatusDto[]>(
-      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/mesaj-durumlari`
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/mesaj-durumlari`,
     );
   }
 
   getDatabaseMonitoringSnapshot(): Observable<DatabaseMonitoringSnapshotDto> {
-    return this.get<DatabaseMonitoringSnapshotDto>(
-      'ayar-islemleri/veritabani-izleme/anlik'
-    );
+    return this.get<DatabaseMonitoringSnapshotDto>('ayar-islemleri/veritabani-izleme/anlik');
   }
 
   getDatabaseMonitoringOverview(): Observable<MonitoringOverviewDto> {
-    return this.get<MonitoringOverviewDto>(
-      'ayar-islemleri/veritabani-izleme/genel-bakis'
-    );
+    return this.get<MonitoringOverviewDto>('ayar-islemleri/veritabani-izleme/genel-bakis');
   }
 
   getWorkerMonitoringSnapshot(): Observable<WorkerMonitoringSnapshotDto> {
-    return this.get<WorkerMonitoringSnapshotDto>(
-      'ayar-islemleri/veritabani-izleme/workerlar'
-    );
+    return this.get<WorkerMonitoringSnapshotDto>('ayar-islemleri/veritabani-izleme/workerlar');
   }
 
   getDatabaseMonitoringIncidents(take = 100): Observable<DatabaseMonitoringIncidentDto[]> {
     return this.getWithQuery<DatabaseMonitoringIncidentDto[]>(
       'ayar-islemleri/veritabani-izleme/olaylar',
-      { take }
+      { take },
     );
   }
 
   getSafeWriteMonitoringItems(
-    request: SafeWriteMonitoringListHttpRequest = {}
+    request: SafeWriteMonitoringListHttpRequest = {},
   ): Observable<SafeWriteMonitoringItemDto[]> {
     return this.getWithQuery<SafeWriteMonitoringItemDto[]>(
       'ayar-islemleri/veritabani-izleme/guvenli-yazmalar',
@@ -195,122 +194,113 @@ export class AyarIslemleriService extends BaseApiService {
         warehouseNo: request.warehouseNo ?? undefined,
         retryable: request.retryable ?? undefined,
         includeCompleted: request.includeCompleted ?? false,
-        take: request.take ?? 100
-      }
+        take: request.take ?? 100,
+      },
     );
   }
 
   getSafeWriteReviewHistory(id: string): Observable<SafeWriteReviewAuditDto[]> {
     return this.get<SafeWriteReviewAuditDto[]>(
-      `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/inceleme-gecmisi`
+      `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/inceleme-gecmisi`,
     );
   }
 
   recheckSafeWrite(
     id: string,
-    request: SafeWriteReviewHttpRequest
+    request: SafeWriteReviewHttpRequest,
   ): Observable<SafeWriteReviewResultDto> {
     return this.post<SafeWriteReviewResultDto, SafeWriteReviewHttpRequest>(
       `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/yeniden-dogrula`,
-      request
+      request,
     );
   }
 
   reopenSafeWrite(
     id: string,
-    request: SafeWriteReviewHttpRequest
+    request: SafeWriteReviewHttpRequest,
   ): Observable<SafeWriteReviewResultDto> {
     return this.post<SafeWriteReviewResultDto, SafeWriteReviewHttpRequest>(
       `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/tekrar-ac`,
-      request
+      request,
     );
   }
 
   cancelSafeWrite(
     id: string,
-    request: SafeWriteReviewHttpRequest
+    request: SafeWriteReviewHttpRequest,
   ): Observable<SafeWriteReviewResultDto> {
     return this.post<SafeWriteReviewResultDto, SafeWriteReviewHttpRequest>(
       `ayar-islemleri/veritabani-izleme/guvenli-yazmalar/${encodeURIComponent(id)}/iptal`,
-      request
+      request,
     );
   }
 
-  getDatabaseSessionTerminationAudits(
-    take = 100
-  ): Observable<DatabaseSessionTerminationDto[]> {
+  getDatabaseSessionTerminationAudits(take = 100): Observable<DatabaseSessionTerminationDto[]> {
     return this.getWithQuery<DatabaseSessionTerminationDto[]>(
       'ayar-islemleri/veritabani-izleme/oturum-sonlandirma-gecmisi',
-      { take }
+      { take },
     );
   }
 
   terminateDatabaseSession(
     sessionId: number,
-    request: TerminateDatabaseSessionHttpRequest
+    request: TerminateDatabaseSessionHttpRequest,
   ): Observable<DatabaseSessionTerminationDto> {
     return this.post<DatabaseSessionTerminationDto, TerminateDatabaseSessionHttpRequest>(
       `ayar-islemleri/veritabani-izleme/oturumlar/${sessionId}/sonlandir`,
-      request
+      request,
     );
   }
 
-  getDatabaseSessionRollbackStatus(
-    sessionId: number
-  ): Observable<DatabaseRollbackStatusDto> {
+  getDatabaseSessionRollbackStatus(sessionId: number): Observable<DatabaseRollbackStatusDto> {
     return this.get<DatabaseRollbackStatusDto>(
-      `ayar-islemleri/veritabani-izleme/oturumlar/${sessionId}/rollback-durumu`
+      `ayar-islemleri/veritabani-izleme/oturumlar/${sessionId}/rollback-durumu`,
     );
   }
 
   getTerminalInstallationSummary(
-    warehouseNo?: number | null
+    warehouseNo?: number | null,
   ): Observable<TerminalInstallationSummaryDto> {
     return this.getWithQuery<TerminalInstallationSummaryDto>(
       'ayar-islemleri/terminal-cihazlari/ozet',
-      { warehouseNo: warehouseNo ?? undefined }
+      { warehouseNo: warehouseNo ?? undefined },
     );
   }
 
   getTerminalInstallations(
-    request: TerminalInstallationListHttpRequest = {}
+    request: TerminalInstallationListHttpRequest = {},
   ): Observable<TerminalInstallationDto[]> {
-    return this.getWithQuery<TerminalInstallationDto[]>(
-      'ayar-islemleri/terminal-cihazlari',
-      {
-        warehouseNo: request.warehouseNo ?? undefined,
-        search: request.search?.trim() || undefined,
-        appVersion: request.appVersion?.trim() || undefined,
-        isCurrentVersion: request.isCurrentVersion ?? undefined,
-        activeWithinDays: request.activeWithinDays ?? undefined,
-        take: request.take ?? 100
-      }
-    );
+    return this.getWithQuery<TerminalInstallationDto[]>('ayar-islemleri/terminal-cihazlari', {
+      warehouseNo: request.warehouseNo ?? undefined,
+      search: request.search?.trim() || undefined,
+      appVersion: request.appVersion?.trim() || undefined,
+      isCurrentVersion: request.isCurrentVersion ?? undefined,
+      activeWithinDays: request.activeWithinDays ?? undefined,
+      take: request.take ?? 100,
+    });
   }
 
   getTerminalInstallation(id: string): Observable<TerminalInstallationDto> {
     return this.get<TerminalInstallationDto>(
-      `ayar-islemleri/terminal-cihazlari/${encodeURIComponent(id)}`
+      `ayar-islemleri/terminal-cihazlari/${encodeURIComponent(id)}`,
     );
   }
 
-  createCashRegister(
-    request: CreateCashRegisterHttpRequest
-  ): Observable<CashRegisterResponse> {
+  createCashRegister(request: CreateCashRegisterHttpRequest): Observable<CashRegisterResponse> {
     return this.post<CashRegisterResponse, CreateCashRegisterHttpRequest>(
       'ayar-islemleri/kasa-pos-terminalleri',
-      request
+      request,
     );
   }
 
   createCashRegisterTerminal(
     branchNo: number,
     cashNo: number,
-    request: CreateCashRegisterTerminalHttpRequest
+    request: CreateCashRegisterTerminalHttpRequest,
   ): Observable<CashRegisterTerminalDto> {
     return this.post<CashRegisterTerminalDto, CreateCashRegisterTerminalHttpRequest>(
       `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller`,
-      request
+      request,
     );
   }
 
@@ -318,11 +308,11 @@ export class AyarIslemleriService extends BaseApiService {
     branchNo: number,
     cashNo: number,
     terminalId: number,
-    request: CreateCashRegisterTerminalHttpRequest
+    request: CreateCashRegisterTerminalHttpRequest,
   ): Observable<CashRegisterTerminalDto> {
     return this.put<CashRegisterTerminalDto, CreateCashRegisterTerminalHttpRequest>(
       `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller/${terminalId}`,
-      request
+      request,
     );
   }
 
@@ -330,34 +320,34 @@ export class AyarIslemleriService extends BaseApiService {
     sourceBranchNo: number,
     sourceCashNo: number,
     terminalNo: string,
-    request: MoveCashRegisterTerminalGroupHttpRequest
+    request: MoveCashRegisterTerminalGroupHttpRequest,
   ): Observable<CashRegisterTerminalDto[]> {
     return this.put<CashRegisterTerminalDto[], MoveCashRegisterTerminalGroupHttpRequest>(
       `ayar-islemleri/kasa-pos-terminalleri/subeler/${sourceBranchNo}/kasalar/${sourceCashNo}/terminal-gruplari/${encodeURIComponent(terminalNo)}/tasi`,
-      request
+      request,
     );
   }
 
   updateCashRegisterType(
     branchNo: number,
     cashNo: number,
-    request: UpdateCashRegisterTypeHttpRequest
+    request: UpdateCashRegisterTypeHttpRequest,
   ): Observable<CashRegistryDto> {
     return this.put<CashRegistryDto, UpdateCashRegisterTypeHttpRequest>(
       `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/tip`,
-      request
+      request,
     );
   }
 
   deleteBranchCashRegister(branchNo: number, cashNo: number): Observable<void> {
     return this.delete<void>(
-      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}`
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}`,
     );
   }
 
   deleteBranchTerminal(branchNo: number, cashNo: number, terminalId: number): Observable<void> {
     return this.delete<void>(
-      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller/${terminalId}`
+      `ayar-islemleri/kasa-pos-terminalleri/subeler/${branchNo}/kasalar/${cashNo}/terminaller/${terminalId}`,
     );
   }
 
@@ -366,38 +356,31 @@ export class AyarIslemleriService extends BaseApiService {
   }
 
   getCashierPassword(cashierCode: number): Observable<CashierPasswordDto> {
-    return this.get<CashierPasswordDto>(
-      `ayar-islemleri/kasiyerler/${cashierCode}/sifre`
-    );
+    return this.get<CashierPasswordDto>(`ayar-islemleri/kasiyerler/${cashierCode}/sifre`);
   }
 
   createCashier(request: CreateCashierHttpRequest): Observable<CashierPasswordMutationDto> {
     return this.post<CashierPasswordMutationDto, CreateCashierHttpRequest>(
       'ayar-islemleri/kasiyerler',
-      request
+      request,
     );
   }
 
-  updateCashier(
-    cashierCode: number,
-    request: UpdateCashierHttpRequest
-  ): Observable<CashierDto> {
+  updateCashier(cashierCode: number, request: UpdateCashierHttpRequest): Observable<CashierDto> {
     return this.put<CashierDto, UpdateCashierHttpRequest>(
       `ayar-islemleri/kasiyerler/${cashierCode}`,
-      request
+      request,
     );
   }
 
   resetCashierPassword(cashierCode: number): Observable<CashierPasswordMutationDto> {
     return this.post<CashierPasswordMutationDto, null>(
       `ayar-islemleri/kasiyerler/${cashierCode}/sifre-sifirla`,
-      null
+      null,
     );
   }
 
-  getDespatchDrivers(
-    request: DespatchDriverListHttpRequest = {}
-  ): Observable<DespatchDriverDto[]> {
+  getDespatchDrivers(request: DespatchDriverListHttpRequest = {}): Observable<DespatchDriverDto[]> {
     return this.getWithQuery<DespatchDriverDto[]>('ayar-islemleri/soforler', request);
   }
 
@@ -405,22 +388,20 @@ export class AyarIslemleriService extends BaseApiService {
     return this.get<DespatchDriverDto>(`ayar-islemleri/soforler/${encodeURIComponent(id)}`);
   }
 
-  createDespatchDriver(
-    request: SaveDespatchDriverHttpRequest
-  ): Observable<DespatchDriverDto> {
+  createDespatchDriver(request: SaveDespatchDriverHttpRequest): Observable<DespatchDriverDto> {
     return this.post<DespatchDriverDto, SaveDespatchDriverHttpRequest>(
       'ayar-islemleri/soforler',
-      request
+      request,
     );
   }
 
   updateDespatchDriver(
     id: string,
-    request: SaveDespatchDriverHttpRequest
+    request: SaveDespatchDriverHttpRequest,
   ): Observable<DespatchDriverDto> {
     return this.put<DespatchDriverDto, SaveDespatchDriverHttpRequest>(
       `ayar-islemleri/soforler/${encodeURIComponent(id)}`,
-      request
+      request,
     );
   }
 
@@ -431,24 +412,21 @@ export class AyarIslemleriService extends BaseApiService {
   getB2BBulletins(request: B2BBulletinListHttpRequest = {}): Observable<B2BBulletinDto[]> {
     return this.getWithQuery<B2BBulletinDto[]>('ayar-islemleri/b2b-ayarlari/bultenler', {
       search: request.search?.trim() || undefined,
-      take: request.take ?? 100
+      take: request.take ?? 100,
     });
   }
 
   createB2BBulletin(request: SaveB2BBulletinHttpRequest): Observable<B2BBulletinDto> {
     return this.post<B2BBulletinDto, SaveB2BBulletinHttpRequest>(
       'ayar-islemleri/b2b-ayarlari/bultenler',
-      request
+      request,
     );
   }
 
-  updateB2BBulletin(
-    id: number,
-    request: SaveB2BBulletinHttpRequest
-  ): Observable<B2BBulletinDto> {
+  updateB2BBulletin(id: number, request: SaveB2BBulletinHttpRequest): Observable<B2BBulletinDto> {
     return this.put<B2BBulletinDto, SaveB2BBulletinHttpRequest>(
       `ayar-islemleri/b2b-ayarlari/bultenler/${id}`,
-      request
+      request,
     );
   }
 
@@ -460,23 +438,20 @@ export class AyarIslemleriService extends BaseApiService {
     return this.getWithQuery<B2BUserDto[]>('ayar-islemleri/b2b-ayarlari/kullanicilar', {
       search: request.search?.trim() || undefined,
       includeInactive: request.includeInactive ?? false,
-      take: request.take ?? 100
+      take: request.take ?? 100,
     });
   }
 
   getB2BUser(userId: string): Observable<B2BUserDetailDto> {
     return this.get<B2BUserDetailDto>(
-      `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}`
+      `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}`,
     );
   }
 
-  updateB2BUser(
-    userId: string,
-    request: UpdateB2BUserHttpRequest
-  ): Observable<B2BUserDetailDto> {
+  updateB2BUser(userId: string, request: UpdateB2BUserHttpRequest): Observable<B2BUserDetailDto> {
     return this.put<B2BUserDetailDto, UpdateB2BUserHttpRequest>(
       `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}`,
-      request
+      request,
     );
   }
 }

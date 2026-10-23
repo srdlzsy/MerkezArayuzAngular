@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import type {
+  CashRegisterDefinitionIssueDto,
   CashRegisterMessageStatusDto,
   CashRegisterResponse,
   CashRegisterSettingsLookupsDto,
@@ -13,7 +14,7 @@ import type {
   CreateCashRegisterHttpRequest,
   CreateCashRegisterTerminalHttpRequest,
   SettingsTypeOptionDto,
-  TerminalBankOptionDto
+  TerminalBankOptionDto,
 } from '@interfaces';
 
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
@@ -27,7 +28,7 @@ import {
   getErrorMessage,
   getOptionalText,
   hasSettingsPermission,
-  toOptionalNumber
+  toOptionalNumber,
 } from '../../settings-task.helpers';
 
 interface TerminalDraft {
@@ -40,7 +41,7 @@ interface TerminalDraft {
 
 const DEFAULT_CASH_REGISTER_LOOKUPS: CashRegisterSettingsLookupsDto = {
   cashTypes: [...FALLBACK_CASH_TYPE_OPTIONS],
-  terminalBanks: []
+  terminalBanks: [],
 };
 
 type PosAction =
@@ -60,13 +61,13 @@ type PosAction =
   standalone: true,
   imports: [CommonModule, ReactiveFormsModule],
   templateUrl: './kasa-pos-terminalleri-list.component.html',
-  styleUrl: './kasa-pos-terminalleri-list.component.scss'
+  styleUrl: './kasa-pos-terminalleri-list.component.scss',
 })
 export class KasaPosTerminalleriListComponent {
   protected readonly page: DocsContentPage = DOCS_PAGES['kasa-pos-terminalleri'];
   protected readonly scopeForm = new FormGroup({
     branchNo: new FormControl<number | null>(null),
-    cashNo: new FormControl<number | null>(null)
+    cashNo: new FormControl<number | null>(null),
   });
   protected readonly cashRegisterForm = new FormGroup({
     branchNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
@@ -74,45 +75,47 @@ export class KasaPosTerminalleriListComponent {
     cashType: new FormControl<number | null>(1, [
       Validators.required,
       Validators.min(0),
-      Validators.max(255)
-    ])
+      Validators.max(255),
+    ]),
   });
   protected readonly terminalDraftForm = new FormGroup({
     terminalNo: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(40)]
+      validators: [Validators.required, Validators.maxLength(40)],
     }),
     bank: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(100)]
+      validators: [Validators.required, Validators.maxLength(100)],
     }),
     terminalId: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(40)]
+      validators: [Validators.required, Validators.maxLength(40)],
     }),
     merchantNo: new FormControl<string>('', {
       nonNullable: true,
-      validators: [Validators.required, Validators.maxLength(40)]
-    })
+      validators: [Validators.required, Validators.maxLength(40)],
+    }),
   });
   protected readonly moveTerminalForm = new FormGroup({
     targetBranchNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
-    targetCashNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)])
+    targetCashNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
   });
 
   private readonly authService = inject(AuthService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
+  private definitionIssuesRequestId = 0;
 
   protected readonly cashRegistries = signal<CashRegistryDto[]>([]);
   protected readonly terminals = signal<CashRegisterTerminalDto[]>([]);
   protected readonly messageStatuses = signal<CashRegisterMessageStatusDto[]>([]);
   protected readonly terminalLocations = signal<CashRegisterTerminalLocationDto[]>([]);
+  protected readonly definitionIssues = signal<CashRegisterDefinitionIssueDto[]>([]);
   protected readonly moveTargetCashRegistries = signal<CashRegistryDto[]>([]);
   protected readonly terminalDrafts = signal<TerminalDraft[]>([]);
   protected readonly cashRegisterLookups = signal<CashRegisterSettingsLookupsDto>(
-    DEFAULT_CASH_REGISTER_LOOKUPS
+    DEFAULT_CASH_REGISTER_LOOKUPS,
   );
   protected readonly selectedCashRegistry = signal<CashRegistryDto | null>(null);
   protected readonly editingTerminal = signal<CashRegisterTerminalDto | null>(null);
@@ -120,35 +123,36 @@ export class KasaPosTerminalleriListComponent {
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly loadingAction = signal<PosAction | null>(null);
   protected readonly lookupsLoading = signal(false);
+  protected readonly definitionIssuesLoading = signal(false);
 
   protected readonly canCreate = computed(() =>
     hasSettingsPermission(
       this.authService,
       'kasa-pos-terminalleri',
-      'ayar-islemleri.kasa-pos-terminalleri.create'
-    )
+      'ayar-islemleri.kasa-pos-terminalleri.create',
+    ),
   );
   protected readonly canUpdate = computed(() =>
     hasSettingsPermission(
       this.authService,
       'kasa-pos-terminalleri',
-      'ayar-islemleri.kasa-pos-terminalleri.update'
-    )
+      'ayar-islemleri.kasa-pos-terminalleri.update',
+    ),
   );
   protected readonly messageErrorCount = computed(
-    () => this.messageStatuses().filter((status) => status.error || status.state === null).length
+    () => this.messageStatuses().filter((status) => status.error || status.state === null).length,
   );
   protected readonly readyMessageCount = computed(
-    () => this.messageStatuses().filter((status) => status.state === 0 && !status.error).length
+    () => this.messageStatuses().filter((status) => status.state === 0 && !status.error).length,
+  );
+  protected readonly definitionErrorCount = computed(
+    () => this.definitionIssues().filter((issue) => issue.severity === 'error').length,
   );
   protected readonly cashTypeOptions = computed(() =>
-    this.mergeLookupOptions(
-      this.cashRegisterLookups().cashTypes,
-      FALLBACK_CASH_TYPE_OPTIONS
-    )
+    this.mergeLookupOptions(this.cashRegisterLookups().cashTypes, FALLBACK_CASH_TYPE_OPTIONS),
   );
   protected readonly terminalBankOptions = computed(
-    () => this.cashRegisterLookups().terminalBanks ?? []
+    () => this.cashRegisterLookups().terminalBanks ?? [],
   );
 
   constructor() {
@@ -170,22 +174,22 @@ export class KasaPosTerminalleriListComponent {
       .getCashRegisterSettingsLookups()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.lookupsLoading.set(false))
+        finalize(() => this.lookupsLoading.set(false)),
       )
       .subscribe({
         next: (lookups: CashRegisterSettingsLookupsDto) => {
           this.cashRegisterLookups.set({
             cashTypes: this.mergeLookupOptions(
               lookups?.cashTypes ?? [],
-              FALLBACK_CASH_TYPE_OPTIONS
+              FALLBACK_CASH_TYPE_OPTIONS,
             ),
-            terminalBanks: lookups?.terminalBanks ?? []
+            terminalBanks: lookups?.terminalBanks ?? [],
           });
           this.patchDefaultTerminalBank();
         },
         error: () => {
           this.cashRegisterLookups.set(DEFAULT_CASH_REGISTER_LOOKUPS);
-        }
+        },
       });
   }
 
@@ -196,12 +200,13 @@ export class KasaPosTerminalleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Sube gerekli',
-        message: 'Kasa listesini almak icin sube no girin.'
+        message: 'Kasa listesini almak icin sube no girin.',
       });
       return;
     }
 
     this.cashRegistries.set([]);
+    this.definitionIssues.set([]);
     this.terminals.set([]);
     this.selectedCashRegistry.set(null);
     this.scopeForm.patchValue({ cashNo: null });
@@ -212,18 +217,19 @@ export class KasaPosTerminalleriListComponent {
       .getBranchCashRegistries(branchNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (cashRegistries: CashRegistryDto[]) => {
           this.cashRegistries.set(this.sortCashRegistries(cashRegistries ?? []));
           this.cashRegisterForm.patchValue({ branchNo });
+          this.loadDefinitionIssues(branchNo);
 
           if (!cashRegistries?.length) {
             this.feedback.set({
               tone: 'info',
               title: 'Kasa yok',
-              message: `${branchNo} subesi icin kasa tanimi donmedi.`
+              message: `${branchNo} subesi icin kasa tanimi donmedi.`,
             });
           }
         },
@@ -232,10 +238,56 @@ export class KasaPosTerminalleriListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Kasalar yuklenemedi',
-            message: getErrorMessage(error, 'Sube kasa tanimlari alinamadi.')
+            message: getErrorMessage(error, 'Sube kasa tanimlari alinamadi.'),
           });
-        }
+        },
       });
+  }
+
+  protected loadDefinitionIssues(branchNo?: number): void {
+    const resolvedBranchNo = branchNo ?? toOptionalNumber(this.scopeForm.getRawValue().branchNo);
+    if (!resolvedBranchNo) {
+      this.definitionIssuesRequestId += 1;
+      this.definitionIssues.set([]);
+      return;
+    }
+
+    const requestId = ++this.definitionIssuesRequestId;
+    this.definitionIssuesLoading.set(true);
+    this.ayarIslemleriService
+      .getCashRegisterDefinitionIssues(resolvedBranchNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (requestId === this.definitionIssuesRequestId) {
+            this.definitionIssuesLoading.set(false);
+          }
+        }),
+      )
+      .subscribe({
+        next: (issues: CashRegisterDefinitionIssueDto[]) => {
+          if (requestId !== this.definitionIssuesRequestId) {
+            return;
+          }
+          this.definitionIssues.set(issues ?? []);
+        },
+        error: () => {
+          if (requestId !== this.definitionIssuesRequestId) {
+            return;
+          }
+          this.definitionIssues.set([]);
+        },
+      });
+  }
+
+  protected openDefinitionIssue(issue: CashRegisterDefinitionIssueDto): void {
+    const cash = this.cashRegistries().find((item) => item.cashNo === issue.cashNo);
+    if (!cash) {
+      return;
+    }
+
+    this.scopeForm.patchValue({ cashNo: cash.cashNo });
+    this.selectCashRegistry(cash);
   }
 
   protected loadTerminals(): void {
@@ -246,7 +298,7 @@ export class KasaPosTerminalleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Sube ve kasa secin',
-        message: 'Terminal listesi yalniz yuklenen subenin secili kasasi icin getirilir.'
+        message: 'Terminal listesi yalniz yuklenen subenin secili kasasi icin getirilir.',
       });
       return;
     }
@@ -258,7 +310,7 @@ export class KasaPosTerminalleriListComponent {
       .getCashRegisterTerminals(cashNo, branchNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (terminals: CashRegisterTerminalDto[]) => {
@@ -268,7 +320,7 @@ export class KasaPosTerminalleriListComponent {
             this.feedback.set({
               tone: 'info',
               title: 'Terminal yok',
-              message: `${branchNo}/${cashNo} kasasi icin Mikro sube eslesmesinde terminal bulunmadi.`
+              message: `${branchNo}/${cashNo} kasasi icin Furpa terminal tanimi bulunmadi.`,
             });
           }
         },
@@ -277,9 +329,9 @@ export class KasaPosTerminalleriListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Terminaller yuklenemedi',
-            message: getErrorMessage(error, 'Terminal listesi alinirken hata olustu.')
+            message: getErrorMessage(error, 'Terminal listesi alinirken hata olustu.'),
           });
-        }
+        },
       });
   }
 
@@ -295,7 +347,7 @@ export class KasaPosTerminalleriListComponent {
     request$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (statuses: CashRegisterMessageStatusDto[]) => {
@@ -305,7 +357,7 @@ export class KasaPosTerminalleriListComponent {
             this.feedback.set({
               tone: 'info',
               title: 'Mesaj yok',
-              message: 'POSKON mesaj durumu donmedi.'
+              message: 'POSKON mesaj durumu donmedi.',
             });
           }
         },
@@ -314,9 +366,9 @@ export class KasaPosTerminalleriListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Mesaj durumu alinamadi',
-            message: getErrorMessage(error, 'POSKON mesaj durumlari alinamadi.')
+            message: getErrorMessage(error, 'POSKON mesaj durumlari alinamadi.'),
           });
-        }
+        },
       });
   }
 
@@ -324,12 +376,12 @@ export class KasaPosTerminalleriListComponent {
     this.selectedCashRegistry.set(cashRegistry);
     this.scopeForm.patchValue({
       branchNo: cashRegistry.branchNo,
-      cashNo: cashRegistry.cashNo
+      cashNo: cashRegistry.cashNo,
     });
     this.cashRegisterForm.patchValue({
       branchNo: cashRegistry.branchNo,
       cashNo: cashRegistry.cashNo,
-      cashType: cashRegistry.cashType
+      cashType: cashRegistry.cashType,
     });
     this.cancelTerminalEdit();
     this.loadTerminals();
@@ -339,7 +391,7 @@ export class KasaPosTerminalleriListComponent {
     const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
     const cashNo = toOptionalNumber(this.scopeForm.getRawValue().cashNo);
     const cashRegistry = this.cashRegistries().find(
-      (item) => item.branchNo === branchNo && item.cashNo === cashNo
+      (item) => item.branchNo === branchNo && item.cashNo === cashNo,
     );
 
     this.terminals.set([]);
@@ -359,7 +411,7 @@ export class KasaPosTerminalleriListComponent {
     this.cashRegisterForm.reset({
       branchNo,
       cashNo: null,
-      cashType: this.cashTypeOptions()[0]?.value ?? 0
+      cashType: this.cashTypeOptions()[0]?.value ?? 0,
     });
     this.resetTerminalForm();
   }
@@ -377,30 +429,32 @@ export class KasaPosTerminalleriListComponent {
       .updateCashRegisterType(selectedCash.branchNo, selectedCash.cashNo, { cashType })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (updated: CashRegistryDto) => {
-          this.cashRegistries.update((rows) => this.sortCashRegistries([
-            ...rows.filter(
-              (item) => !(item.branchNo === updated.branchNo && item.cashNo === updated.cashNo)
-            ),
-            updated
-          ]));
+          this.cashRegistries.update((rows) =>
+            this.sortCashRegistries([
+              ...rows.filter(
+                (item) => !(item.branchNo === updated.branchNo && item.cashNo === updated.cashNo),
+              ),
+              updated,
+            ]),
+          );
           this.selectedCashRegistry.set(updated);
           this.feedback.set({
             tone: 'success',
             title: 'Kasa tipi guncellendi',
-            message: `${updated.branchNo}/${updated.cashNo} fiziksel kasasi ${this.getCashTypeLabel(updated)} olarak kaydedildi.`
+            message: `${updated.branchNo}/${updated.cashNo} fiziksel kasasi ${this.getCashTypeLabel(updated)} olarak kaydedildi.`,
           });
         },
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'Kasa tipi guncellenemedi',
-            message: getErrorMessage(error, 'Fiziksel kasa tipi kaydedilemedi.')
+            message: getErrorMessage(error, 'Fiziksel kasa tipi kaydedilemedi.'),
           });
-        }
+        },
       });
   }
 
@@ -417,16 +471,19 @@ export class KasaPosTerminalleriListComponent {
     const terminalId = getOptionalText(formValue.terminalId);
     const merchantNo = getOptionalText(formValue.merchantNo);
 
-    if (this.terminalDrafts().some((draft) =>
-      draft.terminalNo === terminalNo &&
-      draft.bank === bank &&
-      draft.terminalId === terminalId &&
-      draft.merchantNo === merchantNo
-    )) {
+    if (
+      this.terminalDrafts().some(
+        (draft) =>
+          draft.terminalNo === terminalNo &&
+          draft.bank === bank &&
+          draft.terminalId === terminalId &&
+          draft.merchantNo === merchantNo,
+      )
+    ) {
       this.feedback.set({
         tone: 'error',
         title: 'Terminal tekrari',
-        message: `${terminalNo} icin ayni banka terminal satiri zaten eklendi.`
+        message: `${terminalNo} icin ayni banka terminal satiri zaten eklendi.`,
       });
       return;
     }
@@ -438,8 +495,8 @@ export class KasaPosTerminalleriListComponent {
         terminalNo,
         bank,
         terminalId,
-        merchantNo
-      }
+        merchantNo,
+      },
     ]);
     this.resetTerminalForm();
   }
@@ -468,12 +525,12 @@ export class KasaPosTerminalleriListComponent {
           selectedCash.branchNo,
           selectedCash.cashNo,
           editing.id,
-          request
+          request,
         )
       : this.ayarIslemleriService.createCashRegisterTerminal(
           selectedCash.branchNo,
           selectedCash.cashNo,
-          request
+          request,
         );
 
     this.loadingAction.set('terminal-save');
@@ -482,28 +539,28 @@ export class KasaPosTerminalleriListComponent {
     request$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (terminal: CashRegisterTerminalDto) => {
-          this.terminals.update((rows) => this.sortTerminals([
-            ...rows.filter((row) => row.id !== terminal.id),
-            terminal
-          ]));
+          this.terminals.update((rows) =>
+            this.sortTerminals([...rows.filter((row) => row.id !== terminal.id), terminal]),
+          );
           this.cancelTerminalEdit();
+          this.loadDefinitionIssues(selectedCash.branchNo);
           this.feedback.set({
             tone: 'success',
             title: editing ? 'Terminal guncellendi' : 'Terminal eklendi',
-            message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} kaydedildi.`
+            message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} kaydedildi.`,
           });
         },
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: editing ? 'Terminal guncellenemedi' : 'Terminal eklenemedi',
-            message: getErrorMessage(error, 'Terminal kaydi tamamlanamadi.')
+            message: getErrorMessage(error, 'Terminal kaydi tamamlanamadi.'),
           });
-        }
+        },
       });
   }
 
@@ -517,14 +574,16 @@ export class KasaPosTerminalleriListComponent {
       terminalNo: terminal.terminalNo,
       bank: terminal.bank,
       terminalId: terminal.terminalId,
-      merchantNo: terminal.merchantNo
+      merchantNo: terminal.merchantNo,
     });
     this.terminalLocations.set([]);
   }
 
   protected isEditingMultiBankGroup(): boolean {
     const terminalNo = this.editingTerminal()?.terminalNo;
-    return !!terminalNo && this.terminals().filter((item) => item.terminalNo === terminalNo).length > 1;
+    return (
+      !!terminalNo && this.terminals().filter((item) => item.terminalNo === terminalNo).length > 1
+    );
   }
 
   protected cancelTerminalEdit(): void {
@@ -546,7 +605,7 @@ export class KasaPosTerminalleriListComponent {
       .getCashRegisterTerminalLocations(terminalNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (locations: CashRegisterTerminalLocationDto[]) => {
@@ -560,16 +619,16 @@ export class KasaPosTerminalleriListComponent {
             title: 'POS/PAV zaten tanimli',
             message: `${terminalNo} su anda ${locations
               .map((item) => `${item.branchNo} sube / ${item.cashNo} kasa`)
-              .join(', ')} altinda bulunuyor.`
+              .join(', ')} altinda bulunuyor.`,
           });
         },
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'Terminal konumu bulunamadi',
-            message: getErrorMessage(error, 'POS/PAV konumu kontrol edilemedi.')
+            message: getErrorMessage(error, 'POS/PAV konumu kontrol edilemedi.'),
           });
-        }
+        },
       });
   }
 
@@ -582,10 +641,10 @@ export class KasaPosTerminalleriListComponent {
     this.movingTerminalNo.set(terminal.terminalNo);
     this.moveTerminalForm.reset({
       targetBranchNo: selectedCash.branchNo,
-      targetCashNo: null
+      targetCashNo: null,
     });
     this.moveTargetCashRegistries.set(
-      this.cashRegistries().filter((item) => item.cashNo !== selectedCash.cashNo)
+      this.cashRegistries().filter((item) => item.cashNo !== selectedCash.cashNo),
     );
   }
 
@@ -607,7 +666,7 @@ export class KasaPosTerminalleriListComponent {
 
     if (targetBranchNo === selectedCash.branchNo) {
       this.moveTargetCashRegistries.set(
-        this.cashRegistries().filter((item) => item.cashNo !== selectedCash.cashNo)
+        this.cashRegistries().filter((item) => item.cashNo !== selectedCash.cashNo),
       );
       return;
     }
@@ -618,19 +677,18 @@ export class KasaPosTerminalleriListComponent {
       .getBranchCashRegistries(targetBranchNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
-        next: (rows: CashRegistryDto[]) => this.moveTargetCashRegistries.set(
-          this.sortCashRegistries(rows ?? [])
-        ),
+        next: (rows: CashRegistryDto[]) =>
+          this.moveTargetCashRegistries.set(this.sortCashRegistries(rows ?? [])),
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'Hedef kasalar yuklenemedi',
-            message: getErrorMessage(error, 'Hedef subenin kasa listesi alinamadi.')
+            message: getErrorMessage(error, 'Hedef subenin kasa listesi alinamadi.'),
           });
-        }
+        },
       });
   }
 
@@ -652,7 +710,7 @@ export class KasaPosTerminalleriListComponent {
       title: 'POS/PAV grubu tasinsin mi?',
       message: `${terminalNo} grubundaki tum banka satirlari ${selectedCash.branchNo}/${selectedCash.cashNo} kasasindan ${targetBranchNo}/${targetCashNo} kasasina tasinacak.`,
       confirmText: 'Dogru Kasaya Tasi',
-      tone: 'warning'
+      tone: 'warning',
     });
     if (!confirmed) {
       return;
@@ -661,33 +719,32 @@ export class KasaPosTerminalleriListComponent {
     this.loadingAction.set('move');
     this.feedback.set(null);
     this.ayarIslemleriService
-      .moveCashRegisterTerminalGroup(
-        selectedCash.branchNo,
-        selectedCash.cashNo,
-        terminalNo,
-        { targetBranchNo, targetCashNo }
-      )
+      .moveCashRegisterTerminalGroup(selectedCash.branchNo, selectedCash.cashNo, terminalNo, {
+        targetBranchNo,
+        targetCashNo,
+      })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (movedRows: CashRegisterTerminalDto[]) => {
           this.terminals.update((rows) => rows.filter((item) => item.terminalNo !== terminalNo));
           this.cancelMoveTerminalGroup();
+          this.loadDefinitionIssues(selectedCash.branchNo);
           this.feedback.set({
             tone: 'success',
             title: 'POS/PAV grubu tasindi',
-            message: `${terminalNo} ve ${movedRows.length} banka satiri ${targetBranchNo}/${targetCashNo} kasasina tasindi.`
+            message: `${terminalNo} ve ${movedRows.length} banka satiri ${targetBranchNo}/${targetCashNo} kasasina tasindi.`,
           });
         },
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'POS/PAV grubu tasinamadi',
-            message: getErrorMessage(error, 'Terminal grubu tasima islemi tamamlanamadi.')
+            message: getErrorMessage(error, 'Terminal grubu tasima islemi tamamlanamadi.'),
           });
-        }
+        },
       });
   }
 
@@ -705,7 +762,7 @@ export class KasaPosTerminalleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Form eksik',
-        message: 'Sube, kasa no ve kasa tipi zorunludur.'
+        message: 'Sube, kasa no ve kasa tipi zorunludur.',
       });
       return;
     }
@@ -714,7 +771,7 @@ export class KasaPosTerminalleriListComponent {
       this.feedback.set({
         tone: 'error',
         title: 'Terminal eksik',
-        message: 'Kasa olusturmak icin en az bir terminal satiri ekleyin.'
+        message: 'Kasa olusturmak icin en az bir terminal satiri ekleyin.',
       });
       return;
     }
@@ -728,19 +785,19 @@ export class KasaPosTerminalleriListComponent {
       .createCashRegister(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: (response: CashRegisterResponse) => {
           this.terminalDrafts.set([]);
           this.scopeForm.patchValue({
             branchNo: response.branchNo,
-            cashNo: response.cashNo
+            cashNo: response.cashNo,
           });
           this.cashRegistries.update((rows) =>
             this.sortCashRegistries([
               ...rows.filter(
-                (row) => !(row.branchNo === response.branchNo && row.cashNo === response.cashNo)
+                (row) => !(row.branchNo === response.branchNo && row.cashNo === response.cashNo),
               ),
               {
                 detailId: response.cashNo,
@@ -752,14 +809,14 @@ export class KasaPosTerminalleriListComponent {
                   this.getSettingsOptionLabel(
                     this.cashTypeOptions(),
                     response.cashType,
-                    'Kasa Tipi'
+                    'Kasa Tipi',
                   ),
                 cashTypeDescription:
                   response.cashTypeDescription?.trim() ||
                   this.getSettingsOptionDescription(this.cashTypeOptions(), response.cashType) ||
-                  ''
-              }
-            ])
+                  '',
+              },
+            ]),
           );
           this.terminals.set(this.sortTerminals(response.terminals ?? []));
           const selectedCash: CashRegistryDto = {
@@ -769,22 +826,23 @@ export class KasaPosTerminalleriListComponent {
             cashType: response.cashType,
             cashTypeName: response.cashTypeName,
             cashTypeDescription: response.cashTypeDescription,
-            cashFinanceNumber: response.terminals?.[0]?.terminalNo ?? ''
+            cashFinanceNumber: response.terminals?.[0]?.terminalNo ?? '',
           };
           this.selectedCashRegistry.set(selectedCash);
+          this.loadDefinitionIssues(response.branchNo);
           this.feedback.set({
             tone: 'success',
             title: 'Kasa olusturuldu',
-            message: `${response.branchNo}/${response.cashNo} kasa kaydi ve terminalleri olusturuldu.`
+            message: `${response.branchNo}/${response.cashNo} kasa kaydi ve terminalleri olusturuldu.`,
           });
         },
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'Kasa olusturulamadi',
-            message: getErrorMessage(error, 'Kasa/POS terminal olusturma istegi basarisiz oldu.')
+            message: getErrorMessage(error, 'Kasa/POS terminal olusturma istegi basarisiz oldu.'),
           });
-        }
+        },
       });
   }
 
@@ -797,7 +855,7 @@ export class KasaPosTerminalleriListComponent {
       title: 'Kasa kaydi silinsin mi?',
       message: `${cashRegistry.branchNo}/${cashRegistry.cashNo} kasa kaydi silinecek.`,
       confirmText: 'Sil',
-      tone: 'danger'
+      tone: 'danger',
     });
 
     if (!confirmed) {
@@ -811,15 +869,15 @@ export class KasaPosTerminalleriListComponent {
       .deleteBranchCashRegister(cashRegistry.branchNo, cashRegistry.cashNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: () => {
           this.cashRegistries.update((rows) =>
             rows.filter(
               (row) =>
-                !(row.branchNo === cashRegistry.branchNo && row.cashNo === cashRegistry.cashNo)
-            )
+                !(row.branchNo === cashRegistry.branchNo && row.cashNo === cashRegistry.cashNo),
+            ),
           );
 
           if (this.scopeForm.getRawValue().cashNo === cashRegistry.cashNo) {
@@ -827,19 +885,21 @@ export class KasaPosTerminalleriListComponent {
             this.selectedCashRegistry.set(null);
           }
 
+          this.loadDefinitionIssues(cashRegistry.branchNo);
+
           this.feedback.set({
             tone: 'success',
             title: 'Kasa silindi',
-            message: `${cashRegistry.cashNo} no'lu kasa kaldirildi.`
+            message: `${cashRegistry.cashNo} no'lu kasa kaldirildi.`,
           });
         },
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'Kasa silinemedi',
-            message: getErrorMessage(error, 'Kasa silme istegi basarisiz oldu.')
+            message: getErrorMessage(error, 'Kasa silme istegi basarisiz oldu.'),
           });
-        }
+        },
       });
   }
 
@@ -854,7 +914,7 @@ export class KasaPosTerminalleriListComponent {
       title: 'Terminal kaydi silinsin mi?',
       message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} / ${terminal.terminalId} satiri silinecek.`,
       confirmText: 'Sil',
-      tone: 'danger'
+      tone: 'danger',
     });
 
     if (!confirmed) {
@@ -868,11 +928,11 @@ export class KasaPosTerminalleriListComponent {
       .deleteBranchTerminal(
         branchNo,
         terminal.cashNo ?? toOptionalNumber(this.scopeForm.getRawValue().cashNo) ?? 0,
-        terminal.id
+        terminal.id,
       )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => this.loadingAction.set(null)),
       )
       .subscribe({
         next: () => {
@@ -880,19 +940,20 @@ export class KasaPosTerminalleriListComponent {
           if (this.editingTerminal()?.id === terminal.id) {
             this.cancelTerminalEdit();
           }
+          this.loadDefinitionIssues(branchNo);
           this.feedback.set({
             tone: 'success',
             title: 'Terminal silindi',
-            message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} satiri kaldirildi.`
+            message: `${terminal.terminalNo} / ${this.getTerminalBankLabel(terminal.bank)} satiri kaldirildi.`,
           });
         },
         error: (error: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'Terminal silinemedi',
-            message: getErrorMessage(error, 'Terminal silme istegi basarisiz oldu.')
+            message: getErrorMessage(error, 'Terminal silme istegi basarisiz oldu.'),
           });
-        }
+        },
       });
   }
 
@@ -915,9 +976,7 @@ export class KasaPosTerminalleriListComponent {
     );
   }
 
-  protected getCashTypeDescription(
-    cash: CashRegistryDto | CashRegisterMessageStatusDto
-  ): string {
+  protected getCashTypeDescription(cash: CashRegistryDto | CashRegisterMessageStatusDto): string {
     return (
       cash.cashTypeDescription?.trim() ||
       this.getSettingsOptionDescription(this.cashTypeOptions(), cash.cashType) ||
@@ -963,22 +1022,29 @@ export class KasaPosTerminalleriListComponent {
 
   protected readonly trackByCashRegistry = (_index: number, cash: CashRegistryDto): string =>
     `${cash.branchNo}-${cash.cashNo}`;
-  protected readonly trackByTerminal = (_index: number, terminal: CashRegisterTerminalDto): number =>
-    terminal.id;
+  protected readonly trackByTerminal = (
+    _index: number,
+    terminal: CashRegisterTerminalDto,
+  ): number => terminal.id;
   protected readonly trackByTerminalDraft = (_index: number, draft: TerminalDraft): string =>
     draft.id;
   protected readonly trackByMessageStatus = (
     _index: number,
-    status: CashRegisterMessageStatusDto
+    status: CashRegisterMessageStatusDto,
   ): string => `${status.branchNo}-${status.cashNo}-${status.filePath}`;
   protected readonly trackBySettingsOption = (
     _index: number,
-    option: SettingsTypeOptionDto
+    option: SettingsTypeOptionDto,
   ): number => option.value;
   protected readonly trackByTerminalBankOption = (
     _index: number,
-    option: TerminalBankOptionDto
+    option: TerminalBankOptionDto,
   ): string => `${option.paymentName}-${option.paymentTypeNo}`;
+  protected readonly trackByDefinitionIssue = (
+    _index: number,
+    issue: CashRegisterDefinitionIssueDto,
+  ): string =>
+    `${issue.code}-${issue.branchNo}-${issue.cashNo}-${issue.terminalNo ?? ''}-${issue.bank ?? ''}`;
 
   private buildCreateRequest(): CreateCashRegisterHttpRequest {
     const formValue = this.cashRegisterForm.getRawValue();
@@ -992,8 +1058,8 @@ export class KasaPosTerminalleriListComponent {
         terminalNo: draft.terminalNo,
         bank: draft.bank,
         terminalId: draft.terminalId,
-        merchantNo: draft.merchantNo
-      }))
+        merchantNo: draft.merchantNo,
+      })),
     };
   }
 
@@ -1003,7 +1069,7 @@ export class KasaPosTerminalleriListComponent {
       terminalNo: getOptionalText(value.terminalNo),
       bank: getOptionalText(value.bank),
       terminalId: getOptionalText(value.terminalId),
-      merchantNo: getOptionalText(value.merchantNo)
+      merchantNo: getOptionalText(value.merchantNo),
     };
   }
 
@@ -1012,7 +1078,7 @@ export class KasaPosTerminalleriListComponent {
       terminalNo: '',
       bank: this.getDefaultTerminalBankName(),
       terminalId: '',
-      merchantNo: ''
+      merchantNo: '',
     });
   }
 
@@ -1025,24 +1091,24 @@ export class KasaPosTerminalleriListComponent {
       (left, right) =>
         left.terminalNo.localeCompare(right.terminalNo, 'tr') ||
         left.bank.localeCompare(right.bank, 'tr') ||
-        left.terminalId.localeCompare(right.terminalId, 'tr')
+        left.terminalId.localeCompare(right.terminalId, 'tr'),
     );
   }
 
   private sortMessageStatuses(
-    rows: CashRegisterMessageStatusDto[]
+    rows: CashRegisterMessageStatusDto[],
   ): CashRegisterMessageStatusDto[] {
     return [...rows].sort(
       (left, right) =>
         left.branchNo - right.branchNo ||
         left.cashNo - right.cashNo ||
-        left.filePath.localeCompare(right.filePath, 'tr')
+        left.filePath.localeCompare(right.filePath, 'tr'),
     );
   }
 
   private mergeLookupOptions(
     values: readonly SettingsTypeOptionDto[],
-    fallbackValues: readonly SettingsTypeOptionDto[]
+    fallbackValues: readonly SettingsTypeOptionDto[],
   ): SettingsTypeOptionDto[] {
     const optionsByValue = new Map<number, SettingsTypeOptionDto>();
 
@@ -1060,7 +1126,7 @@ export class KasaPosTerminalleriListComponent {
   private getSettingsOptionLabel(
     options: readonly SettingsTypeOptionDto[],
     value: number,
-    fallbackPrefix: string
+    fallbackPrefix: string,
   ): string {
     const option = options.find((item) => item.value === value);
 
@@ -1069,7 +1135,7 @@ export class KasaPosTerminalleriListComponent {
 
   private getSettingsOptionDescription(
     options: readonly SettingsTypeOptionDto[],
-    value: number
+    value: number,
   ): string | null {
     return options.find((item) => item.value === value)?.description?.trim() || null;
   }
