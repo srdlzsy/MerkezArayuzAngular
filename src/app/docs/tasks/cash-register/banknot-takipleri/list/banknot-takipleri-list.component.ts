@@ -126,6 +126,10 @@ export class BanknotTakipleriListComponent {
       nonNullable: true,
       validators: [Validators.required]
     }),
+    search: new FormControl<string>('', {
+      nonNullable: true,
+      validators: [Validators.maxLength(100)]
+    }),
     customWarehouseNo: new FormControl<number | null>(null)
   });
   protected readonly createForm = new FormGroup({
@@ -217,6 +221,11 @@ export class BanknotTakipleriListComponent {
       params.push(`warehouseNo=${warehouseNo}`);
     }
 
+    const search = this.filtersForm.controls.search.value.trim();
+    if (search) {
+      params.push(`search=${encodeURIComponent(search)}`);
+    }
+
     return `${this.page.baseRouteOrFile}?${params.join('&')}`;
   });
   protected readonly totalCount = computed(() => this.tracks().length);
@@ -282,7 +291,11 @@ export class BanknotTakipleriListComponent {
     this.isLoading.set(true);
 
     this.kasaIslemleriService
-      .getBanknotTakipleri(targetDate, this.getRequestedWarehouseNo())
+      .getBanknotTakipleri(
+        targetDate,
+        this.getRequestedWarehouseNo(),
+        this.filtersForm.controls.search.value
+      )
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.isLoading.set(false))

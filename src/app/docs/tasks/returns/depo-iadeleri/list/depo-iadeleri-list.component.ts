@@ -94,6 +94,22 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
   });
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
 
+  protected override supportsBulkDocumentPrint(): boolean {
+    return true;
+  }
+
+  protected override isBulkDocumentPrintable(row: IFurpaWarehouseReturnListItemApiDto): boolean {
+    return !!row.descriptionEttn?.trim();
+  }
+
+  protected override getBulkDocumentPdf(row: IFurpaWarehouseReturnListItemApiDto) {
+    return this.iadeIslemleriService.getDepoIadeEirsaliyePdf(
+      row.documentSerie,
+      row.documentOrderNo,
+      row.sourceWarehouseNo
+    );
+  }
+
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.iadeIslemleriService.getDepoIadeleri(zamanlama, this.direction, warehouseNo);
   }

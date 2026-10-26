@@ -519,13 +519,15 @@ export class KasaIslemleriService extends BaseApiService {
 
   getBanknotTakipleri(
     dateToGet: string,
-    warehouseNo?: number | null
+    warehouseNo?: number | null,
+    search?: string | null
   ): Observable<IFurpaBanknoteTrackApiDto[]> {
     return this.getWithQuery<IFurpaBanknoteTrackApiDto[]>(
       'kasa-islemleri/banknot-takipleri',
       {
         dateToGet,
-        warehouseNo: warehouseNo ?? undefined
+        warehouseNo: warehouseNo ?? undefined,
+        search: search?.trim() || undefined
       }
     );
   }

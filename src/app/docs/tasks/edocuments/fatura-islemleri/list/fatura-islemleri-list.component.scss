@@ -846,7 +846,18 @@
 
 .sending-table th,
 .sending-table td {
-  padding: 0.38rem 0.48rem;
+  max-width: 240px;
+  padding: 0.32rem 0.44rem;
+  overflow: hidden;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sending-table td small {
+  display: inline;
+  margin-top: 0;
+  margin-left: 0.32rem;
 }
 
 .sending-table th {

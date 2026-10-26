@@ -163,9 +163,11 @@
 
 .fit-to-width .data-table th,
 .fit-to-width .data-table td {
-  padding: 0.62rem 0.5rem;
-  overflow-wrap: anywhere;
-  white-space: normal;
+  padding: 0.4rem 0.44rem;
+  overflow: hidden;
+  line-height: 1.2;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .fit-to-width .data-table th:first-child,
@@ -185,7 +187,7 @@
 
 .fit-to-width .data-table th:last-child,
 .fit-to-width .data-table td:last-child {
-  width: 7%;
+  width: 16%;
 }
 
 .fit-to-width .sort-button {
@@ -198,10 +200,14 @@
 }
 
 .fit-to-width .row-action {
-  width: 100%;
-  padding-inline: 0.4rem;
+  width: auto;
+  padding: 0.28rem 0.38rem;
   line-height: 1.15;
-  white-space: normal;
+  white-space: nowrap;
+}
+
+.fit-to-width .row-actions {
+  flex-wrap: nowrap;
 }
 
 .data-table th,
@@ -601,6 +607,9 @@
     gap: 0.18rem;
     min-width: 0;
     border-right: 1px solid #eef2f7;
+    overflow: visible;
+    text-overflow: clip;
+    white-space: normal;
   }
 
   .fit-to-width .data-table td:first-child,
@@ -618,6 +627,10 @@
 
   .fit-to-width .action-cell {
     align-content: end;
+  }
+
+  .fit-to-width .row-actions {
+    flex-wrap: wrap;
   }
 }
 

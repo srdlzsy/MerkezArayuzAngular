@@ -60,6 +60,18 @@ export class FirmaIadeleriListComponent extends ApiTaskListPageBase<IFurpaCompan
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
 
+  protected override supportsBulkDocumentPrint(): boolean {
+    return true;
+  }
+
+  protected override getBulkDocumentPdf(row: IFurpaCompanyMovementListItemApiDto) {
+    return this.iadeIslemleriService.getFirmaIadeEirsaliyePdf(
+      row.documentSerie,
+      row.documentOrderNo,
+      row.warehouseNo
+    );
+  }
+
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.iadeIslemleriService.getFirmaIadeleri(zamanlama, warehouseNo);
   }

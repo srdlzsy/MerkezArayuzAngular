@@ -79,6 +79,30 @@ describe('DocumentPrintService', () => {
     expect(markup).toContain('width: 277mm');
   });
 
+  it('uses compact spacing for dense A4 documents', () => {
+    const popup = {
+      document: {
+        open: jasmine.createSpy('open'),
+        write: jasmine.createSpy('write'),
+        close: jasmine.createSpy('close')
+      },
+      focus: jasmine.createSpy('focus'),
+      print: jasmine.createSpy('print'),
+      setTimeout: (callback: () => void) => {
+        callback();
+        return 1;
+      }
+    };
+    spyOn(window, 'open').and.returnValue(popup as unknown as Window);
+
+    service.print({ ...request, density: 'dense' });
+
+    const markup = popup.document.write.calls.mostRecent().args[0] as string;
+    expect(markup).toContain('margin: 7mm');
+    expect(markup).toContain('padding: 2px 3px');
+    expect(markup).toContain('min-height: 14mm');
+  });
+
   it('prints custom markup and closes disposable report windows', () => {
     const popup = {
       document: {

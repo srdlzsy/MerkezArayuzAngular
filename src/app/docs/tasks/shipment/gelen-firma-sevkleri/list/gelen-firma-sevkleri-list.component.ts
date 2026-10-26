@@ -6,7 +6,10 @@ import { SevkIslemleriService } from '../../../../../core/api/module-services/se
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
-import { FIRMA_STOK_HAREKETI_LIST_COLUMNS } from '../../../core/api-list-table/api-list-table-column-presets';
+import {
+  FIRMA_STOK_HAREKETI_LIST_COLUMNS,
+  sortDocumentsWithEmptyNumberFirst
+} from '../../../core/api-list-table/api-list-table-column-presets';
 import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
 import { GelenFirmaSevkleriCreateComponent } from '../create/gelen-firma-sevkleri-create.component';
 import { GelenFirmaSevkleriDetailComponent } from '../detail/gelen-firma-sevkleri-detail.component';
@@ -30,5 +33,11 @@ export class GelenFirmaSevkleriListComponent extends ApiTaskListPageBase<IFurpaC
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.sevkIslemleriService.getToptanCikisFaturalari(zamanlama, warehouseNo);
+  }
+
+  protected override prepareRows(
+    rows: IFurpaCompanyMovementListItemApiDto[]
+  ): IFurpaCompanyMovementListItemApiDto[] {
+    return sortDocumentsWithEmptyNumberFirst(rows);
   }
 }

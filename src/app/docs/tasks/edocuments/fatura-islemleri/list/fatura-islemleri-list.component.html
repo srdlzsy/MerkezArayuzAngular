@@ -886,6 +886,11 @@
                       </button>
                     </th>
                     <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('description')">
+                        Aciklama{{ getSendingSortIndicator('description') }}
+                      </button>
+                    </th>
+                    <th>
                       <button type="button" class="sort-header" (click)="changeSendingSort('documentDate')">
                         Tarih{{ getSendingSortIndicator('documentDate') }}
                       </button>
@@ -959,6 +964,9 @@
                       >
                         {{ getReceiverAddressLabel(item) }}
                       </small>
+                    </td>
+                    <td [title]="item.description || ''">
+                      <span class="table-main-text">{{ item.description || '-' }}</span>
                     </td>
                     <td>{{ item.documentDate | date: 'dd.MM.yyyy' }}</td>
                     <td>

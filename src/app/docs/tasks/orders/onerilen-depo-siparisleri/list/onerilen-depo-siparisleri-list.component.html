@@ -62,6 +62,16 @@
       </div>
 
       <p class="deduction-note">Acik depo siparisleri ihtiyac hesabinda dikkate alinir.</p>
+      <p class="deduction-note" *ngIf="analysis() as currentAnalysis">
+        {{ currentAnalysis.candidateCount }} urun incelendi,
+        {{ currentAnalysis.suggestedCount }} urun onerildi.
+        <ng-container *ngIf="currentAnalysis.exclusions.length">
+          Elenenler:
+          <ng-container *ngFor="let reason of currentAnalysis.exclusions; let last = last">
+            {{ reason.label }} ({{ reason.count }}){{ last ? '.' : ', ' }}
+          </ng-container>
+        </ng-container>
+      </p>
       <p class="deduction-note" *ngIf="sourceWarehousesError()">
         {{ sourceWarehousesError() }}
       </p>

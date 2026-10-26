@@ -6,7 +6,10 @@ import { SevkIslemleriService } from '../../../../../core/api/module-services/se
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiListTableComponent } from '../../../core/api-list-table/api-list-table.component';
-import { buildWarehouseMovementListColumns } from '../../../core/api-list-table/api-list-table-column-presets';
+import {
+  buildWarehouseMovementListColumns,
+  sortDocumentsWithEmptyNumberFirst
+} from '../../../core/api-list-table/api-list-table-column-presets';
 import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
 import { DepoDagitimSevkFisleriCreateComponent } from '../create/depo-dagitim-sevk-fisleri-create.component';
 import { DepoDagitimSevkFisleriDetailComponent } from '../detail/depo-dagitim-sevk-fisleri-detail.component';
@@ -30,6 +33,12 @@ export class DepoDagitimSevkFisleriListComponent extends ApiTaskListPageBase<IFu
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.sevkIslemleriService.getDepoDagitimSevkFisleri(zamanlama, warehouseNo);
+  }
+
+  protected override prepareRows(
+    rows: IFurpaWarehouseShippingListItemApiDto[]
+  ): IFurpaWarehouseShippingListItemApiDto[] {
+    return sortDocumentsWithEmptyNumberFirst(rows);
   }
 
   protected override resolveDetailWarehouseNo(

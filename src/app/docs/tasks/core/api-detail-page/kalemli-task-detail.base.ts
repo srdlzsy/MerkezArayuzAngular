@@ -6,6 +6,7 @@ import { DocsContentPage } from '../../../models/docs.models';
 import {
   DocumentPrintColumn,
   DocumentPrintField,
+  DocumentPrintRequest,
   DocumentPrintService
 } from '../document-print/document-print.service';
 import { ApiTaskDetailBase } from './api-task-detail.base';
@@ -40,6 +41,7 @@ export abstract class KalemliTaskDetailBase<
   protected readonly printDocumentTitle: string = '';
   protected readonly printDocumentNoLabel: string = 'Kayit No';
   protected readonly printLineTitle: string = 'Kalemler';
+  protected readonly printDensity: NonNullable<DocumentPrintRequest['density']> = 'normal';
   protected readonly header = computed<DetailHeader<TDetail> | null>(
     () => (this.detail()?.header ?? null) as DetailHeader<TDetail> | null
   );
@@ -228,6 +230,7 @@ export abstract class KalemliTaskDetailBase<
       title: this.resolvePrintTitle(),
       subtitle: `${this.printDocumentNoLabel}: ${this.orderIdentity()}`,
       branch: this.resolvePrintBranch(header, mode),
+      density: this.printDensity,
       sections: this.buildPrintSections(header, mode),
       lineTitle: this.printLineTitle,
       columns: documentColumns,

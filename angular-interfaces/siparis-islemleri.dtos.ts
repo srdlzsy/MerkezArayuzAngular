@@ -166,6 +166,19 @@ export interface SuggestedWarehouseOrderListItemDto {
   suggestedOrderQuantity: number;
 }
 
+export interface SuggestedWarehouseOrderExclusionSummaryDto {
+  code: string;
+  label: string;
+  count: number;
+}
+
+export interface SuggestedWarehouseOrderAnalysisDto {
+  candidateCount: number;
+  suggestedCount: number;
+  items: SuggestedWarehouseOrderListItemDto[];
+  exclusions: SuggestedWarehouseOrderExclusionSummaryDto[];
+}
+
 export interface SuggestedWarehouseSourceProductDto {
   sourceWarehouseNo: number;
   sourceWarehouseName: string;

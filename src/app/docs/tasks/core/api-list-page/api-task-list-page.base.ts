@@ -3,7 +3,7 @@ import { ComponentType } from '@angular/cdk/portal';
 import { HttpErrorResponse } from '@angular/common/http';
 import { Directive, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
-import { Observable, finalize, timer } from 'rxjs';
+import { Observable, finalize, firstValueFrom, timer } from 'rxjs';
 import type {
   IOfflineOperationResponseApiDto,
   SafeWriteReviewResultDto
@@ -72,6 +72,8 @@ export abstract class ApiTaskListPageBase<
   private readonly safeCreateRecoveryService = inject(SafeCreateRecoveryService);
   private readonly safeCreateRecoveryInProgressId = signal<string | null>(null);
   private readonly scheduledSafeCreateChecks = new Set<string>();
+  private readonly bulkDocumentSelectionKeys = signal<string[]>([]);
+  private readonly bulkDocumentPrintLoading = signal(false);
   private activeRequestId = 0;
 
   protected readonly startDate = signal(this.getInitialStartDate());
@@ -178,6 +180,10 @@ export abstract class ApiTaskListPageBase<
 
   protected abstract fetchRows(zamanlama: string, warehouseNo?: number): Observable<Row[]>;
 
+  protected prepareRows(rows: Row[]): Row[] {
+    return rows;
+  }
+
   protected getInitialStartDate(): string {
     return this.formatAsInputDate(new Date());
   }
@@ -282,15 +288,26 @@ export abstract class ApiTaskListPageBase<
   }
 
   protected shouldShowTableSelection(): boolean {
-    return false;
+    return this.supportsBulkDocumentPrint();
   }
 
   protected getTableSelectedRowKeys(): ReadonlySet<string> {
-    return new Set();
+    return new Set(this.bulkDocumentSelectionKeys());
   }
 
-  protected getTableSelectionKey(_row: Row): string | null {
-    return null;
+  protected getTableSelectionKey(row: Row): string | null {
+    if (!this.supportsBulkDocumentPrint() || !this.isBulkDocumentPrintable(row)) {
+      return null;
+    }
+
+    const record = row as Record<string, unknown>;
+    const documentSerie = String(record['documentSerie'] ?? '').trim();
+    const documentOrderNo = Number(record['documentOrderNo']);
+    const warehouseNo = this.resolveDetailWarehouseNo(row) ?? 0;
+
+    return documentSerie && Number.isFinite(documentOrderNo)
+      ? `${documentSerie}|${documentOrderNo}|${warehouseNo}`
+      : null;
   }
 
   protected getTableSelectionActionLabel(): string {
@@ -298,11 +315,11 @@ export abstract class ApiTaskListPageBase<
   }
 
   protected isTableSelectionActionDisabled(): boolean {
-    return true;
+    return this.bulkDocumentSelectionKeys().length === 0 || this.bulkDocumentPrintLoading();
   }
 
   protected shouldShowTableSelectAllAction(): boolean {
-    return false;
+    return this.supportsBulkDocumentPrint();
   }
 
   protected getTableSelectAllActionLabel(): string {
@@ -310,18 +327,53 @@ export abstract class ApiTaskListPageBase<
   }
 
   protected isTableSelectAllActionDisabled(): boolean {
-    return true;
+    return this.rows().every((row) => !this.getTableSelectionKey(row)) || this.bulkDocumentPrintLoading();
   }
 
   protected isTableSelectionActionLoading(): boolean {
+    return this.bulkDocumentPrintLoading();
+  }
+
+  protected handleTableSelectionChanged(keys: ReadonlySet<string>): void {
+    this.bulkDocumentSelectionKeys.set(Array.from(keys));
+  }
+
+  protected handleTableSelectionAction(): void {
+    const selectedKeys = new Set(this.bulkDocumentSelectionKeys());
+    void this.printBulkDocuments(
+      this.rows().filter((row) => {
+        const key = this.getTableSelectionKey(row);
+        return !!key && selectedKeys.has(key);
+      })
+    );
+  }
+
+  protected handleTableSelectAllAction(): void {
+    void this.printBulkDocuments(
+      this.rows().filter((row) => !!this.getTableSelectionKey(row))
+    );
+  }
+
+  protected supportsBulkDocumentPrint(): boolean {
     return false;
   }
 
-  protected handleTableSelectionChanged(_keys: ReadonlySet<string>): void {}
+  protected getBulkDocumentPdf(_row: Row): Observable<Blob> | null {
+    return null;
+  }
 
-  protected handleTableSelectionAction(): void {}
+  protected getBulkDocumentTitle(row: Row): string {
+    const record = row as Record<string, unknown>;
+    return String(
+      record['documentNo']
+      || `${record['documentSerie'] ?? ''}/${record['documentOrderNo'] ?? ''}`
+    ).trim();
+  }
 
-  protected handleTableSelectAllAction(): void {}
+  protected isBulkDocumentPrintable(row: Row): boolean {
+    const documentNo = (row as Record<string, unknown>)['documentNo'];
+    return typeof documentNo === 'string' && !!documentNo.trim();
+  }
 
   protected getPdfLoadingRowActions<TRow extends object>(
     actions: readonly ApiListTableRowAction<TRow>[]
@@ -787,7 +839,19 @@ export abstract class ApiTaskListPageBase<
             return;
           }
 
-          this.rows.set(rows ?? []);
+          const preparedRows = this.prepareRows(rows ?? []);
+          this.rows.set(preparedRows);
+
+          if (this.supportsBulkDocumentPrint()) {
+            const availableKeys = new Set(
+              preparedRows
+                .map((row) => this.getTableSelectionKey(row))
+                .filter((key): key is string => !!key)
+            );
+            this.bulkDocumentSelectionKeys.update((keys) =>
+              keys.filter((key) => availableKeys.has(key))
+            );
+          }
           this.lastLoadedAt.set(new Date().toISOString());
         },
         error: () => {
@@ -839,6 +903,49 @@ export abstract class ApiTaskListPageBase<
         )
       );
     });
+  }
+
+  private async printBulkDocuments(rows: Row[]): Promise<void> {
+    if (!rows.length || this.bulkDocumentPrintLoading()) {
+      return;
+    }
+
+    this.bulkDocumentPrintLoading.set(true);
+    this.errorMessage.set(null);
+    const failedDocuments: string[] = [];
+
+    try {
+      for (const row of rows) {
+        const title = this.getBulkDocumentTitle(row);
+        const request = this.getBulkDocumentPdf(row);
+
+        if (!request) {
+          failedDocuments.push(title);
+          continue;
+        }
+
+        this.activityMessage.set(`${title} yazdirma icin hazirlaniyor.`);
+
+        try {
+          const blob = await firstValueFrom(request);
+          await this.pdfPrintService.print({ blob, title });
+        } catch {
+          failedDocuments.push(title);
+        }
+      }
+
+      if (failedDocuments.length) {
+        this.errorMessage.set(
+          `${rows.length - failedDocuments.length}/${rows.length} e-belge yazdirildi. Yazdirilamayanlar: ${failedDocuments.join(', ')}`
+        );
+        return;
+      }
+
+      this.bulkDocumentSelectionKeys.set([]);
+    } finally {
+      this.activityMessage.set(null);
+      this.bulkDocumentPrintLoading.set(false);
+    }
   }
 
   protected resolveHttpErrorMessage(error: unknown, fallback: string): string {

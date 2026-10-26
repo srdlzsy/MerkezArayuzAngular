@@ -30,6 +30,7 @@ export interface DocumentPrintRequest {
   subtitle?: string;
   branch?: string;
   orientation?: 'portrait' | 'landscape';
+  density?: 'normal' | 'dense';
   sections: readonly DocumentPrintSection[];
   lineTitle: string;
   columns: readonly DocumentPrintColumn[];
@@ -91,7 +92,7 @@ export class DocumentPrintService {
 <head>
   <meta charset="utf-8">
   <title>${this.escapeHtml(request.title)}</title>
-  <style>${this.buildStyles(request.orientation ?? 'portrait')}</style>
+  <style>${this.buildStyles(request.orientation ?? 'portrait', request.density ?? 'normal')}</style>
 </head>
 <body>
   <main class="sheet">
@@ -275,13 +276,17 @@ export class DocumentPrintService {
     return this.escapeHtml(value).replace(/;/g, '');
   }
 
-  private buildStyles(orientation: 'portrait' | 'landscape'): string {
+  private buildStyles(
+    orientation: 'portrait' | 'landscape',
+    density: 'normal' | 'dense'
+  ): string {
     const sheetWidth = orientation === 'landscape' ? '277mm' : '190mm';
+    const isDense = density === 'dense';
 
     return `
       @page {
         size: A4 ${orientation};
-        margin: 11mm;
+        margin: ${isDense ? '7mm' : '11mm'};
       }
 
       * {
@@ -293,8 +298,8 @@ export class DocumentPrintService {
         padding: 14px;
         color: #111827;
         font-family: Arial, Helvetica, sans-serif;
-        font-size: 11px;
-        line-height: 1.3;
+        font-size: ${isDense ? '9px' : '11px'};
+        line-height: ${isDense ? '1.12' : '1.3'};
         background: #e5e7eb;
       }
 
@@ -302,7 +307,7 @@ export class DocumentPrintService {
         width: ${sheetWidth};
         min-height: 277mm;
         margin: 0 auto;
-        padding: 9mm;
+        padding: ${isDense ? '5mm' : '9mm'};
         background: #fff;
         border: 1px solid #d1d5db;
         box-shadow: 0 14px 34px rgba(15, 23, 42, 0.18);
@@ -310,8 +315,8 @@ export class DocumentPrintService {
 
       .document-header {
         display: grid;
-        gap: 4px;
-        padding-bottom: 8px;
+        gap: ${isDense ? '2px' : '4px'};
+        padding-bottom: ${isDense ? '4px' : '8px'};
         border-bottom: 2px solid #111827;
         text-align: center;
       }
@@ -350,11 +355,11 @@ export class DocumentPrintService {
 
       .detail-section,
       .line-section {
-        margin-top: 8px;
+        margin-top: ${isDense ? '4px' : '8px'};
       }
 
       .section-title {
-        margin-bottom: 4px;
+        margin-bottom: ${isDense ? '2px' : '4px'};
         color: #0f766e;
         font-size: 9px;
         font-weight: 700;
@@ -365,12 +370,12 @@ export class DocumentPrintService {
       .field-grid {
         display: grid;
         grid-template-columns: repeat(4, minmax(0, 1fr));
-        gap: 4px;
+        gap: ${isDense ? '2px' : '4px'};
       }
 
       .field {
         min-width: 0;
-        padding: 4px 5px;
+        padding: ${isDense ? '2px 3px' : '4px 5px'};
         border: 1px solid #d1d5db;
         background: #f9fafb;
       }
@@ -411,7 +416,7 @@ export class DocumentPrintService {
 
       th,
       td {
-        padding: 4px 5px;
+        padding: ${isDense ? '2px 3px' : '4px 5px'};
         border: 1px solid #d1d5db;
         vertical-align: top;
         overflow-wrap: anywhere;
@@ -419,13 +424,13 @@ export class DocumentPrintService {
 
       th {
         color: #111827;
-        font-size: 8px;
+        font-size: ${isDense ? '7px' : '8px'};
         font-weight: 800;
         background: #eef2f7;
       }
 
       td {
-        font-size: 9px;
+        font-size: ${isDense ? '8px' : '9px'};
       }
 
       tbody tr {
@@ -455,13 +460,13 @@ export class DocumentPrintService {
       .signature-grid {
         display: grid;
         grid-template-columns: 1fr 1fr;
-        gap: 14mm;
-        margin-top: 18mm;
+        gap: ${isDense ? '8mm' : '14mm'};
+        margin-top: ${isDense ? '8mm' : '18mm'};
       }
 
       .signature-box {
-        min-height: 22mm;
-        padding: 5px;
+        min-height: ${isDense ? '14mm' : '22mm'};
+        padding: ${isDense ? '3px' : '5px'};
         border: 1px solid #9ca3af;
         text-align: center;
       }

@@ -20,6 +20,7 @@ export class DepolarArasiNakliyeMalKabulFisleriDetailComponent extends KalemliTa
   protected override readonly printDocumentTitle = 'Depo Mal Kabul Evraki';
   protected override readonly printDocumentNoLabel = 'Fis No';
   protected override readonly printLineTitle = 'Fis Kalemleri';
+  protected override readonly printDensity = 'dense' as const;
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
 
   protected override loadDetail(): void {

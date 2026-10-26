@@ -44,6 +44,16 @@
           <input type="date" formControlName="targetDate" [max]="maxTargetDate" />
         </label>
 
+        <label class="field search-field">
+          <span>Kod / Kisi Ara</span>
+          <input
+            type="search"
+            formControlName="search"
+            maxlength="100"
+            placeholder="Kayit kodu, depo, teslim eden veya alan"
+          />
+        </label>
+
         <label class="field mode-field" *ngIf="canUseWarehouseScope(); else lockedWarehouseScope">
           <span>Depo Kapsami</span>
           <select [value]="warehouseMode()" (change)="updateWarehouseMode($any($event.target).value ?? '')">

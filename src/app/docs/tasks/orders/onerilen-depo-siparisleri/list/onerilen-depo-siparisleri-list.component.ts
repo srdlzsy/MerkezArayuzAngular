@@ -9,6 +9,7 @@ import type {
   CreateIssuedWarehouseOrderResponse,
   IFurpaSourceWarehouseSearchItemApiDto,
   SuggestedWarehouseOrderListItemDto,
+  SuggestedWarehouseOrderAnalysisDto,
 } from '@interfaces';
 
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
@@ -99,6 +100,7 @@ export class OnerilenDepoSiparisleriListComponent {
   });
 
   protected readonly lines = signal<SuggestedWarehouseLineState[]>([]);
+  protected readonly analysis = signal<SuggestedWarehouseOrderAnalysisDto | null>(null);
   protected readonly feedback = signal<PageFeedback | null>(null);
   protected readonly convertFeedback = signal<PageFeedback | null>(null);
   protected readonly safeCreateFailure = signal<SafeCreateFailure | null>(null);
@@ -189,6 +191,7 @@ export class OnerilenDepoSiparisleriListComponent {
     if (this.filterForm.controls.sourceWarehouseNo.invalid) {
       this.filterForm.controls.sourceWarehouseNo.markAsTouched();
       this.lines.set([]);
+      this.analysis.set(null);
       this.feedback.set({
         tone: 'info',
         title: 'Kaynak depo gerekli',
@@ -214,7 +217,7 @@ export class OnerilenDepoSiparisleriListComponent {
     this.feedback.set(null);
 
     this.siparisIslemleriService
-      .listSuggestedWarehouseOrders({
+      .analyzeSuggestedWarehouseOrders({
         sourceWarehouseNo: Number(formValue.sourceWarehouseNo),
         lookbackDays: formValue.lookbackDays,
         fallbackRecommendedDay: formValue.fallbackRecommendedDay,
@@ -228,11 +231,13 @@ export class OnerilenDepoSiparisleriListComponent {
         }),
       )
       .subscribe({
-        next: (items: SuggestedWarehouseOrderListItemDto[]) => {
+        next: (analysis: SuggestedWarehouseOrderAnalysisDto) => {
           if (requestId !== this.requestId) {
             return;
           }
 
+          const items = analysis.items ?? [];
+          this.analysis.set(analysis);
           this.lines.set(
             (items ?? []).map((item) => ({
               item,
@@ -255,6 +260,7 @@ export class OnerilenDepoSiparisleriListComponent {
           }
 
           this.lines.set([]);
+          this.analysis.set(null);
           this.feedback.set({
             tone: 'error',
             title: 'Liste yuklenemedi',

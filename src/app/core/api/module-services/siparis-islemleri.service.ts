@@ -22,6 +22,7 @@ import type {
   SuggestedWarehouseOrderCreateLineDto,
   SuggestedWarehouseOrderListHttpRequest,
   SuggestedWarehouseOrderListItemDto,
+  SuggestedWarehouseOrderAnalysisDto,
   WarehouseOrderBulkPrintHttpRequest,
   WarehouseOrderDetailDto,
   WarehouseOrderListItemDto,
@@ -144,6 +145,20 @@ export class SiparisIslemleriService extends BaseApiService {
   ): Observable<SuggestedWarehouseOrderListItemDto[]> {
     return this.getWithQuery<SuggestedWarehouseOrderListItemDto[]>(
       'siparis-islemleri/onerilen-depo-siparisleri',
+      {
+        SourceWarehouseNo: request.sourceWarehouseNo,
+        TargetWarehouseNo: request.targetWarehouseNo,
+        LookbackDays: request.lookbackDays,
+        FallbackRecommendedDay: request.fallbackRecommendedDay,
+      },
+    );
+  }
+
+  analyzeSuggestedWarehouseOrders(
+    request: SuggestedWarehouseOrderListHttpRequest,
+  ): Observable<SuggestedWarehouseOrderAnalysisDto> {
+    return this.getWithQuery<SuggestedWarehouseOrderAnalysisDto>(
+      'siparis-islemleri/onerilen-depo-siparisleri/analiz',
       {
         SourceWarehouseNo: request.sourceWarehouseNo,
         TargetWarehouseNo: request.targetWarehouseNo,

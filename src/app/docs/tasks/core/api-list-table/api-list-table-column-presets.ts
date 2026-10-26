@@ -70,6 +70,19 @@ const formatDocumentReference = (
   return `${reference} / ${documentNumber}`;
 };
 
+export const sortDocumentsWithEmptyNumberFirst = <T extends { documentNo?: string | null }>(
+  rows: readonly T[]
+): T[] =>
+  rows
+    .map((row, index) => ({ row, index }))
+    .sort((left, right) => {
+      const leftHasDocumentNo = !!left.row.documentNo?.trim();
+      const rightHasDocumentNo = !!right.row.documentNo?.trim();
+
+      return Number(leftHasDocumentNo) - Number(rightHasDocumentNo) || left.index - right.index;
+    })
+    .map(({ row }) => row);
+
 const formatWarehouse = (warehouseNo: number, warehouseName: string): string => {
   const warehouseNoText = Number.isFinite(warehouseNo) && warehouseNo > 0 ? warehouseNo : '';
 
@@ -242,8 +255,9 @@ export const FIRMA_STOK_HAREKETI_LIST_COLUMNS = [
     key: 'documentReference',
     label: 'Evrak',
     resolveValue: (row: IFurpaCompanyMovementListItemApiDto) =>
-      formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo)
+      formatDocumentReference(row.documentSerie, row.documentOrderNo)
   },
+  { key: 'documentNo', label: 'Belge No', emptyValue: '-' },
   {
     key: 'customerSummary',
     label: 'Cari',
@@ -341,8 +355,9 @@ export const buildWarehouseMovementListColumns = (
       key: 'documentReference',
       label: 'Evrak',
       resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
-        formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo)
+        formatDocumentReference(row.documentSerie, row.documentOrderNo)
     },
+    { key: 'documentNo', label: 'Belge No', emptyValue: '-' },
     {
       key: 'returnType',
       label: 'Tip',

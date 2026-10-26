@@ -74,6 +74,7 @@ type ViewingSortKey =
 type SendingSortKey =
   | 'invoiceId'
   | 'customerTitle'
+  | 'description'
   | 'documentDate'
   | 'isSent'
   | 'scenario'
@@ -3326,6 +3327,8 @@ export class FaturaIslemleriListComponent {
         return item.invoiceId;
       case 'customerTitle':
         return item.customerTitle;
+      case 'description':
+        return item.description;
       case 'documentDate':
         return item.documentDate ? new Date(item.documentDate).getTime() : null;
       case 'isSent':

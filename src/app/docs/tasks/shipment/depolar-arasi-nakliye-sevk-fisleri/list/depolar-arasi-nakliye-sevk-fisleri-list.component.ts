@@ -13,7 +13,10 @@ import {
   ApiListTableActionEvent,
   ApiListTableRowAction
 } from '../../../core/api-list-table/api-list-table.types';
-import { buildWarehouseMovementListColumns } from '../../../core/api-list-table/api-list-table-column-presets';
+import {
+  buildWarehouseMovementListColumns,
+  sortDocumentsWithEmptyNumberFirst
+} from '../../../core/api-list-table/api-list-table-column-presets';
 import {
   EDespatchDialogComponent,
   EDespatchDialogData
@@ -63,6 +66,24 @@ export class DepolarArasiNakliyeSevkFisleriListComponent extends ApiTaskListPage
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.sevkIslemleriService.getDepolarArasiNakliyeSevkFisleri(zamanlama, warehouseNo);
+  }
+
+  protected override prepareRows(
+    rows: IFurpaWarehouseShippingListItemApiDto[]
+  ): IFurpaWarehouseShippingListItemApiDto[] {
+    return sortDocumentsWithEmptyNumberFirst(rows);
+  }
+
+  protected override supportsBulkDocumentPrint(): boolean {
+    return true;
+  }
+
+  protected override getBulkDocumentPdf(row: IFurpaWarehouseShippingListItemApiDto) {
+    return this.sevkIslemleriService.getGidenDepolarArasiSevkEirsaliyePdf(
+      row.documentSerie,
+      row.documentOrderNo,
+      row.sourceWarehouseNo
+    );
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaWarehouseShippingListItemApiDto>[] {

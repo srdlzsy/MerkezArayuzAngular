@@ -12,7 +12,10 @@ import {
   ApiListTableActionEvent,
   ApiListTableRowAction
 } from '../../../core/api-list-table/api-list-table.types';
-import { FIRMA_STOK_HAREKETI_LIST_COLUMNS } from '../../../core/api-list-table/api-list-table-column-presets';
+import {
+  FIRMA_STOK_HAREKETI_LIST_COLUMNS,
+  sortDocumentsWithEmptyNumberFirst
+} from '../../../core/api-list-table/api-list-table-column-presets';
 import {
   EDespatchDialogComponent,
   EDespatchDialogData
@@ -56,6 +59,24 @@ export class GidenFirmaSevkleriListComponent extends ApiTaskListPageBase<IFurpaC
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.sevkIslemleriService.getToptanCikisIrsaliyeleri(zamanlama, warehouseNo);
+  }
+
+  protected override prepareRows(
+    rows: IFurpaCompanyMovementListItemApiDto[]
+  ): IFurpaCompanyMovementListItemApiDto[] {
+    return sortDocumentsWithEmptyNumberFirst(rows);
+  }
+
+  protected override supportsBulkDocumentPrint(): boolean {
+    return true;
+  }
+
+  protected override getBulkDocumentPdf(row: IFurpaCompanyMovementListItemApiDto) {
+    return this.sevkIslemleriService.getGidenFirmaSevkEirsaliyePdf(
+      row.documentSerie,
+      row.documentOrderNo,
+      row.warehouseNo
+    );
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaCompanyMovementListItemApiDto>[] {
