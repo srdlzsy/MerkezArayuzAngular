@@ -1,0 +1,110 @@
+:host {
+  display: block;
+  height: 100%;
+}
+
+.dialog-page {
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr);
+  width: min(680px, 100%);
+  min-height: 220px;
+  background: #f8fafc;
+}
+
+.dialog-header {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
+  gap: 0.75rem;
+  align-items: center;
+  padding: 0.62rem 0.78rem;
+  border-bottom: 1px solid #e2e8f0;
+  background: #fff;
+}
+
+.dialog-heading {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.eyebrow,
+.dialog-heading h2,
+.empty-detail h3,
+.empty-detail p {
+  margin: 0;
+}
+
+.eyebrow {
+  color: #0f766e;
+  font-size: 0.7rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.dialog-heading h2 {
+  color: #0f172a;
+  font-size: 1.02rem;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.close-button {
+  min-width: 5.2rem;
+  min-height: 30px;
+  padding: 0.32rem 0.56rem;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  color: #0f172a;
+  font-size: 0.78rem;
+  font-weight: 700;
+  background: #f8fafc;
+  cursor: pointer;
+}
+
+.dialog-body {
+  display: grid;
+  place-items: center;
+  padding: 1rem;
+}
+
+.empty-detail {
+  display: flex;
+  align-items: center;
+  gap: 0.65rem;
+  width: min(420px, 100%);
+  padding: 0.75rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 8px;
+  background: #fff;
+}
+
+.empty-detail i {
+  color: #0f766e;
+  font-size: 1rem;
+}
+
+.empty-detail div {
+  display: grid;
+  gap: 0.14rem;
+}
+
+.empty-detail h3 {
+  color: #0f172a;
+  font-size: 0.86rem;
+}
+
+.empty-detail p {
+  color: #64748b;
+  font-size: 0.82rem;
+  line-height: 1.35;
+}
+
+@media (max-width: 520px) {
+  .dialog-header {
+    grid-template-columns: 1fr;
+  }
+
+  .close-button {
+    width: 100%;
+  }
+}

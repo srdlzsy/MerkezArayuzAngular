@@ -100,6 +100,8 @@ Bu tablo su anlama gelir:
 
 - API, eski worker'in ana canli akislari icin API icinden preview/import/dispatch saglar.
 - C01/C02/G01/G02 siparis dispatch task'lari zamanli/canli calismada `Special1=1` olan kaynak siparis satirlarini tekrar aday yapmaz; AXATA basarili donerse kaynak sipariste `Special1=1` bayragi atilir.
+- C01 ve C02 siparis dispatch taramalari belge tarihinin yaninda Mikro olusturma/son guncelleme tarihini de dikkate alir. Boylece eski is tarihli fakat bugun yazilan siparis aday listesinden kacmaz.
+- C01, C02, G01 ve G02 dispatch belge bazinda yalitilir: tek belgenin hatasi ayni turdaki diger belgelerin gonderimini durdurmaz. Veri sorunu olan belge kontrollu aralikla yeniden denenirken saglam belgeler devam eder. Ayni hareket kodu ve belge AXATA `ENT000` icinde varsa ikinci WCF gonderimi yapilmaz; yalniz Mikro gonderim bayragi uzlastirilir.
 - C01/C02/C03/C4/G01/G02/DynamicCensus import tarafinda eski worker'a gore daha guvenli sira vardir: once Mikro yazilir, sonra istenirse AXATA ack atilir.
 - Manuel body endpointleri kaldirilmamistir; operasyonel kurtarma ve elle gelen AXATA body verisi icin kullanilmaya devam eder.
 
@@ -127,6 +129,10 @@ Desteklenen task'lar:
 - API icinde bu task, shared depo siparisi executor'ini AXATA perspektifiyle kullanir.
 - Bu nedenle manuel aday listesi, genel preview, queue execute ve dispatch ayni `ssip_cikdepo = warehouseNo` evrenine bakar.
 - `warehouseNo=50` icin hedef depo 150 olan `O150.5219` gibi evraklar beklenen adaylardir.
+- Aday taramasi belge tarihine ek olarak Mikro `create/last update` zamanini da dikkate alir. Production `DefaultLookbackDays=7` oldugu icin gece yarisi sonrasinda olusturulan ancak belge tarihi onceki gunde kalan siparis atlanmaz.
+- Evrak satirlari tek tek filtrelenmez; tum aktif satirlar gruplanir ve belge tamamen `ssip_special1=1` ise adaydan cikarilir. Kismi bayrakli evrak eksik payload ile AXATA'ya gonderilmez.
+- AXATA `ENT000` icinde ayni belge numarali C01 zaten varsa tekrar WCF yazisi uretilmez; Mikro gonderim bayragi uzlastirilir. Ayni belge icin SQL application lock, eszamanli API instance'larinin cift gonderimini engeller.
+- Tek evrak hatasi batch'i kesmez. Gecersiz miktar/stok verisi olan belge kontrollu ertelenir, sonraki saglam belgeler islenir. Altyapi hatalari tum adaylar denendikten sonra job hatasi olarak raporlanir.
 
 `warehouse-inbound-order-sync` icin ozel not:
 
@@ -134,6 +140,22 @@ Desteklenen task'lar:
 - API icinde bu task, shared depo siparisi executor'ini `WarehouseOrderListDirection.Issued` ile kullanir.
 - Bu nedenle manuel aday listesi, preview, outbox execute ve dispatch ayni `ssip_girdepo = warehouseNo` evrenine bakar.
 - `warehouseNo=50` icin kaynak/cikis deposu sube olan, merkez depoya gelen depolar arasi siparisler beklenen adaylardir.
+
+### Subeden Merkez Depoya Sevk/Iade Akisi
+
+Sube hedef depo `50` olacak sekilde depo sevki veya depo iadesi olusturdugunda AXATA'da dogrudan tamamlanmis mal kabul olusmaz. Akis iki yonlu ve iki asamalidir:
+
+1. Create servisi Mikro'da sevk/iade `STOK_HAREKETLERI` satirlarini olusturur.
+2. `WarehouseOrderAutomation` aciksa ayni transaction icinde merkez depo giris siparisi `DEPOLAR_ARASI_SIPARISLER` tablosuna `F50.{sira}` olarak yazilir. Sipariste `ssip_girdepo=50`, `ssip_cikdepo=sube` olur.
+3. Sevk/iade satiri ile otomatik siparis satiri `STOK_HAREKETLERI_EK.sth_subesip_uid` uzerinden baglanir. Hareket, siparis ve baglanti birlikte commit edilir; biri yazilamazsa tum transaction geri alinir.
+4. `warehouse-inbound-order-sync` bu `F50` siparisini AXATA'ya `G02` giris siparisi olarak gonderir. AXATA tarafinda baslik `ENT013_MST`, satirlar `ENT013` kaydidir.
+5. AXATA siparisi kabul ettikten sonra Mikro siparis satirlari `ssip_special1=1` yapilir. Ayni G02 belgesi AXATA'da zaten varsa ikinci kez gonderilmez; mevcut AXATA kaydi okunur ve yalniz Mikro bayragi uzlastirilir.
+6. Merkez depo fiziksel kabul yaptiginda AXATA `ENT016_MST/ENT016` G02 teslimat kaydi olusur.
+7. `g02-inbound-delivery-import` mevcut Mikro bekleyen sevk/iade fisini kabul eder, gercek kabul miktarlarini ve bagli siparisin `ssip_teslim_miktar`/`ssip_kapat_fl` alanlarini gunceller; bundan sonra AXATA kaydini tamamlandi olarak isaretler.
+
+Normal sevk ile depo iadesinin AXATA giris yonu aynidir. Mikro hareketinde normal sevk `sth_normal_iade=0`, depo iadesi `sth_normal_iade=1` olarak ayrilir. `C03` bu terminal create akisinin devam adimi degildir; AXATA kaynakli ayri/legacy depo iadesi importudur.
+
+UI/terminal bu otomasyonu kullaniciya ikinci bir kaydetme isi olarak gostermemelidir. Kullanici yalniz sevk veya iadeyi kaydeder; `F50` siparisinin uretilmesi, G02 dispatch ve sonraki mal kabul worker sorumlulugudur. Belge Akis Takibi'nde bu adimlar izlenebilir, ancak normal islem icin manuel dispatch butonu gerekmez.
 
 ### AXATA -> Mikro
 
@@ -177,6 +199,7 @@ Bu yonde bugun alti farkli canli import seviyesi vardir:
    - `S16SIPN` seri.sira formatinda Mikro firma siparisi, `S16KALN` siparis satir no kabul edilir.
    - Satirlar Mikro `SIPARISLER` ile eslesirse `DocumentType=13` firma mal kabul hareketine cevrilir.
    - `MikroWriteRouting:CompanyReceiving=Database` ise eski worker parity icin dogrudan DB transaction yolu kullanilir; `S16SIRA -> sth_HareketGrupKodu1` izi korunur ve `sip_teslim_miktar` ayni transaction icinde artirilir.
+   - Database yolundaki transaction EF Core execution strategy icinde calisir. Gecici SQL hatasi sonrasi retry baslamadan once beklenen `S16SIRA` izleri geri okunur; tumu varsa onceki deneme basarili kabul edilir, bir kismi varsa duplicate riski nedeniyle otomatik yazma durdurulur.
    - `MikroWriteRouting:CompanyReceiving=MikroApi` ise mevcut firma mal kabul use case yolu calisir, `POST /Api/apiMethods/IrsaliyeKaydetV2` kullanilir, siparis linkleri `sth_sip_uid` ile geri okunup dogrulanmadan AXATA ack atilmaz.
    - MikroApi yolunda ayni siparis satiri AXATA tarafinda parcalanmis gelirse miktarlar siparis GUID bazinda toplanarak tek mal kabul satirina indirilir; duplicate kontrolu mevcut `sth_sip_uid` linkleriyle yapilir.
    - Basarili Mikro yazimdan sonra istenirse AXATA EXT `ENT016_IRS.S16STAT=1`, `IDField=S16SIRA` ack atilir.
@@ -234,7 +257,9 @@ Ana servisler:
 - `AxataSynchronizationWorker`
   - Queue'daki job'lari calistiran hosted service.
 - `AxataSynchronizationScheduler`
-  - Config ile acilan periyodik task tetikleyici.
+  - Config ile acilan periyodik task tetikleyici. Zamanlanmis isler, kullanici
+    oturumuna bagli olmayan sabit servis kimligiyle kuyruga girer; boylece
+    idempotency kapsami uygulama yeniden baslatilsa da degismez.
 - `AxataSynchronizationExecutionCoordinator`
   - Task code -> handler eslestirmesi.
 - `AxataSynchronizationManualDocumentService`
@@ -742,8 +767,10 @@ Davranis:
 - `WorkerEnabled=false` sadece arka plan kuyruk isleyicisini kapatir; manuel `execute` ve `dispatch` icin ana `Enabled=true` olmalidir.
 - `Tasks.{taskCode}.Enabled=false` ise sadece ilgili task kapali sayilir.
 - Production ayarinda eski Windows worker'indaki 13 aktif akis zamanlanir: firma, urun, C01/C02/G01/G02 siparisleri, dinamik sayim ile C01/C02/C03/C4/G01/G02 hareket donusleri.
+- Mevcut calisma profilinde tum `MikroWriteRouting` rotalari `Database` degerindedir. Worker insert, update, isaretleme ve silme islemlerinde dogrudan Mikro DB transaction yolunu kullanir; Mikro API yolu kodda desteklenmeye devam eder ancak konfigurasyonla yeniden acilmadikca calismaz.
 - Firma ve urun master gorevleri her turda tum katalogu gondermez. `ChangeLookbackMinutes` icinde yeni veya degismis kayitlari secer; urun aktarimi `BatchSize` kadar kodu bir sorgu paketinde isler.
 - C02 firma siparisleri eski worker ile ayni bicimde tum depolardan taranir. C01, G01 ve G02 siparis gorevleri merkez depo `50` kapsaminda calisir.
+- C02 firma sevki, C03 depo iadesi ve C4 firma iadesi Mikro stok hareketi sira numarasi `sth_evraktip + sth_evrakno_seri` benzersiz evreninden uretilir; hareket/iade turune gore tekrar eden sira olusturulmaz.
 - AXATA'dan Mikro'ya donuslerde yalniz bekleyen durumdaki kayitlar okunur. Mikro yazimi basarili olduktan sonra AXATA status alani tamamlandi olarak isaretlenir; Mikro yazimi veya eslesme basarisizsa acknowledge yapilmaz ve kayit sonraki tur icin bekler.
 
 ### Eski Worker'dan Gecis

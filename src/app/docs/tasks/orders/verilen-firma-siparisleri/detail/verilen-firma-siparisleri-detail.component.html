@@ -55,17 +55,17 @@
           <h3>Teslim Tarihi</h3>
           <p>{{ formatDate(order.header.deliveryDate) }}</p>
         </article>
-        <article class="summary-card">
+        <article class="summary-card" *ngIf="order.header.customerCode">
           <h3>Cari Kod</h3>
-          <p>{{ order.header.customerCode || '-' }}</p>
+          <p>{{ order.header.customerCode }}</p>
         </article>
         <article class="summary-card summary-card-wide">
           <h3>Musteri</h3>
           <p>{{ order.header.customerDisplayName || '-' }}</p>
         </article>
-        <article class="summary-card summary-card-wide">
+        <article class="summary-card summary-card-wide" *ngIf="order.header.customerAddress">
           <h3>Adres</h3>
-          <p>{{ order.header.customerAddress || '-' }}</p>
+          <p>{{ order.header.customerAddress }}</p>
         </article>
         <article class="summary-card">
           <h3>Toplam Miktar</h3>

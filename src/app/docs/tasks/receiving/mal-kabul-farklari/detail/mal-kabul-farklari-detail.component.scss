@@ -2,16 +2,33 @@
 
 .line-shell {
   display: grid;
-  gap: 8px;
+  gap: 0.42rem;
+  padding: 0.62rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #fff;
 }
 
 .line-shell strong {
   font-size: 1rem;
 }
 
-.line-shell span,
+.line-meta {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem 0.75rem;
+}
+
+.line-meta span,
+.line-meta strong,
 .line-shell p {
   margin: 0;
   color: #475569;
+  font-size: 0.78rem;
   overflow-wrap: anywhere;
+}
+
+.line-meta strong {
+  color: #0f766e;
 }

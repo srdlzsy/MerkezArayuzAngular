@@ -17,7 +17,9 @@ interface TableTestAccess {
   toggleSort(key: string): void;
   sortedRows(): TestRow[];
   pagedRows(): TestRow[];
+  pageSize(): number;
   getSortIndicator(key: string): string;
+  formatDateOnly(value: unknown): string;
   printList(): Promise<void>;
 }
 
@@ -75,6 +77,13 @@ describe('ApiListTableComponent', () => {
 
     component.updateFilter('armut');
     expect(component.pagedRows().map((row) => row.id)).toEqual([2]);
+  });
+
+  it('shows 25 rows by default and formats document dates without a time', () => {
+    const component = createComponent();
+
+    expect(component.pageSize()).toBe(25);
+    expect(component.formatDateOnly('2026-10-26T14:35:00')).toBe('26.10.2026');
   });
 
   it('uses reduced A4 margins when compact printing is enabled', async () => {

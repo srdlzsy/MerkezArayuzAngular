@@ -269,7 +269,7 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
     ) {
       min-height: 34px;
       padding: 0.42rem 0.72rem;
-      font-size: 0.78rem;
+      font-size: 0.82rem;
     }
 
     :is(th, td) {
@@ -278,8 +278,25 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
     }
 
     th {
-      font-size: 0.62rem;
+      font-size: 0.72rem;
     }
+  }
+}
+
+body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel.docs-task-detail-dialog {
+  .cdk-dialog-container {
+    height: auto;
+    max-height: calc(100dvh - 2rem);
+  }
+
+  .dialog-page {
+    height: auto;
+    max-height: calc(100dvh - 2rem);
+    background: #fff;
+  }
+
+  .dialog-body {
+    background: #fff;
   }
 }
 

@@ -65,17 +65,19 @@
           <h3>Teslim Tarihi</h3>
           <p>{{ formatDate(order.header.deliveryDate) }}</p>
         </article>
-        <article class="summary-card">
-          <h3>Ilgili Depo</h3>
-          <p>{{ order.header.relatedWarehouseName || '-' }}</p>
-        </article>
-        <article class="summary-card">
-          <h3>Giren Depo</h3>
-          <p>{{ order.header.inWarehouseName || '-' }}</p>
-        </article>
-        <article class="summary-card">
-          <h3>Cikan Depo</h3>
-          <p>{{ order.header.outWarehouseName || '-' }}</p>
+        <article class="summary-card summary-card-wide">
+          <h3>Depo Akisi</h3>
+          <p>Cikan: {{ order.header.outWarehouseName || '-' }} / Giren: {{ order.header.inWarehouseName || '-' }}</p>
+          <small
+            class="summary-note"
+            *ngIf="
+              order.header.relatedWarehouseName &&
+              order.header.relatedWarehouseName !== order.header.outWarehouseName &&
+              order.header.relatedWarehouseName !== order.header.inWarehouseName
+            "
+          >
+            Ilgili depo: {{ order.header.relatedWarehouseName }}
+          </small>
         </article>
         <article class="summary-card">
           <h3>Toplam Miktar</h3>

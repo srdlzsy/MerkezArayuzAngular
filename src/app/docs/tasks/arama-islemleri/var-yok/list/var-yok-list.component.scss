@@ -1,6 +1,8 @@
 .lookup-page {
   display: grid;
   gap: 0.8rem;
+  color: #1e293b;
+  line-height: 1.4;
 }
 
 .page-head {
@@ -13,9 +15,9 @@
 .eyebrow {
   margin: 0 0 0.25rem;
   color: #0f766e;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.12em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -32,8 +34,8 @@ h2 {
 
 .subtitle {
   margin-top: 0.25rem;
-  color: #64748b;
-  font-size: 0.86rem;
+  color: #526579;
+  font-size: 0.9rem;
 }
 
 .metric-stack {
@@ -59,8 +61,8 @@ h2 {
 
 .metric-card span {
   display: block;
-  color: #64748b;
-  font-size: 0.64rem;
+  color: #526579;
+  font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
 }
@@ -92,10 +94,10 @@ h2 {
 }
 
 .field span {
-  color: #64748b;
-  font-size: 0.6rem;
+  color: #526579;
+  font-size: 0.74rem;
   font-weight: 800;
-  letter-spacing: 0.06em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -108,6 +110,7 @@ h2 {
   border-radius: 8px;
   background: #ffffff;
   box-sizing: border-box;
+  font-size: 0.9rem;
 }
 
 .field input:focus {
@@ -121,7 +124,7 @@ h2 {
   gap: 0.4rem;
   min-height: 36px;
   color: #334155;
-  font-size: 0.78rem;
+  font-size: 0.84rem;
   font-weight: 800;
   white-space: nowrap;
 }
@@ -139,6 +142,7 @@ h2 {
   border: 0;
   border-radius: 8px;
   font-weight: 800;
+  font-size: 0.84rem;
   cursor: pointer;
 }
 
@@ -177,13 +181,13 @@ button:disabled {
 
 .product-main h3 {
   color: #0f172a;
-  font-size: 0.98rem;
+  font-size: 1.02rem;
 }
 
 .product-main p,
 .detail-grid {
-  color: #64748b;
-  font-size: 0.8rem;
+  color: #526579;
+  font-size: 0.86rem;
 }
 
 .stock-state {
@@ -200,7 +204,7 @@ button:disabled {
   color: #ffffff;
   background: #15803d;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
@@ -228,7 +232,7 @@ button:disabled {
   gap: 0.35rem;
   padding: 0.55rem;
   color: #475569;
-  font-size: 0.76rem;
+  font-size: 0.82rem;
   border: 1px solid #bfdbfe;
   border-radius: 8px;
   background: #eff6ff;
@@ -252,7 +256,7 @@ button:disabled {
   color: #991b1b;
   background: #fee2e2;
   border-radius: 999px;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 800;
 }
 
@@ -268,8 +272,8 @@ button:disabled {
 
 .state-card p {
   margin-top: 0.2rem;
-  color: #64748b;
-  font-size: 0.82rem;
+  color: #526579;
+  font-size: 0.86rem;
 }
 
 .feedback-error {

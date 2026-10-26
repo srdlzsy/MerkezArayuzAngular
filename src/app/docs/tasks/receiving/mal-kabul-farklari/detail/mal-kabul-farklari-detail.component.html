@@ -13,9 +13,9 @@
 
   <div class="dialog-body">
     <section class="summary-grid">
-      <article class="summary-card">
+      <article class="summary-card" *ngIf="item.documentNo">
         <h3>Belge</h3>
-        <p>{{ item.documentNo || '-' }}</p>
+        <p>{{ item.documentNo }}</p>
       </article>
       <article class="summary-card">
         <h3>Tip</h3>
@@ -29,9 +29,6 @@
         <h3>Fark Tipi</h3>
         <p>{{ getDifferenceTypeLabel(item.differenceType) }}</p>
       </article>
-    </section>
-
-    <section class="summary-grid">
       <article class="summary-card">
         <h3>Kaynak Depo</h3>
         <p>{{ item.sourceWarehouseNo }} - {{ item.sourceWarehouse || '-' }}</p>
@@ -55,11 +52,12 @@
 
       <div class="line-shell">
         <strong>{{ item.productName || item.productCode }}</strong>
-        <span>{{ item.productCode }}</span>
-        <span>Satir: {{ formatDisplayLineNo(item.lineNo) }}</span>
-        <span>Movement GUID: {{ item.movementGuid }}</span>
-        <span>Fark: {{ formatNumber(item.differenceQuantity) }}</span>
-        <p>{{ item.description || '-' }}</p>
+        <div class="line-meta">
+          <span>{{ item.productCode }}</span>
+          <span>Satir {{ formatDisplayLineNo(item.lineNo) }}</span>
+          <strong>Fark: {{ formatNumber(item.differenceQuantity) }} {{ item.unitName || '' }}</strong>
+        </div>
+        <p *ngIf="item.description">{{ item.description }}</p>
       </div>
     </section>
   </div>

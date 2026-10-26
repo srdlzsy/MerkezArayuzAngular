@@ -84,7 +84,12 @@
   </article>
 
   <ng-container *ngIf="filteredCount() > 0">
-    <div class="table-wrap" [class.fit-to-width]="fitToWidth()" [class.has-selection]="showSelection()">
+    <div
+      class="table-wrap"
+      [class.fit-to-width]="fitToWidth()"
+      [class.has-selection]="showSelection()"
+      [class.has-additional-actions]="additionalActions().length > 0"
+    >
       <table class="data-table">
         <thead>
           <tr>
@@ -100,6 +105,10 @@
             <th
               *ngFor="let column of columns(); trackBy: trackByColumn"
               [attr.aria-sort]="getAriaSort(column.key)"
+              [attr.data-key]="column.key"
+              [attr.title]="column.label"
+              [style.width]="column.tableWidth || null"
+              [style.text-align]="column.tableAlign || null"
             >
               <button
                 type="button"
@@ -107,11 +116,16 @@
                 [class.is-active]="isSorted(column.key)"
                 (click)="toggleSort(column.key)"
               >
-                <span>{{ column.label }}</span>
+                <span class="sort-label">{{ column.label }}</span>
                 <span class="sort-indicator">{{ getSortIndicator(column.key) }}</span>
               </button>
             </th>
-            <th *ngIf="showRowAction() || additionalActions().length">Islem</th>
+            <th
+              class="action-header"
+              *ngIf="showRowAction() || additionalActions().length"
+            >
+              Islem
+            </th>
           </tr>
         </thead>
         <tbody>
@@ -128,7 +142,10 @@
             <td
               *ngFor="let column of columns(); trackBy: trackByColumn"
               [attr.data-label]="column.label"
+              [attr.data-key]="column.key"
               [attr.title]="formatPrintCell(row, column)"
+              [class.cell-wrap]="column.allowWrap"
+              [style.text-align]="column.tableAlign || null"
             >
               <ng-container [ngSwitch]="column.type ?? 'text'">
                 <span
@@ -139,10 +156,15 @@
                   {{ formatText(readCell(row, column), column.emptyValue || 'Bilinmiyor') }}
                 </span>
                 <ng-container *ngSwitchCase="'date'">
-                  {{ formatDate(readCell(row, column)) }}
+                  <span class="cell-value">{{ formatDate(readCell(row, column)) }}</span>
+                </ng-container>
+                <ng-container *ngSwitchCase="'date-only'">
+                  <span class="cell-value">{{ formatDateOnly(readCell(row, column)) }}</span>
                 </ng-container>
                 <ng-container *ngSwitchDefault>
-                  {{ formatText(readCell(row, column), column.emptyValue || '-') }}
+                  <span class="cell-value">
+                    {{ formatText(readCell(row, column), column.emptyValue || '-') }}
+                  </span>
                 </ng-container>
               </ng-container>
             </td>

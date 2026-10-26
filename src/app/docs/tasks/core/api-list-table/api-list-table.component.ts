@@ -64,7 +64,7 @@ export class ApiListTableComponent<Row extends object = object> {
   protected readonly printRootId = `api-list-print-${Math.random().toString(36).slice(2)}`;
   protected readonly pageSizeOptions = [10, 25, 50, 100] as const;
   protected readonly filterTerm = signal('');
-  protected readonly pageSize = signal(10);
+  protected readonly pageSize = signal(25);
   protected readonly currentPageIndex = signal(1);
   protected readonly sortKey = signal<string | null>(null);
   protected readonly sortDirection = signal<SortDirection>(null);
@@ -351,6 +351,24 @@ export class ApiListTableComponent<Row extends object = object> {
     }).format(date);
   }
 
+  protected formatDateOnly(value: unknown): string {
+    const textValue = this.formatText(value, '');
+
+    if (!textValue) {
+      return '-';
+    }
+
+    const date = new Date(textValue);
+
+    if (Number.isNaN(date.getTime())) {
+      return textValue;
+    }
+
+    return new Intl.DateTimeFormat('tr-TR', {
+      dateStyle: 'short'
+    }).format(date);
+  }
+
   protected getStatusTone(status: unknown): string {
     const normalized = this.formatText(status, '').toLocaleLowerCase('tr-TR');
 
@@ -422,7 +440,12 @@ export class ApiListTableComponent<Row extends object = object> {
       const exportColumns: ExcelExportColumn<Row>[] = columns.map((column) => ({
         label: column.label,
         value: (row) => this.resolveCellValue(row, column),
-        type: column.type === 'date' ? 'datetime' : 'text'
+        type:
+          column.type === 'date'
+            ? 'datetime'
+            : column.type === 'date-only'
+              ? 'date'
+              : 'text'
       }));
 
       await exportRowsToExcel({
@@ -503,6 +526,10 @@ export class ApiListTableComponent<Row extends object = object> {
       return this.formatDate(value);
     }
 
+    if (column.type === 'date-only') {
+      return this.formatDateOnly(value);
+    }
+
     return this.formatText(value, column.emptyValue || '-');
   }
 
@@ -514,6 +541,10 @@ export class ApiListTableComponent<Row extends object = object> {
 
         if (column.type === 'date') {
           return `${rawText} ${this.formatDate(value)}`.trim();
+        }
+
+        if (column.type === 'date-only') {
+          return `${rawText} ${this.formatDateOnly(value)}`.trim();
         }
 
         return rawText;

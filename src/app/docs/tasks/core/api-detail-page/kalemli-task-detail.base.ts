@@ -41,7 +41,7 @@ export abstract class KalemliTaskDetailBase<
   protected readonly printDocumentTitle: string = '';
   protected readonly printDocumentNoLabel: string = 'Kayit No';
   protected readonly printLineTitle: string = 'Kalemler';
-  protected readonly printDensity: NonNullable<DocumentPrintRequest['density']> = 'normal';
+  protected readonly printDensity: NonNullable<DocumentPrintRequest['density']> = 'compact';
   protected readonly header = computed<DetailHeader<TDetail> | null>(
     () => (this.detail()?.header ?? null) as DetailHeader<TDetail> | null
   );

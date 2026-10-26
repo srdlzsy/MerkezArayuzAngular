@@ -59,7 +59,7 @@
             <h3>{{ foundResult.stockName || foundResult.stockCode || foundResult.barcode }}</h3>
             <p>{{ foundResult.stockCode || '-' }} / {{ foundResult.matchedBarcode || foundResult.barcode }}</p>
           </div>
-          <span class="status-pill">{{ foundResult.resolutionSource || 'matched' }}</span>
+          <span class="status-pill">{{ formatResolutionSource(foundResult.resolutionSource) }}</span>
         </div>
 
         <div class="detail-grid">

@@ -145,6 +145,7 @@ export abstract class SiparisTaskDetailBase<
       title: this.printDocumentTitle || joinTruthy([this.page.title, this.screenTitle], ' - '),
       subtitle: `${this.printDocumentNoLabel}: ${this.orderIdentity()}`,
       branch: this.resolvePrintBranch(header, mode),
+      density: 'compact',
       sections: this.buildPrintSections(header, mode),
       lineTitle: this.printLineTitle,
       columns: documentColumns,

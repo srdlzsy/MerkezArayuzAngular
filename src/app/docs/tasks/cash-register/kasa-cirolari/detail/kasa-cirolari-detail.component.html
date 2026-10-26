@@ -79,14 +79,6 @@
             <p>{{ formatBusinessDate(currentHeader.businessDate) }}</p>
           </article>
           <article class="summary-card">
-            <h3>Depo</h3>
-            <p>{{ formatWarehouse(currentHeader) }}</p>
-          </article>
-          <article class="summary-card">
-            <h3>Kasiyer</h3>
-            <p>{{ cashierDisplayLabel() }}</p>
-          </article>
-          <article class="summary-card">
             <h3>Vardiya</h3>
             <p>{{ currentHeader.shiftNo }}</p>
           </article>
@@ -97,18 +89,6 @@
           <article class="summary-card">
             <h3>Satis Miktari</h3>
             <p>{{ currentHeader.totalSalesQuantity | number:'1.2-2' }}</p>
-          </article>
-          <article class="summary-card">
-            <h3>Tahsilat</h3>
-            <p>{{ currentHeader.totalCollectionAmount | number:'1.2-2' }} TL</p>
-          </article>
-          <article class="summary-card">
-            <h3>Brut Satis</h3>
-            <p>{{ (currentHeader.grossSalesTotal ?? currentHeader.totalSalesAmount) | number:'1.2-2' }} TL</p>
-          </article>
-          <article class="summary-card">
-            <h3>Mutabakat</h3>
-            <p>{{ (currentHeader.comparisonTotal ?? currentHeader.totalCollectionAmount) | number:'1.2-2' }} TL</p>
           </article>
           <article class="summary-card" *ngIf="currentHeader.futuresSalesTotal">
             <h3>Veresiye</h3>

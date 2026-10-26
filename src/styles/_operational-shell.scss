@@ -24,6 +24,11 @@
   letter-spacing: 0;
 }
 
+.operational-shell :where(.task-page, .create-page, .lookup-page) {
+  color: var(--operation-text);
+  line-height: 1.4;
+}
+
 .operational-shell :where(
   .task-page .eyebrow,
   .create-page .eyebrow,
@@ -136,4 +141,5 @@
 .operational-shell :where(.task-page, .lookup-page) :where(th, td) {
   padding: 0.44rem 0.52rem;
   font-size: var(--operation-body-font-size);
+  line-height: 1.35;
 }

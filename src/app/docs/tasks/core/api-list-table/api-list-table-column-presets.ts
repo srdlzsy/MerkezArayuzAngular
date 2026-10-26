@@ -202,80 +202,92 @@ const formatDifferenceQuantity = (row: IFurpaGoodsAcceptanceDifferenceApiDto): s
   ]);
 
 export const FIRMA_SIPARISI_LIST_COLUMNS = [
-  { key: 'documentDate', label: 'Belge Tarihi', type: 'date' },
+  { key: 'documentDate', label: 'Belge Tarihi', type: 'date-only', tableWidth: '104px' },
   {
     key: 'documentReference',
     label: 'Evrak',
+    tableWidth: '150px',
     resolveValue: (row: IFurpaCompanyOrderListItemApiDto) =>
       formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNumber)
   },
   {
     key: 'customerSummary',
     label: 'Musteri',
+    allowWrap: true,
     resolveValue: formatCompanyOrderCustomer
   },
-  { key: 'deliveryDate', label: 'Teslim', type: 'date' },
+  { key: 'deliveryDate', label: 'Teslim Tarihi', type: 'date-only', tableWidth: '104px' },
   {
     key: 'quantitySummary',
-    label: 'Miktar',
+    label: 'Satir / Miktar',
+    tableWidth: '156px',
     resolveValue: formatCompanyOrderQuantity
   },
   {
     key: 'orderStatus',
     label: 'Durum',
     type: 'status',
+    tableWidth: '104px',
     resolveValue: formatCompanyOrderStatus
   }
 ] as const satisfies readonly ApiListTableColumn<IFurpaCompanyOrderListItemApiDto>[];
 
 export const DEPOLAR_ARASI_SIPARIS_LIST_COLUMNS = [
-  { key: 'documentDate', label: 'Belge Tarihi', type: 'date' },
+  { key: 'documentDate', label: 'Belge Tarihi', type: 'date-only', tableWidth: '104px' },
   {
     key: 'documentReference',
     label: 'Evrak',
+    tableWidth: '150px',
     resolveValue: (row: IFurpaWarehouseOrderListItemApiDto) =>
       formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNumber)
   },
   {
     key: 'warehouseFlow',
-    label: 'Depolar',
+    label: 'Kaynak -> Hedef Depo',
+    allowWrap: true,
     resolveValue: formatWarehouseOrderFlow
   },
-  { key: 'deliveryDate', label: 'Teslim', type: 'date' },
+  { key: 'deliveryDate', label: 'Teslim Tarihi', type: 'date-only', tableWidth: '104px' },
   {
     key: 'quantitySummary',
-    label: 'Miktar',
+    label: 'Satir / Miktar',
+    tableWidth: '142px',
     resolveValue: formatWarehouseOrderQuantity
   }
 ] as const satisfies readonly ApiListTableColumn<IFurpaWarehouseOrderListItemApiDto>[];
 
 export const FIRMA_STOK_HAREKETI_LIST_COLUMNS = [
-  { key: 'documentDate', label: 'Belge Tarihi', type: 'date' },
+  { key: 'documentDate', label: 'Belge Tarihi', type: 'date-only', tableWidth: '104px' },
   {
     key: 'documentReference',
-    label: 'Evrak',
+    label: 'Evrak / Belge No',
+    tableWidth: '190px',
     resolveValue: (row: IFurpaCompanyMovementListItemApiDto) =>
-      formatDocumentReference(row.documentSerie, row.documentOrderNo)
+      formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo)
   },
-  { key: 'documentNo', label: 'Belge No', emptyValue: '-' },
   {
     key: 'customerSummary',
     label: 'Cari',
+    allowWrap: true,
     resolveValue: formatCompanyMovementCustomer
   },
   {
     key: 'warehouseSummary',
     label: 'Depo',
+    allowWrap: true,
     resolveValue: formatCompanyMovementWarehouse
   },
   {
     key: 'quantitySummary',
-    label: 'Miktar',
+    label: 'Satir / Miktar',
+    tableWidth: '142px',
     resolveValue: formatCompanyMovementQuantity
   },
   {
     key: 'totalAmount',
     label: 'Tutar',
+    tableWidth: '112px',
+    tableAlign: 'right',
     resolveValue: (row: IFurpaCompanyMovementListItemApiDto) => formatAmount(row.totalAmount)
   },
   {
@@ -283,62 +295,71 @@ export const FIRMA_STOK_HAREKETI_LIST_COLUMNS = [
     label: 'Durum',
     type: 'status',
     emptyValue: 'Bilinmiyor',
+    tableWidth: '102px',
     resolveValue: formatCompanyMovementStatus
   }
 ] as const satisfies readonly ApiListTableColumn<IFurpaCompanyMovementListItemApiDto>[];
 
 export const SUBE_ICI_STOK_HAREKETI_LIST_COLUMNS = [
-  { key: 'documentSerie', label: 'Seri' },
-  { key: 'documentOrderNo', label: 'Sira' },
+  { key: 'documentSerie', label: 'Seri', tableWidth: '92px' },
+  { key: 'documentOrderNo', label: 'Sira', tableWidth: '92px' },
   {
     key: 'creatorDisplayName',
-    label: 'Ekleyen Ad Soyad',
+    label: 'Ekleyen',
+    allowWrap: true,
     resolveValue: (row: IFurpaStockReceiptListItemApiDto) => row.creator || row.acceptor
   },
   {
     key: 'movementDate',
     label: 'Tarih',
-    type: 'date',
+    type: 'date-only',
+    tableWidth: '104px',
     resolveValue: (row: IFurpaStockReceiptListItemApiDto) => row.documentDate || row.movementDate
   },
   {
     key: 'totalAmount',
     label: 'Tutar',
+    tableWidth: '120px',
+    tableAlign: 'right',
     resolveValue: (row: IFurpaStockReceiptListItemApiDto) => formatAmount(row.totalAmount)
   }
 ] as const satisfies readonly ApiListTableColumn<IFurpaStockReceiptListItemApiDto>[];
 
 export const VIRMAN_STOK_HAREKETI_LIST_COLUMNS = [
-  { key: 'documentSerie', label: 'Seri' },
-  { key: 'documentOrderNo', label: 'Sira' },
+  { key: 'documentSerie', label: 'Seri', tableWidth: '92px' },
+  { key: 'documentOrderNo', label: 'Sira', tableWidth: '92px' },
   {
     key: 'movementDate',
     label: 'Tarih',
-    type: 'date',
+    type: 'date-only',
+    tableWidth: '104px',
     resolveValue: (row: IFurpaVirmanListItemApiDto) => row.documentDate || row.movementDate
   },
   {
     key: 'lineFlow',
     label: 'C/G Kalem',
+    tableWidth: '112px',
     resolveValue: (row: IFurpaVirmanListItemApiDto) =>
       `${row.outgoingLineCount ?? 0} / ${row.incomingLineCount ?? 0}`
   },
   {
     key: 'quantityFlow',
     label: 'C/G Miktar',
+    tableWidth: '122px',
     resolveValue: (row: IFurpaVirmanListItemApiDto) =>
       `${row.outgoingQuantity ?? 0} / ${row.incomingQuantity ?? 0}`
   }
 ] as const satisfies readonly ApiListTableColumn<IFurpaVirmanListItemApiDto>[];
 
 export const SAYIM_SONUCLARI_LIST_COLUMNS = [
-  { key: 'documentNo', label: 'Evrak No' },
+  { key: 'documentNo', label: 'Evrak No', tableWidth: '180px' },
   {
     key: 'counterName',
-    label: 'Sayan Ad Soyad',
+    label: 'Sayan',
+    allowWrap: true,
     resolveValue: (row: IFurpaInventoryCountListItemApiDto) => row.name || row.warehouseName
   },
-  { key: 'documentDate', label: 'Tarih', type: 'date' }
+  { key: 'documentDate', label: 'Tarih', type: 'date-only', tableWidth: '104px' }
 ] as const satisfies readonly ApiListTableColumn<IFurpaInventoryCountListItemApiDto>[];
 
 export const buildWarehouseMovementListColumns = (
@@ -348,26 +369,29 @@ export const buildWarehouseMovementListColumns = (
     {
       key: 'movementDate',
       label: 'Tarih',
-      type: 'date',
+      type: 'date-only',
+      tableWidth: '104px',
       resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) => row.documentDate || row.movementDate
     },
     {
       key: 'documentReference',
-      label: 'Evrak',
+      label: 'Evrak / Belge No',
+      tableWidth: '190px',
       resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
-        formatDocumentReference(row.documentSerie, row.documentOrderNo)
+        formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo)
     },
-    { key: 'documentNo', label: 'Belge No', emptyValue: '-' },
     {
       key: 'returnType',
       label: 'Tip',
       type: 'status',
+      tableWidth: '106px',
       resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
         row.isReturn ? 'Depo Iadesi' : 'Depo Sevki'
     },
     {
       key: 'warehouseFlow',
-      label: 'Depolar',
+      label: 'Kaynak -> Hedef Depo',
+      allowWrap: true,
       resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
         formatWarehouseFlow(
           row.sourceWarehouseNo,
@@ -379,11 +403,14 @@ export const buildWarehouseMovementListColumns = (
     {
       key: 'shippingMeta',
       label: 'Tasima',
+      tableWidth: '150px',
+      allowWrap: true,
       resolveValue: formatWarehouseMovementMeta
     },
     {
       key: 'quantitySummary',
-      label: 'Miktar',
+      label: 'Satir / Miktar',
+      tableWidth: '140px',
       resolveValue: formatWarehouseMovementQuantity
     },
     {
@@ -391,6 +418,7 @@ export const buildWarehouseMovementListColumns = (
       label: 'Durum',
       type: 'status',
       emptyValue: 'Bilinmiyor',
+      tableWidth: '102px',
       resolveValue: formatWarehouseMovementStatus
     }
   ] as const satisfies readonly ApiListTableColumn<IFurpaWarehouseShippingListItemApiDto>[];
@@ -399,13 +427,15 @@ export const MAL_KABUL_FARKLARI_LIST_COLUMNS = [
   {
     key: 'movementDate',
     label: 'Tarih',
-    type: 'date',
+    type: 'date-only',
+    tableWidth: '104px',
     resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
       row.documentDate || row.movementDate
   },
   {
     key: 'documentReference',
-    label: 'Evrak',
+    label: 'Evrak / Satir',
+    tableWidth: '190px',
     resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
       joinText([
         formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo),
@@ -416,28 +446,33 @@ export const MAL_KABUL_FARKLARI_LIST_COLUMNS = [
     key: 'returnType',
     label: 'Tip',
     type: 'status',
+    tableWidth: '106px',
     resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
       row.isReturn ? 'Depo Iadesi' : 'Depo Sevki'
   },
   {
     key: 'warehouseFlow',
-    label: 'Depolar',
+    label: 'Kaynak -> Hedef Depo',
+    allowWrap: true,
     resolveValue: formatDifferenceWarehouses
   },
   {
     key: 'productSummary',
     label: 'Urun',
+    allowWrap: true,
     resolveValue: formatDifferenceProduct
   },
   {
     key: 'quantitySummary',
-    label: 'Miktar',
+    label: 'Sevk / Kabul / Fark',
+    tableWidth: '190px',
     resolveValue: formatDifferenceQuantity
   },
   {
     key: 'differenceType',
     label: 'Fark',
     type: 'status',
+    tableWidth: '88px',
     resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) => {
       if (row.differenceType === 'missing') {
         return 'Eksik';

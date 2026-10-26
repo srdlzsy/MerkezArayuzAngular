@@ -95,6 +95,7 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
       subtitle: detail.name || `Sayim ${detail.documentNo}`,
       branch: `${detail.warehouseNo} - ${detail.warehouseName || 'Depo'}`,
       orientation: 'landscape',
+      density: 'dense',
       sections: [
         {
           title: 'Belge Bilgileri',

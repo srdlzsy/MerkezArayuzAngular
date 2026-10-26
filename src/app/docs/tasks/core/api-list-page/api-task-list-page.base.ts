@@ -453,6 +453,7 @@ export abstract class ApiTaskListPageBase<
     openDocsTaskDialog(this.dialog, this.detailComponent, {
       width: 'min(1120px, 96vw)',
       maxWidth: '96vw',
+      panelClass: 'docs-task-detail-dialog',
       data: this.buildDetailData(row)
     })
       .closed.pipe(takeUntilDestroyed(this.destroyRef))

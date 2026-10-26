@@ -34,7 +34,7 @@
 .eyebrow {
   margin: 0;
   color: #0f766e;
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -118,22 +118,46 @@
   overflow: auto;
 }
 
-.info-grid,
+.info-grid {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.35rem;
+}
+
 .summary-grid {
   display: grid;
-  gap: 0.42rem;
-}
-
-.info-grid {
-  grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
-}
-
-.summary-grid {
   grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  padding: 1px;
+  overflow: hidden;
+  border: 1px solid #e2e8f0;
+  border-radius: 8px;
+  background: #e2e8f0;
 }
 
-.info-card,
-.summary-card,
+.info-card {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.42rem;
+  min-width: 0;
+  min-height: 30px;
+  padding: 0.28rem 0.48rem;
+  background: #fff;
+  border: 1px solid #dbe5f1;
+  border-radius: 6px;
+}
+
+.summary-card {
+  display: grid;
+  align-content: start;
+  gap: 0.14rem;
+  min-width: 0;
+  min-height: 48px;
+  padding: 0.4rem 0.52rem;
+  background: #fff;
+}
+
 .state-card,
 .task-item,
 .sample {
@@ -154,7 +178,7 @@
 .sample h3 {
   margin: 0;
   color: #64748b;
-  font-size: 0.58rem;
+  font-size: 0.7rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -167,6 +191,23 @@
   color: #0f172a;
   font-size: 0.8rem;
   line-height: 1.28;
+  overflow-wrap: anywhere;
+}
+
+.info-card h3 {
+  white-space: nowrap;
+}
+
+.info-card p {
+  font-weight: 700;
+}
+
+.summary-note {
+  display: block;
+  margin-top: 0.08rem;
+  color: #64748b;
+  font-size: 0.74rem;
+  line-height: 1.25;
   overflow-wrap: anywhere;
 }
 
@@ -191,14 +232,12 @@
   align-items: center;
   width: fit-content;
   max-width: 100%;
-  padding: 0.26rem 0.5rem;
+  min-height: 28px;
+  padding: 0.18rem 0 0.18rem 0.48rem;
   color: #0f172a;
-  font-size: 0.74rem;
-  font-weight: 700;
-  border: 1px solid #dbe5f1;
-  border-radius: 8px;
-  background: #fff;
-  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.03);
+  font-size: 0.78rem;
+  font-weight: 800;
+  border-left: 3px solid #0f766e;
 }
 
 .task-list {
@@ -236,7 +275,7 @@
   justify-content: center;
   min-width: 78px;
   padding: 0.22rem 0.48rem;
-  font-size: 0.7rem;
+  font-size: 0.74rem;
   font-weight: 700;
   border-radius: 999px;
 }
@@ -331,7 +370,7 @@ th {
   top: 0;
   z-index: 1;
   color: #475569;
-  font-size: 0.6rem;
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -346,7 +385,7 @@ tbody tr:hover {
   display: block;
   margin-top: 0.14rem;
   color: #0f766e;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
   font-weight: 800;
   line-height: 1.25;
   white-space: nowrap;
@@ -374,7 +413,6 @@ code {
 }
 
 @media (max-width: 1000px) {
-  .info-grid,
   .summary-grid {
     grid-template-columns: 1fr 1fr;
   }
@@ -401,9 +439,12 @@ code {
     padding: 0.85rem;
   }
 
-  .info-grid,
   .summary-grid {
     grid-template-columns: 1fr;
+  }
+
+  .info-card {
+    flex: 1 1 140px;
   }
 
   .summary-card-wide,

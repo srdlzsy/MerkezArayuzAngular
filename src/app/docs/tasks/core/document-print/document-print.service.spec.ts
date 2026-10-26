@@ -98,9 +98,34 @@ describe('DocumentPrintService', () => {
     service.print({ ...request, density: 'dense' });
 
     const markup = popup.document.write.calls.mostRecent().args[0] as string;
+    expect(markup).toContain('margin: 5.5mm');
+    expect(markup).toContain('padding: 1.5px 2.5px');
+    expect(markup).toContain('min-height: 12mm');
+  });
+
+  it('uses readable compact A4 spacing by default', () => {
+    const popup = {
+      document: {
+        open: jasmine.createSpy('open'),
+        write: jasmine.createSpy('write'),
+        close: jasmine.createSpy('close')
+      },
+      focus: jasmine.createSpy('focus'),
+      print: jasmine.createSpy('print'),
+      setTimeout: (callback: () => void) => {
+        callback();
+        return 1;
+      }
+    };
+    spyOn(window, 'open').and.returnValue(popup as unknown as Window);
+
+    service.print(request);
+
+    const markup = popup.document.write.calls.mostRecent().args[0] as string;
     expect(markup).toContain('margin: 7mm');
+    expect(markup).toContain('font-size: 9.5px');
     expect(markup).toContain('padding: 2px 3px');
-    expect(markup).toContain('min-height: 14mm');
+    expect(markup).toContain('min-height: 15mm');
   });
 
   it('prints custom markup and closes disposable report windows', () => {

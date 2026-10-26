@@ -9,11 +9,10 @@ import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
   selector: 'app-dosya-gonderimi-detail',
   standalone: true,
   imports: [CommonModule],
-  templateUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.template.html',
-  styleUrl: '../../../core/task-placeholder-dialog/task-placeholder-dialog.scss'
+  templateUrl: '../../../core/task-placeholder-dialog/task-empty-detail.template.html',
+  styleUrl: '../../../core/task-placeholder-dialog/task-empty-detail.scss'
 })
 export class DosyaGonderimiDetailComponent extends DocsTaskDialogBase {
   protected readonly page: DocsContentPage = DOCS_PAGES['authorization-files'];
   protected readonly screenTitle = 'Detay';
-  protected readonly screenNote = 'Detay ekrani hazirligi';
 }

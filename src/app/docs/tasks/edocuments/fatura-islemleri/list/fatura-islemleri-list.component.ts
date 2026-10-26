@@ -74,14 +74,9 @@ type ViewingSortKey =
 type SendingSortKey =
   | 'invoiceId'
   | 'customerTitle'
-  | 'description'
   | 'documentDate'
   | 'isSent'
   | 'scenario'
-  | 'profile'
-  | 'sourceLine'
-  | 'taxRate'
-  | 'returnReference'
   | 'payableTotal';
 
 interface PageFeedback {
@@ -2937,7 +2932,8 @@ export class FaturaIslemleriListComponent {
       scenario,
       documents: unsentDocuments.map((item) => ({
         documentSerie: item.documentSerie,
-        documentOrderNo: item.documentOrderNo
+        documentOrderNo: item.documentOrderNo,
+        description: item.description?.trim() || null
       }))
     };
   }
@@ -2961,7 +2957,8 @@ export class FaturaIslemleriListComponent {
       scenario,
       documents: sentDocuments.map((item) => ({
         documentSerie: item.documentSerie,
-        documentOrderNo: item.documentOrderNo
+        documentOrderNo: item.documentOrderNo,
+        description: item.description?.trim() || null
       }))
     };
   }
@@ -3327,22 +3324,12 @@ export class FaturaIslemleriListComponent {
         return item.invoiceId;
       case 'customerTitle':
         return item.customerTitle;
-      case 'description':
-        return item.description;
       case 'documentDate':
         return item.documentDate ? new Date(item.documentDate).getTime() : null;
       case 'isSent':
         return item.isSent;
       case 'scenario':
         return this.getScenarioLabel(item.scenario);
-      case 'profile':
-        return item.invoiceProfileId;
-      case 'sourceLine':
-        return item.sourceLineCount ?? null;
-      case 'taxRate':
-        return null;
-      case 'returnReference':
-        return this.isReturnInvoice(item) ? this.getReturnReferenceLabel(item) : '';
       case 'payableTotal':
         return this.getSendingPayableTotal(item);
     }

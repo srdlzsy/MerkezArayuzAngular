@@ -39,6 +39,15 @@ export class CariBulListComponent {
     'satinalma-sarti': 'Satinalma sarti',
     'stok-hareketleri': 'Stok hareketi'
   };
+  private readonly resolutionSourceLabels: Record<string, string> = {
+    'variable-weight': 'Tartili barkod',
+    barcode: 'Barkod eslesmesi',
+    'stock-code': 'Stok kodu eslesmesi',
+    gtin: 'GTIN eslesmesi',
+    'ambiguous-partial-barcode': 'Barkod belirsiz',
+    'not-found': 'Eslesme yok',
+    matched: 'Stok bulundu'
+  };
 
   protected barcodeInput = '';
   protected warehouseNo: number | null = null;
@@ -102,6 +111,11 @@ export class CariBulListComponent {
 
   protected formatSources(sources: string[] | null | undefined): string {
     return sources?.filter(Boolean).map((source) => this.formatSource(source)).join(', ') || '-';
+  }
+
+  protected formatResolutionSource(source: string | null | undefined): string {
+    const normalizedSource = source?.trim().toLowerCase() || 'matched';
+    return this.resolutionSourceLabels[normalizedSource] ?? 'Stok bulundu';
   }
 
   protected hasPurchaseConditionSource(sources: string[] | null | undefined): boolean {

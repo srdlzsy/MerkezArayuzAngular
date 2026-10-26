@@ -1,4 +1,4 @@
-export type ApiListTableColumnType = 'text' | 'date' | 'status';
+export type ApiListTableColumnType = 'text' | 'date' | 'date-only' | 'status';
 
 type BivariantCallback<Arg, Result> = {
   bivarianceHack(arg: Arg): Result;
@@ -10,6 +10,9 @@ export interface ApiListTableColumn<Row extends object = object> {
   type?: ApiListTableColumnType;
   emptyValue?: string;
   resolveValue?: BivariantCallback<Row, unknown>;
+  tableWidth?: string;
+  tableAlign?: 'left' | 'center' | 'right';
+  allowWrap?: boolean;
   printWidth?: string;
   printAlign?: 'left' | 'center' | 'right';
 }

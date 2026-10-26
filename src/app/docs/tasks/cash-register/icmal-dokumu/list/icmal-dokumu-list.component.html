@@ -90,13 +90,13 @@
         <table>
           <thead>
             <tr>
-              <th>Sube</th>
-              <th>Belge</th>
-              <th>Kasa</th>
-              <th>Z No</th>
-              <th>Personel</th>
-              <th>Icmal Tarihi</th>
-              <th>Legacy Toplam</th>
+              <th><button type="button" class="sort-button" (click)="setSort('warehouse')">Sube <span>{{ sortIndicator('warehouse') }}</span></button></th>
+              <th><button type="button" class="sort-button" (click)="setSort('documentSerie')">Belge <span>{{ sortIndicator('documentSerie') }}</span></button></th>
+              <th><button type="button" class="sort-button" (click)="setSort('cashNo')">Kasa <span>{{ sortIndicator('cashNo') }}</span></button></th>
+              <th><button type="button" class="sort-button" (click)="setSort('zReportNo')">Z No <span>{{ sortIndicator('zReportNo') }}</span></button></th>
+              <th><button type="button" class="sort-button" (click)="setSort('cashierNo')">Personel <span>{{ sortIndicator('cashierNo') }}</span></button></th>
+              <th><button type="button" class="sort-button" (click)="setSort('summaryDate')">Icmal Tarihi <span>{{ sortIndicator('summaryDate') }}</span></button></th>
+              <th><button type="button" class="sort-button" (click)="setSort('total')">Legacy Toplam <span>{{ sortIndicator('total') }}</span></button></th>
               <th></th>
             </tr>
           </thead>

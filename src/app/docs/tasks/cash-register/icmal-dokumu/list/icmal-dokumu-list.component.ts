@@ -24,6 +24,16 @@ interface ActionFeedback {
   message: string;
 }
 
+type SummarySortKey =
+  | 'warehouse'
+  | 'documentSerie'
+  | 'cashNo'
+  | 'zReportNo'
+  | 'cashierNo'
+  | 'summaryDate'
+  | 'total';
+type SummarySortDirection = 'asc' | 'desc';
+
 const ICMAL_CREATE_TASK_ID = 'icmal-kaydi-girisi';
 const ICMAL_CREATE_PERMISSION = 'kasa-islemleri.icmal-kaydi-girisi.create';
 
@@ -54,13 +64,15 @@ export class IcmalDokumuListComponent {
   private readonly searchTerm = signal('');
   private readonly currentPage = signal(1);
 
-  protected readonly pageSize = signal(10);
+  protected readonly pageSize = signal(25);
   protected readonly readonlyPageSizeOptions = [10, 25, 50] as const;
   protected readonly summaries = signal<ISummariesCT[]>([]);
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly isLoading = signal(false);
   protected readonly lastLoadedDate = signal(this.getDefaultTargetDate());
   protected readonly maxTargetDate = this.getDefaultTargetDate();
+  protected readonly sortKey = signal<SummarySortKey>('summaryDate');
+  protected readonly sortDirection = signal<SummarySortDirection>('desc');
 
   protected readonly currentWarehouseNo = computed(
     () => this.authService.currentUser()?.depoNo ?? null
@@ -223,6 +235,25 @@ export class IcmalDokumuListComponent {
     this.currentPage.set(1);
   }
 
+  protected setSort(key: SummarySortKey): void {
+    if (this.sortKey() === key) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortKey.set(key);
+      this.sortDirection.set('asc');
+    }
+
+    this.currentPage.set(1);
+  }
+
+  protected sortIndicator(key: SummarySortKey): string {
+    if (this.sortKey() !== key) {
+      return '';
+    }
+
+    return this.sortDirection() === 'asc' ? '▲' : '▼';
+  }
+
   protected setPageSize(size: number): void {
     if (!this.readonlyPageSizeOptions.includes(size as 10 | 25 | 50)) {
       return;
@@ -272,16 +303,67 @@ export class IcmalDokumuListComponent {
   }
 
   private sortSummaries(items: readonly ISummariesCT[]): ISummariesCT[] {
-    return [...items].sort((left, right) => {
-      const rightDate = new Date(right.summaryDate).getTime();
-      const leftDate = new Date(left.summaryDate).getTime();
+    const key = this.sortKey();
+    const direction = this.sortDirection() === 'asc' ? 1 : -1;
 
-      if (rightDate !== leftDate) {
-        return rightDate - leftDate;
+    return [...items].sort((left, right) => {
+      const comparison = this.compareSummaryValues(
+        this.getSummarySortValue(left, key),
+        this.getSummarySortValue(right, key)
+      );
+
+      if (comparison !== 0) {
+        return comparison * direction;
       }
 
       return this.toSafeNumber(right.documentOrderNo) - this.toSafeNumber(left.documentOrderNo);
     });
+  }
+
+  private getSummarySortValue(summary: ISummariesCT, key: SummarySortKey): unknown {
+    switch (key) {
+      case 'summaryDate':
+        return new Date(summary.summaryDate).getTime();
+      case 'documentSerie':
+        return summary.documentSerie;
+      case 'cashNo':
+        return summary.cashNo;
+      case 'zReportNo':
+        return summary.zReportNo;
+      case 'cashierNo':
+        return summary.cashierNo;
+      case 'total':
+        return summary.total;
+      case 'warehouse':
+        return summary.warehouse;
+    }
+  }
+
+  private compareSummaryValues(left: unknown, right: unknown): number {
+    const leftNumber = this.toNullableNumber(left);
+    const rightNumber = this.toNullableNumber(right);
+
+    if (leftNumber !== null && rightNumber !== null) {
+      return leftNumber - rightNumber;
+    }
+
+    return this.toSearchable(left).localeCompare(this.toSearchable(right), 'tr', {
+      numeric: true,
+      sensitivity: 'base'
+    });
+  }
+
+  private toNullableNumber(value: unknown): number | null {
+    if (typeof value === 'number' && Number.isFinite(value)) {
+      return value;
+    }
+
+    if (typeof value === 'string' && value.trim()) {
+      const parsedValue = Number(value);
+      return Number.isFinite(parsedValue) ? parsedValue : null;
+    }
+
+    return null;
   }
 
   private toSearchable(value: unknown): string {
@@ -333,4 +415,3 @@ export class IcmalDokumuListComponent {
     );
   }
 }
-

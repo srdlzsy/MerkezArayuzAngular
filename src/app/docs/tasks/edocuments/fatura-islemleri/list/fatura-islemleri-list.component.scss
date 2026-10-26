@@ -25,7 +25,7 @@
   display: grid;
   gap: 0.55rem;
   color: var(--text);
-  font-family: 'Trebuchet MS', 'Segoe UI', sans-serif;
+  font-family: inherit;
 }
 
 .is-viewing-workspace {
@@ -832,7 +832,39 @@
 }
 
 .sending-table {
-  min-width: 1280px;
+  min-width: 1040px;
+}
+
+.sending-col-select {
+  width: 46px;
+}
+
+.sending-col-invoice {
+  width: 150px;
+}
+
+.sending-col-date {
+  width: 96px;
+}
+
+.sending-col-customer {
+  width: auto;
+}
+
+.sending-col-scenario {
+  width: 150px;
+}
+
+.sending-col-amount {
+  width: 172px;
+}
+
+.sending-col-status {
+  width: 104px;
+}
+
+.sending-col-actions {
+  width: 224px;
 }
 
 .invoice-table th,
@@ -855,9 +887,36 @@
 }
 
 .sending-table td small {
-  display: inline;
-  margin-top: 0;
-  margin-left: 0.32rem;
+  display: block;
+  margin-top: 0.12rem;
+  margin-left: 0;
+}
+
+.sending-date-cell {
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.sending-customer-cell .table-main-text {
+  display: -webkit-box;
+  overflow: hidden;
+  line-height: 1.18;
+  white-space: normal;
+  -webkit-box-orient: vertical;
+  -webkit-line-clamp: 2;
+}
+
+.sending-scenario-cell strong {
+  display: block;
+}
+
+.sending-scenario-cell .return-reference-pill {
+  display: inline-flex;
+  max-width: 100%;
+  margin-top: 0.22rem;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
 }
 
 .sending-table th {
@@ -1032,11 +1091,11 @@
 }
 
 .sending-table .action-column {
-  width: 196px;
+  width: 224px;
 }
 
 .table-check-cell {
-  width: 58px;
+  width: 46px;
   text-align: center !important;
 }
 

@@ -1,0 +1,20 @@
+<section class="dialog-page" *ngIf="page as current">
+  <header class="dialog-header">
+    <div class="dialog-heading">
+      <p class="eyebrow">{{ screenTitle }}</p>
+      <h2>{{ current.title }}</h2>
+    </div>
+
+    <button type="button" class="close-button" (click)="close()">Kapat</button>
+  </header>
+
+  <div class="dialog-body">
+    <section class="empty-detail" role="status">
+      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+      <div>
+        <h3>Detay bulunmuyor</h3>
+        <p>Bu kayit icin gosterilecek ek bilgi yok.</p>
+      </div>
+    </section>
+  </div>
+</section>

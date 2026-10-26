@@ -872,6 +872,16 @@
 
             <div class="invoice-table-shell" *ngIf="filteredSendingItems().length > 0">
               <table class="invoice-table sending-table">
+                <colgroup>
+                  <col class="sending-col-select" />
+                  <col class="sending-col-invoice" />
+                  <col class="sending-col-date" />
+                  <col class="sending-col-customer" />
+                  <col class="sending-col-scenario" />
+                  <col class="sending-col-amount" />
+                  <col class="sending-col-status" />
+                  <col class="sending-col-actions" />
+                </colgroup>
                 <thead>
                   <tr>
                     <th class="table-check-cell">Sec</th>
@@ -881,53 +891,28 @@
                       </button>
                     </th>
                     <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('customerTitle')">
-                        Musteri{{ getSendingSortIndicator('customerTitle') }}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('description')">
-                        Aciklama{{ getSendingSortIndicator('description') }}
-                      </button>
-                    </th>
-                    <th>
                       <button type="button" class="sort-header" (click)="changeSendingSort('documentDate')">
                         Tarih{{ getSendingSortIndicator('documentDate') }}
                       </button>
                     </th>
                     <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('isSent')">
-                        Durum{{ getSendingSortIndicator('isSent') }}
+                      <button type="button" class="sort-header" (click)="changeSendingSort('customerTitle')">
+                        Musteri{{ getSendingSortIndicator('customerTitle') }}
                       </button>
                     </th>
                     <th>
                       <button type="button" class="sort-header" (click)="changeSendingSort('scenario')">
-                        Senaryo{{ getSendingSortIndicator('scenario') }}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('profile')">
-                        Profil{{ getSendingSortIndicator('profile') }}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('sourceLine')">
-                        Kaynak{{ getSendingSortIndicator('sourceLine') }}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('taxRate')">
-                        KDV{{ getSendingSortIndicator('taxRate') }}
-                      </button>
-                    </th>
-                    <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('returnReference')">
-                        Iade Ref{{ getSendingSortIndicator('returnReference') }}
+                        Senaryo / Profil{{ getSendingSortIndicator('scenario') }}
                       </button>
                     </th>
                     <th class="amount-column">
                       <button type="button" class="sort-header sort-header-right" (click)="changeSendingSort('payableTotal')">
                         Tutar{{ getSendingSortIndicator('payableTotal') }}
+                      </button>
+                    </th>
+                    <th>
+                      <button type="button" class="sort-header" (click)="changeSendingSort('isSent')">
+                        Durum{{ getSendingSortIndicator('isSent') }}
                       </button>
                     </th>
                     <th class="action-column">Islem</th>
@@ -956,7 +941,8 @@
                       <strong>{{ item.invoiceId }}</strong>
                       <small>{{ item.documentSerie }} / {{ item.documentOrderNo }}</small>
                     </td>
-                    <td>
+                    <td class="sending-date-cell">{{ item.documentDate | date: 'dd.MM.yyyy' }}</td>
+                    <td class="sending-customer-cell" [title]="item.customerTitle || ''">
                       <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
                       <small>{{ item.customerCode || item.customerTcknVkn || '-' }}</small>
                       <small
@@ -965,34 +951,12 @@
                         {{ getReceiverAddressLabel(item) }}
                       </small>
                     </td>
-                    <td [title]="item.description || ''">
-                      <span class="table-main-text">{{ item.description || '-' }}</span>
-                    </td>
-                    <td>{{ item.documentDate | date: 'dd.MM.yyyy' }}</td>
-                    <td>
-                      <span
-                        class="status-pill"
-                        [class.status-pill-success]="item.isSent"
-                        [class.status-pill-neutral]="!item.isSent"
-                      >
-                        {{ item.isSent ? 'Gonderildi' : 'Bekliyor' }}
-                      </span>
-                    </td>
-                    <td>{{ getScenarioLabel(item.scenario) }}</td>
-                    <td>
-                      <span class="table-main-text">{{ item.invoiceProfileId || '-' }}</span>
-                    </td>
-                    <td>
-                      <span class="table-main-text">{{ getSourceLineCountLabel(item) }}</span>
-                      <small>{{ getSendingDetailOnlyLabel(item.sourceLineSummary) }}</small>
-                    </td>
-                    <td>
-                      <span class="table-main-text">{{ getSendingDetailOnlyLabel(item.taxRateSummary) }}</span>
-                    </td>
-                    <td>
-                      <ng-container *ngIf="isReturnInvoice(item); else noReturnReference">
+                    <td class="sending-scenario-cell">
+                      <strong>{{ getScenarioLabel(item.scenario) }}</strong>
+                      <small>{{ item.invoiceProfileId || 'Profil belirtilmedi' }}</small>
+                      <ng-container *ngIf="isReturnInvoice(item)">
                         <span
-                          class="status-pill"
+                          class="status-pill return-reference-pill"
                           [class.status-pill-success]="hasReturnReference(item)"
                           [class.status-pill-danger]="isReturnReferenceKnownMissing(item)"
                           [class.status-pill-neutral]="!hasReturnReference(item) && !isReturnReferenceKnownMissing(item)"
@@ -1003,7 +967,6 @@
                           {{ item.returnInvoiceDate | date: 'dd.MM.yyyy' }}
                         </small>
                       </ng-container>
-                      <ng-template #noReturnReference>-</ng-template>
                     </td>
                     <td class="amount-column">
                       <strong>{{ getSendingPayableTotal(item) | number: '1.2-2' }} TL</strong>
@@ -1011,6 +974,15 @@
                         Net {{ getSendingLineExtensionTotal(item) | number: '1.2-2' }} /
                         KDV {{ getSendingTaxTotal(item) | number: '1.2-2' }}
                       </small>
+                    </td>
+                    <td>
+                      <span
+                        class="status-pill"
+                        [class.status-pill-success]="item.isSent"
+                        [class.status-pill-neutral]="!item.isSent"
+                      >
+                        {{ item.isSent ? 'Gonderildi' : 'Bekliyor' }}
+                      </span>
                     </td>
                     <td>
                       <div class="table-actions">

@@ -43,25 +43,23 @@
           <h3>Seri / Sira</h3>
           <p>{{ getHeaderText(header, 'documentSerie') || '-' }} / {{ getHeaderNumber(header, 'documentOrderNo') ?? '-' }}</p>
         </article>
-        <article class="summary-card">
+        <article class="summary-card" *ngIf="getHeaderText(header, 'documentNo')">
           <h3>Belge No</h3>
-          <p>{{ getHeaderText(header, 'documentNo') || '-' }}</p>
+          <p>{{ getHeaderText(header, 'documentNo') }}</p>
         </article>
         <article class="summary-card">
           <h3>Tarih</h3>
           <p>{{ formatDate(resolvePrimaryDate(header)) }}</p>
         </article>
-        <article class="summary-card">
-          <h3>Depo No</h3>
-          <p>{{ getHeaderNumber(header, 'warehouseNo') ?? '-' }}</p>
-        </article>
-        <article class="summary-card">
-          <h3>Depo</h3>
-          <p>{{ getHeaderText(header, 'warehouseName') || '-' }}</p>
-        </article>
         <article class="summary-card summary-card-wide">
+          <h3>Depo</h3>
+          <p>
+            {{ getHeaderNumber(header, 'warehouseNo') ?? '-' }} - {{ getHeaderText(header, 'warehouseName') || '-' }}
+          </p>
+        </article>
+        <article class="summary-card summary-card-wide" *ngIf="getHeaderText(header, 'acceptor')">
           <h3>Onaylayan</h3>
-          <p>{{ getHeaderText(header, 'acceptor') || '-' }}</p>
+          <p>{{ getHeaderText(header, 'acceptor') }}</p>
         </article>
       </section>
 

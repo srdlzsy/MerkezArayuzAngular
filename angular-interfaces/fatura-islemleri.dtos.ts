@@ -279,6 +279,7 @@ export interface IInvoiceSendingRenderRequestApiDto {
 export interface IInvoiceSendingDocumentKeyApiDto {
   documentSerie: string;
   documentOrderNo: number;
+  description?: string | null;
 }
 
 export interface ISendInvoiceDocumentsRequestApiDto {

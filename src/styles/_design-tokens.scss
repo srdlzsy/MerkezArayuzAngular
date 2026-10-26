@@ -2,7 +2,7 @@
 :root {
   --operation-text: #0f172a;
   --operation-text-secondary: #334155;
-  --operation-muted: #64748b;
+  --operation-muted: #526579;
   --operation-accent: #0f766e;
   --operation-accent-hover: #0b5c56;
   --operation-accent-surface: #e8f7f4;
@@ -28,17 +28,17 @@
   --operation-control-height: 36px;
   --operation-panel-padding: 0.52rem 0.62rem;
   --operation-grid-gap: 0.46rem;
-  --operation-caption-size: 0.75rem;
-  --operation-control-font-size: 0.85rem;
+  --operation-caption-size: 0.78rem;
+  --operation-control-font-size: 0.88rem;
   --operation-body-font-size: 0.875rem;
   --operation-title-font-size: 1.18rem;
   --operation-shadow-panel: 0 6px 18px rgba(15, 23, 42, 0.06);
   --operation-shadow-dialog: 0 14px 34px rgba(15, 23, 42, 0.18);
   --operation-shadow-raised: 0 24px 60px rgba(15, 23, 42, 0.24);
   --operation-compact-control-height: 30px;
-  --operation-compact-caption-size: 0.68rem;
-  --operation-compact-control-font-size: 0.8rem;
-  --operation-compact-body-font-size: 0.78rem;
+  --operation-compact-caption-size: 0.72rem;
+  --operation-compact-control-font-size: 0.84rem;
+  --operation-compact-body-font-size: 0.82rem;
 }
 
 /* Keep 1366x768 workstations usable at browser zoom 100 without shrinking text. */

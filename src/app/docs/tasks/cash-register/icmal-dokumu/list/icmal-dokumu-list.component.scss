@@ -215,6 +215,30 @@ table {
   table-layout: fixed;
 }
 
+.sort-button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.3rem;
+  width: 100%;
+  padding: 0;
+  color: inherit;
+  font: inherit;
+  text-align: left;
+  border: 0;
+  background: transparent;
+  cursor: pointer;
+}
+
+.sort-button:hover {
+  color: var(--operation-link);
+}
+
+.sort-button span {
+  min-width: 0.7rem;
+  color: var(--operation-link);
+  font-size: 0.68rem;
+}
+
 th {
   white-space: nowrap;
 }

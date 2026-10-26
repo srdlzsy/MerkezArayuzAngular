@@ -80,7 +80,7 @@
         <span>Depo: <strong>{{ item.warehouseName || item.warehouseNo || '-' }}</strong></span>
         <span>Fiyat: <strong>{{ formatPrice(item.price) }} TL</strong></span>
         <span>Birim: <strong>{{ item.unitName || '-' }}</strong></span>
-        <span>Fiyat Tipi: <strong>{{ item.priceTypeCode }}</strong></span>
+        <span>Fiyat Tip No: <strong>{{ item.priceTypeCode }}</strong></span>
         <span *ngIf="hasPackInfo(item)">
           Koli: <strong>{{ item.secondaryUnitName }} ici {{ item.unitMultiplier }} {{ item.unitName || '' }}</strong>
         </span>

@@ -86,7 +86,7 @@
   background: rgba(255, 255, 255, 0.1);
   color: #ffffff;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
   transition:
@@ -113,8 +113,8 @@
 
 .menu-label {
   padding: 0 1rem;
-  color: rgba(201, 213, 255, 0.64);
-  font-size: 0.68rem;
+  color: rgba(225, 232, 255, 0.82);
+  font-size: 0.72rem;
   font-weight: 800;
   letter-spacing: 0.14em;
   text-transform: uppercase;
@@ -306,8 +306,8 @@
 }
 
 .page-title {
-  color: #6d7689;
-  font-size: 0.86rem;
+  color: #526079;
+  font-size: 0.9rem;
   font-weight: 600;
   white-space: nowrap;
   overflow: hidden;
@@ -335,8 +335,8 @@
   overflow: hidden;
   text-overflow: ellipsis;
   white-space: nowrap;
-  color: #7b8498;
-  font-size: 0.74rem;
+  color: #5f6b82;
+  font-size: 0.8rem;
   font-weight: 600;
   letter-spacing: 0.02em;
 }
@@ -348,7 +348,7 @@
   border-radius: 999px;
   cursor: pointer;
   background: #f8fbff;
-  font-size: 0.75rem;
+  font-size: 0.8rem;
   font-weight: 600;
 }
 
@@ -522,13 +522,13 @@
   }
 
   .mobile-branch {
-    font-size: 0.68rem;
-    color: #7f8aa3;
+    font-size: 0.75rem;
+    color: #5f6b82;
   }
 
   .mobile-logout {
     padding: 0.24rem 0.56rem;
-    font-size: 0.66rem;
+    font-size: 0.78rem;
   }
 
   .content-wrapper {
@@ -577,7 +577,7 @@
   .logout-button {
     flex: 0 0 auto;
     padding: 0.24rem 0.56rem;
-    font-size: 0.66rem;
+    font-size: 0.78rem;
   }
 }
 
@@ -852,7 +852,7 @@
   border-radius: 999px;
   color: #fff;
   background: #b42318;
-  font-size: 0.62rem;
+  font-size: 0.68rem;
   font-weight: 900;
   line-height: 1;
 }
@@ -887,8 +887,8 @@
 }
 
 .announcement-panel-head span {
-  color: #64748b;
-  font-size: 0.65rem;
+  color: #526579;
+  font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -931,8 +931,8 @@
 }
 
 .announcement-item span {
-  color: #64748b;
-  font-size: 0.64rem;
+  color: #526579;
+  font-size: 0.72rem;
   font-weight: 900;
   letter-spacing: 0.08em;
   text-transform: uppercase;
@@ -948,15 +948,16 @@
 .announcement-item small {
   display: -webkit-box;
   overflow: hidden;
-  color: #64748b;
+  color: #526579;
+  font-size: 0.78rem;
   line-height: 1.35;
   -webkit-box-orient: vertical;
   -webkit-line-clamp: 2;
 }
 
 .announcement-item em {
-  color: #7b8498;
-  font-size: 0.68rem;
+  color: #5f6b82;
+  font-size: 0.74rem;
   font-style: normal;
   font-weight: 700;
 }
@@ -992,7 +993,7 @@
   color: #294baa;
   background: #f8fbff;
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.8rem;
   font-weight: 900;
   cursor: pointer;
 }

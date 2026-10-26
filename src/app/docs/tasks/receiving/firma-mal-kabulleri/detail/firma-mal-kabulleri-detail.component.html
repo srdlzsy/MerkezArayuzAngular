@@ -47,25 +47,27 @@
           <h3>Seri / Sira</h3>
           <p>{{ getHeaderText(header, 'documentSerie') || '-' }} / {{ getHeaderNumber(header, 'documentOrderNo') ?? '-' }}</p>
         </article>
-        <article class="summary-card">
+        <article class="summary-card" *ngIf="getHeaderText(header, 'documentNo')">
           <h3>Belge No</h3>
-          <p>{{ getHeaderText(header, 'documentNo') || '-' }}</p>
+          <p>{{ getHeaderText(header, 'documentNo') }}</p>
         </article>
         <article class="summary-card">
           <h3>Tarih</h3>
           <p>{{ formatDate(resolvePrimaryDate(header)) }}</p>
         </article>
-        <article class="summary-card">
-          <h3>Muhatap</h3>
-          <p>{{ resolveCompanyPerson(header) || '-' }}</p>
-        </article>
-        <article class="summary-card">
+        <article class="summary-card" *ngIf="getHeaderText(header, 'customerCode')">
           <h3>Cari Kod</h3>
-          <p>{{ getHeaderText(header, 'customerCode') || '-' }}</p>
+          <p>{{ getHeaderText(header, 'customerCode') }}</p>
         </article>
         <article class="summary-card summary-card-wide">
-          <h3>Firma Unvani</h3>
-          <p>{{ resolveCompanyTitle(header) || '-' }}</p>
+          <h3>Firma / Muhatap</h3>
+          <p>{{ resolveCompanyTitle(header) || resolveCompanyPerson(header) || '-' }}</p>
+          <small
+            class="summary-note"
+            *ngIf="resolveCompanyPerson(header) && resolveCompanyPerson(header) !== resolveCompanyTitle(header)"
+          >
+            Yetkili: {{ resolveCompanyPerson(header) }}
+          </small>
         </article>
         <article class="summary-card" *ngIf="getHeaderNumber(header, 'totalNetAcceptedQuantity') !== null">
           <h3>Net Kabul</h3>
