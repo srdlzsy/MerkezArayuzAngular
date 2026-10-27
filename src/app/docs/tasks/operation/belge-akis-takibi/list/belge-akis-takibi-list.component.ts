@@ -55,7 +55,7 @@ interface DocumentFlowMetric {
 const TASK_ID = 'belge-akis-takibi';
 const PERMISSION_PREFIX = 'operasyon-islemleri.belge-akis-takibi';
 const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
-const DOCUMENT_FLOW_FETCH_LIMIT = 500;
+const DOCUMENT_FLOW_PAGE_SIZE = 500;
 
 const DOCUMENT_TYPE_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: '', label: 'Tum Belge Tipleri' },
@@ -65,7 +65,9 @@ const DOCUMENT_TYPE_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: 'WarehouseReturn', label: 'Depo Iadesi' },
   { value: 'CompanyReceiving', label: 'Firma Mal Kabul' },
   { value: 'IssuedCompanyOrder', label: 'Verilen Firma Siparisi' },
+  { value: 'ReceivedCompanyOrder', label: 'Alinan Firma Siparisi' },
   { value: 'IssuedWarehouseOrder', label: 'Verilen Depo Siparisi' },
+  { value: 'ReceivedWarehouseOrder', label: 'Alinan Depo Siparisi' },
   { value: 'StockCard', label: 'Stok Karti' },
   { value: 'WarehouseCard', label: 'Depo Karti' },
   { value: 'CustomerCard', label: 'Cari Karti' },
@@ -141,8 +143,12 @@ function resolveDocumentTypeLabel(value: string | null | undefined): string {
       return 'Firma Mal Kabul';
     case 'IssuedCompanyOrder':
       return 'Verilen Firma Siparisi';
+    case 'ReceivedCompanyOrder':
+      return 'Alinan Firma Siparisi';
     case 'IssuedWarehouseOrder':
       return 'Verilen Depo Siparisi';
+    case 'ReceivedWarehouseOrder':
+      return 'Alinan Depo Siparisi';
     case 'StockCard':
       return 'Stok Karti';
     case 'WarehouseCard':
@@ -184,6 +190,10 @@ function resolveStepLabel(value: string | null | undefined): string {
       return 'Belge Guncellendi';
     case 'DocumentDeleted':
       return 'Belge Silindi';
+    case 'AxataOrderSent':
+      return 'AXATA Siparisi Gonderildi';
+    case 'AxataDocumentImported':
+      return "AXATA Belgesi Mikro'ya Aktarildi";
     default:
       return value?.trim() || '-';
   }
@@ -224,6 +234,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   protected readonly selectedDetail = signal<DocumentFlowDetailDto | null>(null);
   protected readonly selectedId = signal<string | null>(null);
   protected readonly isLoading = signal(false);
+  protected readonly isLoadingMore = signal(false);
   protected readonly detailLoading = signal(false);
   protected readonly errorMessage = signal<string | null>(null);
   protected readonly detailErrorMessage = signal<string | null>(null);
@@ -253,7 +264,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   protected readonly totalCount = computed(
     () => this.listResponse()?.totalCount ?? this.rows().length
   );
-  protected readonly isResultLimited = computed(
+  protected readonly hasMore = computed(
     () => this.totalCount() > this.rows().length
   );
   protected readonly metrics = computed<readonly DocumentFlowMetric[]>(() => {
@@ -315,7 +326,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     }
   }
 
-  protected loadFlows(): void {
+  protected loadFlows(append = false): void {
     if (!this.canList()) {
       this.errorMessage.set('Belge akislarini goruntuleme yetkiniz bulunmuyor.');
       return;
@@ -327,17 +338,22 @@ export class BelgeAkisTakibiListComponent implements OnInit {
 
     const requestId = ++this.activeListRequestId;
 
-    this.isLoading.set(true);
+    if (append) {
+      this.isLoadingMore.set(true);
+    } else {
+      this.isLoading.set(true);
+    }
     this.errorMessage.set(null);
     this.detailErrorMessage.set(null);
 
     this.operasyonIslemleriService
-      .getDocumentFlows(this.buildRequest())
+      .getDocumentFlows(this.buildRequest(append ? this.rows().length : 0))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           if (requestId === this.activeListRequestId) {
             this.isLoading.set(false);
+            this.isLoadingMore.set(false);
           }
         })
       )
@@ -348,12 +364,16 @@ export class BelgeAkisTakibiListComponent implements OnInit {
           }
 
           const items = response?.items ?? [];
+          const visibleRows = append ? this.mergeRows(this.rows(), items) : items;
           this.listResponse.set(response);
-          this.rows.set(items);
+          this.rows.set(visibleRows);
           this.lastLoadedAt.set(new Date().toISOString());
 
           const selectedId = this.selectedId();
-          if (selectedId && !items.some((row: DocumentFlowListItemDto) => row.id === selectedId)) {
+          if (
+            selectedId &&
+            !visibleRows.some((row: DocumentFlowListItemDto) => row.id === selectedId)
+          ) {
             this.selectedId.set(null);
             this.selectedDetail.set(null);
           }
@@ -363,13 +383,23 @@ export class BelgeAkisTakibiListComponent implements OnInit {
             return;
           }
 
-          this.rows.set([]);
-          this.listResponse.set(null);
+          if (!append) {
+            this.rows.set([]);
+            this.listResponse.set(null);
+          }
           this.errorMessage.set(
             getErrorMessage(error, 'Belge akis kayitlari yuklenemedi.')
           );
         }
       });
+  }
+
+  protected loadMoreFlows(): void {
+    if (!this.hasMore() || this.isLoading() || this.isLoadingMore()) {
+      return;
+    }
+
+    this.loadFlows(true);
   }
 
   protected openDetail(row: DocumentFlowListItemDto): void {
@@ -543,7 +573,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     return true;
   }
 
-  private buildRequest(): DocumentFlowListHttpRequest {
+  private buildRequest(skip = 0): DocumentFlowListHttpRequest {
     return {
       warehouseNo: this.isAdminUser() ? this.toOptionalPositiveInteger(this.filters.warehouseNo) : null,
       startDate: this.filters.startDate || null,
@@ -551,8 +581,22 @@ export class BelgeAkisTakibiListComponent implements OnInit {
       documentType: this.filters.documentType || null,
       status: this.filters.status || null,
       search: this.filters.search.trim() || null,
-      take: DOCUMENT_FLOW_FETCH_LIMIT
+      skip,
+      take: DOCUMENT_FLOW_PAGE_SIZE
     };
+  }
+
+  private mergeRows(
+    currentRows: readonly DocumentFlowListItemDto[],
+    nextRows: readonly DocumentFlowListItemDto[]
+  ): readonly DocumentFlowListItemDto[] {
+    const rowsById = new Map(currentRows.map((row) => [row.id, row]));
+
+    for (const row of nextRows) {
+      rowsById.set(row.id, row);
+    }
+
+    return [...rowsById.values()];
   }
 
   private toOptionalPositiveInteger(value: string): number | null {

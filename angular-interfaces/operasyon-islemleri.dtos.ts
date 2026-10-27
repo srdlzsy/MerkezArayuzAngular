@@ -112,7 +112,9 @@ export type DocumentFlowType =
   | 'WarehouseReturn'
   | 'CompanyReceiving'
   | 'IssuedCompanyOrder'
+  | 'ReceivedCompanyOrder'
   | 'IssuedWarehouseOrder'
+  | 'ReceivedWarehouseOrder'
   | 'StockCard'
   | 'WarehouseCard'
   | 'CustomerCard'
@@ -133,7 +135,9 @@ export type DocumentFlowStep =
   | 'EDespatchSubmission'
   | 'WarehouseReceivingAccepted'
   | 'DocumentUpdated'
-  | 'DocumentDeleted';
+  | 'DocumentDeleted'
+  | 'AxataOrderSent'
+  | 'AxataDocumentImported';
 
 export interface DocumentFlowListHttpRequest {
   warehouseNo?: number | null;
@@ -142,6 +146,7 @@ export interface DocumentFlowListHttpRequest {
   documentType?: DocumentFlowType | string | null;
   status?: DocumentFlowStatus | string | null;
   search?: string | null;
+  skip?: number | null;
   take?: number | null;
 }
 
