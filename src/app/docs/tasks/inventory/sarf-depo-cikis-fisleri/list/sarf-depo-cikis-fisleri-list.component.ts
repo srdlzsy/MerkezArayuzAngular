@@ -21,6 +21,7 @@ import { SarfDepoCikisFisleriDetailComponent } from '../detail/sarf-depo-cikis-f
 export class SarfDepoCikisFisleriListComponent extends ApiTaskListPageBase<IFurpaStockReceiptListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['masraf-fisleri'];
   protected readonly tableColumns = SUBE_ICI_STOK_HAREKETI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = SarfDepoCikisFisleriDetailComponent;
   protected readonly createComponent = SarfDepoCikisFisleriCreateComponent;
   private readonly stokIslemleriService = inject(StokIslemleriService);

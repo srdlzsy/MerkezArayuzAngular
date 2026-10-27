@@ -30,6 +30,7 @@ export class SayimSonuclariListComponent extends ApiTaskListPageBase<
 > {
   protected readonly page: DocsContentPage = DOCS_PAGES['sayim-sonuclari'];
   protected readonly tableColumns = SAYIM_SONUCLARI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = SayimSonuclariDetailComponent;
   protected readonly createComponent = SayimSonuclariCreateComponent;
   private readonly sayimIslemleriService = inject(SayimIslemleriService);

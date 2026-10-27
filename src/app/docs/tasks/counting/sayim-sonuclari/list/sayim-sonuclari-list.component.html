@@ -69,6 +69,7 @@
       *ngIf="!isLoading() && rows().length"
       [rows]="rows()"
       [columns]="tableColumns"
+      [fitToWidth]="fitTableToWidth"
       [filterPlaceholder]="'Evrak no, sayan veya tarih ara'"
       [printTitle]="current.title"
       [printSubtitle]="selectedWarehouseLabel() + ' / ' + startDate() + ' - ' + endDate()"

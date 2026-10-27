@@ -21,6 +21,7 @@ import { FireDepoCikisFisleriDetailComponent } from '../detail/fire-depo-cikis-f
 export class FireDepoCikisFisleriListComponent extends ApiTaskListPageBase<IFurpaStockReceiptListItemApiDto> {
   protected readonly page: DocsContentPage = DOCS_PAGES['zayiat-fisleri'];
   protected readonly tableColumns = SUBE_ICI_STOK_HAREKETI_LIST_COLUMNS;
+  protected override readonly fitTableToWidth = true;
   protected readonly detailComponent = FireDepoCikisFisleriDetailComponent;
   protected readonly createComponent = FireDepoCikisFisleriCreateComponent;
   private readonly stokIslemleriService = inject(StokIslemleriService);

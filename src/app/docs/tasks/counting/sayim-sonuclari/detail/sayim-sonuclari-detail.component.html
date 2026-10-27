@@ -101,7 +101,7 @@
             </thead>
             <tbody>
               <tr *ngFor="let kalem of kalemler(); let i = index; trackBy: trackByKalem">
-                <td class="row-number">{{ kalem.rowNo || i + 1 }}</td>
+                <td class="row-number">{{ i + 1 }}</td>
                 <td class="stock-code">{{ kalem.stockCode || '-' }}</td>
                 <td class="stock-name">{{ kalem.stockName || '-' }}</td>
                 <td class="barcode">{{ kalem.barcode || '-' }}</td>
