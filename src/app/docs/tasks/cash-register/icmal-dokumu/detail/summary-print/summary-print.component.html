@@ -11,9 +11,9 @@
         <span>Kasa Mali Bellek</span>
         <strong>{{ model().cashRegisterDetail?.cashRegisterNo || '-' }}</strong>
       </div>
-      <div>
-        <span>Icmal Tarihi</span>
-        <strong>{{ formattedSummaryDate() }}</strong>
+        <div>
+        <span>Duzenleyen</span>
+        <strong>{{ model().managerName || '-' }}</strong>
       </div>
       <div>
         <span>Evrak</span>
@@ -27,10 +27,11 @@
         <span>Kasiyer</span>
         <strong>{{ model().cashierName || '-' }}</strong>
       </div>
-      <div>
-        <span>Duzenleyen</span>
-        <strong>{{ model().managerName || '-' }}</strong>
+         <div>
+        <span>Icmal Tarihi</span>
+        <strong>{{ formattedSummaryDate() }}</strong>
       </div>
+    
     </div>
   </header>
 
