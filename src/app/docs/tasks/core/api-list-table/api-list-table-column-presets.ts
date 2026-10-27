@@ -55,19 +55,18 @@ const formatAmount = (value: number | null | undefined): string => {
   return Number.isFinite(numericValue) ? MONEY_FORMATTER.format(numericValue) : '-';
 };
 
-const formatDocumentReference = (
+const formatDocumentKey = (documentSerie: string, documentOrderNo: number): string =>
+  joinText([documentSerie, documentOrderNo], '-');
+
+const formatExternalDocumentNumber = (
   documentSerie: string,
   documentOrderNo: number,
   documentNo?: string | null
 ): string => {
-  const reference = joinText([documentSerie, documentOrderNo], '-');
-  const documentNumber = toText(documentNo);
+  const reference = formatDocumentKey(documentSerie, documentOrderNo);
+  const externalDocumentNo = toText(documentNo);
 
-  if (!documentNumber || documentNumber === reference) {
-    return reference;
-  }
-
-  return `${reference} / ${documentNumber}`;
+  return externalDocumentNo && externalDocumentNo !== reference ? externalDocumentNo : '-';
 };
 
 export const sortDocumentsWithEmptyNumberFirst = <T extends { documentNo?: string | null }>(
@@ -108,7 +107,7 @@ const formatWarehouseFlow = (
 const formatCompanyOrderCustomer = (row: IFurpaCompanyOrderListItemApiDto): string => {
   const customerName = row.customerDisplayName || joinText([row.customerName, row.customerTitle], ' ');
 
-  return joinText([row.customerCode, customerName, row.customerAddress]);
+  return joinText([row.customerCode, customerName]);
 };
 
 const formatCompanyOrderQuantity = (row: IFurpaCompanyOrderListItemApiDto): string =>
@@ -206,9 +205,16 @@ export const FIRMA_SIPARISI_LIST_COLUMNS = [
   {
     key: 'documentReference',
     label: 'Evrak',
-    tableWidth: '150px',
+    tableWidth: '124px',
     resolveValue: (row: IFurpaCompanyOrderListItemApiDto) =>
-      formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNumber)
+      formatDocumentKey(row.documentSerie, row.documentOrderNo)
+  },
+  {
+    key: 'documentNumber',
+    label: 'Belge No',
+    tableWidth: '164px',
+    resolveValue: (row: IFurpaCompanyOrderListItemApiDto) =>
+      formatExternalDocumentNumber(row.documentSerie, row.documentOrderNo, row.documentNumber)
   },
   {
     key: 'customerSummary',
@@ -237,9 +243,16 @@ export const DEPOLAR_ARASI_SIPARIS_LIST_COLUMNS = [
   {
     key: 'documentReference',
     label: 'Evrak',
-    tableWidth: '150px',
+    tableWidth: '124px',
     resolveValue: (row: IFurpaWarehouseOrderListItemApiDto) =>
-      formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNumber)
+      formatDocumentKey(row.documentSerie, row.documentOrderNo)
+  },
+  {
+    key: 'documentNumber',
+    label: 'Belge No',
+    tableWidth: '164px',
+    resolveValue: (row: IFurpaWarehouseOrderListItemApiDto) =>
+      formatExternalDocumentNumber(row.documentSerie, row.documentOrderNo, row.documentNumber)
   },
   {
     key: 'warehouseFlow',
@@ -260,10 +273,17 @@ export const FIRMA_STOK_HAREKETI_LIST_COLUMNS = [
   { key: 'documentDate', label: 'Belge Tarihi', type: 'date-only', tableWidth: '104px' },
   {
     key: 'documentReference',
-    label: 'Evrak / Belge No',
-    tableWidth: '190px',
+    label: 'Evrak',
+    tableWidth: '124px',
     resolveValue: (row: IFurpaCompanyMovementListItemApiDto) =>
-      formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo)
+      formatDocumentKey(row.documentSerie, row.documentOrderNo)
+  },
+  {
+    key: 'documentNo',
+    label: 'Belge No',
+    tableWidth: '176px',
+    resolveValue: (row: IFurpaCompanyMovementListItemApiDto) =>
+      formatExternalDocumentNumber(row.documentSerie, row.documentOrderNo, row.documentNo)
   },
   {
     key: 'customerSummary',
@@ -375,10 +395,17 @@ export const buildWarehouseMovementListColumns = (
     },
     {
       key: 'documentReference',
-      label: 'Evrak / Belge No',
-      tableWidth: '190px',
+      label: 'Evrak',
+      tableWidth: '124px',
       resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
-        formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo)
+        formatDocumentKey(row.documentSerie, row.documentOrderNo)
+    },
+    {
+      key: 'documentNo',
+      label: 'Belge No',
+      tableWidth: '176px',
+      resolveValue: (row: IFurpaWarehouseShippingListItemApiDto) =>
+        formatExternalDocumentNumber(row.documentSerie, row.documentOrderNo, row.documentNo)
     },
     {
       key: 'returnType',
@@ -434,13 +461,24 @@ export const MAL_KABUL_FARKLARI_LIST_COLUMNS = [
   },
   {
     key: 'documentReference',
-    label: 'Evrak / Satir',
-    tableWidth: '190px',
+    label: 'Evrak',
+    tableWidth: '124px',
     resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
-      joinText([
-        formatDocumentReference(row.documentSerie, row.documentOrderNo, row.documentNo),
-        `Satir ${formatDisplayLineNumber(row.lineNo)}`
-      ])
+      formatDocumentKey(row.documentSerie, row.documentOrderNo)
+  },
+  {
+    key: 'documentNo',
+    label: 'Belge No',
+    tableWidth: '176px',
+    resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
+      formatExternalDocumentNumber(row.documentSerie, row.documentOrderNo, row.documentNo)
+  },
+  {
+    key: 'lineNo',
+    label: 'Satir',
+    tableWidth: '72px',
+    resolveValue: (row: IFurpaGoodsAcceptanceDifferenceApiDto) =>
+      formatDisplayLineNumber(row.lineNo)
   },
   {
     key: 'returnType',

@@ -284,19 +284,73 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
 }
 
 body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel.docs-task-detail-dialog {
+  --operation-compact-caption-size: 0.76rem;
+  --operation-compact-control-font-size: 0.86rem;
+  --operation-compact-body-font-size: 0.86rem;
+
   .cdk-dialog-container {
     height: auto;
     max-height: calc(100dvh - 2rem);
+    overflow: hidden;
+    background: #fff;
   }
 
   .dialog-page {
     height: auto;
     max-height: calc(100dvh - 2rem);
+    grid-template-rows: auto minmax(0, auto);
+    align-content: start;
     background: #fff;
   }
 
   .dialog-body {
+    min-height: 0;
     background: #fff;
+  }
+
+  .summary-grid {
+    background: transparent;
+  }
+
+  .summary-card,
+  .task-block {
+    background: #fff;
+  }
+
+  .table-wrap,
+  table,
+  tbody {
+    background: #fff;
+  }
+
+  tbody tr {
+    background: #fff;
+  }
+
+  tbody tr:nth-child(even) {
+    background: #fbfcfe;
+  }
+
+  tbody tr:hover {
+    background: #eef7f6;
+  }
+
+  tbody td {
+    background: inherit;
+  }
+
+  thead,
+  thead tr,
+  th {
+    background: #eef3f8;
+  }
+
+  th {
+    min-width: max-content;
+    white-space: nowrap;
+    overflow-wrap: normal;
+    word-break: keep-all;
+    border-bottom: 2px solid #cbd5e1;
   }
 }
 

@@ -44,7 +44,6 @@ interface DocumentFlowFilters {
   documentType: string;
   status: string;
   search: string;
-  take: number;
 }
 
 interface DocumentFlowMetric {
@@ -56,6 +55,7 @@ interface DocumentFlowMetric {
 const TASK_ID = 'belge-akis-takibi';
 const PERMISSION_PREFIX = 'operasyon-islemleri.belge-akis-takibi';
 const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
+const DOCUMENT_FLOW_FETCH_LIMIT = 500;
 
 const DOCUMENT_TYPE_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: '', label: 'Tum Belge Tipleri' },
@@ -216,8 +216,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     endDate: this.getToday(),
     documentType: '',
     status: '',
-    search: '',
-    take: 100
+    search: ''
   };
 
   protected readonly listResponse = signal<DocumentFlowListResponse | null>(null);
@@ -253,6 +252,9 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   );
   protected readonly totalCount = computed(
     () => this.listResponse()?.totalCount ?? this.rows().length
+  );
+  protected readonly isResultLimited = computed(
+    () => this.totalCount() > this.rows().length
   );
   protected readonly metrics = computed<readonly DocumentFlowMetric[]>(() => {
     const rows = this.rows();
@@ -433,7 +435,6 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     this.filters.documentType = '';
     this.filters.status = '';
     this.filters.search = '';
-    this.filters.take = 100;
     this.loadFlows();
   }
 
@@ -529,12 +530,6 @@ export class BelgeAkisTakibiListComponent implements OnInit {
       return false;
     }
 
-    if (!Number.isFinite(Number(this.filters.take)) || this.filters.take < 1 || this.filters.take > 500) {
-      this.rows.set([]);
-      this.errorMessage.set('Kayit limiti 1 ile 500 arasinda olmalidir.');
-      return false;
-    }
-
     if (this.isAdminUser() && this.filters.warehouseNo.trim()) {
       const warehouseNo = Number(this.filters.warehouseNo);
 
@@ -556,7 +551,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
       documentType: this.filters.documentType || null,
       status: this.filters.status || null,
       search: this.filters.search.trim() || null,
-      take: Number(this.filters.take) || 100
+      take: DOCUMENT_FLOW_FETCH_LIMIT
     };
   }
 

@@ -253,6 +253,52 @@ export class ApiListTableComponent<Row extends object = object> {
     return this.sortDirection() === 'asc' ? '^' : 'v';
   }
 
+  protected getSortIcon(key: string): string {
+    if (this.sortKey() !== key || !this.sortDirection()) {
+      return 'fa-sort';
+    }
+
+    return this.sortDirection() === 'asc' ? 'fa-sort-up' : 'fa-sort-down';
+  }
+
+  protected getActionIcon(label: string, key = ''): string {
+    const value = `${key} ${label}`.toLocaleLowerCase('tr-TR');
+
+    if (value.includes('delete') || value.includes('sil')) {
+      return 'fa-trash-can';
+    }
+
+    if (value.includes('e-irsaliye')) {
+      return 'fa-file-invoice';
+    }
+
+    if (value.includes('yazdir') || value.includes('yazdır')) {
+      return 'fa-print';
+    }
+
+    if (value.includes('duzenle') || value.includes('düzenle')) {
+      return 'fa-pen-to-square';
+    }
+
+    if (value.includes('pdf')) {
+      return 'fa-file-pdf';
+    }
+
+    if (value.includes('gonder') || value.includes('gönder')) {
+      return 'fa-paper-plane';
+    }
+
+    if (value.includes('timeline') || value.includes('akis') || value.includes('akış')) {
+      return 'fa-timeline';
+    }
+
+    if (value.includes('performans')) {
+      return 'fa-chart-line';
+    }
+
+    return 'fa-eye';
+  }
+
   protected getAriaSort(key: string): 'ascending' | 'descending' | 'none' {
     if (this.sortKey() !== key || !this.sortDirection()) {
       return 'none';
@@ -416,6 +462,8 @@ export class ApiListTableComponent<Row extends object = object> {
 
   protected getRowActionToneClass(tone: ApiListTableRowActionTone | undefined): string {
     switch (tone) {
+      case 'danger':
+        return 'row-action-danger';
       case 'neutral':
         return 'row-action-neutral';
       case 'success':

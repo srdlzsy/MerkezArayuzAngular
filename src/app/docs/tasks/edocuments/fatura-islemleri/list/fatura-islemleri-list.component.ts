@@ -326,7 +326,7 @@ export class FaturaIslemleriListComponent {
   protected readonly viewingCompactLayout = signal(false);
   protected readonly viewingTightCompactLayout = signal(false);
   protected readonly viewingVirtualItemSize = computed(() =>
-    this.viewingTightCompactLayout() ? 58 : this.viewingCompactLayout() ? 58 : 58
+    this.viewingTightCompactLayout() ? 62 : this.viewingCompactLayout() ? 62 : 62
   );
   protected readonly viewingVirtualWindowSize = 70;
 

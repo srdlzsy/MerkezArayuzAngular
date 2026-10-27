@@ -124,18 +124,6 @@
           />
         </label>
 
-        <label class="field limit-field">
-          <span>Limit</span>
-          <input
-            type="number"
-            min="1"
-            max="500"
-            [(ngModel)]="filters.take"
-            [ngModelOptions]="{ standalone: true }"
-            (keyup.enter)="loadFlows()"
-          />
-        </label>
-
         <div class="filter-actions">
           <button type="button" class="ghost-action" (click)="clearFilters()" [disabled]="isLoading()">
             <i class="fa-solid fa-eraser"></i>
@@ -165,9 +153,14 @@
     </article>
 
     <div class="table-context" *ngIf="rows().length">
-      <span class="record-count compact-count">{{ totalCount() }} kayit</span>
+      <span class="record-count compact-count">
+        {{ isResultLimited() ? rows().length + ' / ' + totalCount() : totalCount() }} kayit
+      </span>
       <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
       <span>{{ isAdminUser() ? 'Tum depo kapsami' : 'Kullanici deposu' }}</span>
+      <span class="result-limit-note" *ngIf="isResultLimited()">
+        Son 500 kayit gosteriliyor. Daha eski kayitlar icin tarih veya arama filtresini daraltin.
+      </span>
     </div>
 
     <section class="table-shell">

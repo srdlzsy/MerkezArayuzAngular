@@ -17,6 +17,7 @@
         class="ghost-action"
         (click)="clearFilter()"
       >
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         Filtreyi Temizle
       </button>
 
@@ -31,7 +32,13 @@
       <label class="control-field control-field-size">
         <span>Sayfa Boyutu</span>
         <select [value]="pageSize()" (change)="updatePageSize($any($event.target).value ?? pageSize())">
-          <option *ngFor="let size of pageSizeOptions" [value]="size">{{ size }} / sayfa</option>
+          <option
+            *ngFor="let size of pageSizeOptions"
+            [value]="size"
+            [selected]="size === pageSize()"
+          >
+            {{ size }} / sayfa
+          </option>
         </select>
       </label>
 
@@ -42,6 +49,11 @@
         [disabled]="filteredCount() === 0 || isPrinting()"
         (click)="printList()"
       >
+        <i
+          class="fa-solid"
+          [ngClass]="isPrinting() ? 'fa-circle-notch fa-spin' : 'fa-print'"
+          aria-hidden="true"
+        ></i>
         {{ isPrinting() ? 'Hazirlaniyor...' : 'Yazdir' }}
       </button>
 
@@ -117,7 +129,11 @@
                 (click)="toggleSort(column.key)"
               >
                 <span class="sort-label">{{ column.label }}</span>
-                <span class="sort-indicator">{{ getSortIndicator(column.key) }}</span>
+                <i
+                  class="fa-solid sort-indicator"
+                  [ngClass]="getSortIcon(column.key)"
+                  aria-hidden="true"
+                ></i>
               </button>
             </th>
             <th
@@ -178,9 +194,11 @@
                   *ngIf="showRowAction()"
                   type="button"
                   class="row-action row-action-primary"
+                  [attr.title]="actionLabel()"
+                  [attr.aria-label]="actionLabel()"
                   (click)="rowAction.emit(row)"
                 >
-                  {{ actionLabel() }}
+                  <i class="fa-solid" [ngClass]="getActionIcon(actionLabel())" aria-hidden="true"></i>
                 </button>
                 <button
                   *ngFor="let action of getVisibleAdditionalActions(row); trackBy: trackByAdditionalAction"
@@ -188,9 +206,11 @@
                   class="row-action"
                   [class]="getRowActionToneClass(action.tone)"
                   [disabled]="isAdditionalActionDisabled(action, row)"
+                  [attr.title]="action.label"
+                  [attr.aria-label]="action.label"
                   (click)="emitAdditionalRowAction(action.key, row)"
                 >
-                  {{ action.label }}
+                  <i class="fa-solid" [ngClass]="getActionIcon(action.label, action.key)" aria-hidden="true"></i>
                 </button>
               </div>
             </td>
@@ -206,6 +226,7 @@
 
       <div class="pager">
         <button type="button" class="pager-button" (click)="goToPage(1)" [disabled]="currentPage() <= 1">
+          <i class="fa-solid fa-angles-left" aria-hidden="true"></i>
           Ilk
         </button>
         <button
@@ -214,6 +235,7 @@
           (click)="goToPage(currentPage() - 1)"
           [disabled]="currentPage() <= 1"
         >
+          <i class="fa-solid fa-chevron-left" aria-hidden="true"></i>
           Geri
         </button>
         <span class="pager-state">Sayfa {{ currentPage() }} / {{ totalPages() }}</span>
@@ -224,6 +246,7 @@
           [disabled]="currentPage() >= totalPages()"
         >
           Ileri
+          <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
         </button>
         <button
           type="button"
@@ -232,6 +255,7 @@
           [disabled]="currentPage() >= totalPages()"
         >
           Son
+          <i class="fa-solid fa-angles-right" aria-hidden="true"></i>
         </button>
       </div>
     </footer>

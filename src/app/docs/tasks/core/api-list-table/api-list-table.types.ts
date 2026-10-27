@@ -17,7 +17,7 @@ export interface ApiListTableColumn<Row extends object = object> {
   printAlign?: 'left' | 'center' | 'right';
 }
 
-export type ApiListTableRowActionTone = 'primary' | 'success' | 'neutral';
+export type ApiListTableRowActionTone = 'primary' | 'success' | 'neutral' | 'danger';
 
 export interface ApiListTableRowAction<Row extends object = object> {
   key: string;

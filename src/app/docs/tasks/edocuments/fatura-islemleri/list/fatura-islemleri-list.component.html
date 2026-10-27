@@ -878,6 +878,7 @@
                   <col class="sending-col-date" />
                   <col class="sending-col-customer" />
                   <col class="sending-col-scenario" />
+                  <col class="sending-col-description" />
                   <col class="sending-col-amount" />
                   <col class="sending-col-status" />
                   <col class="sending-col-actions" />
@@ -905,6 +906,7 @@
                         Senaryo / Profil{{ getSendingSortIndicator('scenario') }}
                       </button>
                     </th>
+                    <th>Aciklama</th>
                     <th class="amount-column">
                       <button type="button" class="sort-header sort-header-right" (click)="changeSendingSort('payableTotal')">
                         Tutar{{ getSendingSortIndicator('payableTotal') }}
@@ -967,6 +969,9 @@
                           {{ item.returnInvoiceDate | date: 'dd.MM.yyyy' }}
                         </small>
                       </ng-container>
+                    </td>
+                    <td class="sending-description-cell" [title]="item.description || item.sourceLineSummary || '-'">
+                      {{ item.description || item.sourceLineSummary || '-' }}
                     </td>
                     <td class="amount-column">
                       <strong>{{ getSendingPayableTotal(item) | number: '1.2-2' }} TL</strong>
