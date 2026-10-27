@@ -34,6 +34,7 @@
       type="button"
       class="result-card"
       *ngFor="let item of findProducts"
+      [disabled]="isResolvingProduct"
       (click)="selectProduct(item)"
     >
       <span class="result-main">
@@ -49,6 +50,6 @@
   </div>
 
   <footer class="dialog-foot">
-    <button type="button" class="secondary-button" (click)="closeDialog()">Vazgec</button>
+    <button type="button" class="secondary-button" [disabled]="isResolvingProduct" (click)="closeDialog()">Vazgec</button>
   </footer>
 </section>

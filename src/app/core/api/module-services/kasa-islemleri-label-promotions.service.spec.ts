@@ -51,4 +51,28 @@ describe('KasaIslemleriService label product sources', () => {
     expect(products[0].oldPrice).toBe(0);
     expect(products[0].promotion?.campaignText).toBe('2 al 1 ode');
   });
+
+  it('gets one manually selected product with label pricing details', () => {
+    let product: IEtiketBasimProduct | undefined;
+    service.getEtiketUrunDetayi('016222', 120).subscribe((result: IEtiketBasimProduct) => {
+      product = result;
+    });
+
+    const request = httpTesting.expectOne((call) =>
+      call.url === 'https://api.test/api/kasa-islemleri/etiket-belgeleri/urun-detayi'
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('warehouseNo')).toBe('120');
+    expect(request.request.params.get('productCode')).toBe('016222');
+    request.flush({
+      productCode: '016222',
+      productName: 'Kampanyali Urun',
+      oldPrice: 120,
+      price: 100,
+      promotion: { isActive: true, effectiveUnitPrice: 80 }
+    });
+
+    expect(product?.oldPrice).toBe(120);
+    expect(product?.promotion?.effectiveUnitPrice).toBe(80);
+  });
 });

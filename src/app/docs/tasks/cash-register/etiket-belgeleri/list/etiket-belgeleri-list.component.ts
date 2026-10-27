@@ -515,7 +515,7 @@ export class EtiketBelgeleriListComponent {
           return;
         }
 
-        const productWithRowKey = this.withProductRowKey(product);
+        const productWithRowKey = this.withProductRowKey(this.withApiPromotion(product));
 
         this.products.update((items) => [...items, productWithRowKey]);
         this.setProductHidden(this.getProductRowKey(productWithRowKey), false);

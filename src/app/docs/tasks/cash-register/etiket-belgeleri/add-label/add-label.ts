@@ -7,6 +7,7 @@ import { catchError, finalize, of } from 'rxjs';
 import type { IEtiketBasimProduct, ProductLookupItemDto } from '@interfaces';
 
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
+import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 
 @Component({
@@ -19,12 +20,14 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 export class AddLabel implements OnDestroy {
   protected searchText = '';
   protected isSearching = false;
+  protected isResolvingProduct = false;
   protected feedbackMessage = '';
   protected findProducts: ProductLookupItemDto[] = [];
 
   private readonly destroyRef = inject(DestroyRef);
   private readonly dialogRef = inject(DialogRef<IEtiketBasimProduct | undefined>);
   private readonly aramaService = inject(AramaService);
+  private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly authService = inject(AuthService);
   private searchTimer: number | undefined;
   private searchRequestId = 0;
@@ -92,7 +95,38 @@ export class AddLabel implements OnDestroy {
   }
 
   protected selectProduct(product: ProductLookupItemDto): void {
-    this.dialogRef.close(this.mapLookupToLabelProduct(product));
+    if (this.isResolvingProduct) {
+      return;
+    }
+
+    const productCode = product.stockCode?.trim();
+    const warehouseNo = this.authService.currentUser()?.depoNo ?? undefined;
+
+    if (!productCode) {
+      this.feedbackMessage = 'Secilen urunun stok kodu bulunamadi.';
+      return;
+    }
+
+    this.isResolvingProduct = true;
+    this.feedbackMessage = 'Fiyat ve indirim bilgisi kontrol ediliyor.';
+
+    this.kasaIslemleriService
+      .getEtiketUrunDetayi(productCode, warehouseNo)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          this.isResolvingProduct = false;
+        })
+      )
+      .subscribe({
+        next: (labelProduct: IEtiketBasimProduct) => {
+          this.dialogRef.close(labelProduct);
+        },
+        error: () => {
+          this.feedbackMessage =
+            'Urunun guncel fiyat ve indirim bilgisi alinamadi. Lutfen tekrar deneyin.';
+        }
+      });
   }
 
   protected closeDialog(): void {
@@ -106,42 +140,4 @@ export class AddLabel implements OnDestroy {
     }
   }
 
-  private mapLookupToLabelProduct(product: ProductLookupItemDto): IEtiketBasimProduct {
-    return {
-      package: '',
-      packageFactor: product.secondaryUnitMultiplier > 1 ? String(product.secondaryUnitMultiplier) : '',
-      lastUpdateDate: '',
-      barcodeContent: product.barcode || '',
-      bulkSaleTaxRate: 0,
-      retailSaleTaxRate: 0,
-      productCode: product.stockCode || '',
-      productName: product.stockName || product.stockCode || product.barcode || 'Urun',
-      barcode: product.barcode || '',
-      oldPrice: product.price || 0,
-      price: product.price || 0,
-      priceChangeDate: '',
-      supplierCode: '',
-      isClosedToSale: product.isSalesBlocked ? 1 : 0,
-      isClosedToOrder: product.isOrderBlocked ? 1 : 0,
-      isClosedToReceiving: product.isGoodsAcceptanceBlocked ? 1 : 0,
-      isPassive: false,
-      unitName: product.unitName || '',
-      unitName2: product.secondaryUnitName || '',
-      typeCode: '',
-      isDomestic: 1,
-      origin: '',
-      unitPriceFactor: product.unitMultiplier || 1,
-      alternativeUnitName: product.secondaryUnitName || product.unitName || '',
-      pluNo: 0,
-      sectorCode: '',
-      shelfLife: 0,
-      type: '',
-      orderGuid: null,
-      canBeCalled: true,
-      quantity: 0,
-      deliveredQuantity: 0,
-      documentOrderNo: 0,
-      categoryCode: ''
-    };
-  }
 }

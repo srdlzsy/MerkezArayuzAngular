@@ -224,6 +224,19 @@ export class KasaIslemleriService extends BaseApiService {
     return this.get<IFurpaLabelDocumentProductApiDto[]>(`kasa-islemleri/etiket-belgeleri/${docId}`);
   }
 
+  getEtiketUrunDetayi(
+    productCode: string,
+    warehouseNo?: number | null
+  ): Observable<IEtiketBasimProduct> {
+    return this.getWithQuery<IFurpaLabelDocumentProductApiDto>(
+      'kasa-islemleri/etiket-belgeleri/urun-detayi',
+      {
+        productCode,
+        warehouseNo: warehouseNo ?? undefined
+      }
+    );
+  }
+
   getEklenenSonOnEtiketBelgesi(warehouseNo?: number | null): Observable<ILabelDocument[]> {
     return this.getWithQuery<IFurpaLabelDocumentListItemApiDto[]>('kasa-islemleri/etiket-belgeleri/son', {
       warehouseNo: warehouseNo ?? undefined,

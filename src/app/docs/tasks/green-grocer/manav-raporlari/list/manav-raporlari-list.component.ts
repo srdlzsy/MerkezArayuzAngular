@@ -229,8 +229,9 @@ export class ManavRaporlariListComponent {
     this.productItems()
       .map((item) => this.mapProductRow(item))
       .sort((left, right) => {
-        if (right.quantity !== left.quantity) {
-          return right.quantity - left.quantity;
+        const typeOrder = this.getTypeSortOrder(left.typeCode) - this.getTypeSortOrder(right.typeCode);
+        if (typeOrder !== 0) {
+          return typeOrder;
         }
 
         return left.productName.localeCompare(right.productName, 'tr-TR');
@@ -791,8 +792,8 @@ export class ManavRaporlariListComponent {
       groups.set(typeCode, current);
     }
 
-    return Array.from(groups.values()).sort((left, right) =>
-      left.typeCode.localeCompare(right.typeCode, 'tr-TR', { numeric: true }),
+    return Array.from(groups.values()).sort(
+      (left, right) => this.getTypeSortOrder(left.typeCode) - this.getTypeSortOrder(right.typeCode),
     );
   }
 
@@ -827,6 +828,13 @@ export class ManavRaporlariListComponent {
 
       group.canDelete = group.canDelete && item.canDelete !== false;
       groups.set(key, group);
+    }
+
+    for (const group of groups.values()) {
+      group.items.sort((left, right) => this.compareTypeAndProduct(left, right));
+      group.typeLabels.sort((left, right) =>
+        this.getTypeSortOrderByLabel(left) - this.getTypeSortOrderByLabel(right),
+      );
     }
 
     return Array.from(groups.values()).sort((left, right) => {
@@ -928,11 +936,12 @@ export class ManavRaporlariListComponent {
     items: readonly IFurpaGreenGrocerSummaryReportItemApiDto[],
   ): IFurpaGreenGrocerSummaryReportItemApiDto[] {
     return [...items].sort((left, right) => {
-      if (left.typeCode !== right.typeCode) {
-        return left.typeCode.localeCompare(right.typeCode, 'tr-TR');
+      const typeOrder = this.getTypeSortOrder(left.typeCode) - this.getTypeSortOrder(right.typeCode);
+      if (typeOrder !== 0) {
+        return typeOrder;
       }
 
-      return left.productName.localeCompare(right.productName, 'tr-TR');
+      return this.getProductName(left).localeCompare(this.getProductName(right), 'tr-TR');
     });
   }
 
@@ -940,14 +949,12 @@ export class ManavRaporlariListComponent {
     items: readonly IFurpaGreenGrocerProductReportItemApiDto[],
   ): IFurpaGreenGrocerProductReportItemApiDto[] {
     return [...items].sort((left, right) => {
-      const rightQuantity = this.toSafeNumber(right.totalQuantity ?? right.quantity);
-      const leftQuantity = this.toSafeNumber(left.totalQuantity ?? left.quantity);
-
-      if (rightQuantity !== leftQuantity) {
-        return rightQuantity - leftQuantity;
+      const typeOrder = this.getTypeSortOrder(left.typeCode) - this.getTypeSortOrder(right.typeCode);
+      if (typeOrder !== 0) {
+        return typeOrder;
       }
 
-      return left.productName.localeCompare(right.productName, 'tr-TR');
+      return this.getProductName(left).localeCompare(this.getProductName(right), 'tr-TR');
     });
   }
 
@@ -969,8 +976,53 @@ export class ManavRaporlariListComponent {
         return leftDocument.localeCompare(rightDocument, 'tr-TR');
       }
 
-      return left.productName.localeCompare(right.productName, 'tr-TR');
+      return this.compareTypeAndProduct(left, right);
     });
+  }
+
+  private compareTypeAndProduct(
+    left: IFurpaGreenGrocerBranchReportItemApiDto,
+    right: IFurpaGreenGrocerBranchReportItemApiDto,
+  ): number {
+    const typeOrder = this.getTypeSortOrder(left.typeCode) - this.getTypeSortOrder(right.typeCode);
+    if (typeOrder !== 0) {
+      return typeOrder;
+    }
+
+    return this.getProductName(left).localeCompare(this.getProductName(right), 'tr-TR');
+  }
+
+  private getTypeSortOrder(typeCode: string | null | undefined): number {
+    switch ((typeCode ?? '').trim()) {
+      case '10':
+        return 0;
+      case '11':
+        return 1;
+      case '12':
+        return 2;
+      case '23':
+        return 3;
+      default:
+        return 4;
+    }
+  }
+
+  private getTypeSortOrderByLabel(label: string): number {
+    const normalized = label.trim().toLocaleLowerCase('tr-TR');
+    if (normalized === 'meyve') {
+      return 0;
+    }
+    if (normalized === 'sebze') {
+      return 1;
+    }
+    if (normalized === 'yesillik' || normalized === 'yeşillik') {
+      return 2;
+    }
+    if (normalized === 'manav sarf') {
+      return 3;
+    }
+
+    return 4;
   }
 
   private sortLazyBranches(
