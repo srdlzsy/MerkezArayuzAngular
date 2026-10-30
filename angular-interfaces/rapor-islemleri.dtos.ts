@@ -278,6 +278,28 @@ export interface ProfitabilityReportHttpRequest {
   take?: number | null;
 }
 
+export interface CategorySalesAnalysisHttpRequest {
+  warehouseNo?: number | null;
+  startDate: string;
+  endDate: string;
+  categoryCode?: string | null;
+  take?: number | null;
+}
+
+export interface BranchPriceDifferenceHttpRequest {
+  warehouseNo?: number | null;
+  search?: string | null;
+  take?: number | null;
+}
+
+export interface ManufacturerSeasonalSalesHttpRequest {
+  warehouseNo?: number | null;
+  pastYear: number;
+  presentYear: number;
+  manufacturerCode?: string | null;
+  take?: number | null;
+}
+
 export interface CountingComparisonReportHttpRequest {
   warehouseNo?: number | null;
   countDate: string;
@@ -486,12 +508,47 @@ export interface NotSoldProductReportItemDto {
 export interface ProfitabilityReportItemDto {
   groupCode?: string | null;
   groupName?: string | null;
+  salesQuantity?: number | null;
+  salesAmount?: number | null;
+  costAmount?: number | null;
+  profitAmount?: number | null;
+  profitPercent?: number | null;
+}
+
+export interface CategorySalesAnalysisItemDto {
+  stockCode?: string | null;
+  stockName?: string | null;
+  categoryCode?: string | null;
+  categoryName?: string | null;
+  supplierCode?: string | null;
+  manufacturerCode?: string | null;
+  manufacturerName?: string | null;
   quantity?: number | null;
-  netSalesAmount?: number | null;
-  grossSalesAmount?: number | null;
-  estimatedCostAmount?: number | null;
-  marginAmount?: number | null;
-  marginPercent?: number | null;
+  totalAmount?: number | null;
+}
+
+export interface BranchPriceDifferenceItemDto {
+  warehouseNo?: number | null;
+  warehouseName?: string | null;
+  stockCode?: string | null;
+  stockName?: string | null;
+  branchPrice?: number | null;
+  mainWarehousePrice?: number | null;
+  differenceAmount?: number | null;
+  differencePercent?: number | null;
+}
+
+export interface ManufacturerSeasonalSalesItemDto {
+  stockCode?: string | null;
+  stockName?: string | null;
+  manufacturerCode?: string | null;
+  manufacturerName?: string | null;
+  month?: number | null;
+  monthName?: string | null;
+  pastAmount?: number | null;
+  presentAmount?: number | null;
+  differenceAmount?: number | null;
+  changePercent?: number | null;
 }
 
 export interface CountingComparisonReportItemDto {

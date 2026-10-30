@@ -11,12 +11,18 @@ import {
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, finalize, map } from 'rxjs';
 import type {
+  BranchPriceDifferenceHttpRequest,
+  BranchPriceDifferenceItemDto,
   BranchSalesReportItemDto,
+  CategorySalesAnalysisHttpRequest,
+  CategorySalesAnalysisItemDto,
   CategoryStockOnHandHttpRequest,
   CountingComparisonReportHttpRequest,
   CountingComparisonReportItemDto,
   FilteredDateRangeReportHttpRequest,
   MovementInOutComparisonDto,
+  ManufacturerSeasonalSalesHttpRequest,
+  ManufacturerSeasonalSalesItemDto,
   NotSoldProductReportHttpRequest,
   NotSoldProductReportItemDto,
   ProducerStockOnHandHttpRequest,
@@ -80,9 +86,12 @@ type StockReportKey =
   | 'iadeler-subeler'
   | 'satmayan-urunler'
   | 'karlilik'
+  | 'kategori-satis-analizi'
+  | 'sube-fiyat-farklari'
+  | 'uretici-sezonsal-satis'
   | 'sayim-karsilastirma';
 
-type StockReportMode = 'snapshot' | 'date-range' | 'count-date';
+type StockReportMode = 'snapshot' | 'date-range' | 'count-date' | 'current' | 'year-comparison';
 type StockReportScope = 'all' | 'current' | 'manual';
 
 interface StockReportDefinition {
@@ -524,12 +533,39 @@ const NOT_SOLD_COLUMNS: readonly ApiListTableColumn<NotSoldProductReportItemDto>
 
 const PROFITABILITY_COLUMNS: readonly ApiListTableColumn<ProfitabilityReportItemDto>[] = [
   { key: 'groupName', label: 'Kirilim', resolveValue: (row) => row.groupName || row.groupCode || '-' },
+  { key: 'salesQuantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.salesQuantity) },
+  { key: 'salesAmount', label: 'Net Satis', resolveValue: (row) => formatMoney(row.salesAmount) },
+  { key: 'costAmount', label: 'Maliyet', resolveValue: (row) => formatMoney(row.costAmount) },
+  { key: 'profitAmount', label: 'Kar', resolveValue: (row) => formatMoney(row.profitAmount) },
+  { key: 'profitPercent', label: 'Kar %', resolveValue: (row) => formatPercent(row.profitPercent) }
+];
+
+const CATEGORY_SALES_COLUMNS: readonly ApiListTableColumn<CategorySalesAnalysisItemDto>[] = [
+  { key: 'stockName', label: 'Urun', resolveValue: (row) => formatStock(row) },
+  { key: 'categoryName', label: 'Kategori', resolveValue: (row) => row.categoryName || row.categoryCode || '-' },
+  { key: 'manufacturerName', label: 'Uretici', resolveValue: (row) => row.manufacturerName || row.manufacturerCode || '-' },
+  { key: 'supplierCode', label: 'Tedarikci' },
   { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
-  { key: 'netSalesAmount', label: 'Net Satis', resolveValue: (row) => formatMoney(row.netSalesAmount) },
-  { key: 'grossSalesAmount', label: 'Brut Satis', resolveValue: (row) => formatMoney(row.grossSalesAmount) },
-  { key: 'estimatedCostAmount', label: 'Tahmini Maliyet', resolveValue: (row) => formatMoney(row.estimatedCostAmount) },
-  { key: 'marginAmount', label: 'Marj', resolveValue: (row) => formatMoney(row.marginAmount) },
-  { key: 'marginPercent', label: 'Marj %', resolveValue: (row) => formatPercent(row.marginPercent) }
+  { key: 'totalAmount', label: 'Ciro', resolveValue: (row) => formatMoney(row.totalAmount) }
+];
+
+const PRICE_DIFFERENCE_COLUMNS: readonly ApiListTableColumn<BranchPriceDifferenceItemDto>[] = [
+  { key: 'warehouseName', label: 'Sube', resolveValue: (row) => formatWarehouse(row) },
+  { key: 'stockName', label: 'Urun', resolveValue: (row) => formatStock(row) },
+  { key: 'branchPrice', label: 'Sube Fiyati', resolveValue: (row) => formatMoney(row.branchPrice) },
+  { key: 'mainWarehousePrice', label: 'Merkez Fiyati', resolveValue: (row) => formatMoney(row.mainWarehousePrice) },
+  { key: 'differenceAmount', label: 'Fark', resolveValue: (row) => formatMoney(row.differenceAmount) },
+  { key: 'differencePercent', label: 'Fark %', resolveValue: (row) => formatPercent(row.differencePercent) }
+];
+
+const SEASONAL_SALES_COLUMNS: readonly ApiListTableColumn<ManufacturerSeasonalSalesItemDto>[] = [
+  { key: 'stockName', label: 'Urun', resolveValue: (row) => formatStock(row) },
+  { key: 'manufacturerName', label: 'Uretici', resolveValue: (row) => row.manufacturerName || row.manufacturerCode || '-' },
+  { key: 'monthName', label: 'Ay' },
+  { key: 'pastAmount', label: 'Gecmis Yil', resolveValue: (row) => formatMoney(row.pastAmount) },
+  { key: 'presentAmount', label: 'Guncel Yil', resolveValue: (row) => formatMoney(row.presentAmount) },
+  { key: 'differenceAmount', label: 'Fark', resolveValue: (row) => formatMoney(row.differenceAmount) },
+  { key: 'changePercent', label: 'Degisim %', resolveValue: (row) => formatPercent(row.changePercent) }
 ];
 
 const COUNTING_COLUMNS: readonly ApiListTableColumn<CountingComparisonReportItemDto>[] = [
@@ -717,6 +753,35 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
     primaryPlaceholder: 'Opsiyonel kod'
   },
   {
+    key: 'kategori-satis-analizi',
+    group: 'Satis',
+    label: 'Kategori Analizi',
+    description: 'Kategori ve alt kategoriler icin iade dusulmus miktar ve KDV dahil net ciro.',
+    endpoint: '/api/rapor-islemleri/stok-raporlari/kategori-satis-analizi',
+    mode: 'date-range',
+    columns: CATEGORY_SALES_COLUMNS
+  },
+  {
+    key: 'sube-fiyat-farklari',
+    group: 'Fiyat',
+    label: 'Sube Fiyat Farki',
+    description: 'Ayni fiyat listesi, birim ve odeme planinda sube ile merkez fiyatini karsilastirir.',
+    endpoint: '/api/rapor-islemleri/stok-raporlari/sube-fiyat-farklari',
+    mode: 'current',
+    columns: PRICE_DIFFERENCE_COLUMNS
+  },
+  {
+    key: 'uretici-sezonsal-satis',
+    group: 'Satis',
+    label: 'Uretici Sezon',
+    description: 'Uretici urunlerini iki yil icin aylik net satis tutariyla karsilastirir.',
+    endpoint: '/api/rapor-islemleri/stok-raporlari/uretici-sezonsal-satis',
+    mode: 'year-comparison',
+    columns: SEASONAL_SALES_COLUMNS,
+    primaryLabel: 'Uretici Kodu',
+    primaryPlaceholder: 'Opsiyonel uretici kodu'
+  },
+  {
     key: 'karlilik',
     group: 'Satis',
     label: 'Karlilik',
@@ -757,6 +822,8 @@ export class StokRaporlariListComponent implements OnDestroy {
   protected readonly endDate = signal(this.getToday());
   protected readonly reportDate = signal(this.getToday());
   protected readonly countDate = signal(this.getToday());
+  protected readonly pastYear = signal(new Date().getFullYear() - 1);
+  protected readonly presentYear = signal(new Date().getFullYear());
   protected readonly scope = signal<StockReportScope>('current');
   protected readonly manualWarehouseNo = signal('');
   protected readonly sourceWarehouseNo = signal('');
@@ -812,6 +879,7 @@ export class StokRaporlariListComponent implements OnDestroy {
   protected readonly usesDateRange = computed(() => this.selectedDefinition().mode === 'date-range');
   protected readonly usesSnapshotDate = computed(() => this.selectedDefinition().mode === 'snapshot');
   protected readonly usesCountDate = computed(() => this.selectedDefinition().mode === 'count-date');
+  protected readonly usesYearComparison = computed(() => this.selectedDefinition().mode === 'year-comparison');
   protected readonly usesFilterType = computed(() =>
     [
       'giris-cikis-karsilastirma',
@@ -824,7 +892,7 @@ export class StokRaporlariListComponent implements OnDestroy {
     () => this.selectedReport() === 'depoda-var-subede-yok'
   );
   protected readonly usesCategoryOptions = computed(() =>
-    ['son-stok', 'kategori-son-stok', 'envanter-degeri'].includes(this.selectedReport())
+    ['son-stok', 'kategori-son-stok', 'envanter-degeri', 'kategori-satis-analizi'].includes(this.selectedReport())
   );
   protected readonly usesPrimaryTextInput = computed(
     () => Boolean(this.primaryLabel()) && this.selectedReport() !== 'kategori-son-stok'
@@ -864,6 +932,14 @@ export class StokRaporlariListComponent implements OnDestroy {
 
     if (this.usesCountDate()) {
       return this.countDate() || 'YYYY-MM-DD';
+    }
+
+    if (this.usesYearComparison()) {
+      return `${this.pastYear()} - ${this.presentYear()}`;
+    }
+
+    if (this.selectedDefinition().mode === 'current') {
+      return 'Guncel';
     }
 
     return this.reportDate() || 'YYYY-MM-DD';
@@ -955,6 +1031,16 @@ export class StokRaporlariListComponent implements OnDestroy {
 
   protected updateCountDate(value: string): void {
     this.countDate.set(value);
+    this.clearLoadedResult();
+  }
+
+  protected updatePastYear(value: string): void {
+    this.pastYear.set(Number(value));
+    this.clearLoadedResult();
+  }
+
+  protected updatePresentYear(value: string): void {
+    this.presentYear.set(Number(value));
     this.clearLoadedResult();
   }
 
@@ -1360,6 +1446,18 @@ export class StokRaporlariListComponent implements OnDestroy {
         return this.raporIslemleriService
           .getProfitabilityReport(this.buildProfitabilityRequest())
           .pipe(map((rows: ProfitabilityReportItemDto[]) => this.buildProfitabilityResult(rows ?? [])));
+      case 'kategori-satis-analizi':
+        return this.raporIslemleriService
+          .getCategorySalesAnalysisReport(this.buildCategorySalesAnalysisRequest())
+          .pipe(map((rows: CategorySalesAnalysisItemDto[]) => this.buildCategorySalesResult(rows ?? [])));
+      case 'sube-fiyat-farklari':
+        return this.raporIslemleriService
+          .getBranchPriceDifferenceReport(this.buildBranchPriceDifferenceRequest())
+          .pipe(map((rows: BranchPriceDifferenceItemDto[]) => this.buildPriceDifferenceResult(rows ?? [])));
+      case 'uretici-sezonsal-satis':
+        return this.raporIslemleriService
+          .getManufacturerSeasonalSalesReport(this.buildManufacturerSeasonalSalesRequest())
+          .pipe(map((rows: ManufacturerSeasonalSalesItemDto[]) => this.buildSeasonalSalesResult(rows ?? [])));
       case 'sayim-karsilastirma':
         return this.raporIslemleriService
           .getCountingComparisonReport(this.buildCountingRequest())
@@ -1558,12 +1656,49 @@ export class StokRaporlariListComponent implements OnDestroy {
     return {
       rows,
       metrics: [
-        { label: 'Net Satis', value: formatMoney(sumBy(rows, (row) => row.netSalesAmount)) },
-        { label: 'Maliyet', value: formatMoney(sumBy(rows, (row) => row.estimatedCostAmount)) },
-        { label: 'Marj', value: formatMoney(sumBy(rows, (row) => row.marginAmount)) },
+        { label: 'Net Satis', value: formatMoney(sumBy(rows, (row) => row.salesAmount)) },
+        { label: 'Maliyet', value: formatMoney(sumBy(rows, (row) => row.costAmount)) },
+        { label: 'Kar', value: formatMoney(sumBy(rows, (row) => row.profitAmount)) },
         { label: 'Kirilim', value: formatInteger(rows.length) }
       ],
-      note: 'Karlilik maliyeti Mikro stok hareket maliyetinden gelir; SAS maliyet modu bu fazda yoktur.'
+      note: 'Maliyet once gecerlilik tarihindeki SAS net alis fiyatindan, yoksa son alis fatura/irsaliye satirindan hesaplanir.'
+    };
+  }
+
+  private buildCategorySalesResult(rows: readonly CategorySalesAnalysisItemDto[]): StockReportLoadResult {
+    return {
+      rows,
+      metrics: [
+        { label: 'Urun', value: formatInteger(rows.length) },
+        { label: 'Miktar', value: formatNumber(sumBy(rows, (row) => row.quantity)) },
+        { label: 'Net Ciro', value: formatMoney(sumBy(rows, (row) => row.totalAmount)) },
+        { label: 'Uretici', value: formatInteger(new Set(rows.map((row) => row.manufacturerCode)).size) }
+      ]
+    };
+  }
+
+  private buildPriceDifferenceResult(rows: readonly BranchPriceDifferenceItemDto[]): StockReportLoadResult {
+    return {
+      rows,
+      metrics: [
+        { label: 'Farkli Satir', value: formatInteger(rows.length) },
+        { label: 'Sube', value: formatInteger(new Set(rows.map((row) => row.warehouseNo)).size) },
+        { label: 'Urun', value: formatInteger(new Set(rows.map((row) => row.stockCode)).size) },
+        { label: 'Toplam Fark', value: formatMoney(sumBy(rows, (row) => row.differenceAmount)) }
+      ],
+      note: 'Yalniz ayni fiyat listesi, birim, odeme plani ve doviz satirlari karsilastirilir.'
+    };
+  }
+
+  private buildSeasonalSalesResult(rows: readonly ManufacturerSeasonalSalesItemDto[]): StockReportLoadResult {
+    return {
+      rows,
+      metrics: [
+        { label: 'Urun', value: formatInteger(new Set(rows.map((row) => row.stockCode)).size) },
+        { label: `${this.pastYear()} Satis`, value: formatMoney(sumBy(rows, (row) => row.pastAmount)) },
+        { label: `${this.presentYear()} Satis`, value: formatMoney(sumBy(rows, (row) => row.presentAmount)) },
+        { label: 'Fark', value: formatMoney(sumBy(rows, (row) => row.differenceAmount)) }
+      ]
     };
   }
 
@@ -1806,6 +1941,34 @@ export class StokRaporlariListComponent implements OnDestroy {
     };
   }
 
+  private buildCategorySalesAnalysisRequest(): CategorySalesAnalysisHttpRequest {
+    return {
+      warehouseNo: this.resolveWarehouseNo(),
+      startDate: this.startDate(),
+      endDate: this.endDate(),
+      categoryCode: this.resolveCategoryCode(),
+      take: this.take()
+    };
+  }
+
+  private buildBranchPriceDifferenceRequest(): BranchPriceDifferenceHttpRequest {
+    return {
+      warehouseNo: this.resolveWarehouseNo(),
+      search: this.searchText().trim() || null,
+      take: this.take()
+    };
+  }
+
+  private buildManufacturerSeasonalSalesRequest(): ManufacturerSeasonalSalesHttpRequest {
+    return {
+      warehouseNo: this.resolveWarehouseNo(),
+      pastYear: this.pastYear(),
+      presentYear: this.presentYear(),
+      manufacturerCode: this.primaryCode().trim() || null,
+      take: this.take()
+    };
+  }
+
   private buildCountingRequest(): CountingComparisonReportHttpRequest {
     return {
       warehouseNo: this.resolveWarehouseNo(),
@@ -1840,6 +2003,12 @@ export class StokRaporlariListComponent implements OnDestroy {
         return this.buildNotSoldRequest();
       case 'karlilik':
         return this.buildProfitabilityRequest();
+      case 'kategori-satis-analizi':
+        return this.buildCategorySalesAnalysisRequest();
+      case 'sube-fiyat-farklari':
+        return this.buildBranchPriceDifferenceRequest();
+      case 'uretici-sezonsal-satis':
+        return this.buildManufacturerSeasonalSalesRequest();
       case 'giris-cikis-karsilastirma':
       case 'satis-sube-detay':
       case 'satis-yil-karsilastirma':
@@ -1902,6 +2071,16 @@ export class StokRaporlariListComponent implements OnDestroy {
       return false;
     }
 
+    if (
+      this.usesYearComparison() &&
+      (this.pastYear() < 2000 || this.pastYear() > 2100 ||
+        this.presentYear() < 2000 || this.presentYear() > 2100 ||
+        this.pastYear() === this.presentYear())
+    ) {
+      this.failValidation('Karsilastirma icin 2000-2100 arasinda iki farkli yil secin.');
+      return false;
+    }
+
     if (this.selectedDefinition().requiresWarehouse && this.isAdminUser() && !this.resolveWarehouseNo()) {
       this.failValidation('Bu rapor tek depo ister. Aktif depo veya manuel depo no secin.');
       return false;
@@ -1927,6 +2106,16 @@ export class StokRaporlariListComponent implements OnDestroy {
 
     if (this.selectedReport() === 'kategori-son-stok' && !this.resolveCategoryCode()) {
       this.failValidation('Kategori Kodu zorunludur.');
+      return false;
+    }
+
+    if (this.selectedReport() === 'kategori-satis-analizi' && !this.resolveCategoryCode()) {
+      this.failValidation('Kategori Kodu zorunludur.');
+      return false;
+    }
+
+    if (this.selectedReport() === 'uretici-sezonsal-satis' && !this.primaryCode().trim()) {
+      this.failValidation('Uretici Kodu zorunludur.');
       return false;
     }
 

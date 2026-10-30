@@ -68,6 +68,28 @@
               (input)="updateCountDate($any($event.target).value ?? '')"
             />
           </label>
+
+          <label class="field" *ngIf="usesYearComparison()">
+            <span>Gecmis Yil</span>
+            <input
+              type="number"
+              min="2000"
+              max="2100"
+              [value]="pastYear()"
+              (input)="updatePastYear($any($event.target).value ?? '')"
+            />
+          </label>
+
+          <label class="field" *ngIf="usesYearComparison()">
+            <span>Guncel Yil</span>
+            <input
+              type="number"
+              min="2000"
+              max="2100"
+              [value]="presentYear()"
+              (input)="updatePresentYear($any($event.target).value ?? '')"
+            />
+          </label>
         </ng-template>
 
         <div class="scope-switch" *ngIf="isAdminUser(); else fixedWarehouseScope" aria-label="Depo kapsami">

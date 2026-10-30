@@ -5,6 +5,10 @@ import type {
   BankPaymentSummaryReportDto,
   BranchBankMovementSummaryItemDto,
   BranchSalesReportItemDto,
+  BranchPriceDifferenceHttpRequest,
+  BranchPriceDifferenceItemDto,
+  CategorySalesAnalysisHttpRequest,
+  CategorySalesAnalysisItemDto,
   CategoryStockOnHandHttpRequest,
   CountingComparisonReportHttpRequest,
   CountingComparisonReportItemDto,
@@ -13,6 +17,8 @@ import type {
   FoodCheckReportDto,
   FoodCheckTotalsDto,
   MerchantPaymentSummaryReportDto,
+  ManufacturerSeasonalSalesHttpRequest,
+  ManufacturerSeasonalSalesItemDto,
   MovementInOutComparisonDto,
   MissingTurnoverBranchItemDto,
   MyoSalesByBranchItemDto,
@@ -377,6 +383,33 @@ export class RaporIslemleriService extends BaseApiService {
   ): Observable<ProfitabilityReportItemDto[]> {
     return this.getStockReport<ProfitabilityReportItemDto[], ProfitabilityReportHttpRequest>(
       'karlilik',
+      request
+    );
+  }
+
+  getCategorySalesAnalysisReport(
+    request: CategorySalesAnalysisHttpRequest
+  ): Observable<CategorySalesAnalysisItemDto[]> {
+    return this.getStockReport<CategorySalesAnalysisItemDto[], CategorySalesAnalysisHttpRequest>(
+      'kategori-satis-analizi',
+      request
+    );
+  }
+
+  getBranchPriceDifferenceReport(
+    request: BranchPriceDifferenceHttpRequest
+  ): Observable<BranchPriceDifferenceItemDto[]> {
+    return this.getStockReport<BranchPriceDifferenceItemDto[], BranchPriceDifferenceHttpRequest>(
+      'sube-fiyat-farklari',
+      request
+    );
+  }
+
+  getManufacturerSeasonalSalesReport(
+    request: ManufacturerSeasonalSalesHttpRequest
+  ): Observable<ManufacturerSeasonalSalesItemDto[]> {
+    return this.getStockReport<ManufacturerSeasonalSalesItemDto[], ManufacturerSeasonalSalesHttpRequest>(
+      'uretici-sezonsal-satis',
       request
     );
   }
