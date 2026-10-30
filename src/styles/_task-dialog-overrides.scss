@@ -296,15 +296,15 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel.docs-task-d
   }
 
   .dialog-page {
-    height: auto;
+    height: 100%;
     max-height: calc(100dvh - 2rem);
-    grid-template-rows: auto minmax(0, auto);
-    align-content: start;
+    grid-template-rows: auto minmax(0, 1fr);
     background: #fff;
   }
 
   .dialog-body {
     min-height: 0;
+    overflow: auto;
     background: #fff;
   }
 
@@ -321,6 +321,11 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel.docs-task-d
   table,
   tbody {
     background: #fff;
+  }
+
+  .table-wrap {
+    max-height: none;
+    overflow: visible;
   }
 
   tbody tr {
