@@ -107,14 +107,14 @@ p {
 .report-tab,
 .scope-pill,
 .task-action {
-  min-height: 2.04rem;
+  min-height: 2.2rem;
   border: 1px solid var(--report-border);
   border-radius: 8px;
   padding: 0.34rem 0.56rem;
   background: #ffffff;
   color: var(--report-ink);
   font: inherit;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -148,6 +148,10 @@ p {
   border-color: rgba(15, 118, 110, 0.36);
   background: #e8f7f3;
   color: var(--report-accent-deep);
+}
+
+.report-tab.is-active {
+  box-shadow: inset 3px 0 0 var(--report-accent);
 }
 
 .scope-pill:disabled {
@@ -457,6 +461,22 @@ p {
   white-space: nowrap;
 }
 
+.metric-card:first-child {
+  border-left: 3px solid #0f766e;
+}
+
+.metric-card:nth-child(2) {
+  border-left: 3px solid #2563eb;
+}
+
+.metric-card:nth-child(3) {
+  border-left: 3px solid #7c3aed;
+}
+
+.metric-card:nth-child(4) {
+  border-left: 3px solid #d97706;
+}
+
 .table-context {
   padding: 0.34rem 0.46rem;
   border: 1px solid var(--report-border);
@@ -467,6 +487,252 @@ p {
 .table-context strong {
   color: var(--report-ink);
   font-size: 0.76rem;
+}
+
+.price-difference-view {
+  display: grid;
+  gap: 0.55rem;
+  min-width: 0;
+}
+
+.price-difference-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.8rem;
+  padding: 0.5rem 0.58rem;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.price-difference-head > div {
+  display: grid;
+  gap: 0.1rem;
+  min-width: 0;
+}
+
+.price-difference-head h3 {
+  color: var(--report-ink);
+  font-size: 0.94rem;
+}
+
+.price-difference-head p {
+  color: var(--report-muted);
+  font-size: 0.76rem;
+  line-height: 1.4;
+}
+
+.price-difference-head > strong {
+  flex: 0 0 auto;
+  padding: 0.28rem 0.55rem;
+  border-radius: 999px;
+  background: #e8f7f3;
+  color: var(--report-accent-deep);
+  font-size: 0.78rem;
+}
+
+.price-product-list {
+  overflow: hidden;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.price-product + .price-product {
+  border-top: 1px solid var(--report-border);
+}
+
+.price-product-trigger {
+  display: grid;
+  grid-template-columns: 1.55rem minmax(230px, 1.5fr) minmax(72px, 0.42fr) minmax(138px, 0.72fr) minmax(125px, 0.66fr) minmax(118px, 0.62fr);
+  align-items: center;
+  gap: 0.52rem;
+  width: 100%;
+  min-height: 3.65rem;
+  padding: 0.48rem 0.58rem;
+  border: 0;
+  background: #ffffff;
+  color: var(--report-ink);
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
+
+.price-product-trigger:hover,
+.price-product-trigger:focus-visible,
+.price-product.is-expanded .price-product-trigger {
+  background: #f1f8f5;
+  outline: none;
+}
+
+.price-product-chevron {
+  display: inline-grid;
+  width: 1.45rem;
+  height: 1.45rem;
+  place-items: center;
+  border: 1px solid #c9d8d1;
+  border-radius: 6px;
+  color: var(--report-accent-deep);
+  background: #ffffff;
+  font-size: 0.66rem;
+}
+
+.price-product-chevron i {
+  transition: transform 0.16s ease;
+}
+
+.price-product.is-expanded .price-product-chevron i {
+  transform: rotate(90deg);
+}
+
+.price-product-identity,
+.price-product-stat {
+  display: grid;
+  gap: 0.12rem;
+  min-width: 0;
+}
+
+.price-product-identity small,
+.price-product-stat small {
+  color: var(--report-muted);
+  font-size: 0.62rem;
+  font-weight: 800;
+  letter-spacing: 0.03em;
+  text-transform: uppercase;
+}
+
+.price-product-identity strong,
+.price-product-stat strong {
+  overflow: hidden;
+  font-size: 0.8rem;
+  line-height: 1.28;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.price-product-total {
+  justify-items: end;
+  text-align: right;
+}
+
+.price-product-content {
+  padding: 0 0.58rem 0.58rem 2.65rem;
+  background: #f1f8f5;
+}
+
+.price-branch-table-wrap {
+  overflow-x: auto;
+  border: 1px solid var(--report-border);
+  border-radius: 7px;
+  background: #ffffff;
+}
+
+.price-branch-table {
+  width: 100%;
+  min-width: 650px;
+  border-collapse: collapse;
+  font-size: 0.78rem;
+}
+
+.price-branch-table th,
+.price-branch-table td {
+  padding: 0.48rem 0.58rem;
+  border-bottom: 1px solid #e7eeeb;
+  text-align: left;
+}
+
+.price-branch-table th {
+  background: #edf5f1;
+  color: #485c53;
+  font-size: 0.65rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.price-branch-table tbody tr:last-child td {
+  border-bottom: 0;
+}
+
+.price-branch-table tbody tr:hover {
+  background: #f8fbfa;
+}
+
+.price-branch-table .number-cell {
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+  white-space: nowrap;
+}
+
+.difference-value,
+.price-product-total strong {
+  font-weight: 900;
+}
+
+.is-higher {
+  color: #b42318;
+}
+
+.is-lower {
+  color: #067647;
+}
+
+.is-even {
+  color: var(--report-muted);
+}
+
+.raw-report-panel {
+  overflow: hidden;
+  border: 1px solid var(--report-border);
+  border-radius: 8px;
+  background: #ffffff;
+}
+
+.raw-report-panel > summary {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.75rem;
+  padding: 0.55rem 0.65rem;
+  color: var(--report-ink);
+  cursor: pointer;
+  list-style: none;
+}
+
+.raw-report-panel > summary::-webkit-details-marker {
+  display: none;
+}
+
+.raw-report-panel > summary span {
+  display: grid;
+  gap: 0.08rem;
+}
+
+.raw-report-panel > summary strong {
+  font-size: 0.8rem;
+}
+
+.raw-report-panel > summary small {
+  color: var(--report-muted);
+  font-size: 0.72rem;
+}
+
+.raw-report-panel > summary i {
+  color: var(--report-muted);
+  transition: transform 0.16s ease;
+}
+
+.raw-report-panel[open] > summary {
+  border-bottom: 1px solid var(--report-border);
+  background: var(--report-soft);
+}
+
+.raw-report-panel[open] > summary i {
+  transform: rotate(180deg);
+}
+
+.raw-report-table {
+  padding: 0.55rem;
 }
 
 .state-card {
@@ -661,6 +927,14 @@ p {
   :host ::ng-deep app-api-list-table .table-wrap {
     max-height: 62dvh;
   }
+
+  .price-product-trigger {
+    grid-template-columns: 1.55rem minmax(180px, 1fr) repeat(2, minmax(105px, 0.58fr));
+  }
+
+  .price-product-stat-wide {
+    display: none;
+  }
 }
 
 @media (max-width: 560px) {
@@ -702,5 +976,38 @@ p {
   :host ::ng-deep app-api-list-table .data-table th,
   :host ::ng-deep app-api-list-table .data-table td {
     padding: 0.4rem 0.46rem;
+  }
+
+  .price-difference-head {
+    align-items: flex-start;
+  }
+
+  .price-difference-head p,
+  .raw-report-panel > summary small {
+    display: none;
+  }
+
+  .price-product-trigger {
+    position: relative;
+    grid-template-columns: 1.45rem minmax(0, 1fr) auto;
+    gap: 0.42rem;
+    min-height: 4rem;
+  }
+
+  .price-product-trigger .price-product-stat:not(.price-product-total) {
+    display: none;
+  }
+
+  .price-product-total strong {
+    max-width: 7.5rem;
+  }
+
+  .price-product-content {
+    padding: 0 0.42rem 0.42rem;
+  }
+
+  .price-branch-table th,
+  .price-branch-table td {
+    padding: 0.44rem 0.48rem;
   }
 }

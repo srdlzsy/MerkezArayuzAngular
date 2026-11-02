@@ -118,6 +118,17 @@ interface StockReportLoadResult {
   note?: string;
 }
 
+interface BranchPriceProductGroup {
+  key: string;
+  stockCode: string;
+  stockName: string;
+  rows: readonly BranchPriceDifferenceItemDto[];
+  branchCount: number;
+  branchPriceLabel: string;
+  mainWarehousePriceLabel: string;
+  totalDifference: number;
+}
+
 const NUMBER_FORMATTER = new Intl.NumberFormat('tr-TR', {
   maximumFractionDigits: 2
 });
@@ -184,6 +195,20 @@ function formatMoney(value: unknown): string {
 
 function formatPercent(value: unknown): string {
   return PERCENT_FORMATTER.format(toSafeNumber(value));
+}
+
+function formatMoneyRange(values: readonly (number | null | undefined)[]): string {
+  const normalizedValues = [...new Set(values.map(toSafeNumber))].sort((left, right) => left - right);
+
+  if (!normalizedValues.length) {
+    return formatMoney(0);
+  }
+
+  if (normalizedValues.length === 1) {
+    return formatMoney(normalizedValues[0]);
+  }
+
+  return `${formatMoney(normalizedValues[0])} - ${formatMoney(normalizedValues[normalizedValues.length - 1])}`;
 }
 
 function formatDateOnly(value: string | null | undefined): string {
@@ -839,6 +864,7 @@ export class StokRaporlariListComponent implements OnDestroy {
   protected readonly take = signal(250);
   protected readonly rows = signal<readonly object[]>([]);
   protected readonly metrics = signal<readonly StockReportMetric[]>([]);
+  protected readonly expandedPriceProductKey = signal<string | null>(null);
   protected readonly productSearchText = signal('');
   protected readonly productSearchResults = signal<readonly ProductLookupItemDto[]>([]);
   protected readonly isProductSearchLoading = signal(false);
@@ -867,6 +893,53 @@ export class StokRaporlariListComponent implements OnDestroy {
       this.reportDefinitions[0]
   );
   protected readonly tableColumns = computed(() => this.selectedDefinition().columns);
+  protected readonly priceDifferenceGroups = computed<readonly BranchPriceProductGroup[]>(() => {
+    if (this.selectedReport() !== 'sube-fiyat-farklari') {
+      return [];
+    }
+
+    const groupedRows = new Map<string, BranchPriceDifferenceItemDto[]>();
+
+    for (const row of this.rows() as readonly BranchPriceDifferenceItemDto[]) {
+      const stockCode = row.stockCode?.trim() || '';
+      const stockName = row.stockName?.trim() || '';
+      const key = `${stockCode}\u0000${stockName}`;
+      const existingRows = groupedRows.get(key);
+
+      if (existingRows) {
+        existingRows.push(row);
+      } else {
+        groupedRows.set(key, [row]);
+      }
+    }
+
+    return [...groupedRows.entries()]
+      .map(([key, productRows]): BranchPriceProductGroup => {
+        const sortedRows = [...productRows].sort((left, right) => {
+          const warehouseDifference = toSafeNumber(left.warehouseNo) - toSafeNumber(right.warehouseNo);
+          return warehouseDifference || (left.warehouseName ?? '').localeCompare(right.warehouseName ?? '', 'tr');
+        });
+        const firstRow = sortedRows[0];
+
+        return {
+          key,
+          stockCode: firstRow?.stockCode?.trim() || '-',
+          stockName: firstRow?.stockName?.trim() || 'Urun adi bulunamadi',
+          rows: sortedRows,
+          branchCount: new Set(
+            sortedRows.map((row) => row.warehouseNo ?? row.warehouseName?.trim() ?? '-')
+          ).size,
+          branchPriceLabel: formatMoneyRange(sortedRows.map((row) => row.branchPrice)),
+          mainWarehousePriceLabel: formatMoneyRange(sortedRows.map((row) => row.mainWarehousePrice)),
+          totalDifference: sumBy(sortedRows, (row) => row.differenceAmount)
+        };
+      })
+      .sort(
+        (left, right) =>
+          Math.abs(right.totalDifference) - Math.abs(left.totalDifference) ||
+          left.stockName.localeCompare(right.stockName, 'tr')
+      );
+  });
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
       this.authService.currentUser(),
@@ -1303,6 +1376,7 @@ export class StokRaporlariListComponent implements OnDestroy {
           this.metrics.set(result.metrics ?? []);
           this.resultNote.set(result.note ?? null);
           this.lastLoadedAt.set(new Date().toISOString());
+          this.expandedPriceProductKey.set(this.priceDifferenceGroups()[0]?.key ?? null);
         },
         error: (error: unknown) => {
           if (requestId !== this.activeRequestId) {
@@ -1340,6 +1414,36 @@ export class StokRaporlariListComponent implements OnDestroy {
     report.key;
   protected readonly trackByMetric = (_index: number, metric: StockReportMetric): string =>
     metric.label;
+  protected readonly trackByPriceProduct = (_index: number, group: BranchPriceProductGroup): string =>
+    group.key;
+  protected readonly trackByPriceBranch = (
+    index: number,
+    row: BranchPriceDifferenceItemDto
+  ): string => `${row.warehouseNo ?? row.warehouseName ?? 'warehouse'}-${index}`;
+  protected readonly formatReportMoney = formatMoney;
+  protected readonly formatReportPercent = formatPercent;
+  protected readonly formatReportWarehouse = formatWarehouse;
+  protected togglePriceProduct(key: string): void {
+    this.expandedPriceProductKey.update((currentKey) => (currentKey === key ? null : key));
+  }
+
+  protected isPriceProductExpanded(key: string): boolean {
+    return this.expandedPriceProductKey() === key;
+  }
+
+  protected getPriceDifferenceTone(value: unknown): string {
+    const difference = toSafeNumber(value);
+
+    if (difference > 0) {
+      return 'is-higher';
+    }
+
+    if (difference < 0) {
+      return 'is-lower';
+    }
+
+    return 'is-even';
+  }
   protected readonly trackByCategoryOption = (_index: number, option: StockCategoryOptionDto): string =>
     option.categoryCode ?? option.categoryName ?? String(_index);
   protected readonly trackByProduct = (_index: number, product: ProductLookupItemDto): string =>
@@ -1690,7 +1794,7 @@ export class StokRaporlariListComponent implements OnDestroy {
         { label: 'Farkli Satir', value: formatInteger(rows.length) },
         { label: 'Sube Sayisi', value: formatInteger(new Set(rows.map((row) => row.warehouseNo)).size) },
         { label: 'Urun Sayisi', value: formatInteger(new Set(rows.map((row) => row.stockCode)).size) },
-        { label: 'Toplam Fark', value: formatMoney(sumBy(rows, (row) => row.differenceAmount)) }
+        { label: 'Toplam Fark Tutari', value: formatMoney(sumBy(rows, (row) => row.differenceAmount)) }
       ],
       note: 'Yalniz ayni fiyat listesi, birim, odeme plani ve doviz satirlari karsilastirilir.'
     };
@@ -2155,6 +2259,7 @@ export class StokRaporlariListComponent implements OnDestroy {
     this.resultNote.set(null);
     this.errorMessage.set(null);
     this.lastLoadedAt.set(null);
+    this.expandedPriceProductKey.set(null);
     this.hasLoadedRows.set(false);
     this.isLoading.set(false);
   }

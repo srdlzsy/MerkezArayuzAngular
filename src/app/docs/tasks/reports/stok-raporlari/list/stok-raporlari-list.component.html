@@ -4,6 +4,7 @@
       <div class="title-block">
         <span class="section-kicker">Rapor Islemleri</span>
         <h2>{{ current.title }}</h2>
+        <p>{{ selectedDefinition().description }}</p>
       </div>
 
       <div class="report-tabs" aria-label="Stok raporlari">
@@ -378,20 +379,135 @@
       <p>{{ selectedDefinition().label }} icin secilen filtreler okunuyor.</p>
     </article>
 
-    <div class="table-shell" *ngIf="!isLoading() && rows().length">
-      <app-api-list-table
-        [rows]="rows()"
-        [columns]="tableColumns()"
-        [showRowAction]="false"
-        [fitToWidth]="true"
-        [showExport]="true"
-        [exportFileName]="selectedDefinition().label + ' ' + selectedDateLabel() + ' ' + scopeLabel()"
-        [exportSheetName]="selectedDefinition().label"
-        [printTitle]="selectedDefinition().label"
-        [printSubtitle]="selectedDateLabel() + ' / ' + scopeLabel()"
-        filterPlaceholder="Stok, depo, cari, barkod, belge veya tutar ara"
-      ></app-api-list-table>
-    </div>
+    <ng-container *ngIf="!isLoading() && rows().length">
+      <section class="price-difference-view" *ngIf="selectedReport() === 'sube-fiyat-farklari'; else standardReportTable">
+        <header class="price-difference-head">
+          <div>
+            <span class="section-kicker">Urun Bazli Karsilastirma</span>
+            <h3>Fiyat farki olan urunler</h3>
+            <p>En yuksek toplam fark once gelir. Urunu acarak sube fiyatlarini merkez fiyatiyla karsilastirin.</p>
+          </div>
+          <strong>{{ priceDifferenceGroups().length }} urun</strong>
+        </header>
+
+        <div class="price-product-list">
+          <article
+            class="price-product"
+            *ngFor="let group of priceDifferenceGroups(); trackBy: trackByPriceProduct"
+            [class.is-expanded]="isPriceProductExpanded(group.key)"
+          >
+            <button
+              type="button"
+              class="price-product-trigger"
+              [attr.aria-expanded]="isPriceProductExpanded(group.key)"
+              (click)="togglePriceProduct(group.key)"
+            >
+              <span class="price-product-chevron" aria-hidden="true">
+                <i class="fa-solid fa-chevron-right"></i>
+              </span>
+
+              <span class="price-product-identity">
+                <small>{{ group.stockCode }}</small>
+                <strong>{{ group.stockName }}</strong>
+              </span>
+
+              <span class="price-product-stat">
+                <small>Farkli Sube</small>
+                <strong>{{ group.branchCount }}</strong>
+              </span>
+
+              <span class="price-product-stat price-product-stat-wide">
+                <small>Sube Fiyat Araligi</small>
+                <strong>{{ group.branchPriceLabel }}</strong>
+              </span>
+
+              <span class="price-product-stat price-product-stat-wide">
+                <small>Merkez Fiyati</small>
+                <strong>{{ group.mainWarehousePriceLabel }}</strong>
+              </span>
+
+              <span class="price-product-stat price-product-total" [ngClass]="getPriceDifferenceTone(group.totalDifference)">
+                <small>Toplam Fark</small>
+                <strong>{{ formatReportMoney(group.totalDifference) }}</strong>
+              </span>
+            </button>
+
+            <div class="price-product-content" *ngIf="isPriceProductExpanded(group.key)">
+              <div class="price-branch-table-wrap">
+                <table class="price-branch-table">
+                  <thead>
+                    <tr>
+                      <th>Sube</th>
+                      <th class="number-cell">Sube Fiyati</th>
+                      <th class="number-cell">Merkez Fiyati</th>
+                      <th class="number-cell">Fark Tutari</th>
+                      <th class="number-cell">Fark %</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let row of group.rows; trackBy: trackByPriceBranch">
+                      <td>
+                        <strong>{{ formatReportWarehouse(row) }}</strong>
+                      </td>
+                      <td class="number-cell">{{ formatReportMoney(row.branchPrice) }}</td>
+                      <td class="number-cell">{{ formatReportMoney(row.mainWarehousePrice) }}</td>
+                      <td class="number-cell difference-value" [ngClass]="getPriceDifferenceTone(row.differenceAmount)">
+                        {{ formatReportMoney(row.differenceAmount) }}
+                      </td>
+                      <td class="number-cell difference-value" [ngClass]="getPriceDifferenceTone(row.differencePercent)">
+                        {{ formatReportPercent(row.differencePercent) }}
+                      </td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </article>
+        </div>
+
+        <details class="raw-report-panel">
+          <summary>
+            <span>
+              <strong>Tum satirlar ve disa aktarma</strong>
+              <small>Arama, yazdirma ve Excel islemleri icin standart tabloyu acin.</small>
+            </span>
+            <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
+          </summary>
+
+          <div class="table-shell raw-report-table">
+            <app-api-list-table
+              [rows]="rows()"
+              [columns]="tableColumns()"
+              [showRowAction]="false"
+              [fitToWidth]="true"
+              [showExport]="true"
+              [exportFileName]="selectedDefinition().label + ' ' + selectedDateLabel() + ' ' + scopeLabel()"
+              [exportSheetName]="selectedDefinition().label"
+              [printTitle]="selectedDefinition().label"
+              [printSubtitle]="selectedDateLabel() + ' / ' + scopeLabel()"
+              filterPlaceholder="Urun, sube veya tutar ara"
+            ></app-api-list-table>
+          </div>
+        </details>
+      </section>
+
+      <ng-template #standardReportTable>
+        <div class="table-shell">
+          <app-api-list-table
+            [rows]="rows()"
+            [columns]="tableColumns()"
+            [showRowAction]="false"
+            [fitToWidth]="true"
+            [showExport]="true"
+            [exportFileName]="selectedDefinition().label + ' ' + selectedDateLabel() + ' ' + scopeLabel()"
+            [exportSheetName]="selectedDefinition().label"
+            [printTitle]="selectedDefinition().label"
+            [printSubtitle]="selectedDateLabel() + ' / ' + scopeLabel()"
+            filterPlaceholder="Stok, depo, cari, barkod, belge veya tutar ara"
+          ></app-api-list-table>
+        </div>
+      </ng-template>
+    </ng-container>
 
     <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
       <ng-container *ngIf="hasLoadedRows(); else reportReadyState">
