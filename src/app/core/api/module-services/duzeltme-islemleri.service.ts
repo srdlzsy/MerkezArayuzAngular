@@ -252,6 +252,15 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     return this.getWithQuery<StockMovementDocumentDto>(`${ROOT}/stok-hareketleri`, query);
   }
 
+  findStockMovementDocuments(
+    query: StockMovementDocumentLookupHttpRequest
+  ): Observable<StockMovementDocumentDto[]> {
+    return this.getWithQuery<StockMovementDocumentDto[]>(
+      `${ROOT}/stok-hareketleri/eslesmeler`,
+      query
+    );
+  }
+
   updateStockMovementDocument(
     request: UpdateStockMovementDocumentHttpRequest
   ): Observable<StockMovementDocumentUpdateResponse> {

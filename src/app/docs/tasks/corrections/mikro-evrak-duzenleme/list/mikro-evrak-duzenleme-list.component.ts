@@ -614,6 +614,7 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly customerCardDraft = signal<CustomerCardDetailDto | null>(null);
   protected readonly stockMovement = signal<StockMovementDocumentDto | null>(null);
   protected readonly stockMovementDraft = signal<StockMovementDocumentDto | null>(null);
+  protected readonly stockMovementMatches = signal<StockMovementDocumentDto[]>([]);
   protected readonly inventoryCount = signal<InventoryCountDocumentDto | null>(null);
   protected readonly inventoryCountDraft = signal<InventoryCountDocumentDto | null>(null);
   protected readonly customerMovement = signal<CustomerMovementDocumentDto | null>(null);
@@ -698,7 +699,7 @@ export class MikroEvrakDuzenlemeListComponent {
     movementType: null,
     movementKind: null,
     normalReturn: null,
-    warehouseNo: this.authService.currentUser()?.depoNo ?? null
+    warehouseNo: null
   };
   protected inventoryCountLookup: InventoryCountDocumentLookupHttpRequest = {
     warehouseNo: this.authService.currentUser()?.depoNo ?? 0,
@@ -1258,18 +1259,114 @@ export class MikroEvrakDuzenlemeListComponent {
       return;
     }
 
+    const lookup: StockMovementDocumentLookupHttpRequest = {
+      documentSerie: this.stockLookup.documentSerie,
+      documentOrderNo: this.stockLookup.documentOrderNo,
+      documentType: null,
+      movementType: null,
+      movementKind: null,
+      normalReturn: null,
+      warehouseNo: this.stockLookup.warehouseNo
+    };
+
     this.busyAction.set('movement-load');
     this.feedback.set(null);
+    this.stockMovementMatches.set([]);
     this.service
-      .getStockMovementDocument(this.cleanLookup(this.stockLookup))
+      .findStockMovementDocuments(this.cleanLookup(lookup))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busyAction.set(null))
       )
       .subscribe({
-        next: (document: StockMovementDocumentDto) => this.applyStockMovement(document),
+        next: (documents: StockMovementDocumentDto[]) => {
+          if (documents.length === 0) {
+            this.stockMovement.set(null);
+            this.stockMovementDraft.set(null);
+            this.feedback.set({
+              tone: 'error',
+              title: 'Evrak bulunamadı',
+              message: 'Bu seri ve sıra numarasıyla eşleşen stok hareketi bulunamadı.'
+            });
+            return;
+          }
+
+          if (documents.length === 1) {
+            this.applyStockMovement(documents[0]);
+            return;
+          }
+
+          this.stockMovement.set(null);
+          this.stockMovementDraft.set(null);
+          this.stockMovementMatches.set(documents);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Birden fazla evrak bulundu',
+            message: `${documents.length} eşleşmeden düzenlemek istediğiniz evrakı seçin.`
+          });
+        },
         error: (error: unknown) => this.handleError(error, 'Stok hareket evrakı getirilemedi.')
       });
+  }
+
+  protected selectStockMovementMatch(document: StockMovementDocumentDto): void {
+    this.stockMovementMatches.set([]);
+    this.applyStockMovement(document);
+    this.feedback.set({
+      tone: 'info',
+      title: 'Evrak açıldı',
+      message: `${document.header.documentSerie}-${document.header.documentOrderNo} düzenlemeye hazır.`
+    });
+  }
+
+  protected stockMovementTypeLabel(document: StockMovementDocumentDto): string {
+    const header = document.header;
+
+    if (header.documentType === 13) {
+      return 'Firma Mal Kabul';
+    }
+
+    if (header.documentType === 17) {
+      return header.normalReturn === 1 ? 'Depo İadesi' : 'Depolar Arası Sevk';
+    }
+
+    if (header.documentType === 1) {
+      return header.normalReturn === 1 ? 'Firma İadesi' : 'Firma Sevki';
+    }
+
+    if (header.documentType === 6) {
+      return 'Virman';
+    }
+
+    if (header.documentType === 0) {
+      if (header.movementKind === 4) {
+        return 'Fire Fişi';
+      }
+
+      if (header.movementKind === 5) {
+        return 'Sarf Fişi';
+      }
+
+      return 'Stok Fişi';
+    }
+
+    return `Stok Evrakı (Tip ${header.documentType}, Cins ${header.movementKind})`;
+  }
+
+  protected stockMovementWarehouseLabel(document: StockMovementDocumentDto): string {
+    const header = document.header;
+    const input = header.inputWarehouseNo > 0
+      ? `${header.inputWarehouseNo}${header.inputWarehouseName ? ` - ${header.inputWarehouseName}` : ''}`
+      : '';
+    const output = header.outputWarehouseNo > 0
+      ? `${header.outputWarehouseNo}${header.outputWarehouseName ? ` - ${header.outputWarehouseName}` : ''}`
+      : '';
+
+    if (output && input && output !== input) {
+      return `${output} → ${input}`;
+    }
+
+    return output || input || 'Depo belirtilmemiş';
   }
 
   protected saveStockMovement(): void {
@@ -1339,6 +1436,7 @@ export class MikroEvrakDuzenlemeListComponent {
         next: (response: MikroDocumentDeleteResponse) => {
           this.stockMovement.set(null);
           this.stockMovementDraft.set(null);
+          this.stockMovementMatches.set([]);
           this.setDeleteFeedback('Stok hareket evraki silindi', response);
         },
         error: (error: unknown) => this.handleError(error, 'Stok hareket evraki silinemedi.')
@@ -2066,6 +2164,13 @@ export class MikroEvrakDuzenlemeListComponent {
       | CompanyOrderDocumentLineDto
       | WarehouseOrderDocumentLineDto
   ): string => 'movementGuid' in row ? row.movementGuid : 'countGuid' in row ? row.countGuid : row.orderGuid;
+  protected trackByStockMovementMatch = (
+    _index: number,
+    document: StockMovementDocumentDto
+  ): string => {
+    const header = document.header;
+    return `${header.documentSerie}|${header.documentOrderNo}|${header.documentType}|${header.movementKind}|${header.normalReturn}`;
+  };
   protected trackByField = (_index: number, field: FieldDefinition): string => field.key;
 
   private applyFieldCatalogLabels(): void {
@@ -2256,7 +2361,7 @@ export class MikroEvrakDuzenlemeListComponent {
       movementType:
         prepared.header.movementTypes.length === 1
           ? prepared.header.movementTypes[0] ?? null
-          : this.stockLookup.movementType,
+          : null,
       movementKind: prepared.header.movementKind,
       normalReturn: prepared.header.normalReturn
     };

@@ -892,7 +892,7 @@
     </section>
 
     <section *ngSwitchCase="'stock-movement'" class="document-workspace">
-      <article class="lookup-bar">
+      <article class="lookup-bar stock-movement-lookup">
         <div class="lookup-title">
           <p class="panel-kicker">STOK_HAREKETLERI</p>
           <h3>Stok hareket evrakını bul</h3>
@@ -914,39 +914,7 @@
           />
         </label>
         <label class="field">
-          <span>Evrak Tipi</span>
-          <input
-            type="number"
-            [(ngModel)]="stockLookup.documentType"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Hareket Tipi</span>
-          <input
-            type="number"
-            [(ngModel)]="stockLookup.movementType"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Hareket Cinsi</span>
-          <input
-            type="number"
-            [(ngModel)]="stockLookup.movementKind"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Normal / İade</span>
-          <input
-            type="number"
-            [(ngModel)]="stockLookup.normalReturn"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Depo No</span>
+          <span>Depo No (İsteğe Bağlı)</span>
           <input
             type="number"
             [(ngModel)]="stockLookup.warehouseNo"
@@ -959,8 +927,39 @@
           [disabled]="!canDetail() || isBusy('movement-load')"
           (click)="loadStockMovement()"
         >
-          {{ isBusy('movement-load') ? 'Getiriliyor...' : 'Evrakı Getir' }}
+          {{ isBusy('movement-load') ? 'Aranıyor...' : 'Evrakı Bul' }}
         </button>
+      </article>
+
+      <article class="movement-match-panel" *ngIf="stockMovementMatches().length">
+        <header class="movement-match-head">
+          <div>
+            <p class="panel-kicker">EŞLEŞEN EVRAKLAR</p>
+            <h3>Birden fazla evrak bulundu</h3>
+          </div>
+          <strong>{{ stockMovementMatches().length }} seçenek</strong>
+        </header>
+
+        <div class="movement-match-list">
+          <button
+            type="button"
+            class="movement-match-row"
+            *ngFor="let match of stockMovementMatches(); trackBy: trackByStockMovementMatch"
+            (click)="selectStockMovementMatch(match)"
+          >
+            <span class="movement-match-type">{{ stockMovementTypeLabel(match) }}</span>
+            <strong>
+              {{ match.header.customerTitle || match.header.customerCode || 'Carisiz Evrak' }}
+            </strong>
+            <small>
+              {{ match.header.movementDate | date: 'dd.MM.yyyy' }} ·
+              {{ stockMovementWarehouseLabel(match) }} ·
+              {{ match.header.lineCount }} satır ·
+              {{ match.header.totalQuantity | number: '1.0-3' }} miktar
+            </small>
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </article>
 
       <ng-container *ngIf="stockMovementDraft() as document; else noStockMovement">
@@ -1063,10 +1062,9 @@
       </ng-container>
 
       <ng-template #noStockMovement>
-        <div class="empty-state">
+        <div class="empty-state" *ngIf="!stockMovementMatches().length">
           <i class="fa-solid fa-right-left"></i>
-          <h3>Seri ve sıra ile evrakı getirin</h3>
-          <p>Birden fazla eşleşme varsa filtre alanlarıyla aramayı daraltabilirsiniz.</p>
+          <h3>Düzenlenecek evrakı bulun</h3>
         </div>
       </ng-template>
     </section>
