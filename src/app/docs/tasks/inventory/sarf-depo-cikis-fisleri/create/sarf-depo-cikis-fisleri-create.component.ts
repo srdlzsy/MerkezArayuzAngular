@@ -277,7 +277,7 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
       lines: rawValue.lines.map((line) => ({
         stockCode: line.stockCode.trim(),
         quantity: this.normalizeNumber(line.quantity),
-        unitPointer: this.normalizeNumber(line.unitPointer),
+        unitPointer: 1,
         description: trimToMaxLength(line.description, 50),
         partyCode: trimToMaxLength(line.partyCode, 25),
         lotNo: this.normalizeNumber(line.lotNo),

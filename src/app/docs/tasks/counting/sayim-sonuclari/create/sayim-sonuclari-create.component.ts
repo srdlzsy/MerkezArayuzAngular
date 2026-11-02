@@ -261,7 +261,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
         stockCode: line.stockCode.trim(),
         quantity: this.normalizeNumber(line.quantity),
         barcode: line.barcode.trim() || undefined,
-        unitPointer: this.normalizeNumber(line.unitPointer)
+        unitPointer: 1
       }))
     });
   }

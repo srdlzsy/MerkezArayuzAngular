@@ -533,7 +533,7 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
       stockCode: kalem.stokKodu.trim(),
       quantity: Number(kalem.miktar ?? 0),
       unitPrice: 0,
-      unitPointer: kalem.birimKatsayisi ?? 1,
+      unitPointer: 1,
       description: trimToMaxLength(kalem.aciklama, 50),
       partyCode: '',
       lotNo: 0,

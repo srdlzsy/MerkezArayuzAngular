@@ -396,7 +396,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
         stockCode: line.stockCode.trim(),
         movementType: this.normalizeNumber(line.movementType),
         quantity: this.normalizeNumber(line.quantity),
-        unitPointer: this.normalizeNumber(line.unitPointer),
+        unitPointer: 1,
         description: trimToMaxLength(line.description, 50),
         partyCode: trimToMaxLength(line.partyCode, 25),
         lotNo: this.normalizeNumber(line.lotNo),

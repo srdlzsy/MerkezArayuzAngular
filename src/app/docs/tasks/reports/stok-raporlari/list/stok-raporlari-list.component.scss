@@ -124,6 +124,23 @@ p {
   gap: 0.04rem;
   min-width: 0;
   text-align: left;
+  transition: all 0.15s ease-in-out;
+}
+
+.report-tab[data-group='Satis'] span {
+  color: #0284c7;
+}
+
+.report-tab[data-group='Fiyat'] span {
+  color: #d97706;
+}
+
+.report-tab[data-group='Sayim'] span {
+  color: #7c3aed;
+}
+
+.report-tab[data-group='Stok'] span {
+  color: #059669;
 }
 
 .report-tab.is-active,

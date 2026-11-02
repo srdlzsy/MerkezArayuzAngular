@@ -464,7 +464,7 @@ export class AlinanFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       quantity: Number(kalem.siparisMiktari ?? 0),
       recommendedQuantity: 0,
       unitPrice: 0,
-      unitPointer: kalem.birimKatsayisi ?? 1,
+      unitPointer: 1,
       description1: trimToMaxLength(kalem.aciklama, 50),
       description2: '',
       packageCode: trimToMaxLength(kalem.modelKodu, 25),

@@ -533,39 +533,39 @@ const NOT_SOLD_COLUMNS: readonly ApiListTableColumn<NotSoldProductReportItemDto>
 
 const PROFITABILITY_COLUMNS: readonly ApiListTableColumn<ProfitabilityReportItemDto>[] = [
   { key: 'groupName', label: 'Kirilim', resolveValue: (row) => row.groupName || row.groupCode || '-' },
-  { key: 'salesQuantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.salesQuantity) },
-  { key: 'salesAmount', label: 'Net Satis', resolveValue: (row) => formatMoney(row.salesAmount) },
-  { key: 'costAmount', label: 'Maliyet', resolveValue: (row) => formatMoney(row.costAmount) },
-  { key: 'profitAmount', label: 'Kar', resolveValue: (row) => formatMoney(row.profitAmount) },
-  { key: 'profitPercent', label: 'Kar %', resolveValue: (row) => formatPercent(row.profitPercent) }
+  { key: 'salesQuantity', label: 'Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.salesQuantity) },
+  { key: 'salesAmount', label: 'Net Satis', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesAmount) },
+  { key: 'costAmount', label: 'Maliyet', tableAlign: 'right', resolveValue: (row) => formatMoney(row.costAmount) },
+  { key: 'profitAmount', label: 'Kar Tutari', tableAlign: 'right', resolveValue: (row) => formatMoney(row.profitAmount) },
+  { key: 'profitPercent', label: 'Kar %', tableAlign: 'right', resolveValue: (row) => formatPercent(row.profitPercent) }
 ];
 
 const CATEGORY_SALES_COLUMNS: readonly ApiListTableColumn<CategorySalesAnalysisItemDto>[] = [
   { key: 'stockName', label: 'Urun', resolveValue: (row) => formatStock(row) },
   { key: 'categoryName', label: 'Kategori', resolveValue: (row) => row.categoryName || row.categoryCode || '-' },
   { key: 'manufacturerName', label: 'Uretici', resolveValue: (row) => row.manufacturerName || row.manufacturerCode || '-' },
-  { key: 'supplierCode', label: 'Tedarikci' },
-  { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
-  { key: 'totalAmount', label: 'Ciro', resolveValue: (row) => formatMoney(row.totalAmount) }
+  { key: 'supplierCode', label: 'Tedarikci / Marka' },
+  { key: 'quantity', label: 'Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.quantity) },
+  { key: 'totalAmount', label: 'Ciro (KDV Dahil)', tableAlign: 'right', resolveValue: (row) => formatMoney(row.totalAmount) }
 ];
 
 const PRICE_DIFFERENCE_COLUMNS: readonly ApiListTableColumn<BranchPriceDifferenceItemDto>[] = [
   { key: 'warehouseName', label: 'Sube', resolveValue: (row) => formatWarehouse(row) },
   { key: 'stockName', label: 'Urun', resolveValue: (row) => formatStock(row) },
-  { key: 'branchPrice', label: 'Sube Fiyati', resolveValue: (row) => formatMoney(row.branchPrice) },
-  { key: 'mainWarehousePrice', label: 'Merkez Fiyati', resolveValue: (row) => formatMoney(row.mainWarehousePrice) },
-  { key: 'differenceAmount', label: 'Fark', resolveValue: (row) => formatMoney(row.differenceAmount) },
-  { key: 'differencePercent', label: 'Fark %', resolveValue: (row) => formatPercent(row.differencePercent) }
+  { key: 'branchPrice', label: 'Sube Fiyati', tableAlign: 'right', resolveValue: (row) => formatMoney(row.branchPrice) },
+  { key: 'mainWarehousePrice', label: 'Merkez Fiyati', tableAlign: 'right', resolveValue: (row) => formatMoney(row.mainWarehousePrice) },
+  { key: 'differenceAmount', label: 'Fark Tutari', tableAlign: 'right', resolveValue: (row) => formatMoney(row.differenceAmount) },
+  { key: 'differencePercent', label: 'Fark %', tableAlign: 'right', resolveValue: (row) => formatPercent(row.differencePercent) }
 ];
 
 const SEASONAL_SALES_COLUMNS: readonly ApiListTableColumn<ManufacturerSeasonalSalesItemDto>[] = [
   { key: 'stockName', label: 'Urun', resolveValue: (row) => formatStock(row) },
   { key: 'manufacturerName', label: 'Uretici', resolveValue: (row) => row.manufacturerName || row.manufacturerCode || '-' },
-  { key: 'monthName', label: 'Ay' },
-  { key: 'pastAmount', label: 'Gecmis Yil', resolveValue: (row) => formatMoney(row.pastAmount) },
-  { key: 'presentAmount', label: 'Guncel Yil', resolveValue: (row) => formatMoney(row.presentAmount) },
-  { key: 'differenceAmount', label: 'Fark', resolveValue: (row) => formatMoney(row.differenceAmount) },
-  { key: 'changePercent', label: 'Degisim %', resolveValue: (row) => formatPercent(row.changePercent) }
+  { key: 'monthName', label: 'Ay', tableAlign: 'center' },
+  { key: 'pastAmount', label: 'Gecmis Yil', tableAlign: 'right', resolveValue: (row) => formatMoney(row.pastAmount) },
+  { key: 'presentAmount', label: 'Guncel Yil', tableAlign: 'right', resolveValue: (row) => formatMoney(row.presentAmount) },
+  { key: 'differenceAmount', label: 'Fark Tutari', tableAlign: 'right', resolveValue: (row) => formatMoney(row.differenceAmount) },
+  { key: 'changePercent', label: 'Degisim %', tableAlign: 'right', resolveValue: (row) => formatPercent(row.changePercent) }
 ];
 
 const COUNTING_COLUMNS: readonly ApiListTableColumn<CountingComparisonReportItemDto>[] = [
@@ -779,7 +779,7 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
     mode: 'year-comparison',
     columns: SEASONAL_SALES_COLUMNS,
     primaryLabel: 'Uretici Kodu',
-    primaryPlaceholder: 'Opsiyonel uretici kodu'
+    primaryPlaceholder: 'Uretici kodu (Zorunlu)'
   },
   {
     key: 'karlilik',
@@ -1653,12 +1653,18 @@ export class StokRaporlariListComponent implements OnDestroy {
   }
 
   private buildProfitabilityResult(rows: readonly ProfitabilityReportItemDto[]): StockReportLoadResult {
+    const totalSales = sumBy(rows, (row) => row.salesAmount);
+    const totalCost = sumBy(rows, (row) => row.costAmount);
+    const totalProfit = sumBy(rows, (row) => row.profitAmount);
+    const profitMargin = totalCost > 0 ? totalProfit / totalCost : 0;
+
     return {
       rows,
       metrics: [
-        { label: 'Net Satis', value: formatMoney(sumBy(rows, (row) => row.salesAmount)) },
-        { label: 'Maliyet', value: formatMoney(sumBy(rows, (row) => row.costAmount)) },
-        { label: 'Kar', value: formatMoney(sumBy(rows, (row) => row.profitAmount)) },
+        { label: 'Net Satis', value: formatMoney(totalSales) },
+        { label: 'Maliyet', value: formatMoney(totalCost) },
+        { label: 'Kar Tutari', value: formatMoney(totalProfit) },
+        { label: 'Kar Orani', value: formatPercent(profitMargin) },
         { label: 'Kirilim', value: formatInteger(rows.length) }
       ],
       note: 'Maliyet once gecerlilik tarihindeki SAS net alis fiyatindan, yoksa son alis fatura/irsaliye satirindan hesaplanir.'
@@ -1682,8 +1688,8 @@ export class StokRaporlariListComponent implements OnDestroy {
       rows,
       metrics: [
         { label: 'Farkli Satir', value: formatInteger(rows.length) },
-        { label: 'Sube', value: formatInteger(new Set(rows.map((row) => row.warehouseNo)).size) },
-        { label: 'Urun', value: formatInteger(new Set(rows.map((row) => row.stockCode)).size) },
+        { label: 'Sube Sayisi', value: formatInteger(new Set(rows.map((row) => row.warehouseNo)).size) },
+        { label: 'Urun Sayisi', value: formatInteger(new Set(rows.map((row) => row.stockCode)).size) },
         { label: 'Toplam Fark', value: formatMoney(sumBy(rows, (row) => row.differenceAmount)) }
       ],
       note: 'Yalniz ayni fiyat listesi, birim, odeme plani ve doviz satirlari karsilastirilir.'
@@ -1691,13 +1697,19 @@ export class StokRaporlariListComponent implements OnDestroy {
   }
 
   private buildSeasonalSalesResult(rows: readonly ManufacturerSeasonalSalesItemDto[]): StockReportLoadResult {
+    const pastTotal = sumBy(rows, (row) => row.pastAmount);
+    const presentTotal = sumBy(rows, (row) => row.presentAmount);
+    const diffTotal = presentTotal - pastTotal;
+    const changePct = pastTotal > 0 ? (presentTotal - pastTotal) / pastTotal : 0;
+
     return {
       rows,
       metrics: [
-        { label: 'Urun', value: formatInteger(new Set(rows.map((row) => row.stockCode)).size) },
-        { label: `${this.pastYear()} Satis`, value: formatMoney(sumBy(rows, (row) => row.pastAmount)) },
-        { label: `${this.presentYear()} Satis`, value: formatMoney(sumBy(rows, (row) => row.presentAmount)) },
-        { label: 'Fark', value: formatMoney(sumBy(rows, (row) => row.differenceAmount)) }
+        { label: 'Urun Sayisi', value: formatInteger(new Set(rows.map((row) => row.stockCode)).size) },
+        { label: `${this.pastYear()} Satis`, value: formatMoney(pastTotal) },
+        { label: `${this.presentYear()} Satis`, value: formatMoney(presentTotal) },
+        { label: 'Fark Tutari', value: formatMoney(diffTotal) },
+        { label: 'Degisim %', value: formatPercent(changePct) }
       ]
     };
   }

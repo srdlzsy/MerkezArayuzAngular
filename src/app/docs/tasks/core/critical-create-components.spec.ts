@@ -229,7 +229,7 @@ describe('critical create component behavior', () => {
     expect(request.targetWarehouseNo).toBe(50);
     expect(request.transitWarehouseNo).toBe(60);
     expect(request.lines[0]).toEqual(
-      jasmine.objectContaining({ stockCode: '016445', quantity: 2, unitPointer: 6 })
+      jasmine.objectContaining({ stockCode: '016445', quantity: 2, unitPointer: 1 })
     );
   });
 

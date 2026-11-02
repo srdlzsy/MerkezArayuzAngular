@@ -1051,7 +1051,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       quantity,
       recommendedQuantity: 0,
       unitPrice: 0,
-      unitPointer: kalem.birimKatsayisi ?? 1,
+      unitPointer: 1,
       description: trimToMaxLength(kalem.aciklama, 50),
       packageCode: trimToMaxLength(kalem.modelKodu, 25),
       projectCode: '',

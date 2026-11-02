@@ -768,7 +768,7 @@ export class ManavOperasyonPaneliListComponent {
     return {
       stockCode: raw.stockCode.trim(),
       quantity: Number(raw.quantity) || 0,
-      unitPointer: raw.unitPointer,
+      unitPointer: 1,
       unitPrice: raw.unitPrice,
       description: raw.description.trim() || null
     };
@@ -785,7 +785,7 @@ export class ManavOperasyonPaneliListComponent {
       movementDate: raw.movementDate,
       documentSerie: raw.documentSerie.trim(),
       reasonCode: raw.reasonCode.trim(),
-      unitPointer: raw.unitPointer,
+      unitPointer: 1,
       unitPrice: raw.unitPrice,
       description: raw.description.trim()
     });

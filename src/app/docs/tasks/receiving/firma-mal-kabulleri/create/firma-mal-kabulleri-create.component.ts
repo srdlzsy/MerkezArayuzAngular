@@ -1099,7 +1099,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       dispatchQuantity: Number(kalem.irsaliyeMiktari ?? 0),
       acceptedQuantity: Number(kalem.fiiliKabulMiktari ?? 0),
       unitPrice: Number(kalem.birimFiyati ?? 0),
-      unitPointer: kalem.birimKatsayisi ?? 1,
+      unitPointer: 1,
       lastConsumingDate: this.normalizeOptionalText(kalem.skt) ?? undefined,
       orderGuid: this.normalizeOptionalText(kalem.siparisGuid),
       description: trimToMaxLength(kalem.aciklama, 50),

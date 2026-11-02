@@ -303,6 +303,18 @@
   cursor: pointer;
 }
 
+th[style*='text-align: right'] .sort-button,
+th[style*='text-align:right'] .sort-button {
+  justify-content: flex-end;
+  text-align: right;
+}
+
+th[style*='text-align: center'] .sort-button,
+th[style*='text-align:center'] .sort-button {
+  justify-content: center;
+  text-align: center;
+}
+
 .sort-button:hover {
   color: #0f766e;
 }

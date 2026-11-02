@@ -11,6 +11,7 @@
           *ngFor="let report of reportDefinitions; trackBy: trackByReport"
           type="button"
           class="report-tab"
+          [attr.data-group]="report.group"
           [class.is-active]="selectedReport() === report.key"
           (click)="selectReport(report.key)"
         >
@@ -169,7 +170,7 @@
             <input
               type="search"
               list="stock-category-options"
-              placeholder="Kategori kodu veya adi"
+              [placeholder]="selectedReport() === 'kategori-satis-analizi' ? 'Kategori secin veya yazin (Zorunlu)' : 'Kategori kodu veya adi'"
               [value]="categoryCode()"
               (input)="updateCategoryCode($any($event.target).value ?? '')"
               (keyup.enter)="loadRows()"
