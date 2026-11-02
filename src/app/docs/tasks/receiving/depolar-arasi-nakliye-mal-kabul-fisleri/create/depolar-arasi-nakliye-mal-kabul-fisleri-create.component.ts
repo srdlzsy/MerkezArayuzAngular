@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -60,6 +61,7 @@ type KabulKalemFormGroup = FormGroup<{
 export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskDialogBase<MalKabulDialogData> {
   protected readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly page: DocsContentPage = DOCS_PAGES['depo-mal-kabulleri'];
   protected readonly isAdminUser = computed(() =>
@@ -156,7 +158,10 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
     this.loadingDetail.set(true);
 
     this.loadReceiptDetailRequest(seri, sira)
-      .pipe(finalize(() => requestId === this.detailRequestId && this.loadingDetail.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.detailRequestId && this.loadingDetail.set(false))
+      )
       .subscribe({
         next: (receipt: IFurpaWarehouseReceiptDetailApiDto) => {
           if (requestId !== this.detailRequestId) {
@@ -229,7 +234,10 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
       receipt.header.documentOrderNo,
       this.buildRequest()
     )
-      .pipe(finalize(() => requestId === this.submitRequestId && this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.submitRequestId && this.submitting.set(false))
+      )
       .subscribe({
         next: (result: IFurpaWarehouseReceiptAcceptanceResponseApiDto) => {
           if (requestId !== this.submitRequestId) {

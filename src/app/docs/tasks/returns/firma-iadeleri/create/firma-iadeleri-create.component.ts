@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -73,6 +74,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
   private readonly authService = inject(AuthService);
   private readonly pendingStore = inject(SafeCreatePendingStore);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyShipmentRequestApiDto>({
     store: this.pendingStore,
@@ -177,7 +179,10 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchCustomerAccount(query)
-      .pipe(finalize(() => requestId === this.customerRequestId && this.customerLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.customerRequestId && this.customerLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaCustomerSearchItemApiDto[]) => {
           if (requestId !== this.customerRequestId) {
@@ -265,7 +270,10 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchStockByCustomerCode(query, this.selectedCustomer()?.customerCode ?? '', 20, this.resolveIncludeDelisted())
-      .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
           if (requestId !== this.stockRequestId) {
@@ -350,7 +358,10 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
     this.submitting.set(true);
     this.iadeIslemleriService
       .createFirmaIade(request)
-      .pipe(finalize(() => this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false))
+      )
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();

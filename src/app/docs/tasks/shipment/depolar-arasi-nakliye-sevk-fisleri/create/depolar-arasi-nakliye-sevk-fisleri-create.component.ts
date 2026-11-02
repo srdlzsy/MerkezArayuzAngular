@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -104,6 +105,7 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
   private readonly taslakService = inject(TaslakService);
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
   private readonly pendingStore = inject(SafeCreatePendingStore);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseShippingRequestApiDto>({
     store: this.pendingStore,
@@ -224,7 +226,10 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
 
     this.aramaService
       .searchWarehouse(query)
-      .pipe(finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaWarehouseSearchItemApiDto[]) => {
           if (requestId !== this.warehouseRequestId) {
@@ -315,7 +320,10 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
 
     this.taslakService
       .getAlinanDepoSiparisleri(selectedWarehouse.warehouseNo, currentWarehouseNo)
-      .pipe(finalize(() => requestId === this.orderRequestId && this.orderLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.orderRequestId && this.orderLoading.set(false))
+      )
       .subscribe({
         next: (orders: IFurpaWarehouseOrderDetailApiDto[]) => {
           if (requestId !== this.orderRequestId) {
@@ -468,7 +476,10 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
 
     this.aramaService
       .searchStock(query, 20, this.resolveIncludeDelisted())
-      .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
           if (requestId !== this.stockRequestId) {
@@ -558,7 +569,10 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
 
     this.sevkIslemleriService
       .createDepolarArasiNakliyeSevkFisi(request)
-      .pipe(finalize(() => this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false))
+      )
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();

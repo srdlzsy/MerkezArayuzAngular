@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -89,6 +90,7 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
   private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly aramaService = inject(AramaService);
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseShippingRequestApiDto>({
     store: this.pendingStore,
@@ -204,7 +206,10 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchWarehouse(query)
-      .pipe(finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaWarehouseSearchItemApiDto[]) => {
           if (requestId !== this.warehouseRequestId) {
@@ -289,7 +294,10 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchStock(query, 20, this.resolveIncludeDelisted())
-      .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
           if (requestId !== this.stockRequestId) {
@@ -374,7 +382,10 @@ export class DepoDagitimSevkFisleriCreateComponent extends DocsTaskDialogBase {
     this.submitting.set(true);
     this.sevkIslemleriService
       .createDepoDagitimSevkFisi(request)
-      .pipe(finalize(() => this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false))
+      )
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Router } from '@angular/router';
 import type {
   IFurpaPermissionListItemApiDto,
@@ -87,6 +88,7 @@ export class KullanicilarListComponent implements OnInit {
   });
   private readonly router = inject(Router);
   private readonly kullaniciIslemleriService = inject(KullaniciIslemleriService);
+  private readonly destroyRef = inject(DestroyRef);
 
   ngOnInit(): void {
     this.loadData();
@@ -108,7 +110,10 @@ export class KullanicilarListComponent implements OnInit {
           : this.kullaniciIslemleriService.listPermissions();
 
     request$
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false))
+      )
       .subscribe({
         next: (
           response:

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { ActivatedRoute, Router } from '@angular/router';
 import type {
@@ -71,6 +72,7 @@ export class KullanicilarDetailComponent implements OnInit {
   private readonly kullaniciIslemleriService = inject(KullaniciIslemleriService);
   private readonly authService = inject(AuthService);
   private readonly docsTaskContext = injectDocsTaskContext();
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly pageId = this.docsTaskContext.taskId ?? 'kullanicilar';
   protected readonly page: DocsContentPage =
@@ -273,7 +275,10 @@ export class KullanicilarDetailComponent implements OnInit {
           : this.hydratePermissions(preferredId);
 
     request$
-      .pipe(finalize(() => this.loading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loading.set(false))
+      )
       .subscribe({
         next: () => undefined,
         error: (error: HttpErrorResponse) => {
@@ -339,6 +344,7 @@ export class KullanicilarDetailComponent implements OnInit {
             catchError((error: HttpErrorResponse) => of(error))
           )
         ),
+        takeUntilDestroyed(this.destroyRef),
         finalize(() => this.saving.set(false))
       )
       .subscribe({
@@ -426,7 +432,10 @@ export class KullanicilarDetailComponent implements OnInit {
     this.clientRoleSaving.set(clientType);
     this.kullaniciIslemleriService
       .assignUserClientRoles(userId, clientType, roleIds)
-      .pipe(finalize(() => this.clientRoleSaving.set(null)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.clientRoleSaving.set(null))
+      )
       .subscribe({
         next: (mappings: IFurpaUserClientRoleApiDto[]) => {
           this.applyClientRoleMappings(mappings ?? []);
@@ -836,11 +845,14 @@ export class KullanicilarDetailComponent implements OnInit {
 
     this.kullaniciIslemleriService
       .getUserClientRoles(userId)
-      .pipe(finalize(() => {
-        if (this.activeUserId() === userId) {
-          this.clientRolesLoading.set(false);
-        }
-      }))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => {
+          if (this.activeUserId() === userId) {
+            this.clientRolesLoading.set(false);
+          }
+        })
+      )
       .subscribe({
         next: (mappings: IFurpaUserClientRoleApiDto[]) => {
           if (this.activeUserId() === userId) {

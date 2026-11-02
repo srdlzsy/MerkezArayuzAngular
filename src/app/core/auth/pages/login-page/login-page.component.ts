@@ -1,5 +1,6 @@
 import { CommonModule } from '@angular/common';
-import { Component, inject, signal } from '@angular/core';
+import { Component, DestroyRef, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 
@@ -15,6 +16,7 @@ import { AuthService } from '../../services/auth.service';
 export class LoginPageComponent {
   private readonly authService = inject(AuthService);
   private readonly router = inject(Router);
+  private readonly destroyRef = inject(DestroyRef);
 
   protected usernameOrEmail = '';
   protected password = '';
@@ -29,21 +31,24 @@ export class LoginPageComponent {
     this.error.set('');
     this.submitting.set(true);
 
-    this.authService.login(this.usernameOrEmail, this.password).subscribe({
-      next: (success: boolean) => {
-        if (!success) {
-          this.error.set('Kullanici adi veya e-posta ile sifre girmen gerekiyor.');
-          this.submitting.set(false);
-          return;
-        }
+    this.authService
+      .login(this.usernameOrEmail, this.password)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (success: boolean) => {
+          if (!success) {
+            this.error.set('Kullanici adi veya e-posta ile sifre girmen gerekiyor.');
+            this.submitting.set(false);
+            return;
+          }
 
-        this.submitting.set(false);
-        void this.router.navigateByUrl('/dashboard');
-      },
-      error: () => {
-        this.error.set('Giris sirasinda beklenmeyen bir hata olustu.');
-        this.submitting.set(false);
-      }
-    });
+          this.submitting.set(false);
+          void this.router.navigateByUrl('/dashboard');
+        },
+        error: () => {
+          this.error.set('Giris sirasinda beklenmeyen bir hata olustu.');
+          this.submitting.set(false);
+        }
+      });
   }
 }

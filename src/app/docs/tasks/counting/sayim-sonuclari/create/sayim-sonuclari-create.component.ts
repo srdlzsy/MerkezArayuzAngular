@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -66,6 +67,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
   private readonly sayimIslemleriService = inject(SayimIslemleriService);
   private readonly authService = inject(AuthService);
   private readonly pendingStore = inject(SafeCreatePendingStore);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateInventoryCountRequestApiDto>({
     store: this.pendingStore,
@@ -134,7 +136,10 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchStock(query, 20, this.resolveIncludeDelisted())
-      .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
           if (requestId !== this.stockRequestId) {
@@ -214,7 +219,10 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     this.submitting.set(true);
     this.sayimIslemleriService
       .createSayimSonucu(request)
-      .pipe(finalize(() => this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false))
+      )
       .subscribe({
         next: (result: unknown) => {
           this.safeCreateRetry.reset();

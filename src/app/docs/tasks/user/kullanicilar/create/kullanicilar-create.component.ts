@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { Router } from '@angular/router';
 import type {
@@ -34,6 +35,7 @@ export class KullanicilarCreateComponent implements OnInit {
   private readonly router = inject(Router);
   private readonly kullaniciIslemleriService = inject(KullaniciIslemleriService);
   private readonly docsTaskContext = injectDocsTaskContext();
+  private readonly destroyRef = inject(DestroyRef);
 
   protected readonly pageId = this.docsTaskContext.taskId ?? 'kullanicilar';
   protected readonly page: DocsContentPage =
@@ -113,7 +115,10 @@ export class KullanicilarCreateComponent implements OnInit {
           : this.kullaniciIslemleriService.createPermission(this.buildPermissionRequest());
 
     request$
-      .pipe(finalize(() => this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false))
+      )
       .subscribe({
         next: () => {
           this.submitSuccess.set(this.getSuccessMessage());
@@ -187,7 +192,10 @@ export class KullanicilarCreateComponent implements OnInit {
           : of({ roles: [] as IFurpaRoleApiDto[], permissions: [] as IFurpaPermissionListItemApiDto[] });
 
     request$
-      .pipe(finalize(() => this.loadingDependencies.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingDependencies.set(false))
+      )
       .subscribe({
         next: ({
           roles,

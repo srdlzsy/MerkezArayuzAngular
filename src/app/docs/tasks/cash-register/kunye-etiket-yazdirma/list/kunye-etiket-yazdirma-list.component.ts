@@ -1,6 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ViewChild, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import type { IKunyeTag } from '@interfaces';
 
@@ -35,6 +36,8 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
   protected readonly selectedCount = signal(0);
   protected readonly selectedTags = signal<IKunyeTag[]>([]);
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(
     private readonly kasaIslemleriService: KasaIslemleriService,
     private readonly inPlacePrintService: InPlacePrintService
@@ -67,7 +70,10 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
     this.feedback.set(null);
     this.isLoading.set(true);
 
-    this.kasaIslemleriService.getKunyeler(formattedDate).subscribe({
+    this.kasaIslemleriService
+      .getKunyeler(formattedDate)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
       next: (tags: IKunyeTag[]) => {
         this.tags.set(tags ?? []);
         this.selection.clear();

@@ -1,6 +1,7 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, OnInit, ViewChild, computed, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import type { IManavKunyeTag } from '@interfaces';
 
@@ -93,6 +94,8 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
     );
   });
 
+  private readonly destroyRef = inject(DestroyRef);
+
   constructor(
     private readonly authService: AuthService,
     private readonly kasaIslemleriService: KasaIslemleriService,
@@ -144,6 +147,7 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
 
     this.kasaIslemleriService
       .getManavKunyeEtiketleri(warehouseNo, this.selectedDate() || null)
+      .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe({
         next: (tags: IManavKunyeTag[]) => {
           this.tags.set(tags ?? []);

@@ -1,6 +1,7 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   AbstractControl,
   FormArray,
@@ -117,6 +118,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
   private readonly aramaService = inject(AramaService);
   private readonly taslakService = inject(TaslakService);
   private readonly malKabulIslemleriService = inject(MalKabulIslemleriService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateCompanyReceiptRequestApiDto>({
     store: this.pendingStore,
@@ -260,7 +262,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchCustomerAccount(query)
-      .pipe(finalize(() => requestId === this.customerRequestId && this.customerLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.customerRequestId && this.customerLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaCustomerSearchItemApiDto[]) => {
           if (requestId !== this.customerRequestId) {
@@ -365,7 +370,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
     this.taslakService
       .getVerilenFirmaSiparisleri(selectedCustomer.customerCode.trim(), depoNo)
-      .pipe(finalize(() => requestId === this.orderRequestId && this.orderLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.orderRequestId && this.orderLoading.set(false))
+      )
       .subscribe({
         next: (orders: IFurpaCompanyOrderDetailApiDto[]) => {
           if (requestId !== this.orderRequestId) {
@@ -461,7 +469,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
     this.malKabulIslemleriService
       .getCompanyReceiptByEttn(ettn, this.isAdminUser() ? this.resolveRequestWarehouseNo() : undefined, 'auto')
-      .pipe(finalize(() => requestId === this.officialDocumentRequestId && this.officialDocumentLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.officialDocumentRequestId && this.officialDocumentLoading.set(false))
+      )
       .subscribe({
         next: (preview: CompanyReceivingEDespatchPreviewDto) => {
           if (requestId !== this.officialDocumentRequestId) {
@@ -599,7 +610,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchStockByCustomerCode(query, this.selectedCustomer()?.customerCode ?? '', 20, this.resolveIncludeDelisted())
-      .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaProductSearchItemApiDto[]) => {
           if (requestId !== this.stockRequestId) {
@@ -694,7 +708,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     this.submitting.set(true);
     this.malKabulIslemleriService
       .createToptanGirisIrsaliyesi(request)
-      .pipe(finalize(() => this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false))
+      )
       .subscribe({
         next: (result: IFurpaCreateCompanyReceiptResponseApiDto) => {
           this.safeCreateRetry.reset();

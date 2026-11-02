@@ -1,7 +1,8 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
 import { ScrollingModule } from '@angular/cdk/scrolling';
-import { Component, computed, effect, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
+import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import {
   FormArray,
   FormControl,
@@ -88,6 +89,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
   private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly aramaService = inject(AramaService);
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
+  private readonly destroyRef = inject(DestroyRef);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry = new SafeCreateRetryDraft<IFurpaCreateWarehouseReturnRequestApiDto>({
     store: this.pendingStore,
@@ -195,7 +197,10 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchWarehouse(query)
-      .pipe(finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.warehouseRequestId && this.warehouseLoading.set(false))
+      )
       .subscribe({
         next: (results: IFurpaWarehouseSearchItemApiDto[]) => {
           if (requestId !== this.warehouseRequestId) {
@@ -288,7 +293,10 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
 
     this.aramaService
       .searchStock(query, 20, this.resolveIncludeDelisted())
-      .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false))
+      )
       .subscribe({
         next: (results: ProductLookupItemDto[]) => {
           if (requestId !== this.stockRequestId) {
@@ -347,6 +355,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
         search: query || undefined
       })
       .pipe(
+        takeUntilDestroyed(this.destroyRef),
         finalize(() =>
           requestId === this.returnableProductsRequestId && this.returnableProductsLoading.set(false)
         )
@@ -514,7 +523,10 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     this.submitting.set(true);
     this.iadeIslemleriService
       .createDepoIade(request)
-      .pipe(finalize(() => this.submitting.set(false)))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.submitting.set(false))
+      )
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();
