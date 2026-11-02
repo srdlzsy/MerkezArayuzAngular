@@ -112,7 +112,7 @@
                 <td>{{ getLineText(kalem, 'stockName') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'unitName') || '-' }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'dispatchQuantity', 'quantity')) }}</td>
-                <td>{{ formatNumber(getLineNumber(kalem, 'physicalAcceptedQuantity', 'quantity')) }}</td>
+                <td>{{ formatNumber(getLineNumber(kalem, 'physicalAcceptedQuantity')) }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'returnQuantity')) }}</td>
                 <td>{{ getLineText(kalem, 'returnStatus') || '-' }}</td>
                 <td>{{ formatNumber(getLineNumber(kalem, 'unitPrice')) }}</td>

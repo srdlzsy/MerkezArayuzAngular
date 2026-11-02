@@ -440,7 +440,7 @@ export abstract class KalemliTaskDetailBase<
           width: '16mm',
           align: 'right',
           value: (kalem) =>
-            this.formatNumber(this.getLineNumber(kalem, 'physicalAcceptedQuantity', 'quantity'))
+            this.formatNumber(this.getLineNumber(kalem, 'physicalAcceptedQuantity'))
         }
       );
 
