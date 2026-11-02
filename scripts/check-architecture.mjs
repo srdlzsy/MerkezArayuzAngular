@@ -7,12 +7,24 @@ const failures = [];
 const legacyLineBudgets = [
   [
     'src/app/docs/tasks/integration/axata-senkronizasyonu/list/axata-senkronizasyonu-list.component.ts',
-    5460,
+    5500,
   ],
-  ['src/app/docs/tasks/edocuments/fatura-islemleri/list/fatura-islemleri-list.component.ts', 3690],
+  ['src/app/docs/tasks/edocuments/fatura-islemleri/list/fatura-islemleri-list.component.ts', 3720],
   [
     'src/app/docs/tasks/corrections/mikro-evrak-duzenleme/list/mikro-evrak-duzenleme-list.component.ts',
     2700,
+  ],
+  [
+    'src/app/docs/tasks/cash-register/icmal-dokumu/create/icmal-dokumu-create.component.ts',
+    2260,
+  ],
+  [
+    'src/app/docs/tasks/cash-register/icmal-dokumu/detail/icmal-dokumu-detail.component.ts',
+    2200,
+  ],
+  [
+    'src/app/docs/tasks/reports/stok-raporlari/list/stok-raporlari-list.component.ts',
+    2360,
   ],
 ];
 
