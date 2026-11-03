@@ -57,6 +57,8 @@ import {
   KasaHareketReportHttpRequest,
   KasaHareketReportRowDto,
   KasaHareketReportSummaryDto,
+  KasaHareketSalesComparisonDto,
+  KasaHareketSalesComparisonHttpRequest,
   KasaHareketScheduledImportHttpRequest,
   KasaHareketTransferStatusDto,
   KasaHareketTransferStatusHttpRequest,
@@ -805,6 +807,15 @@ export class KasaIslemleriService extends BaseApiService {
       'kasa-islemleri/kasa-hareket-aktarimi/rapor/ozet',
       request
     );
+  }
+
+  getKasaHareketSatisKarsilastirma(
+    request: KasaHareketSalesComparisonHttpRequest
+  ): Observable<KasaHareketSalesComparisonDto> {
+    return this.getWithQuery<
+      KasaHareketSalesComparisonDto,
+      KasaHareketSalesComparisonHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/satis-karsilastirma', request);
   }
 
   exportKasaHareketRaporu(request: KasaHareketReportHttpRequest): Observable<Blob> {

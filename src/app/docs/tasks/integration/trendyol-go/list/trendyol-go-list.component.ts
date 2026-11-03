@@ -8,7 +8,12 @@ import type {
   ITrendyolGoInvoiceLinkRequestApiDto,
   ITrendyolGoInvoiceRequestApiDto,
   ITrendyolGoCatalogPreviewItemApiDto,
-  ITrendyolGoPriceStockPreviewItemApiDto
+  ITrendyolGoPriceStockPreviewItemApiDto,
+  ITrendyolGoDirectPriceStockItemApiDto,
+  ITrendyolGoDirectPriceStockPreviewApiDto,
+  ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto,
+  ITrendyolGoDirectPriceStockDispatchResultApiDto,
+  ITrendyolGoDirectStoreDispatchResultApiDto
 } from '@interfaces';
 import { finalize, Observable } from 'rxjs';
 
@@ -82,6 +87,11 @@ export class TrendyolGoListComponent {
   protected readonly stores = signal<TrendyolGoStoreMappingDto[]>([]);
   protected readonly selectedStoreId = signal<number | null>(null);
   protected readonly activeView = signal<'orders' | 'price-stock' | 'catalog-sync' | 'advanced'>('orders');
+  protected readonly priceStockSubView = signal<'direct' | 'snapshot'>('direct');
+  protected readonly directPreview = signal<ITrendyolGoDirectPriceStockPreviewApiDto | null>(null);
+  protected readonly selectedDirectBarcodes = signal<ReadonlySet<string>>(new Set());
+  protected readonly loadingDirectPreview = signal(false);
+  protected readonly directDispatchResult = signal<ITrendyolGoDirectPriceStockDispatchResultApiDto | null>(null);
   protected readonly priceStockPreview = signal<TrendyolGoPriceStockPreviewDto | null>(null);
   protected readonly selectedBarcodes = signal<ReadonlySet<string>>(new Set());
   protected readonly priceStockBatchIds = signal<readonly string[]>([]);
@@ -132,6 +142,15 @@ export class TrendyolGoListComponent {
     const storeId = this.selectedStoreId();
     return this.stores().find((store) => store.storeId === storeId) ?? null;
   });
+  protected readonly directItems = computed<ITrendyolGoDirectPriceStockItemApiDto[]>(
+    () => this.directPreview()?.items ?? []
+  );
+  protected readonly selectedDirectCount = computed(
+    () => this.selectedDirectBarcodes().size
+  );
+  protected readonly canDispatchDirect = computed(
+    () => this.canUpdate() && (this.directPriceStockForm.controls.targetScope.value === 'all' || this.selectedStore() !== null)
+  );
   protected readonly readyItems = computed(() =>
     this.priceStockPreview()?.items.filter((item) => item.status === 'Ready' && !!item.barcode) ?? []
   );
@@ -196,6 +215,13 @@ export class TrendyolGoListComponent {
     view: new FormControl<'actionable' | 'issues' | 'all'>('actionable', { nonNullable: true }),
     dispatchMode: new FormControl<PriceStockDispatchMode>('selected', { nonNullable: true })
   });
+  protected readonly directPriceStockForm = new FormGroup({
+    targetScope: new FormControl<'single' | 'all'>('single', { nonNullable: true }),
+    mode: new FormControl<'changed' | 'all'>('changed', { nonNullable: true }),
+    sinceDate: new FormControl(this.getToday(), { nonNullable: true }),
+    search: new FormControl('', { nonNullable: true }),
+    take: new FormControl(500, { nonNullable: true, validators: [Validators.min(1), Validators.max(5000)] })
+  });
   protected readonly catalogSyncForm = new FormGroup({
     view: new FormControl<'actionable' | 'issues' | 'all' | 'existing'>('actionable', { nonNullable: true }),
     search: new FormControl('', {
@@ -257,6 +283,9 @@ export class TrendyolGoListComponent {
         this.catalogForm.controls.storeId.setValue(storeId, { emitEvent: false });
         this.invalidatePriceStockPreview();
         this.invalidateCatalogSyncPreview();
+        this.directPreview.set(null);
+        this.selectedDirectBarcodes.set(new Set());
+        this.directDispatchResult.set(null);
       });
     this.priceStockForm.controls.view.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -716,6 +745,122 @@ export class TrendyolGoListComponent {
         })),
         error: (error: unknown) =>
           this.setFeedback('error', getErrorMessage(error, 'Batch sonucu alinamadi.'))
+      });
+  }
+
+  protected loadDirectPreview(): void {
+    const storeId = this.selectedStoreId();
+    if (!storeId || !this.canList()) {
+      this.setFeedback('error', 'Mikro fiyat onizlemesi icin magaza secin.');
+      return;
+    }
+
+    const { mode, sinceDate, search, take } = this.directPriceStockForm.getRawValue();
+    this.loadingDirectPreview.set(true);
+    this.directDispatchResult.set(null);
+
+    this.service
+      .getTrendyolGoDirectPriceStockPreview({
+        storeId,
+        mode,
+        sinceDate: mode === 'changed' ? sinceDate : null,
+        search: search.trim() || null,
+        take
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingDirectPreview.set(false))
+      )
+      .subscribe({
+        next: (preview: ITrendyolGoDirectPriceStockPreviewApiDto) => {
+          this.directPreview.set(preview);
+          this.selectedDirectBarcodes.set(new Set());
+          if (!preview.items?.length) {
+            this.setFeedback('info', 'Secilen kriterlerde Mikro urun kaydi bulunamadi.');
+          }
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Mikro fiyat onizlemesi alinamadi.'))
+      });
+  }
+
+  protected toggleDirectItem(barcode: string): void {
+    if (!barcode) return;
+    const next = new Set(this.selectedDirectBarcodes());
+    if (next.has(barcode)) {
+      next.delete(barcode);
+    } else {
+      next.add(barcode);
+    }
+    this.selectedDirectBarcodes.set(next);
+  }
+
+  protected toggleAllDirectItems(): void {
+    const items = this.directItems();
+    const allSelected = items.length > 0 && items.every((item) => this.selectedDirectBarcodes().has(item.barcode));
+    this.selectedDirectBarcodes.set(allSelected ? new Set() : new Set(items.map((i) => i.barcode)));
+  }
+
+  protected async dispatchDirectPriceStock(): Promise<void> {
+    if (!this.canUpdate() || this.busyAction()) {
+      return;
+    }
+
+    const { targetScope, mode, sinceDate } = this.directPriceStockForm.getRawValue();
+    const isAllStores = targetScope === 'all';
+    const storeId = this.selectedStoreId();
+
+    if (!isAllStores && !storeId) {
+      this.setFeedback('error', 'Gonderim icin magaza secin veya tum magazalari secin.');
+      return;
+    }
+
+    const selectedBarcodes = Array.from(this.selectedDirectBarcodes());
+    const preview = this.directPreview();
+    const modeLabel = mode === 'changed' ? 'Degisen Fiyatlar ve Stoklar' : 'Tum Aktif Fiyatlar ve Stoklar';
+    const targetLabel = isAllStores ? 'TUM MAGAZALAR / SUBELER' : (this.selectedStore()?.storeName ?? `Magaza #${storeId}`);
+    const scopeDetail = selectedBarcodes.length > 0
+      ? `Secili ${selectedBarcodes.length} adet barkod`
+      : preview
+        ? `Onizlemedeki ${preview.totalCount} adet urun (veya filtreye uyan tumu)`
+        : 'Filtreye uyan tum urunler';
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Trendyol Go Dogrudan Gonderim Onayi',
+      message: `${targetLabel} icin ${scopeDetail} (${modeLabel}) dogrudan Mikro ERP'den okunup Trendyol Go'ya aktarilacak. Devam edilsin mi?`,
+      confirmText: 'Dogrudan Gonder',
+      tone: 'warning'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.busyAction.set('direct-price-stock-dispatch');
+    const request: ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto = {
+      allStores: isAllStores,
+      storeIds: isAllStores ? [] : [storeId as number],
+      mode,
+      sinceDate: mode === 'changed' ? sinceDate : null,
+      barcodes: selectedBarcodes.length > 0 ? selectedBarcodes : []
+    };
+
+    this.service
+      .dispatchTrendyolGoDirectPriceStock(request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (result: ITrendyolGoDirectPriceStockDispatchResultApiDto) => {
+          this.directDispatchResult.set(result);
+          this.setFeedback(
+            'success',
+            `Dogrudan aktarim tamamlandi: ${result.targetStoresCount} magaza, toplam ${result.totalItemsDispatched} urun Trendyol Go'ya aktarildi.`
+          );
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Dogrudan fiyat ve stok gonderilemedi.'))
       });
   }
 

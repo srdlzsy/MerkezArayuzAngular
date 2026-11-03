@@ -353,6 +353,35 @@
   grid-template-columns: minmax(150px, 0.26fr) minmax(110px, 0.18fr) minmax(240px, auto);
 }
 
+.sales-comparison-toolbar {
+  grid-template-columns: minmax(160px, 0.3fr) minmax(180px, 1fr) auto;
+}
+
+.sales-comparison-summary {
+  grid-template-columns: repeat(8, minmax(120px, 1fr));
+}
+
+.sales-comparison-table-wrap {
+  max-height: calc(100vh - 350px);
+}
+
+.sales-comparison-table {
+  min-width: 1660px;
+}
+
+.sales-comparison-table th,
+.sales-comparison-table td {
+  padding: 0.42rem 0.5rem;
+}
+
+.sales-comparison-table tbody tr.comparison-row-difference {
+  background: #fff7f7;
+}
+
+.sales-comparison-table tbody tr.comparison-row-difference:hover {
+  background: #ffeded;
+}
+
 .toolbar-actions {
   display: inline-flex;
   gap: 0.4rem;

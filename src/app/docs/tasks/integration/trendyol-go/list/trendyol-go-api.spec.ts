@@ -101,4 +101,42 @@ describe('Trendyol Go price/stock API', () => {
     expect(request.request.body).toBeNull();
     request.flush({ storeId: 402535, snapshotStatus: 'Preparing' });
   });
+
+  it('previews direct price and stock directly from Mikro ERP', () => {
+    service.getTrendyolGoDirectPriceStockPreview({
+      storeId: 402535,
+      mode: 'changed',
+      sinceDate: '2026-11-03',
+      search: 'ayran',
+      take: 200
+    }).subscribe();
+
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/price-stock/direct-preview')
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('storeId')).toBe('402535');
+    expect(request.request.params.get('mode')).toBe('changed');
+    expect(request.request.params.get('sinceDate')).toBe('2026-11-03');
+    expect(request.request.params.get('search')).toBe('ayran');
+    expect(request.request.params.get('take')).toBe('200');
+    request.flush({ storeId: 402535, warehouseNo: 1, storeName: 'Test', mode: 'changed', totalCount: 1, items: [] });
+  });
+
+  it('dispatches direct price and stock from Mikro to Trendyol Go for all stores', () => {
+    const body = {
+      allStores: true,
+      mode: 'changed' as const,
+      sinceDate: '2026-11-03',
+      barcodes: []
+    };
+    service.dispatchTrendyolGoDirectPriceStock(body).subscribe();
+
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/price-stock/direct-dispatch')
+    );
+    expect(request.request.method).toBe('POST');
+    expect(request.request.body).toEqual(body);
+    request.flush({ targetStoresCount: 3, totalItemsDispatched: 50, storeResults: [] });
+  });
 });

@@ -20,6 +20,8 @@ import type {
   KasaHareketReceiptDto,
   KasaHareketReportRowDto,
   KasaHareketReportSummaryDto,
+  KasaHareketSalesComparisonDto,
+  KasaHareketSalesComparisonRowDto,
   KasaHareketScheduledImportHttpRequest,
   KasaHareketTransferStatusDto
 } from '@interfaces';
@@ -35,7 +37,7 @@ import {
   exportRowsToExcel
 } from '../../../core/excel-export/excel-export.utils';
 
-type KasaHareketTab = 'import' | 'rapor' | 'icmal' | 'mikro';
+type KasaHareketTab = 'import' | 'rapor' | 'satis' | 'icmal' | 'mikro';
 type KasaHareketDetailTab =
   | 'cashiers'
   | 'movement-payments'
@@ -94,6 +96,8 @@ export class KasaHareketAktarimiListComponent {
   protected readonly lastProcedureResult = signal<KasaHareketProcedureResultDto | null>(null);
   protected readonly reportRows = signal<KasaHareketReportRowDto[]>([]);
   protected readonly reportSummary = signal<KasaHareketReportSummaryDto | null>(null);
+  protected readonly salesComparisonLoading = signal(false);
+  protected readonly salesComparison = signal<KasaHareketSalesComparisonDto | null>(null);
   protected readonly comparisonResult = signal<KasaHareketCashSummaryComparisonDto | null>(null);
   protected readonly selectedComparisonRow = signal<KasaHareketCashSummaryComparisonRowDto | null>(null);
   protected readonly comparisonDetail = signal<KasaHareketDetailDto | null>(null);
@@ -139,6 +143,9 @@ export class KasaHareketAktarimiListComponent {
     dryRun: new FormControl<boolean>(true, { nonNullable: true })
   });
   protected readonly reportForm = new FormGroup({
+    date: new FormControl<string>(this.today, { nonNullable: true })
+  });
+  protected readonly salesComparisonForm = new FormGroup({
     date: new FormControl<string>(this.today, { nonNullable: true })
   });
   protected readonly comparisonForm = new FormGroup({
@@ -430,6 +437,55 @@ export class KasaHareketAktarimiListComponent {
             tone: 'error',
             title: 'Icmal kontrol yuklenemedi',
             message: this.getErrorMessage(error, 'Icmal karsilastirma alinirken hata olustu.')
+          });
+        }
+      });
+  }
+
+  protected loadSalesComparison(): void {
+    const date = this.salesComparisonForm.controls.date.value.trim();
+    if (!date) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Karsilastirma tarihi gerekli',
+        message: 'Satis karsilastirmasi icin tarih secin.'
+      });
+      return;
+    }
+
+    this.salesComparisonLoading.set(true);
+    this.salesComparison.set(null);
+    this.feedback.set(null);
+
+    this.kasaIslemleriService
+      .getKasaHareketSatisKarsilastirma({
+        date: this.toDateQueryValue(date),
+        branchNo: this.getSelectedBranchNo()
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.salesComparisonLoading.set(false))
+      )
+      .subscribe({
+        next: (result: KasaHareketSalesComparisonDto) => {
+          this.salesComparison.set({
+            ...result,
+            rows: [...(result.rows ?? [])].sort((left, right) => left.branchNo - right.branchNo)
+          });
+
+          if (!result.rows?.length) {
+            this.feedback.set({
+              tone: 'info',
+              title: 'Satis karsilastirmasi bos',
+              message: 'Secilen tarih ve sube icin karsilastirilacak hareket bulunamadi.'
+            });
+          }
+        },
+        error: (error: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Satis karsilastirmasi yuklenemedi',
+            message: this.getErrorMessage(error, 'Satis karsilastirma verileri alinirken hata olustu.')
           });
         }
       });
@@ -751,6 +807,11 @@ export class KasaHareketAktarimiListComponent {
 
   protected readonly trackByReportRow = (_index: number, row: KasaHareketReportRowDto): string =>
     `${row.date}-${row.branchNo}-${row.cashRegisterNo}`;
+
+  protected readonly trackBySalesComparisonRow = (
+    _index: number,
+    row: KasaHareketSalesComparisonRowDto
+  ): number => row.branchNo;
 
   protected readonly trackByComparisonRow = (
     _index: number,
@@ -1167,7 +1228,9 @@ export class KasaHareketAktarimiListComponent {
       endDate,
       branchNo: this.getSelectedBranchNo(),
       cashRegisterNo:
-        selectedCashRegisters.length === 1 ? selectedCashRegisters[0] : null
+        selectedCashRegisters.length === 1 ? selectedCashRegisters[0] : null,
+      cashRegisterNos:
+        selectedCashRegisters.length > 1 ? selectedCashRegisters : undefined
     };
   }
 

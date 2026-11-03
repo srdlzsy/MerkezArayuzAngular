@@ -21,6 +21,18 @@
         <button
           type="button"
           class="task-tab"
+          [class.is-active]="activeTab() === 'satis'"
+          (click)="selectTab('satis')"
+        >
+          <i class="fa-solid fa-table-columns tab-icon"></i>
+          Satis Karsilastirma
+          <span class="tab-badge tab-badge-diff" *ngIf="(salesComparison()?.summary?.differenceCount ?? 0) > 0">
+            {{ salesComparison()?.summary?.differenceCount }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="task-tab"
           [class.is-active]="activeTab() === 'rapor'"
           (click)="selectTab('rapor')"
         >
@@ -445,6 +457,130 @@
             </table>
           </div>
         </div>
+      </section>
+
+      <section class="tab-panel sales-comparison-panel" *ngSwitchCase="'satis'">
+        <form
+          class="report-toolbar sales-comparison-toolbar"
+          [formGroup]="salesComparisonForm"
+          (ngSubmit)="loadSalesComparison()"
+          novalidate
+        >
+          <label class="field">
+            <span>Karsilastirma Tarihi</span>
+            <input type="date" formControlName="date" />
+          </label>
+          <span class="scope-pill">{{ selectedBranchLabel() }}</span>
+          <div class="toolbar-actions">
+            <button
+              type="submit"
+              class="task-action task-action-primary"
+              [disabled]="salesComparisonLoading()"
+            >
+              {{ salesComparisonLoading() ? 'Yukleniyor...' : 'Karsilastir' }}
+            </button>
+          </div>
+        </form>
+
+        <ng-container *ngIf="salesComparison() as comparison">
+          <section class="summary-strip sales-comparison-summary">
+            <article class="summary-item">
+              <span>Sube</span>
+              <strong>{{ comparison.summary.rowCount }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.differenceCount > 0">
+              <span>Farkli Sube</span>
+              <strong>{{ comparison.summary.differenceCount }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Stok Hareket</span>
+              <strong>{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Cari Hesap</span>
+              <strong>{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Aktarilan</span>
+              <strong>{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Z Raporu</span>
+              <strong>{{ formatCurrency(comparison.summary.totalZReportAmount) }}</strong>
+            </article>
+            <article class="summary-item metric-negative">
+              <span>Toplam Acik</span>
+              <strong>{{ formatCurrency(comparison.summary.totalShortage) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Toplam Fazla</span>
+              <strong>{{ formatCurrency(comparison.summary.totalExcess) }}</strong>
+            </article>
+          </section>
+
+          <div class="table-wrap sales-comparison-table-wrap" *ngIf="comparison.rows.length">
+            <table class="data-table sales-comparison-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Sube</th>
+                  <th class="align-right">Stok Hareket Tutari</th>
+                  <th class="align-right">Cari Hesap Tutari</th>
+                  <th class="align-right">Aktarilan Tutar</th>
+                  <th class="align-right">GPS Haric</th>
+                  <th class="align-right">GPS Tutari</th>
+                  <th class="align-right">Z Raporu</th>
+                  <th class="align-right">ZRP / Aktarim Fark</th>
+                  <th class="align-right">Aktarilan / Ciro Fark</th>
+                  <th class="align-right">Cari / Stok Fark</th>
+                  <th>Durum</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let row of comparison.rows; trackBy: trackBySalesComparisonRow"
+                  [class.comparison-row-difference]="row.hasDifference"
+                >
+                  <td>{{ formatDate(row.date) }}</td>
+                  <td>
+                    <strong>{{ row.branchNo }} - {{ row.branchName || 'Sube' }}</strong>
+                  </td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.stockMovementAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.currentAccountAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.transferredAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.expenseExcludedAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.expenseReceiptAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.zReportAmount) }}</td>
+                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.zReportTransferDifference < 0">
+                    {{ formatCurrency(row.zReportTransferDifference) }}
+                  </td>
+                  <td class="align-right font-mono" [class.amount-negative]="row.transferredTurnoverDifference < 0">
+                    {{ formatCurrency(row.transferredTurnoverDifference) }}
+                  </td>
+                  <td class="align-right font-mono" [class.amount-negative]="row.currentStockDifference < 0">
+                    {{ formatCurrency(row.currentStockDifference) }}
+                  </td>
+                  <td>
+                    <span class="status-pill" [class.status-balanced]="!row.hasDifference" [class.status-difference]="row.hasDifference">
+                      {{ row.hasDifference ? 'Fark Var' : 'Dengeli' }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </ng-container>
+
+        <article class="state-card" *ngIf="salesComparisonLoading()">
+          <div class="loading-spinner-wrap">
+            <div class="spinner-small"></div>
+            <h3>Furpa ve Mikro satis tutarlari karsilastiriliyor...</h3>
+          </div>
+        </article>
+
+        <article class="state-card empty-state" *ngIf="!salesComparisonLoading() && salesComparison() && !salesComparison()?.rows?.length">
+          <h3>Secilen tarih icin karsilastirilacak hareket bulunamadi.</h3>
+        </article>
       </section>
 
       <!-- ========================================================== -->

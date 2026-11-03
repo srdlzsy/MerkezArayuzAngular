@@ -1462,6 +1462,54 @@ export interface ITrendyolGoPriceStockDispatchApiDto {
   [key: string]: unknown;
 }
 
+export interface ITrendyolGoDirectPriceStockItemApiDto {
+  barcode: string;
+  stockCode: string;
+  productName: string;
+  sellingPrice: number;
+  quantity: number;
+  priceChangedFlag: boolean;
+  priceLastUpDate?: string | null;
+  warehouseNo: number;
+  unitPointer: number;
+}
+
+export interface ITrendyolGoDirectPriceStockPreviewApiDto {
+  storeId: number;
+  warehouseNo: number;
+  storeName: string;
+  mode: string;
+  sinceDate?: string | null;
+  totalCount: number;
+  items: ITrendyolGoDirectPriceStockItemApiDto[];
+}
+
+export interface ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto {
+  storeIds?: number[];
+  allStores?: boolean;
+  mode?: 'all' | 'changed';
+  sinceDate?: string | null;
+  onlyFlaggedChanged?: boolean | null;
+  barcodes?: string[];
+}
+
+export interface ITrendyolGoDirectStoreDispatchResultApiDto {
+  storeId: number;
+  warehouseNo: number;
+  storeName: string;
+  itemCount: number;
+  batchCount: number;
+  success: boolean;
+  errorMessage?: string | null;
+  batchRequestIds: string[];
+}
+
+export interface ITrendyolGoDirectPriceStockDispatchResultApiDto {
+  targetStoresCount: number;
+  totalItemsDispatched: number;
+  storeResults: ITrendyolGoDirectStoreDispatchResultApiDto[];
+}
+
 export interface ITrendyolGoCatalogPreviewItemApiDto {
   stockCode: string | null;
   productName: string | null;

@@ -453,12 +453,18 @@ export interface KasaHareketTransferStatusHttpRequest {
   endDate: string;
   branchNo?: number | null;
   cashRegisterNo?: number | null;
+  cashRegisterNos?: readonly number[] | null;
 }
 
 export interface KasaHareketReportHttpRequest {
   date: string;
   branchNo?: number | null;
   cashRegisterNo?: number | null;
+}
+
+export interface KasaHareketSalesComparisonHttpRequest {
+  date: string;
+  branchNo?: number | null;
 }
 
 export interface KasaHareketCashSummaryComparisonHttpRequest extends KasaHareketReportHttpRequest {
@@ -535,6 +541,45 @@ export interface KasaHareketReportSummaryDto {
   totalExpense: number;
   totalCheckAmount: number;
   totalDifference: number;
+}
+
+export interface KasaHareketSalesComparisonDto {
+  date: string;
+  branchNo: number | null;
+  tolerance: number;
+  summary: KasaHareketSalesComparisonSummaryDto;
+  rows: KasaHareketSalesComparisonRowDto[];
+}
+
+export interface KasaHareketSalesComparisonSummaryDto {
+  rowCount: number;
+  differenceCount: number;
+  totalStockMovementAmount: number;
+  totalCurrentAccountAmount: number;
+  totalTransferredAmount: number;
+  totalExpenseReceiptAmount: number;
+  totalZReportAmount: number;
+  totalZReportTransferDifference: number;
+  totalTransferredTurnoverDifference: number;
+  totalCurrentStockDifference: number;
+  totalShortage: number;
+  totalExcess: number;
+}
+
+export interface KasaHareketSalesComparisonRowDto {
+  date: string;
+  branchNo: number;
+  branchName: string;
+  stockMovementAmount: number;
+  currentAccountAmount: number;
+  transferredAmount: number;
+  expenseExcludedAmount: number;
+  expenseReceiptAmount: number;
+  zReportAmount: number;
+  zReportTransferDifference: number;
+  transferredTurnoverDifference: number;
+  currentStockDifference: number;
+  hasDifference: boolean;
 }
 
 export type KasaHareketCashSummaryComparisonStatus =

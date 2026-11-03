@@ -86,6 +86,9 @@ import type {
   ITrendyolGoPriceStockRefreshStatusApiDto,
   ITrendyolGoPriceStockDispatchApiDto,
   ITrendyolGoPriceStockDispatchHttpRequestApiDto,
+  ITrendyolGoDirectPriceStockPreviewApiDto,
+  ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto,
+  ITrendyolGoDirectPriceStockDispatchResultApiDto,
   ITrendyolGoCatalogPreviewApiDto,
   ITrendyolGoCatalogDispatchApiDto,
   ITrendyolGoCatalogDispatchHttpRequestApiDto,
@@ -983,6 +986,42 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   dispatchTrendyolGoPriceStock(request: ITrendyolGoPriceStockDispatchHttpRequestApiDto) {
     return this.post<TrendyolGoPriceStockDispatchDto, ITrendyolGoPriceStockDispatchHttpRequestApiDto>(
       'entegrasyon-islemleri/trendyol-go/price-stock/dispatch',
+      request
+    );
+  }
+
+  getTrendyolGoDirectPriceStockPreview(params: {
+    storeId: number;
+    mode?: 'all' | 'changed';
+    sinceDate?: string | null;
+    onlyFlaggedChanged?: boolean | null;
+    search?: string | null;
+    take?: number;
+  }) {
+    return this.getWithQuery<ITrendyolGoDirectPriceStockPreviewApiDto>(
+      'entegrasyon-islemleri/trendyol-go/price-stock/direct-preview',
+      {
+        storeId: params.storeId,
+        mode: params.mode ?? 'changed',
+        sinceDate: params.sinceDate ?? undefined,
+        onlyFlaggedChanged:
+          params.onlyFlaggedChanged !== undefined && params.onlyFlaggedChanged !== null
+            ? String(params.onlyFlaggedChanged)
+            : undefined,
+        search: params.search?.trim() || undefined,
+        take: params.take ?? 500
+      }
+    );
+  }
+
+  dispatchTrendyolGoDirectPriceStock(
+    request: ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto
+  ) {
+    return this.post<
+      ITrendyolGoDirectPriceStockDispatchResultApiDto,
+      ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto
+    >(
+      'entegrasyon-islemleri/trendyol-go/price-stock/direct-dispatch',
       request
     );
   }

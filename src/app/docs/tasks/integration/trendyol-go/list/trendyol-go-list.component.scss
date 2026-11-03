@@ -122,6 +122,75 @@
   background: #fff;
 }
 
+.sub-nav-tabs {
+  display: flex;
+  gap: 0.5rem;
+  margin-bottom: 0.75rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.sub-nav-tabs button {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.85rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+}
+
+.sub-nav-tabs button:hover {
+  background: #f1f5f9;
+}
+
+.sub-nav-tabs button.is-active {
+  border-color: #087e8b;
+  background: #087e8b;
+  color: #fff;
+}
+
+.direct-dispatch-results {
+  margin: 0.75rem 0;
+  padding: 0.75rem;
+  border: 1px solid #bbf7d0;
+  border-radius: 6px;
+  background: #f0fdf4;
+}
+
+.direct-dispatch-results .result-header {
+  display: flex;
+  gap: 0.5rem;
+  align-items: center;
+  margin-bottom: 0.5rem;
+  font-size: 0.82rem;
+  color: #166534;
+}
+
+.batch-badge {
+  display: inline-block;
+  margin: 0.1rem 0.2rem;
+  padding: 0.15rem 0.4rem;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  background: #eff6ff;
+  color: #1d4ed8;
+  font-family: monospace;
+  font-size: 0.72rem;
+  cursor: pointer;
+}
+
+.batch-badge:hover {
+  background: #dbeafe;
+  text-decoration: underline;
+}
+
 .catalog-sync-workspace {
   min-width: 0;
   padding: 0.75rem;
