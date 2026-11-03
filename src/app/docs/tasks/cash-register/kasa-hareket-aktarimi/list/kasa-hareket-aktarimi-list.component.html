@@ -1,9 +1,11 @@
 <section class="task-page" *ngIf="page as current">
   <article class="surface-card transfer-workspace">
+    <!-- Üst Başlık ve Sekmeler -->
     <header class="page-head">
       <div class="title-block">
         <span class="section-kicker">Kasa Islemleri</span>
         <h2>{{ current.title }}</h2>
+        <span class="subtitle">Eski AktarimUI & Merkez API Kasa Hareket Entegrasyonu</span>
       </div>
 
       <div class="task-tabs" aria-label="Kasa hareket aktarimi sekmeleri">
@@ -13,7 +15,8 @@
           [class.is-active]="activeTab() === 'import'"
           (click)="selectTab('import')"
         >
-          Dosya Al
+          <i class="fa-solid fa-arrow-right-arrow-left tab-icon"></i>
+          Aktarim Menusu
         </button>
         <button
           type="button"
@@ -21,16 +24,9 @@
           [class.is-active]="activeTab() === 'rapor'"
           (click)="selectTab('rapor')"
         >
+          <i class="fa-solid fa-chart-column tab-icon"></i>
           Rapor
-          <span>{{ reportRows().length }}</span>
-        </button>
-        <button
-          type="button"
-          class="task-tab"
-          [class.is-active]="activeTab() === 'mikro'"
-          (click)="selectTab('mikro')"
-        >
-          Mikro Aktarim
+          <span class="tab-badge" *ngIf="reportRows().length">{{ reportRows().length }}</span>
         </button>
         <button
           type="button"
@@ -38,66 +34,19 @@
           [class.is-active]="activeTab() === 'icmal'"
           (click)="selectTab('icmal')"
         >
-          Icmal Kontrol
-          <span>{{ comparisonResult()?.summary?.differenceCount ?? 0 }}</span>
+          <i class="fa-solid fa-scale-balanced tab-icon"></i>
+          Icmal Karsilastirma
+          <span
+            class="tab-badge tab-badge-diff"
+            *ngIf="(comparisonResult()?.summary?.differenceCount ?? 0) > 0"
+          >
+            {{ comparisonResult()?.summary?.differenceCount }}
+          </span>
         </button>
       </div>
     </header>
 
-    <form class="scope-bar" [formGroup]="scopeForm" novalidate>
-      <label class="field">
-        <span>Sube</span>
-        <select formControlName="branchNo">
-          <option [ngValue]="null">Tum Subeler</option>
-          <option *ngFor="let branch of branches(); trackBy: trackByBranch" [ngValue]="branch.branchNo">
-            {{ getBranchLabel(branch) }}
-          </option>
-        </select>
-      </label>
-
-      <label class="field">
-        <span>Kasa</span>
-        <select formControlName="cashRegisterNo">
-          <option [ngValue]="null">Tum Kasalar</option>
-          <option
-            *ngFor="let cashRegister of cashRegisters(); trackBy: trackByCashRegister"
-            [ngValue]="cashRegister.cashRegisterNo"
-          >
-            {{ getCashRegisterLabel(cashRegister) }}
-          </option>
-        </select>
-      </label>
-
-      <button type="button" class="task-action task-action-secondary" (click)="loadBranches()" [disabled]="branchesLoading()">
-        {{ branchesLoading() ? 'Yukleniyor...' : 'Subeleri Yenile' }}
-      </button>
-
-      <div class="scope-summary">
-        <span>Kapsam</span>
-        <strong>{{ scopeSummary() }}</strong>
-        <small *ngIf="cashRegistersLoading()">Kasalar yukleniyor</small>
-      </div>
-    </form>
-
-    <section class="metric-strip">
-      <article class="metric-card">
-        <span>Sube</span>
-        <strong>{{ selectedBranchLabel() }}</strong>
-      </article>
-      <article class="metric-card">
-        <span>Kasa</span>
-        <strong>{{ selectedCashRegisterLabel() }}</strong>
-      </article>
-      <article class="metric-card">
-        <span>Rapor Satiri</span>
-        <strong>{{ reportRows().length }}</strong>
-      </article>
-      <article class="metric-card" [class.metric-negative]="reportTotalDifference() < 0">
-        <span>Rapor Farki</span>
-        <strong>{{ formatCurrency(reportTotalDifference()) }}</strong>
-      </article>
-    </section>
-
+    <!-- Geri Bildirim Banner'ları -->
     <article
       class="state-card"
       *ngIf="feedback() as currentFeedback"
@@ -105,250 +54,530 @@
       [class.state-card-success]="currentFeedback.tone === 'success'"
       [class.state-card-info]="currentFeedback.tone === 'info'"
     >
-      <h3>{{ currentFeedback.title }}</h3>
+      <div class="state-card-header">
+        <strong>{{ currentFeedback.title }}</strong>
+      </div>
       <p>{{ currentFeedback.message }}</p>
     </article>
 
     <article class="state-card state-card-error" *ngIf="excelExportErrorMessage() as exportError">
-      <h3>Excel Aktarimi Basarisiz</h3>
+      <div class="state-card-header">
+        <strong>Excel Aktarimi Basarisiz</strong>
+      </div>
       <p>{{ exportError }}</p>
     </article>
 
+    <!-- ========================================================== -->
+    <!-- SEKME 1: AKTARIM MENUSU (Eski AktarimMenu Birebir Karsiligi) -->
+    <!-- ========================================================== -->
     <ng-container [ngSwitch]="activeTab()">
-      <section class="tab-panel" *ngSwitchCase="'import'">
-        <form class="panel-grid import-panel" [formGroup]="importForm" (ngSubmit)="runImport()" novalidate>
-          <div class="panel-main">
-            <div class="mode-tabs" aria-label="Import tipi">
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="importForm.controls.importType.value === 'normal'"
-                (click)="selectImportMode('normal')"
-              >
-                HR Hareketleri
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="importForm.controls.importType.value === 'cancel'"
-                (click)="selectImportMode('cancel')"
-              >
-                IP Iptalleri
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="importForm.controls.importType.value === 'scheduled'"
-                (click)="selectImportMode('scheduled')"
-              >
-                Zamanli
-              </button>
-            </div>
+      <section class="tab-panel aktarim-menu-panel" *ngSwitchCase="'import'">
+        <div class="aktarim-layout">
+          <!-- SOL KOLON: Filtreler ve Dinamik Kasa Matrisi -->
+          <div class="aktarim-left-column">
+            <!-- Tarih ve Sube Paneli -->
+            <div class="filter-box">
+              <div class="box-head">
+                <span class="box-title">Aktarim Secenekleri</span>
+                <span class="scope-pill">{{ scopeSummary() }}</span>
+              </div>
 
-            <p class="format-hint">
-              HR/IP satirlari farkli ayraclarla okunur. <code>FIS</code>, <code>FAT</code>, <code>IRS</code>,
-              <code>GPS</code> belge ayrimi korunur; ayracsiz para alanlari kurus, ondalik ayracli alanlar decimal okunur.
-            </p>
-
-            <div class="form-grid" *ngIf="importForm.controls.importType.value !== 'scheduled'; else scheduledFields">
-              <label class="field">
-                <span>Baslangic</span>
-                <input type="date" formControlName="startDate" />
-              </label>
-
-              <label class="field">
-                <span>Bitis</span>
-                <input type="date" formControlName="endDate" />
-              </label>
-            </div>
-
-            <ng-template #scheduledFields>
-              <div class="form-grid">
+              <!-- Baslangic ve Bitis Tarihi -->
+              <div class="date-row" [formGroup]="importForm">
                 <label class="field">
-                  <span>Zamanli Tarih</span>
-                  <input type="date" formControlName="scheduledDate" />
+                  <span>Baslangic Tarihi</span>
+                  <input type="date" formControlName="startDate" />
                 </label>
-
                 <label class="field">
-                  <span>Gun Farki</span>
-                  <input type="number" step="1" formControlName="addDay" placeholder="-1" />
+                  <span>Bitis Tarihi</span>
+                  <input type="date" formControlName="endDate" />
                 </label>
               </div>
-            </ng-template>
 
-            <div class="toggle-row">
+              <!-- Sube Dropdown -->
+              <div class="branch-row" [formGroup]="scopeForm">
+                <label class="field branch-field">
+                  <span>Sube Secimi</span>
+                  <select formControlName="branchNo">
+                    <option [ngValue]="null">Tumu (Tum Subeler)</option>
+                    <option *ngFor="let branch of branches(); trackBy: trackByBranch" [ngValue]="branch.branchNo">
+                      {{ getBranchLabel(branch) }}
+                    </option>
+                  </select>
+                </label>
+                <button
+                  type="button"
+                  class="btn-refresh"
+                  (click)="loadBranches()"
+                  [disabled]="branchesLoading()"
+                  title="Subeleri Yenile"
+                >
+                  {{ branchesLoading() ? '...' : '↻' }}
+                </button>
+              </div>
+            </div>
+
+            <!-- Dinamik Kasalar Matrisi (grpKasalar) -->
+            <div class="kasalar-box">
+              <div class="box-head">
+                <div class="box-head-title">
+                  <span class="box-title">Kasalar</span>
+                  <span class="count-badge" *ngIf="getSelectedBranchNo()">
+                    Seçili: {{ selectedCashRegisterNos().length }} / {{ cashRegisters().length }}
+                  </span>
+                </div>
+                <div class="kasalar-quick-actions" *ngIf="getSelectedBranchNo() && cashRegisters().length">
+                  <button
+                    type="button"
+                    class="btn-link"
+                    (click)="selectAllCashRegisters()"
+                    [disabled]="isAllCashRegistersSelected()"
+                  >
+                    Tumunu Sec
+                  </button>
+                  <span class="sep">|</span>
+                  <button
+                    type="button"
+                    class="btn-link"
+                    (click)="clearCashRegisters()"
+                    [disabled]="!selectedCashRegisterNos().length"
+                  >
+                    Temizle
+                  </button>
+                </div>
+              </div>
+
+              <!-- Kasalar Yukleniyor -->
+              <div class="kasalar-loading" *ngIf="cashRegistersLoading()">
+                <div class="spinner-small"></div>
+                <span>Kasalar getiriliyor...</span>
+              </div>
+
+              <!-- Tum Subeler Secili Durumu -->
+              <div class="kasalar-all-info" *ngIf="!getSelectedBranchNo() && !cashRegistersLoading()">
+                <i class="fa-solid fa-circle-info info-icon"></i>
+                <span>"Tumu" secildiginde tum aktif subelerin ve kasalarin hareketleri islenir.</span>
+              </div>
+
+              <!-- Sube Secili ama Kasa Yok -->
+              <div
+                class="kasalar-empty"
+                *ngIf="getSelectedBranchNo() && !cashRegistersLoading() && !cashRegisters().length"
+              >
+                <span>Secilen subeye ait tanimli kasa bulunamadi.</span>
+              </div>
+
+              <!-- Kasa Checkbox Izgarasi -->
+              <div
+                class="kasalar-grid"
+                *ngIf="getSelectedBranchNo() && !cashRegistersLoading() && cashRegisters().length"
+              >
+                <label
+                  class="kasa-checkbox-item"
+                  *ngFor="let register of cashRegisters(); trackBy: trackByCashRegister"
+                  [class.is-selected]="isCashRegisterSelected(register.cashRegisterNo)"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="isCashRegisterSelected(register.cashRegisterNo)"
+                    (change)="toggleCashRegister(register.cashRegisterNo)"
+                  />
+                  <div class="kasa-info">
+                    <strong class="kasa-no">Kasa {{ register.cashRegisterNo }}</strong>
+                    <span class="kasa-type">{{ register.cashRegisterTypeName || ('Tip ' + register.cashRegisterType) }}</span>
+                  </div>
+                </label>
+              </div>
+            </div>
+
+            <!-- Gelismis Secenekler (Mevcutlari Atla / Sadece Kontrol) -->
+            <div class="advanced-options-box" [formGroup]="importForm">
               <label class="check-field">
                 <input type="checkbox" formControlName="skipExisting" />
-                <span>Mevcutlari Atla</span>
+                <span>Mevcut Fatura/Fisleri Atla (skipExisting)</span>
               </label>
-
               <label class="check-field">
                 <input type="checkbox" formControlName="dryRun" />
-                <span>Sadece Kontrol</span>
+                <span>Sadece Kontrol (dryRun - VT Yazmadan Test)</span>
               </label>
             </div>
-
-            <div class="form-actions">
-              <button type="submit" class="task-action task-action-primary" [disabled]="importLoading()">
-                {{ importLoading() ? 'Calisiyor...' : getImportModeLabel(importForm.controls.importType.value) + ' Calistir' }}
-              </button>
-            </div>
           </div>
-        </form>
 
-        <section class="result-grid" *ngIf="lastImportResult() as importResult">
-          <article class="result-card result-main">
-            <span class="section-kicker">Sonuc</span>
-            <h3>{{ importResult.status || 'Durum' }}</h3>
-          </article>
-          <article class="result-card">
-            <span>Dosya</span>
-            <strong>{{ importResult.processedFiles }}</strong>
-          </article>
-          <article class="result-card">
-            <span>Fis</span>
-            <strong>{{ importResult.processedInvoices }}</strong>
-          </article>
-          <article class="result-card">
-            <span>Duplicate</span>
-            <strong>{{ importResult.skippedExistingInvoices }}</strong>
-          </article>
-          <article class="result-card">
-            <span>Satir</span>
-            <strong>{{ importResult.insertedLines }}</strong>
-          </article>
-          <article class="result-card">
-            <span>Odeme</span>
-            <strong>{{ importResult.insertedPayments }}</strong>
-          </article>
-          <article class="result-card">
-            <span>Promosyon</span>
-            <strong>{{ importResult.insertedPromotions }}</strong>
-          </article>
-        </section>
+          <!-- SAG KOLON: Eski AktarimMenu 8 Aksiyon Butonu -->
+          <div class="aktarim-right-column">
+            <div class="actions-panel">
+              <div class="panel-header">
+                <span class="panel-kicker">ISLEM MENUSU</span>
+                <h3>Aktarim Aksiyonlari</h3>
+              </div>
 
-        <div class="table-wrap issue-table-wrap" *ngIf="importIssueRows().length">
-          <table class="data-table issue-table">
-            <thead>
-              <tr>
-                <th>Tip</th>
-                <th>Sube</th>
-                <th>Kasa</th>
-                <th>Dosya</th>
-                <th>Fis</th>
-                <th>Satir</th>
-                <th>Mesaj</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr
-                *ngFor="let issue of importIssueRows(); trackBy: trackByIssue"
-                [class.issue-error]="issue.severity === 'Hata'"
-              >
-                <td><span class="status-pill">{{ issue.severity }}</span></td>
-                <td>{{ issue.branchNo ?? '-' }}</td>
-                <td>{{ issue.cashRegisterNo ?? '-' }}</td>
-                <td>{{ issue.file || '-' }}</td>
-                <td>{{ issue.receiptNo || '-' }}</td>
-                <td>{{ issue.lineNo ?? '-' }}</td>
-                <td>{{ issue.message }}</td>
-              </tr>
-            </tbody>
-          </table>
+              <div class="action-buttons-list">
+                <!-- 1. Hareketleri Aktar -->
+                <button
+                  type="button"
+                  class="action-btn btn-hareket-aktar"
+                  (click)="actionHareketAktar()"
+                  [disabled]="importLoading() || !!procedureLoadingAction()"
+                >
+                  <i class="fa-solid fa-file-import btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>{{ importForm.controls.dryRun.value ? 'Hareketleri Kontrol Et' : 'Hareketleri Aktar' }}</strong>
+                    <span>.hr dosya hareketlerini ara tabloya aktar</span>
+                  </div>
+                  <span class="btn-spinner" *ngIf="importLoading() && importForm.controls.importType.value === 'normal'"></span>
+                </button>
+
+                <!-- 2. Hareketleri Sil -->
+                <button
+                  type="button"
+                  class="action-btn btn-hareket-sil"
+                  (click)="actionHareketSil()"
+                  [disabled]="importLoading() || !!procedureLoadingAction()"
+                >
+                  <i class="fa-solid fa-trash-can btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>Hareketleri Sil</strong>
+                    <span>Ara tablodaki (Staging) hareketleri temizle</span>
+                  </div>
+                  <span class="btn-spinner" *ngIf="isProcedureLoading('staging-delete')"></span>
+                </button>
+
+                <!-- 3. Mikroya Aktar -->
+                <button
+                  type="button"
+                  class="action-btn btn-mikro-aktar"
+                  (click)="actionMikroAktar()"
+                  [disabled]="importLoading() || !!procedureLoadingAction()"
+                >
+                  <i class="fa-solid fa-database btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>Mikroya Aktar</strong>
+                    <span>Tek gunluk hareketleri Mikro v16'ya yaz</span>
+                  </div>
+                  <span class="btn-spinner" *ngIf="isProcedureLoading('mikro-transfer')"></span>
+                </button>
+
+                <!-- 4. Mikroya Aktar 2 -->
+                <button
+                  type="button"
+                  class="action-btn btn-mikro-aktar2"
+                  (click)="actionMikroAktar2()"
+                  [disabled]="importLoading() || !!procedureLoadingAction()"
+                >
+                  <i class="fa-solid fa-layer-group btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>Mikroya Aktar 2</strong>
+                    <span>Tarih araligiyla Mikro v16'ya yaz</span>
+                  </div>
+                  <span class="btn-spinner" *ngIf="isProcedureLoading('mikro-range-transfer')"></span>
+                </button>
+
+                <!-- 5. Mikrodan Sil -->
+                <button
+                  type="button"
+                  class="action-btn btn-mikro-sil"
+                  (click)="actionMikroSil()"
+                  [disabled]="importLoading() || !!procedureLoadingAction()"
+                >
+                  <i class="fa-solid fa-delete-left btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>Mikrodan Sil</strong>
+                    <span>Mikro'dan tarih veya aralik bazli stok hareket sil</span>
+                  </div>
+                  <span class="btn-spinner" *ngIf="isProcedureLoading('mikro-delete')"></span>
+                </button>
+
+                <!-- 6. İptal Belgeleri Aktar -->
+                <button
+                  type="button"
+                  class="action-btn btn-iptal-aktar"
+                  (click)="actionIptalAktar()"
+                  [disabled]="importLoading() || !!procedureLoadingAction()"
+                >
+                  <i class="fa-solid fa-file-circle-xmark btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>İptal Belgeleri Aktar</strong>
+                    <span>.hr iptal fiş ve belgelerini ayrıştırıp aktar</span>
+                  </div>
+                  <span class="btn-spinner" *ngIf="importLoading() && importForm.controls.importType.value === 'cancel'"></span>
+                </button>
+
+                <!-- 7. Rapor -->
+                <button
+                  type="button"
+                  class="action-btn btn-rapor"
+                  (click)="actionReport()"
+                  [disabled]="reportLoading()"
+                >
+                  <i class="fa-solid fa-chart-line btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>Rapor</strong>
+                    <span>ReportForm tablosuna gec ve raporu getir</span>
+                  </div>
+                </button>
+
+                <!-- 8. Log Dosyası -->
+                <button
+                  type="button"
+                  class="action-btn btn-log"
+                  (click)="actionOpenLog()"
+                >
+                  <i class="fa-solid fa-list-check btn-icon"></i>
+                  <div class="btn-content">
+                    <strong>Log Dosyasi / Sonuclar</strong>
+                    <span>Son islem ozeti ve hata/uyari detaylarini incele</span>
+                  </div>
+                </button>
+              </div>
+            </div>
+
+            <section class="transfer-status-panel" aria-live="polite">
+              <div class="transfer-status-head">
+                <div>
+                  <span class="panel-kicker">CANLI DURUM</span>
+                  <h3>Fis Aktarim Ozeti</h3>
+                </div>
+                <i class="fa-solid fa-rotate" [class.is-spinning]="transferStatusLoading()"></i>
+              </div>
+
+              <ng-container *ngIf="transferStatus() as status; else noTransferStatus">
+                <div class="transfer-status-metrics">
+                  <div><span>Toplam fis</span><strong>{{ status.totalReceiptCount }}</strong></div>
+                  <div><span>Mikro'ya aktarilan</span><strong>{{ status.transferredReceiptCount }}</strong></div>
+                  <div><span>Bekleyen</span><strong>{{ status.pendingReceiptCount }}</strong></div>
+                  <div><span>Iptal fisi</span><strong>{{ status.canceledReceiptCount }}</strong></div>
+                </div>
+                <div class="transfer-progress" *ngIf="status.totalReceiptCount > 0">
+                  <div class="transfer-progress-bar">
+                    <span [style.width.%]="transferProgressPercent()"></span>
+                  </div>
+                  <strong>%{{ transferProgressPercent() }}</strong>
+                </div>
+              </ng-container>
+
+              <ng-template #noTransferStatus>
+                <p class="transfer-status-empty">Islem basladiginda secili kapsamin gercek fis sayilari burada gorunur.</p>
+              </ng-template>
+            </section>
+          </div>
+        </div>
+
+        <!-- ALT PANEL: Islem Sonuclari ve Log Dosyasi Bolumu -->
+        <div id="log-section" class="log-section-wrapper">
+          <!-- Sonuc Metrikleri -->
+          <section class="result-grid" *ngIf="lastImportResult() as importResult">
+            <article class="result-card result-main">
+              <span class="section-kicker">Aktarim Durumu</span>
+              <h3>{{ importResult.status || 'Tamamlandi' }}</h3>
+              <small>{{ feedback()?.message || 'Islem basariyla sonuclandi.' }}</small>
+            </article>
+            <article class="result-card">
+              <span>Islenen Dosya</span>
+              <strong>{{ importResult.processedFiles }}</strong>
+            </article>
+            <article class="result-card">
+              <span>Islenen Fis</span>
+              <strong>{{ importResult.processedInvoices }}</strong>
+            </article>
+            <article class="result-card">
+              <span>Atlanan Duplicate</span>
+              <strong>{{ importResult.skippedExistingInvoices }}</strong>
+            </article>
+            <article class="result-card">
+              <span>Eklenen Satir</span>
+              <strong>{{ importResult.insertedLines }}</strong>
+            </article>
+            <article class="result-card">
+              <span>Eklenen Odeme</span>
+              <strong>{{ importResult.insertedPayments }}</strong>
+            </article>
+            <article class="result-card">
+              <span>Eklenen Promosyon</span>
+              <strong>{{ importResult.insertedPromotions }}</strong>
+            </article>
+          </section>
+
+          <!-- Procedure Sonucu -->
+          <article class="procedure-result" *ngIf="lastProcedureResult() as procedureResult">
+            <div class="proc-head">
+              <span class="section-kicker">Procedure Sonucu</span>
+              <h3>{{ procedureResult.procedure || 'Islem' }}</h3>
+            </div>
+            <p class="proc-message">{{ procedureResult.message || 'Islem basariyla calisti.' }}</p>
+            <div class="proc-meta">
+              <span>Tarih: <strong>{{ formatDate(procedureResult.date) }}</strong></span>
+              <span *ngIf="procedureResult.branchNo">Sube: <strong>{{ procedureResult.branchNo }}</strong></span>
+              <span *ngIf="procedureResult.cashRegisterNo">Kasa: <strong>{{ procedureResult.cashRegisterNo }}</strong></span>
+            </div>
+          </article>
+
+          <!-- Sorunlar / Issues Tablosu (Log Dosyasi Detayi) -->
+          <div class="table-wrap issue-table-wrap" *ngIf="importIssueRows().length">
+            <div class="box-head">
+              <span class="box-title">Islem Loglari ve Sorunlar ({{ importIssueRows().length }} kayit)</span>
+            </div>
+            <table class="data-table issue-table">
+              <thead>
+                <tr>
+                  <th>Tip</th>
+                  <th>Sube</th>
+                  <th>Kasa</th>
+                  <th>Dosya</th>
+                  <th>Fis</th>
+                  <th>Satir</th>
+                  <th>Mesaj</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr
+                  *ngFor="let issue of importIssueRows(); trackBy: trackByIssue"
+                  [class.issue-error]="issue.severity === 'Hata'"
+                >
+                  <td><span class="status-pill" [class.status-error]="issue.severity === 'Hata'">{{ issue.severity }}</span></td>
+                  <td>{{ issue.branchNo ?? '-' }}</td>
+                  <td>{{ issue.cashRegisterNo ?? '-' }}</td>
+                  <td>{{ issue.file || '-' }}</td>
+                  <td>{{ issue.receiptNo || '-' }}</td>
+                  <td>{{ issue.lineNo ?? '-' }}</td>
+                  <td>{{ issue.message }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </div>
       </section>
 
-      <section class="tab-panel" *ngSwitchCase="'rapor'">
-        <form class="report-toolbar" [formGroup]="reportForm" (ngSubmit)="loadReport()" novalidate>
-          <label class="field">
-            <span>Rapor Tarihi</span>
-            <input type="date" formControlName="date" />
-          </label>
+      <!-- ========================================================== -->
+      <!-- SEKME 2: RAPOR EKRANI (Eski ReportForm Birebir Karsiligi)  -->
+      <!-- ========================================================== -->
+      <section class="tab-panel report-panel" *ngSwitchCase="'rapor'">
+        <div class="report-toolbar-card">
+          <form class="report-toolbar" [formGroup]="reportForm" (ngSubmit)="loadReport()" novalidate>
+            <label class="field date-field">
+              <span>Rapor Tarihi</span>
+              <input type="date" formControlName="date" />
+            </label>
 
-          <button type="submit" class="task-action task-action-primary" [disabled]="reportLoading()">
-            {{ reportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
-          </button>
-
-          <div class="toolbar-actions">
-            <app-excel-export-button
-              [disabled]="!reportRows().length"
-              [exporting]="reportExporting()"
-              [summary]="reportRows().length + ' kayit'"
-              (exportRequested)="exportReportRows()"
-            ></app-excel-export-button>
-
-            <button
-              type="button"
-              class="task-action task-action-secondary"
-              [disabled]="reportCsvExporting()"
-              (click)="exportReportCsv()"
-            >
-              {{ reportCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
+            <button type="submit" class="task-action task-action-primary" [disabled]="reportLoading()">
+              {{ reportLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}
             </button>
-          </div>
-        </form>
 
-        <section class="summary-strip">
-          <article class="summary-item">
-            <span>Net</span>
-            <strong>{{ formatCurrency(reportTotalNet()) }}</strong>
-          </article>
-          <article class="summary-item">
-            <span>Gider</span>
-            <strong>{{ formatCurrency(reportTotalExpense()) }}</strong>
-          </article>
-          <article class="summary-item">
-            <span>Cek</span>
-            <strong>{{ formatCurrency(reportTotalCheck()) }}</strong>
-          </article>
-          <article class="summary-item" [class.metric-negative]="reportTotalDifference() < 0">
-            <span>Fark</span>
-            <strong>{{ formatCurrency(reportTotalDifference()) }}</strong>
-          </article>
-        </section>
+            <div class="toolbar-actions">
+              <app-excel-export-button
+                [disabled]="!reportRows().length"
+                [exporting]="reportExporting()"
+                [summary]="reportRows().length + ' kayit'"
+                (exportRequested)="exportReportRows()"
+              ></app-excel-export-button>
+
+              <button
+                type="button"
+                class="task-action task-action-secondary"
+                [disabled]="reportCsvExporting()"
+                (click)="exportReportCsv()"
+                title="CSV Olarak Indir"
+              >
+                {{ reportCsvExporting() ? 'Indiriliyor...' : 'CSV Indir' }}
+              </button>
+            </div>
+          </form>
+
+          <!-- Rapor Ozet Kartlari (Footer Summary'nin Ust Ozeti) -->
+          <section class="summary-strip">
+            <article class="summary-item">
+              <span>Toplam Net Tutar</span>
+              <strong>{{ formatCurrency(reportTotalNet()) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Toplam Gider Pusulasi</span>
+              <strong>{{ formatCurrency(reportTotalExpense()) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Toplam Cek</span>
+              <strong>{{ formatCurrency(reportTotalCheck()) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="reportTotalDifference() < 0">
+              <span>Toplam Z Raporu Farki</span>
+              <strong>{{ formatCurrency(reportTotalDifference()) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Toplam Kayit</span>
+              <strong>{{ reportRows().length }}</strong>
+            </article>
+          </section>
+        </div>
 
         <article class="state-card" *ngIf="reportLoading()">
-          <h3>Rapor yukleniyor</h3>
+          <div class="loading-spinner-wrap">
+            <div class="spinner-small"></div>
+            <h3>Rapor verileri yukleniyor, lutfen bekleyin...</h3>
+          </div>
         </article>
 
-        <div class="table-wrap" *ngIf="!reportLoading() && reportRows().length">
+        <!-- Eski DevExpress ReportForm GridView Birebir Kolonlari -->
+        <div class="table-wrap report-table-wrap" *ngIf="!reportLoading() && reportRows().length">
           <table class="data-table report-table">
             <thead>
               <tr>
-                <th>Tarih</th>
+                <th style="width: 110px;">Tarih</th>
+                <th style="width: 100px;">Kasa No</th>
                 <th>Sube</th>
-                <th>Kasa</th>
-                <th class="align-right">Net</th>
-                <th class="align-right">Gider</th>
-                <th class="align-right">Cek</th>
-                <th class="align-right">Fark</th>
+                <th class="align-right" style="width: 140px;">Net Tutar</th>
+                <th class="align-right" style="width: 140px;">Gider Pusulasi</th>
+                <th class="align-right" style="width: 130px;">Cek</th>
+                <th class="align-right" style="width: 150px;">Z Raporu</th>
               </tr>
             </thead>
             <tbody>
               <tr *ngFor="let row of reportRows(); trackBy: trackByReportRow">
                 <td>{{ formatDate(row.date) }}</td>
+                <td><strong class="badge-kasa">Kasa {{ row.cashRegisterNo }}</strong></td>
                 <td>
-                  <strong>{{ row.branchName || 'Sube' }}</strong>
-                  <div class="table-meta">No: {{ row.branchNo }}</div>
+                  <strong>{{ row.branchName || ('Sube ' + row.branchNo) }}</strong>
+                  <span class="sube-no">({{ row.branchNo }})</span>
                 </td>
-                <td>{{ row.cashRegisterNo }}</td>
-                <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
-                <td class="align-right">{{ formatCurrency(row.expense) }}</td>
-                <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
-                <td class="align-right cell-strong" [class.amount-negative]="row.difference < 0">
+                <td class="align-right font-mono">{{ formatCurrency(row.netAmount) }}</td>
+                <td class="align-right font-mono">{{ formatCurrency(row.expense) }}</td>
+                <td class="align-right font-mono">{{ formatCurrency(row.checkAmount) }}</td>
+                <td
+                  class="align-right font-mono cell-strong"
+                  [class.amount-negative]="row.difference < 0"
+                >
                   {{ formatCurrency(row.difference) }}
                 </td>
               </tr>
             </tbody>
+            <!-- Footer Summary Satiri (DevExpress Footer Panel Karşılığı) -->
+            <tfoot>
+              <tr class="footer-summary-row">
+                <td colspan="3">
+                  <strong>GENEL TOPLAM ({{ reportRows().length }} Kasa)</strong>
+                </td>
+                <td class="align-right font-mono font-bold">{{ formatCurrency(reportTotalNet()) }}</td>
+                <td class="align-right font-mono font-bold">{{ formatCurrency(reportTotalExpense()) }}</td>
+                <td class="align-right font-mono font-bold">{{ formatCurrency(reportTotalCheck()) }}</td>
+                <td
+                  class="align-right font-mono font-bold cell-strong"
+                  [class.amount-negative]="reportTotalDifference() < 0"
+                >
+                  {{ formatCurrency(reportTotalDifference()) }}
+                </td>
+              </tr>
+            </tfoot>
           </table>
         </div>
 
         <article class="state-card empty-state" *ngIf="!reportLoading() && !reportRows().length">
-          <h3>Rapor satiri yok</h3>
+          <span class="empty-icon">📭</span>
+          <h3>Secilen tarihe ait kasa hareket rapor kaydi bulunamadi.</h3>
+          <p>Farkli bir tarih secip "Raporu Getir" butonuna tiklayiniz.</p>
         </article>
       </section>
 
-      <section class="tab-panel" *ngSwitchCase="'icmal'">
+      <!-- ========================================================== -->
+      <!-- SEKME 3: KASA ICMAL KARŞILAŞTIRMA (Yeni Nesil Mutabakat)   -->
+      <!-- ========================================================== -->
+      <section class="tab-panel icmal-panel" *ngSwitchCase="'icmal'">
         <form class="report-toolbar comparison-toolbar" [formGroup]="comparisonForm" (ngSubmit)="loadComparison()" novalidate>
           <label class="field">
             <span>Icmal Tarihi</span>
@@ -356,7 +585,7 @@
           </label>
 
           <label class="field">
-            <span>Tolerans</span>
+            <span>Tolerans (TL)</span>
             <input type="number" min="0" step="0.01" formControlName="tolerance" />
           </label>
 
@@ -378,16 +607,16 @@
 
         <section class="summary-strip comparison-summary" *ngIf="comparisonResult() as comparison">
           <article class="summary-item">
-            <span>Satir</span>
+            <span>Toplam Kasa</span>
             <strong>{{ comparison.summary.rowCount }}</strong>
           </article>
           <article class="summary-item">
-            <span>Mutabik</span>
-            <strong>{{ comparison.summary.balancedCount }}</strong>
+            <span>Tam Eslesen</span>
+            <strong class="color-success">{{ comparison.summary.balancedCount }}</strong>
           </article>
           <article class="summary-item">
-            <span>Fark</span>
-            <strong>{{ comparison.summary.differenceCount }}</strong>
+            <span>Farkli</span>
+            <strong class="color-danger">{{ comparison.summary.differenceCount }}</strong>
           </article>
           <article class="summary-item" [class.metric-negative]="comparison.summary.totalDifferenceAmount < 0">
             <span>Toplam Fark</span>
@@ -396,7 +625,10 @@
         </section>
 
         <article class="state-card" *ngIf="comparisonLoading()">
-          <h3>Icmal kontrol yukleniyor</h3>
+          <div class="loading-spinner-wrap">
+            <div class="spinner-small"></div>
+            <h3>Icmal karsilastirma verileri aliniyor...</h3>
+          </div>
         </article>
 
         <div class="table-wrap" *ngIf="!comparisonLoading() && comparisonResult()?.rows?.length">
@@ -406,11 +638,12 @@
                 <th>Tarih</th>
                 <th>Sube</th>
                 <th>Kasa</th>
-                <th class="align-right">Aktarim Z</th>
-                <th class="align-right">Icmal</th>
-                <th class="align-right">Belge</th>
-                <th class="align-right">Fark</th>
-                <th>Durum</th>
+                <th class="align-right">Aktarim Z Tutari</th>
+                <th class="align-right">Kasiyer Icmal Tutari</th>
+                <th class="align-right">Belge Sayisi</th>
+                <th class="align-right">Kurus Farki</th>
+                <th>Mutabakat Durumu</th>
+                <th style="width: 80px;">Islem</th>
               </tr>
             </thead>
             <tbody>
@@ -424,20 +657,22 @@
               >
                 <td>{{ formatDate(row.date) }}</td>
                 <td>
-                  <strong>{{ row.branchName || 'Sube' }}</strong>
+                  <strong>{{ row.branchName || ('Sube ' + row.branchNo) }}</strong>
                   <div class="table-meta">No: {{ row.branchNo }}</div>
                 </td>
-                <td>{{ row.cashRegisterNo }}</td>
-                <td class="align-right">{{ formatCurrency(row.movementZReportAmount) }}</td>
-                <td class="align-right">{{ formatCurrency(row.cashSummaryAmount) }}</td>
+                <td><strong class="badge-kasa">Kasa {{ row.cashRegisterNo }}</strong></td>
+                <td class="align-right font-mono">{{ formatCurrency(row.movementZReportAmount) }}</td>
+                <td class="align-right font-mono">{{ formatCurrency(row.cashSummaryAmount) }}</td>
                 <td class="align-right">{{ row.cashSummaryDocumentCount }}</td>
-                <td class="align-right cell-strong" [class.amount-negative]="row.differenceAmount < 0">
+                <td class="align-right font-mono cell-strong" [class.amount-negative]="row.differenceAmount < 0">
                   {{ formatCurrency(row.differenceAmount) }}
                 </td>
                 <td>
                   <span class="status-pill" [ngClass]="getComparisonStatusClass(row.status)">
                     {{ row.statusName || row.status }}
                   </span>
+                </td>
+                <td>
                   <button
                     type="button"
                     class="mini-action"
@@ -451,6 +686,7 @@
           </table>
         </div>
 
+        <!-- Detay Modali -->
         <section
           class="detail-dialog-backdrop"
           *ngIf="selectedComparisonRow() as selectedRow"
@@ -459,433 +695,331 @@
           aria-labelledby="comparison-detail-title"
         >
           <article class="detail-dialog">
-          <header class="detail-head">
-            <div class="title-block">
-              <span class="section-kicker">Detay</span>
-              <h3 id="comparison-detail-title">{{ selectedRow.branchName || 'Sube' }} / Kasa {{ selectedRow.cashRegisterNo }}</h3>
-            </div>
-
-            <div class="detail-actions">
-              <button
-                type="button"
-                class="task-action task-action-secondary"
-                [disabled]="!comparisonDetail() || comparisonDetailExporting()"
-                (click)="exportComparisonDetailExcel()"
-              >
-                {{ comparisonDetailExporting() ? 'Hazirlaniyor...' : 'Detay Excel' }}
-              </button>
-              <button type="button" class="task-action task-action-secondary" (click)="closeComparisonDetail()">
-                Kapat
-              </button>
-            </div>
-          </header>
-
-          <article class="state-card" *ngIf="comparisonDetailLoading()">
-            <h3>Detay yukleniyor</h3>
-          </article>
-
-          <ng-container *ngIf="!comparisonDetailLoading() && comparisonDetail() as detail">
-            <section class="summary-strip detail-summary">
-              <article class="summary-item">
-                <span>Aktarim Z</span>
-                <strong>{{ formatCurrency(detail.summary.movementZReportAmount) }}</strong>
-              </article>
-              <article class="summary-item">
-                <span>Icmal</span>
-                <strong>{{ formatCurrency(detail.summary.cashSummaryAmount) }}</strong>
-              </article>
-              <article class="summary-item" [class.metric-negative]="detail.summary.differenceAmount < 0">
-                <span>Fark</span>
-                <strong>{{ formatCurrency(detail.summary.differenceAmount) }}</strong>
-              </article>
-              <article class="summary-item">
-                <span>Durum</span>
-                <strong>{{ detail.comparison.statusName || detail.comparison.status }}</strong>
-              </article>
-              <article class="summary-item">
-                <span>Fis</span>
-                <strong>{{ detail.summary.receiptCount }}</strong>
-              </article>
-              <article class="summary-item">
-                <span>Donen Fis</span>
-                <strong>{{ detail.summary.returnedReceiptCount }}</strong>
-              </article>
-              <article class="summary-item">
-                <span>Iptal Fis</span>
-                <strong>{{ detail.summary.canceledReceiptCount }}</strong>
-              </article>
-              <article class="summary-item" [class.metric-negative]="detail.summary.missingReceiptNos.length > 0">
-                <span>Eksik Fis</span>
-                <strong>{{ detail.summary.missingReceiptNos.length }}</strong>
-              </article>
-              <article class="summary-item">
-                <span>Icmal Belge</span>
-                <strong>{{ detail.summary.cashSummaryDocumentCount }}</strong>
-              </article>
-              <article class="summary-item">
-                <span>Fis Araligi</span>
-                <strong>{{ detail.summary.minReceiptNo ?? '-' }} - {{ detail.summary.maxReceiptNo ?? '-' }}</strong>
-              </article>
-            </section>
-
-            <div class="detail-tabs" aria-label="Icmal detay sekmeleri">
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="comparisonDetailTab() === 'cashiers'"
-                (click)="selectComparisonDetailTab('cashiers')"
-              >
-                Kasiyer
-                <span>{{ detail.cashierSummaries.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="comparisonDetailTab() === 'movement-payments'"
-                (click)="selectComparisonDetailTab('movement-payments')"
-              >
-                Aktarim Odeme
-                <span>{{ detail.movementPaymentSummaries.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="comparisonDetailTab() === 'summary-payments'"
-                (click)="selectComparisonDetailTab('summary-payments')"
-              >
-                Icmal Odeme
-                <span>{{ detail.cashSummaryPayments.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="comparisonDetailTab() === 'documents'"
-                (click)="selectComparisonDetailTab('documents')"
-              >
-                Belgeler
-                <span>{{ detail.cashSummaryDocuments.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="comparisonDetailTab() === 'receipts'"
-                (click)="selectComparisonDetailTab('receipts')"
-              >
-                Fisler
-                <span>{{ detail.receipts.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="comparisonDetailTab() === 'canceled-receipts'"
-                (click)="selectComparisonDetailTab('canceled-receipts')"
-              >
-                Iptal Fis
-                <span>{{ detail.canceledReceipts.length }}</span>
-              </button>
-              <button
-                type="button"
-                class="mode-tab"
-                [class.is-active]="comparisonDetailTab() === 'missing-receipts'"
-                (click)="selectComparisonDetailTab('missing-receipts')"
-              >
-                Eksik Fis
-                <span>{{ detail.summary.missingReceiptNos.length }}</span>
-              </button>
-            </div>
-
-            <ng-container [ngSwitch]="comparisonDetailTab()">
-              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'cashiers'">
-                <table class="data-table detail-table">
-                  <thead>
-                    <tr>
-                      <th>Kasiyer</th>
-                      <th class="align-right">Fis</th>
-                      <th class="align-right">Satir</th>
-                      <th class="align-right">Net</th>
-                      <th class="align-right">Gider</th>
-                      <th class="align-right">Cek</th>
-                      <th class="align-right">Z Raporu</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let row of detail.cashierSummaries; trackBy: trackByCashierSummary">
-                      <td>
-                        <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
-                        <div class="table-meta">{{ row.cashierCode || '-' }}</div>
-                      </td>
-                      <td class="align-right">{{ row.receiptCount }}</td>
-                      <td class="align-right">{{ row.lineCount }}</td>
-                      <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
-                      <td class="align-right">{{ formatCurrency(row.expense) }}</td>
-                      <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
-                      <td class="align-right cell-strong">{{ formatCurrency(row.zReportAmount) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+            <header class="detail-head">
+              <div class="title-block">
+                <span class="section-kicker">Kasa Icmal Detayi</span>
+                <h3 id="comparison-detail-title">
+                  {{ selectedRow.branchName || ('Sube ' + selectedRow.branchNo) }} — Kasa {{ selectedRow.cashRegisterNo }}
+                </h3>
               </div>
 
-              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'movement-payments'">
-                <table class="data-table detail-table compact-table">
-                  <thead>
-                    <tr>
-                      <th>Odeme</th>
-                      <th class="align-right">Adet</th>
-                      <th class="align-right">Tutar</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let row of detail.movementPaymentSummaries; trackBy: trackByMovementPaymentSummary">
-                      <td>
-                        <strong>{{ row.paymentTypeName || 'Odeme' }}</strong>
-                        <div class="table-meta">Tip {{ row.paymentType }}</div>
-                      </td>
-                      <td class="align-right">{{ row.paymentCount }}</td>
-                      <td class="align-right cell-strong">{{ formatCurrency(row.amount) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
+              <div class="detail-actions">
+                <button
+                  type="button"
+                  class="task-action task-action-secondary"
+                  [disabled]="!comparisonDetail() || comparisonDetailExporting()"
+                  (click)="exportComparisonDetailExcel()"
+                >
+                  {{ comparisonDetailExporting() ? 'Hazirlaniyor...' : 'Detay Excel' }}
+                </button>
+                <button type="button" class="task-action task-action-secondary" (click)="closeComparisonDetail()">
+                  Kapat
+                </button>
               </div>
+            </header>
 
-              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'summary-payments'">
-                <table class="data-table detail-table compact-table">
-                  <thead>
-                    <tr>
-                      <th>Odeme</th>
-                      <th>Hesap</th>
-                      <th class="align-right">Fis</th>
-                      <th class="align-right">Tutar</th>
-                      <th>Durum</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let row of detail.cashSummaryPayments; trackBy: trackByCashSummaryPayment">
-                      <td>
-                        <strong>{{ row.paymentTypeName || 'Odeme' }}</strong>
-                        <div class="table-meta">Tip {{ row.paymentTypeId }}</div>
-                      </td>
-                      <td>{{ row.accountCode || '-' }}</td>
-                      <td class="align-right">{{ row.slipCount }}</td>
-                      <td class="align-right cell-strong">{{ formatCurrency(row.amount) }}</td>
-                      <td>
-                        <span class="status-pill" [class.status-balanced]="row.isIncludedInComparison">
-                          {{ row.isIncludedInComparison ? 'Dahil' : 'Haric' }}
-                        </span>
-                      </td>
-                    </tr>
-                  </tbody>
-                </table>
+            <article class="state-card" *ngIf="comparisonDetailLoading()">
+              <div class="loading-spinner-wrap">
+                <div class="spinner-small"></div>
+                <h3>Detaylar yukleniyor...</h3>
               </div>
+            </article>
 
-              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'documents'">
-                <table class="data-table detail-table">
-                  <thead>
-                    <tr>
-                      <th>Belge</th>
-                      <th>Kasa / Z</th>
-                      <th>Kasiyer</th>
-                      <th>Yonetici</th>
-                      <th>Tarih</th>
-                      <th class="align-right">Toplam</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let row of detail.cashSummaryDocuments; trackBy: trackByCashSummaryDocument">
-                      <td>
-                        <strong>{{ row.documentNo || '-' }}</strong>
-                        <div class="table-meta">{{ row.documentSerie || '-' }} / {{ row.documentOrderNo }}</div>
-                      </td>
-                      <td>{{ row.cashNo }} / {{ row.zReportNo }}</td>
-                      <td>{{ row.cashierName || row.cashierNo }}</td>
-                      <td>{{ row.managerName || row.managerNo }}</td>
-                      <td>{{ formatDate(row.summaryDate) }}</td>
-                      <td class="align-right cell-strong">{{ formatCurrency(row.totalAmount) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'receipts'">
-                <table class="data-table detail-table receipt-table">
-                  <thead>
-                    <tr>
-                      <th>Fis</th>
-                      <th>Saat</th>
-                      <th>Kasiyer</th>
-                      <th class="align-right">Net</th>
-                      <th class="align-right">Gider</th>
-                      <th class="align-right">Cek</th>
-                      <th class="align-right">Z</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let row of detail.receipts; trackBy: trackByReceipt">
-                      <td>
-                        <strong>{{ row.receiptNo }}</strong>
-                        <div class="table-meta">{{ row.documentKindName || '-' }} / Z {{ row.zNo || '-' }}</div>
-                      </td>
-                      <td>{{ row.time || '-' }}</td>
-                      <td>
-                        <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
-                        <div class="table-meta">{{ row.cashierCode || '-' }}</div>
-                      </td>
-                      <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
-                      <td class="align-right">{{ formatCurrency(row.expenseAmount) }}</td>
-                      <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
-                      <td class="align-right cell-strong">{{ formatCurrency(row.zReportAmount) }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="table-wrap detail-table-wrap" *ngSwitchCase="'canceled-receipts'">
-                <table class="data-table detail-table receipt-table">
-                  <thead>
-                    <tr>
-                      <th>Fis</th>
-                      <th>Saat</th>
-                      <th>Kasiyer</th>
-                      <th>Iptal Nedeni</th>
-                      <th class="align-right">Satir</th>
-                      <th>Mali Bellek</th>
-                    </tr>
-                  </thead>
-                  <tbody>
-                    <tr *ngFor="let row of detail.canceledReceipts; trackBy: trackByReceipt">
-                      <td>
-                        <strong>{{ row.receiptNo }}</strong>
-                        <div class="table-meta">{{ row.documentKindName || '-' }} / Z {{ row.zNo || '-' }}</div>
-                      </td>
-                      <td>{{ row.time || '-' }}</td>
-                      <td>
-                        <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
-                        <div class="table-meta">{{ row.cashierCode || '-' }}</div>
-                      </td>
-                      <td>
-                        <strong>{{ row.cancelReasonName || '-' }}</strong>
-                        <div class="table-meta">Kod {{ row.cancelReason }}</div>
-                      </td>
-                      <td class="align-right">{{ row.lineCount }}</td>
-                      <td>{{ row.fiscalMemoryCode || '-' }}</td>
-                    </tr>
-                  </tbody>
-                </table>
-              </div>
-
-              <div class="missing-receipts" *ngSwitchCase="'missing-receipts'">
-                <article class="state-card empty-state" *ngIf="!detail.summary.missingReceiptNos.length">
-                  <h3>Eksik fis numarasi yok</h3>
+            <ng-container *ngIf="!comparisonDetailLoading() && comparisonDetail() as detail">
+              <section class="summary-strip detail-summary">
+                <article class="summary-item">
+                  <span>Aktarim Z</span>
+                  <strong>{{ formatCurrency(detail.summary.movementZReportAmount) }}</strong>
                 </article>
-                <div class="missing-chip-list" *ngIf="detail.summary.missingReceiptNos.length">
-                  <span
-                    class="missing-chip"
-                    *ngFor="let receiptNo of detail.summary.missingReceiptNos; trackBy: trackByMissingReceipt"
-                  >
-                    {{ receiptNo }}
-                  </span>
-                </div>
+                <article class="summary-item">
+                  <span>Icmal</span>
+                  <strong>{{ formatCurrency(detail.summary.cashSummaryAmount) }}</strong>
+                </article>
+                <article class="summary-item" [class.metric-negative]="detail.summary.differenceAmount < 0">
+                  <span>Fark</span>
+                  <strong>{{ formatCurrency(detail.summary.differenceAmount) }}</strong>
+                </article>
+                <article class="summary-item">
+                  <span>Durum</span>
+                  <strong>{{ detail.comparison.statusName || detail.comparison.status }}</strong>
+                </article>
+                <article class="summary-item">
+                  <span>Fis Sayisi</span>
+                  <strong>{{ detail.summary.receiptCount }}</strong>
+                </article>
+                <article class="summary-item">
+                  <span>Donen Fis</span>
+                  <strong>{{ detail.summary.returnedReceiptCount }}</strong>
+                </article>
+                <article class="summary-item">
+                  <span>Iptal Fis</span>
+                  <strong>{{ detail.summary.canceledReceiptCount }}</strong>
+                </article>
+                <article class="summary-item" [class.metric-negative]="detail.summary.missingReceiptNos.length > 0">
+                  <span>Eksik Fis</span>
+                  <strong>{{ detail.summary.missingReceiptNos.length }}</strong>
+                </article>
+              </section>
+
+              <div class="detail-tabs" aria-label="Icmal detay sekmeleri">
+                <button
+                  type="button"
+                  class="mode-tab"
+                  [class.is-active]="comparisonDetailTab() === 'cashiers'"
+                  (click)="selectComparisonDetailTab('cashiers')"
+                >
+                  Kasiyerler ({{ detail.cashierSummaries.length }})
+                </button>
+                <button
+                  type="button"
+                  class="mode-tab"
+                  [class.is-active]="comparisonDetailTab() === 'movement-payments'"
+                  (click)="selectComparisonDetailTab('movement-payments')"
+                >
+                  Aktarim Odemeler ({{ detail.movementPaymentSummaries.length }})
+                </button>
+                <button
+                  type="button"
+                  class="mode-tab"
+                  [class.is-active]="comparisonDetailTab() === 'summary-payments'"
+                  (click)="selectComparisonDetailTab('summary-payments')"
+                >
+                  Icmal Odemeler ({{ detail.cashSummaryPayments.length }})
+                </button>
+                <button
+                  type="button"
+                  class="mode-tab"
+                  [class.is-active]="comparisonDetailTab() === 'documents'"
+                  (click)="selectComparisonDetailTab('documents')"
+                >
+                  Belgeler ({{ detail.cashSummaryDocuments.length }})
+                </button>
+                <button
+                  type="button"
+                  class="mode-tab"
+                  [class.is-active]="comparisonDetailTab() === 'receipts'"
+                  (click)="selectComparisonDetailTab('receipts')"
+                >
+                  Fisler ({{ detail.receipts.length }})
+                </button>
+                <button
+                  type="button"
+                  class="mode-tab"
+                  [class.is-active]="comparisonDetailTab() === 'canceled-receipts'"
+                  (click)="selectComparisonDetailTab('canceled-receipts')"
+                >
+                  Iptal Fisler ({{ detail.canceledReceipts.length }})
+                </button>
+                <button
+                  type="button"
+                  class="mode-tab"
+                  [class.is-active]="comparisonDetailTab() === 'missing-receipts'"
+                  (click)="selectComparisonDetailTab('missing-receipts')"
+                >
+                  Eksik Fisler ({{ detail.summary.missingReceiptNos.length }})
+                </button>
               </div>
+
+              <!-- Detay Sekme Icerikleri -->
+              <ng-container [ngSwitch]="comparisonDetailTab()">
+                <div class="table-wrap detail-table-wrap" *ngSwitchCase="'cashiers'">
+                  <table class="data-table detail-table">
+                    <thead>
+                      <tr>
+                        <th>Kasiyer</th>
+                        <th class="align-right">Fis</th>
+                        <th class="align-right">Satir</th>
+                        <th class="align-right">Net</th>
+                        <th class="align-right">Gider</th>
+                        <th class="align-right">Cek</th>
+                        <th class="align-right">Z Raporu</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of detail.cashierSummaries; trackBy: trackByCashierSummary">
+                        <td>
+                          <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
+                          <div class="table-meta">{{ row.cashierCode || '-' }}</div>
+                        </td>
+                        <td class="align-right">{{ row.receiptCount }}</td>
+                        <td class="align-right">{{ row.lineCount }}</td>
+                        <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
+                        <td class="align-right">{{ formatCurrency(row.expense) }}</td>
+                        <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
+                        <td class="align-right cell-strong">{{ formatCurrency(row.zReportAmount) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="table-wrap detail-table-wrap" *ngSwitchCase="'movement-payments'">
+                  <table class="data-table detail-table compact-table">
+                    <thead>
+                      <tr>
+                        <th>Odeme Tipi</th>
+                        <th class="align-right">Adet</th>
+                        <th class="align-right">Tutar</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of detail.movementPaymentSummaries; trackBy: trackByMovementPaymentSummary">
+                        <td>
+                          <strong>{{ row.paymentTypeName || 'Odeme' }}</strong>
+                          <div class="table-meta">Tip {{ row.paymentType }}</div>
+                        </td>
+                        <td class="align-right">{{ row.paymentCount }}</td>
+                        <td class="align-right cell-strong">{{ formatCurrency(row.amount) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="table-wrap detail-table-wrap" *ngSwitchCase="'summary-payments'">
+                  <table class="data-table detail-table compact-table">
+                    <thead>
+                      <tr>
+                        <th>Odeme Tipi</th>
+                        <th>Hesap Kodu</th>
+                        <th class="align-right">Fis Adet</th>
+                        <th class="align-right">Tutar</th>
+                        <th>Durum</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of detail.cashSummaryPayments; trackBy: trackByCashSummaryPayment">
+                        <td>
+                          <strong>{{ row.paymentTypeName || 'Odeme' }}</strong>
+                          <div class="table-meta">Tip {{ row.paymentTypeId }}</div>
+                        </td>
+                        <td>{{ row.accountCode || '-' }}</td>
+                        <td class="align-right">{{ row.slipCount }}</td>
+                        <td class="align-right cell-strong">{{ formatCurrency(row.amount) }}</td>
+                        <td>
+                          <span class="status-pill" [class.status-balanced]="row.isIncludedInComparison">
+                            {{ row.isIncludedInComparison ? 'Dahil' : 'Haric' }}
+                          </span>
+                        </td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="table-wrap detail-table-wrap" *ngSwitchCase="'documents'">
+                  <table class="data-table detail-table">
+                    <thead>
+                      <tr>
+                        <th>Belge No</th>
+                        <th>Kasa / Z</th>
+                        <th>Kasiyer</th>
+                        <th>Yonetici</th>
+                        <th>Tarih</th>
+                        <th class="align-right">Toplam</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of detail.cashSummaryDocuments; trackBy: trackByCashSummaryDocument">
+                        <td>
+                          <strong>{{ row.documentNo || '-' }}</strong>
+                          <div class="table-meta">{{ row.documentSerie || '-' }} / {{ row.documentOrderNo }}</div>
+                        </td>
+                        <td>{{ row.cashNo }} / {{ row.zReportNo }}</td>
+                        <td>{{ row.cashierName || row.cashierNo }}</td>
+                        <td>{{ row.managerName || row.managerNo }}</td>
+                        <td>{{ formatDate(row.summaryDate) }}</td>
+                        <td class="align-right cell-strong">{{ formatCurrency(row.totalAmount) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="table-wrap detail-table-wrap" *ngSwitchCase="'receipts'">
+                  <table class="data-table detail-table receipt-table">
+                    <thead>
+                      <tr>
+                        <th>Fis No</th>
+                        <th>Saat</th>
+                        <th>Kasiyer</th>
+                        <th class="align-right">Net Tutar</th>
+                        <th class="align-right">Gider</th>
+                        <th class="align-right">Cek</th>
+                        <th class="align-right">Z Raporu</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of detail.receipts; trackBy: trackByReceipt">
+                        <td>
+                          <strong>{{ row.receiptNo }}</strong>
+                          <div class="table-meta">{{ row.documentKindName || '-' }} / Z {{ row.zNo || '-' }}</div>
+                        </td>
+                        <td>{{ row.time || '-' }}</td>
+                        <td>
+                          <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
+                          <div class="table-meta">{{ row.cashierCode || '-' }}</div>
+                        </td>
+                        <td class="align-right">{{ formatCurrency(row.netAmount) }}</td>
+                        <td class="align-right">{{ formatCurrency(row.expenseAmount) }}</td>
+                        <td class="align-right">{{ formatCurrency(row.checkAmount) }}</td>
+                        <td class="align-right cell-strong">{{ formatCurrency(row.zReportAmount) }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="table-wrap detail-table-wrap" *ngSwitchCase="'canceled-receipts'">
+                  <table class="data-table detail-table receipt-table">
+                    <thead>
+                      <tr>
+                        <th>Fis No</th>
+                        <th>Saat</th>
+                        <th>Kasiyer</th>
+                        <th>Iptal Nedeni</th>
+                        <th class="align-right">Satir</th>
+                        <th>Mali Bellek</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      <tr *ngFor="let row of detail.canceledReceipts; trackBy: trackByReceipt">
+                        <td>
+                          <strong>{{ row.receiptNo }}</strong>
+                          <div class="table-meta">{{ row.documentKindName || '-' }} / Z {{ row.zNo || '-' }}</div>
+                        </td>
+                        <td>{{ row.time || '-' }}</td>
+                        <td>
+                          <strong>{{ row.cashierName || 'Kasiyer' }}</strong>
+                          <div class="table-meta">{{ row.cashierCode || '-' }}</div>
+                        </td>
+                        <td>
+                          <strong>{{ row.cancelReasonName || '-' }}</strong>
+                          <div class="table-meta">Kod {{ row.cancelReason }}</div>
+                        </td>
+                        <td class="align-right">{{ row.lineCount }}</td>
+                        <td>{{ row.fiscalMemoryCode || '-' }}</td>
+                      </tr>
+                    </tbody>
+                  </table>
+                </div>
+
+                <div class="missing-receipts" *ngSwitchCase="'missing-receipts'">
+                  <article class="state-card empty-state" *ngIf="!detail.summary.missingReceiptNos.length">
+                    <h3>Eksik fis numarasi tespit edilmedi.</h3>
+                  </article>
+                  <div class="missing-chip-list" *ngIf="detail.summary.missingReceiptNos.length">
+                    <span
+                      class="missing-chip"
+                      *ngFor="let receiptNo of detail.summary.missingReceiptNos; trackBy: trackByMissingReceipt"
+                    >
+                      Fis #{{ receiptNo }}
+                    </span>
+                  </div>
+                </div>
+              </ng-container>
             </ng-container>
-          </ng-container>
           </article>
         </section>
 
         <article class="state-card empty-state" *ngIf="!comparisonLoading() && !(comparisonResult()?.rows?.length)">
-          <h3>Icmal kontrol satiri yok</h3>
-        </article>
-      </section>
-
-      <section class="tab-panel" *ngSwitchCase="'mikro'">
-        <form class="report-toolbar" [formGroup]="mikroForm" novalidate>
-          <label class="field">
-            <span>Islem Tarihi</span>
-            <input type="date" formControlName="date" />
-          </label>
-        </form>
-
-        <section class="action-grid">
-          <article class="action-card">
-            <span class="section-kicker">Hazirlik</span>
-            <h3>Hazirlik Sil</h3>
-            <p>{{ scopeSummary() }}</p>
-            <button
-              type="button"
-              class="task-action task-action-danger"
-              (click)="runProcedure('staging-delete')"
-              [disabled]="!!procedureLoadingAction()"
-            >
-              {{ isProcedureLoading('staging-delete') ? 'Siliniyor...' : 'Hazirlik Sil' }}
-            </button>
-          </article>
-
-          <article class="action-card">
-            <span class="section-kicker">Mikro</span>
-            <h3>Mikroya Aktar</h3>
-            <p>{{ selectedBranchLabel() }}</p>
-            <button
-              type="button"
-              class="task-action task-action-primary"
-              (click)="runProcedure('mikro-transfer')"
-              [disabled]="!!procedureLoadingAction()"
-            >
-              {{ isProcedureLoading('mikro-transfer') ? 'Aktariliyor...' : 'Mikroya Aktar' }}
-            </button>
-          </article>
-
-          <article class="action-card">
-            <span class="section-kicker">Mikro</span>
-            <h3>Mikrodan Sil</h3>
-            <p>{{ selectedBranchLabel() }}</p>
-            <button
-              type="button"
-              class="task-action task-action-danger"
-              (click)="runProcedure('mikro-delete')"
-              [disabled]="!!procedureLoadingAction()"
-            >
-              {{ isProcedureLoading('mikro-delete') ? 'Siliniyor...' : 'Mikrodan Sil' }}
-            </button>
-          </article>
-        </section>
-
-        <form class="range-card" [formGroup]="mikroRangeForm" (ngSubmit)="runProcedure('mikro-range-transfer')" novalidate>
-          <div class="title-block">
-            <span class="section-kicker">Tarih Araligi</span>
-            <h3>Aralik Aktar</h3>
-          </div>
-
-          <label class="field">
-            <span>Baslangic</span>
-            <input type="date" formControlName="startDate" />
-          </label>
-
-          <label class="field">
-            <span>Bitis</span>
-            <input type="date" formControlName="endDate" />
-          </label>
-
-          <button type="submit" class="task-action task-action-primary" [disabled]="!!procedureLoadingAction()">
-            {{ isProcedureLoading('mikro-range-transfer') ? 'Aktariliyor...' : 'Aralik Aktar' }}
-          </button>
-        </form>
-
-        <article class="procedure-result" *ngIf="lastProcedureResult() as procedureResult">
-          <span class="section-kicker">Islem Sonucu</span>
-          <h3>{{ procedureResult.procedure || '-' }}</h3>
-          <p>{{ procedureResult.message || '-' }}</p>
-          <dl>
-            <div>
-              <dt>Tarih</dt>
-              <dd>{{ formatDate(procedureResult.date) }}</dd>
-            </div>
-            <div>
-              <dt>Sube</dt>
-              <dd>{{ procedureResult.branchNo ?? '-' }}</dd>
-            </div>
-            <div>
-              <dt>Kasa</dt>
-              <dd>{{ procedureResult.cashRegisterNo ?? '-' }}</dd>
-            </div>
-          </dl>
+          <span class="empty-icon">📭</span>
+          <h3>Secilen tarihe ait icmal karsilastirma verisi bulunamadi.</h3>
         </article>
       </section>
     </ng-container>

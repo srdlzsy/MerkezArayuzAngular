@@ -58,6 +58,8 @@ import {
   KasaHareketReportRowDto,
   KasaHareketReportSummaryDto,
   KasaHareketScheduledImportHttpRequest,
+  KasaHareketTransferStatusDto,
+  KasaHareketTransferStatusHttpRequest,
   KasaCiroBranchDto,
   KasaCiroImportHttpRequest,
   KasaCiroImportResultDto,
@@ -776,6 +778,15 @@ export class KasaIslemleriService extends BaseApiService {
       KasaHareketProcedureResultDto,
       KasaHareketMikroTransferRangeHttpRequest
     >('kasa-islemleri/kasa-hareket-aktarimi/mikro/aralik-aktar', request);
+  }
+
+  getKasaHareketTransferStatus(
+    request: KasaHareketTransferStatusHttpRequest
+  ): Observable<KasaHareketTransferStatusDto> {
+    return this.getWithQuery<KasaHareketTransferStatusDto, KasaHareketTransferStatusHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/durum',
+      request
+    );
   }
 
   getKasaHareketRaporu(

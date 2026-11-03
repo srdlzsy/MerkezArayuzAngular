@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Observable, finalize } from 'rxjs';
+import { Observable, catchError, finalize, of, switchMap, timer } from 'rxjs';
 import type {
   KasaHareketBranchDto,
   KasaHareketCashSummaryComparisonDto,
@@ -20,7 +20,8 @@ import type {
   KasaHareketReceiptDto,
   KasaHareketReportRowDto,
   KasaHareketReportSummaryDto,
-  KasaHareketScheduledImportHttpRequest
+  KasaHareketScheduledImportHttpRequest,
+  KasaHareketTransferStatusDto
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -99,6 +100,27 @@ export class KasaHareketAktarimiListComponent {
   protected readonly comparisonDetailTab = signal<KasaHareketDetailTab>('cashiers');
   protected readonly reportExporting = signal(false);
   protected readonly excelExportErrorMessage = signal<string | null>(null);
+  protected readonly selectedCashRegisterNos = signal<number[]>([]);
+  protected readonly transferStatus = signal<KasaHareketTransferStatusDto | null>(null);
+  protected readonly transferStatusLoading = signal(false);
+
+  protected readonly transferProgressPercent = computed(() => {
+    const status = this.transferStatus();
+    if (!status?.totalReceiptCount) {
+      return 0;
+    }
+
+    return Math.min(
+      100,
+      Math.round((status.transferredReceiptCount / status.totalReceiptCount) * 100)
+    );
+  });
+
+  protected readonly isAllCashRegistersSelected = computed(() => {
+    const list = this.cashRegisters();
+    const selected = this.selectedCashRegisterNos();
+    return list.length > 0 && selected.length === list.length;
+  });
 
   protected readonly scopeForm = new FormGroup({
     branchNo: new FormControl<number | null>(null),
@@ -140,6 +162,7 @@ export class KasaHareketAktarimiListComponent {
   });
   private readonly scopeVersion = signal(0);
   private cashRegisterRequestId = 0;
+  private transferStatusSubscription: { unsubscribe: () => void } | null = null;
 
   protected readonly selectedBranchLabel = computed(() => {
     this.scopeVersion();
@@ -160,10 +183,16 @@ export class KasaHareketAktarimiListComponent {
   });
   protected readonly selectedCashRegisterLabel = computed(() => {
     this.scopeVersion();
+    const selected = this.selectedCashRegisterNos();
+    if (!this.getSelectedBranchNo() || selected.length === this.cashRegisters().length) {
+      return 'Tum Kasalar';
+    }
 
-    const cashRegisterNo = this.getSelectedCashRegisterNo();
+    if (!selected.length) {
+      return 'Kasa secilmedi';
+    }
 
-    return cashRegisterNo ? `Kasa ${cashRegisterNo}` : 'Tum Kasalar';
+    return selected.length === 1 ? `Kasa ${selected[0]}` : `${selected.length} kasa`;
   });
   protected readonly scopeSummary = computed(
     () => `${this.selectedBranchLabel()} / ${this.selectedCashRegisterLabel()}`
@@ -210,6 +239,8 @@ export class KasaHareketAktarimiListComponent {
         this.loadCashRegisters(this.toOptionalNumber(branchNo))
       );
 
+    this.destroyRef.onDestroy(() => this.stopTransferStatusPolling());
+
     this.loadBranches();
   }
 
@@ -234,7 +265,10 @@ export class KasaHareketAktarimiListComponent {
       .subscribe({
         next: (branches: KasaHareketBranchDto[]) => {
           this.branches.set(
-            [...(branches ?? [])].sort((left, right) => left.branchNo - right.branchNo)
+            [...(branches ?? [])].sort((left, right) =>
+              (left.branchName || '').localeCompare(right.branchName || '', 'tr') ||
+              left.branchNo - right.branchNo
+            )
           );
         },
         error: (error: unknown) => {
@@ -272,11 +306,16 @@ export class KasaHareketAktarimiListComponent {
     this.importLoading.set(true);
     this.feedback.set(null);
     this.lastImportResult.set(null);
+    this.startTransferStatusPolling(startDate, endDate);
 
     request$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.importLoading.set(false))
+        finalize(() => {
+          this.importLoading.set(false);
+          this.stopTransferStatusPolling();
+          this.refreshTransferStatus(startDate, endDate);
+        })
       )
       .subscribe({
         next: (result: KasaHareketImportResultDto) => this.handleImportResult(result),
@@ -454,19 +493,6 @@ export class KasaHareketAktarimiListComponent {
   }
 
   protected async runProcedure(action: KasaHareketProcedureAction): Promise<void> {
-    if (this.isDeleteAction(action)) {
-      const confirmed = await this.confirmDialog.confirm({
-        title: 'Procedure calistirilsin mi?',
-        message: `${this.getProcedureLabel(action)} calistirilacak.`,
-        confirmText: 'Calistir',
-        tone: 'danger'
-      });
-
-      if (!confirmed) {
-        return;
-      }
-    }
-
     if (this.procedureLoadingAction()) {
       return;
     }
@@ -480,11 +506,17 @@ export class KasaHareketAktarimiListComponent {
     this.procedureLoadingAction.set(action);
     this.feedback.set(null);
     this.lastProcedureResult.set(null);
+    const [statusStartDate, statusEndDate] = this.getProcedureDateRange(action);
+    this.startTransferStatusPolling(statusStartDate, statusEndDate);
 
     request$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.procedureLoadingAction.set(null))
+        finalize(() => {
+          this.procedureLoadingAction.set(null);
+          this.stopTransferStatusPolling();
+          this.refreshTransferStatus(statusStartDate, statusEndDate);
+        })
       )
       .subscribe({
         next: (result: KasaHareketProcedureResultDto) => {
@@ -764,16 +796,22 @@ export class KasaHareketAktarimiListComponent {
 
   private runScheduledImport(): void {
     const request = this.buildScheduledImportRequest();
+    const statusDate = request.date || this.today;
 
     this.importLoading.set(true);
     this.feedback.set(null);
     this.lastImportResult.set(null);
+    this.startTransferStatusPolling(statusDate, statusDate);
 
     this.kasaIslemleriService
       .runKasaHareketZamanliAktarim(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.importLoading.set(false))
+        finalize(() => {
+          this.importLoading.set(false);
+          this.stopTransferStatusPolling();
+          this.refreshTransferStatus(statusDate, statusDate);
+        })
       )
       .subscribe({
         next: (result: KasaHareketImportResultDto) => this.handleImportResult(result),
@@ -800,6 +838,7 @@ export class KasaHareketAktarimiListComponent {
     const requestId = ++this.cashRegisterRequestId;
 
     this.cashRegisters.set([]);
+    this.selectedCashRegisterNos.set([]);
     this.scopeForm.controls.cashRegisterNo.reset(null, { emitEvent: false });
     this.scopeForm.controls.cashRegisterNo.disable({ emitEvent: false });
     this.scopeVersion.update((value) => value + 1);
@@ -827,11 +866,11 @@ export class KasaHareketAktarimiListComponent {
             return;
           }
 
-          this.cashRegisters.set(
-            [...(cashRegisters ?? [])].sort(
-              (left, right) => left.cashRegisterNo - right.cashRegisterNo
-            )
+          const sorted = [...(cashRegisters ?? [])].sort(
+            (left, right) => left.cashRegisterNo - right.cashRegisterNo
           );
+          this.cashRegisters.set(sorted);
+          this.selectedCashRegisterNos.set(sorted.map((item) => item.cashRegisterNo));
           this.scopeForm.controls.cashRegisterNo.enable({ emitEvent: false });
           this.scopeVersion.update((value) => value + 1);
         },
@@ -850,15 +889,146 @@ export class KasaHareketAktarimiListComponent {
       });
   }
 
+  protected toggleCashRegister(cashRegisterNo: number): void {
+    const current = this.selectedCashRegisterNos();
+    if (current.includes(cashRegisterNo)) {
+      this.selectedCashRegisterNos.set(current.filter((no) => no !== cashRegisterNo));
+    } else {
+      this.selectedCashRegisterNos.set([...current, cashRegisterNo].sort((a, b) => a - b));
+    }
+  }
+
+  protected isCashRegisterSelected(cashRegisterNo: number): boolean {
+    return this.selectedCashRegisterNos().includes(cashRegisterNo);
+  }
+
+  protected selectAllCashRegisters(): void {
+    this.selectedCashRegisterNos.set(this.cashRegisters().map((item) => item.cashRegisterNo));
+  }
+
+  protected clearCashRegisters(): void {
+    this.selectedCashRegisterNos.set([]);
+  }
+
+  protected async actionHareketAktar(): Promise<void> {
+    const dryRun = this.importForm.controls.dryRun.value;
+    const confirmed = await this.confirmDialog.confirm({
+      title: dryRun ? 'Hareketleri Kontrol Et' : 'Hareketleri Aktar',
+      message: dryRun
+        ? 'Sadece kontrol acik. Dosyalar okunacak ancak veritabanina kayit yazilmayacak.'
+        : 'Secilen tarih, sube ve kasalardaki hareketler ara tabloya aktarilacak.',
+      confirmText: dryRun ? 'Kontrol Et' : 'Aktar',
+      tone: 'info'
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.importForm.controls.importType.setValue('normal');
+    this.runImport();
+  }
+
+  protected async actionHareketSil(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Hareketleri Sil',
+      message: 'Hareketler silinecek, emin misiniz?',
+      confirmText: 'Evet, Sil',
+      tone: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.runProcedure('staging-delete');
+  }
+
+  protected async actionMikroAktar(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Mikroya Aktar',
+      message: 'Hareketler mikroya aktarilacak, emin misiniz?',
+      confirmText: 'Evet, Aktar',
+      tone: 'info'
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.runProcedure('mikro-transfer');
+  }
+
+  protected async actionMikroAktar2(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Mikroya Aktar 2',
+      message: 'Hareketler mikroya aktarilacak, emin misiniz?',
+      confirmText: 'Evet, Aktar',
+      tone: 'info'
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.runProcedure('mikro-range-transfer');
+  }
+
+  protected async actionMikroSil(): Promise<void> {
+    if (!this.getSelectedBranchNo()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Sube secin',
+        message: 'Mikrodan silme islemi tum subelere uygulanamaz. Once tek bir sube secin.'
+      });
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Mikrodan Sil',
+      message: 'Hareketler mikrodan silinecek, emin misiniz?',
+      confirmText: 'Evet, Sil',
+      tone: 'danger'
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.runProcedure('mikro-delete');
+  }
+
+  protected async actionIptalAktar(): Promise<void> {
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Iptal Belgeleri Aktar',
+      message: 'Iptal belgeleri aktarilacak, emin misiniz?',
+      confirmText: 'Evet, Aktar',
+      tone: 'info'
+    });
+    if (!confirmed) {
+      return;
+    }
+    this.importForm.controls.importType.setValue('cancel');
+    this.runImport();
+  }
+
+  protected actionReport(): void {
+    const start = this.importForm.controls.startDate.value;
+    if (start) {
+      this.reportForm.controls.date.setValue(start);
+    }
+    this.activeTab.set('rapor');
+    this.loadReport();
+  }
+
+  protected actionOpenLog(): void {
+    const el = document.getElementById('log-section');
+    if (el) {
+      el.scrollIntoView({ behavior: 'smooth' });
+    }
+  }
+
   private buildImportRequest(startDate: string, endDate: string): KasaHareketImportHttpRequest {
     const branchNo = this.getSelectedBranchNo();
-    const cashRegisterNo = this.getSelectedCashRegisterNo();
+    const selectedNos = this.selectedCashRegisterNos();
 
     return {
       startDate,
       endDate,
       branches: branchNo ? [branchNo] : [],
-      cashRegisters: cashRegisterNo ? [cashRegisterNo] : [],
+      cashRegisters: selectedNos.length
+        ? selectedNos
+        : (this.getSelectedCashRegisterNo() ? [this.getSelectedCashRegisterNo()!] : []),
       fileRootPath: this.getOptionalText(this.importForm.controls.fileRootPath.value),
       skipExisting: this.importForm.controls.skipExisting.value,
       dryRun: this.importForm.controls.dryRun.value
@@ -893,9 +1063,14 @@ export class KasaHareketAktarimiListComponent {
   private buildProcedureRequest(
     action: KasaHareketProcedureAction
   ): Observable<KasaHareketProcedureResultDto> | null {
+    const importStart = this.importForm.controls.startDate.value.trim();
+    const importEnd = this.importForm.controls.endDate.value.trim();
+    const mikroDate = this.mikroForm.controls.date.value.trim();
+    const effectiveDate = importStart || mikroDate || this.today;
+
     if (action === 'mikro-range-transfer') {
-      const startDate = this.mikroRangeForm.controls.startDate.value.trim();
-      const endDate = this.mikroRangeForm.controls.endDate.value.trim();
+      const startDate = importStart || this.mikroRangeForm.controls.startDate.value.trim();
+      const endDate = importEnd || this.mikroRangeForm.controls.endDate.value.trim();
 
       if (!this.validateDateRange(startDate, endDate, 'Aralik aktarim tarihleri eksik veya hatali.')) {
         return null;
@@ -907,9 +1082,7 @@ export class KasaHareketAktarimiListComponent {
       });
     }
 
-    const date = this.mikroForm.controls.date.value.trim();
-
-    if (!date) {
+    if (!effectiveDate) {
       this.feedback.set({
         tone: 'error',
         title: 'Tarih gerekli',
@@ -919,24 +1092,92 @@ export class KasaHareketAktarimiListComponent {
     }
 
     if (action === 'staging-delete') {
+      const selectedNos = this.selectedCashRegisterNos();
       return this.kasaIslemleriService.deleteKasaHareketStaging({
-        date,
+        date: effectiveDate,
         branchNo: this.getSelectedBranchNo(),
-        cashRegisterNo: this.getSelectedCashRegisterNo()
+        cashRegisterNo: selectedNos.length === 1 ? selectedNos[0] : this.getSelectedCashRegisterNo()
       });
     }
 
     if (action === 'mikro-delete') {
       return this.kasaIslemleriService.deleteKasaHareketFromMikro({
-        date,
+        date: effectiveDate,
+        endDate: importEnd && importEnd !== effectiveDate ? importEnd : undefined,
         branchNo: this.getSelectedBranchNo()
       });
     }
 
     return this.kasaIslemleriService.transferKasaHareketToMikro({
-      date,
+      date: effectiveDate,
       branchNo: this.getSelectedBranchNo()
     });
+  }
+
+  private startTransferStatusPolling(startDate: string, endDate: string): void {
+    this.stopTransferStatusPolling();
+    this.transferStatusLoading.set(true);
+    this.transferStatusSubscription = timer(0, 1500)
+      .pipe(
+        switchMap(() =>
+          this.kasaIslemleriService
+            .getKasaHareketTransferStatus(
+              this.buildTransferStatusRequest(startDate, endDate)
+            )
+            .pipe(catchError(() => of(null)))
+        ),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe((status: KasaHareketTransferStatusDto | null) => {
+        this.transferStatusLoading.set(false);
+        if (status) {
+          this.transferStatus.set(status);
+        }
+      });
+  }
+
+  private stopTransferStatusPolling(): void {
+    this.transferStatusSubscription?.unsubscribe();
+    this.transferStatusSubscription = null;
+    this.transferStatusLoading.set(false);
+  }
+
+  private refreshTransferStatus(startDate: string, endDate: string): void {
+    if (!startDate || !endDate) {
+      return;
+    }
+
+    this.transferStatusLoading.set(true);
+    this.kasaIslemleriService
+      .getKasaHareketTransferStatus(this.buildTransferStatusRequest(startDate, endDate))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.transferStatusLoading.set(false))
+      )
+      .subscribe({
+        next: (status: KasaHareketTransferStatusDto) => this.transferStatus.set(status),
+        error: () => undefined
+      });
+  }
+
+  private buildTransferStatusRequest(startDate: string, endDate: string) {
+    const selectedCashRegisters = this.selectedCashRegisterNos();
+    return {
+      startDate,
+      endDate,
+      branchNo: this.getSelectedBranchNo(),
+      cashRegisterNo:
+        selectedCashRegisters.length === 1 ? selectedCashRegisters[0] : null
+    };
+  }
+
+  private getProcedureDateRange(action: KasaHareketProcedureAction): [string, string] {
+    const startDate = this.importForm.controls.startDate.value.trim() || this.today;
+    if (action === 'mikro-range-transfer' || action === 'mikro-delete') {
+      return [startDate, this.importForm.controls.endDate.value.trim() || startDate];
+    }
+
+    return [startDate, startDate];
   }
 
   private buildIssueRow(
@@ -1037,15 +1278,11 @@ export class KasaHareketAktarimiListComponent {
     return true;
   }
 
-  private isDeleteAction(action: KasaHareketProcedureAction): boolean {
-    return action === 'staging-delete' || action === 'mikro-delete';
-  }
-
-  private getSelectedBranchNo(): number | null {
+  protected getSelectedBranchNo(): number | null {
     return this.toOptionalNumber(this.scopeForm.getRawValue().branchNo);
   }
 
-  private getSelectedCashRegisterNo(): number | null {
+  protected getSelectedCashRegisterNo(): number | null {
     return this.toOptionalNumber(this.scopeForm.getRawValue().cashRegisterNo);
   }
 

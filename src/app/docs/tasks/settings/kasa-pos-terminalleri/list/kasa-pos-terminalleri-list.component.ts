@@ -4,6 +4,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import { finalize } from 'rxjs';
 import type {
+  BranchDetailDto,
   CashRegisterDefinitionIssueDto,
   CashRegisterMessageStatusDto,
   CashRegisterResponse,
@@ -100,6 +101,7 @@ export class KasaPosTerminalleriListComponent {
     targetBranchNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
     targetCashNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
   });
+  protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
 
   private readonly authService = inject(AuthService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
@@ -108,6 +110,7 @@ export class KasaPosTerminalleriListComponent {
   private definitionIssuesRequestId = 0;
 
   protected readonly cashRegistries = signal<CashRegistryDto[]>([]);
+  protected readonly branchOptions = signal<BranchDetailDto[]>([]);
   protected readonly terminals = signal<CashRegisterTerminalDto[]>([]);
   protected readonly messageStatuses = signal<CashRegisterMessageStatusDto[]>([]);
   protected readonly terminalLocations = signal<CashRegisterTerminalLocationDto[]>([]);
@@ -124,6 +127,8 @@ export class KasaPosTerminalleriListComponent {
   protected readonly loadingAction = signal<PosAction | null>(null);
   protected readonly lookupsLoading = signal(false);
   protected readonly definitionIssuesLoading = signal(false);
+  protected readonly branchesLoading = signal(false);
+  private readonly searchTerm = signal('');
 
   protected readonly canCreate = computed(() =>
     hasSettingsPermission(
@@ -154,17 +159,79 @@ export class KasaPosTerminalleriListComponent {
   protected readonly terminalBankOptions = computed(
     () => this.cashRegisterLookups().terminalBanks ?? [],
   );
+  protected readonly filteredCashRegistries = computed(() => {
+    const search = this.normalizeSearch(this.searchTerm());
+    if (!search) {
+      return this.cashRegistries();
+    }
+
+    return this.cashRegistries().filter((item) =>
+      this.normalizeSearch(
+        `${item.branchNo} ${item.cashNo} ${item.cashFinanceNumber ?? ''} ${item.cashTypeName ?? ''}`,
+      ).includes(search),
+    );
+  });
+  protected readonly filteredTerminals = computed(() => {
+    const search = this.normalizeSearch(this.searchTerm());
+    if (!search) {
+      return this.terminals();
+    }
+
+    return this.terminals().filter((item) =>
+      this.normalizeSearch(
+        `${item.terminalNo} ${item.bank} ${item.terminalId} ${item.merchantNo} ${item.paymentTypeNo ?? ''}`,
+      ).includes(search),
+    );
+  });
 
   constructor() {
     const branchNo = this.authService.currentUser()?.depoNo ?? null;
     this.scopeForm.patchValue({ branchNo });
     this.cashRegisterForm.patchValue({ branchNo });
+    let previousBranchNo = branchNo;
+    this.scopeForm.controls.branchNo.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((selectedBranchNo: number | null) => {
+        if (selectedBranchNo === previousBranchNo) {
+          return;
+        }
+        previousBranchNo = selectedBranchNo;
+        this.scopeForm.controls.cashNo.setValue(null, { emitEvent: false });
+        this.cashRegistries.set([]);
+        this.terminals.set([]);
+        this.selectedCashRegistry.set(null);
+        if (selectedBranchNo) {
+          this.loadCashRegistries();
+        }
+      });
+    this.searchControl.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((value: string) => this.searchTerm.set(value));
+
     this.loadLookups();
+    this.loadBranchOptions();
 
     if (branchNo) {
       this.loadCashRegistries();
       this.loadMessageStatuses();
     }
+  }
+
+  protected loadBranchOptions(): void {
+    this.branchesLoading.set(true);
+    this.ayarIslemleriService
+      .getBranchSettings()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.branchesLoading.set(false)),
+      )
+      .subscribe({
+        next: (branches: BranchDetailDto[]) =>
+          this.branchOptions.set(
+            [...(branches ?? [])].sort((left, right) => left.branchNo - right.branchNo),
+          ),
+        error: () => this.branchOptions.set([]),
+      });
   }
 
   protected loadLookups(): void {
@@ -195,6 +262,7 @@ export class KasaPosTerminalleriListComponent {
 
   protected loadCashRegistries(): void {
     const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
+    const preferredCashNo = toOptionalNumber(this.scopeForm.getRawValue().cashNo);
 
     if (!branchNo) {
       this.feedback.set({
@@ -221,9 +289,16 @@ export class KasaPosTerminalleriListComponent {
       )
       .subscribe({
         next: (cashRegistries: CashRegistryDto[]) => {
-          this.cashRegistries.set(this.sortCashRegistries(cashRegistries ?? []));
+          const sortedCashRegistries = this.sortCashRegistries(cashRegistries ?? []);
+          this.cashRegistries.set(sortedCashRegistries);
           this.cashRegisterForm.patchValue({ branchNo });
           this.loadDefinitionIssues(branchNo);
+
+          const selectedCash = sortedCashRegistries.find((item) => item.cashNo === preferredCashNo)
+            ?? sortedCashRegistries[0];
+          if (selectedCash) {
+            setTimeout(() => this.selectCashRegistry(selectedCash));
+          }
 
           if (!cashRegistries?.length) {
             this.feedback.set({
@@ -414,6 +489,19 @@ export class KasaPosTerminalleriListComponent {
       cashType: this.cashTypeOptions()[0]?.value ?? 0,
     });
     this.resetTerminalForm();
+  }
+
+  protected newTerminal(): void {
+    if (!this.selectedCashRegistry() || !this.canCreate()) {
+      return;
+    }
+
+    this.cancelTerminalEdit();
+    this.terminalLocations.set([]);
+    setTimeout(() => document.getElementById('terminal-editor')?.scrollIntoView({
+      behavior: 'smooth',
+      block: 'center',
+    }));
   }
 
   protected saveSelectedCashType(): void {
@@ -1104,6 +1192,10 @@ export class KasaPosTerminalleriListComponent {
         left.cashNo - right.cashNo ||
         left.filePath.localeCompare(right.filePath, 'tr'),
     );
+  }
+
+  private normalizeSearch(value: unknown): string {
+    return String(value ?? '').trim().toLocaleLowerCase('tr-TR');
   }
 
   private mergeLookupOptions(

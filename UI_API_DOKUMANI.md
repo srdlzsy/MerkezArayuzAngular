@@ -3228,7 +3228,7 @@ Kasa ve terminal kaynagi:
 - Sube kasa listesi `GET /api/ayar-islemleri/sube-ayarlari/{branchNo}/kasalar` tarafinda Furpa `CashRegistryDetails` kaydindan kasa no'yu okur.
 - Ayni response'taki `cashFinanceNumber`, secili sube ve fiziksel kasa icin Furpa `CashRegisterDetails.CashNo -> CashRegisterNo` ile cozulur. Birden fazla farkli finans/PAV numarasi bulunursa API rastgele ilk kaydi secmez; `409 Conflict` ile cakisan numaralari bildirir ve kasa-POS eslesmesi duzeltilmeden icmal olusturulmaz.
 - POS terminal listesi `GET /api/ayar-islemleri/kasa-pos-terminalleri/kasalar/{cashNo}/terminaller?branchNo={branchNo}` ile Furpa `CashRegisterDetails` ve `CashRegistryDetails` uzerinden, fiziksel kasa + sube eslesmesiyle okunur. Mikro'dan terminal fallback/merge yapilmaz.
-- Icmal banka secenekleri icin UI `cashNo` ve `branchNo` gondermelidir. Ornek: `GET /api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/banka?cashNo=103&branchNo=129`. API o fiziksel kasanin Furpa `CashRegisterDetails` terminal bankalarini Mikro `PaymentTypes` kataloguyla eslestirir. Eski istemciler icin `cashRegisterNo` parametresi geriye uyumludur; yeni UI bu global/finans numarasi yolunu kullanmamalidir.
+- Icmal banka secenekleri icin UI `cashNo` ve `branchNo` gondermelidir. Ornek: `GET /api/kasa-islemleri/kasa-sayimlari/odeme-tipleri/banka?cashNo=103&branchNo=129`. API o fiziksel kasanin Furpa `CashRegisterDetails.PaymentTypeNo` bagini Furpa `PaymentTypes` kataloguyla eslestirir. Eski istemciler ve henuz backfill edilmemis satirlar icin banka adi eslesmesi gecici olarak desteklenir; yeni UI global/finans numarasi yolunu kullanmamalidir.
 - `cashNo` subedeki fiziksel kasadir; `cashFinanceNumber` PAV/finans grup numarasidir. Icmal banka listesini guvenli daraltmak icin esas filtre `branchNo + cashNo` ikilisidir.
 - UI kasa secimini degistirdiginde onceki kasa icin devam eden detay/banka isteklerini gecersiz saymalidir. Gec gelen eski response yeni kasanin banka listesinin ustune yazilmamalidir.
 
@@ -3561,7 +3561,7 @@ Body `CreateBranchSettingsHttpRequest` ile ayni sube alanlarini alir; `cashRegis
 
 `GET /api/ayar-islemleri/kasa-pos-terminalleri/secenekler`
 
-Kasa/POS terminal ekleme formundaki kasa tipi ve banka/odeme tipi secimlerinin dropdown kaynagidir. UI terminal bankasini serbest metin gibi yazdirmamali; `terminalBanks[].displayName` gorunen etiket, `terminalBanks[].paymentName` kayit body icindeki `bank` alanidir. API create/update sirasinda da banka adini Mikro `PaymentTypes` (`PaymentGenus=1`) kataloguna gore dogrular ve katalogdaki kesin yazimla kaydeder. Katalogda bulunmayan banka `400 Bad Request` ile reddedilir.
+Kasa/POS terminal ekleme formundaki kasa tipi ve banka/odeme tipi secimlerinin dropdown kaynagidir. UI terminal bankasini serbest metin gibi yazdirmamali; `terminalBanks[].displayName` gorunen etiket, `terminalBanks[].paymentName` kayit body icindeki `bank` alanidir. API create/update sirasinda banka adini Furpa `PaymentTypes` (`PaymentGenus=1`) kataloguna gore dogrular; katalogdaki kesin yazimla birlikte `CashRegisterDetails.PaymentTypeNo` bagini kaydeder. Katalogda bulunmayan banka `400 Bad Request` ile reddedilir.
 
 Response:
 
@@ -3596,7 +3596,7 @@ Response:
 
 `POST /api/ayar-islemleri/kasa-pos-terminalleri`
 
-Yeni kasa tanimi, Furpa `CashRegistryDetails` tablosunda fiziksel kasa kaydini ve Furpa `CashRegisterDetails` tablosunda POS/PAV banka satirlarini tek Furpa transaction'i icinde olusturur. Mikro `PaymentTypes` yalniz banka/odeme katalogu olarak okunur; bu endpoint Mikro `CashRegisterDetails`, `CashRegisterBranches` veya `PaymentTypes` tablolarina yazmaz.
+Yeni kasa tanimi, Furpa `CashRegistryDetails` tablosunda fiziksel kasa kaydini ve Furpa `CashRegisterDetails` tablosunda POS/PAV banka satirlarini tek Furpa transaction'i icinde olusturur. Banka/odeme katalogu Furpa `PaymentTypes` tablosundan okunur; bu endpoint Mikro `CashRegisterDetails`, `CashRegisterBranches` veya `PaymentTypes` tablolarina yazmaz.
 
 Body:
 
@@ -3709,7 +3709,7 @@ Kontrol kodlari:
 - `MISSING_TERMINAL_GROUP`: Fiziksel kasa var, POS/PAV banka satiri yok.
 - `MULTIPLE_TERMINAL_GROUPS`: Ayni fiziksel kasa birden fazla PAV/finans numarasina bagli.
 - `INCOMPLETE_TERMINAL_ROW`: PAV, banka, terminal ID veya merchant alanlarindan biri bos.
-- `UNKNOWN_BANK`: Furpa banka adi Mikro `PaymentTypes` katalogunda yok.
+- `UNKNOWN_BANK`: Furpa banka adi Furpa `PaymentTypes` katalogunda yok.
 - `TERMINAL_GROUP_SHARED`: Ayni PAV grubu birden fazla fiziksel kasaya bagli.
 
 Response ornegi:
@@ -3723,7 +3723,7 @@ Response ornegi:
     "cashNo": 103,
     "terminalNo": "PAV210009468",
     "bank": "Eski Banka",
-    "message": "Eski Banka bankasi Mikro odeme tipi katalogunda bulunamadi. Terminal satirini gecerli bir banka secerek guncelleyin."
+    "message": "Eski Banka bankasi Furpa odeme tipi katalogunda bulunamadi. Terminal satirini gecerli bir banka secerek guncelleyin."
   }
 ]
 ```
@@ -4983,6 +4983,7 @@ Alias:
 Amac:
 
 - `DEPOLAR_ARASI_SIPARISLER` kayitlarini `STOKLAR.sto_model_kodu in ('10','11','12','23')` filtresiyle urun/tip bazinda toplar.
+- Sonuclar `Meyve (10) -> Sebze (11) -> Yesillik (12) -> Manav Sarf (23)` sirasinda gelir; her tip kendi icinde urun adina gore alfabetik siralanir.
 
 Response item:
 
@@ -5036,6 +5037,8 @@ Alias:
 `GET /api/green-grocer/reports/sube?date=2026-06-04&warehouseNo=110`
 
 `take` siniri evrak anahtarina (`branchNo + documentSerie + documentOrderNo`) uygulanir. Bir evrak limite girdiyse o evrakin tum urun satirlari response'a eklenir; cok satirli ilk subeler sonraki subeleri eksik gosterecek sekilde satir bazli kirpma yapilmaz. Yesillik raporu da ayni tam-evrak kuralini kullanir.
+
+Her sube/evrak icindeki satirlar `Meyve -> Sebze -> Yesillik -> Manav Sarf` ve ardindan urun adi sirasindadir. UI bu sirayi miktara veya Mikro satir numarasina gore yeniden bozmamalidir.
 
 Response:
 
@@ -5124,6 +5127,7 @@ Alias:
 Amac:
 
 - Urunleri toplam miktar ve sube/evrak kirilimiyle dondurur.
+- Urunler `Meyve -> Sebze -> Yesillik -> Manav Sarf` ve her tip icinde urun adi sirasinda gelir.
 - `branches` kiriliminda `latestCreateDate` ve `canDelete` alanlari bulunur; UI sil butonunu `canDelete=true` ve kullanicida `green-grocer.reports.update` yetkisi varsa gostermelidir.
 - `caseInfo` doluysa rapor satiri siparis anindaki kasa/koli snapshot'ini de icerir. `quantity` ve `caseInfo.estimatedQuantity` Mikro'ya yazilan KG/ADET toplamidir; `caseInfo.inputQuantity` subenin girdigi kasa/koli toplamidir.
 
@@ -6078,6 +6082,7 @@ Onemli not:
 - Yazma yolu `MikroWriteRouting:IssuedWarehouseOrder` ile secilir. Mevcut Production ayari `Database` degerindedir; `MikroApi` yolu da ayni request ve readback sozlesmesini uygular.
 - `MikroApi` yolunda `/Api/apiMethods/DepolarArasiSiparisKaydetV2` cagrilir; basarili/timeout/duplicate cevabindan sonra Mikro DB satirlari readback ile dogrulanir.
 - `Database` yolunda EF Core `MikroWriteDbContext` ile transaction commit edilir ve commit sonrasinda ayni tam readback yapilir. Iki yolda da belge dogrulanmadan guvenli islem `Completed` olmaz.
+- `lines[]` icindeki her stok, Mikro yazimi baslamadan `outWarehouseNo` kaynak deposunun siparis katalogunda yeniden dogrulanir. Katalog; depo model kodlari, kaynak depodaki `STOK_DEPO_DETAYLARI` kaydi ve `sdp_sipdursun=0` kosullarindan olusur.
 - Readback seri/sira, tarih, giris-cikis depolari, aktif satir sayisi ve satir sirasi, stok kodu, miktar, birim, fiyat/tutar alanlarini kontrol eder. Mikro tarafinda normalize edilebilen paket/proje, sorumluluk merkezi ve tavsiye miktari gibi yardimci metadata tek basina icerik uyusmazligi olusturmaz.
 - Trace readback sorgularini buyuk Mikro tablolarinda hizlandirmak icin onerilen iki hedefli index scripti `docs/SIPARISLER_SAFE_CREATE_READBACK_INDEXLERI.sql` dosyasindadir. Canli index envanteriyle karsilastirilmadan ve dusuk trafik/bakim penceresi secilmeden uygulanmamalidir.
 - `documentSerie` backend tarafinda `F{islemDepoNo}` olarak uretilir.
@@ -11098,6 +11103,15 @@ Not:
 - `promotion` alani, urunun PLU numarasi icin secili depoda aktif Birlik Premium Kart/Furpara promosyonu varsa dolar; promosyon yoksa `null` gelir
 - Promosyon sorgusu urun basina ayri istekle degil, belgedeki tum PLU numaralari icin tek toplu Mayday sorgusuyla yapilir
 - response satir sirasi Furpa `LabelDocumentDetails.DetailId` sirasi ile gelir; bu sira pratikte create anindaki insert sirasi kabul edilir
+
+### Manuel Etiket Urun Detayi
+
+`GET /api/kasa-islemleri/etiket-belgeleri/urun-detayi?warehouseNo=110&productCode=016222`
+
+Manuel etiket listesine eklenen tek urunun etiket verisini belge olusturmadan cozer. Response
+`LabelDocumentProductDto` modelidir; guncel fiyat, onceki fiyat ve varsa aktif `promotion`
+bilgisi birlikte gelir. UI genel urun aramasindaki satis fiyatini dogrudan etikete cevirmemeli;
+urun secildikten sonra bu endpoint ile fiyat ve indirim bilgisini kesinlestirmelidir.
 - UI yazdirirken response'u urun adi, stok kodu veya fiyata gore yeniden siralamamali; gelen sirayi korumalidir
 
 Response:
@@ -13186,7 +13200,8 @@ Onemli not:
 - `documentOrderNo` ayni seri, evrak tipi ve iade tipi icin write DB'deki mevcut maksimum sira okunarak uretilir; ilk evrak `0`, sonraki evraklar `1, 2...` seklinde gider.
 - Plaka, sofor adi ve TCKN bu create request'inde gonderilmez. E-irsaliye gonderiminde manuel akista bu alanlar zorunludur; kayitli sofor secilirse `driverId` yeterlidir.
 - `deliverer` teslim eden, `receiver` teslim alan bilgisidir. Opsiyoneldir; gonderilirse Mikro `STOK_HAREKETLERI.sth_HareketGrupKodu2` ve `sth_HareketGrupKodu3` alanlarina yazilir.
-- Request/response modeli firma giden sevk create ile aynidir; tek fark kaydin `returnType = 1` olarak yazilmasidir.
+- Firma iadesinde fiyat ve tutar kullanilmaz. Backend istemciden gelen `lines[].unitPrice` degerini dikkate almadan `0` olarak normalize eder; Mikro birim fiyat, satir tutari, vergi tutari ve response `totalAmount` sifir olur. Angular ve terminal de firma iade satirlarinda satis fiyati gostermemeli ve `unitPrice=0` gondermelidir.
+- Request/response modeli firma giden sevk create ile aynidir; firma iadesi `returnType = 1` ve sifir fiyat/tutarla yazilir.
 
 Request:
 
@@ -13204,7 +13219,7 @@ Request:
     {
       "stockCode": "015792",
       "quantity": 5,
-      "unitPrice": 125,
+      "unitPrice": 0,
       "unitPointer": 1,
       "description": "",
       "partyCode": "",
@@ -13230,7 +13245,7 @@ Response:
   "customerCode": "120.01.001",
   "lineCount": 1,
   "totalQuantity": 5,
-  "totalAmount": 625,
+  "totalAmount": 0,
   "writeConnectionName": "testMikroConnection"
 }
 ```
@@ -19265,7 +19280,7 @@ Mikro evrak duzenleme kaynakli akislar:
 #### Belge Akis Liste
 
 ```http
-GET /api/operasyon-islemleri/belge-akis-takibi?warehouseNo=1&startDate=2026-07-01&endDate=2026-07-01&documentType=CompanyShipment&status=Failed&search=FRM2026000000101&take=100
+GET /api/operasyon-islemleri/belge-akis-takibi?warehouseNo=1&startDate=2026-07-01&endDate=2026-07-01&documentType=CompanyShipment&status=Failed&search=FRM2026000000101&skip=0&take=100
 ```
 
 Query alanlari:
@@ -19276,7 +19291,10 @@ Query alanlari:
 - `documentType`: opsiyonel enum.
 - `status`: opsiyonel enum.
 - `search`: opsiyonel. `documentSerie`, `documentNo`, `externalDocumentNo`, `externalUuid` icinde arar.
+- `skip`: 0 veya daha buyuk, varsayilan `0`. Sonraki sayfalari okumak icin onceki sayfalarda donen kayit sayisi kadar artirilir.
 - `take`: 1-500 arasi, varsayilan `100`.
+
+Liste `updatedAtUtc DESC, id DESC` sirasiyla kararlı sayfalanir. UI ilk 500 kaydi getirir; `totalCount` daha buyukse "Daha Eski Kayitlari Yukle" aksiyonu `skip` degerini artirarak kalan kayitlari ayni listeye ekler.
 
 Response:
 
@@ -19847,7 +19865,7 @@ Production gecici gorev notu:
 Production AXATA import calisma kurali:
 
 - `c01-outbound-delivery-import`, `c02-outbound-delivery-import`, `g01-inbound-atf-import` ve `g02-inbound-delivery-import` Production profilinde aciktir ve 5 dakikada bir calisir.
-- Basariyla Mikro'ya yazilan veya mevcut Mikro kaydi kesin olarak dogrulanan C01, C02 ve G01 belgeleri Belge Akis Takibi'ne `AxataDocumentImported` adimiyla yazilir. G02 basarisi mevcut `WarehouseReceivingAccepted` adimiyla izlenir. Deneme, erteleme ve basarisiz belge kayitlari Belge Akis Takibi'ne yazilmaz; ekran yalniz gerceklesen belge hareketlerini gosterir.
+- Basariyla AXATA'ya gonderilip Mikro gonderim bayragi dogrulanan C01, C02, G01 ve G02 siparisleri Belge Akis Takibi'ne `AxataOrderSent` adimiyla yazilir. Basariyla Mikro'ya yazilan veya mevcut Mikro kaydi kesin olarak dogrulanan C01, C02, C03, C4 ve G01 belgeleri `AxataDocumentImported`, G02 kabul basarisi ise `WarehouseReceivingAccepted` adimiyla izlenir. Deneme, erteleme ve basarisiz belge kayitlari basarili belge gibi akisa yazilmaz.
 - Bu dort gorevde `ImportLookbackDays=14` kullanilir. Zamanlanmis worker bugun dahil son 14 gunluk AXATA kayitlarini isler; daha eski `Status=0` arsiv kayitlari her dongude yeniden taranarak yeni evraklari geciktirmez.
 - C01, C02 ve G02 zamanlanmis okumalarinda `AxataConnection` tanimliysa tarih/durum filtresi dogrudan AXATA SQL tablolarinda uygulanir. WCF, canli import/ack islemi ve SQL baglantisi bulunmayan manuel akislar icin korunur.
 - Eski bir belgenin kurtarilmasi gerekiyorsa belgeye ozel manuel `preview/import/rescue` route'u kullanilir. Manuel route'lar 14 gunluk worker penceresiyle sinirlanmaz.
@@ -20889,6 +20907,7 @@ Entegrasyon modulu notlari:
 
 - worker ve scheduler backend tarafinda hosted service olarak calisir
 - scheduler config ile kapali acilabilir; UI bunu overview ekraninda gostermelidir
+- Siparis, sevk ve mal kabul gibi operasyonel AXATA gorevleri firma/urun master gorevlerinden once kuyruklanir ve calistirilir. Manuel baslatilan gorevler de onceliklidir. Bir gorev `AxataSynchronization.JobTimeoutMinutes` suresini asarsa basarisiz kapatilir ve kuyruk siradaki belgeyle devam eder; production degeri 10 dakikadir.
 - `preview` endpoint'i canli veriyi okur, test/mock veri kullanmaz
 - `issued-warehouse-order-sync`, `warehouse-inbound-order-sync`, `company-receiving-sync` ve `inventory-count-sync` task'larinda `warehouseNo` gerekir
 - `issued-warehouse-order-sync` icin `warehouseNo` AXATA kaynak/cikis depodur; aday liste, task preview, execute ve dispatch ayni `ssip_cikdepo` evrenine bakar
@@ -25345,7 +25364,7 @@ Bu bolum insan tarafindan okunacak ozet katalogdur. Tam ve surumlenmis alan, tip
 - `ProductAvailabilityHttpRequest`: `WarehouseNo`, `Barcode`, `StockCode`, `StockName`, `IncludeDelisted`, `Take`
 - `CustomerSearchHttpRequest`: `SearchText`, `Take`
 - `WarehouseSearchHttpRequest`: HTTP query alanlari `searchText`, `warehouseNo`, `take`; backend ic property adi `LookupWarehouseNo` olsa da `[FromQuery(Name = "WarehouseNo")]` nedeniyle mevcut istemciler `warehouseNo` gondermeye devam etmelidir.
-- `BarcodeResolutionHttpRequest`: `WarehouseNo`, `OperationType`, `TargetWarehouseNo`, `SupplierCode`, `CompanyCode`, `IsRefund`, `ScreenCode`
+- `BarcodeResolutionHttpRequest`: `WarehouseNo`, `OperationType`, `TargetWarehouseNo`, `SourceWarehouseNo`, `SupplierCode`, `CompanyCode`, `IsRefund`, `ScreenCode`
 - `BarcodeCustomerLookupHttpRequest`: `Barcode`, `WarehouseNo`, `Take`
 - `BarcodeCustomerLookupByPathHttpRequest`: `WarehouseNo`, `Take`
 - `ProductCustomerSuggestionHttpRequest`: `WarehouseNo`, `Take`
@@ -25493,9 +25512,11 @@ Bu bolum insan tarafindan okunacak ozet katalogdur. Tam ve surumlenmis alan, tip
 - `KasaHareketImportHttpRequest`: `StartDate`, `EndDate`, `Branches`, `CashRegisters`, `FileRootPath`, `SkipExisting`, `DryRun`
 - `KasaHareketScheduledImportHttpRequest`: `Date`, `AddDay`, `FileRootPath`, `SkipExisting`, `DryRun`
 - `KasaHareketDeleteStagingHttpRequest`: `Date`, `BranchNo`, `CashRegisterNo`
-- `KasaHareketMikroTransferHttpRequest`: `Date`, `BranchNo`
+- `KasaHareketMikroTransferHttpRequest`: `Date`, `BranchNo`, `EndDate`
 - `KasaHareketMikroTransferRangeHttpRequest`: `StartDate`, `EndDate`
 - `KasaHareketReportHttpRequest`: `Date`, `BranchNo`, `CashRegisterNo`
+
+`DELETE /api/kasa-islemleri/kasa-hareket-aktarimi/mikro` icin `BranchNo` zorunludur. `EndDate` bos veya `Date` ile ayniysa tek gunluk `StokHareketSil`, farkliysa iki tarih dahil olacak sekilde `StokHareketSilTarihAralikli` calisir. `POST /mikro` aktariminda `EndDate` kullanilmaz; tarih aralikli aktarim icin `/mikro/aralik-aktar` endpointi kullanilir.
 
 ### Fatura Request Modelleri
 
@@ -25526,7 +25547,7 @@ Bu bolum insan tarafindan okunacak ozet katalogdur. Tam ve surumlenmis alan, tip
 - `SaveAuthorizationFileHttpRequest`: `Id`, `UpdateDate`, `Name`, `Z`, `R`, `X`
 - `GET /api/operations/scalesfile`, `productbarcodeplunofile`, `productbarcodeplonofile`, `cashierfile`, `promofile`, `customerfile` ve `einvoicevnofile` endpointleri body almaz; opsiyonel `warehouseNo` query parametresi yalniz `operasyon-islemleri.operations.all-warehouses` yetkili depo secimi icindir.
 - `POST /api/operations/saveauthorizationfile` ve `POST /api/operations/authorization-files` body modeli tek obje degil, `IReadOnlyCollection<SaveAuthorizationFileHttpRequest>` dizisidir.
-- `DocumentFlowListHttpRequest`: `WarehouseNo`, `StartDate`, `EndDate`, `DocumentType`, `Status`, `Search`, `Take`
+- `DocumentFlowListHttpRequest`: `WarehouseNo`, `StartDate`, `EndDate`, `DocumentType`, `Status`, `Search`, `Skip`, `Take`
 - `GET /api/operasyon-islemleri/belge-akis-takibi` body almaz; filtreleri query parametresi olarak alir.
 - `GET /api/operasyon-islemleri/belge-akis-takibi/{id}` body almaz; `id` belge akis kaydinin `Guid` degeridir.
 
@@ -25626,7 +25647,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 |---|---|---|---|---|
 | GET | `/` | Anonim |  | 200: bildirilmemis |
 | GET | `/api/arama-islemleri/barkodlar/{barcode}/cariler` | JWT + arama-islemleri.cari-bul.list | path: barcode / string (zorunlu)<br>query: WarehouseNo / integer (int32)<br>query: Take / integer (int32) | 401: ProblemDetails<br>200: BarcodeCustomerSuggestionResponse<br>400: ProblemDetails<br>403: ProblemDetails |
-| GET | `/api/arama-islemleri/barkodlar/{barcode}/cozumle` | JWT | path: barcode / string (zorunlu)<br>query: WarehouseNo / integer (int32)<br>query: OperationType / string<br>query: TargetWarehouseNo / integer (int32)<br>query: SupplierCode / string<br>query: CompanyCode / string<br>query: IsRefund / boolean<br>query: ScreenCode / string | 401: ProblemDetails<br>200: BarcodeResolutionDto<br>400: ProblemDetails |
+| GET | `/api/arama-islemleri/barkodlar/{barcode}/cozumle` | JWT | path: barcode / string (zorunlu)<br>query: WarehouseNo / integer (int32)<br>query: OperationType / string<br>query: TargetWarehouseNo / integer (int32)<br>query: SourceWarehouseNo / integer (int32)<br>query: SupplierCode / string<br>query: CompanyCode / string<br>query: IsRefund / boolean<br>query: ScreenCode / string | 401: ProblemDetails<br>200: BarcodeResolutionDto<br>400: ProblemDetails |
 | GET | `/api/arama-islemleri/barkodlar/{barcode}/fiyat` | JWT + arama-islemleri.fiyat-gor.list | path: barcode / string (zorunlu)<br>query: WarehouseNo / integer (int32)<br>query: SourceWarehouseNo / integer (int32)<br>query: IncludeDelisted / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>200: IReadOnlyCollection&lt;ProductLookupItemDto&gt;<br>400: ProblemDetails<br>403: ProblemDetails |
 | GET | `/api/arama-islemleri/cari-bul` | JWT + arama-islemleri.cari-bul.list | query: Barcode / string (zorunlu)<br>query: WarehouseNo / integer (int32)<br>query: Take / integer (int32) | 401: ProblemDetails<br>200: BarcodeCustomerSuggestionResponse<br>400: ProblemDetails<br>403: ProblemDetails |
 | GET | `/api/arama-islemleri/cariler` | JWT | query: SearchText / string (zorunlu)<br>query: Take / integer (int32) | 401: ProblemDetails<br>200: IReadOnlyCollection&lt;CustomerLookupItemDto&gt;<br>400: ProblemDetails |
@@ -25726,6 +25747,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | DELETE | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-hareketleri` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.delete | query: DocumentSerie / string (zorunlu)<br>query: DocumentOrderNo / integer (int32)<br>query: DocumentType / integer (int32)<br>query: MovementType / integer (int32)<br>query: MovementKind / integer (int32)<br>query: NormalReturn / integer (int32)<br>query: WarehouseNo / integer (int32)<br>query: HardDelete / boolean | 401: ProblemDetails<br>403: ProblemDetails<br>200: MikroDocumentDeleteResponse<br>400: ProblemDetails<br>404: ProblemDetails<br>409: ProblemDetails |
 | GET | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-hareketleri` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.detail | query: DocumentSerie / string (zorunlu)<br>query: DocumentOrderNo / integer (int32)<br>query: DocumentType / integer (int32)<br>query: MovementType / integer (int32)<br>query: MovementKind / integer (int32)<br>query: NormalReturn / integer (int32)<br>query: WarehouseNo / integer (int32)<br>query: HardDelete / boolean | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockMovementDocumentDto<br>400: ProblemDetails<br>404: ProblemDetails<br>409: ProblemDetails |
 | PUT | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-hareketleri` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.update | body: request / UpdateStockMovementDocumentHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockMovementDocumentUpdateResponse<br>400: ProblemDetails<br>404: ProblemDetails<br>409: ProblemDetails |
+| GET | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-hareketleri/eslesmeler` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.detail | query: DocumentSerie / string (zorunlu)<br>query: DocumentOrderNo / integer (int32)<br>query: DocumentType / integer (int32)<br>query: MovementType / integer (int32)<br>query: MovementKind / integer (int32)<br>query: NormalReturn / integer (int32)<br>query: WarehouseNo / integer (int32)<br>query: HardDelete / boolean | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockMovementDocumentDto&gt;<br>400: ProblemDetails |
 | GET | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.list | query: SearchText / string<br>query: IncludePassive / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockCardListItemDto&gt;<br>400: ProblemDetails |
 | GET | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.detail | path: stockCode / string (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockCardDetailDto<br>400: ProblemDetails<br>404: ProblemDetails |
 | PUT | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.update | path: stockCode / string (zorunlu)<br>body: request / StockCardPatchHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockCardUpdateResponse<br>400: ProblemDetails<br>404: ProblemDetails |
@@ -26041,6 +26063,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | GET | `/api/kasa-islemleri/etiket-belgeleri/get-by-date-for-label` | JWT + kasa-islemleri.etiket-belgeleri.list | query: WarehouseNo / integer (int32)<br>query: DateTimeFilter / string (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;LabelPriceChangedProductDto&gt;<br>400: ProblemDetails |
 | GET | `/api/kasa-islemleri/etiket-belgeleri/son` | JWT + kasa-islemleri.etiket-belgeleri.list | query: warehouseNo / integer (int32)<br>query: take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;LabelDocumentListItemDto&gt;<br>400: ProblemDetails |
 | GET | `/api/kasa-islemleri/etiket-belgeleri/tumu` | JWT + kasa-islemleri.etiket-belgeleri.list | query: warehouseNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;LabelDocumentListItemDto&gt;<br>400: ProblemDetails |
+| GET | `/api/kasa-islemleri/etiket-belgeleri/urun-detayi` | JWT + kasa-islemleri.etiket-belgeleri.detail | query: warehouseNo / integer (int32)<br>query: productCode / string (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: LabelDocumentProductDto<br>400: ProblemDetails<br>404: ProblemDetails |
 | GET | `/api/kasa-islemleri/etiket-belgeleri/{documentId}` | JWT + kasa-islemleri.etiket-belgeleri.detail | path: documentId / integer (int32) (zorunlu)<br>query: warehouseNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;LabelDocumentProductDto&gt;<br>400: ProblemDetails<br>404: ProblemDetails |
 | PUT | `/api/kasa-islemleri/etiket-belgeleri/{id}` | JWT + kasa-islemleri.etiket-belgeleri.update | path: id / string (zorunlu)<br>body: request / ModuleActionRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>501: ModuleActionScaffoldResponse |
 | POST | `/api/kasa-islemleri/kasa-ciro-aktarimi/metin/aktar` | JWT + kasa-islemleri.kasa-ciro-aktarimi.create | body: request / KasaCiroImportHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: KasaCiroImportResultDto<br>400: ProblemDetails |
@@ -26057,6 +26080,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | GET | `/api/kasa-islemleri/kasa-cirolari/yeni` | JWT + kasa-islemleri.kasa-cirolari.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;CashTurnoverListItemDto&gt;<br>400: ProblemDetails |
 | GET | `/api/kasa-islemleri/kasa-cirolari/yeni/detay` | JWT + kasa-islemleri.kasa-cirolari.detail | query: WarehouseNo / integer (int32)<br>query: BusinessDate / string (date-time) (zorunlu)<br>query: ShiftNo / integer (int32) (zorunlu)<br>query: CashierCode / string (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: CashTurnoverDetailDto<br>400: ProblemDetails<br>404: ProblemDetails |
 | GET | `/api/kasa-islemleri/kasa-cirolari/yeni/ozet` | JWT + kasa-islemleri.kasa-cirolari.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: CashTurnoverOverviewDto<br>400: ProblemDetails |
+| GET | `/api/kasa-islemleri/kasa-hareket-aktarimi/durum` | JWT + kasa-islemleri.kasa-hareket-aktarimi.list | query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu)<br>query: BranchNo / integer (int32)<br>query: CashRegisterNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: KasaHareketTransferStatusDto<br>400: ProblemDetails |
 | POST | `/api/kasa-islemleri/kasa-hareket-aktarimi/hareketler/aktar` | JWT + kasa-islemleri.kasa-hareket-aktarimi.create | body: request / KasaHareketImportHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: KasaHareketImportResultDto<br>400: ProblemDetails |
 | GET | `/api/kasa-islemleri/kasa-hareket-aktarimi/icmal-karsilastirma` | JWT + kasa-islemleri.kasa-hareket-aktarimi.detail | query: Date / string (date-time) (zorunlu)<br>query: BranchNo / integer (int32)<br>query: CashRegisterNo / integer (int32)<br>query: Tolerance / number (double) | 401: ProblemDetails<br>403: ProblemDetails<br>200: KasaHareketCashSummaryComparisonDto<br>400: ProblemDetails |
 | GET | `/api/kasa-islemleri/kasa-hareket-aktarimi/icmal-karsilastirma/detay` | JWT + kasa-islemleri.kasa-hareket-aktarimi.detail | query: Date / string (date-time) (zorunlu)<br>query: BranchNo / integer (int32) (zorunlu)<br>query: CashRegisterNo / integer (int32) (zorunlu)<br>query: ReceiptTake / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: KasaHareketDetailDto<br>400: ProblemDetails |
@@ -26179,7 +26203,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | POST | `/api/mobile-sync/guvenli-yazmalar/{clientRequestId}/vazgec` | JWT | path: clientRequestId / string (uuid) (zorunlu) | 401: ProblemDetails<br>200: SafeWriteReviewResultDto<br>404: ProblemDetails<br>409: ProblemDetails |
 | POST | `/api/mobile-sync/guvenli-yazmalar/{clientRequestId}/yeniden-dogrula` | JWT | path: clientRequestId / string (uuid) (zorunlu)<br>body: request / RecheckMobileSafeWriteHttpRequest (zorunlu) | 401: ProblemDetails<br>200: SafeWriteReviewResultDto<br>400: ProblemDetails<br>404: ProblemDetails<br>409: ProblemDetails |
 | GET | `/api/mobile-sync/urun-fiyat-katalogu` | JWT + arama-islemleri.fiyat-gor.list | query: WarehouseNo / integer (int32)<br>query: Since / string (date-time)<br>query: Cursor / string<br>query: PageSize / integer (int32) | 401: ProblemDetails<br>200: MobileProductPriceCatalogResponse<br>400: ProblemDetails<br>403: ProblemDetails |
-| GET | `/api/operasyon-islemleri/belge-akis-takibi` | JWT + operasyon-islemleri.belge-akis-takibi.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time)<br>query: EndDate / string (date-time)<br>query: DocumentType / FurpaMerkezApi.Domain.Entities.DocumentFlowType<br>query: Status / FurpaMerkezApi.Domain.Entities.DocumentFlowStatus<br>query: Search / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: DocumentFlowListResponse<br>400: ProblemDetails |
+| GET | `/api/operasyon-islemleri/belge-akis-takibi` | JWT + operasyon-islemleri.belge-akis-takibi.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time)<br>query: EndDate / string (date-time)<br>query: DocumentType / FurpaMerkezApi.Domain.Entities.DocumentFlowType<br>query: Status / FurpaMerkezApi.Domain.Entities.DocumentFlowStatus<br>query: Search / string<br>query: Skip / integer (int32)<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: DocumentFlowListResponse<br>400: ProblemDetails |
 | GET | `/api/operasyon-islemleri/belge-akis-takibi/{id}` | JWT + operasyon-islemleri.belge-akis-takibi.detail | path: id / string (uuid) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: DocumentFlowDetailDto<br>404: ProblemDetails |
 | GET | `/api/operasyon-islemleri/depo-operasyon-paneli` | JWT + operasyon-islemleri.depo-operasyon-paneli.all-warehouses + operasyon-islemleri.depo-operasyon-paneli.list | query: date / string (date) | 401: ProblemDetails<br>403: ProblemDetails<br>200: WarehouseOperationsDashboardDto |
 | GET | `/api/operasyon-islemleri/firma-evrak-takibi` | JWT + operasyon-islemleri.firma-evrak-takibi.list | query: Date / string (date) (zorunlu)<br>query: WarehouseNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: CompanyDocumentTrackingDto<br>400: ProblemDetails |
@@ -26256,6 +26280,7 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | GET | `/api/rapor-islemleri/stok-raporlari/hareketler` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu)<br>query: StockCode / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockMovementReportItemDto&gt;<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/iadeler/subeler` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu)<br>query: StockCode / string (zorunlu)<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;ReturnBranchReportItemDto&gt;<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/karlilik` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu)<br>query: Scope / string<br>query: FilterValue / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;ProfitabilityReportItemDto&gt;<br>400: ProblemDetails |
+| GET | `/api/rapor-islemleri/stok-raporlari/kategori-satis-analizi` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu)<br>query: CategoryCode / string (zorunlu)<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;CategorySalesAnalysisItemDto&gt; |
 | GET | `/api/rapor-islemleri/stok-raporlari/kategori-secenekleri` | JWT + rapor-islemleri.stok-raporlari.list | query: Search / string<br>query: OnlyActive / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockCategoryOptionDto&gt;<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/kategori-son-stok` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: ReportDate / string (date-time)<br>query: CategoryCode / string (zorunlu)<br>query: Search / string<br>query: OnlyWithStock / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockOnHandReportDto<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/satislar/satmayan-urunler` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: StartDate / string (date-time) (zorunlu)<br>query: EndDate / string (date-time) (zorunlu)<br>query: ProductManagerCode / string<br>query: IncludeDls / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;NotSoldProductReportItemDto&gt;<br>400: ProblemDetails |
@@ -26264,7 +26289,9 @@ Bu bolum test hostundaki ApiExplorer ve Swagger metadata'sindan otomatik uretili
 | GET | `/api/rapor-islemleri/stok-raporlari/sayim-karsilastirma` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: CountDate / string (date-time) (zorunlu)<br>query: DocumentNo / integer (int32)<br>query: PackageCode / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;CountingComparisonReportItemDto&gt;<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/son-stok` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: ReportDate / string (date-time)<br>query: Search / string<br>query: SupplierCode / string<br>query: CategoryCode / string<br>query: ProducerCode / string<br>query: ProductManagerCode / string<br>query: ModelCode / string<br>query: OnlyWithStock / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockOnHandReportDto<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/stok-kartlari` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: Barcode / string<br>query: StockCode / string<br>query: StockName / string<br>query: SupplierCode / string<br>query: ProductManagerCode / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockCardDetailDto&gt;<br>400: ProblemDetails |
+| GET | `/api/rapor-islemleri/stok-raporlari/sube-fiyat-farklari` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: Search / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;BranchPriceDifferenceItemDto&gt; |
 | GET | `/api/rapor-islemleri/stok-raporlari/tedarikci-son-stok` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: ReportDate / string (date-time)<br>query: SupplierCode / string (zorunlu)<br>query: Search / string<br>query: OnlyWithStock / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockOnHandReportDto<br>400: ProblemDetails |
+| GET | `/api/rapor-islemleri/stok-raporlari/uretici-sezonsal-satis` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: PastYear / integer (int32)<br>query: PresentYear / integer (int32)<br>query: ManufacturerCode / string (zorunlu)<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;ManufacturerSeasonalSalesItemDto&gt; |
 | GET | `/api/rapor-islemleri/stok-raporlari/uretici-son-stok` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: ReportDate / string (date-time)<br>query: ProducerCode / string (zorunlu)<br>query: Search / string<br>query: OnlyWithStock / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockOnHandReportDto<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/urun-ara` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: Barcode / string<br>query: StockCode / string<br>query: StockName / string<br>query: SupplierCode / string<br>query: ProductManagerCode / string<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockCardDetailDto&gt;<br>400: ProblemDetails |
 | GET | `/api/rapor-islemleri/stok-raporlari/urun-depo-durum` | JWT + rapor-islemleri.stok-raporlari.list | query: WarehouseNo / integer (int32)<br>query: ReportDate / string (date-time)<br>query: StockCodeOrBarcode / string (zorunlu)<br>query: OnlyWithStock / boolean<br>query: Take / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;ProductWarehouseStockDto&gt;<br>400: ProblemDetails |
@@ -26676,6 +26703,7 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `operationType` | string | Hayir | nullable |
 | `priceTypeCode` | integer (int32) | Hayir | nullable |
 | `primaryBarcode` | string | Hayir | nullable |
+| `procurementType` | string | Hayir | nullable |
 | `productModelCode` | string | Hayir | nullable |
 | `purchaseGrossPrice` | number (double) | Hayir | nullable |
 | `purchasePrice` | number (double) | Hayir | nullable |
@@ -26685,6 +26713,7 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `resolutionSource` | string | Hayir | nullable |
 | `salesPrice` | number (double) | Hayir | nullable |
 | `screenCode` | string | Hayir | nullable |
+| `sourceWarehouses` | FurpaMerkezApi.Application.Modules.AramaIslemleri.SearchProducts.ProductSourceWarehouseDto[] | Hayir | nullable |
 | `stockCode` | string | Hayir | nullable |
 | `stockName` | string | Hayir | nullable |
 | `supplierCode` | string | Hayir | nullable |
@@ -26916,6 +26945,7 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `cashNo` | integer (int32) | Hayir | nullable |
 | `id` | integer (int32) | Hayir |  |
 | `merchantNo` | string | Hayir | nullable |
+| `paymentTypeNo` | integer (int32) | Hayir | nullable |
 | `terminalId` | string | Hayir | nullable |
 | `terminalNo` | string | Hayir | nullable |
 
@@ -27416,6 +27446,9 @@ Enum degerleri JSON sozlesmesinde bulunur.
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
 |---|---|---|---|
+| `autoCreatedReturnDocumentOrderNo` | integer (int32) | Hayir | nullable |
+| `autoCreatedReturnDocumentSerie` | string | Hayir | nullable |
+| `autoCreatedReturnLineCount` | integer (int32) | Hayir | nullable |
 | `customerAddress` | string | Hayir | nullable |
 | `customerCode` | string | Hayir | nullable |
 | `customerDisplayName` | string | Hayir | nullable |
@@ -27437,9 +27470,13 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `outputWarehouseName` | string | Hayir | nullable |
 | `outputWarehouseNo` | integer (int32) | Hayir |  |
 | `receiver` | string | Hayir | nullable |
+| `returnEDespatchStatus` | string | Hayir | nullable |
 | `returnType` | integer (int32) | Hayir |  |
 | `totalAmount` | number (double) | Hayir |  |
+| `totalDispatchQuantity` | number (double) | Hayir | nullable |
+| `totalNetAcceptedQuantity` | number (double) | Hayir | nullable |
 | `totalQuantity` | number (double) | Hayir |  |
+| `totalReturnedQuantity` | number (double) | Hayir | nullable |
 | `warehouseName` | string | Hayir | nullable |
 | `warehouseNo` | integer (int32) | Hayir |  |
 
@@ -27449,6 +27486,7 @@ Enum degerleri JSON sozlesmesinde bulunur.
 |---|---|---|---|
 | `description` | string | Hayir | nullable |
 | `discountAmount` | number (double) | Hayir |  |
+| `dispatchQuantity` | number (double) | Hayir | nullable |
 | `expenseAmount` | number (double) | Hayir |  |
 | `grossWeight` | number (double) | Hayir |  |
 | `lineAmount` | number (double) | Hayir |  |
@@ -27457,8 +27495,15 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `netWeight` | number (double) | Hayir |  |
 | `orderGuid` | string (uuid) | Hayir | nullable |
 | `partyCode` | string | Hayir | nullable |
+| `physicalAcceptedQuantity` | number (double) | Hayir | nullable |
 | `projectCode` | string | Hayir | nullable |
 | `quantity` | number (double) | Hayir |  |
+| `returnDocumentOrderNo` | integer (int32) | Hayir | nullable |
+| `returnDocumentSerie` | string | Hayir | nullable |
+| `returnEDespatchStatus` | string | Hayir | nullable |
+| `returnMovementGuid` | string (uuid) | Hayir | nullable |
+| `returnQuantity` | number (double) | Hayir | nullable |
+| `returnStatus` | string | Hayir | nullable |
 | `secondaryQuantity` | number (double) | Hayir |  |
 | `stockCode` | string | Hayir | nullable |
 | `stockName` | string | Hayir | nullable |
@@ -31318,6 +31363,20 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `totalExpense` | number (double) | Hayir |  |
 | `totalNetAmount` | number (double) | Hayir |  |
 
+### FurpaMerkezApi.Application.Modules.KasaIslemleri.KasaHareketAktarimi.KasaHareketTransferStatusDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `branchNo` | integer (int32) | Hayir | nullable |
+| `canceledReceiptCount` | integer (int32) | Hayir |  |
+| `cashRegisterNo` | integer (int32) | Hayir | nullable |
+| `endDate` | string (date-time) | Hayir |  |
+| `generatedAtUtc` | string (date-time) | Hayir |  |
+| `pendingReceiptCount` | integer (int32) | Hayir |  |
+| `startDate` | string (date-time) | Hayir |  |
+| `totalReceiptCount` | integer (int32) | Hayir |  |
+| `transferredReceiptCount` | integer (int32) | Hayir |  |
+
 ### FurpaMerkezApi.Application.Modules.KasaIslemleri.KasaSayimlari.BanknoteMovementItemDto
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
@@ -33167,6 +33226,19 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `terminalId` | string | Hayir | nullable |
 | `zNo` | integer (int32) | Hayir |  |
 
+### FurpaMerkezApi.Application.Modules.RaporIslemleri.StokRaporlari.BranchPriceDifferenceItemDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `branchPrice` | number (double) | Hayir |  |
+| `differenceAmount` | number (double) | Hayir |  |
+| `differencePercent` | number (double) | Hayir |  |
+| `mainWarehousePrice` | number (double) | Hayir |  |
+| `stockCode` | string | Hayir | nullable |
+| `stockName` | string | Hayir | nullable |
+| `warehouseName` | string | Hayir | nullable |
+| `warehouseNo` | integer (int32) | Hayir |  |
+
 ### FurpaMerkezApi.Application.Modules.RaporIslemleri.StokRaporlari.BranchSalesReportItemDto
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
@@ -33180,6 +33252,20 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `taxAmount` | number (double) | Hayir |  |
 | `warehouseName` | string | Hayir | nullable |
 | `warehouseNo` | integer (int32) | Hayir |  |
+
+### FurpaMerkezApi.Application.Modules.RaporIslemleri.StokRaporlari.CategorySalesAnalysisItemDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `categoryCode` | string | Hayir | nullable |
+| `categoryName` | string | Hayir | nullable |
+| `manufacturerCode` | string | Hayir | nullable |
+| `manufacturerName` | string | Hayir | nullable |
+| `quantity` | number (double) | Hayir |  |
+| `stockCode` | string | Hayir | nullable |
+| `stockName` | string | Hayir | nullable |
+| `supplierCode` | string | Hayir | nullable |
+| `totalAmount` | number (double) | Hayir |  |
 
 ### FurpaMerkezApi.Application.Modules.RaporIslemleri.StokRaporlari.CountingComparisonReportItemDto
 
@@ -33198,6 +33284,21 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `unitName` | string | Hayir | nullable |
 | `warehouseName` | string | Hayir | nullable |
 | `warehouseNo` | integer (int32) | Hayir |  |
+
+### FurpaMerkezApi.Application.Modules.RaporIslemleri.StokRaporlari.ManufacturerSeasonalSalesItemDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `changePercent` | number (double) | Hayir |  |
+| `differenceAmount` | number (double) | Hayir |  |
+| `manufacturerCode` | string | Hayir | nullable |
+| `manufacturerName` | string | Hayir | nullable |
+| `month` | integer (int32) | Hayir |  |
+| `monthName` | string | Hayir | nullable |
+| `pastAmount` | number (double) | Hayir |  |
+| `presentAmount` | number (double) | Hayir |  |
+| `stockCode` | string | Hayir | nullable |
+| `stockName` | string | Hayir | nullable |
 
 ### FurpaMerkezApi.Application.Modules.RaporIslemleri.StokRaporlari.MovementInOutComparisonDto
 
@@ -35969,6 +36070,7 @@ Enum degerleri JSON sozlesmesinde bulunur.
 |---|---|---|---|
 | `branchNo` | integer (int32) | Hayir | min=1; max=2147483647; nullable |
 | `date` | string (date-time) | Evet |  |
+| `endDate` | string (date-time) | Hayir | nullable |
 
 ### FurpaMerkezApi.WebApi.Controllers.Modules.KasaIslemleri.KasaHareketAktarimi.KasaHareketMikroTransferRangeHttpRequest
 

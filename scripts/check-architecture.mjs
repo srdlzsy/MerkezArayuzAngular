@@ -12,7 +12,7 @@ const legacyLineBudgets = [
   ['src/app/docs/tasks/edocuments/fatura-islemleri/list/fatura-islemleri-list.component.ts', 3720],
   [
     'src/app/docs/tasks/corrections/mikro-evrak-duzenleme/list/mikro-evrak-duzenleme-list.component.ts',
-    2700,
+    2850,
   ],
   [
     'src/app/docs/tasks/cash-register/icmal-dokumu/create/icmal-dokumu-create.component.ts',

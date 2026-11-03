@@ -439,12 +439,20 @@ export interface KasaHareketDeleteStagingHttpRequest {
 
 export interface KasaHareketMikroTransferHttpRequest {
   date: string;
+  endDate?: string | null;
   branchNo?: number | null;
 }
 
 export interface KasaHareketMikroTransferRangeHttpRequest {
   startDate: string;
   endDate: string;
+}
+
+export interface KasaHareketTransferStatusHttpRequest {
+  startDate: string;
+  endDate: string;
+  branchNo?: number | null;
+  cashRegisterNo?: number | null;
 }
 
 export interface KasaHareketReportHttpRequest {
@@ -493,6 +501,18 @@ export interface KasaHareketProcedureResultDto {
   date: string;
   branchNo: number | null;
   cashRegisterNo: number | null;
+}
+
+export interface KasaHareketTransferStatusDto {
+  startDate: string;
+  endDate: string;
+  branchNo: number | null;
+  cashRegisterNo: number | null;
+  totalReceiptCount: number;
+  transferredReceiptCount: number;
+  pendingReceiptCount: number;
+  canceledReceiptCount: number;
+  generatedAtUtc: string;
 }
 
 export interface KasaHareketReportRowDto {

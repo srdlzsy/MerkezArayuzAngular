@@ -90,6 +90,7 @@ export interface CashRegisterTerminalDto {
   terminalId: string;
   merchantNo: string;
   cashNo: number | null;
+  paymentTypeNo?: number | null;
 }
 
 export interface CashRegisterTerminalLocationDto {

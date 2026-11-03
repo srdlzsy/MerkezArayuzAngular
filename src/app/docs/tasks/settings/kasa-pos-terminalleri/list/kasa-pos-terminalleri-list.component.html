@@ -44,7 +44,12 @@
     >
       <label class="field">
         <span>Sube</span>
-        <input type="number" min="1" formControlName="branchNo" placeholder="110" />
+        <select formControlName="branchNo" [disabled]="branchesLoading()">
+          <option [ngValue]="null">Sube secin</option>
+          <option *ngFor="let branch of branchOptions()" [ngValue]="branch.branchNo">
+            Sube {{ branch.branchNo }}
+          </option>
+        </select>
       </label>
 
       <label class="field">
@@ -83,6 +88,18 @@
           {{ isLoading('messages') ? 'Yukleniyor' : 'Mesaj' }}
         </button>
       </div>
+
+      <label class="field pos-search-field">
+        <span>Kasa veya terminal ara</span>
+        <div class="search-input-wrap">
+          <i class="fa-solid fa-magnifying-glass"></i>
+          <input
+            type="search"
+            [formControl]="searchControl"
+            placeholder="Kasa, PAV, banka, terminal ID"
+          />
+        </div>
+      </label>
 
       <div class="state-card state-card-error" *ngIf="messageErrorCount() > 0">
         <h3>Hata</h3>
@@ -158,7 +175,7 @@
           <p>Sube kasa tanimlari getiriliyor.</p>
         </article>
 
-        <div class="table-wrap compact-table" *ngIf="!isLoading('cash') && cashRegistries().length">
+        <div class="table-wrap compact-table" *ngIf="!isLoading('cash') && filteredCashRegistries().length">
           <table class="data-table cash-table">
             <thead>
               <tr>
@@ -170,7 +187,7 @@
             </thead>
             <tbody>
               <tr
-                *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry"
+                *ngFor="let cash of filteredCashRegistries(); trackBy: trackByCashRegistry"
                 [class.is-selected]="selectedCashRegistry()?.cashNo === cash.cashNo"
                 (click)="selectCashRegistry(cash)"
               >
@@ -199,9 +216,9 @@
           </table>
         </div>
 
-        <article class="state-card" *ngIf="!isLoading('cash') && !cashRegistries().length">
+        <article class="state-card" *ngIf="!isLoading('cash') && !filteredCashRegistries().length">
           <h3>Kasa yok</h3>
-          <p>Secili subede kasa tanimi bulunmuyor.</p>
+          <p>{{ cashRegistries().length ? 'Aramayla eslesen kasa bulunmadi.' : 'Secili subede kasa tanimi bulunmuyor.' }}</p>
         </article>
 
         <div class="panel-head">
@@ -209,6 +226,15 @@
             <span class="panel-kicker">Terminaller</span>
             <h3>Kasa Terminal Detayi</h3>
           </div>
+          <button
+            type="button"
+            class="task-action task-action-secondary"
+            (click)="newTerminal()"
+            [disabled]="!selectedCashRegistry() || !canCreate() || isLoading('terminal-save')"
+          >
+            <i class="fa-solid fa-plus"></i>
+            Yeni Terminal
+          </button>
         </div>
 
         <article class="state-card" *ngIf="isLoading('terminals')">
@@ -216,7 +242,7 @@
           <p>Secili kasa icin POS terminal detaylari getiriliyor.</p>
         </article>
 
-        <div class="table-wrap compact-table" *ngIf="!isLoading('terminals') && terminals().length">
+        <div class="table-wrap compact-table" *ngIf="!isLoading('terminals') && filteredTerminals().length">
           <table class="data-table terminal-table">
             <thead>
               <tr>
@@ -224,17 +250,19 @@
                 <th>Banka</th>
                 <th>Terminal ID</th>
                 <th>Merchant</th>
+                <th>Odeme Tipi</th>
                 <th>Aksiyon</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let terminal of terminals(); trackBy: trackByTerminal">
+              <tr *ngFor="let terminal of filteredTerminals(); trackBy: trackByTerminal">
                 <td>
                   <strong>{{ terminal.terminalNo }}</strong>
                 </td>
                 <td>{{ getTerminalBankLabel(terminal.bank) }}</td>
                 <td>{{ terminal.terminalId || '-' }}</td>
                 <td>{{ terminal.merchantNo || '-' }}</td>
+                <td>{{ terminal.paymentTypeNo ?? '-' }}</td>
                 <td>
                   <button
                     type="button"
@@ -271,9 +299,9 @@
           </table>
         </div>
 
-        <article class="state-card" *ngIf="!isLoading('terminals') && !terminals().length">
+        <article class="state-card" *ngIf="!isLoading('terminals') && !filteredTerminals().length">
           <h3>Terminal yok</h3>
-          <p>Secili kasa icin terminal detayi bulunmuyor.</p>
+          <p>{{ terminals().length ? 'Aramayla eslesen terminal bulunmadi.' : 'Secili kasa icin terminal detayi bulunmuyor.' }}</p>
         </article>
       </section>
 
@@ -385,6 +413,7 @@
         </div>
 
         <form
+          id="terminal-editor"
           class="form-panel form-grid two-col"
           [formGroup]="terminalDraftForm"
           (ngSubmit)="saveTerminal()"

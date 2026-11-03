@@ -1,7 +1,29 @@
 @use '../../_settings-page.shared';
 
 .pos-filter {
-  grid-template-columns: minmax(120px, 0.22fr) minmax(220px, 0.34fr) auto;
+  grid-template-columns: minmax(140px, 0.22fr) minmax(220px, 0.34fr) auto minmax(240px, 0.44fr);
+}
+
+.pos-search-field {
+  min-width: 0;
+}
+
+.search-input-wrap {
+  position: relative;
+}
+
+.search-input-wrap i {
+  position: absolute;
+  top: 50%;
+  left: 0.65rem;
+  color: var(--settings-muted);
+  transform: translateY(-50%);
+  pointer-events: none;
+}
+
+.search-input-wrap input {
+  width: 100%;
+  padding-left: 2rem;
 }
 
 .compact-table .data-table {
@@ -267,6 +289,9 @@
     content: 'Merchant';
   }
   .terminal-table td:nth-child(5)::before {
+    content: 'Odeme Tipi';
+  }
+  .terminal-table td:nth-child(6)::before {
     content: 'Islem';
   }
 }
