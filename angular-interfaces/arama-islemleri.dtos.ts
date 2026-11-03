@@ -83,6 +83,7 @@ export interface BarcodeResolutionHttpRequest {
   warehouseNo?: number | null;
   operationType?: string | null;
   targetWarehouseNo?: number | null;
+  sourceWarehouseNo?: number | null;
   supplierCode?: string | null;
   companyCode?: string | null;
   isRefund?: boolean | null;
@@ -129,6 +130,8 @@ export interface BarcodeResolutionDto {
   targetWarehouseReason: string | null;
   productModelCode: string | null;
   targetWarehouseModelCodes: string[];
+  procurementType: ProductProcurementType;
+  sourceWarehouses: ProductSourceWarehouseDto[];
   supplierCode: string | null;
   hasPurchaseRequirement: boolean | null;
   purchaseRequirementReason: string | null;

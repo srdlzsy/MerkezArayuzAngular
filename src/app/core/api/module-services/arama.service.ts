@@ -366,6 +366,7 @@ export class AramaService extends BaseApiService {
             warehouseNo: warehouseNoOrRequest.warehouseNo,
             operationType: this.normalizeOptionalText(warehouseNoOrRequest.operationType),
             targetWarehouseNo: warehouseNoOrRequest.targetWarehouseNo,
+            sourceWarehouseNo: warehouseNoOrRequest.sourceWarehouseNo,
             supplierCode: this.normalizeOptionalText(warehouseNoOrRequest.supplierCode),
             companyCode: this.normalizeOptionalText(warehouseNoOrRequest.companyCode),
             isRefund: warehouseNoOrRequest.isRefund,
