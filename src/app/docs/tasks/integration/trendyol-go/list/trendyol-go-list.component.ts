@@ -222,7 +222,8 @@ export class TrendyolGoListComponent {
     mode: new FormControl<'changed' | 'all'>('changed', { nonNullable: true }),
     sinceDate: new FormControl(this.getToday(), { nonNullable: true }),
     search: new FormControl('', { nonNullable: true }),
-    take: new FormControl(500, { nonNullable: true, validators: [Validators.min(1), Validators.max(5000)] })
+    take: new FormControl(500, { nonNullable: true, validators: [Validators.min(1), Validators.max(5000)] }),
+    autoCreateMissingCatalog: new FormControl<boolean>(true, { nonNullable: true })
   });
   protected readonly catalogSyncForm = new FormGroup({
     view: new FormControl<'actionable' | 'issues' | 'all' | 'existing'>('actionable', { nonNullable: true }),
@@ -816,7 +817,7 @@ export class TrendyolGoListComponent {
       return;
     }
 
-    const { targetScope, mode, sinceDate, search } = this.directPriceStockForm.getRawValue();
+    const { targetScope, mode, sinceDate, search, autoCreateMissingCatalog } = this.directPriceStockForm.getRawValue();
     const isAllStores = targetScope === 'all';
     const storeId = this.selectedStoreId();
 
@@ -853,7 +854,8 @@ export class TrendyolGoListComponent {
       mode,
       sinceDate: mode === 'changed' ? sinceDate : null,
       search: search.trim() || null,
-      barcodes: selectedBarcodes.length > 0 ? selectedBarcodes : []
+      barcodes: selectedBarcodes.length > 0 ? selectedBarcodes : [],
+      autoCreateMissingCatalog
     };
 
     this.service
@@ -873,9 +875,12 @@ export class TrendyolGoListComponent {
             );
             return;
           }
+          const catalogNote = result.totalCatalogCreated && result.totalCatalogCreated > 0
+            ? ` (${result.totalCatalogCreated} adet eksik urun icin katalog olusturuldu)`
+            : '';
           this.setFeedback(
             'success',
-            `Dogrudan aktarim tamamlandi: ${result.targetStoresCount} magaza, toplam ${result.totalItemsDispatched} urun Trendyol Go'ya aktarildi.`
+            `Dogrudan aktarim tamamlandi: ${result.targetStoresCount} magaza, toplam ${result.totalItemsDispatched} urun Trendyol Go'ya aktarildi.${catalogNote}`
           );
         },
         error: (error: unknown) =>

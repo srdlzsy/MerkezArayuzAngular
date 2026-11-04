@@ -1492,6 +1492,7 @@ export interface ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto {
   onlyFlaggedChanged?: boolean | null;
   search?: string | null;
   barcodes?: string[];
+  autoCreateMissingCatalog?: boolean;
 }
 
 export interface ITrendyolGoDirectStoreDispatchResultApiDto {
@@ -1503,11 +1504,14 @@ export interface ITrendyolGoDirectStoreDispatchResultApiDto {
   success: boolean;
   errorMessage?: string | null;
   batchRequestIds: string[];
+  catalogCreatedCount?: number;
+  catalogBatchRequestIds?: string[];
 }
 
 export interface ITrendyolGoDirectPriceStockDispatchResultApiDto {
   targetStoresCount: number;
   totalItemsDispatched: number;
+  totalCatalogCreated?: number;
   storeResults: ITrendyolGoDirectStoreDispatchResultApiDto[];
 }
 

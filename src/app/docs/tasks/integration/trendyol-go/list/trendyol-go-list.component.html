@@ -256,6 +256,10 @@
           <span>Limit</span>
           <input type="number" min="1" max="5000" formControlName="take" />
         </label>
+        <label class="field checkbox-label" title="Trendyol Go tarafinda urun bulunamazsa Mikro ERP bilgilerinden otomatik katalog olusturup guncellemeyi tekrarlar">
+          <input type="checkbox" formControlName="autoCreateMissingCatalog" />
+          <span>Eksikse Katalog Olustur</span>
+        </label>
         <button type="button" class="secondary-button" (click)="loadDirectPreview()" [disabled]="loadingDirectPreview() || !selectedStore()">
           <i class="fa-solid fa-arrows-rotate"></i>
           <span>{{ loadingDirectPreview() ? 'Yukleniyor' : 'Mikro\'dan Getir' }}</span>
@@ -274,17 +278,19 @@
         <div class="result-header">
           <strong>Gonderim Sonucu:</strong>
           <span>{{ res.targetStoresCount }} magaza, toplam {{ res.totalItemsDispatched }} urun gonderildi.</span>
+          <span *ngIf="res.totalCatalogCreated" class="catalog-badge">({{ res.totalCatalogCreated }} eksik urun icin katalog olusturuldu)</span>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Magaza</th><th>Depo</th><th>Urun Sayisi</th><th>Batch Sayisi</th><th>Durum</th><th>Batch ID'ler</th></tr>
+              <tr><th>Magaza</th><th>Depo</th><th>Urun Sayisi</th><th>Olusturulan Katalog</th><th>Batch Sayisi</th><th>Durum</th><th>Batch ID'ler</th></tr>
             </thead>
             <tbody>
               <tr *ngFor="let sr of res.storeResults">
                 <td><strong>{{ sr.storeName }}</strong></td>
                 <td>{{ sr.warehouseNo }}</td>
                 <td>{{ sr.itemCount }}</td>
+                <td>{{ sr.catalogCreatedCount || 0 }}</td>
                 <td>{{ sr.batchCount }}</td>
                 <td><span class="status-pill" [class.is-ready]="sr.success">{{ sr.success ? 'Basarili' : 'Hata: ' + sr.errorMessage }}</span></td>
                 <td>
