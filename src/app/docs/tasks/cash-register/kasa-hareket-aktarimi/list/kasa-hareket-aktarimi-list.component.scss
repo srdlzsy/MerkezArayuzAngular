@@ -1453,6 +1453,10 @@
   color: #b91c1c !important;
 }
 
+.only-print {
+  display: none;
+}
+
 @media (max-width: 992px) {
   .aktarim-layout {
     grid-template-columns: 1fr;

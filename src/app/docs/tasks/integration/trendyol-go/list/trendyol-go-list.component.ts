@@ -1066,15 +1066,27 @@ export class TrendyolGoListComponent {
       .subscribe({
         next: (result: ITrendyolGoDirectPriceStockDispatchResultApiDto) => {
           this.directDispatchResult.set(result);
-          const allBatchIds = result.storeResults.flatMap((s) => s.batchRequestIds || []);
+          const allBatchIds = result.storeResults.flatMap((storeResult) => [
+            ...(storeResult.batchRequestIds || []),
+            ...(storeResult.catalogBatchRequestIds || [])
+          ]);
           if (allBatchIds.length > 0) {
-            this.priceStockBatchIds.set(allBatchIds);
+            this.priceStockBatchIds.set([...new Set(allBatchIds)]);
           }
           const failedStores = result.storeResults.filter((item) => !item.success);
           if (failedStores.length > 0) {
+            const catalogPendingStores = failedStores.filter((item) => this.isCatalogPending(item));
+            const failedStoreCount = failedStores.length - catalogPendingStores.length;
+            if (failedStoreCount === 0) {
+              this.setFeedback(
+                'info',
+                `${catalogPendingStores.length} magazada eksik urunler katalog kuyruguna alindi. Katalog batch sonucu kabul edildikten sonra fiyat/stok gonderimini yeniden calistirin.`
+              );
+              return;
+            }
             this.setFeedback(
               'error',
-              `Gonderim kismen tamamlandi: ${result.targetStoresCount - failedStores.length} magaza basarili, ${failedStores.length} magaza hatali.`
+              `Gonderim kismen tamamlandi: ${result.targetStoresCount - failedStores.length} magaza basarili, ${catalogPendingStores.length} magaza katalog onayi bekliyor, ${failedStoreCount} magaza hatali.`
             );
             return;
           }
@@ -1089,6 +1101,22 @@ export class TrendyolGoListComponent {
         error: (error: unknown) =>
           this.setFeedback('error', getErrorMessage(error, 'Dogrudan fiyat ve stok gonderilemedi.'))
       });
+  }
+
+  protected isCatalogPending(result: ITrendyolGoDirectStoreDispatchResultApiDto): boolean {
+    return !result.success && (result.catalogCreatedCount ?? 0) > 0;
+  }
+
+  protected directStoreStatusLabel(result: ITrendyolGoDirectStoreDispatchResultApiDto): string {
+    if (result.success) {
+      return 'Basarili';
+    }
+
+    if (this.isCatalogPending(result)) {
+      return 'Katalog onayi bekleniyor';
+    }
+
+    return `Hata: ${result.errorMessage || 'Gonderim tamamlanamadi'}`;
   }
 
   private invalidateDirectPreview(): void {

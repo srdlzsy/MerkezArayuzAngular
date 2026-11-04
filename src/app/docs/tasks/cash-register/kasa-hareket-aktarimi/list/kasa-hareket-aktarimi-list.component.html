@@ -446,7 +446,7 @@
 
       <section class="tab-panel sales-comparison-panel" *ngSwitchCase="'satis'">
         <form
-          class="report-toolbar sales-comparison-toolbar"
+          class="report-toolbar sales-comparison-toolbar no-print"
           [formGroup]="salesComparisonForm"
           (ngSubmit)="loadSalesComparison()"
           novalidate
@@ -462,12 +462,44 @@
               class="task-action task-action-primary"
               [disabled]="salesComparisonLoading()"
             >
-              {{ salesComparisonLoading() ? 'Yukleniyor...' : 'Karsilastir' }}
+              <i class="fa-solid fa-arrows-rotate" [class.is-spinning]="salesComparisonLoading()"></i>
+              <span>{{ salesComparisonLoading() ? 'Yukleniyor...' : 'Karsilastir' }}</span>
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              (click)="exportSalesComparisonExcel()"
+              [disabled]="salesComparisonLoading() || !salesComparison()?.rows?.length || salesComparisonExporting()"
+              title="Sonuclari Excel dosyasina aktar"
+            >
+              <i class="fa-solid fa-file-excel color-success" [class.is-spinning]="salesComparisonExporting()"></i>
+              <span>{{ salesComparisonExporting() ? 'Aktariliyor...' : 'Excel\'e Aktar' }}</span>
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-secondary"
+              (click)="printSalesComparison()"
+              [disabled]="salesComparisonLoading() || !salesComparison()?.rows?.length || salesComparisonPrinting()"
+              title="Karsilastirma tablosunu yazdir"
+            >
+              <i class="fa-solid fa-print" [class.is-spinning]="salesComparisonPrinting()"></i>
+              <span>{{ salesComparisonPrinting() ? 'Hazirlaniyor...' : 'Yazdir' }}</span>
             </button>
           </div>
         </form>
 
-        <ng-container *ngIf="salesComparison() as comparison">
+        <div id="sales-comparison-print-section" *ngIf="salesComparison() as comparison">
+          <div class="print-header only-print">
+            <div class="print-title-block">
+              <h2>FURPA &bull; Satis Karsilastirma Raporu</h2>
+              <div class="print-meta-grid">
+                <span><strong>Rapor Tarihi:</strong> {{ formatDate(comparison.date) }}</span>
+                <span><strong>Kapsam:</strong> {{ selectedBranchLabel() }}</span>
+                <span><strong>Yazdirma Zamani:</strong> {{ printDate() }}</span>
+              </div>
+            </div>
+          </div>
+
           <section class="summary-strip sales-comparison-summary">
             <article class="summary-item">
               <span>Sube</span>
@@ -552,9 +584,35 @@
                   </td>
                 </tr>
               </tbody>
+              <tfoot class="footer-summary-row">
+                <tr>
+                  <td><strong>TOPLAM</strong></td>
+                  <td><span class="count-badge">{{ comparison.summary.rowCount }} Sube</span></td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</td>
+                  <td class="align-right font-mono">-</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalExpenseReceiptAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportAmount) }}</td>
+                  <td class="align-right font-mono font-bold" [class.color-danger]="comparison.summary.totalZReportTransferDifference < 0">
+                    {{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}
+                  </td>
+                  <td class="align-right font-mono font-bold" [class.color-danger]="comparison.summary.totalTransferredTurnoverDifference < 0">
+                    {{ formatCurrency(comparison.summary.totalTransferredTurnoverDifference) }}
+                  </td>
+                  <td class="align-right font-mono font-bold" [class.color-danger]="comparison.summary.totalCurrentStockDifference < 0">
+                    {{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}
+                  </td>
+                  <td>
+                    <span class="status-pill" [class.status-balanced]="comparison.summary.differenceCount === 0" [class.status-difference]="comparison.summary.differenceCount > 0">
+                      {{ comparison.summary.differenceCount > 0 ? comparison.summary.differenceCount + ' Fark' : 'Dengeli' }}
+                    </span>
+                  </td>
+                </tr>
+              </tfoot>
             </table>
           </div>
-        </ng-container>
+        </div>
 
         <article class="state-card" *ngIf="salesComparisonLoading()">
           <div class="loading-spinner-wrap">

@@ -256,7 +256,7 @@
           <span>Limit</span>
           <input type="number" min="1" max="5000" formControlName="take" />
         </label>
-        <label class="field checkbox-label" title="Trendyol Go tarafinda urun bulunamazsa Mikro ERP bilgilerinden otomatik katalog olusturup guncellemeyi tekrarlar">
+        <label class="field checkbox-label" title="Trendyol Go tarafinda urun bulunamazsa Mikro ERP bilgilerinden katalog olusturma istegini kuyruga alir. Katalog onaylandiktan sonra fiyat/stok gonderimi yeniden calistirilir.">
           <input type="checkbox" formControlName="autoCreateMissingCatalog" />
           <span>Eksikse Katalog Olustur</span>
         </label>
@@ -292,9 +292,17 @@
                 <td>{{ sr.itemCount }}</td>
                 <td>{{ sr.catalogCreatedCount || 0 }}</td>
                 <td>{{ sr.batchCount }}</td>
-                <td><span class="status-pill" [class.is-ready]="sr.success">{{ sr.success ? 'Basarili' : 'Hata: ' + sr.errorMessage }}</span></td>
                 <td>
-                  <span *ngFor="let bId of sr.batchRequestIds" class="batch-badge" (click)="checkPriceStockBatch(bId)" title="Durumu sorgula">{{ bId }}</span>
+                  <span
+                    class="status-pill"
+                    [class.is-ready]="sr.success"
+                    [class.is-pending]="isCatalogPending(sr)"
+                    [title]="sr.errorMessage || ''"
+                  >{{ directStoreStatusLabel(sr) }}</span>
+                </td>
+                <td>
+                  <span *ngFor="let bId of sr.batchRequestIds" class="batch-badge" (click)="checkPriceStockBatch(bId)" title="Fiyat/stok batch durumunu sorgula">{{ bId }}</span>
+                  <span *ngFor="let bId of sr.catalogBatchRequestIds" class="batch-badge catalog-batch-badge" (click)="checkPriceStockBatch(bId)" title="Katalog batch durumunu sorgula">Katalog: {{ bId }}</span>
                 </td>
               </tr>
             </tbody>

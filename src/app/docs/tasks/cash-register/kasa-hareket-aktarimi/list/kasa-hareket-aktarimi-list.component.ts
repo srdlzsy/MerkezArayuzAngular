@@ -36,6 +36,7 @@ import {
   ExcelExportSheet,
   exportRowsToExcel
 } from '../../../core/excel-export/excel-export.utils';
+import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 
 type KasaHareketTab = 'import' | 'rapor' | 'satis' | 'icmal' | 'mikro';
 type KasaHareketDetailTab =
@@ -98,6 +99,9 @@ export class KasaHareketAktarimiListComponent {
   protected readonly reportSummary = signal<KasaHareketReportSummaryDto | null>(null);
   protected readonly salesComparisonLoading = signal(false);
   protected readonly salesComparison = signal<KasaHareketSalesComparisonDto | null>(null);
+  protected readonly salesComparisonExporting = signal(false);
+  protected readonly salesComparisonPrinting = signal(false);
+  protected readonly printDate = signal('');
   protected readonly comparisonResult = signal<KasaHareketCashSummaryComparisonDto | null>(null);
   protected readonly selectedComparisonRow = signal<KasaHareketCashSummaryComparisonRowDto | null>(null);
   protected readonly comparisonDetail = signal<KasaHareketDetailDto | null>(null);
@@ -163,6 +167,7 @@ export class KasaHareketAktarimiListComponent {
   private readonly destroyRef = inject(DestroyRef);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
+  private readonly inPlacePrintService = inject(InPlacePrintService);
   private readonly numberFormatter = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -793,6 +798,180 @@ export class KasaHareketAktarimiListComponent {
     }
   }
 
+  protected async exportSalesComparisonExcel(): Promise<void> {
+    const comparison = this.salesComparison();
+    const rows = comparison?.rows ?? [];
+
+    if (!rows.length || this.salesComparisonExporting()) {
+      return;
+    }
+
+    this.salesComparisonExporting.set(true);
+    this.excelExportErrorMessage.set(null);
+
+    try {
+      await exportRowsToExcel({
+        fileName: `Satis Karsilastirma ${this.salesComparisonForm.controls.date.value} ${this.selectedBranchLabel()}`,
+        sheetName: 'Satis Karsilastirma',
+        rows,
+        columns: this.getSalesComparisonExportColumns()
+      });
+    } catch {
+      this.excelExportErrorMessage.set('Satis karsilastirma Excel dosyasi olusturulamadi.');
+    } finally {
+      this.salesComparisonExporting.set(false);
+    }
+  }
+
+  protected async printSalesComparison(): Promise<void> {
+    const comparison = this.salesComparison();
+    if (!comparison || !comparison.rows.length || this.salesComparisonPrinting()) {
+      return;
+    }
+
+    this.printDate.set(
+      new Intl.DateTimeFormat('tr-TR', {
+        dateStyle: 'short',
+        timeStyle: 'medium'
+      }).format(new Date())
+    );
+    this.salesComparisonPrinting.set(true);
+
+    const started = await this.inPlacePrintService.print({
+      styleId: 'sales-comparison-print-style',
+      styles: `
+        @page {
+          size: A4 landscape;
+          margin: 6mm 8mm;
+        }
+
+        @media print {
+          html, body {
+            width: auto !important;
+            height: auto !important;
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            overflow: visible !important;
+            font-size: 10px !important;
+            color: #0f172a !important;
+          }
+
+          body * {
+            visibility: hidden !important;
+          }
+
+          #sales-comparison-print-section,
+          #sales-comparison-print-section * {
+            visibility: visible !important;
+          }
+
+          #sales-comparison-print-section {
+            display: block !important;
+            position: absolute !important;
+            inset: 0 auto auto 0 !important;
+            width: 100% !important;
+            background: #fff !important;
+            color: #0f172a !important;
+            padding: 0 !important;
+          }
+
+          .only-print {
+            display: block !important;
+          }
+
+          .print-header {
+            margin-bottom: 8px !important;
+            padding-bottom: 6px !important;
+            border-bottom: 2px solid #0f172a !important;
+          }
+
+          .print-header h2 {
+            margin: 0 0 4px 0 !important;
+            font-size: 14px !important;
+            font-weight: 800 !important;
+          }
+
+          .print-meta-grid {
+            display: flex !important;
+            gap: 16px !important;
+            font-size: 10px !important;
+            color: #475569 !important;
+          }
+
+          .sales-comparison-summary {
+            display: grid !important;
+            grid-template-columns: repeat(8, 1fr) !important;
+            gap: 4px !important;
+            margin-bottom: 8px !important;
+          }
+
+          .sales-comparison-summary .summary-item {
+            border: 1px solid #cbd5e1 !important;
+            padding: 3px 5px !important;
+            border-radius: 4px !important;
+            background: #f8fafc !important;
+          }
+
+          .sales-comparison-summary .summary-item span {
+            font-size: 8px !important;
+            text-transform: uppercase !important;
+            color: #64748b !important;
+            display: block !important;
+          }
+
+          .sales-comparison-summary .summary-item strong {
+            font-size: 10px !important;
+            font-weight: 800 !important;
+            color: #0f172a !important;
+          }
+
+          .sales-comparison-table-wrap {
+            max-height: none !important;
+            overflow: visible !important;
+            border: 1px solid #0f172a !important;
+          }
+
+          table.sales-comparison-table {
+            width: 100% !important;
+            border-collapse: collapse !important;
+            font-size: 9px !important;
+          }
+
+          table.sales-comparison-table th,
+          table.sales-comparison-table td {
+            padding: 3px 4px !important;
+            border: 1px solid #cbd5e1 !important;
+            line-height: 1.15 !important;
+          }
+
+          table.sales-comparison-table th {
+            background: #f1f5f9 !important;
+            color: #0f172a !important;
+            font-weight: 800 !important;
+          }
+
+          table.sales-comparison-table tfoot td {
+            background: #e2e8f0 !important;
+            font-weight: 800 !important;
+            border-top: 2px solid #0f172a !important;
+          }
+
+          .no-print,
+          .report-toolbar {
+            display: none !important;
+          }
+        }
+      `,
+      cleanupTimeoutMs: 30_000,
+      afterPrint: () => this.salesComparisonPrinting.set(false)
+    });
+
+    if (!started) {
+      this.salesComparisonPrinting.set(false);
+    }
+  }
+
   protected readonly trackByBranch = (_index: number, branch: KasaHareketBranchDto): number =>
     branch.branchNo;
 
@@ -1395,6 +1574,24 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Gider', value: 'expense', type: 'currency' },
       { label: 'Cek', value: 'checkAmount', type: 'currency' },
       { label: 'Fark', value: 'difference', type: 'currency' }
+    ];
+  }
+
+  private getSalesComparisonExportColumns(): readonly ExcelExportColumn<KasaHareketSalesComparisonRowDto>[] {
+    return [
+      { label: 'Tarih', value: (row) => this.formatDate(row.date) },
+      { label: 'Sube No', value: 'branchNo', type: 'number' },
+      { label: 'Sube', value: 'branchName' },
+      { label: 'Stok Hareket Tutari', value: 'stockMovementAmount', type: 'currency' },
+      { label: 'Cari Hesap Tutari', value: 'currentAccountAmount', type: 'currency' },
+      { label: 'Aktarilan Tutar', value: 'transferredAmount', type: 'currency' },
+      { label: 'GPS Haric', value: 'expenseExcludedAmount', type: 'currency' },
+      { label: 'GPS Tutari', value: 'expenseReceiptAmount', type: 'currency' },
+      { label: 'Z Raporu', value: 'zReportAmount', type: 'currency' },
+      { label: 'ZRP / Aktarim Fark', value: 'zReportTransferDifference', type: 'currency' },
+      { label: 'Aktarilan / Ciro Fark', value: 'transferredTurnoverDifference', type: 'currency' },
+      { label: 'Cari / Stok Fark', value: 'currentStockDifference', type: 'currency' },
+      { label: 'Durum', value: (row) => (row.hasDifference ? 'Fark Var' : 'Dengeli') }
     ];
   }
 
