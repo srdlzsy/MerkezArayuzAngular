@@ -841,8 +841,8 @@ export class KasaHareketAktarimiListComponent {
       styleId: 'sales-comparison-print-style',
       styles: `
         @page {
-          size: A4 landscape;
-          margin: 6mm 8mm;
+          size: A4 portrait;
+          margin: 6mm 6mm;
         }
 
         @media print {
@@ -853,7 +853,7 @@ export class KasaHareketAktarimiListComponent {
             padding: 0 !important;
             background: #fff !important;
             overflow: visible !important;
-            font-size: 10px !important;
+            font-size: 8.5px !important;
             color: #0f172a !important;
           }
 
@@ -881,47 +881,47 @@ export class KasaHareketAktarimiListComponent {
           }
 
           .print-header {
-            margin-bottom: 8px !important;
-            padding-bottom: 6px !important;
-            border-bottom: 2px solid #0f172a !important;
+            margin-bottom: 6px !important;
+            padding-bottom: 4px !important;
+            border-bottom: 1.5px solid #0f172a !important;
           }
 
           .print-header h2 {
-            margin: 0 0 4px 0 !important;
-            font-size: 14px !important;
+            margin: 0 0 2px 0 !important;
+            font-size: 13px !important;
             font-weight: 800 !important;
           }
 
           .print-meta-grid {
             display: flex !important;
-            gap: 16px !important;
-            font-size: 10px !important;
+            gap: 12px !important;
+            font-size: 9px !important;
             color: #475569 !important;
           }
 
           .sales-comparison-summary {
             display: grid !important;
-            grid-template-columns: repeat(8, 1fr) !important;
+            grid-template-columns: repeat(4, 1fr) !important;
             gap: 4px !important;
-            margin-bottom: 8px !important;
+            margin-bottom: 6px !important;
           }
 
           .sales-comparison-summary .summary-item {
             border: 1px solid #cbd5e1 !important;
-            padding: 3px 5px !important;
-            border-radius: 4px !important;
+            padding: 2px 4px !important;
+            border-radius: 3px !important;
             background: #f8fafc !important;
           }
 
           .sales-comparison-summary .summary-item span {
-            font-size: 8px !important;
+            font-size: 7.5px !important;
             text-transform: uppercase !important;
             color: #64748b !important;
             display: block !important;
           }
 
           .sales-comparison-summary .summary-item strong {
-            font-size: 10px !important;
+            font-size: 9.5px !important;
             font-weight: 800 !important;
             color: #0f172a !important;
           }
@@ -935,26 +935,52 @@ export class KasaHareketAktarimiListComponent {
           table.sales-comparison-table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 9px !important;
+            font-size: 7.5px !important;
+            table-layout: auto !important;
+          }
+
+          table.sales-comparison-table thead {
+            display: table-header-group !important;
+          }
+
+          table.sales-comparison-table tbody tr {
+            break-inside: avoid !important;
+            page-break-inside: avoid !important;
           }
 
           table.sales-comparison-table th,
           table.sales-comparison-table td {
-            padding: 3px 4px !important;
+            padding: 2px 2px !important;
             border: 1px solid #cbd5e1 !important;
-            line-height: 1.15 !important;
+            line-height: 1.1 !important;
           }
 
           table.sales-comparison-table th {
             background: #f1f5f9 !important;
             color: #0f172a !important;
             font-weight: 800 !important;
+            font-size: 7.5px !important;
+          }
+
+          table.sales-comparison-table td.font-mono {
+            white-space: nowrap !important;
+            font-size: 7.2px !important;
           }
 
           table.sales-comparison-table tfoot td {
             background: #e2e8f0 !important;
             font-weight: 800 !important;
-            border-top: 2px solid #0f172a !important;
+            border-top: 1.5px solid #0f172a !important;
+            font-size: 7.5px !important;
+            white-space: nowrap !important;
+          }
+
+          .status-pill {
+            padding: 1px 3px !important;
+            font-size: 7px !important;
+            font-weight: 700 !important;
+            border-radius: 2px !important;
+            white-space: nowrap !important;
           }
 
           .no-print,
