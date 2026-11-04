@@ -490,13 +490,18 @@
 
         <div id="sales-comparison-print-section" *ngIf="salesComparison() as comparison">
           <div class="print-header only-print">
-            <div class="print-title-block">
-              <h2>FURPA &bull; Satis Karsilastirma Raporu</h2>
-              <div class="print-meta-grid">
-                <span><strong>Rapor Tarihi:</strong> {{ formatDate(comparison.date) }}</span>
-                <span><strong>Kapsam:</strong> {{ selectedBranchLabel() }}</span>
-                <span><strong>Yazdirma Zamani:</strong> {{ printDate() }}</span>
-              </div>
+            <div class="print-header-top">
+              <span class="print-brand">FURPA GIDA</span>
+              <h2 class="print-title">Satis Karsilastirma Raporu</h2>
+              <span class="print-date">Tarih: <strong>{{ formatDate(comparison.date) }}</strong></span>
+            </div>
+            <div class="print-meta-line">
+              <span>Kapsam: <strong>{{ selectedBranchLabel() }}</strong></span>
+              <span>Toplam: <strong>{{ comparison.summary.rowCount }} Sube</strong></span>
+              <span>Farkli: <strong [class.color-danger]="comparison.summary.differenceCount > 0">{{ comparison.summary.differenceCount }}</strong></span>
+              <span>Acik: <strong class="color-danger">{{ formatCurrency(comparison.summary.totalShortage) }}</strong></span>
+              <span>Fazla: <strong>{{ formatCurrency(comparison.summary.totalExcess) }}</strong></span>
+              <span class="print-time">Yazdirma: {{ printDate() }}</span>
             </div>
           </div>
 

@@ -884,53 +884,60 @@ export class KasaHareketAktarimiListComponent {
           }
 
           .print-header {
-            margin-bottom: 6px !important;
-            padding-bottom: 4px !important;
-            border-bottom: 2px solid #000 !important;
+            margin-bottom: 2mm !important;
+            padding-bottom: 1.5mm !important;
+            border-bottom: 1.5px solid #000 !important;
           }
 
-          .print-header h2 {
-            margin: 0 0 2px 0 !important;
-            font-size: 15px !important;
+          .print-header-top {
+            display: flex !important;
+            justify-content: space-between !important;
+            align-items: baseline !important;
+            margin-bottom: 1mm !important;
+          }
+
+          .print-brand {
+            font-size: 11px !important;
+            font-weight: 900 !important;
+            letter-spacing: 0.08em !important;
+            color: #0f766e !important;
+          }
+
+          .print-title {
+            margin: 0 !important;
+            font-size: 13.5px !important;
             font-weight: 800 !important;
             color: #000 !important;
+            text-transform: uppercase !important;
             letter-spacing: -0.2px !important;
           }
 
-          .print-meta-grid {
+          .print-date {
+            font-size: 9.5px !important;
+            color: #334155 !important;
+          }
+
+          .print-meta-line {
             display: flex !important;
-            gap: 14px !important;
-            font-size: 10px !important;
+            justify-content: space-between !important;
+            align-items: center !important;
+            font-size: 8.5px !important;
             color: #1e293b !important;
+            background: #f1f5f9 !important;
+            padding: 1mm 2mm !important;
+            border-radius: 2px !important;
+          }
+
+          .print-meta-line strong {
+            color: #000 !important;
+          }
+
+          .print-meta-line strong.color-danger {
+            color: #dc2626 !important;
           }
 
           .sales-comparison-summary {
-            display: grid !important;
-            grid-template-columns: repeat(4, 1fr) !important;
-            gap: 4px !important;
-            margin-bottom: 6px !important;
-          }
-
-          .sales-comparison-summary .summary-item {
-            border: 1px solid #64748b !important;
-            padding: 3px 5px !important;
-            border-radius: 3px !important;
-            background: #f8fafc !important;
-          }
-
-          .sales-comparison-summary .summary-item span {
-            font-size: 8.5px !important;
-            text-transform: uppercase !important;
-            color: #334155 !important;
-            font-weight: 700 !important;
-            display: block !important;
-            margin-bottom: 1px !important;
-          }
-
-          .sales-comparison-summary .summary-item strong {
-            font-size: 12px !important;
-            font-weight: 800 !important;
-            color: #000 !important;
+            display: none !important;
           }
 
           .sales-comparison-table-wrap {
