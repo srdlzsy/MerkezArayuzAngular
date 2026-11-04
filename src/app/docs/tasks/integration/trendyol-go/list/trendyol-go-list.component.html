@@ -300,6 +300,32 @@
             </tbody>
           </table>
         </div>
+
+        <div class="batch-tracking" *ngIf="priceStockBatchIds().length">
+          <div class="batch-item" *ngFor="let batchId of priceStockBatchIds()">
+            <div class="batch-item-bar">
+              <strong>Batch: {{ batchId }}</strong>
+              <button type="button" class="secondary-button" (click)="checkPriceStockBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">
+                <i class="fa-solid fa-arrows-rotate"></i> Sonucu Sorgula
+              </button>
+            </div>
+            <ng-container *ngIf="priceStockBatchResults()[batchId] as result">
+              <div class="batch-missing-banner" *ngIf="getMissingCatalogInfo(result) as missing">
+                <ng-container *ngIf="missing.barcodes.length > 0">
+                  <div class="missing-text">
+                    <i class="fa-solid fa-triangle-exclamation"></i>
+                    <span>Bu batch'te <strong>{{ missing.barcodes.length }} adet ürün</strong> Trendyol Go kataloğunda bulunamadı.</span>
+                  </div>
+                  <button type="button" class="warning-button action-btn" (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)" [disabled]="busyAction() !== null || !canUpdate()">
+                    <i class="fa-solid fa-cloud-arrow-up"></i>
+                    <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
+                  </button>
+                </ng-container>
+              </div>
+              <details class="json-block"><summary>Batch Sonucu (JSON)</summary><pre>{{ result | json }}</pre></details>
+            </ng-container>
+          </div>
+        </div>
       </div>
 
       <ng-container *ngIf="directPreview() as preview; else directEmpty">
@@ -440,9 +466,25 @@
     </ng-container>
     <div class="batch-tracking" *ngIf="priceStockBatchIds().length">
       <div class="batch-item" *ngFor="let batchId of priceStockBatchIds()">
-        <strong>Batch: {{ batchId }}</strong>
-        <button type="button" class="secondary-button" (click)="checkPriceStockBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
-        <details class="json-block" *ngIf="priceStockBatchResults()[batchId] as result"><summary>Batch sonucu</summary><pre>{{ result | json }}</pre></details>
+        <div class="batch-item-bar">
+          <strong>Batch: {{ batchId }}</strong>
+          <button type="button" class="secondary-button" (click)="checkPriceStockBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
+        </div>
+        <ng-container *ngIf="priceStockBatchResults()[batchId] as result">
+          <div class="batch-missing-banner" *ngIf="getMissingCatalogInfo(result) as missing">
+            <ng-container *ngIf="missing.barcodes.length > 0">
+              <div class="missing-text">
+                <i class="fa-solid fa-triangle-exclamation"></i>
+                <span>Bu batch'te <strong>{{ missing.barcodes.length }} adet ürün</strong> Trendyol Go kataloğunda bulunamadı.</span>
+              </div>
+              <button type="button" class="warning-button action-btn" (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)" [disabled]="busyAction() !== null || !canUpdate()">
+                <i class="fa-solid fa-cloud-arrow-up"></i>
+                <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
+              </button>
+            </ng-container>
+          </div>
+          <details class="json-block"><summary>Batch sonucu</summary><pre>{{ result | json }}</pre></details>
+        </ng-container>
       </div>
     </div>
   </section>
@@ -683,6 +725,19 @@
           <button type="submit" class="secondary-button" [disabled]="busyAction() !== null">Iade Islemini Calistir</button>
         </form>
       </article>
+    </div>
+
+    <div class="batch-missing-banner" *ngIf="operationResponse() && getMissingCatalogInfo(operationResponse()) as missing">
+      <ng-container *ngIf="missing.barcodes.length > 0">
+        <div class="missing-text">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <span>Sorgulanan batch sonucunda <strong>{{ missing.barcodes.length }} adet ürün</strong> Trendyol Go kataloğunda bulunamadı.</span>
+        </div>
+        <button type="button" class="warning-button action-btn" (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)" [disabled]="busyAction() !== null || !canUpdate()">
+          <i class="fa-solid fa-cloud-arrow-up"></i>
+          <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
+        </button>
+      </ng-container>
     </div>
 
     <details class="json-block advanced-result" *ngIf="catalogResponse() || operationResponse()">

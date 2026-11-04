@@ -92,6 +92,8 @@ import type {
   ITrendyolGoCatalogPreviewApiDto,
   ITrendyolGoCatalogDispatchApiDto,
   ITrendyolGoCatalogDispatchHttpRequestApiDto,
+  ITrendyolGoAutoCreateCatalogHttpRequestApiDto,
+  ITrendyolGoCatalogAutoCreateResultApiDto,
   ITrendyolGoBatchItemsRequestApiDto,
   ITrendyolGoBrandsQueryApiDto,
   ITrendyolGoClaimsQueryApiDto,
@@ -186,6 +188,8 @@ export type TrendyolGoPriceStockRefreshStatusDto = ITrendyolGoPriceStockRefreshS
 export type TrendyolGoPriceStockDispatchDto = ITrendyolGoPriceStockDispatchApiDto;
 export type TrendyolGoCatalogPreviewDto = ITrendyolGoCatalogPreviewApiDto;
 export type TrendyolGoCatalogDispatchDto = ITrendyolGoCatalogDispatchApiDto;
+export type TrendyolGoAutoCreateCatalogHttpRequestDto = ITrendyolGoAutoCreateCatalogHttpRequestApiDto;
+export type TrendyolGoCatalogAutoCreateResultDto = ITrendyolGoCatalogAutoCreateResultApiDto;
 
 export function isAxataJobTerminalStatus(status: string | null | undefined): boolean {
   const normalizedStatus = status?.trim().toLocaleLowerCase('tr-TR') ?? '';
@@ -1041,6 +1045,13 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   dispatchTrendyolGoCatalog(request: ITrendyolGoCatalogDispatchHttpRequestApiDto) {
     return this.post<TrendyolGoCatalogDispatchDto, ITrendyolGoCatalogDispatchHttpRequestApiDto>(
       'entegrasyon-islemleri/trendyol-go/catalog/dispatch',
+      request
+    );
+  }
+
+  autoCreateTrendyolGoCatalog(request: ITrendyolGoAutoCreateCatalogHttpRequestApiDto) {
+    return this.post<ITrendyolGoCatalogAutoCreateResultApiDto, ITrendyolGoAutoCreateCatalogHttpRequestApiDto>(
+      'entegrasyon-islemleri/trendyol-go/catalog/auto-create',
       request
     );
   }

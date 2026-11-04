@@ -1559,3 +1559,14 @@ export interface ITrendyolGoCatalogDispatchApiDto {
   nextStep: string | null;
   upstreamResponses?: readonly Record<string, unknown>[] | null;
 }
+
+export interface ITrendyolGoAutoCreateCatalogHttpRequestApiDto {
+  storeId: number;
+  barcodes: string[];
+}
+
+export interface ITrendyolGoCatalogAutoCreateResultApiDto {
+  createdCount: number;
+  batchRequestIds: string[];
+  errorMessage?: string | null;
+}

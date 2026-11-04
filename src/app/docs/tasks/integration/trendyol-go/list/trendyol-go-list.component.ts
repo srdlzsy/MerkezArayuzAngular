@@ -13,7 +13,8 @@ import type {
   ITrendyolGoDirectPriceStockPreviewApiDto,
   ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto,
   ITrendyolGoDirectPriceStockDispatchResultApiDto,
-  ITrendyolGoDirectStoreDispatchResultApiDto
+  ITrendyolGoDirectStoreDispatchResultApiDto,
+  ITrendyolGoCatalogAutoCreateResultApiDto
 } from '@interfaces';
 import { finalize, Observable } from 'rxjs';
 
@@ -752,6 +753,118 @@ export class TrendyolGoListComponent {
       });
   }
 
+  protected getMissingCatalogInfo(batchResult: unknown): { storeId: number | null; barcodes: string[] } {
+    if (!batchResult || typeof batchResult !== 'object') {
+      return { storeId: null, barcodes: [] };
+    }
+
+    const res = batchResult as Record<string, unknown>;
+    const items = Array.isArray(res['items']) ? (res['items'] as Record<string, unknown>[]) : [];
+    const barcodesSet = new Set<string>();
+    let detectedStoreId: number | null = null;
+
+    for (const item of items) {
+      if (item['status'] !== 'FAILED') continue;
+
+      const reasons = Array.isArray(item['failureReasons'])
+        ? (item['failureReasons'] as unknown[]).map((r) => String(r || '').toLowerCase())
+        : [];
+
+      const isMissing = reasons.some(
+        (r) =>
+          r.includes('bulunamadı') ||
+          r.includes('bulunamadi') ||
+          r.includes('not found') ||
+          r.includes('katalog')
+      );
+
+      if (!isMissing) continue;
+
+      const reqItem = (item['requestItem'] as Record<string, unknown>) || {};
+      const product = (reqItem['product'] as Record<string, unknown>) || {};
+
+      let barcode =
+        typeof item['barcode'] === 'string' && item['barcode'].trim()
+          ? item['barcode'].trim()
+          : typeof product['productBarcode'] === 'string' && product['productBarcode'].trim()
+            ? product['productBarcode'].trim()
+            : typeof reqItem['barcode'] === 'string' && reqItem['barcode'].trim()
+              ? reqItem['barcode'].trim()
+              : '';
+
+      if (!barcode && reasons.length > 0) {
+        const match = reasons[0]?.match(/(\d{4,18})\s*barkod/i);
+        if (match?.[1]) {
+          barcode = match[1];
+        }
+      }
+
+      if (barcode) {
+        barcodesSet.add(barcode);
+      }
+
+      if (!detectedStoreId) {
+        const storeIdVal = product['storeId'] ?? reqItem['storeId'];
+        if (typeof storeIdVal === 'number' && storeIdVal > 0) {
+          detectedStoreId = storeIdVal;
+        } else if (reasons.length > 0) {
+          const storeMatch = reasons[0]?.match(/storeid:\s*(\d+)/i);
+          if (storeMatch?.[1]) {
+            detectedStoreId = Number(storeMatch[1]);
+          }
+        }
+      }
+    }
+
+    return {
+      storeId: detectedStoreId || this.selectedStoreId(),
+      barcodes: Array.from(barcodesSet)
+    };
+  }
+
+  protected async autoCreateFromBatch(storeId: number | null, barcodes: string[]): Promise<void> {
+    const targetStoreId = storeId || this.selectedStoreId();
+    if (!targetStoreId || !barcodes.length || !this.canUpdate() || this.busyAction()) {
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Eksik Urunleri Kataloga Aktar',
+      message: `Trendyol Go'da bulunamayan ${barcodes.length} adet urun, Mikro ERP'den okunup Trendyol Go kataloguna olusturulacak. Devam edilsin mi?`,
+      confirmText: 'Kataloga Aktar',
+      tone: 'warning'
+    });
+
+    if (!confirmed) {
+      return;
+    }
+
+    this.busyAction.set('auto-create-catalog');
+    this.service
+      .autoCreateTrendyolGoCatalog({ storeId: targetStoreId, barcodes })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (result: ITrendyolGoCatalogAutoCreateResultApiDto) => {
+          if (result.errorMessage) {
+            this.setFeedback('error', result.errorMessage);
+            return;
+          }
+          const batchInfo = result.batchRequestIds?.length
+            ? ` (Batch ID: ${result.batchRequestIds.join(', ')})`
+            : '';
+          this.setFeedback(
+            'success',
+            `${result.createdCount} adet eksik urun Trendyol Go kataloguna gonderildi!${batchInfo} Trendyol katalogu onayladiktan sonra fiyat/stok gonderimini tekrarlayabilirsiniz.`
+          );
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Eksik urunler kataloga aktarilamadi.'))
+      });
+  }
+
   protected loadDirectPreview(): void {
     const storeId = this.selectedStoreId();
     if (!storeId || !this.canList()) {
@@ -867,6 +980,10 @@ export class TrendyolGoListComponent {
       .subscribe({
         next: (result: ITrendyolGoDirectPriceStockDispatchResultApiDto) => {
           this.directDispatchResult.set(result);
+          const allBatchIds = result.storeResults.flatMap((s) => s.batchRequestIds || []);
+          if (allBatchIds.length > 0) {
+            this.priceStockBatchIds.set(allBatchIds);
+          }
           const failedStores = result.storeResults.filter((item) => !item.success);
           if (failedStores.length > 0) {
             this.setFeedback(
