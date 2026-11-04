@@ -2,7 +2,7 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Observable, catchError, finalize, of, switchMap, timer } from 'rxjs';
+import { Observable, catchError, exhaustMap, finalize, of, timer } from 'rxjs';
 import type {
   KasaHareketBranchDto,
   KasaHareketCashSummaryComparisonDto,
@@ -1178,9 +1178,9 @@ export class KasaHareketAktarimiListComponent {
   private startTransferStatusPolling(startDate: string, endDate: string): void {
     this.stopTransferStatusPolling();
     this.transferStatusLoading.set(true);
-    this.transferStatusSubscription = timer(0, 1500)
+    this.transferStatusSubscription = timer(0, 3000)
       .pipe(
-        switchMap(() =>
+        exhaustMap(() =>
           this.kasaIslemleriService
             .getKasaHareketTransferStatus(
               this.buildTransferStatusRequest(startDate, endDate)

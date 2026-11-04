@@ -15,6 +15,7 @@ declare module 'rxjs' {
 
   export const map: any;
   export const switchMap: any;
+  export const exhaustMap: any;
   export const catchError: any;
   export const delay: any;
   export const finalize: any;
@@ -29,6 +30,7 @@ declare module 'rxjs/operators' {
   export const tap: any;
   export const catchError: any;
   export const switchMap: any;
+  export const exhaustMap: any;
   export const finalize: any;
   export const takeWhile: any;
   export const filter: any;
