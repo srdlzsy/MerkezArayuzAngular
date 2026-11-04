@@ -50,6 +50,18 @@ type ClaimAction = 'read' | 'accept' | 'reject' | 'objectionable' | 'objections'
 type PriceStockDispatchMode = 'selected' | 'changed' | 'all-existing';
 type ReadyCatalogItem = ITrendyolGoCatalogPreviewItemApiDto & { barcode: string };
 
+export interface ITrendyolGoBatchSummary {
+  status: string;
+  statusLabel: string;
+  statusTone: 'success' | 'warning' | 'danger';
+  batchRequestType: string;
+  itemCount: number;
+  failedItemCount: number;
+  successItemCount: number;
+  formattedDate: string;
+  rawStatus: string;
+}
+
 interface FeedbackState {
   tone: FeedbackTone;
   message: string;
@@ -740,7 +752,7 @@ export class TrendyolGoListComponent {
 
   protected checkPriceStockBatch(batchId: string): void {
     if (!batchId || !this.canDetail()) return;
-    this.busyAction.set('price-stock-batch');
+    this.busyAction.set(`batch-query-${batchId}`);
     this.service.getTrendyolGoProductBatchRequest(batchId)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busyAction.set(null)))
       .subscribe({
@@ -863,6 +875,80 @@ export class TrendyolGoListComponent {
         error: (error: unknown) =>
           this.setFeedback('error', getErrorMessage(error, 'Eksik urunler kataloga aktarilamadi.'))
       });
+  }
+
+  protected getBatchSummary(result: unknown): ITrendyolGoBatchSummary | null {
+    if (!this.isRecord(result)) {
+      return null;
+    }
+
+    const rawStatus = (typeof result['status'] === 'string' ? result['status'] : '').toUpperCase();
+    const batchRequestType = typeof result['batchRequestType'] === 'string' ? result['batchRequestType'] : '';
+
+    let itemCount = typeof result['itemCount'] === 'number' ? result['itemCount'] : 0;
+    if (!itemCount && Array.isArray(result['items'])) {
+      itemCount = result['items'].length;
+    }
+
+    let failedItemCount = typeof result['failedItemCount'] === 'number' ? result['failedItemCount'] : 0;
+    if (!failedItemCount && Array.isArray(result['items'])) {
+      failedItemCount = result['items'].filter(
+        (it) => this.isRecord(it) && typeof it['status'] === 'string' && it['status'].toUpperCase() === 'FAILED'
+      ).length;
+    }
+
+    const successItemCount = Math.max(0, itemCount - failedItemCount);
+
+    let statusLabel = rawStatus;
+    let statusTone: 'success' | 'warning' | 'danger' = 'warning';
+
+    if (rawStatus === 'COMPLETED' || rawStatus === 'SUCCESS') {
+      if (failedItemCount === 0) {
+        statusLabel = 'Tamamlandi (Kusursuz)';
+        statusTone = 'success';
+      } else {
+        statusLabel = `Kismi Tamamlandi (${failedItemCount} Hata)`;
+        statusTone = 'warning';
+      }
+    } else if (rawStatus === 'IN_PROGRESS' || rawStatus === 'PROCESSING') {
+      statusLabel = 'Isleniyor...';
+      statusTone = 'warning';
+    } else if (rawStatus === 'FAILED') {
+      statusLabel = 'Basarisiz';
+      statusTone = 'danger';
+    } else if (!rawStatus) {
+      statusLabel = 'Bilinmiyor';
+      statusTone = 'warning';
+    }
+
+    let formattedDate = '';
+    const creationDate = result['creationDate'] || result['creation_date'] || result['lastModification'];
+    if (typeof creationDate === 'number' && creationDate > 0) {
+      formattedDate = new Date(creationDate).toLocaleString('tr-TR', {
+        dateStyle: 'short',
+        timeStyle: 'medium'
+      });
+    } else if (typeof creationDate === 'string' && creationDate.trim()) {
+      const parsed = new Date(creationDate);
+      if (!Number.isNaN(parsed.getTime())) {
+        formattedDate = parsed.toLocaleString('tr-TR', {
+          dateStyle: 'short',
+          timeStyle: 'medium'
+        });
+      }
+    }
+
+    return {
+      status: rawStatus,
+      statusLabel,
+      statusTone,
+      batchRequestType,
+      itemCount,
+      failedItemCount,
+      successItemCount,
+      formattedDate,
+      rawStatus
+    };
   }
 
   protected loadDirectPreview(): void {
@@ -1122,7 +1208,7 @@ export class TrendyolGoListComponent {
 
   protected checkCatalogBatch(batchId: string): void {
     if (!batchId || !this.canDetail() || this.busyAction()) return;
-    this.busyAction.set('catalog-sync-batch');
+    this.busyAction.set(`batch-query-${batchId}`);
     this.service.getTrendyolGoProductBatchRequest(batchId)
       .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busyAction.set(null)))
       .subscribe({

@@ -302,27 +302,100 @@
         </div>
 
         <div class="batch-tracking" *ngIf="priceStockBatchIds().length">
-          <div class="batch-item" *ngFor="let batchId of priceStockBatchIds()">
-            <div class="batch-item-bar">
-              <strong>Batch: {{ batchId }}</strong>
-              <button type="button" class="secondary-button" (click)="checkPriceStockBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">
-                <i class="fa-solid fa-arrows-rotate"></i> Sonucu Sorgula
-              </button>
+          <div class="batch-card" *ngFor="let batchId of priceStockBatchIds()">
+            <div class="batch-card-header">
+              <div class="batch-id-info">
+                <span class="batch-label"><i class="fa-solid fa-layer-group"></i> Batch Takibi</span>
+                <code class="batch-id-code">{{ batchId }}</code>
+              </div>
+              <div class="batch-actions">
+                <button
+                  type="button"
+                  class="secondary-button query-btn"
+                  (click)="checkPriceStockBatch(batchId)"
+                  [disabled]="busyAction() !== null || !canDetail()"
+                >
+                  <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="busyAction() === 'batch-query-' + batchId"></i>
+                  <span>Sonucu Sorgula</span>
+                </button>
+              </div>
             </div>
+
             <ng-container *ngIf="priceStockBatchResults()[batchId] as result">
+              <!-- Summary Strip -->
+              <div class="batch-summary-strip" *ngIf="getBatchSummary(result) as summary">
+                <div class="batch-status-badge" [ngClass]="summary.statusTone">
+                  <i class="fa-solid" [ngClass]="{
+                    'fa-circle-check': summary.statusTone === 'success',
+                    'fa-circle-notch fa-spin': summary.statusTone === 'warning',
+                    'fa-circle-xmark': summary.statusTone === 'danger'
+                  }"></i>
+                  <span>{{ summary.statusLabel }}</span>
+                </div>
+
+                <div class="batch-stat-chip">
+                  <span class="stat-name">Toplam:</span>
+                  <strong class="stat-number">{{ summary.itemCount }}</strong>
+                </div>
+
+                <div class="batch-stat-chip success" *ngIf="summary.itemCount > 0">
+                  <span class="stat-name">Başarılı:</span>
+                  <strong class="stat-number">{{ summary.successItemCount }}</strong>
+                </div>
+
+                <div class="batch-stat-chip danger" *ngIf="summary.failedItemCount > 0">
+                  <span class="stat-name">Hatalı:</span>
+                  <strong class="stat-number">{{ summary.failedItemCount }}</strong>
+                </div>
+
+                <div class="batch-stat-chip type" *ngIf="summary.batchRequestType">
+                  <span class="stat-name">Tür:</span>
+                  <span class="stat-val">{{ summary.batchRequestType }}</span>
+                </div>
+
+                <div class="batch-stat-chip date" *ngIf="summary.formattedDate">
+                  <span class="stat-name">Tarih:</span>
+                  <span class="stat-val">{{ summary.formattedDate }}</span>
+                </div>
+              </div>
+
+              <!-- Missing Catalog Banner -->
               <div class="batch-missing-banner" *ngIf="getMissingCatalogInfo(result) as missing">
                 <ng-container *ngIf="missing.barcodes.length > 0">
-                  <div class="missing-text">
-                    <i class="fa-solid fa-triangle-exclamation"></i>
-                    <span>Bu batch'te <strong>{{ missing.barcodes.length }} adet ürün</strong> Trendyol Go kataloğunda bulunamadı.</span>
+                  <div class="missing-main">
+                    <div class="missing-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                    <div class="missing-details">
+                      <div class="missing-title">
+                        <strong>{{ missing.barcodes.length }} adet ürün Trendyol Go mağaza kataloğunda bulunamadı!</strong>
+                      </div>
+                      <div class="missing-desc">
+                        Trendyol Go bu ürünleri kataloğunda tanımadığı için fiyat ve stokları güncellenemedi. Aşağıdaki buton ile ürünler anında Mikro ERP'den okunarak Trendyol kataloğuna aktarılabilir.
+                      </div>
+                      <div class="missing-barcodes-preview">
+                        <span class="mini-barcode" *ngFor="let bc of missing.barcodes.slice(0, 7)">{{ bc }}</span>
+                        <span class="mini-more" *ngIf="missing.barcodes.length > 7">+{{ missing.barcodes.length - 7 }} daha...</span>
+                      </div>
+                    </div>
                   </div>
-                  <button type="button" class="warning-button action-btn" (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)" [disabled]="busyAction() !== null || !canUpdate()">
-                    <i class="fa-solid fa-cloud-arrow-up"></i>
-                    <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
-                  </button>
+                  <div class="missing-actions">
+                    <button
+                      type="button"
+                      class="warning-button auto-catalog-btn"
+                      (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)"
+                      [disabled]="busyAction() !== null || !canUpdate()"
+                    >
+                      <i class="fa-solid fa-cloud-arrow-up" [class.fa-spin]="busyAction() === 'auto-create-catalog'"></i>
+                      <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
+                    </button>
+                  </div>
                 </ng-container>
               </div>
-              <details class="json-block"><summary>Batch Sonucu (JSON)</summary><pre>{{ result | json }}</pre></details>
+
+              <!-- Collapsible JSON -->
+              <details class="batch-json-details">
+                <summary><i class="fa-solid fa-code"></i> Batch API Yanıt Detayı (JSON)</summary>
+                <pre>{{ result | json }}</pre>
+              </details>
             </ng-container>
           </div>
         </div>
@@ -465,25 +538,97 @@
     </ng-template>
     </ng-container>
     <div class="batch-tracking" *ngIf="priceStockBatchIds().length">
-      <div class="batch-item" *ngFor="let batchId of priceStockBatchIds()">
-        <div class="batch-item-bar">
-          <strong>Batch: {{ batchId }}</strong>
-          <button type="button" class="secondary-button" (click)="checkPriceStockBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
+      <div class="batch-card" *ngFor="let batchId of priceStockBatchIds()">
+        <div class="batch-card-header">
+          <div class="batch-id-info">
+            <span class="batch-label"><i class="fa-solid fa-layer-group"></i> Snapshot Batch Takibi</span>
+            <code class="batch-id-code">{{ batchId }}</code>
+          </div>
+          <div class="batch-actions">
+            <button
+              type="button"
+              class="secondary-button query-btn"
+              (click)="checkPriceStockBatch(batchId)"
+              [disabled]="busyAction() !== null || !canDetail()"
+            >
+              <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="busyAction() === 'batch-query-' + batchId"></i>
+              <span>Sonucu Sorgula</span>
+            </button>
+          </div>
         </div>
+
         <ng-container *ngIf="priceStockBatchResults()[batchId] as result">
+          <div class="batch-summary-strip" *ngIf="getBatchSummary(result) as summary">
+            <div class="batch-status-badge" [ngClass]="summary.statusTone">
+              <i class="fa-solid" [ngClass]="{
+                'fa-circle-check': summary.statusTone === 'success',
+                'fa-circle-notch fa-spin': summary.statusTone === 'warning',
+                'fa-circle-xmark': summary.statusTone === 'danger'
+              }"></i>
+              <span>{{ summary.statusLabel }}</span>
+            </div>
+
+            <div class="batch-stat-chip">
+              <span class="stat-name">Toplam:</span>
+              <strong class="stat-number">{{ summary.itemCount }}</strong>
+            </div>
+
+            <div class="batch-stat-chip success" *ngIf="summary.itemCount > 0">
+              <span class="stat-name">Başarılı:</span>
+              <strong class="stat-number">{{ summary.successItemCount }}</strong>
+            </div>
+
+            <div class="batch-stat-chip danger" *ngIf="summary.failedItemCount > 0">
+              <span class="stat-name">Hatalı:</span>
+              <strong class="stat-number">{{ summary.failedItemCount }}</strong>
+            </div>
+
+            <div class="batch-stat-chip type" *ngIf="summary.batchRequestType">
+              <span class="stat-name">Tür:</span>
+              <span class="stat-val">{{ summary.batchRequestType }}</span>
+            </div>
+
+            <div class="batch-stat-chip date" *ngIf="summary.formattedDate">
+              <span class="stat-name">Tarih:</span>
+              <span class="stat-val">{{ summary.formattedDate }}</span>
+            </div>
+          </div>
+
           <div class="batch-missing-banner" *ngIf="getMissingCatalogInfo(result) as missing">
             <ng-container *ngIf="missing.barcodes.length > 0">
-              <div class="missing-text">
-                <i class="fa-solid fa-triangle-exclamation"></i>
-                <span>Bu batch'te <strong>{{ missing.barcodes.length }} adet ürün</strong> Trendyol Go kataloğunda bulunamadı.</span>
+              <div class="missing-main">
+                <div class="missing-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+                <div class="missing-details">
+                  <div class="missing-title">
+                    <strong>{{ missing.barcodes.length }} adet ürün Trendyol Go mağaza kataloğunda bulunamadı!</strong>
+                  </div>
+                  <div class="missing-desc">
+                    Trendyol Go bu ürünleri kataloğunda tanımadığı için fiyat ve stokları güncellenemedi. Aşağıdaki buton ile ürünler anında Mikro ERP'den okunarak Trendyol kataloğuna aktarılabilir.
+                  </div>
+                  <div class="missing-barcodes-preview">
+                    <span class="mini-barcode" *ngFor="let bc of missing.barcodes.slice(0, 7)">{{ bc }}</span>
+                    <span class="mini-more" *ngIf="missing.barcodes.length > 7">+{{ missing.barcodes.length - 7 }} daha...</span>
+                  </div>
+                </div>
               </div>
-              <button type="button" class="warning-button action-btn" (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)" [disabled]="busyAction() !== null || !canUpdate()">
-                <i class="fa-solid fa-cloud-arrow-up"></i>
-                <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
-              </button>
+              <div class="missing-actions">
+                <button
+                  type="button"
+                  class="warning-button auto-catalog-btn"
+                  (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)"
+                  [disabled]="busyAction() !== null || !canUpdate()"
+                >
+                  <i class="fa-solid fa-cloud-arrow-up" [class.fa-spin]="busyAction() === 'auto-create-catalog'"></i>
+                  <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
+                </button>
+              </div>
             </ng-container>
           </div>
-          <details class="json-block"><summary>Batch sonucu</summary><pre>{{ result | json }}</pre></details>
+
+          <details class="batch-json-details">
+            <summary><i class="fa-solid fa-code"></i> Batch API Yanıt Detayı (JSON)</summary>
+            <pre>{{ result | json }}</pre>
+          </details>
         </ng-container>
       </div>
     </div>
@@ -578,10 +723,67 @@
       <div class="empty-state">{{ loadingCatalogSync() ? 'Katalog onizlemesi yukleniyor...' : 'Magazayi secip katalog onizlemesini getirin.' }}</div>
     </ng-template>
     <div class="batch-tracking" *ngIf="catalogBatchIds().length">
-      <div class="batch-item" *ngFor="let batchId of catalogBatchIds()">
-        <strong>Batch: {{ batchId }}</strong>
-        <button type="button" class="secondary-button" (click)="checkCatalogBatch(batchId)" [disabled]="busyAction() !== null || !canDetail()">Sonucu Kontrol Et</button>
-        <details class="json-block" *ngIf="catalogBatchResults()[batchId] as result"><summary>Batch sonucu</summary><pre>{{ result | json }}</pre></details>
+      <div class="batch-card" *ngFor="let batchId of catalogBatchIds()">
+        <div class="batch-card-header">
+          <div class="batch-id-info">
+            <span class="batch-label"><i class="fa-solid fa-layer-group"></i> Katalog Batch Takibi</span>
+            <code class="batch-id-code">{{ batchId }}</code>
+          </div>
+          <div class="batch-actions">
+            <button
+              type="button"
+              class="secondary-button query-btn"
+              (click)="checkCatalogBatch(batchId)"
+              [disabled]="busyAction() !== null || !canDetail()"
+            >
+              <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="busyAction() === 'batch-query-' + batchId"></i>
+              <span>Sonucu Sorgula</span>
+            </button>
+          </div>
+        </div>
+
+        <ng-container *ngIf="catalogBatchResults()[batchId] as result">
+          <div class="batch-summary-strip" *ngIf="getBatchSummary(result) as summary">
+            <div class="batch-status-badge" [ngClass]="summary.statusTone">
+              <i class="fa-solid" [ngClass]="{
+                'fa-circle-check': summary.statusTone === 'success',
+                'fa-circle-notch fa-spin': summary.statusTone === 'warning',
+                'fa-circle-xmark': summary.statusTone === 'danger'
+              }"></i>
+              <span>{{ summary.statusLabel }}</span>
+            </div>
+
+            <div class="batch-stat-chip">
+              <span class="stat-name">Toplam:</span>
+              <strong class="stat-number">{{ summary.itemCount }}</strong>
+            </div>
+
+            <div class="batch-stat-chip success" *ngIf="summary.itemCount > 0">
+              <span class="stat-name">Başarılı:</span>
+              <strong class="stat-number">{{ summary.successItemCount }}</strong>
+            </div>
+
+            <div class="batch-stat-chip danger" *ngIf="summary.failedItemCount > 0">
+              <span class="stat-name">Hatalı:</span>
+              <strong class="stat-number">{{ summary.failedItemCount }}</strong>
+            </div>
+
+            <div class="batch-stat-chip type" *ngIf="summary.batchRequestType">
+              <span class="stat-name">Tür:</span>
+              <span class="stat-val">{{ summary.batchRequestType }}</span>
+            </div>
+
+            <div class="batch-stat-chip date" *ngIf="summary.formattedDate">
+              <span class="stat-name">Tarih:</span>
+              <span class="stat-val">{{ summary.formattedDate }}</span>
+            </div>
+          </div>
+
+          <details class="batch-json-details">
+            <summary><i class="fa-solid fa-code"></i> Batch API Yanıt Detayı (JSON)</summary>
+            <pre>{{ result | json }}</pre>
+          </details>
+        </ng-container>
       </div>
     </div>
   </section>
@@ -727,21 +929,77 @@
       </article>
     </div>
 
-    <div class="batch-missing-banner" *ngIf="operationResponse() && getMissingCatalogInfo(operationResponse()) as missing">
-      <ng-container *ngIf="missing.barcodes.length > 0">
-        <div class="missing-text">
-          <i class="fa-solid fa-triangle-exclamation"></i>
-          <span>Sorgulanan batch sonucunda <strong>{{ missing.barcodes.length }} adet ürün</strong> Trendyol Go kataloğunda bulunamadı.</span>
+    <div class="batch-card advanced-batch-card" *ngIf="operationResponse() && getBatchSummary(operationResponse()) as summary">
+      <div class="batch-summary-strip">
+        <div class="batch-status-badge" [ngClass]="summary.statusTone">
+          <i class="fa-solid" [ngClass]="{
+            'fa-circle-check': summary.statusTone === 'success',
+            'fa-circle-notch fa-spin': summary.statusTone === 'warning',
+            'fa-circle-xmark': summary.statusTone === 'danger'
+          }"></i>
+          <span>{{ summary.statusLabel }}</span>
         </div>
-        <button type="button" class="warning-button action-btn" (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)" [disabled]="busyAction() !== null || !canUpdate()">
-          <i class="fa-solid fa-cloud-arrow-up"></i>
-          <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
-        </button>
-      </ng-container>
+
+        <div class="batch-stat-chip" *ngIf="summary.itemCount > 0">
+          <span class="stat-name">Toplam:</span>
+          <strong class="stat-number">{{ summary.itemCount }}</strong>
+        </div>
+
+        <div class="batch-stat-chip success" *ngIf="summary.itemCount > 0">
+          <span class="stat-name">Başarılı:</span>
+          <strong class="stat-number">{{ summary.successItemCount }}</strong>
+        </div>
+
+        <div class="batch-stat-chip danger" *ngIf="summary.failedItemCount > 0">
+          <span class="stat-name">Hatalı:</span>
+          <strong class="stat-number">{{ summary.failedItemCount }}</strong>
+        </div>
+
+        <div class="batch-stat-chip type" *ngIf="summary.batchRequestType">
+          <span class="stat-name">Tür:</span>
+          <span class="stat-val">{{ summary.batchRequestType }}</span>
+        </div>
+
+        <div class="batch-stat-chip date" *ngIf="summary.formattedDate">
+          <span class="stat-name">Tarih:</span>
+          <span class="stat-val">{{ summary.formattedDate }}</span>
+        </div>
+      </div>
+
+      <div class="batch-missing-banner" *ngIf="getMissingCatalogInfo(operationResponse()) as missing">
+        <ng-container *ngIf="missing.barcodes.length > 0">
+          <div class="missing-main">
+            <div class="missing-icon"><i class="fa-solid fa-triangle-exclamation"></i></div>
+            <div class="missing-details">
+              <div class="missing-title">
+                <strong>Sorgulanan batch sonucunda {{ missing.barcodes.length }} adet ürün Trendyol Go kataloğunda bulunamadı!</strong>
+              </div>
+              <div class="missing-desc">
+                Aşağıdaki buton ile bu ürünler anında Mikro ERP'den okunarak Trendyol mağaza kataloğuna eklenebilir.
+              </div>
+              <div class="missing-barcodes-preview">
+                <span class="mini-barcode" *ngFor="let bc of missing.barcodes.slice(0, 7)">{{ bc }}</span>
+                <span class="mini-more" *ngIf="missing.barcodes.length > 7">+{{ missing.barcodes.length - 7 }} daha...</span>
+              </div>
+            </div>
+          </div>
+          <div class="missing-actions">
+            <button
+              type="button"
+              class="warning-button auto-catalog-btn"
+              (click)="autoCreateFromBatch(missing.storeId, missing.barcodes)"
+              [disabled]="busyAction() !== null || !canUpdate()"
+            >
+              <i class="fa-solid fa-cloud-arrow-up" [class.fa-spin]="busyAction() === 'auto-create-catalog'"></i>
+              <span>{{ missing.barcodes.length }} Eksik Ürünü Kataloğa Ekle</span>
+            </button>
+          </div>
+        </ng-container>
+      </div>
     </div>
 
     <details class="json-block advanced-result" *ngIf="catalogResponse() || operationResponse()">
-      <summary>{{ operationResponse() ? 'Son operasyon sonucu' : 'Katalog sonucu' }}</summary>
+      <summary>{{ operationResponse() ? 'Son operasyon sonucu (JSON)' : 'Katalog sonucu (JSON)' }}</summary>
       <pre>{{ operationResponse() ? operationResponseJson() : catalogResponseJson() }}</pre>
     </details>
   </section>
