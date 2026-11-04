@@ -1,4 +1,4 @@
-import { CommonModule } from '@angular/common';
+import { CommonModule, DOCUMENT } from '@angular/common';
 import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
@@ -168,6 +168,7 @@ export class KasaHareketAktarimiListComponent {
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly inPlacePrintService = inject(InPlacePrintService);
+  private readonly document = inject(DOCUMENT);
   private readonly numberFormatter = new Intl.NumberFormat('tr-TR', {
     minimumFractionDigits: 2,
     maximumFractionDigits: 2
@@ -829,6 +830,11 @@ export class KasaHareketAktarimiListComponent {
       return;
     }
 
+    const printSection = this.document.getElementById('sales-comparison-print-section');
+    if (!printSection) {
+      return;
+    }
+
     this.printDate.set(
       new Intl.DateTimeFormat('tr-TR', {
         dateStyle: 'short',
@@ -839,53 +845,65 @@ export class KasaHareketAktarimiListComponent {
 
     const started = await this.inPlacePrintService.print({
       styleId: 'sales-comparison-print-style',
+      mount: {
+        element: printSection,
+        documentClassName: 'is-printing-sales-comparison'
+      },
       styles: `
         @page {
           size: A4 portrait;
-          margin: 4mm 4mm;
+          margin: 3mm 3mm;
         }
 
         @media print {
           html, body {
             width: 100% !important;
+            height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             background: #fff !important;
             overflow: visible !important;
-            font-size: 10.5px !important;
+            font-size: 8px !important;
             color: #000 !important;
-            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
+            font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif !important;
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
           }
 
-          body * {
-            visibility: hidden !important;
+          body.is-printing-sales-comparison > *:not(#sales-comparison-print-section) {
+            display: none !important;
           }
 
-          #sales-comparison-print-section,
-          #sales-comparison-print-section * {
-            visibility: visible !important;
+          body.is-printing-sales-comparison {
+            margin: 0 !important;
+            padding: 0 !important;
+            background: #fff !important;
+            color: #000 !important;
           }
 
           #sales-comparison-print-section {
             display: block !important;
-            position: absolute !important;
-            inset: 0 auto auto 0 !important;
             width: 100% !important;
-            background: #fff !important;
-            color: #000 !important;
+            margin: 0 !important;
             padding: 0 !important;
             box-sizing: border-box !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
 
           .only-print {
             display: block !important;
           }
 
+          .no-print,
+          .sales-comparison-summary,
+          .report-toolbar {
+            display: none !important;
+          }
+
           .print-header {
-            margin-bottom: 2mm !important;
-            padding-bottom: 1.5mm !important;
+            margin-bottom: 1.2mm !important;
+            padding-bottom: 0.8mm !important;
             border-bottom: 1.5px solid #000 !important;
           }
 
@@ -893,11 +911,11 @@ export class KasaHareketAktarimiListComponent {
             display: flex !important;
             justify-content: space-between !important;
             align-items: baseline !important;
-            margin-bottom: 1mm !important;
+            margin-bottom: 0.6mm !important;
           }
 
           .print-brand {
-            font-size: 11px !important;
+            font-size: 9.5px !important;
             font-weight: 900 !important;
             letter-spacing: 0.08em !important;
             color: #0f766e !important;
@@ -905,7 +923,7 @@ export class KasaHareketAktarimiListComponent {
 
           .print-title {
             margin: 0 !important;
-            font-size: 13.5px !important;
+            font-size: 11.5px !important;
             font-weight: 800 !important;
             color: #000 !important;
             text-transform: uppercase !important;
@@ -913,7 +931,7 @@ export class KasaHareketAktarimiListComponent {
           }
 
           .print-date {
-            font-size: 9.5px !important;
+            font-size: 8px !important;
             color: #334155 !important;
           }
 
@@ -921,10 +939,10 @@ export class KasaHareketAktarimiListComponent {
             display: flex !important;
             justify-content: space-between !important;
             align-items: center !important;
-            font-size: 8.5px !important;
+            font-size: 7.5px !important;
             color: #1e293b !important;
             background: #f1f5f9 !important;
-            padding: 1mm 2mm !important;
+            padding: 0.6mm 1.2mm !important;
             border-radius: 2px !important;
           }
 
@@ -936,20 +954,16 @@ export class KasaHareketAktarimiListComponent {
             color: #dc2626 !important;
           }
 
-          .sales-comparison-summary {
-            display: none !important;
-          }
-
           .sales-comparison-table-wrap {
             max-height: none !important;
             overflow: visible !important;
-            border: 1.5px solid #000 !important;
+            border: 1px solid #000 !important;
           }
 
           table.sales-comparison-table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 9.5px !important;
+            font-size: 7.8px !important;
             table-layout: auto !important;
           }
 
@@ -964,9 +978,9 @@ export class KasaHareketAktarimiListComponent {
 
           table.sales-comparison-table th,
           table.sales-comparison-table td {
-            padding: 3px 2px !important;
+            padding: 1.2px 1.2px !important;
             border: 1px solid #94a3b8 !important;
-            line-height: 1.15 !important;
+            line-height: 1.08 !important;
             color: #000 !important;
           }
 
@@ -974,25 +988,25 @@ export class KasaHareketAktarimiListComponent {
             background: #e2e8f0 !important;
             color: #000 !important;
             font-weight: 800 !important;
-            font-size: 9px !important;
+            font-size: 7.5px !important;
             white-space: normal !important;
             word-wrap: break-word !important;
             border: 1px solid #64748b !important;
           }
 
           table.sales-comparison-table td {
-            font-size: 9.5px !important;
+            font-size: 7.8px !important;
           }
 
           table.sales-comparison-table td strong {
-            font-size: 9.5px !important;
+            font-size: 7.8px !important;
             font-weight: 700 !important;
             color: #000 !important;
           }
 
           table.sales-comparison-table td.font-mono {
             white-space: nowrap !important;
-            font-size: 9.5px !important;
+            font-size: 7.8px !important;
             font-weight: 600 !important;
             letter-spacing: -0.2px !important;
             font-variant-numeric: tabular-nums !important;
@@ -1010,16 +1024,17 @@ export class KasaHareketAktarimiListComponent {
           table.sales-comparison-table tfoot td {
             background: #e2e8f0 !important;
             font-weight: 800 !important;
-            border-top: 2px solid #000 !important;
+            border-top: 1.5px solid #000 !important;
             border-bottom: 1px solid #000 !important;
-            font-size: 9.5px !important;
+            font-size: 7.8px !important;
             white-space: nowrap !important;
             color: #000 !important;
+            padding: 1.8px 1.2px !important;
           }
 
           .status-pill {
-            padding: 1.5px 3.5px !important;
-            font-size: 8.5px !important;
+            padding: 0.8px 2px !important;
+            font-size: 7px !important;
             font-weight: 800 !important;
             border-radius: 2px !important;
             white-space: nowrap !important;
@@ -1037,17 +1052,6 @@ export class KasaHareketAktarimiListComponent {
             background: #dcfce7 !important;
             color: #166534 !important;
             border-color: #86efac !important;
-          }
-
-          .no-print,
-          .report-toolbar {
-            display: none !important;
-          }
-        }
-
-          .no-print,
-          .report-toolbar {
-            display: none !important;
           }
         }
       `,
