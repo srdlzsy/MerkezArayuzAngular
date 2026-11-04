@@ -1490,6 +1490,7 @@ export interface ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto {
   mode?: 'all' | 'changed';
   sinceDate?: string | null;
   onlyFlaggedChanged?: boolean | null;
+  search?: string | null;
   barcodes?: string[];
 }
 

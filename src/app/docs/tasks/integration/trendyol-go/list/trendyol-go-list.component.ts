@@ -67,6 +67,7 @@ export class TrendyolGoListComponent {
   private readonly service = inject(EntegrasyonIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private previewRequestId = 0;
+  private directPreviewRequestId = 0;
   private priceStockPollTimer: number | undefined;
 
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
@@ -149,7 +150,8 @@ export class TrendyolGoListComponent {
     () => this.selectedDirectBarcodes().size
   );
   protected readonly canDispatchDirect = computed(
-    () => this.canUpdate() && (this.directPriceStockForm.controls.targetScope.value === 'all' || this.selectedStore() !== null)
+    () => this.canUpdate() && this.directPreview() !== null &&
+      (this.directPriceStockForm.controls.targetScope.value === 'all' || this.selectedStore() !== null)
   );
   protected readonly readyItems = computed(() =>
     this.priceStockPreview()?.items.filter((item) => item.status === 'Ready' && !!item.barcode) ?? []
@@ -283,9 +285,7 @@ export class TrendyolGoListComponent {
         this.catalogForm.controls.storeId.setValue(storeId, { emitEvent: false });
         this.invalidatePriceStockPreview();
         this.invalidateCatalogSyncPreview();
-        this.directPreview.set(null);
-        this.selectedDirectBarcodes.set(new Set());
-        this.directDispatchResult.set(null);
+        this.invalidateDirectPreview();
       });
     this.priceStockForm.controls.view.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
@@ -293,6 +293,9 @@ export class TrendyolGoListComponent {
     this.catalogSyncForm.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.invalidateCatalogSyncPreview());
+    this.directPriceStockForm.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => this.invalidateDirectPreview());
   }
 
   protected loadConnectionStatus(): void {
@@ -756,6 +759,7 @@ export class TrendyolGoListComponent {
     }
 
     const { mode, sinceDate, search, take } = this.directPriceStockForm.getRawValue();
+    const requestId = ++this.directPreviewRequestId;
     this.loadingDirectPreview.set(true);
     this.directDispatchResult.set(null);
 
@@ -769,18 +773,24 @@ export class TrendyolGoListComponent {
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingDirectPreview.set(false))
+        finalize(() => {
+          if (requestId === this.directPreviewRequestId) this.loadingDirectPreview.set(false);
+        })
       )
       .subscribe({
         next: (preview: ITrendyolGoDirectPriceStockPreviewApiDto) => {
+          if (requestId !== this.directPreviewRequestId || this.selectedStoreId() !== storeId) return;
           this.directPreview.set(preview);
           this.selectedDirectBarcodes.set(new Set());
           if (!preview.items?.length) {
             this.setFeedback('info', 'Secilen kriterlerde Mikro urun kaydi bulunamadi.');
           }
         },
-        error: (error: unknown) =>
-          this.setFeedback('error', getErrorMessage(error, 'Mikro fiyat onizlemesi alinamadi.'))
+        error: (error: unknown) => {
+          if (requestId === this.directPreviewRequestId) {
+            this.setFeedback('error', getErrorMessage(error, 'Mikro fiyat onizlemesi alinamadi.'));
+          }
+        }
       });
   }
 
@@ -806,7 +816,7 @@ export class TrendyolGoListComponent {
       return;
     }
 
-    const { targetScope, mode, sinceDate } = this.directPriceStockForm.getRawValue();
+    const { targetScope, mode, sinceDate, search } = this.directPriceStockForm.getRawValue();
     const isAllStores = targetScope === 'all';
     const storeId = this.selectedStoreId();
 
@@ -842,6 +852,7 @@ export class TrendyolGoListComponent {
       storeIds: isAllStores ? [] : [storeId as number],
       mode,
       sinceDate: mode === 'changed' ? sinceDate : null,
+      search: search.trim() || null,
       barcodes: selectedBarcodes.length > 0 ? selectedBarcodes : []
     };
 
@@ -854,6 +865,14 @@ export class TrendyolGoListComponent {
       .subscribe({
         next: (result: ITrendyolGoDirectPriceStockDispatchResultApiDto) => {
           this.directDispatchResult.set(result);
+          const failedStores = result.storeResults.filter((item) => !item.success);
+          if (failedStores.length > 0) {
+            this.setFeedback(
+              'error',
+              `Gonderim kismen tamamlandi: ${result.targetStoresCount - failedStores.length} magaza basarili, ${failedStores.length} magaza hatali.`
+            );
+            return;
+          }
           this.setFeedback(
             'success',
             `Dogrudan aktarim tamamlandi: ${result.targetStoresCount} magaza, toplam ${result.totalItemsDispatched} urun Trendyol Go'ya aktarildi.`
@@ -862,6 +881,14 @@ export class TrendyolGoListComponent {
         error: (error: unknown) =>
           this.setFeedback('error', getErrorMessage(error, 'Dogrudan fiyat ve stok gonderilemedi.'))
       });
+  }
+
+  private invalidateDirectPreview(): void {
+    this.directPreviewRequestId++;
+    this.loadingDirectPreview.set(false);
+    this.directPreview.set(null);
+    this.selectedDirectBarcodes.set(new Set());
+    this.directDispatchResult.set(null);
   }
 
   protected loadCatalogSyncPreview(): void {
