@@ -409,10 +409,47 @@
         </div>
       </div>
 
+      <section class="batch-tracking" *ngIf="batchWorkflows().length">
+        <div class="result-header">
+          <strong>Otomatik Akis Takibi</strong>
+          <button type="button" class="secondary-button" (click)="loadBatchWorkflows()" [disabled]="loadingBatchWorkflows()">
+            <i class="fa-solid fa-arrows-rotate" [class.fa-spin]="loadingBatchWorkflows()"></i>
+            <span>Yenile</span>
+          </button>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr><th>Depo</th><th>Akis</th><th>Durum</th><th>Deneme</th><th>Sonuc</th><th>Baslangic</th></tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of batchWorkflows()">
+                <td>{{ item.warehouseNo }}</td>
+                <td>{{ item.kind === 'CatalogThenPriceStock' ? 'Katalog -> Fiyat/Stok -> Sube' : 'Fiyat/Stok -> Sube' }}</td>
+                <td>
+                  <span
+                    class="status-pill"
+                    [class.is-ready]="item.status === 'Succeeded'"
+                    [class.is-pending]="item.status === 'Pending' || item.status === 'Processing'"
+                    [class.is-warning]="item.status === 'PartiallySucceeded'"
+                    [class.is-error]="item.status === 'Failed'"
+                    [title]="item.lastError || ''"
+                  >{{ batchWorkflowLabel(item) }}</span>
+                </td>
+                <td>{{ item.attemptCount }}</td>
+                <td>{{ item.resultSummary || item.lastError || '-' }}</td>
+                <td>{{ item.createdAtUtc | date:'dd.MM.yyyy HH:mm:ss' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
       <ng-container *ngIf="directPreview() as preview; else directEmpty">
         <div class="price-stock-summary">
           <span>Toplam Bulunan: <strong>{{ preview.totalCount }}</strong></span>
           <span>Secili: <strong>{{ selectedDirectCount() }}</strong></span>
+          <span>Magaza Rezervi: <strong>{{ preview.stockReserveQuantity }}</strong></span>
           <button type="button" class="secondary-button" (click)="toggleAllDirectItems()" [disabled]="!directItems().length">
             {{ selectedDirectCount() === directItems().length && directItems().length ? 'Secimi Temizle' : 'Tumunu Sec' }}
           </button>
@@ -430,7 +467,9 @@
                 <th>Urun</th>
                 <th>Barkod</th>
                 <th class="numeric">Mikro Satis Fiyati</th>
-                <th class="numeric">Depo Stok Miktari</th>
+                <th class="numeric">Depo Stok</th>
+                <th class="numeric">Rezerv</th>
+                <th class="numeric">TGO'ya Gidecek</th>
                 <th>Degisti Bayragi</th>
                 <th>Son Guncelleme</th>
               </tr>
@@ -443,7 +482,9 @@
                 <td><strong>{{ item.productName || '-' }}</strong><small>{{ item.stockCode || '-' }}</small></td>
                 <td>{{ item.barcode }}</td>
                 <td class="numeric"><strong>{{ item.sellingPrice | number:'1.2-2' }} TL</strong></td>
-                <td class="numeric">{{ item.quantity | number:'1.0-3' }}</td>
+                <td class="numeric">{{ item.warehouseQuantity | number:'1.0-3' }}</td>
+                <td class="numeric">{{ item.stockReserveQuantity | number:'1.0-0' }}</td>
+                <td class="numeric"><strong>{{ item.quantity | number:'1.0-3' }}</strong></td>
                 <td>
                   <span class="status-pill" [class.is-ready]="item.priceChangedFlag">
                     {{ item.priceChangedFlag ? 'Degisti (1)' : 'Standart (0)' }}
@@ -496,7 +537,7 @@
     </div>
 
     <p class="price-stock-note">
-      Onizleme sadece Trendyol Go fiyat listesiyle calisir. Gonderim kabul edildikten sonra varsa sube POS aktarimi arka plandaki kuyrukta tamamlanir.
+      Onizleme sadece Trendyol Go fiyat listesiyle calisir. Depo stokundan magaza rezervi dusulur; kalan miktar TGO'ya gonderilir. Gonderim kabul edildikten sonra varsa sube POS aktarimi arka plandaki kuyrukta tamamlanir.
     </p>
 
     <ng-container *ngIf="priceStockPreview() as preview; else priceStockEmpty">
@@ -513,6 +554,7 @@
         <span>Atlanan: <strong>{{ preview.skippedCount }}</strong></span>
         <span>Gosterilen: <strong>{{ preview.visibleCount }}</strong></span>
         <span>Secili: <strong>{{ selectedReadyCount() }}</strong></span>
+        <span>Magaza Rezervi: <strong>{{ preview.stockReserveQuantity }}</strong></span>
         <button type="button" class="secondary-button" (click)="toggleAllReadyItems()" [disabled]="!canDispatchPriceStock() || !readyItems().length">
           {{ selectedReadyCount() === readyItems().length && readyItems().length ? 'Secimi Temizle' : 'Hazirlari Sec' }}
         </button>
@@ -523,7 +565,7 @@
       <div class="table-wrap price-stock-table">
         <table>
           <thead>
-            <tr><th>Sec</th><th>Urun</th><th>Barkod</th><th>Durum</th><th class="numeric">TGO Fiyat</th><th class="numeric">Mikro Fiyat</th><th class="numeric">TGO Stok</th><th class="numeric">Mikro Stok</th><th>Neden</th></tr>
+            <tr><th>Sec</th><th>Urun</th><th>Barkod</th><th>Durum</th><th class="numeric">TGO Fiyat</th><th class="numeric">Mikro Fiyat</th><th class="numeric">Mevcut TGO</th><th class="numeric">Depo Stok</th><th class="numeric">Rezerv</th><th class="numeric">Gidecek Stok</th><th>Neden</th></tr>
           </thead>
           <tbody>
             <tr *ngFor="let item of preview.items">
@@ -534,7 +576,9 @@
               <td class="numeric">{{ item.trendyolPrice ?? '-' }}</td>
               <td class="numeric">{{ item.mikroPrice ?? '-' }}</td>
               <td class="numeric">{{ item.trendyolQuantity ?? '-' }}</td>
-              <td class="numeric">{{ item.mikroQuantity ?? '-' }}</td>
+              <td class="numeric">{{ item.warehouseQuantity ?? '-' }}</td>
+              <td class="numeric">{{ item.stockReserveQuantity }}</td>
+              <td class="numeric"><strong>{{ item.mikroQuantity ?? '-' }}</strong></td>
               <td>{{ item.reason || '-' }}</td>
             </tr>
           </tbody>

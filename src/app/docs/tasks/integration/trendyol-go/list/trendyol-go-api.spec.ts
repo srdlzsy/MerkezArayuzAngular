@@ -139,4 +139,15 @@ describe('Trendyol Go price/stock API', () => {
     expect(request.request.body).toEqual(body);
     request.flush({ targetStoresCount: 3, totalItemsDispatched: 50, storeResults: [] });
   });
+
+  it('lists durable Trendyol Go batch workflows', () => {
+    service.getTrendyolGoBatchWorkflows(75).subscribe();
+
+    const request = http.expectOne((candidate) =>
+      candidate.url.endsWith('/entegrasyon-islemleri/trendyol-go/batch-workflows')
+    );
+    expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('take')).toBe('75');
+    request.flush([]);
+  });
 });

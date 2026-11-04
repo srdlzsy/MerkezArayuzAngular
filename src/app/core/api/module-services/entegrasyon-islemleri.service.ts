@@ -94,6 +94,7 @@ import type {
   ITrendyolGoCatalogDispatchHttpRequestApiDto,
   ITrendyolGoAutoCreateCatalogHttpRequestApiDto,
   ITrendyolGoCatalogAutoCreateResultApiDto,
+  ITrendyolGoBatchWorkflowApiDto,
   ITrendyolGoBatchItemsRequestApiDto,
   ITrendyolGoBrandsQueryApiDto,
   ITrendyolGoClaimsQueryApiDto,
@@ -911,6 +912,13 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   getTrendyolGoStores() {
     return this.get<TrendyolGoStoreMappingDto[]>(
       'entegrasyon-islemleri/trendyol-go/stores'
+    );
+  }
+
+  getTrendyolGoBatchWorkflows(take = 100) {
+    return this.getWithQuery<ITrendyolGoBatchWorkflowApiDto[]>(
+      'entegrasyon-islemleri/trendyol-go/batch-workflows',
+      { take }
     );
   }
 

@@ -14,7 +14,8 @@ import type {
   ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto,
   ITrendyolGoDirectPriceStockDispatchResultApiDto,
   ITrendyolGoDirectStoreDispatchResultApiDto,
-  ITrendyolGoCatalogAutoCreateResultApiDto
+  ITrendyolGoCatalogAutoCreateResultApiDto,
+  ITrendyolGoBatchWorkflowApiDto
 } from '@interfaces';
 import { finalize, Observable } from 'rxjs';
 
@@ -82,6 +83,7 @@ export class TrendyolGoListComponent {
   private previewRequestId = 0;
   private directPreviewRequestId = 0;
   private priceStockPollTimer: number | undefined;
+  private workflowPollTimer: number | undefined;
 
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
   protected readonly statuses = [
@@ -106,6 +108,8 @@ export class TrendyolGoListComponent {
   protected readonly selectedDirectBarcodes = signal<ReadonlySet<string>>(new Set());
   protected readonly loadingDirectPreview = signal(false);
   protected readonly directDispatchResult = signal<ITrendyolGoDirectPriceStockDispatchResultApiDto | null>(null);
+  protected readonly batchWorkflows = signal<ITrendyolGoBatchWorkflowApiDto[]>([]);
+  protected readonly loadingBatchWorkflows = signal(false);
   protected readonly priceStockPreview = signal<TrendyolGoPriceStockPreviewDto | null>(null);
   protected readonly selectedBarcodes = signal<ReadonlySet<string>>(new Set());
   protected readonly priceStockBatchIds = signal<readonly string[]>([]);
@@ -285,10 +289,19 @@ export class TrendyolGoListComponent {
   });
 
   constructor() {
-    this.destroyRef.onDestroy(() => this.clearPriceStockPolling());
+    this.destroyRef.onDestroy(() => {
+      this.clearPriceStockPolling();
+      if (this.workflowPollTimer !== undefined) {
+        window.clearTimeout(this.workflowPollTimer);
+      }
+    });
     if (this.canList()) {
       this.loadConnectionStatus();
       this.loadStores();
+    }
+    if (this.canDetail()) {
+      this.loadBatchWorkflows();
+      this.scheduleBatchWorkflowPolling();
     }
 
     this.catalogForm.controls.storeId.setValue(this.filterForm.controls.storeId.value);
@@ -726,9 +739,10 @@ export class TrendyolGoListComponent {
           this.priceStockBatchIds.set(batchIds);
           this.priceStockBatchResults.set({});
           this.invalidatePriceStockPreview();
-          this.setFeedback('success', batchIds.length
-            ? `Gonderim kabul edildi. ${batchIds.length} batch sonucunu kontrol edin.`
-            : 'Gonderim kabul edildi. Guncel onizlemeyi kontrol edin.');
+          this.loadBatchWorkflows();
+          this.setFeedback('info', batchIds.length
+            ? `Gonderim kuyruga alindi. ${batchIds.length} TGO batch sonucu backend tarafindan otomatik izleniyor.`
+            : 'Gonderim kuyruga alindi. Otomatik akis durumunu kontrol edin.');
         },
         error: (error: unknown) => {
           if (error instanceof HttpErrorResponse && error.status === 409) {
@@ -1073,14 +1087,18 @@ export class TrendyolGoListComponent {
           if (allBatchIds.length > 0) {
             this.priceStockBatchIds.set([...new Set(allBatchIds)]);
           }
-          const failedStores = result.storeResults.filter((item) => !item.success);
+          this.loadBatchWorkflows();
+          const warningStores = result.storeResults.filter((item) => item.workflowStatus === 'QueuedWithWarnings');
+          const failedStores = result.storeResults.filter((item) =>
+            !item.success && item.workflowStatus !== 'QueuedWithWarnings'
+          );
           if (failedStores.length > 0) {
             const catalogPendingStores = failedStores.filter((item) => this.isCatalogPending(item));
             const failedStoreCount = failedStores.length - catalogPendingStores.length;
             if (failedStoreCount === 0) {
               this.setFeedback(
                 'info',
-                `${catalogPendingStores.length} magazada eksik urunler katalog kuyruguna alindi. Katalog batch sonucu kabul edildikten sonra fiyat/stok gonderimini yeniden calistirin.`
+                `${catalogPendingStores.length} magazada eksik urunler katalog kuyruguna alindi. Fiyat/stok adimi katalog onayindan sonra otomatik calisacak.`
               );
               return;
             }
@@ -1090,12 +1108,19 @@ export class TrendyolGoListComponent {
             );
             return;
           }
+          if (warningStores.length > 0) {
+            this.setFeedback(
+              'error',
+              `${warningStores.length} magazada uygun urunler kuyruga alindi; katalog kurallarini gecemeyen urunler icin satir sonucunu kontrol edin.`
+            );
+            return;
+          }
           const catalogNote = result.totalCatalogCreated && result.totalCatalogCreated > 0
-            ? ` (${result.totalCatalogCreated} adet eksik urun icin katalog olusturuldu)`
+            ? ` ${result.totalCatalogCreated} eksik urun icin katalog ve devam fiyat/stok akisi otomatik izlenecek.`
             : '';
           this.setFeedback(
-            'success',
-            `Dogrudan aktarim tamamlandi: ${result.targetStoresCount} magaza, toplam ${result.totalItemsDispatched} urun Trendyol Go'ya aktarildi.${catalogNote}`
+            'info',
+            `Dogrudan aktarim kuyruga alindi: ${result.targetStoresCount} magaza, ${result.totalItemsDispatched} urun TGO batch sonucunu bekliyor.${catalogNote}`
           );
         },
         error: (error: unknown) =>
@@ -1104,12 +1129,18 @@ export class TrendyolGoListComponent {
   }
 
   protected isCatalogPending(result: ITrendyolGoDirectStoreDispatchResultApiDto): boolean {
-    return !result.success && (result.catalogCreatedCount ?? 0) > 0;
+    return result.workflowStatus === 'CatalogAndPriceStockQueued';
   }
 
   protected directStoreStatusLabel(result: ITrendyolGoDirectStoreDispatchResultApiDto): string {
+    if (result.workflowStatus === 'QueuedWithWarnings') {
+      return `Kuyrukta, uyari: ${result.errorMessage || 'Bazi urunler gonderilmedi'}`;
+    }
+
     if (result.success) {
-      return 'Basarili';
+      return result.workflowStatus === 'CatalogAndPriceStockQueued'
+        ? 'Katalog ve fiyat/stok bekleniyor'
+        : 'TGO sonucu bekleniyor';
     }
 
     if (this.isCatalogPending(result)) {
@@ -1117,6 +1148,36 @@ export class TrendyolGoListComponent {
     }
 
     return `Hata: ${result.errorMessage || 'Gonderim tamamlanamadi'}`;
+  }
+
+  protected loadBatchWorkflows(): void {
+    if (!this.canDetail() || this.loadingBatchWorkflows()) return;
+
+    this.loadingBatchWorkflows.set(true);
+    this.service.getTrendyolGoBatchWorkflows(100)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingBatchWorkflows.set(false))
+      )
+      .subscribe({
+        next: (items: ITrendyolGoBatchWorkflowApiDto[]) => this.batchWorkflows.set(items ?? []),
+        error: () => undefined
+      });
+  }
+
+  protected batchWorkflowLabel(item: ITrendyolGoBatchWorkflowApiDto): string {
+    if (item.status === 'Succeeded') return 'Tamamlandi';
+    if (item.status === 'PartiallySucceeded') return 'Kismi hata';
+    if (item.status === 'Failed') return 'Hata';
+    if (item.kind === 'CatalogThenPriceStock') return 'Katalog bekleniyor';
+    return item.status === 'Processing' ? 'Kontrol ediliyor' : 'TGO sonucu bekleniyor';
+  }
+
+  private scheduleBatchWorkflowPolling(): void {
+    this.workflowPollTimer = window.setTimeout(() => {
+      this.loadBatchWorkflows();
+      this.scheduleBatchWorkflowPolling();
+    }, 10_000);
   }
 
   private invalidateDirectPreview(): void {

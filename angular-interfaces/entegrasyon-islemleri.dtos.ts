@@ -1418,6 +1418,8 @@ export interface ITrendyolGoPriceStockPreviewItemApiDto {
   trendyolQuantity: number | null;
   mikroPrice: number | null;
   mikroQuantity: number | null;
+  warehouseQuantity: number | null;
+  stockReserveQuantity: number;
   status: 'Ready' | 'Skipped' | 'Unchanged';
   reason: string | null;
 }
@@ -1426,6 +1428,7 @@ export interface ITrendyolGoPriceStockPreviewApiDto {
   storeId: number;
   warehouseNo: number;
   storeName: string;
+  stockReserveQuantity: number;
   totalPages: number | null;
   totalElements: number;
   previewHash: string;
@@ -1468,16 +1471,24 @@ export interface ITrendyolGoDirectPriceStockItemApiDto {
   productName: string;
   sellingPrice: number;
   quantity: number;
+  warehouseQuantity: number;
+  stockReserveQuantity: number;
   priceChangedFlag: boolean;
   priceLastUpDate?: string | null;
   warehouseNo: number;
   unitPointer: number;
+  unitName?: string;
+  salesBlocked?: number;
+  orderBlocked?: number;
+  goodsAcceptanceBlocked?: number;
+  warehouseLastUpDate?: string | null;
 }
 
 export interface ITrendyolGoDirectPriceStockPreviewApiDto {
   storeId: number;
   warehouseNo: number;
   storeName: string;
+  stockReserveQuantity: number;
   mode: string;
   sinceDate?: string | null;
   totalCount: number;
@@ -1506,6 +1517,8 @@ export interface ITrendyolGoDirectStoreDispatchResultApiDto {
   batchRequestIds: string[];
   catalogCreatedCount?: number;
   catalogBatchRequestIds?: string[];
+  followUpTaskIds?: string[];
+  workflowStatus?: 'PriceStockQueued' | 'CatalogAndPriceStockQueued' | 'Failed' | string;
 }
 
 export interface ITrendyolGoDirectPriceStockDispatchResultApiDto {
@@ -1569,4 +1582,25 @@ export interface ITrendyolGoCatalogAutoCreateResultApiDto {
   createdCount: number;
   batchRequestIds: string[];
   errorMessage?: string | null;
+  batchSubmissions?: ITrendyolGoCatalogBatchSubmissionApiDto[] | null;
+}
+
+export interface ITrendyolGoCatalogBatchSubmissionApiDto {
+  batchRequestId: string;
+  barcodes: string[];
+}
+
+export interface ITrendyolGoBatchWorkflowApiDto {
+  id: string;
+  kind: 'PriceStock' | 'CatalogThenPriceStock' | string;
+  batchRequestId: string;
+  storeId: number;
+  warehouseNo: number;
+  status: 'Pending' | 'Processing' | 'Succeeded' | 'Failed' | string;
+  attemptCount: number;
+  nextAttemptAtUtc: string;
+  lastError?: string | null;
+  resultSummary?: string | null;
+  createdAtUtc: string;
+  completedAtUtc?: string | null;
 }
