@@ -1004,7 +1004,7 @@ export class KasaHareketAktarimiListComponent {
   protected async actionMikroAktar(): Promise<void> {
     const confirmed = await this.confirmDialog.confirm({
       title: 'Mikroya Aktar',
-      message: 'Hareketler mikroya aktarilacak, emin misiniz?',
+      message: 'Secili gun ve subenin bekleyen hareketleri Mikroya aktarilacak.',
       confirmText: 'Evet, Aktar',
       tone: 'info'
     });
@@ -1016,8 +1016,8 @@ export class KasaHareketAktarimiListComponent {
 
   protected async actionMikroAktar2(): Promise<void> {
     const confirmed = await this.confirmDialog.confirm({
-      title: 'Mikroya Aktar 2',
-      message: 'Hareketler mikroya aktarilacak, emin misiniz?',
+      title: 'Toplu Mikro Aktarimi',
+      message: 'Tarih araligindaki tum subelerin bekleyen hareketleri Mikroya aktarilacak.',
       confirmText: 'Evet, Aktar',
       tone: 'info'
     });

@@ -16,8 +16,10 @@ import type {
   CreateCashRegisterTerminalHttpRequest,
   SettingsTypeOptionDto,
   TerminalBankOptionDto,
+  WarehouseLookupItemDto,
 } from '@interfaces';
 
+import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { AyarIslemleriService } from '../../../../../core/api/module-services/ayar-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { AppConfirmDialogService } from '../../../../../core/ui/app-confirm-dialog/app-confirm-dialog.service';
@@ -104,6 +106,7 @@ export class KasaPosTerminalleriListComponent {
   protected readonly searchControl = new FormControl<string>('', { nonNullable: true });
 
   private readonly authService = inject(AuthService);
+  private readonly aramaService = inject(AramaService);
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
@@ -111,6 +114,7 @@ export class KasaPosTerminalleriListComponent {
 
   protected readonly cashRegistries = signal<CashRegistryDto[]>([]);
   protected readonly branchOptions = signal<BranchDetailDto[]>([]);
+  protected readonly warehouseOptions = signal<WarehouseLookupItemDto[]>([]);
   protected readonly terminals = signal<CashRegisterTerminalDto[]>([]);
   protected readonly messageStatuses = signal<CashRegisterMessageStatusDto[]>([]);
   protected readonly terminalLocations = signal<CashRegisterTerminalLocationDto[]>([]);
@@ -167,7 +171,7 @@ export class KasaPosTerminalleriListComponent {
 
     return this.cashRegistries().filter((item) =>
       this.normalizeSearch(
-        `${item.branchNo} ${item.cashNo} ${item.cashFinanceNumber ?? ''} ${item.cashTypeName ?? ''}`,
+        `${this.getBranchLabel(item.branchNo)} ${item.cashNo} ${item.cashFinanceNumber ?? ''} ${item.cashTypeName ?? ''}`,
       ).includes(search),
     );
   });
@@ -210,6 +214,7 @@ export class KasaPosTerminalleriListComponent {
 
     this.loadLookups();
     this.loadBranchOptions();
+    this.loadWarehouseOptions();
 
     if (branchNo) {
       this.loadCashRegistries();
@@ -1080,6 +1085,14 @@ export class KasaPosTerminalleriListComponent {
       : `Kasa ${cash.cashNo} - ${typeName}`;
   }
 
+  protected getBranchLabel(branchNo: number): string {
+    const warehouseName = this.warehouseOptions()
+      .find((warehouse) => warehouse.warehouseNo === branchNo)
+      ?.warehouseName?.trim();
+
+    return warehouseName ? `${branchNo} - ${warehouseName}` : `Sube ${branchNo}`;
+  }
+
   protected getSettingsOptionSelectLabel(option: SettingsTypeOptionDto): string {
     return option.isKnown ? option.name : `${option.name} (tanimsiz)`;
   }
@@ -1133,6 +1146,16 @@ export class KasaPosTerminalleriListComponent {
     issue: CashRegisterDefinitionIssueDto,
   ): string =>
     `${issue.code}-${issue.branchNo}-${issue.cashNo}-${issue.terminalNo ?? ''}-${issue.bank ?? ''}`;
+
+  private loadWarehouseOptions(): void {
+    this.aramaService
+      .listAllWarehouses(500)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (warehouses: WarehouseLookupItemDto[]) => this.warehouseOptions.set(warehouses ?? []),
+        error: () => this.warehouseOptions.set([]),
+      });
+  }
 
   private buildCreateRequest(): CreateCashRegisterHttpRequest {
     const formValue = this.cashRegisterForm.getRawValue();

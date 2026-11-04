@@ -47,7 +47,7 @@
         <select formControlName="branchNo" [disabled]="branchesLoading()">
           <option [ngValue]="null">Sube secin</option>
           <option *ngFor="let branch of branchOptions()" [ngValue]="branch.branchNo">
-            Sube {{ branch.branchNo }}
+            {{ getBranchLabel(branch.branchNo) }}
           </option>
         </select>
       </label>
@@ -191,7 +191,7 @@
                 [class.is-selected]="selectedCashRegistry()?.cashNo === cash.cashNo"
                 (click)="selectCashRegistry(cash)"
               >
-                <td>{{ cash.branchNo }}</td>
+                <td><strong>{{ getBranchLabel(cash.branchNo) }}</strong></td>
                 <td>
                   <strong>{{ cash.cashNo }}</strong>
                   <span class="table-meta">{{ cash.cashFinanceNumber || 'Finans no yok' }}</span>
