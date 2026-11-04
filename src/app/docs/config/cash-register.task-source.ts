@@ -981,13 +981,13 @@ export const CASH_REGISTER_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/kasa-islemleri/kasa-hareket-aktarimi/hareketler/aktar',
-              description: 'HR formatindaki kasa hareket dosyalarini staging tablolara aktarir; virgullu, noktali virgul, tab ve bosluk ayraclari desteklenir',
+              description: 'HR hareket ve IP iptal belge dosyalarini tek istekte staging tablolara aktarir; virgullu, noktali virgul, tab ve bosluk ayraclari desteklenir',
               payload: 'KasaHareketImportHttpRequest'
             },
             {
               method: 'POST',
               path: '/api/kasa-islemleri/kasa-hareket-aktarimi/iptal-belgeleri/aktar',
-              description: 'IP formatindaki iptal belge dosyalarini staging tablolara aktarir; virgullu, noktali virgul, tab ve bosluk ayraclari desteklenir',
+              description: 'Geriye uyumluluk icin yalniz IP formatindaki iptal belge dosyalarini staging tablolara aktarir',
               payload: 'KasaHareketImportHttpRequest'
             },
             {

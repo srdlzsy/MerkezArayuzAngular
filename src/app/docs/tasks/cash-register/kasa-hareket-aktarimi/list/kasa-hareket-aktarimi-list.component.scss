@@ -1,5 +1,3 @@
-@use '../../../core/api-list-page/api-list-page.shared';
-
 :host {
   display: block;
   --transfer-border: #d9e2dc;
@@ -1269,17 +1267,6 @@
 .btn-mikro-sil:hover:not(:disabled) {
   background: #ffe4e6;
   border-color: #fda4af;
-}
-
-.btn-iptal-aktar {
-  background: #f0fdf4;
-  color: #15803d;
-  border-color: #bbf7d0;
-}
-
-.btn-iptal-aktar:hover:not(:disabled) {
-  background: #dcfce7;
-  border-color: #86efac;
 }
 
 .btn-rapor {

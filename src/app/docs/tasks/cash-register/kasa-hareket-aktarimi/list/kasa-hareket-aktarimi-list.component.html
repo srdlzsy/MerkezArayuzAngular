@@ -234,7 +234,7 @@
                   <i class="fa-solid fa-file-import btn-icon"></i>
                   <div class="btn-content">
                     <strong>{{ importForm.controls.dryRun.value ? 'Hareketleri Kontrol Et' : 'Hareketleri Aktar' }}</strong>
-                    <span>.hr dosya hareketlerini ara tabloya aktar</span>
+                    <span>.hr hareket ve iptal belgelerini ara tabloya aktar</span>
                   </div>
                   <span class="btn-spinner" *ngIf="importLoading() && importForm.controls.importType.value === 'normal'"></span>
                 </button>
@@ -297,21 +297,6 @@
                     <span>Mikro'dan tarih veya aralik bazli stok hareket sil</span>
                   </div>
                   <span class="btn-spinner" *ngIf="isProcedureLoading('mikro-delete')"></span>
-                </button>
-
-                <!-- 6. İptal Belgeleri Aktar -->
-                <button
-                  type="button"
-                  class="action-btn btn-iptal-aktar"
-                  (click)="actionIptalAktar()"
-                  [disabled]="importLoading() || !!procedureLoadingAction()"
-                >
-                  <i class="fa-solid fa-file-circle-xmark btn-icon"></i>
-                  <div class="btn-content">
-                    <strong>İptal Belgeleri Aktar</strong>
-                    <span>.hr iptal fiş ve belgelerini ayrıştırıp aktar</span>
-                  </div>
-                  <span class="btn-spinner" *ngIf="importLoading() && importForm.controls.importType.value === 'cancel'"></span>
                 </button>
 
                 <!-- 7. Rapor -->

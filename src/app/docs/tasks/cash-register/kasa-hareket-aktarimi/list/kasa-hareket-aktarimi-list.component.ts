@@ -46,7 +46,7 @@ type KasaHareketDetailTab =
   | 'receipts'
   | 'canceled-receipts'
   | 'missing-receipts';
-type KasaHareketImportMode = 'normal' | 'cancel' | 'scheduled';
+type KasaHareketImportMode = 'normal' | 'scheduled';
 type KasaHareketProcedureAction =
   | 'staging-delete'
   | 'mikro-transfer'
@@ -139,8 +139,8 @@ export class KasaHareketAktarimiListComponent {
     scheduledDate: new FormControl<string>(this.today, { nonNullable: true }),
     addDay: new FormControl<number | null>(null),
     fileRootPath: new FormControl<string>('', { nonNullable: true }),
-    skipExisting: new FormControl<boolean>(true, { nonNullable: true }),
-    dryRun: new FormControl<boolean>(true, { nonNullable: true })
+    skipExisting: new FormControl<boolean>(false, { nonNullable: true }),
+    dryRun: new FormControl<boolean>(false, { nonNullable: true })
   });
   protected readonly reportForm = new FormGroup({
     date: new FormControl<string>(this.today, { nonNullable: true })
@@ -306,9 +306,7 @@ export class KasaHareketAktarimiListComponent {
 
     const request = this.buildImportRequest(startDate, endDate);
     const request$: Observable<KasaHareketImportResultDto> =
-      importType === 'cancel'
-        ? this.kasaIslemleriService.importKasaHareketIptalBelgeleri(request)
-        : this.kasaIslemleriService.importKasaHareketleri(request);
+      this.kasaIslemleriService.importKasaHareketleri(request);
 
     this.importLoading.set(true);
     this.feedback.set(null);
@@ -648,13 +646,11 @@ export class KasaHareketAktarimiListComponent {
 
   protected getImportModeLabel(mode: KasaHareketImportMode): string {
     switch (mode) {
-      case 'cancel':
-        return 'IP Iptal';
       case 'scheduled':
         return 'Zamanli';
       case 'normal':
       default:
-        return 'HR Hareket';
+        return 'HR + IP Hareket';
     }
   }
 
@@ -976,8 +972,8 @@ export class KasaHareketAktarimiListComponent {
     const confirmed = await this.confirmDialog.confirm({
       title: dryRun ? 'Hareketleri Kontrol Et' : 'Hareketleri Aktar',
       message: dryRun
-        ? 'Sadece kontrol acik. Dosyalar okunacak ancak veritabanina kayit yazilmayacak.'
-        : 'Secilen tarih, sube ve kasalardaki hareketler ara tabloya aktarilacak.',
+        ? 'Hareket ve iptal dosyalari okunacak ancak veritabanina kayit yazilmayacak.'
+        : 'Secilen tarih, sube ve kasalardaki hareketler ile iptal belgeleri ara tabloya aktarilacak.',
       confirmText: dryRun ? 'Kontrol Et' : 'Aktar',
       tone: 'info'
     });
@@ -1047,20 +1043,6 @@ export class KasaHareketAktarimiListComponent {
       return;
     }
     this.runProcedure('mikro-delete');
-  }
-
-  protected async actionIptalAktar(): Promise<void> {
-    const confirmed = await this.confirmDialog.confirm({
-      title: 'Iptal Belgeleri Aktar',
-      message: 'Iptal belgeleri aktarilacak, emin misiniz?',
-      confirmText: 'Evet, Aktar',
-      tone: 'info'
-    });
-    if (!confirmed) {
-      return;
-    }
-    this.importForm.controls.importType.setValue('cancel');
-    this.runImport();
   }
 
   protected actionReport(): void {

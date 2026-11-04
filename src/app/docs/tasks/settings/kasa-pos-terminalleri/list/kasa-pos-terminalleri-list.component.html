@@ -1,138 +1,268 @@
 <section class="task-page" *ngIf="page as current">
-  <article class="settings-workspace">
-    <header class="page-head">
-      <div class="title-block">
-        <span class="section-kicker">Ayar Islemleri</span>
-        <h2>{{ current.title }}</h2>
+  <article class="settings-workspace pos-workspace">
+    <!-- PAGE HEADER -->
+    <header class="page-head-modern">
+      <div class="head-brand">
+        <span class="section-kicker">Ayar İşlemleri</span>
+        <div class="head-title-row">
+          <h2>{{ current.title }}</h2>
+          <span class="version-tag">POS & PAV Terminal Yönetimi</span>
+        </div>
+        <p class="subtitle">Şube kasaları, fiziksel kasa sınıfları ve POS/PAV terminal banka eşleşmelerini merkezi olarak yönetin.</p>
       </div>
 
-      <div class="metric-strip">
-        <article>
-          <span>Kasa</span>
-          <strong>{{ cashRegistries().length }}</strong>
-        </article>
-        <article>
-          <span>Terminal</span>
-          <strong>{{ terminals().length }}</strong>
-        </article>
-        <article>
-          <span>Mesaj</span>
-          <strong>{{ messageStatuses().length }}</strong>
-        </article>
-        <article>
-          <span>Hazir</span>
-          <strong>{{ readyMessageCount() }}/{{ messageStatuses().length }}</strong>
-        </article>
-        <article>
-          <span>Tanim Sorunu</span>
-          <strong>{{ definitionIssues().length }}</strong>
-        </article>
-      </div>
+      <!-- WORKFLOW STEPS -->
+      <nav class="setup-steps-modern" aria-label="Kasa ve terminal işlem sırası">
+        <div class="step-card is-active">
+          <span class="step-badge">1</span>
+          <div class="step-body">
+            <strong>Şube Kasaları</strong>
+            <small>Kasaları listele</small>
+          </div>
+        </div>
+        <div class="step-connector">
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+        <div class="step-card" [class.is-active]="!!selectedCashRegistry()">
+          <span class="step-badge">2</span>
+          <div class="step-body">
+            <strong>Fiziksel Kasa</strong>
+            <small>{{ selectedCashRegistry() ? 'Kasa #' + selectedCashRegistry()!.cashNo : 'Kasa seçin' }}</small>
+          </div>
+        </div>
+        <div class="step-connector">
+          <i class="fa-solid fa-chevron-right"></i>
+        </div>
+        <div class="step-card" [class.is-active]="!!selectedCashRegistry() && terminals().length > 0">
+          <span class="step-badge">3</span>
+          <div class="step-body">
+            <strong>POS / PAV Satırları</strong>
+            <small>{{ terminals().length ? terminals().length + ' Terminal' : 'Banka satırları' }}</small>
+          </div>
+        </div>
+      </nav>
     </header>
 
-    <div class="setup-steps" aria-label="Kasa ve terminal islem sirasi">
-      <span class="is-active"><b>1</b> Sube kasalarini ac</span>
-      <span [class.is-active]="!!selectedCashRegistry()"><b>2</b> Fiziksel kasayi sec</span>
-      <span [class.is-active]="!!selectedCashRegistry()"><b>3</b> POS/PAV satirlarini duzenle</span>
-    </div>
-
-    <form
-      class="filter-bar pos-filter"
-      [formGroup]="scopeForm"
-      (ngSubmit)="loadCashRegistries()"
-      novalidate
-    >
-      <label class="field">
-        <span>Sube</span>
-        <select formControlName="branchNo" [disabled]="branchesLoading()">
-          <option [ngValue]="null">Sube secin</option>
-          <option *ngFor="let branch of branchOptions()" [ngValue]="branch.branchNo">
-            {{ getBranchLabel(branch.branchNo) }}
-          </option>
-        </select>
-      </label>
-
-      <label class="field">
-        <span>Sube Kasasi</span>
-        <select
-          formControlName="cashNo"
-          (change)="onScopeCashNoChanged()"
-          [disabled]="!cashRegistries().length"
-        >
-          <option [ngValue]="null">Once sube kasalarini yukleyin</option>
-          <option
-            *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry"
-            [ngValue]="cash.cashNo"
-          >
-            {{ getCashRegistryOptionLabel(cash) }}
-          </option>
-        </select>
-      </label>
-
-      <div class="filter-actions">
-        <button
-          type="submit"
-          class="task-action task-action-primary"
-          [disabled]="isLoading('cash')"
-        >
+    <!-- METRIC / KPI CARDS -->
+    <section class="metric-grid-modern">
+      <article class="kpi-card kpi-teal">
+        <div class="kpi-icon-wrap">
           <i class="fa-solid fa-cash-register"></i>
-          {{ isLoading('cash') ? 'Yukleniyor' : 'Kasalar' }}
-        </button>
-        <button
-          type="button"
-          class="task-action task-action-secondary"
-          (click)="loadMessageStatuses()"
-          [disabled]="isLoading('messages')"
-        >
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Şube Kasası</span>
+          <strong class="kpi-value">{{ cashRegistries().length }}</strong>
+          <span class="kpi-sub">Fiziksel Kasa</span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-blue">
+        <div class="kpi-icon-wrap">
+          <i class="fa-solid fa-credit-card"></i>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">POS / PAV Terminal</span>
+          <strong class="kpi-value">{{ terminals().length }}</strong>
+          <span class="kpi-sub">Seçili Kasa Eşleşmesi</span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-purple" (click)="loadMessageStatuses()" role="button" tabindex="0" title="POSKON Mesaj Durumlarını Göster">
+        <div class="kpi-icon-wrap">
           <i class="fa-solid fa-envelope-open-text"></i>
-          {{ isLoading('messages') ? 'Yukleniyor' : 'Mesaj' }}
-        </button>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">POSKON Mesaj</span>
+          <strong class="kpi-value">{{ messageStatuses().length }}</strong>
+          <span class="kpi-sub" [class.text-danger]="messageErrorCount() > 0">
+            {{ messageErrorCount() > 0 ? messageErrorCount() + ' Hatalı' : readyMessageCount() + ' Hazır' }}
+          </span>
+        </div>
+      </article>
+
+      <article
+        class="kpi-card"
+        [class.kpi-amber]="definitionErrorCount() === 0 && definitionIssues().length > 0"
+        [class.kpi-red]="definitionErrorCount() > 0"
+        [class.kpi-green]="definitionIssues().length === 0"
+      >
+        <div class="kpi-icon-wrap">
+          <i
+            class="fa-solid"
+            [class.fa-triangle-exclamation]="definitionErrorCount() > 0"
+            [class.fa-circle-exclamation]="definitionErrorCount() === 0 && definitionIssues().length > 0"
+            [class.fa-circle-check]="definitionIssues().length === 0"
+          ></i>
+        </div>
+        <div class="kpi-content">
+          <span class="kpi-label">Tanım Sağlığı</span>
+          <strong class="kpi-value">{{ definitionIssues().length }}</strong>
+          <span class="kpi-sub">
+            {{ definitionErrorCount() > 0 ? definitionErrorCount() + ' Kritik Sorun' : 'Tanımlar Tutarlı' }}
+          </span>
+        </div>
+      </article>
+    </section>
+
+    <!-- UNIFIED FILTER TOOLBAR -->
+    <form class="pos-toolbar-card" [formGroup]="scopeForm" (ngSubmit)="loadCashRegistries()" novalidate>
+      <div class="toolbar-filters">
+        <!-- Şube Seçimi -->
+        <div class="filter-field branch-field">
+          <label for="pos-branch-select">
+            <i class="fa-solid fa-store"></i>
+            <span>Şube</span>
+          </label>
+          <div class="select-container">
+            <select
+              id="pos-branch-select"
+              formControlName="branchNo"
+              (change)="loadCashRegistries()"
+              [disabled]="branchesLoading()"
+            >
+              <option [ngValue]="null">Şube seçin...</option>
+              <option *ngFor="let branch of branchOptions()" [ngValue]="branch.branchNo">
+                {{ getBranchLabel(branch.branchNo) }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Hızlı Kasa Seçimi (Opsiyonel kısayol) -->
+        <div class="filter-field cash-select-field" *ngIf="cashRegistries().length > 0">
+          <label for="pos-cash-select">
+            <i class="fa-solid fa-hashtag"></i>
+            <span>Hızlı Kasa Git</span>
+          </label>
+          <div class="select-container">
+            <select
+              id="pos-cash-select"
+              formControlName="cashNo"
+              (change)="onScopeCashNoChanged()"
+            >
+              <option [ngValue]="null">Tüm kasaları göster</option>
+              <option
+                *ngFor="let cash of cashRegistries(); trackBy: trackByCashRegistry"
+                [ngValue]="cash.cashNo"
+              >
+                {{ getCashRegistryOptionLabel(cash) }}
+              </option>
+            </select>
+          </div>
+        </div>
+
+        <!-- Arama Kutusu -->
+        <div class="filter-field search-field">
+          <label for="pos-search-input">
+            <i class="fa-solid fa-magnifying-glass"></i>
+            <span>Kasa / Terminal Arama</span>
+          </label>
+          <div class="search-input-wrap">
+            <input
+              id="pos-search-input"
+              type="search"
+              [formControl]="searchControl"
+              placeholder="Kasa No, PAV No, Banka veya Terminal ID ara..."
+            />
+            <button
+              *ngIf="searchControl.value"
+              type="button"
+              class="btn-clear"
+              (click)="searchControl.setValue('')"
+              title="Aramayı Temizle"
+            >
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+        </div>
       </div>
 
-      <label class="field pos-search-field">
-        <span>Kasa veya terminal ara</span>
-        <div class="search-input-wrap">
-          <i class="fa-solid fa-magnifying-glass"></i>
-          <input
-            type="search"
-            [formControl]="searchControl"
-            placeholder="Kasa, PAV, banka, terminal ID"
-          />
-        </div>
-      </label>
+      <!-- Aksiyon Butonları -->
+      <div class="toolbar-actions">
+        <button
+          type="submit"
+          class="btn-action btn-primary"
+          [disabled]="isLoading('cash') || !scopeForm.controls.branchNo.value"
+          title="Seçili şubenin kasalarını yenile"
+        >
+          <i class="fa-solid fa-rotate" [class.is-spinning]="isLoading('cash')"></i>
+          <span>{{ isLoading('cash') ? 'Yükleniyor...' : 'Kasaları Getir' }}</span>
+        </button>
 
-      <div class="state-card state-card-error" *ngIf="messageErrorCount() > 0">
-        <h3>Hata</h3>
-        <p>{{ messageErrorCount() }} mesaj satiri hata durumunda.</p>
+        <button
+          type="button"
+          class="btn-action btn-secondary"
+          (click)="loadMessageStatuses()"
+          [disabled]="isLoading('messages')"
+          title="POSKON Mesaj Durumlarını Sorgula"
+        >
+          <i class="fa-solid fa-envelope" [class.is-spinning]="isLoading('messages')"></i>
+          <span>POSKON Mesaj</span>
+        </button>
+
+        <button
+          type="button"
+          class="btn-action btn-accent"
+          (click)="newCashRegister()"
+          [disabled]="!canCreate() || isLoading('create') || isLoading('terminal-save')"
+          title="Seçili şubeye yeni kasa ve terminal tanımla"
+        >
+          <i class="fa-solid fa-plus"></i>
+          <span>Yeni Kasa Ekle</span>
+        </button>
       </div>
     </form>
 
+    <!-- FEEDBACK ALERT -->
     <article
-      class="state-card"
+      class="feedback-banner"
       *ngIf="feedback() as currentFeedback"
-      [class.state-card-error]="currentFeedback.tone === 'error'"
-      [class.state-card-success]="currentFeedback.tone === 'success'"
-      [class.state-card-info]="currentFeedback.tone === 'info'"
+      [class.feedback-error]="currentFeedback.tone === 'error'"
+      [class.feedback-success]="currentFeedback.tone === 'success'"
+      [class.feedback-info]="currentFeedback.tone === 'info'"
     >
-      <h3>{{ currentFeedback.title }}</h3>
-      <p>{{ currentFeedback.message }}</p>
+      <div class="feedback-icon">
+        <i
+          class="fa-solid"
+          [class.fa-circle-check]="currentFeedback.tone === 'success'"
+          [class.fa-triangle-exclamation]="currentFeedback.tone === 'error'"
+          [class.fa-circle-info]="currentFeedback.tone === 'info'"
+        ></i>
+      </div>
+      <div class="feedback-text">
+        <strong>{{ currentFeedback.title }}</strong>
+        <span>{{ currentFeedback.message }}</span>
+      </div>
+      <button type="button" class="btn-close-feedback" (click)="feedback.set(null)" title="Kapat">
+        <i class="fa-solid fa-xmark"></i>
+      </button>
     </article>
 
+    <!-- TANIM SORUNLARI (DEFINITION ISSUES) SECTION -->
     <section
-      class="definition-issues"
+      class="definition-issues-card"
       *ngIf="definitionIssuesLoading() || definitionIssues().length"
     >
-      <div class="definition-issues-head">
-        <div>
-          <span class="panel-kicker">Kontrol</span>
-          <h3>Kasa ve Terminal Tanim Sorunlari</h3>
+      <div class="definition-head">
+        <div class="definition-title-group">
+          <i class="fa-solid fa-shield-halved"></i>
+          <div>
+            <h3>Kasa ve Terminal Tanım Sorunları</h3>
+            <p>Sistemde tutarsızlık oluşturan çift PAV kullanımı, eksik terminal veya banka tanımları.</p>
+          </div>
         </div>
-        <strong
-          >{{ definitionErrorCount() }} kritik / {{ definitionIssues().length }} toplam</strong
-        >
+        <div class="definition-badges">
+          <span class="badge-error" *ngIf="definitionErrorCount() > 0">
+            {{ definitionErrorCount() }} Kritik Hata
+          </span>
+          <span class="badge-total">{{ definitionIssues().length }} Toplam Sorun</span>
+        </div>
       </div>
 
-      <p class="definition-loading" *ngIf="definitionIssuesLoading()">Tanimlar kontrol ediliyor.</p>
+      <div class="definition-loading-indicator" *ngIf="definitionIssuesLoading()">
+        <i class="fa-solid fa-spinner fa-spin"></i>
+        <span>Tanımlar kontrol ediliyor, lütfen bekleyin...</span>
+      </div>
 
       <div class="definition-issue-list" *ngIf="!definitionIssuesLoading()">
         <article
@@ -140,49 +270,62 @@
           *ngFor="let issue of definitionIssues(); trackBy: trackByDefinitionIssue"
           [class.is-error]="issue.severity === 'error'"
         >
-          <i
-            class="fa-solid"
-            [class.fa-triangle-exclamation]="issue.severity === 'error'"
-            [class.fa-circle-info]="issue.severity !== 'error'"
-          ></i>
-          <div>
-            <strong>{{ issue.branchNo }} / Kasa {{ issue.cashNo }}</strong>
-            <span>{{ issue.message }}</span>
+          <div class="issue-icon">
+            <i
+              class="fa-solid"
+              [class.fa-triangle-exclamation]="issue.severity === 'error'"
+              [class.fa-circle-info]="issue.severity !== 'error'"
+            ></i>
+          </div>
+          <div class="issue-content">
+            <div class="issue-header">
+              <span class="issue-loc">Şube {{ issue.branchNo }} &bull; Kasa {{ issue.cashNo }}</span>
+              <span class="issue-code" *ngIf="issue.code">{{ issue.code }}</span>
+            </div>
+            <p class="issue-msg">{{ issue.message }}</p>
           </div>
           <button
             type="button"
-            class="task-action task-action-secondary"
+            class="btn-issue-action"
             (click)="openDefinitionIssue(issue)"
+            title="Sorunlu kasayı seç ve aç"
           >
+            <span>Kasayı Aç</span>
             <i class="fa-solid fa-arrow-right"></i>
-            Kasayi Ac
           </button>
         </article>
       </div>
     </section>
 
-    <section class="split-grid">
-      <section class="panel">
-        <div class="panel-head">
-          <div class="panel-head-text">
-            <span class="panel-kicker">Kasalar</span>
-            <h3>Sube Kasa Tanimlari</h3>
+    <!-- ANA MASTER-DETAIL GRID LAYOUT -->
+    <section class="master-detail-grid">
+      <!-- SOL SÜTUN: ŞUBE KASALARI (MASTER LIST) -->
+      <section class="panel-card cash-column">
+        <header class="panel-card-head">
+          <div class="head-info">
+            <span class="kicker">Fiziksel Kasalar</span>
+            <h3>Şube Kasa Tanımları</h3>
           </div>
+          <span class="count-badge" *ngIf="filteredCashRegistries().length">
+            {{ filteredCashRegistries().length }} Kasa
+          </span>
+        </header>
+
+        <!-- Yükleniyor Durumu -->
+        <div class="loading-state-card" *ngIf="isLoading('cash')">
+          <i class="fa-solid fa-spinner fa-spin"></i>
+          <span>Şube kasaları getiriliyor...</span>
         </div>
 
-        <article class="state-card" *ngIf="isLoading('cash')">
-          <h3>Kasalar yukleniyor</h3>
-          <p>Sube kasa tanimlari getiriliyor.</p>
-        </article>
-
-        <div class="table-wrap compact-table" *ngIf="!isLoading('cash') && filteredCashRegistries().length">
-          <table class="data-table cash-table">
+        <!-- Kasa Tablosu / Listesi -->
+        <div class="table-container cash-table-container" *ngIf="!isLoading('cash') && filteredCashRegistries().length">
+          <table class="data-table">
             <thead>
               <tr>
-                <th>Sube</th>
-                <th>Kasa</th>
-                <th>Tip</th>
-                <th>Aksiyon</th>
+                <th style="width: 70px;">Kasa No</th>
+                <th>PAV / Finans</th>
+                <th>Kasa Sınıfı</th>
+                <th style="width: 44px; text-align: center;">İşlem</th>
               </tr>
             </thead>
             <tbody>
@@ -191,24 +334,26 @@
                 [class.is-selected]="selectedCashRegistry()?.cashNo === cash.cashNo"
                 (click)="selectCashRegistry(cash)"
               >
-                <td><strong>{{ getBranchLabel(cash.branchNo) }}</strong></td>
                 <td>
-                  <strong>{{ cash.cashNo }}</strong>
-                  <span class="table-meta">{{ cash.cashFinanceNumber || 'Finans no yok' }}</span>
+                  <span class="badge-cash-no">#{{ cash.cashNo }}</span>
                 </td>
                 <td>
-                  <strong>{{ getCashTypeLabel(cash) }}</strong>
-                  <span class="table-meta">{{ getCashTypeDescription(cash) }}</span>
+                  <strong class="font-mono text-dark">{{ cash.cashFinanceNumber || '-' }}</strong>
+                  <span class="cell-sub" *ngIf="cash.cashFinanceNumber">PAV Grubu</span>
                 </td>
                 <td>
+                  <span class="badge-cash-type">{{ getCashTypeLabel(cash) }}</span>
+                  <span class="cell-sub" *ngIf="getCashTypeDescription(cash)">{{ getCashTypeDescription(cash) }}</span>
+                </td>
+                <td style="text-align: center;">
                   <button
                     type="button"
-                    class="task-action task-action-danger"
+                    class="btn-icon-danger"
                     (click)="$event.stopPropagation(); deleteCashRegister(cash)"
                     [disabled]="!canUpdate() || isLoading('delete')"
+                    title="Bu kasayı ve terminal tanımlarını sil"
                   >
-                    <i class="fa-solid fa-trash"></i>
-                    Sil
+                    <i class="fa-solid fa-trash-can"></i>
                   </button>
                 </td>
               </tr>
@@ -216,418 +361,666 @@
           </table>
         </div>
 
-        <article class="state-card" *ngIf="!isLoading('cash') && !filteredCashRegistries().length">
-          <h3>Kasa yok</h3>
-          <p>{{ cashRegistries().length ? 'Aramayla eslesen kasa bulunmadi.' : 'Secili subede kasa tanimi bulunmuyor.' }}</p>
-        </article>
-
-        <div class="panel-head">
-          <div class="panel-head-text">
-            <span class="panel-kicker">Terminaller</span>
-            <h3>Kasa Terminal Detayi</h3>
-          </div>
+        <!-- Boş Durum -->
+        <div class="empty-state-card" *ngIf="!isLoading('cash') && !filteredCashRegistries().length">
+          <i class="fa-solid fa-cash-register empty-icon"></i>
+          <h4>Kasa Bulunamadı</h4>
+          <p>
+            {{
+              cashRegistries().length
+                ? 'Arama kriterinize uygun kasa bulunamadı.'
+                : 'Seçili şubede tanımlı kasa bulunmuyor. Yeni kasa ekleyebilirsiniz.'
+            }}
+          </p>
           <button
+            *ngIf="canCreate()"
             type="button"
-            class="task-action task-action-secondary"
-            (click)="newTerminal()"
-            [disabled]="!selectedCashRegistry() || !canCreate() || isLoading('terminal-save')"
+            class="btn-action btn-primary"
+            (click)="newCashRegister()"
           >
             <i class="fa-solid fa-plus"></i>
-            Yeni Terminal
+            <span>Yeni Kasa Ekle</span>
           </button>
         </div>
-
-        <article class="state-card" *ngIf="isLoading('terminals')">
-          <h3>Terminaller yukleniyor</h3>
-          <p>Secili kasa icin POS terminal detaylari getiriliyor.</p>
-        </article>
-
-        <div class="table-wrap compact-table" *ngIf="!isLoading('terminals') && filteredTerminals().length">
-          <table class="data-table terminal-table">
-            <thead>
-              <tr>
-                <th>Terminal</th>
-                <th>Banka</th>
-                <th>Terminal ID</th>
-                <th>Merchant</th>
-                <th>Odeme Tipi</th>
-                <th>Aksiyon</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let terminal of filteredTerminals(); trackBy: trackByTerminal">
-                <td>
-                  <strong>{{ terminal.terminalNo }}</strong>
-                </td>
-                <td>{{ getTerminalBankLabel(terminal.bank) }}</td>
-                <td>{{ terminal.terminalId || '-' }}</td>
-                <td>{{ terminal.merchantNo || '-' }}</td>
-                <td>{{ terminal.paymentTypeNo ?? '-' }}</td>
-                <td>
-                  <button
-                    type="button"
-                    class="task-action task-action-secondary"
-                    (click)="editTerminal(terminal)"
-                    [disabled]="!canUpdate() || isLoading('terminal-save') || isLoading('delete')"
-                    title="Terminal satirini duzenle"
-                  >
-                    <i class="fa-solid fa-pen"></i>
-                    Duzenle
-                  </button>
-                  <button
-                    type="button"
-                    class="task-action task-action-secondary"
-                    (click)="beginMoveTerminalGroup(terminal)"
-                    [disabled]="!canUpdate() || isLoading('move') || isLoading('delete')"
-                    title="Bu PAV grubundaki tum banka satirlarini baska kasaya tasi"
-                  >
-                    <i class="fa-solid fa-right-left"></i>
-                    Tasi
-                  </button>
-                  <button
-                    type="button"
-                    class="task-action task-action-danger"
-                    (click)="deleteTerminal(terminal)"
-                    [disabled]="!canUpdate() || isLoading('delete')"
-                  >
-                    <i class="fa-solid fa-trash"></i>
-                    Sil
-                  </button>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-
-        <article class="state-card" *ngIf="!isLoading('terminals') && !filteredTerminals().length">
-          <h3>Terminal yok</h3>
-          <p>{{ terminals().length ? 'Aramayla eslesen terminal bulunmadi.' : 'Secili kasa icin terminal detayi bulunmuyor.' }}</p>
-        </article>
       </section>
 
-      <aside class="panel">
-        <div class="panel-head">
-          <div class="panel-head-text">
-            <span class="panel-kicker">Yeni Kasa</span>
-            <h3>{{ selectedCashRegistry() ? 'Secili Kasa' : 'Kasa ve POS Terminali' }}</h3>
-          </div>
-          <button
-            type="button"
-            class="task-action task-action-secondary"
-            (click)="newCashRegister()"
-            [disabled]="!canCreate() || isLoading('create') || isLoading('terminal-save')"
-          >
-            <i class="fa-solid fa-plus"></i>
-            Yeni Kasa
-          </button>
-        </div>
-
-        <form
-          *ngIf="!selectedCashRegistry()"
-          class="form-panel form-grid"
-          [formGroup]="cashRegisterForm"
-          (ngSubmit)="createCashRegister()"
-          novalidate
-        >
-          <label class="field">
-            <span>Sube</span>
-            <input type="number" min="1" formControlName="branchNo" />
-          </label>
-
-          <label class="field">
-            <span>Kasa No</span>
-            <input type="number" min="1" formControlName="cashNo" />
-          </label>
-
-          <label class="field">
-            <span>Kasa Tipi</span>
-            <select formControlName="cashType" [disabled]="lookupsLoading()">
-              <option
-                *ngFor="let option of cashTypeOptions(); trackBy: trackBySettingsOption"
-                [ngValue]="option.value"
-              >
-                {{ getSettingsOptionSelectLabel(option) }}
-              </option>
-            </select>
-            <small class="field-hint"
-              >Bu, fiziksel kasanin POSKON sinifidir. Banka/PAV terminali asagida ayri
-              tanimlanir.</small
+      <!-- SAĞ SÜTUN: DETAY, TERMİNALLER & EDİTÖR (DETAIL WORKSPACE) -->
+      <section class="panel-card detail-column">
+        <!-- SEKME DEĞİŞTİRİCİ (TAB BAR) -->
+        <header class="detail-tab-header">
+          <div class="tab-buttons">
+            <button
+              type="button"
+              class="tab-btn"
+              [class.is-active]="activeTab() === 'terminals'"
+              (click)="setActiveTab('terminals')"
             >
-          </label>
+              <i class="fa-solid fa-credit-card"></i>
+              <span>POS / PAV Terminal Detayı</span>
+              <span class="tab-count" *ngIf="selectedCashRegistry()">{{ filteredTerminals().length }}</span>
+            </button>
 
-          <button
-            type="submit"
-            class="task-action task-action-primary full-field"
-            [disabled]="!canCreate() || isLoading('create')"
-          >
-            <i class="fa-solid fa-floppy-disk"></i>
-            {{ isLoading('create') ? 'Olusturuluyor' : 'Kasa Olustur' }}
-          </button>
-        </form>
-
-        <form
-          *ngIf="selectedCashRegistry() as selectedCash"
-          class="selected-cash-panel"
-          [formGroup]="cashRegisterForm"
-          (ngSubmit)="saveSelectedCashType()"
-        >
-          <div>
-            <span class="panel-kicker">Secili Fiziksel Kasa</span>
-            <strong>{{ selectedCash.branchNo }} sube / {{ selectedCash.cashNo }} kasa</strong>
-            <small>{{ selectedCash.cashFinanceNumber || 'Henuz POS/PAV grubu baglanmamis' }}</small>
-          </div>
-          <label class="field">
-            <span>Kasa Sinifi</span>
-            <select formControlName="cashType" [disabled]="lookupsLoading() || !canUpdate()">
-              <option
-                *ngFor="let option of cashTypeOptions(); trackBy: trackBySettingsOption"
-                [ngValue]="option.value"
-              >
-                {{ getSettingsOptionSelectLabel(option) }}
-              </option>
-            </select>
-          </label>
-          <button
-            type="submit"
-            class="task-action task-action-secondary"
-            [disabled]="!canUpdate() || isLoading('cash-type')"
-          >
-            <i class="fa-solid fa-floppy-disk"></i>
-            {{ isLoading('cash-type') ? 'Kaydediliyor' : 'Kasa Tipini Kaydet' }}
-          </button>
-        </form>
-
-        <div class="panel-head">
-          <div class="panel-head-text">
-            <span class="panel-kicker">POS Terminali</span>
-            <h3>
-              {{
-                editingTerminal()
-                  ? 'Terminal Satirini Guncelle'
-                  : selectedCashRegistry()
-                    ? 'Secili Kasaya Terminal Ekle'
-                    : 'Yeni Kasa Terminali'
-              }}
-            </h3>
-          </div>
-        </div>
-
-        <form
-          id="terminal-editor"
-          class="form-panel form-grid two-col"
-          [formGroup]="terminalDraftForm"
-          (ngSubmit)="saveTerminal()"
-          novalidate
-        >
-          <label class="field">
-            <span>PAV / Finans No</span>
-            <input
-              type="text"
-              maxlength="40"
-              formControlName="terminalNo"
-              placeholder="PAV210009468"
-              [readonly]="isEditingMultiBankGroup()"
-              (blur)="checkTerminalLocation()"
-            />
-            <small class="field-hint" *ngIf="!isEditingMultiBankGroup()"
-              >Ayni PAV grubundaki banka satirlari ayni fiziksel kasada tutulur.</small
+            <button
+              type="button"
+              class="tab-btn"
+              [class.is-active]="activeTab() === 'messages'"
+              (click)="setActiveTab('messages')"
             >
-            <small class="field-hint" *ngIf="isEditingMultiBankGroup()"
-              >Bu PAV birden fazla banka satiri iceriyor. Burada banka detayini duzeltin; kasa
-              degisikligi icin Tasi kullanin.</small
+              <i class="fa-solid fa-satellite-dish"></i>
+              <span>POSKON Mesaj Durumları</span>
+              <span class="tab-count" *ngIf="messageStatuses().length">{{ messageStatuses().length }}</span>
+            </button>
+          </div>
+
+          <div class="tab-actions" *ngIf="activeTab() === 'terminals'">
+            <button
+              *ngIf="selectedCashRegistry()"
+              type="button"
+              class="btn-action btn-sm btn-primary"
+              (click)="newTerminal()"
+              [disabled]="!canCreate() || isLoading('terminal-save')"
             >
-          </label>
+              <i class="fa-solid fa-plus"></i>
+              <span>Terminal Ekle</span>
+            </button>
+            <button
+              type="button"
+              class="btn-action btn-sm btn-secondary"
+              (click)="newCashRegister()"
+              [disabled]="!canCreate() || isLoading('create')"
+            >
+              <i class="fa-solid fa-file-circle-plus"></i>
+              <span>Yeni Kasa Formu</span>
+            </button>
+          </div>
+        </header>
 
-          <label class="field">
-            <span>Banka</span>
-            <select formControlName="bank" [disabled]="lookupsLoading()">
-              <option value="" disabled>Banka secin</option>
-              <option
-                *ngFor="let option of terminalBankOptions(); trackBy: trackByTerminalBankOption"
-                [value]="option.paymentName"
-              >
-                {{ option.displayName || option.paymentName }}
-              </option>
-            </select>
-          </label>
+        <!-- ============================================== -->
+        <!-- SEKME 1: POS / PAV TERMİNALLERİ               -->
+        <!-- ============================================== -->
+        <div class="tab-content" *ngIf="activeTab() === 'terminals'">
+          <!-- DURUM A: SEÇİLİ FİZİKSEL KASA VAR -->
+          <ng-container *ngIf="selectedCashRegistry() as selectedCash">
+            <!-- SEÇİLİ KASA BİLGİ VE KASA TİPİ GÜNCELLEME KARTI -->
+            <form class="selected-cash-banner" [formGroup]="cashRegisterForm" (ngSubmit)="saveSelectedCashType()">
+              <div class="selected-meta-block">
+                <div class="kasa-badge-lead">
+                  <i class="fa-solid fa-desktop"></i>
+                  <div>
+                    <strong>Kasa #{{ selectedCash.cashNo }}</strong>
+                    <span>Şube {{ selectedCash.branchNo }}</span>
+                  </div>
+                </div>
+                <div class="pav-info-pill">
+                  <span class="pill-label">PAV Grubu:</span>
+                  <strong class="font-mono">{{ selectedCash.cashFinanceNumber || 'Henüz PAV Bağlanmamış' }}</strong>
+                </div>
+              </div>
 
-          <label class="field">
-            <span>Terminal ID</span>
-            <input type="text" maxlength="40" formControlName="terminalId" />
-          </label>
+              <div class="selected-type-action">
+                <div class="type-select-field">
+                  <label for="cash-type-edit">Kasa Sınıfı</label>
+                  <select
+                    id="cash-type-edit"
+                    formControlName="cashType"
+                    [disabled]="lookupsLoading() || !canUpdate()"
+                  >
+                    <option
+                      *ngFor="let option of cashTypeOptions(); trackBy: trackBySettingsOption"
+                      [ngValue]="option.value"
+                    >
+                      {{ getSettingsOptionSelectLabel(option) }}
+                    </option>
+                  </select>
+                </div>
+                <button
+                  type="submit"
+                  class="btn-action btn-secondary"
+                  [disabled]="!canUpdate() || isLoading('cash-type')"
+                  title="Kasa sınıfını güncelle"
+                >
+                  <i class="fa-solid fa-floppy-disk" [class.is-spinning]="isLoading('cash-type')"></i>
+                  <span>{{ isLoading('cash-type') ? 'Kaydediliyor' : 'Sınıfı Kaydet' }}</span>
+                </button>
+              </div>
+            </form>
 
-          <label class="field">
-            <span>Merchant No</span>
-            <input type="text" maxlength="40" formControlName="merchantNo" />
-          </label>
-
-          <button
-            type="submit"
-            class="task-action task-action-secondary"
-            [disabled]="
-              isLoading('terminal-save') ||
-              (selectedCashRegistry()
-                ? editingTerminal()
-                  ? !canUpdate()
-                  : !canCreate()
-                : !canCreate())
-            "
-          >
-            <i
-              class="fa-solid"
-              [class.fa-floppy-disk]="editingTerminal()"
-              [class.fa-plus]="!editingTerminal()"
-            ></i>
-            {{
-              isLoading('terminal-save')
-                ? 'Kaydediliyor'
-                : editingTerminal()
-                  ? 'Guncelle'
-                  : 'Terminal Ekle'
-            }}
-          </button>
-
-          <button
-            *ngIf="editingTerminal()"
-            type="button"
-            class="task-action task-action-secondary"
-            (click)="cancelTerminalEdit()"
-            [disabled]="isLoading('terminal-save')"
-          >
-            <i class="fa-solid fa-xmark"></i>
-            Vazgec
-          </button>
-        </form>
-
-        <article class="state-card state-card-info" *ngIf="isLoading('terminal-location')">
-          <h3>POS/PAV kontrol ediliyor</h3>
-          <p>Bu numaranin daha once hangi sube ve kasada kullanildigi araniyor.</p>
-        </article>
-
-        <div class="location-list" *ngIf="terminalLocations().length">
-          <div class="location-row" *ngFor="let location of terminalLocations()">
-            <i class="fa-solid fa-location-dot"></i>
-            <div>
-              <strong>{{ location.branchNo }} sube / {{ location.cashNo }} kasa</strong>
-              <span
-                >{{ location.bankRowCount }} banka satiri:
-                {{ location.banks.join(', ') || 'Banka bilgisi yok' }}</span
-              >
+            <!-- TERMİNAL LİSTESİ YÜKLENİYOR -->
+            <div class="loading-state-card" *ngIf="isLoading('terminals')">
+              <i class="fa-solid fa-spinner fa-spin"></i>
+              <span>Terminal bilgileri yükleniyor...</span>
             </div>
-          </div>
+
+            <!-- TERMİNAL SATIRLARI TABLOSU -->
+            <div class="table-container terminal-table-container" *ngIf="!isLoading('terminals') && filteredTerminals().length">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>PAV / Finans No</th>
+                    <th>Banka</th>
+                    <th>Terminal ID</th>
+                    <th>Merchant No</th>
+                    <th>Ödeme Tipi</th>
+                    <th style="width: 140px; text-align: right;">İşlemler</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let terminal of filteredTerminals(); trackBy: trackByTerminal">
+                    <td>
+                      <span class="badge-pav">{{ terminal.terminalNo }}</span>
+                    </td>
+                    <td>
+                      <span class="badge-bank">
+                        <i class="fa-solid fa-building-columns"></i>
+                        {{ getTerminalBankLabel(terminal.bank) }}
+                      </span>
+                    </td>
+                    <td>
+                      <span class="font-mono">{{ terminal.terminalId || '-' }}</span>
+                    </td>
+                    <td>
+                      <span class="font-mono">{{ terminal.merchantNo || '-' }}</span>
+                    </td>
+                    <td>
+                      <span class="badge-payment-type">{{ terminal.paymentTypeNo ?? '-' }}</span>
+                    </td>
+                    <td style="text-align: right;">
+                      <div class="row-actions">
+                        <button
+                          type="button"
+                          class="btn-row-action"
+                          (click)="editTerminal(terminal)"
+                          [disabled]="!canUpdate() || isLoading('terminal-save') || isLoading('delete')"
+                          title="Terminal Satırını Düzenle"
+                        >
+                          <i class="fa-solid fa-pen"></i>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-row-action btn-row-move"
+                          (click)="beginMoveTerminalGroup(terminal)"
+                          [disabled]="!canUpdate() || isLoading('move') || isLoading('delete')"
+                          title="PAV Grubunu Başka Kasaya Taşı"
+                        >
+                          <i class="fa-solid fa-right-left"></i>
+                        </button>
+                        <button
+                          type="button"
+                          class="btn-row-action btn-row-danger"
+                          (click)="deleteTerminal(terminal)"
+                          [disabled]="!canUpdate() || isLoading('delete')"
+                          title="Terminal Satırını Sil"
+                        >
+                          <i class="fa-solid fa-trash-can"></i>
+                        </button>
+                      </div>
+                    </td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+
+            <!-- BOŞ TERMİNAL DURUMU -->
+            <div class="empty-state-card" *ngIf="!isLoading('terminals') && !filteredTerminals().length">
+              <i class="fa-solid fa-credit-card empty-icon"></i>
+              <h4>Terminal Satırı Bulunamadı</h4>
+              <p>
+                {{
+                  terminals().length
+                    ? 'Arama filtresine uygun terminal kaydı bulunamadı.'
+                    : 'Bu fiziksel kasaya henüz POS/PAV terminali veya banka satırı tanımlanmamış.'
+                }}
+              </p>
+              <button
+                *ngIf="canCreate()"
+                type="button"
+                class="btn-action btn-primary"
+                (click)="newTerminal()"
+              >
+                <i class="fa-solid fa-plus"></i>
+                <span>Yeni Terminal Satırı Ekle</span>
+              </button>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- TERMİNAL DÜZENLEME & EKLEME EDİTÖR FORMU       -->
+            <!-- ============================================== -->
+            <div id="terminal-editor" class="editor-panel-card" [class.is-editing]="!!editingTerminal()">
+              <header class="editor-panel-head">
+                <div class="editor-head-title">
+                  <i class="fa-solid" [class.fa-pen-to-square]="editingTerminal()" [class.fa-circle-plus]="!editingTerminal()"></i>
+                  <div>
+                    <h4>
+                      {{
+                        editingTerminal()
+                          ? 'Terminal Satırını Güncelle'
+                          : 'Seçili Kasaya Terminal Ekle'
+                      }}
+                    </h4>
+                    <span class="editor-subtitle">
+                      {{
+                        editingTerminal()
+                          ? editingTerminal()!.terminalNo + ' &bull; ' + getTerminalBankLabel(editingTerminal()!.bank)
+                          : 'Kasa #' + selectedCash.cashNo + ' için yeni banka/PAV satırı'
+                      }}
+                    </span>
+                  </div>
+                </div>
+                <span class="badge-edit-mode" *ngIf="editingTerminal()">Düzenleme Modu</span>
+              </header>
+
+              <form
+                class="terminal-form-grid"
+                [formGroup]="terminalDraftForm"
+                (ngSubmit)="saveTerminal()"
+                novalidate
+              >
+                <div class="form-field">
+                  <label for="terminal-no">
+                    <span>PAV / Finans No</span>
+                    <strong class="text-danger">*</strong>
+                  </label>
+                  <input
+                    id="terminal-no"
+                    type="text"
+                    maxlength="40"
+                    formControlName="terminalNo"
+                    placeholder="Örn: PAV210009468"
+                    [readonly]="isEditingMultiBankGroup()"
+                    (blur)="checkTerminalLocation()"
+                  />
+                  <small class="field-hint" *ngIf="!isEditingMultiBankGroup()">
+                    Aynı PAV grubundaki banka satırları aynı kasada birleştirilir.
+                  </small>
+                  <small class="field-hint text-amber" *ngIf="isEditingMultiBankGroup()">
+                    Bu PAV çoklu banka satırı içeriyor. Kasa değişikliği için Taşı işlevini kullanın.
+                  </small>
+                </div>
+
+                <div class="form-field">
+                  <label for="terminal-bank">
+                    <span>Banka</span>
+                    <strong class="text-danger">*</strong>
+                  </label>
+                  <select id="terminal-bank" formControlName="bank" [disabled]="lookupsLoading()">
+                    <option value="" disabled>Banka seçiniz...</option>
+                    <option
+                      *ngFor="let option of terminalBankOptions(); trackBy: trackByTerminalBankOption"
+                      [value]="option.paymentName"
+                    >
+                      {{ option.displayName || option.paymentName }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="form-field">
+                  <label for="terminal-id">
+                    <span>Terminal ID</span>
+                    <strong class="text-danger">*</strong>
+                  </label>
+                  <input
+                    id="terminal-id"
+                    type="text"
+                    maxlength="40"
+                    formControlName="terminalId"
+                    placeholder="Terminal ID"
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="merchant-no">
+                    <span>Merchant No</span>
+                    <strong class="text-danger">*</strong>
+                  </label>
+                  <input
+                    id="merchant-no"
+                    type="text"
+                    maxlength="40"
+                    formControlName="merchantNo"
+                    placeholder="Üye İşyeri No"
+                  />
+                </div>
+
+                <div class="form-actions-full">
+                  <button
+                    type="submit"
+                    class="btn-action btn-primary"
+                    [disabled]="isLoading('terminal-save') || (editingTerminal() ? !canUpdate() : !canCreate())"
+                  >
+                    <i
+                      class="fa-solid"
+                      [class.fa-floppy-disk]="editingTerminal()"
+                      [class.fa-plus]="!editingTerminal()"
+                      [class.is-spinning]="isLoading('terminal-save')"
+                    ></i>
+                    <span>
+                      {{
+                        isLoading('terminal-save')
+                          ? 'Kaydediliyor...'
+                          : editingTerminal()
+                            ? 'Terminali Güncelle'
+                            : 'Terminali Kaydet'
+                      }}
+                    </span>
+                  </button>
+
+                  <button
+                    *ngIf="editingTerminal()"
+                    type="button"
+                    class="btn-action btn-secondary"
+                    (click)="cancelTerminalEdit()"
+                    [disabled]="isLoading('terminal-save')"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Vazgeç</span>
+                  </button>
+                </div>
+              </form>
+
+              <!-- TERMINAL KONUMU SORGULAMA BİLGİSİ -->
+              <div class="location-banner" *ngIf="isLoading('terminal-location')">
+                <i class="fa-solid fa-spinner fa-spin"></i>
+                <span>Girdiğiniz PAV numarasının diğer kasa ve şubelerdeki geçmişi taranıyor...</span>
+              </div>
+
+              <div class="location-results" *ngIf="terminalLocations().length">
+                <div class="location-header">
+                  <i class="fa-solid fa-triangle-exclamation"></i>
+                  <span>Bu PAV numarası daha önce başka bir konumda kullanılmış:</span>
+                </div>
+                <div class="location-item" *ngFor="let location of terminalLocations()">
+                  <strong>Şube {{ location.branchNo }} / Kasa {{ location.cashNo }}</strong>
+                  <span>{{ location.bankRowCount }} Banka Satırı: {{ location.banks.join(', ') || 'Banka yok' }}</span>
+                </div>
+              </div>
+            </div>
+
+            <!-- ============================================== -->
+            <!-- TERMINAL TAŞIMA PANELİ (MOVE MODAL/PANEL)     -->
+            <!-- ============================================== -->
+            <div class="move-panel-card" *ngIf="movingTerminalNo() as terminalNo">
+              <header class="move-head">
+                <i class="fa-solid fa-right-left"></i>
+                <div>
+                  <h4>PAV Grubunu Başka Kasaya Taşı</h4>
+                  <p><strong>{{ terminalNo }}</strong> grubuna ait tüm banka satırları seçilen hedef kasaya aktarılacaktır.</p>
+                </div>
+              </header>
+
+              <form
+                class="move-form-grid"
+                [formGroup]="moveTerminalForm"
+                (ngSubmit)="moveTerminalGroup()"
+                novalidate
+              >
+                <div class="form-field">
+                  <label for="move-target-branch">Hedef Şube No</label>
+                  <input
+                    id="move-target-branch"
+                    type="number"
+                    min="1"
+                    formControlName="targetBranchNo"
+                    (change)="loadMoveTargetCashRegistries()"
+                    placeholder="Şube No"
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="move-target-cash">Hedef Fiziksel Kasa</label>
+                  <select
+                    id="move-target-cash"
+                    formControlName="targetCashNo"
+                    [disabled]="isLoading('target-cash')"
+                  >
+                    <option [ngValue]="null">Hedef kasa seçiniz...</option>
+                    <option
+                      *ngFor="let cash of moveTargetCashRegistries(); trackBy: trackByCashRegistry"
+                      [ngValue]="cash.cashNo"
+                    >
+                      {{ getCashRegistryOptionLabel(cash) }}
+                    </option>
+                  </select>
+                </div>
+
+                <div class="move-actions">
+                  <button
+                    type="submit"
+                    class="btn-action btn-primary"
+                    [disabled]="isLoading('move') || !moveTerminalForm.valid"
+                  >
+                    <i class="fa-solid fa-right-left" [class.is-spinning]="isLoading('move')"></i>
+                    <span>{{ isLoading('move') ? 'Taşınıyor...' : 'Doğru Kasaya Taşı' }}</span>
+                  </button>
+
+                  <button
+                    type="button"
+                    class="btn-action btn-secondary"
+                    (click)="cancelMoveTerminalGroup()"
+                    [disabled]="isLoading('move')"
+                  >
+                    <i class="fa-solid fa-xmark"></i>
+                    <span>Vazgeç</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </ng-container>
+
+          <!-- DURUM B: KASA SEÇİLİ DEĞİL (YENİ KASA TANIMLAMA EKRANI) -->
+          <ng-container *ngIf="!selectedCashRegistry()">
+            <div class="new-cash-container">
+              <header class="new-cash-head">
+                <div class="new-cash-icon">
+                  <i class="fa-solid fa-cash-register"></i>
+                </div>
+                <div>
+                  <h3>Yeni Kasa ve POS Grubu Oluştur</h3>
+                  <p>Şube için yeni bir fiziksel kasa tanımı açın ve POS/PAV terminal satırlarını bağlayın.</p>
+                </div>
+              </header>
+
+              <form
+                class="new-cash-form-grid"
+                [formGroup]="cashRegisterForm"
+                (ngSubmit)="createCashRegister()"
+                novalidate
+              >
+                <div class="form-field">
+                  <label for="create-branch-no">
+                    <span>Şube No</span>
+                    <strong class="text-danger">*</strong>
+                  </label>
+                  <input
+                    id="create-branch-no"
+                    type="number"
+                    min="1"
+                    formControlName="branchNo"
+                    placeholder="Şube No"
+                  />
+                </div>
+
+                <div class="form-field">
+                  <label for="create-cash-no">
+                    <span>Kasa No</span>
+                    <strong class="text-danger">*</strong>
+                  </label>
+                  <input
+                    id="create-cash-no"
+                    type="number"
+                    min="1"
+                    formControlName="cashNo"
+                    placeholder="Kasa No (Örn: 1, 2, 3)"
+                  />
+                </div>
+
+                <div class="form-field full-col">
+                  <label for="create-cash-type">
+                    <span>Kasa Sınıfı / Tipi</span>
+                    <strong class="text-danger">*</strong>
+                  </label>
+                  <select id="create-cash-type" formControlName="cashType" [disabled]="lookupsLoading()">
+                    <option
+                      *ngFor="let option of cashTypeOptions(); trackBy: trackBySettingsOption"
+                      [ngValue]="option.value"
+                    >
+                      {{ getSettingsOptionSelectLabel(option) }}
+                    </option>
+                  </select>
+                  <small class="field-hint">
+                    Bu fiziksel kasanın POSKON sınıfıdır (IBM, Barko, Posnet vb.). Banka satırları aşağıda eklenebilir.
+                  </small>
+                </div>
+
+                <!-- YENİ KASAYA EKLENECEK TASLAK TERMİNALLER -->
+                <div class="draft-terminals-section full-col">
+                  <div class="draft-header">
+                    <h5>Taslak POS/PAV Satırları (Opsiyonel)</h5>
+                    <span class="draft-count">{{ terminalDrafts().length }} Satır Eklendi</span>
+                  </div>
+
+                  <!-- Taslak Giriş Formu -->
+                  <div class="draft-inline-form" [formGroup]="terminalDraftForm">
+                    <input
+                      type="text"
+                      formControlName="terminalNo"
+                      placeholder="PAV No (Örn: PAV210009468)"
+                    />
+                    <select formControlName="bank" [disabled]="lookupsLoading()">
+                      <option value="" disabled>Banka Seçiniz</option>
+                      <option
+                        *ngFor="let option of terminalBankOptions(); trackBy: trackByTerminalBankOption"
+                        [value]="option.paymentName"
+                      >
+                        {{ option.displayName || option.paymentName }}
+                      </option>
+                    </select>
+                    <input
+                      type="text"
+                      formControlName="terminalId"
+                      placeholder="Terminal ID"
+                    />
+                    <input
+                      type="text"
+                      formControlName="merchantNo"
+                      placeholder="Merchant No"
+                    />
+                    <button
+                      type="button"
+                      class="btn-action btn-secondary"
+                      (click)="addTerminalDraft()"
+                      [disabled]="!terminalDraftForm.valid"
+                      title="Taslak Satır Ekle"
+                    >
+                      <i class="fa-solid fa-plus"></i>
+                      <span>Satır Ekle</span>
+                    </button>
+                  </div>
+
+                  <!-- Taslak Satırlar Listesi -->
+                  <div class="draft-chips-list" *ngIf="terminalDrafts().length">
+                    <div class="draft-chip" *ngFor="let draft of terminalDrafts(); trackBy: trackByTerminalDraft">
+                      <span class="chip-pav font-mono">{{ draft.terminalNo }}</span>
+                      <span class="chip-bank">{{ getTerminalBankLabel(draft.bank) }}</span>
+                      <span class="chip-meta" *ngIf="draft.terminalId">TID: {{ draft.terminalId }}</span>
+                      <button
+                        type="button"
+                        class="btn-chip-remove"
+                        (click)="removeTerminalDraft(draft)"
+                        title="Satırı Kaldır"
+                      >
+                        <i class="fa-solid fa-xmark"></i>
+                      </button>
+                    </div>
+                  </div>
+                </div>
+
+                <div class="form-actions-full">
+                  <button
+                    type="submit"
+                    class="btn-action btn-primary btn-lg"
+                    [disabled]="!canCreate() || isLoading('create') || !cashRegisterForm.valid"
+                  >
+                    <i class="fa-solid fa-floppy-disk" [class.is-spinning]="isLoading('create')"></i>
+                    <span>{{ isLoading('create') ? 'Oluşturuluyor...' : 'Kasayı ve POS Satırlarını Oluştur' }}</span>
+                  </button>
+                </div>
+              </form>
+            </div>
+          </ng-container>
         </div>
 
-        <form
-          *ngIf="movingTerminalNo() as terminalNo"
-          class="move-panel form-grid two-col"
-          [formGroup]="moveTerminalForm"
-          (ngSubmit)="moveTerminalGroup()"
-          novalidate
-        >
-          <div class="move-title full-field">
-            <i class="fa-solid fa-right-left"></i>
-            <div>
-              <strong>{{ terminalNo }} grubunu dogru kasaya tasi</strong>
-              <span>Tum banka satirlari birlikte tasinir.</span>
-            </div>
-          </div>
-
-          <label class="field">
-            <span>Hedef Sube</span>
-            <input
-              type="number"
-              min="1"
-              formControlName="targetBranchNo"
-              (change)="loadMoveTargetCashRegistries()"
-            />
-          </label>
-
-          <label class="field">
-            <span>Hedef Fiziksel Kasa</span>
-            <select formControlName="targetCashNo" [disabled]="isLoading('target-cash')">
-              <option [ngValue]="null">Kasa secin</option>
-              <option
-                *ngFor="let cash of moveTargetCashRegistries(); trackBy: trackByCashRegistry"
-                [ngValue]="cash.cashNo"
-              >
-                {{ getCashRegistryOptionLabel(cash) }}
-              </option>
-            </select>
-          </label>
-
-          <button
-            type="submit"
-            class="task-action task-action-primary"
-            [disabled]="isLoading('move')"
-          >
-            <i class="fa-solid fa-right-left"></i>
-            {{ isLoading('move') ? 'Tasiniyor' : 'Dogru Kasaya Tasi' }}
-          </button>
-          <button
-            type="button"
-            class="task-action task-action-secondary"
-            (click)="cancelMoveTerminalGroup()"
-          >
-            <i class="fa-solid fa-xmark"></i>
-            Vazgec
-          </button>
-        </form>
-
-        <div class="draft-list" *ngIf="terminalDrafts().length">
-          <div
-            class="draft-row"
-            *ngFor="let draft of terminalDrafts(); trackBy: trackByTerminalDraft"
-          >
-            <div>
-              <strong>{{ draft.terminalNo }}</strong>
-              <span>{{ getTerminalBankLabel(draft.bank) }} / {{ draft.terminalId || '-' }}</span>
+        <!-- ============================================== -->
+        <!-- SEKME 2: POSKON MESAJ DURUMLARI               -->
+        <!-- ============================================== -->
+        <div class="tab-content" *ngIf="activeTab() === 'messages'">
+          <header class="messages-tab-head">
+            <div class="head-title">
+              <i class="fa-solid fa-satellite-dish"></i>
+              <div>
+                <h4>POSKON Mesaj Durumları</h4>
+                <p>Şube kasaları ile merkez sunucu arasındaki POSKON dosya haberleşme durumları.</p>
+              </div>
             </div>
             <button
               type="button"
-              class="task-action task-action-danger"
-              (click)="removeTerminalDraft(draft)"
+              class="btn-action btn-secondary btn-sm"
+              (click)="loadMessageStatuses()"
+              [disabled]="isLoading('messages')"
             >
-              <i class="fa-solid fa-trash"></i>
-              Sil
+              <i class="fa-solid fa-rotate" [class.is-spinning]="isLoading('messages')"></i>
+              <span>Yenile</span>
+            </button>
+          </header>
+
+          <div class="loading-state-card" *ngIf="isLoading('messages')">
+            <i class="fa-solid fa-spinner fa-spin"></i>
+            <span>Mesaj durumları sorgulanıyor...</span>
+          </div>
+
+          <div class="table-container messages-table-container" *ngIf="!isLoading('messages') && messageStatuses().length">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th style="width: 120px;">Durum</th>
+                  <th style="width: 90px;">Kasa</th>
+                  <th>Dosya Yolu</th>
+                  <th>Detay / Hata Bilgisi</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let status of messageStatuses(); trackBy: trackByMessageStatus">
+                  <td>
+                    <span class="status-pill" [class]="getMessageStatusClass(status)">
+                      {{ getMessageStatusLabel(status) }}
+                    </span>
+                  </td>
+                  <td>
+                    <strong class="font-mono">{{ status.branchNo }} / #{{ status.cashNo }}</strong>
+                  </td>
+                  <td>
+                    <code class="file-code">{{ status.filePath }}</code>
+                  </td>
+                  <td>
+                    <span class="meta-desc" [class.text-danger]="status.error">
+                      {{ status.error || getCashTypeLabel(status) + ' &bull; State: ' + status.state }}
+                    </span>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <div class="empty-state-card" *ngIf="!isLoading('messages') && !messageStatuses().length">
+            <i class="fa-solid fa-envelope-open empty-icon"></i>
+            <h4>Mesaj Durumu Bulunamadı</h4>
+            <p>Şube için henüz POSKON mesaj durumu sorgulanmadı veya kayıt dönmedi.</p>
+            <button type="button" class="btn-action btn-primary" (click)="loadMessageStatuses()">
+              <i class="fa-solid fa-envelope-open-text"></i>
+              <span>Mesaj Durumlarını Sorgula</span>
             </button>
           </div>
         </div>
-
-        <div class="panel-head">
-          <div class="panel-head-text">
-            <span class="panel-kicker">POSKON</span>
-            <h3>Mesaj Durumlari</h3>
-          </div>
-        </div>
-
-        <div class="table-wrap message-table" *ngIf="messageStatuses().length">
-          <table class="data-table">
-            <thead>
-              <tr>
-                <th>Durum</th>
-                <th>Kasa</th>
-                <th>Dosya</th>
-              </tr>
-            </thead>
-            <tbody>
-              <tr *ngFor="let status of messageStatuses(); trackBy: trackByMessageStatus">
-                <td>
-                  <span class="status-badge" [class]="getMessageStatusClass(status)">
-                    {{ getMessageStatusLabel(status) }}
-                  </span>
-                </td>
-                <td>{{ status.branchNo }}/{{ status.cashNo }}</td>
-                <td>
-                  <strong>{{ status.filePath }}</strong>
-                  <span class="table-meta">
-                    {{ status.error || getCashTypeLabel(status) + ' / State ' + status.state }}
-                  </span>
-                </td>
-              </tr>
-            </tbody>
-          </table>
-        </div>
-      </aside>
+      </section>
     </section>
   </article>
 </section>

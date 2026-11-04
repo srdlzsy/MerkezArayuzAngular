@@ -127,6 +127,7 @@ export class KasaPosTerminalleriListComponent {
   protected readonly selectedCashRegistry = signal<CashRegistryDto | null>(null);
   protected readonly editingTerminal = signal<CashRegisterTerminalDto | null>(null);
   protected readonly movingTerminalNo = signal<string | null>(null);
+  protected readonly activeTab = signal<'terminals' | 'messages'>('terminals');
   protected readonly feedback = signal<ActionFeedback | null>(null);
   protected readonly loadingAction = signal<PosAction | null>(null);
   protected readonly lookupsLoading = signal(false);
@@ -422,6 +423,7 @@ export class KasaPosTerminalleriListComponent {
       : this.ayarIslemleriService.getCurrentBranchMessageStatuses();
 
     this.loadingAction.set('messages');
+    this.activeTab.set('messages');
     this.feedback.set(null);
 
     request$
@@ -453,6 +455,7 @@ export class KasaPosTerminalleriListComponent {
   }
 
   protected selectCashRegistry(cashRegistry: CashRegistryDto): void {
+    this.activeTab.set('terminals');
     this.selectedCashRegistry.set(cashRegistry);
     this.scopeForm.patchValue({
       branchNo: cashRegistry.branchNo,
@@ -465,6 +468,10 @@ export class KasaPosTerminalleriListComponent {
     });
     this.cancelTerminalEdit();
     this.loadTerminals();
+  }
+
+  protected setActiveTab(tab: 'terminals' | 'messages'): void {
+    this.activeTab.set(tab);
   }
 
   protected onScopeCashNoChanged(): void {
@@ -483,6 +490,7 @@ export class KasaPosTerminalleriListComponent {
 
   protected newCashRegister(): void {
     const branchNo = toOptionalNumber(this.scopeForm.getRawValue().branchNo);
+    this.activeTab.set('terminals');
     this.selectedCashRegistry.set(null);
     this.editingTerminal.set(null);
     this.terminals.set([]);
