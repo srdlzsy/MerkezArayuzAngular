@@ -20,6 +20,7 @@ export class VerilenFirmaSiparisleriDetailComponent extends SiparisTaskDetailBas
   protected readonly page: DocsContentPage = DOCS_PAGES['verilen-firma-siparisleri'];
   protected readonly screenTitle = 'Siparis Detayi';
   protected override readonly printDocumentTitle = 'Verilen Firma Siparis Evraki';
+  protected override readonly includeBarcodeInPrint = true;
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
 
   protected override loadDetail(): void {

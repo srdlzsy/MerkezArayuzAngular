@@ -453,7 +453,7 @@
                       </div>
                       <div class="missing-desc">
                         <ng-container *ngIf="directDispatchAutoCatalogEnabled(); else manualCatalogDescription">
-                          Eksik ürünler otomatik katalog akışına alındı. Katalog onayından sonra fiyat ve stok gönderimi kendiliğinden devam edecek; yeniden gönderim yapmayın.
+                          {{ catalogRecoveryMessage(batchId) }}
                         </ng-container>
                         <ng-template #manualCatalogDescription>
                           Trendyol Go bu ürünleri kataloğunda tanımadığı için fiyat ve stokları güncellenemedi. Aşağıdaki buton ile ürünler Mikro ERP'den okunarak Trendyol kataloğuna aktarılabilir.

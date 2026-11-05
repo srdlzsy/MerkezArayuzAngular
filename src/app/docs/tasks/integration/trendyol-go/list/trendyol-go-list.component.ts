@@ -861,6 +861,25 @@ export class TrendyolGoListComponent {
     };
   }
 
+  protected catalogRecoveryMessage(batchId: string): string {
+    if (!this.directDispatchAutoCatalogEnabled()) {
+      return '';
+    }
+
+    const workflow = this.batchWorkflows().find((item) => item.batchRequestId === batchId);
+    if (!workflow || workflow.status === 'Pending' || workflow.status === 'Processing') {
+      return 'Otomatik katalog kontrolü devam ediyor. Sonuç kesinleşene kadar yeniden göndermeyin.';
+    }
+
+    const details = `${workflow.resultSummary || ''} ${workflow.lastError || ''}`
+      .toLocaleLowerCase('tr-TR');
+    if (details.includes('otomatik katalog akisina alindi')) {
+      return 'Eksik ürünler otomatik katalog akışına alındı. Katalog onayından sonra fiyat ve stok gönderimi kendiliğinden devam edecek; yeniden göndermeyin.';
+    }
+
+    return 'Ürünlerin stok kodları Trendyol kataloğunda farklı barkodlarla mevcut. Barkod eşleştirmesi kontrol edilmeli.';
+  }
+
   protected async autoCreateFromBatch(storeId: number | null, barcodes: string[]): Promise<void> {
     const targetStoreId = storeId || this.selectedStoreId();
     if (!targetStoreId || !barcodes.length || !this.canUpdate() || this.busyAction()) {

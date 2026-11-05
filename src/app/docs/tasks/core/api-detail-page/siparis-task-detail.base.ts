@@ -40,6 +40,7 @@ export abstract class SiparisTaskDetailBase<
   protected readonly printDocumentTitle: string = '';
   protected readonly printDocumentNoLabel: string = 'Siparis No';
   protected readonly printLineTitle: string = 'Siparis Kalemleri';
+  protected readonly includeBarcodeInPrint: boolean = false;
   protected readonly itemCount = computed(() => this.items().length);
   protected readonly canPrintDocument = computed(() => !this.isLoading() && !!this.detail()?.header);
   protected readonly orderIdentity = computed(() => {
@@ -249,16 +250,17 @@ export abstract class SiparisTaskDetailBase<
   }
 
   private buildPrintColumns(): SiparisPrintColumn<DetailItem<TDetail>>[] {
-    return [
+    const compactWidths = this.includeBarcodeInPrint;
+    const columns: SiparisPrintColumn<DetailItem<TDetail>>[] = [
       {
         label: 'Sira',
-        width: '9mm',
+        width: compactWidths ? '7mm' : '9mm',
         align: 'center',
         value: (_item, index) => index + 1
       },
       {
         label: 'Urun Kodu',
-        width: '22mm',
+        width: compactWidths ? '16mm' : '22mm',
         value: (item) => this.getRecordText(item, 'stockCode') || '-'
       },
       {
@@ -267,46 +269,56 @@ export abstract class SiparisTaskDetailBase<
       },
       {
         label: 'Birim',
-        width: '13mm',
+        width: compactWidths ? '11mm' : '13mm',
         align: 'center',
         value: (item) => this.getRecordText(item, 'unitName') || '-'
       },
       {
         label: 'Siparis',
-        width: '16mm',
+        width: compactWidths ? '13mm' : '16mm',
         align: 'right',
         value: (item) => this.formatNumber(this.getRecordNumber(item, 'quantity'))
       },
       {
         label: 'Teslim',
-        width: '16mm',
+        width: compactWidths ? '13mm' : '16mm',
         align: 'right',
         value: (item) => this.formatNumber(this.getRecordNumber(item, 'deliveredQuantity'))
       },
       {
         label: 'Kalan',
-        width: '16mm',
+        width: compactWidths ? '13mm' : '16mm',
         align: 'right',
         value: (item) => this.formatNumber(this.getRecordNumber(item, 'remainingQuantity'))
       },
       {
         label: 'Fiyat',
-        width: '17mm',
+        width: compactWidths ? '14mm' : '17mm',
         align: 'right',
         value: (item) => this.formatNumber(this.getRecordNumber(item, 'unitPrice'))
       },
       {
         label: 'Tutar',
-        width: '19mm',
+        width: compactWidths ? '16mm' : '19mm',
         align: 'right',
         value: (item) => this.formatNumber(this.getRecordNumber(item, 'lineAmount'))
       },
       {
         label: 'Aciklama',
-        width: '26mm',
+        width: compactWidths ? '18mm' : '26mm',
         value: (item) => this.getRecordText(item, 'description') || '-'
       }
     ];
+
+    if (this.includeBarcodeInPrint) {
+      columns.splice(2, 0, {
+        label: 'Barkod',
+        width: '27mm',
+        value: (item) => this.getRecordText(item, 'barcode') || '-'
+      });
+    }
+
+    return columns;
   }
 
   private buildPrintSignatures(header: object, mode: SiparisPrintMode) {
