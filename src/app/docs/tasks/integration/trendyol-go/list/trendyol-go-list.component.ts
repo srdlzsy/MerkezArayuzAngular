@@ -160,6 +160,19 @@ export class TrendyolGoListComponent {
     const storeId = this.selectedStoreId();
     return this.stores().find((store) => store.storeId === storeId) ?? null;
   });
+  protected readonly activeWorkflowCount = computed(() =>
+    this.batchWorkflows().filter((item) =>
+      item.status === 'Pending' || item.status === 'Processing'
+    ).length
+  );
+  protected readonly issueWorkflowCount = computed(() =>
+    this.batchWorkflows().filter((item) =>
+      item.status === 'Failed' || item.status === 'PartiallySucceeded'
+    ).length
+  );
+  protected readonly completedWorkflowCount = computed(() =>
+    this.batchWorkflows().filter((item) => item.status === 'Succeeded').length
+  );
   protected readonly directItems = computed<ITrendyolGoDirectPriceStockItemApiDto[]>(
     () => this.directPreview()?.items ?? []
   );

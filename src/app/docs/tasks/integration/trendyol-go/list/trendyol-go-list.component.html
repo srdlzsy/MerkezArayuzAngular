@@ -1,14 +1,45 @@
 <section class="trendyol-page">
   <header class="page-header">
-    <div>
-      <p>Entegrasyon Islemleri</p>
-      <h2>{{ page.title }}</h2>
+    <div class="page-identity">
+      <span class="page-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
+      <div>
+        <p>Entegrasyon Islemleri</p>
+        <h2>{{ page.title }}</h2>
+        <span class="store-context" *ngIf="selectedStore() as store">
+          {{ store.storeName }} / Depo {{ store.warehouseNo }}
+        </span>
+      </div>
     </div>
-    <div class="connection-state" [class.is-connected]="connectionStatus()?.isConnected === true">
-      <span>Baglanti</span>
-      <strong>{{ loadingStatus() ? 'Kontrol ediliyor' : connectionLabel() }}</strong>
+    <div class="header-actions">
+      <div class="connection-state" [class.is-connected]="connectionStatus()?.isConnected === true">
+        <span>Trendyol Go</span>
+        <strong>{{ loadingStatus() ? 'Kontrol ediliyor' : connectionLabel() }}</strong>
+      </div>
+      <button
+        type="button"
+        class="icon-button header-refresh"
+        title="Baglanti ve kuyruk durumunu yenile"
+        (click)="loadConnectionStatus(); loadBatchWorkflows()"
+        [disabled]="loadingStatus() || loadingBatchWorkflows()"
+      >
+        <i class="fa-solid fa-arrows-rotate" [class.is-spinning]="loadingStatus() || loadingBatchWorkflows()"></i>
+      </button>
     </div>
   </header>
+
+  <section class="overview-strip" aria-label="Trendyol Go operasyon ozeti">
+    <div class="overview-item"><span>Magaza</span><strong>{{ stores().length }}</strong></div>
+    <div class="overview-item"><span>Aktif Islem</span><strong>{{ activeWorkflowCount() }}</strong></div>
+    <div class="overview-item" [class.has-issue]="issueWorkflowCount() > 0">
+      <span>Kontrol Gereken</span><strong>{{ issueWorkflowCount() }}</strong>
+    </div>
+    <div class="overview-item"><span>Tamamlanan</span><strong>{{ completedWorkflowCount() }}</strong></div>
+    <div class="overview-context">
+      <span>Aktif Hedef</span>
+      <strong *ngIf="selectedStore() as store; else noStore">{{ store.storeName }}</strong>
+      <ng-template #noStore><strong>Magaza secilmedi</strong></ng-template>
+    </div>
+  </section>
 
   <div
     class="feedback"
@@ -16,14 +47,33 @@
     [class.is-success]="currentFeedback.tone === 'success'"
     [class.is-error]="currentFeedback.tone === 'error'"
   >
-    {{ currentFeedback.message }}
+    <i class="fa-solid"
+       [class.fa-circle-check]="currentFeedback.tone === 'success'"
+       [class.fa-circle-exclamation]="currentFeedback.tone === 'error'"
+       [class.fa-circle-info]="currentFeedback.tone === 'info'"
+       aria-hidden="true"></i>
+    <span>{{ currentFeedback.message }}</span>
+    <button type="button" title="Bildirimi kapat" (click)="feedback.set(null)">
+      <i class="fa-solid fa-xmark"></i>
+    </button>
   </div>
 
   <nav class="view-tabs" aria-label="Trendyol Go bolumleri">
-    <button type="button" [class.is-active]="activeView() === 'orders'" (click)="activeView.set('orders')">Siparisler</button>
-    <button type="button" [class.is-active]="activeView() === 'price-stock'" (click)="activeView.set('price-stock')">Fiyat ve Stok</button>
-    <button type="button" [class.is-active]="activeView() === 'catalog-sync'" (click)="activeView.set('catalog-sync')">Katalog Aktarimi</button>
-    <button type="button" [class.is-active]="activeView() === 'advanced'" (click)="activeView.set('advanced')">Diger Islemler</button>
+    <button type="button" [class.is-active]="activeView() === 'orders'" (click)="activeView.set('orders')">
+      <i class="fa-solid fa-bag-shopping"></i><span>Siparisler</span>
+      <small *ngIf="orders().length">{{ orders().length }}</small>
+    </button>
+    <button type="button" [class.is-active]="activeView() === 'price-stock'" (click)="activeView.set('price-stock')">
+      <i class="fa-solid fa-tags"></i><span>Fiyat ve Stok</span>
+      <small *ngIf="activeWorkflowCount()">{{ activeWorkflowCount() }}</small>
+    </button>
+    <button type="button" [class.is-active]="activeView() === 'catalog-sync'" (click)="activeView.set('catalog-sync')">
+      <i class="fa-solid fa-boxes-stacked"></i><span>Katalog</span>
+    </button>
+    <button type="button" [class.is-active]="activeView() === 'advanced'" (click)="activeView.set('advanced')">
+      <i class="fa-solid fa-sliders"></i><span>Diger Islemler</span>
+      <small class="issue-count" *ngIf="issueWorkflowCount()">{{ issueWorkflowCount() }}</small>
+    </button>
   </nav>
 
   <section class="control-band" [formGroup]="filterForm" *ngIf="activeView() === 'orders'">
