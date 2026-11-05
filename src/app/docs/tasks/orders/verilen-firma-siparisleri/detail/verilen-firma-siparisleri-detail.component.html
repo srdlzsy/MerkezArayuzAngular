@@ -89,6 +89,7 @@
             <thead>
               <tr>
                 <th>Stok Kodu</th>
+                <th>Barkod</th>
                 <th>Stok Ismi</th>
                 <th>Birim</th>
                 <th>Miktar</th>
@@ -102,6 +103,7 @@
             <tbody>
               <tr *ngFor="let kalem of order.items; trackBy: trackByItem">
                 <td>{{ kalem.stockCode || '-' }}</td>
+                <td>{{ kalem.barcode || '-' }}</td>
                 <td>{{ kalem.stockName || '-' }}</td>
                 <td>{{ kalem.unitName || '-' }}</td>
                 <td>{{ formatNumber(kalem.quantity) }}</td>

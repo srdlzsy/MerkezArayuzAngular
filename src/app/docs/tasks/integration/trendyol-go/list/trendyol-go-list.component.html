@@ -452,7 +452,12 @@
                         <strong>{{ missing.barcodes.length }} adet ürün Trendyol Go mağaza kataloğunda bulunamadı!</strong>
                       </div>
                       <div class="missing-desc">
-                        Trendyol Go bu ürünleri kataloğunda tanımadığı için fiyat ve stokları güncellenemedi. Aşağıdaki buton ile ürünler anında Mikro ERP'den okunarak Trendyol kataloğuna aktarılabilir.
+                        <ng-container *ngIf="directDispatchAutoCatalogEnabled(); else manualCatalogDescription">
+                          Eksik ürünler otomatik katalog akışına alındı. Katalog onayından sonra fiyat ve stok gönderimi kendiliğinden devam edecek; yeniden gönderim yapmayın.
+                        </ng-container>
+                        <ng-template #manualCatalogDescription>
+                          Trendyol Go bu ürünleri kataloğunda tanımadığı için fiyat ve stokları güncellenemedi. Aşağıdaki buton ile ürünler Mikro ERP'den okunarak Trendyol kataloğuna aktarılabilir.
+                        </ng-template>
                       </div>
                       <div class="missing-barcodes-preview">
                         <span class="mini-barcode" *ngFor="let bc of missing.barcodes.slice(0, 7)">{{ bc }}</span>
@@ -460,7 +465,7 @@
                       </div>
                     </div>
                   </div>
-                  <div class="missing-actions">
+                  <div class="missing-actions" *ngIf="!directDispatchAutoCatalogEnabled()">
                     <button
                       type="button"
                       class="warning-button auto-catalog-btn"

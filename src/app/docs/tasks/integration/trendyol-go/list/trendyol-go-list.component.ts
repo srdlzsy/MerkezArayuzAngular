@@ -108,6 +108,7 @@ export class TrendyolGoListComponent {
   protected readonly selectedDirectBarcodes = signal<ReadonlySet<string>>(new Set());
   protected readonly loadingDirectPreview = signal(false);
   protected readonly directDispatchResult = signal<ITrendyolGoDirectPriceStockDispatchResultApiDto | null>(null);
+  protected readonly directDispatchAutoCatalogEnabled = signal(false);
   protected readonly batchWorkflows = signal<ITrendyolGoBatchWorkflowApiDto[]>([]);
   protected readonly loadingBatchWorkflows = signal(false);
   protected readonly priceStockPreview = signal<TrendyolGoPriceStockPreviewDto | null>(null);
@@ -314,7 +315,6 @@ export class TrendyolGoListComponent {
     }
     if (this.canDetail()) {
       this.loadBatchWorkflows();
-      this.scheduleBatchWorkflowPolling();
     }
 
     this.catalogForm.controls.storeId.setValue(this.filterForm.controls.storeId.value);
@@ -1093,6 +1093,7 @@ export class TrendyolGoListComponent {
       .subscribe({
         next: (result: ITrendyolGoDirectPriceStockDispatchResultApiDto) => {
           this.directDispatchResult.set(result);
+          this.directDispatchAutoCatalogEnabled.set(autoCreateMissingCatalog);
           const allBatchIds = result.storeResults.flatMap((storeResult) => [
             ...(storeResult.batchRequestIds || []),
             ...(storeResult.catalogBatchRequestIds || [])
@@ -1173,8 +1174,11 @@ export class TrendyolGoListComponent {
         finalize(() => this.loadingBatchWorkflows.set(false))
       )
       .subscribe({
-        next: (items: ITrendyolGoBatchWorkflowApiDto[]) => this.batchWorkflows.set(items ?? []),
-        error: () => undefined
+        next: (items: ITrendyolGoBatchWorkflowApiDto[]) => {
+          this.batchWorkflows.set(items ?? []);
+          this.scheduleBatchWorkflowPolling();
+        },
+        error: () => this.scheduleBatchWorkflowPolling()
       });
   }
 
@@ -1187,9 +1191,18 @@ export class TrendyolGoListComponent {
   }
 
   private scheduleBatchWorkflowPolling(): void {
+    if (this.workflowPollTimer !== undefined) {
+      window.clearTimeout(this.workflowPollTimer);
+      this.workflowPollTimer = undefined;
+    }
+
+    if (this.activeWorkflowCount() === 0) {
+      return;
+    }
+
     this.workflowPollTimer = window.setTimeout(() => {
+      this.workflowPollTimer = undefined;
       this.loadBatchWorkflows();
-      this.scheduleBatchWorkflowPolling();
     }, 10_000);
   }
 
@@ -1199,6 +1212,7 @@ export class TrendyolGoListComponent {
     this.directPreview.set(null);
     this.selectedDirectBarcodes.set(new Set());
     this.directDispatchResult.set(null);
+    this.directDispatchAutoCatalogEnabled.set(false);
   }
 
   protected loadCatalogSyncPreview(): void {

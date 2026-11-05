@@ -312,6 +312,7 @@ export interface CompanyOrderLineItemDto {
   lineNo: number;
   stockCode: string;
   stockName: string;
+  barcode: string;
   unitName: string;
   unitPointer: number;
   quantity: number;
