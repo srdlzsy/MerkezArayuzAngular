@@ -63,6 +63,27 @@ export interface ITrendyolGoBatchSummary {
   rawStatus: string;
 }
 
+export interface ITrendyolGoOrderLineView {
+  barcode: string;
+  stockCode: string;
+  name: string;
+  quantity: string;
+  unitPrice: string;
+  totalPrice: string;
+  status: string;
+}
+
+export interface ITrendyolGoBatchFailedItemView {
+  barcode: string;
+  reasons: string[];
+}
+
+export interface ITrendyolGoInvoiceLimitSummary {
+  minAmount: number | null;
+  maxAmount: number | null;
+  suggestedAmount: number | null;
+}
+
 interface FeedbackState {
   tone: FeedbackTone;
   message: string;
@@ -102,7 +123,7 @@ export class TrendyolGoListComponent {
   protected readonly connectionStatus = signal<TrendyolGoConnectionStatusDto | null>(null);
   protected readonly stores = signal<TrendyolGoStoreMappingDto[]>([]);
   protected readonly selectedStoreId = signal<number | null>(null);
-  protected readonly activeView = signal<'orders' | 'price-stock' | 'catalog-sync' | 'advanced'>('orders');
+  protected readonly activeView = signal<'orders' | 'price-stock' | 'catalog-sync' | 'workflows' | 'advanced'>('orders');
   protected readonly priceStockSubView = signal<'direct' | 'snapshot'>('direct');
   protected readonly directPreview = signal<ITrendyolGoDirectPriceStockPreviewApiDto | null>(null);
   protected readonly selectedDirectBarcodes = signal<ReadonlySet<string>>(new Set());
@@ -177,6 +198,12 @@ export class TrendyolGoListComponent {
   protected readonly directItems = computed<ITrendyolGoDirectPriceStockItemApiDto[]>(
     () => this.directPreview()?.items ?? []
   );
+  protected readonly directChangedCount = computed(
+    () => this.directItems().filter((item) => item.priceChangedFlag).length
+  );
+  protected readonly directZeroStockCount = computed(
+    () => this.directItems().filter((item) => item.quantity <= 0).length
+  );
   protected readonly selectedDirectCount = computed(
     () => this.selectedDirectBarcodes().size
   );
@@ -218,6 +245,26 @@ export class TrendyolGoListComponent {
   protected readonly canDispatchCatalog = computed(() => {
     const preview = this.catalogSyncPreview();
     return !!preview && !!preview.previewHash && preview.readyCount > 0;
+  });
+  protected readonly selectedOrderLines = computed<ITrendyolGoOrderLineView[]>(() => {
+    const detail = this.orderDetail();
+    const order = this.selectedOrder();
+    const source = this.isRecord(detail) ? detail : order;
+    if (!source) {
+      return [];
+    }
+    return this.extractOrderLinesFromRecord(source);
+  });
+  protected readonly invoiceLimitSummary = computed<ITrendyolGoInvoiceLimitSummary | null>(() => {
+    const limits = this.invoiceLimits();
+    if (!limits || !this.isRecord(limits)) {
+      return null;
+    }
+    return {
+      minAmount: this.getNumericValue(limits, 'minAmount', 'minimumAmount', 'minInvoiceAmount', 'lowerLimit'),
+      maxAmount: this.getNumericValue(limits, 'maxAmount', 'maximumAmount', 'maxInvoiceAmount', 'upperLimit'),
+      suggestedAmount: this.getNumericValue(limits, 'invoiceAmount', 'suggestedAmount', 'totalPrice', 'maxAmount')
+    };
   });
   protected readonly selectedOrderJson = computed(() =>
     this.selectedOrder() ? JSON.stringify(this.selectedOrder(), null, 2) : ''
@@ -459,6 +506,36 @@ export class TrendyolGoListComponent {
       });
   }
 
+  protected filterOrdersByStatus(status: string): void {
+    this.filterForm.controls.status.setValue(status);
+    this.filterForm.controls.page.setValue(0);
+    if (this.selectedStoreId()) {
+      this.loadOrders();
+    }
+  }
+
+  protected setOrderDatePreset(preset: 'today' | 'yesterday' | 'last7days'): void {
+    const today = new Date();
+    const endStr = this.formatDateIso(today);
+    if (preset === 'today') {
+      this.filterForm.controls.startDate.setValue(endStr);
+      this.filterForm.controls.endDate.setValue(endStr);
+    } else if (preset === 'yesterday') {
+      const y = new Date(today.getTime() - 86_400_000);
+      const yStr = this.formatDateIso(y);
+      this.filterForm.controls.startDate.setValue(yStr);
+      this.filterForm.controls.endDate.setValue(yStr);
+    } else {
+      const w = new Date(today.getTime() - 7 * 86_400_000);
+      this.filterForm.controls.startDate.setValue(this.formatDateIso(w));
+      this.filterForm.controls.endDate.setValue(endStr);
+    }
+    this.filterForm.controls.page.setValue(0);
+    if (this.selectedStoreId()) {
+      this.loadOrders();
+    }
+  }
+
   protected changePage(offset: number): void {
     const nextPage = Math.max(0, this.filterForm.controls.page.value + offset);
     this.filterForm.controls.page.setValue(nextPage);
@@ -551,6 +628,12 @@ export class TrendyolGoListComponent {
         error: (error: unknown) =>
           this.setFeedback('error', getErrorMessage(error, 'Fatura tutar araligi alinamadi.'))
       });
+  }
+
+  protected applyInvoiceLimitAmount(amount: number | null): void {
+    if (amount !== null && Number.isFinite(amount) && amount > 0) {
+      this.invoiceForm.controls.invoiceAmount.setValue(amount);
+    }
   }
 
   protected async submitInvoice(): Promise<void> {
@@ -649,6 +732,113 @@ export class TrendyolGoListComponent {
 
     const request$ = this.resolveProductBatchRequest(value.action, request);
     this.executeOperation('product-batch', request$, 'Urun batch istegi gonderildi. Batch sonucunu ID ile takip edin.');
+  }
+
+  protected applyProductBatchTemplate(): void {
+    const action = this.productBatchForm.controls.action.value;
+    const storeId = this.selectedStoreId() ?? 402535;
+    const templates: Record<ProductBatchAction, unknown> = {
+      'price-and-inventory': {
+        items: [
+          {
+            barcode: '8690000000001',
+            storeId,
+            quantity: 10,
+            sellingPrice: 99.9,
+            originalPrice: 99.9
+          }
+        ]
+      },
+      create: {
+        items: [
+          {
+            barcode: '8690000000001',
+            title: 'Ornek Urun Adi',
+            productMainId: 'STK-001',
+            brandId: 100,
+            categoryId: 200,
+            quantity: 10,
+            stockCode: 'STK-001',
+            dimensionalWeight: 1,
+            description: 'Urun aciklamasi',
+            currencyType: 'TRY',
+            listPrice: 99.9,
+            salePrice: 99.9,
+            vatRate: 10,
+            images: [{ url: 'https://cdn.example.com/product.jpg' }],
+            attributes: []
+          }
+        ]
+      },
+      update: {
+        items: [
+          {
+            barcode: '8690000000001',
+            title: 'Guncel Urun Adi',
+            productMainId: 'STK-001',
+            brandId: 100,
+            categoryId: 200,
+            stockCode: 'STK-001',
+            dimensionalWeight: 1,
+            description: 'Guncel aciklama',
+            vatRate: 10
+          }
+        ]
+      },
+      'sale-on': {
+        items: [{ barcode: '8690000000001', storeId }]
+      },
+      'sale-off': {
+        items: [{ barcode: '8690000000001', storeId }]
+      },
+      'seller-attributes': {
+        items: [
+          {
+            barcode: '8690000000001',
+            attributes: [{ attributeId: 1, customAttributeValue: 'Deger' }]
+          }
+        ]
+      }
+    };
+    this.productBatchForm.controls.body.setValue(JSON.stringify(templates[action], null, 2));
+  }
+
+  protected applyPackageTemplate(): void {
+    const action = this.packageForm.controls.action.value;
+    if (action === 'unsupplied') {
+      this.packageForm.controls.body.setValue(
+        JSON.stringify({ lines: [{ lineId: 12345, quantity: 1 }], reasonId: 500 }, null, 2)
+      );
+    } else if (action === 'alternative') {
+      this.packageForm.controls.body.setValue(
+        JSON.stringify({ lines: [{ lineId: 12345, alternativeBarcode: '8690000000002', quantity: 1 }] }, null, 2)
+      );
+    } else if (action === 'invoice-link') {
+      this.packageForm.controls.body.setValue(
+        JSON.stringify({ invoiceLink: 'https://fatura.example.com/e-arsiv.pdf', shipmentPackageId: 123456 }, null, 2)
+      );
+    }
+  }
+
+  protected applyClaimTemplate(): void {
+    const action = this.claimForm.controls.action.value;
+    if (action === 'accept') {
+      this.claimForm.controls.body.setValue(
+        JSON.stringify({ claimLineItemIdList: ['claim-item-id-1'] }, null, 2)
+      );
+    } else if (action === 'reject' || action === 'objections') {
+      this.claimForm.controls.body.setValue(
+        JSON.stringify(
+          {
+            claimIssueReasonId: 1,
+            claimItemIdList: ['claim-item-id-1'],
+            description: 'Itiraz / red aciklamasi'
+          },
+          null,
+          2
+        )
+      );
+    }
   }
 
   protected loadPriceStockPreview(silent = false): void {
@@ -790,6 +980,37 @@ export class TrendyolGoListComponent {
         error: (error: unknown) =>
           this.setFeedback('error', getErrorMessage(error, 'Batch sonucu alinamadi.'))
       });
+  }
+
+  protected getBatchFailedItems(batchResult: unknown): ITrendyolGoBatchFailedItemView[] {
+    if (!this.isRecord(batchResult) || !Array.isArray(batchResult['items'])) {
+      return [];
+    }
+
+    const failed: ITrendyolGoBatchFailedItemView[] = [];
+    for (const rawItem of batchResult['items']) {
+      if (!this.isRecord(rawItem)) continue;
+      const status = typeof rawItem['status'] === 'string' ? rawItem['status'].toUpperCase() : '';
+      if (status !== 'FAILED') continue;
+
+      const reasons = Array.isArray(rawItem['failureReasons'])
+        ? rawItem['failureReasons'].map((r) => String(r || '').trim()).filter(Boolean)
+        : [];
+      const reqItem = this.isRecord(rawItem['requestItem']) ? rawItem['requestItem'] : {};
+      const product = this.isRecord(reqItem['product']) ? reqItem['product'] : {};
+      const barcode =
+        this.getTextValue(rawItem, 'barcode') ||
+        this.getTextValue(product, 'productBarcode', 'barcode') ||
+        this.getTextValue(reqItem, 'barcode') ||
+        '-';
+
+      failed.push({
+        barcode,
+        reasons: reasons.length ? reasons : ['Bilinmeyen hata']
+      });
+    }
+
+    return failed;
   }
 
   protected getMissingCatalogInfo(batchResult: unknown): { storeId: number | null; barcodes: string[] } {
@@ -1209,6 +1430,29 @@ export class TrendyolGoListComponent {
     return item.status === 'Processing' ? 'Kontrol ediliyor' : 'TGO sonucu bekleniyor';
   }
 
+  protected getStoreLabelForWarehouse(warehouseNo: number, storeId?: number): string {
+    const matched = this.stores().find(
+      (s) => (storeId && s.storeId === storeId) || s.warehouseNo === warehouseNo
+    );
+    return matched ? `${matched.storeName} (Depo ${warehouseNo})` : `Depo ${warehouseNo}`;
+  }
+
+  protected getPriceDelta(item: ITrendyolGoPriceStockPreviewItemApiDto): number | null {
+    if (item.mikroPrice === null || item.trendyolPrice === null) {
+      return null;
+    }
+    const diff = Number((item.mikroPrice - item.trendyolPrice).toFixed(2));
+    return Math.abs(diff) < 0.005 ? 0 : diff;
+  }
+
+  protected getStockDelta(item: ITrendyolGoPriceStockPreviewItemApiDto): number | null {
+    if (item.mikroQuantity === null || item.trendyolQuantity === null) {
+      return null;
+    }
+    const diff = Number((item.mikroQuantity - item.trendyolQuantity).toFixed(3));
+    return Math.abs(diff) < 0.0005 ? 0 : diff;
+  }
+
   private scheduleBatchWorkflowPolling(): void {
     if (this.workflowPollTimer !== undefined) {
       window.clearTimeout(this.workflowPollTimer);
@@ -1526,6 +1770,31 @@ export class TrendyolGoListComponent {
     return this.getTextValue(order, 'status', 'orderStatus', 'package.status') || '-';
   }
 
+  protected getOrderStatusLabel(rawStatus: string): string {
+    const normalized = rawStatus.trim();
+    const map: Record<string, string> = {
+      Created: 'Yeni Siparis (Created)',
+      Picking: 'Hazirlaniyor (Picking)',
+      Invoiced: 'Faturalandi (Invoiced)',
+      Shipped: 'Yolda / Sevk (Shipped)',
+      Delivered: 'Teslim Edildi (Delivered)',
+      Cancelled: 'Iptal (Cancelled)',
+      Returned: 'Iade (Returned)',
+      UnPacked: 'Paketlenmedi (UnPacked)',
+      UnSupplied: 'Tedarik Edilemedi (UnSupplied)'
+    };
+    return map[normalized] || normalized || '-';
+  }
+
+  protected getOrderStatusTone(rawStatus: string): 'info' | 'warning' | 'success' | 'danger' | 'neutral' {
+    const normalized = rawStatus.trim().toLowerCase();
+    if (normalized === 'created' || normalized === 'unpacked') return 'info';
+    if (normalized === 'picking' || normalized === 'shipped') return 'warning';
+    if (normalized === 'invoiced' || normalized === 'delivered') return 'success';
+    if (normalized === 'cancelled' || normalized === 'unsupplied' || normalized === 'returned') return 'danger';
+    return 'neutral';
+  }
+
   protected getCustomerName(order: JsonRecord): string {
     const fullName = this.getTextValue(order, 'customerName', 'customer.name', 'customer.fullName');
     if (fullName) {
@@ -1536,6 +1805,11 @@ export class TrendyolGoListComponent {
       this.getTextValue(order, 'customer.firstName'),
       this.getTextValue(order, 'customer.lastName')
     ].filter(Boolean).join(' ') || '-';
+  }
+
+  protected getOrderItemCount(order: JsonRecord): number {
+    const lines = this.extractOrderLinesFromRecord(order);
+    return lines.length;
   }
 
   protected getOrderDate(order: JsonRecord): string {
@@ -1562,6 +1836,83 @@ export class TrendyolGoListComponent {
   protected trackByStore = (_index: number, store: TrendyolGoStoreMappingDto): number => store.storeId;
   protected trackByOrder = (index: number, order: JsonRecord): string =>
     this.getPackageId(order) || this.getOrderId(order) || this.getOrderNumber(order) || `${index}`;
+
+  private extractOrderLinesFromRecord(record: JsonRecord): ITrendyolGoOrderLineView[] {
+    let rawLines: unknown[] = [];
+
+    for (const key of ['lines', 'items', 'orderLines', 'packageItems']) {
+      if (Array.isArray(record[key])) {
+        rawLines = record[key] as unknown[];
+        break;
+      }
+    }
+
+    if (!rawLines.length && Array.isArray(record['packages']) && this.isRecord(record['packages'][0])) {
+      const firstPkg = record['packages'][0] as JsonRecord;
+      for (const key of ['lines', 'items', 'packageItems']) {
+        if (Array.isArray(firstPkg[key])) {
+          rawLines = firstPkg[key] as unknown[];
+          break;
+        }
+      }
+    }
+
+    if (!rawLines.length && this.isRecord(record['data'])) {
+      return this.extractOrderLinesFromRecord(record['data'] as JsonRecord);
+    }
+
+    return rawLines
+      .filter((item): item is JsonRecord => this.isRecord(item))
+      .map((line) => {
+        const product = this.isRecord(line['product']) ? (line['product'] as JsonRecord) : {};
+        const barcode =
+          this.getTextValue(line, 'barcode', 'productBarcode') ||
+          this.getTextValue(product, 'barcode', 'productBarcode') ||
+          '-';
+        const stockCode =
+          this.getTextValue(line, 'stockCode', 'merchantSku', 'sku', 'productCode') ||
+          this.getTextValue(product, 'stockCode', 'merchantSku', 'sku') ||
+          '-';
+        const name =
+          this.getTextValue(line, 'productName', 'name', 'title', 'description') ||
+          this.getTextValue(product, 'productName', 'name', 'title') ||
+          '-';
+        const qtyNum = this.getNumericValue(line, 'quantity', 'amount', 'count');
+        const itemsArray = Array.isArray(line['items']) ? line['items'] : null;
+        const quantity =
+          qtyNum !== null
+            ? String(qtyNum)
+            : itemsArray
+              ? String(itemsArray.length)
+              : '-';
+        const priceVal = this.getNumericValue(line, 'price', 'unitPrice', 'sellingPrice', 'amount');
+        const totalVal = this.getNumericValue(line, 'totalPrice', 'totalAmount', 'lineTotal');
+        const computedTotal =
+          totalVal !== null
+            ? totalVal
+            : priceVal !== null && qtyNum !== null
+              ? priceVal * qtyNum
+              : priceVal;
+        const status =
+          this.getTextValue(line, 'status', 'orderLineItemStatusName', 'lineStatus') || '-';
+
+        return {
+          barcode,
+          stockCode,
+          name,
+          quantity,
+          unitPrice:
+            priceVal !== null
+              ? `${priceVal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`
+              : '-',
+          totalPrice:
+            computedTotal !== null
+              ? `${computedTotal.toLocaleString('tr-TR', { minimumFractionDigits: 2, maximumFractionDigits: 2 })} TL`
+              : '-',
+          status
+        };
+      });
+  }
 
   private runUpdateAction(
     actionKey: string,
@@ -1755,9 +2106,12 @@ export class TrendyolGoListComponent {
     this.feedback.set({ tone, message });
   }
 
-  private getToday(): string {
-    const today = new Date();
-    const local = new Date(today.getTime() - today.getTimezoneOffset() * 60_000);
+  private formatDateIso(date: Date): string {
+    const local = new Date(date.getTime() - date.getTimezoneOffset() * 60_000);
     return local.toISOString().slice(0, 10);
+  }
+
+  private getToday(): string {
+    return this.formatDateIso(new Date());
   }
 }
