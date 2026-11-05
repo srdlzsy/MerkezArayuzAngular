@@ -157,14 +157,6 @@ export class KasaHareketAktarimiListComponent {
     date: new FormControl<string>(this.today, { nonNullable: true }),
     tolerance: new FormControl<number | null>(0.01)
   });
-  protected readonly mikroForm = new FormGroup({
-    date: new FormControl<string>(this.today, { nonNullable: true })
-  });
-  protected readonly mikroRangeForm = new FormGroup({
-    startDate: new FormControl<string>(this.today, { nonNullable: true }),
-    endDate: new FormControl<string>(this.today, { nonNullable: true })
-  });
-
   private readonly destroyRef = inject(DestroyRef);
   private readonly kasaIslemleriService = inject(KasaIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
@@ -625,15 +617,15 @@ export class KasaHareketAktarimiListComponent {
 
   protected getMikroRequestPreview(): string {
     return this.formatJson({
-      date: this.mikroForm.controls.date.value.trim(),
+      date: this.importForm.controls.startDate.value.trim(),
       branchNo: this.getSelectedBranchNo()
     });
   }
 
   protected getMikroRangeRequestPreview(): string {
     return this.formatJson({
-      startDate: this.mikroRangeForm.controls.startDate.value.trim(),
-      endDate: this.mikroRangeForm.controls.endDate.value.trim()
+      startDate: this.importForm.controls.startDate.value.trim(),
+      endDate: this.importForm.controls.endDate.value.trim()
     });
   }
 
@@ -1272,7 +1264,7 @@ export class KasaHareketAktarimiListComponent {
   }
 
   protected async actionMikroAktar(): Promise<void> {
-    const date = this.mikroForm.controls.date.value.trim();
+    const date = this.importForm.controls.startDate.value.trim();
     const branchNo = this.getSelectedBranchNo();
     const confirmed = await this.confirmDialog.confirm({
       title: 'Mikroya Aktar',
@@ -1287,8 +1279,8 @@ export class KasaHareketAktarimiListComponent {
   }
 
   protected async actionMikroAktar2(): Promise<void> {
-    const startDate = this.mikroRangeForm.controls.startDate.value.trim();
-    const endDate = this.mikroRangeForm.controls.endDate.value.trim();
+    const startDate = this.importForm.controls.startDate.value.trim();
+    const endDate = this.importForm.controls.endDate.value.trim();
     const confirmed = await this.confirmDialog.confirm({
       title: 'Toplu Mikro Aktarimi',
       message: `${startDate || 'Baslangic'} - ${endDate || 'Bitis'} araligindaki tum subelerin bekleyen hareketleri Mikroya aktarilacak.`,
@@ -1312,10 +1304,16 @@ export class KasaHareketAktarimiListComponent {
       return;
     }
 
-    const date = this.mikroForm.controls.date.value.trim();
+    const startDate = this.importForm.controls.startDate.value.trim();
+    const endDate = this.importForm.controls.endDate.value.trim() || startDate;
+    if (!this.validateDateRange(startDate, endDate, 'Mikro silme tarihleri eksik veya hatali.')) {
+      return;
+    }
+
+    const dateLabel = startDate === endDate ? startDate : `${startDate} - ${endDate}`;
     const confirmed = await this.confirmDialog.confirm({
       title: 'Mikrodan Sil',
-      message: `${date || 'Secili tarih'} / Sube ${branchNo} POS evraklari Mikrodan silinecek. Baska bir tarih silinmeyecek.`,
+      message: `${dateLabel || 'Secili tarih'} / Sube ${branchNo} POS evraklari Mikrodan silinecek. Baska bir tarih silinmeyecek.`,
       confirmText: 'Evet, Sil',
       tone: 'danger'
     });
@@ -1387,11 +1385,11 @@ export class KasaHareketAktarimiListComponent {
     action: KasaHareketProcedureAction
   ): Observable<KasaHareketProcedureResultDto> | null {
     const importStart = this.importForm.controls.startDate.value.trim();
-    const mikroDate = this.mikroForm.controls.date.value.trim();
+    const importEnd = this.importForm.controls.endDate.value.trim();
 
     if (action === 'mikro-range-transfer') {
-      const startDate = this.mikroRangeForm.controls.startDate.value.trim();
-      const endDate = this.mikroRangeForm.controls.endDate.value.trim();
+      const startDate = importStart;
+      const endDate = importEnd;
 
       if (!this.validateDateRange(startDate, endDate, 'Aralik aktarim tarihleri eksik veya hatali.')) {
         return null;
@@ -1403,9 +1401,7 @@ export class KasaHareketAktarimiListComponent {
       });
     }
 
-    const actionDate = action === 'staging-delete'
-      ? importStart
-      : mikroDate;
+    const actionDate = importStart;
     if (!actionDate) {
       this.feedback.set({
         tone: 'error',
@@ -1425,8 +1421,17 @@ export class KasaHareketAktarimiListComponent {
     }
 
     if (action === 'mikro-delete') {
+      if (!this.validateDateRange(
+        actionDate,
+        importEnd || actionDate,
+        'Mikro silme tarihleri eksik veya hatali.'
+      )) {
+        return null;
+      }
+
       return this.kasaIslemleriService.deleteKasaHareketFromMikro({
         date: actionDate,
+        endDate: importEnd && importEnd !== actionDate ? importEnd : null,
         branchNo: this.getSelectedBranchNo()
       });
     }
@@ -1498,14 +1503,15 @@ export class KasaHareketAktarimiListComponent {
 
   private getProcedureDateRange(action: KasaHareketProcedureAction): [string, string] {
     if (action === 'mikro-range-transfer') {
-      const startDate = this.mikroRangeForm.controls.startDate.value.trim();
-      return [startDate, this.mikroRangeForm.controls.endDate.value.trim() || startDate];
+      const startDate = this.importForm.controls.startDate.value.trim();
+      return [startDate, this.importForm.controls.endDate.value.trim() || startDate];
     }
 
-    const actionDate = action === 'staging-delete'
-      ? this.importForm.controls.startDate.value.trim()
-      : this.mikroForm.controls.date.value.trim();
-    return [actionDate, actionDate];
+    const actionDate = this.importForm.controls.startDate.value.trim();
+    const endDate = action === 'mikro-delete'
+      ? this.importForm.controls.endDate.value.trim() || actionDate
+      : actionDate;
+    return [actionDate, endDate];
   }
 
   private buildIssueRow(
