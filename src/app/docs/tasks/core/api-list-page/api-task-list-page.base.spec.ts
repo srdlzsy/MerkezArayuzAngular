@@ -1,7 +1,7 @@
 import { Dialog } from '@angular/cdk/dialog';
 import { Component, signal } from '@angular/core';
 import { fakeAsync, TestBed, tick } from '@angular/core/testing';
-import { delay, of, throwError } from 'rxjs';
+import { delay, finalize, of, throwError } from 'rxjs';
 import type { Observable } from 'rxjs';
 
 import { AuthService } from '../../../../core/auth/services/auth.service';
@@ -140,6 +140,26 @@ describe('ApiTaskListPageBase', () => {
     tick(10);
     expect(component.rows()).toEqual([{ seri: 'NEW', sira: 2, durumu: 'Tamamlandi' }]);
   }));
+
+  it('cancels the previous HTTP stream before starting a new list request', () => {
+    const fixture = TestBed.createComponent(TestListPageComponent);
+    const component = fixture.componentInstance as any;
+    const firstRequestTeardown = jasmine.createSpy('firstRequestTeardown');
+
+    component.responses.push(
+      of([{ seri: 'OLD', sira: 1, durumu: 'Hazir' }]).pipe(
+        delay(10_000),
+        finalize(firstRequestTeardown)
+      ),
+      of([{ seri: 'NEW', sira: 2, durumu: 'Tamamlandi' }])
+    );
+    fixture.detectChanges();
+
+    component.loadRows();
+
+    expect(firstRequestTeardown).toHaveBeenCalledTimes(1);
+    expect(component.rows()).toEqual([{ seri: 'NEW', sira: 2, durumu: 'Tamamlandi' }]);
+  });
 
   it('blocks requests when the selected date range is invalid', () => {
     const fixture = TestBed.createComponent(TestListPageComponent);

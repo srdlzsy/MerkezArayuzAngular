@@ -75,6 +75,7 @@ export abstract class ApiTaskListPageBase<
   private readonly bulkDocumentSelectionKeys = signal<string[]>([]);
   private readonly bulkDocumentPrintLoading = signal(false);
   private activeRequestId = 0;
+  private activeListRequest?: { unsubscribe(): void };
 
   protected readonly startDate = signal(this.getInitialStartDate());
   protected readonly endDate = signal(this.getInitialEndDate());
@@ -821,11 +822,12 @@ export abstract class ApiTaskListPageBase<
     }
 
     const requestId = ++this.activeRequestId;
+    this.activeListRequest?.unsubscribe();
 
     this.isLoading.set(true);
     this.errorMessage.set(null);
 
-    this.fetchRows(zamanlama, warehouseNo)
+    this.activeListRequest = this.fetchRows(zamanlama, warehouseNo)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
