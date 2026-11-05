@@ -72,6 +72,9 @@
 }
 
 .connection-state {
+  display: flex;
+  align-items: center;
+  gap: 0.55rem;
   min-width: 130px;
   padding-left: 0.8rem;
   border-left: 3px solid #f59e0b;
@@ -79,6 +82,24 @@
 
 .connection-state.is-connected {
   border-left-color: #16a34a;
+}
+
+.status-indicator-dot {
+  width: 0.55rem;
+  height: 0.55rem;
+  flex: 0 0 0.55rem;
+  border-radius: 50%;
+  background: #f59e0b;
+  box-shadow: 0 0 0 3px #fef3c7;
+}
+
+.connection-state.is-connected .status-indicator-dot {
+  background: #16a34a;
+  box-shadow: 0 0 0 3px #dcfce7;
+}
+
+.connection-info {
+  min-width: 0;
 }
 
 .connection-state span,
@@ -122,6 +143,23 @@
 
 .overview-item { align-items: center; justify-content: space-between; gap: 0.5rem; }
 .overview-context { flex-direction: column; justify-content: center; border-right: 0; }
+
+.overview-content {
+  display: flex;
+  min-width: 0;
+  flex-direction: column;
+  gap: 0.08rem;
+}
+
+.overview-icon {
+  flex: 0 0 auto;
+  color: #94a3b8;
+  font-size: 0.9rem;
+}
+
+.overview-item.has-issue .overview-icon {
+  color: #d97706;
+}
 
 .overview-item span,
 .overview-context span {

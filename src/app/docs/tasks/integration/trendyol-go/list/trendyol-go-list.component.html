@@ -1,19 +1,22 @@
 <section class="trendyol-page">
   <header class="page-header">
     <div class="page-identity">
-      <span class="page-icon" aria-hidden="true"><i class="fa-solid fa-store"></i></span>
+      <span class="page-icon" aria-hidden="true"><i class="fa-solid fa-bag-shopping"></i></span>
       <div>
         <p>Entegrasyon Islemleri</p>
         <h2>{{ page.title }}</h2>
         <span class="store-context" *ngIf="selectedStore() as store">
-          {{ store.storeName }} / Depo {{ store.warehouseNo }}
+          <i class="fa-solid fa-shop"></i> {{ store.storeName }} / Depo {{ store.warehouseNo }}
         </span>
       </div>
     </div>
     <div class="header-actions">
       <div class="connection-state" [class.is-connected]="connectionStatus()?.isConnected === true">
-        <span>Trendyol Go</span>
-        <strong>{{ loadingStatus() ? 'Kontrol ediliyor' : connectionLabel() }}</strong>
+        <span class="status-indicator-dot"></span>
+        <div class="connection-info">
+          <span>Trendyol Go</span>
+          <strong>{{ loadingStatus() ? 'Kontrol ediliyor' : connectionLabel() }}</strong>
+        </div>
       </div>
       <button
         type="button"
@@ -28,12 +31,34 @@
   </header>
 
   <section class="overview-strip" aria-label="Trendyol Go operasyon ozeti">
-    <div class="overview-item"><span>Magaza</span><strong>{{ stores().length }}</strong></div>
-    <div class="overview-item"><span>Aktif Islem</span><strong>{{ activeWorkflowCount() }}</strong></div>
-    <div class="overview-item" [class.has-issue]="issueWorkflowCount() > 0">
-      <span>Kontrol Gereken</span><strong>{{ issueWorkflowCount() }}</strong>
+    <div class="overview-item">
+      <div class="overview-content">
+        <span>Magaza</span>
+        <strong>{{ stores().length }}</strong>
+      </div>
+      <i class="fa-solid fa-store overview-icon" aria-hidden="true"></i>
     </div>
-    <div class="overview-item"><span>Tamamlanan</span><strong>{{ completedWorkflowCount() }}</strong></div>
+    <div class="overview-item">
+      <div class="overview-content">
+        <span>Aktif Islem</span>
+        <strong>{{ activeWorkflowCount() }}</strong>
+      </div>
+      <i class="fa-solid fa-arrows-rotate overview-icon" [class.is-spinning]="activeWorkflowCount() > 0" aria-hidden="true"></i>
+    </div>
+    <div class="overview-item" [class.has-issue]="issueWorkflowCount() > 0">
+      <div class="overview-content">
+        <span>Kontrol Gereken</span>
+        <strong>{{ issueWorkflowCount() }}</strong>
+      </div>
+      <i class="fa-solid fa-triangle-exclamation overview-icon" aria-hidden="true"></i>
+    </div>
+    <div class="overview-item">
+      <div class="overview-content">
+        <span>Tamamlanan</span>
+        <strong>{{ completedWorkflowCount() }}</strong>
+      </div>
+      <i class="fa-solid fa-circle-check overview-icon" aria-hidden="true"></i>
+    </div>
     <div class="overview-context">
       <span>Aktif Hedef</span>
       <strong *ngIf="selectedStore() as store; else noStore">{{ store.storeName }}</strong>

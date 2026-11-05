@@ -433,6 +433,44 @@
   background: #f8fbfa;
 }
 
+.issue-table-wrap {
+  width: 100%;
+  max-width: 100%;
+}
+
+.issue-table {
+  table-layout: fixed;
+}
+
+.issue-table th:nth-child(1),
+.issue-table td:nth-child(1) {
+  width: 74px;
+}
+
+.issue-table th:nth-child(2),
+.issue-table td:nth-child(2),
+.issue-table th:nth-child(3),
+.issue-table td:nth-child(3),
+.issue-table th:nth-child(5),
+.issue-table td:nth-child(5),
+.issue-table th:nth-child(6),
+.issue-table td:nth-child(6) {
+  width: 64px;
+}
+
+.issue-table th:nth-child(4),
+.issue-table td:nth-child(4) {
+  width: 132px;
+}
+
+.issue-table .issue-message-cell {
+  min-width: 0;
+  white-space: normal;
+  overflow-wrap: anywhere;
+  word-break: break-word;
+  line-height: 1.4;
+}
+
 .comparison-table tbody tr {
   cursor: pointer;
 }

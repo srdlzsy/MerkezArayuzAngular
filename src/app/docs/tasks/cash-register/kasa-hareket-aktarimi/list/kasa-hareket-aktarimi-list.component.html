@@ -436,7 +436,7 @@
                   <td>{{ issue.file || '-' }}</td>
                   <td>{{ issue.receiptNo || '-' }}</td>
                   <td>{{ issue.lineNo ?? '-' }}</td>
-                  <td>{{ issue.message }}</td>
+                  <td class="issue-message-cell">{{ issue.displayMessage }}</td>
                 </tr>
               </tbody>
             </table>
