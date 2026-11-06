@@ -2024,11 +2024,11 @@ export class KasaHareketAktarimiListComponent {
     const branchNo = this.dosyaForm.controls.sourceBranchNo.value;
     const cashNo = this.dosyaForm.controls.sourceCashRegisterNo.value;
     const date = this.dosyaForm.controls.date.value;
-    if (!branchNo || !cashNo) {
+    if (!branchNo || cashNo === null || cashNo === undefined) {
       this.feedback.set({
         tone: 'error',
         title: 'Eksik Bilgi',
-        message: 'Lutfen kaynak sube ve kasa numarasini seciniz.'
+        message: 'Lütfen kaynak şube ve kasa seçimini yapınız.'
       });
       return;
     }
@@ -2044,17 +2044,17 @@ export class KasaHareketAktarimiListComponent {
           this.dosyaBilgi.set(res);
           this.feedback.set({
             tone: res.sourceFileExists ? 'success' : 'info',
-            title: 'Dosya Bilgisi Alindi',
+            title: 'Dosya Bilgisi Alındı',
             message: res.sourceFileExists
-              ? `Dosya mevcut (${res.sourceFileSizeBytes ?? 0} byte).`
-              : 'Belirtilen kasa ve tarihe ait hareket dosyasi bulunamadi.'
+              ? (cashNo === 0 ? res.sourceFilePath : `Dosya mevcut (${res.sourceFileSizeBytes ?? 0} byte).`)
+              : 'Belirtilen kasa ve tarihe ait hareket dosyası bulunamadı.'
           });
         },
         error: (err: unknown) => {
           this.feedback.set({
             tone: 'error',
             title: 'Hata',
-            message: this.getErrorMessage(err, 'Dosya bilgisi alinamadi.')
+            message: this.getErrorMessage(err, 'Dosya bilgisi alınamadı.')
           });
         }
       });
@@ -2064,11 +2064,19 @@ export class KasaHareketAktarimiListComponent {
     const branchNo = this.dosyaForm.controls.sourceBranchNo.value;
     const cashNo = this.dosyaForm.controls.sourceCashRegisterNo.value;
     const date = this.dosyaForm.controls.date.value;
-    if (!branchNo || !cashNo) {
+    if (!branchNo || cashNo === null || cashNo === undefined) {
       this.feedback.set({
         tone: 'error',
         title: 'Eksik Bilgi',
-        message: 'Lutfen kaynak sube ve kasa numarasini seciniz.'
+        message: 'Lütfen kaynak şube ve kasa numarasını seçiniz.'
+      });
+      return;
+    }
+    if (cashNo === 0) {
+      this.feedback.set({
+        tone: 'info',
+        title: 'Bilgi',
+        message: 'Dosya içeriğini görüntülemek için lütfen belirli tek bir kasa seçiniz.'
       });
       return;
     }
@@ -2087,7 +2095,7 @@ export class KasaHareketAktarimiListComponent {
           this.feedback.set({
             tone: 'error',
             title: 'Hata',
-            message: this.getErrorMessage(err, 'Dosya icerigi okunamadi.')
+            message: this.getErrorMessage(err, 'Dosya içeriği okunamadı.')
           });
         }
       });
@@ -2099,18 +2107,19 @@ export class KasaHareketAktarimiListComponent {
     const date = this.dosyaForm.controls.date.value;
     const overwrite = this.dosyaForm.controls.overwrite.value;
 
-    if (!branchNo || !cashNo) {
+    if (!branchNo || cashNo === null || cashNo === undefined) {
       this.feedback.set({
         tone: 'error',
         title: 'Eksik Bilgi',
-        message: 'Kaynak sube ve kasa secimi zorunludur.'
+        message: 'Kaynak şube ve kasa seçimi zorunludur.'
       });
       return;
     }
 
+    const targetDesc = cashNo === 0 ? 'TÜM kasalara ait' : `${cashNo}. kasa`;
     const confirmed = await this.confirmDialog.confirm({
       title: 'Dosya Kopyalama',
-      message: `${branchNo}. sube ${cashNo}. kasa hareket dosyasini hedef alana kopyalamak istediginize emin misiniz?`,
+      message: `${branchNo}. şube ${targetDesc} hareket dosyasını hedef alana kopyalamak istediğinize emin misiniz?`,
       confirmText: 'Kopyala',
       tone: 'info'
     });

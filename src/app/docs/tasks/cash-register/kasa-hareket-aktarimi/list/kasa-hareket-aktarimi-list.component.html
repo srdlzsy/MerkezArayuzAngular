@@ -1355,6 +1355,7 @@
               <label for="sourceCashSelect">Kaynak Kasa</label>
               <select id="sourceCashSelect" formControlName="sourceCashRegisterNo">
                 <option [ngValue]="null">Kasa Seciniz</option>
+                <option [ngValue]="0">Tüm Kasalar (Toplu İşlem)</option>
                 <option *ngFor="let cash of sourceCashRegisters()" [ngValue]="cash.cashRegisterNo">
                   Kasa {{ cash.cashRegisterNo }}
                 </option>
@@ -1375,7 +1376,7 @@
               </select>
             </div>
 
-            <div class="field-group">
+            <div class="field-group" *ngIf="dosyaForm.controls.sourceCashRegisterNo.value !== 0">
               <label for="targetCashSelect">Hedef Kasa No</label>
               <input
                 id="targetCashSelect"
