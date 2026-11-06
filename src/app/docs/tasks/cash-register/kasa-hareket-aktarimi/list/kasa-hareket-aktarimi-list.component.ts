@@ -23,7 +23,24 @@ import type {
   KasaHareketSalesComparisonDto,
   KasaHareketSalesComparisonRowDto,
   KasaHareketScheduledImportHttpRequest,
-  KasaHareketTransferStatusDto
+  KasaHareketTransferStatusDto,
+  KasaHareketDosyaBilgiDto,
+  KasaHareketDosyaKopyalaResultDto,
+  KasaHareketDosyaIcerikDto,
+  KasaHareketKasaZDetayReportDto,
+  KasaHareketKasaZDetayRowDto,
+  KasaHareketBirlikKartReportDto,
+  KasaHareketBirlikKartRowDto,
+  KasaHareketFisIptalReportDto,
+  KasaHareketFisIptalRowDto,
+  KasaHareketFisIptalDetailDto,
+  KasaHareketGiderPusulasiReportDto,
+  KasaHareketGiderPusulasiRowDto,
+  KasaHareketGiderPusulasiDetailDto,
+  KasaHareketTrendyolReportDto,
+  KasaHareketTrendyolRowDto,
+  KasaHareketNakitReportDto,
+  KasaHareketNakitRowDto
 } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -38,7 +55,8 @@ import {
 } from '../../../core/excel-export/excel-export.utils';
 import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 
-type KasaHareketTab = 'import' | 'rapor' | 'satis' | 'icmal' | 'mikro';
+type KasaHareketTab = 'import' | 'rapor' | 'satis' | 'icmal' | 'mikro' | 'dosya-kopyala' | 'ek-raporlar';
+type EkRaporSubTab = 'kasa-z-detay' | 'birlik-kart' | 'fis-iptal' | 'gider-pusulasi' | 'trendyol' | 'nakit';
 type KasaHareketDetailTab =
   | 'cashiers'
   | 'movement-payments'
@@ -153,6 +171,50 @@ export class KasaHareketAktarimiListComponent {
   protected readonly salesComparisonForm = new FormGroup({
     date: new FormControl<string>(this.today, { nonNullable: true })
   });
+  // --- Hareket Dosyasi Kopyalama ve Duzeltme ---
+  protected readonly dosyaForm = new FormGroup({
+    sourceBranchNo: new FormControl<number | null>(null),
+    sourceCashRegisterNo: new FormControl<number | null>(null),
+    targetBranchNo: new FormControl<number | null>(null),
+    targetCashRegisterNo: new FormControl<number | null>(null),
+    date: new FormControl<string>(this.today, { nonNullable: true }),
+    overwrite: new FormControl<boolean>(false, { nonNullable: true })
+  });
+  protected readonly dosyaBilgi = signal<KasaHareketDosyaBilgiDto | null>(null);
+  protected readonly dosyaBilgiLoading = signal<boolean>(false);
+  protected readonly dosyaIcerik = signal<KasaHareketDosyaIcerikDto | null>(null);
+  protected readonly dosyaIcerikLoading = signal<boolean>(false);
+  protected readonly dosyaKopyalaLoading = signal<boolean>(false);
+  protected readonly dosyaKopyalaResult = signal<KasaHareketDosyaKopyalaResultDto | null>(null);
+  protected readonly sourceCashRegisters = signal<KasaHareketCashRegisterDto[]>([]);
+  protected readonly targetCashRegisters = signal<KasaHareketCashRegisterDto[]>([]);
+
+  // --- Ek Raporlar & Kontroller ---
+  protected readonly activeEkRaporTab = signal<EkRaporSubTab>('kasa-z-detay');
+  protected readonly ekRaporFilterForm = new FormGroup({
+    branchNo: new FormControl<number | null>(null),
+    date: new FormControl<string>(this.today, { nonNullable: true }),
+    startDate: new FormControl<string>(this.today, { nonNullable: true }),
+    endDate: new FormControl<string>(this.today, { nonNullable: true })
+  });
+  protected readonly kasaZDetayReport = signal<KasaHareketKasaZDetayReportDto | null>(null);
+  protected readonly kasaZDetayLoading = signal<boolean>(false);
+  protected readonly birlikKartReport = signal<KasaHareketBirlikKartReportDto | null>(null);
+  protected readonly birlikKartLoading = signal<boolean>(false);
+  protected readonly fisIptalReport = signal<KasaHareketFisIptalReportDto | null>(null);
+  protected readonly fisIptalLoading = signal<boolean>(false);
+  protected readonly selectedFisIptalDetay = signal<KasaHareketFisIptalDetailDto | null>(null);
+  protected readonly fisIptalDetayLoading = signal<boolean>(false);
+  protected readonly giderPusulasiReport = signal<KasaHareketGiderPusulasiReportDto | null>(null);
+  protected readonly giderPusulasiLoading = signal<boolean>(false);
+  protected readonly selectedGiderPusulasiDetay = signal<KasaHareketGiderPusulasiDetailDto | null>(null);
+  protected readonly giderPusulasiDetayLoading = signal<boolean>(false);
+  protected readonly trendyolReport = signal<KasaHareketTrendyolReportDto | null>(null);
+  protected readonly trendyolLoading = signal<boolean>(false);
+  protected readonly nakitReport = signal<KasaHareketNakitReportDto | null>(null);
+  protected readonly nakitLoading = signal<boolean>(false);
+  protected readonly ekRaporExporting = signal<boolean>(false);
+
   protected readonly comparisonForm = new FormGroup({
     date: new FormControl<string>(this.today, { nonNullable: true }),
     tolerance: new FormControl<number | null>(0.01)
@@ -1870,6 +1932,427 @@ export class KasaHareketAktarimiListComponent {
 
   private getMissingReceiptRows(detail: KasaHareketDetailDto): MissingReceiptRow[] {
     return (detail.summary.missingReceiptNos ?? []).map((receiptNo) => ({ receiptNo }));
+  }
+
+  // ==========================================
+  // HAREKET DOSYASI KOPYALAMA & DUZELTME
+  // ==========================================
+  protected onSourceBranchChange(branchNo: number | null): void {
+    if (!branchNo) {
+      this.sourceCashRegisters.set([]);
+      this.dosyaForm.controls.sourceCashRegisterNo.setValue(null);
+      return;
+    }
+    this.kasaIslemleriService.getKasaHareketKasalar(branchNo).subscribe({
+      next: (regs: KasaHareketCashRegisterDto[]) => this.sourceCashRegisters.set(regs),
+      error: () => this.sourceCashRegisters.set([])
+    });
+  }
+
+  protected onTargetBranchChange(branchNo: number | null): void {
+    if (!branchNo) {
+      this.targetCashRegisters.set([]);
+      this.dosyaForm.controls.targetCashRegisterNo.setValue(null);
+      return;
+    }
+    this.kasaIslemleriService.getKasaHareketKasalar(branchNo).subscribe({
+      next: (regs: KasaHareketCashRegisterDto[]) => this.targetCashRegisters.set(regs),
+      error: () => this.targetCashRegisters.set([])
+    });
+  }
+
+  protected fetchDosyaBilgisi(): void {
+    const branchNo = this.dosyaForm.controls.sourceBranchNo.value;
+    const cashNo = this.dosyaForm.controls.sourceCashRegisterNo.value;
+    const date = this.dosyaForm.controls.date.value;
+    if (!branchNo || !cashNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Eksik Bilgi',
+        message: 'Lutfen kaynak sube ve kasa numarasini seciniz.'
+      });
+      return;
+    }
+    this.dosyaBilgiLoading.set(true);
+    this.kasaIslemleriService
+      .getKasaHareketDosyaBilgisi({ branchNo, cashRegisterNo: cashNo, date })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.dosyaBilgiLoading.set(false))
+      )
+      .subscribe({
+        next: (res: KasaHareketDosyaBilgiDto) => {
+          this.dosyaBilgi.set(res);
+          this.feedback.set({
+            tone: res.sourceFileExists ? 'success' : 'info',
+            title: 'Dosya Bilgisi Alindi',
+            message: res.sourceFileExists
+              ? `Dosya mevcut (${res.sourceFileSizeBytes ?? 0} byte).`
+              : 'Belirtilen kasa ve tarihe ait hareket dosyasi bulunamadi.'
+          });
+        },
+        error: (err: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Hata',
+            message: this.getErrorMessage(err, 'Dosya bilgisi alinamadi.')
+          });
+        }
+      });
+  }
+
+  protected fetchDosyaIcerigi(): void {
+    const branchNo = this.dosyaForm.controls.sourceBranchNo.value;
+    const cashNo = this.dosyaForm.controls.sourceCashRegisterNo.value;
+    const date = this.dosyaForm.controls.date.value;
+    if (!branchNo || !cashNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Eksik Bilgi',
+        message: 'Lutfen kaynak sube ve kasa numarasini seciniz.'
+      });
+      return;
+    }
+    this.dosyaIcerikLoading.set(true);
+    this.kasaIslemleriService
+      .getKasaHareketDosyaIcerigi({ branchNo, cashRegisterNo: cashNo, date, maxLines: 500 })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.dosyaIcerikLoading.set(false))
+      )
+      .subscribe({
+        next: (res: KasaHareketDosyaIcerikDto) => {
+          this.dosyaIcerik.set(res);
+        },
+        error: (err: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Hata',
+            message: this.getErrorMessage(err, 'Dosya icerigi okunamadi.')
+          });
+        }
+      });
+  }
+
+  protected async executeDosyaKopyala(): Promise<void> {
+    const branchNo = this.dosyaForm.controls.sourceBranchNo.value;
+    const cashNo = this.dosyaForm.controls.sourceCashRegisterNo.value;
+    const date = this.dosyaForm.controls.date.value;
+    const overwrite = this.dosyaForm.controls.overwrite.value;
+
+    if (!branchNo || !cashNo) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Eksik Bilgi',
+        message: 'Kaynak sube ve kasa secimi zorunludur.'
+      });
+      return;
+    }
+
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Dosya Kopyalama',
+      message: `${branchNo}. sube ${cashNo}. kasa hareket dosyasini hedef alana kopyalamak istediginize emin misiniz?`,
+      confirmText: 'Kopyala',
+      tone: 'info'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    this.dosyaKopyalaLoading.set(true);
+    this.kasaIslemleriService
+      .kopyalaKasaHareketDosyasi({
+        branchNo,
+        cashRegisterNo: cashNo,
+        date,
+        overwrite
+      })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.dosyaKopyalaLoading.set(false))
+      )
+      .subscribe({
+        next: (res: KasaHareketDosyaKopyalaResultDto) => {
+          this.dosyaKopyalaResult.set(res);
+          this.feedback.set({
+            tone: res.success ? 'success' : 'error',
+            title: res.success ? 'Kopyalama Basarili' : 'Kopyalama Basarisiz',
+            message: res.message
+          });
+          this.fetchDosyaBilgisi();
+        },
+        error: (err: unknown) => {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Kopyalama Hatasi',
+            message: this.getErrorMessage(err, 'Dosya kopyalama islemi sirasinda hata olustu.')
+          });
+        }
+      });
+  }
+
+  // ==========================================
+  // EK RAPORLAR & KONTROLLER
+  // ==========================================
+  protected selectEkRaporTab(subTab: EkRaporSubTab): void {
+    this.activeEkRaporTab.set(subTab);
+  }
+
+  protected fetchEkRapor(): void {
+    const subTab = this.activeEkRaporTab();
+    const branchNo = this.ekRaporFilterForm.controls.branchNo.value || undefined;
+    const date = this.ekRaporFilterForm.controls.date.value;
+    const startDate = this.ekRaporFilterForm.controls.startDate.value;
+    const endDate = this.ekRaporFilterForm.controls.endDate.value;
+
+    switch (subTab) {
+      case 'kasa-z-detay':
+        if (!branchNo) {
+          this.feedback.set({
+            tone: 'error',
+            title: 'Sube Seciniz',
+            message: 'Kasa Z Detay raporu icin sube secimi zorunludur.'
+          });
+          return;
+        }
+        this.kasaZDetayLoading.set(true);
+        this.kasaIslemleriService
+          .getKasaHareketKasaZDetay({ date, branchNo })
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.kasaZDetayLoading.set(false))
+          )
+          .subscribe({
+            next: (res: KasaHareketKasaZDetayReportDto) => this.kasaZDetayReport.set(res),
+            error: (err: unknown) =>
+              this.feedback.set({
+                tone: 'error',
+                title: 'Hata',
+                message: this.getErrorMessage(err, 'Kasa Z Detay raporu alinamadi.')
+              })
+          });
+        break;
+
+      case 'birlik-kart':
+        this.birlikKartLoading.set(true);
+        this.kasaIslemleriService
+          .getKasaHareketBirlikKartRaporu({ date, branchNo })
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.birlikKartLoading.set(false))
+          )
+          .subscribe({
+            next: (res: KasaHareketBirlikKartReportDto) => this.birlikKartReport.set(res),
+            error: (err: unknown) =>
+              this.feedback.set({
+                tone: 'error',
+                title: 'Hata',
+                message: this.getErrorMessage(err, 'Birlik Kart raporu alinamadi.')
+              })
+          });
+        break;
+
+      case 'fis-iptal':
+        this.fisIptalLoading.set(true);
+        this.selectedFisIptalDetay.set(null);
+        this.kasaIslemleriService
+          .getKasaHareketFisIptalRaporu({ startDate, endDate, branchNo })
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.fisIptalLoading.set(false))
+          )
+          .subscribe({
+            next: (res: KasaHareketFisIptalReportDto) => this.fisIptalReport.set(res),
+            error: (err: unknown) =>
+              this.feedback.set({
+                tone: 'error',
+                title: 'Hata',
+                message: this.getErrorMessage(err, 'Fis Iptal raporu alinamadi.')
+              })
+          });
+        break;
+
+      case 'gider-pusulasi':
+        this.giderPusulasiLoading.set(true);
+        this.selectedGiderPusulasiDetay.set(null);
+        this.kasaIslemleriService
+          .getKasaHareketGiderPusulasiRaporu({ startDate, endDate, branchNo })
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.giderPusulasiLoading.set(false))
+          )
+          .subscribe({
+            next: (res: KasaHareketGiderPusulasiReportDto) => this.giderPusulasiReport.set(res),
+            error: (err: unknown) =>
+              this.feedback.set({
+                tone: 'error',
+                title: 'Hata',
+                message: this.getErrorMessage(err, 'Gider Pusulasi raporu alinamadi.')
+              })
+          });
+        break;
+
+      case 'trendyol':
+        this.trendyolLoading.set(true);
+        this.kasaIslemleriService
+          .getKasaHareketTrendyolRaporu({ date, branchNo })
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.trendyolLoading.set(false))
+          )
+          .subscribe({
+            next: (res: KasaHareketTrendyolReportDto) => this.trendyolReport.set(res),
+            error: (err: unknown) =>
+              this.feedback.set({
+                tone: 'error',
+                title: 'Hata',
+                message: this.getErrorMessage(err, 'Trendyol raporu alinamadi.')
+              })
+          });
+        break;
+
+      case 'nakit':
+        this.nakitLoading.set(true);
+        this.kasaIslemleriService
+          .getKasaHareketNakitRaporu({ date })
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.nakitLoading.set(false))
+          )
+          .subscribe({
+            next: (res: KasaHareketNakitReportDto) => this.nakitReport.set(res),
+            error: (err: unknown) =>
+              this.feedback.set({
+                tone: 'error',
+                title: 'Hata',
+                message: this.getErrorMessage(err, 'Nakit raporu alinamadi.')
+              })
+          });
+        break;
+    }
+  }
+
+  protected viewFisIptalDetay(row: KasaHareketFisIptalRowDto): void {
+    if (!row.faturaGuid) {
+      return;
+    }
+    this.fisIptalDetayLoading.set(true);
+    this.kasaIslemleriService
+      .getKasaHareketFisIptalDetay(row.faturaGuid)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.fisIptalDetayLoading.set(false))
+      )
+      .subscribe({
+        next: (detail: KasaHareketFisIptalDetailDto) => this.selectedFisIptalDetay.set(detail),
+        error: (err: unknown) =>
+          this.feedback.set({
+            tone: 'error',
+            title: 'Hata',
+            message: this.getErrorMessage(err, 'Fis detaylari alinamadi.')
+          })
+      });
+  }
+
+  protected closeFisIptalDetay(): void {
+    this.selectedFisIptalDetay.set(null);
+  }
+
+  protected viewGiderPusulasiDetay(row: KasaHareketGiderPusulasiRowDto): void {
+    if (!row.faturaGuid) {
+      return;
+    }
+    this.giderPusulasiDetayLoading.set(true);
+    this.kasaIslemleriService
+      .getKasaHareketGiderPusulasiDetay(row.faturaGuid)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.giderPusulasiDetayLoading.set(false))
+      )
+      .subscribe({
+        next: (detail: KasaHareketGiderPusulasiDetailDto) => this.selectedGiderPusulasiDetay.set(detail),
+        error: (err: unknown) =>
+          this.feedback.set({
+            tone: 'error',
+            title: 'Hata',
+            message: this.getErrorMessage(err, 'Gider pusulasi detaylari alinamadi.')
+          })
+      });
+  }
+
+  protected closeGiderPusulasiDetay(): void {
+    this.selectedGiderPusulasiDetay.set(null);
+  }
+
+  protected exportEkRaporExcel(): void {
+    const subTab = this.activeEkRaporTab();
+    const branchNo = this.ekRaporFilterForm.controls.branchNo.value || undefined;
+    const date = this.ekRaporFilterForm.controls.date.value;
+    const startDate = this.ekRaporFilterForm.controls.startDate.value;
+    const endDate = this.ekRaporFilterForm.controls.endDate.value;
+
+    switch (subTab) {
+      case 'birlik-kart':
+        this.kasaIslemleriService.exportKasaHareketBirlikKartRaporu({ date, branchNo }).subscribe({
+          next: (blob: Blob) => this.downloadBlob(blob, `birlik-kart-rapor-${this.toCompactDate(date)}.csv`),
+          error: (err: unknown) => this.excelExportErrorMessage.set(this.getErrorMessage(err, 'Disa aktarilamadi.'))
+        });
+        break;
+      case 'fis-iptal':
+        this.kasaIslemleriService.exportKasaHareketFisIptalRaporu({ startDate, endDate, branchNo }).subscribe({
+          next: (blob: Blob) =>
+            this.downloadBlob(
+              blob,
+              `fis-iptal-rapor-${this.toCompactDate(startDate)}-${this.toCompactDate(endDate)}.csv`
+            ),
+          error: (err: unknown) => this.excelExportErrorMessage.set(this.getErrorMessage(err, 'Disa aktarilamadi.'))
+        });
+        break;
+      case 'gider-pusulasi':
+        this.kasaIslemleriService.exportKasaHareketGiderPusulasiRaporu({ startDate, endDate, branchNo }).subscribe({
+          next: (blob: Blob) =>
+            this.downloadBlob(
+              blob,
+              `gider-pusulasi-rapor-${this.toCompactDate(startDate)}-${this.toCompactDate(endDate)}.csv`
+            ),
+          error: (err: unknown) => this.excelExportErrorMessage.set(this.getErrorMessage(err, 'Disa aktarilamadi.'))
+        });
+        break;
+      case 'trendyol':
+        this.kasaIslemleriService.exportKasaHareketTrendyolRaporu({ date, branchNo }).subscribe({
+          next: (blob: Blob) => this.downloadBlob(blob, `trendyol-rapor-${this.toCompactDate(date)}.csv`),
+          error: (err: unknown) => this.excelExportErrorMessage.set(this.getErrorMessage(err, 'Disa aktarilamadi.'))
+        });
+        break;
+      case 'nakit':
+        this.kasaIslemleriService.exportKasaHareketNakitRaporu({ date }).subscribe({
+          next: (blob: Blob) => this.downloadBlob(blob, `nakit-rapor-${this.toCompactDate(date)}.csv`),
+          error: (err: unknown) => this.excelExportErrorMessage.set(this.getErrorMessage(err, 'Disa aktarilamadi.'))
+        });
+        break;
+      case 'kasa-z-detay':
+        const rep = this.kasaZDetayReport();
+        if (rep && rep.rows.length) {
+          exportRowsToExcel({
+            fileName: `Kasa-Z-Detay-${this.toCompactDate(date)}`,
+            sheets: [
+              {
+                sheetName: 'Kasa Z Detay',
+                rows: rep.rows,
+                columns: [
+                  { label: 'Sube No', value: 'branchNo', type: 'number' },
+                  { label: 'Kasa No', value: 'kasaNo' },
+                  { label: 'Z Tutari', value: 'zTutari', type: 'currency' },
+                  { label: 'Seri', value: 'documentSeries' },
+                  { label: 'Sira', value: 'documentSequence', type: 'number' },
+                  { label: 'Aciklama', value: 'description' }
+                ]
+              }
+            ]
+          });
+        }
+        break;
+    }
   }
 
   private getMissingReceiptExportColumns(): readonly ExcelExportColumn<MissingReceiptRow>[] {

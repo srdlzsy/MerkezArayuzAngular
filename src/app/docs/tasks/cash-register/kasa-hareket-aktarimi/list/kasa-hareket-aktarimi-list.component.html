@@ -55,6 +55,24 @@
             {{ comparisonResult()?.summary?.differenceCount }}
           </span>
         </button>
+        <button
+          type="button"
+          class="task-tab"
+          [class.is-active]="activeTab() === 'dosya-kopyala'"
+          (click)="selectTab('dosya-kopyala')"
+        >
+          <i class="fa-solid fa-copy tab-icon"></i>
+          Dosya Kopyala & Duzelt
+        </button>
+        <button
+          type="button"
+          class="task-tab"
+          [class.is-active]="activeTab() === 'ek-raporlar'"
+          (click)="selectTab('ek-raporlar')"
+        >
+          <i class="fa-solid fa-file-invoice-dollar tab-icon"></i>
+          Ek Raporlar & Kontroller
+        </button>
       </div>
     </header>
 
@@ -1204,6 +1222,584 @@
         <article class="state-card empty-state" *ngIf="!comparisonLoading() && !(comparisonResult()?.rows?.length)">
           <span class="empty-icon">📭</span>
           <h3>Secilen tarihe ait icmal karsilastirma verisi bulunamadi.</h3>
+        </article>
+      </section>
+
+      <!-- 5. HAREKET DOSYASI KOPYALAMA VE DUZELTME PANELI -->
+      <section class="tab-panel dosya-kopyala-panel" *ngSwitchCase="'dosya-kopyala'">
+        <form class="filter-card" [formGroup]="dosyaForm">
+          <div class="filter-grid">
+            <div class="field-group">
+              <label for="sourceBranchSelect">Kaynak Sube</label>
+              <select
+                id="sourceBranchSelect"
+                formControlName="sourceBranchNo"
+                (change)="onSourceBranchChange(dosyaForm.controls.sourceBranchNo.value)"
+              >
+                <option [ngValue]="null">Sube Seciniz</option>
+                <option *ngFor="let branch of branches()" [ngValue]="branch.branchNo">
+                  {{ branch.branchNo }} - {{ branch.branchName }}
+                </option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="sourceCashSelect">Kaynak Kasa</label>
+              <select id="sourceCashSelect" formControlName="sourceCashRegisterNo">
+                <option [ngValue]="null">Kasa Seciniz</option>
+                <option *ngFor="let cash of sourceCashRegisters()" [ngValue]="cash.cashRegisterNo">
+                  Kasa {{ cash.cashRegisterNo }}
+                </option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="targetBranchSelect">Hedef Sube (Kopyalama)</label>
+              <select
+                id="targetBranchSelect"
+                formControlName="targetBranchNo"
+                (change)="onTargetBranchChange(dosyaForm.controls.targetBranchNo.value)"
+              >
+                <option [ngValue]="null">Ayni Sube (veya Sube Sec)</option>
+                <option *ngFor="let branch of branches()" [ngValue]="branch.branchNo">
+                  {{ branch.branchNo }} - {{ branch.branchName }}
+                </option>
+              </select>
+            </div>
+
+            <div class="field-group">
+              <label for="targetCashSelect">Hedef Kasa No</label>
+              <input
+                id="targetCashSelect"
+                type="number"
+                formControlName="targetCashRegisterNo"
+                placeholder="Orn: 2"
+              />
+            </div>
+
+            <div class="field-group">
+              <label for="dosyaDate">Tarih</label>
+              <input id="dosyaDate" type="date" formControlName="date" />
+            </div>
+
+            <div class="field-group field-group-checkbox">
+              <label class="checkbox-label">
+                <input type="checkbox" formControlName="overwrite" />
+                Hedef dosya varsa uzerine yaz
+              </label>
+            </div>
+          </div>
+
+          <div class="filter-actions">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="dosyaBilgiLoading()"
+              (click)="fetchDosyaBilgisi()"
+            >
+              <i class="fa-solid fa-magnifying-glass"></i>
+              Dosya Durumu Kontrol Et
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline"
+              [disabled]="dosyaIcerikLoading()"
+              (click)="fetchDosyaIcerigi()"
+            >
+              <i class="fa-solid fa-file-lines"></i>
+              Icerigi Goruntule
+            </button>
+            <button
+              type="button"
+              class="btn btn-accent"
+              [disabled]="dosyaKopyalaLoading()"
+              (click)="executeDosyaKopyala()"
+            >
+              <i class="fa-solid fa-copy"></i>
+              Hedefe Kopyala
+            </button>
+          </div>
+        </form>
+
+        <!-- Dosya Bilgisi Karti -->
+        <article class="surface-card info-card" *ngIf="dosyaBilgi() as info">
+          <div class="card-header">
+            <h4><i class="fa-solid fa-circle-info"></i> Dosya Bilgileri</h4>
+            <span
+              class="status-badge"
+              [class.status-badge-success]="info.sourceFileExists"
+              [class.status-badge-danger]="!info.sourceFileExists"
+            >
+              {{ info.sourceFileExists ? 'Kaynak Dosya Mevcut' : 'Kaynak Dosya Yok' }}
+            </span>
+          </div>
+          <div class="info-grid">
+            <div class="info-item">
+              <span class="info-label">Dosya Adi:</span>
+              <span class="info-val"><code>{{ info.fileName }}</code></span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Kaynak Yol:</span>
+              <span class="info-val"><code>{{ info.sourceFilePath }}</code></span>
+            </div>
+            <div class="info-item" *ngIf="info.sourceFileExists">
+              <span class="info-label">Dosya Boyutu:</span>
+              <span class="info-val">{{ info.sourceFileSizeBytes | number }} byte</span>
+            </div>
+            <div class="info-item" *ngIf="info.sourceFileLastModified">
+              <span class="info-label">Son Degistirilme:</span>
+              <span class="info-val">{{ info.sourceFileLastModified | date:'dd.MM.yyyy HH:mm:ss' }}</span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Hedef Yol:</span>
+              <span class="info-val"><code>{{ info.destinationFilePath }}</code></span>
+            </div>
+            <div class="info-item">
+              <span class="info-label">Hedef Durumu:</span>
+              <span
+                class="status-badge"
+                [class.status-badge-warning]="info.destinationFileExists"
+                [class.status-badge-neutral]="!info.destinationFileExists"
+              >
+                {{ info.destinationFileExists ? 'Hedefte Zaten Dosya Var' : 'Hedefte Henuz Yok' }}
+              </span>
+            </div>
+          </div>
+        </article>
+
+        <!-- Dosya Icerigi Goruntuleyici -->
+        <article class="surface-card icerik-card" *ngIf="dosyaIcerik() as icerik">
+          <div class="card-header">
+            <h4><i class="fa-solid fa-code"></i> Dosya Icerigi (Ilk {{ icerik.lines.length }} / {{ icerik.totalLines }} Satir)</h4>
+            <span class="subtitle">{{ icerik.fileName }}</span>
+          </div>
+          <div class="file-content-viewer">
+            <pre class="file-pre"><code><span *ngFor="let line of icerik.lines; let i = index" class="file-line"><span class="line-num">{{ i + 1 }}</span>{{ line }}</span></code></pre>
+          </div>
+        </article>
+      </section>
+
+      <!-- 6. EK RAPORLAR VE KONTROLLER PANELI -->
+      <section class="tab-panel ek-raporlar-panel" *ngSwitchCase="'ek-raporlar'">
+        <!-- Alt Sekmeler -->
+        <div class="sub-tabs-bar">
+          <button
+            type="button"
+            class="sub-tab-btn"
+            [class.is-active]="activeEkRaporTab() === 'kasa-z-detay'"
+            (click)="selectEkRaporTab('kasa-z-detay')"
+          >
+            <i class="fa-solid fa-receipt"></i> Kasa Z Detay
+          </button>
+          <button
+            type="button"
+            class="sub-tab-btn"
+            [class.is-active]="activeEkRaporTab() === 'birlik-kart'"
+            (click)="selectEkRaporTab('birlik-kart')"
+          >
+            <i class="fa-solid fa-id-card"></i> Birlik Kart
+          </button>
+          <button
+            type="button"
+            class="sub-tab-btn"
+            [class.is-active]="activeEkRaporTab() === 'fis-iptal'"
+            (click)="selectEkRaporTab('fis-iptal')"
+          >
+            <i class="fa-solid fa-ban"></i> Fis / Belge Iptalleri
+          </button>
+          <button
+            type="button"
+            class="sub-tab-btn"
+            [class.is-active]="activeEkRaporTab() === 'gider-pusulasi'"
+            (click)="selectEkRaporTab('gider-pusulasi')"
+          >
+            <i class="fa-solid fa-file-invoice"></i> Gider Pusulasi
+          </button>
+          <button
+            type="button"
+            class="sub-tab-btn"
+            [class.is-active]="activeEkRaporTab() === 'trendyol'"
+            (click)="selectEkRaporTab('trendyol')"
+          >
+            <i class="fa-solid fa-bag-shopping"></i> Trendyol Satislari
+          </button>
+          <button
+            type="button"
+            class="sub-tab-btn"
+            [class.is-active]="activeEkRaporTab() === 'nakit'"
+            (click)="selectEkRaporTab('nakit')"
+          >
+            <i class="fa-solid fa-money-bill-wave"></i> Nakit Raporu
+          </button>
+        </div>
+
+        <!-- Filtre Cubugu -->
+        <form class="filter-card" [formGroup]="ekRaporFilterForm">
+          <div class="filter-grid">
+            <div class="field-group" *ngIf="activeEkRaporTab() !== 'nakit'">
+              <label for="ekRaporBranchSelect">Sube</label>
+              <select id="ekRaporBranchSelect" formControlName="branchNo">
+                <option [ngValue]="null">
+                  {{ activeEkRaporTab() === 'kasa-z-detay' ? 'Sube Seciniz (Zorunlu)' : 'Tum Subeler' }}
+                </option>
+                <option *ngFor="let branch of branches()" [ngValue]="branch.branchNo">
+                  {{ branch.branchNo }} - {{ branch.branchName }}
+                </option>
+              </select>
+            </div>
+
+            <!-- Tek gunluk filtre (Kasa Z, Birlik Kart, Trendyol, Nakit) -->
+            <div class="field-group" *ngIf="activeEkRaporTab() !== 'fis-iptal' && activeEkRaporTab() !== 'gider-pusulasi'">
+              <label for="ekRaporDate">Tarih</label>
+              <input id="ekRaporDate" type="date" formControlName="date" />
+            </div>
+
+            <!-- Tarih Araligi (Fis Iptal, Gider Pusulasi) -->
+            <ng-container *ngIf="activeEkRaporTab() === 'fis-iptal' || activeEkRaporTab() === 'gider-pusulasi'">
+              <div class="field-group">
+                <label for="ekRaporStartDate">Baslangic Tarihi</label>
+                <input id="ekRaporStartDate" type="date" formControlName="startDate" />
+              </div>
+              <div class="field-group">
+                <label for="ekRaporEndDate">Bitis Tarihi</label>
+                <input id="ekRaporEndDate" type="date" formControlName="endDate" />
+              </div>
+            </ng-container>
+          </div>
+
+          <div class="filter-actions">
+            <button
+              type="button"
+              class="btn btn-primary"
+              [disabled]="kasaZDetayLoading() || birlikKartLoading() || fisIptalLoading() || giderPusulasiLoading() || trendyolLoading() || nakitLoading()"
+              (click)="fetchEkRapor()"
+            >
+              <i class="fa-solid fa-magnifying-glass"></i> Sorgula
+            </button>
+            <button
+              type="button"
+              class="btn btn-outline"
+              (click)="exportEkRaporExcel()"
+            >
+              <i class="fa-solid fa-file-excel"></i> Excel / CSV Indir
+            </button>
+          </div>
+        </form>
+
+        <!-- 1. Kasa Z Detay Raporu Tablosu -->
+        <article class="surface-card" *ngIf="activeEkRaporTab() === 'kasa-z-detay'">
+          <div class="summary-cards" *ngIf="kasaZDetayReport() as rep">
+            <div class="summary-card">
+              <span class="label">Sube</span>
+              <span class="value">{{ rep.branchNo }} - {{ rep.branchName }}</span>
+            </div>
+            <div class="summary-card">
+              <span class="label">Kasa Sayisi</span>
+              <span class="value">{{ rep.rows.length | number }}</span>
+            </div>
+            <div class="summary-card">
+              <span class="label">Toplam Z Tutari</span>
+              <span class="value">{{ rep.totalAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="table-wrap" *ngIf="kasaZDetayReport() as rep">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Kasa No</th>
+                  <th class="num">Z Tutari</th>
+                  <th>Belge Seri - Sira</th>
+                  <th>Aciklama</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rep.rows">
+                  <td><strong>Kasa {{ row.kasaNo }}</strong></td>
+                  <td class="num"><strong>{{ row.zTutari | currency:'TRY':'symbol-narrow':'1.2-2' }}</strong></td>
+                  <td>{{ row.documentSeries }} - {{ row.documentSequence }}</td>
+                  <td>{{ row.description }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- 2. Birlik Kart Raporu Tablosu -->
+        <article class="surface-card" *ngIf="activeEkRaporTab() === 'birlik-kart'">
+          <div class="summary-cards" *ngIf="birlikKartReport() as rep">
+            <div class="summary-card">
+              <span class="label">Toplam Islem</span>
+              <span class="value">{{ rep.totalCount | number }}</span>
+            </div>
+            <div class="summary-card">
+              <span class="label">Toplam Tutar</span>
+              <span class="value">{{ rep.totalAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="table-wrap" *ngIf="birlikKartReport() as rep">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Sube No</th>
+                  <th>Sube Adi</th>
+                  <th>Kasa No</th>
+                  <th>Mali Bellek</th>
+                  <th>Cek Numarasi</th>
+                  <th class="num">Tutar</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rep.rows">
+                  <td>{{ row.branchNo }}</td>
+                  <td>{{ row.branchName }}</td>
+                  <td>{{ row.cashRegisterNo }}</td>
+                  <td>{{ row.kasaMaliBellekKodu }}</td>
+                  <td><code>{{ row.cekNumarasi }}</code></td>
+                  <td class="num"><strong>{{ row.tutar | currency:'TRY':'symbol-narrow':'1.2-2' }}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- 3. Fis / Belge Iptalleri Tablosu & Detay -->
+        <article class="surface-card" *ngIf="activeEkRaporTab() === 'fis-iptal'">
+          <div class="summary-cards" *ngIf="fisIptalReport() as rep">
+            <div class="summary-card">
+              <span class="label">Iptal Belge Sayisi</span>
+              <span class="value">{{ rep.totalCount | number }}</span>
+            </div>
+            <div class="summary-card">
+              <span class="label">Toplam Iptal Tutari</span>
+              <span class="value">{{ rep.totalAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="table-wrap" *ngIf="fisIptalReport() as rep">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Sube</th>
+                  <th>Kasa</th>
+                  <th>Z No</th>
+                  <th>Fis No</th>
+                  <th>Kasiyer</th>
+                  <th class="num">Tutar</th>
+                  <th>Islem</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rep.rows">
+                  <td>{{ row.tarih | date:'dd.MM.yyyy' }} {{ row.saat }}</td>
+                  <td>{{ row.branchNo }} - {{ row.branchName }}</td>
+                  <td>{{ row.kasaNo }}</td>
+                  <td>{{ row.zNo }}</td>
+                  <td><code>{{ row.fisNo }}</code></td>
+                  <td>{{ row.cashierCode }} - {{ row.cashierName }}</td>
+                  <td class="num text-danger"><strong>{{ row.tutar | currency:'TRY':'symbol-narrow':'1.2-2' }}</strong></td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline"
+                      (click)="viewFisIptalDetay(row)"
+                    >
+                      <i class="fa-solid fa-eye"></i> Detay
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Fis Iptal Detay Modal/Kart -->
+          <div class="detail-modal-overlay" *ngIf="selectedFisIptalDetay() as detail">
+            <div class="detail-modal surface-card">
+              <div class="detail-modal-header">
+                <h3>Iptal Fis Detayi</h3>
+                <button type="button" class="btn-close" (click)="closeFisIptalDetay()">&times;</button>
+              </div>
+              <div class="detail-modal-body">
+                <p><strong>Tarih:</strong> {{ detail.tarih | date:'dd.MM.yyyy' }} {{ detail.saat }} | <strong>Sube:</strong> {{ detail.branchNo }} - {{ detail.branchName }} | <strong>Kasa:</strong> {{ detail.kasaNo }} | <strong>Toplam:</strong> {{ detail.toplamTutar | currency:'TRY':'symbol-narrow':'1.2-2' }}</p>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Barkod</th>
+                      <th>Urun Adi</th>
+                      <th class="num">Miktar</th>
+                      <th class="num">Birim Fiyat</th>
+                      <th class="num">Tutar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let line of detail.lines">
+                      <td><code>{{ line.barcode }}</code></td>
+                      <td>{{ line.productName }}</td>
+                      <td class="num">{{ line.quantity | number }}</td>
+                      <td class="num">{{ line.unitPrice | currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                      <td class="num">{{ line.lineTotal | currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- 4. Gider Pusulasi Tablosu & Detay -->
+        <article class="surface-card" *ngIf="activeEkRaporTab() === 'gider-pusulasi'">
+          <div class="summary-cards" *ngIf="giderPusulasiReport() as rep">
+            <div class="summary-card">
+              <span class="label">Pusula Sayisi</span>
+              <span class="value">{{ rep.totalCount | number }}</span>
+            </div>
+            <div class="summary-card">
+              <span class="label">Toplam Tutar</span>
+              <span class="value">{{ rep.totalAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="table-wrap" *ngIf="giderPusulasiReport() as rep">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Sube</th>
+                  <th>Kasa</th>
+                  <th>Fis No</th>
+                  <th>Kasiyer</th>
+                  <th class="num">Tutar</th>
+                  <th>Islem</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rep.rows">
+                  <td>{{ row.tarih | date:'dd.MM.yyyy' }} {{ row.saat }}</td>
+                  <td>{{ row.branchNo }} - {{ row.branchName }}</td>
+                  <td>{{ row.kasaNo }}</td>
+                  <td><code>{{ row.fisNo }}</code></td>
+                  <td>{{ row.cashierCode }} - {{ row.cashierName }}</td>
+                  <td class="num"><strong>{{ row.tutar | currency:'TRY':'symbol-narrow':'1.2-2' }}</strong></td>
+                  <td>
+                    <button
+                      type="button"
+                      class="btn btn-sm btn-outline"
+                      (click)="viewGiderPusulasiDetay(row)"
+                    >
+                      <i class="fa-solid fa-eye"></i> Detay
+                    </button>
+                  </td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+
+          <!-- Gider Pusulasi Detay Modal/Kart -->
+          <div class="detail-modal-overlay" *ngIf="selectedGiderPusulasiDetay() as detail">
+            <div class="detail-modal surface-card">
+              <div class="detail-modal-header">
+                <h3>Gider Pusulasi Detayi</h3>
+                <button type="button" class="btn-close" (click)="closeGiderPusulasiDetay()">&times;</button>
+              </div>
+              <div class="detail-modal-body">
+                <p><strong>Tarih:</strong> {{ detail.tarih | date:'dd.MM.yyyy' }} {{ detail.saat }} | <strong>Sube:</strong> {{ detail.branchNo }} - {{ detail.branchName }} | <strong>Kasa:</strong> {{ detail.kasaNo }} | <strong>Toplam:</strong> {{ detail.toplamTutar | currency:'TRY':'symbol-narrow':'1.2-2' }}</p>
+                <table class="data-table">
+                  <thead>
+                    <tr>
+                      <th>Urun Kodu</th>
+                      <th>Barkod</th>
+                      <th>Urun Adi</th>
+                      <th class="num">Miktar</th>
+                      <th class="num">Fiyat</th>
+                      <th class="num">Tutar</th>
+                    </tr>
+                  </thead>
+                  <tbody>
+                    <tr *ngFor="let line of detail.lines">
+                      <td><code>{{ line.productCode }}</code></td>
+                      <td><code>{{ line.barcode }}</code></td>
+                      <td>{{ line.productName }}</td>
+                      <td class="num">{{ line.quantity | number }}</td>
+                      <td class="num">{{ line.unitPrice | currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                      <td class="num">{{ line.lineTotal | currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                    </tr>
+                  </tbody>
+                </table>
+              </div>
+            </div>
+          </div>
+        </article>
+
+        <!-- 5. Trendyol Satislari Tablosu -->
+        <article class="surface-card" *ngIf="activeEkRaporTab() === 'trendyol'">
+          <div class="summary-cards" *ngIf="trendyolReport() as rep">
+            <div class="summary-card">
+              <span class="label">Satis Adedi</span>
+              <span class="value">{{ rep.totalCount | number }}</span>
+            </div>
+            <div class="summary-card">
+              <span class="label">Toplam Ciro</span>
+              <span class="value">{{ rep.totalAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="table-wrap" *ngIf="trendyolReport() as rep">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Tarih</th>
+                  <th>Sube No</th>
+                  <th>Sube Adi</th>
+                  <th>Kasa No</th>
+                  <th>Fis No</th>
+                  <th>Kasiyer</th>
+                  <th class="num">Tutar</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rep.rows">
+                  <td>{{ row.tarih | date:'dd.MM.yyyy' }}</td>
+                  <td>{{ row.branchNo }}</td>
+                  <td>{{ row.branchName }}</td>
+                  <td>{{ row.kasaNo }}</td>
+                  <td>{{ row.fisNo }}</td>
+                  <td>{{ row.cashierName }}</td>
+                  <td class="num"><strong>{{ row.tutar | currency:'TRY':'symbol-narrow':'1.2-2' }}</strong></td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
+        </article>
+
+        <!-- 6. Nakit Raporu Tablosu -->
+        <article class="surface-card" *ngIf="activeEkRaporTab() === 'nakit'">
+          <div class="summary-cards" *ngIf="nakitReport() as rep">
+            <div class="summary-card">
+              <span class="label">Sube Sayisi</span>
+              <span class="value">{{ rep.totalCount | number }}</span>
+            </div>
+            <div class="summary-card">
+              <span class="label">Genel Nakit Toplami</span>
+              <span class="value">{{ rep.totalAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+            </div>
+          </div>
+          <div class="table-wrap" *ngIf="nakitReport() as rep">
+            <table class="data-table">
+              <thead>
+                <tr>
+                  <th>Sube No</th>
+                  <th>Sube Adi</th>
+                  <th class="num">Nakit Toplami</th>
+                  <th>Aciklama</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of rep.rows">
+                  <td>{{ row.branchNo }}</td>
+                  <td>{{ row.branchName }}</td>
+                  <td class="num"><strong>{{ row.nakitTutar | currency:'TRY':'symbol-narrow':'1.2-2' }}</strong></td>
+                  <td>{{ row.description }}</td>
+                </tr>
+              </tbody>
+            </table>
+          </div>
         </article>
       </section>
     </ng-container>

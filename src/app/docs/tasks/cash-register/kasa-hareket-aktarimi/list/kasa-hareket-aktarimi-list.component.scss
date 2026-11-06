@@ -1529,3 +1529,278 @@
   }
 }
 
+/* --- Ek Raporlar & Dosya Kopyalama Sekmeleri --- */
+.sub-tabs-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-bottom: 0.8rem;
+  padding: 0.4rem;
+  background: #f1f5f9;
+  border-radius: 8px;
+}
+
+.sub-tab-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.4rem;
+  padding: 0.45rem 0.9rem;
+  font-size: 0.84rem;
+  font-weight: 500;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  cursor: pointer;
+  transition: all 0.15s ease-in-out;
+
+  &:hover {
+    background: #e2e8f0;
+    color: #1e293b;
+  }
+
+  &.is-active {
+    background: #ffffff;
+    color: var(--transfer-accent);
+    border-color: #cbd5e1;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.05);
+    font-weight: 600;
+  }
+}
+
+.btn-accent {
+  background: #0f766e;
+  color: #fff;
+  border: 1px solid #0f766e;
+
+  &:hover:not(:disabled) {
+    background: #0d655e;
+  }
+}
+
+/* Dosya Bilgisi & Icerik */
+.info-card {
+  padding: 1rem;
+  margin-top: 0.8rem;
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.8rem;
+
+    h4 {
+      margin: 0;
+      font-size: 0.95rem;
+      display: flex;
+      align-items: center;
+      gap: 0.4rem;
+    }
+  }
+}
+
+.info-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(320px, 1fr));
+  gap: 0.6rem;
+}
+
+.info-item {
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.82rem;
+
+  .info-label {
+    font-weight: 600;
+    color: #64748b;
+    min-width: 120px;
+  }
+
+  .info-val {
+    color: #1e293b;
+    word-break: break-all;
+  }
+}
+
+.status-badge {
+  padding: 0.2rem 0.6rem;
+  border-radius: 999px;
+  font-size: 0.75rem;
+  font-weight: 600;
+
+  &-success {
+    background: #dcfce7;
+    color: #166534;
+  }
+
+  &-danger {
+    background: #fee2e2;
+    color: #991b1b;
+  }
+
+  &-warning {
+    background: #fef3c7;
+    color: #92400e;
+  }
+
+  &-neutral {
+    background: #f1f5f9;
+    color: #475569;
+  }
+}
+
+.icerik-card {
+  padding: 1rem;
+  margin-top: 0.8rem;
+
+  .card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 0.5rem;
+
+    h4 {
+      margin: 0;
+      font-size: 0.95rem;
+    }
+
+    .subtitle {
+      font-size: 0.8rem;
+      color: #64748b;
+    }
+  }
+}
+
+.file-content-viewer {
+  max-height: 400px;
+  overflow: auto;
+  background: #0f172a;
+  color: #f8fafc;
+  border-radius: 6px;
+  padding: 0.6rem;
+
+  .file-pre {
+    margin: 0;
+    font-family: Consolas, monospace;
+    font-size: 0.78rem;
+    line-height: 1.4;
+  }
+
+  .file-line {
+    display: block;
+    white-space: pre-wrap;
+
+    .line-num {
+      display: inline-block;
+      width: 40px;
+      color: #64748b;
+      user-select: none;
+      text-align: right;
+      margin-right: 12px;
+    }
+  }
+}
+
+/* Ozet Kartlari */
+.summary-cards {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.8rem;
+  background: #f8fafc;
+  border-bottom: 1px solid #e2e8f0;
+}
+
+.summary-card {
+  display: flex;
+  flex-direction: column;
+  padding: 0.5rem 0.8rem;
+  background: #fff;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  min-width: 140px;
+
+  .label {
+    font-size: 0.72rem;
+    color: #64748b;
+    text-transform: uppercase;
+    font-weight: 600;
+  }
+
+  .value {
+    font-size: 1rem;
+    font-weight: 700;
+    color: #1e293b;
+    margin-top: 0.2rem;
+  }
+
+  &.diff-card .value {
+    color: #dc2626;
+  }
+}
+
+.row-diff {
+  background-color: #fff7ed !important;
+}
+
+.cell-diff {
+  color: #dc2626 !important;
+}
+
+/* Detay Modali */
+.detail-modal-overlay {
+  position: fixed;
+  inset: 0;
+  background: rgba(15, 23, 42, 0.45);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+  backdrop-filter: blur(2px);
+}
+
+.detail-modal {
+  background: #fff;
+  border-radius: 10px;
+  width: 90%;
+  max-width: 800px;
+  max-height: 85vh;
+  display: flex;
+  flex-direction: column;
+  box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);
+  overflow: hidden;
+
+  .detail-modal-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    padding: 0.8rem 1.2rem;
+    border-bottom: 1px solid #e2e8f0;
+
+    h3 {
+      margin: 0;
+      font-size: 1rem;
+      color: #1e293b;
+    }
+
+    .btn-close {
+      background: none;
+      border: none;
+      font-size: 1.4rem;
+      cursor: pointer;
+      color: #64748b;
+      line-height: 1;
+
+      &:hover {
+        color: #0f172a;
+      }
+    }
+  }
+
+  .detail-modal-body {
+    padding: 1rem 1.2rem;
+    overflow-y: auto;
+  }
+}
+
