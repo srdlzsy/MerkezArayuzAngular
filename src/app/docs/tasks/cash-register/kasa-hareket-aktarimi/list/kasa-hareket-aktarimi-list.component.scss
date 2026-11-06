@@ -1,5 +1,7 @@
 :host {
   display: block;
+  min-width: 0;
+  max-width: 100%;
   --transfer-border: #d9e2dc;
   --transfer-soft: #f7faf8;
   --transfer-ink: #14211b;
@@ -12,6 +14,8 @@
 .task-page {
   display: block;
   padding: 0;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .surface-card {
@@ -19,12 +23,16 @@
   border-radius: 8px;
   background: #fff;
   box-shadow: none;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .transfer-workspace {
   display: grid;
   gap: 0.45rem;
   padding: 0.55rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .page-head {
@@ -291,6 +299,8 @@
 .tab-panel {
   display: grid;
   gap: 0.58rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .technical-field {
@@ -436,9 +446,14 @@
 .issue-table-wrap {
   width: 100%;
   max-width: 100%;
+  overflow-x: auto;
+  box-sizing: border-box;
 }
 
 .issue-table {
+  width: 100%;
+  max-width: 100%;
+  min-width: 0;
   table-layout: fixed;
 }
 
@@ -455,19 +470,24 @@
 .issue-table td:nth-child(5),
 .issue-table th:nth-child(6),
 .issue-table td:nth-child(6) {
-  width: 64px;
+  width: 60px;
 }
 
 .issue-table th:nth-child(4),
 .issue-table td:nth-child(4) {
-  width: 132px;
+  width: 110px;
+}
+
+.issue-table th:nth-child(7),
+.issue-table td:nth-child(7) {
+  width: auto;
 }
 
 .issue-table .issue-message-cell {
   min-width: 0;
-  white-space: normal;
-  overflow-wrap: anywhere;
-  word-break: break-word;
+  white-space: normal !important;
+  overflow-wrap: anywhere !important;
+  word-break: break-all !important;
   line-height: 1.4;
 }
 
@@ -859,6 +879,8 @@
   grid-template-columns: minmax(0, 1.25fr) minmax(340px, 0.95fr);
   gap: 0.85rem;
   align-items: start;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .aktarim-left-column,
@@ -866,6 +888,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .filter-box,
@@ -1357,6 +1381,8 @@
   display: flex;
   flex-direction: column;
   gap: 0.75rem;
+  min-width: 0;
+  max-width: 100%;
 }
 
 .proc-head {
@@ -1371,6 +1397,8 @@
   font-size: 0.84rem;
   color: #1e293b;
   font-weight: 600;
+  overflow-wrap: anywhere;
+  word-break: break-word;
 }
 
 .proc-meta {

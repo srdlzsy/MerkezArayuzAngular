@@ -815,7 +815,6 @@ export interface KasaHareketNakitRowDto {
   nakitTutar: number;
   description: string;
 }
-}
 
 export type KasaHareketCashSummaryComparisonStatus =
   | 'balanced'
