@@ -201,6 +201,9 @@ export class TrendyolGoListComponent {
   protected readonly directChangedCount = computed(
     () => this.directItems().filter((item) => item.priceChangedFlag).length
   );
+  protected readonly directSaleBlockedCount = computed(
+    () => this.directItems().filter((item) => (item.salesBlocked ?? 0) !== 0).length
+  );
   protected readonly directZeroStockCount = computed(
     () => this.directItems().filter((item) => item.quantity <= 0).length
   );
@@ -1392,9 +1395,16 @@ export class TrendyolGoListComponent {
     }
 
     if (result.success) {
-      return result.workflowStatus === 'CatalogAndPriceStockQueued'
-        ? 'Katalog ve fiyat/stok bekleniyor'
-        : 'TGO sonucu bekleniyor';
+      if (result.workflowStatus === 'CatalogAndPriceStockQueued') {
+        return 'Katalog ve fiyat/stok bekleniyor';
+      }
+      if (result.workflowStatus === 'SaleOffQueued') {
+        return 'Satis kapatma sonucu bekleniyor';
+      }
+      if (result.workflowStatus === 'PriceStockAndSaleOffQueued') {
+        return 'Fiyat/stok ve kapatma sonucu bekleniyor';
+      }
+      return 'TGO sonucu bekleniyor';
     }
 
     if (this.isCatalogPending(result)) {
@@ -1427,7 +1437,14 @@ export class TrendyolGoListComponent {
     if (item.status === 'PartiallySucceeded') return 'Kismi hata';
     if (item.status === 'Failed') return 'Hata';
     if (item.kind === 'CatalogThenPriceStock') return 'Katalog bekleniyor';
+    if (item.kind === 'SaleStatus') return 'Satis kapatma sonucu bekleniyor';
     return item.status === 'Processing' ? 'Kontrol ediliyor' : 'TGO sonucu bekleniyor';
+  }
+
+  protected batchWorkflowKindLabel(item: ITrendyolGoBatchWorkflowApiDto): string {
+    if (item.kind === 'CatalogThenPriceStock') return 'Katalog -> Fiyat/Stok -> Sube';
+    if (item.kind === 'SaleStatus') return 'Satis Kapatma -> Sube';
+    return 'Fiyat/Stok -> Sube';
   }
 
   protected getStoreLabelForWarehouse(warehouseNo: number, storeId?: number): string {

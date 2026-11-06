@@ -696,7 +696,7 @@
           <span>Fiyat Filtresi</span>
           <select formControlName="mode">
             <option value="changed">Sadece Degisenler</option>
-            <option value="all">Tum Aktif Fiyatlar</option>
+            <option value="all">Tum Fiyatlar ve Kapatilanlar</option>
           </select>
         </label>
         <label class="field compact-field" *ngIf="directPriceStockForm.controls.mode.value === 'changed'">
@@ -748,7 +748,7 @@
       <p class="price-stock-note">
         <i class="fa-solid fa-bolt"></i>
         <span>
-          <strong>Dogrudan Gonderim:</strong> Trendyol Go katalog taramasi beklenmeden, Mikro ERP'deki satis fiyatlari ve anlik depo stok miktarlari dogrudan okunur ve 1000'erli paketler halinde gonderilir.
+          <strong>Dogrudan Gonderim:</strong> Acik urunlerin fiyat ve stoklari gonderilir; Mikro'da satisi durdurulan urunler Trendyol Go'da magazaya ozel olarak satis kapatma akisina alinir.
         </span>
       </p>
 
@@ -823,6 +823,7 @@
           <div class="summary-metrics">
             <span class="metric-pill">Toplam Bulunan: <strong>{{ preview.totalCount }}</strong></span>
             <span class="metric-pill is-highlight">Fiyati Degisen: <strong>{{ directChangedCount() }}</strong></span>
+            <span class="metric-pill">Kapatilacak: <strong>{{ directSaleBlockedCount() }}</strong></span>
             <span class="metric-pill">Sifir Stoklu: <strong>{{ directZeroStockCount() }}</strong></span>
             <span class="metric-pill">Magaza Rezervi: <strong>{{ preview.stockReserveQuantity }}</strong></span>
             <span class="metric-pill is-selected-pill">Secili: <strong>{{ selectedDirectCount() }}</strong></span>
@@ -862,7 +863,7 @@
                 <th class="numeric">Depo Stok</th>
                 <th class="numeric">Rezerv</th>
                 <th class="numeric">TGO'ya Gidecek</th>
-                <th>Fiyat Bayragi</th>
+                <th>Gonderim Islemi</th>
                 <th>Son Fiyat Guncelleme</th>
               </tr>
             </thead>
@@ -892,8 +893,12 @@
                   <strong [class.zero-qty]="item.quantity <= 0">{{ item.quantity | number:'1.0-3' }}</strong>
                 </td>
                 <td>
-                  <span class="status-pill" [class.is-ready]="item.priceChangedFlag">
-                    {{ item.priceChangedFlag ? 'Degisti (1)' : 'Standart (0)' }}
+                  <span
+                    class="status-pill"
+                    [class.is-ready]="item.priceChangedFlag && !(item.salesBlocked || 0)"
+                    [class.is-pending]="(item.salesBlocked || 0) !== 0"
+                  >
+                    {{ (item.salesBlocked || 0) !== 0 ? 'Satisi Kapat' : (item.priceChangedFlag ? 'Fiyat/Stok Guncelle' : 'Fiyat/Stok Gonder') }}
                   </span>
                 </td>
                 <td>{{ item.priceLastUpDate ? (item.priceLastUpDate | date:'dd.MM.yyyy HH:mm') : '-' }}</td>
@@ -1249,7 +1254,7 @@
           <tbody>
             <tr *ngFor="let item of batchWorkflows()">
               <td><strong>{{ getStoreLabelForWarehouse(item.warehouseNo, item.storeId) }}</strong></td>
-              <td>{{ item.kind === 'CatalogThenPriceStock' ? 'Katalog -> Fiyat/Stok -> Sube' : 'Fiyat/Stok -> Sube' }}</td>
+              <td>{{ batchWorkflowKindLabel(item) }}</td>
               <td>
                 <span
                   class="status-pill"
@@ -1557,7 +1562,7 @@
             <td><strong>{{ getStoreLabelForWarehouse(item.warehouseNo, item.storeId) }}</strong></td>
             <td>
               <span class="workflow-kind-badge">
-                {{ item.kind === 'CatalogThenPriceStock' ? 'Katalog -> Fiyat/Stok -> Sube' : 'Fiyat/Stok -> Sube' }}
+                {{ batchWorkflowKindLabel(item) }}
               </span>
             </td>
             <td>
