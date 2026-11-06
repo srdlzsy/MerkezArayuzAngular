@@ -582,6 +582,241 @@ export interface KasaHareketSalesComparisonRowDto {
   hasDifference: boolean;
 }
 
+export interface KasaHareketSatisMutabakatReportDto {
+  date: string;
+  branchNo: number | null;
+  summary: KasaHareketSatisMutabakatSummaryDto;
+  rows: KasaHareketSatisMutabakatRowDto[];
+}
+
+export interface KasaHareketSatisMutabakatSummaryDto {
+  totalBranches: number;
+  balancedCount: number;
+  differenceCount: number;
+  duplicateTransferCount: number;
+  missingTransferCount: number;
+  totalAraTabloTutar: number;
+  totalGiderPusulasiTutar: number;
+  totalGPSHaricTutar: number;
+  totalAktarilanTutar: number;
+  totalNakit: number;
+  totalKrediKarti: number;
+  totalYemekKarti: number;
+  totalHediyeKarti: number;
+  totalZRaporuTutari: number;
+  totalGercekKasaFarki: number;
+}
+
+export interface KasaHareketSatisMutabakatRowDto {
+  date: string;
+  branchNo: number;
+  branchName: string;
+  araTabloTutar: number;
+  giderPusulasiTutar: number;
+  gpsHaricTutar: number;
+  aktarilanTutar: number;
+  nakit: number;
+  krediKarti: number;
+  yemekKarti: number;
+  hediyeKarti: number;
+  zRaporuTutari: number;
+  gercekKasaFarki: number;
+  durum: string;
+  farkSebebi: string;
+}
+
+export interface KasaHareketDosyaBilgiDto {
+  branchNo: number;
+  branchName: string;
+  cashRegisterNo: number;
+  formattedKasaNo: string;
+  date: string;
+  fileName: string;
+  branchIpAddress: string;
+  posGenelFolderPath: string;
+  sourceFilePath: string;
+  sourceFileExists: boolean;
+  sourceFileSizeBytes: number | null;
+  sourceFileLastModified: string | null;
+  centralFolderPath: string;
+  destinationFilePath: string;
+  destinationFileExists: boolean;
+  destinationFileSizeBytes: number | null;
+  destinationFileLastModified: string | null;
+}
+
+export interface KasaHareketDosyaKopyalaResultDto {
+  success: boolean;
+  message: string;
+  sourceFilePath: string;
+  destinationFilePath: string;
+  bytesCopied: number;
+  elapsedMilliseconds: number;
+}
+
+export interface KasaHareketDosyaIcerikDto {
+  fileName: string;
+  filePath: string;
+  readFrom: string;
+  totalLines: number;
+  displayedLines: number;
+  lines: string[];
+}
+
+export interface KasaHareketKasaZDetayReportDto {
+  date: string;
+  branchNo: number;
+  branchName: string;
+  totalAmount: number;
+  rows: KasaHareketKasaZDetayRowDto[];
+}
+
+export interface KasaHareketKasaZDetayRowDto {
+  branchNo: number;
+  kasaNo: string;
+  zTutari: number;
+  documentSeries: string;
+  documentSequence: number;
+  description: string;
+}
+
+export interface KasaHareketBirlikKartReportDto {
+  date: string;
+  branchNo: number | null;
+  totalAmount: number;
+  totalCount: number;
+  rows: KasaHareketBirlikKartRowDto[];
+}
+
+export interface KasaHareketBirlikKartRowDto {
+  branchNo: number;
+  branchName: string;
+  kasaMaliBellekKodu: string;
+  cashRegisterNo: number;
+  tutar: number;
+  cekNumarasi: string;
+}
+
+export interface KasaHareketFisIptalReportDto {
+  startDate: string;
+  endDate: string;
+  branchNo: number | null;
+  totalAmount: number;
+  totalCount: number;
+  rows: KasaHareketFisIptalRowDto[];
+}
+
+export interface KasaHareketFisIptalRowDto {
+  regionCode: string;
+  branchNo: number;
+  branchName: string;
+  tarih: string;
+  saat: string;
+  zNo: number;
+  fisNo: number;
+  kasaNo: number;
+  tutar: number;
+  cashierName: string;
+  cashierCode: number;
+  faturaGuid: string;
+}
+
+export interface KasaHareketFisIptalDetailDto {
+  faturaGuid: string;
+  tarih: string;
+  saat: string;
+  branchNo: number;
+  branchName: string;
+  kasaNo: number;
+  cashierName: string;
+  toplamTutar: number;
+  lines: KasaHareketFisIptalLineDto[];
+}
+
+export interface KasaHareketFisIptalLineDto {
+  barcode: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface KasaHareketGiderPusulasiReportDto {
+  startDate: string;
+  endDate: string;
+  branchNo: number | null;
+  totalAmount: number;
+  totalCount: number;
+  rows: KasaHareketGiderPusulasiRowDto[];
+}
+
+export interface KasaHareketGiderPusulasiRowDto {
+  branchNo: number;
+  branchName: string;
+  tarih: string;
+  saat: string;
+  fisNo: number;
+  kasaNo: number;
+  cashierCode: number;
+  cashierName: string;
+  tutar: number;
+  faturaGuid: string;
+}
+
+export interface KasaHareketGiderPusulasiDetailDto {
+  faturaGuid: string;
+  tarih: string;
+  saat: string;
+  branchNo: number;
+  branchName: string;
+  kasaNo: number;
+  cashierName: string;
+  toplamTutar: number;
+  lines: KasaHareketGiderPusulasiLineDto[];
+}
+
+export interface KasaHareketGiderPusulasiLineDto {
+  productCode: string;
+  barcode: string;
+  productName: string;
+  quantity: number;
+  unitPrice: number;
+  lineTotal: number;
+}
+
+export interface KasaHareketTrendyolReportDto {
+  date: string;
+  branchNo: number | null;
+  totalAmount: number;
+  totalCount: number;
+  rows: KasaHareketTrendyolRowDto[];
+}
+
+export interface KasaHareketTrendyolRowDto {
+  branchNo: number;
+  branchName: string;
+  tarih: string;
+  fisNo: number;
+  kasaNo: number;
+  cashierName: string;
+  tutar: number;
+}
+
+export interface KasaHareketNakitReportDto {
+  date: string;
+  totalAmount: number;
+  totalCount: number;
+  rows: KasaHareketNakitRowDto[];
+}
+
+export interface KasaHareketNakitRowDto {
+  branchNo: number;
+  branchName: string;
+  nakitTutar: number;
+  description: string;
+}
+}
+
 export type KasaHareketCashSummaryComparisonStatus =
   | 'balanced'
   | 'difference'

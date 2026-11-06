@@ -59,6 +59,18 @@ import {
   KasaHareketReportSummaryDto,
   KasaHareketSalesComparisonDto,
   KasaHareketSalesComparisonHttpRequest,
+  KasaHareketSatisMutabakatReportDto,
+  KasaHareketDosyaBilgiDto,
+  KasaHareketDosyaKopyalaResultDto,
+  KasaHareketDosyaIcerikDto,
+  KasaHareketKasaZDetayReportDto,
+  KasaHareketBirlikKartReportDto,
+  KasaHareketFisIptalReportDto,
+  KasaHareketFisIptalDetailDto,
+  KasaHareketGiderPusulasiReportDto,
+  KasaHareketGiderPusulasiDetailDto,
+  KasaHareketTrendyolReportDto,
+  KasaHareketNakitReportDto,
   KasaHareketScheduledImportHttpRequest,
   KasaHareketTransferStatusDto,
   KasaHareketTransferStatusHttpRequest,
@@ -816,6 +828,186 @@ export class KasaIslemleriService extends BaseApiService {
       KasaHareketSalesComparisonDto,
       KasaHareketSalesComparisonHttpRequest
     >('kasa-islemleri/kasa-hareket-aktarimi/satis-karsilastirma', request);
+  }
+
+  getKasaHareketSatisMutabakatRaporu(
+    request: KasaHareketSalesComparisonHttpRequest
+  ): Observable<KasaHareketSatisMutabakatReportDto> {
+    return this.getWithQuery<
+      KasaHareketSatisMutabakatReportDto,
+      KasaHareketSalesComparisonHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/satis-mutabakat-raporu', request);
+  }
+
+  exportKasaHareketSatisMutabakatRaporu(
+    request: KasaHareketSalesComparisonHttpRequest
+  ): Observable<Blob> {
+    return this.getBlobWithQuery<KasaHareketSalesComparisonHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/satis-mutabakat-raporu/excel',
+      request
+    );
+  }
+
+  getKasaHareketDosyaBilgisi(request: {
+    branchNo: number;
+    cashRegisterNo: number;
+    date?: string;
+  }): Observable<KasaHareketDosyaBilgiDto> {
+    return this.getWithQuery<
+      KasaHareketDosyaBilgiDto,
+      { branchNo: number; cashRegisterNo: number; date?: string }
+    >('kasa-islemleri/kasa-hareket-aktarimi/hareket-dosyasi/bilgi', request);
+  }
+
+  kopyalaKasaHareketDosyasi(request: {
+    branchNo: number;
+    cashRegisterNo: number;
+    date?: string;
+    overwrite?: boolean;
+  }): Observable<KasaHareketDosyaKopyalaResultDto> {
+    return this.post<
+      KasaHareketDosyaKopyalaResultDto,
+      { branchNo: number; cashRegisterNo: number; date?: string; overwrite?: boolean }
+    >('kasa-islemleri/kasa-hareket-aktarimi/hareket-dosyasi/kopyala', request);
+  }
+
+  getKasaHareketDosyaIcerigi(request: {
+    branchNo: number;
+    cashRegisterNo: number;
+    date?: string;
+    targetLocation?: string;
+    maxLines?: number;
+  }): Observable<KasaHareketDosyaIcerikDto> {
+    return this.getWithQuery<
+      KasaHareketDosyaIcerikDto,
+      { branchNo: number; cashRegisterNo: number; date?: string; targetLocation?: string; maxLines?: number }
+    >('kasa-islemleri/kasa-hareket-aktarimi/hareket-dosyasi/icerik', request);
+  }
+
+  getKasaHareketKasaZDetay(request: {
+    date: string;
+    branchNo: number;
+  }): Observable<KasaHareketKasaZDetayReportDto> {
+    return this.getWithQuery<
+      KasaHareketKasaZDetayReportDto,
+      { date: string; branchNo: number }
+    >('kasa-islemleri/kasa-hareket-aktarimi/kasa-z-detay', request);
+  }
+
+  getKasaHareketBirlikKartRaporu(request: {
+    date: string;
+    branchNo?: number;
+  }): Observable<KasaHareketBirlikKartReportDto> {
+    return this.getWithQuery<
+      KasaHareketBirlikKartReportDto,
+      { date: string; branchNo?: number }
+    >('kasa-islemleri/kasa-hareket-aktarimi/birlik-kart-raporu', request);
+  }
+
+  exportKasaHareketBirlikKartRaporu(request: {
+    date: string;
+    branchNo?: number;
+  }): Observable<Blob> {
+    return this.getBlobWithQuery<{ date: string; branchNo?: number }>(
+      'kasa-islemleri/kasa-hareket-aktarimi/birlik-kart-raporu/excel',
+      request
+    );
+  }
+
+  getKasaHareketFisIptalRaporu(request: {
+    startDate: string;
+    endDate: string;
+    branchNo?: number;
+  }): Observable<KasaHareketFisIptalReportDto> {
+    return this.getWithQuery<
+      KasaHareketFisIptalReportDto,
+      { startDate: string; endDate: string; branchNo?: number }
+    >('kasa-islemleri/kasa-hareket-aktarimi/belge-iptal-raporu', request);
+  }
+
+  exportKasaHareketFisIptalRaporu(request: {
+    startDate: string;
+    endDate: string;
+    branchNo?: number;
+  }): Observable<Blob> {
+    return this.getBlobWithQuery<{ startDate: string; endDate: string; branchNo?: number }>(
+      'kasa-islemleri/kasa-hareket-aktarimi/belge-iptal-raporu/excel',
+      request
+    );
+  }
+
+  getKasaHareketFisIptalDetay(faturaGuid: string): Observable<KasaHareketFisIptalDetailDto> {
+    return this.getWithQuery<KasaHareketFisIptalDetailDto, { faturaGuid: string }>(
+      'kasa-islemleri/kasa-hareket-aktarimi/belge-iptal-raporu/detay',
+      { faturaGuid }
+    );
+  }
+
+  getKasaHareketGiderPusulasiRaporu(request: {
+    startDate: string;
+    endDate: string;
+    branchNo?: number;
+  }): Observable<KasaHareketGiderPusulasiReportDto> {
+    return this.getWithQuery<
+      KasaHareketGiderPusulasiReportDto,
+      { startDate: string; endDate: string; branchNo?: number }
+    >('kasa-islemleri/kasa-hareket-aktarimi/gider-pusulasi-raporu', request);
+  }
+
+  exportKasaHareketGiderPusulasiRaporu(request: {
+    startDate: string;
+    endDate: string;
+    branchNo?: number;
+  }): Observable<Blob> {
+    return this.getBlobWithQuery<{ startDate: string; endDate: string; branchNo?: number }>(
+      'kasa-islemleri/kasa-hareket-aktarimi/gider-pusulasi-raporu/excel',
+      request
+    );
+  }
+
+  getKasaHareketGiderPusulasiDetay(faturaGuid: string): Observable<KasaHareketGiderPusulasiDetailDto> {
+    return this.getWithQuery<KasaHareketGiderPusulasiDetailDto, { faturaGuid: string }>(
+      'kasa-islemleri/kasa-hareket-aktarimi/gider-pusulasi-raporu/detay',
+      { faturaGuid }
+    );
+  }
+
+  getKasaHareketTrendyolRaporu(request: {
+    date: string;
+    branchNo?: number;
+  }): Observable<KasaHareketTrendyolReportDto> {
+    return this.getWithQuery<
+      KasaHareketTrendyolReportDto,
+      { date: string; branchNo?: number }
+    >('kasa-islemleri/kasa-hareket-aktarimi/trendyol-raporu', request);
+  }
+
+  exportKasaHareketTrendyolRaporu(request: {
+    date: string;
+    branchNo?: number;
+  }): Observable<Blob> {
+    return this.getBlobWithQuery<{ date: string; branchNo?: number }>(
+      'kasa-islemleri/kasa-hareket-aktarimi/trendyol-raporu/excel',
+      request
+    );
+  }
+
+  getKasaHareketNakitRaporu(request: {
+    date: string;
+  }): Observable<KasaHareketNakitReportDto> {
+    return this.getWithQuery<
+      KasaHareketNakitReportDto,
+      { date: string }
+    >('kasa-islemleri/kasa-hareket-aktarimi/nakit-raporu', request);
+  }
+
+  exportKasaHareketNakitRaporu(request: {
+    date: string;
+  }): Observable<Blob> {
+    return this.getBlobWithQuery<{ date: string }>(
+      'kasa-islemleri/kasa-hareket-aktarimi/nakit-raporu/excel',
+      request
+    );
   }
 
   exportKasaHareketRaporu(request: KasaHareketReportHttpRequest): Observable<Blob> {
