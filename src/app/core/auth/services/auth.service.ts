@@ -39,7 +39,7 @@ interface AuthSession {
 
 const AUTH_STORAGE_KEY = 'angularv20.auth.session';
 const WEB_DEVICE_ID_STORAGE_KEY = 'angularv20.auth.web-device-id';
-const MAX_AUTH_TOKEN_LENGTH = 4096;
+const MAX_AUTH_TOKEN_LENGTH = 32768;
 
 @Injectable({
   providedIn: 'root'
