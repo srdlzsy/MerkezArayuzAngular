@@ -568,8 +568,22 @@
           </section>
 
           <div class="report-subsection-head" *ngIf="comparison.rows.length">
-            <h3><i class="fa-solid fa-scale-balanced color-accent"></i> Mikro ve Z Raporu Mutabakati (Oncelikli)</h3>
-            <span>{{ comparison.summary.rowCount }} sube</span>
+            <div class="report-subsection-title">
+              <h3><i class="fa-solid fa-scale-balanced color-accent"></i> Mikro ve Z Raporu Mutabakati (Oncelikli)</h3>
+              <span class="count-badge">{{ comparison.summary.rowCount }} sube</span>
+            </div>
+            <div class="report-subsection-actions no-print">
+              <button
+                type="button"
+                class="btn-print-mini"
+                (click)="printSalesComparison()"
+                [disabled]="salesComparisonLoading() || !comparison.rows.length || salesComparisonPrinting()"
+                title="Mikro ve Z Raporu Mutabakati tablosunu A4 olarak yazdir"
+              >
+                <i class="fa-solid fa-print"></i>
+                <span>{{ salesComparisonPrinting() ? 'Hazirlaniyor...' : 'A4 Yazdir (11 Kolon)' }}</span>
+              </button>
+            </div>
           </div>
 
           <div class="table-wrap sales-audit-table-wrap" *ngIf="comparison.rows.length">

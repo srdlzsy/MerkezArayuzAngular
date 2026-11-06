@@ -1049,8 +1049,10 @@ export class KasaHareketAktarimiListComponent {
           table.sales-audit-table,
           table.sales-comparison-table {
             width: 100% !important;
+            min-width: 0 !important;
+            max-width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 6.5pt !important;
+            font-size: 5.6pt !important;
             table-layout: fixed !important;
           }
 
@@ -1074,9 +1076,11 @@ export class KasaHareketAktarimiListComponent {
           table.sales-audit-table td,
           table.sales-comparison-table th,
           table.sales-comparison-table td {
-            padding: 1mm 0.8mm !important;
+            min-width: 0 !important;
+            max-width: none !important;
+            padding: 0.6mm 0.3mm !important;
             border: 1px solid #cbd5e1 !important;
-            line-height: 1.12 !important;
+            line-height: 1.1 !important;
             box-sizing: border-box !important;
           }
 

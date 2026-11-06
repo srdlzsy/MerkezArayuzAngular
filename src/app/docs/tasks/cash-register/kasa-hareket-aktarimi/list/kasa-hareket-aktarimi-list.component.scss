@@ -972,6 +972,72 @@
   }
 }
 
+.report-subsection-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+  margin-top: 0.65rem;
+  margin-bottom: 0.45rem;
+  padding-bottom: 0.35rem;
+  border-bottom: 1px solid var(--transfer-border);
+
+  .report-subsection-title {
+    display: flex;
+    align-items: center;
+    gap: 0.5rem;
+
+    h3 {
+      margin: 0;
+      font-size: 0.95rem;
+      font-weight: 800;
+      color: var(--transfer-ink);
+    }
+  }
+
+  .btn-print-mini {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.35rem 0.75rem;
+    font-size: 0.74rem;
+    font-weight: 800;
+    color: var(--transfer-accent-dark);
+    background: var(--transfer-accent-light);
+    border: 1px solid var(--transfer-accent);
+    border-radius: 6px;
+    cursor: pointer;
+    transition: all 0.15s ease;
+
+    &:hover:not(:disabled) {
+      background: var(--transfer-accent);
+      color: #fff;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+@media print {
+  .sales-audit-table {
+    min-width: 0 !important;
+
+    th:nth-child(n + 3),
+    td:nth-child(n + 3) {
+      min-width: 0 !important;
+    }
+  }
+
+  .sales-audit-table-wrap {
+    max-height: none !important;
+    overflow: visible !important;
+  }
+}
+
 .sales-comparison-table-wrap {
   max-height: calc(100vh - 350px);
 }
