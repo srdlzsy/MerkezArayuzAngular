@@ -366,7 +366,45 @@
 }
 
 .sales-comparison-summary {
+  grid-template-columns: repeat(4, minmax(150px, 1fr));
+}
+
+.category-comparison-summary {
   grid-template-columns: repeat(6, minmax(135px, 1fr));
+}
+
+.report-subsection-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  min-height: 30px;
+  padding: 0.18rem 0.1rem;
+  border-bottom: 2px solid #0f766e;
+}
+
+.report-subsection-head h3 {
+  margin: 0;
+  color: var(--transfer-ink);
+  font-size: 0.82rem;
+}
+
+.report-subsection-head span {
+  color: var(--transfer-muted);
+  font-size: 0.7rem;
+  font-weight: 700;
+}
+
+.sales-audit-table-wrap {
+  max-height: min(330px, calc(100vh - 390px));
+}
+
+.sales-audit-table {
+  min-width: 1700px;
+}
+
+.sales-audit-table th:nth-child(n + 3),
+.sales-audit-table td:nth-child(n + 3) {
+  min-width: 126px;
 }
 
 .sales-comparison-table-wrap {

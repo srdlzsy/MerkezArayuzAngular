@@ -30,6 +30,10 @@ const legacyLineBudgets = [
     'src/app/docs/tasks/integration/trendyol-go/list/trendyol-go-list.component.ts',
     2200,
   ],
+  [
+    'src/app/docs/tasks/cash-register/kasa-hareket-aktarimi/list/kasa-hareket-aktarimi-list.component.ts',
+    2500,
+  ],
 ];
 
 for (const [file, maximum] of legacyLineBudgets) {
