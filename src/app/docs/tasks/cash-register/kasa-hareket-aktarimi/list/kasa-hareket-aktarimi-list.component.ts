@@ -2027,7 +2027,7 @@ export class KasaHareketAktarimiListComponent {
     }
     this.dosyaIcerikLoading.set(true);
     this.kasaIslemleriService
-      .getKasaHareketDosyaIcerigi({ branchNo, cashRegisterNo: cashNo, date, maxLines: 500 })
+      .getKasaHareketDosyaIcerigi({ branchNo, cashRegisterNo: cashNo, date })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.dosyaIcerikLoading.set(false))

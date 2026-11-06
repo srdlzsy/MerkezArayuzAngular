@@ -1465,7 +1465,7 @@
         <!-- Dosya Icerigi Goruntuleyici -->
         <article class="surface-card icerik-card" *ngIf="dosyaIcerik() as icerik">
           <div class="card-header">
-            <h4><i class="fa-solid fa-code"></i> Dosya Icerigi (Ilk {{ icerik.lines.length }} / {{ icerik.totalLines }} Satir)</h4>
+            <h4><i class="fa-solid fa-code"></i> Dosya İçeriği ({{ icerik.lines.length === icerik.totalLines ? ('Toplam ' + icerik.totalLines + ' Satır') : ('İlk ' + icerik.lines.length + ' / ' + icerik.totalLines + ' Satır') }})</h4>
             <span class="subtitle">{{ icerik.fileName }}</span>
           </div>
           <div class="file-content-viewer">
