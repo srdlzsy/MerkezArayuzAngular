@@ -906,7 +906,7 @@ export class KasaHareketAktarimiListComponent {
       },
       styles: `
         @page {
-          size: A4 portrait;
+          size: A4 landscape;
           margin: 3mm 3mm;
         }
 
@@ -1018,8 +1018,8 @@ export class KasaHareketAktarimiListComponent {
           table.sales-comparison-table {
             width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 7.8px !important;
-            table-layout: auto !important;
+            font-size: 6.6px !important;
+            table-layout: fixed !important;
           }
 
           table.sales-comparison-table thead {
@@ -1043,14 +1043,14 @@ export class KasaHareketAktarimiListComponent {
             background: #e2e8f0 !important;
             color: #000 !important;
             font-weight: 800 !important;
-            font-size: 7.5px !important;
+            font-size: 6.2px !important;
             white-space: normal !important;
             word-wrap: break-word !important;
             border: 1px solid #64748b !important;
           }
 
           table.sales-comparison-table td {
-            font-size: 7.8px !important;
+            font-size: 6.5px !important;
           }
 
           table.sales-comparison-table td strong {
@@ -1768,15 +1768,18 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Tarih', value: (row) => this.formatDate(row.date) },
       { label: 'Sube No', value: 'branchNo', type: 'number' },
       { label: 'Sube', value: 'branchName' },
-      { label: 'Stok Hareket Tutari', value: 'stockMovementAmount', type: 'currency' },
-      { label: 'Cari Hesap Tutari', value: 'currentAccountAmount', type: 'currency' },
-      { label: 'Aktarilan Tutar', value: 'transferredAmount', type: 'currency' },
-      { label: 'GPS Haric', value: 'expenseExcludedAmount', type: 'currency' },
-      { label: 'GPS Tutari', value: 'expenseReceiptAmount', type: 'currency' },
-      { label: 'Z Raporu', value: 'zReportAmount', type: 'currency' },
-      { label: 'ZRP / Aktarim Fark', value: 'zReportTransferDifference', type: 'currency' },
-      { label: 'Aktarilan / Ciro Fark', value: 'transferredTurnoverDifference', type: 'currency' },
-      { label: 'Cari / Stok Fark', value: 'currentStockDifference', type: 'currency' },
+      { label: 'Mikro PS', value: 'retailStockAmount', type: 'currency' },
+      { label: 'Furpa Perakende Fis', value: 'retailTransferredAmount', type: 'currency' },
+      { label: 'Perakende Fis Farki', value: 'retailDifference', type: 'currency' },
+      { label: 'Mikro Fatura', value: 'invoiceStockAmount', type: 'currency' },
+      { label: 'Furpa Fatura', value: 'invoiceTransferredAmount', type: 'currency' },
+      { label: 'Fatura Farki', value: 'invoiceDifference', type: 'currency' },
+      { label: 'Mikro Gider Pusulasi', value: 'expenseSlipStockAmount', type: 'currency' },
+      { label: 'Furpa Gider Pusulasi', value: 'expenseSlipTransferredAmount', type: 'currency' },
+      { label: 'Gider Pusulasi Farki', value: 'expenseSlipDifference', type: 'currency' },
+      { label: 'Mikro Net', value: 'netStockTurnover', type: 'currency' },
+      { label: 'Furpa Net', value: 'netTransferredTurnover', type: 'currency' },
+      { label: 'Genel Net Fark', value: 'netDifference', type: 'currency' },
       { label: 'Durum', value: (row) => (row.hasDifference ? 'Fark Var' : 'Dengeli') }
     ];
   }

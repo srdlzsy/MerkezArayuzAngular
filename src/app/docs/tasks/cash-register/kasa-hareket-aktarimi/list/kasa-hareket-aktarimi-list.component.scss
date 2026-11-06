@@ -366,7 +366,7 @@
 }
 
 .sales-comparison-summary {
-  grid-template-columns: repeat(8, minmax(120px, 1fr));
+  grid-template-columns: repeat(6, minmax(135px, 1fr));
 }
 
 .sales-comparison-table-wrap {
@@ -374,7 +374,11 @@
 }
 
 .sales-comparison-table {
-  min-width: 1660px;
+  min-width: 2050px;
+}
+
+.sales-comparison-table .align-center {
+  text-align: center;
 }
 
 .sales-comparison-table th,

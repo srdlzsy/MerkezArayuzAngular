@@ -564,6 +564,18 @@ export interface KasaHareketSalesComparisonSummaryDto {
   totalCurrentStockDifference: number;
   totalShortage: number;
   totalExcess: number;
+  totalRetailStockAmount: number;
+  totalRetailTransferredAmount: number;
+  totalRetailDifference: number;
+  totalInvoiceStockAmount: number;
+  totalInvoiceTransferredAmount: number;
+  totalInvoiceDifference: number;
+  totalExpenseSlipStockAmount: number;
+  totalExpenseSlipTransferredAmount: number;
+  totalExpenseSlipDifference: number;
+  totalNetStockTurnover: number;
+  totalNetTransferredTurnover: number;
+  totalNetDifference: number;
 }
 
 export interface KasaHareketSalesComparisonRowDto {
@@ -580,6 +592,18 @@ export interface KasaHareketSalesComparisonRowDto {
   transferredTurnoverDifference: number;
   currentStockDifference: number;
   hasDifference: boolean;
+  retailStockAmount: number;
+  retailTransferredAmount: number;
+  retailDifference: number;
+  invoiceStockAmount: number;
+  invoiceTransferredAmount: number;
+  invoiceDifference: number;
+  expenseSlipStockAmount: number;
+  expenseSlipTransferredAmount: number;
+  expenseSlipDifference: number;
+  netStockTurnover: number;
+  netTransferredTurnover: number;
+  netDifference: number;
 }
 
 export interface KasaHareketSatisMutabakatReportDto {
