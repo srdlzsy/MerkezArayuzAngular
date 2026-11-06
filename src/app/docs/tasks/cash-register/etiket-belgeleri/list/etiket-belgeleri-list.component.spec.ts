@@ -254,6 +254,7 @@ describe('EtiketBelgeleriListComponent product sorting', () => {
     const component = createSortComponent();
 
     expect(component.formatPriceChangeDate('2026-10-15')).toBe('15.10.2026');
+    expect(component.formatPriceChangeDate('2026-11-02 07:40:03')).toBe('02.11.2026 07:40');
     expect(component.formatPriceChangeDate('')).toBe('-');
   });
 

@@ -803,9 +803,10 @@ export class EtiketBelgeleriListComponent {
       return '-';
     }
 
-    const dateOnlyMatch = /^(\d{4})-(\d{2})-(\d{2})$/.exec(normalized);
-    if (dateOnlyMatch) {
-      return `${dateOnlyMatch[3]}.${dateOnlyMatch[2]}.${dateOnlyMatch[1]}`;
+    const dateTimeMatch = /^(\d{4})-(\d{2})-(\d{2})(?:[ T](\d{2}):(\d{2})(?::\d{2})?)?$/.exec(normalized);
+    if (dateTimeMatch) {
+      const datePart = `${dateTimeMatch[3]}.${dateTimeMatch[2]}.${dateTimeMatch[1]}`;
+      return dateTimeMatch[4] ? `${datePart} ${dateTimeMatch[4]}:${dateTimeMatch[5]}` : datePart;
     }
 
     return this.formatDocumentDate(normalized);
