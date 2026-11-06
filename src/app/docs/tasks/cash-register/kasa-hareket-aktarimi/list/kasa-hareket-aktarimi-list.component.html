@@ -503,16 +503,7 @@
               <i class="fa-solid" [class.fa-layer-group]="!showDetailedCategoryComparison()" [class.fa-eye-slash]="showDetailedCategoryComparison()"></i>
               <span>{{ showDetailedCategoryComparison() ? 'Belge Turu Detayini Gizle' : 'Belge Turu Detayi' }}</span>
             </button>
-            <button
-              type="button"
-              class="task-action task-action-secondary"
-              (click)="printSalesComparison()"
-              [disabled]="salesComparisonLoading() || !salesComparison()?.rows?.length || salesComparisonPrinting()"
-              title="Karsilastirma tablosunu yazdir"
-            >
-              <i class="fa-solid fa-print" [class.is-spinning]="salesComparisonPrinting()"></i>
-              <span>{{ salesComparisonPrinting() ? 'Hazirlaniyor...' : 'Yazdir' }}</span>
-            </button>
+
           </div>
         </form>
 

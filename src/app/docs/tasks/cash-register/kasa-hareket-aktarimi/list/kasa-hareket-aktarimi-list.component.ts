@@ -912,18 +912,19 @@ export class KasaHareketAktarimiListComponent {
       styles: `
         @page {
           size: A4 portrait;
-          margin: 4mm 4mm;
+          margin: 3mm 2mm;
         }
 
         @media print {
           html, body {
             width: 100% !important;
+            max-width: 100% !important;
             height: auto !important;
             margin: 0 !important;
             padding: 0 !important;
             background: #fff !important;
             overflow: visible !important;
-            font-size: 7.2pt !important;
+            font-size: 6.5pt !important;
             color: #000 !important;
             font-family: -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif !important;
             -webkit-print-color-adjust: exact !important;
@@ -948,6 +949,8 @@ export class KasaHareketAktarimiListComponent {
             margin: 0 !important;
             padding: 0 !important;
             box-sizing: border-box !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
 
           .only-print {
@@ -962,28 +965,28 @@ export class KasaHareketAktarimiListComponent {
           }
 
           .print-header {
-            margin-bottom: 2mm !important;
-            padding-bottom: 1.2mm !important;
-            border-bottom: 2px solid #0f172a !important;
+            margin-bottom: 1mm !important;
+            padding-bottom: 0.6mm !important;
+            border-bottom: 1.5px solid #0f172a !important;
           }
 
           .print-header-top {
             display: flex !important;
             justify-content: space-between !important;
             align-items: center !important;
-            margin-bottom: 0.8mm !important;
+            margin-bottom: 0.4mm !important;
           }
 
           .print-brand {
-            font-size: 10.5pt !important;
+            font-size: 9pt !important;
             font-weight: 900 !important;
-            letter-spacing: 0.05em !important;
+            letter-spacing: 0.04em !important;
             color: #0f766e !important;
           }
 
           .print-title {
             margin: 0 !important;
-            font-size: 11pt !important;
+            font-size: 9.5pt !important;
             font-weight: 800 !important;
             color: #0f172a !important;
             text-transform: uppercase !important;
@@ -991,7 +994,7 @@ export class KasaHareketAktarimiListComponent {
           }
 
           .print-date {
-            font-size: 8pt !important;
+            font-size: 7pt !important;
             color: #334155 !important;
           }
 
@@ -999,11 +1002,11 @@ export class KasaHareketAktarimiListComponent {
             display: flex !important;
             justify-content: space-between !important;
             align-items: center !important;
-            font-size: 7.2pt !important;
+            font-size: 6.2pt !important;
             color: #1e293b !important;
             background: #f1f5f9 !important;
-            padding: 0.8mm 1.5mm !important;
-            border-radius: 3px !important;
+            padding: 0.4mm 1.2mm !important;
+            border-radius: 2px !important;
             border: 1px solid #cbd5e1 !important;
           }
 
@@ -1016,24 +1019,24 @@ export class KasaHareketAktarimiListComponent {
           }
 
           .report-subsection-head {
-            margin-top: 2mm !important;
-            margin-bottom: 1mm !important;
+            margin-top: 1mm !important;
+            margin-bottom: 0.6mm !important;
             display: flex !important;
             justify-content: space-between !important;
             align-items: baseline !important;
             border-bottom: 1px solid #94a3b8 !important;
-            padding-bottom: 0.6mm !important;
+            padding-bottom: 0.4mm !important;
           }
 
           .report-subsection-head h3 {
-            font-size: 8.5pt !important;
+            font-size: 7.5pt !important;
             font-weight: 700 !important;
             color: #0f172a !important;
             margin: 0 !important;
           }
 
           .report-subsection-head span {
-            font-size: 7pt !important;
+            font-size: 6.2pt !important;
             color: #64748b !important;
           }
 
@@ -1043,7 +1046,9 @@ export class KasaHareketAktarimiListComponent {
             overflow: visible !important;
             border: 1px solid #94a3b8 !important;
             border-radius: 2px !important;
-            margin-bottom: 2mm !important;
+            margin-bottom: 0 !important;
+            page-break-after: avoid !important;
+            break-after: avoid !important;
           }
 
           table.sales-audit-table,
@@ -1052,8 +1057,10 @@ export class KasaHareketAktarimiListComponent {
             min-width: 0 !important;
             max-width: 100% !important;
             border-collapse: collapse !important;
-            font-size: 5.6pt !important;
+            font-size: 5.1pt !important;
             table-layout: fixed !important;
+            page-break-inside: avoid !important;
+            break-inside: avoid !important;
           }
 
           table.sales-audit-table thead,
@@ -1078,9 +1085,9 @@ export class KasaHareketAktarimiListComponent {
           table.sales-comparison-table td {
             min-width: 0 !important;
             max-width: none !important;
-            padding: 0.6mm 0.3mm !important;
-            border: 1px solid #cbd5e1 !important;
-            line-height: 1.1 !important;
+            padding: 0.35mm 0.25mm !important;
+            border: 0.5px solid #cbd5e1 !important;
+            line-height: 1.05 !important;
             box-sizing: border-box !important;
           }
 
@@ -1089,25 +1096,28 @@ export class KasaHareketAktarimiListComponent {
             background: #e2e8f0 !important;
             color: #0f172a !important;
             font-weight: 800 !important;
-            font-size: 6.2pt !important;
+            font-size: 4.9pt !important;
             text-transform: uppercase !important;
-            border: 1px solid #94a3b8 !important;
+            border: 0.8px solid #94a3b8 !important;
+            vertical-align: middle !important;
+            line-height: 1.02 !important;
+            padding: 0.45mm 0.25mm !important;
           }
 
-          /* Tum 11 Kolonun Eksiksiz ve Orantili Gorunumu */
+          /* Tum 11 Kolonun Tek Sayfaya Sigan Eksiksiz Oranlari */
           table.sales-audit-table .col-date {
-            width: 7.2% !important;
+            width: 7% !important;
             text-align: center !important;
             white-space: nowrap !important;
-            font-size: 5.6pt !important;
+            font-size: 5pt !important;
           }
 
           table.sales-audit-table .col-branch {
-            width: 14.8% !important;
+            width: 15% !important;
             text-align: left !important;
             white-space: normal !important;
             word-break: break-word !important;
-            font-size: 5.6pt !important;
+            font-size: 5pt !important;
           }
 
           table.sales-audit-table td.align-right,
@@ -1118,7 +1128,7 @@ export class KasaHareketAktarimiListComponent {
             text-align: right !important;
             font-variant-numeric: tabular-nums !important;
             white-space: nowrap !important;
-            font-size: 5.8pt !important;
+            font-size: 5.1pt !important;
           }
 
           table.sales-audit-table th.align-right {
@@ -1141,9 +1151,10 @@ export class KasaHareketAktarimiListComponent {
           table.sales-comparison-table tfoot td {
             background: #f1f5f9 !important;
             font-weight: 800 !important;
-            border-top: 1.5px solid #475569 !important;
-            border-bottom: 1.5px solid #475569 !important;
-            font-size: 6.5pt !important;
+            border-top: 1.2px solid #475569 !important;
+            border-bottom: 1.2px solid #475569 !important;
+            font-size: 5.2pt !important;
+            padding: 0.45mm 0.25mm !important;
           }
 
           .font-mono {
