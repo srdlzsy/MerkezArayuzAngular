@@ -496,6 +496,16 @@
             <button
               type="button"
               class="task-action task-action-secondary"
+              (click)="toggleDetailedCategoryComparison()"
+              [class.is-active]="showDetailedCategoryComparison()"
+              [title]="showDetailedCategoryComparison() ? 'Belge turu bazli kontrol detayini gizle' : 'Belge turu bazli kontrol detayini goster'"
+            >
+              <i class="fa-solid" [class.fa-layer-group]="!showDetailedCategoryComparison()" [class.fa-eye-slash]="showDetailedCategoryComparison()"></i>
+              <span>{{ showDetailedCategoryComparison() ? 'Belge Turu Detayini Gizle' : 'Belge Turu Detayi' }}</span>
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-secondary"
               (click)="printSalesComparison()"
               [disabled]="salesComparisonLoading() || !salesComparison()?.rows?.length || salesComparisonPrinting()"
               title="Karsilastirma tablosunu yazdir"
@@ -557,7 +567,70 @@
             </article>
           </section>
 
-          <section class="summary-strip category-comparison-summary no-print">
+          <div class="report-subsection-head" *ngIf="comparison.rows.length">
+            <h3><i class="fa-solid fa-scale-balanced color-accent"></i> Mikro ve Z Raporu Mutabakati (Oncelikli)</h3>
+            <span>{{ comparison.summary.rowCount }} sube</span>
+          </div>
+
+          <div class="table-wrap sales-audit-table-wrap" *ngIf="comparison.rows.length">
+            <table class="data-table sales-audit-table">
+              <thead>
+                <tr>
+                  <th class="col-date">Tarih</th>
+                  <th class="col-branch">Sube</th>
+                  <th class="align-right">Mikro Stok</th>
+                  <th class="align-right">Mikro Cari</th>
+                  <th class="align-right">Stok / Cari Farki</th>
+                  <th class="align-right">Aktarilan</th>
+                  <th class="align-right">GPS</th>
+                  <th class="align-right">GPS Haric</th>
+                  <th class="align-right">Z Raporu</th>
+                  <th class="align-right">Z / Ciro Farki</th>
+                  <th class="align-right">Aktarilan / Ciro Farki</th>
+                </tr>
+              </thead>
+              <tbody>
+                <tr *ngFor="let row of comparison.rows; trackBy: trackBySalesComparisonRow">
+                  <td class="col-date">{{ formatDate(row.date) }}</td>
+                  <td class="col-branch"><strong>{{ row.branchNo }} - {{ row.branchName || 'Sube' }}</strong></td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.stockMovementAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.currentAccountAmount) }}</td>
+                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.currentStockDifference !== 0">
+                    {{ formatCurrency(row.currentStockDifference) }}
+                  </td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.transferredAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.expenseReceiptAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.expenseExcludedAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.zReportAmount) }}</td>
+                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.zReportTransferDifference !== 0">
+                    {{ formatCurrency(row.zReportTransferDifference) }}
+                  </td>
+                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.transferredTurnoverDifference !== 0">
+                    {{ formatCurrency(row.transferredTurnoverDifference) }}
+                  </td>
+                </tr>
+              </tbody>
+              <tfoot class="footer-summary-row">
+                <tr>
+                  <td class="col-date"><strong>TOPLAM</strong></td>
+                  <td class="col-branch"><span class="count-badge">{{ comparison.summary.rowCount }} Sube</span></td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalExpenseReceiptAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount - comparison.summary.totalExpenseReceiptAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredTurnoverDifference) }}</td>
+                </tr>
+              </tfoot>
+            </table>
+          </div>
+
+          <!-- Opsiyonel / Ikincil: Belge Turu Bazli Kontrol -->
+          <ng-container *ngIf="showDetailedCategoryComparison()">
+            <section class="summary-strip category-comparison-summary no-print">
             <article class="summary-item">
               <span>Mikro Net</span>
               <strong>{{ formatCurrency(comparison.summary.totalNetStockTurnover) }}</strong>
@@ -584,73 +657,12 @@
             </article>
           </section>
 
-          <div class="report-subsection-head" *ngIf="comparison.rows.length">
-            <h3>Mikro ve Z Raporu Mutabakati</h3>
-            <span>{{ comparison.summary.rowCount }} sube</span>
-          </div>
-
-          <div class="table-wrap sales-audit-table-wrap" *ngIf="comparison.rows.length">
-            <table class="data-table sales-audit-table">
-              <thead>
-                <tr>
-                  <th>Tarih</th>
-                  <th>Sube</th>
-                  <th class="align-right">Mikro Stok</th>
-                  <th class="align-right">Mikro Cari</th>
-                  <th class="align-right">Stok / Cari Farki</th>
-                  <th class="align-right">Aktarilan</th>
-                  <th class="align-right">GPS</th>
-                  <th class="align-right">GPS Haric</th>
-                  <th class="align-right">Z Raporu</th>
-                  <th class="align-right">Z / Ciro Farki</th>
-                  <th class="align-right">Aktarilan / Ciro Farki</th>
-                </tr>
-              </thead>
-              <tbody>
-                <tr *ngFor="let row of comparison.rows; trackBy: trackBySalesComparisonRow">
-                  <td>{{ formatDate(row.date) }}</td>
-                  <td><strong>{{ row.branchNo }} - {{ row.branchName || 'Sube' }}</strong></td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.stockMovementAmount) }}</td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.currentAccountAmount) }}</td>
-                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.currentStockDifference !== 0">
-                    {{ formatCurrency(row.currentStockDifference) }}
-                  </td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.transferredAmount) }}</td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.expenseReceiptAmount) }}</td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.expenseExcludedAmount) }}</td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.zReportAmount) }}</td>
-                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.zReportTransferDifference !== 0">
-                    {{ formatCurrency(row.zReportTransferDifference) }}
-                  </td>
-                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.transferredTurnoverDifference !== 0">
-                    {{ formatCurrency(row.transferredTurnoverDifference) }}
-                  </td>
-                </tr>
-              </tbody>
-              <tfoot class="footer-summary-row">
-                <tr>
-                  <td><strong>TOPLAM</strong></td>
-                  <td><span class="count-badge">{{ comparison.summary.rowCount }} Sube</span></td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalExpenseReceiptAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount - comparison.summary.totalExpenseReceiptAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredTurnoverDifference) }}</td>
-                </tr>
-              </tfoot>
-            </table>
-          </div>
-
-          <div class="report-subsection-head" *ngIf="comparison.rows.length">
+            <div class="report-subsection-head" *ngIf="comparison.rows.length">
             <h3>Belge Turu Bazli Kontrol</h3>
             <span>Perakende, fatura ve gider pusulasi</span>
           </div>
 
-          <div class="table-wrap sales-comparison-table-wrap" *ngIf="comparison.rows.length">
+            <div class="table-wrap sales-comparison-table-wrap" *ngIf="comparison.rows.length">
             <table class="data-table sales-comparison-table">
               <thead>
                 <tr>
@@ -730,6 +742,7 @@
               </tfoot>
             </table>
           </div>
+          </ng-container>
         </div>
 
         <article class="state-card" *ngIf="salesComparisonLoading()">

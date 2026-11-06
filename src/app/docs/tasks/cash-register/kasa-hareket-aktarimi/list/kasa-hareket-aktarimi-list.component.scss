@@ -887,9 +887,11 @@
 
   .issue-message-cell {
     min-width: 0;
+    max-width: 0;
     white-space: normal !important;
     overflow-wrap: anywhere !important;
     word-break: break-all !important;
+    word-wrap: break-word !important;
     line-height: 1.4;
   }
 }
@@ -1112,6 +1114,13 @@
   &:hover:not(:disabled) {
     background: #f1f5f9;
     border-color: #94a3b8;
+  }
+
+  &.is-active {
+    background: #f0fdfa;
+    border-color: var(--transfer-accent);
+    color: var(--transfer-accent);
+    font-weight: 700;
   }
 }
 
