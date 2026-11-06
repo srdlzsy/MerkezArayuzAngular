@@ -1090,24 +1090,36 @@ export class KasaHareketAktarimiListComponent {
             border: 1px solid #94a3b8 !important;
           }
 
+          /* Tum 11 Kolonun Eksiksiz ve Orantili Gorunumu */
           table.sales-audit-table .col-date {
-            display: none !important;
+            width: 7.2% !important;
+            text-align: center !important;
+            white-space: nowrap !important;
+            font-size: 5.6pt !important;
           }
 
           table.sales-audit-table .col-branch {
-            width: 18% !important;
+            width: 14.8% !important;
             text-align: left !important;
             white-space: normal !important;
             word-break: break-word !important;
+            font-size: 5.6pt !important;
           }
 
           table.sales-audit-table td.align-right,
           table.sales-audit-table th.align-right,
           table.sales-comparison-table td.align-right,
           table.sales-comparison-table th.align-right {
+            width: 8.66% !important;
             text-align: right !important;
             font-variant-numeric: tabular-nums !important;
             white-space: nowrap !important;
+            font-size: 5.8pt !important;
+          }
+
+          table.sales-audit-table th.align-right {
+            white-space: normal !important;
+            word-break: normal !important;
           }
 
           table.sales-audit-table td.cell-strong,
