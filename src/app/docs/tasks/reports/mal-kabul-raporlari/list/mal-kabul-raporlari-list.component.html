@@ -1,0 +1,155 @@
+<section class="mal-kabul-page">
+  <article class="mal-kabul-workspace">
+    <header class="workspace-head">
+      <div>
+        <span class="section-kicker">Rapor İşlemleri</span>
+        <h2>{{ page.title }}</h2>
+      </div>
+      <div class="head-summary">
+        <span class="scope-chip">{{ startDate() }} - {{ endDate() }}</span>
+        <span class="scope-chip" *ngIf="activeTab() === 'lazy-branches' && selectedRegion() !== 'all'">Bölge: {{ selectedRegion() }}</span>
+      </div>
+    </header>
+
+    <!-- Sekme Seçimi -->
+    <div class="tab-nav">
+      <button
+        type="button"
+        class="tab-btn"
+        [class.is-active]="activeTab() === 'lazy-branches'"
+        (click)="setTab('lazy-branches')"
+      >
+        <i class="fa-solid fa-clock-rotate-left"></i> Tembel Şubeler (Açık İrsaliyeler)
+        <span class="badge" *ngIf="lazyBranches().length > 0">{{ lazyBranches().length }}</span>
+      </button>
+      <button
+        type="button"
+        class="tab-btn"
+        [class.is-active]="activeTab() === 'supplier-volume'"
+        (click)="setTab('supplier-volume')"
+      >
+        <i class="fa-solid fa-chart-pie"></i> Tedarikçi Mal Kabul Hacim Analizi
+        <span class="badge" *ngIf="supplierVolume().length > 0">{{ supplierVolume().length }}</span>
+      </button>
+    </div>
+
+    <!-- Filtre Paneli -->
+    <section class="filter-panel">
+      <div class="filter-controls">
+        <label class="field">
+          <span>Başlangıç</span>
+          <input type="date" [ngModel]="startDate()" (ngModelChange)="updateStartDate($event)" />
+        </label>
+
+        <label class="field">
+          <span>Bitiş</span>
+          <input type="date" [ngModel]="endDate()" (ngModelChange)="updateEndDate($event)" />
+        </label>
+
+        <label class="field" *ngIf="activeTab() === 'lazy-branches'">
+          <span>Bölge</span>
+          <select [ngModel]="selectedRegion()" (ngModelChange)="updateRegion($event)">
+            <option value="all">Tüm Bölgeler</option>
+            <option value="1">Bölge 1</option>
+            <option value="2">Bölge 2</option>
+            <option value="3">Bölge 3</option>
+            <option value="4">Bölge 4</option>
+          </select>
+        </label>
+
+        <label class="field search-field">
+          <span>{{ activeTab() === 'lazy-branches' ? 'Şube Ara' : 'Tedarikçi Ara' }}</span>
+          <input
+            type="text"
+            [placeholder]="activeTab() === 'lazy-branches' ? 'Şube adı veya no...' : 'Cari kodu veya adı...'"
+            [ngModel]="searchTerm()"
+            (ngModelChange)="updateSearch($event)"
+          />
+        </label>
+
+        <button type="button" class="btn-refresh" (click)="loadData()" [disabled]="loading()">
+          <i class="fa-solid fa-sync" [class.fa-spin]="loading()"></i> Sorgula
+        </button>
+      </div>
+    </section>
+
+    <!-- Tab 1: Tembel Şubeler Listesi -->
+    <section class="table-section" *ngIf="activeTab() === 'lazy-branches'">
+      <div class="table-head">
+        <div>
+          <h3>Depodan Sevk Edilip Henüz Mal Kabulü Yapılmamış Şubeler</h3>
+          <small>Şube teslim almadığı sürece açıkta bekleyen FRM serili sevk irsaliyeleri listelenir</small>
+        </div>
+      </div>
+
+      <app-api-list-table
+        [columns]="lazyBranchesColumns"
+        [rows]="filteredLazyBranches()"
+        actionLabel="Evraklar"
+        [showRowAction]="true"
+        (rowAction)="openBranchDocs($event)"
+        [showExport]="true"
+        exportFileName="tembel-subeler-acik-sevkler"
+      ></app-api-list-table>
+    </section>
+
+    <!-- Tab 2: Tedarikçi Mal Kabul Hacim Analizi -->
+    <section class="table-section" *ngIf="activeTab() === 'supplier-volume'">
+      <div class="table-head">
+        <div>
+          <h3>Tedarikçi Firma Bazında Mal Kabul Hacimleri</h3>
+          <small>Tarih aralığında teslim alınan satın alma irsaliyelerinin net hacim büyüklüğüne göre sıralaması</small>
+        </div>
+      </div>
+
+      <app-api-list-table
+        [columns]="supplierVolumeColumns"
+        [rows]="filteredSupplierVolume()"
+        [showRowAction]="false"
+        [showExport]="true"
+        exportFileName="tedarikci-mal-kabul-hacmi"
+      ></app-api-list-table>
+    </section>
+  </article>
+
+  <!-- Açık İrsaliyeler Detay Modalı -->
+  <div class="modal-backdrop" *ngIf="docsModalOpen()" (click)="closeDocsModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <div>
+          <h3>{{ selectedBranchForDocs()?.warehouseName }} Açık Sevk İrsaliyeleri</h3>
+          <small>{{ selectedBranchForDocs()?.warehouseNo }} No'lu Şube - Bölge {{ selectedBranchForDocs()?.region }}</small>
+        </div>
+        <button type="button" class="btn-close" (click)="closeDocsModal()">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div *ngIf="docsLoading()" class="loading-state">
+          <i class="fa-solid fa-spinner fa-spin"></i> Evraklar yükleniyor...
+        </div>
+        <table class="doc-table" *ngIf="!docsLoading() && branchDocuments().length > 0">
+          <thead>
+            <tr>
+              <th>İrsaliye No</th>
+              <th>Seri / Sıra</th>
+              <th>Evrak Tarihi</th>
+              <th>Satır Sayısı</th>
+              <th>Toplam Miktar</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let doc of branchDocuments()">
+              <td><strong>{{ doc.documentNo }}</strong></td>
+              <td>{{ doc.documentSerie }} - {{ doc.documentOrderNo }}</td>
+              <td>{{ formatDate(doc.documentDate) }}</td>
+              <td>{{ doc.lineCount }} Kalem</td>
+              <td>{{ formatNumber(doc.totalQuantity) }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="!docsLoading() && branchDocuments().length === 0" class="empty-state">
+          Açık sevk irsaliyesi bulunamadı.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

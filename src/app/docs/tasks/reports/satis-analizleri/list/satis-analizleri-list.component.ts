@@ -19,7 +19,9 @@ import type {
   SalesAnalysisDateRangeHttpRequest,
   ValorPaymentSummaryItemDto,
   ValorPaymentSummaryReportDto,
-  ZReportBankAnalysisItemDto
+  ZReportBankAnalysisItemDto,
+  CategoryYearlyGrowthItemDto,
+  CategorySalesDetailedItemDto
 } from '@interfaces';
 
 import { RaporIslemleriService } from '../../../../../core/api/module-services/rapor-islemleri.service';
@@ -44,7 +46,9 @@ type SalesAnalysisReportKey =
   | 'marketyo-branch'
   | 'z-report-bank'
   | 'discount-cards'
-  | 'missing-turnovers';
+  | 'missing-turnovers'
+  | 'category-yearly-growth'
+  | 'category-sales-detailed';
 
 type SalesAnalysisScope = 'all' | 'current' | 'manual';
 
@@ -243,6 +247,32 @@ const MISSING_TURNOVER_COLUMNS: readonly ApiListTableColumn<MissingTurnoverBranc
   { key: 'region', label: 'Bolge' }
 ];
 
+const CATEGORY_YEARLY_GROWTH_COLUMNS: readonly ApiListTableColumn<CategoryYearlyGrowthItemDto>[] = [
+  { key: 'segmentName', label: 'Segment' },
+  { key: 'categoryName', label: 'Kategori' },
+  { key: 'subCategoryName', label: 'Alt Kategori' },
+  { key: 'subSegmentName', label: 'Alt Segment' },
+  { key: 'currentQuantity', label: 'Cari Miktar', resolveValue: (row) => formatInteger(row.currentQuantity) },
+  { key: 'currentAmount', label: 'Cari Tutar', resolveValue: (row) => formatMoney(row.currentAmount) },
+  { key: 'previousQuantity', label: 'Gecen Yil Miktar', resolveValue: (row) => formatInteger(row.previousQuantity) },
+  { key: 'previousAmount', label: 'Gecen Yil Tutar', resolveValue: (row) => formatMoney(row.previousAmount) },
+  { key: 'targetAmount', label: 'Hedef Tutar', resolveValue: (row) => formatMoney(row.targetAmount) },
+  { key: 'amountGrowthPercent', label: 'Ciro Buyume %', resolveValue: (row) => `%${row.amountGrowthPercent?.toFixed(1) ?? '0.0'}` }
+];
+
+const CATEGORY_SALES_DETAILED_COLUMNS: readonly ApiListTableColumn<CategorySalesDetailedItemDto>[] = [
+  { key: 'region', label: 'Bolge' },
+  { key: 'branchName', label: 'Sube', resolveValue: (row) => formatBranch(row) },
+  { key: 'categoryName', label: 'Kategori' },
+  { key: 'productName', label: 'Urun Adi' },
+  { key: 'barcode', label: 'Barkod' },
+  { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatInteger(row.quantity) },
+  { key: 'salesTotal', label: 'Satis Tutari', resolveValue: (row) => formatMoney(row.salesTotal) },
+  { key: 'costTotal', label: 'Maliyet', resolveValue: (row) => formatMoney(row.costTotal) },
+  { key: 'profitTotal', label: 'Kar Tutari', resolveValue: (row) => formatMoney(row.profitTotal) },
+  { key: 'profitPercent', label: 'Kar %', resolveValue: (row) => `%${row.profitPercent?.toFixed(1) ?? '0.0'}` }
+];
+
 const REPORT_DEFINITIONS: readonly SalesAnalysisReportDefinition[] = [
   {
     key: 'bank-movements',
@@ -331,6 +361,22 @@ const REPORT_DEFINITIONS: readonly SalesAnalysisReportDefinition[] = [
     description: 'Secilen tarih araliginda TurnoverTotals kaydi olmayan aktif subeler.',
     endpoint: '/api/rapor-islemleri/satis-analizleri/eksik-cirolar',
     columns: MISSING_TURNOVER_COLUMNS
+  },
+  {
+    key: 'category-yearly-growth',
+    group: 'Kategori',
+    label: 'Yıllık Kategori Büyüme',
+    description: 'Cari dönem ile önceki yıl kategori/segment bazlı satış ve hedef gerçekleşme analizi.',
+    endpoint: '/api/rapor-islemleri/satis-analizleri/yillik-kategori-buyume',
+    columns: CATEGORY_YEARLY_GROWTH_COLUMNS
+  },
+  {
+    key: 'category-sales-detailed',
+    group: 'Kategori',
+    label: 'Kategori Satışları',
+    description: 'Bölge, şube, sektör, reyon ve kategori filtreli detaylı satış ve kârlılık dökümü.',
+    endpoint: '/api/rapor-islemleri/satis-analizleri/kategori-satislari',
+    columns: CATEGORY_SALES_DETAILED_COLUMNS
   }
 ];
 
@@ -602,6 +648,29 @@ export class SatisAnalizleriListComponent implements OnInit {
               this.buildMissingTurnoverResult(rows ?? [])
             )
           );
+      case 'category-yearly-growth':
+        return this.raporIslemleriService
+          .getYillikKategoriBuyume({
+            startDate: request.startDate,
+            endDate: request.endDate
+          })
+          .pipe(
+            map((rows: CategoryYearlyGrowthItemDto[]) =>
+              this.buildCategoryYearlyGrowthResult(rows ?? [])
+            )
+          );
+      case 'category-sales-detailed':
+        return this.raporIslemleriService
+          .getKategoriSatislari({
+            startDate: request.startDate,
+            endDate: request.endDate,
+            branchNo: request.warehouseNo
+          })
+          .pipe(
+            map((rows: CategorySalesDetailedItemDto[]) =>
+              this.buildCategorySalesDetailedResult(rows ?? [])
+            )
+          );
       case 'bank-movements':
       default:
         return this.raporIslemleriService
@@ -726,6 +795,38 @@ export class SatisAnalizleriListComponent implements OnInit {
         { label: 'Bolge', value: formatInteger(new Set(rows.map((row) => row.region)).size) },
         { label: 'Tarih Araligi', value: this.selectedDateRangeLabel() },
         { label: 'Kapsam', value: this.scopeLabel() }
+      ]
+    };
+  }
+
+  private buildCategoryYearlyGrowthResult(rows: readonly CategoryYearlyGrowthItemDto[]): SalesAnalysisLoadResult {
+    const totalCurrentAmount = sumBy(rows, (r) => r.currentAmount);
+    const totalPreviousAmount = sumBy(rows, (r) => r.previousAmount);
+    const totalTargetAmount = sumBy(rows, (r) => r.targetAmount);
+
+    return {
+      rows,
+      metrics: [
+        { label: 'Cari Tutar', value: formatMoney(totalCurrentAmount) },
+        { label: 'Geçen Yıl Tutar', value: formatMoney(totalPreviousAmount) },
+        { label: 'Hedef Tutar', value: formatMoney(totalTargetAmount) },
+        { label: 'Segment/Kategori', value: formatInteger(rows.length) }
+      ]
+    };
+  }
+
+  private buildCategorySalesDetailedResult(rows: readonly CategorySalesDetailedItemDto[]): SalesAnalysisLoadResult {
+    const totalSales = sumBy(rows, (r) => r.salesTotal);
+    const totalCost = sumBy(rows, (r) => r.costTotal);
+    const totalProfit = sumBy(rows, (r) => r.profitTotal);
+
+    return {
+      rows,
+      metrics: [
+        { label: 'Toplam Satış', value: formatMoney(totalSales) },
+        { label: 'Toplam Maliyet', value: formatMoney(totalCost) },
+        { label: 'Toplam Kâr', value: formatMoney(totalProfit) },
+        { label: 'Ürün Sayısı', value: formatInteger(rows.length) }
       ]
     };
   }

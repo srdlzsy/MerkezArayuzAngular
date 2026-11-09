@@ -820,3 +820,297 @@ export interface SupplierPerformanceDetailDto {
   card: SupplierPerformanceCardDto;
   events: SupplierPerformanceEventDto[];
 }
+
+
+// --- Ciro & Hedef Karsilastirma DTOs ---
+export interface CiroHedefKarsilastirmaHttpRequest {
+  startDate: string;
+  endDate: string;
+  warehouseNo?: number | null;
+  region?: string | null;
+}
+
+export interface HedefTanimDto {
+  id: number;
+  year: number;
+  month: number;
+  monthName: string;
+  ciroGoalPercent: number;
+  customerGoalPercent: number;
+  expenseGoalPercent: number;
+  warehouseNo?: number | null;
+}
+
+export interface CiroHedefSubeKarsilastirmaDto {
+  branchNo: number;
+  branchName: string;
+  region: string;
+  currentCashTotal: number;
+  currentCreditTotal: number;
+  currentGiftTotal: number;
+  currentFuturesTotal: number;
+  currentExpenseTotal: number;
+  currentOverallTotal: number;
+  currentCustomerCount: number;
+  currentAverageBasketAmount: number;
+  previousCashTotal: number;
+  previousCreditTotal: number;
+  previousGiftTotal: number;
+  previousFuturesTotal: number;
+  previousExpenseTotal: number;
+  previousOverallTotal: number;
+  previousCustomerCount: number;
+  previousAverageBasketAmount: number;
+  targetTurnover: number;
+  turnoverAchievementRate: number;
+  targetCustomerCount: number;
+  customerAchievementRate: number;
+}
+
+export interface CiroHedefKarsilastirmaRaporDto {
+  startDate: string;
+  endDate: string;
+  ciroGoalPercent: number;
+  customerGoalPercent: number;
+  totalCurrentTurnover: number;
+  totalPreviousTurnover: number;
+  totalTargetTurnover: number;
+  overallTurnoverAchievementRate: number;
+  totalCurrentCustomers: number;
+  totalPreviousCustomers: number;
+  totalTargetCustomers: number;
+  overallCustomerAchievementRate: number;
+  currentOverallAverageBasket: number;
+  previousOverallAverageBasket: number;
+  branches: CiroHedefSubeKarsilastirmaDto[];
+}
+
+// --- Mal Kabul Raporlari DTOs ---
+export interface LazyBranchesWarehouseReceivingHttpRequest {
+  startDate?: string | null;
+  endDate?: string | null;
+  region?: string | null;
+  warehouseNo?: number | null;
+}
+
+export interface LazyBranchReceivingItemDto {
+  region: string;
+  warehouseNo: number;
+  warehouseName: string;
+  notAcceptedCount: number;
+  oldestShipmentDate?: string | null;
+  latestShipmentDate?: string | null;
+  totalQuantity: number;
+}
+
+export interface LazyBranchDocumentDetailDto {
+  region: string;
+  warehouseNo: number;
+  warehouseName: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  documentNo: string;
+  documentDate: string;
+  lineCount: number;
+  totalQuantity: number;
+}
+
+export interface CompanyDocumentByCustomerHttpRequest {
+  startDate: string;
+  endDate: string;
+  warehouseNo?: number | null;
+  take?: number;
+}
+
+export interface CompanyDocumentByCustomerItemDto {
+  customerCode: string;
+  customerName: string;
+  customerTitle: string;
+  documentCount: number;
+  totalAmount: number;
+  totalTaxAmount: number;
+  totalDiscountAmount: number;
+  netAmount: number;
+}
+
+// --- Kasa Raporlari DTOs ---
+export interface ExpenseSlipReportHttpRequest {
+  startDate: string;
+  endDate: string;
+  warehouseNo?: number | null;
+  cashRegisterNo?: number | null;
+  cashierCode?: string | null;
+}
+
+export interface ExpenseSlipCashierSummaryDto {
+  cashierCode: string;
+  cashierName: string;
+  totalExpenseAmount: number;
+  slipCount: number;
+}
+
+export interface ExpenseSlipCashRegisterSummaryDto {
+  cashRegisterNo: number;
+  totalExpenseAmount: number;
+  slipCount: number;
+  cashiers: ExpenseSlipCashierSummaryDto[];
+}
+
+export interface ExpenseSlipBranchSummaryDto {
+  branchNo: number;
+  branchName: string;
+  zoneCode: string;
+  totalExpenseAmount: number;
+  slipCount: number;
+  cashRegisters: ExpenseSlipCashRegisterSummaryDto[];
+}
+
+export interface ExpenseSlipZoneSummaryDto {
+  zoneCode: string;
+  zoneName: string;
+  totalExpenseAmount: number;
+  slipCount: number;
+  branches: ExpenseSlipBranchSummaryDto[];
+}
+
+export interface ExpenseSlipDetailItemDto {
+  branchNo: number;
+  branchName: string;
+  cashRegisterNo: number;
+  cashierCode: string;
+  cashierName: string;
+  date: string;
+  time: string;
+  slipNo: number;
+  documentGuid: string;
+  amount: number;
+  description: string;
+}
+
+// --- Satis Analizleri Genisletme DTOs ---
+export interface CategoryYearlyGrowthHttpRequest {
+  startDate?: string | null;
+  endDate?: string | null;
+}
+
+export interface CategoryYearlyGrowthItemDto {
+  segmentName: string;
+  categoryName: string;
+  subCategoryName: string;
+  subSegmentName: string;
+  currentQuantity: number;
+  currentAmount: number;
+  previousQuantity: number;
+  previousAmount: number;
+  targetQuantity: number;
+  targetAmount: number;
+  quantityGrowthPercent: number;
+  amountGrowthPercent: number;
+}
+
+export interface CategorySalesDetailedHttpRequest {
+  startDate?: string | null;
+  endDate?: string | null;
+  branchNo?: number | null;
+  sectorCode?: string | null;
+  rayonCode?: string | null;
+  categoryCode?: string | null;
+  productCode?: string | null;
+  region?: string | null;
+  take?: number;
+}
+
+export interface CategorySalesDetailedItemDto {
+  branchNo: number;
+  branchName: string;
+  region: string;
+  sectorCode: string;
+  sectorName: string;
+  rayonCode: string;
+  rayonName: string;
+  categoryCode: string;
+  categoryName: string;
+  productCode: string;
+  productName: string;
+  barcode: string;
+  quantity: number;
+  unit: string;
+  salesTotal: number;
+  costTotal: number;
+  profitTotal: number;
+  profitPercent: number;
+}
+
+// --- Stok Raporlari Genisletme DTOs ---
+export interface SupplierBranchStockMatrixHttpRequest {
+  customerCode: string;
+  warehouseNo?: number | null;
+}
+
+export interface SupplierStockMatrixBranchColumnDto {
+  warehouseNo: number;
+  warehouseName: string;
+  region: string;
+}
+
+export interface SupplierStockMatrixProductItemDto {
+  stockCode: string;
+  stockName: string;
+  barcode: string;
+  unit: string;
+  branchQuantities: Record<number, number>;
+  totalQuantity: number;
+}
+
+export interface SupplierBranchStockMatrixDto {
+  customerCode: string;
+  customerName: string;
+  customerTitle: string;
+  branches: SupplierStockMatrixBranchColumnDto[];
+  products: SupplierStockMatrixProductItemDto[];
+  totalProductCount: number;
+  grandTotalQuantity: number;
+}
+
+export interface BranchOutageAnalysisHttpRequest {
+  startDate: string;
+  endDate: string;
+}
+
+export interface BranchOutageAnalysisItemDto {
+  region: string;
+  warehouseNo: number;
+  warehouseName: string;
+  outageAmount: number;
+  expenseAmount: number;
+  totalLossAmount: number;
+  turnoverAmount: number;
+  lossToTurnoverPercent: number;
+}
+
+export interface LiveStockAndPriceHttpRequest {
+  barcode?: string | null;
+  stockCode?: string | null;
+  warehouseNo?: number | null;
+}
+
+export interface LiveStockAndPriceBranchItemDto {
+  warehouseNo: number;
+  warehouseName: string;
+  region: string;
+  stockQuantity: number;
+  salesPrice: number;
+  purchasePrice: number;
+  vatRate: number;
+  currency: string;
+  lastMovementDate?: string | null;
+}
+
+export interface LiveStockAndPriceDto {
+  stockCode: string;
+  stockName: string;
+  barcode: string;
+  unit: string;
+  totalStockQuantity: number;
+  branches: LiveStockAndPriceBranchItemDto[];
+}

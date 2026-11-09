@@ -49,7 +49,10 @@ import type {
   WarehouseMissingStockHttpRequest,
   WarehouseZeroStockDto,
   WarehouseZeroStockHttpRequest,
-  YearSalesComparisonItemDto
+  YearSalesComparisonItemDto,
+  BranchOutageAnalysisItemDto,
+  LiveStockAndPriceDto,
+  LiveStockAndPriceBranchItemDto
 } from '@interfaces';
 
 import { AramaService } from '../../../../../core/api/module-services/arama.service';
@@ -89,7 +92,9 @@ type StockReportKey =
   | 'kategori-satis-analizi'
   | 'sube-fiyat-farklari'
   | 'uretici-sezonsal-satis'
-  | 'sayim-karsilastirma';
+  | 'sayim-karsilastirma'
+  | 'sube-zayiat-fire-analizi'
+  | 'anlik-fiyat-stok';
 
 type StockReportMode = 'snapshot' | 'date-range' | 'count-date' | 'current' | 'year-comparison';
 type StockReportScope = 'all' | 'current' | 'manual';
@@ -605,6 +610,26 @@ const COUNTING_COLUMNS: readonly ApiListTableColumn<CountingComparisonReportItem
   { key: 'differenceValue', label: 'Fark Deger', resolveValue: (row) => formatMoney(row.differenceValue) }
 ];
 
+const BRANCH_OUTAGE_COLUMNS: readonly ApiListTableColumn<BranchOutageAnalysisItemDto>[] = [
+  { key: 'region', label: 'Bolge' },
+  { key: 'warehouseName', label: 'Sube', resolveValue: (row) => formatWarehouse(row) },
+  { key: 'outageAmount', label: 'Zayiat Tutari', tableAlign: 'right', resolveValue: (row) => formatMoney(row.outageAmount) },
+  { key: 'expenseAmount', label: 'Masraf Tutari', tableAlign: 'right', resolveValue: (row) => formatMoney(row.expenseAmount) },
+  { key: 'totalLossAmount', label: 'Toplam Zayiat & Masraf', tableAlign: 'right', resolveValue: (row) => formatMoney(row.totalLossAmount) },
+  { key: 'turnoverAmount', label: 'Sube Cirosu', tableAlign: 'right', resolveValue: (row) => formatMoney(row.turnoverAmount) },
+  { key: 'lossToTurnoverPercent', label: 'Ciroya Oran %', tableAlign: 'right', resolveValue: (row) => formatPercent(row.lossToTurnoverPercent) }
+];
+
+const LIVE_STOCK_PRICE_COLUMNS: readonly ApiListTableColumn<LiveStockAndPriceBranchItemDto>[] = [
+  { key: 'region', label: 'Bolge' },
+  { key: 'warehouseName', label: 'Sube', resolveValue: (row) => formatWarehouse(row) },
+  { key: 'stockQuantity', label: 'Eldeki Stok', tableAlign: 'right', resolveValue: (row) => formatNumber(row.stockQuantity) },
+  { key: 'salesPrice', label: 'Satis Fiyati', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesPrice) },
+  { key: 'purchasePrice', label: 'Son Alis Fiyati', tableAlign: 'right', resolveValue: (row) => formatMoney(row.purchasePrice) },
+  { key: 'vatRate', label: 'KDV %', tableAlign: 'right', resolveValue: (row) => `%${row.vatRate ?? 0}` },
+  { key: 'lastMovementDate', label: 'Son Hareket', resolveValue: (row) => formatDateOnly(row.lastMovementDate) }
+];
+
 const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
   {
     key: 'son-stok',
@@ -826,6 +851,26 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
     mode: 'count-date',
     columns: COUNTING_COLUMNS,
     requiresWarehouse: true
+  },
+  {
+    key: 'sube-zayiat-fire-analizi',
+    group: 'Zayiat & Fire',
+    label: 'Şube Fire & Zayiat Analizi',
+    description: 'Şube ve bölge bazında zayi, bozulma, fire ve masraf çıkış toplamları ile ciroya oranları.',
+    endpoint: '/api/rapor-islemleri/stok-raporlari/sube-zayiat-fire-analizi',
+    mode: 'date-range',
+    columns: BRANCH_OUTAGE_COLUMNS
+  },
+  {
+    key: 'anlik-fiyat-stok',
+    group: 'Stok',
+    label: 'Anlık Fiyat & Şube Stok',
+    description: 'Barkod veya stok kodu ile tüm şubelerdeki güncel miktar, satış ve alış fiyatı.',
+    endpoint: '/api/rapor-islemleri/stok-raporlari/anlik-fiyat-stok',
+    mode: 'current',
+    columns: LIVE_STOCK_PRICE_COLUMNS,
+    primaryLabel: 'Barkod / Stok Kodu',
+    primaryPlaceholder: 'Barkod veya stok kodu okutun...'
   }
 ];
 
@@ -1570,6 +1615,28 @@ export class StokRaporlariListComponent implements OnDestroy {
               this.buildCountingResult(rows ?? [])
             )
           );
+      case 'sube-zayiat-fire-analizi':
+        return this.raporIslemleriService
+          .getSubeZayiatFireAnalizi({
+            startDate: this.startDate().trim(),
+            endDate: this.endDate().trim()
+          })
+          .pipe(
+            map((rows: BranchOutageAnalysisItemDto[]) =>
+              this.buildBranchOutageResult(rows ?? [])
+            )
+          );
+      case 'anlik-fiyat-stok':
+        return this.raporIslemleriService
+          .getAnlikFiyatStok({
+            barcode: this.primaryCode().trim() || undefined,
+            stockCode: this.primaryCode().trim() || undefined
+          })
+          .pipe(
+            map((res: LiveStockAndPriceDto) =>
+              this.buildLiveStockPriceResult(res)
+            )
+          );
       case 'son-stok':
       default:
         return this.raporIslemleriService
@@ -1827,6 +1894,38 @@ export class StokRaporlariListComponent implements OnDestroy {
         { label: 'Fark', value: formatNumber(sumBy(rows, (row) => row.differenceQuantity)) },
         { label: 'Fark Deger', value: formatMoney(sumBy(rows, (row) => row.differenceValue)) }
       ]
+    };
+  }
+
+  private buildBranchOutageResult(rows: readonly BranchOutageAnalysisItemDto[]): StockReportLoadResult {
+    const totalOutage = sumBy(rows, (r) => r.outageAmount);
+    const totalExpense = sumBy(rows, (r) => r.expenseAmount);
+    const totalLoss = sumBy(rows, (r) => r.totalLossAmount);
+    const totalTurnover = sumBy(rows, (r) => r.turnoverAmount);
+
+    return {
+      rows,
+      metrics: [
+        { label: 'Toplam Zayiat', value: formatMoney(totalOutage) },
+        { label: 'Toplam Masraf', value: formatMoney(totalExpense) },
+        { label: 'Toplam Kayıp', value: formatMoney(totalLoss) },
+        { label: 'Şube Sayısı', value: formatInteger(rows.length) },
+        { label: 'Ciroya Oran', value: totalTurnover > 0 ? formatPercent(totalLoss / totalTurnover) : '0%' }
+      ]
+    };
+  }
+
+  private buildLiveStockPriceResult(report: LiveStockAndPriceDto | null | undefined): StockReportLoadResult {
+    const rows = report?.branches ?? [];
+    return {
+      rows,
+      metrics: [
+        { label: 'Toplam Stok', value: formatNumber(report?.totalStockQuantity ?? 0) },
+        { label: 'Bulunan Şube', value: formatInteger(rows.filter((r) => (r.stockQuantity ?? 0) > 0).length) },
+        { label: 'Ürün Kodu', value: report?.stockCode || '-' },
+        { label: 'Barkod', value: report?.barcode || '-' }
+      ],
+      note: report?.stockName ? `${report.stockCode} - ${report.stockName}` : undefined
     };
   }
 
@@ -2129,6 +2228,15 @@ export class StokRaporlariListComponent implements OnDestroy {
       case 'satis-sube-detay':
       case 'satis-yil-karsilastirma':
         return this.buildFilteredDateRangeRequest();
+      case 'sube-zayiat-fire-analizi':
+        return {
+          startDate: this.startDate(),
+          endDate: this.endDate()
+        };
+      case 'anlik-fiyat-stok':
+        return {
+          barcode: this.primaryCode().trim() || null
+        };
       case 'urun-depo-durum':
         return this.primaryCode().trim()
           ? this.buildProductWarehouseByPathRequest()
@@ -2212,7 +2320,8 @@ export class StokRaporlariListComponent implements OnDestroy {
         'tedarikci-son-stok',
         'uretici-son-stok',
         'urun-depo-durum',
-        'iadeler-subeler'
+        'iadeler-subeler',
+        'anlik-fiyat-stok'
       ].includes(this.selectedReport()) &&
       !this.primaryCode().trim()
     ) {

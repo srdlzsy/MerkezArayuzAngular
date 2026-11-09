@@ -64,7 +64,28 @@ import type {
   WarehouseZeroStockHttpRequest,
   YearSalesComparisonItemDto,
   ValorPaymentSummaryReportDto,
-  ZReportBankAnalysisItemDto
+  ZReportBankAnalysisItemDto,
+  BranchOutageAnalysisHttpRequest,
+  BranchOutageAnalysisItemDto,
+  CategorySalesDetailedHttpRequest,
+  CategorySalesDetailedItemDto,
+  CategoryYearlyGrowthHttpRequest,
+  CategoryYearlyGrowthItemDto,
+  CiroHedefKarsilastirmaHttpRequest,
+  CiroHedefKarsilastirmaRaporDto,
+  CompanyDocumentByCustomerHttpRequest,
+  CompanyDocumentByCustomerItemDto,
+  ExpenseSlipDetailItemDto,
+  ExpenseSlipReportHttpRequest,
+  ExpenseSlipZoneSummaryDto,
+  HedefTanimDto,
+  LazyBranchesWarehouseReceivingHttpRequest,
+  LazyBranchDocumentDetailDto,
+  LazyBranchReceivingItemDto,
+  LiveStockAndPriceHttpRequest,
+  LiveStockAndPriceDto,
+  SupplierBranchStockMatrixHttpRequest,
+  SupplierBranchStockMatrixDto
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
@@ -77,6 +98,9 @@ export class RaporIslemleriService extends BaseApiService {
   private readonly supplierPerformancePath = 'rapor-islemleri/tedarikci-performans-karnesi';
   private readonly stockReportsBasePath = 'rapor-islemleri/stok-raporlari';
   private readonly promotionReportsBasePath = 'rapor-islemleri/promosyon-raporlari';
+  private readonly ciroHedefBasePath = 'rapor-islemleri/ciro-hedef';
+  private readonly malKabulBasePath = 'rapor-islemleri/mal-kabul';
+  private readonly kasaRaporlariBasePath = 'rapor-islemleri/kasa-raporlari';
   private readonly foodCheckTotalPaths: Record<SalesAnalysisFoodCheckTotalKind, string> = {
     metropol: 'metropol-toplam',
     multinet: 'multinet-toplam',
@@ -466,6 +490,118 @@ export class RaporIslemleriService extends BaseApiService {
       PromotionBranchPerformanceItemDto[],
       PromotionPerformanceHttpRequest
     >('performans/sube', request);
+  }
+
+  // --- Ciro & Hedef Raporlari ---
+  getCiroHedefKarsilastirma(
+    request: CiroHedefKarsilastirmaHttpRequest
+  ): Observable<CiroHedefKarsilastirmaRaporDto> {
+    return this.getWithQuery<CiroHedefKarsilastirmaRaporDto, CiroHedefKarsilastirmaHttpRequest>(
+      `${this.ciroHedefBasePath}/karsilastirma`,
+      request
+    );
+  }
+
+  getHedefTanimlari(year?: number): Observable<HedefTanimDto[]> {
+    const query: { year?: number } = year !== undefined && year !== null ? { year } : {};
+    return this.getWithQuery<HedefTanimDto[], { year?: number }>(
+      `${this.ciroHedefBasePath}/hedef-tanimlari`,
+      query
+    );
+  }
+
+  // --- Mal Kabul Raporlari ---
+  getTembelSubeler(
+    request: LazyBranchesWarehouseReceivingHttpRequest = {}
+  ): Observable<LazyBranchReceivingItemDto[]> {
+    return this.getWithQuery<LazyBranchReceivingItemDto[], LazyBranchesWarehouseReceivingHttpRequest>(
+      `${this.malKabulBasePath}/tembel-subeler`,
+      request
+    );
+  }
+
+  getTembelSubeEvraklari(
+    request: LazyBranchesWarehouseReceivingHttpRequest = {}
+  ): Observable<LazyBranchDocumentDetailDto[]> {
+    return this.getWithQuery<LazyBranchDocumentDetailDto[], LazyBranchesWarehouseReceivingHttpRequest>(
+      `${this.malKabulBasePath}/tembel-subeler/evraklar`,
+      request
+    );
+  }
+
+  getTedarikciHacimAnalizi(
+    request: CompanyDocumentByCustomerHttpRequest
+  ): Observable<CompanyDocumentByCustomerItemDto[]> {
+    return this.getWithQuery<CompanyDocumentByCustomerItemDto[], CompanyDocumentByCustomerHttpRequest>(
+      `${this.malKabulBasePath}/tedarikci-hacim-analizi`,
+      request
+    );
+  }
+
+  // --- Kasa Raporlari ---
+  getGiderPusulalariHiyerarsi(
+    request: ExpenseSlipReportHttpRequest
+  ): Observable<ExpenseSlipZoneSummaryDto[]> {
+    return this.getWithQuery<ExpenseSlipZoneSummaryDto[], ExpenseSlipReportHttpRequest>(
+      `${this.kasaRaporlariBasePath}/gider-pusulalari`,
+      request
+    );
+  }
+
+  getGiderPusulasiDetaylar(
+    request: ExpenseSlipReportHttpRequest
+  ): Observable<ExpenseSlipDetailItemDto[]> {
+    return this.getWithQuery<ExpenseSlipDetailItemDto[], ExpenseSlipReportHttpRequest>(
+      `${this.kasaRaporlariBasePath}/gider-pusulalari/detaylar`,
+      request
+    );
+  }
+
+  // --- Satis Analizleri Genisletme ---
+  getYillikKategoriBuyume(
+    request: CategoryYearlyGrowthHttpRequest = {}
+  ): Observable<CategoryYearlyGrowthItemDto[]> {
+    return this.getWithQuery<CategoryYearlyGrowthItemDto[], CategoryYearlyGrowthHttpRequest>(
+      `${this.salesAnalysisBasePath}/yillik-kategori-buyume`,
+      request
+    );
+  }
+
+  getKategoriSatislari(
+    request: CategorySalesDetailedHttpRequest = {}
+  ): Observable<CategorySalesDetailedItemDto[]> {
+    return this.getWithQuery<CategorySalesDetailedItemDto[], CategorySalesDetailedHttpRequest>(
+      `${this.salesAnalysisBasePath}/kategori-satislari`,
+      request
+    );
+  }
+
+  // --- Stok Raporlari Genisletme ---
+  getTedarikciSubeMatrisi(
+    request: SupplierBranchStockMatrixHttpRequest
+  ): Observable<SupplierBranchStockMatrixDto> {
+    return this.getWithQuery<SupplierBranchStockMatrixDto, SupplierBranchStockMatrixHttpRequest>(
+      `${this.stockReportsBasePath}/tedarikci-sube-matrisi`,
+      request
+    );
+  }
+
+  getSubeZayiatFireAnalizi(
+    request: BranchOutageAnalysisHttpRequest
+  ): Observable<BranchOutageAnalysisItemDto[]> {
+    return this.getWithQuery<BranchOutageAnalysisItemDto[], BranchOutageAnalysisHttpRequest>(
+      `${this.stockReportsBasePath}/sube-zayiat-fire-analizi`,
+      request
+    );
+  }
+
+  getAnlikFiyatStok(
+    request: LiveStockAndPriceHttpRequest
+  ): Observable<LiveStockAndPriceDto> {
+    return this.getWithQuery<LiveStockAndPriceDto, LiveStockAndPriceHttpRequest>(
+      `${this.stockReportsBasePath}/anlik-fiyat-stok`,
+      request
+    );
   }
 
   private getSalesAnalysis<T>(

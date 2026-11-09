@@ -284,4 +284,59 @@ export const ORDERS_TASK_SOURCE = {
       ).then((m) => m.OnerilenFirmaSiparisleriListComponent),
     { accessKeyAliases: ['siparis-islemleri.onerilen-firma-siparisleri'] }
   )
+  ,
+  'verilen-firma-siparisleri-onay': singleRouteTask(
+    {
+      id: 'verilen-firma-siparisleri-onay',
+      title: 'Siparis Onay & Takip',
+      subtitle:
+        'Satin alma personeli bazinda bekleyen siparisleri inceler ve toplu olarak mal kabule onaylar.',
+      baseRouteOrFile: '/api/siparis-islemleri/verilen-firma-siparisleri/onay-bekleyenler',
+      highlights: [
+        'Onay Bekleyen Siparisler Listesi',
+        'Satin Alma Personeli Filtreleme (UserDefPerCode)',
+        'Toplu veya Tekil Siparis Onaylama (CanBeCalled = true)'
+      ],
+      listTitle: 'Siparis Onay Endpointleri',
+      items: [
+        {
+          name: 'VerilenFirmaSiparisleriController',
+          description: 'Onay bekleyen verilen firma siparisleri ve onaylama islemleri.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/siparis-islemleri/verilen-firma-siparisleri/onay-bekleyenler?userDefPerCode=1001',
+              description: 'Onay bekleyen firma siparislerini listeler'
+            },
+            {
+              method: 'POST',
+              path: '/api/siparis-islemleri/verilen-firma-siparisleri/onayla',
+              description: 'Secilen siparisleri toplu veya tekil olarak onaylar'
+            }
+          ]
+        }
+      ],
+      codeSample: JSON.stringify(
+        {
+          userDefPerCode: '1001',
+          orders: [{ orderSeries: 'SP', orderSequence: 12345 }]
+        },
+        null,
+        2
+      )
+    },
+    () =>
+      import(
+        '../tasks/orders/verilen-firma-siparisleri-onay/list/verilen-firma-siparisleri-onay-list.component'
+      ).then((m) => m.VerilenFirmaSiparisleriOnayListComponent),
+    {
+      accessKeyAliases: [
+        'siparis-onay',
+        'verilen-firma-siparisleri-onay',
+        'siparis-islemleri.verilen-firma-siparisleri.page',
+        'Sipariş Onay & Takip'
+      ]
+    }
+  )
+
 } as const satisfies Record<string, DocsTaskSource>;

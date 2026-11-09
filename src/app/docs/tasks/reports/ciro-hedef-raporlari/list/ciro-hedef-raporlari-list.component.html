@@ -1,0 +1,167 @@
+<section class="ciro-hedef-page">
+  <article class="ciro-hedef-workspace">
+    <header class="workspace-head">
+      <div>
+        <span class="section-kicker">Rapor İşlemleri</span>
+        <h2>{{ page.title }}</h2>
+      </div>
+      <div class="head-summary">
+        <span class="scope-chip">{{ startDate() }} - {{ endDate() }}</span>
+        <span class="scope-chip" *ngIf="selectedRegion() !== 'all'">Bölge: {{ selectedRegion() }}</span>
+        <button type="button" class="btn-goal-defs" (click)="openGoalsModal()">
+          <i class="fa-solid fa-bullseye"></i> Hedef Tanımları
+        </button>
+      </div>
+    </header>
+
+    <!-- Filtre Paneli -->
+    <section class="filter-panel" aria-label="Rapor filtreleri">
+      <div class="filter-head">
+        <div>
+          <span class="section-kicker">Filtreler</span>
+          <strong>Dönem ve Kapsam Seçimi</strong>
+        </div>
+      </div>
+
+      <div class="filter-controls">
+        <label class="field">
+          <span>Başlangıç</span>
+          <input type="date" [ngModel]="startDate()" (ngModelChange)="updateStartDate($event)" />
+        </label>
+
+        <label class="field">
+          <span>Bitiş</span>
+          <input type="date" [ngModel]="endDate()" (ngModelChange)="updateEndDate($event)" />
+        </label>
+
+        <label class="field">
+          <span>Bölge</span>
+          <select [ngModel]="selectedRegion()" (ngModelChange)="updateRegion($event)">
+            <option value="all">Tüm Bölgeler</option>
+            <option value="1">Bölge 1</option>
+            <option value="2">Bölge 2</option>
+            <option value="3">Bölge 3</option>
+            <option value="4">Bölge 4</option>
+          </select>
+        </label>
+
+        <label class="field search-field">
+          <span>Şube Ara</span>
+          <input
+            type="text"
+            placeholder="Şube adı veya no..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="updateSearch($event)"
+          />
+        </label>
+
+        <button type="button" class="btn-refresh" (click)="loadReport()" [disabled]="loading()">
+          <i class="fa-solid fa-sync" [class.fa-spin]="loading()"></i> Sorgula
+        </button>
+      </div>
+    </section>
+
+    <!-- KPI Özet Kartları -->
+    <section class="kpi-grid" *ngIf="reportData() as data">
+      <div class="kpi-card">
+        <span class="kpi-label">Cari Toplam Ciro</span>
+        <strong class="kpi-value text-primary">{{ formatCurrency(data.totalCurrentTurnover) }}</strong>
+        <div class="kpi-sub">
+          <span>Geçen Yıl: {{ formatCurrency(data.totalPreviousTurnover) }}</span>
+          <span>Hedef: {{ formatCurrency(data.totalTargetTurnover) }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" [class.kpi-success]="data.overallTurnoverAchievementRate >= 100" [class.kpi-warning]="data.overallTurnoverAchievementRate < 100 && data.overallTurnoverAchievementRate >= 80" [class.kpi-danger]="data.overallTurnoverAchievementRate < 80">
+        <span class="kpi-label">Ciro Başarı Oranı</span>
+        <strong class="kpi-value">%{{ data.overallTurnoverAchievementRate.toFixed(1) }}</strong>
+        <div class="kpi-sub">
+          <span>Hedef Büyüme: %{{ data.ciroGoalPercent }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">Cari Müşteri Sayısı</span>
+        <strong class="kpi-value">{{ formatNumber(data.totalCurrentCustomers) }}</strong>
+        <div class="kpi-sub">
+          <span>Geçen Yıl: {{ formatNumber(data.totalPreviousCustomers) }}</span>
+          <span>Hedef: {{ formatNumber(data.totalTargetCustomers) }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card" [class.kpi-success]="data.overallCustomerAchievementRate >= 100" [class.kpi-warning]="data.overallCustomerAchievementRate < 100 && data.overallCustomerAchievementRate >= 80" [class.kpi-danger]="data.overallCustomerAchievementRate < 80">
+        <span class="kpi-label">Müşteri Başarı Oranı</span>
+        <strong class="kpi-value">%{{ data.overallCustomerAchievementRate.toFixed(1) }}</strong>
+        <div class="kpi-sub">
+          <span>Hedef Müşteri Büyüme: %{{ data.customerGoalPercent }}</span>
+        </div>
+      </div>
+
+      <div class="kpi-card">
+        <span class="kpi-label">Ortalama Sepet</span>
+        <strong class="kpi-value text-info">{{ formatCurrency(data.currentOverallAverageBasket) }}</strong>
+        <div class="kpi-sub">
+          <span>Geçen Yıl: {{ formatCurrency(data.previousOverallAverageBasket) }}</span>
+        </div>
+      </div>
+    </section>
+
+    <!-- Tablo Alanı -->
+    <section class="table-section">
+      <div class="table-head">
+        <div>
+          <h3>Şubesel Ciro ve Hedef Tablosu</h3>
+          <small>{{ filteredBranches().length }} şube listeleniyor</small>
+        </div>
+      </div>
+
+      <app-api-list-table
+        [columns]="columns"
+        [rows]="filteredBranches()"
+        [showRowAction]="false"
+        [showExport]="true"
+        exportFileName="ciro-hedef-karsilastirma"
+      ></app-api-list-table>
+    </section>
+  </article>
+
+  <!-- Hedef Tanımları Modal -->
+  <div class="modal-backdrop" *ngIf="goalsModalOpen()" (click)="closeGoalsModal()">
+    <div class="modal-dialog" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <h3>Yıllık/Aylık Büyüme Hedef Tanımları</h3>
+        <button type="button" class="btn-close" (click)="closeGoalsModal()">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div *ngIf="goalsLoading()" class="loading-state">
+          <i class="fa-solid fa-spinner fa-spin"></i> Hedef tanımları yükleniyor...
+        </div>
+        <table class="goal-table" *ngIf="!goalsLoading() && goals().length > 0">
+          <thead>
+            <tr>
+              <th>Yıl</th>
+              <th>Ay</th>
+              <th>Ay Adı</th>
+              <th>Hedef Ciro %</th>
+              <th>Hedef Müşteri %</th>
+              <th>Hedef Gider %</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let g of goals()">
+              <td>{{ g.year }}</td>
+              <td>{{ g.month }}</td>
+              <td><strong>{{ g.monthName }}</strong></td>
+              <td class="text-success">+%{{ g.ciroGoalPercent }}</td>
+              <td class="text-primary">+%{{ g.customerGoalPercent }}</td>
+              <td class="text-warning">-%{{ g.expenseGoalPercent }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="!goalsLoading() && goals().length === 0" class="empty-state">
+          Seçili yıla ait hedef tanımı bulunamadı.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

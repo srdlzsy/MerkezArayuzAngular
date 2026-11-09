@@ -468,3 +468,46 @@ export interface ConvertSuggestedCompanyOrderLineHttpRequest {
   customerResponsibilityCenter: string;
   productResponsibilityCenter: string;
 }
+
+
+// --- Onay Bekleyen Verilen Firma Siparisleri DTOs ---
+export interface PendingApprovalCompanyOrdersHttpRequest {
+  userDefPerCode?: string | null;
+  customerCode?: string | null;
+  warehouseNo?: number | null;
+  startDate?: string | null;
+  endDate?: string | null;
+  take?: number;
+}
+
+export interface PendingApprovalCompanyOrderItemDto {
+  documentSerie: string;
+  documentOrderNo: number;
+  orderDate: string;
+  branchNo: number;
+  branchName: string;
+  customerCode: string;
+  customerName: string;
+  customerTitle: string;
+  totalAmount: number;
+  lineCount: number;
+  canBeCalled: boolean;
+  purchasingPersonCode?: string | null;
+  purchasingPersonName?: string | null;
+}
+
+export interface ApproveCompanyOrderCommand {
+  documentSerie: string;
+  documentOrderNo: number;
+}
+
+export interface BatchApproveCompanyOrdersHttpRequest {
+  orders: ApproveCompanyOrderCommand[];
+}
+
+export interface BatchApproveCompanyOrdersResultDto {
+  totalRequested: number;
+  approvedCount: number;
+  approvedDocumentKeys: string[];
+  failedDocumentKeys: string[];
+}

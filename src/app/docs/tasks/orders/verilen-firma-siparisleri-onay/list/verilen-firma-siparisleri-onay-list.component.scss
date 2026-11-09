@@ -1,0 +1,221 @@
+.order-approval-page {
+  display: block;
+  padding: 1.5rem;
+}
+
+.order-approval-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.workspace-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  .section-kicker {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary, #0066cc);
+  }
+
+  h2 {
+    margin: 0.25rem 0 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .head-summary {
+    display: flex;
+    align-items: center;
+    gap: 0.75rem;
+
+    .scope-chip {
+      background: var(--surface-card, #f4f6f9);
+      border: 1px solid var(--surface-border, #e2e8f0);
+      padding: 0.4rem 0.85rem;
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-weight: 600;
+    }
+
+    .btn-approve-batch {
+      background: #10b981;
+      color: #fff;
+      border: none;
+      padding: 0.45rem 1rem;
+      border-radius: 9999px;
+      font-size: 0.875rem;
+      font-weight: 600;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.4rem;
+      transition: all 0.2s ease;
+
+      &:hover:not(:disabled) {
+        background: #059669;
+      }
+
+      &:disabled {
+        opacity: 0.5;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.batch-result {
+  background: #ecfdf5;
+  border: 1px solid #a7f3d0;
+  color: #065f46;
+  padding: 0.85rem 1.25rem;
+  border-radius: 0.5rem;
+  display: flex;
+  align-items: center;
+  gap: 0.5rem;
+  font-size: 0.9rem;
+}
+
+.filter-panel {
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+
+  .filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      span {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #475569;
+      }
+
+      input {
+        padding: 0.45rem 0.75rem;
+        border: 1px solid var(--surface-border, #cbd5e1);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        background: #fff;
+      }
+    }
+
+    .search-field input {
+      min-width: 240px;
+    }
+
+    .btn-refresh {
+      background: var(--primary, #0066cc);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+
+      &:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.table-section {
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+  overflow-x: auto;
+}
+
+.approval-table {
+  width: 100%;
+  border-collapse: collapse;
+
+  th, td {
+    padding: 0.65rem 0.75rem;
+    border-bottom: 1px solid #f1f5f9;
+    text-align: left;
+    font-size: 0.875rem;
+  }
+
+  th {
+    background: #f8fafc;
+    font-weight: 600;
+    color: #475569;
+  }
+
+  tr.selected {
+    background: #f0fdf4;
+  }
+
+  .col-checkbox {
+    width: 38px;
+    text-align: center;
+  }
+
+  .col-action {
+    text-align: right;
+    width: 100px;
+  }
+
+  .badge-pending {
+    background: #fef3c7;
+    color: #92400e;
+    font-size: 0.75rem;
+    font-weight: 600;
+    padding: 0.25rem 0.6rem;
+    border-radius: 9999px;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+  }
+
+  .btn-approve {
+    background: #10b981;
+    color: #fff;
+    border: none;
+    padding: 0.35rem 0.75rem;
+    border-radius: 0.25rem;
+    font-size: 0.8125rem;
+    font-weight: 600;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+
+    &:hover:not(:disabled) {
+      background: #059669;
+    }
+
+    &:disabled {
+      opacity: 0.5;
+      cursor: not-allowed;
+    }
+  }
+}
+
+.text-muted { color: #94a3b8; }

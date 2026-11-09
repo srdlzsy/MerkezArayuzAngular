@@ -1,0 +1,207 @@
+<section class="kasa-rapor-page">
+  <article class="kasa-rapor-workspace">
+    <header class="workspace-head">
+      <div>
+        <span class="section-kicker">Rapor İşlemleri</span>
+        <h2>{{ page.title }}</h2>
+      </div>
+      <div class="head-summary">
+        <span class="scope-chip">{{ startDate() }} - {{ endDate() }}</span>
+        <span class="scope-chip">Toplam: {{ formatCurrency(grandTotalAmount()) }}</span>
+        <span class="scope-chip">{{ grandTotalSlips() }} Fiş</span>
+      </div>
+    </header>
+
+    <!-- Filtre Paneli -->
+    <section class="filter-panel">
+      <div class="filter-controls">
+        <label class="field">
+          <span>Başlangıç</span>
+          <input type="date" [ngModel]="startDate()" (ngModelChange)="updateStartDate($event)" />
+        </label>
+
+        <label class="field">
+          <span>Bitiş</span>
+          <input type="date" [ngModel]="endDate()" (ngModelChange)="updateEndDate($event)" />
+        </label>
+
+        <label class="field">
+          <span>Şube No</span>
+          <input
+            type="number"
+            placeholder="Tümü (opsiyonel)"
+            [ngModel]="filterWarehouseNo()"
+            (ngModelChange)="filterWarehouseNo.set($event)"
+          />
+        </label>
+
+        <label class="field">
+          <span>Kasa No</span>
+          <input
+            type="number"
+            placeholder="Örn: 1"
+            [ngModel]="filterCashRegisterNo()"
+            (ngModelChange)="filterCashRegisterNo.set($event)"
+          />
+        </label>
+
+        <label class="field">
+          <span>Kasiyer Kodu</span>
+          <input
+            type="text"
+            placeholder="Örn: 104"
+            [ngModel]="filterCashierCode()"
+            (ngModelChange)="filterCashierCode.set($event)"
+          />
+        </label>
+
+        <button type="button" class="btn-refresh" (click)="loadHierarchyReport()" [disabled]="loading()">
+          <i class="fa-solid fa-sync" [class.fa-spin]="loading()"></i> Sorgula
+        </button>
+      </div>
+    </section>
+
+    <!-- Hiyerarşik Ağaç Görünümü -->
+    <section class="tree-section">
+      <div *ngIf="loading()" class="loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i> Kasa raporu hazırlanıyor...
+      </div>
+
+      <div *ngIf="!loading() && zoneSummaries().length === 0" class="empty-state">
+        Seçilen tarih aralığında gider pusulası verisi bulunamadı.
+      </div>
+
+      <div class="hierarchy-container" *ngIf="!loading() && zoneSummaries().length > 0">
+        <!-- Bölge Düğümü -->
+        <div class="zone-block" *ngFor="let zone of zoneSummaries()">
+          <div class="zone-header" (click)="toggleZone(zone.zoneCode)">
+            <div class="header-left">
+              <i class="fa-solid" [class.fa-chevron-down]="expandedZones().has(zone.zoneCode)" [class.fa-chevron-right]="!expandedZones().has(zone.zoneCode)"></i>
+              <strong>Bölge {{ zone.zoneName || zone.zoneCode }}</strong>
+              <span class="badge">{{ zone.branches.length }} Şube</span>
+            </div>
+            <div class="header-right">
+              <span class="amount-chip">{{ formatCurrency(zone.totalExpenseAmount) }}</span>
+              <span class="slips-chip">{{ zone.slipCount }} Fiş</span>
+            </div>
+          </div>
+
+          <!-- Şubeler -->
+          <div class="zone-body" *ngIf="expandedZones().has(zone.zoneCode)">
+            <div class="branch-block" *ngFor="let branch of zone.branches">
+              <div class="branch-header" (click)="toggleBranch(branch.branchNo)">
+                <div class="header-left">
+                  <i class="fa-solid" [class.fa-chevron-down]="expandedBranches().has(branch.branchNo)" [class.fa-chevron-right]="!expandedBranches().has(branch.branchNo)"></i>
+                  <span>{{ branch.branchNo }} - {{ branch.branchName }}</span>
+                  <span class="sub-badge">{{ branch.cashRegisters.length }} Kasa</span>
+                </div>
+                <div class="header-right">
+                  <strong>{{ formatCurrency(branch.totalExpenseAmount) }}</strong>
+                  <small>{{ branch.slipCount }} Fiş</small>
+                  <button type="button" class="btn-detail-link" (click)="$event.stopPropagation(); openSlipDetails(branch.branchNo, branch.branchName)">
+                    Detaylar
+                  </button>
+                </div>
+              </div>
+
+              <!-- Kasalar -->
+              <div class="branch-body" *ngIf="expandedBranches().has(branch.branchNo)">
+                <div class="cash-block" *ngFor="let cash of branch.cashRegisters">
+                  <div class="cash-header" (click)="toggleCash(branch.branchNo + '-' + cash.cashRegisterNo)">
+                    <div class="header-left">
+                      <i class="fa-solid" [class.fa-chevron-down]="expandedCashes().has(branch.branchNo + '-' + cash.cashRegisterNo)" [class.fa-chevron-right]="!expandedCashes().has(branch.branchNo + '-' + cash.cashRegisterNo)"></i>
+                      <i class="fa-solid fa-cash-register text-muted"></i>
+                      <span>Kasa {{ cash.cashRegisterNo }}</span>
+                    </div>
+                    <div class="header-right">
+                      <span>{{ formatCurrency(cash.totalExpenseAmount) }}</span>
+                      <small>({{ cash.slipCount }} fiş)</small>
+                      <button type="button" class="btn-detail-link sm" (click)="$event.stopPropagation(); openSlipDetails(branch.branchNo, branch.branchName, cash.cashRegisterNo)">
+                        Fişler
+                      </button>
+                    </div>
+                  </div>
+
+                  <!-- Kasiyerler -->
+                  <div class="cash-body" *ngIf="expandedCashes().has(branch.branchNo + '-' + cash.cashRegisterNo)">
+                    <table class="cashier-table">
+                      <thead>
+                        <tr>
+                          <th>Kasiyer Kodu</th>
+                          <th>Kasiyer Adı</th>
+                          <th>Fiş Sayısı</th>
+                          <th>Toplam Tutar</th>
+                          <th>Aksiyon</th>
+                        </tr>
+                      </thead>
+                      <tbody>
+                        <tr *ngFor="let c of cash.cashiers">
+                          <td>{{ c.cashierCode }}</td>
+                          <td><strong>{{ c.cashierName }}</strong></td>
+                          <td>{{ c.slipCount }}</td>
+                          <td class="text-danger">{{ formatCurrency(c.totalExpenseAmount) }}</td>
+                          <td>
+                            <button
+                              type="button"
+                              class="btn-detail-link sm"
+                              (click)="openSlipDetails(branch.branchNo, branch.branchName, cash.cashRegisterNo, c.cashierCode, c.cashierName)"
+                            >
+                              İncele
+                            </button>
+                          </td>
+                        </tr>
+                      </tbody>
+                    </table>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+  </article>
+
+  <!-- Fiş Detayları Modalı -->
+  <div class="modal-backdrop" *ngIf="detailsModalOpen()" (click)="closeDetailsModal()">
+    <div class="modal-dialog modal-lg" (click)="$event.stopPropagation()">
+      <header class="modal-head">
+        <div>
+          <h3>Gider Pusulası Fiş Detayları</h3>
+          <small>{{ detailsTitle() }}</small>
+        </div>
+        <button type="button" class="btn-close" (click)="closeDetailsModal()">&times;</button>
+      </header>
+      <div class="modal-body">
+        <div *ngIf="detailsLoading()" class="loading-state">
+          <i class="fa-solid fa-spinner fa-spin"></i> Fiş detayları yükleniyor...
+        </div>
+        <table class="detail-table" *ngIf="!detailsLoading() && slipDetails().length > 0">
+          <thead>
+            <tr>
+              <th>Fiş No</th>
+              <th>Tarih & Saat</th>
+              <th>Kasa No</th>
+              <th>Kasiyer</th>
+              <th>Tutar</th>
+              <th>Açıklama</th>
+            </tr>
+          </thead>
+          <tbody>
+            <tr *ngFor="let item of slipDetails()">
+              <td><strong>#{{ item.slipNo }}</strong></td>
+              <td>{{ formatDate(item.date) }} {{ item.time }}</td>
+              <td>Kasa {{ item.cashRegisterNo }}</td>
+              <td>{{ item.cashierCode }} - {{ item.cashierName }}</td>
+              <td class="text-danger font-weight-bold">{{ formatCurrency(item.amount) }}</td>
+              <td>{{ item.description || '-' }}</td>
+            </tr>
+          </tbody>
+        </table>
+        <div *ngIf="!detailsLoading() && slipDetails().length === 0" class="empty-state">
+          Fiş kaydı bulunamadı.
+        </div>
+      </div>
+    </div>
+  </div>
+</section>

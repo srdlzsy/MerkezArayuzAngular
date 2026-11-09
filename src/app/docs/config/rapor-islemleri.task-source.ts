@@ -321,4 +321,178 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
       ]
     }
   )
+  ,
+  'ciro-hedef-raporlari': singleRouteTask(
+    {
+      id: 'ciro-hedef-raporlari',
+      title: 'Ciro & Hedef Karsilastirma',
+      subtitle:
+        'Cari donem ile gecen yil ayni donem cirolarini nakit, kredi karti, musteri ve hedef gerceklesme oranlariyla karsilastirir.',
+      baseRouteOrFile: '/api/rapor-islemleri/ciro-hedef',
+      highlights: [
+        'Cari vs Onceki Yil Karsilastirmasi',
+        'Hedef Gerceklesme Oranlari (% Büyüme / % Hedef)',
+        'Mikro Hedef Tanimlari Listesi',
+        'Nakit, KK, Furpara ve Musteri Analizleri'
+      ],
+      listTitle: 'Ciro & Hedef Endpointleri',
+      items: [
+        {
+          name: 'CiroHedefRaporlariController',
+          description: 'Ciro ve hedef karsilastirma raporu ve hedef parametreleri.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/ciro-hedef/karsilastirma?startDate=2026-06-01&endDate=2026-06-10&warehouseNo=110',
+              description: 'Cari ve gecen yil karsilastirmali ciro, musteri ve hedef raporunu getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/ciro-hedef/hedef-tanimlari?year=2026&month=6',
+              description: 'Mikro DB buyume hedef tanimlarini listeler'
+            }
+          ]
+        }
+      ],
+      codeSample: JSON.stringify(
+        {
+          startDate: '2026-06-01',
+          endDate: '2026-06-10',
+          warehouseNo: 110
+        },
+        null,
+        2
+      )
+    },
+    () =>
+      import('../tasks/reports/ciro-hedef-raporlari/list/ciro-hedef-raporlari-list.component').then(
+        (m) => m.CiroHedefRaporlariListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'rapor-islemleri.ciro-hedef-raporlari.list',
+        'rapor-islemleri.ciro-hedef-raporlari',
+        'ciro-hedef',
+        'CiroHedefRaporlari',
+        'Ciro ve Hedef Raporları'
+      ]
+    }
+  ),
+  'mal-kabul-raporlari': singleRouteTask(
+    {
+      id: 'mal-kabul-raporlari',
+      title: 'Mal Kabul Raporlari',
+      subtitle:
+        'Tembel subeler (kabul edilmemis acik sevkler) ve tedarikci bazli mal kabul hacim analizlerini sunar.',
+      baseRouteOrFile: '/api/rapor-islemleri/mal-kabul',
+      highlights: [
+        'Tembel Subeler (Bekleyen Acik Irsaliyeler)',
+        'Acik Irsaliye Detay Evraklari',
+        'Tedarikci Mal Kabul Hacim Analizi'
+      ],
+      listTitle: 'Mal Kabul Raporu Endpointleri',
+      items: [
+        {
+          name: 'MalKabulRaporlariController',
+          description: 'Acik sevk irsaliyeleri ve tedarikci mal kabul hacim dökümleri.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/mal-kabul/tembel-subeler?startDate=2026-06-01&endDate=2026-06-10',
+              description: 'Mal kabul yapilmamis acik sevk irsaliyelerini sube bazli listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/mal-kabul/tembel-subeler/evraklar?warehouseNo=110&startDate=2026-06-01&endDate=2026-06-10',
+              description: 'Secilen subenin bekleyen acik sevk irsaliyesi detaylarini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/mal-kabul/tedarikci-hacim-analizi?startDate=2026-06-01&endDate=2026-06-10',
+              description: 'Tedarikci bazinda gelen mal kabul hacim ve net tutarlarini listeler'
+            }
+          ]
+        }
+      ],
+      codeSample: JSON.stringify(
+        {
+          startDate: '2026-06-01',
+          endDate: '2026-06-10'
+        },
+        null,
+        2
+      )
+    },
+    () =>
+      import('../tasks/reports/mal-kabul-raporlari/list/mal-kabul-raporlari-list.component').then(
+        (m) => m.MalKabulRaporlariListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'rapor-islemleri.mal-kabul-raporlari.list',
+        'rapor-islemleri.mal-kabul-raporlari',
+        'mal-kabul',
+        'MalKabulRaporlari',
+        'Mal Kabul Raporları',
+        'Tembel Şubeler'
+      ]
+    }
+  ),
+  'kasa-raporlari': singleRouteTask(
+    {
+      id: 'kasa-raporlari',
+      title: 'Kasa Gider Pusulalari Raporu',
+      subtitle:
+        'Bolge, sube, kasa ve kasiyer kiriliminda gider pusulalari, fis sayilari ve fis döküm detaylarini sunar.',
+      baseRouteOrFile: '/api/rapor-islemleri/kasa-raporlari',
+      highlights: [
+        'Bolge -> Sube -> Kasa -> Kasiyer Hiyerarsisi',
+        'Gider Pusulasi Detay Fis Dokumu',
+        'Iptal Fisleri ve Tutar Ozeti'
+      ],
+      listTitle: 'Kasa Raporlari Endpointleri',
+      items: [
+        {
+          name: 'KasaRaporlariController',
+          description: 'Kasa gider pusulalari hiyerarsik ozetleri ve detay evraklari.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/kasa-raporlari/gider-pusulalari?startDate=2026-06-01&endDate=2026-06-10',
+              description: 'Bolge, sube, kasa ve kasiyer kiriliminda gider pusulasi ozetlerini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/kasa-raporlari/gider-pusulalari/detaylar?warehouseNo=110&cashierCode=101&startDate=2026-06-01&endDate=2026-06-10',
+              description: 'Secilen kasa/kasiyer icin gider pusulasi fis dokumunu getirir'
+            }
+          ]
+        }
+      ],
+      codeSample: JSON.stringify(
+        {
+          startDate: '2026-06-01',
+          endDate: '2026-06-10',
+          warehouseNo: 110
+        },
+        null,
+        2
+      )
+    },
+    () =>
+      import('../tasks/reports/kasa-raporlari/list/kasa-raporlari-list.component').then(
+        (m) => m.KasaRaporlariListComponent
+      ),
+    {
+      accessKeyAliases: [
+        'rapor-islemleri.kasa-raporlari.list',
+        'rapor-islemleri.kasa-raporlari',
+        'kasa-raporlari',
+        'KasaRaporlari',
+        'Kasa Raporları',
+        'Gider Pusulaları'
+      ]
+    }
+  )
+
 } as const satisfies Record<string, DocsTaskSource>;

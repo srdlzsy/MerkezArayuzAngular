@@ -1,0 +1,148 @@
+<section class="order-approval-page">
+  <article class="order-approval-workspace">
+    <header class="workspace-head">
+      <div>
+        <span class="section-kicker">Sipariş İşlemleri</span>
+        <h2>{{ page.title }}</h2>
+      </div>
+      <div class="head-summary">
+        <span class="scope-chip">{{ filteredOrders().length }} Sipariş Bekliyor</span>
+        <button
+          type="button"
+          class="btn-approve-batch"
+          [disabled]="selectedCount() === 0 || approving()"
+          (click)="approveSelected()"
+        >
+          <i class="fa-solid fa-check-double"></i>
+          Seçilenleri Onayla ({{ selectedCount() }})
+        </button>
+      </div>
+    </header>
+
+    <!-- Bilgi / Sonuç Mesajı -->
+    <div class="batch-result alert alert-success" *ngIf="lastBatchResult() as res">
+      <i class="fa-solid fa-circle-check"></i>
+      <strong>{{ res.approvedCount }} adet sipariş başarıyla onaylandı ve çağrılabilir hale getirildi!</strong>
+      <span *ngIf="res.failedDocumentKeys?.length"> ({{ res.failedDocumentKeys.length }} adet sipariş onaylanamadı)</span>
+    </div>
+
+    <!-- Filtre Paneli -->
+    <section class="filter-panel">
+      <div class="filter-controls">
+        <label class="field">
+          <span>Personel Kodu</span>
+          <input
+            type="text"
+            placeholder="Örn: 39"
+            [ngModel]="filterPerCode()"
+            (ngModelChange)="filterPerCode.set($event)"
+          />
+        </label>
+
+        <label class="field">
+          <span>Tedarikçi (Cari)</span>
+          <input
+            type="text"
+            placeholder="Cari kodu..."
+            [ngModel]="filterCustomerCode()"
+            (ngModelChange)="filterCustomerCode.set($event)"
+          />
+        </label>
+
+        <label class="field">
+          <span>Şube No</span>
+          <input
+            type="number"
+            placeholder="Örn: 110"
+            [ngModel]="filterWarehouseNo()"
+            (ngModelChange)="filterWarehouseNo.set($event)"
+          />
+        </label>
+
+        <label class="field search-field">
+          <span>Tabloda Ara</span>
+          <input
+            type="text"
+            placeholder="Evrak, şube veya tedarikçi ara..."
+            [ngModel]="searchTerm()"
+            (ngModelChange)="updateSearch($event)"
+          />
+        </label>
+
+        <button type="button" class="btn-refresh" (click)="loadOrders()" [disabled]="loading()">
+          <i class="fa-solid fa-sync" [class.fa-spin]="loading()"></i> Yenile
+        </button>
+      </div>
+    </section>
+
+    <!-- Tablo -->
+    <section class="table-section">
+      <div *ngIf="loading()" class="loading-state">
+        <i class="fa-solid fa-spinner fa-spin"></i> Onay bekleyen siparişler yükleniyor...
+      </div>
+
+      <div *ngIf="!loading() && filteredOrders().length === 0" class="empty-state">
+        Onay bekleyen firma siparişi bulunamadı.
+      </div>
+
+      <table class="approval-table" *ngIf="!loading() && filteredOrders().length > 0">
+        <thead>
+          <tr>
+            <th class="col-checkbox">
+              <input
+                type="checkbox"
+                [checked]="isAllSelected()"
+                (change)="toggleSelectAll()"
+              />
+            </th>
+            <th>Evrak No</th>
+            <th>Tarih</th>
+            <th>Şube</th>
+            <th>Tedarikçi (Cari)</th>
+            <th>Satır Sayısı</th>
+            <th>Toplam Tutar</th>
+            <th>Satın Alma Sorumlusu</th>
+            <th>Durum</th>
+            <th class="col-action">İşlem</th>
+          </tr>
+        </thead>
+        <tbody>
+          <tr *ngFor="let o of filteredOrders()" [class.selected]="selectedKeys().has(o.documentSerie + '-' + o.documentOrderNo)">
+            <td class="col-checkbox">
+              <input
+                type="checkbox"
+                [checked]="selectedKeys().has(o.documentSerie + '-' + o.documentOrderNo)"
+                (change)="toggleSelect(o)"
+              />
+            </td>
+            <td><strong>{{ o.documentSerie }} - {{ o.documentOrderNo }}</strong></td>
+            <td>{{ formatDate(o.orderDate) }}</td>
+            <td>{{ o.branchNo }} - {{ o.branchName }}</td>
+            <td>
+              <div><strong>{{ o.customerName }}</strong></div>
+              <small class="text-muted">{{ o.customerCode }}</small>
+            </td>
+            <td>{{ o.lineCount }} Kalem</td>
+            <td><strong>{{ formatCurrency(o.totalAmount) }}</strong></td>
+            <td>{{ o.purchasingPersonName || o.purchasingPersonCode || '-' }}</td>
+            <td>
+              <span class="badge-pending">
+                <i class="fa-solid fa-hourglass-half"></i> Onay Bekliyor
+              </span>
+            </td>
+            <td class="col-action">
+              <button
+                type="button"
+                class="btn-approve"
+                (click)="approveSingle(o)"
+                [disabled]="approving()"
+              >
+                <i class="fa-solid fa-check"></i> Onayla
+              </button>
+            </td>
+          </tr>
+        </tbody>
+      </table>
+    </section>
+  </article>
+</section>

@@ -28,6 +28,10 @@ import type {
   WarehouseOrderListItemDto,
   WarehouseOrderDateRangeHttpRequest,
   SuggestedWarehouseSourceProductDto,
+  BatchApproveCompanyOrdersHttpRequest,
+  BatchApproveCompanyOrdersResultDto,
+  PendingApprovalCompanyOrderItemDto,
+  PendingApprovalCompanyOrdersHttpRequest,
 } from '@interfaces';
 
 import { getDefaultDateRange, parseDateRangeToken } from '../furpa-merkez-api.utils';
@@ -572,6 +576,24 @@ export class SiparisIslemleriService extends BaseApiService {
           responsibilityCenter: '',
         })),
       ),
+    );
+  }
+
+  getOnayBekleyenVerilenFirmaSiparisleri(
+    request: PendingApprovalCompanyOrdersHttpRequest = {}
+  ): Observable<PendingApprovalCompanyOrderItemDto[]> {
+    return this.getWithQuery<PendingApprovalCompanyOrderItemDto[], PendingApprovalCompanyOrdersHttpRequest>(
+      'siparis-islemleri/verilen-firma-siparisleri/onay-bekleyenler',
+      request
+    );
+  }
+
+  batchApproveCompanyOrders(
+    request: BatchApproveCompanyOrdersHttpRequest
+  ): Observable<BatchApproveCompanyOrdersResultDto> {
+    return this.post<BatchApproveCompanyOrdersResultDto, BatchApproveCompanyOrdersHttpRequest>(
+      'siparis-islemleri/verilen-firma-siparisleri/onayla',
+      request
     );
   }
 

@@ -1,0 +1,237 @@
+.mal-kabul-page {
+  display: block;
+  padding: 1.5rem;
+}
+
+.mal-kabul-workspace {
+  display: flex;
+  flex-direction: column;
+  gap: 1.25rem;
+}
+
+.workspace-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 1rem;
+
+  .section-kicker {
+    font-size: 0.75rem;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.05em;
+    color: var(--primary, #0066cc);
+  }
+
+  h2 {
+    margin: 0.25rem 0 0;
+    font-size: 1.5rem;
+    font-weight: 700;
+  }
+
+  .head-summary {
+    display: flex;
+    gap: 0.5rem;
+
+    .scope-chip {
+      background: var(--surface-card, #f4f6f9);
+      border: 1px solid var(--surface-border, #e2e8f0);
+      padding: 0.35rem 0.75rem;
+      border-radius: 9999px;
+      font-size: 0.8125rem;
+      font-weight: 500;
+    }
+  }
+}
+
+.tab-nav {
+  display: flex;
+  gap: 0.5rem;
+  border-bottom: 2px solid #e2e8f0;
+  padding-bottom: 0.5rem;
+
+  .tab-btn {
+    background: transparent;
+    border: none;
+    padding: 0.6rem 1.2rem;
+    font-size: 0.95rem;
+    font-weight: 600;
+    color: #64748b;
+    border-radius: 0.5rem;
+    cursor: pointer;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.5rem;
+    transition: all 0.2s ease;
+
+    .badge {
+      background: #e2e8f0;
+      color: #334155;
+      padding: 0.15rem 0.5rem;
+      border-radius: 9999px;
+      font-size: 0.75rem;
+    }
+
+    &:hover {
+      background: #f1f5f9;
+      color: #1e293b;
+    }
+
+    &.is-active {
+      background: var(--primary, #0066cc);
+      color: #fff;
+
+      .badge {
+        background: rgba(255, 255, 255, 0.25);
+        color: #fff;
+      }
+    }
+  }
+}
+
+.filter-panel {
+  background: var(--surface-card, #ffffff);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1rem 1.25rem;
+
+  .filter-controls {
+    display: flex;
+    flex-wrap: wrap;
+    align-items: flex-end;
+    gap: 1rem;
+
+    .field {
+      display: flex;
+      flex-direction: column;
+      gap: 0.25rem;
+
+      span {
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #475569;
+      }
+
+      input,
+      select {
+        padding: 0.45rem 0.75rem;
+        border: 1px solid var(--surface-border, #cbd5e1);
+        border-radius: 0.375rem;
+        font-size: 0.875rem;
+        background: #fff;
+      }
+    }
+
+    .search-field input {
+      min-width: 220px;
+    }
+
+    .btn-refresh {
+      background: var(--primary, #0066cc);
+      color: #fff;
+      border: none;
+      padding: 0.5rem 1rem;
+      border-radius: 0.375rem;
+      font-weight: 600;
+      font-size: 0.875rem;
+      cursor: pointer;
+      display: inline-flex;
+      align-items: center;
+      gap: 0.35rem;
+
+      &:hover:not(:disabled) {
+        opacity: 0.9;
+      }
+
+      &:disabled {
+        opacity: 0.6;
+        cursor: not-allowed;
+      }
+    }
+  }
+}
+
+.table-section {
+  background: var(--surface-card, #fff);
+  border: 1px solid var(--surface-border, #e2e8f0);
+  border-radius: 0.75rem;
+  padding: 1.25rem;
+
+  .table-head {
+    margin-bottom: 1rem;
+    h3 {
+      margin: 0;
+      font-size: 1.125rem;
+      font-weight: 700;
+    }
+    small {
+      color: #64748b;
+    }
+  }
+}
+
+.modal-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1050;
+
+  .modal-dialog {
+    background: #fff;
+    border-radius: 0.75rem;
+    width: 90%;
+    max-width: 700px;
+    max-height: 85vh;
+    overflow-y: auto;
+    box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1);
+
+    .modal-head {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      padding: 1rem 1.25rem;
+      border-bottom: 1px solid #e2e8f0;
+
+      h3 {
+        margin: 0;
+        font-size: 1.1rem;
+      }
+      small {
+        color: #64748b;
+      }
+
+      .btn-close {
+        background: none;
+        border: none;
+        font-size: 1.5rem;
+        cursor: pointer;
+        color: #64748b;
+      }
+    }
+
+    .modal-body {
+      padding: 1.25rem;
+
+      .doc-table {
+        width: 100%;
+        border-collapse: collapse;
+
+        th, td {
+          padding: 0.6rem 0.75rem;
+          border-bottom: 1px solid #f1f5f9;
+          text-align: left;
+          font-size: 0.875rem;
+        }
+
+        th {
+          background: #f8fafc;
+          font-weight: 600;
+        }
+      }
+    }
+  }
+}

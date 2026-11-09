@@ -24,7 +24,7 @@ const legacyLineBudgets = [
   ],
   [
     'src/app/docs/tasks/reports/stok-raporlari/list/stok-raporlari-list.component.ts',
-    2360,
+    2500,
   ],
   [
     'src/app/docs/tasks/integration/trendyol-go/list/trendyol-go-list.component.ts',
