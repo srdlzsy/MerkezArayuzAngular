@@ -517,8 +517,8 @@
             <div class="print-meta-line">
               <span>Kapsam: <strong>{{ selectedBranchLabel() }}</strong></span>
               <span>Toplam: <strong>{{ comparison.summary.rowCount }} Sube</strong></span>
-              <span>Farkli: <strong [class.color-danger]="comparison.summary.differenceCount > 0">{{ comparison.summary.differenceCount }}</strong></span>
-              <span>Net fark: <strong [class.color-danger]="comparison.summary.differenceCount > 0">{{ formatCurrency(comparison.summary.totalNetDifference) }}</strong></span>
+              <span>Aktarim farkli: <strong [class.color-danger]="comparison.summary.differenceCount > 0">{{ comparison.summary.differenceCount }}</strong></span>
+              <span>Aktarim net farki: <strong [class.color-danger]="comparison.summary.differenceCount > 0">{{ formatCurrency(comparison.summary.totalNetDifference) }}</strong></span>
               <span class="print-time">Yazdirma: {{ printDate() }}</span>
             </div>
           </div>
@@ -529,7 +529,7 @@
               <strong>{{ comparison.summary.rowCount }}</strong>
             </article>
             <article class="summary-item" [class.metric-negative]="comparison.summary.differenceCount > 0">
-              <span>Farkli Sube</span>
+              <span>Aktarim Farkli Sube</span>
               <strong>{{ comparison.summary.differenceCount }}</strong>
             </article>
             <article class="summary-item">
@@ -1368,30 +1368,6 @@
             </div>
 
             <div class="field-group">
-              <label for="targetBranchSelect">Hedef Sube (Kopyalama)</label>
-              <select
-                id="targetBranchSelect"
-                formControlName="targetBranchNo"
-                (change)="onTargetBranchChange(dosyaForm.controls.targetBranchNo.value)"
-              >
-                <option [ngValue]="null">Ayni Sube (veya Sube Sec)</option>
-                <option *ngFor="let branch of branches()" [ngValue]="branch.branchNo">
-                  {{ branch.branchNo }} - {{ branch.branchName }}
-                </option>
-              </select>
-            </div>
-
-            <div class="field-group" *ngIf="dosyaForm.controls.sourceCashRegisterNo.value !== 0">
-              <label for="targetCashSelect">Hedef Kasa No</label>
-              <input
-                id="targetCashSelect"
-                type="number"
-                formControlName="targetCashRegisterNo"
-                placeholder="Orn: 2"
-              />
-            </div>
-
-            <div class="field-group">
               <label for="dosyaDate">Tarih</label>
               <input id="dosyaDate" type="date" formControlName="date" />
             </div>
@@ -1430,7 +1406,7 @@
               (click)="executeDosyaKopyala()"
             >
               <i class="fa-solid fa-copy"></i>
-              Hedefe Kopyala
+              Merkeze Kopyala
             </button>
           </div>
         </form>

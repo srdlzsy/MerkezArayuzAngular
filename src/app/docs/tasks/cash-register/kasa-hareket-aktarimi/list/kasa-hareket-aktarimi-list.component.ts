@@ -176,8 +176,6 @@ export class KasaHareketAktarimiListComponent {
   protected readonly dosyaForm = new FormGroup({
     sourceBranchNo: new FormControl<number | null>(null),
     sourceCashRegisterNo: new FormControl<number | null>(null),
-    targetBranchNo: new FormControl<number | null>(null),
-    targetCashRegisterNo: new FormControl<number | null>(null),
     date: new FormControl<string>(this.today, { nonNullable: true }),
     overwrite: new FormControl<boolean>(false, { nonNullable: true })
   });
@@ -188,7 +186,6 @@ export class KasaHareketAktarimiListComponent {
   protected readonly dosyaKopyalaLoading = signal<boolean>(false);
   protected readonly dosyaKopyalaResult = signal<KasaHareketDosyaKopyalaResultDto | null>(null);
   protected readonly sourceCashRegisters = signal<KasaHareketCashRegisterDto[]>([]);
-  protected readonly targetCashRegisters = signal<KasaHareketCashRegisterDto[]>([]);
 
   // --- Ek Raporlar & Kontroller ---
   protected readonly activeEkRaporTab = signal<EkRaporSubTab>('kasa-z-detay');
@@ -2029,22 +2026,21 @@ export class KasaHareketAktarimiListComponent {
       this.dosyaForm.controls.sourceCashRegisterNo.setValue(null);
       return;
     }
-    this.kasaIslemleriService.getKasaHareketKasalar(branchNo).subscribe({
-      next: (regs: KasaHareketCashRegisterDto[]) => this.sourceCashRegisters.set(regs),
-      error: () => this.sourceCashRegisters.set([])
-    });
-  }
-
-  protected onTargetBranchChange(branchNo: number | null): void {
-    if (!branchNo) {
-      this.targetCashRegisters.set([]);
-      this.dosyaForm.controls.targetCashRegisterNo.setValue(null);
-      return;
-    }
-    this.kasaIslemleriService.getKasaHareketKasalar(branchNo).subscribe({
-      next: (regs: KasaHareketCashRegisterDto[]) => this.targetCashRegisters.set(regs),
-      error: () => this.targetCashRegisters.set([])
-    });
+    this.kasaIslemleriService
+      .getKasaHareketKasalar(branchNo)
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (regs: KasaHareketCashRegisterDto[]) => {
+          if (this.dosyaForm.controls.sourceBranchNo.value === branchNo) {
+            this.sourceCashRegisters.set(regs);
+          }
+        },
+        error: () => {
+          if (this.dosyaForm.controls.sourceBranchNo.value === branchNo) {
+            this.sourceCashRegisters.set([]);
+          }
+        }
+      });
   }
 
   protected fetchDosyaBilgisi(): void {
@@ -2145,8 +2141,8 @@ export class KasaHareketAktarimiListComponent {
 
     const targetDesc = cashNo === 0 ? 'TÜM kasalara ait' : `${cashNo}. kasa`;
     const confirmed = await this.confirmDialog.confirm({
-      title: 'Dosya Kopyalama',
-      message: `${branchNo}. şube ${targetDesc} hareket dosyasını hedef alana kopyalamak istediğinize emin misiniz?`,
+      title: 'Merkez Klasöre Kopyalama',
+      message: `${branchNo}. şube ${targetDesc} hareket dosyasını merkez klasöre kopyalamak istediğinize emin misiniz?`,
       confirmText: 'Kopyala',
       tone: 'info'
     });
