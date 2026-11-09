@@ -354,11 +354,60 @@
 
     </section>
 
-    <section class="metric-strip" *ngIf="metrics().length">
-      <article class="metric-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
-        <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
+    <section class="kpi-dashboard-grid" *ngIf="metrics().length">
+      <article class="kpi-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
+        <div class="kpi-icon">
+          <i class="fa-solid" [ngClass]="{
+            'fa-boxes-stacked': metric.label.includes('Urun') || metric.label.includes('Stok') || metric.label.includes('Kayit'),
+            'fa-warehouse': metric.label.includes('Depo') || metric.label.includes('Sube') || metric.label.includes('Kapsam'),
+            'fa-triangle-exclamation': metric.label.includes('Fark') || metric.label.includes('Zayiat') || metric.label.includes('Fire') || metric.label.includes('Eksi'),
+            'fa-cubes': metric.label.includes('Miktar') || metric.label.includes('Adet'),
+            'fa-coins': metric.label.includes('Tutar') || metric.label.includes('Deger') || metric.label.includes('Maliyet') || metric.label.includes('Ciro'),
+            'fa-percent': metric.label.includes('Oran') || metric.label.includes('Marj')
+          }"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">{{ metric.label }}</span>
+          <strong class="kpi-value">{{ metric.value }}</strong>
+        </div>
       </article>
+    </section>
+
+    <!-- Hızlı Sıralama Araç Çubuğu -->
+    <section class="sort-toolbar" *ngIf="rows().length">
+      <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Hızlı Sırala:</span>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'differenceAmount' || sortField() === 'outageTotalAmount' || sortField() === 'netSalesAmount' || sortField() === 'totalStockAmount'"
+        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'outageTotalAmount' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'totalStockAmount')"
+      >
+        Tutar / Fark <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'quantity' || sortField() === 'currentStockQuantity' || sortField() === 'differenceQuantity'"
+        (click)="toggleSort(selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'quantity')"
+      >
+        Miktar / Bakiye <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'stockName' || sortField() === 'branchName' || sortField() === 'companyName'"
+        (click)="toggleSort(selectedReport() === 'tedarikci-son-stok' ? 'companyName' : 'stockName')"
+      >
+        Ad / Ürün <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'outageRatioPercent' || sortField() === 'turnoverRatio' || sortField() === 'differencePercent'"
+        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'outageRatioPercent' : 'turnoverRatio')"
+      >
+        Oran % <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+      </button>
     </section>
 
     <div class="table-context" *ngIf="rows().length">
@@ -476,7 +525,7 @@
 
           <div class="table-shell raw-report-table">
             <app-api-list-table
-              [rows]="rows()"
+              [rows]="sortedRows()"
               [columns]="tableColumns()"
               [showRowAction]="false"
               [fitToWidth]="true"
@@ -494,7 +543,7 @@
       <ng-template #standardReportTable>
         <div class="table-shell">
           <app-api-list-table
-            [rows]="rows()"
+            [rows]="sortedRows()"
             [columns]="tableColumns()"
             [showRowAction]="false"
             [fitToWidth]="true"

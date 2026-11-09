@@ -72,6 +72,76 @@ export class KasaRaporlariListComponent implements OnInit {
   protected readonly grandTotalSlips = computed<number>(() =>
     this.zoneSummaries().reduce((sum, z) => sum + (z.slipCount || 0), 0)
   );
+  protected readonly totalZonesCount = computed<number>(() =>
+    this.zoneSummaries().length
+  );
+  protected readonly totalBranchesCount = computed<number>(() =>
+    this.zoneSummaries().reduce((sum, z) => sum + (z.branches?.length || 0), 0)
+  );
+  protected readonly avgSlipAmount = computed<number>(() => {
+    const slips = this.grandTotalSlips();
+    return slips > 0 ? this.grandTotalAmount() / slips : 0;
+  });
+
+  // Sıralama
+  protected readonly sortOption = signal<'amount-desc' | 'amount-asc' | 'slips-desc' | 'name-asc'>('amount-desc');
+
+  protected readonly sortedZoneSummaries = computed<ExpenseSlipZoneSummaryDto[]>(() => {
+    const list = [...this.zoneSummaries()];
+    const opt = this.sortOption();
+
+    const sortBranches = (branches: ExpenseSlipBranchSummaryDto[]): ExpenseSlipBranchSummaryDto[] => {
+      const bList = [...branches];
+      bList.sort((a, b) => {
+        if (opt === 'amount-desc') return (b.totalExpenseAmount || 0) - (a.totalExpenseAmount || 0);
+        if (opt === 'amount-asc') return (a.totalExpenseAmount || 0) - (b.totalExpenseAmount || 0);
+        if (opt === 'slips-desc') return (b.slipCount || 0) - (a.slipCount || 0);
+        return (a.branchName || '').localeCompare(b.branchName || '', 'tr');
+      });
+      return bList;
+    };
+
+    list.sort((a, b) => {
+      if (opt === 'amount-desc') return (b.totalExpenseAmount || 0) - (a.totalExpenseAmount || 0);
+      if (opt === 'amount-asc') return (a.totalExpenseAmount || 0) - (b.totalExpenseAmount || 0);
+      if (opt === 'slips-desc') return (b.slipCount || 0) - (a.slipCount || 0);
+      return (a.zoneName || a.zoneCode || '').localeCompare(b.zoneName || b.zoneCode || '', 'tr');
+    });
+
+    return list.map(z => ({
+      ...z,
+      branches: sortBranches(z.branches || [])
+    }));
+  });
+
+  setSortOption(opt: 'amount-desc' | 'amount-asc' | 'slips-desc' | 'name-asc'): void {
+    this.sortOption.set(opt);
+  }
+
+  expandAll(): void {
+    const allZones = new Set<string>(this.zoneSummaries().map(z => z.zoneCode));
+    const allBranches = new Set<number>();
+    const allCashes = new Set<string>();
+
+    for (const z of this.zoneSummaries()) {
+      for (const b of z.branches || []) {
+        allBranches.add(b.branchNo);
+        for (const c of b.cashRegisters || []) {
+          allCashes.add(`${b.branchNo}-${c.cashRegisterNo}`);
+        }
+      }
+    }
+
+    this.expandedZones.set(allZones);
+    this.expandedBranches.set(allBranches);
+    this.expandedCashes.set(allCashes);
+  }
+
+  collapseAll(): void {
+    this.expandedZones.set(new Set<string>());
+    this.expandedBranches.set(new Set<number>());
+    this.expandedCashes.set(new Set<string>());
+  }
 
   ngOnInit(): void {
     this.loadHierarchyReport();
@@ -199,11 +269,17 @@ export class KasaRaporlariListComponent implements OnInit {
 
   private getDefaultStartDate(): string {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    return firstDay.toISOString().substring(0, 10);
+    return this.formatLocalIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
   }
 
   private getDefaultEndDate(): string {
-    return new Date().toISOString().substring(0, 10);
+    return this.formatLocalIsoDate(new Date());
+  }
+
+  private formatLocalIsoDate(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

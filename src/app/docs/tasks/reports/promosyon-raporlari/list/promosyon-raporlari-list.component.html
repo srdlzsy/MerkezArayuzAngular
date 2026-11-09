@@ -192,11 +192,118 @@
 
     </section>
 
-    <section class="metric-strip" *ngIf="metrics().length">
-      <article class="metric-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
-        <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
+    <section class="kpi-dashboard-grid" *ngIf="metrics().length">
+      <article class="kpi-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
+        <div class="kpi-icon">
+          <i class="fa-solid" [ngClass]="{
+            'fa-tag': metric.label.includes('Bulten') || metric.label.includes('Promosyon'),
+            'fa-check-circle': metric.label.includes('Aktif'),
+            'fa-store': metric.label.includes('Sube') || metric.label.includes('Kapsam'),
+            'fa-hand-holding-dollar': metric.label.includes('Kullanim'),
+            'fa-receipt': metric.label.includes('Fis'),
+            'fa-coins': metric.label.includes('Satis'),
+            'fa-percent': metric.label.includes('Indirim'),
+            'fa-chart-pie': metric.label.includes('Marj')
+          }"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">{{ metric.label }}</span>
+          <strong class="kpi-value">{{ metric.value }}</strong>
+        </div>
       </article>
+    </section>
+
+    <!-- Hızlı Sıralama Araç Çubuğu -->
+    <section class="sort-toolbar" *ngIf="rows().length">
+      <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Hızlı Sırala:</span>
+      <ng-container *ngIf="selectedReport() === 'bultenler'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'branchCount'"
+          (click)="toggleSort('branchCount')"
+        >
+          Şube Kapsamı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'branchCount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'branchCount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'promotionName'"
+          (click)="toggleSort('promotionName')"
+        >
+          Promosyon Adı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'promotionName' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'promotionName' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'startDate'"
+          (click)="toggleSort('startDate')"
+        >
+          Başlangıç Tarihi <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'startDate' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'startDate' && sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="selectedReport() === 'performans' || selectedReport() === 'satis-marj-etkisi'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'netSalesAmount'"
+          (click)="toggleSort('netSalesAmount')"
+        >
+          Net Satış <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'netSalesAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'netSalesAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'marginAmount'"
+          (click)="toggleSort('marginAmount')"
+        >
+          Marj Tutarı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'marginAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'marginAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'discountAmount'"
+          (click)="toggleSort('discountAmount')"
+        >
+          İndirim Tutarı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'discountAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'discountAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'usageCount'"
+          (click)="toggleSort('usageCount')"
+        >
+          Kullanım Sayısı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'usageCount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'usageCount' && sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="selectedReport() === 'performans-sube'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'netSalesAmount'"
+          (click)="toggleSort('netSalesAmount')"
+        >
+          Net Satış <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'netSalesAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'netSalesAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'warehouseName'"
+          (click)="toggleSort('warehouseName')"
+        >
+          Şube Adı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'warehouseName' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'warehouseName' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'marginAmount'"
+          (click)="toggleSort('marginAmount')"
+        >
+          Marj <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'marginAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'marginAmount' && sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
     </section>
 
     <div class="table-context" *ngIf="rows().length">
@@ -219,7 +326,7 @@
 
     <div class="table-shell" *ngIf="!isLoading() && rows().length">
       <app-api-list-table
-        [rows]="rows()"
+        [rows]="sortedRows()"
         [columns]="tableColumns()"
         [showRowAction]="selectedReport() === 'bultenler'"
         [fitToWidth]="true"

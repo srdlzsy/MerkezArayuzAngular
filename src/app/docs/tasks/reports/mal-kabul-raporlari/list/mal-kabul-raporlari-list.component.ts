@@ -47,9 +47,9 @@ export class MalKabulRaporlariListComponent implements OnInit {
   // Aktif sekme: 'lazy-branches' (Tembel Şubeler) | 'supplier-volume' (Tedarikçi Hacim)
   protected readonly activeTab = signal<'lazy-branches' | 'supplier-volume'>('lazy-branches');
 
-  // Filtreler
-  protected readonly startDate = signal<string>(this.getDefaultStartDate());
-  protected readonly endDate = signal<string>(this.getDefaultEndDate());
+  // Filtreler (Tembel şubeler varsayılan olarak tüm açık irsaliyeleri listeler; tedarikçi hacim sekmesinde tarih aralığı kullanılır)
+  protected readonly startDate = signal<string>('');
+  protected readonly endDate = signal<string>('');
   protected readonly selectedRegion = signal<string>('all');
   protected readonly searchTerm = signal<string>('');
   protected readonly supplierLimit = signal<number>(100);
@@ -97,6 +97,87 @@ export class MalKabulRaporlariListComponent implements OnInit {
     }
     return list;
   });
+
+  // KPI Dashboard Hesaplamaları
+  protected readonly totalPendingDocuments = computed<number>(() =>
+    this.lazyBranches().reduce((acc, b) => acc + (b.notAcceptedCount || 0), 0)
+  );
+  protected readonly totalPendingQuantity = computed<number>(() =>
+    this.lazyBranches().reduce((acc, b) => acc + (b.totalQuantity || 0), 0)
+  );
+  protected readonly totalLazyBranchCount = computed<number>(() => this.lazyBranches().length);
+  protected readonly totalSupplierVolumeAmount = computed<number>(() =>
+    this.supplierVolume().reduce((acc, s) => acc + (s.netAmount || 0), 0)
+  );
+  protected readonly totalSupplierDocs = computed<number>(() =>
+    this.supplierVolume().reduce((acc, s) => acc + (s.documentCount || 0), 0)
+  );
+
+  // Sıralama Sinyalleri
+  protected readonly lazySortField = signal<'count' | 'quantity' | 'date' | 'name'>('count');
+  protected readonly lazySortDirection = signal<'asc' | 'desc'>('desc');
+  protected readonly supplierSortField = signal<'net' | 'amount' | 'docs' | 'name'>('net');
+  protected readonly supplierSortDirection = signal<'asc' | 'desc'>('desc');
+
+  protected readonly sortedLazyBranches = computed<LazyBranchReceivingItemDto[]>(() => {
+    const list = [...this.filteredLazyBranches()];
+    const field = this.lazySortField();
+    const mult = this.lazySortDirection() === 'asc' ? 1 : -1;
+
+    return list.sort((a, b) => {
+      switch (field) {
+        case 'count':
+          return (a.notAcceptedCount - b.notAcceptedCount) * mult;
+        case 'quantity':
+          return (a.totalQuantity - b.totalQuantity) * mult;
+        case 'date':
+          return ((a.oldestShipmentDate || '').localeCompare(b.oldestShipmentDate || '')) * mult;
+        case 'name':
+          return a.warehouseName.localeCompare(b.warehouseName, 'tr') * mult;
+        default:
+          return 0;
+      }
+    });
+  });
+
+  protected readonly sortedSupplierVolume = computed<CompanyDocumentByCustomerItemDto[]>(() => {
+    const list = [...this.filteredSupplierVolume()];
+    const field = this.supplierSortField();
+    const mult = this.supplierSortDirection() === 'asc' ? 1 : -1;
+
+    return list.sort((a, b) => {
+      switch (field) {
+        case 'net':
+          return (a.netAmount - b.netAmount) * mult;
+        case 'amount':
+          return (a.totalAmount - b.totalAmount) * mult;
+        case 'docs':
+          return (a.documentCount - b.documentCount) * mult;
+        case 'name':
+          return a.customerName.localeCompare(b.customerName, 'tr') * mult;
+        default:
+          return 0;
+      }
+    });
+  });
+
+  protected toggleLazySort(field: 'count' | 'quantity' | 'date' | 'name'): void {
+    if (this.lazySortField() === field) {
+      this.lazySortDirection.set(this.lazySortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.lazySortField.set(field);
+      this.lazySortDirection.set('desc');
+    }
+  }
+
+  protected toggleSupplierSort(field: 'net' | 'amount' | 'docs' | 'name'): void {
+    if (this.supplierSortField() === field) {
+      this.supplierSortDirection.set(this.supplierSortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.supplierSortField.set(field);
+      this.supplierSortDirection.set('desc');
+    }
+  }
 
   // Tembel Şubeler Kolonları
   protected readonly lazyBranchesColumns: ApiListTableColumn<LazyBranchReceivingItemDto>[] = [
@@ -173,6 +254,10 @@ export class MalKabulRaporlariListComponent implements OnInit {
   setTab(tab: 'lazy-branches' | 'supplier-volume'): void {
     this.activeTab.set(tab);
     this.searchTerm.set('');
+    if (tab === 'supplier-volume') {
+      if (!this.startDate()) this.startDate.set(this.getDefaultStartDate());
+      if (!this.endDate()) this.endDate.set(this.getDefaultEndDate());
+    }
     this.loadData();
   }
 
@@ -203,11 +288,16 @@ export class MalKabulRaporlariListComponent implements OnInit {
   }
 
   loadSupplierVolume(): void {
+    const start = this.startDate() || this.getDefaultStartDate();
+    const end = this.endDate() || this.getDefaultEndDate();
+    if (!this.startDate()) this.startDate.set(start);
+    if (!this.endDate()) this.endDate.set(end);
+
     this.loading.set(true);
     this.raporService
       .getTedarikciHacimAnalizi({
-        startDate: this.startDate(),
-        endDate: this.endDate(),
+        startDate: start,
+        endDate: end,
         take: this.supplierLimit()
       })
       .pipe(
@@ -226,8 +316,10 @@ export class MalKabulRaporlariListComponent implements OnInit {
     this.docsLoading.set(true);
     this.raporService
       .getTembelSubeEvraklari({
+        startDate: this.startDate() || undefined,
+        endDate: this.endDate() || undefined,
         warehouseNo: branch.warehouseNo,
-        region: branch.region
+        region: branch.region || undefined
       })
       .pipe(
         finalize(() => this.docsLoading.set(false)),
@@ -293,10 +385,17 @@ export class MalKabulRaporlariListComponent implements OnInit {
   private getDefaultStartDate(): string {
     const now = new Date();
     const past = new Date(now.getTime() - 7 * 24 * 60 * 60 * 1000);
-    return past.toISOString().substring(0, 10);
+    return this.formatLocalIsoDate(past);
   }
 
   private getDefaultEndDate(): string {
-    return new Date().toISOString().substring(0, 10);
+    return this.formatLocalIsoDate(new Date());
+  }
+
+  private formatLocalIsoDate(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

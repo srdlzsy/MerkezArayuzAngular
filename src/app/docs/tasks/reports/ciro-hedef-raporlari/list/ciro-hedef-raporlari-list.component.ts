@@ -28,7 +28,7 @@ import {
   formatCurrentWarehouseLabel
 } from '../../../core/admin-warehouse.helpers';
 
-const ALL_WAREHOUSES_PERMISSION = 'rapor-islemleri.ciro-hedef-raporlari.page';
+const ALL_WAREHOUSES_PERMISSION = 'rapor-islemleri.ciro-hedef-raporlari.all-warehouses';
 
 @Component({
   selector: 'app-ciro-hedef-raporlari-list',
@@ -92,6 +92,46 @@ export class CiroHedefRaporlariListComponent implements OnInit {
     }
     return list;
   });
+
+  // Hızlı sıralama
+  protected readonly sortField = signal<'achievement' | 'turnover' | 'target' | 'customer' | 'custAchievement' | 'basket' | 'name'>('achievement');
+  protected readonly sortDirection = signal<'asc' | 'desc'>('desc');
+
+  protected readonly sortedBranches = computed<CiroHedefSubeKarsilastirmaDto[]>(() => {
+    const list = [...this.filteredBranches()];
+    const field = this.sortField();
+    const mult = this.sortDirection() === 'asc' ? 1 : -1;
+
+    return list.sort((a, b) => {
+      switch (field) {
+        case 'achievement':
+          return (a.turnoverAchievementRate - b.turnoverAchievementRate) * mult;
+        case 'turnover':
+          return (a.currentOverallTotal - b.currentOverallTotal) * mult;
+        case 'target':
+          return (a.targetTurnover - b.targetTurnover) * mult;
+        case 'customer':
+          return (a.currentCustomerCount - b.currentCustomerCount) * mult;
+        case 'custAchievement':
+          return (a.customerAchievementRate - b.customerAchievementRate) * mult;
+        case 'basket':
+          return (a.currentAverageBasketAmount - b.currentAverageBasketAmount) * mult;
+        case 'name':
+          return a.branchName.localeCompare(b.branchName, 'tr') * mult;
+        default:
+          return 0;
+      }
+    });
+  });
+
+  protected toggleSort(field: 'achievement' | 'turnover' | 'target' | 'customer' | 'custAchievement' | 'basket' | 'name'): void {
+    if (this.sortField() === field) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDirection.set('desc');
+    }
+  }
 
   // Tablo kolonları
   protected readonly columns: ApiListTableColumn<CiroHedefSubeKarsilastirmaDto>[] = [
@@ -233,11 +273,17 @@ export class CiroHedefRaporlariListComponent implements OnInit {
 
   private getDefaultStartDate(): string {
     const now = new Date();
-    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1);
-    return firstDay.toISOString().substring(0, 10);
+    return this.formatLocalIsoDate(new Date(now.getFullYear(), now.getMonth(), 1));
   }
 
   private getDefaultEndDate(): string {
-    return new Date().toISOString().substring(0, 10);
+    return this.formatLocalIsoDate(new Date());
+  }
+
+  private formatLocalIsoDate(d: Date): string {
+    const year = d.getFullYear();
+    const month = String(d.getMonth() + 1).padStart(2, '0');
+    const day = String(d.getDate()).padStart(2, '0');
+    return `${year}-${month}-${day}`;
   }
 }

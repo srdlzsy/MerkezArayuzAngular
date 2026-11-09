@@ -106,11 +106,151 @@
 
     </section>
 
-    <section class="metric-strip" *ngIf="metrics().length">
-      <article class="metric-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
-        <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
+    <section class="kpi-dashboard-grid" *ngIf="metrics().length">
+      <article class="kpi-card" *ngFor="let metric of metrics(); trackBy: trackByMetric">
+        <div class="kpi-icon">
+          <i class="fa-solid" [ngClass]="{
+            'fa-building-columns': metric.label.includes('Banka') || metric.label.includes('Merchant'),
+            'fa-money-bill-wave': metric.label.includes('Tutar') || metric.label.includes('Net') || metric.label.includes('Ciro'),
+            'fa-arrow-trend-up': metric.label.includes('Büyüme') || metric.label.includes('Hedef'),
+            'fa-store': metric.label.includes('Sube') || metric.label.includes('Kapsam'),
+            'fa-receipt': metric.label.includes('İşlem') || metric.label.includes('Fis') || metric.label.includes('Adet'),
+            'fa-cart-shopping': metric.label.includes('Marketyo') || metric.label.includes('Kategori'),
+            'fa-percent': metric.label.includes('Marj') || metric.label.includes('Oran')
+          }"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">{{ metric.label }}</span>
+          <strong class="kpi-value">{{ metric.value }}</strong>
+        </div>
       </article>
+    </section>
+
+    <!-- Hızlı Sıralama Araç Çubuğu -->
+    <section class="sort-toolbar" *ngIf="rows().length">
+      <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Hızlı Sırala:</span>
+      
+      <!-- Kategori Raporları -->
+      <ng-container *ngIf="selectedReport() === 'category-yearly-growth'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'currentYearAmount'"
+          (click)="toggleSort('currentYearAmount')"
+        >
+          Cari Tutar <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'currentYearAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'currentYearAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'growthRatePercent'"
+          (click)="toggleSort('growthRatePercent')"
+        >
+          Büyüme % <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'growthRatePercent' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'growthRatePercent' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'turnoverAchievementRate'"
+          (click)="toggleSort('turnoverAchievementRate')"
+        >
+          Hedef Gerçekleşme % <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'turnoverAchievementRate' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'turnoverAchievementRate' && sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="selectedReport() === 'category-sales-detailed'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'netSalesAmount'"
+          (click)="toggleSort('netSalesAmount')"
+        >
+          Net Satış <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'netSalesAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'netSalesAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'marginAmount'"
+          (click)="toggleSort('marginAmount')"
+        >
+          Marj Tutarı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'marginAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'marginAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'quantity'"
+          (click)="toggleSort('quantity')"
+        >
+          Miktar <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'quantity' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'quantity' && sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
+
+      <!-- Banka / Kart Raporları -->
+      <ng-container *ngIf="selectedReport() === 'bank-movements' || selectedReport() === 'bank-branch-summary'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'netAmount'"
+          (click)="toggleSort('netAmount')"
+        >
+          Net Tutar <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'netAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'netAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'debtAmount'"
+          (click)="toggleSort('debtAmount')"
+        >
+          Borç <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'debtAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'debtAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'creditAmount'"
+          (click)="toggleSort('creditAmount')"
+        >
+          Alacak <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'creditAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'creditAmount' && sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
+
+      <!-- Ödeme ve Marketyo Raporları -->
+      <ng-container *ngIf="selectedReport() === 'bank-payment-summary' || selectedReport() === 'merchant-payment-summary' || selectedReport() === 'valor-payment-summary' || selectedReport() === 'food-checks'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'totalAmount'"
+          (click)="toggleSort('totalAmount')"
+        >
+          Toplam Tutar <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'totalAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'totalAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'transactionCount' || sortField() === 'documentCount'"
+          (click)="toggleSort(selectedReport() === 'food-checks' ? 'documentCount' : 'transactionCount')"
+        >
+          İşlem / Belge Sayısı <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
+
+      <ng-container *ngIf="selectedReport() === 'marketyo-sales' || selectedReport() === 'marketyo-branch'">
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'totalSalesAmount'"
+          (click)="toggleSort('totalSalesAmount')"
+        >
+          Satış Tutarı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'totalSalesAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'totalSalesAmount' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'orderCount'"
+          (click)="toggleSort('orderCount')"
+        >
+          Sipariş Sayısı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'orderCount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'orderCount' && sortDirection() === 'asc'"></i>
+        </button>
+      </ng-container>
     </section>
 
     <div class="table-context" *ngIf="rows().length">
@@ -133,7 +273,7 @@
 
     <div class="table-shell" *ngIf="!isLoading() && rows().length">
       <app-api-list-table
-        [rows]="rows()"
+        [rows]="sortedRows()"
         [columns]="tableColumns()"
         [showRowAction]="false"
         [fitToWidth]="true"

@@ -12,6 +12,53 @@
       </div>
     </header>
 
+    <!-- Executive KPI Dashboard -->
+    <section class="kpi-dashboard-grid">
+      <div class="kpi-card danger">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-receipt"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Toplam Gider Tutarı</span>
+          <span class="kpi-value">{{ formatCurrency(grandTotalAmount()) }}</span>
+          <span class="kpi-hint">Dönem içi kesilen tüm gider pusulaları</span>
+        </div>
+      </div>
+
+      <div class="kpi-card primary">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-file-invoice"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Toplam Fiş Sayısı</span>
+          <span class="kpi-value">{{ formatNumber(grandTotalSlips()) }}</span>
+          <span class="kpi-hint">Toplam gider fişi adedi</span>
+        </div>
+      </div>
+
+      <div class="kpi-card accent">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-calculator"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Ortalama Fiş Tutarı</span>
+          <span class="kpi-value">{{ formatCurrency(avgSlipAmount()) }}</span>
+          <span class="kpi-hint">Fiş başına düşen ortalama</span>
+        </div>
+      </div>
+
+      <div class="kpi-card success">
+        <div class="kpi-icon">
+          <i class="fa-solid fa-network-wired"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Kapsanan Şube / Bölge</span>
+          <span class="kpi-value">{{ totalBranchesCount() }} Şube / {{ totalZonesCount() }} Bölge</span>
+          <span class="kpi-hint">İşlem yapılan lokasyon dağılımı</span>
+        </div>
+      </div>
+    </section>
+
     <!-- Filtre Paneli -->
     <section class="filter-panel">
       <div class="filter-controls">
@@ -61,19 +108,65 @@
       </div>
     </section>
 
+    <!-- Sıralama ve Görünüm Kontrolleri -->
+    <section class="sort-toolbar">
+      <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Sırala:</span>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortOption() === 'amount-desc'"
+        (click)="setSortOption('amount-desc')"
+      >
+        Tutar (Yüksekten Düşüğe)
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortOption() === 'amount-asc'"
+        (click)="setSortOption('amount-asc')"
+      >
+        Tutar (Düşükten Yükseğe)
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortOption() === 'slips-desc'"
+        (click)="setSortOption('slips-desc')"
+      >
+        Fiş Sayısı (Çoktan Aza)
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortOption() === 'name-asc'"
+        (click)="setSortOption('name-asc')"
+      >
+        İsim (A-Z)
+      </button>
+
+      <div class="tree-actions-group">
+        <button type="button" class="btn-action-ghost" (click)="expandAll()">
+          <i class="fa-solid fa-angles-down"></i> Tümünü Aç
+        </button>
+        <button type="button" class="btn-action-ghost" (click)="collapseAll()">
+          <i class="fa-solid fa-angles-up"></i> Tümünü Kapat
+        </button>
+      </div>
+    </section>
+
     <!-- Hiyerarşik Ağaç Görünümü -->
     <section class="tree-section">
       <div *ngIf="loading()" class="loading-state">
         <i class="fa-solid fa-spinner fa-spin"></i> Kasa raporu hazırlanıyor...
       </div>
 
-      <div *ngIf="!loading() && zoneSummaries().length === 0" class="empty-state">
+      <div *ngIf="!loading() && sortedZoneSummaries().length === 0" class="empty-state">
         Seçilen tarih aralığında gider pusulası verisi bulunamadı.
       </div>
 
-      <div class="hierarchy-container" *ngIf="!loading() && zoneSummaries().length > 0">
+      <div class="hierarchy-container" *ngIf="!loading() && sortedZoneSummaries().length > 0">
         <!-- Bölge Düğümü -->
-        <div class="zone-block" *ngFor="let zone of zoneSummaries()">
+        <div class="zone-block" *ngFor="let zone of sortedZoneSummaries()">
           <div class="zone-header" (click)="toggleZone(zone.zoneCode)">
             <div class="header-left">
               <i class="fa-solid" [class.fa-chevron-down]="expandedZones().has(zone.zoneCode)" [class.fa-chevron-right]="!expandedZones().has(zone.zoneCode)"></i>

@@ -302,6 +302,49 @@ export class TedarikciPerformansKarnesiListComponent implements OnInit, OnDestro
   protected readonly eventTake = signal(100);
   protected readonly report = signal<SupplierPerformanceReportDto | null>(null);
   protected readonly rows = signal<readonly SupplierPerformanceCardDto[]>([]);
+  protected readonly sortField = signal<string>('score');
+  protected readonly sortDirection = signal<'asc' | 'desc'>('asc');
+
+  protected readonly sortedRows = computed<readonly SupplierPerformanceCardDto[]>(() => {
+    const list = [...this.rows()];
+    const field = this.sortField();
+    const dir = this.sortDirection();
+
+    if (!field || list.length === 0) return list;
+
+    const getValue = (row: SupplierPerformanceCardDto, f: string): number | string => {
+      switch (f) {
+        case 'score': return row.score ?? 0;
+        case 'customerTitle': return row.customerTitle || '';
+        case 'openLateOrderCount': return row.orders?.openLateLineCount ?? 0;
+        case 'differenceQuantity': return row.receiving?.missingQuantity ?? row.receiving?.differenceLineCount ?? 0;
+        case 'returnQuantity': return row.returns?.returnedQuantity ?? 0;
+        case 'outageAmount': return row.outageImpact?.amount ?? 0;
+        case 'invoiceAmount': return row.invoices?.issuedInvoiceAmount ?? 0;
+        default: return 0;
+      }
+    };
+
+    return list.sort((a, b) => {
+      const aVal = getValue(a, field);
+      const bVal = getValue(b, field);
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return dir === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+      return dir === 'asc'
+        ? String(aVal).localeCompare(String(bVal), 'tr')
+        : String(bVal).localeCompare(String(aVal), 'tr');
+    });
+  });
+
+  protected toggleSort(field: string): void {
+    if (this.sortField() === field) {
+      this.sortDirection.update(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortField.set(field);
+      this.sortDirection.set(field === 'score' ? 'asc' : 'desc');
+    }
+  }
   protected readonly detail = signal<SupplierPerformanceDetailDto | null>(null);
   protected readonly selectedCustomerCode = signal<string | null>(null);
   protected readonly isLoading = signal(false);

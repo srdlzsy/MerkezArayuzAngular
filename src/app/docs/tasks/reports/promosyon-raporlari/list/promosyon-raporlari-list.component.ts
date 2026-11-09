@@ -288,6 +288,39 @@ export class PromosyonRaporlariListComponent implements OnInit {
   protected readonly onlyActive = signal(true);
   protected readonly take = signal(250);
   protected readonly rows = signal<readonly object[]>([]);
+  protected readonly sortField = signal<string>('');
+  protected readonly sortDirection = signal<'asc' | 'desc'>('desc');
+
+  protected readonly sortedRows = computed<readonly object[]>(() => {
+    const list = [...this.rows()];
+    const field = this.sortField();
+    const dir = this.sortDirection();
+
+    if (!field || list.length === 0) return list;
+
+    return list.sort((a, b) => {
+      const aVal = (a as Record<string, unknown>)[field];
+      const bVal = (b as Record<string, unknown>)[field];
+
+      if (typeof aVal === 'number' && typeof bVal === 'number') {
+        return dir === 'asc' ? aVal - bVal : bVal - aVal;
+      }
+
+      const strA = aVal !== null && aVal !== undefined ? String(aVal) : '';
+      const strB = bVal !== null && bVal !== undefined ? String(bVal) : '';
+      return dir === 'asc' ? strA.localeCompare(strB, 'tr') : strB.localeCompare(strA, 'tr');
+    });
+  });
+
+  protected toggleSort(field: string): void {
+    if (this.sortField() === field) {
+      this.sortDirection.update(d => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.sortField.set(field);
+      this.sortDirection.set('desc');
+    }
+  }
+
   protected readonly metrics = signal<readonly PromotionReportMetric[]>([]);
   protected readonly bulletinOptions = signal<readonly PromotionBulletinOptionDto[]>([]);
   protected readonly isBulletinOptionsLoading = signal(false);

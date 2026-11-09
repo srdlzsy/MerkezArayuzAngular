@@ -499,6 +499,7 @@ export interface PendingApprovalCompanyOrderItemDto {
 export interface ApproveCompanyOrderCommand {
   documentSerie: string;
   documentOrderNo: number;
+  warehouseNo: number;
 }
 
 export interface BatchApproveCompanyOrdersHttpRequest {

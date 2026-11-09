@@ -107,11 +107,11 @@
           </tr>
         </thead>
         <tbody>
-          <tr *ngFor="let o of filteredOrders()" [class.selected]="selectedKeys().has(o.documentSerie + '-' + o.documentOrderNo)">
+          <tr *ngFor="let o of filteredOrders()" [class.selected]="selectedKeys().has(getOrderKey(o))">
             <td class="col-checkbox">
               <input
                 type="checkbox"
-                [checked]="selectedKeys().has(o.documentSerie + '-' + o.documentOrderNo)"
+                [checked]="selectedKeys().has(getOrderKey(o))"
                 (change)="toggleSelect(o)"
               />
             </td>

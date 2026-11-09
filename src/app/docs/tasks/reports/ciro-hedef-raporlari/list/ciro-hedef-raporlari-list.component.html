@@ -111,13 +111,72 @@
       <div class="table-head">
         <div>
           <h3>Şubesel Ciro ve Hedef Tablosu</h3>
-          <small>{{ filteredBranches().length }} şube listeleniyor</small>
+          <small>{{ sortedBranches().length }} şube listeleniyor</small>
+        </div>
+
+        <!-- Hızlı Sıralama Çipleri -->
+        <div class="sort-toolbar">
+          <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Sırala:</span>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="sortField() === 'achievement'"
+            (click)="toggleSort('achievement')"
+          >
+            Ciro Başarı %
+            <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'achievement' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'achievement' && sortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="sortField() === 'turnover'"
+            (click)="toggleSort('turnover')"
+          >
+            Cari Ciro
+            <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'turnover' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'turnover' && sortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="sortField() === 'target'"
+            (click)="toggleSort('target')"
+          >
+            Hedef Ciro
+            <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'target' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'target' && sortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="sortField() === 'customer'"
+            (click)="toggleSort('customer')"
+          >
+            Müşteri
+            <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'customer' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'customer' && sortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="sortField() === 'basket'"
+            (click)="toggleSort('basket')"
+          >
+            Sepet Ort.
+            <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'basket' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'basket' && sortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="sortField() === 'name'"
+            (click)="toggleSort('name')"
+          >
+            Şube Adı
+            <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'name' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'name' && sortDirection() === 'asc'"></i>
+          </button>
         </div>
       </div>
 
       <app-api-list-table
         [columns]="columns"
-        [rows]="filteredBranches()"
+        [rows]="sortedBranches()"
         [showRowAction]="false"
         [showExport]="true"
         exportFileName="ciro-hedef-karsilastirma"

@@ -142,17 +142,91 @@
       </article>
     </section>
 
-    <section class="metric-strip" *ngIf="metrics().length">
+    <section class="kpi-dashboard-grid" *ngIf="metrics().length">
       <article
         *ngFor="let metric of metrics(); trackBy: trackByMetric"
-        class="metric-card"
-        [class.metric-danger]="metric.tone === 'danger'"
-        [class.metric-warning]="metric.tone === 'warning'"
-        [class.metric-success]="metric.tone === 'success'"
+        class="kpi-card"
+        [class.danger]="metric.tone === 'danger'"
+        [class.warning]="metric.tone === 'warning'"
+        [class.success]="metric.tone === 'success'"
       >
-        <span>{{ metric.label }}</span>
-        <strong>{{ metric.value }}</strong>
+        <div class="kpi-icon">
+          <i class="fa-solid" [ngClass]="{
+            'fa-shield-halved': metric.label.includes('Risk') || metric.label.includes('Kritik'),
+            'fa-star-half-stroke': metric.label.includes('Skor'),
+            'fa-triangle-exclamation': metric.label.includes('Uyari') || metric.label.includes('Geciken') || metric.label.includes('Uyarı'),
+            'fa-scale-unbalanced': metric.label.includes('Fark') || metric.label.includes('Kabul'),
+            'fa-arrow-rotate-left': metric.label.includes('Iade') || metric.label.includes('İade'),
+            'fa-dumpster-fire': metric.label.includes('Zayiat') || metric.label.includes('Fire'),
+            'fa-file-invoice-dollar': metric.label.includes('Fatura')
+          }"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">{{ metric.label }}</span>
+          <strong class="kpi-value">{{ metric.value }}</strong>
+        </div>
       </article>
+    </section>
+
+    <!-- Hızlı Sıralama Araç Çubuğu -->
+    <section class="sort-toolbar" *ngIf="rows().length">
+      <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Hızlı Sırala:</span>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'score'"
+        (click)="toggleSort('score')"
+      >
+        Performans Skoru <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'score' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'score' && sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'openLateOrderCount'"
+        (click)="toggleSort('openLateOrderCount')"
+      >
+        Geciken Sipariş <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'openLateOrderCount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'openLateOrderCount' && sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'differenceQuantity'"
+        (click)="toggleSort('differenceQuantity')"
+      >
+        Mal Kabul Farkı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'differenceQuantity' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'differenceQuantity' && sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'returnQuantity'"
+        (click)="toggleSort('returnQuantity')"
+      >
+        İade Miktarı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'returnQuantity' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'returnQuantity' && sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'outageAmount'"
+        (click)="toggleSort('outageAmount')"
+      >
+        Zayiat Etkisi <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'outageAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'outageAmount' && sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'invoiceAmount'"
+        (click)="toggleSort('invoiceAmount')"
+      >
+        Fatura Tutarı <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'invoiceAmount' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'invoiceAmount' && sortDirection() === 'asc'"></i>
+      </button>
+      <button
+        type="button"
+        class="sort-chip"
+        [class.is-active]="sortField() === 'customerTitle'"
+        (click)="toggleSort('customerTitle')"
+      >
+        Tedarikçi (A-Z) <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'customerTitle' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'customerTitle' && sortDirection() === 'asc'"></i>
+      </button>
     </section>
 
     <article class="state-card state-card-error" *ngIf="errorMessage() as error">
@@ -177,7 +251,7 @@
 
     <section class="table-shell" *ngIf="!isLoading() && rows().length">
       <app-api-list-table
-        [rows]="rows()"
+        [rows]="sortedRows()"
         [columns]="columns"
         [fitToWidth]="true"
         [showExport]="true"

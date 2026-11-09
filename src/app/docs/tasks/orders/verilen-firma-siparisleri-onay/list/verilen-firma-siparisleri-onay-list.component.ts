@@ -79,10 +79,14 @@ export class VerilenFirmaSiparisleriOnayListComponent implements OnInit {
     const list = this.filteredOrders();
     if (list.length === 0) return false;
     const selected = this.selectedKeys();
-    return list.every((o) => selected.has(`${o.documentSerie}-${o.documentOrderNo}`));
+    return list.every((o) => selected.has(this.getOrderKey(o)));
   });
 
   protected readonly selectedCount = computed<number>(() => this.selectedKeys().size);
+
+  protected getOrderKey(o: PendingApprovalCompanyOrderItemDto): string {
+    return `${o.branchNo}-${o.documentSerie}-${o.documentOrderNo}`;
+  }
 
   ngOnInit(): void {
     this.loadOrders();
@@ -115,13 +119,13 @@ export class VerilenFirmaSiparisleriOnayListComponent implements OnInit {
   toggleSelectAll(): void {
     const next = new Set<string>();
     if (!this.isAllSelected()) {
-      this.filteredOrders().forEach((o) => next.add(`${o.documentSerie}-${o.documentOrderNo}`));
+      this.filteredOrders().forEach((o) => next.add(this.getOrderKey(o)));
     }
     this.selectedKeys.set(next);
   }
 
   toggleSelect(o: PendingApprovalCompanyOrderItemDto): void {
-    const key = `${o.documentSerie}-${o.documentOrderNo}`;
+    const key = this.getOrderKey(o);
     const next = new Set(this.selectedKeys());
     if (next.has(key)) {
       next.delete(key);
@@ -132,7 +136,13 @@ export class VerilenFirmaSiparisleriOnayListComponent implements OnInit {
   }
 
   approveSingle(o: PendingApprovalCompanyOrderItemDto): void {
-    this.executeApproval([{ documentSerie: o.documentSerie, documentOrderNo: o.documentOrderNo }]);
+    this.executeApproval([
+      {
+        documentSerie: o.documentSerie,
+        documentOrderNo: o.documentOrderNo,
+        warehouseNo: o.branchNo
+      }
+    ]);
   }
 
   approveSelected(): void {
@@ -140,13 +150,19 @@ export class VerilenFirmaSiparisleriOnayListComponent implements OnInit {
     if (selected.size === 0) return;
 
     const list = this.orders()
-      .filter((o) => selected.has(`${o.documentSerie}-${o.documentOrderNo}`))
-      .map((o) => ({ documentSerie: o.documentSerie, documentOrderNo: o.documentOrderNo }));
+      .filter((o) => selected.has(this.getOrderKey(o)))
+      .map((o) => ({
+        documentSerie: o.documentSerie,
+        documentOrderNo: o.documentOrderNo,
+        warehouseNo: o.branchNo
+      }));
 
     this.executeApproval(list);
   }
 
-  private executeApproval(items: Array<{ documentSerie: string; documentOrderNo: number }>): void {
+  private executeApproval(
+    items: Array<{ documentSerie: string; documentOrderNo: number; warehouseNo: number }>
+  ): void {
     this.approving.set(true);
     this.lastBatchResult.set(null);
 

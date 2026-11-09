@@ -73,6 +73,77 @@
       </div>
     </section>
 
+    <!-- Executive KPI Dashboard -->
+    <section class="kpi-dashboard-grid" *ngIf="activeTab() === 'lazy-branches'">
+      <article class="kpi-card kpi-card-warning">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-file-circle-exclamation"></i> Açık İrsaliyeler</span>
+          <span class="kpi-badge kpi-badge-amber">{{ totalLazyBranchCount() }} Şube</span>
+        </div>
+        <strong class="kpi-main-val">{{ totalPendingDocuments() | number }} <small>Evrak</small></strong>
+        <div class="kpi-footer">
+          <span>Mal kabulü yapılmamış sevkler</span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-card-danger">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-boxes-stacked"></i> Bekleyen Ürün Miktarı</span>
+          <span class="kpi-badge kpi-badge-red">Açık Sevk</span>
+        </div>
+        <strong class="kpi-main-val">{{ formatNumber(totalPendingQuantity()) }}</strong>
+        <div class="kpi-footer">
+          <span>Kabul bekleyen koli/adet</span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-card-info">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-store"></i> Etkilenen Şubeler</span>
+          <span class="kpi-badge kpi-badge-blue">Tembel Şubeler</span>
+        </div>
+        <strong class="kpi-main-val">{{ sortedLazyBranches().length }} <small>Şube</small></strong>
+        <div class="kpi-footer">
+          <span>İrsaliyesi askıda bekleyenler</span>
+        </div>
+      </article>
+    </section>
+
+    <section class="kpi-dashboard-grid" *ngIf="activeTab() === 'supplier-volume'">
+      <article class="kpi-card kpi-card-success">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-coins"></i> Toplam Net Mal Kabul</span>
+          <span class="kpi-badge kpi-badge-green">{{ sortedSupplierVolume().length }} Cari</span>
+        </div>
+        <strong class="kpi-main-val">{{ formatCurrency(totalSupplierVolumeAmount()) }}</strong>
+        <div class="kpi-footer">
+          <span>Dönem net mal alım tutarı</span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-card-info">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-receipt"></i> İşlenen İrsaliyeler</span>
+          <span class="kpi-badge kpi-badge-blue">Evrak</span>
+        </div>
+        <strong class="kpi-main-val">{{ totalSupplierDocs() | number }} <small>Evrak</small></strong>
+        <div class="kpi-footer">
+          <span>Gelen satın alma irsaliyesi</span>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-card-purple">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-truck-field"></i> Tedarikçi Sayısı</span>
+          <span class="kpi-badge kpi-badge-purple">Firma</span>
+        </div>
+        <strong class="kpi-main-val">{{ sortedSupplierVolume().length }} <small>Tedarikçi</small></strong>
+        <div class="kpi-footer">
+          <span>Mal kabul yapılan firmalar</span>
+        </div>
+      </article>
+    </section>
+
     <!-- Tab 1: Tembel Şubeler Listesi -->
     <section class="table-section" *ngIf="activeTab() === 'lazy-branches'">
       <div class="table-head">
@@ -80,11 +151,51 @@
           <h3>Depodan Sevk Edilip Henüz Mal Kabulü Yapılmamış Şubeler</h3>
           <small>Şube teslim almadığı sürece açıkta bekleyen FRM serili sevk irsaliyeleri listelenir</small>
         </div>
+
+        <div class="sort-toolbar">
+          <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Sırala:</span>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="lazySortField() === 'count'"
+            (click)="toggleLazySort('count')"
+          >
+            Evrak Sayısı
+            <i class="fa-solid" [class.fa-arrow-down]="lazySortField() === 'count' && lazySortDirection() === 'desc'" [class.fa-arrow-up]="lazySortField() === 'count' && lazySortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="lazySortField() === 'quantity'"
+            (click)="toggleLazySort('quantity')"
+          >
+            Miktar
+            <i class="fa-solid" [class.fa-arrow-down]="lazySortField() === 'quantity' && lazySortDirection() === 'desc'" [class.fa-arrow-up]="lazySortField() === 'quantity' && lazySortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="lazySortField() === 'date'"
+            (click)="toggleLazySort('date')"
+          >
+            En Eski Tarih
+            <i class="fa-solid" [class.fa-arrow-down]="lazySortField() === 'date' && lazySortDirection() === 'desc'" [class.fa-arrow-up]="lazySortField() === 'date' && lazySortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="lazySortField() === 'name'"
+            (click)="toggleLazySort('name')"
+          >
+            Şube Adı
+            <i class="fa-solid" [class.fa-arrow-down]="lazySortField() === 'name' && lazySortDirection() === 'desc'" [class.fa-arrow-up]="lazySortField() === 'name' && lazySortDirection() === 'asc'"></i>
+          </button>
+        </div>
       </div>
 
       <app-api-list-table
         [columns]="lazyBranchesColumns"
-        [rows]="filteredLazyBranches()"
+        [rows]="sortedLazyBranches()"
         actionLabel="Evraklar"
         [showRowAction]="true"
         (rowAction)="openBranchDocs($event)"
@@ -100,11 +211,51 @@
           <h3>Tedarikçi Firma Bazında Mal Kabul Hacimleri</h3>
           <small>Tarih aralığında teslim alınan satın alma irsaliyelerinin net hacim büyüklüğüne göre sıralaması</small>
         </div>
+
+        <div class="sort-toolbar">
+          <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Sırala:</span>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="supplierSortField() === 'net'"
+            (click)="toggleSupplierSort('net')"
+          >
+            Net Tutar
+            <i class="fa-solid" [class.fa-arrow-down]="supplierSortField() === 'net' && supplierSortDirection() === 'desc'" [class.fa-arrow-up]="supplierSortField() === 'net' && supplierSortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="supplierSortField() === 'amount'"
+            (click)="toggleSupplierSort('amount')"
+          >
+            Brüt Tutar
+            <i class="fa-solid" [class.fa-arrow-down]="supplierSortField() === 'amount' && supplierSortDirection() === 'desc'" [class.fa-arrow-up]="supplierSortField() === 'amount' && supplierSortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="supplierSortField() === 'docs'"
+            (click)="toggleSupplierSort('docs')"
+          >
+            Evrak Sayısı
+            <i class="fa-solid" [class.fa-arrow-down]="supplierSortField() === 'docs' && supplierSortDirection() === 'desc'" [class.fa-arrow-up]="supplierSortField() === 'docs' && supplierSortDirection() === 'asc'"></i>
+          </button>
+          <button
+            type="button"
+            class="sort-chip"
+            [class.is-active]="supplierSortField() === 'name'"
+            (click)="toggleSupplierSort('name')"
+          >
+            Firma Adı
+            <i class="fa-solid" [class.fa-arrow-down]="supplierSortField() === 'name' && supplierSortDirection() === 'desc'" [class.fa-arrow-up]="supplierSortField() === 'name' && supplierSortDirection() === 'asc'"></i>
+          </button>
+        </div>
       </div>
 
       <app-api-list-table
         [columns]="supplierVolumeColumns"
-        [rows]="filteredSupplierVolume()"
+        [rows]="sortedSupplierVolume()"
         [showRowAction]="false"
         [showExport]="true"
         exportFileName="tedarikci-mal-kabul-hacmi"

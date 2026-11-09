@@ -198,6 +198,12 @@
 
   .table-head {
     margin-bottom: 1rem;
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    flex-wrap: wrap;
+    gap: 0.75rem;
+
     h3 {
       margin: 0;
       font-size: 1.125rem;
@@ -205,6 +211,78 @@
     }
     small {
       color: #64748b;
+    }
+  }
+}
+
+.sort-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sort-label {
+  color: #64748b;
+  font-size: 0.75rem;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.sort-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.75rem;
+  font-weight: 600;
+  border-radius: 8px;
+  border: 1px solid #e2e8f0;
+  background: #ffffff;
+  color: #1e293b;
+  cursor: pointer;
+  transition: all 140ms ease;
+
+  &:hover {
+    border-color: #cbd5e1;
+    background: #f8fafc;
+  }
+
+  &.is-active {
+    background: #0066cc;
+    color: #ffffff;
+    border-color: #0066cc;
+    box-shadow: 0 2px 6px rgba(0, 102, 204, 0.25);
+  }
+}
+
+@media (max-width: 768px) {
+  .ciro-hedef-page {
+    padding: 0.75rem;
+  }
+
+  .kpi-grid {
+    grid-template-columns: 1fr;
+  }
+
+  .table-head {
+    flex-direction: column;
+    align-items: flex-start;
+  }
+
+  .sort-toolbar {
+    width: 100%;
+  }
+
+  .filter-controls {
+    flex-direction: column;
+    align-items: stretch;
+
+    .field,
+    .btn-submit {
+      width: 100%;
     }
   }
 }
