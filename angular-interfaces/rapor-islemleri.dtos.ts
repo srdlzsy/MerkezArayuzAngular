@@ -1078,14 +1078,13 @@ export interface BranchOutageAnalysisHttpRequest {
 }
 
 export interface BranchOutageAnalysisItemDto {
-  region: string;
-  warehouseNo: number;
-  warehouseName: string;
-  outageAmount: number;
-  expenseAmount: number;
-  totalLossAmount: number;
-  turnoverAmount: number;
-  lossToTurnoverPercent: number;
+  regionCode?: string | null;
+  branchName?: string | null;
+  outageTotal: number;
+  giroTotal: number;
+  ratioPercent: number;
+  greenGrocerSaleGiro: number;
+  greenGrocerRatioPercent: number;
 }
 
 export interface LiveStockAndPriceHttpRequest {

@@ -80,7 +80,7 @@ export class CiroHedefRaporlariListComponent implements OnInit {
     let list = data.branches;
     const reg = this.selectedRegion();
     if (reg !== 'all') {
-      list = list.filter((b) => b.region === reg);
+      list = list.filter((b) => b.region === reg || b.region?.startsWith(reg) || b.region?.includes(reg));
     }
     const q = this.searchTerm().trim().toLowerCase();
     if (q) {

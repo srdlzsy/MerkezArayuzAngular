@@ -379,32 +379,32 @@
       <button
         type="button"
         class="sort-chip"
-        [class.is-active]="sortField() === 'differenceAmount' || sortField() === 'outageTotalAmount' || sortField() === 'netSalesAmount' || sortField() === 'totalStockAmount'"
-        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'outageTotalAmount' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'totalStockAmount')"
+        [class.is-active]="sortField() === 'differenceAmount' || sortField() === 'outageTotal' || sortField() === 'netSalesAmount' || sortField() === 'totalStockAmount'"
+        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'outageTotal' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'totalStockAmount')"
       >
         Tutar / Fark <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
       </button>
       <button
         type="button"
         class="sort-chip"
-        [class.is-active]="sortField() === 'quantity' || sortField() === 'currentStockQuantity' || sortField() === 'differenceQuantity'"
-        (click)="toggleSort(selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'quantity')"
+        [class.is-active]="sortField() === 'quantity' || sortField() === 'currentStockQuantity' || sortField() === 'differenceQuantity' || sortField() === 'giroTotal'"
+        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'giroTotal' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'quantity')"
       >
-        Miktar / Bakiye <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+        Miktar / Ciro <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
       </button>
       <button
         type="button"
         class="sort-chip"
         [class.is-active]="sortField() === 'stockName' || sortField() === 'branchName' || sortField() === 'companyName'"
-        (click)="toggleSort(selectedReport() === 'tedarikci-son-stok' ? 'companyName' : 'stockName')"
+        (click)="toggleSort(selectedReport() === 'tedarikci-son-stok' ? 'companyName' : selectedReport() === 'sube-zayiat-fire-analizi' ? 'branchName' : 'stockName')"
       >
-        Ad / Ürün <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+        Ad / Şube <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
       </button>
       <button
         type="button"
         class="sort-chip"
-        [class.is-active]="sortField() === 'outageRatioPercent' || sortField() === 'turnoverRatio' || sortField() === 'differencePercent'"
-        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'outageRatioPercent' : 'turnoverRatio')"
+        [class.is-active]="sortField() === 'ratioPercent' || sortField() === 'turnoverRatio' || sortField() === 'differencePercent'"
+        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'ratioPercent' : 'turnoverRatio')"
       >
         Oran % <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
       </button>

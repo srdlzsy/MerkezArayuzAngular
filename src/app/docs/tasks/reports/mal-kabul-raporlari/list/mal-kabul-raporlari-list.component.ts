@@ -47,9 +47,9 @@ export class MalKabulRaporlariListComponent implements OnInit {
   // Aktif sekme: 'lazy-branches' (Tembel Şubeler) | 'supplier-volume' (Tedarikçi Hacim)
   protected readonly activeTab = signal<'lazy-branches' | 'supplier-volume'>('lazy-branches');
 
-  // Filtreler (Tembel şubeler varsayılan olarak tüm açık irsaliyeleri listeler; tedarikçi hacim sekmesinde tarih aralığı kullanılır)
-  protected readonly startDate = signal<string>('');
-  protected readonly endDate = signal<string>('');
+  // Filtreler (Varsayılan olarak son 7 gün seçili gelir)
+  protected readonly startDate = signal<string>(this.getDefaultStartDate());
+  protected readonly endDate = signal<string>(this.getDefaultEndDate());
   protected readonly selectedRegion = signal<string>('all');
   protected readonly searchTerm = signal<string>('');
   protected readonly supplierLimit = signal<number>(100);
@@ -70,7 +70,7 @@ export class MalKabulRaporlariListComponent implements OnInit {
     let list = this.lazyBranches();
     const reg = this.selectedRegion();
     if (reg !== 'all') {
-      list = list.filter((x) => x.region === reg);
+      list = list.filter((x) => x.region === reg || x.region?.startsWith(reg) || x.region?.includes(reg));
     }
     const q = this.searchTerm().trim().toLowerCase();
     if (q) {

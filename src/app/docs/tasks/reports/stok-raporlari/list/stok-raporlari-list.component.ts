@@ -611,13 +611,13 @@ const COUNTING_COLUMNS: readonly ApiListTableColumn<CountingComparisonReportItem
 ];
 
 const BRANCH_OUTAGE_COLUMNS: readonly ApiListTableColumn<BranchOutageAnalysisItemDto>[] = [
-  { key: 'region', label: 'Bolge' },
-  { key: 'warehouseName', label: 'Sube', resolveValue: (row) => formatWarehouse(row) },
-  { key: 'outageAmount', label: 'Zayiat Tutari', tableAlign: 'right', resolveValue: (row) => formatMoney(row.outageAmount) },
-  { key: 'expenseAmount', label: 'Masraf Tutari', tableAlign: 'right', resolveValue: (row) => formatMoney(row.expenseAmount) },
-  { key: 'totalLossAmount', label: 'Toplam Zayiat & Masraf', tableAlign: 'right', resolveValue: (row) => formatMoney(row.totalLossAmount) },
-  { key: 'turnoverAmount', label: 'Sube Cirosu', tableAlign: 'right', resolveValue: (row) => formatMoney(row.turnoverAmount) },
-  { key: 'lossToTurnoverPercent', label: 'Ciroya Oran %', tableAlign: 'right', resolveValue: (row) => formatPercent(row.lossToTurnoverPercent) }
+  { key: 'regionCode', label: 'Bölge', resolveValue: (row) => row.regionCode || '-' },
+  { key: 'branchName', label: 'Şube', resolveValue: (row) => row.branchName || '-' },
+  { key: 'outageTotal', label: 'Zayiat Tutarı', tableAlign: 'right', resolveValue: (row) => formatMoney(row.outageTotal) },
+  { key: 'giroTotal', label: 'Şube Cirosu', tableAlign: 'right', resolveValue: (row) => formatMoney(row.giroTotal) },
+  { key: 'ratioPercent', label: 'Zayiat Oranı %', tableAlign: 'right', resolveValue: (row) => `%${toSafeNumber(row.ratioPercent).toFixed(2)}` },
+  { key: 'greenGrocerSaleGiro', label: 'Manav Cirosu', tableAlign: 'right', resolveValue: (row) => formatMoney(row.greenGrocerSaleGiro) },
+  { key: 'greenGrocerRatioPercent', label: 'Manav Ciro Oranı %', tableAlign: 'right', resolveValue: (row) => `%${toSafeNumber(row.greenGrocerRatioPercent).toFixed(2)}` }
 ];
 
 const LIVE_STOCK_PRICE_COLUMNS: readonly ApiListTableColumn<LiveStockAndPriceBranchItemDto>[] = [
@@ -1922,19 +1922,18 @@ export class StokRaporlariListComponent implements OnDestroy {
   }
 
   private buildBranchOutageResult(rows: readonly BranchOutageAnalysisItemDto[]): StockReportLoadResult {
-    const totalOutage = sumBy(rows, (r) => r.outageAmount);
-    const totalExpense = sumBy(rows, (r) => r.expenseAmount);
-    const totalLoss = sumBy(rows, (r) => r.totalLossAmount);
-    const totalTurnover = sumBy(rows, (r) => r.turnoverAmount);
+    const totalOutage = sumBy(rows, (r) => r.outageTotal);
+    const totalTurnover = sumBy(rows, (r) => r.giroTotal);
+    const totalGreenGrocer = sumBy(rows, (r) => r.greenGrocerSaleGiro);
 
     return {
       rows,
       metrics: [
         { label: 'Toplam Zayiat', value: formatMoney(totalOutage) },
-        { label: 'Toplam Masraf', value: formatMoney(totalExpense) },
-        { label: 'Toplam Kayıp', value: formatMoney(totalLoss) },
-        { label: 'Şube Sayısı', value: formatInteger(rows.length) },
-        { label: 'Ciroya Oran', value: totalTurnover > 0 ? formatPercent(totalLoss / totalTurnover) : '0%' }
+        { label: 'Toplam Ciro', value: formatMoney(totalTurnover) },
+        { label: 'Zayiat Oranı', value: totalTurnover > 0 ? formatPercent(totalOutage / totalTurnover) : '0%' },
+        { label: 'Manav Cirosu', value: formatMoney(totalGreenGrocer) },
+        { label: 'Şube Sayısı', value: formatInteger(rows.length) }
       ]
     };
   }
