@@ -118,6 +118,21 @@ export const RAPOR_ISLEMLERI_TASK_SOURCE = {
               method: 'GET',
               path: '/api/rapor-islemleri/stok-raporlari/sayim-karsilastirma?warehouseNo=110&countDate=2026-07-21&take=500',
               description: 'Sayim tarihi icin sistem/sayim miktari farklarini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/tedarikci-sube-matrisi?supplierCode=01001&warehouseNo=110',
+              description: 'Tedarikci bazinda tum subelerdeki urun stok miktarlarini matris olarak getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/sube-zayiat-fire-analizi?startDate=2026-11-01&endDate=2026-11-09',
+              description: 'Subelerin zayiat/fire toplamlarini ve ciroya oranlarini getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/rapor-islemleri/stok-raporlari/anlik-fiyat-stok?barcode=8681285120229',
+              description: 'Barkod veya stok kodu ile tum subelerdeki anlik stok ve fiyat bilgisini dokum olarak getirir'
             }
           ]
         }

@@ -599,15 +599,16 @@ const SEASONAL_SALES_COLUMNS: readonly ApiListTableColumn<ManufacturerSeasonalSa
 ];
 
 const COUNTING_COLUMNS: readonly ApiListTableColumn<CountingComparisonReportItemDto>[] = [
-  { key: 'warehouseName', label: 'Depo', resolveValue: (row) => formatWarehouse(row) },
+  { key: 'warehouseName', label: 'Depo / Şube', resolveValue: (row) => formatWarehouse(row) },
+  { key: 'documentNo', label: 'Evrak No', resolveValue: (row) => row.documentNo ? `#${row.documentNo}` : '-' },
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
-  { key: 'barcode', label: 'Barkod' },
-  { key: 'packageCode', label: 'Paket' },
-  { key: 'systemQuantity', label: 'Sistem', resolveValue: (row) => formatNumber(row.systemQuantity) },
-  { key: 'countedQuantity', label: 'Sayim', resolveValue: (row) => formatNumber(row.countedQuantity) },
-  { key: 'differenceQuantity', label: 'Fark', resolveValue: (row) => formatNumber(row.differenceQuantity) },
-  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
-  { key: 'differenceValue', label: 'Fark Deger', resolveValue: (row) => formatMoney(row.differenceValue) }
+  { key: 'barcode', label: 'Barkod', resolveValue: (row) => row.barcode || '-' },
+  { key: 'unitName', label: 'Birim', resolveValue: (row) => row.unitName || '-' },
+  { key: 'countQuantity', label: 'Sayım', tableAlign: 'right', resolveValue: (row) => formatNumber(row.countQuantity ?? row.countedQuantity) },
+  { key: 'systemQuantity', label: 'Sistem', tableAlign: 'right', resolveValue: (row) => formatNumber(row.systemQuantity) },
+  { key: 'differenceQuantity', label: 'Fark', tableAlign: 'right', resolveValue: (row) => formatNumber(row.differenceQuantity) },
+  { key: 'salesPrice', label: 'Satış Fiyatı', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesPrice) },
+  { key: 'differenceSalesValue', label: 'Fark Tutarı', tableAlign: 'right', resolveValue: (row) => formatMoney(row.differenceSalesValue ?? row.differenceValue) }
 ];
 
 const BRANCH_OUTAGE_COLUMNS: readonly ApiListTableColumn<BranchOutageAnalysisItemDto>[] = [
@@ -1910,13 +1911,20 @@ export class StokRaporlariListComponent implements OnDestroy {
   }
 
   private buildCountingResult(rows: readonly CountingComparisonReportItemDto[]): StockReportLoadResult {
+    const totalCount = sumBy(rows, (row) => row.countQuantity ?? row.countedQuantity);
+    const totalSystem = sumBy(rows, (row) => row.systemQuantity);
+    const totalDiff = sumBy(rows, (row) => row.differenceQuantity);
+    const totalDiffVal = sumBy(rows, (row) => row.differenceSalesValue ?? row.differenceValue);
+    const diffCount = rows.filter((r) => (r.differenceQuantity ?? 0) !== 0).length;
+
     return {
       rows,
       metrics: [
-        { label: 'Sistem', value: formatNumber(sumBy(rows, (row) => row.systemQuantity)) },
-        { label: 'Sayim', value: formatNumber(sumBy(rows, (row) => row.countedQuantity)) },
-        { label: 'Fark', value: formatNumber(sumBy(rows, (row) => row.differenceQuantity)) },
-        { label: 'Fark Deger', value: formatMoney(sumBy(rows, (row) => row.differenceValue)) }
+        { label: 'Sayım Toplamı', value: formatNumber(totalCount) },
+        { label: 'Sistem Toplamı', value: formatNumber(totalSystem) },
+        { label: 'Fark Miktarı', value: formatNumber(totalDiff) },
+        { label: 'Fark Tutarı', value: formatMoney(totalDiffVal) },
+        { label: 'Farklı Kalem', value: formatInteger(diffCount) }
       ]
     };
   }

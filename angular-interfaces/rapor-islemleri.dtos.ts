@@ -554,15 +554,20 @@ export interface ManufacturerSeasonalSalesItemDto {
 export interface CountingComparisonReportItemDto {
   warehouseNo?: number | null;
   warehouseName?: string | null;
+  countDate?: string | null;
+  documentNo?: number | null;
   stockCode?: string | null;
   stockName?: string | null;
   barcode?: string | null;
-  packageCode?: string | null;
+  unitName?: string | null;
+  countQuantity?: number | null;
   systemQuantity?: number | null;
-  countedQuantity?: number | null;
   differenceQuantity?: number | null;
   salesPrice?: number | null;
+  differenceSalesValue?: number | null;
+  countedQuantity?: number | null;
   differenceValue?: number | null;
+  packageCode?: string | null;
 }
 
 export interface PromotionBulletinListHttpRequest {
