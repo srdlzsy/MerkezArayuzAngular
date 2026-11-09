@@ -162,10 +162,11 @@ export class AramaService extends BaseApiService {
     take: number = 20,
     includeDelisted?: boolean,
     sourceWarehouseNo?: number,
+    warehouseNo?: number,
   ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
     return this.searchProducts(
-      undefined,
+      warehouseNo,
       filters.barcode,
       filters.stockCode,
       filters.stockName,

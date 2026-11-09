@@ -325,6 +325,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         STOCK_SEARCH_TAKE,
         this.resolveIncludeDelisted(),
         this.selectedWarehouse()?.sourceWarehouseNo,
+        this.resolveRequestWarehouseNo(),
       )
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
@@ -351,6 +352,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected addKalem(stock: IFurpaProductSearchItemApiDto): void {
+    if (stock.isOrderBlocked) {
+      this.stockError.set('Secilen stok siparise kapalidir.');
+      return;
+    }
+
     const normalizedStockCode = stock.stockCode.trim().toLocaleUpperCase('tr-TR');
     const existingControl = this.kalemler.controls.find(
       (control) =>
@@ -481,7 +487,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
   private loadSourceWarehouseProducts(requestId: number, warehouseNo: number): void {
     this.siparisIslemleriService
-      .listSuggestedWarehouseSourceProducts(warehouseNo)
+      .listSuggestedWarehouseSourceProducts(warehouseNo, this.resolveRequestWarehouseNo())
       .pipe(finalize(() => this.finishPresetProductsRequest(requestId)))
       .subscribe({
         next: (results: SuggestedWarehouseSourceProductDto[]) => {

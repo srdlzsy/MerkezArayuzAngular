@@ -174,10 +174,11 @@ export class SiparisIslemleriService extends BaseApiService {
 
   listSuggestedWarehouseSourceProducts(
     sourceWarehouseNo: number,
+    targetWarehouseNo?: number,
   ): Observable<SuggestedWarehouseSourceProductDto[]> {
     return this.getWithQuery<SuggestedWarehouseSourceProductDto[]>(
       'siparis-islemleri/onerilen-depo-siparisleri/kaynak-depo-urunleri',
-      { sourceWarehouseNo },
+      { sourceWarehouseNo, targetWarehouseNo },
     );
   }
 
