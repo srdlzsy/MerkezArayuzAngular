@@ -180,6 +180,7 @@
         [columns]="columns"
         [rows]="sortedBranches()"
         [showRowAction]="false"
+        [fitToWidth]="true"
         [showExport]="true"
         exportFileName="ciro-hedef-karsilastirma"
       ></app-api-list-table>
@@ -210,12 +211,12 @@
           </thead>
           <tbody>
             <tr *ngFor="let g of goals()">
-              <td>{{ g.year }}</td>
-              <td>{{ g.month }}</td>
-              <td><strong>{{ g.monthName }}</strong></td>
-              <td class="text-success">+%{{ g.ciroGoalPercent }}</td>
-              <td class="text-primary">+%{{ g.customerGoalPercent }}</td>
-              <td class="text-warning">-%{{ g.expenseGoalPercent }}</td>
+              <td data-label="Yıl">{{ g.year }}</td>
+              <td data-label="Ay">{{ g.month }}</td>
+              <td data-label="Ay Adı"><strong>{{ g.monthName }}</strong></td>
+              <td data-label="Hedef Ciro %" class="text-success">+%{{ g.ciroGoalPercent }}</td>
+              <td data-label="Hedef Müşteri %" class="text-primary">+%{{ g.customerGoalPercent }}</td>
+              <td data-label="Hedef Gider %" class="text-warning">-%{{ g.expenseGoalPercent }}</td>
             </tr>
           </tbody>
         </table>

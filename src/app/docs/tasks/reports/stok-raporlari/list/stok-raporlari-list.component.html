@@ -496,15 +496,15 @@
                   </thead>
                   <tbody>
                     <tr *ngFor="let row of group.rows; trackBy: trackByPriceBranch">
-                      <td>
+                      <td data-label="Şube">
                         <strong>{{ formatReportWarehouse(row) }}</strong>
                       </td>
-                      <td class="number-cell">{{ formatReportMoney(row.branchPrice) }}</td>
-                      <td class="number-cell">{{ formatReportMoney(row.mainWarehousePrice) }}</td>
-                      <td class="number-cell difference-value" [ngClass]="getPriceDifferenceTone(row.differenceAmount)">
+                      <td data-label="Şube Fiyatı" class="number-cell">{{ formatReportMoney(row.branchPrice) }}</td>
+                      <td data-label="Merkez Fiyatı" class="number-cell">{{ formatReportMoney(row.mainWarehousePrice) }}</td>
+                      <td data-label="Fark Tutarı" class="number-cell difference-value" [ngClass]="getPriceDifferenceTone(row.differenceAmount)">
                         {{ formatReportMoney(row.differenceAmount) }}
                       </td>
-                      <td class="number-cell difference-value" [ngClass]="getPriceDifferenceTone(row.differencePercent)">
+                      <td data-label="Fark %" class="number-cell difference-value" [ngClass]="getPriceDifferenceTone(row.differencePercent)">
                         {{ formatReportPercent(row.differencePercent) }}
                       </td>
                     </tr>

@@ -200,6 +200,7 @@
         [rows]="sortedLazyBranches()"
         actionLabel="Evraklar"
         [showRowAction]="true"
+        [fitToWidth]="true"
         (rowAction)="openBranchDocs($event)"
         [showExport]="true"
         exportFileName="tembel-subeler-acik-sevkler"
@@ -259,6 +260,7 @@
         [columns]="supplierVolumeColumns"
         [rows]="sortedSupplierVolume()"
         [showRowAction]="false"
+        [fitToWidth]="true"
         [showExport]="true"
         exportFileName="tedarikci-mal-kabul-hacmi"
       ></app-api-list-table>
@@ -291,11 +293,11 @@
           </thead>
           <tbody>
             <tr *ngFor="let doc of branchDocuments()">
-              <td><strong>{{ doc.documentNo }}</strong></td>
-              <td>{{ doc.documentSerie }} - {{ doc.documentOrderNo }}</td>
-              <td>{{ formatDate(doc.documentDate) }}</td>
-              <td>{{ doc.lineCount }} Kalem</td>
-              <td>{{ formatNumber(doc.totalQuantity) }}</td>
+              <td data-label="İrsaliye No"><strong>{{ doc.documentNo }}</strong></td>
+              <td data-label="Seri / Sıra">{{ doc.documentSerie }} - {{ doc.documentOrderNo }}</td>
+              <td data-label="Evrak Tarihi">{{ formatDate(doc.documentDate) }}</td>
+              <td data-label="Satır Sayısı">{{ doc.lineCount }} Kalem</td>
+              <td data-label="Toplam Miktar">{{ formatNumber(doc.totalQuantity) }}</td>
             </tr>
           </tbody>
         </table>

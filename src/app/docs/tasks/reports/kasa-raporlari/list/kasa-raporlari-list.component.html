@@ -229,11 +229,11 @@
                       </thead>
                       <tbody>
                         <tr *ngFor="let c of cash.cashiers">
-                          <td>{{ c.cashierCode }}</td>
-                          <td><strong>{{ c.cashierName }}</strong></td>
-                          <td>{{ c.slipCount }}</td>
-                          <td class="text-danger">{{ formatCurrency(c.totalExpenseAmount) }}</td>
-                          <td>
+                          <td data-label="Kasiyer Kodu">{{ c.cashierCode }}</td>
+                          <td data-label="Kasiyer Adı"><strong>{{ c.cashierName }}</strong></td>
+                          <td data-label="Fiş Sayısı">{{ c.slipCount }} Fiş</td>
+                          <td data-label="Toplam Tutar" class="text-danger">{{ formatCurrency(c.totalExpenseAmount) }}</td>
+                          <td data-label="Aksiyon">
                             <button
                               type="button"
                               class="btn-detail-link sm"
@@ -282,12 +282,12 @@
           </thead>
           <tbody>
             <tr *ngFor="let item of slipDetails()">
-              <td><strong>#{{ item.slipNo }}</strong></td>
-              <td>{{ formatDate(item.date) }} {{ item.time }}</td>
-              <td>Kasa {{ item.cashRegisterNo }}</td>
-              <td>{{ item.cashierCode }} - {{ item.cashierName }}</td>
-              <td class="text-danger font-weight-bold">{{ formatCurrency(item.amount) }}</td>
-              <td>{{ item.description || '-' }}</td>
+              <td data-label="Fiş No"><strong>#{{ item.slipNo }}</strong></td>
+              <td data-label="Tarih & Saat">{{ formatDate(item.date) }} {{ item.time }}</td>
+              <td data-label="Kasa">Kasa {{ item.cashRegisterNo }}</td>
+              <td data-label="Kasiyer">{{ item.cashierCode }} - {{ item.cashierName }}</td>
+              <td data-label="Tutar" class="text-danger font-weight-bold">{{ formatCurrency(item.amount) }}</td>
+              <td data-label="Açıklama">{{ item.description || '-' }}</td>
             </tr>
           </tbody>
         </table>

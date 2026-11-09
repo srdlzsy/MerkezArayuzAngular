@@ -383,6 +383,21 @@
     padding: 0.75rem;
   }
 
+  .tab-nav {
+    overflow-x: auto;
+    flex-wrap: nowrap;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 0.35rem;
+
+    .tab-btn {
+      flex: 0 0 auto;
+      white-space: nowrap;
+      font-size: 0.85rem;
+      padding: 0.5rem 0.85rem;
+    }
+  }
+
   .kpi-dashboard-grid {
     grid-template-columns: 1fr;
   }
@@ -406,6 +421,65 @@
   .sort-toolbar {
     overflow-x: auto;
     flex-wrap: nowrap;
-    padding-bottom: 0.5rem;
+    -webkit-overflow-scrolling: touch;
+    scrollbar-width: thin;
+    padding-bottom: 0.35rem;
+
+    .sort-chip {
+      flex: 0 0 auto;
+      white-space: nowrap;
+    }
+  }
+
+  .modal-dialog {
+    width: 95% !important;
+    max-height: 90vh !important;
+  }
+
+  .doc-table {
+    display: block;
+
+    thead {
+      display: none;
+    }
+
+    tbody {
+      display: flex;
+      flex-direction: column;
+      gap: 0.55rem;
+    }
+
+    tr {
+      display: flex;
+      flex-direction: column;
+      border: 1px solid #e2e8f0;
+      border-radius: 8px;
+      background: #f8fafc;
+      padding: 0.35rem 0;
+    }
+
+    td {
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+      gap: 0.5rem;
+      padding: 0.35rem 0.75rem;
+      border-bottom: 1px solid #edf2f7;
+      font-size: 0.8125rem;
+
+      &:last-child {
+        border-bottom: 0;
+      }
+
+      &::before {
+        content: attr(data-label);
+        color: #64748b;
+        font-size: 0.72rem;
+        font-weight: 700;
+        text-transform: uppercase;
+        text-align: left;
+        flex-shrink: 0;
+      }
+    }
   }
 }
