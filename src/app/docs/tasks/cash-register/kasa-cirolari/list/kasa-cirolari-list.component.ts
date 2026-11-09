@@ -244,12 +244,98 @@ export class KasaCirolariListComponent extends ApiTaskListPageBase<
   protected readonly overviewScopeLabel = computed(() =>
     this.overviewScope() === 'all' ? 'Tum Subeler' : this.currentWarehouseLabel()
   );
-  protected readonly branchOverviewRows = computed(() =>
-    [...(this.overview()?.subeCirolari ?? [])].sort(
-      (left, right) => this.toSafeNumber(getBranchGrossSalesTotal(right)) - this.toSafeNumber(getBranchGrossSalesTotal(left))
-    )
-  );
-  protected readonly branchOverviewCount = computed(() => this.branchOverviewRows().length);
+
+  // Sıralama durumları
+  protected readonly sortField = signal<'collection' | 'sales' | 'comparison' | 'gap' | 'date' | 'warehouse'>('collection');
+  protected readonly sortDirection = signal<'asc' | 'desc'>('desc');
+
+  protected readonly branchSortField = signal<'sales' | 'collection' | 'comparison' | 'customer' | 'basket' | 'cash' | 'credit' | 'name'>('sales');
+  protected readonly branchSortDirection = signal<'asc' | 'desc'>('desc');
+  protected readonly branchViewMode = signal<'table' | 'cards'>('table');
+
+  protected readonly sortedRows = computed<CashTurnoverListItemDto[]>(() => {
+    const list = [...this.rows()];
+    const field = this.sortField();
+    const isAsc = this.sortDirection() === 'asc';
+    const mult = isAsc ? 1 : -1;
+
+    return list.sort((a, b) => {
+      switch (field) {
+        case 'collection':
+          return (this.toSafeNumber(a.netCollectionAmount) - this.toSafeNumber(b.netCollectionAmount)) * mult;
+        case 'sales':
+          return (this.toSafeNumber(getCashTurnoverGrossSalesTotal(a)) - this.toSafeNumber(getCashTurnoverGrossSalesTotal(b))) * mult;
+        case 'comparison':
+          return (this.toSafeNumber(getCashTurnoverComparisonTotal(a)) - this.toSafeNumber(getCashTurnoverComparisonTotal(b))) * mult;
+        case 'gap': {
+          const gapA = this.toSafeNumber(getCashTurnoverGrossSalesTotal(a)) - this.toSafeNumber(a.netCollectionAmount);
+          const gapB = this.toSafeNumber(getCashTurnoverGrossSalesTotal(b)) - this.toSafeNumber(b.netCollectionAmount);
+          return (gapA - gapB) * mult;
+        }
+        case 'date':
+          return ((a.businessDate || '').localeCompare(b.businessDate || '')) * mult;
+        case 'warehouse':
+          return ((a.warehouseNo ?? 0) - (b.warehouseNo ?? 0)) * mult;
+        default:
+          return 0;
+      }
+    });
+  });
+
+  protected readonly sortedBranchOverviewRows = computed<CashTurnoverOverviewBranchDto[]>(() => {
+    const list = [...(this.overview()?.subeCirolari ?? [])];
+    const field = this.branchSortField();
+    const isAsc = this.branchSortDirection() === 'asc';
+    const mult = isAsc ? 1 : -1;
+
+    return list.sort((a, b) => {
+      switch (field) {
+        case 'sales':
+          return (this.toSafeNumber(getBranchGrossSalesTotal(a)) - this.toSafeNumber(getBranchGrossSalesTotal(b))) * mult;
+        case 'collection':
+          return (this.toSafeNumber(this.getBranchCollectionTotal(a)) - this.toSafeNumber(this.getBranchCollectionTotal(b))) * mult;
+        case 'comparison':
+          return (this.toSafeNumber(this.getBranchComparisonTotal(a)) - this.toSafeNumber(this.getBranchComparisonTotal(b))) * mult;
+        case 'customer':
+          return (this.toSafeNumber(a.customerCount) - this.toSafeNumber(b.customerCount)) * mult;
+        case 'basket':
+          return (this.toSafeNumber(a.averageBasketAmount) - this.toSafeNumber(b.averageBasketAmount)) * mult;
+        case 'cash':
+          return (this.toSafeNumber(a.cashTotal) - this.toSafeNumber(b.cashTotal)) * mult;
+        case 'credit':
+          return (this.toSafeNumber(a.creditTotal) - this.toSafeNumber(b.creditTotal)) * mult;
+        case 'name':
+          return ((a.branchName || '').localeCompare(b.branchName || '', 'tr')) * mult;
+        default:
+          return 0;
+      }
+    });
+  });
+
+  protected readonly branchOverviewRows = computed(() => this.sortedBranchOverviewRows());
+  protected readonly branchOverviewCount = computed(() => this.sortedBranchOverviewRows().length);
+
+  protected toggleSort(field: 'collection' | 'sales' | 'comparison' | 'gap' | 'date' | 'warehouse'): void {
+    if (this.sortField() === field) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDirection.set('desc');
+    }
+  }
+
+  protected toggleBranchSort(field: 'sales' | 'collection' | 'comparison' | 'customer' | 'basket' | 'cash' | 'credit' | 'name'): void {
+    if (this.branchSortField() === field) {
+      this.branchSortDirection.set(this.branchSortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.branchSortField.set(field);
+      this.branchSortDirection.set('desc');
+    }
+  }
+
+  protected setBranchViewMode(mode: 'table' | 'cards'): void {
+    this.branchViewMode.set(mode);
+  }
   protected readonly overviewCashRate = computed(() => {
     const overview = this.overview();
     const dailyTotal = overview?.dailyComparisonTotal ?? overview?.dailyCollectionTotal ?? overview?.dailyTotal;

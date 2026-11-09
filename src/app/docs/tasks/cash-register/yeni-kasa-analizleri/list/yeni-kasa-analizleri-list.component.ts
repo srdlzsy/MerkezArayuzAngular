@@ -366,6 +366,91 @@ export class YeniKasaAnalizleriListComponent {
   protected readonly showReceiptAction = computed(
     () => this.activeTab() === 'fis-mutabakat' || this.activeTab() === 'anomaliler'
   );
+
+  // Sıralama ve hızlı filtre sinyalleri
+  protected readonly sortField = signal<'difference' | 'sale' | 'payment' | 'problems' | 'date' | 'warehouse'>('difference');
+  protected readonly sortDirection = signal<'asc' | 'desc'>('desc');
+  protected readonly filterOnlyDifference = signal<boolean>(false);
+
+  protected readonly sortedActiveRows = computed<YeniKasaAnalizRow[]>(() => {
+    let list = [...this.activeRows()];
+
+    if (this.filterOnlyDifference()) {
+      list = list.filter((row) => {
+        const diff = Math.abs(
+          this.toSafeNumber(
+            this.readFirstRowNumber(row, ['difference', 'differenceTotal', 'salePaymentDifference'])
+          )
+        );
+        return diff > 0.009;
+      });
+    }
+
+    const field = this.sortField();
+    const mult = this.sortDirection() === 'asc' ? 1 : -1;
+
+    return list.sort((a, b) => {
+      switch (field) {
+        case 'difference': {
+          const diffA = Math.abs(
+            this.toSafeNumber(
+              this.readFirstRowNumber(a, ['difference', 'differenceTotal', 'salePaymentDifference'])
+            )
+          );
+          const diffB = Math.abs(
+            this.toSafeNumber(
+              this.readFirstRowNumber(b, ['difference', 'differenceTotal', 'salePaymentDifference'])
+            )
+          );
+          return (diffA - diffB) * mult;
+        }
+        case 'sale': {
+          const valA = this.toSafeNumber(this.readRowNumber(a, 'saleTotal'));
+          const valB = this.toSafeNumber(this.readRowNumber(b, 'saleTotal'));
+          return (valA - valB) * mult;
+        }
+        case 'payment': {
+          const valA = this.toSafeNumber(this.readRowNumber(a, 'paymentTotal'));
+          const valB = this.toSafeNumber(this.readRowNumber(b, 'paymentTotal'));
+          return (valA - valB) * mult;
+        }
+        case 'problems': {
+          const valA = this.toSafeNumber(
+            this.readRowNumber(a, 'problemReceiptCount') ?? (this.isProblemRow(a) ? 1 : 0)
+          );
+          const valB = this.toSafeNumber(
+            this.readRowNumber(b, 'problemReceiptCount') ?? (this.isProblemRow(b) ? 1 : 0)
+          );
+          return (valA - valB) * mult;
+        }
+        case 'date': {
+          const valA = this.readRowText(a, 'businessDate') || this.readRowText(a, 'lastSaleAt');
+          const valB = this.readRowText(b, 'businessDate') || this.readRowText(b, 'lastSaleAt');
+          return valA.localeCompare(valB) * mult;
+        }
+        case 'warehouse': {
+          const valA = this.toSafeNumber(this.readRowNumber(a, 'warehouseNo'));
+          const valB = this.toSafeNumber(this.readRowNumber(b, 'warehouseNo'));
+          return (valA - valB) * mult;
+        }
+        default:
+          return 0;
+      }
+    });
+  });
+
+  protected toggleSort(field: 'difference' | 'sale' | 'payment' | 'problems' | 'date' | 'warehouse'): void {
+    if (this.sortField() === field) {
+      this.sortDirection.set(this.sortDirection() === 'asc' ? 'desc' : 'asc');
+    } else {
+      this.sortField.set(field);
+      this.sortDirection.set('desc');
+    }
+  }
+
+  protected toggleOnlyDifference(): void {
+    this.filterOnlyDifference.set(!this.filterOnlyDifference());
+  }
   protected readonly canUseWarehouseScope = computed(() =>
     currentUserCanUseAllWarehouses(this.authService.currentUser(), ALL_WAREHOUSES_PERMISSION)
   );

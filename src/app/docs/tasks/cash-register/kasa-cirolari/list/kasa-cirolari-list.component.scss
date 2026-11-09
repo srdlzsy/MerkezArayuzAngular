@@ -487,6 +487,518 @@
   color: var(--cash-accent-deep);
 }
 
+/* KPI Dashboard Grid */
+.kpi-dashboard-grid {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 0.75rem;
+  margin-block: 0.25rem;
+}
+
+.kpi-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  padding: 0.85rem 1rem;
+  border-radius: 12px;
+  background: #ffffff;
+  border: 1px solid var(--cash-border);
+  box-shadow: 0 4px 12px rgba(15, 23, 42, 0.04);
+  transition: transform 160ms ease, box-shadow 160ms ease, border-color 160ms ease;
+  min-height: 110px;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(15, 23, 42, 0.08);
+  }
+}
+
+.kpi-card-collection {
+  border-left: 4px solid #0f766e;
+}
+
+.kpi-card-sales {
+  border-left: 4px solid #2563eb;
+}
+
+.kpi-card-comparison {
+  border-left: 4px solid #10b981;
+}
+
+.kpi-card-warn {
+  border-left-color: #f59e0b;
+}
+
+.kpi-card-source {
+  border-left: 4px solid #8b5cf6;
+}
+
+.kpi-card-header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 0.5rem;
+}
+
+.kpi-title {
+  color: var(--cash-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+
+  i {
+    font-size: 0.85rem;
+  }
+}
+
+.kpi-badge {
+  font-size: 0.7rem;
+  font-weight: 750;
+  padding: 0.2rem 0.5rem;
+  border-radius: 999px;
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+}
+
+.kpi-badge-teal {
+  background: #e6f4f2;
+  color: #0f766e;
+}
+
+.kpi-badge-blue {
+  background: #eff6ff;
+  color: #1d4ed8;
+}
+
+.kpi-badge-green {
+  background: #ecfdf5;
+  color: #047857;
+}
+
+.kpi-badge-amber {
+  background: #fffbeb;
+  color: #b45309;
+}
+
+.kpi-badge-purple {
+  background: #f5f3ff;
+  color: #6d28d9;
+}
+
+.kpi-main-val {
+  font-size: 1.4rem;
+  font-weight: 900;
+  color: var(--cash-ink);
+  line-height: 1.15;
+  margin-block: 0.35rem;
+
+  small {
+    font-size: 0.85rem;
+    font-weight: 700;
+    color: var(--cash-muted);
+  }
+}
+
+.kpi-footer {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.74rem;
+  color: var(--cash-muted);
+  padding-top: 0.35rem;
+  border-top: 1px solid #f1f5f9;
+
+  strong {
+    color: var(--cash-ink);
+  }
+}
+
+.text-warn {
+  color: #b45309;
+  font-weight: 700;
+}
+
+.text-danger {
+  color: #dc2626;
+  font-weight: 700;
+}
+
+.text-success {
+  color: #047857;
+  font-weight: 700;
+}
+
+.text-blue {
+  color: #2563eb;
+  font-weight: 700;
+}
+
+/* Dashboard Controls Bar */
+.dashboard-controls-bar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  padding: 0.55rem 0.85rem;
+  background: #ffffff;
+  border: 1px solid var(--cash-border);
+  border-radius: 10px;
+}
+
+.sort-toolbar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.4rem;
+}
+
+.sort-label {
+  color: var(--cash-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+  margin-right: 0.2rem;
+}
+
+.sort-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 700;
+  border-radius: 8px;
+  border: 1px solid var(--cash-border);
+  background: var(--cash-surface);
+  color: var(--cash-ink);
+  cursor: pointer;
+  transition: all 140ms ease;
+
+  &:hover {
+    border-color: var(--cash-border-strong);
+    background: #f8fafc;
+  }
+
+  &.is-active {
+    background: #0f766e;
+    color: #ffffff;
+    border-color: #0f766e;
+    box-shadow: 0 2px 6px rgba(15, 118, 110, 0.25);
+
+    i {
+      color: #a7f3d0;
+    }
+  }
+}
+
+.info-pill {
+  font-size: 0.72rem;
+  font-weight: 750;
+  padding: 0.25rem 0.6rem;
+  border-radius: 6px;
+  background: #f1f5f9;
+  color: var(--cash-ink);
+}
+
+.info-pill-warn {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+/* Şube Performans & Dağılım */
+.branch-summary-dashboard {
+  display: grid;
+  gap: 0.75rem;
+  background: #ffffff;
+  border: 1px solid var(--cash-border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  box-shadow: 0 4px 14px rgba(15, 23, 42, 0.03);
+}
+
+.summary-item-highlight {
+  background: #f0fdfa;
+  border: 1px solid #ccfbf1;
+}
+
+.payment-ratio-bar-wrap {
+  display: grid;
+  gap: 0.35rem;
+  padding: 0.6rem 0.75rem;
+  background: #f8fafc;
+  border-radius: 8px;
+}
+
+.ratio-labels {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  font-size: 0.76rem;
+}
+
+.ratio-label-cash {
+  color: #047857;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ratio-label-credit {
+  color: #1d4ed8;
+  font-weight: 700;
+  display: flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.ratio-progress-bar {
+  display: flex;
+  height: 10px;
+  border-radius: 999px;
+  overflow: hidden;
+  background: #e2e8f0;
+}
+
+.bar-segment {
+  height: 100%;
+  transition: width 300ms ease;
+}
+
+.bar-cash {
+  background: #10b981;
+}
+
+.bar-credit {
+  background: #3b82f6;
+}
+
+/* Branch Controls Row */
+.branch-controls-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-top: 0.5rem;
+}
+
+.view-mode-toggle {
+  display: flex;
+  background: #f1f5f9;
+  padding: 0.2rem;
+  border-radius: 8px;
+  gap: 0.2rem;
+}
+
+.view-mode-btn {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+  padding: 0.3rem 0.65rem;
+  font-size: 0.74rem;
+  font-weight: 750;
+  border: none;
+  background: transparent;
+  color: var(--cash-muted);
+  border-radius: 6px;
+  cursor: pointer;
+  transition: all 140ms ease;
+
+  &.is-active {
+    background: #ffffff;
+    color: var(--cash-ink);
+    box-shadow: 0 1px 4px rgba(0, 0, 0, 0.08);
+  }
+}
+
+/* Şube Kartları Grid (Mobile Friendly) */
+.branch-cards-grid {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+  gap: 0.75rem;
+  margin-top: 0.5rem;
+}
+
+.branch-card {
+  display: flex;
+  flex-direction: column;
+  justify-content: space-between;
+  background: #ffffff;
+  border: 1px solid var(--cash-border);
+  border-radius: 12px;
+  padding: 0.85rem;
+  box-shadow: 0 2px 8px rgba(0, 0, 0, 0.04);
+  transition: transform 160ms ease, box-shadow 160ms ease;
+
+  &:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 6px 16px rgba(0, 0, 0, 0.08);
+  }
+}
+
+.branch-card-head {
+  display: flex;
+  align-items: flex-start;
+  justify-content: space-between;
+  gap: 0.5rem;
+  margin-bottom: 0.6rem;
+  padding-bottom: 0.5rem;
+  border-bottom: 1px solid #f1f5f9;
+}
+
+.branch-card-badge {
+  font-size: 0.7rem;
+  font-weight: 800;
+  color: #0f766e;
+  background: #e6f4f2;
+  padding: 0.15rem 0.45rem;
+  border-radius: 4px;
+}
+
+.branch-card-title {
+  margin: 0.25rem 0 0.1rem 0;
+  font-size: 0.95rem;
+  color: var(--cash-ink);
+  font-weight: 800;
+}
+
+.branch-card-no {
+  font-size: 0.72rem;
+  color: var(--cash-muted);
+  font-weight: 600;
+}
+
+.branch-card-time {
+  font-size: 0.7rem;
+  color: var(--cash-muted);
+  background: #f8fafc;
+  padding: 0.2rem 0.45rem;
+  border-radius: 6px;
+  white-space: nowrap;
+}
+
+.card-metric-primary {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  background: #f0fdfa;
+  padding: 0.5rem 0.65rem;
+  border-radius: 8px;
+  margin-bottom: 0.5rem;
+
+  .card-label {
+    font-size: 0.72rem;
+    font-weight: 800;
+    color: #0f766e;
+    text-transform: uppercase;
+  }
+
+  .card-val {
+    font-size: 1.15rem;
+    font-weight: 900;
+    color: #115e59;
+  }
+}
+
+.card-metric-secondary {
+  display: flex;
+  justify-content: space-between;
+  font-size: 0.76rem;
+  padding: 0.2rem 0.2rem 0.5rem 0.2rem;
+  color: var(--cash-ink);
+
+  .card-sub-label {
+    color: var(--cash-muted);
+    font-size: 0.72rem;
+    margin-right: 0.25rem;
+  }
+}
+
+.card-metric-grid {
+  display: grid;
+  grid-template-columns: repeat(4, 1fr);
+  gap: 0.35rem;
+  padding: 0.4rem;
+  background: #f8fafc;
+  border-radius: 8px;
+  text-align: center;
+}
+
+.mini-kpi {
+  display: flex;
+  flex-direction: column;
+  gap: 0.1rem;
+
+  span {
+    font-size: 0.7rem;
+    color: var(--cash-muted);
+    font-weight: 700;
+    text-transform: uppercase;
+  }
+
+  strong {
+    font-size: 0.78rem;
+    font-weight: 800;
+    color: var(--cash-ink);
+  }
+}
+
+.branch-card-alert {
+  margin-top: 0.5rem;
+  padding: 0.35rem 0.5rem;
+  background: #fef2f2;
+  border-left: 3px solid #ef4444;
+  border-radius: 4px;
+  font-size: 0.72rem;
+  font-weight: 750;
+  color: #dc2626;
+}
+
+.sortable-th {
+  cursor: pointer;
+  user-select: none;
+  transition: color 140ms ease;
+
+  &:hover {
+    color: #0f766e;
+  }
+
+  i {
+    font-size: 0.72rem;
+    margin-left: 0.25rem;
+    color: var(--cash-muted);
+  }
+}
+
+.region-chip {
+  display: inline-block;
+  padding: 0.15rem 0.45rem;
+  font-size: 0.72rem;
+  font-weight: 700;
+  border-radius: 4px;
+  background: #f1f5f9;
+  color: var(--cash-ink);
+}
+
+.time-chip {
+  font-size: 0.72rem;
+  color: var(--cash-muted);
+}
+
+.cell-highlight {
+  background: #f0fdfa;
+  color: #0f766e;
+}
+
 @media (max-width: 1240px) {
   .cash-header {
     grid-template-columns: 1fr;
@@ -495,6 +1007,10 @@
 
   .filters-grid {
     grid-template-columns: repeat(2, minmax(130px, 1fr)) minmax(110px, 0.7fr) auto;
+  }
+
+  .kpi-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 
   .metric-strip,
@@ -508,6 +1024,11 @@
 }
 
 @media (max-width: 820px) {
+  .kpi-dashboard-grid {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: 0.55rem;
+  }
+
   .metric-strip,
   .summary-strip {
     grid-template-columns: repeat(2, minmax(0, 1fr));
@@ -518,6 +1039,12 @@
   .scope-switch {
     display: grid;
     width: 100%;
+  }
+
+  .dashboard-controls-bar,
+  .branch-controls-row {
+    flex-direction: column;
+    align-items: stretch;
   }
 
   .table-context {
@@ -537,15 +1064,27 @@
 
   .source-tabs,
   .filters-grid,
+  .kpi-dashboard-grid,
   .metric-strip,
   .summary-strip {
     grid-template-columns: 1fr;
+  }
+
+  .card-metric-grid {
+    grid-template-columns: repeat(2, 1fr);
+  }
+
+  .ratio-labels {
+    flex-direction: column;
+    align-items: flex-start;
+    gap: 0.2rem;
   }
 
   .source-tab,
   .scope-pill,
   .task-action {
     width: 100%;
+    min-height: 2.4rem;
   }
 
   .table-context,

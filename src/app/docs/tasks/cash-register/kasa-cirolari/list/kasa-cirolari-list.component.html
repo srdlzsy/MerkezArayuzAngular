@@ -85,41 +85,136 @@
       </div>
     </header>
 
-    <section class="metric-strip" aria-label="Kasa ciro hizli ozet">
-      <article class="metric-item metric-item-primary">
-        <span>Net Tahsilat</span>
-        <strong>{{ totalNetCollection() | number:'1.2-2' }} TL</strong>
+    <!-- Dashboard KPI Grid -->
+    <section class="kpi-dashboard-grid" aria-label="Kasa ciro dashboard ozeti">
+      <article class="kpi-card kpi-card-collection">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-wallet"></i> Net Tahsilat</span>
+          <span class="kpi-badge kpi-badge-teal">%{{ collectionRate() | number:'1.1-1' }} Tahsilat</span>
+        </div>
+        <strong class="kpi-main-val">{{ totalNetCollection() | number:'1.2-2' }} <small>TL</small></strong>
+        <div class="kpi-footer">
+          <span>Kayıt: <strong>{{ totalCount() }}</strong></span>
+          <span>Ödeme Satırı: <strong>{{ totalPaymentLineCount() }}</strong></span>
+        </div>
       </article>
-      <article class="metric-item">
-        <span>Brut Satis</span>
-        <strong>{{ totalSalesAmount() | number:'1.2-2' }} TL</strong>
+
+      <article class="kpi-card kpi-card-sales">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-chart-line"></i> Brüt Satış Cirosu</span>
+          <span class="kpi-badge kpi-badge-blue">Ort. {{ averageNetCollection() | number:'1.0-0' }} TL</span>
+        </div>
+        <strong class="kpi-main-val">{{ totalSalesAmount() | number:'1.2-2' }} <small>TL</small></strong>
+        <div class="kpi-footer">
+          <span>Ortalama Fiş Net: <strong>{{ averageNetCollection() | number:'1.2-2' }} TL</strong></span>
+        </div>
       </article>
-      <article class="metric-item">
-        <span>Mutabakat</span>
-        <strong>{{ totalComparisonAmount() | number:'1.2-2' }} TL</strong>
+
+      <article class="kpi-card kpi-card-comparison" [class.kpi-card-warn]="salesCollectionGap() !== 0">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-scale-balanced"></i> Mutabakat Toplamı</span>
+          <span *ngIf="salesCollectionGap() !== 0" class="kpi-badge kpi-badge-amber">
+            <i class="fa-solid fa-triangle-exclamation"></i> Fark Var
+          </span>
+          <span *ngIf="salesCollectionGap() === 0" class="kpi-badge kpi-badge-green">
+            <i class="fa-solid fa-check"></i> Mutabık
+          </span>
+        </div>
+        <strong class="kpi-main-val">{{ totalComparisonAmount() | number:'1.2-2' }} <small>TL</small></strong>
+        <div class="kpi-footer">
+          <span *ngIf="salesCollectionGap() !== 0" class="text-warn">
+            Satış/Net Farkı: <strong>{{ salesCollectionGap() | number:'1.2-2' }} TL</strong>
+          </span>
+          <span *ngIf="salesCollectionGap() === 0" class="text-success">
+            Kasa ve satış kayıtları tam dengede
+          </span>
+        </div>
       </article>
-      <article class="metric-item">
-        <span>Kayit / Odeme</span>
-        <strong>{{ totalCount() }} / {{ totalPaymentLineCount() }}</strong>
-      </article>
-      <article class="metric-item">
-        <span>Ortalama Net</span>
-        <strong>{{ averageNetCollection() | number:'1.2-2' }} TL</strong>
-      </article>
-      <article class="metric-item">
-        <span>Tahsilat Orani</span>
-        <strong>{{ collectionRate() | number:'1.2-2' }}%</strong>
+
+      <article class="kpi-card kpi-card-source">
+        <div class="kpi-card-header">
+          <span class="kpi-title"><i class="fa-solid fa-cash-register"></i> Kasa Kaynak Durumu</span>
+          <span class="kpi-badge kpi-badge-purple">{{ selectedSourceLabel() }}</span>
+        </div>
+        <strong class="kpi-main-val">{{ sourceDistributionLabel() }}</strong>
+        <div class="kpi-footer">
+          <span *ngIf="paymentDataMissingCount()" class="text-danger">
+            <i class="fa-solid fa-circle-exclamation"></i> <strong>{{ paymentDataMissingCount() }}</strong> ödeme verisi eksik
+          </span>
+          <span *ngIf="!paymentDataMissingCount()" class="text-success">
+            <i class="fa-solid fa-shield-halved"></i> Tüm ödeme satırları tam
+          </span>
+        </div>
       </article>
     </section>
 
-    <div class="table-context">
-      <div class="context-cluster">
-        <span>{{ selectedSourceLabel() }}</span>
-        <span>{{ sourceDistributionLabel() }}</span>
-        <span>{{ totalPaymentLineCount() }} odeme satiri</span>
-        <span *ngIf="paymentDataMissingCount()">{{ paymentDataMissingCount() }} odeme verisi eksik</span>
+    <!-- Hızlı Sıralama Araç Çubuğu -->
+    <div class="dashboard-controls-bar">
+      <div class="sort-toolbar">
+        <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Sırala:</span>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'collection'"
+          (click)="toggleSort('collection')"
+        >
+          Net Tahsilat
+          <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'collection' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'collection' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'sales'"
+          (click)="toggleSort('sales')"
+        >
+          Brüt Satış
+          <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'sales' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'sales' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'comparison'"
+          (click)="toggleSort('comparison')"
+        >
+          Mutabakat
+          <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'comparison' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'comparison' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'gap'"
+          (click)="toggleSort('gap')"
+        >
+          Fark
+          <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'gap' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'gap' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'date'"
+          (click)="toggleSort('date')"
+        >
+          Tarih
+          <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'date' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'date' && sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'warehouse'"
+          (click)="toggleSort('warehouse')"
+        >
+          Depo No
+          <i class="fa-solid" [class.fa-arrow-down]="sortField() === 'warehouse' && sortDirection() === 'desc'" [class.fa-arrow-up]="sortField() === 'warehouse' && sortDirection() === 'asc'"></i>
+        </button>
       </div>
-      <strong>{{ salesCollectionGap() | number:'1.2-2' }} TL satis/net farki</strong>
+
+      <div class="context-cluster">
+        <span class="info-pill">{{ sortedRows().length }} Kayıt</span>
+        <span class="info-pill">{{ totalPaymentLineCount() }} Ödeme</span>
+        <span class="info-pill info-pill-warn" *ngIf="salesCollectionGap() !== 0">
+          {{ salesCollectionGap() | number:'1.2-2' }} TL Fark
+        </span>
+      </div>
     </div>
 
     <article class="state-card state-card-error" *ngIf="errorMessage() as currentError">
@@ -138,7 +233,7 @@
 
     <div class="table-shell" *ngIf="!isLoading() && rows().length">
       <app-api-list-table
-        [rows]="rows()"
+        [rows]="sortedRows()"
         [columns]="tableColumns"
         [fitToWidth]="true"
         [filterPlaceholder]="getTableFilterPlaceholder()"
@@ -158,8 +253,8 @@
     <section class="overview-block">
       <div class="overview-toggle-row">
         <div class="title-block">
-          <span class="section-kicker">Sube Ozeti</span>
-          <h3>Kasa ozeti ve sube toplamlari</h3>
+          <span class="section-kicker">Şube Performans Analizi</span>
+          <h3>Kasa Özeti ve Şube Toplamları</h3>
         </div>
 
         <div class="overview-actions">
@@ -171,7 +266,7 @@
               [class.is-active]="overviewScope() === 'all'"
               (click)="selectOverviewScope('all')"
             >
-              Tum Subeler
+              Tüm Şubeler
             </button>
             <button
               type="button"
@@ -189,14 +284,15 @@
             (click)="toggleOverviewPanel()"
             [disabled]="overviewLoading()"
           >
-            {{ overviewPanelOpen() ? 'Sube Ozetini Kapat' : 'Sube Ozetini Ac' }}
+            <i class="fa-solid" [class.fa-chevron-up]="overviewPanelOpen()" [class.fa-chevron-down]="!overviewPanelOpen()"></i>
+            {{ overviewPanelOpen() ? 'Şube Özetini Kapat' : 'Şube Özetini Aç' }}
           </button>
 
           <app-excel-export-button
             *ngIf="overviewPanelOpen()"
             [disabled]="overviewLoading() || !overview()"
             [exporting]="overviewExporting()"
-            [summary]="branchOverviewCount() + 1 + ' kayit'"
+            [summary]="branchOverviewCount() + ' şube'"
             (exportRequested)="exportOverview()"
           ></app-excel-export-button>
         </div>
@@ -204,105 +300,258 @@
 
       <ng-container *ngIf="overviewPanelOpen()">
         <article class="state-card" *ngIf="overviewLoading()">
-          <h3>Ozet yukleniyor</h3>
+          <h3><i class="fa-solid fa-spinner fa-spin"></i> Şube özeti yükleniyor...</h3>
         </article>
 
         <article class="state-card state-card-error" *ngIf="overviewError() as currentOverviewError">
-          <h3>Ozet yuklenemedi</h3>
+          <h3>Özet yüklenemedi</h3>
           <p>{{ currentOverviewError }}</p>
         </article>
 
         <ng-container *ngIf="!overviewLoading() && !overviewError() && overview() as currentOverview">
-          <div class="summary-strip">
-            <article class="summary-item">
-              <span>Brut Satis</span>
-              <strong>{{ getDailyGrossSalesTotal(currentOverview) | number:'1.2-2' }} TL</strong>
-            </article>
-            <article class="summary-item">
-              <span>Tahsilat</span>
-              <strong>{{ getDailyCollectionTotal(currentOverview) | number:'1.2-2' }} TL</strong>
-            </article>
-            <article class="summary-item">
-              <span>Mutabakat</span>
-              <strong>{{ getDailyComparisonTotal(currentOverview) | number:'1.2-2' }} TL</strong>
-            </article>
-            <article class="summary-item">
-              <span>Musteri</span>
-              <strong>{{ currentOverview.dailyCustomerCount }}</strong>
-            </article>
-            <article class="summary-item">
-              <span>Nakit</span>
-              <strong>{{ currentOverview.dailyCashPayment | number:'1.2-2' }} TL</strong>
-            </article>
-            <article class="summary-item">
-              <span>Kredi</span>
-              <strong>{{ currentOverview.dailyCreditCardPayment | number:'1.2-2' }} TL</strong>
-            </article>
-            <article class="summary-item">
-              <span>Ort. Sepet</span>
-              <strong>{{ currentOverview.averageBasketAmount | number:'1.2-2' }} TL</strong>
-            </article>
-            <article class="summary-item">
-              <span>Nakit / Kredi</span>
-              <strong>{{ overviewCashRate() | number:'1.0-0' }}% / {{ overviewCreditRate() | number:'1.0-0' }}%</strong>
-            </article>
+          <!-- Şube Metrik Strip & Görsel Dağılım -->
+          <div class="branch-summary-dashboard">
+            <div class="summary-strip">
+              <article class="summary-item summary-item-highlight">
+                <span>Brüt Satış</span>
+                <strong>{{ getDailyGrossSalesTotal(currentOverview) | number:'1.2-2' }} TL</strong>
+              </article>
+              <article class="summary-item">
+                <span>Net Tahsilat</span>
+                <strong>{{ getDailyCollectionTotal(currentOverview) | number:'1.2-2' }} TL</strong>
+              </article>
+              <article class="summary-item">
+                <span>Mutabakat</span>
+                <strong>{{ getDailyComparisonTotal(currentOverview) | number:'1.2-2' }} TL</strong>
+              </article>
+              <article class="summary-item">
+                <span>Müşteri Sayısı</span>
+                <strong>{{ currentOverview.dailyCustomerCount | number }}</strong>
+              </article>
+              <article class="summary-item">
+                <span>Ortalama Sepet</span>
+                <strong>{{ currentOverview.averageBasketAmount | number:'1.2-2' }} TL</strong>
+              </article>
+            </div>
+
+            <!-- Nakit & Kredi Oran Çubuğu -->
+            <div class="payment-ratio-bar-wrap">
+              <div class="ratio-labels">
+                <span class="ratio-label-cash">
+                  <i class="fa-solid fa-money-bill-wave"></i> Nakit: <strong>{{ currentOverview.dailyCashPayment | number:'1.2-2' }} TL</strong> (%{{ overviewCashRate() | number:'1.0-0' }})
+                </span>
+                <span class="ratio-label-credit">
+                  <i class="fa-solid fa-credit-card"></i> Kredi Kartı: <strong>{{ currentOverview.dailyCreditCardPayment | number:'1.2-2' }} TL</strong> (%{{ overviewCreditRate() | number:'1.0-0' }})
+                </span>
+              </div>
+              <div class="ratio-progress-bar">
+                <div class="bar-segment bar-cash" [style.width.%]="overviewCashRate()"></div>
+                <div class="bar-segment bar-credit" [style.width.%]="overviewCreditRate()"></div>
+              </div>
+            </div>
           </div>
 
           <article
             class="state-card state-card-warning"
             *ngIf="getDailyPaymentDataMissingBranchCount(currentOverview) > 0"
           >
-            <h3>Odeme verisi eksik</h3>
+            <h3><i class="fa-solid fa-triangle-exclamation"></i> Ödeme Verisi Eksik</h3>
             <p>
-              {{ getDailyPaymentDataMissingBranchCount(currentOverview) }} subede satis var ama yeni kasa odeme
-              satiri bulunamadi. Icmal farkini ciro eksigi gibi yorumlamayin.
+              {{ getDailyPaymentDataMissingBranchCount(currentOverview) }} şubede satış kaydı bulunmakta fakat yeni kasa ödeme satırı bulunamadı.
             </p>
           </article>
 
-          <div class="branch-table-wrap" *ngIf="branchOverviewRows().length; else emptyOverview">
+          <!-- Şube Sıralama ve Görünüm Seçenekleri -->
+          <div class="branch-controls-row">
+            <div class="sort-toolbar">
+              <span class="sort-label"><i class="fa-solid fa-sort"></i> Şubeleri Sırala:</span>
+              <button
+                type="button"
+                class="sort-chip"
+                [class.is-active]="branchSortField() === 'sales'"
+                (click)="toggleBranchSort('sales')"
+              >
+                Ciro
+                <i class="fa-solid" [class.fa-arrow-down]="branchSortField() === 'sales' && branchSortDirection() === 'desc'" [class.fa-arrow-up]="branchSortField() === 'sales' && branchSortDirection() === 'asc'"></i>
+              </button>
+              <button
+                type="button"
+                class="sort-chip"
+                [class.is-active]="branchSortField() === 'collection'"
+                (click)="toggleBranchSort('collection')"
+              >
+                Tahsilat
+                <i class="fa-solid" [class.fa-arrow-down]="branchSortField() === 'collection' && branchSortDirection() === 'desc'" [class.fa-arrow-up]="branchSortField() === 'collection' && branchSortDirection() === 'asc'"></i>
+              </button>
+              <button
+                type="button"
+                class="sort-chip"
+                [class.is-active]="branchSortField() === 'customer'"
+                (click)="toggleBranchSort('customer')"
+              >
+                Müşteri
+                <i class="fa-solid" [class.fa-arrow-down]="branchSortField() === 'customer' && branchSortDirection() === 'desc'" [class.fa-arrow-up]="branchSortField() === 'customer' && branchSortDirection() === 'asc'"></i>
+              </button>
+              <button
+                type="button"
+                class="sort-chip"
+                [class.is-active]="branchSortField() === 'basket'"
+                (click)="toggleBranchSort('basket')"
+              >
+                Sepet
+                <i class="fa-solid" [class.fa-arrow-down]="branchSortField() === 'basket' && branchSortDirection() === 'desc'" [class.fa-arrow-up]="branchSortField() === 'basket' && branchSortDirection() === 'asc'"></i>
+              </button>
+              <button
+                type="button"
+                class="sort-chip"
+                [class.is-active]="branchSortField() === 'name'"
+                (click)="toggleBranchSort('name')"
+              >
+                Şube Adı
+                <i class="fa-solid" [class.fa-arrow-down]="branchSortField() === 'name' && branchSortDirection() === 'desc'" [class.fa-arrow-up]="branchSortField() === 'name' && branchSortDirection() === 'asc'"></i>
+              </button>
+            </div>
+
+            <div class="view-mode-toggle">
+              <button
+                type="button"
+                class="view-mode-btn"
+                [class.is-active]="branchViewMode() === 'table'"
+                (click)="setBranchViewMode('table')"
+                title="Tablo Görünümü"
+              >
+                <i class="fa-solid fa-table-list"></i> Tablo
+              </button>
+              <button
+                type="button"
+                class="view-mode-btn"
+                [class.is-active]="branchViewMode() === 'cards'"
+                (click)="setBranchViewMode('cards')"
+                title="Kart Görünümü"
+              >
+                <i class="fa-solid fa-grip"></i> Kartlar
+              </button>
+            </div>
+          </div>
+
+          <!-- 1. Şube Kartları Görünümü (Mobil & Kart Tercihi) -->
+          <div class="branch-cards-grid" *ngIf="branchViewMode() === 'cards' && sortedBranchOverviewRows().length">
+            <article class="branch-card" *ngFor="let branch of sortedBranchOverviewRows(); trackBy: trackByBranch">
+              <div class="branch-card-head">
+                <div>
+                  <span class="branch-card-badge">{{ branch.region || 'Bölge -' }}</span>
+                  <h4 class="branch-card-title">{{ branch.branchName }}</h4>
+                  <small class="branch-card-no">Şube No: {{ branch.branchNo }}</small>
+                </div>
+                <div class="branch-card-time" *ngIf="branch.lastBillTime">
+                  <i class="fa-regular fa-clock"></i> {{ branch.lastBillTime }}
+                </div>
+              </div>
+
+              <div class="branch-card-body">
+                <div class="card-metric-primary">
+                  <span class="card-label">Brüt Satış</span>
+                  <strong class="card-val">{{ getBranchGrossSalesTotal(branch) | number:'1.2-2' }} TL</strong>
+                </div>
+
+                <div class="card-metric-secondary">
+                  <div>
+                    <span class="card-sub-label">Tahsilat:</span>
+                    <strong>{{ getBranchCollectionTotal(branch) | number:'1.2-2' }} TL</strong>
+                  </div>
+                  <div>
+                    <span class="card-sub-label">Mutabakat:</span>
+                    <strong [class.text-danger]="branch.paymentDataMissing">{{ getBranchComparisonTotal(branch) | number:'1.2-2' }} TL</strong>
+                  </div>
+                </div>
+
+                <div class="card-metric-grid">
+                  <div class="mini-kpi">
+                    <span>Müşteri</span>
+                    <strong>{{ branch.customerCount | number }}</strong>
+                  </div>
+                  <div class="mini-kpi">
+                    <span>Sepet</span>
+                    <strong>{{ branch.averageBasketAmount | number:'1.2-2' }} TL</strong>
+                  </div>
+                  <div class="mini-kpi">
+                    <span>Nakit</span>
+                    <strong>{{ branch.cashTotal | number:'1.0-0' }} TL</strong>
+                  </div>
+                  <div class="mini-kpi">
+                    <span>Kredi</span>
+                    <strong>{{ branch.creditTotal | number:'1.0-0' }} TL</strong>
+                  </div>
+                </div>
+
+                <div class="branch-card-alert" *ngIf="branch.paymentDataMissing">
+                  <i class="fa-solid fa-triangle-exclamation"></i> Ödeme verisi eksik
+                </div>
+              </div>
+            </article>
+          </div>
+
+          <!-- 2. Şube Tablosu Görünümü (Masaüstü Tablo) -->
+          <div class="branch-table-wrap" *ngIf="branchViewMode() === 'table' && sortedBranchOverviewRows().length; else emptyOverview">
             <table class="branch-table">
               <thead>
                 <tr>
-                  <th>Sube</th>
-                  <th>Bolge</th>
-                  <th class="align-right">Musteri</th>
-                  <th>Son Fis</th>
-                  <th class="align-right">Nakit</th>
-                  <th class="align-right">Kredi</th>
-                  <th class="align-right">Tahsilat</th>
-                  <th class="align-right">Brut Satis</th>
-                  <th class="align-right">Mutabakat</th>
+                  <th (click)="toggleBranchSort('name')" class="sortable-th">
+                    Şube <i class="fa-solid fa-sort"></i>
+                  </th>
+                  <th>Bölge</th>
+                  <th class="align-right sortable-th" (click)="toggleBranchSort('customer')">
+                    Müşteri <i class="fa-solid fa-sort"></i>
+                  </th>
+                  <th>Son Fiş</th>
+                  <th class="align-right sortable-th" (click)="toggleBranchSort('cash')">
+                    Nakit <i class="fa-solid fa-sort"></i>
+                  </th>
+                  <th class="align-right sortable-th" (click)="toggleBranchSort('credit')">
+                    Kredi <i class="fa-solid fa-sort"></i>
+                  </th>
+                  <th class="align-right sortable-th" (click)="toggleBranchSort('collection')">
+                    Tahsilat <i class="fa-solid fa-sort"></i>
+                  </th>
+                  <th class="align-right sortable-th" (click)="toggleBranchSort('sales')">
+                    Brüt Satış <i class="fa-solid fa-sort"></i>
+                  </th>
+                  <th class="align-right sortable-th" (click)="toggleBranchSort('comparison')">
+                    Mutabakat <i class="fa-solid fa-sort"></i>
+                  </th>
                   <th class="align-right">Veresiye</th>
-                  <th class="align-right">Ort. Sepet</th>
+                  <th class="align-right sortable-th" (click)="toggleBranchSort('basket')">
+                    Ort. Sepet <i class="fa-solid fa-sort"></i>
+                  </th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let branch of branchOverviewRows(); trackBy: trackByBranch">
+                <tr *ngFor="let branch of sortedBranchOverviewRows(); trackBy: trackByBranch">
                   <td>
                     <strong>{{ branch.branchName }}</strong>
-                    <div class="table-meta">Sube No: {{ branch.branchNo }}</div>
+                    <div class="table-meta">Şube No: {{ branch.branchNo }}</div>
                   </td>
-                  <td>{{ branch.region || '-' }}</td>
-                  <td class="align-right">{{ branch.customerCount }}</td>
-                  <td>{{ branch.lastBillTime || '-' }}</td>
-                  <td class="align-right">{{ branch.cashTotal | number:'1.2-2' }}</td>
-                  <td class="align-right">{{ branch.creditTotal | number:'1.2-2' }}</td>
-                  <td class="align-right">{{ getBranchCollectionTotal(branch) | number:'1.2-2' }}</td>
-                  <td class="align-right">{{ getBranchGrossSalesTotal(branch) | number:'1.2-2' }}</td>
+                  <td><span class="region-chip">{{ branch.region || '-' }}</span></td>
+                  <td class="align-right font-medium">{{ branch.customerCount | number }}</td>
+                  <td><span class="time-chip">{{ branch.lastBillTime || '-' }}</span></td>
+                  <td class="align-right text-success">{{ branch.cashTotal | number:'1.2-2' }}</td>
+                  <td class="align-right text-blue">{{ branch.creditTotal | number:'1.2-2' }}</td>
+                  <td class="align-right font-medium">{{ getBranchCollectionTotal(branch) | number:'1.2-2' }}</td>
+                  <td class="align-right font-bold cell-highlight">{{ getBranchGrossSalesTotal(branch) | number:'1.2-2' }}</td>
                   <td class="align-right cell-strong">
                     {{ getBranchComparisonTotal(branch) | number:'1.2-2' }}
-                    <div class="table-warning" *ngIf="branch.paymentDataMissing">Odeme verisi eksik</div>
+                    <div class="table-warning" *ngIf="branch.paymentDataMissing">Ödeme verisi eksik</div>
                   </td>
                   <td class="align-right">{{ branch.futuresSalesTotal | number:'1.2-2' }}</td>
-                  <td class="align-right">{{ branch.averageBasketAmount | number:'1.2-2' }}</td>
+                  <td class="align-right font-medium">{{ branch.averageBasketAmount | number:'1.2-2' }}</td>
                 </tr>
               </tbody>
             </table>
           </div>
 
           <ng-template #emptyOverview>
-            <article class="state-card empty-state">
-              <h3>Ozet bulunamadi</h3>
+            <article class="state-card empty-state" *ngIf="!sortedBranchOverviewRows().length">
+              <h3>Özet kayıt bulunamadı</h3>
             </article>
           </ng-template>
         </ng-container>
