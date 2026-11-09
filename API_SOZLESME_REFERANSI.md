@@ -11881,6 +11881,7 @@ Enum degerleri JSON sozlesmesinde bulunur.
 |---|---|---|---|
 | `documentOrderNo` | integer (int32) | Hayir | min=1; max=2147483647 |
 | `documentSerie` | string | Evet | minLength=0; maxLength=25 |
+| `warehouseNo` | integer (int32) | Hayir | min=1; max=2147483647 |
 
 ### FurpaMerkezApi.WebApi.Controllers.Modules.SiparisIslemleri.VerilenFirmaSiparisleri.BatchApproveCompanyOrdersHttpRequest
 

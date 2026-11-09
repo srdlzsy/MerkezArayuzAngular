@@ -311,7 +311,8 @@ export const ORDERS_TASK_SOURCE = {
             {
               method: 'POST',
               path: '/api/siparis-islemleri/verilen-firma-siparisleri/onayla',
-              description: 'Secilen siparisleri toplu veya tekil olarak onaylar'
+              description: 'Secilen siparisleri toplu veya tekil olarak onaylar',
+              payload: 'ApproveCompanyOrderListHttpRequest'
             }
           ]
         }
@@ -319,7 +320,7 @@ export const ORDERS_TASK_SOURCE = {
       codeSample: JSON.stringify(
         {
           userDefPerCode: '1001',
-          orders: [{ orderSeries: 'SP', orderSequence: 12345 }]
+          orders: [{ warehouseNo: 110, orderSeries: 'SP', orderSequence: 12345 }]
         },
         null,
         2
