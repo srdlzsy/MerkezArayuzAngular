@@ -36,6 +36,8 @@ type SortKey =
   | 'pendingReceivingCount'
   | 'unacceptedOutgoingCount'
   | 'pendingEDespatchCount'
+  | 'openOrderCount'
+  | 'otherFailedOperationCount'
   | 'incompleteOperationCount'
   | 'failedEDespatchCount'
   | 'averageReceivingMinutes'
@@ -69,6 +71,13 @@ const SUMMARY_METRICS: readonly SummaryMetric[] = [
     key: 'pendingEDespatchCount',
     label: 'E-Irsaliye Eksik/Hata',
     icon: 'fa-file-circle-exclamation',
+    tone: 'danger'
+  },
+  { key: 'openOrderCount', label: 'Acik Siparis', icon: 'fa-clipboard-list', tone: 'warning' },
+  {
+    key: 'otherFailedOperationCount',
+    label: 'Diger Hatali Islem',
+    icon: 'fa-triangle-exclamation',
     tone: 'danger'
   },
   { key: 'incompleteOperationCount', label: 'Eksik Operasyon', icon: 'fa-list-check', tone: 'warning' }

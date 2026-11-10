@@ -123,6 +123,8 @@
             <col class="col-count" />
             <col class="col-count" />
             <col class="col-count" />
+            <col class="col-count" />
+            <col class="col-count" />
             <col class="col-duration" />
             <col class="col-status" />
             <col class="col-action" />
@@ -190,6 +192,24 @@
                     <small>gonderilmemis / hata</small>
                   </span>
                   <i class="fa-solid" [ngClass]="sortIcon('pendingEDespatchCount')"></i>
+                </button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('openOrderCount')">
+                  <span class="head-label">
+                    <strong>Acik Siparis</strong>
+                    <small>AXATA bekleyen</small>
+                  </span>
+                  <i class="fa-solid" [ngClass]="sortIcon('openOrderCount')"></i>
+                </button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('otherFailedOperationCount')">
+                  <span class="head-label">
+                    <strong>Diger Hata</strong>
+                    <small>e-irsaliye disi</small>
+                  </span>
+                  <i class="fa-solid" [ngClass]="sortIcon('otherFailedOperationCount')"></i>
                 </button>
               </th>
               <th>
@@ -294,6 +314,24 @@
                 </span>
               </td>
               <td
+                data-label="Acik Siparis"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'open-orders')"
+              >
+                <span class="metric-cell" [class.metric-cell-warning]="(warehouse.openOrderCount ?? 0) > 0">
+                  <strong>{{ warehouse.openOrderCount ?? 0 | number: '1.0-0' }}</strong>
+                  <small>AXATA bekleyen</small>
+                </span>
+              </td>
+              <td
+                data-label="Diger Hata"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'action-required')"
+              >
+                <span class="metric-cell" [class.metric-cell-danger]="(warehouse.otherFailedOperationCount ?? 0) > 0">
+                  <strong>{{ warehouse.otherFailedOperationCount ?? 0 | number: '1.0-0' }}</strong>
+                  <small>e-irsaliye disi</small>
+                </span>
+              </td>
+              <td
                 data-label="Eksik Islem"
                 (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'action-required')"
               >
@@ -326,7 +364,7 @@
               </td>
             </tr>
             <tr *ngIf="filteredWarehouses().length === 0">
-              <td colspan="11" class="empty-state">Secili filtrelerle eslesen depo bulunamadi.</td>
+              <td colspan="13" class="empty-state">Secili filtrelerle eslesen depo bulunamadi.</td>
             </tr>
           </tbody>
         </table>
