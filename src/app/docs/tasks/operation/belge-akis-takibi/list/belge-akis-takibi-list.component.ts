@@ -17,7 +17,8 @@ import type {
   DocumentFlowEventDto,
   DocumentFlowListHttpRequest,
   DocumentFlowListItemDto,
-  DocumentFlowListResponse
+  DocumentFlowListResponse,
+  DocumentFlowPreset
 } from '@interfaces';
 
 import { OperasyonIslemleriService } from '../../../../../core/api/module-services/operasyon-islemleri.service';
@@ -39,9 +40,13 @@ interface DocumentFlowFilterOption {
 
 interface DocumentFlowFilters {
   warehouseNo: string;
+  direction: string;
+  preset: string;
+  category: string;
   startDate: string;
   endDate: string;
   documentType: string;
+  currentStep: string;
   status: string;
   search: string;
 }
@@ -52,10 +57,59 @@ interface DocumentFlowMetric {
   tone?: 'danger' | 'success' | 'warn';
 }
 
+interface PresetChip {
+  value: DocumentFlowPreset;
+  label: string;
+  count: number;
+  tone: 'neutral' | 'warning' | 'danger' | 'info';
+  icon: string;
+}
+
 const TASK_ID = 'belge-akis-takibi';
 const PERMISSION_PREFIX = 'operasyon-islemleri.belge-akis-takibi';
 const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 const DOCUMENT_FLOW_PAGE_SIZE = 500;
+
+const DIRECTION_OPTIONS: readonly DocumentFlowFilterOption[] = [
+  { value: '', label: 'Giris + Cikis (Tumu)' },
+  { value: 'Incoming', label: 'Bana Gelen (Hedef Depo)' },
+  { value: 'Outgoing', label: 'Benden Cikan (Kaynak Depo)' }
+];
+
+const PRESET_OPTIONS: readonly DocumentFlowFilterOption[] = [
+  { value: 'all', label: 'Tum Akislar' },
+  { value: 'action-required', label: 'Aksiyon Bekleyen Eksikler' },
+  { value: 'pending-receiving', label: 'Kabul Bekleyen Gelen Sevk/Iade' },
+  { value: 'unaccepted-outgoing', label: 'Karsi Depoda Kabul Bekleyen Cikis' },
+  { value: 'pending-edespatch', label: 'E-Irsaliye Eksik veya Hatali' },
+  { value: 'failed-edespatch', label: 'Sadece E-Irsaliye Hatasi Alanlar' },
+  { value: 'open-orders', label: 'Acik Siparisler' },
+  { value: 'failed-only', label: 'Tum Hatali Islemler' },
+  { value: 'today-shipments', label: 'Secili Gun Sevkleri' },
+  { value: 'today-returns', label: 'Secili Gun Iadeleri' },
+  { value: 'today-receivings', label: 'Secili Gun Mal Kabulleri' }
+];
+
+const CATEGORY_OPTIONS: readonly DocumentFlowFilterOption[] = [
+  { value: '', label: 'Tum Kategoriler' },
+  { value: 'ShipmentsAndReceiving', label: 'Sevk ve Mal Kabul' },
+  { value: 'Returns', label: 'Iade Islemleri' },
+  { value: 'Orders', label: 'Siparis Islemleri' },
+  { value: 'CashAndStore', label: 'Kasa ve Magaza Evraklari' },
+  { value: 'StockAndCounting', label: 'Stok, Sayim ve Kartlar' }
+];
+
+const STEP_OPTIONS: readonly DocumentFlowFilterOption[] = [
+  { value: '', label: 'Tum Adimlar' },
+  { value: 'DocumentCreated', label: 'Belge Olustu' },
+  { value: 'OrderCreated', label: 'Siparis Olustu' },
+  { value: 'EDespatchSubmission', label: 'E-Irsaliye Gonderimi' },
+  { value: 'WarehouseReceivingAccepted', label: 'Depo Kabul Edildi' },
+  { value: 'AxataOrderSent', label: 'AXATA Siparisi Gonderildi' },
+  { value: 'AxataDocumentImported', label: "AXATA Belgesi Mikro'ya Aktarildi" },
+  { value: 'DocumentUpdated', label: 'Belge Guncellendi' },
+  { value: 'DocumentDeleted', label: 'Belge Silindi' }
+];
 
 const DOCUMENT_TYPE_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: '', label: 'Tum Belge Tipleri' },
@@ -217,14 +271,22 @@ function resolveStatusLabel(value: string | null | undefined): string {
 })
 export class BelgeAkisTakibiListComponent implements OnInit {
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
+  protected readonly directionOptions = DIRECTION_OPTIONS;
+  protected readonly presetOptions = PRESET_OPTIONS;
+  protected readonly categoryOptions = CATEGORY_OPTIONS;
+  protected readonly stepOptions = STEP_OPTIONS;
   protected readonly documentTypeOptions = DOCUMENT_TYPE_OPTIONS;
   protected readonly statusOptions = STATUS_OPTIONS;
   protected readonly columns = LIST_COLUMNS;
   protected readonly filters: DocumentFlowFilters = {
     warehouseNo: '',
+    direction: '',
+    preset: 'all',
+    category: '',
     startDate: this.getToday(),
     endDate: this.getToday(),
     documentType: '',
+    currentStep: '',
     status: '',
     search: ''
   };
@@ -267,26 +329,150 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   protected readonly hasMore = computed(
     () => this.totalCount() > this.rows().length
   );
-  protected readonly metrics = computed<readonly DocumentFlowMetric[]>(() => {
+  protected readonly presetChips = computed<readonly PresetChip[]>(() => {
+    const summary = this.listResponse()?.summary;
     const rows = this.rows();
-    const failedCount = rows.filter((row) => row.status === 'Failed').length;
-    const succeededCount = rows.filter((row) => row.status === 'Succeeded').length;
-    const warehouseCount = new Set(
-      rows.flatMap((row) => [row.sourceWarehouseNo, row.targetWarehouseNo].filter(Boolean))
-    ).size;
+
+    const total = summary?.totalCount ?? this.totalCount();
+    const actionRequired = summary?.actionRequiredCount ?? 0;
+    const pendingReceiving = summary?.pendingReceivingCount ?? 0;
+    const unacceptedOutgoing = summary?.unacceptedOutgoingCount ?? 0;
+    const pendingEDespatch = summary?.pendingEDespatchCount ?? 0;
+    const openOrders = summary?.openOrderCount ?? 0;
+    const failed = summary?.failedCount ?? rows.filter((row) => row.status === 'Failed').length;
 
     return [
-      { label: 'Kayit', value: String(this.totalCount()) },
+      {
+        value: 'all',
+        label: 'Tum Akislar',
+        count: total,
+        tone: 'neutral',
+        icon: 'fa-layer-group'
+      },
+      {
+        value: 'action-required',
+        label: 'Aksiyon Bekleyen',
+        count: actionRequired,
+        tone: actionRequired > 0 ? 'warning' : 'neutral',
+        icon: 'fa-list-check'
+      },
+      {
+        value: 'pending-receiving',
+        label: 'Bekleyen Kabul (Gelen)',
+        count: pendingReceiving,
+        tone: pendingReceiving > 0 ? 'warning' : 'neutral',
+        icon: 'fa-hourglass-half'
+      },
+      {
+        value: 'unaccepted-outgoing',
+        label: 'Kabul Bekleyen Cikis',
+        count: unacceptedOutgoing,
+        tone: unacceptedOutgoing > 0 ? 'info' : 'neutral',
+        icon: 'fa-truck-arrow-right'
+      },
+      {
+        value: 'pending-edespatch',
+        label: 'E-Irsaliye Eksik / Hata',
+        count: pendingEDespatch,
+        tone: pendingEDespatch > 0 ? 'danger' : 'neutral',
+        icon: 'fa-file-circle-exclamation'
+      },
+      {
+        value: 'open-orders',
+        label: 'Acik Siparisler',
+        count: openOrders,
+        tone: openOrders > 0 ? 'info' : 'neutral',
+        icon: 'fa-cart-flatbed'
+      },
+      {
+        value: 'failed-only',
+        label: 'Hatali Islemler',
+        count: failed,
+        tone: failed > 0 ? 'danger' : 'neutral',
+        icon: 'fa-triangle-exclamation'
+      }
+    ];
+  });
+  protected readonly metrics = computed<readonly DocumentFlowMetric[]>(() => {
+    const summary = this.listResponse()?.summary;
+    const rows = this.rows();
+    const failedCount = summary?.failedCount ?? rows.filter((row) => row.status === 'Failed').length;
+    const succeededCount =
+      summary?.succeededCount ?? rows.filter((row) => row.status === 'Succeeded').length;
+    const actionRequiredCount = summary?.actionRequiredCount ?? 0;
+
+    return [
+      { label: 'Listelenen', value: String(this.totalCount()) },
       { label: 'Basarili', value: String(succeededCount), tone: 'success' },
-      { label: 'Hatali', value: String(failedCount), tone: failedCount ? 'danger' : undefined },
-      { label: 'Depo', value: String(warehouseCount || 0), tone: 'warn' }
+      {
+        label: 'Eksik / Bekleyen',
+        value: String(actionRequiredCount),
+        tone: actionRequiredCount ? 'warn' : undefined
+      },
+      { label: 'Hatali', value: String(failedCount), tone: failedCount ? 'danger' : undefined }
     ];
   });
 
   ngOnInit(): void {
-    this.applyRouteFilters();
+    this.activatedRoute.queryParamMap
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe(() => {
+        this.applyRouteFilters();
+        if (this.canList()) {
+          this.loadFlows();
+        }
+      });
+  }
 
-    if (this.canList()) {
+  protected selectPreset(preset: DocumentFlowPreset | string): void {
+    this.filters.preset = preset || 'all';
+
+    if (preset === 'pending-receiving' || preset === 'today-receivings') {
+      this.filters.direction = 'Incoming';
+    } else if (
+      preset === 'unaccepted-outgoing' ||
+      preset === 'pending-edespatch' ||
+      preset === 'failed-edespatch' ||
+      preset === 'today-shipments' ||
+      preset === 'today-returns'
+    ) {
+      this.filters.direction = 'Outgoing';
+    } else if (preset === 'all' || preset === 'action-required') {
+      this.filters.direction = '';
+    }
+
+    if (
+      (preset === 'action-required' ||
+        preset === 'pending-receiving' ||
+        preset === 'unaccepted-outgoing' ||
+        preset === 'pending-edespatch' ||
+        preset === 'failed-edespatch' ||
+        preset === 'open-orders' ||
+        preset === 'failed-only') &&
+      this.filters.startDate === this.filters.endDate &&
+      this.filters.startDate === this.getToday()
+    ) {
+      this.setQuickDateRange(30, false);
+    }
+
+    this.loadFlows();
+  }
+
+  protected setQuickDateRange(days: 0 | 7 | 30, reload = true): void {
+    const today = this.getToday();
+    this.filters.endDate = today;
+
+    if (days === 0) {
+      this.filters.startDate = today;
+    } else {
+      const start = new Date();
+      start.setDate(start.getDate() - days);
+      const localStart = new Date(start.getTime() - start.getTimezoneOffset() * 60_000);
+      const computedStart = localStart.toISOString().slice(0, 10);
+      this.filters.startDate = computedStart < '2026-10-01' ? '2026-10-01' : computedStart;
+    }
+
+    if (reload) {
       this.loadFlows();
     }
   }
@@ -299,6 +485,10 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     const endDate = query.get('endDate')?.trim() ?? '';
     const status = query.get('status')?.trim() ?? '';
     const documentType = query.get('documentType')?.trim() ?? '';
+    const direction = query.get('direction')?.trim() ?? '';
+    const category = query.get('category')?.trim() ?? '';
+    const currentStep = query.get('currentStep')?.trim() ?? '';
+    const preset = query.get('preset')?.trim() ?? '';
 
     if (this.isAdminUser() && /^\d+$/.test(warehouseNo) && Number(warehouseNo) > 0) {
       this.filters.warehouseNo = warehouseNo;
@@ -323,6 +513,22 @@ export class BelgeAkisTakibiListComponent implements OnInit {
 
     if (DOCUMENT_TYPE_OPTIONS.some((option) => option.value === documentType)) {
       this.filters.documentType = documentType;
+    }
+
+    if (DIRECTION_OPTIONS.some((option) => option.value === direction)) {
+      this.filters.direction = direction;
+    }
+
+    if (CATEGORY_OPTIONS.some((option) => option.value === category)) {
+      this.filters.category = category;
+    }
+
+    if (STEP_OPTIONS.some((option) => option.value === currentStep)) {
+      this.filters.currentStep = currentStep;
+    }
+
+    if (PRESET_OPTIONS.some((option) => option.value === preset)) {
+      this.filters.preset = preset;
     }
   }
 
@@ -460,9 +666,13 @@ export class BelgeAkisTakibiListComponent implements OnInit {
 
   protected clearFilters(): void {
     this.filters.warehouseNo = '';
+    this.filters.direction = '';
+    this.filters.preset = 'all';
+    this.filters.category = '';
     this.filters.startDate = this.getToday();
     this.filters.endDate = this.getToday();
     this.filters.documentType = '';
+    this.filters.currentStep = '';
     this.filters.status = '';
     this.filters.search = '';
     this.loadFlows();
@@ -483,12 +693,21 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   }
 
   protected flowScopeLabel(): string {
-    if (this.isAdminUser()) {
-      const warehouseNo = this.filters.warehouseNo.trim();
-      return warehouseNo ? `Depo ${warehouseNo}` : 'Tum Depolar';
+    const baseLabel = this.isAdminUser()
+      ? this.filters.warehouseNo.trim()
+        ? `Depo ${this.filters.warehouseNo.trim()}`
+        : 'Tum Depolar'
+      : this.currentWarehouseLabel();
+
+    if (this.filters.direction === 'Incoming') {
+      return `${baseLabel} (Gelen / Hedef)`;
     }
 
-    return this.currentWarehouseLabel();
+    if (this.filters.direction === 'Outgoing') {
+      return `${baseLabel} (Cikan / Kaynak)`;
+    }
+
+    return baseLabel;
   }
 
   protected resolveDocumentTypeLabel(value: string | null | undefined): string {
@@ -545,6 +764,9 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   protected readonly trackByMetric = (_index: number, metric: DocumentFlowMetric): string =>
     metric.label;
 
+  protected readonly trackByPresetChip = (_index: number, chip: PresetChip): string =>
+    chip.value;
+
   protected readonly trackByOption = (
     _index: number,
     option: DocumentFlowFilterOption
@@ -576,9 +798,13 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   private buildRequest(skip = 0): DocumentFlowListHttpRequest {
     return {
       warehouseNo: this.isAdminUser() ? this.toOptionalPositiveInteger(this.filters.warehouseNo) : null,
+      direction: this.filters.direction || null,
+      preset: this.filters.preset && this.filters.preset !== 'all' ? this.filters.preset : null,
+      category: this.filters.category || null,
       startDate: this.filters.startDate || null,
       endDate: this.filters.endDate || null,
       documentType: this.filters.documentType || null,
+      currentStep: this.filters.currentStep || null,
       status: this.filters.status || null,
       search: this.filters.search.trim() || null,
       skip,
@@ -621,6 +847,8 @@ export class BelgeAkisTakibiListComponent implements OnInit {
   }
 
   private getToday(): string {
-    return new Date().toISOString().slice(0, 10);
+    const now = new Date();
+    const localDate = new Date(now.getTime() - now.getTimezoneOffset() * 60_000);
+    return localDate.toISOString().slice(0, 10);
   }
 }

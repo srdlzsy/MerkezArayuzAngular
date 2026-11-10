@@ -122,6 +122,7 @@
             <col class="col-count" />
             <col class="col-count" />
             <col class="col-count" />
+            <col class="col-count" />
             <col class="col-duration" />
             <col class="col-status" />
             <col class="col-action" />
@@ -168,27 +169,36 @@
                 <button type="button" (click)="setSort('pendingReceivingCount')">
                   <span class="head-label">
                     <strong>Bekleyen Kabul</strong>
-                    <small>aksiyon</small>
+                    <small>gelen sevk/iade</small>
                   </span>
                   <i class="fa-solid" [ngClass]="sortIcon('pendingReceivingCount')"></i>
+                </button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('unacceptedOutgoingCount')">
+                  <span class="head-label">
+                    <strong>Kabul Bekleyen Cikis</strong>
+                    <small>giden sevk/iade</small>
+                  </span>
+                  <i class="fa-solid" [ngClass]="sortIcon('unacceptedOutgoingCount')"></i>
+                </button>
+              </th>
+              <th>
+                <button type="button" (click)="setSort('pendingEDespatchCount')">
+                  <span class="head-label">
+                    <strong>E-Irsaliye Eksik/Hata</strong>
+                    <small>gonderilmemis / hata</small>
+                  </span>
+                  <i class="fa-solid" [ngClass]="sortIcon('pendingEDespatchCount')"></i>
                 </button>
               </th>
               <th>
                 <button type="button" (click)="setSort('incompleteOperationCount')">
                   <span class="head-label">
                     <strong>Eksik Islem</strong>
-                    <small>tamamlanmamis</small>
+                    <small>aksiyon bekleyen</small>
                   </span>
                   <i class="fa-solid" [ngClass]="sortIcon('incompleteOperationCount')"></i>
-                </button>
-              </th>
-              <th>
-                <button type="button" (click)="setSort('failedEDespatchCount')">
-                  <span class="head-label">
-                    <strong>E-Irsaliye Hata</strong>
-                    <small>basarisiz</small>
-                  </span>
-                  <i class="fa-solid" [ngClass]="sortIcon('failedEDespatchCount')"></i>
                 </button>
               </th>
               <th>
@@ -225,40 +235,71 @@
                   <strong>{{ warehouse.warehouseName }}</strong>
                 </div>
               </td>
-              <td data-label="Bugun Sevk">
+              <td
+                data-label="Bugun Sevk"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'today-shipments', 'Outgoing')"
+              >
                 <span class="metric-cell">
                   <strong>{{ warehouse.todayShipmentCount | number: '1.0-0' }}</strong>
                   <small>sevk</small>
                 </span>
               </td>
-              <td data-label="Bugun Iade">
+              <td
+                data-label="Bugun Iade"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'today-returns', 'Outgoing')"
+              >
                 <span class="metric-cell">
                   <strong>{{ warehouse.todayReturnCount | number: '1.0-0' }}</strong>
                   <small>iade</small>
                 </span>
               </td>
-              <td data-label="Bugun Kabul">
+              <td
+                data-label="Bugun Kabul"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'today-receivings', 'Incoming')"
+              >
                 <span class="metric-cell metric-cell-success">
                   <strong>{{ warehouse.todayReceivingCount | number: '1.0-0' }}</strong>
                   <small>kabul</small>
                 </span>
               </td>
-              <td data-label="Bekleyen Kabul">
+              <td
+                data-label="Bekleyen Kabul"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'pending-receiving', 'Incoming')"
+              >
                 <span class="metric-cell" [class.metric-cell-warning]="warehouse.pendingReceivingCount > 0">
                   <strong>{{ warehouse.pendingReceivingCount | number: '1.0-0' }}</strong>
                   <small>bekleyen</small>
                 </span>
               </td>
-              <td data-label="Eksik Islem">
+              <td
+                data-label="Kabul Bekleyen Cikis"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'unaccepted-outgoing', 'Outgoing')"
+              >
+                <span class="metric-cell" [class.metric-cell-warning]="(warehouse.unacceptedOutgoingCount ?? 0) > 0">
+                  <strong>{{ warehouse.unacceptedOutgoingCount ?? 0 | number: '1.0-0' }}</strong>
+                  <small>karsi depoda</small>
+                </span>
+              </td>
+              <td
+                data-label="E-Irsaliye Eksik/Hata"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'pending-edespatch', 'Outgoing')"
+              >
+                <span
+                  class="metric-cell"
+                  [class.metric-cell-danger]="warehouse.failedEDespatchCount > 0"
+                  [class.metric-cell-warning]="warehouse.failedEDespatchCount === 0 && pendingEDespatchValue(warehouse) > 0"
+                >
+                  <strong>{{ pendingEDespatchValue(warehouse) | number: '1.0-0' }}</strong>
+                  <small>{{ warehouse.failedEDespatchCount > 0 ? warehouse.failedEDespatchCount + ' hata' : 'eksik/hata' }}</small>
+                </span>
+              </td>
+              <td
+                data-label="Eksik Islem"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'action-required')"
+              >
                 <span class="metric-cell" [class.metric-cell-warning]="warehouse.incompleteOperationCount > 0">
                   <strong>{{ warehouse.incompleteOperationCount | number: '1.0-0' }}</strong>
                   <small>eksik</small>
-                </span>
-              </td>
-              <td data-label="E-Irsaliye Hata">
-                <span class="metric-cell" [class.metric-cell-danger]="warehouse.failedEDespatchCount > 0">
-                  <strong>{{ warehouse.failedEDespatchCount | number: '1.0-0' }}</strong>
-                  <small>hata</small>
                 </span>
               </td>
               <td data-label="Kabul Suresi">
@@ -285,7 +326,7 @@
               </td>
             </tr>
             <tr *ngIf="filteredWarehouses().length === 0">
-              <td colspan="10" class="empty-state">Secili filtrelerle eslesen depo bulunamadi.</td>
+              <td colspan="11" class="empty-state">Secili filtrelerle eslesen depo bulunamadi.</td>
             </tr>
           </tbody>
         </table>

@@ -37,13 +37,35 @@
       <span>Yeni akis kaydi olusturulmuyor, mevcut kayitlar goruntuleniyor.</span>
     </article>
 
-    <article class="audit-scope-note" aria-label="Mikro API yazma audit kapsami">
-      <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
-      <div>
-        <strong>Mikro API audit</strong>
-        <span><code>mikro_api_write_audits</code> kayitlari teknik izleme tarafinda tutulur.</span>
+    <section class="preset-bar" aria-label="Operasyonel hizli filtreler">
+      <div class="preset-chips">
+        <button
+          type="button"
+          class="preset-chip"
+          *ngFor="let chip of presetChips(); trackBy: trackByPresetChip"
+          [class.is-active]="filters.preset === chip.value"
+          [ngClass]="'tone-' + chip.tone"
+          (click)="selectPreset(chip.value)"
+        >
+          <i class="fa-solid" [ngClass]="chip.icon"></i>
+          <span>{{ chip.label }}</span>
+          <strong>{{ chip.count | number: '1.0-0' }}</strong>
+        </button>
       </div>
-    </article>
+
+      <div class="quick-date-actions">
+        <span class="quick-date-label">Tarih Araligi:</span>
+        <button type="button" class="quick-date-btn" (click)="setQuickDateRange(0)">
+          Bugun
+        </button>
+        <button type="button" class="quick-date-btn" (click)="setQuickDateRange(7)">
+          Son 7 Gun
+        </button>
+        <button type="button" class="quick-date-btn" (click)="setQuickDateRange(30)">
+          Son 30 Gun (1 Ay)
+        </button>
+      </div>
+    </section>
 
     <section class="filter-panel">
       <div class="filters-grid">
@@ -66,6 +88,36 @@
         </div>
 
         <label class="field">
+          <span>Depo Yonu</span>
+          <select
+            [(ngModel)]="filters.direction"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option
+              *ngFor="let option of directionOptions; trackBy: trackByOption"
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Operasyonel Filtre</span>
+          <select
+            [(ngModel)]="filters.preset"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option
+              *ngFor="let option of presetOptions; trackBy: trackByOption"
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
           <span>Baslangic</span>
           <input
             type="date"
@@ -84,6 +136,21 @@
         </label>
 
         <label class="field">
+          <span>Belge Grubu</span>
+          <select
+            [(ngModel)]="filters.category"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option
+              *ngFor="let option of categoryOptions; trackBy: trackByOption"
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
           <span>Belge Tipi</span>
           <select
             [(ngModel)]="filters.documentType"
@@ -91,6 +158,21 @@
           >
             <option
               *ngFor="let option of documentTypeOptions; trackBy: trackByOption"
+              [value]="option.value"
+            >
+              {{ option.label }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field">
+          <span>Son Adim</span>
+          <select
+            [(ngModel)]="filters.currentStep"
+            [ngModelOptions]="{ standalone: true }"
+          >
+            <option
+              *ngFor="let option of stepOptions; trackBy: trackByOption"
               [value]="option.value"
             >
               {{ option.label }}
@@ -157,7 +239,7 @@
         {{ rows().length }} / {{ totalCount() }} kayit
       </span>
       <span *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</span>
-      <span>{{ isAdminUser() ? 'Tum depo kapsami' : 'Kullanici deposu' }}</span>
+      <span>{{ flowScopeLabel() }}</span>
       <span class="result-limit-note" *ngIf="hasMore()">
         Daha eski kayitlar sonraki sayfada hazir.
       </span>

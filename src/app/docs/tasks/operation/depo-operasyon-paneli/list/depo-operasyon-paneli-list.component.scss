@@ -145,7 +145,7 @@ select:focus {
 
 .summary-grid {
   display: grid;
-  grid-template-columns: repeat(7, minmax(0, 1fr));
+  grid-template-columns: repeat(auto-fit, minmax(128px, 1fr));
   overflow: hidden;
   border: 1px solid var(--ops-line);
   border-radius: 8px;

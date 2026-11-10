@@ -1002,3 +1002,131 @@
     flex-wrap: wrap;
   }
 }
+
+
+.preset-bar {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.55rem;
+  align-items: center;
+  justify-content: space-between;
+  border: 1px solid var(--flow-border);
+  border-radius: 6px;
+  padding: 0.52rem 0.65rem;
+  background: #f8fafc;
+}
+
+.preset-chips {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.42rem;
+}
+
+.preset-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 999px;
+  padding: 0.3rem 0.62rem;
+  background: #fff;
+  color: #334155;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 120ms ease;
+}
+
+.preset-chip strong {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  border-radius: 999px;
+  padding: 0.08rem 0.38rem;
+  background: #f1f5f9;
+  color: #0f172a;
+  font-size: 0.74rem;
+  font-weight: 900;
+}
+
+.preset-chip.tone-warning {
+  border-color: #fcd34d;
+  background: #fffbeb;
+  color: #92400e;
+}
+
+.preset-chip.tone-warning strong {
+  background: #fef3c7;
+  color: #78350f;
+}
+
+.preset-chip.tone-danger {
+  border-color: #fca5a5;
+  background: #fef2f2;
+  color: #991b1b;
+}
+
+.preset-chip.tone-danger strong {
+  background: #fee2e2;
+  color: #7f1d1d;
+}
+
+.preset-chip.tone-info {
+  border-color: #93c5fd;
+  background: #eff6ff;
+  color: #1e40af;
+}
+
+.preset-chip.tone-info strong {
+  background: #dbeafe;
+  color: #1e3a8a;
+}
+
+.preset-chip.is-active {
+  border-color: #0f172a;
+  background: #0f172a;
+  color: #fff;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.16);
+}
+
+.preset-chip.is-active strong {
+  background: rgba(255, 255, 255, 0.2);
+  color: #fff;
+}
+
+.quick-date-actions {
+  display: inline-flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.32rem;
+}
+
+.quick-date-label {
+  color: var(--flow-muted);
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.quick-date-btn {
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  padding: 0.26rem 0.54rem;
+  background: #fff;
+  color: #1e293b;
+  font: inherit;
+  font-size: 0.76rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.quick-date-btn:hover {
+  border-color: #64748b;
+  background: #f1f5f9;
+}
+
+.filters-grid {
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+}

@@ -13,6 +13,7 @@ import { FormsModule } from '@angular/forms';
 import { Router } from '@angular/router';
 import { finalize } from 'rxjs';
 import type {
+  DocumentFlowPreset,
   WarehouseOperationPanelItemDto,
   WarehouseOperationPanelResponse,
   WarehouseOperationPanelSummaryDto
@@ -33,6 +34,8 @@ type SortKey =
   | 'todayReturnCount'
   | 'todayReceivingCount'
   | 'pendingReceivingCount'
+  | 'unacceptedOutgoingCount'
+  | 'pendingEDespatchCount'
   | 'incompleteOperationCount'
   | 'failedEDespatchCount'
   | 'averageReceivingMinutes'
@@ -56,8 +59,19 @@ const SUMMARY_METRICS: readonly SummaryMetric[] = [
   { key: 'todayReturnCount', label: 'Bugunku Iade', icon: 'fa-rotate-left', tone: 'neutral' },
   { key: 'todayReceivingCount', label: 'Mal Kabul', icon: 'fa-box-open', tone: 'success' },
   { key: 'pendingReceivingCount', label: 'Bekleyen Kabul', icon: 'fa-hourglass-half', tone: 'warning' },
-  { key: 'incompleteOperationCount', label: 'Eksik Operasyon', icon: 'fa-list-check', tone: 'warning' },
-  { key: 'failedEDespatchCount', label: 'E-Irsaliye Hatasi', icon: 'fa-triangle-exclamation', tone: 'danger' }
+  {
+    key: 'unacceptedOutgoingCount',
+    label: 'Kabul Bekleyen Cikis',
+    icon: 'fa-truck-arrow-right',
+    tone: 'warning'
+  },
+  {
+    key: 'pendingEDespatchCount',
+    label: 'E-Irsaliye Eksik/Hata',
+    icon: 'fa-file-circle-exclamation',
+    tone: 'danger'
+  },
+  { key: 'incompleteOperationCount', label: 'Eksik Operasyon', icon: 'fa-list-check', tone: 'warning' }
 ];
 
 @Component({
@@ -91,7 +105,7 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
   );
   protected readonly canList = computed(
     () =>
-      this.isAdminUser() &&
+      !!this.authService.currentUser() &&
       (this.authService.hasTaskAccess(TASK_ID) || this.hasPanelListPermission())
   );
   protected readonly filteredWarehouses = computed(() => {
@@ -114,7 +128,7 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
 
     const direction = this.sortDirection() === 'asc' ? 1 : -1;
     return [...rows].sort((left, right) =>
-      this.compareValues(left[key], right[key]) * direction
+      this.compareValues(left[key] ?? 0, right[key] ?? 0) * direction
     );
   });
   protected readonly criticalCount = computed(
@@ -128,9 +142,7 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
     if (this.canList()) {
       this.loadPanel();
     } else {
-      this.errorMessage.set(
-        'Bu panel icin Admin rolu ve depo operasyon paneli liste yetkisi gereklidir.'
-      );
+      this.errorMessage.set('Depo operasyon panelini goruntuleme yetkiniz bulunmuyor.');
     }
   }
 
@@ -216,7 +228,20 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
   }
 
   protected metricValue(key: keyof WarehouseOperationPanelSummaryDto): number {
-    return this.response()?.summary[key] ?? 0;
+    const summary = this.response()?.summary;
+    if (!summary) {
+      return 0;
+    }
+
+    if (key === 'pendingEDespatchCount') {
+      return summary.pendingEDespatchCount ?? summary.failedEDespatchCount ?? 0;
+    }
+
+    return Number(summary[key] ?? 0);
+  }
+
+  protected pendingEDespatchValue(warehouse: WarehouseOperationPanelItemDto): number {
+    return warehouse.pendingEDespatchCount ?? warehouse.failedEDespatchCount ?? 0;
   }
 
   protected healthLabel(status: string): string {
@@ -237,7 +262,9 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
   }
 
   protected formatMinutes(value: number | null | undefined): string {
-    return Number.isFinite(value) ? `${Number(value).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} dk` : '-';
+    return Number.isFinite(value)
+      ? `${Number(value).toLocaleString('tr-TR', { maximumFractionDigits: 1 })} dk`
+      : '-';
   }
 
   protected formatGeneratedAt(value: string | null | undefined): string {
@@ -251,13 +278,42 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
       : new Intl.DateTimeFormat('tr-TR', { dateStyle: 'short', timeStyle: 'medium' }).format(date);
   }
 
-  protected openWarehouseFlows(warehouse: WarehouseOperationPanelItemDto): void {
-    void this.router.navigate(['/docs/api/belge-akis-takibi'], {
-      queryParams: {
-        warehouseNo: warehouse.warehouseNo,
-        date: this.response()?.date || this.selectedDate()
-      }
-    });
+  protected openWarehouseFlows(
+    warehouse: WarehouseOperationPanelItemDto,
+    preset?: DocumentFlowPreset,
+    direction?: 'Incoming' | 'Outgoing'
+  ): void {
+    const endDate = this.response()?.date || this.selectedDate();
+    const effectivePreset =
+      preset ?? (warehouse.incompleteOperationCount > 0 ? 'action-required' : 'all');
+    const isOperationalLookbackPreset =
+      effectivePreset === 'action-required' ||
+      effectivePreset === 'pending-receiving' ||
+      effectivePreset === 'unaccepted-outgoing' ||
+      effectivePreset === 'pending-edespatch' ||
+      effectivePreset === 'failed-edespatch' ||
+      effectivePreset === 'open-orders' ||
+      effectivePreset === 'failed-only';
+
+    const startDate = isOperationalLookbackPreset
+      ? this.response()?.lookbackStartDate || this.resolveFallbackLookbackStart(endDate)
+      : endDate;
+
+    const queryParams: Record<string, string | number> = {
+      warehouseNo: warehouse.warehouseNo,
+      startDate,
+      endDate
+    };
+
+    if (effectivePreset !== 'all') {
+      queryParams['preset'] = effectivePreset;
+    }
+
+    if (direction) {
+      queryParams['direction'] = direction;
+    }
+
+    void this.router.navigate(['/docs/api/belge-akis-takibi'], { queryParams });
   }
 
   protected trackByMetric = (_index: number, metric: SummaryMetric): string => metric.key;
@@ -265,6 +321,18 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
     _index: number,
     warehouse: WarehouseOperationPanelItemDto
   ): number => warehouse.warehouseNo;
+
+  private resolveFallbackLookbackStart(dateText: string): string {
+    const parsed = new Date(`${dateText}T00:00:00`);
+    if (Number.isNaN(parsed.getTime())) {
+      return dateText;
+    }
+
+    parsed.setDate(parsed.getDate() - 30);
+    const localDate = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000);
+    const start = localDate.toISOString().slice(0, 10);
+    return start < '2026-10-01' ? '2026-10-01' : start;
+  }
 
   private hasPanelListPermission(): boolean {
     const permissions = [

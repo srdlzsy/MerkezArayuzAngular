@@ -959,7 +959,8 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'HR/IP satirlari virgullu, noktali virgul, tab veya bosluk ayraclariyla okunabilir',
         'Zamanli import HR ve IP dosyalarini birlikte calistirir',
         'dryRun import dosyalarini parse eder, staging tablolara yazmaz',
-        'Mikro aktar/sil endpointleri stored procedure sonucu doner'
+        'Mikro aktar/sil endpointleri stored procedure sonucu doner ve document_flows uzerinde yalniz PS serili (PSF haric) basabas POS evraklarini (sth_evraktip 4 ve 16 / cha_evrak_tip 63 ve 61) izler',
+        'Satis karsilastirmada Stok / Cari Farki (currentStockDifference), gunluk PS cariye yansimayan BelgeTuru=3 (sth_evraktip=1) stoklarini haric tutarak currentComparableStockAmount - currentAccountAmount uzerinden hesaplanir'
       ],
       listTitle: 'Endpointler',
       items: [
@@ -1024,6 +1025,11 @@ export const CASH_REGISTER_TASK_SOURCE = {
               method: 'GET',
               path: '/api/kasa-islemleri/kasa-hareket-aktarimi/rapor?date=2026-06-09&branchNo=110&cashRegisterNo=1',
               description: 'Aktarim rapor satirlarini tarih, sube ve kasa filtresiyle getirir'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/satis-karsilastirma?date=2026-06-09&branchNo=110',
+              description: 'Mikro stok, Mikro cari (PS), Z raporu ve Furpa aktarilan ciro mutabakatini belge turu kirilimlariyla getirir'
             }
           ]
         }

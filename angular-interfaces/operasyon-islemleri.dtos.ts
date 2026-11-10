@@ -139,12 +139,51 @@ export type DocumentFlowStep =
   | 'AxataOrderSent'
   | 'AxataDocumentImported';
 
+export type DocumentFlowDirection = 'All' | 'Incoming' | 'Outgoing';
+
+export type DocumentFlowCategory =
+  | 'All'
+  | 'ShipmentsAndReceiving'
+  | 'Returns'
+  | 'Orders'
+  | 'CashAndStore'
+  | 'StockAndCounting';
+
+export type DocumentFlowPreset =
+  | 'all'
+  | 'action-required'
+  | 'pending-receiving'
+  | 'unaccepted-outgoing'
+  | 'pending-edespatch'
+  | 'failed-edespatch'
+  | 'open-orders'
+  | 'failed-only'
+  | 'today-shipments'
+  | 'today-returns'
+  | 'today-receivings';
+
+export interface DocumentFlowSummaryDto {
+  totalCount: number;
+  succeededCount: number;
+  failedCount: number;
+  actionRequiredCount: number;
+  pendingReceivingCount: number;
+  unacceptedOutgoingCount: number;
+  pendingEDespatchCount: number;
+  failedEDespatchCount: number;
+  openOrderCount: number;
+}
+
 export interface DocumentFlowListHttpRequest {
   warehouseNo?: number | null;
   startDate?: string | null;
   endDate?: string | null;
   documentType?: DocumentFlowType | string | null;
   status?: DocumentFlowStatus | string | null;
+  currentStep?: DocumentFlowStep | string | null;
+  direction?: DocumentFlowDirection | string | null;
+  category?: DocumentFlowCategory | string | null;
+  preset?: DocumentFlowPreset | string | null;
   search?: string | null;
   skip?: number | null;
   take?: number | null;
@@ -154,6 +193,7 @@ export interface DocumentFlowListResponse {
   trackingEnabled: boolean;
   totalCount: number;
   items: DocumentFlowListItemDto[];
+  summary?: DocumentFlowSummaryDto | null;
 }
 
 export interface DocumentFlowListItemDto {
@@ -197,6 +237,7 @@ export type WarehouseOperationHealthStatus = 'Critical' | 'Warning' | 'Healthy';
 
 export interface WarehouseOperationPanelHttpRequest {
   date?: string | null;
+  warehouseNo?: number | null;
 }
 
 export interface WarehouseOperationPanelSummaryDto {
@@ -207,6 +248,10 @@ export interface WarehouseOperationPanelSummaryDto {
   pendingReceivingCount: number;
   incompleteOperationCount: number;
   failedEDespatchCount: number;
+  unacceptedOutgoingCount?: number;
+  pendingEDespatchCount?: number;
+  openOrderCount?: number;
+  otherFailedOperationCount?: number;
 }
 
 export interface WarehouseOperationHighlightDto {
@@ -224,6 +269,10 @@ export interface WarehouseOperationPanelItemDto {
   pendingReceivingCount: number;
   incompleteOperationCount: number;
   failedEDespatchCount: number;
+  unacceptedOutgoingCount?: number;
+  pendingEDespatchCount?: number;
+  openOrderCount?: number;
+  otherFailedOperationCount?: number;
   averageReceivingMinutes: number;
   healthStatus: WarehouseOperationHealthStatus | string;
 }
@@ -236,6 +285,7 @@ export interface WarehouseOperationPanelResponse {
   busiestWarehouse: WarehouseOperationHighlightDto | null;
   slowestWarehouse: WarehouseOperationHighlightDto | null;
   warehouses: WarehouseOperationPanelItemDto[];
+  lookbackStartDate?: string | null;
 }
 
 // ============================================================================

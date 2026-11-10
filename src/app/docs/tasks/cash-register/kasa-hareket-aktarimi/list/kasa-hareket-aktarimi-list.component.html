@@ -541,7 +541,7 @@
               <strong>{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</strong>
             </article>
             <article class="summary-item" [class.metric-negative]="comparison.summary.totalCurrentStockDifference !== 0">
-              <span>Stok / Cari Farki</span>
+              <span title="Gunluk PS perakende stok hareketi (sth_evraktip=4) ile PS cari hareketi (cha_evrak_tip=63) farkidir; cariye yansimayan BelgeTuru=3 fatura/irsaliye stoklari harictir.">Stok / Cari Farki (PS)</span>
               <strong>{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</strong>
             </article>
             <article class="summary-item">
@@ -585,7 +585,12 @@
                   <th class="col-branch">Sube</th>
                   <th class="align-right">Mikro Stok</th>
                   <th class="align-right">Mikro Cari</th>
-                  <th class="align-right">Stok / Cari Farki</th>
+                  <th
+                    class="align-right"
+                    title="Gunluk PS perakende stok hareketi (sth_evraktip=4) ile PS cari hareketi (cha_evrak_tip=63) farkidir; BelgeTuru=3 fatura/irsaliye stoklari harictir."
+                  >
+                    Stok / Cari Farki (PS)
+                  </th>
                   <th class="align-right">Aktarilan</th>
                   <th class="align-right">GPS</th>
                   <th class="align-right">GPS Haric</th>

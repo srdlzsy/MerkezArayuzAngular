@@ -1841,7 +1841,7 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Sube', value: 'branchName' },
       { label: 'Mikro Stok Hareketi', value: 'stockMovementAmount', type: 'currency' },
       { label: 'Mikro Cari Hareketi', value: 'currentAccountAmount', type: 'currency' },
-      { label: 'Stok Cari Farki', value: 'currentStockDifference', type: 'currency' },
+      { label: 'Stok Cari Farki (PS)', value: 'currentStockDifference', type: 'currency' },
       { label: 'Aktarilan Tutar', value: 'transferredAmount', type: 'currency' },
       { label: 'GPS Tutari', value: 'expenseReceiptAmount', type: 'currency' },
       { label: 'GPS Haric', value: 'expenseExcludedAmount', type: 'currency' },
