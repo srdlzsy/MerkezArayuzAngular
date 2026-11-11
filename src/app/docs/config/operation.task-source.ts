@@ -113,6 +113,7 @@ export const OPERATION_TASK_SOURCE = {
       highlights: [
         'Yalnizca Furpa Merkez API tarafindan kaydedilen belge akislarini sayar',
         'Secilen gun icin sevk, iade, mal kabul ve tamamlanmamis operasyon ozetini sunar',
+        'Bekleyen ve acik operasyonlari 01.11.2026 ile secilen gun arasinda hesaplar',
         'Kaynak ve hedef depo mantigina gore cikis, iade ve kabul sayaclarini ayri gosterir',
         'Depo sagligini Healthy, Warning ve Critical seviyelerinde gosterir',
         'Depo satirindan filtreli belge akis listesine gecis saglar'
@@ -126,7 +127,7 @@ export const OPERATION_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/operasyon-islemleri/depo-operasyon-paneli?date=2026-07-02',
+              path: '/api/operasyon-islemleri/depo-operasyon-paneli?date=2026-11-11',
               description: 'Secilen gunun depo operasyon ozetini ve depo bazli saglik metriklerini getirir'
             }
           ]
@@ -208,6 +209,8 @@ export const OPERATION_TASK_SOURCE = {
         'mikro_api_write_audits icin UI endpointi yayinlanana kadar audit alanlari bu response modelinde beklenmez',
         'Depo kullanicisi yalnizca kendi deposuyla iliskili akislarini gorur',
         'operasyon-islemleri.belge-akis-takibi.all-warehouses yetkisi olan kullanicilar warehouseNo filtresini kullanabilir',
+        'Ekran dogrudan acildiginda bugunu gosterir; operasyon kartlari 01.11.2026 ile secilen gun arasini ilgili preset ile acar',
+        'other-failed preset degeri e-irsaliye disindaki basarisiz operasyonlari ayri listeler',
         'trackingEnabled false ise eski kayitlar okunur ama yeni akis yazimi kapali demektir'
       ],
       listTitle: 'Endpointler',
@@ -219,7 +222,7 @@ export const OPERATION_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/operasyon-islemleri/belge-akis-takibi?warehouseNo=1&startDate=2026-07-01&endDate=2026-07-01&documentType=CompanyShipment&status=Failed&search=FRM2026000000101&take=100',
+              path: '/api/operasyon-islemleri/belge-akis-takibi?warehouseNo=1&startDate=2026-11-01&endDate=2026-11-11&preset=other-failed&direction=Outgoing&take=100',
               description: 'Belge akislarini filtreli olarak listeler'
             },
             {

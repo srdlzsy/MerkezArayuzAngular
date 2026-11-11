@@ -285,7 +285,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     direction: '',
     preset: 'all',
     category: '',
-    startDate: this.getDefaultStartDate(),
+    startDate: this.getToday(),
     endDate: this.getToday(),
     documentType: '',
     currentStep: '',
@@ -675,7 +675,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     this.filters.direction = '';
     this.filters.preset = 'all';
     this.filters.category = '';
-    this.filters.startDate = this.getDefaultStartDate();
+    this.filters.startDate = this.getToday();
     this.filters.endDate = this.getToday();
     this.filters.documentType = '';
     this.filters.currentStep = '';
