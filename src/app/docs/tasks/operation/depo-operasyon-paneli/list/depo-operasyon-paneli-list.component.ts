@@ -54,6 +54,7 @@ interface SummaryMetric {
 const TASK_ID = 'depo-operasyon-paneli';
 const PERMISSION_PREFIX = 'operasyon-islemleri.depo-operasyon-paneli';
 const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
+const MINIMUM_OPERATIONAL_START_DATE = '2026-11-01';
 
 const SUMMARY_METRICS: readonly SummaryMetric[] = [
   { key: 'warehouseCount', label: 'Aktif Depo', icon: 'fa-warehouse', tone: 'neutral' },
@@ -302,7 +303,8 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
       effectivePreset === 'pending-edespatch' ||
       effectivePreset === 'failed-edespatch' ||
       effectivePreset === 'open-orders' ||
-      effectivePreset === 'failed-only';
+      effectivePreset === 'failed-only' ||
+      effectivePreset === 'other-failed';
 
     const startDate = isOperationalLookbackPreset
       ? this.response()?.lookbackStartDate || this.resolveFallbackLookbackStart(endDate)
@@ -332,15 +334,13 @@ export class DepoOperasyonPaneliListComponent implements OnInit {
   ): number => warehouse.warehouseNo;
 
   private resolveFallbackLookbackStart(dateText: string): string {
-    const parsed = new Date(`${dateText}T00:00:00`);
-    if (Number.isNaN(parsed.getTime())) {
+    if (!/^\d{4}-\d{2}-\d{2}$/.test(dateText)) {
       return dateText;
     }
 
-    parsed.setDate(parsed.getDate() - 30);
-    const localDate = new Date(parsed.getTime() - parsed.getTimezoneOffset() * 60_000);
-    const start = localDate.toISOString().slice(0, 10);
-    return start < '2026-10-01' ? '2026-10-01' : start;
+    return dateText < MINIMUM_OPERATIONAL_START_DATE
+      ? dateText
+      : MINIMUM_OPERATIONAL_START_DATE;
   }
 
   private hasPanelListPermission(): boolean {

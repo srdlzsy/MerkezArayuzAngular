@@ -69,6 +69,7 @@ const TASK_ID = 'belge-akis-takibi';
 const PERMISSION_PREFIX = 'operasyon-islemleri.belge-akis-takibi';
 const ALL_WAREHOUSES_PERMISSION = `${PERMISSION_PREFIX}.all-warehouses`;
 const DOCUMENT_FLOW_PAGE_SIZE = 500;
+const MINIMUM_OPERATIONAL_START_DATE = '2026-11-01';
 
 const DIRECTION_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: '', label: 'Giris + Cikis (Tumu)' },
@@ -85,6 +86,7 @@ const PRESET_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: 'failed-edespatch', label: 'Sadece E-Irsaliye Hatasi Alanlar' },
   { value: 'open-orders', label: 'Acik Siparisler' },
   { value: 'failed-only', label: 'Tum Hatali Islemler' },
+  { value: 'other-failed', label: 'E-Irsaliye Disi Hatalar' },
   { value: 'today-shipments', label: 'Secili Gun Sevkleri' },
   { value: 'today-returns', label: 'Secili Gun Iadeleri' },
   { value: 'today-receivings', label: 'Secili Gun Mal Kabulleri' }
@@ -283,7 +285,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     direction: '',
     preset: 'all',
     category: '',
-    startDate: this.getToday(),
+    startDate: this.getDefaultStartDate(),
     endDate: this.getToday(),
     documentType: '',
     currentStep: '',
@@ -448,11 +450,12 @@ export class BelgeAkisTakibiListComponent implements OnInit {
         preset === 'pending-edespatch' ||
         preset === 'failed-edespatch' ||
         preset === 'open-orders' ||
-        preset === 'failed-only') &&
+        preset === 'failed-only' ||
+        preset === 'other-failed') &&
       this.filters.startDate === this.filters.endDate &&
       this.filters.startDate === this.getToday()
     ) {
-      this.setQuickDateRange(30, false);
+      this.filters.startDate = this.getDefaultStartDate(this.filters.endDate);
     }
 
     this.loadFlows();
@@ -469,7 +472,10 @@ export class BelgeAkisTakibiListComponent implements OnInit {
       start.setDate(start.getDate() - days);
       const localStart = new Date(start.getTime() - start.getTimezoneOffset() * 60_000);
       const computedStart = localStart.toISOString().slice(0, 10);
-      this.filters.startDate = computedStart < '2026-10-01' ? '2026-10-01' : computedStart;
+      this.filters.startDate =
+        computedStart < MINIMUM_OPERATIONAL_START_DATE
+          ? MINIMUM_OPERATIONAL_START_DATE
+          : computedStart;
     }
 
     if (reload) {
@@ -669,7 +675,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
     this.filters.direction = '';
     this.filters.preset = 'all';
     this.filters.category = '';
-    this.filters.startDate = this.getToday();
+    this.filters.startDate = this.getDefaultStartDate();
     this.filters.endDate = this.getToday();
     this.filters.documentType = '';
     this.filters.currentStep = '';
@@ -844,6 +850,12 @@ export class BelgeAkisTakibiListComponent implements OnInit {
         permission === normalize(`${PERMISSION_PREFIX}.${action}`) ||
         permission.endsWith(`.${actionKey}`)
     );
+  }
+
+  private getDefaultStartDate(referenceDate = this.getToday()): string {
+    return referenceDate < MINIMUM_OPERATIONAL_START_DATE
+      ? referenceDate
+      : MINIMUM_OPERATIONAL_START_DATE;
   }
 
   private getToday(): string {

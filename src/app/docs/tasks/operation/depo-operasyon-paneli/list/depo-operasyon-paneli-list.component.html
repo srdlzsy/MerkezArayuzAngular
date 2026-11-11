@@ -324,7 +324,7 @@
               </td>
               <td
                 data-label="Diger Hata"
-                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'action-required')"
+                (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'other-failed')"
               >
                 <span class="metric-cell" [class.metric-cell-danger]="(warehouse.otherFailedOperationCount ?? 0) > 0">
                   <strong>{{ warehouse.otherFailedOperationCount ?? 0 | number: '1.0-0' }}</strong>

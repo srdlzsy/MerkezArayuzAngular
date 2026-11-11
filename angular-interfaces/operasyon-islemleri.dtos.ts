@@ -158,6 +158,7 @@ export type DocumentFlowPreset =
   | 'failed-edespatch'
   | 'open-orders'
   | 'failed-only'
+  | 'other-failed'
   | 'today-shipments'
   | 'today-returns'
   | 'today-receivings';
