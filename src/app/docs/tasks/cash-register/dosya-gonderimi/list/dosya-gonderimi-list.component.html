@@ -165,7 +165,7 @@
       </article>
     </div>
 
-    <article class="authorization-shell">
+    <article class="authorization-shell" *ngIf="canListAuthorizationFiles()">
       <div class="authorization-head">
         <div>
           <h3>Yetki Dosyalari</h3>
@@ -187,7 +187,7 @@
             type="button"
             class="primary-button"
             (click)="saveAuthorizationFiles()"
-            [disabled]="!authorizationHasChanges() || authorizationSaving()"
+            [disabled]="!canUpdateAuthorizationFiles() || !authorizationHasChanges() || authorizationSaving()"
           >
             {{ authorizationSaving() ? 'Kaydediliyor...' : 'Degisiklikleri Kaydet' }}
           </button>
@@ -229,6 +229,7 @@
                   <input
                     type="checkbox"
                     [checked]="item.r"
+                    [disabled]="!canUpdateAuthorizationFiles() || authorizationSaving()"
                     (change)="updateAuthorizationFlag(item.id, 'r', $any($event.target).checked)"
                   />
                   <span>{{ item.r ? 'Acik' : 'Kapali' }}</span>
@@ -239,6 +240,7 @@
                   <input
                     type="checkbox"
                     [checked]="item.x"
+                    [disabled]="!canUpdateAuthorizationFiles() || authorizationSaving()"
                     (change)="updateAuthorizationFlag(item.id, 'x', $any($event.target).checked)"
                   />
                   <span>{{ item.x ? 'Acik' : 'Kapali' }}</span>
@@ -249,6 +251,7 @@
                   <input
                     type="checkbox"
                     [checked]="item.z"
+                    [disabled]="!canUpdateAuthorizationFiles() || authorizationSaving()"
                     (change)="updateAuthorizationFlag(item.id, 'z', $any($event.target).checked)"
                   />
                   <span>{{ item.z ? 'Acik' : 'Kapali' }}</span>

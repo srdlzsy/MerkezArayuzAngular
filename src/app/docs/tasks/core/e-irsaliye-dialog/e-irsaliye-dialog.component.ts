@@ -89,6 +89,7 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
   protected readonly row = this.dialogData.row;
   protected readonly headline = computed(() => this.resolveHeadline(this.dialogData.kind));
   protected readonly operationLabel = computed(() => this.resolveOperationLabel(this.dialogData.kind));
+  protected readonly formattedDate = computed(() => this.formatRowDate(this.row.tarih));
   protected readonly hasMissingDocumentNo = computed(() => !this.row.belgeNo?.trim());
   protected readonly canListDrivers = computed(() => this.hasDriverListPermission());
   protected readonly driverSearchControl = new FormControl('', { nonNullable: true });
@@ -478,6 +479,21 @@ export class EDespatchDialogComponent extends DocsTaskDialogBase<EDespatchDialog
       default:
         return 'Giden Firma Sevki';
     }
+  }
+
+  private formatRowDate(value: string | null | undefined): string {
+    const trimmed = value?.trim();
+
+    if (!trimmed) {
+      return '-';
+    }
+
+    const isoMatch = /^(\d{4})-(\d{2})-(\d{2})(?:T|$)/.exec(trimmed);
+    if (isoMatch) {
+      return `${isoMatch[3]}.${isoMatch[2]}.${isoMatch[1]}`;
+    }
+
+    return trimmed;
   }
 
   private resolveError(error: HttpErrorResponse, fallback: string): string {

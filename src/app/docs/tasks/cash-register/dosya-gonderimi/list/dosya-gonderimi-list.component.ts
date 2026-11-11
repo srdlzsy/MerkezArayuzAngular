@@ -1,5 +1,5 @@
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, computed, inject, signal } from '@angular/core';
+import { Component, DestroyRef, computed, effect, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { Observable, switchMap, takeWhile, timer } from 'rxjs';
 import type { IAuthorizationFileItemDto } from '@interfaces';
@@ -16,8 +16,12 @@ import { DocsContentPage } from '../../../../models/docs.models';
 import {
   buildAllWarehousesPermissionCode,
   currentUserCanUseAllWarehouses,
+  currentUserHasPermission,
   formatCurrentWarehouseLabel
 } from '../../../core/admin-warehouse.helpers';
+
+const OPERATIONS_LIST_PERMISSION = 'operasyon-islemleri.operations.list';
+const OPERATIONS_UPDATE_PERMISSION = 'operasyon-islemleri.operations.update';
 
 type DosyaGonderimKey =
   | 'terazi'
@@ -119,6 +123,13 @@ export class DosyaGonderimiListComponent {
       buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
     )
   );
+  protected readonly canListAuthorizationFiles = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), OPERATIONS_LIST_PERMISSION)
+  );
+  protected readonly canUpdateAuthorizationFiles = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), OPERATIONS_UPDATE_PERMISSION)
+  );
+  private authorizationFilesLoaded = false;
   protected readonly currentWarehouseLabel = computed(() =>
     formatCurrentWarehouseLabel(this.authService.currentUser())
   );
@@ -173,7 +184,20 @@ export class DosyaGonderimiListComponent {
   });
 
   constructor() {
-    this.loadAuthorizationFiles();
+    effect(() => {
+      if (this.canListAuthorizationFiles()) {
+        if (!this.authorizationFilesLoaded) {
+          this.authorizationFilesLoaded = true;
+          this.loadAuthorizationFiles();
+        }
+        return;
+      }
+
+      this.authorizationFilesLoaded = false;
+      this.authorizationFiles.set([]);
+      this.authorizationHasChanges.set(false);
+      this.authorizationLoading.set(false);
+    });
   }
 
   protected sendScaleFile(): void {
@@ -218,6 +242,13 @@ export class DosyaGonderimiListComponent {
   }
 
   protected loadAuthorizationFiles(): void {
+    if (!this.canListAuthorizationFiles()) {
+      this.authorizationFiles.set([]);
+      this.authorizationHasChanges.set(false);
+      this.authorizationLoading.set(false);
+      return;
+    }
+
     this.authorizationLoading.set(true);
 
     this.operasyonIslemleriService
@@ -241,7 +272,7 @@ export class DosyaGonderimiListComponent {
   }
 
   protected saveAuthorizationFiles(): void {
-    if (!this.authorizationHasChanges() || this.authorizationSaving()) {
+    if (!this.canUpdateAuthorizationFiles() || !this.authorizationHasChanges() || this.authorizationSaving()) {
       return;
     }
 
@@ -277,6 +308,10 @@ export class DosyaGonderimiListComponent {
     key: 'r' | 'x' | 'z',
     checked: boolean
   ): void {
+    if (!this.canUpdateAuthorizationFiles()) {
+      return;
+    }
+
     this.authorizationFiles.update((items: IAuthorizationFileItemDto[]) =>
       items.map((item: IAuthorizationFileItemDto) =>
         item.id === id

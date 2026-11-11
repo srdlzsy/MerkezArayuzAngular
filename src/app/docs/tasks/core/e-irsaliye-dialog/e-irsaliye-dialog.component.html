@@ -6,7 +6,7 @@
       <div class="hero-chips">
         <span>{{ operationLabel() }}</span>
         <span>{{ response() ? 'Tamamlandi' : 'Hazir' }}</span>
-        <span>{{ row.tarih || '-' }}</span>
+        <span>{{ formattedDate() }}</span>
       </div>
     </div>
 
@@ -15,249 +15,266 @@
     </button>
   </header>
 
-  <section class="document-strip">
-    <article class="summary-card summary-card-primary">
-      <span class="label">Seri / Sira</span>
-      <strong>{{ row.seri }} / {{ row.sira }}</strong>
-    </article>
-    <article class="summary-card">
-      <span class="label">Belge No</span>
-      <strong>{{ row.belgeNo || 'Bos' }}</strong>
-    </article>
-    <article class="summary-card">
-      <span class="label">Muhatap</span>
-      <strong>{{ row.muhatap || '-' }}</strong>
-    </article>
-    <article class="summary-card">
-      <span class="label">Durum</span>
-      <strong>{{ row.durumu || '-' }}</strong>
-    </article>
-  </section>
+  <div class="dialog-body">
+    <section class="document-strip">
+      <article class="summary-card summary-card-primary">
+        <span class="label">Seri / Sira</span>
+        <strong>{{ row.seri }} / {{ row.sira }}</strong>
+      </article>
+      <article class="summary-card">
+        <span class="label">Belge No</span>
+        <strong>{{ row.belgeNo || 'Bos' }}</strong>
+      </article>
+      <article class="summary-card">
+        <span class="label">Muhatap</span>
+        <strong>{{ row.muhatap || '-' }}</strong>
+      </article>
+      <article class="summary-card">
+        <span class="label">Durum</span>
+        <strong>{{ row.durumu || '-' }}</strong>
+      </article>
+    </section>
 
-  <article class="notice-card" *ngIf="hasMissingDocumentNo()">
-    <h3>Belge numarasi bos olabilir</h3>
-    <p>
-      Bu aksiyon belge numarasindan bagimsiz olarak secili seri ve sira ile calisir. Bu nedenle
-      buton aktif birakildi.
-    </p>
-  </article>
-
-  <form class="form-card" *ngIf="!response()" [formGroup]="form" (ngSubmit)="submit()">
-    <div class="form-head">
-      <div>
-        <h3>Tasima Bilgileri</h3>
-        <p>Kayitli sofor sec veya bilgileri elle tamamla.</p>
-      </div>
-
-      <span class="mode-chip" [class.mode-chip-success]="selectedDriver()">
-        {{ selectedDriver() ? 'Kayitli sofor' : 'Manuel giris' }}
-      </span>
-    </div>
-
-    <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
-    <article class="notice-card" *ngIf="requiresDocumentRefresh()">
-      <h3>Evrak yenilenmeli</h3>
+    <article class="notice-card" *ngIf="hasMissingDocumentNo()">
+      <h3>Belge numarasi bos olabilir</h3>
       <p>
-        Belge verisi veya mevcut e-irsaliye metadata kaydi yeniden incelenmeli. Ayni pencereden tekrar
-        gonderim yapilamaz; pencereyi kapatip yenilenen listeden evraki yeniden ac.
-      </p>
-    </article>
-    <div class="feedback feedback-error" *ngIf="pdfError()">{{ pdfError() }}</div>
-
-    <div class="transport-layout">
-      <section class="driver-lookup" *ngIf="canListDrivers()">
-        <div class="section-head">
-          <div>
-            <span class="section-kicker">Sofor Secimi</span>
-            <strong>Kayitli Sofor</strong>
-          </div>
-          <button
-            type="button"
-            class="secondary-button compact-button"
-            (click)="clearSelectedDriver()"
-            [disabled]="!selectedDriver() || submitting() || !!response()"
-          >
-            Temizle
-          </button>
-        </div>
-
-        <div class="driver-search-row">
-          <label class="field">
-            <span>Sofor Ara</span>
-            <input
-              type="search"
-              [formControl]="driverSearchControl"
-              placeholder="Ad, plaka veya TCKN"
-              (keydown.enter)="$event.preventDefault(); searchDrivers()"
-            />
-          </label>
-          <button
-            type="button"
-            class="secondary-button"
-            (click)="searchDrivers()"
-            [disabled]="driverSearchLoading() || submitting() || !!response()"
-          >
-            {{ driverSearchLoading() ? 'Araniyor...' : 'Ara' }}
-          </button>
-        </div>
-
-        <article class="selected-driver-card" *ngIf="selectedDriver() as driver">
-          <span>Secili Sofor</span>
-          <strong>{{ getDriverName(driver) }}</strong>
-          <small>{{ driver.plateNumber }} / {{ driver.maskedTckn || driver.tckn }}</small>
-        </article>
-
-        <div class="driver-results" *ngIf="driverResults().length">
-          <button
-            type="button"
-            class="driver-result"
-            *ngFor="let driver of driverResults(); trackBy: trackByDriver"
-            [class.is-selected]="selectedDriver()?.id === driver.id"
-            (click)="selectDriver(driver)"
-            [disabled]="submitting() || !!response()"
-          >
-            <strong>{{ getDriverName(driver) }}</strong>
-            <span>{{ driver.plateNumber }}</span>
-            <small>{{ driver.maskedTckn || driver.tckn }}</small>
-          </button>
-        </div>
-
-        <p class="driver-message" *ngIf="driverSearchError()">{{ driverSearchError() }}</p>
-      </section>
-
-      <section class="manual-panel">
-        <div class="section-head">
-          <div>
-            <span class="section-kicker">Gonderilecek Bilgi</span>
-            <strong>Plaka ve Sofor</strong>
-          </div>
-        </div>
-
-        <input type="hidden" formControlName="driverId" />
-
-        <div class="form-grid">
-          <label class="field">
-            <span>Plaka</span>
-            <input type="text" formControlName="plaque" placeholder="16 ABC 123" />
-            <small
-              class="field-error"
-              *ngIf="controls.plaque.invalid && (controls.plaque.dirty || controls.plaque.touched)"
-            >
-              Plaka zorunludur.
-            </small>
-          </label>
-
-          <label class="field">
-            <span>Sofor Adi Soyadi</span>
-            <input type="text" formControlName="driverNameSurname" placeholder="Ad Soyad" />
-            <small
-              class="field-error"
-              *ngIf="
-                controls.driverNameSurname.invalid &&
-                (controls.driverNameSurname.dirty || controls.driverNameSurname.touched)
-              "
-            >
-              Sofor adi soyadi en az iki kelime olmali.
-            </small>
-          </label>
-
-          <label class="field">
-            <span>Sofor TCKN</span>
-            <input
-              type="text"
-              inputmode="numeric"
-              maxlength="11"
-              formControlName="driverTckn"
-              placeholder="11111111111"
-            />
-            <small
-              class="field-error"
-              *ngIf="
-                controls.driverTckn.invalid &&
-                (controls.driverTckn.dirty || controls.driverTckn.touched)
-              "
-            >
-              Sofor TCKN 11 haneli olmali.
-            </small>
-          </label>
-        </div>
-      </section>
-    </div>
-
-    <footer class="form-actions">
-      <button type="button" class="secondary-button" (click)="closeDialog()">Vazgec</button>
-      <button
-        type="submit"
-        class="primary-button"
-        [disabled]="submitting() || requiresDocumentRefresh()"
-      >
-        {{ submitting() ? 'Gonderiliyor...' : 'E-Irsaliyeye Donustur' }}
-      </button>
-    </footer>
-  </form>
-
-  <section class="result-card" *ngIf="response() as result">
-    <div class="result-head">
-      <div>
-        <p class="eyebrow success">GONDERIM TAMAMLANDI</p>
-        <h3>{{ getDocumentTypeLabel(result.documentType) }}</h3>
-        <p class="subtitle">Liste otomatik yenilendi. PDF'i buradan kontrol edebilirsin.</p>
-      </div>
-
-      <div class="result-actions">
-        <button type="button" class="secondary-button" (click)="openPdf()" [disabled]="pdfLoading()">
-          {{ pdfRetrying() ? 'PDF Tekrar Deneniyor...' : pdfLoading() ? 'PDF Hazirlaniyor...' : 'PDF Goster' }}
-        </button>
-        <button type="button" class="primary-button" (click)="closeDialog()">Tamam</button>
-      </div>
-    </div>
-
-    <article class="notice-card" *ngIf="result.localMikroMetadataUpdateQueued">
-      <h3>Yerel Mikro Bilgisi Kuyrukta</h3>
-      <p>
-        {{
-          result.warning ||
-            'E-irsaliye gonderimi tamamlandi. Mikro evrak bilgisi arka planda isaretlenecek; bu evraki tekrar gondermeyin.'
-        }}
+        Bu aksiyon belge numarasindan bagimsiz olarak secili seri ve sira ile calisir. Bu nedenle
+        buton aktif birakildi.
       </p>
     </article>
 
-    <article
-      class="notice-card notice-card-warning"
-      *ngIf="!result.localMikroMetadataUpdateQueued && (result.warning || result.localMikroMetadataUpdated === false)"
+    <form
+      id="e-despatch-form"
+      class="form-card"
+      *ngIf="!response()"
+      [formGroup]="form"
+      (ngSubmit)="submit()"
     >
-      <h3>Yerel Mikro Bilgisi</h3>
-      <p>
-        {{
-          result.warning ||
-            'E-irsaliye gonderimi tamamlandi; ancak Mikro evrak bilgisi yerelde isaretlenemedi. Bu evraki tekrar gondermeyin; belge no ve UUID ile yerel metadata onarimi yapilmali.'
-        }}
-      </p>
-    </article>
+      <div class="form-head">
+        <div>
+          <h3>Tasima Bilgileri</h3>
+          <p>Kayitli sofor sec veya bilgileri elle tamamla.</p>
+        </div>
 
-    <div class="result-grid">
-      <article class="result-item">
-        <span class="meta-label">E-Irsaliye No</span>
-        <strong>{{ result.eDespatchDocumentNo }}</strong>
+        <span class="mode-chip" [class.mode-chip-success]="selectedDriver()">
+          {{ selectedDriver() ? 'Kayitli sofor' : 'Manuel giris' }}
+        </span>
+      </div>
+
+      <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <article class="notice-card" *ngIf="requiresDocumentRefresh()">
+        <h3>Evrak yenilenmeli</h3>
+        <p>
+          Belge verisi veya mevcut e-irsaliye metadata kaydi yeniden incelenmeli. Ayni pencereden tekrar
+          gonderim yapilamaz; pencereyi kapatip yenilenen listeden evraki yeniden ac.
+        </p>
       </article>
-      <article class="result-item">
-        <span class="meta-label">UUID</span>
-        <strong>{{ result.eDespatchUuid }}</strong>
+      <div class="feedback feedback-error" *ngIf="pdfError()">{{ pdfError() }}</div>
+
+      <div class="transport-layout">
+        <section class="driver-lookup" *ngIf="canListDrivers()">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Sofor Secimi</span>
+              <strong>Kayitli Sofor</strong>
+            </div>
+            <button
+              type="button"
+              class="secondary-button compact-button"
+              (click)="clearSelectedDriver()"
+              [disabled]="!selectedDriver() || submitting() || !!response()"
+            >
+              Temizle
+            </button>
+          </div>
+
+          <div class="driver-search-row">
+            <label class="field">
+              <span>Sofor Ara</span>
+              <input
+                type="search"
+                [formControl]="driverSearchControl"
+                placeholder="Ad, plaka veya TCKN"
+                (keydown.enter)="$event.preventDefault(); searchDrivers()"
+              />
+            </label>
+            <button
+              type="button"
+              class="secondary-button"
+              (click)="searchDrivers()"
+              [disabled]="driverSearchLoading() || submitting() || !!response()"
+            >
+              {{ driverSearchLoading() ? 'Araniyor...' : 'Ara' }}
+            </button>
+          </div>
+
+          <article class="selected-driver-card" *ngIf="selectedDriver() as driver">
+            <span>Secili Sofor</span>
+            <strong>{{ getDriverName(driver) }}</strong>
+            <small>{{ driver.plateNumber }} / {{ driver.maskedTckn || driver.tckn }}</small>
+          </article>
+
+          <div class="driver-results" *ngIf="driverResults().length">
+            <button
+              type="button"
+              class="driver-result"
+              *ngFor="let driver of driverResults(); trackBy: trackByDriver"
+              [class.is-selected]="selectedDriver()?.id === driver.id"
+              (click)="selectDriver(driver)"
+              [disabled]="submitting() || !!response()"
+            >
+              <strong>{{ getDriverName(driver) }}</strong>
+              <span>{{ driver.plateNumber }}</span>
+              <small>{{ driver.maskedTckn || driver.tckn }}</small>
+            </button>
+          </div>
+
+          <p class="driver-message" *ngIf="driverSearchError()">{{ driverSearchError() }}</p>
+        </section>
+
+        <section class="manual-panel">
+          <div class="section-head">
+            <div>
+              <span class="section-kicker">Gonderilecek Bilgi</span>
+              <strong>Plaka ve Sofor</strong>
+            </div>
+          </div>
+
+          <input type="hidden" formControlName="driverId" />
+
+          <div class="form-grid">
+            <label class="field">
+              <span>Plaka</span>
+              <input type="text" formControlName="plaque" placeholder="16 ABC 123" />
+              <small
+                class="field-error"
+                *ngIf="controls.plaque.invalid && (controls.plaque.dirty || controls.plaque.touched)"
+              >
+                Plaka zorunludur.
+              </small>
+            </label>
+
+            <label class="field">
+              <span>Sofor TCKN</span>
+              <input
+                type="text"
+                inputmode="numeric"
+                maxlength="11"
+                formControlName="driverTckn"
+                placeholder="11111111111"
+              />
+              <small
+                class="field-error"
+                *ngIf="
+                  controls.driverTckn.invalid &&
+                  (controls.driverTckn.dirty || controls.driverTckn.touched)
+                "
+              >
+                Sofor TCKN 11 haneli olmali.
+              </small>
+            </label>
+
+            <label class="field field-full">
+              <span>Sofor Adi Soyadi</span>
+              <input type="text" formControlName="driverNameSurname" placeholder="Ad Soyad" />
+              <small
+                class="field-error"
+                *ngIf="
+                  controls.driverNameSurname.invalid &&
+                  (controls.driverNameSurname.dirty || controls.driverNameSurname.touched)
+                "
+              >
+                Sofor adi soyadi en az iki kelime olmali.
+              </small>
+            </label>
+          </div>
+
+          <p class="manual-hint">
+            {{
+              selectedDriver()
+                ? 'Kayitli sofor bilgileri otomatik dolduruldu; gerekirse buradan duzenleyebilirsin.'
+                : 'Plaka, 11 haneli TCKN ve en az iki kelimeden olusan ad soyad bilgisi girin.'
+            }}
+          </p>
+        </section>
+      </div>
+    </form>
+
+    <section class="result-card" *ngIf="response() as result">
+      <div class="result-head">
+        <div>
+          <p class="eyebrow success">GONDERIM TAMAMLANDI</p>
+          <h3>{{ getDocumentTypeLabel(result.documentType) }}</h3>
+          <p class="subtitle">Liste otomatik yenilendi. PDF'i buradan kontrol edebilirsin.</p>
+        </div>
+
+        <div class="result-actions">
+          <button type="button" class="secondary-button" (click)="openPdf()" [disabled]="pdfLoading()">
+            {{ pdfRetrying() ? 'PDF Tekrar Deneniyor...' : pdfLoading() ? 'PDF Hazirlaniyor...' : 'PDF Goster' }}
+          </button>
+          <button type="button" class="primary-button" (click)="closeDialog()">Tamam</button>
+        </div>
+      </div>
+
+      <article class="notice-card" *ngIf="result.localMikroMetadataUpdateQueued">
+        <h3>Yerel Mikro Bilgisi Kuyrukta</h3>
+        <p>
+          {{
+            result.warning ||
+              'E-irsaliye gonderimi tamamlandi. Mikro evrak bilgisi arka planda isaretlenecek; bu evraki tekrar gondermeyin.'
+          }}
+        </p>
       </article>
-      <article class="result-item">
-        <span class="meta-label">Servis Dokuman No</span>
-        <strong>{{ result.serviceDocumentNumber }}</strong>
+
+      <article
+        class="notice-card notice-card-warning"
+        *ngIf="!result.localMikroMetadataUpdateQueued && (result.warning || result.localMikroMetadataUpdated === false)"
+      >
+        <h3>Yerel Mikro Bilgisi</h3>
+        <p>
+          {{
+            result.warning ||
+              'E-irsaliye gonderimi tamamlandi; ancak Mikro evrak bilgisi yerelde isaretlenemedi. Bu evraki tekrar gondermeyin; belge no ve UUID ile yerel metadata onarimi yapilmali.'
+          }}
+        </p>
       </article>
-      <article class="result-item">
-        <span class="meta-label">Servis Dokuman Id</span>
-        <strong>{{ result.serviceDocumentId }}</strong>
-      </article>
-      <article class="result-item">
-        <span class="meta-label">Gonderim Zamani</span>
-        <strong>{{ result.sentAt | date: 'dd.MM.yyyy HH:mm:ss' }}</strong>
-      </article>
-    </div>
-  </section>
+
+      <div class="result-grid">
+        <article class="result-item">
+          <span class="meta-label">E-Irsaliye No</span>
+          <strong>{{ result.eDespatchDocumentNo }}</strong>
+        </article>
+        <article class="result-item">
+          <span class="meta-label">UUID</span>
+          <strong>{{ result.eDespatchUuid }}</strong>
+        </article>
+        <article class="result-item">
+          <span class="meta-label">Servis Dokuman No</span>
+          <strong>{{ result.serviceDocumentNumber }}</strong>
+        </article>
+        <article class="result-item">
+          <span class="meta-label">Servis Dokuman Id</span>
+          <strong>{{ result.serviceDocumentId }}</strong>
+        </article>
+        <article class="result-item">
+          <span class="meta-label">Gonderim Zamani</span>
+          <strong>{{ result.sentAt | date: 'dd.MM.yyyy HH:mm:ss' }}</strong>
+        </article>
+      </div>
+    </section>
+  </div>
+
+  <footer class="form-actions dialog-footer" *ngIf="!response()">
+    <button type="button" class="secondary-button" (click)="closeDialog()">Vazgec</button>
+    <button
+      type="submit"
+      form="e-despatch-form"
+      class="primary-button"
+      [disabled]="submitting() || requiresDocumentRefresh()"
+    >
+      {{ submitting() ? 'Gonderiliyor...' : 'E-Irsaliyeye Donustur' }}
+    </button>
+  </footer>
 </section>
 
 <app-pdf-preview-dialog
