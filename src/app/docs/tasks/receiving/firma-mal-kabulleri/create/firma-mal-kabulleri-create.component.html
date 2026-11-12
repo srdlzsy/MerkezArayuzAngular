@@ -335,13 +335,14 @@
               <input
                 type="number"
                 [attr.min]="kalem.controls.birimKatsayisi.value ?? 1"
+                max="100000"
                 [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
                 formControlName="irsaliyeMiktari"
                 placeholder="Irsaliye"
                 [class.error]="kalem.controls.irsaliyeMiktari.invalid && kalem.controls.irsaliyeMiktari.touched"
               />
               <small class="field-error" *ngIf="kalem.controls.irsaliyeMiktari.invalid && kalem.controls.irsaliyeMiktari.touched">
-                Sifirdan buyuk
+                {{ getDispatchQuantityError(kalem) }}
               </small>
             </div>
             <div class="col-fiili quantity-cell">
@@ -349,13 +350,14 @@
               <input
                 type="number"
                 min="0"
+                max="100000"
                 [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
                 formControlName="fiiliKabulMiktari"
                 placeholder="Fiili"
                 [class.error]="isAcceptedQuantityInvalid(kalem)"
               />
               <small class="field-error" *ngIf="isAcceptedQuantityInvalid(kalem)">
-                Irsaliyeyi asamaz
+                {{ getAcceptedQuantityError(kalem) }}
               </small>
             </div>
             <div class="col-fark">

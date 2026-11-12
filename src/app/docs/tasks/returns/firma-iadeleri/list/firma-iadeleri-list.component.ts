@@ -11,13 +11,13 @@ import {
   ApiListTableActionEvent,
   ApiListTableRowAction
 } from '../../../core/api-list-table/api-list-table.types';
-import { FIRMA_STOK_HAREKETI_LIST_COLUMNS } from '../../../core/api-list-table/api-list-table-column-presets';
 import {
-  EDespatchDialogComponent,
-  EDespatchDialogData
-} from '../../../core/e-irsaliye-dialog/e-irsaliye-dialog.component';
+  FIRMA_STOK_HAREKETI_LIST_COLUMNS,
+  sortDocumentsWithEmptyNumberFirst
+} from '../../../core/api-list-table/api-list-table-column-presets';
+import { EDespatchDialogData } from '../../../core/e-irsaliye-dialog/e-irsaliye-dialog.component';
+import { createEDespatchListSync } from '../../../core/e-irsaliye-dialog/e-irsaliye-list-refresh.helpers';
 import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
-import { openDocsTaskDialog } from '../../../core/task-dialog.config';
 import { FirmaIadeleriCreateComponent } from '../create/firma-iadeleri-create.component';
 import { FirmaIadeleriDetailComponent } from '../detail/firma-iadeleri-detail.component';
 import type { IFurpaCompanyMovementListItemApiDto } from '@interfaces';
@@ -59,6 +59,13 @@ export class FirmaIadeleriListComponent extends ApiTaskListPageBase<IFurpaCompan
   protected readonly createComponent = FirmaIadeleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
+  private readonly eDespatchSync = createEDespatchListSync<IFurpaCompanyMovementListItemApiDto>({
+    destroyRef: this.destroyRef,
+    rows: this.rows,
+    prepareRows: (rows) => this.prepareRows(rows),
+    loadRows: () => this.loadRows(),
+    getWarehouseNo: (row) => row.warehouseNo ?? 0
+  });
 
   protected override supportsBulkDocumentPrint(): boolean {
     return true;
@@ -74,6 +81,12 @@ export class FirmaIadeleriListComponent extends ApiTaskListPageBase<IFurpaCompan
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.iadeIslemleriService.getFirmaIadeleri(zamanlama, warehouseNo);
+  }
+
+  protected override prepareRows(
+    rows: IFurpaCompanyMovementListItemApiDto[]
+  ): IFurpaCompanyMovementListItemApiDto[] {
+    return sortDocumentsWithEmptyNumberFirst(this.eDespatchSync.applyConvertedRows(rows));
   }
 
   protected override getAdditionalRowActions(): readonly ApiListTableRowAction<IFurpaCompanyMovementListItemApiDto>[] {
@@ -125,31 +138,7 @@ export class FirmaIadeleriListComponent extends ApiTaskListPageBase<IFurpaCompan
       return;
     }
 
-    let refreshedAfterSuccess = false;
-    const refreshAfterSuccess = () => {
-      if (refreshedAfterSuccess) {
-        return;
-      }
-
-      refreshedAfterSuccess = true;
-      this.loadRows();
-    };
-
-    openDocsTaskDialog(this.dialog, EDespatchDialogComponent, {
-      width: 'min(920px, 96vw)',
-      maxWidth: '96vw',
-      data: {
-        ...this.buildEDespatchDialogData(row),
-        onSuccess: refreshAfterSuccess,
-        onRefreshRequired: refreshAfterSuccess
-      }
-    })
-      .closed.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((result: unknown) => {
-        if (result) {
-          refreshAfterSuccess();
-        }
-      });
+    this.eDespatchSync.openDialog(this.dialog, row, this.buildEDespatchDialogData(row));
   }
 
   private buildEDespatchDialogData(row: IFurpaCompanyMovementListItemApiDto): EDespatchDialogData {

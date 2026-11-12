@@ -32,6 +32,7 @@ interface SuggestedCompanyLineState {
   item: SuggestedCompanyOrderListItemDto;
   selected: boolean;
   quantity: number;
+  convertedOrderLabel?: string;
 }
 
 interface PageFeedback {
@@ -67,6 +68,7 @@ export class OnerilenFirmaSiparisleriListComponent {
     });
   private requestId = 0;
   private supplierRequestId = 0;
+  private readonly convertedOrderLabels = new Map<string, string>();
 
   protected readonly filterForm = new FormGroup({
     supplierCode: new FormControl<string>('', {
@@ -229,9 +231,13 @@ export class OnerilenFirmaSiparisleriListComponent {
     this.supplierFeedback.set('');
   }
 
-  protected loadSuggestions(): void {
+  protected loadSuggestions(preserveFeedback = false): void {
     this.lastResponse.set(null);
     this.convertFeedback.set(null);
+
+    if (!preserveFeedback) {
+      this.convertedOrderLabels.clear();
+    }
 
     if (this.filterForm.invalid) {
       this.filterForm.markAllAsTouched();
@@ -247,7 +253,9 @@ export class OnerilenFirmaSiparisleriListComponent {
     const formValue = this.filterForm.getRawValue();
 
     this.isLoading.set(true);
-    this.feedback.set(null);
+    if (!preserveFeedback) {
+      this.feedback.set(null);
+    }
 
     this.siparisIslemleriService
       .listSuggestedCompanyOrders({
@@ -270,14 +278,20 @@ export class OnerilenFirmaSiparisleriListComponent {
           }
 
           this.lines.set(
-            (items ?? []).map((item) => ({
-              item,
-              selected: this.safeNumber(item.suggestedOrderQuantity) > 0,
-              quantity: this.safeNumber(item.suggestedOrderQuantity),
-            })),
+            (items ?? []).map((item) => {
+              const convertedOrderLabel = this.convertedOrderLabels.get(
+                this.buildLineKey(item.stockCode, item.supplierCode),
+              );
+              return {
+                item,
+                selected: convertedOrderLabel ? false : this.safeNumber(item.suggestedOrderQuantity) > 0,
+                quantity: this.safeNumber(item.suggestedOrderQuantity),
+                convertedOrderLabel,
+              };
+            }),
           );
 
-          if (!items?.length) {
+          if (!items?.length && !preserveFeedback) {
             this.feedback.set({
               tone: 'info',
               title: 'Oneri bulunamadi',
@@ -333,8 +347,13 @@ export class OnerilenFirmaSiparisleriListComponent {
       return;
     }
 
+    const hadConvertedOrder = !!this.lastResponse();
     this.isConvertDialogOpen.set(false);
     this.convertFeedback.set(null);
+
+    if (hadConvertedOrder) {
+      this.loadSuggestions(true);
+    }
   }
 
   protected convertToOrder(): void {
@@ -387,18 +406,33 @@ export class OnerilenFirmaSiparisleriListComponent {
       )
       .subscribe({
         next: (response: CreateIssuedCompanyOrderResponse) => {
+          const orderLabel = `${response.documentSerie}-${response.documentOrderNo}`;
+          const convertedKeys = new Set(
+            selectedLines.map((line) => this.buildLineKey(line.item.stockCode, line.item.supplierCode)),
+          );
+          for (const key of convertedKeys) {
+            this.convertedOrderLabels.set(key, orderLabel);
+          }
+
+          this.lines.update((lines) =>
+            lines.map((line) =>
+              convertedKeys.has(this.buildLineKey(line.item.stockCode, line.item.supplierCode))
+                ? { ...line, selected: false, convertedOrderLabel: orderLabel }
+                : line,
+            ),
+          );
           this.safeCreateRetry.reset();
           this.safeCreateFailure.set(null);
           this.lastResponse.set(response);
           this.convertFeedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
+            message: `${orderLabel} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
           this.feedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
+            message: `${orderLabel} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
         },
         error: (error: unknown) => {
@@ -557,6 +591,10 @@ export class OnerilenFirmaSiparisleriListComponent {
         productResponsibilityCenter: '',
       })),
     });
+  }
+
+  private buildLineKey(stockCode: string, supplierCode: string): string {
+    return `${stockCode.trim()}|${supplierCode.trim()}`;
   }
 
   private safeNumber(value: number | null | undefined): number {

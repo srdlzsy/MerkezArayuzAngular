@@ -308,9 +308,27 @@ h2 {
   background: var(--suggested-soft);
 }
 
+.data-table tbody tr.is-converted {
+  background: #f0fdf4;
+}
+
 .data-table tbody tr.is-selected,
 .data-table tbody tr:hover {
   background: #f0fdfa;
+}
+
+.converted-pill {
+  display: inline-flex;
+  align-items: center;
+  width: fit-content;
+  margin-top: 0.2rem;
+  padding: 0.14rem 0.45rem;
+  border: 1px solid #86efac;
+  border-radius: 999px;
+  color: #166534;
+  background: #dcfce7;
+  font-size: 0.66rem;
+  font-weight: 800;
 }
 
 .data-table th:nth-child(1),

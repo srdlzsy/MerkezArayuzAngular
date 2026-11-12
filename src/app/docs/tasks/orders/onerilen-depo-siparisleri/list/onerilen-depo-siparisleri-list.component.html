@@ -133,6 +133,7 @@
               <tr
                 *ngFor="let line of lines(); trackBy: trackByLine"
                 [class.is-selected]="line.selected"
+                [class.is-converted]="!!line.convertedOrderLabel"
               >
                 <td class="select-cell">
                   <input
@@ -146,6 +147,9 @@
                   <strong>{{ line.item.stockName }}</strong>
                   <span class="table-meta">
                     {{ line.item.barcode || '-' }} / {{ line.item.modelCode || '-' }}
+                  </span>
+                  <span class="converted-pill" *ngIf="line.convertedOrderLabel as orderLabel">
+                    Siparise cevrildi: {{ orderLabel }}
                   </span>
                 </td>
                 <td>

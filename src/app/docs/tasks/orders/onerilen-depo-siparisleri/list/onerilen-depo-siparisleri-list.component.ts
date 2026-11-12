@@ -38,6 +38,7 @@ interface SuggestedWarehouseLineState {
   item: SuggestedWarehouseOrderListItemDto;
   selected: boolean;
   quantity: number;
+  convertedOrderLabel?: string;
 }
 
 interface PageFeedback {
@@ -72,6 +73,7 @@ export class OnerilenDepoSiparisleriListComponent {
         ),
     });
   private requestId = 0;
+  private readonly convertedOrderLabels = new Map<string, string>();
 
   protected readonly filterForm = new FormGroup({
     sourceWarehouseNo: new FormControl<number | null>(null, {
@@ -184,9 +186,13 @@ export class OnerilenDepoSiparisleriListComponent {
       });
   }
 
-  protected loadSuggestions(): void {
+  protected loadSuggestions(preserveFeedback = false): void {
     this.lastResponse.set(null);
     this.convertFeedback.set(null);
+
+    if (!preserveFeedback) {
+      this.convertedOrderLabels.clear();
+    }
 
     if (this.filterForm.controls.sourceWarehouseNo.invalid) {
       this.filterForm.controls.sourceWarehouseNo.markAsTouched();
@@ -214,7 +220,9 @@ export class OnerilenDepoSiparisleriListComponent {
     const formValue = this.filterForm.getRawValue();
 
     this.isLoading.set(true);
-    this.feedback.set(null);
+    if (!preserveFeedback) {
+      this.feedback.set(null);
+    }
 
     this.siparisIslemleriService
       .analyzeSuggestedWarehouseOrders({
@@ -239,14 +247,18 @@ export class OnerilenDepoSiparisleriListComponent {
           const items = analysis.items ?? [];
           this.analysis.set(analysis);
           this.lines.set(
-            (items ?? []).map((item) => ({
-              item,
-              selected: this.safeNumber(item.suggestedOrderQuantity) > 0,
-              quantity: this.safeNumber(item.suggestedOrderQuantity),
-            })),
+            (items ?? []).map((item) => {
+              const convertedOrderLabel = this.convertedOrderLabels.get(item.stockCode);
+              return {
+                item,
+                selected: convertedOrderLabel ? false : this.safeNumber(item.suggestedOrderQuantity) > 0,
+                quantity: this.safeNumber(item.suggestedOrderQuantity),
+                convertedOrderLabel,
+              };
+            }),
           );
 
-          if (!items?.length) {
+          if (!items?.length && !preserveFeedback) {
             this.feedback.set({
               tone: 'info',
               title: 'Oneri bulunamadi',
@@ -311,8 +323,13 @@ export class OnerilenDepoSiparisleriListComponent {
       return;
     }
 
+    const hadConvertedOrder = !!this.lastResponse();
     this.isConvertDialogOpen.set(false);
     this.convertFeedback.set(null);
+
+    if (hadConvertedOrder) {
+      this.loadSuggestions(true);
+    }
   }
 
   protected convertToOrder(): void {
@@ -365,18 +382,31 @@ export class OnerilenDepoSiparisleriListComponent {
       )
       .subscribe({
         next: (response: CreateIssuedWarehouseOrderResponse) => {
+          const orderLabel = `${response.documentSerie}-${response.documentOrderNo}`;
+          const convertedStockCodes = new Set(selectedLines.map((line) => line.item.stockCode));
+          for (const stockCode of convertedStockCodes) {
+            this.convertedOrderLabels.set(stockCode, orderLabel);
+          }
+
+          this.lines.update((lines) =>
+            lines.map((line) =>
+              convertedStockCodes.has(line.item.stockCode)
+                ? { ...line, selected: false, convertedOrderLabel: orderLabel }
+                : line,
+            ),
+          );
           this.safeCreateRetry.reset();
           this.safeCreateFailure.set(null);
           this.lastResponse.set(response);
           this.convertFeedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
+            message: `${orderLabel} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
           this.feedback.set({
             tone: 'success',
             title: 'Siparis olustu',
-            message: `${response.documentSerie}-${response.documentOrderNo} belge no ile ${response.lineCount} satir kaydedildi.`,
+            message: `${orderLabel} belge no ile ${response.lineCount} satir kaydedildi.`,
           });
         },
         error: (error: unknown) => {

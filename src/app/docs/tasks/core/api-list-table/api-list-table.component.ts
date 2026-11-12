@@ -421,7 +421,9 @@ export class ApiListTableComponent<Row extends object = object> {
     if (
       normalized.includes('tamam') ||
       normalized.includes('kapand') ||
-      normalized.includes('onay')
+      normalized.includes('onay') ||
+      normalized.includes('gonder') ||
+      normalized.includes('kesil')
     ) {
       return 'status-pill-success';
     }

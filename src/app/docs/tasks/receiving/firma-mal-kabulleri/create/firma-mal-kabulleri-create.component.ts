@@ -84,9 +84,14 @@ type KalemFormGroup = FormGroup<{
 }>;
 
 const acceptedQuantityValidator: ValidatorFn = (control: AbstractControl): ValidationErrors | null => {
+  const maximumQuantity = 100000;
   const group = control as KalemFormGroup;
   const dispatchQuantity = Number(group.controls.irsaliyeMiktari.value ?? 0);
   const acceptedQuantity = Number(group.controls.fiiliKabulMiktari.value ?? 0);
+
+  if (dispatchQuantity > maximumQuantity || acceptedQuantity > maximumQuantity) {
+    return { quantityExceedsMaximum: true };
+  }
 
   return acceptedQuantity > dispatchQuantity ? { acceptedGreaterThanDispatch: true } : null;
 };
@@ -784,6 +789,22 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     );
   }
 
+  protected getDispatchQuantityError(control: KalemFormGroup): string {
+    return control.controls.irsaliyeMiktari.hasError('max')
+      ? 'En fazla 100000 olabilir'
+      : 'Sifirdan buyuk olmali';
+  }
+
+  protected getAcceptedQuantityError(control: KalemFormGroup): string {
+    if (control.controls.fiiliKabulMiktari.hasError('max') || control.hasError('quantityExceedsMaximum')) {
+      return 'En fazla 100000 olabilir';
+    }
+
+    return control.hasError('acceptedGreaterThanDispatch')
+      ? 'Irsaliyeyi asamaz'
+      : 'Sifirdan kucuk olamaz';
+  }
+
   protected getCustomerLabel(customer: IFurpaCustomerSearchItemApiDto): string {
     const selectionLabel = customer.selectionLabel?.trim();
     if (selectionLabel) {
@@ -825,10 +846,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
         validators: [Validators.required, Validators.min(0)]
       }),
       irsaliyeMiktari: new FormControl<number | null>(1, {
-        validators: [Validators.required, Validators.min(0.01)]
+        validators: [Validators.required, Validators.min(0.01), Validators.max(100000)]
       }),
       fiiliKabulMiktari: new FormControl<number | null>(1, {
-        validators: [Validators.required, Validators.min(0)]
+        validators: [Validators.required, Validators.min(0), Validators.max(100000)]
       }),
       aciklama: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl('', { nonNullable: true }),
@@ -888,10 +909,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
           validators: [Validators.required, Validators.min(0.01)]
         }),
         irsaliyeMiktari: new FormControl<number | null>(incomingQuantity, {
-          validators: [Validators.required, Validators.min(0.01)]
+          validators: [Validators.required, Validators.min(0.01), Validators.max(100000)]
         }),
         fiiliKabulMiktari: new FormControl<number | null>(incomingQuantity, {
-          validators: [Validators.required, Validators.min(0)]
+          validators: [Validators.required, Validators.min(0), Validators.max(100000)]
         }),
         aciklama: new FormControl(trimToMaxLength(kalem.description, 50), { nonNullable: true, validators: [Validators.maxLength(50)] }),
         skt: new FormControl('', { nonNullable: true }),
@@ -991,10 +1012,10 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
           validators: [Validators.required, Validators.min(0)]
         }),
         irsaliyeMiktari: new FormControl<number | null>(incomingQuantity, {
-          validators: [Validators.required, Validators.min(0.01)]
+          validators: [Validators.required, Validators.min(0.01), Validators.max(100000)]
         }),
         fiiliKabulMiktari: new FormControl<number | null>(incomingQuantity, {
-          validators: [Validators.required, Validators.min(0)]
+          validators: [Validators.required, Validators.min(0), Validators.max(100000)]
         }),
         aciklama: new FormControl(this.buildOfficialDocumentLineDescription(line, preview), { nonNullable: true }),
         skt: new FormControl('', { nonNullable: true }),

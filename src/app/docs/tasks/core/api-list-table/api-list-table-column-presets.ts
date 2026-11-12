@@ -70,15 +70,16 @@ const formatExternalDocumentNumber = (
 };
 
 export const sortDocumentsWithEmptyNumberFirst = <T extends { documentNo?: string | null }>(
-  rows: readonly T[]
+  rows: readonly T[],
+  isConverted: (row: T) => boolean = (row) => !!row.documentNo?.trim()
 ): T[] =>
   rows
     .map((row, index) => ({ row, index }))
     .sort((left, right) => {
-      const leftHasDocumentNo = !!left.row.documentNo?.trim();
-      const rightHasDocumentNo = !!right.row.documentNo?.trim();
+      const leftConverted = isConverted(left.row);
+      const rightConverted = isConverted(right.row);
 
-      return Number(leftHasDocumentNo) - Number(rightHasDocumentNo) || left.index - right.index;
+      return Number(leftConverted) - Number(rightConverted) || left.index - right.index;
     })
     .map(({ row }) => row);
 
@@ -179,8 +180,13 @@ const formatWarehouseMovementMeta = (row: IFurpaWarehouseShippingListItemApiDto)
 const formatWarehouseMovementQuantity = (row: IFurpaWarehouseShippingListItemApiDto): string =>
   joinText([`Satir ${formatQuantity(row.lineCount)}`, `Miktar ${formatQuantity(row.totalQuantity)}`]);
 
-const formatWarehouseMovementStatus = (row: IFurpaWarehouseShippingListItemApiDto): string =>
-  row.shippingState === 1 ? 'Tamamlandi' : 'Bekliyor';
+const formatWarehouseMovementStatus = (row: IFurpaWarehouseShippingListItemApiDto): string => {
+  if (row.shippingState === 1) {
+    return 'Tamamlandi';
+  }
+
+  return row.documentNo?.trim() || row.descriptionEttn?.trim() ? 'Irsaliye Kesildi' : 'Bekliyor';
+};
 
 const formatDifferenceWarehouses = (row: IFurpaGoodsAcceptanceDifferenceApiDto): string =>
   formatWarehouseFlow(

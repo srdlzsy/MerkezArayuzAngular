@@ -15,11 +15,12 @@ import {
   ApiListTableActionEvent,
   ApiListTableRowAction
 } from '../../../core/api-list-table/api-list-table.types';
-import { buildWarehouseMovementListColumns } from '../../../core/api-list-table/api-list-table-column-presets';
 import {
-  EDespatchDialogComponent,
-  EDespatchDialogData
-} from '../../../core/e-irsaliye-dialog/e-irsaliye-dialog.component';
+  buildWarehouseMovementListColumns,
+  sortDocumentsWithEmptyNumberFirst
+} from '../../../core/api-list-table/api-list-table-column-presets';
+import { EDespatchDialogData } from '../../../core/e-irsaliye-dialog/e-irsaliye-dialog.component';
+import { createEDespatchListSync } from '../../../core/e-irsaliye-dialog/e-irsaliye-list-refresh.helpers';
 import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
 import { openDocsTaskDialog } from '../../../core/task-dialog.config';
 import { injectDocsTaskContext } from '../../../core/task-permission-context';
@@ -93,6 +94,13 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
     return `${baseRoute}?StartDate=${startDate}&EndDate=${endDate}${warehouseQuery}`;
   });
   private readonly iadeIslemleriService = inject(IadeIslemleriService);
+  private readonly eDespatchSync = createEDespatchListSync<IFurpaWarehouseReturnListItemApiDto>({
+    destroyRef: this.destroyRef,
+    rows: this.rows,
+    prepareRows: (rows) => this.prepareRows(rows),
+    loadRows: () => this.loadRows(),
+    getWarehouseNo: (row) => row.sourceWarehouseNo ?? 0
+  });
 
   protected override supportsBulkDocumentPrint(): boolean {
     return true;
@@ -112,6 +120,15 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.iadeIslemleriService.getDepoIadeleri(zamanlama, this.direction, warehouseNo);
+  }
+
+  protected override prepareRows(
+    rows: IFurpaWarehouseReturnListItemApiDto[]
+  ): IFurpaWarehouseReturnListItemApiDto[] {
+    const syncedRows = this.eDespatchSync.applyConvertedRows(rows);
+    return this.direction === 'giden'
+      ? sortDocumentsWithEmptyNumberFirst(syncedRows, (row) => !!row.descriptionEttn?.trim())
+      : syncedRows;
   }
 
   protected override buildDetailData(row: IFurpaWarehouseReturnListItemApiDto): DepoIadeleriDetailDialogData {
@@ -213,31 +230,7 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
       return;
     }
 
-    let refreshedAfterSuccess = false;
-    const refreshAfterSuccess = () => {
-      if (refreshedAfterSuccess) {
-        return;
-      }
-
-      refreshedAfterSuccess = true;
-      this.loadRows();
-    };
-
-    openDocsTaskDialog(this.dialog, EDespatchDialogComponent, {
-      width: 'min(920px, 96vw)',
-      maxWidth: '96vw',
-      data: {
-        ...this.buildEDespatchDialogData(row),
-        onSuccess: refreshAfterSuccess,
-        onRefreshRequired: refreshAfterSuccess
-      }
-    })
-      .closed.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((result: unknown) => {
-        if (result) {
-          refreshAfterSuccess();
-        }
-      });
+    this.eDespatchSync.openDialog(this.dialog, row, this.buildEDespatchDialogData(row));
   }
 
   private buildEDespatchDialogData(row: IFurpaWarehouseReturnListItemApiDto): EDespatchDialogData {
@@ -251,7 +244,12 @@ export class DepoIadeleriListComponent extends ApiTaskListPageBase<
         belgeNo: row.documentNo,
         muhatap: this.direction === 'gelen' ? row.sourceWarehouse : row.targetWarehouse,
         tarih: row.documentDate || row.movementDate || '',
-        durumu: row.shippingState === 1 ? 'Tamamlandi' : 'Bekliyor',
+        durumu:
+          row.shippingState === 1
+            ? 'Tamamlandi'
+            : row.documentNo?.trim() || row.descriptionEttn?.trim()
+              ? 'Irsaliye Kesildi'
+              : 'Bekliyor',
         ettn: row.descriptionEttn ?? null
       }
     };

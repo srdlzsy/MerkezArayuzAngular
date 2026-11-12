@@ -16,12 +16,9 @@ import {
   FIRMA_STOK_HAREKETI_LIST_COLUMNS,
   sortDocumentsWithEmptyNumberFirst
 } from '../../../core/api-list-table/api-list-table-column-presets';
-import {
-  EDespatchDialogComponent,
-  EDespatchDialogData
-} from '../../../core/e-irsaliye-dialog/e-irsaliye-dialog.component';
+import { EDespatchDialogData } from '../../../core/e-irsaliye-dialog/e-irsaliye-dialog.component';
+import { createEDespatchListSync } from '../../../core/e-irsaliye-dialog/e-irsaliye-list-refresh.helpers';
 import { ApiTaskListPageBase } from '../../../core/api-list-page/api-task-list-page.base';
-import { openDocsTaskDialog } from '../../../core/task-dialog.config';
 import { GidenFirmaSevkleriCreateComponent } from '../create/giden-firma-sevkleri-create.component';
 import { GidenFirmaSevkleriDetailComponent } from '../detail/giden-firma-sevkleri-detail.component';
 import { joinTruthy } from '@core/api/furpa-merkez-api.utils';
@@ -56,6 +53,13 @@ export class GidenFirmaSevkleriListComponent extends ApiTaskListPageBase<IFurpaC
   protected readonly createComponent = GidenFirmaSevkleriCreateComponent;
   protected override readonly unknownStatusLabel = 'Bilinmiyor';
   private readonly sevkIslemleriService = inject(SevkIslemleriService);
+  private readonly eDespatchSync = createEDespatchListSync<IFurpaCompanyMovementListItemApiDto>({
+    destroyRef: this.destroyRef,
+    rows: this.rows,
+    prepareRows: (rows) => this.prepareRows(rows),
+    loadRows: () => this.loadRows(),
+    getWarehouseNo: (row) => row.warehouseNo ?? 0
+  });
 
   protected override fetchRows(zamanlama: string, warehouseNo?: number) {
     return this.sevkIslemleriService.getToptanCikisIrsaliyeleri(zamanlama, warehouseNo);
@@ -64,7 +68,7 @@ export class GidenFirmaSevkleriListComponent extends ApiTaskListPageBase<IFurpaC
   protected override prepareRows(
     rows: IFurpaCompanyMovementListItemApiDto[]
   ): IFurpaCompanyMovementListItemApiDto[] {
-    return sortDocumentsWithEmptyNumberFirst(rows);
+    return sortDocumentsWithEmptyNumberFirst(this.eDespatchSync.applyConvertedRows(rows));
   }
 
   protected override supportsBulkDocumentPrint(): boolean {
@@ -119,31 +123,7 @@ export class GidenFirmaSevkleriListComponent extends ApiTaskListPageBase<IFurpaC
       return;
     }
 
-    let refreshedAfterSuccess = false;
-    const refreshAfterSuccess = () => {
-      if (refreshedAfterSuccess) {
-        return;
-      }
-
-      refreshedAfterSuccess = true;
-      this.loadRows();
-    };
-
-    openDocsTaskDialog(this.dialog, EDespatchDialogComponent, {
-      width: 'min(920px, 96vw)',
-      maxWidth: '96vw',
-      data: {
-        ...this.buildEDespatchDialogData(row),
-        onSuccess: refreshAfterSuccess,
-        onRefreshRequired: refreshAfterSuccess
-      }
-    })
-      .closed.pipe(takeUntilDestroyed(this.destroyRef))
-      .subscribe((result: unknown) => {
-        if (result) {
-          refreshAfterSuccess();
-        }
-      });
+    this.eDespatchSync.openDialog(this.dialog, row, this.buildEDespatchDialogData(row));
   }
 
   private buildEDespatchDialogData(row: IFurpaCompanyMovementListItemApiDto): EDespatchDialogData {
