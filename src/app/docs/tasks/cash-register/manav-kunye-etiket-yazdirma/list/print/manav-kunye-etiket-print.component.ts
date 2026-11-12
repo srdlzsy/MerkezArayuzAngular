@@ -43,6 +43,8 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
   private static readonly STORE_EXPENSE_RATE = 0.065;
   private static readonly LOGISTICS_RATE = 0.055;
   private static readonly WASTE_RATE = 0.049;
+  private static readonly ESTIMATED_CUSTOM_TAX_RATE = 0.01;
+  private static readonly ESTIMATED_VAT_RATE = 0.01;
 
   ngOnChanges(changes: SimpleChanges): void {
     if (changes['tags']) {
@@ -125,11 +127,22 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
   }
 
   protected getCustomTax(tag: IManavKunyeTag): number {
-    return tag.customTax ?? this.getBuyingPrice(tag);
+    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.ESTIMATED_CUSTOM_TAX_RATE;
   }
 
   protected getVat(tag: IManavKunyeTag): number {
-    return tag.vat ?? this.getBuyingPrice(tag);
+    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.ESTIMATED_VAT_RATE;
+  }
+
+  protected getPriceLabelProductName(tag: IManavKunyeTag): string {
+    const productName = String(tag.stockName || tag.productName || '').trim();
+    const productUnit = String(tag.productUnit || 'KG').trim();
+    const normalizedName = productName.toLocaleUpperCase('tr-TR');
+    const normalizedSuffix = ` ${productUnit.toLocaleUpperCase('tr-TR')}`;
+
+    return normalizedName.endsWith(normalizedSuffix)
+      ? productName.slice(0, -normalizedSuffix.length).trim()
+      : productName;
   }
 
   protected getPriceSizeClass(price: number | null | undefined): PriceSizeClass {

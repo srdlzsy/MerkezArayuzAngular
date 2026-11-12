@@ -8,7 +8,7 @@
   >
     <section class="price-side">
       <div>
-        <div class="product-name">{{ tag.stockName || tag.productName }}</div>
+        <div class="product-name">{{ getPriceLabelProductName(tag) }}</div>
         <div class="product-unit">{{ tag.productUnit || 'KG' }}</div>
       </div>
 
