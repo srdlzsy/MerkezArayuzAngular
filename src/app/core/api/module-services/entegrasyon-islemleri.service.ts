@@ -82,6 +82,16 @@ import type {
   IUyumsoftOperationRequestApiDto,
   IUyumsoftOperationResponseApiDto,
   ITrendyolGoConnectionStatusApiDto,
+  ITrendyolGoAdministrationOverviewApiDto,
+  ITrendyolGoRuntimeSettingsApiDto,
+  ITrendyolGoRuntimeSettingsUpdateApiDto,
+  ITrendyolGoStoreSettingApiDto,
+  ITrendyolGoStoreSettingUpdateApiDto,
+  ITrendyolGoCategorySyncResultApiDto,
+  ITrendyolGoCategoryMappingApiDto,
+  ITrendyolGoCategoryMappingUpdateApiDto,
+  ITrendyolGoProductCategoryOverrideApiDto,
+  ITrendyolGoProductCategoryOverrideUpdateApiDto,
   ITrendyolGoPriceStockPreviewApiDto,
   ITrendyolGoPriceStockRefreshStatusApiDto,
   ITrendyolGoPriceStockDispatchApiDto,
@@ -182,6 +192,7 @@ export type UyumsoftConnectedServiceOverviewDto =
 export type UyumsoftOperationDefinitionDto = IUyumsoftOperationDefinitionApiDto;
 export type UyumsoftOperationResponseDto = IUyumsoftOperationResponseApiDto;
 export type TrendyolGoConnectionStatusDto = ITrendyolGoConnectionStatusApiDto;
+export type TrendyolGoAdministrationOverviewDto = ITrendyolGoAdministrationOverviewApiDto;
 export type TrendyolGoStoreMappingDto = ITrendyolGoStoreMappingApiDto;
 export type TrendyolGoJsonDto = ITrendyolGoJsonApiDto;
 export type TrendyolGoPriceStockPreviewDto = ITrendyolGoPriceStockPreviewApiDto;
@@ -912,6 +923,71 @@ export class EntegrasyonIslemleriService extends BaseApiService {
   getTrendyolGoStores() {
     return this.get<TrendyolGoStoreMappingDto[]>(
       'entegrasyon-islemleri/trendyol-go/stores'
+    );
+  }
+
+  getTrendyolGoManagement(categorySearch?: string | null) {
+    return this.getWithQuery<ITrendyolGoAdministrationOverviewApiDto>(
+      'entegrasyon-islemleri/trendyol-go/management',
+      { categorySearch: categorySearch?.trim() || undefined }
+    );
+  }
+
+  updateTrendyolGoManagementSettings(request: ITrendyolGoRuntimeSettingsUpdateApiDto) {
+    return this.put<ITrendyolGoRuntimeSettingsApiDto, ITrendyolGoRuntimeSettingsUpdateApiDto>(
+      'entegrasyon-islemleri/trendyol-go/management/settings',
+      request
+    );
+  }
+
+  upsertTrendyolGoManagementStore(request: ITrendyolGoStoreSettingUpdateApiDto) {
+    return this.put<ITrendyolGoStoreSettingApiDto, ITrendyolGoStoreSettingUpdateApiDto>(
+      'entegrasyon-islemleri/trendyol-go/management/stores',
+      request
+    );
+  }
+
+  deleteTrendyolGoManagementStore(storeId: number) {
+    return this.delete<void>(
+      `entegrasyon-islemleri/trendyol-go/management/stores/${storeId}`
+    );
+  }
+
+  refreshTrendyolGoManagementCategories() {
+    return this.post<ITrendyolGoCategorySyncResultApiDto, Record<string, never>>(
+      'entegrasyon-islemleri/trendyol-go/management/categories/refresh',
+      {}
+    );
+  }
+
+  upsertTrendyolGoCategoryMapping(request: ITrendyolGoCategoryMappingUpdateApiDto) {
+    return this.put<ITrendyolGoCategoryMappingApiDto, ITrendyolGoCategoryMappingUpdateApiDto>(
+      'entegrasyon-islemleri/trendyol-go/management/category-mappings',
+      request
+    );
+  }
+
+  deleteTrendyolGoCategoryMapping(id: string) {
+    return this.delete<void>(
+      `entegrasyon-islemleri/trendyol-go/management/category-mappings/${encodeURIComponent(id)}`
+    );
+  }
+
+  upsertTrendyolGoProductCategoryOverride(
+    request: ITrendyolGoProductCategoryOverrideUpdateApiDto
+  ) {
+    return this.put<
+      ITrendyolGoProductCategoryOverrideApiDto,
+      ITrendyolGoProductCategoryOverrideUpdateApiDto
+    >(
+      'entegrasyon-islemleri/trendyol-go/management/product-overrides',
+      request
+    );
+  }
+
+  deleteTrendyolGoProductCategoryOverride(id: string) {
+    return this.delete<void>(
+      `entegrasyon-islemleri/trendyol-go/management/product-overrides/${encodeURIComponent(id)}`
     );
   }
 

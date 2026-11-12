@@ -1356,6 +1356,122 @@ export interface ITrendyolGoStoreMappingApiDto {
   storeName: string;
 }
 
+export interface ITrendyolGoRuntimeSettingsApiDto {
+  priceListNo: number;
+  paymentPlanNo: number;
+  stockReserveQuantity: number;
+  branchPosPriceSyncEnabled: boolean;
+  defaultBrandId: number;
+  defaultCategoryId: number;
+  source: string;
+  updatedBy?: string | null;
+  updatedAtUtc?: string | null;
+}
+
+export interface ITrendyolGoRuntimeSettingsUpdateApiDto {
+  priceListNo: number;
+  paymentPlanNo: number;
+  stockReserveQuantity: number;
+  branchPosPriceSyncEnabled: boolean;
+}
+
+export interface ITrendyolGoStoreSettingApiDto {
+  storeId: number;
+  warehouseNo: number;
+  storeName: string;
+  stockReserveQuantity?: number | null;
+  isActive: boolean;
+  source: string;
+  updatedBy?: string | null;
+  updatedAtUtc?: string | null;
+}
+
+export interface ITrendyolGoStoreSettingUpdateApiDto {
+  storeId: number;
+  warehouseNo: number;
+  storeName: string;
+  stockReserveQuantity?: number | null;
+  isActive: boolean;
+}
+
+export interface ITrendyolGoCategoryApiDto {
+  categoryId: number;
+  name: string;
+  parentCategoryId?: number | null;
+  path: string;
+  isLeaf: boolean;
+  isActive: boolean;
+  syncedAtUtc: string;
+}
+
+export interface ITrendyolGoCategorySyncResultApiDto {
+  readCount: number;
+  activeCount: number;
+  syncedAtUtc: string;
+}
+
+export interface ITrendyolGoCategoryMappingApiDto {
+  id: string;
+  mikroCategoryCode: string;
+  mikroMainGroupCode?: string | null;
+  categoryId: number;
+  categoryName?: string | null;
+  categoryPath?: string | null;
+  isActive: boolean;
+  updatedBy: string;
+  updatedAtUtc: string;
+}
+
+export interface ITrendyolGoCategoryMappingUpdateApiDto {
+  id?: string | null;
+  mikroCategoryCode: string;
+  mikroMainGroupCode?: string | null;
+  categoryId: number;
+}
+
+export interface ITrendyolGoProductCategoryOverrideApiDto {
+  id: string;
+  stockCode: string;
+  categoryId: number;
+  categoryName?: string | null;
+  categoryPath?: string | null;
+  isActive: boolean;
+  updatedBy: string;
+  updatedAtUtc: string;
+}
+
+export interface ITrendyolGoProductCategoryOverrideUpdateApiDto {
+  id?: string | null;
+  stockCode: string;
+  categoryId: number;
+}
+
+export interface ITrendyolGoBranchPosSyncTaskApiDto {
+  id: string;
+  storeId: number;
+  warehouseNo: number;
+  storeName: string;
+  status: string;
+  attemptCount: number;
+  nextAttemptAtUtc: string;
+  itemCount: number;
+  blockedItemCount: number;
+  lastError?: string | null;
+  createdAtUtc: string;
+  completedAtUtc?: string | null;
+}
+
+export interface ITrendyolGoAdministrationOverviewApiDto {
+  runtimeSettings: ITrendyolGoRuntimeSettingsApiDto;
+  stores: ITrendyolGoStoreSettingApiDto[];
+  categories: ITrendyolGoCategoryApiDto[];
+  categoryMappings: ITrendyolGoCategoryMappingApiDto[];
+  productOverrides: ITrendyolGoProductCategoryOverrideApiDto[];
+  branchPosSyncTasks: ITrendyolGoBranchPosSyncTaskApiDto[];
+  activeCategoryCount: number;
+  activeLeafCategoryCount: number;
+}
+
 export interface ITrendyolGoOrdersQueryApiDto {
   storeId: number;
   startDate?: number | null;
@@ -1535,7 +1651,9 @@ export interface ITrendyolGoCatalogPreviewItemApiDto {
   mikroBrandCode: string | null;
   trendyolBrandId: number | null;
   mikroCategoryCode: string | null;
+  mikroMainGroupCode?: string | null;
   trendyolCategoryId: number | null;
+  categoryMappingSource?: string | null;
   vatRate: number | null;
   mikroPrice: number | null;
   status: 'Existing' | 'Ready' | 'MappingRequired' | 'Skipped' | string | null;

@@ -15,7 +15,12 @@ import type {
   ITrendyolGoDirectPriceStockDispatchResultApiDto,
   ITrendyolGoDirectStoreDispatchResultApiDto,
   ITrendyolGoCatalogAutoCreateResultApiDto,
-  ITrendyolGoBatchWorkflowApiDto
+  ITrendyolGoBatchWorkflowApiDto,
+  ITrendyolGoAdministrationOverviewApiDto,
+  ITrendyolGoStoreSettingApiDto,
+  ITrendyolGoCategorySyncResultApiDto,
+  ITrendyolGoCategoryMappingApiDto,
+  ITrendyolGoProductCategoryOverrideApiDto
 } from '@interfaces';
 import { finalize, Observable } from 'rxjs';
 
@@ -123,7 +128,7 @@ export class TrendyolGoListComponent {
   protected readonly connectionStatus = signal<TrendyolGoConnectionStatusDto | null>(null);
   protected readonly stores = signal<TrendyolGoStoreMappingDto[]>([]);
   protected readonly selectedStoreId = signal<number | null>(null);
-  protected readonly activeView = signal<'orders' | 'price-stock' | 'catalog-sync' | 'workflows' | 'advanced'>('orders');
+  protected readonly activeView = signal<'orders' | 'price-stock' | 'catalog-sync' | 'workflows' | 'management' | 'advanced'>('orders');
   protected readonly priceStockSubView = signal<'direct' | 'snapshot'>('direct');
   protected readonly directPreview = signal<ITrendyolGoDirectPriceStockPreviewApiDto | null>(null);
   protected readonly selectedDirectBarcodes = signal<ReadonlySet<string>>(new Set());
@@ -132,6 +137,8 @@ export class TrendyolGoListComponent {
   protected readonly directDispatchAutoCatalogEnabled = signal(false);
   protected readonly batchWorkflows = signal<ITrendyolGoBatchWorkflowApiDto[]>([]);
   protected readonly loadingBatchWorkflows = signal(false);
+  protected readonly managementOverview = signal<ITrendyolGoAdministrationOverviewApiDto | null>(null);
+  protected readonly loadingManagement = signal(false);
   protected readonly priceStockPreview = signal<TrendyolGoPriceStockPreviewDto | null>(null);
   protected readonly selectedBarcodes = signal<ReadonlySet<string>>(new Set());
   protected readonly priceStockBatchIds = signal<readonly string[]>([]);
@@ -284,6 +291,17 @@ export class TrendyolGoListComponent {
   protected readonly operationResponseJson = computed(() =>
     this.operationResponse() ? JSON.stringify(this.operationResponse(), null, 2) : ''
   );
+  protected readonly managementLeafCategories = computed(() =>
+    (this.managementOverview()?.categories ?? []).filter((item) => item.isActive && item.isLeaf)
+  );
+  protected readonly branchPosAttentionTasks = computed(() =>
+    (this.managementOverview()?.branchPosSyncTasks ?? [])
+      .filter((item) => item.status !== 'Succeeded' && !!item.lastError)
+  );
+  protected readonly branchPosPendingTasks = computed(() =>
+    (this.managementOverview()?.branchPosSyncTasks ?? [])
+      .filter((item) => item.status !== 'Succeeded' && !item.lastError)
+  );
 
   protected readonly filterForm = new FormGroup({
     storeId: new FormControl<number | null>(null, Validators.required),
@@ -350,6 +368,31 @@ export class TrendyolGoListComponent {
     claimId: new FormControl('', { nonNullable: true }),
     claimItemStatus: new FormControl('', { nonNullable: true }),
     body: new FormControl('{}', { nonNullable: true })
+  });
+  protected readonly managementSettingsForm = new FormGroup({
+    priceListNo: new FormControl(3, { nonNullable: true, validators: [Validators.required, Validators.min(1), Validators.max(1000)] }),
+    paymentPlanNo: new FormControl(0, { nonNullable: true, validators: [Validators.required, Validators.min(0), Validators.max(100000)] }),
+    stockReserveQuantity: new FormControl(2, { nonNullable: true, validators: [Validators.required, Validators.min(0), Validators.max(100000)] }),
+    branchPosPriceSyncEnabled: new FormControl(true, { nonNullable: true })
+  });
+  protected readonly managementStoreForm = new FormGroup({
+    storeId: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
+    warehouseNo: new FormControl<number | null>(null, [Validators.required, Validators.min(1)]),
+    storeName: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(300)] }),
+    stockReserveQuantity: new FormControl<number | null>(null, [Validators.min(0), Validators.max(100000)]),
+    isActive: new FormControl(true, { nonNullable: true })
+  });
+  protected readonly managementCategorySearch = new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] });
+  protected readonly managementCategoryMappingForm = new FormGroup({
+    id: new FormControl<string | null>(null),
+    mikroCategoryCode: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
+    mikroMainGroupCode: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(100)] }),
+    categoryId: new FormControl<number | null>(null, [Validators.required, Validators.min(1)])
+  });
+  protected readonly managementProductOverrideForm = new FormGroup({
+    id: new FormControl<string | null>(null),
+    stockCode: new FormControl('', { nonNullable: true, validators: [Validators.required, Validators.maxLength(100)] }),
+    categoryId: new FormControl<number | null>(null, [Validators.required, Validators.min(1)])
   });
 
   constructor() {
@@ -423,6 +466,283 @@ export class TrendyolGoListComponent {
         },
         error: (error: unknown) =>
           this.setFeedback('error', getErrorMessage(error, 'Magaza eslemeleri alinamadi.'))
+      });
+  }
+
+  protected openManagement(): void {
+    this.activeView.set('management');
+    if (!this.managementOverview()) {
+      this.loadManagement();
+    }
+  }
+
+  protected loadManagement(): void {
+    if (!this.canDetail() || this.loadingManagement()) return;
+
+    this.loadingManagement.set(true);
+    this.service
+      .getTrendyolGoManagement(this.managementCategorySearch.value)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.loadingManagement.set(false))
+      )
+      .subscribe({
+        next: (overview: ITrendyolGoAdministrationOverviewApiDto) => {
+          this.managementOverview.set(overview);
+          this.managementSettingsForm.patchValue({
+            priceListNo: overview.runtimeSettings.priceListNo,
+            paymentPlanNo: overview.runtimeSettings.paymentPlanNo,
+            stockReserveQuantity: overview.runtimeSettings.stockReserveQuantity,
+            branchPosPriceSyncEnabled: overview.runtimeSettings.branchPosPriceSyncEnabled
+          }, { emitEvent: false });
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Trendyol Go yonetim bilgileri alinamadi.'))
+      });
+  }
+
+  protected saveManagementSettings(): void {
+    if (!this.canUpdate() || this.managementSettingsForm.invalid || this.busyAction()) {
+      this.managementSettingsForm.markAllAsTouched();
+      return;
+    }
+
+    this.busyAction.set('management-settings');
+    this.service.updateTrendyolGoManagementSettings(this.managementSettingsForm.getRawValue())
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: () => {
+          this.setFeedback('success', 'Genel Trendyol Go gonderim ayarlari kaydedildi.');
+          this.loadManagement();
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Genel ayarlar kaydedilemedi.'))
+      });
+  }
+
+  protected editManagementStore(store: ITrendyolGoStoreSettingApiDto): void {
+    this.managementStoreForm.reset({
+      storeId: store.storeId,
+      warehouseNo: store.warehouseNo,
+      storeName: store.storeName,
+      stockReserveQuantity: store.stockReserveQuantity ?? null,
+      isActive: store.isActive
+    });
+  }
+
+  protected resetManagementStoreForm(): void {
+    this.managementStoreForm.reset({
+      storeId: null,
+      warehouseNo: null,
+      storeName: '',
+      stockReserveQuantity: null,
+      isActive: true
+    });
+  }
+
+  protected saveManagementStore(): void {
+    if (!this.canUpdate() || this.managementStoreForm.invalid || this.busyAction()) {
+      this.managementStoreForm.markAllAsTouched();
+      return;
+    }
+
+    const value = this.managementStoreForm.getRawValue();
+    if (!value.storeId || !value.warehouseNo) return;
+
+    this.busyAction.set('management-store');
+    this.service.upsertTrendyolGoManagementStore({
+      storeId: value.storeId,
+      warehouseNo: value.warehouseNo,
+      storeName: value.storeName.trim(),
+      stockReserveQuantity: value.stockReserveQuantity,
+      isActive: value.isActive
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.busyAction.set(null))
+    ).subscribe({
+      next: () => {
+        this.setFeedback('success', 'Magaza ve Mikro depo eslesmesi kaydedildi.');
+        this.resetManagementStoreForm();
+        this.loadManagement();
+        this.loadStores();
+      },
+      error: (error: unknown) =>
+        this.setFeedback('error', getErrorMessage(error, 'Magaza eslesmesi kaydedilemedi.'))
+    });
+  }
+
+  protected async deactivateManagementStore(store: ITrendyolGoStoreSettingApiDto): Promise<void> {
+    if (!this.canUpdate() || this.busyAction()) return;
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Magaza devre disi birakilsin mi?',
+      message: `${store.storeName} / Depo ${store.warehouseNo} yeni Trendyol Go islemlerinde kullanilmayacak. Gecmis kuyruk kayitlari korunur.`,
+      confirmText: 'Devre Disi Birak',
+      tone: 'danger'
+    });
+    if (!confirmed) return;
+
+    this.busyAction.set('management-store-delete');
+    this.service.deleteTrendyolGoManagementStore(store.storeId)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: () => {
+          this.setFeedback('success', 'Magaza devre disi birakildi.');
+          this.loadManagement();
+          this.loadStores();
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Magaza devre disi birakilamadi.'))
+      });
+  }
+
+  protected refreshManagementCategories(): void {
+    if (!this.canUpdate() || this.busyAction()) return;
+    this.busyAction.set('management-categories');
+    this.service.refreshTrendyolGoManagementCategories()
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (result: ITrendyolGoCategorySyncResultApiDto) => {
+          this.setFeedback('success', `${result.activeCount} aktif Trendyol Go kategorisi yenilendi.`);
+          this.loadManagement();
+        },
+        error: (error: unknown) =>
+          this.setFeedback('error', getErrorMessage(error, 'Kategori agaci yenilenemedi.'))
+      });
+  }
+
+  protected editCategoryMapping(item: ITrendyolGoCategoryMappingApiDto): void {
+    this.managementCategoryMappingForm.reset({
+      id: item.id,
+      mikroCategoryCode: item.mikroCategoryCode,
+      mikroMainGroupCode: item.mikroMainGroupCode ?? '',
+      categoryId: item.categoryId
+    });
+  }
+
+  protected resetCategoryMappingForm(): void {
+    this.managementCategoryMappingForm.reset({
+      id: null,
+      mikroCategoryCode: '',
+      mikroMainGroupCode: '',
+      categoryId: null
+    });
+  }
+
+  protected saveCategoryMapping(): void {
+    if (!this.canUpdate() || this.managementCategoryMappingForm.invalid || this.busyAction()) {
+      this.managementCategoryMappingForm.markAllAsTouched();
+      return;
+    }
+    const value = this.managementCategoryMappingForm.getRawValue();
+    if (!value.categoryId) return;
+
+    this.busyAction.set('management-category-mapping');
+    this.service.upsertTrendyolGoCategoryMapping({
+      id: value.id,
+      mikroCategoryCode: value.mikroCategoryCode.trim(),
+      mikroMainGroupCode: value.mikroMainGroupCode.trim() || null,
+      categoryId: value.categoryId
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.busyAction.set(null))
+    ).subscribe({
+      next: () => {
+        this.setFeedback('success', 'Mikro kategori eslemesi kaydedildi.');
+        this.resetCategoryMappingForm();
+        this.loadManagement();
+      },
+      error: (error: unknown) =>
+        this.setFeedback('error', getErrorMessage(error, 'Kategori eslemesi kaydedilemedi.'))
+    });
+  }
+
+  protected async deleteCategoryMapping(item: ITrendyolGoCategoryMappingApiDto): Promise<void> {
+    if (!this.canUpdate() || this.busyAction()) return;
+    if (!await this.confirmDialog.confirm({
+      title: 'Kategori eslemesi kaldirilsin mi?',
+      message: `${item.mikroCategoryCode} eslemesi kaldirilinca ilgili yeni urunler tekrar esleme bekler.`,
+      confirmText: 'Kaldir',
+      tone: 'danger'
+    })) return;
+
+    this.busyAction.set('management-category-delete');
+    this.service.deleteTrendyolGoCategoryMapping(item.id)
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busyAction.set(null)))
+      .subscribe({
+        next: () => {
+          this.setFeedback('success', 'Kategori eslemesi kaldirildi.');
+          this.loadManagement();
+        },
+        error: (error: unknown) => this.setFeedback('error', getErrorMessage(error, 'Esleme kaldirilamadi.'))
+      });
+  }
+
+  protected editProductOverride(item: ITrendyolGoProductCategoryOverrideApiDto): void {
+    this.managementProductOverrideForm.reset({
+      id: item.id,
+      stockCode: item.stockCode,
+      categoryId: item.categoryId
+    });
+  }
+
+  protected resetProductOverrideForm(): void {
+    this.managementProductOverrideForm.reset({ id: null, stockCode: '', categoryId: null });
+  }
+
+  protected saveProductOverride(): void {
+    if (!this.canUpdate() || this.managementProductOverrideForm.invalid || this.busyAction()) {
+      this.managementProductOverrideForm.markAllAsTouched();
+      return;
+    }
+    const value = this.managementProductOverrideForm.getRawValue();
+    if (!value.categoryId) return;
+
+    this.busyAction.set('management-product-override');
+    this.service.upsertTrendyolGoProductCategoryOverride({
+      id: value.id,
+      stockCode: value.stockCode.trim(),
+      categoryId: value.categoryId
+    }).pipe(
+      takeUntilDestroyed(this.destroyRef),
+      finalize(() => this.busyAction.set(null))
+    ).subscribe({
+      next: () => {
+        this.setFeedback('success', 'Urun kategori istisnasi kaydedildi.');
+        this.resetProductOverrideForm();
+        this.loadManagement();
+      },
+      error: (error: unknown) =>
+        this.setFeedback('error', getErrorMessage(error, 'Urun istisnasi kaydedilemedi.'))
+    });
+  }
+
+  protected async deleteProductOverride(item: ITrendyolGoProductCategoryOverrideApiDto): Promise<void> {
+    if (!this.canUpdate() || this.busyAction()) return;
+    if (!await this.confirmDialog.confirm({
+      title: 'Urun istisnasi kaldirilsin mi?',
+      message: `${item.stockCode} bundan sonra kategori kurallariyla degerlendirilecek.`,
+      confirmText: 'Kaldir',
+      tone: 'danger'
+    })) return;
+
+    this.busyAction.set('management-override-delete');
+    this.service.deleteTrendyolGoProductCategoryOverride(item.id)
+      .pipe(takeUntilDestroyed(this.destroyRef), finalize(() => this.busyAction.set(null)))
+      .subscribe({
+        next: () => {
+          this.setFeedback('success', 'Urun istisnasi kaldirildi.');
+          this.loadManagement();
+        },
+        error: (error: unknown) => this.setFeedback('error', getErrorMessage(error, 'Urun istisnasi kaldirilamadi.'))
       });
   }
 

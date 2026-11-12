@@ -223,6 +223,11 @@
         {{ batchWorkflows().length }}
       </small>
     </button>
+    <button type="button" [class.is-active]="activeView() === 'management'" (click)="openManagement()">
+      <i class="fa-solid fa-gear"></i>
+      <span>Yonetim</span>
+      <small *ngIf="managementOverview()?.categoryMappings?.length as mappingCount">{{ mappingCount }}</small>
+    </button>
     <button type="button" [class.is-active]="activeView() === 'advanced'" (click)="activeView.set('advanced')">
       <i class="fa-solid fa-sliders"></i>
       <span>Diger Islemler</span>
@@ -1611,7 +1616,226 @@
   </section>
 
   <!-- ======================================================================= -->
-  <!-- TAB 5: ADVANCED OPERATIONS WORKSPACE                                    -->
+  <!-- TAB 5: RUNTIME MANAGEMENT                                               -->
+  <!-- ======================================================================= -->
+  <section class="management-workspace" *ngIf="activeView() === 'management'">
+    <div class="section-head management-head">
+      <div>
+        <h3>Trendyol Go Yonetimi</h3>
+        <span>Magaza, depo, stok rezervi, fiyat kaynagi ve katalog eslemelerini tek yerden yonetin.</span>
+      </div>
+      <button type="button" class="secondary-button" (click)="loadManagement()" [disabled]="loadingManagement()">
+        <i class="fa-solid fa-arrows-rotate" [class.is-spinning]="loadingManagement()"></i>
+        Yenile
+      </button>
+    </div>
+
+    <ng-container *ngIf="managementOverview() as management; else managementLoading">
+      <div class="management-metrics">
+        <div><span>Magaza</span><strong>{{ management.stores.length }}</strong></div>
+        <div><span>Aktif Kategori</span><strong>{{ management.activeCategoryCount }}</strong></div>
+        <div><span>Secilebilir Kategori</span><strong>{{ management.activeLeafCategoryCount }}</strong></div>
+        <div><span>Kategori Kurali</span><strong>{{ management.categoryMappings.length }}</strong></div>
+        <div><span>Urun Istisnasi</span><strong>{{ management.productOverrides.length }}</strong></div>
+      </div>
+
+      <section class="management-band">
+        <div class="management-band-head">
+          <div>
+            <h4>Genel Gonderim Ayarlari</h4>
+            <span>Bu degerler yeni onizleme ve gonderimlerde aninda kullanilir.</span>
+          </div>
+          <span class="source-badge">Kaynak: {{ management.runtimeSettings.source }}</span>
+        </div>
+        <form class="management-form settings-form" [formGroup]="managementSettingsForm" (ngSubmit)="saveManagementSettings()">
+          <label>
+            <span>Fiyat Listesi No</span>
+            <input type="number" formControlName="priceListNo" min="1" max="1000" />
+          </label>
+          <label>
+            <span>Odeme Plani No</span>
+            <input type="number" formControlName="paymentPlanNo" min="0" max="100000" />
+          </label>
+          <label>
+            <span>Genel Stok Rezervi</span>
+            <input type="number" formControlName="stockReserveQuantity" min="0" max="100000" />
+          </label>
+          <label class="toggle-field">
+            <input type="checkbox" formControlName="branchPosPriceSyncEnabled" />
+            <span>Basarili fiyatlari sube POS'a aktar</span>
+          </label>
+          <button type="submit" class="primary-button" [disabled]="!canUpdate() || managementSettingsForm.invalid || busyAction() !== null">
+            <i class="fa-solid fa-floppy-disk"></i>
+            Genel Ayarlari Kaydet
+          </button>
+        </form>
+        <p class="management-warning" *ngIf="management.runtimeSettings.defaultCategoryId > 0 || management.runtimeSettings.defaultBrandId > 0">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          Eski config'de varsayilan kategori veya marka tanimli; guvenlik nedeniyle katalog olusturmada dikkate alinmaz. Acik esleme yapin.
+        </p>
+      </section>
+
+      <section class="management-band">
+        <div class="management-band-head">
+          <div>
+            <h4>Magaza ve Depo Tanimlari</h4>
+            <span>Magaza bazli rezerv bos birakilirsa genel stok rezervi kullanilir.</span>
+          </div>
+          <button type="button" class="secondary-button" (click)="resetManagementStoreForm()">
+            <i class="fa-solid fa-plus"></i> Yeni Tanim
+          </button>
+        </div>
+        <form class="management-form store-form" [formGroup]="managementStoreForm" (ngSubmit)="saveManagementStore()">
+          <label><span>TGO Magaza ID</span><input type="number" formControlName="storeId" min="1" /></label>
+          <label><span>Mikro Depo No</span><input type="number" formControlName="warehouseNo" min="1" /></label>
+          <label class="wide-field"><span>Magaza Adi</span><input type="text" formControlName="storeName" maxlength="300" /></label>
+          <label><span>Ozel Stok Rezervi</span><input type="number" formControlName="stockReserveQuantity" min="0" placeholder="Genel ayar" /></label>
+          <label class="toggle-field"><input type="checkbox" formControlName="isActive" /><span>Aktif</span></label>
+          <button type="submit" class="primary-button" [disabled]="!canUpdate() || managementStoreForm.invalid || busyAction() !== null">
+            <i class="fa-solid fa-floppy-disk"></i> Kaydet
+          </button>
+        </form>
+        <div class="management-table-wrap">
+          <table class="management-table">
+            <thead><tr><th>Magaza</th><th>Depo</th><th>Rezerv</th><th>Kaynak</th><th>Durum</th><th></th></tr></thead>
+            <tbody>
+              <tr *ngFor="let store of management.stores; trackBy: trackByStore">
+                <td><strong>{{ store.storeName }}</strong><small>#{{ store.storeId }}</small></td>
+                <td>{{ store.warehouseNo }}</td>
+                <td>{{ store.stockReserveQuantity ?? management.runtimeSettings.stockReserveQuantity }}</td>
+                <td>{{ store.source }}</td>
+                <td><span class="state-pill" [class.is-off]="!store.isActive">{{ store.isActive ? 'Aktif' : 'Pasif' }}</span></td>
+                <td class="row-actions">
+                  <button type="button" class="icon-button" title="Duzenle" (click)="editManagementStore(store)"><i class="fa-solid fa-pen"></i></button>
+                  <button *ngIf="store.isActive" type="button" class="icon-button danger-icon" title="Devre disi birak" (click)="deactivateManagementStore(store)"><i class="fa-solid fa-power-off"></i></button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="management-band">
+        <div class="management-band-head">
+          <div>
+            <h4>Resmi Kategori Agaci</h4>
+            <span>Yalniz secilebilir son kategoriler urun eslemesinde kullanilir.</span>
+          </div>
+          <button type="button" class="secondary-button" (click)="refreshManagementCategories()" [disabled]="!canUpdate() || busyAction() !== null">
+            <i class="fa-solid fa-cloud-arrow-down"></i> TGO'dan Yenile
+          </button>
+        </div>
+        <div class="management-search">
+          <input type="search" [formControl]="managementCategorySearch" placeholder="Kategori adi, yol veya ID ara" (keyup.enter)="loadManagement()" />
+          <button type="button" class="secondary-button" (click)="loadManagement()"><i class="fa-solid fa-magnifying-glass"></i> Ara</button>
+        </div>
+        <div class="category-results">
+          <span *ngFor="let category of management.categories | slice:0:120">
+            <strong>{{ category.categoryId }}</strong> {{ category.path }}
+          </span>
+        </div>
+      </section>
+
+      <div class="management-two-column">
+        <section class="management-band">
+          <div class="management-band-head">
+            <div><h4>Mikro Kategori Kurallari</h4><span>Kategori + ana grup birlikte en ozel kuraldir.</span></div>
+            <button type="button" class="icon-button" title="Yeni esleme" (click)="resetCategoryMappingForm()"><i class="fa-solid fa-plus"></i></button>
+          </div>
+          <form class="management-form mapping-form" [formGroup]="managementCategoryMappingForm" (ngSubmit)="saveCategoryMapping()">
+            <label><span>Mikro Kategori</span><input type="text" formControlName="mikroCategoryCode" /></label>
+            <label><span>Ana Grup (opsiyonel)</span><input type="text" formControlName="mikroMainGroupCode" /></label>
+            <label class="wide-field"><span>Trendyol Kategorisi</span>
+              <select formControlName="categoryId">
+                <option [ngValue]="null">Kategori secin</option>
+                <option *ngFor="let category of managementLeafCategories()" [ngValue]="category.categoryId">{{ category.categoryId }} - {{ category.path }}</option>
+              </select>
+            </label>
+            <button type="submit" class="primary-button" [disabled]="!canUpdate() || managementCategoryMappingForm.invalid || busyAction() !== null"><i class="fa-solid fa-floppy-disk"></i> Eslemeyi Kaydet</button>
+          </form>
+          <div class="rule-list">
+            <div *ngFor="let item of management.categoryMappings">
+              <div><strong>{{ item.mikroCategoryCode }}</strong><small *ngIf="item.mikroMainGroupCode"> / {{ item.mikroMainGroupCode }}</small><span>{{ item.categoryId }} - {{ item.categoryPath || item.categoryName }}</span></div>
+              <div class="row-actions"><button type="button" class="icon-button" title="Duzenle" (click)="editCategoryMapping(item)"><i class="fa-solid fa-pen"></i></button><button type="button" class="icon-button danger-icon" title="Kaldir" (click)="deleteCategoryMapping(item)"><i class="fa-solid fa-trash"></i></button></div>
+            </div>
+            <p class="empty-state" *ngIf="!management.categoryMappings.length">Henuz onayli kategori kurali yok.</p>
+          </div>
+        </section>
+
+        <section class="management-band">
+          <div class="management-band-head">
+            <div><h4>Urun Bazli Istisnalar</h4><span>Bu kural kategori kurallarindan once uygulanir.</span></div>
+            <button type="button" class="icon-button" title="Yeni istisna" (click)="resetProductOverrideForm()"><i class="fa-solid fa-plus"></i></button>
+          </div>
+          <form class="management-form mapping-form" [formGroup]="managementProductOverrideForm" (ngSubmit)="saveProductOverride()">
+            <label><span>Mikro Stok Kodu</span><input type="text" formControlName="stockCode" /></label>
+            <label class="wide-field"><span>Trendyol Kategorisi</span>
+              <select formControlName="categoryId">
+                <option [ngValue]="null">Kategori secin</option>
+                <option *ngFor="let category of managementLeafCategories()" [ngValue]="category.categoryId">{{ category.categoryId }} - {{ category.path }}</option>
+              </select>
+            </label>
+            <button type="submit" class="primary-button" [disabled]="!canUpdate() || managementProductOverrideForm.invalid || busyAction() !== null"><i class="fa-solid fa-floppy-disk"></i> Istisnayi Kaydet</button>
+          </form>
+          <div class="rule-list">
+            <div *ngFor="let item of management.productOverrides">
+              <div><strong>{{ item.stockCode }}</strong><span>{{ item.categoryId }} - {{ item.categoryPath || item.categoryName }}</span></div>
+              <div class="row-actions"><button type="button" class="icon-button" title="Duzenle" (click)="editProductOverride(item)"><i class="fa-solid fa-pen"></i></button><button type="button" class="icon-button danger-icon" title="Kaldir" (click)="deleteProductOverride(item)"><i class="fa-solid fa-trash"></i></button></div>
+            </div>
+            <p class="empty-state" *ngIf="!management.productOverrides.length">Urun bazli istisna yok.</p>
+          </div>
+        </section>
+      </div>
+
+      <section class="management-band">
+        <div class="management-band-head">
+          <div>
+            <h4>Sube POS Fiyat ve Satis Durumu Senkronu</h4>
+            <span>TGO'nun kabul ettigi fiyatlar ve satisa kapatma bilgileri subeye bu kuyrukla yazilir.</span>
+          </div>
+          <span class="source-badge" *ngIf="branchPosPendingTasks().length">{{ branchPosPendingTasks().length }} bekleyen</span>
+        </div>
+        <div class="branch-sync-alert" *ngIf="branchPosAttentionTasks().length as attentionCount">
+          <i class="fa-solid fa-triangle-exclamation"></i>
+          <div>
+            <strong>{{ attentionCount }} sube POS aktarimi tamamlanamadi</strong>
+            <span>Urunler Trendyol Go tarafinda basarili; ancak sube PostgreSQL'e henuz yazilamadi. Sistem otomatik tekrar deneyecek. Asagidaki son hata ve sonraki deneme zamanini kontrol edin.</span>
+          </div>
+        </div>
+        <div class="management-table-wrap">
+          <table class="management-table">
+            <thead><tr><th>Depo / Magaza</th><th>Urun</th><th>Satisa Kapali</th><th>Durum</th><th>Deneme</th><th>Son Hata / Sonraki Deneme</th><th>Olusma</th></tr></thead>
+            <tbody>
+              <tr *ngFor="let task of management.branchPosSyncTasks | slice:0:50" [class.sync-row-error]="task.status !== 'Succeeded' && !!task.lastError">
+                <td><strong>{{ task.warehouseNo }} - {{ task.storeName }}</strong><small>Magaza #{{ task.storeId }}</small></td>
+                <td>{{ task.itemCount }}</td>
+                <td>{{ task.blockedItemCount }}</td>
+                <td>
+                  <span class="state-pill" [class.is-off]="task.status !== 'Succeeded' && !!task.lastError" [class.is-waiting]="task.status !== 'Succeeded' && !task.lastError">
+                    {{ task.status === 'Succeeded' ? 'Subeye Yazildi' : (task.lastError ? 'Baglanti Hatasi - Tekrar Denenecek' : 'Kuyrukta Bekliyor') }}
+                  </span>
+                </td>
+                <td>{{ task.attemptCount }}</td>
+                <td class="error-cell">
+                  <strong *ngIf="task.lastError">{{ task.lastError }}</strong>
+                  <small *ngIf="task.status !== 'Succeeded'">Sonraki deneme: {{ task.nextAttemptAtUtc | date:'dd.MM.yyyy HH:mm:ss' }}</small>
+                  <span *ngIf="task.status === 'Succeeded'">-</span>
+                </td>
+                <td>{{ task.createdAtUtc | date:'dd.MM.yyyy HH:mm' }}</td>
+              </tr>
+              <tr *ngIf="!management.branchPosSyncTasks.length"><td colspan="7" class="empty-state">Henuz sube POS kuyruk kaydi yok.</td></tr>
+            </tbody>
+          </table>
+        </div>
+      </section>
+    </ng-container>
+    <ng-template #managementLoading>
+      <div class="management-loading"><i class="fa-solid fa-circle-notch fa-spin"></i> Yonetim bilgileri yukleniyor...</div>
+    </ng-template>
+  </section>
+
+  <!-- ======================================================================= -->
+  <!-- TAB 6: ADVANCED OPERATIONS WORKSPACE                                    -->
   <!-- ======================================================================= -->
   <section class="advanced-workspace" *ngIf="activeView() === 'advanced'">
     <header class="advanced-header">

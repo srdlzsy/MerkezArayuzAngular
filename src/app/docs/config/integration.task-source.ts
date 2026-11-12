@@ -365,6 +365,7 @@ export const INTEGRATION_TASK_SOURCE = {
         'Secili veya tum hazir kalemleri hash kontroluyle gonderme ve batch takip',
         'Trendyol Go icin ayrilan fiyat listesi 3; genel satis fiyati fallback kullanilmaz',
         'Opsiyonel sube POS aktarimi asenkron kuyrukta calisir',
+        'Magaza/depo, stok rezervi, fiyat kaynagi ve katalog eslemeleri Yonetim sekmesinden yonetilir',
         'Mikro evragi olusturmaz'
       ],
       listTitle: 'Endpointler',
@@ -375,6 +376,9 @@ export const INTEGRATION_TASK_SOURCE = {
           endpoints: [
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/status', description: 'Baglanti durumunu getirir' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/stores', description: 'Magaza ve Mikro depo eslemelerini getirir' },
+            { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/management', description: 'Canli ayarlar, magazalar, kategori kurallari ve POS kuyruklarini getirir' },
+            { method: 'PUT', path: '/api/entegrasyon-islemleri/trendyol-go/management/settings', description: 'Fiyat listesi, odeme plani, stok rezervi ve POS senkron ayarini gunceller' },
+            { method: 'POST', path: '/api/entegrasyon-islemleri/trendyol-go/management/categories/refresh', description: 'Resmi TGO kategori agacini yeniler' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/connection-test?storeId=...', description: 'Secili magaza baglantisini test eder' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/orders', description: 'Siparisleri filtreli ve sayfali getirir' },
             { method: 'GET', path: '/api/entegrasyon-islemleri/trendyol-go/orders/by-number/{orderNumber}', description: 'Siparisi numarasiyla getirir' },
