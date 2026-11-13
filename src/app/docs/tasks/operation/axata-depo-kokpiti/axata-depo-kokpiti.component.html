@@ -32,6 +32,8 @@
 
   @if (activeTab === 'actions') {
     <div class="action-toolbar">
+      <label for="action-date">Evrak tarihi</label>
+      <input id="action-date" type="date" [(ngModel)]="actionDate" (change)="loadActionDesk()" />
       <label for="action-search">Evrak ara</label>
       <input id="action-search" type="search" [(ngModel)]="actionSearchTerm" placeholder="Sipariş, sevk veya mağaza" />
       <button type="button" class="icon-button" title="Listeleri yenile" [disabled]="actionLoading()" (click)="loadActionDesk()">
@@ -42,6 +44,9 @@
     @if (actionMessage()) {
       <div class="status-message" role="status">{{ actionMessage() }}</div>
     }
+    @if (actionListWarning()) {
+      <div class="status-message warning" role="alert">{{ actionListWarning() }}</div>
+    }
     @if (actionLoading()) {
       <div class="status-message loading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> İşlem sürüyor...</div>
     }
@@ -51,20 +56,21 @@
         <div class="action-copy">
           <span class="step-label">1. KAPI</span>
           <h3>Mikro'dan AXATA'ya Sipariş Gönder</h3>
-          <p>Mikro'daki onaylı depo siparişlerini seçip el terminallerine toplama işi olarak gönderir.</p>
+          <p>Seçilen tarihteki açık depo ve alınan firma siparişlerini el terminallerine toplama işi olarak gönderir.</p>
         </div>
         <div class="action-table table-wrap">
           <table>
             <thead>
               <tr>
                 <th><input type="checkbox" title="Tümünü seç" (change)="toggleAllOrders()" /></th>
-                <th>Evrak</th><th>Özet</th><th>Tarih</th><th>Kalem</th><th>Miktar</th>
+                <th>Tür</th><th>Evrak</th><th>Özet</th><th>Tarih</th><th>Kalem</th><th>Miktar</th>
               </tr>
             </thead>
             <tbody>
-              @for (item of filteredOrderCandidates(); track item.documentReference) {
+              @for (item of filteredOrderCandidates(); track item.taskCode + ':' + item.documentReference) {
                 <tr>
                   <td><input type="checkbox" [checked]="isOrderSelected(item)" (change)="toggleOrder(item)" /></td>
+                  <td>{{ item.typeLabel }}</td>
                   <td><strong>{{ item.documentReference }}</strong></td>
                   <td>{{ item.summary }}</td>
                   <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
@@ -72,7 +78,7 @@
                   <td>{{ item.totalQuantity | number:'1.0-3' }}</td>
                 </tr>
               } @empty {
-                <tr><td colspan="6" class="empty-cell">Gönderilmeyi bekleyen sipariş bulunmuyor.</td></tr>
+                <tr><td colspan="7" class="empty-cell">Seçilen tarihte gönderilmeyi bekleyen açık sipariş bulunmuyor.</td></tr>
               }
             </tbody>
           </table>
@@ -94,7 +100,7 @@
             <thead>
               <tr>
                 <th><input type="checkbox" title="Tümünü seç" (change)="toggleAllDeliveries()" /></th>
-                <th>Mikro Evrakı</th><th>AXATA Sevk</th><th>Depolar</th><th>Kalem</th><th>Miktar</th>
+                <th>Mikro Evrakı</th><th>AXATA Sevk</th><th>Tarih</th><th>Depolar</th><th>Kalem</th><th>Miktar</th>
               </tr>
             </thead>
             <tbody>
@@ -103,12 +109,13 @@
                   <td><input type="checkbox" [checked]="isDeliverySelected(item)" (change)="toggleDelivery(item)" /></td>
                   <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
                   <td>{{ item.axataDeliveryNo }}</td>
+                  <td>{{ item.axataDate | date:'dd.MM.yyyy' }}</td>
                   <td>{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</td>
                   <td>{{ item.axataLineCount }}</td>
                   <td>{{ item.axataQuantity | number:'1.0-3' }}</td>
                 </tr>
               } @empty {
-                <tr><td colspan="6" class="empty-cell">Mikro fişi bekleyen tamamlanmış sevk bulunmuyor.</td></tr>
+                <tr><td colspan="7" class="empty-cell">Seçilen tarihte Mikro fişi bekleyen tamamlanmış sevk bulunmuyor.</td></tr>
               }
             </tbody>
           </table>
