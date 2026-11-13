@@ -43,4 +43,42 @@ describe('ManavKunyeEtiketPrintComponent', () => {
     expect(component.getVat(tag)).toBe(1);
     expect(component.calculateCostTotal(tag)).toBeCloseTo(130.4, 5);
   });
+
+  it('fits estimated expenses into the available margin without exceeding the sales price', () => {
+    const component = new ManavKunyeEtiketPrintComponent() as any;
+    const tag = createTag({ buyingPrice: 55, salesPrice: 59.9 });
+    const expenseRows = [
+      component.calculateLaborCost(tag),
+      component.calculateStoreExpense(tag),
+      component.calculateLogisticsCost(tag),
+      component.calculateWasteCost(tag),
+      component.getCustomTax(tag),
+      component.getVat(tag)
+    ];
+
+    expect(expenseRows.reduce((total, value) => total + value, 55)).toBeCloseTo(59.9, 2);
+    expect(component.calculateCostTotal(tag)).toBe(59.9);
+  });
+
+  it('keeps every displayed cost row consistent with the capped total', () => {
+    const component = new ManavKunyeEtiketPrintComponent() as any;
+    const tag = createTag({ buyingPrice: 43, salesPrice: 49.9 });
+    const displayedRowsTotal = 43
+      + component.calculateLaborCost(tag)
+      + component.calculateStoreExpense(tag)
+      + component.calculateLogisticsCost(tag)
+      + component.calculateWasteCost(tag)
+      + component.getCustomTax(tag)
+      + component.getVat(tag);
+
+    expect(displayedRowsTotal).toBeCloseTo(49.9, 2);
+    expect(component.calculateCostTotal(tag)).toBe(49.9);
+  });
+
+  it('does not exceed a sales price with only one cent of available margin', () => {
+    const component = new ManavKunyeEtiketPrintComponent() as any;
+    const tag = createTag({ buyingPrice: 55, salesPrice: 55.01 });
+
+    expect(component.calculateCostTotal(tag)).toBe(55.01);
+  });
 });

@@ -21,6 +21,16 @@ interface ManavKunyePrintPage {
 
 type PriceSizeClass = 'price-size-sm' | 'price-size-md' | 'price-size-lg' | 'price-size-xl';
 
+interface ManavCostBreakdown {
+  labor: number;
+  storeExpense: number;
+  logistics: number;
+  waste: number;
+  customTax: number;
+  vat: number;
+  total: number;
+}
+
 @Component({
   selector: 'app-manav-kunye-etiket-print',
   standalone: true,
@@ -111,27 +121,27 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
   }
 
   protected calculateLaborCost(tag: IManavKunyeTag): number {
-    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.LABOR_RATE;
+    return this.calculateCostBreakdown(tag).labor;
   }
 
   protected calculateStoreExpense(tag: IManavKunyeTag): number {
-    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.STORE_EXPENSE_RATE;
+    return this.calculateCostBreakdown(tag).storeExpense;
   }
 
   protected calculateLogisticsCost(tag: IManavKunyeTag): number {
-    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.LOGISTICS_RATE;
+    return this.calculateCostBreakdown(tag).logistics;
   }
 
   protected calculateWasteCost(tag: IManavKunyeTag): number {
-    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.WASTE_RATE;
+    return this.calculateCostBreakdown(tag).waste;
   }
 
   protected getCustomTax(tag: IManavKunyeTag): number {
-    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.ESTIMATED_CUSTOM_TAX_RATE;
+    return this.calculateCostBreakdown(tag).customTax;
   }
 
   protected getVat(tag: IManavKunyeTag): number {
-    return this.getBuyingPrice(tag) * ManavKunyeEtiketPrintComponent.ESTIMATED_VAT_RATE;
+    return this.calculateCostBreakdown(tag).vat;
   }
 
   protected getPriceLabelProductName(tag: IManavKunyeTag): string {
@@ -164,13 +174,7 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
   }
 
   protected calculateCostTotal(tag: IManavKunyeTag): number {
-    return this.getBuyingPrice(tag)
-      + this.calculateLaborCost(tag)
-      + this.calculateStoreExpense(tag)
-      + this.calculateLogisticsCost(tag)
-      + this.calculateWasteCost(tag)
-      + this.getCustomTax(tag)
-      + this.getVat(tag);
+    return this.calculateCostBreakdown(tag).total;
   }
 
   protected readonly trackByPage = (_index: number, page: ManavKunyePrintPage): number =>
@@ -194,6 +198,85 @@ export class ManavKunyeEtiketPrintComponent implements OnChanges, AfterViewInit 
 
   private getBuyingPrice(tag: IManavKunyeTag): number {
     return Number.isFinite(tag.buyingPrice) ? tag.buyingPrice : 0;
+  }
+
+  private calculateCostBreakdown(tag: IManavKunyeTag): ManavCostBreakdown {
+    const buyingPriceCents = this.toCurrencyCents(this.getBuyingPrice(tag));
+    const nominalExpenses = [
+      ManavKunyeEtiketPrintComponent.LABOR_RATE,
+      ManavKunyeEtiketPrintComponent.STORE_EXPENSE_RATE,
+      ManavKunyeEtiketPrintComponent.LOGISTICS_RATE,
+      ManavKunyeEtiketPrintComponent.WASTE_RATE,
+      ManavKunyeEtiketPrintComponent.ESTIMATED_CUSTOM_TAX_RATE,
+      ManavKunyeEtiketPrintComponent.ESTIMATED_VAT_RATE
+    ].map((rate) => Math.round(buyingPriceCents * rate));
+    const nominalExpenseTotal = nominalExpenses.reduce((total, value) => total + value, 0);
+    const salesPriceCents = this.toCurrencyCents(tag.salesPrice);
+    const availableExpenseCents = salesPriceCents > 0
+      ? Math.max(0, Math.min(nominalExpenseTotal, salesPriceCents - buyingPriceCents))
+      : nominalExpenseTotal;
+    const expenses = this.allocateExpenseCents(
+      nominalExpenses,
+      nominalExpenseTotal,
+      availableExpenseCents
+    );
+    const totalCents = buyingPriceCents + expenses.reduce((total, value) => total + value, 0);
+
+    return {
+      labor: expenses[0] / 100,
+      storeExpense: expenses[1] / 100,
+      logistics: expenses[2] / 100,
+      waste: expenses[3] / 100,
+      customTax: expenses[4] / 100,
+      vat: expenses[5] / 100,
+      total: totalCents / 100
+    };
+  }
+
+  private allocateExpenseCents(
+    nominalExpenses: readonly number[],
+    nominalExpenseTotal: number,
+    availableExpenseCents: number
+  ): number[] {
+    if (nominalExpenseTotal <= 0 || availableExpenseCents <= 0) {
+      return nominalExpenses.map(() => 0);
+    }
+
+    if (availableExpenseCents >= nominalExpenseTotal) {
+      return [...nominalExpenses];
+    }
+
+    const expenses = nominalExpenses.map((value) =>
+      Math.round((value * availableExpenseCents) / nominalExpenseTotal)
+    );
+    let correction = availableExpenseCents
+      - expenses.reduce((total, value) => total + value, 0);
+
+    // Keep the displayed rows and total equal to the cent while preserving equal tax estimates.
+    while (correction !== 0) {
+      if (correction > 0) {
+        expenses[0] += 1;
+        correction -= 1;
+        continue;
+      }
+
+      const adjustableIndex = expenses.findIndex((value) => value > 0);
+      if (adjustableIndex < 0) {
+        break;
+      }
+
+      expenses[adjustableIndex] -= 1;
+      correction += 1;
+    }
+
+    return expenses;
+  }
+
+  private toCurrencyCents(value: number | null | undefined): number {
+    const numberValue = Number(value);
+    return Number.isFinite(numberValue) && numberValue > 0
+      ? Math.round(numberValue * 100)
+      : 0;
   }
 
   private waitForNextPaint(): Promise<void> {
