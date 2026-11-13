@@ -90,6 +90,7 @@ const DOCS_TASK_ROUTE_PERMISSION_CODES: Readonly<Record<string, readonly string[
   'authorization-files': ['operasyon-islemleri.operations.page'],
   'belge-akis-takibi': ['operasyon-islemleri.belge-akis-takibi.page'],
   'depo-operasyon-paneli': ['operasyon-islemleri.depo-operasyon-paneli.page'],
+  'axata-depo-kokpiti': ['operasyon-islemleri.axata-depo-kokpiti.page'],
   'firma-evrak-takibi': ['operasyon-islemleri.firma-evrak-takibi.page'],
   'urun-dagilimlari': ['operasyon-islemleri.urun-dagilimlari.page'],
   'mikro-evrak-duzenleme': ['duzeltme-islemleri.mikro-evrak-duzenleme.page'],

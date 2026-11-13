@@ -6,6 +6,7 @@ declare module 'rxjs' {
   export const timer: (...args: any[]) => Observable<number>;
   export const throwError: (...args: any[]) => Observable<never>;
   export const firstValueFrom: (...args: any[]) => Promise<any>;
+  export const forkJoin: (...args: any[]) => Observable<any>;
   export class BehaviorSubject<T = any> {
     constructor(value: T);
     next(value: T): void;

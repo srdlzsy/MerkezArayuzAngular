@@ -146,6 +146,57 @@ export const OPERATION_TASK_SOURCE = {
       ]
     }
   ),
+  'axata-depo-kokpiti': singleRouteTask(
+    {
+      id: 'axata-depo-kokpiti',
+      title: 'AXATA Depo Kokpiti',
+      subtitle:
+        'Depocu icin iki adimli kolay aktarim masasi ile canli AXATA operasyon ve performans raporlarini bir arada sunar.',
+      baseRouteOrFile: '/api/operasyon-islemleri/axata-depo-operasyonlari',
+      highlights: [
+        'Mikro siparislerini AXATA terminaline ve tamamlanan AXATA sevklerini Mikroya tekli veya toplu aktarir',
+        'Kokpit metrikleri AXATA kaynagindan salt okunur; aktarim komutlari mevcut guvenli senkronizasyon akisina gider',
+        'SIPMASTER -> SIPDETAIL -> SEVK_LINK -> SEVK_DETAIL zincirini izler',
+        'Toplayici ve rampa hareketlerini saniyesine kadar takip eder',
+        'Fill-rate karisiligini coklu sevk dagilimi kuralina gore hesaplar'
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'AxataDepoOperasyonlariController',
+          description: 'AXATA canli operasyon kokpiti ve raporlama servisleri',
+          endpoints: [
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/overview', description: 'Canli operasyon kokpiti' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/trace', description: 'Evrak ve siparis izleme' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/picking-performance', description: 'Toplayici KPI raporu' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/fill-rate', description: 'Magaza karsilama orani' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/capacity', description: 'Raf doluluk kapasitesi' }
+          ]
+        },
+        {
+          name: 'Mevcut AXATA senkronizasyon akisi',
+          description: 'Kolay islem masasi ikinci bir yazma yolu olusturmadan mevcut guvenli endpointleri kullanir',
+          endpoints: [
+            { method: 'GET', path: '/api/integrations/axata-sync/operations/issued-warehouse-order-sync/documents/candidates', description: 'Mikrodan AXATAya gonderilecek siparis adaylari' },
+            { method: 'POST', path: '/api/integrations/axata-sync/operations/issued-warehouse-order-sync/documents/dispatch-batch', description: 'Secili siparisleri AXATAya toplu gonderir' },
+            { method: 'GET', path: '/api/integrations/axata-sync/c01/preview', description: 'Mikro sevk fisi bekleyen AXATA C01 belgeleri' },
+            { method: 'POST', path: '/api/integrations/axata-sync/c01/documents/{seri}/{sira}/import', description: 'Secili C01 sevkini Mikroya aktarir' }
+          ]
+        }
+      ]
+    },
+    () =>
+      import('../tasks/operation/axata-depo-kokpiti/axata-depo-kokpiti.component').then(
+        (m) => m.AxataDepoKokpitiComponent
+      ),
+    {
+      accessKeyAliases: [
+        'operasyon-islemleri.axata-depo-kokpiti',
+        'AxataDepoKokpiti',
+        'AxataWarehouseOperations'
+      ]
+    }
+  ),
   'firma-evrak-takibi': singleRouteTask(
     {
       id: 'firma-evrak-takibi',

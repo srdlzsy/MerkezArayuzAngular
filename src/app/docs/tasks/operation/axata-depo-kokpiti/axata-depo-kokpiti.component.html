@@ -1,0 +1,242 @@
+<div class="axata-cockpit">
+  <header class="page-header">
+    <div>
+      <h2>AXATA Depo Kokpiti</h2>
+      <p>Merkez deponun günlük aktarım işleri ve canlı AXATA operasyon görünümü</p>
+    </div>
+    @if (activeTab !== 'actions') {
+      <button type="button" class="icon-button" title="Verileri yenile" [disabled]="loading()" (click)="refreshActiveTab()">
+        <i class="fa fa-rotate-right" aria-hidden="true"></i>
+      </button>
+    }
+  </header>
+
+  <nav class="cockpit-tabs" aria-label="AXATA depo kokpiti bölümleri">
+    <button type="button" [class.active]="activeTab === 'actions'" (click)="setTab('actions')">Kolay İşlem Masası</button>
+    <button type="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Canlı Operasyon</button>
+    <button type="button" [class.active]="activeTab === 'trace'" (click)="setTab('trace')">Evrak İzleme</button>
+    <button type="button" [class.active]="activeTab === 'performance'" (click)="setTab('performance')">Toplama Performansı</button>
+    <button type="button" [class.active]="activeTab === 'fillrate'" (click)="setTab('fillrate')">Karşılama Oranı</button>
+    <button type="button" [class.active]="activeTab === 'capacity'" (click)="setTab('capacity')">Raf Kapasitesi</button>
+  </nav>
+
+  @if (errorMessage()) {
+    <div class="status-message error" role="alert">
+      <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+      <span>{{ errorMessage() }}</span>
+    </div>
+  }
+  @if (loading()) {
+    <div class="status-message loading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> AXATA verileri yükleniyor...</div>
+  }
+
+  @if (activeTab === 'actions') {
+    <div class="action-toolbar">
+      <label for="action-search">Evrak ara</label>
+      <input id="action-search" type="search" [(ngModel)]="actionSearchTerm" placeholder="Sipariş, sevk veya mağaza" />
+      <button type="button" class="icon-button" title="Listeleri yenile" [disabled]="actionLoading()" (click)="loadActionDesk()">
+        <i class="fa fa-rotate-right" aria-hidden="true"></i>
+      </button>
+      <a routerLink="/docs/api/axata-senkronizasyonu">Gelişmiş AXATA ekranı</a>
+    </div>
+    @if (actionMessage()) {
+      <div class="status-message" role="status">{{ actionMessage() }}</div>
+    }
+    @if (actionLoading()) {
+      <div class="status-message loading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> İşlem sürüyor...</div>
+    }
+    <section class="action-desk">
+      <article class="action-card outbound">
+        <div class="action-icon"><i class="fa fa-arrow-right" aria-hidden="true"></i></div>
+        <div class="action-copy">
+          <span class="step-label">1. KAPI</span>
+          <h3>Mikro'dan AXATA'ya Sipariş Gönder</h3>
+          <p>Mikro'daki onaylı depo siparişlerini seçip el terminallerine toplama işi olarak gönderir.</p>
+        </div>
+        <div class="action-table table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" title="Tümünü seç" (change)="toggleAllOrders()" /></th>
+                <th>Evrak</th><th>Özet</th><th>Tarih</th><th>Kalem</th><th>Miktar</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredOrderCandidates(); track item.documentReference) {
+                <tr>
+                  <td><input type="checkbox" [checked]="isOrderSelected(item)" (change)="toggleOrder(item)" /></td>
+                  <td><strong>{{ item.documentReference }}</strong></td>
+                  <td>{{ item.summary }}</td>
+                  <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
+                  <td>{{ item.lineCount }}</td>
+                  <td>{{ item.totalQuantity | number:'1.0-3' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="empty-cell">Gönderilmeyi bekleyen sipariş bulunmuyor.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <button type="button" class="command-button primary" [disabled]="actionLoading() || selectedOrderReferences().size === 0" (click)="dispatchSelectedOrders()">
+          <i class="fa fa-paper-plane" aria-hidden="true"></i> Seçilen {{ selectedOrderReferences().size }} Siparişi Terminale Gönder
+        </button>
+      </article>
+
+      <article class="action-card inbound">
+        <div class="action-icon"><i class="fa fa-arrow-left" aria-hidden="true"></i></div>
+        <div class="action-copy">
+          <span class="step-label">2. KAPI</span>
+          <h3>AXATA'dan Mikro'ya Sevk Fişi Oluştur</h3>
+          <p>AXATA'da yüklemesi tamamlanan sevkleri Mikro depolar arası sevk fişine dönüştürür.</p>
+        </div>
+        <div class="action-table table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th><input type="checkbox" title="Tümünü seç" (change)="toggleAllDeliveries()" /></th>
+                <th>Mikro Evrakı</th><th>AXATA Sevk</th><th>Depolar</th><th>Kalem</th><th>Miktar</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredDeliveryCandidates(); track item.axataSequenceNo) {
+                <tr>
+                  <td><input type="checkbox" [checked]="isDeliverySelected(item)" (change)="toggleDelivery(item)" /></td>
+                  <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
+                  <td>{{ item.axataDeliveryNo }}</td>
+                  <td>{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</td>
+                  <td>{{ item.axataLineCount }}</td>
+                  <td>{{ item.axataQuantity | number:'1.0-3' }}</td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="empty-cell">Mikro fişi bekleyen tamamlanmış sevk bulunmuyor.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+        <button type="button" class="command-button success" [disabled]="actionLoading() || selectedDeliveryReferences().size === 0" (click)="importSelectedDeliveries()">
+          <i class="fa fa-truck" aria-hidden="true"></i> Seçilen {{ selectedDeliveryReferences().size }} Sevki Mikro'ya Aktar
+        </button>
+      </article>
+    </section>
+    <p class="desk-note">Canlı yazma işlemleri mevcut güvenli AXATA senkronizasyon servisini kullanır. Bu kokpit ikinci bir yazma yolu oluşturmaz.</p>
+  }
+
+  @if (activeTab === 'overview') {
+    <div class="filter-bar">
+      <label>Operasyon tarihi <input type="date" [(ngModel)]="selectedDate" /></label>
+      <button type="button" (click)="loadOverview()" [disabled]="loading()">Göster</button>
+    </div>
+    @if (overview(); as data) {
+      <section class="metric-grid">
+        <article><span>Toplama Bekleyen</span><strong>{{ data.outbound.pendingOrderCount }}</strong><small>Açık mağaza siparişi</small></article>
+        <article><span>Aktif Yükleme</span><strong>{{ data.outbound.pickingOrderCount }}</strong><small>Rampada devam eden sevk</small></article>
+        <article><span>Sevk Edilen</span><strong>{{ data.outbound.shippedTodayCount }}</strong><small>{{ data.outbound.shippedTodayQty | number:'1.0-3' }} miktar</small></article>
+        <article><span>Kuyrukta Bekleyen</span><strong>{{ data.queues.outboundWaitingIntegrationCount + data.queues.inboundWaitingIntegrationCount }}</strong><small>AXATA entegrasyon kuyruğu</small></article>
+        <article><span>Kabul Bekleyen</span><strong>{{ data.inbound.pendingReceivingCount }}</strong><small>Giriş siparişi</small></article>
+        <article><span>Kabul Tamamlanan</span><strong>{{ data.inbound.completedTodayCount }}</strong><small>Seçilen gün</small></article>
+      </section>
+
+      <section class="data-section">
+        <h3>Toplama Emri Bekleyen Siparişler</h3>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Sipariş</th><th>Hedef</th><th>Tarih</th><th>Kalem</th><th>Miktar</th><th></th></tr></thead>
+            <tbody>
+              @for (item of data.pendingOrders; track item.orderNo) {
+                <tr>
+                  <td><strong>{{ item.orderNo }}</strong></td>
+                  <td>{{ item.targetCode }} - {{ item.targetName || '-' }}</td>
+                  <td>{{ item.orderDate | date:'dd.MM.yyyy' }}</td>
+                  <td>{{ item.lineCount }}</td>
+                  <td>{{ item.totalOrderQty | number:'1.0-3' }}</td>
+                  <td><button type="button" class="link-button" (click)="traceOrder(item.orderNo)">İzle</button></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="6" class="empty-cell">Bekleyen açık sipariş bulunmuyor.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+    }
+  }
+
+  @if (activeTab === 'trace') {
+    <div class="search-bar">
+      <label for="trace-search">Evrak numarası</label>
+      <input id="trace-search" type="search" [(ngModel)]="searchTerm" placeholder="Sipariş, irsaliye veya sevk no" (keyup.enter)="searchTrace()" />
+      <button type="button" (click)="searchTrace()" [disabled]="loading()"><i class="fa fa-search"></i> Sorgula</button>
+    </div>
+    @if (traceResult(); as trace) {
+      @if (trace.documentType === 'NotFound') {
+        <div class="empty-state">Bu numarayla eşleşen AXATA evrakı bulunamadı.</div>
+      } @else {
+        <section class="document-summary">
+          <div><span>Evrak</span><strong>{{ trace.orderNo || trace.searchTerm }}</strong></div>
+          <div><span>Hedef / Cari</span><strong>{{ trace.targetCode || '-' }} {{ trace.targetName || '' }}</strong></div>
+          <div><span>Durum</span><strong>{{ trace.orderStatusDescription || trace.documentType }}</strong></div>
+        </section>
+        @for (shipment of trace.shipments; track shipment.shipmentYear + '-' + shipment.shipmentNo) {
+          <section class="data-section">
+            <h3>Sevk {{ shipment.shipmentYear }}/{{ shipment.shipmentNo }} · {{ shipment.statusDescription }}</h3>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Kalem</th><th>Stok</th><th>Ürün</th><th>İstenen</th><th>Sevk</th><th>Fark</th></tr></thead>
+              <tbody>@for (line of shipment.details; track line.itemOrderNo) {
+                <tr><td>{{ line.lineNo }}</td><td>{{ line.sku }}</td><td>{{ line.skuName }}</td><td>{{ line.orderedQty }}</td><td>{{ line.shippedQty }}</td><td [class.negative]="line.differenceQty > 0">{{ line.differenceQty }}</td></tr>
+              }</tbody>
+            </table></div>
+          </section>
+        }
+      }
+    }
+  }
+
+  @if (activeTab === 'performance' || activeTab === 'fillrate') {
+    <div class="filter-bar">
+      <label>Başlangıç <input type="date" [(ngModel)]="reportStartDate" /></label>
+      <label>Bitiş <input type="date" [(ngModel)]="reportEndDate" /></label>
+      <button type="button" (click)="activeTab === 'performance' ? loadPerformance() : loadFillRate()" [disabled]="loading()">Raporla</button>
+      <small>En fazla 31 gün</small>
+    </div>
+  }
+
+  @if (activeTab === 'performance' && performance(); as report) {
+    <section class="data-section"><h3>Toplayıcı Performansı</h3><div class="table-wrap"><table>
+      <thead><tr><th>Operatör</th><th>Sevk</th><th>Görev</th><th>Kalem</th><th>Miktar</th><th>Eksik</th><th>Tamamlama</th><th>Ort. Süre</th></tr></thead>
+      <tbody>@for (item of report.pickers; track item.userId) {
+        <tr><td><strong>{{ item.userName || item.userId }}</strong></td><td>{{ item.totalShipments }}</td><td>{{ item.totalPickTasks }}</td><td>{{ item.totalLines }}</td><td>{{ item.totalQuantity }}</td><td>{{ item.unpickedLines }}</td><td>%{{ item.completionRate }}</td><td>{{ item.averageDurationMinutes | number:'1.0-1' }} dk</td></tr>
+      } @empty {<tr><td colspan="8" class="empty-cell">Seçilen dönemde performans kaydı bulunamadı.</td></tr>}</tbody>
+    </table></div></section>
+  }
+
+  @if (activeTab === 'fillrate' && fillRate(); as report) {
+    <section class="metric-grid compact">
+      <article><span>Genel Karşılama</span><strong>%{{ report.overallFillRate }}</strong></article>
+      <article><span>Tam Karşılanan</span><strong>{{ report.fullySuppliedLines }}</strong></article>
+      <article><span>Kısmi</span><strong>{{ report.partiallySuppliedLines }}</strong></article>
+      <article><span>Karşılanmayan</span><strong>{{ report.unsuppliedLines }}</strong></article>
+    </section>
+    <section class="data-section"><h3>Mağaza Bazlı Karşılama</h3><div class="table-wrap"><table>
+      <thead><tr><th>Mağaza</th><th>Sipariş</th><th>Kalem</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
+      <tbody>@for (item of report.stores; track item.storeCode) {
+        <tr><td><strong>{{ item.storeCode }}</strong> {{ item.storeName }}</td><td>{{ item.orderCount }}</td><td>{{ item.totalLines }}</td><td>{{ item.totalOrderedQty }}</td><td>{{ item.totalShippedQty }}</td><td>{{ item.totalMissingQty }}</td><td>%{{ item.fillRatePercentage }}</td></tr>
+      }</tbody>
+    </table></div></section>
+  }
+
+  @if (activeTab === 'capacity' && capacity(); as report) {
+    <section class="metric-grid">
+      <article><span>Toplam Göz</span><strong>{{ report.totalLocations }}</strong></article>
+      <article><span>Dolu</span><strong>{{ report.occupiedLocations }}</strong></article>
+      <article><span>Boş</span><strong>{{ report.emptyLocations }}</strong></article>
+      <article><span>Bloke</span><strong>{{ report.blockedLocations }}</strong></article>
+      <article><span>Doluluk</span><strong>%{{ report.occupancyRatePercentage }}</strong></article>
+    </section>
+    <section class="data-section"><h3>Bölge Bazlı Kapasite</h3><div class="table-wrap"><table>
+      <thead><tr><th>Bölge</th><th>Toplam</th><th>Dolu</th><th>Boş</th><th>Doluluk</th></tr></thead>
+      <tbody>@for (zone of report.zones; track zone.zone) {
+        <tr><td>{{ zone.zone }}</td><td>{{ zone.totalLocations }}</td><td>{{ zone.occupiedLocations }}</td><td>{{ zone.emptyLocations }}</td><td>%{{ zone.occupancyRatePercentage }}</td></tr>
+      }</tbody>
+    </table></div></section>
+  }
+</div>
