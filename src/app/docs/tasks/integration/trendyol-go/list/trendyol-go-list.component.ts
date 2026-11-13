@@ -16,6 +16,8 @@ import type {
   ITrendyolGoDirectStoreDispatchResultApiDto,
   ITrendyolGoCatalogAutoCreateResultApiDto,
   ITrendyolGoBatchWorkflowApiDto,
+  ITrendyolGoBranchPosSyncTaskApiDto,
+  ITrendyolGoWorkflowStatusApiDto,
   ITrendyolGoAdministrationOverviewApiDto,
   ITrendyolGoStoreSettingApiDto,
   ITrendyolGoCategorySyncResultApiDto,
@@ -44,6 +46,14 @@ import {
   normalizePermissionCode
 } from '../../../core/admin-warehouse.helpers';
 import { getErrorMessage } from '../../../settings/settings-task.helpers';
+import {
+  buildTrendyolGoDirectDispatchSummary,
+  ITrendyolGoDirectStoreLiveStatus,
+  resolveTrendyolGoBatchChipTone,
+  resolveTrendyolGoDirectStoreLiveStatus,
+  shortTrendyolGoBatchId,
+  TrendyolGoLiveTone
+} from './trendyol-go-batch.helpers';
 
 const TASK_ID = 'trendyol-go';
 const PERMISSION_PREFIX = 'entegrasyon-islemleri.trendyol-go';
@@ -54,6 +64,7 @@ type ProductBatchAction = 'create' | 'update' | 'price-and-inventory' | 'sale-on
 type PackageAction = 'read' | 'unsupplied' | 'alternative' | 'manual-shipped' | 'manual-delivered' | 'invoice-link';
 type ClaimAction = 'read' | 'accept' | 'reject' | 'objectionable' | 'objections';
 type PriceStockDispatchMode = 'selected' | 'changed' | 'all-existing';
+type DirectTargetScope = 'single' | 'multiple' | 'all';
 type ReadyCatalogItem = ITrendyolGoCatalogPreviewItemApiDto & { barcode: string };
 
 export interface ITrendyolGoBatchSummary {
@@ -110,6 +121,8 @@ export class TrendyolGoListComponent {
   private directPreviewRequestId = 0;
   private priceStockPollTimer: number | undefined;
   private workflowPollTimer: number | undefined;
+  private workflowPollAttempt = 0;
+  private directDispatchCompletionNotified = false;
 
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
   protected readonly statuses = [
@@ -128,6 +141,8 @@ export class TrendyolGoListComponent {
   protected readonly connectionStatus = signal<TrendyolGoConnectionStatusDto | null>(null);
   protected readonly stores = signal<TrendyolGoStoreMappingDto[]>([]);
   protected readonly selectedStoreId = signal<number | null>(null);
+  protected readonly directTargetScope = signal<DirectTargetScope>('single');
+  protected readonly selectedDirectStoreIds = signal<ReadonlySet<number>>(new Set());
   protected readonly activeView = signal<'orders' | 'price-stock' | 'catalog-sync' | 'workflows' | 'management' | 'advanced'>('orders');
   protected readonly priceStockSubView = signal<'direct' | 'snapshot'>('direct');
   protected readonly directPreview = signal<ITrendyolGoDirectPriceStockPreviewApiDto | null>(null);
@@ -136,6 +151,7 @@ export class TrendyolGoListComponent {
   protected readonly directDispatchResult = signal<ITrendyolGoDirectPriceStockDispatchResultApiDto | null>(null);
   protected readonly directDispatchAutoCatalogEnabled = signal(false);
   protected readonly batchWorkflows = signal<ITrendyolGoBatchWorkflowApiDto[]>([]);
+  protected readonly branchPosSyncTasks = signal<ITrendyolGoBranchPosSyncTaskApiDto[]>([]);
   protected readonly loadingBatchWorkflows = signal(false);
   protected readonly managementOverview = signal<ITrendyolGoAdministrationOverviewApiDto | null>(null);
   protected readonly loadingManagement = signal(false);
@@ -194,14 +210,88 @@ export class TrendyolGoListComponent {
       item.status === 'Pending' || item.status === 'Processing'
     ).length
   );
+  protected readonly activeBranchPosSyncCount = computed(() =>
+    this.branchPosSyncTasks().filter((item) => item.status === 'Pending' || item.status === 'Processing').length
+  );
+  protected readonly activeTrackingCount = computed(() =>
+    this.activeWorkflowCount() + this.activeBranchPosSyncCount()
+  );
+  protected readonly branchPosRetryTasks = computed(() =>
+    this.branchPosSyncTasks().filter((item) =>
+      (item.status === 'Pending' || item.status === 'Processing') && !!item.lastError
+    )
+  );
+  protected readonly branchPosFailedTasks = computed(() =>
+    this.branchPosSyncTasks().filter((item) => item.status === 'Failed')
+  );
   protected readonly issueWorkflowCount = computed(() =>
     this.batchWorkflows().filter((item) =>
       item.status === 'Failed' || item.status === 'PartiallySucceeded'
-    ).length
+    ).length + this.branchPosRetryTasks().length + this.branchPosFailedTasks().length
   );
   protected readonly completedWorkflowCount = computed(() =>
     this.batchWorkflows().filter((item) => item.status === 'Succeeded').length
   );
+  protected readonly workflowByBatchId = computed(() => {
+    const map = new Map<string, ITrendyolGoBatchWorkflowApiDto>();
+    for (const item of this.batchWorkflows()) {
+      if (item.batchRequestId) {
+        map.set(item.batchRequestId, item);
+      }
+    }
+    return map;
+  });
+  protected readonly directDispatchSummary = computed(() => {
+    const res = this.directDispatchResult();
+    if (!res) {
+      return null;
+    }
+
+    return buildTrendyolGoDirectDispatchSummary(
+      res,
+      this.workflowByBatchId(),
+      (id) => this.getManualBatchSummary(id)
+    );
+  });
+  protected readonly directStoreLiveStatusByStoreId = computed(() => {
+    const result = this.directDispatchResult();
+    const statuses = new Map<number, ITrendyolGoDirectStoreLiveStatus>();
+    if (!result) {
+      return statuses;
+    }
+
+    const workflows = this.workflowByBatchId();
+    for (const storeResult of result.storeResults) {
+      statuses.set(
+        storeResult.storeId,
+        resolveTrendyolGoDirectStoreLiveStatus(
+          storeResult,
+          workflows,
+          (id) => this.getManualBatchSummary(id)
+        )
+      );
+    }
+    return statuses;
+  });
+  protected readonly batchChipToneById = computed(() => {
+    const result = this.directDispatchResult();
+    const tones = new Map<string, TrendyolGoLiveTone>();
+    if (!result) {
+      return tones;
+    }
+
+    const workflows = this.workflowByBatchId();
+    for (const batchId of result.storeResults.flatMap((storeResult) => [
+      ...(storeResult.batchRequestIds || []),
+      ...(storeResult.catalogBatchRequestIds || [])
+    ])) {
+      tones.set(
+        batchId,
+        resolveTrendyolGoBatchChipTone(batchId, workflows, this.getManualBatchSummary(batchId))
+      );
+    }
+    return tones;
+  });
   protected readonly directItems = computed<ITrendyolGoDirectPriceStockItemApiDto[]>(
     () => this.directPreview()?.items ?? []
   );
@@ -217,9 +307,19 @@ export class TrendyolGoListComponent {
   protected readonly selectedDirectCount = computed(
     () => this.selectedDirectBarcodes().size
   );
+  protected readonly selectedDirectStores = computed(() => {
+    const selectedIds = this.selectedDirectStoreIds();
+    return this.stores().filter((store) => selectedIds.has(store.storeId));
+  });
   protected readonly canDispatchDirect = computed(
-    () => this.canUpdate() && this.directPreview() !== null &&
-      (this.directPriceStockForm.controls.targetScope.value === 'all' || this.selectedStore() !== null)
+    () => {
+      if (!this.canUpdate() || this.directPreview() === null) return false;
+
+      return this.directTargetScope() === 'all' ||
+        (this.directTargetScope() === 'multiple'
+          ? this.selectedDirectStoreIds().size > 0
+          : this.selectedStore() !== null);
+    }
   );
   protected readonly readyItems = computed(() =>
     this.priceStockPreview()?.items.filter((item) => item.status === 'Ready' && !!item.barcode) ?? []
@@ -295,11 +395,11 @@ export class TrendyolGoListComponent {
     (this.managementOverview()?.categories ?? []).filter((item) => item.isActive && item.isLeaf)
   );
   protected readonly branchPosAttentionTasks = computed(() =>
-    (this.managementOverview()?.branchPosSyncTasks ?? [])
+    this.branchPosSyncTasks()
       .filter((item) => item.status !== 'Succeeded' && !!item.lastError)
   );
   protected readonly branchPosPendingTasks = computed(() =>
-    (this.managementOverview()?.branchPosSyncTasks ?? [])
+    this.branchPosSyncTasks()
       .filter((item) => item.status !== 'Succeeded' && !item.lastError)
   );
 
@@ -317,7 +417,7 @@ export class TrendyolGoListComponent {
     dispatchMode: new FormControl<PriceStockDispatchMode>('selected', { nonNullable: true })
   });
   protected readonly directPriceStockForm = new FormGroup({
-    targetScope: new FormControl<'single' | 'all'>('single', { nonNullable: true }),
+    targetScope: new FormControl<DirectTargetScope>('single', { nonNullable: true }),
     mode: new FormControl<'changed' | 'all'>('changed', { nonNullable: true }),
     sinceDate: new FormControl(this.getToday(), { nonNullable: true }),
     search: new FormControl('', { nonNullable: true }),
@@ -426,6 +526,9 @@ export class TrendyolGoListComponent {
     this.catalogSyncForm.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.invalidateCatalogSyncPreview());
+    this.directPriceStockForm.controls.targetScope.valueChanges
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe((scope: DirectTargetScope) => this.directTargetScope.set(scope));
     this.directPriceStockForm.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.invalidateDirectPreview());
@@ -458,6 +561,10 @@ export class TrendyolGoListComponent {
         next: (stores: TrendyolGoStoreMappingDto[]) => {
           const items = stores ?? [];
           this.stores.set(items);
+          const validStoreIds = new Set(items.map((store) => store.storeId));
+          this.selectedDirectStoreIds.update((current) =>
+            new Set([...current].filter((storeId) => validStoreIds.has(storeId)))
+          );
           const currentStoreId = this.filterForm.controls.storeId.value;
 
           if (!items.some((store: TrendyolGoStoreMappingDto) => store.storeId === currentStoreId)) {
@@ -489,6 +596,7 @@ export class TrendyolGoListComponent {
       .subscribe({
         next: (overview: ITrendyolGoAdministrationOverviewApiDto) => {
           this.managementOverview.set(overview);
+          this.branchPosSyncTasks.set(overview.branchPosSyncTasks ?? []);
           this.managementSettingsForm.patchValue({
             priceListNo: overview.runtimeSettings.priceListNo,
             paymentPlanNo: overview.runtimeSettings.paymentPlanNo,
@@ -1601,6 +1709,31 @@ export class TrendyolGoListComponent {
     this.selectedDirectBarcodes.set(allSelected ? new Set() : new Set(items.map((i) => i.barcode)));
   }
 
+  protected toggleDirectStore(storeId: number): void {
+    const next = new Set(this.selectedDirectStoreIds());
+    if (next.has(storeId)) {
+      next.delete(storeId);
+    } else {
+      next.add(storeId);
+    }
+    this.selectedDirectStoreIds.set(next);
+  }
+
+  protected selectAllDirectStores(): void {
+    this.selectedDirectStoreIds.set(new Set(this.stores().map((store) => store.storeId)));
+  }
+
+  protected clearDirectStores(): void {
+    this.selectedDirectStoreIds.set(new Set());
+  }
+
+  protected previewDirectStore(storeId: number): void {
+    if (this.loadingDirectPreview()) return;
+
+    this.filterForm.controls.storeId.setValue(storeId);
+    this.loadDirectPreview();
+  }
+
   protected async dispatchDirectPriceStock(): Promise<void> {
     if (!this.canUpdate() || this.busyAction()) {
       return;
@@ -1608,17 +1741,29 @@ export class TrendyolGoListComponent {
 
     const { targetScope, mode, sinceDate, search, autoCreateMissingCatalog } = this.directPriceStockForm.getRawValue();
     const isAllStores = targetScope === 'all';
+    const isMultipleStores = targetScope === 'multiple';
     const storeId = this.selectedStoreId();
+    const targetStoreIds = isAllStores
+      ? []
+      : isMultipleStores
+        ? this.selectedDirectStores().map((store) => store.storeId)
+        : storeId ? [storeId] : [];
 
-    if (!isAllStores && !storeId) {
-      this.setFeedback('error', 'Gonderim icin magaza secin veya tum magazalari secin.');
+    if (!isAllStores && targetStoreIds.length === 0) {
+      this.setFeedback('error', isMultipleStores
+        ? 'Toplu gonderim icin en az bir magaza secin.'
+        : 'Gonderim icin magaza secin veya toplu gonderim kapsami belirleyin.');
       return;
     }
 
     const selectedBarcodes = Array.from(this.selectedDirectBarcodes());
     const preview = this.directPreview();
     const modeLabel = mode === 'changed' ? 'Degisen Fiyatlar ve Stoklar' : 'Tum Aktif Fiyatlar ve Stoklar';
-    const targetLabel = isAllStores ? 'TUM MAGAZALAR / SUBELER' : (this.selectedStore()?.storeName ?? `Magaza #${storeId}`);
+    const targetLabel = isAllStores
+      ? 'TUM MAGAZALAR / SUBELER'
+      : isMultipleStores
+        ? `${targetStoreIds.length} SECILI MAGAZA / SUBE`
+        : (this.selectedStore()?.storeName ?? `Magaza #${storeId}`);
     const scopeDetail = selectedBarcodes.length > 0
       ? `Secili ${selectedBarcodes.length} adet barkod`
       : preview
@@ -1639,7 +1784,7 @@ export class TrendyolGoListComponent {
     this.busyAction.set('direct-price-stock-dispatch');
     const request: ITrendyolGoDirectPriceStockDispatchHttpRequestApiDto = {
       allStores: isAllStores,
-      storeIds: isAllStores ? [] : [storeId as number],
+      storeIds: targetStoreIds,
       mode,
       sinceDate: mode === 'changed' ? sinceDate : null,
       search: search.trim() || null,
@@ -1655,6 +1800,8 @@ export class TrendyolGoListComponent {
       )
       .subscribe({
         next: (result: ITrendyolGoDirectPriceStockDispatchResultApiDto) => {
+          this.workflowPollAttempt = 0;
+          this.directDispatchCompletionNotified = false;
           this.directDispatchResult.set(result);
           this.directDispatchAutoCatalogEnabled.set(autoCreateMissingCatalog);
           const allBatchIds = result.storeResults.flatMap((storeResult) => [
@@ -1705,6 +1852,29 @@ export class TrendyolGoListComponent {
       });
   }
 
+  private getManualBatchSummary(batchId: string): ITrendyolGoBatchSummary | null {
+    const manual = this.priceStockBatchResults()[batchId];
+    return manual ? this.getBatchSummary(manual) : null;
+  }
+
+  protected shortBatchId(batchId: string): string {
+    return shortTrendyolGoBatchId(batchId);
+  }
+
+  protected getBatchChipTone(batchId: string): TrendyolGoLiveTone {
+    return this.batchChipToneById().get(batchId) ?? 'info';
+  }
+
+  protected getDirectStoreLiveStatus(sr: ITrendyolGoDirectStoreDispatchResultApiDto): ITrendyolGoDirectStoreLiveStatus {
+    return this.directStoreLiveStatusByStoreId().get(sr.storeId) ??
+      resolveTrendyolGoDirectStoreLiveStatus(sr, this.workflowByBatchId(), (id) => this.getManualBatchSummary(id));
+  }
+
+  protected trackDirectStoreResult = (_index: number, result: ITrendyolGoDirectStoreDispatchResultApiDto): number =>
+    result.storeId;
+
+  protected trackBatchId = (_index: number, batchId: string): string => batchId;
+
   protected isCatalogPending(result: ITrendyolGoDirectStoreDispatchResultApiDto): boolean {
     return result.workflowStatus === 'CatalogAndPriceStockQueued';
   }
@@ -1738,14 +1908,23 @@ export class TrendyolGoListComponent {
     if (!this.canDetail() || this.loadingBatchWorkflows()) return;
 
     this.loadingBatchWorkflows.set(true);
-    this.service.getTrendyolGoBatchWorkflows(100)
+    this.service.getTrendyolGoWorkflowStatus(100)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.loadingBatchWorkflows.set(false))
       )
       .subscribe({
-        next: (items: ITrendyolGoBatchWorkflowApiDto[]) => {
-          this.batchWorkflows.set(items ?? []);
+        next: (status: ITrendyolGoWorkflowStatusApiDto) => {
+          this.batchWorkflows.set(status.batchWorkflows ?? []);
+          this.branchPosSyncTasks.set(status.branchPosSyncTasks ?? []);
+          const summary = this.directDispatchSummary();
+          if (summary && !summary.isPending && !this.directDispatchCompletionNotified) {
+            this.directDispatchCompletionNotified = true;
+            this.setFeedback(
+              summary.tone === 'success' ? 'success' : 'error',
+              `${summary.title}: ${summary.subtitle}`
+            );
+          }
           this.scheduleBatchWorkflowPolling();
         },
         error: () => this.scheduleBatchWorkflowPolling()
@@ -1796,15 +1975,21 @@ export class TrendyolGoListComponent {
       this.workflowPollTimer = undefined;
     }
 
-    if (this.activeWorkflowCount() === 0) {
+    if (this.activeTrackingCount() === 0) {
+      this.workflowPollAttempt = 0;
       return;
     }
 
+    const visibleDelay = Math.min(15_000, 5_000 + this.workflowPollAttempt * 2_500);
+    const delay = document.hidden ? 30_000 : visibleDelay;
+    this.workflowPollAttempt++;
     this.workflowPollTimer = window.setTimeout(() => {
       this.workflowPollTimer = undefined;
       this.loadBatchWorkflows();
-    }, 10_000);
+    }, delay);
   }
+
+  protected trackBranchPosTask = (_index: number, task: ITrendyolGoBranchPosSyncTaskApiDto): string => task.id;
 
   private invalidateDirectPreview(): void {
     this.directPreviewRequestId++;

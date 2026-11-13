@@ -1722,3 +1722,8 @@ export interface ITrendyolGoBatchWorkflowApiDto {
   createdAtUtc: string;
   completedAtUtc?: string | null;
 }
+
+export interface ITrendyolGoWorkflowStatusApiDto {
+  batchWorkflows: ITrendyolGoBatchWorkflowApiDto[];
+  branchPosSyncTasks: ITrendyolGoBranchPosSyncTaskApiDto[];
+}
