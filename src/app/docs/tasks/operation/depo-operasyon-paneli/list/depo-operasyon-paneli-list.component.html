@@ -197,7 +197,7 @@
               <th>
                 <button type="button" (click)="setSort('openOrderCount')">
                   <span class="head-label">
-                    <strong>Acik Siparis</strong>
+                    <strong>AXATA Bekleyen Siparis</strong>
                     <small>AXATA bekleyen</small>
                   </span>
                   <i class="fa-solid" [ngClass]="sortIcon('openOrderCount')"></i>
@@ -314,7 +314,7 @@
                 </span>
               </td>
               <td
-                data-label="Acik Siparis"
+                data-label="AXATA Bekleyen Siparis"
                 (click)="$event.stopPropagation(); openWarehouseFlows(warehouse, 'open-orders')"
               >
                 <span class="metric-cell" [class.metric-cell-warning]="(warehouse.openOrderCount ?? 0) > 0">

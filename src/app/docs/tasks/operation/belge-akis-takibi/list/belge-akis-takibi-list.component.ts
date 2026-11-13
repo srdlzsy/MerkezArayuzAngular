@@ -84,7 +84,7 @@ const PRESET_OPTIONS: readonly DocumentFlowFilterOption[] = [
   { value: 'unaccepted-outgoing', label: 'Karsi Depoda Kabul Bekleyen Cikis' },
   { value: 'pending-edespatch', label: 'E-Irsaliye Eksik veya Hatali' },
   { value: 'failed-edespatch', label: 'Sadece E-Irsaliye Hatasi Alanlar' },
-  { value: 'open-orders', label: 'Acik Siparisler' },
+  { value: 'open-orders', label: 'AXATA Bekleyen Siparisler' },
   { value: 'failed-only', label: 'Tum Hatali Islemler' },
   { value: 'other-failed', label: 'E-Irsaliye Disi Hatalar' },
   { value: 'today-shipments', label: 'Secili Gun Sevkleri' },
@@ -381,7 +381,7 @@ export class BelgeAkisTakibiListComponent implements OnInit {
       },
       {
         value: 'open-orders',
-        label: 'Acik Siparisler',
+        label: 'AXATA Bekleyen Siparisler',
         count: openOrders,
         tone: openOrders > 0 ? 'info' : 'neutral',
         icon: 'fa-cart-flatbed'

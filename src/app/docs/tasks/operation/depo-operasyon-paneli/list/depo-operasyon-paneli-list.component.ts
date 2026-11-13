@@ -74,7 +74,7 @@ const SUMMARY_METRICS: readonly SummaryMetric[] = [
     icon: 'fa-file-circle-exclamation',
     tone: 'danger'
   },
-  { key: 'openOrderCount', label: 'Acik Siparis', icon: 'fa-clipboard-list', tone: 'warning' },
+  { key: 'openOrderCount', label: 'AXATA Bekleyen Siparis', icon: 'fa-clipboard-list', tone: 'warning' },
   {
     key: 'otherFailedOperationCount',
     label: 'Diger Hatali Islem',
