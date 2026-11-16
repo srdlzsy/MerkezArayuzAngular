@@ -1513,6 +1513,14 @@
           <button
             type="button"
             class="sub-tab-btn"
+            [class.is-active]="activeEkRaporTab() === 'kdv-uyumsuzluk'"
+            (click)="selectEkRaporTab('kdv-uyumsuzluk')"
+          >
+            <i class="fa-solid fa-percent"></i> Fatura KDV Kontrolu
+          </button>
+          <button
+            type="button"
+            class="sub-tab-btn"
             [class.is-active]="activeEkRaporTab() === 'trendyol'"
             (click)="selectEkRaporTab('trendyol')"
           >
@@ -1544,13 +1552,13 @@
             </div>
 
             <!-- Tek gunluk filtre (Kasa Z, Birlik Kart, Trendyol, Nakit) -->
-            <div class="field-group" *ngIf="activeEkRaporTab() !== 'fis-iptal' && activeEkRaporTab() !== 'gider-pusulasi'">
+            <div class="field-group" *ngIf="activeEkRaporTab() !== 'fis-iptal' && activeEkRaporTab() !== 'gider-pusulasi' && activeEkRaporTab() !== 'kdv-uyumsuzluk'">
               <label for="ekRaporDate">Tarih</label>
               <input id="ekRaporDate" type="date" formControlName="date" />
             </div>
 
             <!-- Tarih Araligi (Fis Iptal, Gider Pusulasi) -->
-            <ng-container *ngIf="activeEkRaporTab() === 'fis-iptal' || activeEkRaporTab() === 'gider-pusulasi'">
+            <ng-container *ngIf="activeEkRaporTab() === 'fis-iptal' || activeEkRaporTab() === 'gider-pusulasi' || activeEkRaporTab() === 'kdv-uyumsuzluk'">
               <div class="field-group">
                 <label for="ekRaporStartDate">Baslangic Tarihi</label>
                 <input id="ekRaporStartDate" type="date" formControlName="startDate" />
@@ -1560,13 +1568,22 @@
                 <input id="ekRaporEndDate" type="date" formControlName="endDate" />
               </div>
             </ng-container>
+
+            <div class="field-group" *ngIf="activeEkRaporTab() === 'kdv-uyumsuzluk'">
+              <label for="ekRaporMikroStatus">Mikro Durumu</label>
+              <select id="ekRaporMikroStatus" formControlName="transferredToMikro">
+                <option value="all">Tum Etkilenen Faturalar</option>
+                <option value="transferred">Mikro'ya Aktarildi</option>
+                <option value="pending">Mikro'ya Aktarilmadi</option>
+              </select>
+            </div>
           </div>
 
           <div class="filter-actions">
             <button
               type="button"
               class="btn btn-primary"
-              [disabled]="kasaZDetayLoading() || birlikKartLoading() || fisIptalLoading() || giderPusulasiLoading() || trendyolLoading() || nakitLoading()"
+              [disabled]="kasaZDetayLoading() || birlikKartLoading() || fisIptalLoading() || giderPusulasiLoading() || trendyolLoading() || nakitLoading() || kdvUyumsuzlukLoading()"
               (click)="fetchEkRapor()"
             >
               <i class="fa-solid fa-magnifying-glass"></i> Sorgula
@@ -1574,6 +1591,7 @@
             <button
               type="button"
               class="btn btn-outline"
+              [disabled]="ekRaporExporting()"
               (click)="exportEkRaporExcel()"
             >
               <i class="fa-solid fa-file-excel"></i> Excel / CSV Indir
@@ -1821,6 +1839,87 @@
               </div>
             </div>
           </div>
+        </article>
+
+        <!-- Fatura KDV Uyumsuzluk Raporu -->
+        <article class="surface-card" *ngIf="activeEkRaporTab() === 'kdv-uyumsuzluk'">
+          <div class="state-card state-card-error" *ngIf="kdvUyumsuzlukReport()?.summary?.documentCount">
+            <div class="state-card-header"><strong>Muhasebe kontrolu gerekiyor</strong></div>
+            <p>
+              Bu listede 10.07.2023 sonrasinda eski %8 veya %18 KDV ile kaydedilen fatura/irsaliyeler bulunur.
+              Mikro'ya aktarilmayanlar duzeltilmeden aktarilmamalidir; aktarilmis olanlar muhasebe tarafindan incelenmelidir.
+            </p>
+          </div>
+
+          <ng-container *ngIf="kdvUyumsuzlukReport() as rep">
+            <div class="summary-cards">
+              <div class="summary-card">
+                <span class="label">Etkilenen Fatura</span>
+                <span class="value">{{ rep.summary.documentCount | number }}</span>
+              </div>
+              <div class="summary-card">
+                <span class="label">Mikro'ya Aktarildi</span>
+                <span class="value">{{ rep.summary.transferredDocumentCount | number }}</span>
+              </div>
+              <div class="summary-card">
+                <span class="label">Henuz Aktarilmadi</span>
+                <span class="value">{{ rep.summary.pendingDocumentCount | number }}</span>
+              </div>
+              <div class="summary-card">
+                <span class="label">Uyumsuz Satir</span>
+                <span class="value">{{ rep.summary.mismatchedLineCount | number }}</span>
+              </div>
+              <div class="summary-card">
+                <span class="label">KDV Farki</span>
+                <span class="value text-danger">{{ rep.summary.vatDifference | currency:'TRY':'symbol-narrow':'1.2-2' }}</span>
+              </div>
+            </div>
+
+            <div class="table-wrap" *ngIf="rep.rows.length; else noVatMismatchRows">
+              <table class="data-table">
+                <thead>
+                  <tr>
+                    <th>Tarih</th>
+                    <th>Sube</th>
+                    <th>Kasa / Fis / Z</th>
+                    <th>Cari Kod</th>
+                    <th>Mikro Durumu</th>
+                    <th class="num">%8 Satir</th>
+                    <th class="num">%18 Satir</th>
+                    <th class="num">Brut Tutar</th>
+                    <th class="num">Mevcut KDV</th>
+                    <th class="num">Olmasi Gereken</th>
+                    <th class="num">KDV Farki</th>
+                  </tr>
+                </thead>
+                <tbody>
+                  <tr *ngFor="let row of rep.rows">
+                    <td>{{ row.date | date:'dd.MM.yyyy' }}</td>
+                    <td><strong>{{ row.branchNo }} - {{ row.branchName || 'Sube' }}</strong></td>
+                    <td>K{{ row.cashRegisterNo }} / F{{ row.receiptNo }} / Z{{ row.zNo || '-' }}</td>
+                    <td><code>{{ row.customerCurrentCode || '-' }}</code></td>
+                    <td>
+                      <span class="status-pill" [class.status-balanced]="row.transferredToMikro" [class.status-difference]="!row.transferredToMikro">
+                        {{ row.transferredToMikro ? "Mikro'ya aktarildi" : "Mikro'ya aktarilmadi" }}
+                      </span>
+                    </td>
+                    <td class="num">{{ row.vat8LineCount | number }}</td>
+                    <td class="num">{{ row.vat18LineCount | number }}</td>
+                    <td class="num">{{ row.grossAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                    <td class="num">{{ row.currentVatAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                    <td class="num">{{ row.expectedVatAmount | currency:'TRY':'symbol-narrow':'1.2-2' }}</td>
+                    <td class="num text-danger"><strong>{{ row.vatDifference | currency:'TRY':'symbol-narrow':'1.2-2' }}</strong></td>
+                  </tr>
+                </tbody>
+              </table>
+            </div>
+            <ng-template #noVatMismatchRows>
+              <div class="state-card state-card-success">
+                <div class="state-card-header"><strong>Uyumsuz fatura bulunmadi</strong></div>
+                <p>Secilen tarih, sube ve Mikro durumu icin eski KDV oranli fatura kaydi yok.</p>
+              </div>
+            </ng-template>
+          </ng-container>
         </article>
 
         <!-- 5. Trendyol Satislari Tablosu -->

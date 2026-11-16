@@ -24,6 +24,8 @@ import type {
   KasaHareketSalesComparisonRowDto,
   KasaHareketScheduledImportHttpRequest,
   KasaHareketTransferStatusDto,
+  KasaHareketVatMismatchReportDto,
+  KasaHareketVatMismatchReportHttpRequest,
   KasaHareketDosyaBilgiDto,
   KasaHareketDosyaKopyalaResultDto,
   KasaHareketDosyaIcerikDto,
@@ -56,7 +58,8 @@ import {
 import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 
 type KasaHareketTab = 'import' | 'rapor' | 'satis' | 'icmal' | 'mikro' | 'dosya-kopyala' | 'ek-raporlar';
-type EkRaporSubTab = 'kasa-z-detay' | 'birlik-kart' | 'fis-iptal' | 'gider-pusulasi' | 'trendyol' | 'nakit';
+type EkRaporSubTab = 'kasa-z-detay' | 'birlik-kart' | 'fis-iptal' | 'gider-pusulasi' | 'trendyol' | 'nakit' | 'kdv-uyumsuzluk';
+type MikroTransferFilter = 'all' | 'transferred' | 'pending';
 type KasaHareketDetailTab =
   | 'cashiers'
   | 'movement-payments'
@@ -131,25 +134,21 @@ export class KasaHareketAktarimiListComponent {
   protected readonly selectedCashRegisterNos = signal<number[]>([]);
   protected readonly transferStatus = signal<KasaHareketTransferStatusDto | null>(null);
   protected readonly transferStatusLoading = signal(false);
-
   protected readonly transferProgressPercent = computed(() => {
     const status = this.transferStatus();
     if (!status?.totalReceiptCount) {
       return 0;
     }
-
     return Math.min(
       100,
       Math.round((status.transferredReceiptCount / status.totalReceiptCount) * 100)
     );
   });
-
   protected readonly isAllCashRegistersSelected = computed(() => {
     const list = this.cashRegisters();
     const selected = this.selectedCashRegisterNos();
     return list.length > 0 && selected.length === list.length;
   });
-
   protected readonly scopeForm = new FormGroup({
     branchNo: new FormControl<number | null>(null),
     cashRegisterNo: new FormControl<number | null>({ value: null, disabled: true })
@@ -193,7 +192,8 @@ export class KasaHareketAktarimiListComponent {
     branchNo: new FormControl<number | null>(null),
     date: new FormControl<string>(this.today, { nonNullable: true }),
     startDate: new FormControl<string>(this.today, { nonNullable: true }),
-    endDate: new FormControl<string>(this.today, { nonNullable: true })
+    endDate: new FormControl<string>(this.today, { nonNullable: true }),
+    transferredToMikro: new FormControl<MikroTransferFilter>('all', { nonNullable: true })
   });
   protected readonly kasaZDetayReport = signal<KasaHareketKasaZDetayReportDto | null>(null);
   protected readonly kasaZDetayLoading = signal<boolean>(false);
@@ -211,6 +211,8 @@ export class KasaHareketAktarimiListComponent {
   protected readonly trendyolLoading = signal<boolean>(false);
   protected readonly nakitReport = signal<KasaHareketNakitReportDto | null>(null);
   protected readonly nakitLoading = signal<boolean>(false);
+  protected readonly kdvUyumsuzlukReport = signal<KasaHareketVatMismatchReportDto | null>(null);
+  protected readonly kdvUyumsuzlukLoading = signal<boolean>(false);
   protected readonly ekRaporExporting = signal<boolean>(false);
 
   protected readonly comparisonForm = new FormGroup({
@@ -2223,7 +2225,6 @@ export class KasaHareketAktarimiListComponent {
               })
           });
         break;
-
       case 'birlik-kart':
         this.birlikKartLoading.set(true);
         this.kasaIslemleriService
@@ -2242,7 +2243,6 @@ export class KasaHareketAktarimiListComponent {
               })
           });
         break;
-
       case 'fis-iptal':
         this.fisIptalLoading.set(true);
         this.selectedFisIptalDetay.set(null);
@@ -2262,7 +2262,6 @@ export class KasaHareketAktarimiListComponent {
               })
           });
         break;
-
       case 'gider-pusulasi':
         this.giderPusulasiLoading.set(true);
         this.selectedGiderPusulasiDetay.set(null);
@@ -2282,7 +2281,6 @@ export class KasaHareketAktarimiListComponent {
               })
           });
         break;
-
       case 'trendyol':
         this.trendyolLoading.set(true);
         this.kasaIslemleriService
@@ -2301,7 +2299,6 @@ export class KasaHareketAktarimiListComponent {
               })
           });
         break;
-
       case 'nakit':
         this.nakitLoading.set(true);
         this.kasaIslemleriService
@@ -2318,6 +2315,25 @@ export class KasaHareketAktarimiListComponent {
                 title: 'Hata',
                 message: this.getErrorMessage(err, 'Nakit raporu alinamadi.')
               })
+          });
+        break;
+      case 'kdv-uyumsuzluk':
+        if (!this.validateDateRange(startDate, endDate, 'KDV raporu tarih araligi eksik veya hatali.')) {
+          return;
+        }
+        this.kdvUyumsuzlukLoading.set(true);
+        this.kasaIslemleriService
+          .getKasaHareketKdvUyumsuzlukRaporu(this.buildKdvUyumsuzlukRequest())
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.kdvUyumsuzlukLoading.set(false))
+          )
+          .subscribe({
+            next: (res: KasaHareketVatMismatchReportDto) => this.kdvUyumsuzlukReport.set(res),
+            error: (err: unknown) => this.feedback.set({
+              tone: 'error', title: 'KDV raporu alinamadi',
+              message: this.getErrorMessage(err, 'Fatura KDV uyumsuzluk raporu alinamadi.')
+            })
           });
         break;
     }
@@ -2421,6 +2437,24 @@ export class KasaHareketAktarimiListComponent {
           error: (err: unknown) => this.excelExportErrorMessage.set(this.getErrorMessage(err, 'Disa aktarilamadi.'))
         });
         break;
+      case 'kdv-uyumsuzluk':
+        if (this.ekRaporExporting()) {
+          return;
+        }
+        this.ekRaporExporting.set(true);
+        this.kasaIslemleriService
+          .exportKasaHareketKdvUyumsuzlukRaporu(this.buildKdvUyumsuzlukRequest())
+          .pipe(
+            takeUntilDestroyed(this.destroyRef),
+            finalize(() => this.ekRaporExporting.set(false))
+          )
+          .subscribe({
+            next: (blob: Blob) => this.downloadBlob(blob,
+              `fatura-kdv-uyumsuzluk-${this.toCompactDate(startDate)}-${this.toCompactDate(endDate)}.csv`),
+            error: (err: unknown) => this.excelExportErrorMessage.set(
+              this.getErrorMessage(err, 'KDV raporu indirilemedi.'))
+          });
+        break;
       case 'kasa-z-detay':
         const rep = this.kasaZDetayReport();
         if (rep && rep.rows.length) {
@@ -2444,6 +2478,16 @@ export class KasaHareketAktarimiListComponent {
         }
         break;
     }
+  }
+
+  private buildKdvUyumsuzlukRequest(): KasaHareketVatMismatchReportHttpRequest {
+    const form = this.ekRaporFilterForm.controls;
+    const transferFilter = form.transferredToMikro.value;
+    return {
+      startDate: form.startDate.value, endDate: form.endDate.value,
+      branchNo: form.branchNo.value || undefined,
+      transferredToMikro: transferFilter === 'all' ? undefined : transferFilter === 'transferred'
+    };
   }
 
   private getMissingReceiptExportColumns(): readonly ExcelExportColumn<MissingReceiptRow>[] {

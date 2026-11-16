@@ -74,6 +74,8 @@ import {
   KasaHareketScheduledImportHttpRequest,
   KasaHareketTransferStatusDto,
   KasaHareketTransferStatusHttpRequest,
+  KasaHareketVatMismatchReportDto,
+  KasaHareketVatMismatchReportHttpRequest,
   KasaCiroBranchDto,
   KasaCiroImportHttpRequest,
   KasaCiroImportResultDto,
@@ -799,6 +801,24 @@ export class KasaIslemleriService extends BaseApiService {
   ): Observable<KasaHareketTransferStatusDto> {
     return this.getWithQuery<KasaHareketTransferStatusDto, KasaHareketTransferStatusHttpRequest>(
       'kasa-islemleri/kasa-hareket-aktarimi/durum',
+      request
+    );
+  }
+
+  getKasaHareketKdvUyumsuzlukRaporu(
+    request: KasaHareketVatMismatchReportHttpRequest
+  ): Observable<KasaHareketVatMismatchReportDto> {
+    return this.getWithQuery<
+      KasaHareketVatMismatchReportDto,
+      KasaHareketVatMismatchReportHttpRequest
+    >('kasa-islemleri/kasa-hareket-aktarimi/kdv-uyumsuzluk-raporu', request);
+  }
+
+  exportKasaHareketKdvUyumsuzlukRaporu(
+    request: KasaHareketVatMismatchReportHttpRequest
+  ): Observable<Blob> {
+    return this.getBlobWithQuery<KasaHareketVatMismatchReportHttpRequest>(
+      'kasa-islemleri/kasa-hareket-aktarimi/kdv-uyumsuzluk-raporu/excel',
       request
     );
   }

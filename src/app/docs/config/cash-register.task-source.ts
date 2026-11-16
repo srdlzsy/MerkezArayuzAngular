@@ -1028,6 +1028,16 @@ export const CASH_REGISTER_TASK_SOURCE = {
             },
             {
               method: 'GET',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/kdv-uyumsuzluk-raporu?startDate=2026-11-01&endDate=2026-11-16&transferredToMikro=false',
+              description: 'Eski KDV oranli fatura ve irsaliyeleri Mikro aktarim durumuyla listeler'
+            },
+            {
+              method: 'GET',
+              path: '/api/kasa-islemleri/kasa-hareket-aktarimi/kdv-uyumsuzluk-raporu/excel?startDate=2026-11-01&endDate=2026-11-16',
+              description: 'KDV uyumsuzluk listesini muhasebe icin CSV olarak indirir'
+            },
+            {
+              method: 'GET',
               path: '/api/kasa-islemleri/kasa-hareket-aktarimi/satis-karsilastirma?date=2026-06-09&branchNo=110',
               description: 'Mikro stok, Mikro cari (PS), Z raporu ve Furpa aktarilan ciro mutabakatini belge turu kirilimlariyla getirir'
             }

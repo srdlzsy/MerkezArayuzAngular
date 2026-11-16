@@ -521,6 +521,52 @@ export interface KasaHareketTransferStatusDto {
   generatedAtUtc: string;
 }
 
+export interface KasaHareketVatMismatchReportHttpRequest {
+  startDate: string;
+  endDate: string;
+  branchNo?: number | null;
+  transferredToMikro?: boolean | null;
+}
+
+export interface KasaHareketVatMismatchReportDto {
+  startDate: string;
+  endDate: string;
+  branchNo: number | null;
+  transferredToMikro: boolean | null;
+  generatedAtUtc: string;
+  summary: KasaHareketVatMismatchSummaryDto;
+  rows: KasaHareketVatMismatchRowDto[];
+}
+
+export interface KasaHareketVatMismatchSummaryDto {
+  documentCount: number;
+  transferredDocumentCount: number;
+  pendingDocumentCount: number;
+  mismatchedLineCount: number;
+  grossAmount: number;
+  currentVatAmount: number;
+  expectedVatAmount: number;
+  vatDifference: number;
+}
+
+export interface KasaHareketVatMismatchRowDto {
+  invoiceId: string;
+  date: string;
+  branchNo: number;
+  branchName: string;
+  cashRegisterNo: number;
+  receiptNo: number;
+  zNo: string;
+  customerCurrentCode: string;
+  transferredToMikro: boolean;
+  vat8LineCount: number;
+  vat18LineCount: number;
+  grossAmount: number;
+  currentVatAmount: number;
+  expectedVatAmount: number;
+  vatDifference: number;
+}
+
 export interface KasaHareketReportRowDto {
   date: string;
   branchNo: number;
