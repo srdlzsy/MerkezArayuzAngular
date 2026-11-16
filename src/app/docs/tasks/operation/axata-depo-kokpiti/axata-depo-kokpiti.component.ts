@@ -3,7 +3,7 @@ import { HttpErrorResponse } from '@angular/common/http';
 import { Component, OnInit, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
-import { catchError, finalize, forkJoin, map, of } from 'rxjs';
+import { catchError, finalize, forkJoin, map, Observable, of } from 'rxjs';
 import type {
   IAxataOutboundDeliveryImportDocumentApiDto,
   IAxataSynchronizationManualDocumentCandidateItemApiDto
@@ -38,6 +38,15 @@ type DispatchGroupOutcome = {
   items: ActionOrderCandidate[];
   result: DispatchBatchResult | null;
   error: unknown | null;
+};
+type ActionSourceResult<T> = {
+  data: T | null;
+  warning: string | null;
+};
+type DeliveryImportOutcome = {
+  success: boolean;
+  reference: string;
+  error?: unknown;
 };
 
 @Component({
@@ -118,48 +127,69 @@ export class AxataDepoKokpitiComponent implements OnInit {
     this.actionLoading.set(true);
     if (clearMessage) this.actionMessage.set(null);
     forkJoin({
-      warehouseOrders: this.integrationApi.getAxataManualDocumentCandidates('issued-warehouse-order-sync', {
-        warehouseNo: 50,
-        startDate: this.actionDate,
-        endDate: this.actionDate,
-        skip: 0,
-        take: 500
-      }),
-      companyOrders: this.integrationApi.getAxataManualDocumentCandidates('received-company-order-sync', {
-        warehouseNo: 50,
-        startDate: this.actionDate,
-        endDate: this.actionDate,
-        skip: 0,
-        take: 500
-      }),
-      deliveries: this.integrationApi.previewAxataC01OutboundDeliveryImport(500)
+      warehouseOrders: this.recoverActionSource(
+        this.integrationApi.getAxataManualDocumentCandidates('issued-warehouse-order-sync', {
+          warehouseNo: 50,
+          startDate: this.actionDate,
+          endDate: this.actionDate,
+          skip: 0,
+          take: 500
+        }),
+        'Depo siparişleri okunamadı'
+      ),
+      companyOrders: this.recoverActionSource(
+        this.integrationApi.getAxataManualDocumentCandidates('received-company-order-sync', {
+          warehouseNo: 50,
+          startDate: this.actionDate,
+          endDate: this.actionDate,
+          skip: 0,
+          take: 500
+        }),
+        'Firma siparişleri okunamadı'
+      ),
+      deliveries: this.recoverActionSource(
+        this.integrationApi.previewAxataC01OutboundDeliveryImport(200, this.actionDate),
+        'AXATA sevkleri okunamadı'
+      )
     })
       .pipe(finalize(() => this.actionLoading.set(false)))
       .subscribe({
         next: ({ warehouseOrders, companyOrders, deliveries }: {
-          warehouseOrders: AxataSynchronizationManualDocumentCandidatesDto;
-          companyOrders: AxataSynchronizationManualDocumentCandidatesDto;
-          deliveries: AxataOutboundDeliveryImportPreviewDto;
+          warehouseOrders: ActionSourceResult<AxataSynchronizationManualDocumentCandidatesDto>;
+          companyOrders: ActionSourceResult<AxataSynchronizationManualDocumentCandidatesDto>;
+          deliveries: ActionSourceResult<AxataOutboundDeliveryImportPreviewDto>;
         }) => {
+          const warehouseItems = warehouseOrders.data?.items ?? [];
+          const companyItems = companyOrders.data?.items ?? [];
           this.orderCandidates.set([
-            ...warehouseOrders.items.map((item) => ({
+            ...warehouseItems.map((item) => ({
               ...item,
               taskCode: 'issued-warehouse-order-sync' as const,
               typeLabel: 'Depo siparişi'
             })),
-            ...companyOrders.items.map((item) => ({
+            ...companyItems.map((item) => ({
               ...item,
               taskCode: 'received-company-order-sync' as const,
               typeLabel: 'Alınan firma siparişi'
             }))
           ].sort((left, right) => left.documentReference.localeCompare(right.documentReference, 'tr')));
           this.deliveryCandidates.set(
-            deliveries.documents.filter((item) => item.canImport && this.datePart(item.axataDate) === this.actionDate)
+            (deliveries.data?.documents ?? []).filter((item) => item.canImport)
           );
-          const hiddenOrderCount = warehouseOrders.totalRecordCount + companyOrders.totalRecordCount -
-            warehouseOrders.returnedRecordCount - companyOrders.returnedRecordCount;
-          this.actionListWarning.set(hiddenOrderCount > 0
-            ? `${hiddenOrderCount} sipariş liste sınırının dışında kaldı. Gelişmiş AXATA ekranından kontrol edin.`
+          const hiddenOrderCount =
+            (warehouseOrders.data?.totalRecordCount ?? 0) + (companyOrders.data?.totalRecordCount ?? 0) -
+            (warehouseOrders.data?.returnedRecordCount ?? 0) - (companyOrders.data?.returnedRecordCount ?? 0);
+          const hiddenDeliveryCount = Math.max(
+            0,
+            (deliveries.data?.totalFetchedDocumentCount ?? 0) - (deliveries.data?.returnedDocumentCount ?? 0)
+          );
+          const warnings = [warehouseOrders.warning, companyOrders.warning, deliveries.warning].filter(
+            (warning): warning is string => !!warning
+          );
+          if (hiddenOrderCount > 0) warnings.push(`${hiddenOrderCount} sipariş liste sınırının dışında kaldı.`);
+          if (hiddenDeliveryCount > 0) warnings.push(`${hiddenDeliveryCount} sevk liste sınırının dışında kaldı.`);
+          this.actionListWarning.set(warnings.length > 0
+            ? `${warnings.join(' ')} Gelişmiş AXATA ekranından ayrıntılı kontrol edebilirsiniz.`
             : null);
           this.selectedOrderReferences.set(new Set());
           this.selectedDeliveryReferences.set(new Set());
@@ -260,35 +290,54 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
     this.actionLoading.set(true);
     this.actionMessage.set(null);
-    const operations = selected.map((item) =>
-      this.integrationApi
-        .executeAxataC01OutboundDeliveryDocumentImport(item.documentSerie, item.documentOrderNo, {
-          status: item.status,
-          acknowledge: true,
-          dateMode: 'today'
-        })
-        .pipe(
-          map(() => ({ success: true, reference: `${item.documentSerie}/${item.documentOrderNo}` })),
-          catchError((error: unknown) => of({ success: false, reference: `${item.documentSerie}/${item.documentOrderNo}`, error }))
-        )
-    );
+    this.importDeliveryQueue(selected, 0, []);
+  }
 
-    forkJoin(operations)
-      .pipe(finalize(() => this.actionLoading.set(false)))
-      .subscribe((results: Array<{ success: boolean; reference: string; error?: unknown }>) => {
-        const succeeded = results.filter((item) => item.success).length;
-        const failed = results.length - succeeded;
-        const failureText = results
-          .filter((item) => !item.success)
-          .slice(0, 3)
-          .map((item) => `${item.reference}: ${this.extractErrorDetail(item.error)}`)
-          .join(' | ');
-        this.actionMessage.set(
-          `${succeeded} sevk Mikro’ya aktarıldı, ${failed} sevk hata aldı.` + (failureText ? ` ${failureText}` : '')
-        );
-        this.loadActionDesk(false);
-        this.loadOverview();
+  private importDeliveryQueue(
+    selected: IAxataOutboundDeliveryImportDocumentApiDto[],
+    index: number,
+    results: DeliveryImportOutcome[]
+  ): void {
+    if (index >= selected.length) {
+      this.finishDeliveryImport(results);
+      return;
+    }
+
+    const item = selected[index];
+    const reference = `${item.documentSerie}/${item.documentOrderNo} (#${item.axataSequenceNo})`;
+    this.integrationApi
+      .executeAxataC01OutboundDeliveryDocumentImport(item.documentSerie, item.documentOrderNo, {
+        status: item.status,
+        acknowledge: true,
+        dateMode: 'today',
+        axataSequenceNo: item.axataSequenceNo
+      })
+      .subscribe({
+        next: () => {
+          results.push({ success: true, reference });
+          this.importDeliveryQueue(selected, index + 1, results);
+        },
+        error: (error: unknown) => {
+          results.push({ success: false, reference, error });
+          this.importDeliveryQueue(selected, index + 1, results);
+        }
       });
+  }
+
+  private finishDeliveryImport(results: DeliveryImportOutcome[]): void {
+    this.actionLoading.set(false);
+    const succeeded = results.filter((item) => item.success).length;
+    const failed = results.length - succeeded;
+    const failureText = results
+      .filter((item) => !item.success)
+      .slice(0, 3)
+      .map((item) => `${item.reference}: ${this.extractErrorDetail(item.error)}`)
+      .join(' | ');
+    this.actionMessage.set(
+      `${succeeded} sevk Mikro’ya aktarıldı, ${failed} sevk hata aldı.` + (failureText ? ` ${failureText}` : '')
+    );
+    this.loadActionDesk(false);
+    this.loadOverview();
   }
 
   loadOverview(): void {
@@ -402,15 +451,21 @@ export class AxataDepoKokpitiComponent implements OnInit {
   }
 
   private deliveryKey(item: IAxataOutboundDeliveryImportDocumentApiDto): string {
-    return `${item.documentSerie}/${item.documentOrderNo}`;
+    return item.axataSequenceNo.toString();
+  }
+
+  private recoverActionSource<T>(source: Observable<T>, label: string): Observable<ActionSourceResult<T>> {
+    return source.pipe(
+      map((data: T): ActionSourceResult<T> => ({ data, warning: null })),
+      catchError((error: unknown) => of({
+        data: null,
+        warning: `${label}: ${this.extractErrorDetail(error)}`
+      } as ActionSourceResult<T>))
+    );
   }
 
   private orderKey(item: ActionOrderCandidate): string {
     return `${item.taskCode}:${item.documentReference}`;
-  }
-
-  private datePart(value: string | null): string {
-    return value?.slice(0, 10) ?? '';
   }
 
   private today(): string {

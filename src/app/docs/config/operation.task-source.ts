@@ -179,8 +179,10 @@ export const OPERATION_TASK_SOURCE = {
           endpoints: [
             { method: 'GET', path: '/api/integrations/axata-sync/operations/issued-warehouse-order-sync/documents/candidates', description: 'Mikrodan AXATAya gonderilecek siparis adaylari' },
             { method: 'POST', path: '/api/integrations/axata-sync/operations/issued-warehouse-order-sync/documents/dispatch-batch', description: 'Secili siparisleri AXATAya toplu gonderir' },
-            { method: 'GET', path: '/api/integrations/axata-sync/c01/preview', description: 'Mikro sevk fisi bekleyen AXATA C01 belgeleri' },
-            { method: 'POST', path: '/api/integrations/axata-sync/c01/documents/{seri}/{sira}/import', description: 'Secili C01 sevkini Mikroya aktarir' }
+            { method: 'GET', path: '/api/integrations/axata-sync/operations/received-company-order-sync/documents/candidates', description: 'Mikrodan AXATAya gonderilecek alinan firma siparisi adaylari' },
+            { method: 'POST', path: '/api/integrations/axata-sync/operations/received-company-order-sync/documents/dispatch-batch', description: 'Secili alinan firma siparislerini AXATAya toplu gonderir' },
+            { method: 'GET', path: '/api/integrations/axata-sync/c01/preview?date={tarih}&take=200', description: 'Secili gundeki Mikro sevk fisi bekleyen AXATA C01 belgeleri' },
+            { method: 'POST', path: '/api/integrations/axata-sync/c01/documents/{seri}/{sira}/import', description: 'AXATA sira numarasi ile tekillestirilen C01 sevkini Mikroya aktarir' }
           ]
         }
       ]

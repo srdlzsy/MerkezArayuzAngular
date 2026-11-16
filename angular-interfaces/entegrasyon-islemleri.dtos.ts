@@ -791,6 +791,7 @@ export interface IAxataOutboundDeliveryDocumentImportExecuteRequestApiDto {
   dateMode?: string | null;
   movementDate?: string | null;
   documentDate?: string | null;
+  axataSequenceNo?: number | null;
 }
 
 export interface IAxataOutboundDeliveryImportPreviewApiDto {

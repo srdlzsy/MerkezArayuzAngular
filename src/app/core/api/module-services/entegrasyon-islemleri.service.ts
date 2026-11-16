@@ -349,11 +349,12 @@ export class EntegrasyonIslemleriService extends BaseApiService {
     );
   }
 
-  previewAxataC01OutboundDeliveryImport(take?: number | null) {
+  previewAxataC01OutboundDeliveryImport(take?: number | null, date?: string | null) {
     return this.getWithQuery<AxataOutboundDeliveryImportPreviewDto>(
       'integrations/axata-sync/c01/preview',
       {
-        take: take ?? undefined
+        take: take ?? undefined,
+        date: date?.trim() || undefined
       }
     );
   }
