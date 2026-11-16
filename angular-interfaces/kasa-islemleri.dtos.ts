@@ -622,6 +622,10 @@ export interface KasaHareketSalesComparisonSummaryDto {
   totalNetStockTurnover: number;
   totalNetTransferredTurnover: number;
   totalNetDifference: number;
+  totalCheckAmount: number;
+  totalSourceZReportDifference: number;
+  totalPendingInvoiceAmount: number;
+  sourceDataWarningCount: number;
 }
 
 export interface KasaHareketSalesComparisonRowDto {
@@ -650,6 +654,10 @@ export interface KasaHareketSalesComparisonRowDto {
   netStockTurnover: number;
   netTransferredTurnover: number;
   netDifference: number;
+  checkAmount: number;
+  sourceZReportDifference: number;
+  pendingInvoiceAmount: number;
+  hasSourceDataWarning: boolean;
 }
 
 export interface KasaHareketSatisMutabakatReportDto {

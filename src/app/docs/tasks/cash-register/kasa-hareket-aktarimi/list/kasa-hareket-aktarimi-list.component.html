@@ -529,7 +529,7 @@
               <strong>{{ comparison.summary.rowCount }}</strong>
             </article>
             <article class="summary-item" [class.metric-negative]="comparison.summary.differenceCount > 0">
-              <span>Aktarim Farkli Sube</span>
+              <span>Kontrol Gereken Sube</span>
               <strong>{{ comparison.summary.differenceCount }}</strong>
             </article>
             <article class="summary-item">
@@ -545,18 +545,44 @@
               <strong>{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</strong>
             </article>
             <article class="summary-item">
-              <span>Aktarilan Tutar</span>
+              <span>Furpa Kaynak Tutar</span>
               <strong>{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Cek</span>
+              <strong>{{ formatCurrency(comparison.summary.totalCheckAmount) }}</strong>
             </article>
             <article class="summary-item">
               <span>Z Raporu</span>
               <strong>{{ formatCurrency(comparison.summary.totalZReportAmount) }}</strong>
             </article>
             <article class="summary-item" [class.metric-negative]="comparison.summary.totalZReportTransferDifference !== 0">
-              <span>Z Raporu / Ciro Farki</span>
+              <span>Mikro Net / Z + Cek Farki</span>
               <strong>{{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}</strong>
             </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalSourceZReportDifference !== 0">
+              <span>Kaynak Net / Z + Cek Farki</span>
+              <strong>{{ formatCurrency(comparison.summary.totalSourceZReportDifference) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalPendingInvoiceAmount !== 0">
+              <span>Mikro'ya Bekleyen Fatura</span>
+              <strong>{{ formatCurrency(comparison.summary.totalPendingInvoiceAmount) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.sourceDataWarningCount > 0">
+              <span>Kaynak Veri Uyarisi</span>
+              <strong>{{ comparison.summary.sourceDataWarningCount }}</strong>
+            </article>
           </section>
+
+          <article class="state-card state-card-info no-print" *ngIf="comparison.summary.sourceDataWarningCount > 0">
+            <div class="state-card-header">
+              <strong>Kaynak kasa verisi kontrol edilmeli</strong>
+            </div>
+            <p>
+              {{ comparison.summary.sourceDataWarningCount }} subede kasa dosyasi eksigi veya fis baslik-satir tutarsizligi bulundu.
+              Mikro'yu silip yeniden aktarmadan once Kaynak / Z + Cek ve PS Stok / Cari farklarini kontrol edin.
+            </p>
+          </article>
 
           <div class="report-subsection-head" *ngIf="comparison.rows.length">
             <div class="report-subsection-title">
@@ -572,7 +598,7 @@
                 title="Mikro ve Z Raporu Mutabakati tablosunu A4 olarak yazdir"
               >
                 <i class="fa-solid fa-print"></i>
-                <span>{{ salesComparisonPrinting() ? 'Hazirlaniyor...' : 'A4 Yazdir (11 Kolon)' }}</span>
+                <span>{{ salesComparisonPrinting() ? 'Hazirlaniyor...' : 'A4 Yazdir (14 Kolon)' }}</span>
               </button>
             </div>
           </div>
@@ -591,16 +617,22 @@
                   >
                     Stok / Cari Farki (PS)
                   </th>
-                  <th class="align-right">Aktarilan</th>
+                  <th class="align-right">Furpa Kaynak</th>
+                  <th class="align-right">Bekleyen Fatura</th>
                   <th class="align-right">GPS</th>
-                  <th class="align-right">GPS Haric</th>
+                  <th class="align-right">Cek</th>
+                  <th class="align-right">Furpa Net</th>
                   <th class="align-right">Z Raporu</th>
-                  <th class="align-right">Z / Ciro Farki</th>
-                  <th class="align-right">Aktarilan / Ciro Farki</th>
+                  <th class="align-right">Mikro Net / Z + Cek</th>
+                  <th class="align-right">Kaynak Net / Z + Cek</th>
+                  <th class="align-right">Kaynak / Mikro</th>
                 </tr>
               </thead>
               <tbody>
-                <tr *ngFor="let row of comparison.rows; trackBy: trackBySalesComparisonRow">
+                <tr
+                  *ngFor="let row of comparison.rows; trackBy: trackBySalesComparisonRow"
+                  [class.comparison-row-difference]="row.hasDifference || row.hasSourceDataWarning"
+                >
                   <td class="col-date">{{ formatDate(row.date) }}</td>
                   <td class="col-branch"><strong>{{ row.branchNo }} - {{ row.branchName || 'Sube' }}</strong></td>
                   <td class="align-right font-mono">{{ formatCurrency(row.stockMovementAmount) }}</td>
@@ -609,11 +641,18 @@
                     {{ formatCurrency(row.currentStockDifference) }}
                   </td>
                   <td class="align-right font-mono">{{ formatCurrency(row.transferredAmount) }}</td>
+                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.pendingInvoiceAmount !== 0">
+                    {{ formatCurrency(row.pendingInvoiceAmount) }}
+                  </td>
                   <td class="align-right font-mono">{{ formatCurrency(row.expenseReceiptAmount) }}</td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.expenseExcludedAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.checkAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.netTransferredTurnover) }}</td>
                   <td class="align-right font-mono">{{ formatCurrency(row.zReportAmount) }}</td>
                   <td class="align-right font-mono cell-strong" [class.amount-negative]="row.zReportTransferDifference !== 0">
                     {{ formatCurrency(row.zReportTransferDifference) }}
+                  </td>
+                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.sourceZReportDifference !== 0">
+                    {{ formatCurrency(row.sourceZReportDifference) }}
                   </td>
                   <td class="align-right font-mono cell-strong" [class.amount-negative]="row.transferredTurnoverDifference !== 0">
                     {{ formatCurrency(row.transferredTurnoverDifference) }}
@@ -628,10 +667,13 @@
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalPendingInvoiceAmount) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalExpenseReceiptAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount - comparison.summary.totalExpenseReceiptAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCheckAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalNetTransferredTurnover) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportAmount) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalSourceZReportDifference) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredTurnoverDifference) }}</td>
                 </tr>
               </tfoot>
@@ -658,8 +700,8 @@
               <strong>{{ formatCurrency(comparison.summary.totalRetailDifference) }}</strong>
             </article>
             <article class="summary-item" [class.metric-negative]="comparison.summary.totalInvoiceDifference !== 0">
-              <span>Fatura Farki</span>
-              <strong>{{ formatCurrency(comparison.summary.totalInvoiceDifference) }}</strong>
+              <span>Mikro'ya Bekleyen Fatura</span>
+              <strong>{{ formatCurrency(comparison.summary.totalPendingInvoiceAmount) }}</strong>
             </article>
             <article class="summary-item" [class.metric-negative]="comparison.summary.totalExpenseSlipDifference !== 0">
               <span>Gider Pusulasi Farki</span>
@@ -667,12 +709,12 @@
             </article>
           </section>
 
-            <div class="report-subsection-head" *ngIf="comparison.rows.length">
+            <div class="report-subsection-head no-print" *ngIf="comparison.rows.length">
             <h3>Belge Turu Bazli Kontrol</h3>
             <span>Perakende, fatura ve gider pusulasi</span>
           </div>
 
-            <div class="table-wrap sales-comparison-table-wrap" *ngIf="comparison.rows.length">
+            <div class="table-wrap sales-comparison-table-wrap no-print" *ngIf="comparison.rows.length">
             <table class="data-table sales-comparison-table">
               <thead>
                 <tr>
@@ -689,8 +731,8 @@
                   <th class="align-right">Furpa Fis</th>
                   <th class="align-right">Fark</th>
                   <th class="align-right">Mikro Fatura</th>
-                  <th class="align-right">Furpa Fatura</th>
-                  <th class="align-right">Fark</th>
+                  <th class="align-right">Kaynak Fatura</th>
+                  <th class="align-right">Kaynak / Mikro Farki</th>
                   <th class="align-right">Mikro Gider</th>
                   <th class="align-right">Furpa GPS</th>
                   <th class="align-right">Fark</th>
@@ -702,7 +744,7 @@
               <tbody>
                 <tr
                   *ngFor="let row of comparison.rows; trackBy: trackBySalesComparisonRow"
-                  [class.comparison-row-difference]="row.hasDifference"
+                  [class.comparison-row-difference]="row.hasDifference || row.hasSourceDataWarning"
                 >
                   <td>{{ formatDate(row.date) }}</td>
                   <td>
@@ -721,8 +763,12 @@
                   <td class="align-right font-mono">{{ formatCurrency(row.netTransferredTurnover) }}</td>
                   <td class="align-right font-mono cell-strong">{{ formatCurrency(row.netDifference) }}</td>
                   <td>
-                    <span class="status-pill" [class.status-balanced]="!row.hasDifference" [class.status-difference]="row.hasDifference">
-                      {{ row.hasDifference ? 'Fark Var' : 'Dengeli' }}
+                    <span
+                      class="status-pill"
+                      [class.status-balanced]="!row.hasDifference && !row.hasSourceDataWarning"
+                      [class.status-difference]="row.hasDifference || row.hasSourceDataWarning"
+                    >
+                      {{ getSalesComparisonStatus(row) }}
                     </span>
                   </td>
                 </tr>
@@ -745,7 +791,7 @@
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalNetDifference) }}</td>
                   <td>
                     <span class="status-pill" [class.status-balanced]="comparison.summary.differenceCount === 0" [class.status-difference]="comparison.summary.differenceCount > 0">
-                      {{ comparison.summary.differenceCount > 0 ? comparison.summary.differenceCount + ' Fark' : 'Dengeli' }}
+                      {{ comparison.summary.differenceCount > 0 ? comparison.summary.differenceCount + ' Kontrol' : 'Dengeli' }}
                     </span>
                   </td>
                 </tr>

@@ -883,6 +883,24 @@ export class KasaHareketAktarimiListComponent {
     this.showDetailedCategoryComparison.update((v) => !v);
   }
 
+  protected getSalesComparisonStatus(row: KasaHareketSalesComparisonRowDto): string {
+    const statuses: string[] = [];
+
+    if (row.pendingInvoiceAmount > 0.01) {
+      statuses.push('Mikro fatura bekliyor');
+    }
+
+    if (row.hasSourceDataWarning) {
+      statuses.push('Kaynak veri kontrol');
+    }
+
+    if (statuses.length > 0) {
+      return statuses.join(' / ');
+    }
+
+    return row.hasDifference ? 'Aktarim farki' : 'Dengeli';
+  }
+
   protected async printSalesComparison(): Promise<void> {
     const comparison = this.salesComparison();
     if (!comparison || !comparison.rows.length || this.salesComparisonPrinting()) {
@@ -1103,16 +1121,16 @@ export class KasaHareketAktarimiListComponent {
             padding: 0.45mm 0.25mm !important;
           }
 
-          /* Tum 11 Kolonun Tek Sayfaya Sigan Eksiksiz Oranlari */
+          /* Dikey A4'te 14 kolonun toplam genisligi tam olarak yuzde 100'dur. */
           table.sales-audit-table .col-date {
-            width: 7% !important;
+            width: 6% !important;
             text-align: center !important;
             white-space: nowrap !important;
             font-size: 5pt !important;
           }
 
           table.sales-audit-table .col-branch {
-            width: 15% !important;
+            width: 14% !important;
             text-align: left !important;
             white-space: normal !important;
             word-break: break-word !important;
@@ -1123,11 +1141,11 @@ export class KasaHareketAktarimiListComponent {
           table.sales-audit-table th.align-right,
           table.sales-comparison-table td.align-right,
           table.sales-comparison-table th.align-right {
-            width: 8.66% !important;
+            width: 6.66% !important;
             text-align: right !important;
             font-variant-numeric: tabular-nums !important;
             white-space: nowrap !important;
-            font-size: 5.1pt !important;
+            font-size: 4.4pt !important;
           }
 
           table.sales-audit-table th.align-right {
@@ -1843,26 +1861,29 @@ export class KasaHareketAktarimiListComponent {
       { label: 'Sube', value: 'branchName' },
       { label: 'Mikro Stok Hareketi', value: 'stockMovementAmount', type: 'currency' },
       { label: 'Mikro Cari Hareketi', value: 'currentAccountAmount', type: 'currency' },
-      { label: 'Stok Cari Farki (PS)', value: 'currentStockDifference', type: 'currency' },
-      { label: 'Aktarilan Tutar', value: 'transferredAmount', type: 'currency' },
+      { label: 'PS Stok Cari Farki', value: 'currentStockDifference', type: 'currency' },
+      { label: 'Furpa Kaynak Tutar', value: 'transferredAmount', type: 'currency' },
       { label: 'GPS Tutari', value: 'expenseReceiptAmount', type: 'currency' },
       { label: 'GPS Haric', value: 'expenseExcludedAmount', type: 'currency' },
+      { label: 'Cek Tutari', value: 'checkAmount', type: 'currency' },
       { label: 'Z Raporu', value: 'zReportAmount', type: 'currency' },
-      { label: 'Z Raporu Ciro Farki', value: 'zReportTransferDifference', type: 'currency' },
-      { label: 'Aktarilan Ciro Farki', value: 'transferredTurnoverDifference', type: 'currency' },
+      { label: 'Mikro Net - (Z + Cek)', value: 'zReportTransferDifference', type: 'currency' },
+      { label: 'Kaynak Net - (Z + Cek)', value: 'sourceZReportDifference', type: 'currency' },
+      { label: 'Kaynak - Mikro Farki', value: 'transferredTurnoverDifference', type: 'currency' },
       { label: 'Mikro PS', value: 'retailStockAmount', type: 'currency' },
       { label: 'Furpa Perakende Fis', value: 'retailTransferredAmount', type: 'currency' },
       { label: 'Perakende Fis Farki', value: 'retailDifference', type: 'currency' },
       { label: 'Mikro Fatura', value: 'invoiceStockAmount', type: 'currency' },
-      { label: 'Furpa Fatura', value: 'invoiceTransferredAmount', type: 'currency' },
-      { label: 'Fatura Farki', value: 'invoiceDifference', type: 'currency' },
+      { label: 'Kaynak Fatura', value: 'invoiceTransferredAmount', type: 'currency' },
+      { label: 'Bekleyen Fatura', value: 'pendingInvoiceAmount', type: 'currency' },
       { label: 'Mikro Gider Pusulasi', value: 'expenseSlipStockAmount', type: 'currency' },
       { label: 'Furpa Gider Pusulasi', value: 'expenseSlipTransferredAmount', type: 'currency' },
       { label: 'Gider Pusulasi Farki', value: 'expenseSlipDifference', type: 'currency' },
       { label: 'Mikro Net', value: 'netStockTurnover', type: 'currency' },
       { label: 'Furpa Net', value: 'netTransferredTurnover', type: 'currency' },
       { label: 'Genel Net Fark', value: 'netDifference', type: 'currency' },
-      { label: 'Durum', value: (row) => (row.hasDifference ? 'Fark Var' : 'Dengeli') }
+      { label: 'Kaynak Veri Uyarisi', value: (row) => (row.hasSourceDataWarning ? 'Var' : 'Yok') },
+      { label: 'Durum', value: (row) => this.getSalesComparisonStatus(row) }
     ];
   }
 
