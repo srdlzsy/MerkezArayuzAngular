@@ -4,7 +4,8 @@ import { TestBed } from '@angular/core/testing';
 import type {
   CustomerAddressDto,
   CustomerAddressPatchHttpRequest,
-  CustomerAddressUpdateResponse
+  CustomerAddressUpdateResponse,
+  MikroDocumentCandidateDto
 } from '@interfaces';
 
 import { API_BASE_URL } from '../api-base-url.token';
@@ -27,6 +28,22 @@ describe('DuzeltmeIslemleriService customer addresses', () => {
   });
 
   afterEach(() => httpTesting.verify());
+
+  it('finds Mikro document candidates by serie and order number', () => {
+    service
+      .findDocuments({ documentSerie: 'G3', documentOrderNo: 2262 })
+      .subscribe((documents: MikroDocumentCandidateDto[]) => expect(documents).toEqual([]));
+
+    const request = httpTesting.expectOne(
+      (candidate) =>
+        candidate.url ===
+          'https://api.test/api/duzeltme-islemleri/mikro-evrak-duzenleme/evrak-eslesmeleri' &&
+        candidate.params.get('documentSerie') === 'G3' &&
+        candidate.params.get('documentOrderNo') === '2262'
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
 
   it('gets the existing addresses of an encoded customer code', () => {
     service.getCustomerAddresses('3200/6414').subscribe((addresses: CustomerAddressDto[]) => {

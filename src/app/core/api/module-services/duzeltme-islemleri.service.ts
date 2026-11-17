@@ -24,6 +24,8 @@ import type {
   InventoryCountDocumentLookupHttpRequest,
   InventoryCountDocumentUpdateResponse,
   MikroDocumentFieldCatalogDto,
+  MikroDocumentCandidateDto,
+  MikroDocumentSearchHttpRequest,
   MikroDocumentDeleteResponse,
   StockCardDetailDto,
   StockCardListItemDto,
@@ -67,6 +69,10 @@ const ROOT = 'duzeltme-islemleri/mikro-evrak-duzenleme';
 export class DuzeltmeIslemleriService extends BaseApiService {
   getFieldCatalog(): Observable<MikroDocumentFieldCatalogDto> {
     return this.get<MikroDocumentFieldCatalogDto>(`${ROOT}/alan-haritasi`);
+  }
+
+  findDocuments(query: MikroDocumentSearchHttpRequest): Observable<MikroDocumentCandidateDto[]> {
+    return this.getWithQuery<MikroDocumentCandidateDto[]>(`${ROOT}/evrak-eslesmeleri`, query);
   }
 
   searchStockCards(query: StockCardSearchHttpRequest): Observable<StockCardListItemDto[]> {

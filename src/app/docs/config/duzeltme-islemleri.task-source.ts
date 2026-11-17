@@ -29,6 +29,12 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/evrak-eslesmeleri',
+              description:
+                'Seri ve sira ile stok, cari, firma siparisi ve depo siparisi tablolarindaki fiziksel evrak adaylarini getirir'
+            },
+            {
+              method: 'GET',
               path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/alan-haritasi',
               description: 'Form alan adlari, Mikro kolonlari, veri tipleri ve editable bilgisini getirir'
             },

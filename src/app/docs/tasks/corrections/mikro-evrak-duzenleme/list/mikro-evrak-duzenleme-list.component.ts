@@ -24,6 +24,7 @@ import type {
   InventoryCountDocumentLineDto,
   InventoryCountDocumentLookupHttpRequest,
   InventoryCountDocumentUpdateResponse,
+  MikroDocumentCandidateDto,
   MikroDocumentDeleteResponse,
   MikroDocumentFieldCatalogDto,
   MikroDocumentFieldCatalogFieldDto,
@@ -76,6 +77,7 @@ type EditorTab =
   | 'warehouse-order'
   | 'banknote-track';
 type BusyAction =
+  | 'document-search'
   | 'stock-search'
   | 'stock-detail'
   | 'stock-save'
@@ -589,6 +591,8 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly activeTab = signal<EditorTab>('stock-card');
   protected readonly busyAction = signal<BusyAction | null>(null);
   protected readonly feedback = signal<Feedback | null>(null);
+  protected readonly documentCandidates = signal<MikroDocumentCandidateDto[]>([]);
+  protected readonly selectedDocumentCandidate = signal<MikroDocumentCandidateDto | null>(null);
   protected readonly stockCards = signal<StockCardListItemDto[]>([]);
   protected readonly selectedStockCard = signal<StockCardDetailDto | null>(null);
   protected readonly stockCardDraft = signal<StockCardDetailDto | null>(null);
@@ -670,6 +674,10 @@ export class MikroEvrakDuzenlemeListComponent {
     searchText: '',
     includePassive: false,
     take: 50
+  };
+  protected documentSearch = {
+    documentSerie: '',
+    documentOrderNo: 0
   };
   protected warehouseCardSearch = {
     searchText: '',
@@ -835,6 +843,152 @@ export class MikroEvrakDuzenlemeListComponent {
     this.activeTab.set(tab);
     this.feedback.set(null);
   }
+
+  protected searchDocuments(): void {
+    const documentSerie = this.documentSearch.documentSerie.trim();
+    const documentOrderNo = Number(this.documentSearch.documentOrderNo);
+    if (!this.canDetail() || !documentSerie || !Number.isInteger(documentOrderNo) || documentOrderNo < 0) {
+      this.setInfo('Seri ve sira gerekli', 'Mikro evrak serisini ve sira numarasini girin.');
+      return;
+    }
+
+    this.busyAction.set('document-search');
+    this.feedback.set(null);
+    this.documentCandidates.set([]);
+    this.selectedDocumentCandidate.set(null);
+    this.service
+      .findDocuments({ documentSerie, documentOrderNo })
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (documents: MikroDocumentCandidateDto[]) => {
+          this.documentCandidates.set(documents);
+          if (documents.length === 0) {
+            this.feedback.set({
+              tone: 'error',
+              title: 'Evrak bulunamadi',
+              message: `${documentSerie}/${documentOrderNo} STOK_HAREKETLERI, CARI_HESAP_HAREKETLERI, SIPARISLER ve DEPOLAR_ARASI_SIPARISLER tablolarinda bulunamadi.`
+            });
+            return;
+          }
+
+          if (documents.length === 1) {
+            this.selectDocumentCandidate(documents[0]);
+            return;
+          }
+
+          this.feedback.set({
+            tone: 'info',
+            title: 'Birden fazla Mikro evraki bulundu',
+            message: `${documents.length} fiziksel evraktan duzenlemek istediginizi secin.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Mikro evraklari aranirken hata olustu.')
+      });
+  }
+
+  protected selectDocumentCandidate(candidate: MikroDocumentCandidateDto): void {
+    this.selectedDocumentCandidate.set(candidate);
+    this.documentCandidates.set([]);
+
+    if (candidate.documentFamily === 'stock-movement') {
+      this.activeTab.set('stock-movement');
+      this.stockLookup = {
+        documentSerie: candidate.documentSerie,
+        documentOrderNo: candidate.documentOrderNo,
+        documentType: candidate.documentType,
+        movementType: candidate.movementTypes.length === 1 ? candidate.movementTypes[0] ?? null : null,
+        movementKind: candidate.movementKind,
+        normalReturn: candidate.normalReturn,
+        warehouseNo: null
+      };
+      this.openSelectedStockMovement();
+      return;
+    }
+
+    if (candidate.documentFamily === 'customer-movement') {
+      this.activeTab.set('customer-movement');
+      this.customerLookup = {
+        documentSerie: candidate.documentSerie,
+        documentOrderNo: candidate.documentOrderNo,
+        documentType: candidate.documentType,
+        movementType: candidate.movementTypes.length === 1 ? candidate.movementTypes[0] ?? null : null,
+        movementKind: candidate.movementKind,
+        normalReturn: candidate.normalReturn,
+        customerCode: candidate.referenceCode
+      };
+      this.loadCustomerMovement();
+      return;
+    }
+
+    if (candidate.documentFamily === 'company-order') {
+      this.activeTab.set('company-order');
+      this.companyOrderLookup = {
+        documentSerie: candidate.documentSerie,
+        documentOrderNo: candidate.documentOrderNo,
+        orderType: candidate.orderType,
+        orderKind: candidate.orderKind,
+        warehouseNo: candidate.warehouseNo,
+        customerCode: candidate.referenceCode
+      };
+      this.loadCompanyOrder();
+      return;
+    }
+
+    this.activeTab.set('warehouse-order');
+    this.warehouseOrderLookup = {
+      documentSerie: candidate.documentSerie,
+      documentOrderNo: candidate.documentOrderNo,
+      warehouseNo: null,
+      inWarehouseNo: candidate.inputWarehouseNo,
+      outWarehouseNo: candidate.outputWarehouseNo
+    };
+    this.loadWarehouseOrder();
+  }
+
+  protected candidateIdentityParts(candidate: MikroDocumentCandidateDto): string[] {
+    const parts = [
+      candidate.documentTypeName,
+      candidate.movementTypeNames.join(' / '),
+      candidate.movementKindName,
+      candidate.normalReturnName,
+      candidate.orderTypeName,
+      candidate.orderKindName
+    ];
+    return parts.filter((part) => !!part?.trim());
+  }
+
+  protected candidateWarehouseLabel(candidate: MikroDocumentCandidateDto): string {
+    if (candidate.inputWarehouseNo || candidate.outputWarehouseNo) {
+      const output = candidate.outputWarehouseNo
+        ? `${candidate.outputWarehouseNo} ${candidate.outputWarehouseName}`.trim()
+        : '-';
+      const input = candidate.inputWarehouseNo
+        ? `${candidate.inputWarehouseNo} ${candidate.inputWarehouseName}`.trim()
+        : '-';
+      return `${output} -> ${input}`;
+    }
+
+    return candidate.warehouseNo
+      ? `${candidate.warehouseNo} ${candidate.warehouseName}`.trim()
+      : 'Depo bilgisi yok';
+  }
+
+  protected trackByDocumentCandidate = (_index: number, candidate: MikroDocumentCandidateDto): string =>
+    [
+      candidate.documentFamily,
+      candidate.documentSerie,
+      candidate.documentOrderNo,
+      candidate.documentType,
+      candidate.movementKind,
+      candidate.normalReturn,
+      candidate.orderType,
+      candidate.orderKind,
+      candidate.inputWarehouseNo,
+      candidate.outputWarehouseNo
+    ].join('|');
 
   protected isBusy(action: BusyAction): boolean {
     return this.busyAction() === action;
@@ -1306,6 +1460,22 @@ export class MikroEvrakDuzenlemeListComponent {
           });
         },
         error: (error: unknown) => this.handleError(error, 'Stok hareket evrakı getirilemedi.')
+      });
+  }
+
+  private openSelectedStockMovement(): void {
+    this.busyAction.set('movement-load');
+    this.feedback.set(null);
+    this.stockMovementMatches.set([]);
+    this.service
+      .getStockMovementDocument(this.cleanLookup(this.stockLookup))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (document: StockMovementDocumentDto) => this.applyStockMovement(document),
+        error: (error: unknown) => this.handleError(error, 'Secilen stok hareket evraki getirilemedi.')
       });
   }
 
@@ -2179,7 +2349,10 @@ export class MikroEvrakDuzenlemeListComponent {
         const metadata = this.getFieldMetadata(field);
 
         if (metadata?.displayName?.trim()) {
-          field.label = metadata.displayName.trim();
+          const columnName = metadata.mikroColumn?.trim();
+          field.label = columnName && columnName !== '-'
+            ? `${metadata.displayName.trim()} (${columnName})`
+            : metadata.displayName.trim();
         }
       }
     }

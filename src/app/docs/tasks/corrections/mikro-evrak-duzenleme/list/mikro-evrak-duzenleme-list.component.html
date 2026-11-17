@@ -13,6 +13,92 @@
     </div>
   </header>
 
+  <section class="document-finder" aria-label="Mikro evrak arama">
+    <div class="document-finder-copy">
+      <p class="panel-kicker">MIKRO EVRAK BULUCU</p>
+      <h3>Seri ve sıra ile bütün evraklarda ara</h3>
+      <p>Stok, cari, firma siparişi ve depo siparişi tablolarını birlikte tarar.</p>
+    </div>
+    <label class="field">
+      <span>Belge Serisi</span>
+      <input
+        type="text"
+        maxlength="20"
+        [(ngModel)]="documentSearch.documentSerie"
+        [ngModelOptions]="{ standalone: true }"
+        placeholder="Örn. F143"
+        (keyup.enter)="searchDocuments()"
+      />
+    </label>
+    <label class="field">
+      <span>Belge Sıra</span>
+      <input
+        type="number"
+        min="0"
+        [(ngModel)]="documentSearch.documentOrderNo"
+        [ngModelOptions]="{ standalone: true }"
+        (keyup.enter)="searchDocuments()"
+      />
+    </label>
+    <button
+      type="button"
+      class="primary-action"
+      [disabled]="!canDetail() || isBusy('document-search')"
+      (click)="searchDocuments()"
+      title="Seri ve sıra numarasını tüm desteklenen Mikro evrak tablolarında ara"
+    >
+      <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+      {{ isBusy('document-search') ? 'Aranıyor...' : 'Bütün Evraklarda Ara' }}
+    </button>
+  </section>
+
+  <section class="document-candidate-panel" *ngIf="documentCandidates().length">
+    <header>
+      <div>
+        <p class="panel-kicker">AYNI SERİ / SIRA EŞLEŞMELERİ</p>
+        <h3>Düzenlenecek fiziksel evrakı seçin</h3>
+      </div>
+      <strong>{{ documentCandidates().length }} evrak</strong>
+    </header>
+    <div class="document-candidate-list">
+      <button
+        type="button"
+        class="document-candidate-row"
+        *ngFor="let candidate of documentCandidates(); trackBy: trackByDocumentCandidate"
+        (click)="selectDocumentCandidate(candidate)"
+      >
+        <span class="candidate-table">{{ candidate.mikroTable }}</span>
+        <strong>{{ candidate.documentFamilyName }}</strong>
+        <span class="candidate-reference">
+          {{ candidate.referenceName || candidate.referenceCode || candidateWarehouseLabel(candidate) }}
+        </span>
+        <span class="candidate-identities">
+          <code *ngFor="let identity of candidateIdentityParts(candidate)">{{ identity }}</code>
+        </span>
+        <small>
+          {{ candidate.documentDate | date: 'dd.MM.yyyy' }} ·
+          {{ candidateWarehouseLabel(candidate) }} ·
+          {{ candidate.lineCount }} satır ·
+          {{ candidate.totalQuantity | number: '1.0-3' }} miktar ·
+          {{ candidate.totalAmount | number: '1.2-2' }} tutar
+        </small>
+        <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+      </button>
+    </div>
+  </section>
+
+  <article class="selected-document-identity" *ngIf="selectedDocumentCandidate() as candidate">
+    <div>
+      <span class="candidate-table">{{ candidate.mikroTable }}</span>
+      <strong>{{ candidate.documentSerie }}/{{ candidate.documentOrderNo }}</strong>
+      <span>{{ candidate.documentFamilyName }}</span>
+    </div>
+    <div class="candidate-identities">
+      <code *ngFor="let identity of candidateIdentityParts(candidate)">{{ identity }}</code>
+      <code>{{ candidateWarehouseLabel(candidate) }}</code>
+    </div>
+  </article>
+
   <nav class="tab-strip" aria-label="Mikro evrak türleri">
     <button
       *ngFor="let tab of tabs"

@@ -530,6 +530,43 @@ export interface StockMovementDocumentLookupHttpRequest {
   warehouseNo?: number | null;
 }
 
+export interface MikroDocumentSearchHttpRequest {
+  documentSerie: string;
+  documentOrderNo: number;
+}
+
+export interface MikroDocumentCandidateDto {
+  documentFamily: 'stock-movement' | 'customer-movement' | 'company-order' | 'warehouse-order';
+  documentFamilyName: string;
+  mikroTable: string;
+  documentSerie: string;
+  documentOrderNo: number;
+  documentType: number | null;
+  documentTypeName: string;
+  movementTypes: number[];
+  movementTypeNames: string[];
+  movementKind: number | null;
+  movementKindName: string;
+  normalReturn: number | null;
+  normalReturnName: string;
+  orderType: number | null;
+  orderTypeName: string;
+  orderKind: number | null;
+  orderKindName: string;
+  documentDate: string | null;
+  referenceCode: string;
+  referenceName: string;
+  warehouseNo: number | null;
+  warehouseName: string;
+  inputWarehouseNo: number | null;
+  inputWarehouseName: string;
+  outputWarehouseNo: number | null;
+  outputWarehouseName: string;
+  lineCount: number;
+  totalQuantity: number;
+  totalAmount: number;
+}
+
 export interface StockMovementDocumentDeleteHttpRequest
   extends StockMovementDocumentLookupHttpRequest {
   hardDelete?: boolean | null;
