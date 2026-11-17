@@ -22,6 +22,7 @@ import type {
   CustomerMovementDocumentUpdateResponse,
   InventoryCountDocumentDto,
   InventoryCountDocumentLookupHttpRequest,
+  InventoryCountDocumentSearchHttpRequest,
   InventoryCountDocumentUpdateResponse,
   MikroDocumentFieldCatalogDto,
   MikroDocumentCandidateDto,
@@ -293,6 +294,15 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     return this.getWithQuery<InventoryCountDocumentDto>(`${ROOT}/sayim-sonuclari`, query);
   }
 
+  findInventoryCountDocuments(
+    query: InventoryCountDocumentSearchHttpRequest
+  ): Observable<InventoryCountDocumentDto[]> {
+    return this.getWithQuery<InventoryCountDocumentDto[]>(
+      `${ROOT}/sayim-sonuclari/eslesmeler`,
+      query
+    );
+  }
+
   updateInventoryCountDocument(
     request: UpdateInventoryCountDocumentHttpRequest
   ): Observable<InventoryCountDocumentUpdateResponse> {
@@ -306,6 +316,15 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     query: CustomerMovementDocumentLookupHttpRequest
   ): Observable<CustomerMovementDocumentDto> {
     return this.getWithQuery<CustomerMovementDocumentDto>(`${ROOT}/cari-hareketleri`, query);
+  }
+
+  findCustomerMovementDocuments(
+    query: CustomerMovementDocumentLookupHttpRequest
+  ): Observable<CustomerMovementDocumentDto[]> {
+    return this.getWithQuery<CustomerMovementDocumentDto[]>(
+      `${ROOT}/cari-hareketleri/eslesmeler`,
+      query
+    );
   }
 
   updateCustomerMovementDocument(
@@ -334,6 +353,15 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     return this.getWithQuery<CompanyOrderDocumentDto>(`${ROOT}/firma-siparisleri`, query);
   }
 
+  findCompanyOrderDocuments(
+    query: CompanyOrderDocumentLookupHttpRequest
+  ): Observable<CompanyOrderDocumentDto[]> {
+    return this.getWithQuery<CompanyOrderDocumentDto[]>(
+      `${ROOT}/firma-siparisleri/eslesmeler`,
+      query
+    );
+  }
+
   updateCompanyOrderDocument(
     request: UpdateCompanyOrderDocumentHttpRequest
   ): Observable<CompanyOrderDocumentUpdateResponse> {
@@ -358,6 +386,15 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     query: WarehouseOrderDocumentLookupHttpRequest
   ): Observable<WarehouseOrderDocumentDto> {
     return this.getWithQuery<WarehouseOrderDocumentDto>(`${ROOT}/depo-siparisleri`, query);
+  }
+
+  findWarehouseOrderDocuments(
+    query: WarehouseOrderDocumentLookupHttpRequest
+  ): Observable<WarehouseOrderDocumentDto[]> {
+    return this.getWithQuery<WarehouseOrderDocumentDto[]>(
+      `${ROOT}/depo-siparisleri/eslesmeler`,
+      query
+    );
   }
 
   updateWarehouseOrderDocument(

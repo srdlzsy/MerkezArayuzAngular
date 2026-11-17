@@ -23,6 +23,7 @@ import type {
   InventoryCountDocumentDto,
   InventoryCountDocumentLineDto,
   InventoryCountDocumentLookupHttpRequest,
+  InventoryCountDocumentSearchHttpRequest,
   InventoryCountDocumentUpdateResponse,
   MikroDocumentCandidateDto,
   MikroDocumentDeleteResponse,
@@ -621,12 +622,18 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockMovementMatches = signal<StockMovementDocumentDto[]>([]);
   protected readonly inventoryCount = signal<InventoryCountDocumentDto | null>(null);
   protected readonly inventoryCountDraft = signal<InventoryCountDocumentDto | null>(null);
+  protected readonly inventoryCountMatches = signal<InventoryCountDocumentDto[]>([]);
   protected readonly customerMovement = signal<CustomerMovementDocumentDto | null>(null);
   protected readonly customerMovementDraft = signal<CustomerMovementDocumentDto | null>(null);
+  protected readonly customerMovementMatches = signal<CustomerMovementDocumentDto[]>([]);
   protected readonly companyOrder = signal<CompanyOrderDocumentDto | null>(null);
   protected readonly companyOrderDraft = signal<CompanyOrderDocumentDto | null>(null);
+  protected readonly companyOrderMatches = signal<CompanyOrderDocumentDto[]>([]);
   protected readonly warehouseOrder = signal<WarehouseOrderDocumentDto | null>(null);
   protected readonly warehouseOrderDraft = signal<WarehouseOrderDocumentDto | null>(null);
+  protected readonly warehouseOrderMatches = signal<WarehouseOrderDocumentDto[]>([]);
+  protected readonly lineSearchText = signal<string>('');
+  protected readonly expandAllLines = signal<boolean>(false);
   protected readonly banknoteTrack = signal<BanknoteTrackDetailDto | null>(null);
   protected readonly banknoteTrackDraft = signal<BanknoteTrackDetailDto | null>(null);
   protected readonly fieldCatalogLoading = signal(false);
@@ -842,6 +849,8 @@ export class MikroEvrakDuzenlemeListComponent {
   protected selectTab(tab: EditorTab): void {
     this.activeTab.set(tab);
     this.feedback.set(null);
+    this.lineSearchText.set('');
+    this.expandAllLines.set(false);
   }
 
   protected searchDocuments(): void {
@@ -1520,7 +1529,97 @@ export class MikroEvrakDuzenlemeListComponent {
       return 'Stok Fişi';
     }
 
-    return `Stok Evrakı (Tip ${header.documentType}, Cins ${header.movementKind})`;
+    return header.documentTypeName || `Stok Evrakı (Tip ${header.documentType}, Cins ${header.movementKind})`;
+  }
+
+  protected customerMovementTypeLabel(document: CustomerMovementDocumentDto): string {
+    const header = document.header;
+    return header.documentTypeName || `Cari Evrakı (Tip ${header.documentType}, Cins ${header.movementKind})`;
+  }
+
+  protected companyOrderTypeLabel(document: CompanyOrderDocumentDto): string {
+    const header = document.header;
+    return header.orderTypeName || (header.orderType === 0 ? 'Alınan Firma Siparişi' : 'Verilen Firma Siparişi');
+  }
+
+  protected warehouseOrderTypeLabel(document: WarehouseOrderDocumentDto): string {
+    const header = document.header;
+    const outWh = header.outWarehouseName ? `${header.outWarehouseNo} - ${header.outWarehouseName}` : `Depo ${header.outWarehouseNo}`;
+    const inWh = header.inWarehouseName ? `${header.inWarehouseNo} - ${header.inWarehouseName}` : `Depo ${header.inWarehouseNo}`;
+    return `${outWh} → ${inWh}`;
+  }
+
+  protected inventoryCountTypeLabel(document: InventoryCountDocumentDto): string {
+    const header = document.header;
+    return `${header.warehouseNo} - ${header.warehouseName || 'Depo'}`;
+  }
+
+  protected selectCustomerMovementMatch(document: CustomerMovementDocumentDto): void {
+    this.customerMovementMatches.set([]);
+    this.applyCustomerMovement(document);
+    this.feedback.set({
+      tone: 'info',
+      title: 'Evrak açıldı',
+      message: `${document.header.documentSerie}-${document.header.documentOrderNo} düzenlemeye hazır.`
+    });
+  }
+
+  protected selectCompanyOrderMatch(document: CompanyOrderDocumentDto): void {
+    this.companyOrderMatches.set([]);
+    this.applyCompanyOrder(document);
+    this.feedback.set({
+      tone: 'info',
+      title: 'Sipariş açıldı',
+      message: `${document.header.documentSerie}-${document.header.documentOrderNo} düzenlemeye hazır.`
+    });
+  }
+
+  protected selectWarehouseOrderMatch(document: WarehouseOrderDocumentDto): void {
+    this.warehouseOrderMatches.set([]);
+    this.applyWarehouseOrder(document);
+    this.feedback.set({
+      tone: 'info',
+      title: 'Sipariş açıldı',
+      message: `${document.header.documentSerie}-${document.header.documentOrderNo} düzenlemeye hazır.`
+    });
+  }
+
+  protected selectInventoryCountMatch(document: InventoryCountDocumentDto): void {
+    this.inventoryCountMatches.set([]);
+    this.applyInventoryCount(document);
+    this.feedback.set({
+      tone: 'info',
+      title: 'Sayım fişi açıldı',
+      message: `Depo: ${document.header.warehouseNo} · Evrak No: ${document.header.documentNo} düzenlemeye hazır.`
+    });
+  }
+
+  protected trackByCustomerMovementMatch = (_: number, item: CustomerMovementDocumentDto): string =>
+    `${item.header.documentSerie}-${item.header.documentOrderNo}-${item.header.documentType}`;
+
+  protected trackByCompanyOrderMatch = (_: number, item: CompanyOrderDocumentDto): string =>
+    `${item.header.documentSerie}-${item.header.documentOrderNo}-${item.header.orderType}-${item.header.warehouseNo}`;
+
+  protected trackByWarehouseOrderMatch = (_: number, item: WarehouseOrderDocumentDto): string =>
+    `${item.header.documentSerie}-${item.header.documentOrderNo}-${item.header.outWarehouseNo}-${item.header.inWarehouseNo}`;
+
+  protected trackByInventoryCountMatch = (_: number, item: InventoryCountDocumentDto): string =>
+    `${item.header.warehouseNo}-${item.header.documentNo}-${item.header.documentDate}`;
+
+  protected matchesLineFilter(stockCode?: string | null, stockName?: string | null, description?: string | null): boolean {
+    const query = this.lineSearchText().trim().toLowerCase();
+    if (!query) {
+      return true;
+    }
+    return (
+      (stockCode?.toLowerCase().includes(query) ?? false) ||
+      (stockName?.toLowerCase().includes(query) ?? false) ||
+      (description?.toLowerCase().includes(query) ?? false)
+    );
+  }
+
+  protected toggleExpandAllLines(): void {
+    this.expandAllLines.update(v => !v);
   }
 
   protected stockMovementWarehouseLabel(document: StockMovementDocumentDto): string {
@@ -1614,21 +1713,53 @@ export class MikroEvrakDuzenlemeListComponent {
   }
 
   protected loadInventoryCount(): void {
-    if (!this.canDetail() || !this.validateInventoryCountLookup()) {
+    if (!this.canDetail() || !this.validateInventoryCountSearch()) {
       return;
     }
 
+    const searchRequest: InventoryCountDocumentSearchHttpRequest = {
+      documentNo: this.inventoryCountLookup.documentNo,
+      warehouseNo: this.inventoryCountLookup.warehouseNo > 0 ? this.inventoryCountLookup.warehouseNo : null,
+      documentDate: this.inventoryCountLookup.documentDate?.trim() || null
+    };
+
     this.busyAction.set('inventory-count-load');
     this.feedback.set(null);
+    this.inventoryCountMatches.set([]);
     this.service
-      .getInventoryCountDocument(this.cleanLookup(this.inventoryCountLookup))
+      .findInventoryCountDocuments(searchRequest)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busyAction.set(null))
       )
       .subscribe({
-        next: (document: InventoryCountDocumentDto) => this.applyInventoryCount(document),
-        error: (error: unknown) => this.handleError(error, 'Sayim sonucu fisi getirilemedi.')
+        next: (documents: InventoryCountDocumentDto[]) => {
+          if (documents.length === 0) {
+            this.inventoryCount.set(null);
+            this.inventoryCountDraft.set(null);
+            this.feedback.set({
+              tone: 'error',
+              title: 'Evrak bulunamadı',
+              message: 'Bu evrak numarasıyla eşleşen sayım sonucu fişi bulunamadı.'
+            });
+            return;
+          }
+
+          if (documents.length === 1) {
+            this.applyInventoryCount(documents[0]);
+            return;
+          }
+
+          this.inventoryCount.set(null);
+          this.inventoryCountDraft.set(null);
+          this.inventoryCountMatches.set(documents);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Birden fazla evrak bulundu',
+            message: `${documents.length} sayım fişinden düzenlemek istediğinizi seçin.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Sayım sonucu fişi getirilemedi.')
       });
   }
 
@@ -1679,17 +1810,52 @@ export class MikroEvrakDuzenlemeListComponent {
       return;
     }
 
+    const lookup: CustomerMovementDocumentLookupHttpRequest = {
+      documentSerie: this.customerLookup.documentSerie,
+      documentOrderNo: this.customerLookup.documentOrderNo,
+      documentType: this.customerLookup.documentType || null,
+      movementType: this.customerLookup.movementType || null,
+      movementKind: this.customerLookup.movementKind || null,
+      normalReturn: this.customerLookup.normalReturn || null,
+      customerCode: this.customerLookup.customerCode?.trim() || null
+    };
+
     this.busyAction.set('customer-load');
     this.feedback.set(null);
+    this.customerMovementMatches.set([]);
     this.service
-      .getCustomerMovementDocument(this.cleanLookup(this.customerLookup))
+      .findCustomerMovementDocuments(this.cleanLookup(lookup))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busyAction.set(null))
       )
       .subscribe({
-        next: (document: CustomerMovementDocumentDto) =>
-          this.applyCustomerMovement(document),
+        next: (documents: CustomerMovementDocumentDto[]) => {
+          if (documents.length === 0) {
+            this.customerMovement.set(null);
+            this.customerMovementDraft.set(null);
+            this.feedback.set({
+              tone: 'error',
+              title: 'Evrak bulunamadı',
+              message: 'Bu seri ve sıra numarasıyla eşleşen cari hareket evrakı bulunamadı.'
+            });
+            return;
+          }
+
+          if (documents.length === 1) {
+            this.applyCustomerMovement(documents[0]);
+            return;
+          }
+
+          this.customerMovement.set(null);
+          this.customerMovementDraft.set(null);
+          this.customerMovementMatches.set(documents);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Birden fazla evrak bulundu',
+            message: `${documents.length} eşleşmeden düzenlemek istediğiniz evrakı seçin.`
+          });
+        },
         error: (error: unknown) => this.handleError(error, 'Cari hareket evrakı getirilemedi.')
       });
   }
@@ -1772,17 +1938,52 @@ export class MikroEvrakDuzenlemeListComponent {
       return;
     }
 
+    const lookup: CompanyOrderDocumentLookupHttpRequest = {
+      documentSerie: this.companyOrderLookup.documentSerie,
+      documentOrderNo: this.companyOrderLookup.documentOrderNo,
+      orderType: this.companyOrderLookup.orderType || null,
+      orderKind: this.companyOrderLookup.orderKind || null,
+      warehouseNo: (this.companyOrderLookup.warehouseNo ?? 0) > 0 ? this.companyOrderLookup.warehouseNo : null,
+      customerCode: this.companyOrderLookup.customerCode?.trim() || null
+    };
+
     this.busyAction.set('company-order-load');
     this.feedback.set(null);
+    this.companyOrderMatches.set([]);
     this.service
-      .getCompanyOrderDocument(this.cleanLookup(this.companyOrderLookup))
+      .findCompanyOrderDocuments(this.cleanLookup(lookup))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busyAction.set(null))
       )
       .subscribe({
-        next: (document: CompanyOrderDocumentDto) => this.applyCompanyOrder(document),
-        error: (error: unknown) => this.handleError(error, 'Firma siparis evraki getirilemedi.')
+        next: (documents: CompanyOrderDocumentDto[]) => {
+          if (documents.length === 0) {
+            this.companyOrder.set(null);
+            this.companyOrderDraft.set(null);
+            this.feedback.set({
+              tone: 'error',
+              title: 'Sipariş bulunamadı',
+              message: 'Bu seri ve sıra numarasıyla eşleşen firma siparişi bulunamadı.'
+            });
+            return;
+          }
+
+          if (documents.length === 1) {
+            this.applyCompanyOrder(documents[0]);
+            return;
+          }
+
+          this.companyOrder.set(null);
+          this.companyOrderDraft.set(null);
+          this.companyOrderMatches.set(documents);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Birden fazla sipariş bulundu',
+            message: `${documents.length} eşleşmeden düzenlemek istediğiniz siparişi seçin.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Firma sipariş evrakı getirilemedi.')
       });
   }
 
@@ -1865,17 +2066,51 @@ export class MikroEvrakDuzenlemeListComponent {
       return;
     }
 
+    const lookup: WarehouseOrderDocumentLookupHttpRequest = {
+      documentSerie: this.warehouseOrderLookup.documentSerie,
+      documentOrderNo: this.warehouseOrderLookup.documentOrderNo,
+      warehouseNo: (this.warehouseOrderLookup.warehouseNo ?? 0) > 0 ? this.warehouseOrderLookup.warehouseNo : null,
+      inWarehouseNo: (this.warehouseOrderLookup.inWarehouseNo ?? 0) > 0 ? this.warehouseOrderLookup.inWarehouseNo : null,
+      outWarehouseNo: (this.warehouseOrderLookup.outWarehouseNo ?? 0) > 0 ? this.warehouseOrderLookup.outWarehouseNo : null
+    };
+
     this.busyAction.set('warehouse-order-load');
     this.feedback.set(null);
+    this.warehouseOrderMatches.set([]);
     this.service
-      .getWarehouseOrderDocument(this.cleanLookup(this.warehouseOrderLookup))
+      .findWarehouseOrderDocuments(this.cleanLookup(lookup))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => this.busyAction.set(null))
       )
       .subscribe({
-        next: (document: WarehouseOrderDocumentDto) => this.applyWarehouseOrder(document),
-        error: (error: unknown) => this.handleError(error, 'Depo siparis evraki getirilemedi.')
+        next: (documents: WarehouseOrderDocumentDto[]) => {
+          if (documents.length === 0) {
+            this.warehouseOrder.set(null);
+            this.warehouseOrderDraft.set(null);
+            this.feedback.set({
+              tone: 'error',
+              title: 'Sipariş bulunamadı',
+              message: 'Bu seri ve sıra numarasıyla eşleşen depo siparişi bulunamadı.'
+            });
+            return;
+          }
+
+          if (documents.length === 1) {
+            this.applyWarehouseOrder(documents[0]);
+            return;
+          }
+
+          this.warehouseOrder.set(null);
+          this.warehouseOrderDraft.set(null);
+          this.warehouseOrderMatches.set(documents);
+          this.feedback.set({
+            tone: 'info',
+            title: 'Birden fazla sipariş bulundu',
+            message: `${documents.length} eşleşmeden düzenlemek istediğiniz siparişi seçin.`
+          });
+        },
+        error: (error: unknown) => this.handleError(error, 'Depo sipariş evrakı getirilemedi.')
       });
   }
 
@@ -2773,6 +3008,20 @@ export class MikroEvrakDuzenlemeListComponent {
         tone: 'error',
         title: 'Seri ve sıra zorunlu',
         message: 'Evrakı getirmek için belge serisi ve sıfırdan büyük belge sıra numarası girin.'
+      });
+      return false;
+    }
+
+    return true;
+  }
+
+  private validateInventoryCountSearch(): boolean {
+    const lookup = this.inventoryCountLookup;
+    if (!Number.isFinite(lookup.documentNo) || lookup.documentNo <= 0) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Evrak no zorunlu',
+        message: 'Sayım sonucunu aramak için sıfırdan büyük evrak numarası girin.'
       });
       return false;
     }

@@ -601,6 +601,10 @@ export interface StockMovementDocumentHeaderDto {
   lineCount: number;
   totalQuantity: number;
   totalAmount: number;
+  documentTypeName?: string;
+  movementTypeNames?: string[];
+  movementKindName?: string;
+  normalReturnName?: string;
 }
 
 export interface StockMovementDocumentLineDto {
@@ -689,6 +693,12 @@ export interface InventoryCountDocumentLookupHttpRequest {
   warehouseNo: number;
   documentNo: number;
   documentDate: string;
+}
+
+export interface InventoryCountDocumentSearchHttpRequest {
+  warehouseNo?: number | null;
+  documentNo: number;
+  documentDate?: string | null;
 }
 
 export interface InventoryCountDocumentHeaderDto {
@@ -788,6 +798,10 @@ export interface CustomerMovementDocumentHeaderDto {
   totalQuantity: number;
   totalAmount: number;
   totalSubAmount: number;
+  documentTypeName?: string;
+  movementTypeNames?: string[];
+  movementKindName?: string;
+  normalReturnName?: string;
 }
 
 export interface CustomerMovementDocumentLineDto {
@@ -825,6 +839,9 @@ export interface CustomerMovementDocumentLineDto {
   sellerCode: string;
   projectCode: string;
   responsibilityCenter: string;
+  movementTypeName?: string;
+  movementKindName?: string;
+  normalReturnName?: string;
 }
 
 export interface CustomerMovementDocumentDto {
@@ -912,6 +929,8 @@ export interface CompanyOrderDocumentHeaderDto {
   totalDeliveredQuantity?: number | null;
   totalRemainingQuantity?: number | null;
   totalAmount: number;
+  orderTypeName?: string;
+  orderKindName?: string;
 }
 
 export interface CompanyOrderDocumentLineDto {
@@ -1042,6 +1061,8 @@ export interface WarehouseOrderDocumentHeaderDto {
   totalDeliveredQuantity?: number | null;
   totalRemainingQuantity?: number | null;
   totalAmount: number;
+  openLineCount?: number;
+  closedLineCount?: number;
 }
 
 export interface WarehouseOrderDocumentLineDto {

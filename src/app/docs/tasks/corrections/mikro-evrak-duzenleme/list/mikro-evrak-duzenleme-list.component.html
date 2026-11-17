@@ -1056,6 +1056,20 @@
               {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
               · {{ document.header.customerTitle || 'Carisiz Evrak' }}
             </h3>
+            <div class="document-badge-row">
+              <span class="doc-badge badge-primary" *ngIf="document.header.documentTypeName">
+                <i class="fa-solid fa-file-invoice"></i> {{ document.header.documentTypeName }}
+              </span>
+              <span class="doc-badge badge-secondary" *ngIf="document.header.normalReturnName">
+                {{ document.header.normalReturnName }}
+              </span>
+              <span class="doc-badge badge-muted" *ngIf="document.header.movementKindName">
+                {{ document.header.movementKindName }}
+              </span>
+              <span class="doc-badge badge-route" *ngIf="stockMovementWarehouseLabel(document) as whRoute">
+                <i class="fa-solid fa-warehouse"></i> {{ whRoute }}
+              </span>
+            </div>
           </div>
           <div class="summary-metrics">
             <span><strong>{{ document.header.lineCount }}</strong> satır</span>
@@ -1085,34 +1099,66 @@
             </div>
           </div>
 
-          <div class="line-stack">
-            <details
-              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
-              class="line-card"
-              [open]="document.lines.length === 1"
+          <div class="line-stack-header">
+            <div class="line-search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                placeholder="Satırlarda stok kodu, isim veya açıklama ara..."
+                [ngModel]="lineSearchText()"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="lineSearchText.set($event)"
+              />
+              <button
+                *ngIf="lineSearchText()"
+                type="button"
+                class="clear-btn"
+                (click)="lineSearchText.set('')"
+                title="Aramayı temizle"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="toggle-all-btn"
+              (click)="toggleExpandAllLines()"
             >
-              <summary>
-                <span class="line-index">{{ index + 1 }}</span>
-                <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
-                <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName }}</span>
-                <code>{{ line.movementGuid }}</code>
-              </summary>
-              <div class="form-grid line-form-grid">
-                <label
-                  *ngFor="let field of stockLineFields; trackBy: trackByField"
-                  class="field"
-                  [class.field-wide]="field.wide"
-                >
-                  <span>{{ field.label }}</span>
-                  <input
-                    [type]="field.type || 'text'"
-                    [ngModel]="fieldValue(line, field.key)"
-                    [ngModelOptions]="{ standalone: true }"
-                    (ngModelChange)="setField(line, field.key, $event)"
-                  />
-                </label>
-              </div>
-            </details>
+              <i class="fa-solid" [class.fa-angles-down]="!expandAllLines()" [class.fa-angles-up]="expandAllLines()"></i>
+              {{ expandAllLines() ? 'Tümünü Daralt' : 'Tümünü Genişlet' }}
+            </button>
+          </div>
+
+          <div class="line-stack">
+            <ng-container *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid">
+              <details
+                *ngIf="matchesLineFilter(line.stockCode, line.stockName, line.description)"
+                class="line-card"
+                [open]="expandAllLines() || document.lines.length === 1"
+              >
+                <summary>
+                  <span class="line-index">{{ index + 1 }}</span>
+                  <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
+                  <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName }}</span>
+                  <code>{{ line.movementGuid }}</code>
+                </summary>
+                <div class="form-grid line-form-grid">
+                  <label
+                    *ngFor="let field of stockLineFields; trackBy: trackByField"
+                    class="field"
+                    [class.field-wide]="field.wide"
+                  >
+                    <span>{{ field.label }}</span>
+                    <input
+                      [type]="field.type || 'text'"
+                      [ngModel]="fieldValue(line, field.key)"
+                      [ngModelOptions]="{ standalone: true }"
+                      (ngModelChange)="setField(line, field.key, $event)"
+                    />
+                  </label>
+                </div>
+              </details>
+            </ng-container>
           </div>
 
           <div class="editor-actions">
@@ -1159,16 +1205,8 @@
       <article class="lookup-bar">
         <div class="lookup-title">
           <p class="panel-kicker">SAYIM_SONUCLARI</p>
-          <h3>Sayim sonucu fisini bul</h3>
+          <h3>Sayım sonucu fişini bul</h3>
         </div>
-        <label class="field">
-          <span>Depo No *</span>
-          <input
-            type="number"
-            [(ngModel)]="inventoryCountLookup.warehouseNo"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
         <label class="field">
           <span>Evrak No *</span>
           <input
@@ -1178,7 +1216,15 @@
           />
         </label>
         <label class="field">
-          <span>Sayim Tarihi *</span>
+          <span>Depo No (Opsiyonel)</span>
+          <input
+            type="number"
+            [(ngModel)]="inventoryCountLookup.warehouseNo"
+            [ngModelOptions]="{ standalone: true }"
+          />
+        </label>
+        <label class="field">
+          <span>Sayım Tarihi (Opsiyonel)</span>
           <input
             type="date"
             [(ngModel)]="inventoryCountLookup.documentDate"
@@ -1191,29 +1237,70 @@
           [disabled]="!canDetail() || isBusy('inventory-count-load')"
           (click)="loadInventoryCount()"
         >
-          {{ isBusy('inventory-count-load') ? 'Getiriliyor...' : 'Sayimi Getir' }}
+          {{ isBusy('inventory-count-load') ? 'Getiriliyor...' : 'Sayımı Bul' }}
         </button>
+      </article>
+
+      <article class="movement-match-panel" *ngIf="inventoryCountMatches().length">
+        <header class="movement-match-head">
+          <div>
+            <p class="panel-kicker">EŞLEŞEN SAYIMLAR</p>
+            <h3>Birden fazla sayım fişi bulundu</h3>
+          </div>
+          <strong>{{ inventoryCountMatches().length }} seçenek</strong>
+        </header>
+
+        <div class="movement-match-list">
+          <button
+            type="button"
+            class="movement-match-row"
+            *ngFor="let match of inventoryCountMatches(); trackBy: trackByInventoryCountMatch"
+            (click)="selectInventoryCountMatch(match)"
+          >
+            <span class="movement-match-type">Depo {{ match.header.warehouseNo }}</span>
+            <strong>
+              {{ match.header.name || match.header.warehouseName || 'Sayım Fişi' }}
+            </strong>
+            <small>
+              Evrak No: {{ match.header.documentNo }} ·
+              Tarih: {{ match.header.documentDate | date: 'dd.MM.yyyy' }} ·
+              {{ match.header.lineCount }} satır · {{ match.header.totalQuantity | number: '1.0-3' }} miktar
+            </small>
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </article>
 
       <ng-container *ngIf="inventoryCountDraft() as document; else noInventoryCount">
         <article class="document-summary">
           <div>
-            <p class="panel-kicker">SAYIM OZETI</p>
+            <p class="panel-kicker">SAYIM ÖZETİ</p>
             <h3>
-              {{ document.header.warehouseNo }} / {{ document.header.documentNo }}
-              · {{ document.header.name || document.header.warehouseName || 'Sayim' }}
+              Depo: {{ document.header.warehouseNo }} · Evrak No: {{ document.header.documentNo }}
+              · {{ document.header.name || document.header.warehouseName || 'Sayım' }}
             </h3>
+            <div class="document-badge-row">
+              <span class="doc-badge badge-primary">
+                <i class="fa-solid fa-warehouse"></i> Depo {{ document.header.warehouseNo }} - {{ document.header.warehouseName }}
+              </span>
+              <span class="doc-badge badge-route">
+                <i class="fa-regular fa-calendar"></i> {{ document.header.documentDate | date: 'dd.MM.yyyy' }}
+              </span>
+              <span class="doc-badge badge-muted">
+                Evrak No: {{ document.header.documentNo }}
+              </span>
+            </div>
           </div>
           <div class="summary-metrics">
-            <span><strong>{{ document.header.lineCount }}</strong> satir</span>
+            <span><strong>{{ document.header.lineCount }}</strong> satır</span>
             <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
-            <span class="change-badge">{{ changedInventoryCountCount() }} degisiklik</span>
+            <span class="change-badge">{{ changedInventoryCountCount() }} değişiklik</span>
           </div>
         </article>
 
         <article class="editor-panel">
           <div class="form-section">
-            <h4>Sayim ust bilgileri</h4>
+            <h4>Sayım üst bilgileri</h4>
             <div class="form-grid">
               <label
                 *ngFor="let field of inventoryCountHeaderFields; trackBy: trackByField"
@@ -1231,34 +1318,66 @@
             </div>
           </div>
 
-          <div class="line-stack">
-            <details
-              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
-              class="line-card"
-              [open]="document.lines.length === 1"
+          <div class="line-stack-header">
+            <div class="line-search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                placeholder="Sayım satırlarında stok kodu, isim veya barkod ara..."
+                [ngModel]="lineSearchText()"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="lineSearchText.set($event)"
+              />
+              <button
+                *ngIf="lineSearchText()"
+                type="button"
+                class="clear-btn"
+                (click)="lineSearchText.set('')"
+                title="Aramayı temizle"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="toggle-all-btn"
+              (click)="toggleExpandAllLines()"
             >
-              <summary>
-                <span class="line-index">{{ index + 1 }}</span>
-                <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
-                <span>{{ line.quantity1 | number: '1.0-3' }} {{ line.unitName }}</span>
-                <code>{{ line.countGuid }}</code>
-              </summary>
-              <div class="form-grid line-form-grid">
-                <label
-                  *ngFor="let field of inventoryCountLineFields; trackBy: trackByField"
-                  class="field"
-                  [class.field-wide]="field.wide"
-                >
-                  <span>{{ field.label }}</span>
-                  <input
-                    [type]="field.type || 'text'"
-                    [ngModel]="fieldValue(line, field.key)"
-                    [ngModelOptions]="{ standalone: true }"
-                    (ngModelChange)="setField(line, field.key, $event)"
-                  />
-                </label>
-              </div>
-            </details>
+              <i class="fa-solid" [class.fa-angles-down]="!expandAllLines()" [class.fa-angles-up]="expandAllLines()"></i>
+              {{ expandAllLines() ? 'Tümünü Daralt' : 'Tümünü Genişlet' }}
+            </button>
+          </div>
+
+          <div class="line-stack">
+            <ng-container *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid">
+              <details
+                *ngIf="matchesLineFilter(line.stockCode, line.stockName, line.barcode)"
+                class="line-card"
+                [open]="expandAllLines() || document.lines.length === 1"
+              >
+                <summary>
+                  <span class="line-index">{{ index + 1 }}</span>
+                  <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
+                  <span>{{ line.quantity1 | number: '1.0-3' }} {{ line.unitName }}</span>
+                  <code>{{ line.countGuid }}</code>
+                </summary>
+                <div class="form-grid line-form-grid">
+                  <label
+                    *ngFor="let field of inventoryCountLineFields; trackBy: trackByField"
+                    class="field"
+                    [class.field-wide]="field.wide"
+                  >
+                    <span>{{ field.label }}</span>
+                    <input
+                      [type]="field.type || 'text'"
+                      [ngModel]="fieldValue(line, field.key)"
+                      [ngModelOptions]="{ standalone: true }"
+                      (ngModelChange)="setField(line, field.key, $event)"
+                    />
+                  </label>
+                </div>
+              </details>
+            </ng-container>
           </div>
 
           <div class="editor-actions">
@@ -1309,39 +1428,7 @@
           />
         </label>
         <label class="field">
-          <span>Evrak Tipi</span>
-          <input
-            type="number"
-            [(ngModel)]="customerLookup.documentType"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Hareket Tipi</span>
-          <input
-            type="number"
-            [(ngModel)]="customerLookup.movementType"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Hareket Cinsi</span>
-          <input
-            type="number"
-            [(ngModel)]="customerLookup.movementKind"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Normal / İade</span>
-          <input
-            type="number"
-            [(ngModel)]="customerLookup.normalReturn"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Cari Kodu</span>
+          <span>Cari Kodu (Opsiyonel)</span>
           <input
             type="text"
             [(ngModel)]="customerLookup.customerCode"
@@ -1354,8 +1441,38 @@
           [disabled]="!canDetail() || isBusy('customer-load')"
           (click)="loadCustomerMovement()"
         >
-          {{ isBusy('customer-load') ? 'Getiriliyor...' : 'Evrakı Getir' }}
+          {{ isBusy('customer-load') ? 'Getiriliyor...' : 'Evrakı Bul' }}
         </button>
+      </article>
+
+      <article class="movement-match-panel" *ngIf="customerMovementMatches().length">
+        <header class="movement-match-head">
+          <div>
+            <p class="panel-kicker">EŞLEŞEN EVRAKLAR</p>
+            <h3>Birden fazla cari hareket evrakı bulundu</h3>
+          </div>
+          <strong>{{ customerMovementMatches().length }} seçenek</strong>
+        </header>
+
+        <div class="movement-match-list">
+          <button
+            type="button"
+            class="movement-match-row"
+            *ngFor="let match of customerMovementMatches(); trackBy: trackByCustomerMovementMatch"
+            (click)="selectCustomerMovementMatch(match)"
+          >
+            <span class="movement-match-type">{{ customerMovementTypeLabel(match) }}</span>
+            <strong>
+              {{ match.header.customerTitle || match.header.customerCode || 'Cari Belirtilmemiş' }}
+            </strong>
+            <small>
+              Tarih: {{ (match.header.movementDate || match.header.documentDate) | date: 'dd.MM.yyyy' }} ·
+              {{ match.header.normalReturnName || 'Normal' }} ·
+              {{ match.header.lineCount }} satır · {{ match.header.totalAmount | number: '1.2-2' }} tutar
+            </small>
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </article>
 
       <ng-container *ngIf="customerMovementDraft() as document; else noCustomerMovement">
@@ -1366,6 +1483,20 @@
               {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
               · {{ document.header.customerTitle || document.header.customerCode }}
             </h3>
+            <div class="document-badge-row">
+              <span class="doc-badge badge-primary" *ngIf="document.header.documentTypeName">
+                <i class="fa-solid fa-file-invoice-dollar"></i> {{ document.header.documentTypeName }}
+              </span>
+              <span class="doc-badge badge-secondary" *ngIf="document.header.normalReturnName">
+                {{ document.header.normalReturnName }}
+              </span>
+              <span class="doc-badge badge-muted" *ngIf="document.header.movementKindName">
+                {{ document.header.movementKindName }}
+              </span>
+              <span class="doc-badge badge-route" *ngIf="document.header.customerCode">
+                <i class="fa-solid fa-user"></i> {{ document.header.customerCode }}
+              </span>
+            </div>
           </div>
           <div class="summary-metrics">
             <span><strong>{{ document.header.lineCount }}</strong> satır</span>
@@ -1395,34 +1526,68 @@
             </div>
           </div>
 
-          <div class="line-stack">
-            <details
-              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
-              class="line-card"
-              [open]="document.lines.length === 1"
+          <div class="line-stack-header">
+            <div class="line-search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                placeholder="Cari satırlarında cari kodu, unvan veya açıklama ara..."
+                [ngModel]="lineSearchText()"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="lineSearchText.set($event)"
+              />
+              <button
+                *ngIf="lineSearchText()"
+                type="button"
+                class="clear-btn"
+                (click)="lineSearchText.set('')"
+                title="Aramayı temizle"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="toggle-all-btn"
+              (click)="toggleExpandAllLines()"
             >
-              <summary>
-                <span class="line-index">{{ index + 1 }}</span>
-                <strong>{{ line.customerCode }} · {{ line.customerTitle }}</strong>
-                <span>{{ line.amount | number: '1.2-2' }} tutar</span>
-                <code>{{ line.movementGuid }}</code>
-              </summary>
-              <div class="form-grid line-form-grid">
-                <label
-                  *ngFor="let field of customerLineFields; trackBy: trackByField"
-                  class="field"
-                  [class.field-wide]="field.wide"
-                >
-                  <span>{{ field.label }}</span>
-                  <input
-                    [type]="field.type || 'text'"
-                    [ngModel]="fieldValue(line, field.key)"
-                    [ngModelOptions]="{ standalone: true }"
-                    (ngModelChange)="setField(line, field.key, $event)"
-                  />
-                </label>
-              </div>
-            </details>
+              <i class="fa-solid" [class.fa-angles-down]="!expandAllLines()" [class.fa-angles-up]="expandAllLines()"></i>
+              {{ expandAllLines() ? 'Tümünü Daralt' : 'Tümünü Genişlet' }}
+            </button>
+          </div>
+
+          <div class="line-stack">
+            <ng-container *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid">
+              <details
+                *ngIf="matchesLineFilter(line.customerCode, line.customerTitle, line.description)"
+                class="line-card"
+                [open]="expandAllLines() || document.lines.length === 1"
+              >
+                <summary>
+                  <span class="line-index">{{ index + 1 }}</span>
+                  <strong>{{ line.customerCode }} · {{ line.customerTitle }}</strong>
+                  <span class="doc-badge badge-sm" *ngIf="line.movementTypeName">{{ line.movementTypeName }}</span>
+                  <span class="doc-badge badge-sm" *ngIf="line.normalReturnName">{{ line.normalReturnName }}</span>
+                  <span>{{ line.amount | number: '1.2-2' }} tutar</span>
+                  <code>{{ line.movementGuid }}</code>
+                </summary>
+                <div class="form-grid line-form-grid">
+                  <label
+                    *ngFor="let field of customerLineFields; trackBy: trackByField"
+                    class="field"
+                    [class.field-wide]="field.wide"
+                  >
+                    <span>{{ field.label }}</span>
+                    <input
+                      [type]="field.type || 'text'"
+                      [ngModel]="fieldValue(line, field.key)"
+                      [ngModelOptions]="{ standalone: true }"
+                      (ngModelChange)="setField(line, field.key, $event)"
+                    />
+                  </label>
+                </div>
+              </details>
+            </ng-container>
           </div>
 
           <div class="editor-actions">
@@ -1470,7 +1635,7 @@
       <article class="lookup-bar order-lookup-bar">
         <div class="lookup-title">
           <p class="panel-kicker">SIPARISLER</p>
-          <h3>Firma siparis evrakini bul</h3>
+          <h3>Firma sipariş evrakını bul</h3>
         </div>
         <label class="field">
           <span>Belge Serisi *</span>
@@ -1481,7 +1646,7 @@
           />
         </label>
         <label class="field">
-          <span>Belge Sira *</span>
+          <span>Belge Sıra *</span>
           <input
             type="number"
             [(ngModel)]="companyOrderLookup.documentOrderNo"
@@ -1489,24 +1654,7 @@
           />
         </label>
         <label class="field">
-          <span>Siparis Tipi</span>
-          <input
-            type="number"
-            [(ngModel)]="companyOrderLookup.orderType"
-            [ngModelOptions]="{ standalone: true }"
-            placeholder="1 verilen / 0 alinan"
-          />
-        </label>
-        <label class="field">
-          <span>Siparis Cinsi</span>
-          <input
-            type="number"
-            [(ngModel)]="companyOrderLookup.orderKind"
-            [ngModelOptions]="{ standalone: true }"
-          />
-        </label>
-        <label class="field">
-          <span>Depo No</span>
+          <span>Depo No (Opsiyonel)</span>
           <input
             type="number"
             [(ngModel)]="companyOrderLookup.warehouseNo"
@@ -1514,7 +1662,7 @@
           />
         </label>
         <label class="field">
-          <span>Cari Kodu</span>
+          <span>Cari Kodu (Opsiyonel)</span>
           <input
             type="text"
             [(ngModel)]="companyOrderLookup.customerCode"
@@ -1527,31 +1675,72 @@
           [disabled]="!canDetail() || isBusy('company-order-load')"
           (click)="loadCompanyOrder()"
         >
-          {{ isBusy('company-order-load') ? 'Getiriliyor...' : 'Siparisi Getir' }}
+          {{ isBusy('company-order-load') ? 'Getiriliyor...' : 'Siparişi Bul' }}
         </button>
+      </article>
+
+      <article class="movement-match-panel" *ngIf="companyOrderMatches().length">
+        <header class="movement-match-head">
+          <div>
+            <p class="panel-kicker">EŞLEŞEN SİPARİŞLER</p>
+            <h3>Birden fazla firma siparişi bulundu</h3>
+          </div>
+          <strong>{{ companyOrderMatches().length }} seçenek</strong>
+        </header>
+
+        <div class="movement-match-list">
+          <button
+            type="button"
+            class="movement-match-row"
+            *ngFor="let match of companyOrderMatches(); trackBy: trackByCompanyOrderMatch"
+            (click)="selectCompanyOrderMatch(match)"
+          >
+            <span class="movement-match-type">{{ companyOrderTypeLabel(match) }}</span>
+            <strong>
+              {{ match.header.customerTitle || match.header.customerCode || 'Cari Belirtilmemiş' }}
+            </strong>
+            <small>
+              Tarih: {{ (match.header.orderDate || match.header.documentDate) | date: 'dd.MM.yyyy' }} ·
+              Depo: {{ match.header.warehouseNo }} ({{ match.header.warehouseName }}) ·
+              {{ match.header.lineCount }} satır · {{ match.header.totalQuantity | number: '1.0-3' }} miktar
+            </small>
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </article>
 
       <ng-container *ngIf="companyOrderDraft() as document; else noCompanyOrder">
         <article class="document-summary">
           <div>
-            <p class="panel-kicker">SIPARIS OZETI</p>
+            <p class="panel-kicker">SİPARİŞ ÖZETİ</p>
             <h3>
               {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
-              - {{ document.header.customerTitle || document.header.customerCode }}
+              · {{ document.header.customerTitle || document.header.customerCode }}
             </h3>
+            <div class="document-badge-row">
+              <span class="doc-badge badge-primary" *ngIf="document.header.orderTypeName">
+                <i class="fa-solid fa-cart-shopping"></i> {{ document.header.orderTypeName }}
+              </span>
+              <span class="doc-badge badge-secondary" *ngIf="document.header.orderKindName">
+                {{ document.header.orderKindName }}
+              </span>
+              <span class="doc-badge badge-route" *ngIf="document.header.warehouseNo">
+                <i class="fa-solid fa-warehouse"></i> {{ document.header.warehouseNo }} - {{ document.header.warehouseName }}
+              </span>
+            </div>
           </div>
           <div class="summary-metrics">
-            <span><strong>{{ document.header.lineCount }}</strong> satir</span>
+            <span><strong>{{ document.header.lineCount }}</strong> satır</span>
             <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
             <span><strong>{{ document.header.totalDeliveredQuantity || 0 | number: '1.0-3' }}</strong> teslim</span>
             <span><strong>{{ document.header.totalAmount | number: '1.2-2' }}</strong> tutar</span>
-            <span class="change-badge">{{ changedCompanyOrderCount() }} degisiklik</span>
+            <span class="change-badge">{{ changedCompanyOrderCount() }} değişiklik</span>
           </div>
         </article>
 
         <article class="editor-panel">
           <div class="form-section">
-            <h4>Siparis ust bilgileri</h4>
+            <h4>Sipariş üst bilgileri</h4>
             <div class="form-grid">
               <label
                 *ngFor="let field of companyOrderHeaderFields; trackBy: trackByField"
@@ -1583,35 +1772,69 @@
             </div>
           </div>
 
-          <div class="line-stack">
-            <details
-              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
-              class="line-card"
-              [open]="document.lines.length === 1"
+          <div class="line-stack-header">
+            <div class="line-search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                placeholder="Sipariş satırlarında stok kodu, isim veya açıklama ara..."
+                [ngModel]="lineSearchText()"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="lineSearchText.set($event)"
+              />
+              <button
+                *ngIf="lineSearchText()"
+                type="button"
+                class="clear-btn"
+                (click)="lineSearchText.set('')"
+                title="Aramayı temizle"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="toggle-all-btn"
+              (click)="toggleExpandAllLines()"
             >
-              <summary>
-                <span class="line-index">{{ index + 1 }}</span>
-                <strong>{{ line.stockCode }} - {{ line.stockName }}</strong>
-                <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName || '' }}</span>
-                <code>{{ line.orderGuid }}</code>
-              </summary>
-              <div class="form-grid line-form-grid">
-                <label
-                  *ngFor="let field of companyOrderLineFields; trackBy: trackByField"
-                  class="field"
-                  [class.field-wide]="field.wide"
-                  [class.checkbox-field]="field.type === 'checkbox'"
-                >
-                  <span>{{ field.label }}</span>
-                  <input
-                    [type]="field.type || 'text'"
-                    [ngModel]="fieldValue(line, field.key)"
-                    [ngModelOptions]="{ standalone: true }"
-                    (ngModelChange)="setField(line, field.key, $event)"
-                  />
-                </label>
-              </div>
-            </details>
+              <i class="fa-solid" [class.fa-angles-down]="!expandAllLines()" [class.fa-angles-up]="expandAllLines()"></i>
+              {{ expandAllLines() ? 'Tümünü Daralt' : 'Tümünü Genişlet' }}
+            </button>
+          </div>
+
+          <div class="line-stack">
+            <ng-container *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid">
+              <details
+                *ngIf="matchesLineFilter(line.stockCode, line.stockName, line.description1)"
+                class="line-card"
+                [open]="expandAllLines() || document.lines.length === 1"
+              >
+                <summary>
+                  <span class="line-index">{{ index + 1 }}</span>
+                  <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
+                  <span class="doc-badge badge-sm" *ngIf="line.remainingQuantity != null && line.remainingQuantity > 0">Kalan: {{ line.remainingQuantity | number: '1.0-3' }}</span>
+                  <span class="doc-badge badge-sm badge-success" *ngIf="line.remainingQuantity === 0">Tamamlandı</span>
+                  <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName || '' }}</span>
+                  <code>{{ line.orderGuid }}</code>
+                </summary>
+                <div class="form-grid line-form-grid">
+                  <label
+                    *ngFor="let field of companyOrderLineFields; trackBy: trackByField"
+                    class="field"
+                    [class.field-wide]="field.wide"
+                    [class.checkbox-field]="field.type === 'checkbox'"
+                  >
+                    <span>{{ field.label }}</span>
+                    <input
+                      [type]="field.type || 'text'"
+                      [ngModel]="fieldValue(line, field.key)"
+                      [ngModelOptions]="{ standalone: true }"
+                      (ngModelChange)="setField(line, field.key, $event)"
+                    />
+                  </label>
+                </div>
+              </details>
+            </ng-container>
           </div>
 
           <div class="editor-actions">
@@ -1659,7 +1882,7 @@
       <article class="lookup-bar warehouse-order-lookup-bar">
         <div class="lookup-title">
           <p class="panel-kicker">DEPOLAR_ARASI_SIPARISLER</p>
-          <h3>Depo siparis evrakini bul</h3>
+          <h3>Depo sipariş evrakını bul</h3>
         </div>
         <label class="field">
           <span>Belge Serisi *</span>
@@ -1670,7 +1893,7 @@
           />
         </label>
         <label class="field">
-          <span>Belge Sira *</span>
+          <span>Belge Sıra *</span>
           <input
             type="number"
             [(ngModel)]="warehouseOrderLookup.documentOrderNo"
@@ -1678,16 +1901,7 @@
           />
         </label>
         <label class="field">
-          <span>Depo No</span>
-          <input
-            type="number"
-            [(ngModel)]="warehouseOrderLookup.warehouseNo"
-            [ngModelOptions]="{ standalone: true }"
-            placeholder="Giris veya cikis"
-          />
-        </label>
-        <label class="field">
-          <span>Giris Depo</span>
+          <span>Giriş Depo (Opsiyonel)</span>
           <input
             type="number"
             [(ngModel)]="warehouseOrderLookup.inWarehouseNo"
@@ -1695,7 +1909,7 @@
           />
         </label>
         <label class="field">
-          <span>Cikis Depo</span>
+          <span>Çıkış Depo (Opsiyonel)</span>
           <input
             type="number"
             [(ngModel)]="warehouseOrderLookup.outWarehouseNo"
@@ -1708,31 +1922,74 @@
           [disabled]="!canDetail() || isBusy('warehouse-order-load')"
           (click)="loadWarehouseOrder()"
         >
-          {{ isBusy('warehouse-order-load') ? 'Getiriliyor...' : 'Siparisi Getir' }}
+          {{ isBusy('warehouse-order-load') ? 'Getiriliyor...' : 'Siparişi Bul' }}
         </button>
+      </article>
+
+      <article class="movement-match-panel" *ngIf="warehouseOrderMatches().length">
+        <header class="movement-match-head">
+          <div>
+            <p class="panel-kicker">EŞLEŞEN DEPO SİPARİŞLERİ</p>
+            <h3>Birden fazla depo siparişi bulundu</h3>
+          </div>
+          <strong>{{ warehouseOrderMatches().length }} seçenek</strong>
+        </header>
+
+        <div class="movement-match-list">
+          <button
+            type="button"
+            class="movement-match-row"
+            *ngFor="let match of warehouseOrderMatches(); trackBy: trackByWarehouseOrderMatch"
+            (click)="selectWarehouseOrderMatch(match)"
+          >
+            <span class="movement-match-type">Depo Siparişi</span>
+            <strong>
+              {{ warehouseOrderTypeLabel(match) }}
+            </strong>
+            <small>
+              Tarih: {{ (match.header.orderDate || match.header.documentDate) | date: 'dd.MM.yyyy' }} ·
+              {{ match.header.lineCount }} satır · {{ match.header.totalQuantity | number: '1.0-3' }} miktar
+            </small>
+            <i class="fa-solid fa-chevron-right" aria-hidden="true"></i>
+          </button>
+        </div>
       </article>
 
       <ng-container *ngIf="warehouseOrderDraft() as document; else noWarehouseOrder">
         <article class="document-summary">
           <div>
-            <p class="panel-kicker">DEPO SIPARIS OZETI</p>
+            <p class="panel-kicker">DEPO SİPARİŞ ÖZETİ</p>
             <h3>
               {{ document.header.documentSerie }}-{{ document.header.documentOrderNo }}
-              - {{ document.header.outWarehouseNo }} -> {{ document.header.inWarehouseNo }}
+              · {{ document.header.outWarehouseName || document.header.outWarehouseNo }} ➔ {{ document.header.inWarehouseName || document.header.inWarehouseNo }}
             </h3>
+            <div class="document-badge-row">
+              <span class="doc-badge badge-route">
+                <i class="fa-solid fa-truck-ramp-box"></i> {{ document.header.outWarehouseNo }} ({{ document.header.outWarehouseName }}) ➔ {{ document.header.inWarehouseNo }} ({{ document.header.inWarehouseName }})
+              </span>
+              <span class="doc-badge badge-primary" *ngIf="document.header.openLineCount">
+                {{ document.header.openLineCount }} Açık Satır
+              </span>
+              <span class="doc-badge badge-secondary" *ngIf="document.header.closedLineCount">
+                {{ document.header.closedLineCount }} Kapalı Satır
+              </span>
+              <span class="doc-badge badge-muted" *ngIf="document.header.isClosed">
+                Sipariş Kapatılmış
+              </span>
+            </div>
           </div>
           <div class="summary-metrics">
-            <span><strong>{{ document.header.lineCount }}</strong> satir</span>
+            <span><strong>{{ document.header.lineCount }}</strong> satır</span>
             <span><strong>{{ document.header.totalQuantity | number: '1.0-3' }}</strong> miktar</span>
             <span><strong>{{ document.header.totalDeliveredQuantity || 0 | number: '1.0-3' }}</strong> teslim</span>
             <span><strong>{{ document.header.totalAmount | number: '1.2-2' }}</strong> tutar</span>
-            <span class="change-badge">{{ changedWarehouseOrderCount() }} degisiklik</span>
+            <span class="change-badge">{{ changedWarehouseOrderCount() }} değişiklik</span>
           </div>
         </article>
 
         <article class="editor-panel">
           <div class="form-section">
-            <h4>Siparis ust bilgileri</h4>
+            <h4>Sipariş üst bilgileri</h4>
             <div class="form-grid">
               <label
                 *ngFor="let field of warehouseOrderHeaderFields; trackBy: trackByField"
@@ -1764,35 +2021,69 @@
             </div>
           </div>
 
-          <div class="line-stack">
-            <details
-              *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid"
-              class="line-card"
-              [open]="document.lines.length === 1"
+          <div class="line-stack-header">
+            <div class="line-search-box">
+              <i class="fa-solid fa-magnifying-glass"></i>
+              <input
+                type="text"
+                placeholder="Depo sipariş satırlarında stok kodu, isim veya açıklama ara..."
+                [ngModel]="lineSearchText()"
+                [ngModelOptions]="{ standalone: true }"
+                (ngModelChange)="lineSearchText.set($event)"
+              />
+              <button
+                *ngIf="lineSearchText()"
+                type="button"
+                class="clear-btn"
+                (click)="lineSearchText.set('')"
+                title="Aramayı temizle"
+              >
+                <i class="fa-solid fa-xmark"></i>
+              </button>
+            </div>
+            <button
+              type="button"
+              class="toggle-all-btn"
+              (click)="toggleExpandAllLines()"
             >
-              <summary>
-                <span class="line-index">{{ index + 1 }}</span>
-                <strong>{{ line.stockCode }} - {{ line.stockName }}</strong>
-                <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName || '' }}</span>
-                <code>{{ line.orderGuid }}</code>
-              </summary>
-              <div class="form-grid line-form-grid">
-                <label
-                  *ngFor="let field of warehouseOrderLineFields; trackBy: trackByField"
-                  class="field"
-                  [class.field-wide]="field.wide"
-                  [class.checkbox-field]="field.type === 'checkbox'"
-                >
-                  <span>{{ field.label }}</span>
-                  <input
-                    [type]="field.type || 'text'"
-                    [ngModel]="fieldValue(line, field.key)"
-                    [ngModelOptions]="{ standalone: true }"
-                    (ngModelChange)="setField(line, field.key, $event)"
-                  />
-                </label>
-              </div>
-            </details>
+              <i class="fa-solid" [class.fa-angles-down]="!expandAllLines()" [class.fa-angles-up]="expandAllLines()"></i>
+              {{ expandAllLines() ? 'Tümünü Daralt' : 'Tümünü Genişlet' }}
+            </button>
+          </div>
+
+          <div class="line-stack">
+            <ng-container *ngFor="let line of document.lines; let index = index; trackBy: trackByGuid">
+              <details
+                *ngIf="matchesLineFilter(line.stockCode, line.stockName, line.description)"
+                class="line-card"
+                [open]="expandAllLines() || document.lines.length === 1"
+              >
+                <summary>
+                  <span class="line-index">{{ index + 1 }}</span>
+                  <strong>{{ line.stockCode }} · {{ line.stockName }}</strong>
+                  <span class="doc-badge badge-sm" *ngIf="line.remainingQuantity != null && line.remainingQuantity > 0">Kalan: {{ line.remainingQuantity | number: '1.0-3' }}</span>
+                  <span class="doc-badge badge-sm badge-success" *ngIf="line.remainingQuantity === 0">Teslim Edildi</span>
+                  <span>{{ line.quantity | number: '1.0-3' }} {{ line.unitName || '' }}</span>
+                  <code>{{ line.orderGuid }}</code>
+                </summary>
+                <div class="form-grid line-form-grid">
+                  <label
+                    *ngFor="let field of warehouseOrderLineFields; trackBy: trackByField"
+                    class="field"
+                    [class.field-wide]="field.wide"
+                    [class.checkbox-field]="field.type === 'checkbox'"
+                  >
+                    <span>{{ field.label }}</span>
+                    <input
+                      [type]="field.type || 'text'"
+                      [ngModel]="fieldValue(line, field.key)"
+                      [ngModelOptions]="{ standalone: true }"
+                      (ngModelChange)="setField(line, field.key, $event)"
+                    />
+                  </label>
+                </div>
+              </details>
+            </ng-container>
           </div>
 
           <div class="editor-actions">
