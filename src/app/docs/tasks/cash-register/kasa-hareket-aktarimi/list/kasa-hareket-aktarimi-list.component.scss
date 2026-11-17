@@ -673,7 +673,21 @@
     font-weight: 800;
   }
 
-  > i { color: var(--transfer-accent); }
+  .icon-btn {
+    display: inline-grid;
+    width: 2rem;
+    height: 2rem;
+    padding: 0;
+    place-items: center;
+    border: 1px solid #cbd5e1;
+    border-radius: 6px;
+    background: #fff;
+    color: var(--transfer-accent);
+    cursor: pointer;
+
+    &:hover:not(:disabled) { background: #f0fdfa; }
+    &:disabled { cursor: wait; opacity: 0.65; }
+  }
 }
 
 .transfer-status-metrics {

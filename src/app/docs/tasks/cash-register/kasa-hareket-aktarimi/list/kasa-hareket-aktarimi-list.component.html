@@ -349,10 +349,18 @@
             <section class="transfer-status-panel" aria-live="polite">
               <div class="transfer-status-head">
                 <div>
-                  <span class="panel-kicker">CANLI DURUM</span>
+                  <span class="panel-kicker">SON DURUM</span>
                   <h3>Fis Aktarim Ozeti</h3>
                 </div>
-                <i class="fa-solid fa-rotate" [class.is-spinning]="transferStatusLoading()"></i>
+                <button
+                  type="button"
+                  class="icon-btn"
+                  title="Aktarim durumunu yenile"
+                  aria-label="Aktarim durumunu yenile"
+                  [disabled]="transferStatusLoading()"
+                  (click)="refreshSelectedTransferStatus()">
+                  <i class="fa-solid fa-rotate" [class.is-spinning]="transferStatusLoading()"></i>
+                </button>
               </div>
 
               <ng-container *ngIf="transferStatus() as status; else noTransferStatus">

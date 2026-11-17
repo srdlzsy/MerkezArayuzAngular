@@ -2,7 +2,7 @@ import { CommonModule, DOCUMENT } from '@angular/common';
 import { Component, DestroyRef, HostListener, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormControl, FormGroup, ReactiveFormsModule } from '@angular/forms';
-import { Observable, catchError, exhaustMap, finalize, of, timer } from 'rxjs';
+import { Observable, finalize } from 'rxjs';
 import type {
   KasaHareketBranchDto,
   KasaHareketCashSummaryComparisonDto,
@@ -236,7 +236,7 @@ export class KasaHareketAktarimiListComponent {
   });
   private readonly scopeVersion = signal(0);
   private cashRegisterRequestId = 0;
-  private transferStatusSubscription: { unsubscribe: () => void } | null = null;
+  private transferStatusRequestId = 0;
 
   protected readonly selectedBranchLabel = computed(() => {
     this.scopeVersion();
@@ -313,8 +313,6 @@ export class KasaHareketAktarimiListComponent {
         this.loadCashRegisters(this.toOptionalNumber(branchNo))
       );
 
-    this.destroyRef.onDestroy(() => this.stopTransferStatusPolling());
-
     this.loadBranches();
   }
 
@@ -378,14 +376,13 @@ export class KasaHareketAktarimiListComponent {
     this.importLoading.set(true);
     this.feedback.set(null);
     this.lastImportResult.set(null);
-    this.startTransferStatusPolling(startDate, endDate);
+    this.refreshTransferStatus(startDate, endDate);
 
     request$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.importLoading.set(false);
-          this.stopTransferStatusPolling();
           this.refreshTransferStatus(startDate, endDate);
         })
       )
@@ -628,14 +625,13 @@ export class KasaHareketAktarimiListComponent {
     this.feedback.set(null);
     this.lastProcedureResult.set(null);
     const [statusStartDate, statusEndDate] = this.getProcedureDateRange(action);
-    this.startTransferStatusPolling(statusStartDate, statusEndDate);
+    this.refreshTransferStatus(statusStartDate, statusEndDate);
 
     request$
       .pipe(
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.procedureLoadingAction.set(null);
-          this.stopTransferStatusPolling();
           this.refreshTransferStatus(statusStartDate, statusEndDate);
         })
       )
@@ -1287,7 +1283,7 @@ export class KasaHareketAktarimiListComponent {
     this.importLoading.set(true);
     this.feedback.set(null);
     this.lastImportResult.set(null);
-    this.startTransferStatusPolling(statusDate, statusDate);
+    this.refreshTransferStatus(statusDate, statusDate);
 
     this.kasaIslemleriService
       .runKasaHareketZamanliAktarim(request)
@@ -1295,7 +1291,6 @@ export class KasaHareketAktarimiListComponent {
         takeUntilDestroyed(this.destroyRef),
         finalize(() => {
           this.importLoading.set(false);
-          this.stopTransferStatusPolling();
           this.refreshTransferStatus(statusDate, statusDate);
         })
       )
@@ -1607,32 +1602,14 @@ export class KasaHareketAktarimiListComponent {
     });
   }
 
-  private startTransferStatusPolling(startDate: string, endDate: string): void {
-    this.stopTransferStatusPolling();
-    this.transferStatusLoading.set(true);
-    this.transferStatusSubscription = timer(0, 3000)
-      .pipe(
-        exhaustMap(() =>
-          this.kasaIslemleriService
-            .getKasaHareketTransferStatus(
-              this.buildTransferStatusRequest(startDate, endDate)
-            )
-            .pipe(catchError(() => of(null)))
-        ),
-        takeUntilDestroyed(this.destroyRef)
-      )
-      .subscribe((status: KasaHareketTransferStatusDto | null) => {
-        this.transferStatusLoading.set(false);
-        if (status) {
-          this.transferStatus.set(status);
-        }
-      });
-  }
+  protected refreshSelectedTransferStatus(): void {
+    const startDate = this.importForm.controls.startDate.value.trim();
+    const endDate = this.importForm.controls.endDate.value.trim() || startDate;
+    if (!this.validateDateRange(startDate, endDate, 'Durum tarih araligi eksik veya hatali.')) {
+      return;
+    }
 
-  private stopTransferStatusPolling(): void {
-    this.transferStatusSubscription?.unsubscribe();
-    this.transferStatusSubscription = null;
-    this.transferStatusLoading.set(false);
+    this.refreshTransferStatus(startDate, endDate);
   }
 
   private refreshTransferStatus(startDate: string, endDate: string): void {
@@ -1640,15 +1617,24 @@ export class KasaHareketAktarimiListComponent {
       return;
     }
 
+    const requestId = ++this.transferStatusRequestId;
     this.transferStatusLoading.set(true);
     this.kasaIslemleriService
       .getKasaHareketTransferStatus(this.buildTransferStatusRequest(startDate, endDate))
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.transferStatusLoading.set(false))
+        finalize(() => {
+          if (requestId === this.transferStatusRequestId) {
+            this.transferStatusLoading.set(false);
+          }
+        })
       )
       .subscribe({
-        next: (status: KasaHareketTransferStatusDto) => this.transferStatus.set(status),
+        next: (status: KasaHareketTransferStatusDto) => {
+          if (requestId === this.transferStatusRequestId) {
+            this.transferStatus.set(status);
+          }
+        },
         error: () => undefined
       });
   }
