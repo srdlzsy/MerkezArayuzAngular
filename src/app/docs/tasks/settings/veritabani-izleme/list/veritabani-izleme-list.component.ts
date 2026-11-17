@@ -41,7 +41,7 @@ import {
   type SafeWriteStatusTone,
 } from './safe-write-monitoring.helpers';
 
-type MonitorTab = 'live' | 'workers' | 'safeWrites' | 'incidents' | 'audits';
+type MonitorTab = 'overview' | 'live' | 'workers' | 'safeWrites' | 'incidents' | 'audits';
 type SafeWriteReviewAction = 'recheck' | 'reopen' | 'cancel';
 
 interface DatabaseSessionCandidate {
@@ -71,7 +71,7 @@ const PERMISSION_PREFIX = 'ayar-islemleri.veritabani-izleme';
 })
 export class VeritabaniIzlemeListComponent implements OnInit {
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
-  protected readonly tab = signal<MonitorTab>('live');
+  protected readonly tab = signal<MonitorTab>('overview');
   protected readonly monitoringOverview = signal<MonitoringOverviewDto | null>(null);
   protected readonly snapshot = signal<DatabaseMonitoringSnapshotDto | null>(null);
   protected readonly workerSnapshot = signal<WorkerMonitoringSnapshotDto | null>(null);
@@ -191,14 +191,10 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     }
 
     this.startPolling();
-
-    if (this.canViewHistory()) {
-      this.loadHistory();
-    }
   }
 
   protected setTab(tab: MonitorTab): void {
-    if (tab !== 'live' && tab !== 'workers' && !this.canViewHistory()) {
+    if (tab !== 'overview' && tab !== 'live' && tab !== 'workers' && !this.canViewHistory()) {
       return;
     }
 
@@ -209,15 +205,24 @@ export class VeritabaniIzlemeListComponent implements OnInit {
       return;
     }
 
-    if (tab !== 'live' && !this.isHistoryLoading()) {
-      this.loadHistory();
+    if (tab === 'safeWrites') {
+      this.loadSafeWrites(false);
+      return;
+    }
+
+    if (tab === 'incidents') {
+      this.loadIncidents(false);
+      return;
+    }
+
+    if (tab === 'audits') {
+      this.loadTerminations(false);
     }
   }
 
   protected refresh(): void {
-    if (!this.isLoading()) {
-      this.loadMonitoringOverview(false);
-      this.loadSnapshot(true);
+    if (!this.isOverviewLoading()) {
+      this.loadMonitoringOverview(true);
     }
   }
 
@@ -233,8 +238,10 @@ export class VeritabaniIzlemeListComponent implements OnInit {
 
     if (this.tab() === 'safeWrites') {
       this.loadSafeWrites(true);
-    } else if (!this.isHistoryLoading()) {
-      this.loadHistory(true);
+    } else if (this.tab() === 'incidents') {
+      this.loadIncidents(true);
+    } else if (this.tab() === 'audits') {
+      this.loadTerminations(true);
     }
   }
 
@@ -470,7 +477,7 @@ export class VeritabaniIzlemeListComponent implements OnInit {
           );
           this.loadSnapshot(false);
           if (this.canViewHistory()) {
-            this.loadHistory();
+            this.loadTerminations(false);
           }
         },
         error: (error: unknown) =>
@@ -621,10 +628,11 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     timer(0, 10000)
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => {
-        this.loadMonitoringOverview(false);
-        if (this.tab() !== 'workers') {
-          this.loadSnapshot(false);
+        if (document.visibilityState === 'hidden') {
+          return;
         }
+
+        this.loadMonitoringOverview(false);
       });
   }
 
@@ -644,6 +652,9 @@ export class VeritabaniIzlemeListComponent implements OnInit {
         next: (overview: MonitoringOverviewDto) => {
           this.monitoringOverview.set(overview);
           this.workerSnapshot.set(overview.workers);
+          if (overview.liveDatabase) {
+            this.applySnapshot(overview.liveDatabase);
+          }
           if (showFeedback) {
             this.showSuccess(
               'Operasyon ozeti yenilendi',
@@ -778,56 +789,61 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     this.rollbackSessionId.set(session.sessionId);
   }
 
-  private loadHistory(showFeedback = false): void {
+  private loadIncidents(showFeedback: boolean): void {
     if (!this.canViewHistory() || this.isHistoryLoading()) {
       return;
     }
 
     this.isHistoryLoading.set(true);
-    let pendingRequestCount = 2;
-    let hasError = false;
-    const finishRequest = (): void => {
-      pendingRequestCount -= 1;
-
-      if (pendingRequestCount > 0) {
-        return;
-      }
-
-      this.isHistoryLoading.set(false);
-      if (showFeedback && !hasError) {
-        this.showSuccess('Gecmis yenilendi', 'Olay ve sonlandirma gecmisi guncellendi.');
-      }
-    };
-    const handleError = (error: unknown): void => {
-      if (hasError) {
-        return;
-      }
-
-      hasError = true;
-      this.showError(
-        'Gecmis alinamadi',
-        getErrorMessage(error, 'Olay ve audit gecmisi okunamadi.'),
-      );
-    };
-
     this.api
       .getDatabaseMonitoringIncidents()
-      .pipe(takeUntilDestroyed(this.destroyRef), finalize(finishRequest))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isHistoryLoading.set(false)),
+      )
       .subscribe({
-        next: (incidents: DatabaseMonitoringIncidentDto[]) => this.incidents.set(incidents ?? []),
-        error: handleError,
+        next: (incidents: DatabaseMonitoringIncidentDto[]) => {
+          this.incidents.set(incidents ?? []);
+          if (showFeedback) {
+            this.showSuccess('Olaylar yenilendi', `${incidents?.length ?? 0} olay listelendi.`);
+          }
+        },
+        error: (error: unknown) =>
+          this.showError(
+            'Olaylar alinamadi',
+            getErrorMessage(error, 'Veritabani olay gecmisi okunamadi.'),
+          ),
       });
+  }
 
+  private loadTerminations(showFeedback: boolean): void {
+    if (!this.canViewHistory() || this.isHistoryLoading()) {
+      return;
+    }
+
+    this.isHistoryLoading.set(true);
     this.api
       .getDatabaseSessionTerminationAudits()
-      .pipe(takeUntilDestroyed(this.destroyRef), finalize(finishRequest))
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.isHistoryLoading.set(false)),
+      )
       .subscribe({
-        next: (terminations: DatabaseSessionTerminationDto[]) =>
-          this.terminations.set(terminations ?? []),
-        error: handleError,
+        next: (terminations: DatabaseSessionTerminationDto[]) => {
+          this.terminations.set(terminations ?? []);
+          if (showFeedback) {
+            this.showSuccess(
+              'Sonlandirma gecmisi yenilendi',
+              `${terminations?.length ?? 0} denetim kaydi listelendi.`,
+            );
+          }
+        },
+        error: (error: unknown) =>
+          this.showError(
+            'Sonlandirma gecmisi alinamadi',
+            getErrorMessage(error, 'Oturum sonlandirma gecmisi okunamadi.'),
+          ),
       });
-
-    this.loadSafeWrites(false);
   }
 
   private loadSafeWrites(showFeedback: boolean): void {

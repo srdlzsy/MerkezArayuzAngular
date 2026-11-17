@@ -137,6 +137,122 @@
   line-height: 1;
 }
 
+.monitor-overview-grid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: 0.65rem;
+}
+
+.monitor-overview-item {
+  display: grid;
+  min-width: 0;
+  gap: 0.7rem;
+  border: 1px solid var(--settings-border);
+  border-left: 4px solid #0f766e;
+  border-radius: 8px;
+  padding: 0.78rem;
+  background: #fff;
+}
+
+.monitor-overview-item.metric-warning {
+  border-left-color: #d97706;
+  background: var(--monitor-warning-soft);
+}
+
+.monitor-overview-item.metric-critical {
+  border-left-color: #dc2626;
+  background: var(--monitor-critical-soft);
+}
+
+.monitor-overview-head {
+  display: flex;
+  min-width: 0;
+  align-items: center;
+  gap: 0.58rem;
+}
+
+.monitor-overview-head > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.08rem;
+}
+
+.monitor-overview-head > div span {
+  color: var(--settings-muted);
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-transform: uppercase;
+}
+
+.monitor-overview-head > div strong {
+  color: var(--settings-ink);
+  font-size: 0.92rem;
+}
+
+.monitor-overview-icon {
+  display: inline-flex;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 2rem;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  color: #0f766e;
+  background: #ecfdf5;
+}
+
+.metric-warning .monitor-overview-icon {
+  color: #9a5b00;
+  background: #ffedc7;
+}
+
+.metric-critical .monitor-overview-icon {
+  color: var(--monitor-critical);
+  background: #fee2e2;
+}
+
+.monitor-overview-values {
+  display: grid;
+  grid-template-columns: repeat(4, minmax(0, 1fr));
+  gap: 1px;
+  margin: 0;
+  overflow: hidden;
+  border: 1px solid var(--settings-border);
+  border-radius: 6px;
+  background: var(--settings-border);
+}
+
+.monitor-overview-values > div {
+  display: grid;
+  min-width: 0;
+  gap: 0.16rem;
+  padding: 0.48rem;
+  background: rgba(255, 255, 255, 0.92);
+}
+
+.monitor-overview-values dt {
+  color: var(--settings-muted);
+  font-size: 0.64rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.monitor-overview-values dd {
+  margin: 0;
+  color: var(--settings-ink);
+  font-size: 0.9rem;
+  font-weight: 900;
+}
+
+.monitor-overview-values .date-value {
+  font-size: 0.68rem;
+  line-height: 1.35;
+}
+
+.monitor-overview-item > .task-action {
+  justify-self: start;
+}
+
 .task-action-primary .button-count {
   background: rgba(255, 255, 255, 0.2);
 }
@@ -616,6 +732,10 @@
 }
 
 @media (max-width: 760px) {
+  .monitor-overview-grid {
+    grid-template-columns: 1fr;
+  }
+
   .operations-overview {
     align-items: stretch;
     flex-direction: column;
@@ -685,5 +805,9 @@
 
   .worker-summary {
     grid-template-columns: 1fr;
+  }
+
+  .monitor-overview-values {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
   }
 }

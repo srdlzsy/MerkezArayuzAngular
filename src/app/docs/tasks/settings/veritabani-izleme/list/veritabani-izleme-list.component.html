@@ -72,6 +72,15 @@
       <button
         type="button"
         class="task-action"
+        [class.task-action-primary]="tab() === 'overview'"
+        (click)="setTab('overview')"
+      >
+        <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+        Genel Bakis
+      </button>
+      <button
+        type="button"
+        class="task-action"
         [class.task-action-primary]="tab() === 'live'"
         (click)="setTab('live')"
       >
@@ -97,7 +106,7 @@
       >
         <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
         Guvenli Yazmalar
-        <span class="button-count">{{ safeWrites().length }}</span>
+        <span class="button-count">{{ safeWriteAttentionCount() }}</span>
       </button>
       <button
         type="button"
@@ -108,7 +117,7 @@
       >
         <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
         Olaylar
-        <span class="button-count">{{ incidents().length }}</span>
+        <span class="button-count">{{ monitoringOverview()?.incidents?.openCount ?? 0 }}</span>
       </button>
       <button
         type="button"
@@ -122,7 +131,7 @@
         <span class="button-count">{{ terminations().length }}</span>
       </button>
       <span class="toolbar-spacer"></span>
-      <span class="refresh-note" *ngIf="tab() === 'live'">
+      <span class="refresh-note" *ngIf="tab() === 'overview' || tab() === 'live'">
         Son okuma: {{ formatDate(lastUpdated()) }}
       </span>
       <span class="refresh-note" *ngIf="tab() === 'workers'">
@@ -131,12 +140,12 @@
       <button
         type="button"
         class="task-action task-action-secondary"
-        *ngIf="tab() === 'live'; else historyRefresh"
+        *ngIf="tab() === 'overview' || tab() === 'live'; else historyRefresh"
         (click)="refresh()"
-        [disabled]="isLoading() || !canList()"
+        [disabled]="isOverviewLoading() || !canList()"
       >
         <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-        {{ isLoading() ? 'Yenileniyor' : 'Yenile' }}
+        {{ isOverviewLoading() ? 'Yenileniyor' : 'Yenile' }}
       </button>
       <ng-template #historyRefresh>
         <button
@@ -166,6 +175,98 @@
       <h3>{{ currentFeedback.title }}</h3>
       <p>{{ currentFeedback.message }}</p>
     </article>
+
+    <section class="monitor-overview-grid" *ngIf="tab() === 'overview' && monitoringOverview() as overview">
+      <article class="monitor-overview-item" [ngClass]="overviewStatusClass(overview.database.status)">
+        <div class="monitor-overview-head">
+          <span class="monitor-overview-icon"><i class="fa-solid fa-database" aria-hidden="true"></i></span>
+          <div>
+            <span>Canli SQL</span>
+            <strong>{{ statusLabel(overview.database.status) }}</strong>
+          </div>
+        </div>
+        <dl class="monitor-overview-values">
+          <div><dt>Aktif</dt><dd>{{ overview.database.activeRequestCount }}</dd></div>
+          <div><dt>Bloklanan</dt><dd>{{ overview.database.blockedRequestCount }}</dd></div>
+          <div><dt>Uzun Sorgu</dt><dd>{{ overview.database.longRunningRequestCount }}</dd></div>
+          <div><dt>Acik Islem</dt><dd>{{ overview.database.openTransactionCount }}</dd></div>
+        </dl>
+        <button type="button" class="task-action task-action-secondary" (click)="setTab('live')">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          Canli Detayi Ac
+        </button>
+      </article>
+
+      <article class="monitor-overview-item" [ngClass]="overviewStatusClass(overview.workers.overallStatus)">
+        <div class="monitor-overview-head">
+          <span class="monitor-overview-icon"><i class="fa-solid fa-gears" aria-hidden="true"></i></span>
+          <div>
+            <span>Arka Plan Surecleri</span>
+            <strong>{{ statusLabel(overview.workers.overallStatus) }}</strong>
+          </div>
+        </div>
+        <dl class="monitor-overview-values">
+          <div><dt>Izlenen</dt><dd>{{ workers().length }}</dd></div>
+          <div><dt>Dikkat</dt><dd>{{ unhealthyWorkerCount() }}</dd></div>
+          <div><dt>Kuyruk</dt><dd>{{ queuedWorkerJobCount() }}</dd></div>
+          <div><dt>Acik Hata</dt><dd>{{ unresolvedWorkerFailureCount() }}</dd></div>
+        </dl>
+        <button type="button" class="task-action task-action-secondary" (click)="setTab('workers')">
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          Worker Detayini Ac
+        </button>
+      </article>
+
+      <article class="monitor-overview-item" [class.metric-warning]="safeWriteAttentionCount() > 0">
+        <div class="monitor-overview-head">
+          <span class="monitor-overview-icon"><i class="fa-solid fa-shield-halved" aria-hidden="true"></i></span>
+          <div>
+            <span>Guvenli Yazmalar</span>
+            <strong>{{ safeWriteAttentionCount() > 0 ? 'Inceleme Gerekli' : 'Normal' }}</strong>
+          </div>
+        </div>
+        <dl class="monitor-overview-values">
+          <div><dt>Isleniyor</dt><dd>{{ overview.safeWrites.processingCount }}</dd></div>
+          <div><dt>Takilan</dt><dd>{{ overview.safeWrites.staleProcessingCount }}</dd></div>
+          <div><dt>Manuel</dt><dd>{{ overview.safeWrites.manualReviewCount + overview.safeWrites.unclassifiedFailureCount }}</dd></div>
+          <div><dt>24s Tamam</dt><dd>{{ overview.safeWrites.completedCount }}</dd></div>
+        </dl>
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          *ngIf="canViewHistory()"
+          (click)="setTab('safeWrites')"
+        >
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          Yazma Takibini Ac
+        </button>
+      </article>
+
+      <article class="monitor-overview-item" [class.metric-critical]="overview.incidents.criticalCount > 0" [class.metric-warning]="overview.incidents.openCount > 0 && overview.incidents.criticalCount === 0">
+        <div class="monitor-overview-head">
+          <span class="monitor-overview-icon"><i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i></span>
+          <div>
+            <span>Veritabani Olaylari</span>
+            <strong>{{ overview.incidents.openCount > 0 ? 'Acik Olay Var' : 'Acik Olay Yok' }}</strong>
+          </div>
+        </div>
+        <dl class="monitor-overview-values">
+          <div><dt>Acik</dt><dd>{{ overview.incidents.openCount }}</dd></div>
+          <div><dt>Kritik</dt><dd>{{ overview.incidents.criticalCount }}</dd></div>
+          <div><dt>Uyari</dt><dd>{{ overview.incidents.warningCount }}</dd></div>
+          <div><dt>Son Gorulme</dt><dd class="date-value">{{ formatDate(overview.incidents.lastSeenAtUtc) }}</dd></div>
+        </dl>
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          *ngIf="canViewHistory()"
+          (click)="setTab('incidents')"
+        >
+          <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+          Olaylari Ac
+        </button>
+      </article>
+    </section>
 
     <ng-container *ngIf="tab() === 'live'">
       <section class="recommendation-list" *ngIf="recommendations().length > 0">

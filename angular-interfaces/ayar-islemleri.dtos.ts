@@ -552,6 +552,7 @@ export interface MonitoringOverviewDto {
   workers: WorkerMonitoringSnapshotDto;
   incidents: DatabaseIncidentOverviewDto;
   safeWrites: SafeWriteMonitoringOverviewDto;
+  liveDatabase: DatabaseMonitoringSnapshotDto;
 }
 
 export interface DatabaseSessionTerminationDto {
