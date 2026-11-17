@@ -1047,7 +1047,9 @@
 }
 
 .comparison-row-difference { background: #fff5f5 !important; }
+.comparison-row-warning { background: #fffbeb !important; }
 .amount-negative { color: #dc2626 !important; font-weight: 800; }
+.amount-warning { color: #b45309 !important; font-weight: 800; }
 .cell-strong { font-weight: 800; }
 .align-right { text-align: right !important; }
 .align-center { text-align: center !important; }
@@ -1091,6 +1093,12 @@
     border-color: #fca5a5;
     background: #fef2f2;
     color: #b91c1c;
+  }
+
+  &.status-warning {
+    border-color: #fcd34d;
+    background: #fffbeb;
+    color: #a16207;
   }
 }
 

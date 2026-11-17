@@ -517,8 +517,9 @@
             <div class="print-meta-line">
               <span>Kapsam: <strong>{{ selectedBranchLabel() }}</strong></span>
               <span>Toplam: <strong>{{ comparison.summary.rowCount }} Sube</strong></span>
-              <span>Aktarim farkli: <strong [class.color-danger]="comparison.summary.differenceCount > 0">{{ comparison.summary.differenceCount }}</strong></span>
-              <span>Aktarim net farki: <strong [class.color-danger]="comparison.summary.differenceCount > 0">{{ formatCurrency(comparison.summary.totalNetDifference) }}</strong></span>
+              <span>Aktarim farkli: <strong [class.color-danger]="comparison.summary.transferDifferenceCount > 0">{{ comparison.summary.transferDifferenceCount }}</strong></span>
+              <span>Kaynak fisi: <strong>{{ comparison.summary.receiptMismatchCount }}</strong></span>
+              <span>Z kontrol: <strong>{{ comparison.summary.zReportMismatchCount }}</strong></span>
               <span class="print-time">Yazdirma: {{ printDate() }}</span>
             </div>
           </div>
@@ -528,65 +529,73 @@
               <span>Sube</span>
               <strong>{{ comparison.summary.rowCount }}</strong>
             </article>
-            <article class="summary-item" [class.metric-negative]="comparison.summary.differenceCount > 0">
-              <span>Kontrol Gereken Sube</span>
-              <strong>{{ comparison.summary.differenceCount }}</strong>
+            <article class="summary-item">
+              <span>Aktarim Tam</span>
+              <strong>{{ comparison.summary.balancedCount }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.transferDifferenceCount > 0">
+              <span>Aktarim Farkli</span>
+              <strong>{{ comparison.summary.transferDifferenceCount }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.receiptMismatchCount > 0">
+              <span>Kaynak Fisi Kontrol</span>
+              <strong>{{ comparison.summary.receiptMismatchCount }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.zReportMismatchCount > 0">
+              <span>Z Raporu Kontrol</span>
+              <strong>{{ comparison.summary.zReportMismatchCount }}</strong>
             </article>
             <article class="summary-item">
-              <span>Mikro Stok Hareketi</span>
-              <strong>{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</strong>
-            </article>
-            <article class="summary-item">
-              <span>Mikro Cari Hareketi</span>
-              <strong>{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</strong>
-            </article>
-            <article class="summary-item" [class.metric-negative]="comparison.summary.totalCurrentStockDifference !== 0">
-              <span title="Gunluk PS perakende stok hareketi (sth_evraktip=4) ile PS cari hareketi (cha_evrak_tip=63) farkidir; cariye yansimayan BelgeTuru=3 fatura/irsaliye stoklari harictir.">Stok / Cari Farki (PS)</span>
-              <strong>{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</strong>
-            </article>
-            <article class="summary-item">
-              <span>Furpa Kaynak Tutar</span>
+              <span>Kaynak Satir Toplami</span>
               <strong>{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</strong>
             </article>
             <article class="summary-item">
-              <span>Cek</span>
-              <strong>{{ formatCurrency(comparison.summary.totalCheckAmount) }}</strong>
+              <span>Kaynak Baslik Toplami</span>
+              <strong>{{ formatCurrency(comparison.summary.totalSourceHeaderAmount) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalReceiptLineHeaderDifference !== 0">
+              <span>Fis Ici Fark</span>
+              <strong>{{ formatCurrency(comparison.summary.totalReceiptLineHeaderDifference) }}</strong>
             </article>
             <article class="summary-item">
-              <span>Z Raporu</span>
-              <strong>{{ formatCurrency(comparison.summary.totalZReportAmount) }}</strong>
+              <span>Mikro Stok</span>
+              <strong>{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</strong>
             </article>
-            <article class="summary-item" [class.metric-negative]="comparison.summary.totalZReportTransferDifference !== 0">
-              <span>Mikro Net / Z + Cek Farki</span>
-              <strong>{{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}</strong>
-            </article>
-            <article class="summary-item" [class.metric-negative]="comparison.summary.totalSourceZReportDifference !== 0">
-              <span>Kaynak Net / Z + Cek Farki</span>
-              <strong>{{ formatCurrency(comparison.summary.totalSourceZReportDifference) }}</strong>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalNetDifference !== 0">
+              <span>Aktarim Net Farki</span>
+              <strong>{{ formatCurrency(comparison.summary.totalNetDifference) }}</strong>
             </article>
             <article class="summary-item" [class.metric-negative]="comparison.summary.totalPendingInvoiceAmount !== 0">
               <span>Mikro'ya Bekleyen Fatura</span>
               <strong>{{ formatCurrency(comparison.summary.totalPendingInvoiceAmount) }}</strong>
             </article>
-            <article class="summary-item" [class.metric-negative]="comparison.summary.sourceDataWarningCount > 0">
-              <span>Kaynak Veri Uyarisi</span>
-              <strong>{{ comparison.summary.sourceDataWarningCount }}</strong>
+            <article class="summary-item">
+              <span>Z Raporu</span>
+              <strong>{{ formatCurrency(comparison.summary.totalZReportAmount) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalSourceHeaderZReportDifference !== 0">
+              <span>Z Mutabakat Farki</span>
+              <strong>{{ formatCurrency(comparison.summary.totalSourceHeaderZReportDifference) }}</strong>
             </article>
           </section>
 
-          <article class="state-card state-card-info no-print" *ngIf="comparison.summary.sourceDataWarningCount > 0">
+          <article
+            class="state-card state-card-info no-print"
+            *ngIf="comparison.summary.receiptMismatchCount > 0 || comparison.summary.zReportMismatchCount > 0"
+          >
             <div class="state-card-header">
               <strong>Kaynak kasa verisi kontrol edilmeli</strong>
             </div>
             <p>
-              {{ comparison.summary.sourceDataWarningCount }} subede kasa dosyasi eksigi veya fis baslik-satir tutarsizligi bulundu.
-              Mikro'yu silip yeniden aktarmadan once Kaynak / Z + Cek ve PS Stok / Cari farklarini kontrol edin.
+              {{ comparison.summary.receiptMismatchCount }} subede fis basligi ile urun satirlari,
+              {{ comparison.summary.zReportMismatchCount }} subede ise kaynak fis basligi ile Z raporu uyusmuyor.
+              Aktarim farki sifirsa Mikro'yu silip yeniden aktarmak bu kaynak farklarini duzeltmez.
             </p>
           </article>
 
           <div class="report-subsection-head" *ngIf="comparison.rows.length">
             <div class="report-subsection-title">
-              <h3><i class="fa-solid fa-scale-balanced color-accent"></i> Mikro ve Z Raporu Mutabakati (Oncelikli)</h3>
+              <h3><i class="fa-solid fa-scale-balanced color-accent"></i> Kasa Aktarim ve Kaynak Mutabakati</h3>
               <span class="count-badge">{{ comparison.summary.rowCount }} sube</span>
             </div>
             <div class="report-subsection-actions no-print">
@@ -595,10 +604,10 @@
                 class="btn-print-mini"
                 (click)="printSalesComparison()"
                 [disabled]="salesComparisonLoading() || !comparison.rows.length || salesComparisonPrinting()"
-                title="Mikro ve Z Raporu Mutabakati tablosunu A4 olarak yazdir"
+                title="Kasa aktarim ve kaynak mutabakati tablosunu A4 olarak yazdir"
               >
                 <i class="fa-solid fa-print"></i>
-                <span>{{ salesComparisonPrinting() ? 'Hazirlaniyor...' : 'A4 Yazdir (14 Kolon)' }}</span>
+                <span>{{ salesComparisonPrinting() ? 'Hazirlaniyor...' : 'A4 Yazdir (13 Kolon)' }}</span>
               </button>
             </div>
           </div>
@@ -609,53 +618,52 @@
                 <tr>
                   <th class="col-date">Tarih</th>
                   <th class="col-branch">Sube</th>
+                  <th class="align-right">Kaynak Satir</th>
+                  <th class="align-right">Kaynak Baslik</th>
+                  <th class="align-right">Fis Ici Fark</th>
                   <th class="align-right">Mikro Stok</th>
-                  <th class="align-right">Mikro Cari</th>
-                  <th
-                    class="align-right"
-                    title="Gunluk PS perakende stok hareketi (sth_evraktip=4) ile PS cari hareketi (cha_evrak_tip=63) farkidir; BelgeTuru=3 fatura/irsaliye stoklari harictir."
-                  >
-                    Stok / Cari Farki (PS)
-                  </th>
-                  <th class="align-right">Furpa Kaynak</th>
+                  <th class="align-right">Aktarim Net Farki</th>
                   <th class="align-right">Bekleyen Fatura</th>
                   <th class="align-right">GPS</th>
                   <th class="align-right">Cek</th>
-                  <th class="align-right">Furpa Net</th>
                   <th class="align-right">Z Raporu</th>
-                  <th class="align-right">Mikro Net / Z + Cek</th>
-                  <th class="align-right">Kaynak Net / Z + Cek</th>
-                  <th class="align-right">Kaynak / Mikro</th>
+                  <th class="align-right">Z Mutabakat Farki</th>
+                  <th class="col-status">Durum</th>
                 </tr>
               </thead>
               <tbody>
                 <tr
                   *ngFor="let row of comparison.rows; trackBy: trackBySalesComparisonRow"
-                  [class.comparison-row-difference]="row.hasDifference || row.hasSourceDataWarning"
+                  [class.comparison-row-difference]="hasSalesComparisonTransferProblem(row)"
+                  [class.comparison-row-warning]="hasSalesComparisonWarning(row)"
                 >
                   <td class="col-date">{{ formatDate(row.date) }}</td>
                   <td class="col-branch"><strong>{{ row.branchNo }} - {{ row.branchName || 'Sube' }}</strong></td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.stockMovementAmount) }}</td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.currentAccountAmount) }}</td>
-                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.currentStockDifference !== 0">
-                    {{ formatCurrency(row.currentStockDifference) }}
-                  </td>
                   <td class="align-right font-mono">{{ formatCurrency(row.transferredAmount) }}</td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.sourceHeaderAmount) }}</td>
+                  <td class="align-right font-mono cell-strong" [class.amount-warning]="row.hasReceiptTotalMismatch">
+                    {{ formatCurrency(row.receiptLineHeaderDifference) }}
+                  </td>
+                  <td class="align-right font-mono">{{ formatCurrency(row.stockMovementAmount) }}</td>
+                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.hasDifference">
+                    {{ formatCurrency(row.netDifference) }}
+                  </td>
                   <td class="align-right font-mono cell-strong" [class.amount-negative]="row.pendingInvoiceAmount !== 0">
                     {{ formatCurrency(row.pendingInvoiceAmount) }}
                   </td>
                   <td class="align-right font-mono">{{ formatCurrency(row.expenseReceiptAmount) }}</td>
                   <td class="align-right font-mono">{{ formatCurrency(row.checkAmount) }}</td>
-                  <td class="align-right font-mono">{{ formatCurrency(row.netTransferredTurnover) }}</td>
                   <td class="align-right font-mono">{{ formatCurrency(row.zReportAmount) }}</td>
-                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.zReportTransferDifference !== 0">
-                    {{ formatCurrency(row.zReportTransferDifference) }}
+                  <td class="align-right font-mono cell-strong" [class.amount-warning]="row.hasZReportMismatch">
+                    {{ formatCurrency(row.sourceHeaderZReportDifference) }}
                   </td>
-                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.sourceZReportDifference !== 0">
-                    {{ formatCurrency(row.sourceZReportDifference) }}
-                  </td>
-                  <td class="align-right font-mono cell-strong" [class.amount-negative]="row.transferredTurnoverDifference !== 0">
-                    {{ formatCurrency(row.transferredTurnoverDifference) }}
+                  <td class="col-status">
+                    <span
+                      class="status-pill"
+                      [class.status-balanced]="!hasSalesComparisonTransferProblem(row) && !hasSalesComparisonWarning(row)"
+                      [class.status-warning]="hasSalesComparisonWarning(row)"
+                      [class.status-difference]="hasSalesComparisonTransferProblem(row)"
+                    >{{ getSalesComparisonStatus(row) }}</span>
                   </td>
                 </tr>
               </tbody>
@@ -663,18 +671,17 @@
                 <tr>
                   <td class="col-date"><strong>TOPLAM</strong></td>
                   <td class="col-branch"><span class="count-badge">{{ comparison.summary.rowCount }} Sube</span></td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalSourceHeaderAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalReceiptLineHeaderDifference) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalStockMovementAmount) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalNetDifference) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalPendingInvoiceAmount) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalExpenseReceiptAmount) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalCheckAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalNetTransferredTurnover) }}</td>
                   <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportAmount) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalSourceZReportDifference) }}</td>
-                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalTransferredTurnoverDifference) }}</td>
+                  <td class="align-right font-mono font-bold">{{ formatCurrency(comparison.summary.totalSourceHeaderZReportDifference) }}</td>
+                  <td class="col-status"><strong>{{ comparison.summary.balancedCount }} tam</strong></td>
                 </tr>
               </tfoot>
             </table>
@@ -706,6 +713,22 @@
             <article class="summary-item" [class.metric-negative]="comparison.summary.totalExpenseSlipDifference !== 0">
               <span>Gider Pusulasi Farki</span>
               <strong>{{ formatCurrency(comparison.summary.totalExpenseSlipDifference) }}</strong>
+            </article>
+            <article class="summary-item">
+              <span>Mikro Cari</span>
+              <strong>{{ formatCurrency(comparison.summary.totalCurrentAccountAmount) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalCurrentStockDifference !== 0">
+              <span>PS Stok / Cari Farki</span>
+              <strong>{{ formatCurrency(comparison.summary.totalCurrentStockDifference) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalZReportTransferDifference !== 0">
+              <span>Mikro Net / Z + Cek</span>
+              <strong>{{ formatCurrency(comparison.summary.totalZReportTransferDifference) }}</strong>
+            </article>
+            <article class="summary-item" [class.metric-negative]="comparison.summary.totalSourceZReportDifference !== 0">
+              <span>Kaynak Satir Net / Z + Cek</span>
+              <strong>{{ formatCurrency(comparison.summary.totalSourceZReportDifference) }}</strong>
             </article>
           </section>
 

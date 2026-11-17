@@ -626,6 +626,14 @@ export interface KasaHareketSalesComparisonSummaryDto {
   totalSourceZReportDifference: number;
   totalPendingInvoiceAmount: number;
   sourceDataWarningCount: number;
+  totalSourceHeaderAmount: number;
+  totalReceiptLineHeaderDifference: number;
+  totalSourceHeaderZReportDifference: number;
+  transferDifferenceCount: number;
+  receiptMismatchCount: number;
+  zReportMismatchCount: number;
+  pendingInvoiceCount: number;
+  balancedCount: number;
 }
 
 export interface KasaHareketSalesComparisonRowDto {
@@ -658,6 +666,11 @@ export interface KasaHareketSalesComparisonRowDto {
   sourceZReportDifference: number;
   pendingInvoiceAmount: number;
   hasSourceDataWarning: boolean;
+  sourceHeaderAmount: number;
+  receiptLineHeaderDifference: number;
+  sourceHeaderZReportDifference: number;
+  hasReceiptTotalMismatch: boolean;
+  hasZReportMismatch: boolean;
 }
 
 export interface KasaHareketSatisMutabakatReportDto {
