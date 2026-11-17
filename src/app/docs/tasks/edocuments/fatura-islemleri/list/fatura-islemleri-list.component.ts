@@ -58,6 +58,26 @@ import {
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DocumentPrintService } from '../../../core/document-print/document-print.service';
 import { PdfPrintService } from '../../../core/document-print/pdf-print.service';
+import {
+  compareSendingSortValue,
+  getInvoiceScenario,
+  getSendingDiscountTotal as calcSendingDiscountTotal,
+  getSendingGrossTotal as calcSendingGrossTotal,
+  getSendingLineExtensionTotal as calcSendingLineExtensionTotal,
+  getSendingPayableTotal as calcSendingPayableTotal,
+  getSendingTaxTotal as calcSendingTaxTotal,
+  INVOICE_STATUS_CODE_LABELS,
+  isSendingDatePresetMatch,
+  resolveSendingDatePreset,
+  resolveSendingScenario,
+  sortSendingItems,
+  sumSendingPayableTotal,
+  sumSendingTaxTotal,
+  sumViewingInvoiceTotal,
+  sumViewingTaxTotal,
+  type SendingSortKey,
+  type SendingSortState
+} from './fatura-islemleri-sending.helpers';
 
 type WorkspaceMode = 'viewing' | 'sending';
 type FeedbackTone = 'success' | 'error' | 'info';
@@ -71,13 +91,6 @@ type ViewingSortKey =
   | 'status'
   | 'invoiceTotal'
   | 'isPrinted';
-type SendingSortKey =
-  | 'invoiceId'
-  | 'customerTitle'
-  | 'documentDate'
-  | 'isSent'
-  | 'scenario'
-  | 'payableTotal';
 
 interface PageFeedback {
   tone: FeedbackTone;
@@ -97,11 +110,6 @@ interface SummaryMetric {
 
 interface ResponseMetric extends SummaryMetric {
   tone: string;
-}
-
-interface SendingSortState {
-  key: SendingSortKey;
-  direction: SortDirection;
 }
 
 interface ViewingSortState {
@@ -374,6 +382,8 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingListLoading = signal(false);
   protected readonly sendingDetailLoading = signal(false);
   protected readonly sendingPdfLoadingKey = signal<string | null>(null);
+  protected readonly sendingRowPrintingKey = signal<string | null>(null);
+  protected readonly sendingBulkPrintLoading = signal(false);
   protected readonly sendingRenderLoading = signal(false);
   protected readonly sendingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly selectedSendingKeys = signal<string[]>([]);
@@ -506,41 +516,6 @@ export class FaturaIslemleriListComponent {
 
     return hasAccess ? [this.initialWorkspace] : [];
   });
-  protected readonly heroStats = computed<HeroStat[]>(() =>
-    this.activeWorkspace() === 'viewing'
-      ? [
-          {
-            label: 'Toplam Kayit',
-            value: `${this.viewingList()?.totalCount ?? 0}`
-          },
-          {
-            label: 'Secili Fatura',
-            value: this.selectedViewingSummary()?.invoiceId || '-'
-          },
-          {
-            label: 'Yazdirildi',
-            value: this.selectedViewingSummary()
-              ? this.selectedViewingSummary()!.isPrinted
-                ? 'Evet'
-                : 'Hayir'
-              : '-'
-          }
-        ]
-      : [
-          {
-            label: 'Toplam Kayit',
-            value: `${this.sendingList()?.totalCount ?? 0}`
-          },
-          {
-            label: 'Secili Fatura',
-            value: this.selectedSendingSummary()?.invoiceId || '-'
-          },
-          {
-            label: 'Kuyruk',
-            value: `${this.selectedSendingItems().length}`
-          }
-        ]
-  );
   protected readonly viewingItems = computed(() => this.viewingList()?.items ?? []);
   protected readonly filteredViewingItems = computed(() => {
     const items = this.viewingItems();
@@ -659,11 +634,11 @@ export class FaturaIslemleriListComponent {
       this.viewingAmountMaxFilter() !== null
   );
   protected readonly filteredSendingItems = computed(() => {
-    const items = this.sendingList()?.items ?? [];
+    const rawItems = this.sendingList()?.items ?? [];
     const filter = this.normalizeText(this.sendingQuickFilter());
     const filteredItems = !filter
-      ? items
-      : items.filter((item) =>
+      ? rawItems
+      : rawItems.filter((item) =>
           [
             item.documentSerie,
             `${item.documentOrderNo}`,
@@ -686,66 +661,12 @@ export class FaturaIslemleriListComponent {
           ].some((value) => this.normalizeText(value).includes(filter))
         );
 
-    return this.sortSendingItems(filteredItems, this.sendingSort());
-  });
-  protected readonly viewingMetrics = computed<SummaryMetric[]>(() => {
-    const response = this.viewingList();
-    const items = response?.items ?? [];
-
-    return [
-      {
-        label: 'Toplam Kayit',
-        value: `${response?.totalCount ?? 0}`
-      },
-      {
-        label: 'Liste Boyutu',
-        value: `${items.length}`
-      },
-      {
-        label: 'Islenen',
-        value: `${items.filter((item) => item.isProcessed).length}`
-      },
-      {
-        label: 'Basilan',
-        value: `${items.filter((item) => item.isPrinted).length}`
-      },
-      {
-        label: 'Standart',
-        value: `${items.filter((item) => item.isStandard).length}`
-      }
-    ];
-  });
-  protected readonly sendingMetrics = computed<SummaryMetric[]>(() => {
-    const response = this.sendingList();
-    const items = response?.items ?? [];
-    const scenario = this.sendingFilterForm.controls.scenario.value;
-
-    return [
-      {
-        label: 'Toplam Kayit',
-        value: `${response?.totalCount ?? 0}`
-      },
-      {
-        label: 'Gonderilmemis',
-        value: `${items.filter((item) => !item.isSent).length}`
-      },
-      {
-        label: 'Gonderilen',
-        value: `${items.filter((item) => item.isSent).length}`
-      },
-      {
-        label: 'Secilen',
-        value: `${this.selectedSendingItems().length}`
-      },
-      {
-        label: 'Iade Faturasi',
-        value: `${items.filter((item) => this.isReturnInvoice(item)).length}`
-      },
-      {
-        label: 'Senaryo',
-        value: this.getScenarioLabel(scenario)
-      }
-    ];
+    return sortSendingItems(
+      filteredItems,
+      this.sendingSort(),
+      (scenario) => this.getScenarioLabel(scenario),
+      (item) => this.getSendingPayableTotal(item)
+    );
   });
   protected readonly selectedViewingSummary = computed(
     () =>
@@ -772,6 +693,15 @@ export class FaturaIslemleriListComponent {
 
     return items.length > 0 && items.every((item) => selectedIds.has(item.documentId));
   });
+  protected readonly filteredViewingTotalAmount = computed(() =>
+    sumViewingInvoiceTotal(this.filteredViewingItems())
+  );
+  protected readonly filteredViewingTaxAmount = computed(() =>
+    sumViewingTaxTotal(this.filteredViewingItems())
+  );
+  protected readonly selectedViewingTotalAmount = computed(() =>
+    sumViewingInvoiceTotal(this.selectedViewingItems())
+  );
   protected readonly selectedSendingSummary = computed(
     () =>
       this.sendingDetail()?.summary ??
@@ -791,6 +721,20 @@ export class FaturaIslemleriListComponent {
     this.filteredSendingItems().filter(
       (item) => !item.isSent && !this.hasReceiverAddress(item)
     )
+  );
+  protected readonly allVisibleSendingItemsSelected = computed(() => {
+    const keys = new Set(this.selectedSendingKeys());
+    const items = this.filteredUnsentSendingItems();
+    return items.length > 0 && items.every((item) => keys.has(this.buildSendingKey(item.documentSerie, item.documentOrderNo)));
+  });
+  protected readonly filteredSendingTotalAmount = computed(() =>
+    sumSendingPayableTotal(this.filteredSendingItems())
+  );
+  protected readonly filteredSendingTaxAmount = computed(() =>
+    sumSendingTaxTotal(this.filteredSendingItems())
+  );
+  protected readonly selectedSendingTotalAmount = computed(() =>
+    sumSendingPayableTotal(this.selectedSendingItems())
   );
   protected readonly validateResponseMetrics = computed<ResponseMetric[]>(() => {
     const response = this.lastValidateResponse();
@@ -1704,6 +1648,18 @@ export class FaturaIslemleriListComponent {
     this.sendingQuickFilter.set((event.target as HTMLInputElement | null)?.value ?? '');
   }
 
+  protected clearSendingQuickFilter(): void {
+    this.sendingQuickFilter.set('');
+  }
+
+  protected toggleAllVisibleSendingSelection(checked: boolean): void {
+    if (!checked) {
+      this.clearSendingSelection();
+      return;
+    }
+    this.selectFilteredUnsentInvoices();
+  }
+
   protected dismissFeedback(): void {
     this.feedback.set(null);
   }
@@ -1723,6 +1679,169 @@ export class FaturaIslemleriListComponent {
     }
 
     return sort.direction === 'asc' ? ' ^' : ' v';
+  }
+
+  protected setSendingDatePreset(preset: 'today' | 'yesterday' | 'thisWeek' | 'thisMonth'): void {
+    const range = resolveSendingDatePreset(preset);
+    this.sendingFilterForm.patchValue({
+      startDate: range.startDate,
+      endDate: range.endDate
+    });
+    this.applySendingFilters();
+  }
+
+  protected isSendingDatePresetActive(preset: 'today' | 'yesterday' | 'thisWeek' | 'thisMonth'): boolean {
+    return isSendingDatePresetMatch(
+      preset,
+      this.sendingFilterForm.controls.startDate.value,
+      this.sendingFilterForm.controls.endDate.value
+    );
+  }
+
+  protected setViewingDatePreset(preset: 'today' | 'yesterday' | 'thisWeek' | 'thisMonth'): void {
+    const range = resolveSendingDatePreset(preset);
+    this.viewingFilterForm.patchValue({
+      startDate: range.startDate,
+      endDate: range.endDate
+    });
+    this.applyViewingFilters();
+  }
+
+  protected isViewingDatePresetActive(preset: 'today' | 'yesterday' | 'thisWeek' | 'thisMonth'): boolean {
+    return isSendingDatePresetMatch(
+      preset,
+      this.viewingFilterForm.controls.startDate.value,
+      this.viewingFilterForm.controls.endDate.value
+    );
+  }
+
+  protected isSendingRowPrinting(item: InvoiceSendingListItemDto): boolean {
+    return (
+      this.sendingRowPrintingKey() ===
+      this.buildSendingKey(item.documentSerie, item.documentOrderNo)
+    );
+  }
+
+  protected async printSendingRowInvoice(item: InvoiceSendingListItemDto, preOpenedWindow?: Window | null): Promise<void> {
+    if (!this.canSendDetail()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Detay yetkisi gerekli',
+        message: 'Faturayi yazdirmak icin detail yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    const previewWindow =
+      !item.isSent && preOpenedWindow === undefined
+        ? window.open('', '_blank', 'width=960,height=720')
+        : (preOpenedWindow ?? null);
+
+    if (!item.isSent && preOpenedWindow === undefined && !previewWindow) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirma penceresi acilamadi',
+        message: 'Tarayicida acilir pencereye (pop-up) izin verin.'
+      });
+      return;
+    }
+
+    if (previewWindow) {
+      previewWindow.document.title = `${item.invoiceId} - Fatura Hazirlaniyor`;
+      previewWindow.document.body.textContent = 'Fatura yazdirma gorunumu hazirlaniyor...';
+    }
+
+    const itemKey = this.buildSendingKey(item.documentSerie, item.documentOrderNo);
+    this.sendingRowPrintingKey.set(itemKey);
+
+    try {
+      if (item.isSent) {
+        const scenario = this.getInvoiceScenario(item.scenario);
+        if (!scenario) {
+          throw new Error(`${item.documentSerie}/${item.documentOrderNo} icin PDF senaryosu belirlenemedi.`);
+        }
+        const blob = await firstValueFrom(
+          this.faturaIslemleriService.getInvoiceSendingPdf(item.documentSerie, item.documentOrderNo, scenario)
+        );
+        await this.pdfPrintService.print({ blob, title: item.sentDocumentNo || item.invoiceId });
+      } else {
+        const detail = await firstValueFrom(
+          this.faturaIslemleriService.getInvoiceSendingDetail(
+            item.documentSerie,
+            item.documentOrderNo,
+            this.resolveSendingScenario(item.scenario)
+          )
+        );
+        const htmlContent = detail.document.htmlContent?.trim();
+        if (!htmlContent) {
+          throw new Error('Fatura HTML onizleme icerigi bulunamadi.');
+        }
+        this.documentPrintService.printHtml({
+          markup: htmlContent,
+          targetWindow: previewWindow ?? undefined,
+          printDelayMs: 400
+        });
+      }
+      this.feedback.set({
+        tone: 'success',
+        title: 'Yazdirma hazir',
+        message: `${item.invoiceId} yazdirma penceresine gonderildi.`
+      });
+    } catch (error) {
+      previewWindow?.close();
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirilamadi',
+        message: this.resolveErrorMessage(error, 'Fatura yazdirma verisi alinamadi.')
+      });
+    } finally {
+      if (this.sendingRowPrintingKey() === itemKey) {
+        this.sendingRowPrintingKey.set(null);
+      }
+    }
+  }
+
+  protected async printSelectedSendingInvoices(): Promise<void> {
+    const items = this.selectedSendingItems();
+    if (!items.length || this.sendingBulkPrintLoading()) {
+      return;
+    }
+    if (!this.canSendDetail()) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yetki gerekli',
+        message: 'Toplu yazdirma icin detail yetkisi gerekiyor.'
+      });
+      return;
+    }
+
+    this.sendingBulkPrintLoading.set(true);
+    let successCount = 0;
+    const failedList: string[] = [];
+
+    for (const item of items) {
+      try {
+        await this.printSendingRowInvoice(item, null);
+        successCount++;
+      } catch {
+        failedList.push(item.invoiceId || `${item.documentSerie}/${item.documentOrderNo}`);
+      }
+    }
+
+    this.sendingBulkPrintLoading.set(false);
+    this.feedback.set(
+      failedList.length > 0
+        ? {
+            tone: 'error',
+            title: 'Toplu yazdirma kismen basarisiz',
+            message: `${successCount}/${items.length} fatura yazdirildi. Hata alanlar: ${failedList.join(', ')}`
+          }
+        : {
+            tone: 'success',
+            title: 'Toplu yazdirma tamamlandi',
+            message: `${items.length} fatura yazdirma penceresine gonderildi.`
+          }
+    );
   }
 
   protected openSendingDetail(item: InvoiceSendingListItemDto): void {
@@ -2270,39 +2389,23 @@ export class FaturaIslemleriListComponent {
   }
 
   protected getSendingGrossTotal(item: InvoiceSendingListItemDto): number {
-    const grossTotal = this.toFiniteNumber(item.grossTotal);
-
-    if (grossTotal !== null) {
-      return grossTotal;
-    }
-
-    return this.getSendingLineExtensionTotal(item) + this.getSendingDiscountTotal(item);
+    return calcSendingGrossTotal(item);
   }
 
   protected getSendingDiscountTotal(item: InvoiceSendingListItemDto): number {
-    return this.toFiniteNumber(item.discountTotal) ?? 0;
+    return calcSendingDiscountTotal(item);
   }
 
   protected getSendingLineExtensionTotal(item: InvoiceSendingListItemDto): number {
-    return this.toFiniteNumber(item.lineExtensionTotal) ?? 0;
+    return calcSendingLineExtensionTotal(item);
   }
 
   protected getSendingTaxTotal(item: InvoiceSendingListItemDto): number {
-    return this.toFiniteNumber(item.taxTotal) ?? 0;
+    return calcSendingTaxTotal(item);
   }
 
   protected getSendingPayableTotal(item: InvoiceSendingListItemDto): number {
-    const payableTotal = this.toFiniteNumber(item.payableTotal);
-
-    if (payableTotal !== null) {
-      return payableTotal;
-    }
-
-    return (
-      this.getSendingLineExtensionTotal(item) +
-      this.getSendingTaxTotal(item) +
-      (this.toFiniteNumber(item.chargeTotal) ?? 0)
-    );
+    return calcSendingPayableTotal(item);
   }
 
   protected getSendingDetailOnlyLabel(value: string | null | undefined): string {
@@ -3226,7 +3329,7 @@ export class FaturaIslemleriListComponent {
     const direction = sort.direction === 'asc' ? 1 : -1;
 
     return [...items].sort((left, right) => {
-      const result = this.compareSendingSortValue(
+      const result = compareSendingSortValue(
         this.getViewingSortValue(left, sortKey),
         this.getViewingSortValue(right, sortKey)
       );
@@ -3235,7 +3338,7 @@ export class FaturaIslemleriListComponent {
         return result * direction;
       }
 
-      return this.compareSendingSortValue(left.invoiceId, right.invoiceId);
+      return compareSendingSortValue(left.invoiceId, right.invoiceId);
     });
   }
 
@@ -3265,120 +3368,13 @@ export class FaturaIslemleriListComponent {
 
   private mapInvoiceStatusCode(value: string | null | undefined): string {
     const normalizedValue = (value ?? '').trim();
-
-    if (!normalizedValue) {
-      return '';
-    }
-
-    const labels: Record<string, string> = {
-      NotPrepared: 'Hazirlanmadi',
-      NotSend: 'Gonderilmedi',
-      Draft: 'Taslak',
-      Canceled: 'Iptal Edildi',
-      Queued: 'Kuyrukta',
-      Processing: 'Isleniyor',
-      SentToGib: "GIB'e Gonderildi",
-      Approved: 'Onaylandi',
-      WaitingForAprovement: 'Onay Bekliyor',
-      Declined: 'Reddedildi',
-      Return: 'Iade Edildi',
-      EArchivedCanceled: 'E-Arsiv Iptal',
-      Error: 'Hata',
-      '1000': 'Onaylandi',
-      '1100': 'Onay Bekliyor',
-      '1200': 'Reddedildi',
-      '1300': 'Iade Edildi',
-      '1400': 'E-Arsiv Iptal',
-      '2000': 'Hata'
-    };
-
-    return labels[normalizedValue] ?? '';
-  }
-
-  private sortSendingItems(
-    items: InvoiceSendingListItemDto[],
-    sort: SendingSortState
-  ): InvoiceSendingListItemDto[] {
-    const direction = sort.direction === 'asc' ? 1 : -1;
-
-    return [...items].sort((left, right) => {
-      const result = this.compareSendingSortValue(
-        this.getSendingSortValue(left, sort.key),
-        this.getSendingSortValue(right, sort.key)
-      );
-
-      if (result !== 0) {
-        return result * direction;
-      }
-
-      return this.compareSendingSortValue(left.invoiceId, right.invoiceId);
-    });
-  }
-
-  private getSendingSortValue(
-    item: InvoiceSendingListItemDto,
-    key: SendingSortKey
-  ): string | number | boolean | null {
-    switch (key) {
-      case 'invoiceId':
-        return item.invoiceId;
-      case 'customerTitle':
-        return item.customerTitle;
-      case 'documentDate':
-        return item.documentDate ? new Date(item.documentDate).getTime() : null;
-      case 'isSent':
-        return item.isSent;
-      case 'scenario':
-        return this.getScenarioLabel(item.scenario);
-      case 'payableTotal':
-        return this.getSendingPayableTotal(item);
-    }
-  }
-
-  private compareSendingSortValue(
-    left: string | number | boolean | null | undefined,
-    right: string | number | boolean | null | undefined
-  ): number {
-    if (left === right) {
-      return 0;
-    }
-
-    if (left === null || left === undefined || left === '') {
-      return 1;
-    }
-
-    if (right === null || right === undefined || right === '') {
-      return -1;
-    }
-
-    if (typeof left === 'number' && typeof right === 'number') {
-      return left - right;
-    }
-
-    if (typeof left === 'boolean' && typeof right === 'boolean') {
-      return Number(left) - Number(right);
-    }
-
-    return String(left).localeCompare(String(right), 'tr-TR', {
-      numeric: true,
-      sensitivity: 'base'
-    });
+    return normalizedValue ? INVOICE_STATUS_CODE_LABELS[normalizedValue] ?? '' : '';
   }
 
   private readNullableNumber(event: Event): number | null {
     const rawValue = (event.target as HTMLInputElement | null)?.value.trim() ?? '';
-
-    if (!rawValue) {
-      return null;
-    }
-
-    const parsedValue = Number(rawValue.replace(',', '.'));
-
+    const parsedValue = rawValue ? Number(rawValue.replace(',', '.')) : NaN;
     return Number.isFinite(parsedValue) ? parsedValue : null;
-  }
-
-  private toFiniteNumber(value: unknown): number | null {
-    return typeof value === 'number' && Number.isFinite(value) ? value : null;
   }
 
   private buildSendingKey(documentSerie: string, documentOrderNo: number): string {
@@ -3593,23 +3589,7 @@ export class FaturaIslemleriListComponent {
   }
 
   private getInvoiceScenario(value: unknown): IInvoiceSendingScenarioApiDto | null {
-    const normalizedValue = this.normalizeIdentifier(String(value ?? ''));
-
-    if (value === 0 || normalizedValue === '0' || normalizedValue === 'efatura') {
-      return 'EFatura';
-    }
-
-    if (
-      value === 1 ||
-      value === 2 ||
-      normalizedValue === '1' ||
-      normalizedValue === '2' ||
-      normalizedValue === 'earsiv'
-    ) {
-      return 'EArsiv';
-    }
-
-    return null;
+    return getInvoiceScenario(value);
   }
 
   private matchesReturnReferenceInvoice(
@@ -3628,7 +3608,7 @@ export class FaturaIslemleriListComponent {
   }
 
   private resolveSendingScenario(value: unknown): IInvoiceSendingScenarioApiDto {
-    return this.getInvoiceScenario(value) ?? 'EFatura';
+    return resolveSendingScenario(value);
   }
 
   private normalizeIdentifier(value: string | null | undefined): string {

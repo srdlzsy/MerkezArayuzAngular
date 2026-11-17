@@ -1,15 +1,31 @@
 <section class="task-page" *ngIf="page as current">
   <article class="report-workspace">
     <header class="workspace-head">
-      <div class="title-block">
-        <span class="section-kicker">Rapor Islemleri</span>
-        <h2>{{ current.title }}</h2>
-        <p>{{ selectedDefinition().description }}</p>
+      <div class="workspace-top-bar">
+        <div class="title-block">
+          <div class="title-row">
+            <h2>{{ current.title }}</h2>
+            <span class="active-report-badge">{{ selectedDefinition().group }} • {{ selectedDefinition().label }}</span>
+          </div>
+          <p>{{ selectedDefinition().description }}</p>
+        </div>
+
+        <div class="report-group-pills" role="tablist" aria-label="Rapor grupları">
+          <button
+            *ngFor="let group of reportGroups()"
+            type="button"
+            class="group-pill"
+            [class.is-active]="selectedGroup() === group"
+            (click)="selectReportGroup(group)"
+          >
+            {{ group }}
+          </button>
+        </div>
       </div>
 
-      <div class="report-tabs" aria-label="Stok raporlari">
+      <div class="report-tabs" aria-label="Stok raporları">
         <button
-          *ngFor="let report of reportDefinitions; trackBy: trackByReport"
+          *ngFor="let report of visibleReportDefinitions(); trackBy: trackByReport"
           type="button"
           class="report-tab"
           [attr.data-group]="report.group"
@@ -17,24 +33,57 @@
           (click)="selectReport(report.key)"
         >
           <span>{{ report.group }}</span>
-          {{ report.label }}
+          <strong>{{ report.label }}</strong>
         </button>
       </div>
     </header>
 
     <section class="filter-panel" aria-label="Rapor filtreleri">
       <div class="filter-head">
-        <div>
-          <span class="section-kicker">Filtreler</span>
-          <strong>{{ selectedDefinition().label }}</strong>
+        <div class="filter-head-title">
+          <strong>{{ selectedDefinition().label }} Filtreleri</strong>
+          <span class="filter-context-pill">{{ selectedDateLabel() }}</span>
+          <span class="filter-context-pill">{{ scopeLabel() }}</span>
         </div>
-        <small>{{ selectedDateLabel() }} - {{ scopeLabel() }}</small>
+
+        <div
+          class="date-preset-strip"
+          *ngIf="usesDateRange() || usesSnapshotDate() || usesCountDate()"
+        >
+          <span class="preset-label">Hızlı Tarih:</span>
+          <button type="button" class="preset-chip" (click)="applyDatePreset('today')">Bugün</button>
+          <button type="button" class="preset-chip" (click)="applyDatePreset('yesterday')">Dün</button>
+          <button
+            type="button"
+            class="preset-chip"
+            *ngIf="usesDateRange()"
+            (click)="applyDatePreset('last7')"
+          >
+            Son 7 Gün
+          </button>
+          <button
+            type="button"
+            class="preset-chip"
+            *ngIf="usesDateRange()"
+            (click)="applyDatePreset('thisMonth')"
+          >
+            Bu Ay
+          </button>
+          <button
+            type="button"
+            class="preset-chip"
+            *ngIf="usesDateRange()"
+            (click)="applyDatePreset('last30')"
+          >
+            Son 30 Gün
+          </button>
+        </div>
       </div>
 
       <div class="filters-grid">
         <ng-container *ngIf="usesDateRange(); else datedSingleFilter">
           <label class="field">
-            <span>Baslangic</span>
+            <span>Başlangıç</span>
             <input
               type="date"
               [value]="startDate()"
@@ -43,7 +92,7 @@
           </label>
 
           <label class="field">
-            <span>Bitis</span>
+            <span>Bitiş</span>
             <input
               type="date"
               [value]="endDate()"
@@ -63,7 +112,7 @@
           </label>
 
           <label class="field" *ngIf="usesCountDate()">
-            <span>Sayim Tarihi</span>
+            <span>Sayım Tarihi</span>
             <input
               type="date"
               [value]="countDate()"
@@ -72,7 +121,7 @@
           </label>
 
           <label class="field" *ngIf="usesYearComparison()">
-            <span>Gecmis Yil</span>
+            <span>Geçmiş Yıl</span>
             <input
               type="number"
               min="2000"
@@ -83,7 +132,7 @@
           </label>
 
           <label class="field" *ngIf="usesYearComparison()">
-            <span>Guncel Yil</span>
+            <span>Güncel Yıl</span>
             <input
               type="number"
               min="2000"
@@ -94,39 +143,44 @@
           </label>
         </ng-template>
 
-        <div class="scope-switch" *ngIf="isAdminUser(); else fixedWarehouseScope" aria-label="Depo kapsami">
-          <button
-            type="button"
-            class="scope-pill"
-            [class.is-active]="scope() === 'all'"
-            [disabled]="!canSelectAllWarehouses()"
-            [attr.title]="!canSelectAllWarehouses() ? 'Seçili rapor (Sayım / Son Stok vb.) veritabanı yapısı gereği tek şube bazlı çalışır. Farklı bir şube incelemek için Manuel seçeneğini kullanabilirsiniz.' : 'Tüm depoların verilerini getirir'"
-            (click)="selectScope('all')"
-          >
-            Tum Depolar
-          </button>
-          <button
-            type="button"
-            class="scope-pill"
-            [class.is-active]="scope() === 'current'"
-            (click)="selectScope('current')"
-          >
-            Aktif Depo
-          </button>
-          <button
-            type="button"
-            class="scope-pill"
-            [class.is-active]="scope() === 'manual'"
-            (click)="selectScope('manual')"
-          >
-            Manuel
-          </button>
+        <div class="field scope-field" *ngIf="isAdminUser(); else fixedWarehouseScope">
+          <span>Depo Kapsamı</span>
+          <div class="scope-switch" aria-label="Depo kapsamı">
+            <button
+              type="button"
+              class="scope-pill"
+              [class.is-active]="scope() === 'all'"
+              [disabled]="!canSelectAllWarehouses()"
+              [attr.title]="!canSelectAllWarehouses() ? 'Seçili rapor (Sayım / Son Stok vb.) veritabanı yapısı gereği tek şube bazlı çalışır. Farklı bir şube incelemek için Manuel seçeneğini kullanabilirsiniz.' : 'Tüm depoların verilerini getirir'"
+              (click)="selectScope('all')"
+            >
+              Tüm Depolar
+            </button>
+            <button
+              type="button"
+              class="scope-pill"
+              [class.is-active]="scope() === 'current'"
+              (click)="selectScope('current')"
+            >
+              Aktif Depo
+            </button>
+            <button
+              type="button"
+              class="scope-pill"
+              [class.is-active]="scope() === 'manual'"
+              (click)="selectScope('manual')"
+            >
+              Manuel
+            </button>
+          </div>
         </div>
 
         <ng-template #fixedWarehouseScope>
-          <div class="scope-readonly">
-            <span>Depo Kapsami</span>
-            <strong>{{ currentWarehouseLabel() }}</strong>
+          <div class="field">
+            <span>Depo Kapsamı</span>
+            <div class="scope-readonly">
+              <strong>{{ currentWarehouseLabel() }}</strong>
+            </div>
           </div>
         </ng-template>
 
@@ -172,7 +226,7 @@
             <input
               type="search"
               list="stock-category-options"
-              [placeholder]="selectedReport() === 'kategori-satis-analizi' ? 'Kategori secin veya yazin (Zorunlu)' : 'Kategori kodu veya adi'"
+              [placeholder]="selectedReport() === 'kategori-satis-analizi' ? 'Kategori seçin veya yazın (Zorunlu)' : 'Kategori kodu veya adı'"
               [value]="categoryCode()"
               (input)="updateCategoryCode($any($event.target).value ?? '')"
               (keyup.enter)="loadRows()"
@@ -242,7 +296,7 @@
           >
             <div class="lookup-state" *ngIf="isProductSearchLoading()">
               <i class="fa-solid fa-circle-notch fa-spin"></i>
-              Araniyor...
+              Aranıyor...
             </div>
 
             <button
@@ -273,10 +327,10 @@
         </label>
 
         <label class="field" *ngIf="!usesMissingWarehouseFilters()">
-          <span>Arama</span>
+          <span>Genel Arama</span>
           <input
             type="search"
-            placeholder="Urun, kod veya aciklama"
+            placeholder="Ürün, kod veya açıklama"
             [value]="searchText()"
             (input)="updateSearchText($any($event.target).value ?? '')"
             (keyup.enter)="loadRows()"
@@ -293,7 +347,7 @@
         </label>
 
         <label class="field compact-field" *ngIf="usesProfitScope()">
-          <span>Kirilim</span>
+          <span>Kırılım</span>
           <select [value]="profitScope()" (change)="updateProfitScope($any($event.target).value ?? '')">
             <option *ngFor="let option of profitScopes; trackBy: trackByFilter" [value]="option.value">
               {{ option.label }}
@@ -302,7 +356,7 @@
         </label>
 
         <label class="field compact-field">
-          <span>{{ usesCountDate() ? 'Paket Kodu' : 'Model / Yardimci' }}</span>
+          <span>{{ usesCountDate() ? 'Paket Kodu' : 'Model / Yardımcı' }}</span>
           <input
             type="search"
             [placeholder]="usesCountDate() ? 'Opsiyonel paket' : 'Opsiyonel kod'"
@@ -342,17 +396,28 @@
           />
         </label>
 
-        <button
-          type="button"
-          class="task-action task-action-primary"
-          [disabled]="isLoading()"
-          (click)="loadRows()"
-        >
-          <i class="fa-solid" [ngClass]="isLoading() ? 'fa-circle-notch fa-spin' : 'fa-chart-simple'"></i>
-          <span>{{ isLoading() ? 'Yukleniyor...' : 'Raporu Getir' }}</span>
-        </button>
+        <div class="filter-actions-group">
+          <button
+            type="button"
+            class="task-action task-action-ghost"
+            [disabled]="isLoading()"
+            (click)="resetAllFilters()"
+            title="Filtreleri varsayılana sıfırla"
+          >
+            <i class="fa-solid fa-rotate-left"></i>
+            <span>Sıfırla</span>
+          </button>
+          <button
+            type="button"
+            class="task-action task-action-primary"
+            [disabled]="isLoading()"
+            (click)="loadRows()"
+          >
+            <i class="fa-solid" [ngClass]="isLoading() ? 'fa-circle-notch fa-spin' : 'fa-chart-simple'"></i>
+            <span>{{ isLoading() ? 'Yükleniyor...' : 'Raporu Getir' }}</span>
+          </button>
+        </div>
       </div>
-
     </section>
 
     <section class="kpi-dashboard-grid" *ngIf="metrics().length">
@@ -374,72 +439,129 @@
       </article>
     </section>
 
-    <!-- Hızlı Sıralama Araç Çubuğu -->
-    <section class="sort-toolbar" *ngIf="rows().length">
-      <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Hızlı Sırala:</span>
-      <button
-        type="button"
-        class="sort-chip"
-        [class.is-active]="sortField() === 'differenceAmount' || sortField() === 'outageTotal' || sortField() === 'netSalesAmount' || sortField() === 'totalStockAmount' || sortField() === 'differenceSalesValue'"
-        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'outageTotal' : selectedReport() === 'sayim-karsilastirma' ? 'differenceSalesValue' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'totalStockAmount')"
-      >
-        Tutar / Fark <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
-      </button>
-      <button
-        type="button"
-        class="sort-chip"
-        [class.is-active]="sortField() === 'quantity' || sortField() === 'currentStockQuantity' || sortField() === 'differenceQuantity' || sortField() === 'giroTotal'"
-        (click)="toggleSort(selectedReport() === 'sayim-karsilastirma' ? 'differenceQuantity' : selectedReport() === 'sube-zayiat-fire-analizi' ? 'giroTotal' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'quantity')"
-      >
-        Miktar / Ciro <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
-      </button>
-      <button
-        type="button"
-        class="sort-chip"
-        [class.is-active]="sortField() === 'stockName' || sortField() === 'branchName' || sortField() === 'companyName' || sortField() === 'warehouseName'"
-        (click)="toggleSort(selectedReport() === 'tedarikci-son-stok' ? 'companyName' : selectedReport() === 'sube-zayiat-fire-analizi' ? 'branchName' : 'stockName')"
-      >
-        Ad / Şube <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
-      </button>
-      <button
-        type="button"
-        class="sort-chip"
-        [class.is-active]="sortField() === 'ratioPercent' || sortField() === 'turnoverRatio' || sortField() === 'differencePercent'"
-        (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'ratioPercent' : 'turnoverRatio')"
-      >
-        Oran % <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
-      </button>
+    <section class="report-toolbar-strip" *ngIf="rows().length">
+      <div class="table-context">
+        <strong class="context-count-pill">{{ totalCount() }} kayıt</strong>
+        <strong class="context-count-pill" *ngIf="selectedReport() === 'sube-fiyat-farklari'">
+          {{ priceDifferenceGroups().length }} ürün
+        </strong>
+        <span>{{ selectedDefinition().label }}</span>
+        <span>•</span>
+        <span>{{ selectedDateLabel() }}</span>
+        <span>•</span>
+        <span>{{ scopeLabel() }}</span>
+        <span *ngIf="lastLoadedAt()">• Son yükleme: {{ formatDate(lastLoadedAt()) }}</span>
+      </div>
+
+      <div class="sort-toolbar price-group-sort-bar" *ngIf="selectedReport() === 'sube-fiyat-farklari'">
+        <span class="sort-label"><i class="fa-solid fa-arrow-down-a-z"></i> Ürün Sırala:</span>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="priceGroupSortKey() === 'name'"
+          (click)="setPriceGroupSort('name')"
+        >
+          Ürün Adı (A-Z)
+          <i
+            class="fa-solid"
+            *ngIf="priceGroupSortKey() === 'name'"
+            [class.fa-arrow-up]="priceGroupSortDir() === 'asc'"
+            [class.fa-arrow-down]="priceGroupSortDir() === 'desc'"
+          ></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="priceGroupSortKey() === 'code'"
+          (click)="setPriceGroupSort('code')"
+        >
+          Stok Kodu
+          <i
+            class="fa-solid"
+            *ngIf="priceGroupSortKey() === 'code'"
+            [class.fa-arrow-up]="priceGroupSortDir() === 'asc'"
+            [class.fa-arrow-down]="priceGroupSortDir() === 'desc'"
+          ></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="priceGroupSortKey() === 'difference'"
+          (click)="setPriceGroupSort('difference')"
+        >
+          Toplam Fark
+          <i
+            class="fa-solid"
+            *ngIf="priceGroupSortKey() === 'difference'"
+            [class.fa-arrow-up]="priceGroupSortDir() === 'asc'"
+            [class.fa-arrow-down]="priceGroupSortDir() === 'desc'"
+          ></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="priceGroupSortKey() === 'branchCount'"
+          (click)="setPriceGroupSort('branchCount')"
+        >
+          Şube Sayısı
+          <i
+            class="fa-solid"
+            *ngIf="priceGroupSortKey() === 'branchCount'"
+            [class.fa-arrow-up]="priceGroupSortDir() === 'asc'"
+            [class.fa-arrow-down]="priceGroupSortDir() === 'desc'"
+          ></i>
+        </button>
+      </div>
+
+      <div class="sort-toolbar" *ngIf="selectedReport() !== 'sube-fiyat-farklari'">
+        <span class="sort-label"><i class="fa-solid fa-arrow-down-wide-short"></i> Hızlı Sırala:</span>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'differenceAmount' || sortField() === 'outageTotal' || sortField() === 'netSalesAmount' || sortField() === 'totalStockAmount' || sortField() === 'differenceSalesValue' || sortField() === 'salesValue'"
+          (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'outageTotal' : selectedReport() === 'sayim-karsilastirma' ? 'differenceSalesValue' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'salesValue')"
+        >
+          Tutar / Fark <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'quantity' || sortField() === 'currentStockQuantity' || sortField() === 'differenceQuantity' || sortField() === 'giroTotal'"
+          (click)="toggleSort(selectedReport() === 'sayim-karsilastirma' ? 'differenceQuantity' : selectedReport() === 'sube-zayiat-fire-analizi' ? 'giroTotal' : selectedReport() === 'sube-fiyat-farklari' ? 'differenceAmount' : 'quantity')"
+        >
+          Miktar / Ciro <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'stockName' || sortField() === 'branchName' || sortField() === 'companyName' || sortField() === 'warehouseName'"
+          (click)="toggleSort(selectedReport() === 'tedarikci-son-stok' ? 'companyName' : selectedReport() === 'sube-zayiat-fire-analizi' ? 'branchName' : 'stockName')"
+        >
+          Ad / Şube <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+        </button>
+        <button
+          type="button"
+          class="sort-chip"
+          [class.is-active]="sortField() === 'ratioPercent' || sortField() === 'turnoverRatio' || sortField() === 'differencePercent'"
+          (click)="toggleSort(selectedReport() === 'sube-zayiat-fire-analizi' ? 'ratioPercent' : 'turnoverRatio')"
+        >
+          Oran % <i class="fa-solid" [class.fa-arrow-down]="sortDirection() === 'desc'" [class.fa-arrow-up]="sortDirection() === 'asc'"></i>
+        </button>
+      </div>
     </section>
 
-    <div class="table-context" *ngIf="rows().length">
-      <span>{{ selectedDefinition().label }}</span>
-      <span>{{ selectedDateLabel() }}</span>
-      <span>{{ scopeLabel() }}</span>
-      <strong>{{ totalCount() }} kayit</strong>
-      <strong *ngIf="lastLoadedAt()">Son yukleme: {{ formatDate(lastLoadedAt()) }}</strong>
-    </div>
-
     <article class="state-card state-card-error" *ngIf="errorMessage() as currentError">
-      <h3>Rapor Yuklenemedi</h3>
+      <h3>Rapor Yüklenemedi</h3>
       <p>{{ currentError }}</p>
     </article>
 
     <article class="state-card" *ngIf="isLoading()">
-      <h3>Rapor Yukleniyor</h3>
-      <p>{{ selectedDefinition().label }} icin secilen filtreler okunuyor.</p>
+      <h3>Rapor Yükleniyor</h3>
+      <p>{{ selectedDefinition().label }} için seçilen filtreler okunuyor...</p>
     </article>
 
     <ng-container *ngIf="!isLoading() && rows().length">
       <section class="price-difference-view" *ngIf="selectedReport() === 'sube-fiyat-farklari'; else standardReportTable">
-        <header class="price-difference-head">
-          <div>
-            <span class="section-kicker">Urun Bazli Karsilastirma</span>
-            <h3>Fiyat farki olan urunler</h3>
-            <p>En yuksek toplam fark once gelir. Urunu acarak sube fiyatlarini merkez fiyatiyla karsilastirin.</p>
-          </div>
-          <strong>{{ priceDifferenceGroups().length }} urun</strong>
-        </header>
-
         <div class="price-product-list">
           <article
             class="price-product"
@@ -462,17 +584,17 @@
               </span>
 
               <span class="price-product-stat">
-                <small>Farkli Sube</small>
+                <small>Farklı Şube</small>
                 <strong>{{ group.branchCount }}</strong>
               </span>
 
               <span class="price-product-stat price-product-stat-wide">
-                <small>Sube Fiyat Araligi</small>
+                <small>Şube Fiyat Aralığı</small>
                 <strong>{{ group.branchPriceLabel }}</strong>
               </span>
 
               <span class="price-product-stat price-product-stat-wide">
-                <small>Merkez Fiyati</small>
+                <small>Merkez Fiyatı</small>
                 <strong>{{ group.mainWarehousePriceLabel }}</strong>
               </span>
 
@@ -487,10 +609,10 @@
                 <table class="price-branch-table">
                   <thead>
                     <tr>
-                      <th>Sube</th>
-                      <th class="number-cell">Sube Fiyati</th>
-                      <th class="number-cell">Merkez Fiyati</th>
-                      <th class="number-cell">Fark Tutari</th>
+                      <th>Şube</th>
+                      <th class="number-cell">Şube Fiyatı</th>
+                      <th class="number-cell">Merkez Fiyatı</th>
+                      <th class="number-cell">Fark Tutarı</th>
                       <th class="number-cell">Fark %</th>
                     </tr>
                   </thead>
@@ -518,8 +640,8 @@
         <details class="raw-report-panel">
           <summary>
             <span>
-              <strong>Tum satirlar ve disa aktarma</strong>
-              <small>Arama, yazdirma ve Excel islemleri icin standart tabloyu acin.</small>
+              <strong>Tüm satırlar ve dışa aktarma</strong>
+              <small>Arama, yazdırma ve Excel işlemleri için standart tabloyu açın.</small>
             </span>
             <i class="fa-solid fa-chevron-down" aria-hidden="true"></i>
           </summary>
@@ -535,7 +657,7 @@
               [exportSheetName]="selectedDefinition().label"
               [printTitle]="selectedDefinition().label"
               [printSubtitle]="selectedDateLabel() + ' / ' + scopeLabel()"
-              filterPlaceholder="Urun, sube veya tutar ara"
+              filterPlaceholder="Ürün, şube veya tutar ara"
             ></app-api-list-table>
           </div>
         </details>
@@ -561,13 +683,13 @@
 
     <article class="state-card empty-state" *ngIf="!isLoading() && !errorMessage() && !rows().length">
       <ng-container *ngIf="hasLoadedRows(); else reportReadyState">
-        <h3>Kayit Bulunamadi</h3>
-        <p>Secilen rapor ve filtreler icin kayit donmedi.</p>
+        <h3>Kayıt Bulunamadı</h3>
+        <p>Seçilen rapor ve filtreler için kayıt dönmedi.</p>
       </ng-container>
 
       <ng-template #reportReadyState>
-        <h3>Rapor Hazir</h3>
-        <p>Filtreleri secip Raporu Getir butonuyla listeyi yukleyin.</p>
+        <h3>Rapor Hazır</h3>
+        <p>Filtreleri seçip Raporu Getir butonuyla listeyi yükleyin.</p>
       </ng-template>
     </article>
 

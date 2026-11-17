@@ -160,87 +160,214 @@
 }
 
 .invoice-console.is-viewing-workspace {
-  gap: 0.3rem;
+  gap: 0.35rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-grid,
 .invoice-console.is-viewing-workspace .workspace-stack,
 .invoice-console.is-viewing-workspace .viewing-list-panel {
-  gap: 0.26rem;
+  gap: 0.34rem;
 }
 
-.invoice-console.is-viewing-workspace .viewing-filter-panel,
+.invoice-console.is-viewing-workspace .viewing-filter-panel {
+  padding: 0.46rem 0.65rem;
+  border-radius: 8px;
+  background: #ffffff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.04);
+}
+
 .invoice-console.is-viewing-workspace .viewing-list-panel {
-  padding: 0.3rem 0.42rem;
+  padding: 0.38rem 0.46rem;
+  border-radius: 8px;
 }
 
-.invoice-console.is-viewing-workspace .viewing-filter-panel .panel-head,
-.invoice-console.is-viewing-workspace .viewing-list-panel > .panel-head {
-  min-height: 1.08rem;
+.invoice-console.is-viewing-workspace .viewing-console-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.45rem;
+  padding-bottom: 0.38rem;
+  margin-bottom: 0.38rem;
+  border-bottom: 1px solid #e2e8f0;
 }
 
-.invoice-console.is-viewing-workspace .viewing-filter-panel .panel-head h3,
-.invoice-console.is-viewing-workspace .viewing-list-panel > .panel-head h3 {
-  font-size: 0.82rem;
-  line-height: 1;
+.invoice-console.is-viewing-workspace .viewing-console-head .sending-head-title {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.5rem;
 }
 
-.invoice-console.is-viewing-workspace .viewing-list-meta,
-.invoice-console.is-viewing-workspace .viewing-filter-panel .panel-head,
-.invoice-console.is-viewing-workspace .viewing-list-panel > .panel-head {
-  gap: 0.18rem;
+.invoice-console.is-viewing-workspace .viewing-console-head .sending-head-title h3 {
+  margin: 0;
+  font-size: 0.9rem;
+  font-weight: 800;
+  color: #0f172a;
 }
 
-.invoice-console.is-viewing-workspace .panel-badge,
-.invoice-console.is-viewing-workspace .status-pill {
-  padding: 0.08rem 0.28rem;
-  font-size: 0.66rem;
-  line-height: 1;
+.invoice-console.is-viewing-workspace .viewing-console-head .sending-head-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.32rem;
 }
 
-.invoice-console.is-viewing-workspace .viewing-filter-panel .filter-grid,
-.invoice-console.is-viewing-workspace .viewing-table-tools {
-  gap: 0.22rem;
+.invoice-console.is-viewing-workspace .viewing-console-head .head-metric-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.25rem;
+  padding: 0.14rem 0.48rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 999px;
+  background: #f8fafc;
+  color: #334155;
+  font-size: 0.7rem;
+  font-weight: 600;
+}
+
+.invoice-console.is-viewing-workspace .viewing-console-head .head-metric-pill.is-primary {
+  border-color: #99f6e4;
+  background: #f0fdfa;
+  color: #0f766e;
+  font-weight: 800;
+}
+
+.invoice-console.is-viewing-workspace .viewing-console-head .sending-date-preset-bar {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.26rem;
+  margin: 0;
+}
+
+.invoice-console.is-viewing-workspace .viewing-console-head .preset-label {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.invoice-console.is-viewing-workspace .viewing-console-head .preset-chip {
+  padding: 0.16rem 0.48rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 6px;
+  background: #ffffff;
+  color: #334155;
+  font-size: 0.69rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: all 0.14s ease;
+}
+
+.invoice-console.is-viewing-workspace .viewing-console-head .preset-chip:hover {
+  border-color: var(--primary);
+  background: #f0fdfa;
+  color: var(--primary-strong);
+}
+
+.invoice-console.is-viewing-workspace .viewing-console-head .preset-chip.is-active {
+  border-color: var(--primary);
+  background: var(--primary);
+  color: #ffffff;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-panel .viewing-filter-grid {
+  grid-template-columns:
+    minmax(114px, 0.64fr)
+    minmax(114px, 0.64fr)
+    minmax(88px, 0.44fr)
+    minmax(88px, 0.44fr)
+    minmax(112px, 0.56fr)
+    minmax(170px, 0.95fr)
+    minmax(88px, 0.44fr)
+    auto;
+  gap: 0.36rem;
+  align-items: end;
+}
+
+.invoice-console.is-viewing-workspace .viewing-filter-actions {
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  flex-wrap: nowrap;
+  gap: 0.3rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-grid .field,
 .invoice-console.is-viewing-workspace .viewing-table-tools .field {
-  gap: 0.04rem;
+  gap: 0.1rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-grid .field span,
 .invoice-console.is-viewing-workspace .viewing-table-tools .field span {
+  display: block;
   font-size: 0.68rem;
-  line-height: 1;
+  font-weight: 700;
+  color: #475569;
+  line-height: 1.1;
 }
 
 .invoice-console.is-viewing-workspace .viewing-grid .field input,
 .invoice-console.is-viewing-workspace .viewing-grid .field select,
 .invoice-console.is-viewing-workspace .viewing-table-tools .field input,
 .invoice-console.is-viewing-workspace .viewing-table-tools .field select {
-  min-height: 1.52rem;
+  min-height: 1.84rem;
   border-radius: 6px;
-  padding: 0.16rem 0.34rem;
-  font-size: 0.78rem;
-}
-
-.invoice-console.is-viewing-workspace .viewing-filter-panel .action-row {
-  gap: 0.2rem;
-  padding-top: 0;
+  padding: 0.2rem 0.44rem;
+  font-size: 0.76rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-filter-panel .primary-button,
 .invoice-console.is-viewing-workspace .viewing-filter-panel .secondary-button,
 .invoice-console.is-viewing-workspace .viewing-filter-panel .ghost-button,
 .invoice-console.is-viewing-workspace .viewing-table-tools .compact-button {
-  min-height: 1.52rem;
+  min-height: 1.84rem;
   border-radius: 6px;
-  padding: 0.14rem 0.38rem;
-  font-size: 0.76rem;
+  padding: 0.2rem 0.54rem;
+  font-size: 0.74rem;
+  gap: 0.28rem;
+  white-space: nowrap;
 }
 
 .invoice-console.is-viewing-workspace .viewing-table-tools {
-  padding: 0.22rem 0.28rem;
+  grid-template-columns:
+    minmax(240px, 1.3fr)
+    minmax(124px, 0.45fr)
+    minmax(116px, 0.42fr)
+    minmax(84px, 0.26fr)
+    minmax(84px, 0.26fr)
+    auto;
+  gap: 0.36rem;
+  padding: 0.34rem 0.46rem;
+  background: #f8fafc;
+}
+
+.invoice-console.is-viewing-workspace .viewing-quick-search-field {
+  max-width: none;
+}
+
+.invoice-console.is-viewing-workspace .viewing-quick-search-field .search-input-wrap {
+  position: relative;
+  display: flex;
+  align-items: center;
+}
+
+.invoice-console.is-viewing-workspace .viewing-quick-search-field .search-icon {
+  position: absolute;
+  left: 0.52rem;
+  color: #94a3b8;
+  font-size: 0.73rem;
+  pointer-events: none;
+}
+
+.invoice-console.is-viewing-workspace .viewing-quick-search-field input {
+  padding-left: 1.7rem !important;
+}
+
+.invoice-console.is-viewing-workspace .viewing-tools-actions {
+  display: flex;
+  align-items: center;
+  gap: 0.3rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-table-shell,
@@ -265,14 +392,70 @@
 
 .invoice-console.is-viewing-workspace .viewing-virtual-table:not(.is-compact-viewing-table) .viewing-table-row {
   grid-template-columns:
-    2rem
-    minmax(10rem, 1.02fr)
-    minmax(8.6rem, 0.84fr)
-    minmax(12rem, 1.6fr)
-    minmax(6.6rem, 0.64fr)
-    minmax(4.8rem, 0.44fr)
-    minmax(6.4rem, 0.58fr)
-    minmax(5.1rem, 0.42fr);
+    2.1rem
+    minmax(10.2rem, 1.05fr)
+    minmax(8.2rem, 0.78fr)
+    minmax(13rem, 1.65fr)
+    minmax(6.6rem, 0.62fr)
+    minmax(5.6rem, 0.52fr)
+    minmax(7.4rem, 0.66fr)
+    13.5rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .amount-column {
+  padding-right: 0.85rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .invoice-id-cell .invoice-id-link {
+  display: inline-block;
+  padding: 0;
+  border: 0;
+  background: transparent;
+  color: #0f766e;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  text-align: left;
+  cursor: pointer;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .invoice-id-cell .invoice-id-link:hover {
+  text-decoration: underline;
+  color: #0c5b55;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .viewing-id-badges {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  margin-top: 0.1rem;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .mini-state-badge {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.18rem;
+  padding: 0.06rem 0.34rem;
+  border-radius: 4px;
+  font-size: 0.61rem;
+  font-weight: 700;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .mini-state-badge.is-processed {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .mini-state-badge.is-waiting {
+  background: #fef3c7;
+  color: #92400e;
+}
+
+.invoice-console.is-viewing-workspace .viewing-virtual-table .mini-state-badge.is-printed {
+  background: #e0f2fe;
+  color: #0369a1;
 }
 
 .invoice-console.is-viewing-workspace .viewing-virtual-table.is-compact-viewing-table .viewing-table-row {
@@ -282,7 +465,7 @@
     minmax(12rem, 1.45fr)
     minmax(9rem, 1fr)
     minmax(6.1rem, 0.62fr)
-    minmax(4.85rem, 0.46fr);
+    minmax(5.2rem, 0.5fr);
 }
 
 .invoice-console.is-viewing-workspace .viewing-virtual-table.is-tight-viewing-table .viewing-table-row {
@@ -291,22 +474,32 @@
     minmax(0, 1fr)
     minmax(0, 1.05fr)
     minmax(5.2rem, 0.68fr)
-    minmax(4.65rem, 0.48fr);
+    minmax(4.8rem, 0.5fr);
 }
 
 .invoice-console.is-viewing-workspace .viewing-table:not(.is-compact-viewing-table) .table-actions {
   flex-wrap: nowrap;
   justify-content: flex-end;
-  gap: 0.12rem;
+  gap: 0.22rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-table:not(.is-compact-viewing-table) .invoice-action-button {
-  flex: 0 0 1.56rem;
-  width: 1.56rem;
-  min-height: 1.56rem;
-  padding: 0;
+  flex: 0 0 auto;
+  width: auto;
+  min-height: 1.62rem;
+  padding: 0.14rem 0.42rem;
+  border-radius: 6px;
+  font-size: 0.68rem;
+  gap: 0.22rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-table:not(.is-compact-viewing-table) .invoice-action-button span {
-  display: none;
+  display: inline;
+}
+
+@media (max-width: 1360px) {
+  .invoice-console.is-viewing-workspace .viewing-filter-panel .viewing-filter-grid,
+  .invoice-console.is-viewing-workspace .viewing-table-tools {
+    grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
 }

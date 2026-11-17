@@ -355,16 +355,17 @@ const ON_HAND_COLUMNS: readonly ApiListTableColumn<StockOnHandReportItemDto>[] =
   { key: 'barcode', label: 'Barkod' },
   { key: 'warehouseName', label: 'Depo', resolveValue: (row) => formatWarehouse(row) },
   { key: 'unitName', label: 'Birim' },
-  { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
-  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
+  { key: 'quantity', label: 'Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.quantity) },
+  { key: 'salesPrice', label: 'Satış', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesPrice) },
   {
     key: 'salesValue',
-    label: 'Deger',
+    label: 'Değer',
+    tableAlign: 'right',
     resolveValue: (row) => formatMoney(row.salesValue ?? row.totalSalesValue)
   },
   {
     key: 'supplierName',
-    label: 'Tedarikci',
+    label: 'Tedarikçi',
     resolveValue: (row) => row.supplierName || row.supplierCode || '-'
   },
   {
@@ -374,12 +375,13 @@ const ON_HAND_COLUMNS: readonly ApiListTableColumn<StockOnHandReportItemDto>[] =
   },
   {
     key: 'producerName',
-    label: 'Sinif',
+    label: 'Sınıf',
     resolveValue: (row) => formatClassification(row)
   },
   {
     key: 'returnedQuantity',
-    label: 'Iade',
+    label: 'İade',
+    tableAlign: 'right',
     resolveValue: (row) =>
       `${formatNumber(row.returnedQuantity)} / ${formatInteger(row.returnedCount)} belge`
   }
@@ -390,9 +392,9 @@ const PRODUCT_WAREHOUSE_COLUMNS: readonly ApiListTableColumn<ProductWarehouseSto
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
   { key: 'barcode', label: 'Barkod' },
   { key: 'unitName', label: 'Birim' },
-  { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
-  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
-  { key: 'salesValue', label: 'Deger', resolveValue: (row) => formatMoney(row.salesValue) },
+  { key: 'quantity', label: 'Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.quantity) },
+  { key: 'salesPrice', label: 'Satış', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesPrice) },
+  { key: 'salesValue', label: 'Değer', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesValue) },
   { key: 'lastMovementDate', label: 'Son Hareket', resolveValue: (row) => formatDateOnly(row.lastMovementDate) }
 ];
 
@@ -420,21 +422,22 @@ const PRODUCT_SHIPMENT_DISTRIBUTION_COLUMNS: readonly ApiListTableColumn<Product
   { key: 'unitName', label: 'Birim' },
   {
     key: 'shipmentQuantity',
-    label: 'Sevk Miktari',
+    label: 'Sevk Miktarı',
+    tableAlign: 'right',
     resolveValue: (row) =>
       formatNumber(row.shipmentQuantity ?? row.shippedQuantity ?? row.totalQuantity ?? row.quantity)
   },
-  { key: 'documentCount', label: 'Belge', resolveValue: (row) => formatInteger(row.documentCount) },
-  { key: 'lineCount', label: 'Satir', resolveValue: (row) => formatInteger(row.lineCount) },
-  { key: 'salesValue', label: 'Deger', resolveValue: (row) => formatMoney(row.salesValue) },
+  { key: 'documentCount', label: 'Belge', tableAlign: 'right', resolveValue: (row) => formatInteger(row.documentCount) },
+  { key: 'lineCount', label: 'Satır', tableAlign: 'right', resolveValue: (row) => formatInteger(row.lineCount) },
+  { key: 'salesValue', label: 'Değer', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesValue) },
   { key: 'shipmentDate', label: 'Sevk Tarihi', resolveValue: (row) => formatDateOnly(row.shipmentDate) }
 ];
 
 const STOCK_CARD_COLUMNS: readonly ApiListTableColumn<StockCardDetailDto>[] = [
   { key: 'stockCode', label: 'Stok Kodu' },
-  { key: 'name', label: 'Stok Adi' },
-  { key: 'shortName', label: 'Kisa Ad' },
-  { key: 'supplierCode', label: 'Tedarikci' },
+  { key: 'name', label: 'Stok Adı' },
+  { key: 'shortName', label: 'Kısa Ad' },
+  { key: 'supplierCode', label: 'Tedarikçi' },
   { key: 'categoryCode', label: 'Kategori' },
   { key: 'mainGroupCode', label: 'Ana Grup' },
   { key: 'subGroupCode', label: 'Alt Grup' },
@@ -446,8 +449,8 @@ const STOCK_CARD_COLUMNS: readonly ApiListTableColumn<StockCardDetailDto>[] = [
     resolveValue: (row) =>
       `${formatPair('Per', row.retailTaxPointer)} / ${formatPair('Top', row.wholesaleTaxPointer)}`
   },
-  { key: 'salesStopped', label: 'Kisit', resolveValue: (row) => formatStockCardFlags(row) },
-  { key: 'lastUpdatedAt', label: 'Guncelleme', resolveValue: (row) => formatDateOnly(row.lastUpdatedAt) },
+  { key: 'salesStopped', label: 'Kısıt', resolveValue: (row) => formatStockCardFlags(row) },
+  { key: 'lastUpdatedAt', label: 'Güncelleme', resolveValue: (row) => formatDateOnly(row.lastUpdatedAt) },
   {
     key: 'isPassive',
     label: 'Durum',
@@ -471,10 +474,10 @@ const MISSING_STOCK_COLUMNS: readonly ApiListTableColumn<WarehouseMissingStockDt
     resolveValue: (row) =>
       formatWarehouse({ warehouseName: row.targetWarehouseName, warehouseNo: row.targetWarehouseNo })
   },
-  { key: 'sourceQuantity', label: 'Kaynak Miktar', resolveValue: (row) => formatNumber(row.sourceQuantity) },
-  { key: 'targetQuantity', label: 'Hedef Miktar', resolveValue: (row) => formatNumber(row.targetQuantity) },
-  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
-  { key: 'salesValue', label: 'Deger', resolveValue: (row) => formatMoney(row.salesValue) },
+  { key: 'sourceQuantity', label: 'Kaynak Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.sourceQuantity) },
+  { key: 'targetQuantity', label: 'Hedef Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.targetQuantity) },
+  { key: 'salesPrice', label: 'Satış', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesPrice) },
+  { key: 'salesValue', label: 'Değer', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesValue) },
   { key: 'modelName', label: 'Model', resolveValue: (row) => row.modelName || row.modelCode || '-' }
 ];
 
@@ -483,7 +486,7 @@ const ZERO_STOCK_COLUMNS: readonly ApiListTableColumn<WarehouseZeroStockDto>[] =
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
   { key: 'barcode', label: 'Barkod' },
   { key: 'unitName', label: 'Birim' },
-  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
+  { key: 'salesPrice', label: 'Satış', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesPrice) },
   { key: 'modelName', label: 'Model', resolveValue: (row) => row.modelName || row.modelCode || '-' },
   { key: 'lastMovementDate', label: 'Son Hareket', resolveValue: (row) => formatDateOnly(row.lastMovementDate) }
 ];
@@ -499,51 +502,51 @@ const MOVEMENT_COLUMNS: readonly ApiListTableColumn<StockMovementReportItemDto>[
   { key: 'warehouseName', label: 'Depo', resolveValue: (row) => formatWarehouse(row) },
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
   { key: 'customerName', label: 'Cari', resolveValue: (row) => row.customerName || row.customerCode || '-' },
-  { key: 'inputWarehouseNo', label: 'Depo Akis', resolveValue: (row) => formatWarehouseFlow(row) },
+  { key: 'inputWarehouseNo', label: 'Depo Akış', resolveValue: (row) => formatWarehouseFlow(row) },
   { key: 'movementName', label: 'Hareket Tipi', resolveValue: (row) => row.movementName || row.movementType || '-' },
-  { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
-  { key: 'amount', label: 'Tutar', resolveValue: (row) => formatMoney(row.amount) }
+  { key: 'quantity', label: 'Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.quantity) },
+  { key: 'amount', label: 'Tutar', tableAlign: 'right', resolveValue: (row) => formatMoney(row.amount) }
 ];
 
 const IN_OUT_COLUMNS: readonly ApiListTableColumn<MovementInOutComparisonDto>[] = [
   { key: 'warehouseName', label: 'Depo', resolveValue: (row) => formatWarehouse(row) },
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
-  { key: 'inputQuantity', label: 'Giris', resolveValue: (row) => formatNumber(row.inputQuantity) },
-  { key: 'outputQuantity', label: 'Cikis', resolveValue: (row) => formatNumber(row.outputQuantity) },
-  { key: 'netQuantity', label: 'Net', resolveValue: (row) => formatNumber(row.netQuantity) },
-  { key: 'inputAmount', label: 'Giris Tutar', resolveValue: (row) => formatMoney(row.inputAmount) },
-  { key: 'outputAmount', label: 'Cikis Tutar', resolveValue: (row) => formatMoney(row.outputAmount) },
-  { key: 'netAmount', label: 'Net Tutar', resolveValue: (row) => formatMoney(row.netAmount) }
+  { key: 'inputQuantity', label: 'Giriş', tableAlign: 'right', resolveValue: (row) => formatNumber(row.inputQuantity) },
+  { key: 'outputQuantity', label: 'Çıkış', tableAlign: 'right', resolveValue: (row) => formatNumber(row.outputQuantity) },
+  { key: 'netQuantity', label: 'Net', tableAlign: 'right', resolveValue: (row) => formatNumber(row.netQuantity) },
+  { key: 'inputAmount', label: 'Giriş Tutar', tableAlign: 'right', resolveValue: (row) => formatMoney(row.inputAmount) },
+  { key: 'outputAmount', label: 'Çıkış Tutar', tableAlign: 'right', resolveValue: (row) => formatMoney(row.outputAmount) },
+  { key: 'netAmount', label: 'Net Tutar', tableAlign: 'right', resolveValue: (row) => formatMoney(row.netAmount) }
 ];
 
 const BRANCH_SALES_COLUMNS: readonly ApiListTableColumn<BranchSalesReportItemDto>[] = [
   { key: 'warehouseName', label: 'Depo', resolveValue: (row) => formatWarehouse(row) },
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
   { key: 'barcode', label: 'Barkod' },
-  { key: 'quantity', label: 'Miktar', resolveValue: (row) => formatNumber(row.quantity) },
-  { key: 'netSalesAmount', label: 'Net Satis', resolveValue: (row) => formatMoney(row.netSalesAmount) },
-  { key: 'grossSalesAmount', label: 'Brut Satis', resolveValue: (row) => formatMoney(row.grossSalesAmount) },
-  { key: 'receiptCount', label: 'Fis', resolveValue: (row) => formatInteger(row.receiptCount) }
+  { key: 'quantity', label: 'Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.quantity) },
+  { key: 'netSalesAmount', label: 'Net Satış', tableAlign: 'right', resolveValue: (row) => formatMoney(row.netSalesAmount) },
+  { key: 'grossSalesAmount', label: 'Brüt Satış', tableAlign: 'right', resolveValue: (row) => formatMoney(row.grossSalesAmount) },
+  { key: 'receiptCount', label: 'Fiş', tableAlign: 'right', resolveValue: (row) => formatInteger(row.receiptCount) }
 ];
 
 const YEAR_SALES_COLUMNS: readonly ApiListTableColumn<YearSalesComparisonItemDto>[] = [
-  { key: 'groupName', label: 'Kirilim', resolveValue: (row) => row.groupName || row.groupCode || formatStock(row) },
-  { key: 'currentYearQuantity', label: 'Bu Yil Miktar', resolveValue: (row) => formatNumber(row.currentYearQuantity) },
-  { key: 'previousYearQuantity', label: 'Gecen Yil Miktar', resolveValue: (row) => formatNumber(row.previousYearQuantity) },
-  { key: 'quantityDifference', label: 'Miktar Fark', resolveValue: (row) => formatNumber(row.quantityDifference) },
-  { key: 'currentYearAmount', label: 'Bu Yil', resolveValue: (row) => formatMoney(row.currentYearAmount) },
-  { key: 'previousYearAmount', label: 'Gecen Yil', resolveValue: (row) => formatMoney(row.previousYearAmount) },
-  { key: 'amountDifference', label: 'Tutar Fark', resolveValue: (row) => formatMoney(row.amountDifference) },
-  { key: 'changePercent', label: 'Degisim', resolveValue: (row) => formatPercent(row.changePercent) }
+  { key: 'groupName', label: 'Kırılım', resolveValue: (row) => row.groupName || row.groupCode || formatStock(row) },
+  { key: 'currentYearQuantity', label: 'Bu Yıl Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.currentYearQuantity) },
+  { key: 'previousYearQuantity', label: 'Geçen Yıl Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.previousYearQuantity) },
+  { key: 'quantityDifference', label: 'Miktar Fark', tableAlign: 'right', resolveValue: (row) => formatNumber(row.quantityDifference) },
+  { key: 'currentYearAmount', label: 'Bu Yıl', tableAlign: 'right', resolveValue: (row) => formatMoney(row.currentYearAmount) },
+  { key: 'previousYearAmount', label: 'Geçen Yıl', tableAlign: 'right', resolveValue: (row) => formatMoney(row.previousYearAmount) },
+  { key: 'amountDifference', label: 'Tutar Fark', tableAlign: 'right', resolveValue: (row) => formatMoney(row.amountDifference) },
+  { key: 'changePercent', label: 'Değişim', tableAlign: 'right', resolveValue: (row) => formatPercent(row.changePercent) }
 ];
 
 const RETURN_COLUMNS: readonly ApiListTableColumn<ReturnBranchReportItemDto>[] = [
   { key: 'warehouseName', label: 'Depo', resolveValue: (row) => formatWarehouse(row) },
   { key: 'stockName', label: 'Stok', resolveValue: (row) => formatStock(row) },
   { key: 'customerName', label: 'Cari', resolveValue: (row) => row.customerName || row.customerCode || '-' },
-  { key: 'quantity', label: 'Iade Miktar', resolveValue: (row) => formatNumber(row.quantity) },
-  { key: 'amount', label: 'Iade Tutar', resolveValue: (row) => formatMoney(row.amount) },
-  { key: 'documentCount', label: 'Belge', resolveValue: (row) => formatInteger(row.documentCount) }
+  { key: 'quantity', label: 'İade Miktar', tableAlign: 'right', resolveValue: (row) => formatNumber(row.quantity) },
+  { key: 'amount', label: 'İade Tutar', tableAlign: 'right', resolveValue: (row) => formatMoney(row.amount) },
+  { key: 'documentCount', label: 'Belge', tableAlign: 'right', resolveValue: (row) => formatInteger(row.documentCount) }
 ];
 
 const NOT_SOLD_COLUMNS: readonly ApiListTableColumn<NotSoldProductReportItemDto>[] = [
@@ -552,13 +555,13 @@ const NOT_SOLD_COLUMNS: readonly ApiListTableColumn<NotSoldProductReportItemDto>
   { key: 'barcode', label: 'Barkod' },
   {
     key: 'productManagerName',
-    label: 'Satin Almaci',
+    label: 'Satın Almacı',
     resolveValue: (row) => row.productManagerName || row.productManagerCode || '-'
   },
-  { key: 'quantity', label: 'Stok', resolveValue: (row) => formatNumber(row.currentStock ?? row.quantity) },
-  { key: 'salesPrice', label: 'Satis', resolveValue: (row) => formatMoney(row.salesPrice) },
-  { key: 'salesValue', label: 'Deger', resolveValue: (row) => formatMoney(row.salesValue) },
-  { key: 'lastSaleDate', label: 'Son Satis', resolveValue: (row) => formatDateOnly(row.lastSaleDate) }
+  { key: 'quantity', label: 'Stok', tableAlign: 'right', resolveValue: (row) => formatNumber(row.currentStock ?? row.quantity) },
+  { key: 'salesPrice', label: 'Satış', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesPrice) },
+  { key: 'salesValue', label: 'Değer', tableAlign: 'right', resolveValue: (row) => formatMoney(row.salesValue) },
+  { key: 'lastSaleDate', label: 'Son Satış', resolveValue: (row) => formatDateOnly(row.lastSaleDate) }
 ];
 
 const PROFITABILITY_COLUMNS: readonly ApiListTableColumn<ProfitabilityReportItemDto>[] = [
@@ -856,7 +859,7 @@ const REPORT_DEFINITIONS: readonly StockReportDefinition[] = [
   {
     key: 'sube-zayiat-fire-analizi',
     group: 'Zayiat & Fire',
-    label: 'Şube Fire & Zayiat Analizi',
+    label: 'Şube Fire & Zayiat',
     description: 'Şube ve bölge bazında zayi, bozulma, fire ve masraf çıkış toplamları ile ciroya oranları.',
     endpoint: '/api/rapor-islemleri/stok-raporlari/sube-zayiat-fire-analizi',
     mode: 'date-range',
@@ -911,6 +914,8 @@ export class StokRaporlariListComponent implements OnDestroy {
   protected readonly rows = signal<readonly object[]>([]);
   protected readonly sortField = signal<string>('');
   protected readonly sortDirection = signal<'asc' | 'desc'>('desc');
+  protected readonly priceGroupSortKey = signal<'name' | 'code' | 'difference' | 'branchCount'>('name');
+  protected readonly priceGroupSortDir = signal<'asc' | 'desc'>('asc');
   protected readonly sortedRows = computed<readonly object[]>(() => {
     const list = [...this.rows()];
     const field = this.sortField();
@@ -925,12 +930,29 @@ export class StokRaporlariListComponent implements OnDestroy {
       return dir === 'asc' ? String(aVal ?? '').localeCompare(String(bVal ?? ''), 'tr') : String(bVal ?? '').localeCompare(String(aVal ?? ''), 'tr');
     });
   });
+  protected setPriceGroupSort(key: 'name' | 'code' | 'difference' | 'branchCount'): void {
+    if (this.priceGroupSortKey() === key) {
+      this.priceGroupSortDir.update((d) => (d === 'asc' ? 'desc' : 'asc'));
+    } else {
+      this.priceGroupSortKey.set(key);
+      this.priceGroupSortDir.set(key === 'name' || key === 'code' ? 'asc' : 'desc');
+    }
+  }
   protected toggleSort(field: string): void {
     if (this.sortField() === field) {
       this.sortDirection.update((d) => (d === 'asc' ? 'desc' : 'asc'));
     } else {
       this.sortField.set(field);
-      this.sortDirection.set('desc');
+      this.sortDirection.set(
+        field === 'stockName' || field === 'branchName' || field === 'companyName' ? 'asc' : 'desc'
+      );
+    }
+    if (this.selectedReport() === 'sube-fiyat-farklari') {
+      if (field === 'stockName') {
+        this.setPriceGroupSort('name');
+      } else if (field === 'differenceAmount') {
+        this.setPriceGroupSort('difference');
+      }
     }
   }
   protected readonly metrics = signal<readonly StockReportMetric[]>([]);
@@ -1004,11 +1026,22 @@ export class StokRaporlariListComponent implements OnDestroy {
           totalDifference: sumBy(sortedRows, (row) => row.differenceAmount)
         };
       })
-      .sort(
-        (left, right) =>
-          Math.abs(right.totalDifference) - Math.abs(left.totalDifference) ||
-          left.stockName.localeCompare(right.stockName, 'tr')
-      );
+      .sort((left, right) => {
+        const sortKey = this.priceGroupSortKey();
+        const mul = this.priceGroupSortDir() === 'asc' ? 1 : -1;
+        if (sortKey === 'difference') {
+          const diff = Math.abs(left.totalDifference) - Math.abs(right.totalDifference);
+          return diff !== 0 ? diff * mul : left.stockName.localeCompare(right.stockName, 'tr');
+        }
+        if (sortKey === 'branchCount') {
+          const diff = left.branchCount - right.branchCount;
+          return diff !== 0 ? diff * mul : left.stockName.localeCompare(right.stockName, 'tr');
+        }
+        if (sortKey === 'code') {
+          return left.stockCode.localeCompare(right.stockCode, 'tr', { numeric: true }) * mul;
+        }
+        return left.stockName.localeCompare(right.stockName, 'tr') * mul;
+      });
   });
   protected readonly isAdminUser = computed(() =>
     currentUserCanUseAllWarehouses(
@@ -1108,25 +1141,74 @@ export class StokRaporlariListComponent implements OnDestroy {
     }
   });
   protected readonly totalCount = computed(() => this.rows().length);
-  protected readonly requestPreview = computed(() => {
-    const params = this.buildRequestPreviewParams();
-    const query = new URLSearchParams();
-
-    for (const [key, value] of Object.entries(params)) {
-      if (value !== null && value !== undefined && value !== '') {
-        query.set(key, String(value));
-      }
-    }
-
-    const queryText = query.toString();
-    const endpoint = this.getRequestPreviewEndpoint();
-    return queryText ? `${endpoint}?${queryText}` : endpoint;
+  protected readonly selectedGroup = signal<string>('Tümü');
+  protected readonly reportGroups = computed(() => [
+    'Tümü',
+    ...new Set(this.reportDefinitions.map((r) => r.group))
+  ]);
+  protected readonly visibleReportDefinitions = computed(() => {
+    const group = this.selectedGroup();
+    return group === 'Tümü'
+      ? this.reportDefinitions
+      : this.reportDefinitions.filter((r) => r.group === group);
   });
 
   ngOnDestroy(): void {
     if (this.productSearchTimer) {
       clearTimeout(this.productSearchTimer);
     }
+  }
+
+  protected selectReportGroup(group: string): void {
+    this.selectedGroup.set(group);
+    if (group !== 'Tümü') {
+      const groupReports = this.reportDefinitions.filter((r) => r.group === group);
+      if (groupReports.length > 0 && !groupReports.some((r) => r.key === this.selectedReport())) {
+        this.selectReport(groupReports[0].key);
+      }
+    }
+  }
+
+  protected applyDatePreset(preset: 'today' | 'yesterday' | 'last7' | 'thisMonth' | 'last30'): void {
+    const today = this.getToday();
+    let start = today;
+    if (preset === 'yesterday') {
+      start = this.getRelativeDate(-1);
+    } else if (preset === 'last7') {
+      start = this.getRelativeDate(-6);
+    } else if (preset === 'thisMonth') {
+      const now = new Date();
+      start = new Date(now.getFullYear(), now.getMonth(), 1).toISOString().slice(0, 10);
+    } else if (preset === 'last30') {
+      start = this.getRelativeDate(-29);
+    }
+    const end = preset === 'yesterday' ? start : today;
+
+    if (this.usesDateRange()) {
+      this.startDate.set(start);
+      this.endDate.set(end);
+    } else if (this.usesSnapshotDate()) {
+      this.reportDate.set(end);
+    } else if (this.usesCountDate()) {
+      this.countDate.set(end);
+    }
+    this.clearLoadedResult();
+  }
+
+  protected resetAllFilters(): void {
+    this.startDate.set(this.getRelativeDate(-6));
+    this.endDate.set(this.getToday());
+    this.reportDate.set(this.getToday());
+    this.countDate.set(this.getToday());
+    this.primaryCode.set('');
+    this.categoryCode.set('');
+    this.searchText.set('');
+    this.modelCode.set('');
+    this.onlyWithStock.set(true);
+    this.includeDls.set(false);
+    this.take.set(250);
+    this.clearProductSearchState();
+    this.clearLoadedResult();
   }
 
   protected selectReport(reportKey: StockReportKey): void {
@@ -2225,84 +2307,6 @@ export class StokRaporlariListComponent implements OnDestroy {
     };
   }
 
-  private buildRequestPreviewParams(): object {
-    switch (this.selectedReport()) {
-      case 'depoda-var-subede-yok':
-        return this.buildWarehouseMissingRequest();
-      case 'urun-sevk-dagilimi':
-        return this.buildProductShipmentDistributionRequest();
-      case 'sayim-karsilastirma':
-        return this.buildCountingRequest();
-      case 'hareketler':
-        return this.buildMovementRequest();
-      case 'iadeler-subeler':
-        return this.primaryCode().trim()
-          ? this.buildReturnBranchRequest()
-          : {
-              warehouseNo: this.resolveWarehouseNo(),
-              startDate: this.startDate(),
-              endDate: this.endDate(),
-              stockCode: 'STOK_KODU',
-              take: this.take()
-            };
-      case 'satmayan-urunler':
-        return this.buildNotSoldRequest();
-      case 'karlilik':
-        return this.buildProfitabilityRequest();
-      case 'kategori-satis-analizi':
-        return this.buildCategorySalesAnalysisRequest();
-      case 'sube-fiyat-farklari':
-        return this.buildBranchPriceDifferenceRequest();
-      case 'uretici-sezonsal-satis':
-        return this.buildManufacturerSeasonalSalesRequest();
-      case 'giris-cikis-karsilastirma':
-      case 'satis-sube-detay':
-      case 'satis-yil-karsilastirma':
-        return this.buildFilteredDateRangeRequest();
-      case 'sube-zayiat-fire-analizi':
-        return {
-          startDate: this.startDate(),
-          endDate: this.endDate()
-        };
-      case 'anlik-fiyat-stok':
-        return {
-          barcode: this.primaryCode().trim() || null
-        };
-      case 'urun-depo-durum':
-        return this.primaryCode().trim()
-          ? this.buildProductWarehouseByPathRequest()
-          : {
-              warehouseNo: this.resolveWarehouseNo(),
-              reportDate: this.reportDate(),
-              onlyWithStock: this.onlyWithStock(),
-              take: this.take()
-            };
-      case 'stok-kartlari':
-        return this.buildStockCardRequest();
-      case 'depo-sifir-stok':
-        return this.buildWarehouseZeroRequest();
-      case 'tedarikci-son-stok':
-        return {
-          ...this.buildOnHandRequest(),
-          supplierCode: this.primaryCode().trim() || 'TEDARIKCI_KODU'
-        };
-      case 'kategori-son-stok':
-        return {
-          ...this.buildOnHandRequest(),
-          categoryCode: this.resolveCategoryCode() || 'KATEGORI_KODU'
-        };
-      case 'uretici-son-stok':
-        return {
-          ...this.buildOnHandRequest(),
-          producerCode: this.primaryCode().trim() || 'URETICI_KODU'
-        };
-      case 'son-stok':
-      case 'envanter-degeri':
-      default:
-        return this.buildOnHandRequest();
-    }
-  }
-
   private validateRequest(): boolean {
     if (this.usesDateRange()) {
       if (!this.startDate().trim() || !this.endDate().trim()) {
@@ -2426,19 +2430,6 @@ export class StokRaporlariListComponent implements OnDestroy {
 
   private resolveCategoryCode(): string {
     return this.categoryCode().trim() || this.primaryCode().trim();
-  }
-
-  private getRequestPreviewEndpoint(): string {
-    if (this.selectedReport() === 'urun-depo-durum') {
-      const stockCodeOrBarcode = this.primaryCode().trim() || 'STOK_KODU_VEYA_BARKOD';
-      return `/api/rapor-islemleri/stok-raporlari/urun/${encodeURIComponent(stockCodeOrBarcode)}/depo-durum`;
-    }
-
-    if (this.selectedReport() === 'stok-kartlari') {
-      return '/api/rapor-islemleri/stok-raporlari/urun-ara';
-    }
-
-    return this.selectedDefinition().endpoint;
   }
 
   private getSourceWarehouseNo(): number | null {

@@ -1,4 +1,8 @@
-<section class="invoice-console" [class.is-viewing-workspace]="activeWorkspace() === 'viewing'">
+<section
+  class="invoice-console"
+  [class.is-viewing-workspace]="activeWorkspace() === 'viewing'"
+  [class.is-sending-workspace]="activeWorkspace() === 'sending'"
+>
 
 
   <article
@@ -34,31 +38,80 @@
     >
       <div class="workspace-stack">
         <article class="panel panel-soft viewing-filter-panel">
-          <div class="panel-head">
-            <div>
-              <p class="section-kicker">Filtreler</p>
-              <h3>Fatura kayitlari</h3>
+          <div class="sending-console-head viewing-console-head">
+            <div class="sending-head-title">
+              <h3>Gelen Faturalar</h3>
+              <div class="sending-head-badges" *ngIf="viewingList() as response">
+                <span class="head-metric-pill is-primary">{{ filteredViewingCount() }} Kayıt</span>
+                <span class="head-metric-pill" *ngIf="response.totalCount !== filteredViewingCount()">
+                  Cache: {{ response.totalCount }}
+                </span>
+                <span class="head-metric-pill">
+                  Toplam: <strong>{{ filteredViewingTotalAmount() | number: '1.2-2' }} TL</strong>
+                </span>
+                <span class="head-metric-pill is-muted">
+                  KDV: {{ filteredViewingTaxAmount() | number: '1.2-2' }} TL
+                </span>
+                <span class="head-metric-pill is-muted" *ngIf="selectableViewingItems().length > 0">
+                  Yazdırılmayan: <strong>{{ selectableViewingItems().length }}</strong>
+                </span>
+              </div>
             </div>
-            <span class="panel-badge">Goruntuleme</span>
+
+            <div class="sending-date-preset-bar" *ngIf="canViewList()">
+              <span class="preset-label">Hızlı Tarih:</span>
+              <button
+                type="button"
+                class="preset-chip"
+                [class.is-active]="isViewingDatePresetActive('today')"
+                (click)="setViewingDatePreset('today')"
+              >
+                Bugün
+              </button>
+              <button
+                type="button"
+                class="preset-chip"
+                [class.is-active]="isViewingDatePresetActive('yesterday')"
+                (click)="setViewingDatePreset('yesterday')"
+              >
+                Dün
+              </button>
+              <button
+                type="button"
+                class="preset-chip"
+                [class.is-active]="isViewingDatePresetActive('thisWeek')"
+                (click)="setViewingDatePreset('thisWeek')"
+              >
+                Bu Hafta
+              </button>
+              <button
+                type="button"
+                class="preset-chip"
+                [class.is-active]="isViewingDatePresetActive('thisMonth')"
+                (click)="setViewingDatePreset('thisMonth')"
+              >
+                Bu Ay
+              </button>
+            </div>
           </div>
 
           <div class="empty-state compact-empty" *ngIf="!canViewList()">
             <h4>Liste yetkisi gerekli</h4>
-            <p>`fatura-goruntuleme.list` yetkisi olmadan liste ve senkronizasyon kullanilamaz.</p>
+            <p>`fatura-goruntuleme.list` yetkisi olmadan liste ve senkronizasyon kullanılamaz.</p>
           </div>
 
           <ng-container *ngIf="canViewList()">
-            <form class="filter-grid" [formGroup]="viewingFilterForm">
+            <form class="filter-grid viewing-filter-grid" [formGroup]="viewingFilterForm">
               <label class="field">
-                <span>Fatura Tarihi Baslangic</span>
+                <span>Başlangıç</span>
                 <input type="date" formControlName="startDate" />
               </label>
               <label class="field">
-                <span>Fatura Tarihi Bitis</span>
+                <span>Bitiş</span>
                 <input type="date" formControlName="endDate" />
               </label>
               <label class="field">
-                <span>Islendi</span>
+                <span>İşlendi</span>
                 <select formControlName="processedState">
                   <option *ngFor="let option of stateOptions" [ngValue]="option.value">
                     {{ option.label }}
@@ -66,7 +119,7 @@
                 </select>
               </label>
               <label class="field">
-                <span>Yazdirildi</span>
+                <span>Yazdırıldı</span>
                 <select formControlName="printedState">
                   <option *ngFor="let option of stateOptions" [ngValue]="option.value">
                     {{ option.label }}
@@ -74,7 +127,7 @@
                 </select>
               </label>
               <label class="field">
-                <span>Arama Alani</span>
+                <span>Arama Alanı</span>
                 <select formControlName="searchField">
                   <option [ngValue]="''">Genel</option>
                   <option *ngFor="let option of viewingSearchFieldOptions" [ngValue]="option.value">
@@ -83,7 +136,7 @@
                 </select>
               </label>
               <label class="field field-wide">
-                <span>Arama Degeri</span>
+                <span>Arama Değeri</span>
                 <input
                   type="text"
                   formControlName="searchText"
@@ -94,45 +147,55 @@
               <label class="field">
                 <span>Senkron Modu</span>
                 <select formControlName="includeStatuses">
-                  <option [ngValue]="false">Hizli</option>
+                  <option [ngValue]="false">Hızlı</option>
                   <option [ngValue]="true">Durum/Log</option>
                 </select>
               </label>
+
+              <div class="viewing-filter-actions">
+                <button
+                  type="button"
+                  class="ghost-button"
+                  (click)="resetViewingFilters()"
+                  [disabled]="viewingSyncLoading() || viewingListLoading()"
+                >
+                  Sıfırla
+                </button>
+                <button
+                  type="button"
+                  class="secondary-button"
+                  (click)="synchronizeViewingInvoices()"
+                  [disabled]="viewingSyncLoading() || viewingListLoading()"
+                >
+                  <i
+                    class="fa-solid"
+                    [ngClass]="viewingSyncLoading() ? 'fa-circle-notch fa-spin' : 'fa-cloud-arrow-down'"
+                    aria-hidden="true"
+                  ></i>
+                  <span>{{ getViewingSyncButtonLabel() }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="primary-button"
+                  (click)="applyViewingFilters()"
+                  [disabled]="viewingListLoading() || viewingSyncLoading()"
+                >
+                  <i
+                    class="fa-solid"
+                    [ngClass]="viewingListLoading() ? 'fa-circle-notch fa-spin' : 'fa-rotate'"
+                    aria-hidden="true"
+                  ></i>
+                  <span>{{ viewingListLoading() ? 'Getiriliyor...' : 'Listeyi Getir' }}</span>
+                </button>
+              </div>
             </form>
 
-            <div class="inline-note" *ngIf="hasViewingBackendSearch()">
+            <div class="inline-note viewing-search-note" *ngIf="hasViewingBackendSearch()">
               {{
                 shouldApplyViewingDateWithSearch()
-                  ? 'Tarih bugunden farkli oldugu icin arama bu tarih araligi icinde yapilir.'
-                  : 'Bugunun tarihi seciliyken arama tum cache icinde hizli belge bulma olarak calisir.'
+                  ? 'Tarih bugünden farklı olduğu için arama bu tarih aralığı içinde yapılır.'
+                  : 'Bugünün tarihi seçiliyken arama tüm cache içinde hızlı belge bulma olarak çalışır.'
               }}
-            </div>
-
-            <div class="action-row">
-              <button
-                type="button"
-                class="primary-button"
-                (click)="applyViewingFilters()"
-                [disabled]="viewingListLoading() || viewingSyncLoading()"
-              >
-                {{ viewingListLoading() ? 'Liste hazirlaniyor...' : 'Listeyi Getir' }}
-              </button>
-              <button
-                type="button"
-                class="secondary-button"
-                (click)="synchronizeViewingInvoices()"
-                [disabled]="viewingSyncLoading() || viewingListLoading()"
-              >
-                {{ getViewingSyncButtonLabel() }}
-              </button>
-              <button
-                type="button"
-                class="ghost-button"
-                (click)="resetViewingFilters()"
-                [disabled]="viewingSyncLoading() || viewingListLoading()"
-              >
-                Sifirla
-              </button>
             </div>
 
             <article class="sync-progress-card" *ngIf="viewingSyncProgress() as progress">
@@ -141,7 +204,7 @@
                   <strong>{{ getViewingSyncProgressLabel(progress) }}</strong>
                   <span>
                     {{ progress.status || 'idle' }} /
-                    {{ progress.includeStatuses ? 'Durum/Log' : 'Hizli' }}
+                    {{ progress.includeStatuses ? 'Durum/Log' : 'Hızlı' }}
                   </span>
                 </div>
                 <strong>{{ getViewingSyncProgressPercent(progress) | number: '1.0-1' }}%</strong>
@@ -152,10 +215,10 @@
               <div class="sync-progress-grid">
                 <span>Sayfa {{ progress.pageNumber ?? '-' }}/{{ progress.totalPage || '-' }}</span>
                 <span>Okunan {{ progress.fetchedCount }}</span>
-                <span>Eslesti {{ progress.matchedCount }}</span>
+                <span>Eşleşti {{ progress.matchedCount }}</span>
                 <span>Atlanan {{ getViewingSyncSkippedCount(progress) }}</span>
                 <span>Yeni {{ progress.insertedCount }}</span>
-                <span>Guncel {{ progress.updatedCount }}</span>
+                <span>Güncel {{ progress.updatedCount }}</span>
                 <span *ngIf="getViewingSyncSchedulerLabel(progress)">
                   Plan {{ getViewingSyncSchedulerLabel(progress) }}
                 </span>
@@ -165,7 +228,6 @@
                   -
                   {{ progress.queryEndDate ? (progress.queryEndDate | date: 'dd.MM HH:mm') : '-' }}
                 </span>
-                <span>Bitis: look-ahead gun sonu / API saati</span>
               </div>
             </article>
 
@@ -173,32 +235,22 @@
         </article>
 
         <article class="panel viewing-list-panel">
-          <div class="panel-head">
-            <div>
-              <p class="section-kicker">Liste</p>
-              <h3>Belge listesi</h3>
-            </div>
-            <div class="viewing-list-meta">
-              <span class="panel-badge">{{ filteredViewingCount() }} kayit</span>
-              <span class="panel-badge" *ngIf="viewingList() as response">
-                Toplam {{ response.totalCount }}
-              </span>
-            </div>
-          </div>
-
           <div class="viewing-table-tools" *ngIf="viewingList()">
-            <label class="field quick-filter-field">
-              <span>Gelen faturada ara</span>
-              <input
-                type="text"
-                [value]="viewingQuickFilterInput"
-                (input)="setViewingQuickFilter($event)"
-                placeholder="en az 3 karakter: no, musteri, VKN, irsaliye, siparis, zarf, mesaj"
-              />
+            <label class="field quick-filter-field viewing-quick-search-field">
+              <span>Tablo İçi Hızlı Filtre</span>
+              <div class="search-input-wrap">
+                <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+                <input
+                  type="text"
+                  [value]="viewingQuickFilterInput"
+                  (input)="setViewingQuickFilter($event)"
+                  placeholder="En az 3 karakter: fatura no, müşteri, VKN, irsaliye, sipariş, zarf..."
+                />
+              </div>
             </label>
 
             <label class="field">
-              <span>Durum</span>
+              <span>Tablo Durumu</span>
               <select [value]="viewingTableStateFilter()" (change)="setViewingTableStateFilter($event)">
                 <option *ngFor="let option of viewingTableStateOptions" [value]="option.value">
                   {{ option.label }}
@@ -207,9 +259,9 @@
             </label>
 
             <label class="field">
-              <span>Tip</span>
+              <span>Fatura Tipi</span>
               <select [value]="viewingTableTypeFilter()" (change)="setViewingTableTypeFilter($event)">
-                <option value="">Tum tipler</option>
+                <option value="">Tüm tipler</option>
                 <option *ngFor="let type of viewingTypeOptions()" [value]="type">
                   {{ type }}
                 </option>
@@ -217,7 +269,7 @@
             </label>
 
             <label class="field amount-filter-field">
-              <span>Min</span>
+              <span>Min Tutar</span>
               <input
                 type="number"
                 [value]="viewingAmountMinFilter() ?? ''"
@@ -227,7 +279,7 @@
             </label>
 
             <label class="field amount-filter-field">
-              <span>Max</span>
+              <span>Max Tutar</span>
               <input
                 type="number"
                 [value]="viewingAmountMaxFilter() ?? ''"
@@ -236,59 +288,83 @@
               />
             </label>
 
-            <button
-              type="button"
-              class="ghost-button compact-button"
-              *ngIf="hasViewingTableFilters()"
-              (click)="clearViewingTableFilters()"
-            >
-              Temizle
-            </button>
+            <div class="viewing-tools-actions">
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                *ngIf="hasViewingTableFilters()"
+                (click)="clearViewingTableFilters()"
+                title="Tablo içi filtreleri sıfırla"
+              >
+                <i class="fa-solid fa-filter-circle-xmark" aria-hidden="true"></i>
+                <span>Filtreyi Temizle</span>
+              </button>
+              <button
+                type="button"
+                class="secondary-button compact-button"
+                *ngIf="selectableViewingItems().length > 0 && !allVisibleViewingItemsSelected()"
+                (click)="toggleAllVisibleViewingSelection(true)"
+                [disabled]="viewingBulkPrintLoading()"
+                title="Listedeki yazdırılmamış faturaların tümünü seç"
+              >
+                <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+                <span>Yazdırılmayanları Seç</span>
+              </button>
+            </div>
           </div>
 
           <div class="empty-state" *ngIf="viewingListLoading()">
-            <h4>Liste yukleniyor</h4>
-            <p>Fatura kayitlari getiriliyor.</p>
+            <h4>Liste yükleniyor</h4>
+            <p>Fatura kayıtları getiriliyor.</p>
           </div>
 
           <div class="empty-state" *ngIf="!viewingListLoading() && !viewingList() && canViewList()">
-            <h4>Liste henuz gelmedi</h4>
-            <p>Filtreleri gonderdiginde kayitlar burada gorunur.</p>
+            <h4>Liste henüz gelmedi</h4>
+            <p>Filtreleri gönderdiğinde kayıtlar burada görünür.</p>
           </div>
 
           <div
             class="empty-state"
             *ngIf="!viewingListLoading() && viewingList() && filteredViewingCount() === 0"
           >
-            <h4>Kayit bulunamadi</h4>
-            <p>Secili filtrelerle gosterilecek satir yok.</p>
+            <h4>Kayıt bulunamadı</h4>
+            <p>Seçili filtrelerle gösterilecek satır yok.</p>
           </div>
 
-          <div class="queue-banner viewing-print-banner" *ngIf="selectedViewingItems().length > 0">
-            <div>
-              <strong>{{ selectedViewingItems().length }} fatura secildi</strong>
-              <p>Secilen PDF'ler yazdirma kuyruguna gonderilip yazdirildi olarak isaretlenecek.</p>
+          <div class="queue-banner viewing-print-banner sending-selection-bar" *ngIf="selectedViewingItems().length > 0">
+            <div class="selection-bar-info">
+              <span class="selection-count-badge">{{ selectedViewingItems().length }} fatura seçildi</span>
+              <span class="selection-total-text">
+                Seçili Toplam: <strong>{{ selectedViewingTotalAmount() | number: '1.2-2' }} TL</strong>
+              </span>
             </div>
-            <div class="candidate-strip">
+            <div class="action-row selection-bar-actions">
+              <button
+                type="button"
+                class="secondary-button compact-button print-action-btn"
+                (click)="printSelectedViewingInvoices()"
+                [disabled]="viewingBulkPrintLoading() || viewingPdfLoading()"
+              >
+                <i
+                  class="fa-solid"
+                  [ngClass]="viewingBulkPrintLoading() ? 'fa-circle-notch fa-spin' : 'fa-print'"
+                  aria-hidden="true"
+                ></i>
+                <span>
+                  {{
+                    viewingBulkPrintLoading()
+                      ? 'Yazdırılıyor...'
+                      : ('Seçilenleri Yazdır (' + selectedViewingItems().length + ')')
+                  }}
+                </span>
+              </button>
               <button
                 type="button"
                 class="ghost-button compact-button"
                 (click)="clearViewingSelection()"
                 [disabled]="viewingBulkPrintLoading()"
               >
-                Secimi Temizle
-              </button>
-              <button
-                type="button"
-                class="primary-button compact-button"
-                (click)="printSelectedViewingInvoices()"
-                [disabled]="viewingBulkPrintLoading() || viewingPdfLoading()"
-              >
-                {{
-                  viewingBulkPrintLoading()
-                    ? 'Yazdiriliyor...'
-                    : selectedViewingItems().length + ' Faturayi Yazdir'
-                }}
+                Seçimi Temizle
               </button>
             </div>
           </div>
@@ -368,9 +444,11 @@
                     role="row"
                     *ngFor="let item of visibleVirtualViewingItems(); trackBy: trackByInvoice"
                     [class.is-selected]="isViewingItemSelected(item)"
+                    [class.is-printed-row]="item.isPrinted"
                     [class.is-selection-disabled]="item.isPrinted || viewingBulkPrintLoading()"
                     tabindex="0"
                     (click)="toggleViewingRowSelection(item)"
+                    (dblclick)="openViewingDetail(item)"
                     (keydown.enter)="toggleViewingRowSelection(item)"
                     (keydown.space)="$event.preventDefault(); toggleViewingRowSelection(item)"
                   >
@@ -384,9 +462,27 @@
                       />
                     </div>
                     <div class="viewing-table-cell invoice-id-cell" role="cell" [title]="item.invoiceId">
-                      <strong>{{ item.invoiceId }}</strong>
-                      <small>Doc: {{ item.documentId | slice: 0 : 8 }}</small>
-                      <small *ngIf="item.orderDocumentId">Sip: {{ item.orderDocumentId }}</small>
+                      <button
+                        type="button"
+                        class="invoice-id-link"
+                        (click)="$event.stopPropagation(); openViewingDetail(item)"
+                        title="Fatura önizlemesini aç"
+                      >
+                        {{ item.invoiceId }}
+                      </button>
+                      <div class="viewing-id-badges">
+                        <span
+                          class="mini-state-badge"
+                          [class.is-processed]="item.isProcessed"
+                          [class.is-waiting]="!item.isProcessed"
+                        >
+                          {{ item.isProcessed ? 'İşlendi' : 'Bekliyor' }}
+                        </span>
+                        <span class="mini-state-badge is-printed" *ngIf="item.isPrinted">
+                          <i class="fa-solid fa-check" aria-hidden="true"></i> Yazıldı
+                        </span>
+                        <small *ngIf="item.orderDocumentId">Sip: {{ item.orderDocumentId }}</small>
+                      </div>
                     </div>
                     <div class="viewing-table-cell despatch-cell" role="cell" [title]="item.despatchId || '-'">
                       <strong>{{ item.despatchId || '-' }}</strong>
@@ -398,13 +494,12 @@
                     <div class="viewing-table-cell date-cell" role="cell">
                       <strong>{{ item.invoiceDate | date: 'dd.MM.yyyy' }}</strong>
                       <small>
-                        Kayit: {{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}
+                        Kayıt: {{ item.createDate ? (item.createDate | date: 'dd.MM.yyyy HH:mm') : '-' }}
                       </small>
                     </div>
                     <div class="viewing-table-cell type-cell" role="cell">
                       <strong>{{ item.invoiceTipType || item.invoiceType || '-' }}</strong>
-                      <small>{{ item.documentCurrencyCode || 'TRY' }} / {{ item.exchangeRate || 1 }}</small>
-                      <small>{{ item.isStandard ? 'Standart' : 'Ozel tasarim' }}</small>
+                      <small>{{ getViewingStatusText(item) }}</small>
                     </div>
                     <div class="viewing-table-cell amount-column" role="cell">
                       <strong>{{ item.invoiceTotal | number: '1.2-2' }} TL</strong>
@@ -414,29 +509,9 @@
                       <div class="table-actions">
                         <button
                           type="button"
-                          class="ghost-button compact-button invoice-action-button"
-                          title="Fatura detayini ac"
-                          (click)="$event.stopPropagation(); openViewingDetail(item)"
-                        >
-                          <i class="fa-solid fa-eye"></i>
-                          <span>Ac</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="primary-button compact-button invoice-action-button"
-                          *ngIf="canViewDetail()"
-                          title="PDF goruntule"
-                          (click)="$event.stopPropagation(); openViewingPdf(item)"
-                          [disabled]="viewingPdfLoading()"
-                        >
-                          <i class="fa-solid fa-file-pdf"></i>
-                          <span>PDF</span>
-                        </button>
-                        <button
-                          type="button"
-                          class="secondary-button compact-button invoice-action-button"
+                          class="secondary-button compact-button invoice-action-button print-action-btn"
                           *ngIf="canUpdatePrinted()"
-                          [title]="item.isPrinted ? 'Fatura yazdirildi' : 'Faturayi yazdir'"
+                          [title]="item.isPrinted ? 'Fatura yazdırıldı' : 'Faturayı doğrudan yazdır'"
                           (click)="$event.stopPropagation(); printViewingInvoice(item)"
                           [disabled]="
                             item.isPrinted ||
@@ -462,10 +537,30 @@
                               isPrintedStateUpdating(item.documentId)
                                 ? '...'
                                 : item.isPrinted
-                                  ? 'Yazildi'
-                                  : 'Yazdir'
+                                  ? 'Yazıldı'
+                                  : 'Yazdır'
                             }}
                           </span>
+                        </button>
+                        <button
+                          type="button"
+                          class="ghost-button compact-button invoice-action-button"
+                          title="Fatura detayını ve HTML görünümünü aç"
+                          (click)="$event.stopPropagation(); openViewingDetail(item)"
+                        >
+                          <i class="fa-solid fa-eye"></i>
+                          <span>Önizle</span>
+                        </button>
+                        <button
+                          type="button"
+                          class="primary-button compact-button invoice-action-button"
+                          *ngIf="canViewDetail()"
+                          title="Resmi PDF görüntüle"
+                          (click)="$event.stopPropagation(); openViewingPdf(item)"
+                          [disabled]="viewingPdfLoading()"
+                        >
+                          <i class="fa-solid fa-file-pdf"></i>
+                          <span>PDF</span>
                         </button>
                       </div>
                     </div>
@@ -489,168 +584,160 @@
         (click)="closeViewingDetailDialog()"
       >
         <article
-          class="panel detail-panel detail-dialog"
+          class="panel detail-panel detail-dialog sending-detail-dialog viewing-detail-dialog"
           role="dialog"
           aria-modal="true"
           (click)="$event.stopPropagation()"
         >
-        <div class="panel-head">
-          <div>
-            <p class="section-kicker">Fatura Goruntuleme</p>
-            <h3>Fatura Detayi</h3>
-          </div>
-          <div class="dialog-head-actions">
-            <span class="panel-badge" *ngIf="selectedViewingSummary()">
-              {{ getViewingModeSummary() }}
-            </span>
-            <button
-              type="button"
-              class="ghost-button compact-button"
-              (click)="closeViewingDetailDialog()"
-            >
-              Kapat
-            </button>
-          </div>
-        </div>
-
-        <div class="empty-state" *ngIf="!selectedViewingSummary() && !viewingDetailLoading()">
-          <h4>Belge secilmedi</h4>
-          <p>Soldan bir kayit secerek onizlemeyi ac.</p>
-        </div>
-
-        <div class="empty-state compact-empty" *ngIf="selectedViewingSummary() && !canViewDetail()">
-          <h4>Detay yetkisi gerekli</h4>
-          <p>`fatura-goruntuleme.detail` yetkisi olmadan HTML onizleme acilamaz.</p>
-        </div>
-
-        <div class="empty-state" *ngIf="viewingDetailLoading()">
-          <h4>Belge hazirlaniyor</h4>
-          <p>Secili kayit icin HTML onizleme yukleniyor.</p>
-        </div>
-
-        <ng-container *ngIf="selectedViewingSummary() as summary">
-          <section class="detail-hero viewing-detail-hero">
-            <div class="detail-copy">
-              <p class="section-kicker">Secili Fatura</p>
-              <h3>{{ summary.invoiceId }}</h3>
-              <p>{{ summary.customerTitle }}</p>
-            </div>
-
-            <div class="detail-tags">
-              <span class="token">{{ summary.invoiceDate | date: 'dd.MM.yyyy' }}</span>
-              <span class="token">{{ summary.invoiceType || '-' }}</span>
-              <span class="token">{{ getViewingStatusText(summary) }}</span>
-            </div>
-          </section>
-
-          <section class="summary-grid viewing-summary-grid">
-            <article class="summary-card">
-              <span>Toplam</span>
-              <strong>{{ summary.invoiceTotal | number: '1.2-2' }} {{ summary.documentCurrencyCode || 'TL' }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Matrah / KDV</span>
-              <strong>
-                {{ summary.taxExclusiveAmount | number: '1.2-2' }} /
-                {{ summary.taxTotal | number: '1.2-2' }}
-              </strong>
-            </article>
-            <article class="summary-card">
-              <span>Fatura Tarihi</span>
-              <strong>{{ summary.invoiceDate | date: 'dd.MM.yyyy' }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Yazdirildi</span>
-              <strong>{{ summary.isPrinted ? 'Evet' : 'Hayir' }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Durum</span>
-              <strong>{{ getViewingStatusText(summary) }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Zarf</span>
-              <strong>{{ summary.envelopeStatusCode || '-' }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Irsaliye</span>
-              <strong>{{ summary.despatchId || '-' }}</strong>
-            </article>
-            <article class="summary-card">
-              <span>Siparis / Order</span>
-              <strong>{{ summary.orderDocumentId || '-' }}</strong>
-            </article>
-          </section>
-
-          <article class="message-card" *ngIf="summary.envelopeIdentifier || summary.message">
-            <span>Uyumsoft Cache</span>
-            <p>{{ summary.envelopeIdentifier || 'Envelope yok' }}</p>
-            <p *ngIf="summary.message">{{ summary.message }}</p>
-          </article>
-
-          <div class="action-row viewing-detail-actions">
-            <button
-              type="button"
-              class="primary-button"
-              *ngIf="canViewDetail()"
-              (click)="openViewingPdf(summary)"
-              [disabled]="viewingPdfLoading()"
-            >
-              {{ viewingPdfLoading() ? 'PDF Aciliyor...' : 'Resmi PDF Ac' }}
-            </button>
-            <button
-              type="button"
-              class="secondary-button"
-              *ngIf="canViewDetail()"
-              (click)="reloadViewingDetail()"
-              [disabled]="viewingDetailLoading()"
-            >
-              HTML Onizlemeyi Yenile
-            </button>
-            <button
-              type="button"
-              class="ghost-button"
-              *ngIf="canUpdatePrinted()"
-              (click)="handleViewingPrintedAction(summary)"
-              [disabled]="
-                isPrintedStateUpdating(summary.documentId) ||
-                viewingPrintDocumentId() === summary.documentId ||
-                viewingBulkPrintLoading()
-              "
-            >
-              {{
-                isPrintedStateUpdating(summary.documentId) ||
-                viewingPrintDocumentId() === summary.documentId
-                  ? 'Guncelleniyor...'
-                  : summary.isPrinted
-                    ? 'Yazdirildi Kaydini Geri Al'
-                    : 'Yazdir'
-              }}
-            </button>
-          </div>
-        </ng-container>
-
-        <ng-container *ngIf="viewingDetail() as detail">
-          <div class="document-preview-shell" *ngIf="detail.document.htmlContent; else noViewingHtml">
-            <div class="preview-head">
-              <div>
-                <p class="section-kicker">HTML Onizleme</p>
-                <h4>Belge Gorunumu</h4>
+          <header class="sending-dialog-header">
+            <div class="dialog-invoice-identity" *ngIf="selectedViewingSummary() as summary; else defaultViewingDialogTitle">
+              <div class="identity-top-row">
+                <h3>{{ summary.invoiceId }}</h3>
+                <span class="scenario-tag">{{ summary.invoiceType || 'Fatura' }}</span>
+                <span class="dialog-meta-badge">{{ getViewingStatusText(summary) }}</span>
+                <span class="dialog-meta-badge">{{ summary.invoiceDate | date: 'dd.MM.yyyy' }}</span>
+                <span class="dialog-meta-badge is-muted" *ngIf="summary.despatchId">
+                  İrsaliye: {{ summary.despatchId }}
+                </span>
+              </div>
+              <div class="identity-sub-row">
+                <strong class="dialog-customer-name">{{ summary.customerTitle }}</strong>
+                <span class="dialog-alias-pill" *ngIf="summary.customerTcknVkn">
+                  VKN/TCKN: {{ summary.customerTcknVkn }}
+                </span>
               </div>
             </div>
-            <iframe
-              class="document-frame"
-              sandbox="allow-scripts"
-              [src]="getDocumentPreviewUrl(detail.document.htmlContent)"
-            ></iframe>
+            <ng-template #defaultViewingDialogTitle>
+              <div class="dialog-invoice-identity">
+                <h3>Gelen Fatura Detayı</h3>
+              </div>
+            </ng-template>
+
+            <div class="dialog-head-actions" *ngIf="selectedViewingSummary() as summary">
+              <button
+                type="button"
+                class="secondary-button compact-button print-action-btn"
+                *ngIf="canUpdatePrinted()"
+                (click)="handleViewingPrintedAction(summary)"
+                [disabled]="
+                  isPrintedStateUpdating(summary.documentId) ||
+                  viewingPrintDocumentId() === summary.documentId ||
+                  viewingBulkPrintLoading()
+                "
+              >
+                <i
+                  class="fa-solid"
+                  [ngClass]="summary.isPrinted ? 'fa-rotate-left' : 'fa-print'"
+                  aria-hidden="true"
+                ></i>
+                <span>
+                  {{
+                    isPrintedStateUpdating(summary.documentId) ||
+                    viewingPrintDocumentId() === summary.documentId
+                      ? 'İşleniyor...'
+                      : summary.isPrinted
+                        ? 'Yazdırıldı Kaydını Geri Al'
+                        : 'Faturayı Yazdır'
+                  }}
+                </span>
+              </button>
+              <button
+                type="button"
+                class="ghost-button compact-button"
+                *ngIf="canViewDetail()"
+                (click)="reloadViewingDetail()"
+                [disabled]="viewingDetailLoading()"
+                title="HTML önizlemeyi yenile"
+              >
+                <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                <span>Yenile</span>
+              </button>
+              <button
+                type="button"
+                class="primary-button compact-button"
+                *ngIf="canViewDetail()"
+                (click)="openViewingPdf(summary)"
+                [disabled]="viewingPdfLoading()"
+              >
+                <i class="fa-solid fa-file-pdf" aria-hidden="true"></i>
+                <span>{{ viewingPdfLoading() ? 'PDF Açılıyor...' : 'Resmi PDF Aç' }}</span>
+              </button>
+              <button
+                type="button"
+                class="dialog-close-btn"
+                (click)="closeViewingDetailDialog()"
+                aria-label="Kapat"
+                title="Kapat (ESC)"
+              >
+                <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+              </button>
+            </div>
+          </header>
+
+          <div class="empty-state" *ngIf="!selectedViewingSummary() && !viewingDetailLoading()">
+            <h4>Belge seçilmedi</h4>
+            <p>Listeden bir kayıt seçerek önizlemeyi açın.</p>
           </div>
 
-          <ng-template #noViewingHtml>
-            <div class="empty-state compact-empty">
-              <h4>HTML onizleme yok</h4>
-              <p>Bu cevapta gosterilecek HTML icerigi bulunmuyor.</p>
+          <div class="empty-state compact-empty" *ngIf="selectedViewingSummary() && !canViewDetail()">
+            <h4>Detay yetkisi gerekli</h4>
+            <p>`fatura-goruntuleme.detail` yetkisi olmadan HTML önizleme açılamaz.</p>
+          </div>
+
+          <div class="empty-state" *ngIf="viewingDetailLoading()">
+            <h4>Belge hazırlanıyor</h4>
+            <p>Seçili kayıt için HTML önizleme yükleniyor...</p>
+          </div>
+
+          <ng-container *ngIf="selectedViewingSummary() as summary">
+            <section class="sending-dialog-ribbon">
+              <div class="ribbon-item">
+                <span>Matrah</span>
+                <strong>{{ summary.taxExclusiveAmount | number: '1.2-2' }} {{ summary.documentCurrencyCode || 'TL' }}</strong>
+              </div>
+              <div class="ribbon-item">
+                <span>KDV</span>
+                <strong>{{ summary.taxTotal | number: '1.2-2' }} {{ summary.documentCurrencyCode || 'TL' }}</strong>
+              </div>
+              <div class="ribbon-item is-highlight">
+                <span>Genel Toplam</span>
+                <strong>{{ summary.invoiceTotal | number: '1.2-2' }} {{ summary.documentCurrencyCode || 'TL' }}</strong>
+              </div>
+              <div class="ribbon-item">
+                <span>Yazdırıldı</span>
+                <strong>{{ summary.isPrinted ? 'Evet' : 'Hayır' }}</strong>
+              </div>
+              <div class="ribbon-item">
+                <span>Zarf Kodu</span>
+                <strong>{{ summary.envelopeStatusCode || '-' }}</strong>
+              </div>
+              <div class="ribbon-item" *ngIf="summary.orderDocumentId">
+                <span>Sipariş No</span>
+                <strong>{{ summary.orderDocumentId }}</strong>
+              </div>
+              <div class="ribbon-item" *ngIf="summary.message">
+                <span>Mesaj</span>
+                <strong>{{ summary.message }}</strong>
+              </div>
+            </section>
+          </ng-container>
+
+          <ng-container *ngIf="viewingDetail() as detail">
+            <div class="document-preview-shell sending-preview-canvas" *ngIf="detail.document.htmlContent; else noViewingHtml">
+              <iframe
+                class="document-frame"
+                sandbox="allow-scripts"
+                [src]="getDocumentPreviewUrl(detail.document.htmlContent)"
+              ></iframe>
             </div>
-          </ng-template>
-        </ng-container>
+
+            <ng-template #noViewingHtml>
+              <div class="empty-state compact-empty">
+                <h4>HTML önizleme yok</h4>
+                <p>Bu cevapta gösterilecek HTML içeriği bulunmuyor.</p>
+              </div>
+            </ng-template>
+          </ng-container>
         </article>
       </div>
 
@@ -692,12 +779,63 @@
       <section class="workspace-grid sending-primary-grid">
         <div class="workspace-stack">
           <article class="panel panel-soft sending-filter-panel">
-            <div class="panel-head">
-              <div>
-                <p class="section-kicker">Filtreler</p>
-                <h3>Mikro giden faturalar</h3>
+            <div class="sending-console-head">
+              <div class="sending-head-title">
+                <h3>Mikro Giden Faturalar</h3>
+                <div class="sending-head-badges" *ngIf="sendingList()">
+                  <span class="head-metric-pill is-primary">{{ filteredSendingItems().length }} Kayıt</span>
+                  <span class="head-metric-pill">
+                    Toplam: <strong>{{ filteredSendingTotalAmount() | number: '1.2-2' }} TL</strong>
+                  </span>
+                  <span class="head-metric-pill is-muted">
+                    KDV: {{ filteredSendingTaxAmount() | number: '1.2-2' }} TL
+                  </span>
+                  <span
+                    class="head-metric-pill is-danger"
+                    *ngIf="filteredAttentionSendingItems().length > 0"
+                    title="Alıcı posta kutusu / alias bilgisi eksik olan faturalar"
+                  >
+                    <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+                    {{ filteredAttentionSendingItems().length }} Eksik Alias
+                  </span>
+                </div>
               </div>
-              <span class="panel-badge">Gonderim</span>
+
+              <div class="sending-date-preset-bar" *ngIf="canSendList()">
+                <span class="preset-label">Hızlı Tarih:</span>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  [class.is-active]="isSendingDatePresetActive('today')"
+                  (click)="setSendingDatePreset('today')"
+                >
+                  Bugün
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  [class.is-active]="isSendingDatePresetActive('yesterday')"
+                  (click)="setSendingDatePreset('yesterday')"
+                >
+                  Dün
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  [class.is-active]="isSendingDatePresetActive('thisWeek')"
+                  (click)="setSendingDatePreset('thisWeek')"
+                >
+                  Bu Hafta
+                </button>
+                <button
+                  type="button"
+                  class="preset-chip"
+                  [class.is-active]="isSendingDatePresetActive('thisMonth')"
+                  (click)="setSendingDatePreset('thisMonth')"
+                >
+                  Bu Ay
+                </button>
+              </div>
             </div>
 
             <div class="empty-state compact-empty" *ngIf="!canSendList()">
@@ -708,11 +846,11 @@
             <ng-container *ngIf="canSendList()">
               <form class="filter-grid sending-filter-grid" [formGroup]="sendingFilterForm">
                 <label class="field">
-                  <span>Baslangic</span>
+                  <span>Başlangıç</span>
                   <input type="date" formControlName="startDate" />
                 </label>
                 <label class="field">
-                  <span>Bitis</span>
+                  <span>Bitiş</span>
                   <input type="date" formControlName="endDate" />
                 </label>
                 <label class="field">
@@ -724,21 +862,53 @@
                   </select>
                 </label>
                 <label class="field">
-                  <span>Gonderim Durumu</span>
+                  <span>Gönderim Durumu</span>
                   <select formControlName="sentState">
                     <option *ngFor="let option of stateOptions" [ngValue]="option.value">
                       {{ option.label }}
                     </option>
                   </select>
                 </label>
+                <label class="field sending-quick-search-field">
+                  <span>Tablo İçi Hızlı Arama</span>
+                  <div class="search-input-wrap">
+                    <i class="fa-solid fa-magnifying-glass search-icon" aria-hidden="true"></i>
+                    <input
+                      type="text"
+                      [value]="sendingQuickFilter()"
+                      (input)="setSendingQuickFilter($event)"
+                      placeholder="Fatura no, müşteri, VKN, seri, açıklama, alias..."
+                    />
+                    <button
+                      type="button"
+                      class="clear-search-btn"
+                      *ngIf="sendingQuickFilter()"
+                      (click)="clearSendingQuickFilter()"
+                      title="Aramayı temizle"
+                    >
+                      <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                    </button>
+                  </div>
+                </label>
 
                 <div class="sending-filter-actions">
+                  <button
+                    type="button"
+                    class="ghost-button compact-button"
+                    *ngIf="canSendCreate() && filteredUnsentSendingItems().length > 0"
+                    (click)="selectFilteredUnsentInvoices()"
+                    [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                    title="Listelenen bekleyen faturaların tümünü seç"
+                  >
+                    <i class="fa-solid fa-check-double" aria-hidden="true"></i>
+                    <span>Bekleyenleri Seç</span>
+                  </button>
                   <button
                     type="button"
                     class="secondary-button"
                     (click)="resetSendingFilters()"
                   >
-                    Sifirla
+                    Sıfırla
                   </button>
                   <button
                     type="button"
@@ -746,128 +916,91 @@
                     (click)="applySendingFilters()"
                     [disabled]="sendingListLoading()"
                   >
-                    {{ sendingListLoading() ? 'Liste hazirlaniyor...' : 'Giden Faturalari Getir' }}
+                    <i
+                      class="fa-solid"
+                      [ngClass]="sendingListLoading() ? 'fa-circle-notch fa-spin' : 'fa-rotate'"
+                      aria-hidden="true"
+                    ></i>
+                    <span>{{ sendingListLoading() ? 'Getiriliyor...' : 'Faturaları Getir' }}</span>
                   </button>
                 </div>
               </form>
-
             </ng-container>
           </article>
 
           <article class="panel sending-list-panel">
-            <div class="panel-head">
-              <div>
-                <p class="section-kicker">Liste</p>
-                <h3>Canli gonderim listesi</h3>
-              </div>
-              <span class="panel-badge">{{ filteredSendingItems().length }} kayit</span>
-            </div>
-
-            <section class="operation-strip" *ngIf="sendingList()">
-              <div class="operation-metrics">
-                <span>Toplam: {{ filteredSendingItems().length }}</span>
-                <span>Bekleyen: {{ filteredUnsentSendingItems().length }}</span>
-                <span>Secilen: {{ selectedSendingItems().length }}</span>
-                <span [class.is-danger]="filteredAttentionSendingItems().length > 0">
-                  Dikkat: {{ filteredAttentionSendingItems().length }}
+            <div class="queue-banner sending-selection-bar" *ngIf="selectedSendingItems().length > 0">
+              <div class="selection-bar-info">
+                <span class="selection-count-badge">{{ selectedSendingItems().length }} belge seçildi</span>
+                <span class="selection-total-text">
+                  Seçili Toplam: <strong>{{ selectedSendingTotalAmount() | number: '1.2-2' }} TL</strong>
                 </span>
               </div>
-              <div class="action-row" *ngIf="canSendCreate()">
+
+              <div class="action-row selection-bar-actions">
+                <button
+                  type="button"
+                  class="secondary-button compact-button bulk-print-btn"
+                  *ngIf="canSendDetail()"
+                  (click)="printSelectedSendingInvoices()"
+                  [disabled]="sendingBulkPrintLoading() || sendingValidateLoading() || sendingRequestLoading()"
+                  title="Seçilen faturaları sırayla yazdır"
+                >
+                  <i
+                    class="fa-solid"
+                    [ngClass]="sendingBulkPrintLoading() ? 'fa-circle-notch fa-spin' : 'fa-print'"
+                    aria-hidden="true"
+                  ></i>
+                  <span>
+                    {{ sendingBulkPrintLoading() ? 'Yazdırılıyor...' : ('Seçilenleri Yazdır (' + selectedSendingItems().length + ')') }}
+                  </span>
+                </button>
                 <button
                   type="button"
                   class="secondary-button compact-button"
-                  (click)="selectFilteredUnsentInvoices()"
-                  [disabled]="sendingValidateLoading() || sendingRequestLoading()"
-                >
-                  Bu Filtredeki Bekleyenleri Sec
-                </button>
-                <button
-                  type="button"
-                  class="ghost-button compact-button"
-                  (click)="clearSendingSelection()"
-                  [disabled]="selectedSendingItems().length === 0"
-                >
-                  Secimi Temizle
-                </button>
-              </div>
-            </section>
-
-            <label class="field quick-filter-field" *ngIf="sendingList()">
-              <span>Bu sayfada hizli filtre</span>
-              <input
-                type="text"
-                [value]="sendingQuickFilter()"
-                (input)="setSendingQuickFilter($event)"
-                placeholder="invoiceId, musteri, seri, iade ref, alias veya depo"
-              />
-            </label>
-
-            <div class="queue-banner" *ngIf="selectedSendingItems().length > 0">
-              <div>
-                <span class="section-label">Gonderim Kuyrugu</span>
-                <p>{{ selectedSendingItems().length }} belge secildi.</p>
-              </div>
-
-              <div class="action-row" *ngIf="canSendCreate()">
-                <button
-                  type="button"
-                  class="secondary-button"
+                  *ngIf="canSendCreate()"
                   (click)="validateSelectedInvoices()"
                   [disabled]="sendingValidateLoading() || sendingRequestLoading()"
                 >
-                  {{
-                    sendingValidateLoading()
-                      ? 'Kontrol ediliyor...'
-                      : selectedSendingItems().length + ' Belgeyi Kontrol Et'
-                  }}
+                  <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                  <span>
+                    {{ sendingValidateLoading() ? 'Kontrol ediliyor...' : ('Kontrol Et (' + selectedSendingItems().length + ')') }}
+                  </span>
                 </button>
                 <button
                   type="button"
-                  class="primary-button"
+                  class="primary-button compact-button"
+                  *ngIf="canSendCreate()"
                   (click)="sendSelectedInvoices()"
                   [disabled]="sendingValidateLoading() || sendingRequestLoading()"
                 >
-                  {{
-                    sendingRequestLoading()
-                      ? 'Gonderim suruyor...'
-                      : selectedSendingItems().length + ' Belgeyi Gonder'
-                  }}
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                  <span>
+                    {{ sendingRequestLoading() ? 'Gönderiliyor...' : ('Seçilenleri Gönder (' + selectedSendingItems().length + ')') }}
+                  </span>
                 </button>
-                <button type="button" class="ghost-button" (click)="clearSendingSelection()">
-                  Kuyrugu Temizle
+                <button type="button" class="ghost-button compact-button" (click)="clearSendingSelection()">
+                  Seçimi Temizle
                 </button>
-              </div>
-
-              <div class="candidate-strip">
-                <span
-                  class="candidate-chip"
-                  *ngFor="let item of selectedSendingItems(); trackBy: trackBySendingInvoice"
-                  [class.is-danger]="isReturnReferenceKnownMissing(item)"
-                >
-                  {{ item.invoiceId }}
-                  <ng-container *ngIf="isReturnInvoice(item) && !hasReturnReference(item)">
-                    - iade ref detayda kontrol
-                  </ng-container>
-                </span>
               </div>
             </div>
 
             <div class="empty-state" *ngIf="sendingListLoading()">
-              <h4>Liste yukleniyor</h4>
-              <p>Giden fatura kayitlari getiriliyor.</p>
+              <h4>Liste yükleniyor</h4>
+              <p>Giden fatura kayıtları getiriliyor.</p>
             </div>
 
             <div class="empty-state" *ngIf="!sendingListLoading() && !sendingList() && canSendList()">
-              <h4>Liste henuz gelmedi</h4>
-              <p>Filtreleri gonderdiginde giden fatura listesi burada gorunur.</p>
+              <h4>Liste henüz gelmedi</h4>
+              <p>Filtreleri gönderdiğinde giden fatura listesi burada görünür.</p>
             </div>
 
             <div
               class="empty-state"
               *ngIf="!sendingListLoading() && sendingList() && filteredSendingItems().length === 0"
             >
-              <h4>Kayit bulunamadi</h4>
-              <p>Secili filtrelerle gosterilecek giden fatura yok.</p>
+              <h4>Kayıt bulunamadı</h4>
+              <p>Seçili filtrelerle gösterilecek giden fatura yok.</p>
             </div>
 
             <div class="invoice-table-shell" *ngIf="filteredSendingItems().length > 0">
@@ -880,12 +1013,20 @@
                   <col class="sending-col-scenario" />
                   <col class="sending-col-description" />
                   <col class="sending-col-amount" />
-                  <col class="sending-col-status" />
                   <col class="sending-col-actions" />
                 </colgroup>
                 <thead>
                   <tr>
-                    <th class="table-check-cell">Sec</th>
+                    <th class="table-check-cell">
+                      <input
+                        type="checkbox"
+                        [checked]="allVisibleSendingItemsSelected()"
+                        [disabled]="filteredUnsentSendingItems().length === 0 || !canSendCreate()"
+                        (change)="toggleAllVisibleSendingSelection($any($event.target).checked)"
+                        aria-label="Listedeki bekleyen faturalari sec"
+                        title="Listedeki tüm bekleyen faturaları seç / bırak"
+                      />
+                    </th>
                     <th>
                       <button type="button" class="sort-header" (click)="changeSendingSort('invoiceId')">
                         Fatura No{{ getSendingSortIndicator('invoiceId') }}
@@ -898,7 +1039,7 @@
                     </th>
                     <th>
                       <button type="button" class="sort-header" (click)="changeSendingSort('customerTitle')">
-                        Musteri{{ getSendingSortIndicator('customerTitle') }}
+                        Müşteri{{ getSendingSortIndicator('customerTitle') }}
                       </button>
                     </th>
                     <th>
@@ -906,18 +1047,13 @@
                         Senaryo / Profil{{ getSendingSortIndicator('scenario') }}
                       </button>
                     </th>
-                    <th>Aciklama</th>
+                    <th>Açıklama</th>
                     <th class="amount-column">
                       <button type="button" class="sort-header sort-header-right" (click)="changeSendingSort('payableTotal')">
                         Tutar{{ getSendingSortIndicator('payableTotal') }}
                       </button>
                     </th>
-                    <th>
-                      <button type="button" class="sort-header" (click)="changeSendingSort('isSent')">
-                        Durum{{ getSendingSortIndicator('isSent') }}
-                      </button>
-                    </th>
-                    <th class="action-column">Islem</th>
+                    <th class="action-column">İşlem</th>
                   </tr>
                 </thead>
                 <tbody>
@@ -925,9 +1061,8 @@
                     *ngFor="let item of filteredSendingItems(); trackBy: trackBySendingInvoice"
                     [class.is-selected]="isSendingCardSelected(item)"
                     [class.is-queued]="isSendingItemSelected(item)"
-                    [class.is-attention]="
-                      !item.isSent && !hasReceiverAddress(item)
-                    "
+                    [class.is-attention]="!item.isSent && !hasReceiverAddress(item)"
+                    (dblclick)="openSendingDetail(item)"
                   >
                     <td class="table-check-cell">
                       <input
@@ -939,23 +1074,53 @@
                         (change)="toggleSendingSelection(item)"
                       />
                     </td>
-                    <td>
-                      <strong>{{ item.invoiceId }}</strong>
-                      <small>{{ item.documentSerie }} / {{ item.documentOrderNo }}</small>
-                    </td>
-                    <td class="sending-date-cell">{{ item.documentDate | date: 'dd.MM.yyyy' }}</td>
-                    <td class="sending-customer-cell" [title]="item.customerTitle || ''">
-                      <span class="table-main-text">{{ item.customerTitle || '-' }}</span>
-                      <small>{{ item.customerCode || item.customerTcknVkn || '-' }}</small>
-                      <small
-                        [class.table-warning-text]="!hasReceiverAddress(item) && !item.isSent"
+                    <td class="sending-invoice-cell">
+                      <button
+                        type="button"
+                        class="invoice-id-link"
+                        (click)="$event.stopPropagation(); openSendingDetail(item)"
+                        title="Fatura önizlemesini aç"
                       >
-                        {{ getReceiverAddressLabel(item) }}
+                        {{ item.invoiceId }}
+                      </button>
+                      <small>
+                        {{ item.documentSerie }} / {{ item.documentOrderNo }}
+                        <ng-container *ngIf="item.sourceLineCount"> • {{ item.sourceLineCount }} kalem</ng-container>
+                      </small>
+                      <small
+                        class="sent-doc-no"
+                        *ngIf="item.isSent && item.sentDocumentNo && item.sentDocumentNo !== item.invoiceId"
+                      >
+                        Resmi: {{ item.sentDocumentNo }}
                       </small>
                     </td>
+                    <td class="sending-date-cell">
+                      <strong>{{ item.documentDate | date: 'dd.MM.yyyy' }}</strong>
+                      <small *ngIf="item.invoiceTypeCode">{{ item.invoiceTypeCode }}</small>
+                    </td>
+                    <td class="sending-customer-cell" [title]="item.customerTitle || ''">
+                      <div class="customer-title-text">{{ item.customerTitle || '-' }}</div>
+                      <div class="customer-meta-line">
+                        <span class="customer-code-badge">{{ item.customerCode || item.customerTcknVkn || '-' }}</span>
+                        <span
+                          class="customer-alias-label"
+                          [class.table-warning-text]="!hasReceiverAddress(item) && !item.isSent"
+                          [title]="getReceiverAddressLabel(item)"
+                        >
+                          {{ getReceiverAddressLabel(item) }}
+                        </span>
+                      </div>
+                    </td>
                     <td class="sending-scenario-cell">
-                      <strong>{{ getScenarioLabel(item.scenario) }}</strong>
-                      <small>{{ item.invoiceProfileId || 'Profil belirtilmedi' }}</small>
+                      <div class="scenario-badge-row">
+                        <span
+                          class="scenario-tag"
+                          [class.is-earsiv]="getScenarioLabel(item.scenario) === 'E-Arsiv'"
+                        >
+                          {{ getScenarioLabel(item.scenario) }}
+                        </span>
+                        <small class="profile-subtext">{{ item.invoiceProfileId || '-' }}</small>
+                      </div>
                       <ng-container *ngIf="isReturnInvoice(item)">
                         <span
                           class="status-pill return-reference-pill"
@@ -965,9 +1130,6 @@
                         >
                           {{ getReturnReferenceLabel(item) }}
                         </span>
-                        <small *ngIf="item.returnInvoiceDate">
-                          {{ item.returnInvoiceDate | date: 'dd.MM.yyyy' }}
-                        </small>
                       </ng-container>
                     </td>
                     <td class="sending-description-cell" [title]="item.description || item.sourceLineSummary || '-'">
@@ -976,32 +1138,46 @@
                     <td class="amount-column">
                       <strong>{{ getSendingPayableTotal(item) | number: '1.2-2' }} TL</strong>
                       <small>
-                        Net {{ getSendingLineExtensionTotal(item) | number: '1.2-2' }} /
+                        Matrah {{ getSendingLineExtensionTotal(item) | number: '1.2-2' }} •
                         KDV {{ getSendingTaxTotal(item) | number: '1.2-2' }}
                       </small>
                     </td>
-                    <td>
-                      <span
-                        class="status-pill"
-                        [class.status-pill-success]="item.isSent"
-                        [class.status-pill-neutral]="!item.isSent"
-                      >
-                        {{ item.isSent ? 'Gonderildi' : 'Bekliyor' }}
-                      </span>
-                    </td>
-                    <td>
+                    <td class="sending-action-cell">
                       <div class="table-actions">
+                        <button
+                          type="button"
+                          class="secondary-button compact-button print-action-btn"
+                          [class.is-printing]="isSendingRowPrinting(item)"
+                          (click)="$event.stopPropagation(); printSendingRowInvoice(item)"
+                          [disabled]="isSendingRowPrinting(item) || sendingBulkPrintLoading()"
+                          title="Önizleme açmadan faturayı doğrudan yazdır"
+                        >
+                          <i
+                            class="fa-solid"
+                            [ngClass]="isSendingRowPrinting(item) ? 'fa-circle-notch fa-spin' : 'fa-print'"
+                            aria-hidden="true"
+                          ></i>
+                          <span>{{ isSendingRowPrinting(item) ? 'Yazdırılıyor' : 'Yazdır' }}</span>
+                        </button>
                         <button
                           type="button"
                           class="ghost-button compact-button"
                           (click)="$event.stopPropagation(); openSendingDetail(item)"
                           [disabled]="isSendingPdfLoading(item)"
+                          [title]="item.isSent ? 'Resmi PDF dosyasını aç' : 'Fatura UBL/HTML önizlemesini aç'"
                         >
-                          {{
-                            item.isSent
-                              ? (isSendingPdfLoading(item) ? 'PDF Aciliyor...' : 'Resmi PDF')
-                              : 'Onizle'
-                          }}
+                          <i
+                            class="fa-solid"
+                            [ngClass]="item.isSent ? 'fa-file-pdf' : 'fa-eye'"
+                            aria-hidden="true"
+                          ></i>
+                          <span>
+                            {{
+                              item.isSent
+                                ? (isSendingPdfLoading(item) ? 'Açılıyor...' : 'PDF')
+                                : 'Önizle'
+                            }}
+                          </span>
                         </button>
                         <button
                           type="button"
@@ -1009,8 +1185,10 @@
                           *ngIf="canSendCreate() && !item.isSent"
                           (click)="$event.stopPropagation(); sendCurrentInvoice(item)"
                           [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                          title="Bu faturayı Uyumsoft'a gönder"
                         >
-                          Gonder
+                          <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                          <span>Gönder</span>
                         </button>
                         <button
                           type="button"
@@ -1018,8 +1196,10 @@
                           *ngIf="canSendCreate() && item.isSent"
                           (click)="$event.stopPropagation(); retryCurrentInvoice(item)"
                           [disabled]="sendingRequestLoading() || isSendingRetryLoading(item)"
+                          title="Gönderilmiş faturayı tekrar dene"
                         >
-                          {{ isSendingRetryLoading(item) ? 'Tekrar...' : 'Tekrar Gonder' }}
+                          <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                          <span>{{ isSendingRetryLoading(item) ? 'Tekrar...' : 'Tekrar' }}</span>
                         </button>
                         <button
                           type="button"
@@ -1027,8 +1207,10 @@
                           *ngIf="canSendCreate() && !item.isSent"
                           (click)="$event.stopPropagation(); validateCurrentInvoice(item)"
                           [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                          title="Gönderim öncesi şema/kural kontrolü yap"
                         >
-                          Kontrol
+                          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                          <span>Kontrol</span>
                         </button>
                       </div>
                     </td>
@@ -1155,403 +1337,380 @@
             aria-modal="true"
             (click)="$event.stopPropagation()"
           >
-          <div class="panel-head">
-            <div>
-              <p class="section-kicker">Belge</p>
-              <h3>Onizleme</h3>
-            </div>
-            <div class="dialog-head-actions">
-              <span class="panel-badge" *ngIf="selectedSendingSummary()">
-                {{ getSendingModeSummary() }}
-              </span>
-              <button
-                type="button"
-                class="ghost-button compact-button"
-                (click)="closeSendingDetailDialog()"
-              >
-                Kapat
-              </button>
-            </div>
-          </div>
-
-          <div class="empty-state" *ngIf="!selectedSendingSummary() && !sendingDetailLoading()">
-            <h4>Belge secilmedi</h4>
-            <p>Soldan bir giden fatura secerek UBL onizlemeyi ac.</p>
-          </div>
-
-          <div class="empty-state compact-empty" *ngIf="selectedSendingSummary() && !canSendDetail()">
-            <h4>Detay yetkisi gerekli</h4>
-            <p>`fatura-gonderimi.detail` yetkisi olmadan UBL onizleme acilamaz.</p>
-          </div>
-
-          <div class="empty-state" *ngIf="sendingDetailLoading()">
-            <h4>Belge hazirlaniyor</h4>
-            <p>Secili giden fatura icin UBL ve HTML onizleme yukleniyor.</p>
-          </div>
-
-          <ng-container *ngIf="selectedSendingSummary() as summary">
-            <section class="detail-hero">
-              <div class="detail-copy">
-                <p class="section-kicker">Secili Giden Fatura</p>
-                <h3>{{ summary.invoiceId }}</h3>
-                <p>{{ summary.customerTitle }}</p>
-              </div>
-
-              <div class="detail-tags">
-                <span class="token">{{ summary.documentSerie }} / {{ summary.documentOrderNo }}</span>
-                <span class="token">{{ summary.documentDate | date: 'dd.MM.yyyy' }}</span>
-                <span class="token">{{ getScenarioLabel(summary.scenario) }}</span>
-                <span class="token">{{ summary.invoiceTypeCode || '-' }}</span>
-              </div>
-            </section>
-
-            <section class="summary-grid">
-              <article class="summary-card">
-                <span>Brut</span>
-                <strong>{{ getSendingGrossTotal(summary) | number: '1.2-2' }} TL</strong>
-              </article>
-              <article class="summary-card">
-                <span>Iskonto</span>
-                <strong>{{ getSendingDiscountTotal(summary) | number: '1.2-2' }} TL</strong>
-              </article>
-              <article class="summary-card">
-                <span>Net Matrah</span>
-                <strong>{{ getSendingLineExtensionTotal(summary) | number: '1.2-2' }} TL</strong>
-              </article>
-              <article class="summary-card">
-                <span>KDV</span>
-                <strong>{{ getSendingTaxTotal(summary) | number: '1.2-2' }} TL</strong>
-              </article>
-              <article class="summary-card">
-                <span>Genel Toplam</span>
-                <strong>{{ getSendingPayableTotal(summary) | number: '1.2-2' }} TL</strong>
-              </article>
-              <article class="summary-card">
-                <span>Hedef Alias</span>
-                <strong>{{ summary.targetAlias || '-' }}</strong>
-              </article>
-              <article class="summary-card">
-                <span>Profil</span>
-                <strong>{{ summary.invoiceProfileId || '-' }}</strong>
-              </article>
-              <article class="summary-card">
-                <span>Kaynak Satir</span>
-                <strong>{{ getSourceLineCountLabel(summary) }}</strong>
-                <small>{{ getSendingDetailOnlyLabel(summary.sourceLineSummary) }}</small>
-              </article>
-              <article class="summary-card">
-                <span>KDV Ozeti</span>
-                <strong>{{ getSendingDetailOnlyLabel(summary.taxRateSummary) }}</strong>
-              </article>
-              <article class="summary-card">
-                <span>Gonderim Durumu</span>
-                <strong>{{ summary.isSent ? (summary.sentDocumentNo || 'Gonderildi') : 'Bekliyor' }}</strong>
-              </article>
-              <article
-                class="summary-card"
-                *ngIf="isReturnInvoice(summary)"
-                [class.summary-card-alert]="isReturnReferenceKnownMissing(summary)"
-              >
-                <span>Iade Referansi</span>
-                <strong>{{ getReturnReferenceLabel(summary) }}</strong>
-                <small *ngIf="summary.returnInvoiceDate">
-                  {{ summary.returnInvoiceDate | date: 'dd.MM.yyyy' }}
-                </small>
-              </article>
-            </section>
-
-            <div class="action-row">
-              <button
-                type="button"
-                class="ghost-button"
-                *ngIf="canSendDetail()"
-                (click)="reloadSendingDetail()"
-                [disabled]="sendingDetailLoading() || !canPreviewSendingInvoice(summary)"
-              >
-                Varsayilan Onizleme
-              </button>
-              <button
-                type="button"
-                class="secondary-button"
-                *ngIf="isReturnInvoice(summary) && canSendDetail()"
-                (click)="openReturnReferencePanel(summary)"
-                [disabled]="returnReferenceLoading()"
-              >
-                {{
-                  returnReferenceLoading()
-                    ? 'Referanslar yukleniyor...'
-                    : 'Iadeye Konu Fatura Sec/Degistir'
-                }}
-              </button>
-              <button
-                type="button"
-                class="secondary-button"
-                *ngIf="canSendCreate() && !summary.isSent"
-                (click)="toggleSendingSelection(summary)"
-              >
-                {{ getSendingSelectionLabel(summary) }}
-              </button>
-              <button
-                type="button"
-                class="primary-button"
-                *ngIf="canSendCreate() && !summary.isSent"
-                (click)="sendCurrentInvoice(summary)"
-                [disabled]="sendingValidateLoading() || sendingRequestLoading()"
-              >
-                {{ sendingRequestLoading() ? 'Gonderim suruyor...' : 'Bu Faturayi Gonder' }}
-              </button>
-              <button
-                type="button"
-                class="primary-button"
-                *ngIf="canSendCreate() && summary.isSent"
-                (click)="retryCurrentInvoice(summary)"
-                [disabled]="sendingRequestLoading() || isSendingRetryLoading(summary)"
-              >
-                {{ isSendingRetryLoading(summary) ? 'Tekrar gonderiliyor...' : 'Tekrar Gonder' }}
-              </button>
-              <button
-                type="button"
-                class="secondary-button"
-                *ngIf="canSendCreate() && !summary.isSent"
-                (click)="validateCurrentInvoice(summary)"
-                [disabled]="sendingValidateLoading() || sendingRequestLoading()"
-              >
-                {{ sendingValidateLoading() ? 'Kontrol ediliyor...' : 'Gonderim Oncesi Kontrol' }}
-              </button>
-            </div>
-
-            <section
-              class="reference-panel"
-              *ngIf="returnReferencePanelOpen() && isReturnInvoice(summary)"
-            >
-              <div class="panel-head compact-head">
-                <div>
-                  <p class="section-kicker">Iade Referansi</p>
-                  <h4>Iadeye konu faturalar</h4>
+            <header class="sending-dialog-header">
+              <div class="dialog-invoice-identity" *ngIf="selectedSendingSummary() as summary; else defaultDialogTitle">
+                <div class="identity-top-row">
+                  <h3>{{ summary.invoiceId }}</h3>
+                  <span
+                    class="scenario-tag"
+                    [class.is-earsiv]="getScenarioLabel(summary.scenario) === 'E-Arsiv'"
+                  >
+                    {{ getScenarioLabel(summary.scenario) }}
+                  </span>
+                  <span class="dialog-meta-badge">{{ summary.invoiceProfileId || '-' }}</span>
+                  <span class="dialog-meta-badge">{{ summary.invoiceTypeCode || '-' }}</span>
+                  <span class="dialog-meta-badge">{{ summary.documentDate | date: 'dd.MM.yyyy' }}</span>
+                  <span class="dialog-meta-badge is-muted">
+                    Seri: {{ summary.documentSerie }} / {{ summary.documentOrderNo }}
+                  </span>
                 </div>
+                <div class="identity-sub-row">
+                  <strong class="dialog-customer-name">{{ summary.customerTitle }}</strong>
+                  <span class="dialog-alias-pill" [class.is-missing]="!hasReceiverAddress(summary) && !summary.isSent">
+                    {{ summary.targetAlias || 'Alıcı alias yok' }}
+                  </span>
+                </div>
+              </div>
+              <ng-template #defaultDialogTitle>
+                <div class="dialog-invoice-identity">
+                  <h3>Fatura Önizleme</h3>
+                </div>
+              </ng-template>
+
+              <div class="dialog-head-actions" *ngIf="selectedSendingSummary() as summary">
+                <button
+                  type="button"
+                  class="secondary-button compact-button print-action-btn"
+                  *ngIf="canSendDetail()"
+                  (click)="printSendingHtmlPreview()"
+                  [disabled]="sendingDetailLoading() || sendingRenderLoading()"
+                  title="Fatura önizlemesini doğrudan yazdır"
+                >
+                  <i class="fa-solid fa-print" aria-hidden="true"></i>
+                  <span>Yazdır</span>
+                </button>
                 <button
                   type="button"
                   class="ghost-button compact-button"
-                  (click)="reloadReturnReferenceCandidates()"
+                  *ngIf="canSendDetail()"
+                  (click)="reloadSendingDetail()"
+                  [disabled]="sendingDetailLoading() || !canPreviewSendingInvoice(summary)"
+                  title="Varsayılan önizlemeyi yenile"
+                >
+                  <i class="fa-solid fa-rotate" aria-hidden="true"></i>
+                  <span>Yenile</span>
+                </button>
+                <button
+                  type="button"
+                  class="secondary-button compact-button"
+                  *ngIf="isReturnInvoice(summary) && canSendDetail()"
+                  (click)="openReturnReferencePanel(summary)"
                   [disabled]="returnReferenceLoading()"
                 >
-                  Yenile
+                  <i class="fa-solid fa-link" aria-hidden="true"></i>
+                  <span>{{ returnReferenceLoading() ? 'Yükleniyor...' : 'İade Referansı' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="secondary-button compact-button"
+                  *ngIf="canSendCreate() && !summary.isSent"
+                  (click)="validateCurrentInvoice(summary)"
+                  [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                >
+                  <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+                  <span>{{ sendingValidateLoading() ? 'Kontrol...' : 'Kontrol Et' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="primary-button compact-button"
+                  *ngIf="canSendCreate() && !summary.isSent"
+                  (click)="sendCurrentInvoice(summary)"
+                  [disabled]="sendingValidateLoading() || sendingRequestLoading()"
+                >
+                  <i class="fa-solid fa-paper-plane" aria-hidden="true"></i>
+                  <span>{{ sendingRequestLoading() ? 'Gönderiliyor...' : 'Faturayı Gönder' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="primary-button compact-button"
+                  *ngIf="canSendCreate() && summary.isSent"
+                  (click)="retryCurrentInvoice(summary)"
+                  [disabled]="sendingRequestLoading() || isSendingRetryLoading(summary)"
+                >
+                  <i class="fa-solid fa-rotate-right" aria-hidden="true"></i>
+                  <span>{{ isSendingRetryLoading(summary) ? 'Tekrar...' : 'Tekrar Gönder' }}</span>
+                </button>
+                <button
+                  type="button"
+                  class="dialog-close-btn"
+                  (click)="closeSendingDetailDialog()"
+                  aria-label="Kapat"
+                  title="Kapat (ESC)"
+                >
+                  <i class="fa-solid fa-xmark" aria-hidden="true"></i>
                 </button>
               </div>
+            </header>
 
-              <div class="meta-strip" *ngIf="returnReferenceInvoiceContext() as referenceInvoice">
-                <span>{{ referenceInvoice.documentSerie }} / {{ referenceInvoice.documentOrderNo }}</span>
-                <span>{{ referenceInvoice.scenario }}</span>
-                <span>{{ referenceInvoice.invoiceId }}</span>
-              </div>
+            <div class="empty-state" *ngIf="!selectedSendingSummary() && !sendingDetailLoading()">
+              <h4>Belge seçilmedi</h4>
+              <p>Listeden bir giden fatura seçerek UBL önizlemeyi açın.</p>
+            </div>
 
-              <div class="empty-state compact-empty" *ngIf="returnReferenceLoading()">
-                <h4>Adaylar yukleniyor</h4>
-                <p>Secili iade fatura icin referans listesi hazirlaniyor.</p>
-              </div>
+            <div class="empty-state compact-empty" *ngIf="selectedSendingSummary() && !canSendDetail()">
+              <h4>Detay yetkisi gerekli</h4>
+              <p>`fatura-gonderimi.detail` yetkisi olmadan UBL önizleme açılamaz.</p>
+            </div>
 
-              <ng-container *ngIf="returnReferenceCandidates() as references">
-                <section class="summary-grid compact-summary-grid">
-                  <article class="summary-card">
-                    <span>Kayitli Referans</span>
-                    <strong>{{ references.currentReference?.invoiceNo || getReturnReferenceLabel(summary) }}</strong>
-                    <small *ngIf="references.currentReference?.invoiceDate as currentReferenceInvoiceDate">
-                      {{ currentReferenceInvoiceDate | date: 'dd.MM.yyyy' }}
-                    </small>
-                    <ng-container
-                      *ngIf="getReturnReferenceAmount(references.currentReference) !== null"
-                    >
-                      <small>
-                        {{ getReturnReferenceAmount(references.currentReference) | number: '1.2-2' }} TL
-                      </small>
+            <div class="empty-state" *ngIf="sendingDetailLoading()">
+              <h4>Belge hazırlanıyor</h4>
+              <p>Seçili giden fatura için UBL ve HTML önizleme yükleniyor...</p>
+            </div>
+
+            <ng-container *ngIf="selectedSendingSummary() as summary">
+              <section class="sending-dialog-ribbon">
+                <div class="ribbon-item">
+                  <span>Brüt</span>
+                  <strong>{{ getSendingGrossTotal(summary) | number: '1.2-2' }} TL</strong>
+                </div>
+                <div class="ribbon-item">
+                  <span>İskonto</span>
+                  <strong>{{ getSendingDiscountTotal(summary) | number: '1.2-2' }} TL</strong>
+                </div>
+                <div class="ribbon-item">
+                  <span>Net Matrah</span>
+                  <strong>{{ getSendingLineExtensionTotal(summary) | number: '1.2-2' }} TL</strong>
+                </div>
+                <div class="ribbon-item">
+                  <span>KDV ({{ getSendingDetailOnlyLabel(summary.taxRateSummary) }})</span>
+                  <strong>{{ getSendingTaxTotal(summary) | number: '1.2-2' }} TL</strong>
+                </div>
+                <div class="ribbon-item is-highlight">
+                  <span>Genel Toplam</span>
+                  <strong>{{ getSendingPayableTotal(summary) | number: '1.2-2' }} TL</strong>
+                </div>
+                <div class="ribbon-item">
+                  <span>Kalem</span>
+                  <strong>{{ getSourceLineCountLabel(summary) }}</strong>
+                </div>
+                <div
+                  class="ribbon-item"
+                  *ngIf="isReturnInvoice(summary)"
+                  [class.is-alert]="isReturnReferenceKnownMissing(summary)"
+                >
+                  <span>İade Referansı</span>
+                  <strong>
+                    {{ getReturnReferenceLabel(summary) }}
+                    <ng-container *ngIf="summary.returnInvoiceDate">
+                      ({{ summary.returnInvoiceDate | date: 'dd.MM.yyyy' }})
                     </ng-container>
-                  </article>
-                  <article class="summary-card" *ngIf="references.fallbackReference">
-                    <span>Fallback Aday</span>
-                    <strong>{{ references.fallbackReference.invoiceNo }}</strong>
-                    <small>{{ references.fallbackReference.invoiceDate | date: 'dd.MM.yyyy' }}</small>
-                    <ng-container
-                      *ngIf="getReturnReferenceAmount(references.fallbackReference) !== null"
-                    >
-                      <small>
-                        {{ getReturnReferenceAmount(references.fallbackReference) | number: '1.2-2' }} TL
-                      </small>
-                    </ng-container>
-                  </article>
-                </section>
+                  </strong>
+                </div>
+              </section>
 
-                <div class="action-row" *ngIf="references.fallbackReference as fallbackReference">
+              <section
+                class="reference-panel"
+                *ngIf="returnReferencePanelOpen() && isReturnInvoice(summary)"
+              >
+                <div class="panel-head compact-head">
+                  <div>
+                    <p class="section-kicker">İade Referansı</p>
+                    <h4>İadeye konu faturalar</h4>
+                  </div>
                   <button
                     type="button"
-                    class="secondary-button"
-                    *ngIf="canSendCreate()"
-                    (click)="saveFallbackReturnReference(summary)"
-                    [disabled]="!!returnReferenceSavingKey()"
+                    class="ghost-button compact-button"
+                    (click)="reloadReturnReferenceCandidates()"
+                    [disabled]="returnReferenceLoading()"
                   >
-                    {{
-                      isSavingFallbackReference(fallbackReference)
-                        ? 'Fallback kaydediliyor...'
-                        : 'Fallback Referansi Kullan'
-                    }}
+                    Yenile
                   </button>
                 </div>
 
-                <div
-                  class="empty-state compact-empty"
-                  *ngIf="
-                    !returnReferenceLoading() &&
-                    getReturnReferenceCandidates(references).length === 0 &&
-                    !references.fallbackReference
-                  "
-                >
-                  <h4>Aday bulunamadi</h4>
-                  <p>Sistem secilebilir iade referansi veya aday kayit bulamadi.</p>
+                <div class="empty-state compact-empty" *ngIf="returnReferenceLoading()">
+                  <h4>Adaylar yükleniyor</h4>
+                  <p>Seçili iade fatura için referans listesi hazırlanıyor.</p>
                 </div>
 
-                <div
-                  class="reference-list"
-                  *ngIf="getReturnReferenceCandidates(references).length > 0"
-                >
-                  <article
-                    class="reference-card"
-                    *ngFor="
-                      let reference of getReturnReferenceCandidates(references);
-                      trackBy: trackByReturnReference
-                    "
-                  >
-                    <div class="reference-card-main">
-                      <strong>{{ reference.invoiceNo }}</strong>
-                      <span>{{ reference.invoiceDate | date: 'dd.MM.yyyy' }}</span>
-                    </div>
-                    <div class="meta-strip">
-                      <span>{{ getReferenceDocumentLabel(reference) }}</span>
-                      <ng-container *ngIf="getReturnReferenceAmount(reference) !== null">
-                        <span>{{ getReturnReferenceAmount(reference) | number: '1.2-2' }} TL</span>
+                <ng-container *ngIf="returnReferenceCandidates() as references">
+                  <section class="summary-grid compact-summary-grid">
+                    <article class="summary-card">
+                      <span>Kayıtlı Referans</span>
+                      <strong>{{ references.currentReference?.invoiceNo || getReturnReferenceLabel(summary) }}</strong>
+                      <small *ngIf="references.currentReference?.invoiceDate as currentReferenceInvoiceDate">
+                        {{ currentReferenceInvoiceDate | date: 'dd.MM.yyyy' }}
+                      </small>
+                      <ng-container
+                        *ngIf="getReturnReferenceAmount(references.currentReference) !== null"
+                      >
+                        <small>
+                          {{ getReturnReferenceAmount(references.currentReference) | number: '1.2-2' }} TL
+                        </small>
                       </ng-container>
-                      <span>{{ getReturnReferenceBadge(reference) }}</span>
-                    </div>
+                    </article>
+                    <article class="summary-card" *ngIf="references.fallbackReference">
+                      <span>Fallback Aday</span>
+                      <strong>{{ references.fallbackReference.invoiceNo }}</strong>
+                      <small>{{ references.fallbackReference.invoiceDate | date: 'dd.MM.yyyy' }}</small>
+                      <ng-container
+                        *ngIf="getReturnReferenceAmount(references.fallbackReference) !== null"
+                      >
+                        <small>
+                          {{ getReturnReferenceAmount(references.fallbackReference) | number: '1.2-2' }} TL
+                        </small>
+                      </ng-container>
+                    </article>
+                  </section>
+
+                  <div class="action-row" *ngIf="references.fallbackReference as fallbackReference">
                     <button
                       type="button"
-                      class="primary-button compact-button"
+                      class="secondary-button compact-button"
                       *ngIf="canSendCreate()"
-                      (click)="saveReturnReference(summary, reference)"
+                      (click)="saveFallbackReturnReference(summary)"
                       [disabled]="!!returnReferenceSavingKey()"
                     >
                       {{
-                        isSavingReturnReference(reference)
-                          ? 'Kaydediliyor...'
-                          : 'Bu Faturayi Sec'
+                        isSavingFallbackReference(fallbackReference)
+                          ? 'Fallback kaydediliyor...'
+                          : 'Fallback Referansı Kullan'
                       }}
                     </button>
-                  </article>
-                </div>
-              </ng-container>
-            </section>
+                  </div>
 
-          </ng-container>
+                  <div
+                    class="empty-state compact-empty"
+                    *ngIf="
+                      !returnReferenceLoading() &&
+                      getReturnReferenceCandidates(references).length === 0 &&
+                      !references.fallbackReference
+                    "
+                  >
+                    <h4>Aday bulunamadı</h4>
+                    <p>Sistem seçilebilir iade referansı veya aday kayıt bulamadı.</p>
+                  </div>
 
-          <ng-container *ngIf="sendingDetail() as detail">
-            <details class="advanced-panel" *ngIf="canSendDetail()">
-              <summary>Gelistirilmis render ayarlari</summary>
-
-              <form class="request-form" [formGroup]="sendingRenderForm">
-                <label class="field">
-                  <span>Senaryo</span>
-                  <select formControlName="scenario">
-                    <option *ngFor="let option of sendingScenarioOptions" [ngValue]="option.value">
-                      {{ option.label }}
-                    </option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span>Profil</span>
-                  <select formControlName="profile">
-                    <option *ngFor="let profile of profileOptions" [ngValue]="profile">
-                      {{ profile }}
-                    </option>
-                  </select>
-                </label>
-
-                <label class="field">
-                  <span>Embedded XSLT</span>
-                  <select formControlName="preferEmbeddedXslt">
-                    <option
-                      *ngFor="let option of embeddedPreferenceOptions"
-                      [ngValue]="option.value"
+                  <div
+                    class="reference-list"
+                    *ngIf="getReturnReferenceCandidates(references).length > 0"
+                  >
+                    <article
+                      class="reference-card"
+                      *ngFor="
+                        let reference of getReturnReferenceCandidates(references);
+                        trackBy: trackByReturnReference
+                      "
                     >
-                      {{ option.label }}
-                    </option>
-                  </select>
-                  <small class="field-hint">
-                    {{
-                      getEmbeddedPreferenceLabel(sendingRenderForm.controls.preferEmbeddedXslt.value)
-                    }}
-                  </small>
-                </label>
-
-                <label class="toggle-field toggle-field-wide">
-                  <input type="checkbox" formControlName="fallbackToGeneral" />
-                  <span>Embedded bulunamazsa genel XSLT fallback kullanilsin</span>
-                </label>
-              </form>
-
-              <div class="action-row">
-                <button
-                  type="button"
-                  class="primary-button"
-                  (click)="renderSendingDetailWithOverrides()"
-                  [disabled]="sendingRenderLoading()"
-                >
-                  {{ sendingRenderLoading() ? 'Render aliniyor...' : 'Yeniden Render Et' }}
-                </button>
-              </div>
-            </details>
-
-            <div class="document-preview-shell" *ngIf="detail.document.htmlContent; else noSendingHtml">
-              <div class="preview-head">
-                <div>
-                  <h4>Belge Gorunumu</h4>
-                </div>
-                <button
-                  type="button"
-                  class="ghost-button compact-button"
-                  (click)="printSendingHtmlPreview()"
-                  [disabled]="sendingDetailLoading() || sendingRenderLoading()"
-                  title="Fatura onizlemesini yazdir"
-                >
-                  <i class="fa-solid fa-print" aria-hidden="true"></i>
-                  <span>Yazdir</span>
-                </button>
-              </div>
-              <iframe
-                class="document-frame"
-                sandbox="allow-scripts"
-                [src]="getDocumentPreviewUrl(detail.document.htmlContent)"
-              ></iframe>
-            </div>
-
-            <ng-template #noSendingHtml>
-              <div class="empty-state compact-empty">
-                <h4>HTML onizleme yok</h4>
-                <p>Bu cevapta gosterilecek HTML icerigi bulunmuyor.</p>
-              </div>
-            </ng-template>
-
-            <details class="advanced-panel">
-              <summary>Ham icerik</summary>
-              <section class="code-grid">
-                <details class="code-block">
-                  <summary>XML Content</summary>
-                  <pre>{{ detail.document.xmlContent || '-' }}</pre>
-                </details>
-                <details class="code-block">
-                  <summary>HTML Content</summary>
-                  <pre>{{ detail.document.htmlContent || '-' }}</pre>
-                </details>
+                      <div class="reference-card-main">
+                        <strong>{{ reference.invoiceNo }}</strong>
+                        <span>{{ reference.invoiceDate | date: 'dd.MM.yyyy' }}</span>
+                      </div>
+                      <div class="meta-strip">
+                        <span>{{ getReferenceDocumentLabel(reference) }}</span>
+                        <ng-container *ngIf="getReturnReferenceAmount(reference) !== null">
+                          <span>{{ getReturnReferenceAmount(reference) | number: '1.2-2' }} TL</span>
+                        </ng-container>
+                        <span>{{ getReturnReferenceBadge(reference) }}</span>
+                      </div>
+                      <button
+                        type="button"
+                        class="primary-button compact-button"
+                        *ngIf="canSendCreate()"
+                        (click)="saveReturnReference(summary, reference)"
+                        [disabled]="!!returnReferenceSavingKey()"
+                      >
+                        {{
+                          isSavingReturnReference(reference)
+                            ? 'Kaydediliyor...'
+                            : 'Bu Faturayı Seç'
+                        }}
+                      </button>
+                    </article>
+                  </div>
+                </ng-container>
               </section>
-            </details>
-          </ng-container>
+            </ng-container>
+
+            <ng-container *ngIf="sendingDetail() as detail">
+              <div class="document-preview-shell sending-preview-canvas" *ngIf="detail.document.htmlContent; else noSendingHtml">
+                <iframe
+                  class="document-frame"
+                  sandbox="allow-scripts"
+                  [src]="getDocumentPreviewUrl(detail.document.htmlContent)"
+                ></iframe>
+              </div>
+
+              <ng-template #noSendingHtml>
+                <div class="empty-state compact-empty">
+                  <h4>HTML önizleme yok</h4>
+                  <p>Bu cevapta gösterilecek HTML içeriği bulunmuyor.</p>
+                </div>
+              </ng-template>
+
+              <div class="sending-dialog-drawers">
+                <details class="advanced-panel compact-drawer" *ngIf="canSendDetail()">
+                  <summary>
+                    <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+                    <span>Geliştirilmiş Render Ayarları</span>
+                  </summary>
+
+                  <form class="request-form" [formGroup]="sendingRenderForm">
+                    <label class="field">
+                      <span>Senaryo</span>
+                      <select formControlName="scenario">
+                        <option *ngFor="let option of sendingScenarioOptions" [ngValue]="option.value">
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </label>
+
+                    <label class="field">
+                      <span>Profil</span>
+                      <select formControlName="profile">
+                        <option *ngFor="let profile of profileOptions" [ngValue]="profile">
+                          {{ profile }}
+                        </option>
+                      </select>
+                    </label>
+
+                    <label class="field">
+                      <span>Embedded XSLT</span>
+                      <select formControlName="preferEmbeddedXslt">
+                        <option
+                          *ngFor="let option of embeddedPreferenceOptions"
+                          [ngValue]="option.value"
+                        >
+                          {{ option.label }}
+                        </option>
+                      </select>
+                    </label>
+
+                    <label class="toggle-field toggle-field-wide">
+                      <input type="checkbox" formControlName="fallbackToGeneral" />
+                      <span>Embedded bulunamazsa genel XSLT fallback kullanılsın</span>
+                    </label>
+                  </form>
+
+                  <div class="action-row">
+                    <button
+                      type="button"
+                      class="primary-button compact-button"
+                      (click)="renderSendingDetailWithOverrides()"
+                      [disabled]="sendingRenderLoading()"
+                    >
+                      {{ sendingRenderLoading() ? 'Render alınıyor...' : 'Yeniden Render Et' }}
+                    </button>
+                  </div>
+                </details>
+
+                <details class="advanced-panel compact-drawer">
+                  <summary>
+                    <i class="fa-solid fa-code" aria-hidden="true"></i>
+                    <span>Ham İçerik (XML / HTML)</span>
+                  </summary>
+                  <section class="code-grid">
+                    <details class="code-block">
+                      <summary>XML Content</summary>
+                      <pre>{{ detail.document.xmlContent || '-' }}</pre>
+                    </details>
+                    <details class="code-block">
+                      <summary>HTML Content</summary>
+                      <pre>{{ detail.document.htmlContent || '-' }}</pre>
+                    </details>
+                  </section>
+                </details>
+              </div>
+            </ng-container>
           </article>
         </div>
       </section>

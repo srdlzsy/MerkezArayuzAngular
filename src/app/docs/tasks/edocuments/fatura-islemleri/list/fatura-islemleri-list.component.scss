@@ -798,19 +798,19 @@
 }
 
 .sending-table {
-  min-width: 1220px;
+  min-width: 1120px;
 }
 
 .sending-col-select {
-  width: 46px;
+  width: 40px;
 }
 
 .sending-col-invoice {
-  width: 150px;
+  width: 146px;
 }
 
 .sending-col-date {
-  width: 96px;
+  width: 88px;
 }
 
 .sending-col-customer {
@@ -818,23 +818,19 @@
 }
 
 .sending-col-scenario {
-  width: 150px;
+  width: 168px;
 }
 
 .sending-col-description {
-  width: 180px;
+  width: 200px;
 }
 
 .sending-col-amount {
-  width: 172px;
-}
-
-.sending-col-status {
-  width: 104px;
+  width: 190px;
 }
 
 .sending-col-actions {
-  width: 224px;
+  width: 286px;
 }
 
 .invoice-table th,
@@ -847,8 +843,7 @@
 
 .sending-table th,
 .sending-table td {
-  max-width: 240px;
-  padding: 0.32rem 0.44rem;
+  padding: 0.36rem 0.5rem;
   overflow: hidden;
   line-height: 1.2;
   text-overflow: ellipsis;
@@ -1062,11 +1057,11 @@
 }
 
 .sending-table .action-column {
-  width: 224px;
+  width: 286px;
 }
 
 .table-check-cell {
-  width: 46px;
+  width: 40px;
   text-align: center !important;
 }
 
