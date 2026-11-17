@@ -273,14 +273,14 @@
 
 .invoice-console.is-viewing-workspace .viewing-filter-panel .viewing-filter-grid {
   grid-template-columns:
-    minmax(114px, 0.64fr)
-    minmax(114px, 0.64fr)
-    minmax(88px, 0.44fr)
-    minmax(88px, 0.44fr)
-    minmax(112px, 0.56fr)
-    minmax(170px, 0.95fr)
-    minmax(88px, 0.44fr)
-    auto;
+    minmax(114px, 0.62fr)
+    minmax(114px, 0.62fr)
+    minmax(84px, 0.42fr)
+    minmax(84px, 0.42fr)
+    minmax(106px, 0.54fr)
+    minmax(140px, 1fr)
+    minmax(96px, 0.46fr)
+    max-content;
   gap: 0.36rem;
   align-items: end;
 }
@@ -295,16 +295,20 @@
 
 .invoice-console.is-viewing-workspace .viewing-grid .field,
 .invoice-console.is-viewing-workspace .viewing-table-tools .field {
+  min-width: 0;
   gap: 0.1rem;
 }
 
 .invoice-console.is-viewing-workspace .viewing-grid .field span,
 .invoice-console.is-viewing-workspace .viewing-table-tools .field span {
   display: block;
-  font-size: 0.68rem;
+  font-size: 0.7rem;
   font-weight: 700;
   color: #475569;
   line-height: 1.1;
+  white-space: nowrap;
+  overflow: hidden;
+  text-overflow: ellipsis;
 }
 
 .invoice-console.is-viewing-workspace .viewing-grid .field input,
@@ -497,9 +501,15 @@
   display: inline;
 }
 
-@media (max-width: 1360px) {
+@media (max-width: 1260px) {
   .invoice-console.is-viewing-workspace .viewing-filter-panel .viewing-filter-grid,
   .invoice-console.is-viewing-workspace .viewing-table-tools {
     grid-template-columns: repeat(auto-fit, minmax(140px, 1fr));
+  }
+
+  .invoice-console.is-viewing-workspace .viewing-filter-actions,
+  .invoice-console.is-viewing-workspace .viewing-tools-actions {
+    grid-column: 1 / -1;
+    justify-content: flex-end;
   }
 }
