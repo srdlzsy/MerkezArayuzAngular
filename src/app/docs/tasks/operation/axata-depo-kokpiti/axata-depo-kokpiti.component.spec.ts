@@ -6,9 +6,10 @@ import { EntegrasyonIslemleriService } from '../../../../core/api/module-service
 import { AxataDepoKokpitiComponent } from './axata-depo-kokpiti.component';
 
 describe('AxataDepoKokpitiComponent', () => {
-  function createComponent(options?: { deliveryError?: boolean }): {
+  function createComponent(options?: { deliveryError?: boolean; deliveries?: unknown[] }): {
     component: AxataDepoKokpitiComponent;
     integrationApi: jasmine.SpyObj<EntegrasyonIslemleriService>;
+    warehouseApi: jasmine.SpyObj<AxataWarehouseOperationsApiService>;
   } {
     const orderResponse = {
       totalRecordCount: 1,
@@ -41,7 +42,11 @@ describe('AxataDepoKokpitiComponent', () => {
     integrationApi.previewAxataC01OutboundDeliveryImport.and.returnValue(
       options?.deliveryError
         ? throwError(() => ({ error: { detail: 'AXATA baglantisi yok' } }))
-        : of({ totalFetchedDocumentCount: 0, returnedDocumentCount: 0, documents: [] } as never)
+        : of({
+          totalFetchedDocumentCount: options?.deliveries?.length ?? 0,
+          returnedDocumentCount: options?.deliveries?.length ?? 0,
+          documents: options?.deliveries ?? []
+        } as never)
     );
     integrationApi.dispatchAxataManualDocumentBatch.and.returnValue(of({
       succeededDocumentCount: 1,
@@ -52,9 +57,10 @@ describe('AxataDepoKokpitiComponent', () => {
 
     const warehouseApi = jasmine.createSpyObj<AxataWarehouseOperationsApiService>(
       'AxataWarehouseOperationsApiService',
-      ['getOverview', 'getTrace', 'getPickingPerformance', 'getFillRate', 'getCapacity']
+      ['getOverview', 'getDocuments', 'getTrace', 'getPickingPerformance', 'getFillRate', 'getCapacity']
     );
     warehouseApi.getOverview.and.returnValue(of({} as never));
+    warehouseApi.getDocuments.and.returnValue(of({ totalCount: 0, items: [] } as never));
 
     TestBed.configureTestingModule({
       providers: [
@@ -65,7 +71,8 @@ describe('AxataDepoKokpitiComponent', () => {
 
     return {
       component: TestBed.runInInjectionContext(() => new AxataDepoKokpitiComponent()),
-      integrationApi
+      integrationApi,
+      warehouseApi
     };
   }
 
@@ -91,6 +98,55 @@ describe('AxataDepoKokpitiComponent', () => {
     expect(component.orderCandidates().length).toBe(1);
     expect(component.deliveryCandidates()).toEqual([]);
     expect(component.actionListWarning()).toContain('AXATA sevkleri okunamadı');
+  });
+
+  it('keeps blocked C01 documents visible as intervention items', () => {
+    const blocked = {
+      ...createDelivery(265236),
+      canImport: false,
+      mikroCheckState: 'OrderNotFound',
+      allowedAction: 'InspectOnly',
+      warning: 'Mikro siparisi bulunamadi.'
+    };
+    const { component } = createComponent({ deliveries: [blocked] });
+
+    component.loadActionDesk();
+
+    expect(component.deliveryCandidates()).toEqual([]);
+    expect(component.interventionDeliveries()).toEqual([blocked as never]);
+    expect(component.canReconcileDelivery(blocked as never)).toBeFalse();
+  });
+
+  it('offers reconcile only when API explicitly allows it', () => {
+    const reconcilable = {
+      ...createDelivery(265237),
+      canImport: false,
+      mikroCheckState: 'MikroShipmentExistsPendingAck',
+      allowedAction: 'ReconcileAndAcknowledge'
+    };
+    const { component } = createComponent({ deliveries: [reconcilable] });
+
+    component.loadActionDesk();
+
+    expect(component.canReconcileDelivery(reconcilable as never)).toBeTrue();
+  });
+
+  it('loads date filtered AXATA documents from the read-only endpoint', () => {
+    const { component, warehouseApi } = createComponent();
+    component.documentStartDate = '2026-11-13';
+    component.documentEndDate = '2026-11-13';
+    component.documentType = 'Shipment';
+    component.documentStatus = 'in-transit';
+
+    component.loadDocuments();
+
+    expect(warehouseApi.getDocuments).toHaveBeenCalledOnceWith(jasmine.objectContaining({
+      startDate: '2026-11-13',
+      endDate: '2026-11-13',
+      documentType: 'Shipment',
+      status: 'in-transit',
+      take: 500
+    }));
   });
 
   it('selects repeated document numbers independently by AXATA sequence', () => {
@@ -150,6 +206,48 @@ describe('AxataDepoKokpitiComponent', () => {
       .toEqual(jasmine.objectContaining({ axataSequenceNo: 265235 }));
   });
 
+  it('stores Mikro cross-check summary returned by trace endpoint', () => {
+    const { component, warehouseApi } = createComponent();
+    warehouseApi.getTrace.and.returnValue(of({
+      searchTerm: 'F50-17511',
+      documentType: 'OutboundOrder',
+      orderNo: 'F50.17511',
+      shipments: [],
+      pickingLogs: [],
+      inbounds: [],
+      integrationQueues: [],
+      mikroCrossCheck: {
+        orderSerie: 'F50',
+        orderNo: 17511,
+        orderFound: true,
+        lineCount: 1,
+        openLineCount: 1,
+        closedLineCount: 0,
+        orderedQuantity: 2,
+        deliveredQuantity: 0,
+        shipments: [
+          {
+            documentSerie: 'F131',
+            documentOrderNo: 2631,
+            officialDocumentNo: 'FRM2026600149141',
+            sourceWarehouseNo: 131,
+            targetWarehouseNo: 51,
+            lineCount: 1,
+            quantity: 2
+          }
+        ],
+        decisionCode: 'ShipmentExistsOrderOpen',
+        decision: 'Mikro sevk fişi oluşmuş; ancak bazı sipariş satırları hâlâ açık.'
+      }
+    } as never));
+
+    component.traceOrder('F50-17511');
+
+    expect(component.activeTab).toBe('trace');
+    expect(component.traceResult()?.mikroCrossCheck?.decisionCode).toBe('ShipmentExistsOrderOpen');
+    expect(component.traceResult()?.mikroCrossCheck?.shipments.length).toBe(1);
+  });
+
   function createDelivery(axataSequenceNo: number) {
     return {
       axataSequenceNo,
@@ -158,7 +256,10 @@ describe('AxataDepoKokpitiComponent', () => {
       documentOrderNo: 1979,
       status: '0',
       axataDate: '2026-11-13T00:00:00',
-      canImport: true
+      canImport: true,
+      mikroCheckState: 'ReadyForImport',
+      allowedAction: 'ImportToMikro',
+      warning: null
     };
   }
 });

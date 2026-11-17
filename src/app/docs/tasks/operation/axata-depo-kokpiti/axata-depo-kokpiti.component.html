@@ -13,6 +13,7 @@
 
   <nav class="cockpit-tabs" aria-label="AXATA depo kokpiti bölümleri">
     <button type="button" [class.active]="activeTab === 'actions'" (click)="setTab('actions')">Kolay İşlem Masası</button>
+    <button type="button" [class.active]="activeTab === 'documents'" (click)="setTab('documents')">AXATA Evrakları</button>
     <button type="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Canlı Operasyon</button>
     <button type="button" [class.active]="activeTab === 'trace'" (click)="setTab('trace')">Evrak İzleme</button>
     <button type="button" [class.active]="activeTab === 'performance'" (click)="setTab('performance')">Toplama Performansı</button>
@@ -125,7 +126,111 @@
         </button>
       </article>
     </section>
+    @if (deliveryImportProgress(); as progress) {
+      <div class="status-message" role="status">
+        <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+        {{ progress.current }} / {{ progress.total }} sevk işleniyor: {{ progress.reference }}
+      </div>
+    }
+    @if (deliveryImportResults().length > 0) {
+      <section class="data-section">
+        <h3>Son Aktarım Sonuçları</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Evrak</th><th>Durum</th><th>Sonuç</th></tr></thead>
+          <tbody>@for (result of deliveryImportResults(); track result.reference) {
+            <tr>
+              <td><strong>{{ result.reference }}</strong></td>
+              <td [class.negative]="!result.success">{{ result.success ? 'Tamamlandı' : 'Hata' }}</td>
+              <td>{{ result.message || (result.error ? 'Aktarım tamamlanamadı.' : '-') }}</td>
+            </tr>
+          }</tbody>
+        </table></div>
+      </section>
+    }
+    @if (filteredInterventionDeliveries().length > 0) {
+      <section class="data-section attention-section">
+        <h3>Müdahale Bekleyen / Takılan Sevkler</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Mikro Evrakı</th><th>AXATA Sevk</th><th>Depolar</th><th>Durum</th><th>Açıklama</th><th>İşlem</th></tr></thead>
+          <tbody>@for (item of filteredInterventionDeliveries(); track item.axataSequenceNo) {
+            <tr>
+              <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
+              <td>{{ item.axataDeliveryNo }} (#{{ item.axataSequenceNo }})</td>
+              <td>{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</td>
+              <td>{{ deliveryStateLabel(item) }}</td>
+              <td class="wrap-cell">{{ item.warning || '-' }}</td>
+              <td class="row-actions">
+                @if (canReconcileDelivery(item)) {
+                  <button type="button" class="link-button" [disabled]="actionLoading()" (click)="reconcileDelivery(item)">Doğrula ve Kuyruğu Kapat</button>
+                }
+                <button type="button" class="link-button" (click)="traceDelivery(item)">İzle</button>
+              </td>
+            </tr>
+          }</tbody>
+        </table></div>
+      </section>
+    }
     <p class="desk-note">Canlı yazma işlemleri mevcut güvenli AXATA senkronizasyon servisini kullanır. Bu kokpit ikinci bir yazma yolu oluşturmaz.</p>
+  }
+
+  @if (activeTab === 'documents') {
+    <div class="filter-bar">
+      <label>Başlangıç <input type="date" [(ngModel)]="documentStartDate" /></label>
+      <label>Bitiş <input type="date" [(ngModel)]="documentEndDate" /></label>
+      <label>Evrak tipi
+        <select [(ngModel)]="documentType">
+          <option value="all">Tüm evraklar</option>
+          <option value="Order">Siparişler</option>
+          <option value="Shipment">Sevkler</option>
+          <option value="Receiving">Mal kabuller</option>
+        </select>
+      </label>
+      <label>Durum
+        <select [(ngModel)]="documentStatus">
+          <option value="all">Tüm durumlar</option>
+          <option value="pending">Bekleyen</option>
+          <option value="processing">İşlemde</option>
+          <option value="completed">Tamamlanan</option>
+          <option value="in-transit">Yoldaki mallar</option>
+        </select>
+      </label>
+      <label>Evrak / mağaza / plaka <input type="search" [(ngModel)]="documentSearchTerm" (keyup.enter)="loadDocuments()" /></label>
+      <button type="button" (click)="loadDocuments()" [disabled]="loading()">Listele</button>
+    </div>
+    @if (documents(); as list) {
+      <section class="metric-grid compact">
+        <article><span>Toplam Evrak</span><strong>{{ list.totalCount }}</strong></article>
+        <article><span>Listelenen</span><strong>{{ list.items.length }}</strong></article>
+        <article><span>Bu Sayfada Yoldaki</span><strong>{{ inTransitDocumentCount() }}</strong></article>
+        <article><span>Kaynak</span><strong>AXATA</strong><small>Salt okunur canlı veri</small></article>
+      </section>
+      <section class="data-section">
+        <h3>AXATA Sipariş, Sevk ve Mal Kabul Evrakları</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Tür</th><th>Evrak</th><th>Hareket</th><th>Tarih</th><th>Kaynak</th><th>Hedef</th><th>Durum</th><th>Kalem</th><th>Miktar</th><th>Plaka</th><th></th></tr></thead>
+          <tbody>@for (item of list.items; track item.documentKey) {
+            <tr [class.in-transit-row]="item.isInTransit">
+              <td>{{ item.documentTypeDescription }}</td>
+              <td><strong>{{ item.documentNo }}</strong></td>
+              <td>{{ item.movementType || '-' }}</td>
+              <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
+              <td>{{ item.sourceCode || '-' }} {{ item.sourceName || '' }}</td>
+              <td>{{ item.targetCode || '-' }} {{ item.targetName || '' }}</td>
+              <td>{{ item.isInTransit ? 'Yolda / kabul bekliyor' : item.statusDescription }}</td>
+              <td>{{ item.lineCount }}</td>
+              <td>{{ item.quantity | number:'1.0-3' }}</td>
+              <td>{{ item.vehiclePlate || '-' }}</td>
+              <td><button type="button" class="link-button" (click)="traceDocument(item)">İzle</button></td>
+            </tr>
+          } @empty {<tr><td colspan="11" class="empty-cell">Seçilen filtrelerde AXATA evrakı bulunamadı.</td></tr>}</tbody>
+        </table></div>
+        <div class="pager">
+          <button type="button" class="link-button" [disabled]="documentSkip === 0 || loading()" (click)="previousDocumentPage()">Önceki</button>
+          <span>{{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }}</span>
+          <button type="button" class="link-button" [disabled]="documentSkip + list.items.length >= list.totalCount || loading()" (click)="nextDocumentPage()">Sonraki</button>
+        </div>
+      </section>
+    }
   }
 
   @if (activeTab === 'overview') {
@@ -141,6 +246,16 @@
         <article><span>Kuyrukta Bekleyen</span><strong>{{ data.queues.outboundWaitingIntegrationCount + data.queues.inboundWaitingIntegrationCount }}</strong><small>AXATA entegrasyon kuyruğu</small></article>
         <article><span>Kabul Bekleyen</span><strong>{{ data.inbound.pendingReceivingCount }}</strong><small>Giriş siparişi</small></article>
         <article><span>Kabul Tamamlanan</span><strong>{{ data.inbound.completedTodayCount }}</strong><small>Seçilen gün</small></article>
+      </section>
+
+      <section class="data-section">
+        <h3>Canlı Rampa Yüklemeleri</h3>
+        <div class="table-wrap"><table>
+          <thead><tr><th>Sevk</th><th>Hedef</th><th>Plaka</th><th>Rampa</th><th>Toplayıcı</th><th>Başlangıç</th><th>Kalem</th></tr></thead>
+          <tbody>@for (item of data.activeLoadings; track item.shipmentYear + '-' + item.shipmentNo) {
+            <tr><td><strong>{{ item.shipmentYear }}/{{ item.shipmentNo }}</strong></td><td>{{ item.destinationCode }} - {{ item.destinationName || '-' }}</td><td>{{ item.plate || '-' }}</td><td>{{ item.ramp || '-' }}</td><td>{{ item.picker || '-' }}</td><td>{{ item.startTime || '-' }}</td><td>{{ item.lineCount }}</td></tr>
+          } @empty {<tr><td colspan="7" class="empty-cell">Seçilen tarihte devam eden rampa yüklemesi yok.</td></tr>}</tbody>
+        </table></div>
       </section>
 
       <section class="data-section">
@@ -194,6 +309,59 @@
             </table></div>
           </section>
         }
+        @if (trace.pickingLogs.length > 0) {
+          <section class="data-section"><h3>Toplama Geçmişi</h3><div class="table-wrap"><table>
+            <thead><tr><th>Zaman</th><th>Personel</th><th>Konum</th><th>Stok</th><th>Ürün</th><th>Miktar</th><th>Palet</th></tr></thead>
+            <tbody>@for (log of trace.pickingLogs; track log.sequence) {
+              <tr><td>{{ log.logDate || '-' }} {{ log.logTime || '' }}</td><td>{{ log.picker || '-' }}</td><td>{{ log.zone || '' }} {{ log.location || '-' }}</td><td>{{ log.sku || '-' }}</td><td>{{ log.skuName || '-' }}</td><td>{{ log.quantity | number:'1.0-3' }}</td><td>{{ log.palletNo || '-' }}</td></tr>
+            }</tbody>
+          </table></div></section>
+        }
+        @if (trace.integrationQueues.length > 0) {
+          <section class="data-section"><h3>Entegrasyon Kuyruğu</h3><div class="table-wrap"><table>
+            <thead><tr><th>Kuyruk</th><th>Evrak</th><th>Durum</th><th>Hedef</th><th>Tarih</th></tr></thead>
+            <tbody>@for (queue of trace.integrationQueues; track queue.queueType + ':' + queue.documentNo + ':' + queue.status) {
+              <tr><td>{{ queue.queueType }}</td><td><strong>{{ queue.documentNo }}</strong></td><td>{{ queue.statusDescription }}</td><td>{{ queue.targetCode || '-' }}</td><td>{{ queue.creationDate || '-' }}</td></tr>
+            }</tbody>
+          </table></div></section>
+        }
+        @for (inbound of trace.inbounds; track inbound.orderId) {
+          <section class="data-section"><h3>Mal Kabul {{ inbound.documentNo }} · {{ inbound.statusDescription }}</h3><div class="table-wrap"><table>
+            <thead><tr><th>Satır</th><th>Stok</th><th>Ürün</th><th>Beklenen</th><th>Kabul</th></tr></thead>
+            <tbody>@for (line of inbound.details; track line.lineNo) {
+              <tr><td>{{ line.lineNo }}</td><td>{{ line.sku }}</td><td>{{ line.skuName || '-' }}</td><td>{{ line.expectedQty | number:'1.0-3' }}</td><td>{{ line.receivedQty | number:'1.0-3' }}</td></tr>
+            }</tbody>
+          </table></div></section>
+        }
+      }
+      @if (trace.mikroCrossCheck; as mikro) {
+        <section class="data-section mikro-cross-check" [class.ok]="mikro.decisionCode === 'Completed'" [class.alert]="mikro.decisionCode === 'OrderNotFound' || mikro.decisionCode === 'ClosedWithoutShipment' || mikro.decisionCode === 'MikroUnavailable'">
+          <h3>Mikro Karşılığı · {{ mikro.orderSerie }}/{{ mikro.orderNo }}</h3>
+          <div class="cross-check-verdict">
+            <div><span>AXATA</span><strong>{{ trace.documentType === 'NotFound' ? 'Evrak bulunamadı' : (trace.orderStatusDescription || trace.documentType) }}</strong></div>
+            <div><span>Mikro</span><strong>{{ mikro.orderFound ? (mikro.openLineCount + ' açık / ' + mikro.closedLineCount + ' kapalı satır') : 'Sipariş bulunamadı' }}</strong></div>
+            <div><span>Karar</span><strong>{{ mikro.decision }}</strong></div>
+          </div>
+          @if (mikro.warning) {
+            <div class="status-message warning" role="alert">{{ mikro.warning }}</div>
+          }
+          @if (mikro.orderFound) {
+            <section class="metric-grid compact">
+              <article><span>Sipariş Tarihi</span><strong>{{ mikro.orderDate | date:'dd.MM.yyyy' }}</strong></article>
+              <article><span>Depolar</span><strong>{{ mikro.sourceWarehouseNo ?? '-' }} → {{ mikro.targetWarehouseNo ?? '-' }}</strong></article>
+              <article><span>İstenen</span><strong>{{ mikro.orderedQuantity | number:'1.0-3' }}</strong></article>
+              <article><span>Teslim</span><strong>{{ mikro.deliveredQuantity | number:'1.0-3' }}</strong></article>
+            </section>
+            <div class="table-wrap"><table>
+              <thead><tr><th>Mikro Sevk Fişi</th><th>Tarih</th><th>Resmi Belge</th><th>Depolar</th><th>Kalem</th><th>Miktar</th></tr></thead>
+              <tbody>@for (shipment of mikro.shipments; track shipment.documentSerie + '/' + shipment.documentOrderNo) {
+                <tr><td><strong>{{ shipment.documentSerie }}/{{ shipment.documentOrderNo }}</strong></td><td>{{ shipment.documentDate | date:'dd.MM.yyyy' }}</td><td>{{ shipment.officialDocumentNo || '-' }}</td><td>{{ shipment.sourceWarehouseNo ?? '-' }} → {{ shipment.targetWarehouseNo ?? '-' }}</td><td>{{ shipment.lineCount }}</td><td>{{ shipment.quantity | number:'1.0-3' }}</td></tr>
+              } @empty {
+                <tr><td colspan="6" class="empty-cell">Bu siparişe bağlı Mikro sevk fişi bulunmuyor.</td></tr>
+              }</tbody>
+            </table></div>
+          }
+        </section>
       }
     }
   }
@@ -214,6 +382,12 @@
         <tr><td><strong>{{ item.userName || item.userId }}</strong></td><td>{{ item.totalShipments }}</td><td>{{ item.totalPickTasks }}</td><td>{{ item.totalLines }}</td><td>{{ item.totalQuantity }}</td><td>{{ item.unpickedLines }}</td><td>%{{ item.completionRate }}</td><td>{{ item.averageDurationMinutes | number:'1.0-1' }} dk</td></tr>
       } @empty {<tr><td colspan="8" class="empty-cell">Seçilen dönemde performans kaydı bulunamadı.</td></tr>}</tbody>
     </table></div></section>
+    <section class="data-section"><h3>Bölge Bazlı Toplama</h3><div class="table-wrap"><table>
+      <thead><tr><th>Bölge</th><th>Sevk</th><th>Kalem</th><th>Miktar</th><th>Eksik</th></tr></thead>
+      <tbody>@for (zone of report.zones; track zone.zoneCode) {
+        <tr><td><strong>{{ zone.zoneCode }}</strong></td><td>{{ zone.totalShipments }}</td><td>{{ zone.totalLines }}</td><td>{{ zone.totalQuantity | number:'1.0-3' }}</td><td>{{ zone.unpickedLines }}</td></tr>
+      } @empty {<tr><td colspan="5" class="empty-cell">Bölge performans kaydı bulunamadı.</td></tr>}</tbody>
+    </table></div></section>
   }
 
   @if (activeTab === 'fillrate' && fillRate(); as report) {
@@ -228,6 +402,12 @@
       <tbody>@for (item of report.stores; track item.storeCode) {
         <tr><td><strong>{{ item.storeCode }}</strong> {{ item.storeName }}</td><td>{{ item.orderCount }}</td><td>{{ item.totalLines }}</td><td>{{ item.totalOrderedQty }}</td><td>{{ item.totalShippedQty }}</td><td>{{ item.totalMissingQty }}</td><td>%{{ item.fillRatePercentage }}</td></tr>
       }</tbody>
+    </table></div></section>
+    <section class="data-section"><h3>En Çok Eksik Kalan Ürünler</h3><div class="table-wrap"><table>
+      <thead><tr><th>Stok</th><th>Ürün</th><th>Sipariş</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
+      <tbody>@for (item of report.topMissingSkus; track item.sku) {
+        <tr><td><strong>{{ item.sku }}</strong></td><td>{{ item.skuName || '-' }}</td><td>{{ item.orderCount }}</td><td>{{ item.totalOrderedQty | number:'1.0-3' }}</td><td>{{ item.totalShippedQty | number:'1.0-3' }}</td><td class="negative">{{ item.totalMissingQty | number:'1.0-3' }}</td><td>%{{ item.fillRatePercentage }}</td></tr>
+      } @empty {<tr><td colspan="7" class="empty-cell">Eksik karşılanan ürün bulunmadı.</td></tr>}</tbody>
     </table></div></section>
   }
 
@@ -244,6 +424,12 @@
       <tbody>@for (zone of report.zones; track zone.zone) {
         <tr><td>{{ zone.zone }}</td><td>{{ zone.totalLocations }}</td><td>{{ zone.occupiedLocations }}</td><td>{{ zone.emptyLocations }}</td><td>%{{ zone.occupancyRatePercentage }}</td></tr>
       }</tbody>
+    </table></div></section>
+    <section class="data-section"><h3>Stok Yeri Tipleri</h3><div class="table-wrap"><table>
+      <thead><tr><th>Tip</th><th>Açıklama</th><th>Göz Sayısı</th></tr></thead>
+      <tbody>@for (item of report.stockTypes; track item.typeCode) {
+        <tr><td><strong>{{ item.typeCode }}</strong></td><td>{{ item.typeDescription || '-' }}</td><td>{{ item.locationCount }}</td></tr>
+      } @empty {<tr><td colspan="3" class="empty-cell">Stok yeri tipi bulunamadı.</td></tr>}</tbody>
     </table></div></section>
   }
 </div>

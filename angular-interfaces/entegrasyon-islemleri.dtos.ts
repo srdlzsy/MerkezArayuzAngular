@@ -895,6 +895,8 @@ export interface IAxataOutboundDeliveryImportDocumentApiDto {
   existingLinkedMovementLineCount: number;
   canImport: boolean;
   warning: string | null;
+  mikroCheckState: string;
+  allowedAction: string;
 }
 
 export interface IAxataOutboundDeliveryImportResultApiDto {

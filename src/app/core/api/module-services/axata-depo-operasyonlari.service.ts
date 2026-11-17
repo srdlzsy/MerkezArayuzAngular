@@ -50,6 +50,47 @@ export interface AxataWarehouseOverview {
   }>;
 }
 
+export interface AxataWarehouseDocumentListItem {
+  documentType: 'Order' | 'Shipment' | 'Receiving';
+  documentTypeDescription: string;
+  documentKey: string;
+  documentNo: string;
+  movementType?: string | null;
+  documentDate?: string | null;
+  sourceCode?: string | null;
+  sourceName?: string | null;
+  targetCode?: string | null;
+  targetName?: string | null;
+  status: number;
+  statusDescription: string;
+  flowState: 'Pending' | 'Processing' | 'Completed' | 'ActionRequired';
+  lineCount: number;
+  quantity: number;
+  isInTransit: boolean;
+  vehiclePlate?: string | null;
+}
+
+export interface AxataWarehouseDocumentList {
+  metadata: AxataOperationsMetadata;
+  startDate: string;
+  endDate: string;
+  totalCount: number;
+  skip: number;
+  take: number;
+  items: AxataWarehouseDocumentListItem[];
+}
+
+export interface AxataWarehouseDocumentQuery {
+  startDate?: string | null;
+  endDate?: string | null;
+  documentType?: string | null;
+  movementType?: string | null;
+  status?: string | null;
+  searchTerm?: string | null;
+  skip?: number;
+  take?: number;
+}
+
 export interface AxataDocumentTrace {
   metadata: AxataOperationsMetadata;
   searchTerm: string;
@@ -119,6 +160,34 @@ export interface AxataDocumentTrace {
     targetCode?: string | null;
     creationDate?: string | null;
   }>;
+  mikroCrossCheck?: AxataTraceMikroCrossCheck | null;
+}
+
+export interface AxataTraceMikroCrossCheck {
+  orderSerie?: string | null;
+  orderNo?: number | null;
+  orderFound: boolean;
+  orderDate?: string | null;
+  sourceWarehouseNo?: number | null;
+  targetWarehouseNo?: number | null;
+  lineCount: number;
+  openLineCount: number;
+  closedLineCount: number;
+  orderedQuantity: number;
+  deliveredQuantity: number;
+  shipments: Array<{
+    documentSerie: string;
+    documentOrderNo: number;
+    documentDate?: string | null;
+    officialDocumentNo?: string | null;
+    sourceWarehouseNo?: number | null;
+    targetWarehouseNo?: number | null;
+    lineCount: number;
+    quantity: number;
+  }>;
+  decisionCode: string;
+  decision: string;
+  warning?: string | null;
 }
 
 export interface AxataPickingPerformance {
@@ -205,6 +274,20 @@ export class AxataWarehouseOperationsApiService {
     if (date) params = params.set('date', date);
 
     return this.http.get<AxataWarehouseOverview>(`${this.baseUrl}/overview`, { params });
+  }
+
+  getDocuments(query: AxataWarehouseDocumentQuery): Observable<AxataWarehouseDocumentList> {
+    let params = new HttpParams();
+    if (query.startDate) params = params.set('startDate', query.startDate);
+    if (query.endDate) params = params.set('endDate', query.endDate);
+    if (query.documentType) params = params.set('documentType', query.documentType);
+    if (query.movementType) params = params.set('movementType', query.movementType);
+    if (query.status) params = params.set('status', query.status);
+    if (query.searchTerm) params = params.set('searchTerm', query.searchTerm);
+    params = params.set('skip', (query.skip ?? 0).toString());
+    params = params.set('take', (query.take ?? 100).toString());
+
+    return this.http.get<AxataWarehouseDocumentList>(`${this.baseUrl}/documents`, { params });
   }
 
   getTrace(searchTerm: string): Observable<AxataDocumentTrace> {

@@ -13,16 +13,19 @@ import {
   AxataDocumentTrace,
   AxataFillRate,
   AxataPickingPerformance,
+  AxataWarehouseDocumentList,
+  AxataWarehouseDocumentListItem,
   AxataWarehouseOperationsApiService,
   AxataWarehouseOverview
 } from '../../../../core/api/module-services/axata-depo-operasyonlari.service';
 import type {
+  AxataOutboundDeliveryImportExecuteDto,
   AxataOutboundDeliveryImportPreviewDto,
   AxataSynchronizationManualDocumentCandidatesDto
 } from '../../../../core/api/module-services/entegrasyon-islemleri.service';
 import { EntegrasyonIslemleriService } from '../../../../core/api/module-services/entegrasyon-islemleri.service';
 
-type CockpitTab = 'actions' | 'overview' | 'trace' | 'performance' | 'fillrate' | 'capacity';
+type CockpitTab = 'actions' | 'documents' | 'overview' | 'trace' | 'performance' | 'fillrate' | 'capacity';
 type AxataOrderTaskCode = 'issued-warehouse-order-sync' | 'received-company-order-sync';
 type ActionOrderCandidate = IAxataSynchronizationManualDocumentCandidateItemApiDto & {
   taskCode: AxataOrderTaskCode;
@@ -46,6 +49,7 @@ type ActionSourceResult<T> = {
 type DeliveryImportOutcome = {
   success: boolean;
   reference: string;
+  message?: string;
   error?: unknown;
 };
 
@@ -65,12 +69,19 @@ export class AxataDepoKokpitiComponent implements OnInit {
   actionSearchTerm = '';
   actionDate = this.today();
   selectedDate = this.today();
+  documentStartDate = this.today();
+  documentEndDate = this.today();
+  documentType = 'all';
+  documentStatus = 'all';
+  documentSearchTerm = '';
+  documentSkip = 0;
   reportStartDate = this.relativeDate(6);
   reportEndDate = this.today();
 
   readonly loading = signal(false);
   readonly errorMessage = signal<string | null>(null);
   readonly overview = signal<AxataWarehouseOverview | null>(null);
+  readonly documents = signal<AxataWarehouseDocumentList | null>(null);
   readonly traceResult = signal<AxataDocumentTrace | null>(null);
   readonly performance = signal<AxataPickingPerformance | null>(null);
   readonly fillRate = signal<AxataFillRate | null>(null);
@@ -80,6 +91,9 @@ export class AxataDepoKokpitiComponent implements OnInit {
   readonly actionListWarning = signal<string | null>(null);
   readonly orderCandidates = signal<ActionOrderCandidate[]>([]);
   readonly deliveryCandidates = signal<IAxataOutboundDeliveryImportDocumentApiDto[]>([]);
+  readonly interventionDeliveries = signal<IAxataOutboundDeliveryImportDocumentApiDto[]>([]);
+  readonly deliveryImportProgress = signal<{ current: number; total: number; reference: string } | null>(null);
+  readonly deliveryImportResults = signal<DeliveryImportOutcome[]>([]);
   readonly selectedOrderReferences = signal<ReadonlySet<string>>(new Set());
   readonly selectedDeliveryReferences = signal<ReadonlySet<string>>(new Set());
   filteredOrderCandidates(): ActionOrderCandidate[] {
@@ -100,6 +114,20 @@ export class AxataDepoKokpitiComponent implements OnInit {
     );
   }
 
+  filteredInterventionDeliveries(): IAxataOutboundDeliveryImportDocumentApiDto[] {
+    const term = this.actionSearchTerm.trim().toLocaleLowerCase('tr-TR');
+    if (!term) return this.interventionDeliveries();
+    return this.interventionDeliveries().filter((item) =>
+      `${item.documentSerie}/${item.documentOrderNo} ${item.axataDeliveryNo} ${item.warning ?? ''}`
+        .toLocaleLowerCase('tr-TR')
+        .includes(term)
+    );
+  }
+
+  inTransitDocumentCount(): number {
+    return this.documents()?.items.filter((item) => item.isInTransit).length ?? 0;
+  }
+
   ngOnInit(): void {
     this.loadOverview();
     this.loadActionDesk();
@@ -108,6 +136,7 @@ export class AxataDepoKokpitiComponent implements OnInit {
   setTab(tab: CockpitTab): void {
     this.activeTab = tab;
     this.errorMessage.set(null);
+    if (tab === 'documents' && !this.documents()) this.loadDocuments();
     if (tab === 'overview' && !this.overview()) this.loadOverview();
     if (tab === 'performance' && !this.performance()) this.loadPerformance();
     if (tab === 'fillrate' && !this.fillRate()) this.loadFillRate();
@@ -116,6 +145,7 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
   refreshActiveTab(): void {
     if (this.activeTab === 'actions') this.loadActionDesk();
+    if (this.activeTab === 'documents') this.loadDocuments(false);
     if (this.activeTab === 'overview') this.loadOverview();
     if (this.activeTab === 'performance') this.loadPerformance();
     if (this.activeTab === 'fillrate') this.loadFillRate();
@@ -173,9 +203,14 @@ export class AxataDepoKokpitiComponent implements OnInit {
               typeLabel: 'Alınan firma siparişi'
             }))
           ].sort((left, right) => left.documentReference.localeCompare(right.documentReference, 'tr')));
-          this.deliveryCandidates.set(
-            (deliveries.data?.documents ?? []).filter((item) => item.canImport)
-          );
+          const deliveryItems = deliveries.data?.documents ?? [];
+          this.deliveryCandidates.set(deliveryItems.filter((item) =>
+            this.resolveDeliveryAction(item) === 'ImportToMikro'
+          ));
+          this.interventionDeliveries.set(deliveryItems.filter((item) => {
+            const action = this.resolveDeliveryAction(item);
+            return action !== 'ImportToMikro' && action !== 'NoAction';
+          }));
           const hiddenOrderCount =
             (warehouseOrders.data?.totalRecordCount ?? 0) + (companyOrders.data?.totalRecordCount ?? 0) -
             (warehouseOrders.data?.returnedRecordCount ?? 0) - (companyOrders.data?.returnedRecordCount ?? 0);
@@ -224,6 +259,34 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
   isDeliverySelected(item: IAxataOutboundDeliveryImportDocumentApiDto): boolean {
     return this.selectedDeliveryReferences().has(this.deliveryKey(item));
+  }
+
+  canReconcileDelivery(item: IAxataOutboundDeliveryImportDocumentApiDto): boolean {
+    return this.resolveDeliveryAction(item) === 'ReconcileAndAcknowledge';
+  }
+
+  deliveryStateLabel(item: IAxataOutboundDeliveryImportDocumentApiDto): string {
+    switch (item.mikroCheckState) {
+      case 'MikroShipmentExistsPendingAck': return 'Mikro fişi var, AXATA onayı bekliyor';
+      case 'OrderNotFound': return 'Mikro siparişi bulunamadı';
+      case 'OrderLineMismatch': return 'Sipariş satırları eşleşmedi';
+      case 'CancelledInAxata': return 'AXATA sevki iptal';
+      case 'EmptyAxataDelivery': return 'Teslimat miktarı yok';
+      case 'Synchronized': return 'Tamamlandı';
+      default: return item.warning || 'Manuel inceleme gerekiyor';
+    }
+  }
+
+  reconcileDelivery(item: IAxataOutboundDeliveryImportDocumentApiDto): void {
+    if (!this.canReconcileDelivery(item)) return;
+    this.actionLoading.set(true);
+    this.actionMessage.set(null);
+    this.deliveryImportResults.set([]);
+    this.importDeliveryQueue([item], 0, []);
+  }
+
+  traceDelivery(item: IAxataOutboundDeliveryImportDocumentApiDto): void {
+    this.traceOrder(`${item.documentSerie}.${item.documentOrderNo}`);
   }
 
   dispatchSelectedOrders(): void {
@@ -290,6 +353,7 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
     this.actionLoading.set(true);
     this.actionMessage.set(null);
+    this.deliveryImportResults.set([]);
     this.importDeliveryQueue(selected, 0, []);
   }
 
@@ -305,6 +369,7 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
     const item = selected[index];
     const reference = `${item.documentSerie}/${item.documentOrderNo} (#${item.axataSequenceNo})`;
+    this.deliveryImportProgress.set({ current: index + 1, total: selected.length, reference });
     this.integrationApi
       .executeAxataC01OutboundDeliveryDocumentImport(item.documentSerie, item.documentOrderNo, {
         status: item.status,
@@ -313,8 +378,15 @@ export class AxataDepoKokpitiComponent implements OnInit {
         axataSequenceNo: item.axataSequenceNo
       })
       .subscribe({
-        next: () => {
-          results.push({ success: true, reference });
+        next: (response: AxataOutboundDeliveryImportExecuteDto) => {
+          const result = response.results?.[0];
+          results.push({
+            success: true,
+            reference,
+            message: result?.message || (result?.movementDocumentNo
+              ? `Mikro evrakı: ${result.movementDocumentNo}`
+              : 'İşlem tamamlandı.')
+          });
           this.importDeliveryQueue(selected, index + 1, results);
         },
         error: (error: unknown) => {
@@ -326,6 +398,8 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
   private finishDeliveryImport(results: DeliveryImportOutcome[]): void {
     this.actionLoading.set(false);
+    this.deliveryImportProgress.set(null);
+    this.deliveryImportResults.set(results);
     const succeeded = results.filter((item) => item.success).length;
     const failed = results.length - succeeded;
     const failureText = results
@@ -338,6 +412,57 @@ export class AxataDepoKokpitiComponent implements OnInit {
     );
     this.loadActionDesk(false);
     this.loadOverview();
+  }
+
+  loadDocuments(resetPage: boolean = true): void {
+    if (!this.documentStartDate || !this.documentEndDate || this.documentStartDate > this.documentEndDate) {
+      this.errorMessage.set('Geçerli bir evrak tarih aralığı seçin.');
+      return;
+    }
+
+    const dayCount = Math.floor(
+      (Date.parse(this.documentEndDate) - Date.parse(this.documentStartDate)) / 86_400_000
+    ) + 1;
+    if (dayCount > 31) {
+      this.errorMessage.set('Evrak listesi en fazla 31 günlük aralıkta sorgulanabilir.');
+      return;
+    }
+
+    if (resetPage) this.documentSkip = 0;
+    this.beginRequest();
+    this.api.getDocuments({
+      startDate: this.documentStartDate,
+      endDate: this.documentEndDate,
+      documentType: this.documentType === 'all' ? null : this.documentType,
+      status: this.documentStatus === 'all' ? null : this.documentStatus,
+      searchTerm: this.documentSearchTerm.trim() || null,
+      skip: this.documentSkip,
+      take: 500
+    })
+      .pipe(finalize(() => this.loading.set(false)))
+      .subscribe({
+        next: (data: AxataWarehouseDocumentList) => this.documents.set(data),
+        error: (error: unknown) => this.handleError(error)
+      });
+  }
+
+  previousDocumentPage(): void {
+    if (this.documentSkip <= 0) return;
+    this.documentSkip = Math.max(0, this.documentSkip - 500);
+    this.loadDocuments(false);
+  }
+
+  nextDocumentPage(): void {
+    const list = this.documents();
+    if (!list || this.documentSkip + list.items.length >= list.totalCount) return;
+    this.documentSkip += 500;
+    this.loadDocuments(false);
+  }
+
+  traceDocument(item: AxataWarehouseDocumentListItem): void {
+    this.searchTerm = item.documentNo;
+    this.activeTab = 'trace';
+    this.searchTrace();
   }
 
   loadOverview(): void {
@@ -452,6 +577,11 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
   private deliveryKey(item: IAxataOutboundDeliveryImportDocumentApiDto): string {
     return item.axataSequenceNo.toString();
+  }
+
+  private resolveDeliveryAction(item: IAxataOutboundDeliveryImportDocumentApiDto): string {
+    if (item.allowedAction) return item.allowedAction;
+    return item.canImport ? 'ImportToMikro' : 'InspectOnly';
   }
 
   private recoverActionSource<T>(source: Observable<T>, label: string): Observable<ActionSourceResult<T>> {

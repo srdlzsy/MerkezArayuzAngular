@@ -151,11 +151,13 @@ export const OPERATION_TASK_SOURCE = {
       id: 'axata-depo-kokpiti',
       title: 'AXATA Depo Kokpiti',
       subtitle:
-        'Depocu icin iki adimli kolay aktarim masasi ile canli AXATA operasyon ve performans raporlarini bir arada sunar.',
+        'Depocu icin guvenli aktarim masasi, tarihli AXATA evrak listesi ve canli operasyon raporlarini bir arada sunar.',
       baseRouteOrFile: '/api/operasyon-islemleri/axata-depo-operasyonlari',
       highlights: [
         'Mikro siparislerini AXATA terminaline ve tamamlanan AXATA sevklerini Mikroya tekli veya toplu aktarir',
         'Kokpit metrikleri AXATA kaynagindan salt okunur; aktarim komutlari mevcut guvenli senkronizasyon akisina gider',
+        'Siparis, sevk, mal kabul ve yoldaki transferler tarih ve durum bazinda listelenir',
+        'Takilan C01 sevkleri gizlenmez; yalniz Mikro fisi dogrulanan kayitlarda kuyruk kapatma aksiyonu acilir',
         'SIPMASTER -> SIPDETAIL -> SEVK_LINK -> SEVK_DETAIL zincirini izler',
         'Toplayici ve rampa hareketlerini saniyesine kadar takip eder',
         'Fill-rate karisiligini coklu sevk dagilimi kuralina gore hesaplar'
@@ -167,6 +169,7 @@ export const OPERATION_TASK_SOURCE = {
           description: 'AXATA canli operasyon kokpiti ve raporlama servisleri',
           endpoints: [
             { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/overview', description: 'Canli operasyon kokpiti' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/documents', description: 'Tarihli siparis, sevk, mal kabul ve yoldaki transfer listesi' },
             { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/trace', description: 'Evrak ve siparis izleme' },
             { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/picking-performance', description: 'Toplayici KPI raporu' },
             { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/fill-rate', description: 'Magaza karsilama orani' },
