@@ -1,156 +1,315 @@
 <section class="task-page" *ngIf="page as current">
   <article class="settings-workspace terminal-workspace">
-    <header class="page-head terminal-page-head">
-      <div class="title-block">
-        <span class="section-kicker">Ayar Islemleri</span>
-        <h2>{{ current.title }}</h2>
+    <!-- Page Header -->
+    <header class="terminal-page-head">
+      <div class="terminal-head-info">
+        <div class="head-kicker-row">
+          <span class="section-kicker">Ayar İşlemleri</span>
+          <span class="scope-chip">
+            <i class="fa-solid fa-warehouse" aria-hidden="true"></i>
+            {{ canUseAllWarehouses() ? 'Tüm Depo Kapsamı' : currentWarehouseLabel() }}
+          </span>
+        </div>
+
+        <div class="head-title-row">
+          <h2>{{ current.title }}</h2>
+          <div class="head-pill-group">
+            <span class="head-pill head-pill-neutral">
+              <strong>{{ summary()?.registeredInstallationCount ?? 0 }}</strong> Kayıtlı Cihaz
+            </span>
+            <span
+              class="head-pill"
+              [class.head-pill-success]="summary()?.isVersionManifestAvailable"
+              [class.head-pill-warning]="summary() && !summary()?.isVersionManifestAvailable"
+            >
+              <i
+                class="fa-solid"
+                [class.fa-circle-check]="summary()?.isVersionManifestAvailable"
+                [class.fa-triangle-exclamation]="!summary()?.isVersionManifestAvailable"
+                aria-hidden="true"
+              ></i>
+              Sürüm: {{ getVersionLabel(summary()?.currentAppVersion, summary()?.currentBuildNumber) }}
+            </span>
+            <span
+              class="head-pill head-pill-subtle"
+              [class.head-pill-success]="summary()?.isVersionManifestAvailable"
+              [class.head-pill-warning]="summary() && !summary()?.isVersionManifestAvailable"
+            >
+              Manifest: {{ summary()?.isVersionManifestAvailable ? 'Erişilebilir' : 'Okunamadı' }}
+            </span>
+          </div>
+        </div>
+
         <p class="subtitle">{{ current.subtitle }}</p>
-        <p class="scope-line">
-          <i class="fa-solid fa-warehouse" aria-hidden="true"></i>
-          {{ canUseAllWarehouses() ? 'Yetkili depo kapsami' : currentWarehouseLabel() }}
-        </p>
       </div>
 
-      <div class="metric-strip terminal-metrics">
-        <article>
-          <span>Kayitli Kurulum</span>
-          <strong>{{ summary()?.registeredInstallationCount ?? 0 }}</strong>
-        </article>
-        <article class="metric-active">
-          <span>Son 24 Saat</span>
-          <strong>{{ summary()?.activeLast24HoursCount ?? 0 }}</strong>
-        </article>
-        <article>
-          <span>Son 7 Gun</span>
-          <strong>{{ summary()?.activeLast7DaysCount ?? 0 }}</strong>
-        </article>
-        <article>
-          <span>Son 30 Gun</span>
-          <strong>{{ summary()?.activeLast30DaysCount ?? 0 }}</strong>
-        </article>
-        <article class="metric-warning">
-          <span>Eski Surum</span>
-          <strong>{{ summary()?.outdatedInstallationCount ?? '-' }}</strong>
-        </article>
-        <article>
-          <span>Depo Degistiren</span>
-          <strong>{{ summary()?.warehouseChangedInstallationCount ?? 0 }}</strong>
-        </article>
+      <div class="terminal-head-actions">
+        <span class="last-checked" *ngIf="summary()?.versionManifestCheckedAtUtc">
+          <i class="fa-regular fa-clock" aria-hidden="true"></i>
+          Son Kontrol: {{ formatDate(summary()?.versionManifestCheckedAtUtc) }}
+        </span>
+        <button
+          type="button"
+          class="action-button-refresh"
+          (click)="refresh()"
+          [disabled]="isLoading()"
+          title="Verileri ve manifest durumunu yenile"
+        >
+          <i class="fa-solid fa-rotate" [class.fa-spin]="isLoading()" aria-hidden="true"></i>
+          <span>{{ isLoading() ? 'Yenileniyor...' : 'Yenile' }}</span>
+        </button>
       </div>
     </header>
 
-    <article
-      class="manifest-state"
-      [class.manifest-state-warning]="summary() && !summary()?.isVersionManifestAvailable"
-    >
-      <div>
-        <span>Guncel Terminal Surumu</span>
-        <strong>
-          {{ getVersionLabel(summary()?.currentAppVersion, summary()?.currentBuildNumber) }}
-        </strong>
-      </div>
-      <div>
-        <span>Manifest</span>
-        <strong>{{ summary()?.isVersionManifestAvailable ? 'Erisilebilir' : 'Okunamadi' }}</strong>
-      </div>
-      <div>
-        <span>Son Kontrol</span>
-        <strong>{{ formatDate(summary()?.versionManifestCheckedAtUtc) }}</strong>
-      </div>
-      <button
-        type="button"
-        class="task-action task-action-secondary"
-        (click)="refresh()"
-        [disabled]="isLoading()"
+    <!-- KPI Metric Cards Strip (Like Reference Style) -->
+    <section class="terminal-kpi-grid">
+      <article class="kpi-card">
+        <div class="kpi-icon kpi-icon-blue">
+          <i class="fa-solid fa-mobile-screen-button" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Kayıtlı Kurulum</span>
+          <strong class="kpi-value">{{ summary()?.registeredInstallationCount ?? 0 }}</strong>
+        </div>
+      </article>
+
+      <article class="kpi-card kpi-card-highlight">
+        <div class="kpi-icon kpi-icon-green">
+          <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Son 24 Saat</span>
+          <strong class="kpi-value text-success">{{ summary()?.activeLast24HoursCount ?? 0 }}</strong>
+        </div>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-icon kpi-icon-teal">
+          <i class="fa-solid fa-calendar-week" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Son 7 Gün</span>
+          <strong class="kpi-value">{{ summary()?.activeLast7DaysCount ?? 0 }}</strong>
+        </div>
+      </article>
+
+      <article class="kpi-card">
+        <div class="kpi-icon kpi-icon-slate">
+          <i class="fa-solid fa-calendar-days" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Son 30 Gün</span>
+          <strong class="kpi-value">{{ summary()?.activeLast30DaysCount ?? 0 }}</strong>
+        </div>
+      </article>
+
+      <article
+        class="kpi-card"
+        [class.kpi-card-warning]="(summary()?.outdatedInstallationCount ?? 0) > 0"
       >
-        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-        {{ isLoading() ? 'Yenileniyor' : 'Yenile' }}
-      </button>
-    </article>
-
-    <form class="filter-bar terminal-filter" (ngSubmit)="applyFilters()">
-      <label class="field warehouse-field">
-        <span>Depo</span>
-        <select
-          name="warehouseNo"
-          [(ngModel)]="selectedWarehouseNo"
-          [disabled]="!canUseAllWarehouses() || isWarehouseLoading()"
-        >
-          <option [ngValue]="null" *ngIf="canUseAllWarehouses()">Tum depolar</option>
-          <option
-            *ngFor="let warehouse of warehouses(); trackBy: trackByWarehouse"
-            [ngValue]="warehouse.warehouseNo"
+        <div class="kpi-icon kpi-icon-amber">
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Eski Sürüm</span>
+          <strong
+            class="kpi-value"
+            [class.text-warning]="(summary()?.outdatedInstallationCount ?? 0) > 0"
           >
-            {{ warehouse.warehouseNo }} - {{ warehouse.warehouseName }}
-          </option>
-          <option
-            *ngIf="!canUseAllWarehouses() && selectedWarehouseNo !== null"
-            [ngValue]="selectedWarehouseNo"
-          >
-            {{ currentWarehouseLabel() }}
-          </option>
-        </select>
-      </label>
+            {{ summary()?.outdatedInstallationCount ?? '-' }}
+          </strong>
+        </div>
+      </article>
 
-      <label class="field search-field">
-        <span>Ara</span>
-        <input
-          type="search"
-          name="search"
-          [(ngModel)]="search"
-          placeholder="Cihaz, kullanici veya IP"
-        />
-      </label>
+      <article class="kpi-card">
+        <div class="kpi-icon kpi-icon-purple">
+          <i class="fa-solid fa-arrow-right-arrow-left" aria-hidden="true"></i>
+        </div>
+        <div class="kpi-body">
+          <span class="kpi-label">Depo Değiştiren</span>
+          <strong class="kpi-value">{{ summary()?.warehouseChangedInstallationCount ?? 0 }}</strong>
+        </div>
+      </article>
+    </section>
 
-      <label class="field">
-        <span>Uygulama Surumu</span>
-        <select name="appVersion" [(ngModel)]="appVersion">
-          <option value="">Tum surumler</option>
-          <option *ngFor="let version of versions(); trackBy: trackByVersion" [value]="version.appVersion || ''">
-            {{ getVersionLabel(version.appVersion, version.buildNumber) }}
-          </option>
-        </select>
-      </label>
+    <!-- Quick Filter Switchers & Filter Form -->
+    <div class="filter-card">
+      <div class="filter-quick-bar">
+        <div class="quick-group">
+          <span class="quick-title">Sürüm Durumu:</span>
+          <div class="pill-group">
+            <button
+              type="button"
+              class="pill-btn"
+              [class.is-active]="versionFilter === 'all'"
+              (click)="setVersionFilter('all')"
+            >
+              Tümü
+            </button>
+            <button
+              type="button"
+              class="pill-btn pill-btn-success"
+              [class.is-active]="versionFilter === 'current'"
+              (click)="setVersionFilter('current')"
+            >
+              Yalnız Güncel
+            </button>
+            <button
+              type="button"
+              class="pill-btn pill-btn-warning"
+              [class.is-active]="versionFilter === 'outdated'"
+              (click)="setVersionFilter('outdated')"
+            >
+              Yalnız Eski
+            </button>
+          </div>
+        </div>
 
-      <label class="field">
-        <span>Surum Durumu</span>
-        <select name="versionFilter" [(ngModel)]="versionFilter">
-          <option value="all">Tumu</option>
-          <option value="current">Yalniz guncel</option>
-          <option value="outdated">Yalniz eski</option>
-        </select>
-      </label>
-
-      <label class="field">
-        <span>Aktiflik</span>
-        <select name="activeWithinDays" [(ngModel)]="activeWithinDays">
-          <option [ngValue]="null">Tum kayitlar</option>
-          <option [ngValue]="1">Son 24 saat</option>
-          <option [ngValue]="7">Son 7 gun</option>
-          <option [ngValue]="30">Son 30 gun</option>
-        </select>
-      </label>
-
-      <label class="field take-field">
-        <span>Limit</span>
-        <select name="take" [(ngModel)]="take">
-          <option [ngValue]="50">50</option>
-          <option [ngValue]="100">100</option>
-          <option [ngValue]="200">200</option>
-        </select>
-      </label>
-
-      <div class="filter-actions">
-        <button type="submit" class="task-action task-action-primary" [disabled]="isListLoading()">
-          <i class="fa-solid fa-filter" aria-hidden="true"></i>
-          Uygula
-        </button>
-        <button type="button" class="task-action" (click)="clearFilters()" [disabled]="isListLoading()">
-          Temizle
-        </button>
+        <div class="quick-group">
+          <span class="quick-title">Aktiflik:</span>
+          <div class="pill-group">
+            <button
+              type="button"
+              class="pill-btn"
+              [class.is-active]="activeWithinDays === null"
+              (click)="setActiveDaysFilter(null)"
+            >
+              Tümü
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              [class.is-active]="activeWithinDays === 1"
+              (click)="setActiveDaysFilter(1)"
+            >
+              Son 24 Saat
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              [class.is-active]="activeWithinDays === 7"
+              (click)="setActiveDaysFilter(7)"
+            >
+              Son 7 Gün
+            </button>
+            <button
+              type="button"
+              class="pill-btn"
+              [class.is-active]="activeWithinDays === 30"
+              (click)="setActiveDaysFilter(30)"
+            >
+              Son 30 Gün
+            </button>
+          </div>
+        </div>
       </div>
-    </form>
 
+      <form class="terminal-filter-grid" (ngSubmit)="applyFilters()">
+        <label class="field-item">
+          <span class="field-label">Depo Kapsamı</span>
+          <select
+            name="warehouseNo"
+            [(ngModel)]="selectedWarehouseNo"
+            [disabled]="!canUseAllWarehouses() || isWarehouseLoading()"
+          >
+            <option [ngValue]="null" *ngIf="canUseAllWarehouses()">Tüm depolar</option>
+            <option
+              *ngFor="let warehouse of warehouses(); trackBy: trackByWarehouse"
+              [ngValue]="warehouse.warehouseNo"
+            >
+              {{ warehouse.warehouseNo }} - {{ warehouse.warehouseName }}
+            </option>
+            <option
+              *ngIf="!canUseAllWarehouses() && selectedWarehouseNo !== null"
+              [ngValue]="selectedWarehouseNo"
+            >
+              {{ currentWarehouseLabel() }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field-item field-search">
+          <span class="field-label">Genel Arama</span>
+          <div class="input-with-icon">
+            <i class="fa-solid fa-magnifying-glass input-icon" aria-hidden="true"></i>
+            <input
+              type="search"
+              name="search"
+              [(ngModel)]="search"
+              placeholder="Cihaz adı, kullanıcı veya IP adresi..."
+            />
+          </div>
+        </label>
+
+        <label class="field-item">
+          <span class="field-label">Uygulama Sürümü</span>
+          <select name="appVersion" [(ngModel)]="appVersion">
+            <option value="">Tüm sürümler</option>
+            <option
+              *ngFor="let version of versions(); trackBy: trackByVersion"
+              [value]="version.appVersion || ''"
+            >
+              {{ getVersionLabel(version.appVersion, version.buildNumber) }}
+            </option>
+          </select>
+        </label>
+
+        <label class="field-item field-limit">
+          <span class="field-label">Limit</span>
+          <select name="take" [(ngModel)]="take">
+            <option [ngValue]="50">50</option>
+            <option [ngValue]="100">100</option>
+            <option [ngValue]="200">200</option>
+          </select>
+        </label>
+
+        <div class="filter-button-group">
+          <button
+            type="button"
+            class="btn-reset"
+            (click)="clearFilters()"
+            [disabled]="isListLoading()"
+            title="Filtreleri sıfırla"
+          >
+            <i class="fa-solid fa-rotate-left" aria-hidden="true"></i>
+            Sıfırla
+          </button>
+          <button
+            type="submit"
+            class="btn-submit"
+            [disabled]="isListLoading()"
+          >
+            <i class="fa-solid fa-filter" aria-hidden="true"></i>
+            Filtrele
+          </button>
+        </div>
+      </form>
+    </div>
+
+    <!-- Status Metadata Strip (Like Reference Style) -->
+    <div class="terminal-meta-strip">
+      <span class="meta-item">
+        <strong>{{ installations().length }}</strong> kayıt listelendi
+      </span>
+      <span class="meta-dot">•</span>
+      <span class="meta-item">
+        Depo: <strong>{{ canUseAllWarehouses() && !selectedWarehouseNo ? 'Tüm Depolar' : getWarehouseLabel(selectedWarehouseNo) }}</strong>
+      </span>
+      <span class="meta-dot">•</span>
+      <span class="meta-item">
+        Sürüm Filtresi: <strong>{{ versionFilter === 'current' ? 'Yalnız Güncel' : versionFilter === 'outdated' ? 'Yalnız Eski' : 'Tümü' }}</strong>
+      </span>
+      <span class="meta-dot" *ngIf="activeWithinDays">•</span>
+      <span class="meta-item" *ngIf="activeWithinDays">
+        Aktiflik: <strong>Son {{ activeWithinDays === 1 ? '24 Saat' : activeWithinDays + ' Gün' }}</strong>
+      </span>
+      <span class="meta-dot" *ngIf="appVersion">•</span>
+      <span class="meta-item" *ngIf="appVersion">
+        Sürüm: <strong>{{ appVersion }}</strong>
+      </span>
+    </div>
+
+    <!-- Alert / Feedback Notification -->
     <article
       class="state-card"
       *ngIf="feedback() as currentFeedback"
@@ -161,14 +320,16 @@
       <p>{{ currentFeedback.message }}</p>
     </article>
 
+    <!-- Main Content Grid: Table + Detail Panel -->
     <section class="content-grid terminal-main-grid">
+      <!-- Installation Table Panel -->
       <section class="panel installation-panel">
         <div class="panel-head">
           <div class="panel-head-text">
-            <span class="panel-kicker">Kurulumlar</span>
-            <h3>Terminal Cihaz Listesi</h3>
+            <span class="panel-kicker">Cihaz Yönetimi</span>
+            <h3>Terminal Kurulumları</h3>
           </div>
-          <span class="status-badge">{{ installations().length }} kayit</span>
+          <span class="count-badge">{{ installations().length }} cihaz</span>
         </div>
 
         <div class="table-wrap installation-table-wrap" *ngIf="installations().length > 0; else emptyList">
@@ -177,11 +338,11 @@
               <tr>
                 <th>Durum</th>
                 <th>Depo</th>
-                <th>Cihaz</th>
-                <th>Surum / Build</th>
-                <th>Kullanici</th>
-                <th>Son Gorulme</th>
-                <th>IP</th>
+                <th>Cihaz Modeli</th>
+                <th>Sürüm / Build</th>
+                <th>Kullanıcı</th>
+                <th>Son Görülme</th>
+                <th>IP Adresi</th>
               </tr>
             </thead>
             <tbody>
@@ -192,67 +353,95 @@
                 (click)="selectInstallation(installation)"
               >
                 <td>
-                  <span
-                    class="status-badge"
-                    [class.status-success]="installation.isCurrentVersion === true"
-                    [class.status-danger]="installation.isCurrentVersion === false"
-                  >
-                    {{ getVersionStatusLabel(installation.isCurrentVersion) }}
-                  </span>
-                  <span class="activity-line" [class.is-offline]="!installation.isActiveLast24Hours">
-                    {{ installation.isActiveLast24Hours ? '24 saatte aktif' : '24 saattir gorulmedi' }}
-                  </span>
+                  <div class="status-cell">
+                    <span
+                      class="tag-status"
+                      [class.tag-status-success]="installation.isCurrentVersion === true"
+                      [class.tag-status-danger]="installation.isCurrentVersion === false"
+                      [class.tag-status-neutral]="installation.isCurrentVersion === null || installation.isCurrentVersion === undefined"
+                    >
+                      <i
+                        class="fa-solid"
+                        [class.fa-check]="installation.isCurrentVersion === true"
+                        [class.fa-triangle-exclamation]="installation.isCurrentVersion === false"
+                        [class.fa-minus]="installation.isCurrentVersion === null || installation.isCurrentVersion === undefined"
+                        aria-hidden="true"
+                      ></i>
+                      {{ getVersionStatusLabel(installation.isCurrentVersion) }}
+                    </span>
+                    <span
+                      class="activity-tag"
+                      [class.activity-active]="installation.isActiveLast24Hours"
+                      [class.activity-offline]="!installation.isActiveLast24Hours"
+                    >
+                      <span class="dot-indicator"></span>
+                      {{ installation.isActiveLast24Hours ? '24s aktif' : '24s pasif' }}
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  <strong>{{ installation.warehouseNo }}</strong>
-                  <span class="table-meta" *ngIf="installation.previousWarehouseNo !== null">
-                    Onceki: {{ installation.previousWarehouseNo }}
-                  </span>
+                  <div class="warehouse-cell">
+                    <strong>{{ installation.warehouseNo }}</strong>
+                    <span class="table-subtext" *ngIf="installation.previousWarehouseNo !== null">
+                      Önceki: {{ installation.previousWarehouseNo }}
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  {{ getDeviceLabel(installation) }}
-                  <span class="table-meta" [title]="installation.deviceId || ''">
-                    {{ installation.deviceId || '-' }}
-                  </span>
+                  <div class="device-cell">
+                    <span class="device-name">{{ getDeviceLabel(installation) }}</span>
+                    <span class="device-id-mono" [title]="installation.deviceId || ''">
+                      {{ installation.deviceId || '-' }}
+                    </span>
+                  </div>
                 </td>
                 <td>
-                  <strong>{{ installation.appVersion || '-' }}</strong>
-                  <span class="table-meta">Build {{ installation.buildNumber }}</span>
+                  <div class="version-cell">
+                    <strong class="version-name">{{ installation.appVersion || '-' }}</strong>
+                    <span class="build-tag">Build {{ installation.buildNumber }}</span>
+                  </div>
                 </td>
                 <td>
-                  {{ installation.userFullName || installation.username || '-' }}
-                  <span class="table-meta" *ngIf="installation.userFullName && installation.username">
-                    {{ installation.username }}
-                  </span>
+                  <div class="user-cell">
+                    <span class="user-name">{{ installation.userFullName || installation.username || '-' }}</span>
+                    <span class="user-code" *ngIf="installation.userFullName && installation.username">
+                      &#64;{{ installation.username }}
+                    </span>
+                  </div>
                 </td>
                 <td [title]="formatDate(installation.lastSeenAtUtc)">
-                  {{ formatRelativeDate(installation.lastSeenAtUtc) }}
+                  <span class="relative-time">{{ formatRelativeDate(installation.lastSeenAtUtc) }}</span>
                 </td>
-                <td>{{ installation.lastIpAddress || '-' }}</td>
+                <td>
+                  <code class="ip-code">{{ installation.lastIpAddress || '-' }}</code>
+                </td>
               </tr>
             </tbody>
           </table>
         </div>
+
         <ng-template #emptyList>
           <article class="state-card state-card-info empty-state">
-            <h3>Terminal kurulumu bulunamadi</h3>
-            <p>Secili filtrelerle eslesen kayit yok.</p>
+            <i class="fa-solid fa-mobile-screen empty-icon" aria-hidden="true"></i>
+            <h3>Terminal kurulumu bulunamadı</h3>
+            <p>Seçili filtre kriterlerine uygun cihaz kaydı bulunmuyor.</p>
           </article>
         </ng-template>
       </section>
 
+      <!-- Device Detail Panel -->
       <aside class="panel detail-panel">
         <div class="panel-head">
           <div class="panel-head-text">
-            <span class="panel-kicker">Cihaz Detayi</span>
-            <h3>Secili Kurulum</h3>
+            <span class="panel-kicker">Cihaz Bilgisi</span>
+            <h3>Seçili Kurulum</h3>
           </div>
           <button
             type="button"
             class="icon-action"
             *ngIf="selectedInstallation()"
-            title="Detayi kapat"
-            aria-label="Detayi kapat"
+            title="Detayı kapat"
+            aria-label="Detayı kapat"
             (click)="closeDetail()"
           >
             <i class="fa-solid fa-xmark" aria-hidden="true"></i>
@@ -260,109 +449,152 @@
         </div>
 
         <ng-container *ngIf="selectedInstallation() as selected; else detailHint">
-          <div class="detail-identity">
-            <div>
-              <strong>{{ getDeviceLabel(selected) }}</strong>
-              <span>{{ getVersionLabel(selected.appVersion, selected.buildNumber) }}</span>
+          <div class="detail-identity-card">
+            <div class="detail-identity-top">
+              <div class="device-avatar">
+                <i class="fa-solid fa-mobile-screen" aria-hidden="true"></i>
+              </div>
+              <div class="detail-identity-text">
+                <strong>{{ getDeviceLabel(selected) }}</strong>
+                <span>{{ getVersionLabel(selected.appVersion, selected.buildNumber) }}</span>
+              </div>
             </div>
-            <span
-              class="status-badge"
-              [class.status-success]="selected.isCurrentVersion === true"
-              [class.status-danger]="selected.isCurrentVersion === false"
-            >
-              {{ getVersionStatusLabel(selected.isCurrentVersion) }}
-            </span>
+            <div class="detail-identity-badge">
+              <span
+                class="tag-status"
+                [class.tag-status-success]="selected.isCurrentVersion === true"
+                [class.tag-status-danger]="selected.isCurrentVersion === false"
+              >
+                {{ getVersionStatusLabel(selected.isCurrentVersion) }}
+              </span>
+            </div>
           </div>
 
-          <p class="detail-loading" *ngIf="isDetailLoading()">Detay yenileniyor...</p>
+          <p class="detail-loading-indicator" *ngIf="isDetailLoading()">
+            <i class="fa-solid fa-spinner fa-spin" aria-hidden="true"></i>
+            Detay yenileniyor...
+          </p>
 
-          <dl class="detail-grid terminal-detail-grid">
-            <div><dt>Depo</dt><dd>{{ getWarehouseLabel(selected.warehouseNo) }}</dd></div>
-            <div><dt>Onceki Depo</dt><dd>{{ getWarehouseLabel(selected.previousWarehouseNo) }}</dd></div>
-            <div><dt>Kullanici</dt><dd>{{ selected.userFullName || selected.username || '-' }}</dd></div>
-            <div><dt>Kullanici Kodu</dt><dd>{{ selected.username || '-' }}</dd></div>
-            <div><dt>Android</dt><dd>{{ selected.androidVersion || '-' }} / SDK {{ selected.androidSdk ?? '-' }}</dd></div>
-            <div><dt>ABI</dt><dd>{{ selected.supportedAbis?.join(', ') || '-' }}</dd></div>
-            <div><dt>Ilk Gorulme</dt><dd>{{ formatDate(selected.firstSeenAtUtc) }}</dd></div>
-            <div><dt>Son Gorulme</dt><dd>{{ formatDate(selected.lastSeenAtUtc) }}</dd></div>
-            <div><dt>Surum Degisimi</dt><dd>{{ formatDate(selected.versionChangedAtUtc) }}</dd></div>
-            <div><dt>Depo Degisimi</dt><dd>{{ selected.warehouseChangeCount }} kez</dd></div>
-            <div><dt>Son IP</dt><dd>{{ selected.lastIpAddress || '-' }}</dd></div>
-            <div><dt>7 Gun Aktif</dt><dd>{{ selected.isActiveLast7Days ? 'Evet' : 'Hayir' }}</dd></div>
+          <dl class="terminal-specs-grid">
+            <div class="spec-row"><dt>Depo</dt><dd><strong>{{ getWarehouseLabel(selected.warehouseNo) }}</strong></dd></div>
+            <div class="spec-row"><dt>Önceki Depo</dt><dd>{{ getWarehouseLabel(selected.previousWarehouseNo) }}</dd></div>
+            <div class="spec-row"><dt>Kullanıcı</dt><dd>{{ selected.userFullName || selected.username || '-' }}</dd></div>
+            <div class="spec-row"><dt>Kullanıcı Kodu</dt><dd><code>{{ selected.username || '-' }}</code></dd></div>
+            <div class="spec-row"><dt>Android Sürümü</dt><dd>{{ selected.androidVersion || '-' }} / SDK {{ selected.androidSdk ?? '-' }}</dd></div>
+            <div class="spec-row"><dt>Desteklenen ABI</dt><dd>{{ selected.supportedAbis?.join(', ') || '-' }}</dd></div>
+            <div class="spec-row"><dt>İlk Görülme</dt><dd>{{ formatDate(selected.firstSeenAtUtc) }}</dd></div>
+            <div class="spec-row"><dt>Son Görülme</dt><dd>{{ formatDate(selected.lastSeenAtUtc) }}</dd></div>
+            <div class="spec-row"><dt>Sürüm Değişimi</dt><dd>{{ formatDate(selected.versionChangedAtUtc) }}</dd></div>
+            <div class="spec-row"><dt>Depo Değişimi</dt><dd>{{ selected.warehouseChangeCount }} kez</dd></div>
+            <div class="spec-row"><dt>Son IP Adresi</dt><dd><code>{{ selected.lastIpAddress || '-' }}</code></dd></div>
+            <div class="spec-row">
+              <dt>7 Günlük Durum</dt>
+              <dd>
+                <span
+                  class="activity-inline"
+                  [class.text-success]="selected.isActiveLast7Days"
+                  [class.text-muted]="!selected.isActiveLast7Days"
+                >
+                  <i class="fa-solid" [class.fa-circle-check]="selected.isActiveLast7Days" [class.fa-circle-xmark]="!selected.isActiveLast7Days" aria-hidden="true"></i>
+                  {{ selected.isActiveLast7Days ? 'Son 7 günde aktif' : '7 gündür pasif' }}
+                </span>
+              </dd>
+            </div>
           </dl>
 
-          <div class="device-id-block">
-            <span>Kurulum Kimligi</span>
-            <code>{{ selected.deviceId || '-' }}</code>
+          <div class="device-id-box">
+            <span class="device-id-title">Kurulum Cihaz Kimliği</span>
+            <code class="device-id-code">{{ selected.deviceId || '-' }}</code>
           </div>
         </ng-container>
 
         <ng-template #detailHint>
-          <article class="state-card state-card-info empty-state">
-            <h3>{{ canDetail() ? 'Cihaz secin' : 'Detay yetkisi gerekli' }}</h3>
-            <p *ngIf="canDetail()">Kurulum detayini gormek icin tablodan bir satir secin.</p>
-            <p *ngIf="!canDetail()">Cihaz detayini acma yetkiniz bulunmuyor.</p>
+          <article class="state-card state-card-info empty-state detail-empty-hint">
+            <i class="fa-solid fa-hand-pointer hint-icon" aria-hidden="true"></i>
+            <h3>{{ canDetail() ? 'Cihaz Seçin' : 'Detay Yetkisi Gerekli' }}</h3>
+            <p *ngIf="canDetail()">Kurulum detayını ve donanım bilgilerini görmek için soldaki tablodan bir cihaza tıklayın.</p>
+            <p *ngIf="!canDetail()">Cihaz detayını görüntüleme yetkiniz bulunmuyor.</p>
           </article>
         </ng-template>
       </aside>
     </section>
 
+    <!-- Bottom Distribution Panels: Versions & Warehouses -->
     <section class="split-grid distribution-grid">
+      <!-- Version Distribution -->
       <section class="panel">
         <div class="panel-head">
           <div class="panel-head-text">
-            <span class="panel-kicker">Dagilim</span>
-            <h3>Surumler</h3>
+            <span class="panel-kicker">Dağılım Analizi</span>
+            <h3>Sürümler</h3>
           </div>
+          <span class="count-badge" *ngIf="versions().length > 0">{{ versions().length }} sürüm</span>
         </div>
         <div class="distribution-list" *ngIf="versions().length > 0; else noVersions">
           <button
             type="button"
-            class="distribution-row"
+            class="distribution-item"
             *ngFor="let version of versions(); trackBy: trackByVersion"
             (click)="selectVersion(version)"
+            title="Bu sürüme göre filtrele"
           >
-            <span>
+            <div class="dist-info">
               <strong>{{ getVersionLabel(version.appVersion, version.buildNumber) }}</strong>
-              <small>{{ version.activeLast7DaysCount }} aktif</small>
-            </span>
-            <span class="distribution-value">{{ version.installationCount }}</span>
-            <span
-              class="status-badge"
-              [class.status-success]="version.isCurrentVersion === true"
-              [class.status-danger]="version.isCurrentVersion === false"
-            >
-              {{ getVersionStatusLabel(version.isCurrentVersion) }}
-            </span>
+              <small>{{ version.activeLast7DaysCount }} aktif cihaz</small>
+            </div>
+            <div class="dist-stats">
+              <span class="distribution-count">{{ version.installationCount }} <span class="dist-unit">cihaz</span></span>
+              <span
+                class="tag-status"
+                [class.tag-status-success]="version.isCurrentVersion === true"
+                [class.tag-status-danger]="version.isCurrentVersion === false"
+              >
+                {{ getVersionStatusLabel(version.isCurrentVersion) }}
+              </span>
+            </div>
           </button>
         </div>
-        <ng-template #noVersions><p class="panel-empty">Surum dagilimi bulunmuyor.</p></ng-template>
+        <ng-template #noVersions>
+          <p class="panel-empty">Sürüm dağılım verisi bulunmuyor.</p>
+        </ng-template>
       </section>
 
+      <!-- Warehouse Distribution -->
       <section class="panel">
         <div class="panel-head">
           <div class="panel-head-text">
-            <span class="panel-kicker">Dagilim</span>
+            <span class="panel-kicker">Dağılım Analizi</span>
             <h3>Depolar</h3>
           </div>
+          <span class="count-badge" *ngIf="warehouseDistribution().length > 0">{{ warehouseDistribution().length }} depo</span>
         </div>
         <div class="distribution-list" *ngIf="warehouseDistribution().length > 0; else noWarehouses">
           <button
             type="button"
-            class="distribution-row warehouse-distribution-row"
+            class="distribution-item"
             *ngFor="let warehouse of warehouseDistribution(); trackBy: trackByWarehouseDistribution"
             [disabled]="!canUseAllWarehouses()"
             (click)="selectWarehouse(warehouse.warehouseNo)"
+            title="Bu depoya göre filtrele"
           >
-            <span>
+            <div class="dist-info">
               <strong>{{ getWarehouseLabel(warehouse.warehouseNo) }}</strong>
-              <small>{{ warehouse.activeLast7DaysCount }} aktif</small>
-            </span>
-            <span class="distribution-value">{{ warehouse.installationCount }}</span>
-            <span class="outdated-value">{{ warehouse.outdatedCount ?? '-' }} eski</span>
+              <small>{{ warehouse.activeLast7DaysCount }} aktif cihaz</small>
+            </div>
+            <div class="dist-stats">
+              <span class="distribution-count">{{ warehouse.installationCount }} <span class="dist-unit">cihaz</span></span>
+              <span
+                class="tag-outdated"
+                [class.has-outdated]="(warehouse.outdatedCount ?? 0) > 0"
+              >
+                {{ warehouse.outdatedCount ?? 0 }} eski sürüm
+              </span>
+            </div>
           </button>
         </div>
-        <ng-template #noWarehouses><p class="panel-empty">Depo dagilimi bulunmuyor.</p></ng-template>
+        <ng-template #noWarehouses>
+          <p class="panel-empty">Depo dağılım verisi bulunmuyor.</p>
+        </ng-template>
       </section>
     </section>
   </article>

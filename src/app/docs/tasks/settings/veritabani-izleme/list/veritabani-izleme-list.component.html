@@ -1,14 +1,16 @@
 <section class="task-page" *ngIf="page as current">
   <article class="settings-workspace database-monitor-workspace">
-    <header class="page-head">
+    <header class="page-head monitor-head">
       <div class="title-block">
-        <span class="section-kicker">Ayar Islemleri</span>
+        <span class="section-kicker">Ayar İşlemleri</span>
         <h2>{{ current.title }}</h2>
         <p class="subtitle">{{ current.subtitle }}</p>
         <p class="server-line" *ngIf="snapshot() as currentSnapshot">
-          {{ currentSnapshot.serverName || 'SQL Server' }}
-          <span aria-hidden="true">/</span>
-          {{ currentSnapshot.databaseName || 'Veritabani' }}
+          <i class="fa-solid fa-server" aria-hidden="true"></i>
+          <span>{{ currentSnapshot.serverName || 'SQL Server' }}</span>
+          <span class="server-divider">/</span>
+          <i class="fa-solid fa-database" aria-hidden="true"></i>
+          <span>{{ currentSnapshot.databaseName || 'Veritabanı' }}</span>
         </p>
       </div>
 
@@ -25,7 +27,7 @@
           }}</strong>
         </article>
         <article>
-          <span>Aktif Istek</span>
+          <span>Aktif İstek</span>
           <strong>{{
             monitoringOverview()?.database?.activeRequestCount ??
               snapshot()?.activeRequestCount ??
@@ -37,7 +39,7 @@
           <strong>{{ snapshot()?.rootBlockerCount ?? 0 }}</strong>
         </article>
         <article [class.metric-warning]="(snapshot()?.openTransactionCount ?? 0) > 0">
-          <span>Acik Transaction</span>
+          <span>Açık Transaction</span>
           <strong>{{
             monitoringOverview()?.database?.openTransactionCount ??
               snapshot()?.openTransactionCount ??
@@ -49,13 +51,13 @@
 
     <section class="operations-overview" *ngIf="monitoringOverview() as overview">
       <div class="operations-overview-copy">
-        <span class="panel-kicker">Operasyon Ozeti</span>
-        <strong>{{ overview.headline || 'Izlenen servisler calisiyor.' }}</strong>
+        <span class="panel-kicker">Operasyon Özeti</span>
+        <strong>{{ overview.headline || 'İzlenen servisler çalışıyor.' }}</strong>
       </div>
       <div class="operations-overview-facts">
         <span [class.fact-alert]="overview.incidents.criticalCount > 0">
           <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-          {{ overview.incidents.openCount }} acik olay
+          {{ overview.incidents.openCount }} açık olay
         </span>
         <span [class.fact-alert]="unhealthyWorkerCount() > 0">
           <i class="fa-solid fa-gears" aria-hidden="true"></i>
@@ -63,107 +65,124 @@
         </span>
         <span [class.fact-alert]="safeWriteAttentionCount() > 0">
           <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-          {{ safeWriteAttentionCount() }} guvenli yazma incelemesi
+          {{ safeWriteAttentionCount() }} güvenli yazma incelemesi
         </span>
       </div>
     </section>
 
-    <nav class="tab-strip" aria-label="Veritabani izleme sekmeleri">
-      <button
-        type="button"
-        class="task-action"
-        [class.task-action-primary]="tab() === 'overview'"
-        (click)="setTab('overview')"
-      >
-        <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
-        Genel Bakis
-      </button>
-      <button
-        type="button"
-        class="task-action"
-        [class.task-action-primary]="tab() === 'live'"
-        (click)="setTab('live')"
-      >
-        <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
-        Canli Izleme
-      </button>
-      <button
-        type="button"
-        class="task-action"
-        [class.task-action-primary]="tab() === 'workers'"
-        (click)="setTab('workers')"
-      >
-        <i class="fa-solid fa-gears" aria-hidden="true"></i>
-        Workerlar
-        <span class="button-count">{{ workers().length }}</span>
-      </button>
-      <button
-        type="button"
-        class="task-action"
-        *ngIf="canViewHistory()"
-        [class.task-action-primary]="tab() === 'safeWrites'"
-        (click)="setTab('safeWrites')"
-      >
-        <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
-        Guvenli Yazmalar
-        <span class="button-count">{{ safeWriteAttentionCount() }}</span>
-      </button>
-      <button
-        type="button"
-        class="task-action"
-        *ngIf="canViewHistory()"
-        [class.task-action-primary]="tab() === 'incidents'"
-        (click)="setTab('incidents')"
-      >
-        <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
-        Olaylar
-        <span class="button-count">{{ monitoringOverview()?.incidents?.openCount ?? 0 }}</span>
-      </button>
-      <button
-        type="button"
-        class="task-action"
-        *ngIf="canViewHistory()"
-        [class.task-action-primary]="tab() === 'audits'"
-        (click)="setTab('audits')"
-      >
-        <i class="fa-solid fa-list-check" aria-hidden="true"></i>
-        Sonlandirma Gecmisi
-        <span class="button-count">{{ terminations().length }}</span>
-      </button>
-      <span class="toolbar-spacer"></span>
-      <span class="refresh-note" *ngIf="tab() === 'overview' || tab() === 'live'">
-        Son okuma: {{ formatDate(lastUpdated()) }}
-      </span>
-      <span class="refresh-note" *ngIf="tab() === 'workers'">
-        Son okuma: {{ formatDate(workerSnapshot()?.generatedAtUtc) }}
-      </span>
-      <button
-        type="button"
-        class="task-action task-action-secondary"
-        *ngIf="tab() === 'overview' || tab() === 'live'; else historyRefresh"
-        (click)="refresh()"
-        [disabled]="isOverviewLoading() || !canList()"
-      >
-        <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-        {{ isOverviewLoading() ? 'Yenileniyor' : 'Yenile' }}
-      </button>
-      <ng-template #historyRefresh>
+    <nav class="monitor-tab-nav" aria-label="Veritabanı izleme sekmeleri">
+      <div class="tab-pill-group">
         <button
           type="button"
-          class="task-action task-action-secondary"
-          (click)="refreshHistory()"
-          [disabled]="isCurrentHistoryLoading()"
+          class="tab-pill"
+          [class.is-active]="tab() === 'overview'"
+          (click)="setTab('overview')"
         >
-          <i class="fa-solid fa-rotate" aria-hidden="true"></i>
-          {{
-            isCurrentHistoryLoading()
-              ? 'Yenileniyor'
-              : tab() === 'workers'
-                ? 'Workerlari Yenile'
-                : 'Gecmisi Yenile'
-          }}
+          <i class="fa-solid fa-gauge-high" aria-hidden="true"></i>
+          <span>Genel Bakış</span>
         </button>
-      </ng-template>
+        <button
+          type="button"
+          class="tab-pill"
+          [class.is-active]="tab() === 'live'"
+          (click)="setTab('live')"
+        >
+          <i class="fa-solid fa-wave-square" aria-hidden="true"></i>
+          <span>Canlı SQL</span>
+          <span class="tab-badge" *ngIf="(snapshot()?.activeRequestCount ?? 0) > 0">
+            {{ snapshot()?.activeRequestCount }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="tab-pill"
+          [class.is-active]="tab() === 'workers'"
+          (click)="setTab('workers')"
+        >
+          <i class="fa-solid fa-gears" aria-hidden="true"></i>
+          <span>Workerlar</span>
+          <span class="tab-badge" [class.badge-alert]="unhealthyWorkerCount() > 0">
+            {{ workers().length }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="tab-pill"
+          *ngIf="canViewHistory()"
+          [class.is-active]="tab() === 'safeWrites'"
+          (click)="setTab('safeWrites')"
+        >
+          <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+          <span>Güvenli Yazmalar</span>
+          <span class="tab-badge" [class.badge-alert]="safeWriteAttentionCount() > 0">
+            {{ safeWriteAttentionCount() }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="tab-pill"
+          *ngIf="canViewHistory()"
+          [class.is-active]="tab() === 'incidents'"
+          (click)="setTab('incidents')"
+        >
+          <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+          <span>Olaylar</span>
+          <span class="tab-badge" [class.badge-alert]="(monitoringOverview()?.incidents?.openCount ?? 0) > 0">
+            {{ monitoringOverview()?.incidents?.openCount ?? 0 }}
+          </span>
+        </button>
+        <button
+          type="button"
+          class="tab-pill"
+          *ngIf="canViewHistory()"
+          [class.is-active]="tab() === 'audits'"
+          (click)="setTab('audits')"
+        >
+          <i class="fa-solid fa-list-check" aria-hidden="true"></i>
+          <span>Sonlandırma Geçmişi</span>
+          <span class="tab-badge" *ngIf="terminations().length > 0">
+            {{ terminations().length }}
+          </span>
+        </button>
+      </div>
+
+      <div class="tab-controls-right">
+        <span class="refresh-indicator" *ngIf="tab() === 'overview' || tab() === 'live'">
+          <i class="fa-regular fa-clock" aria-hidden="true"></i>
+          <span>Son okuma: {{ formatDate(lastUpdated()) }}</span>
+        </span>
+        <span class="refresh-indicator" *ngIf="tab() === 'workers'">
+          <i class="fa-regular fa-clock" aria-hidden="true"></i>
+          <span>Son okuma: {{ formatDate(workerSnapshot()?.generatedAtUtc) }}</span>
+        </span>
+        <button
+          type="button"
+          class="action-button-refresh"
+          *ngIf="tab() === 'overview' || tab() === 'live'; else historyRefresh"
+          (click)="refresh()"
+          [disabled]="isOverviewLoading() || !canList()"
+        >
+          <i class="fa-solid fa-rotate" [class.fa-spin]="isOverviewLoading()" aria-hidden="true"></i>
+          <span>{{ isOverviewLoading() ? 'Yenileniyor...' : 'Yenile' }}</span>
+        </button>
+        <ng-template #historyRefresh>
+          <button
+            type="button"
+            class="action-button-refresh"
+            (click)="refreshHistory()"
+            [disabled]="isCurrentHistoryLoading()"
+          >
+            <i class="fa-solid fa-rotate" [class.fa-spin]="isCurrentHistoryLoading()" aria-hidden="true"></i>
+            <span>{{
+              isCurrentHistoryLoading()
+                ? 'Yenileniyor...'
+                : tab() === 'workers'
+                  ? 'Workerları Yenile'
+                  : 'Geçmişi Yenile'
+            }}</span>
+          </button>
+        </ng-template>
+      </div>
     </nav>
 
     <article

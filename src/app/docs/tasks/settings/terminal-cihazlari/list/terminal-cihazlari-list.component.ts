@@ -110,6 +110,22 @@ export class TerminalCihazlariListComponent implements OnInit {
     this.loadWorkspace();
   }
 
+  protected setVersionFilter(filter: VersionFilter): void {
+    if (this.versionFilter === filter) {
+      return;
+    }
+    this.versionFilter = filter;
+    this.applyFilters();
+  }
+
+  protected setActiveDaysFilter(days: number | null): void {
+    if (this.activeWithinDays === days) {
+      return;
+    }
+    this.activeWithinDays = days;
+    this.applyFilters();
+  }
+
   protected clearFilters(): void {
     this.search = '';
     this.appVersion = '';
