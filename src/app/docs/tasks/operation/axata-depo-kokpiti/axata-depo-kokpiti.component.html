@@ -1,24 +1,50 @@
 <div class="axata-cockpit">
   <header class="page-header">
-    <div>
-      <h2>AXATA Depo Kokpiti</h2>
-      <p>Merkez deponun günlük aktarım işleri ve canlı AXATA operasyon görünümü</p>
+    <div class="header-titles">
+      <div class="header-badge-row">
+        <h2>AXATA Depo Kokpiti</h2>
+        <span class="live-pill">
+          <i class="fa fa-circle" aria-hidden="true"></i>
+          Merkez Depo · No {{ overview()?.metadata?.warehouseNo ?? 50 }}
+        </span>
+      </div>
+      <p>Merkez deponun günlük aktarım işleri, canlı operasyon takibi ve uçtan uca evrak mutabakatı</p>
     </div>
-    @if (activeTab !== 'actions') {
-      <button type="button" class="icon-button" title="Verileri yenile" [disabled]="loading()" (click)="refreshActiveTab()">
-        <i class="fa fa-rotate-right" aria-hidden="true"></i>
+    <div class="header-actions">
+      <button type="button" class="icon-button" title="Verileri yenile" [disabled]="loading() || actionLoading()" (click)="refreshActiveTab()">
+        <i class="fa fa-rotate-right" [class.fa-spin]="loading() || actionLoading()" aria-hidden="true"></i>
       </button>
-    }
+    </div>
   </header>
 
   <nav class="cockpit-tabs" aria-label="AXATA depo kokpiti bölümleri">
-    <button type="button" [class.active]="activeTab === 'actions'" (click)="setTab('actions')">Kolay İşlem Masası</button>
-    <button type="button" [class.active]="activeTab === 'documents'" (click)="setTab('documents')">AXATA Evrakları</button>
-    <button type="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">Canlı Operasyon</button>
-    <button type="button" [class.active]="activeTab === 'trace'" (click)="setTab('trace')">Evrak İzleme</button>
-    <button type="button" [class.active]="activeTab === 'performance'" (click)="setTab('performance')">Toplama Performansı</button>
-    <button type="button" [class.active]="activeTab === 'fillrate'" (click)="setTab('fillrate')">Karşılama Oranı</button>
-    <button type="button" [class.active]="activeTab === 'capacity'" (click)="setTab('capacity')">Raf Kapasitesi</button>
+    <button type="button" [class.active]="activeTab === 'actions'" (click)="setTab('actions')">
+      <i class="fa fa-bolt" aria-hidden="true"></i> Kolay İşlem Masası
+      @if (orderCandidates().length + deliveryCandidates().length > 0) {
+        <span class="tab-badge">{{ orderCandidates().length + deliveryCandidates().length }}</span>
+      }
+    </button>
+    <button type="button" [class.active]="activeTab === 'documents'" (click)="setTab('documents')">
+      <i class="fa fa-file-lines" aria-hidden="true"></i> AXATA Evrakları
+      @if (documents(); as docs) {
+        <span class="tab-badge neutral">{{ docs.totalCount }}</span>
+      }
+    </button>
+    <button type="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
+      <i class="fa fa-tower-broadcast" aria-hidden="true"></i> Canlı Operasyon
+    </button>
+    <button type="button" [class.active]="activeTab === 'trace'" (click)="setTab('trace')">
+      <i class="fa fa-magnifying-glass" aria-hidden="true"></i> Evrak İzleme
+    </button>
+    <button type="button" [class.active]="activeTab === 'performance'" (click)="setTab('performance')">
+      <i class="fa fa-chart-simple" aria-hidden="true"></i> Toplama Performansı
+    </button>
+    <button type="button" [class.active]="activeTab === 'fillrate'" (click)="setTab('fillrate')">
+      <i class="fa fa-bullseye" aria-hidden="true"></i> Karşılama Oranı
+    </button>
+    <button type="button" [class.active]="activeTab === 'capacity'" (click)="setTab('capacity')">
+      <i class="fa fa-boxes-stacked" aria-hidden="true"></i> Raf Kapasitesi
+    </button>
   </nav>
 
   @if (errorMessage()) {
@@ -33,50 +59,120 @@
 
   @if (activeTab === 'actions') {
     <div class="action-toolbar">
-      <label for="action-date">Evrak tarihi</label>
-      <input id="action-date" type="date" [(ngModel)]="actionDate" (change)="loadActionDesk()" />
-      <label for="action-search">Evrak ara</label>
-      <input id="action-search" type="search" [(ngModel)]="actionSearchTerm" placeholder="Sipariş, sevk veya mağaza" />
-      <button type="button" class="icon-button" title="Listeleri yenile" [disabled]="actionLoading()" (click)="loadActionDesk()">
-        <i class="fa fa-rotate-right" aria-hidden="true"></i>
-      </button>
-      <a routerLink="/docs/api/axata-senkronizasyonu">Gelişmiş AXATA ekranı</a>
+      <div class="toolbar-date-group">
+        <label for="action-date">Evrak tarihi</label>
+        <input id="action-date" type="date" [(ngModel)]="actionDate" (change)="loadActionDesk()" />
+        <div class="preset-chips">
+          <button type="button" class="preset-btn" (click)="setActionDatePreset(0)">Bugün</button>
+          <button type="button" class="preset-btn" (click)="setActionDatePreset(1)">Dün</button>
+          <button type="button" class="preset-btn" (click)="setActionDatePreset(2)">2 Gün Önce</button>
+        </div>
+      </div>
+      <div class="toolbar-search-group">
+        <label for="action-search">Evrak ara</label>
+        <div class="search-input-wrap">
+          <input id="action-search" type="search" [(ngModel)]="actionSearchTerm" placeholder="Sipariş, sevk veya mağaza..." />
+          @if (actionSearchTerm) {
+            <button type="button" class="clear-search-btn" (click)="actionSearchTerm = ''" title="Aramayı temizle">
+              <i class="fa fa-times" aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+      </div>
+      <div class="toolbar-actions">
+        <button type="button" class="icon-button" title="Listeleri yenile" [disabled]="actionLoading()" (click)="loadActionDesk()">
+          <i class="fa fa-rotate-right" [class.fa-spin]="actionLoading()" aria-hidden="true"></i>
+        </button>
+        <a routerLink="/docs/api/axata-senkronizasyonu" class="advanced-link" title="Gelişmiş Senkronizasyon Ekranı">
+          <i class="fa fa-sliders" aria-hidden="true"></i> Gelişmiş AXATA ekranı
+        </a>
+      </div>
     </div>
+
+    <!-- Summary KPI Row for Action Desk -->
+    <section class="metric-grid compact desk-kpi-grid">
+      <article class="desk-kpi-card outbound-kpi">
+        <div class="desk-kpi-icon"><i class="fa fa-arrow-right" aria-hidden="true"></i></div>
+        <div class="desk-kpi-info">
+          <span>Terminale Gönderilecek Sipariş</span>
+          <strong>{{ orderCandidates().length }} <small>adet</small></strong>
+          <small class="kpi-sub">{{ totalOrderQuantity() | number:'1.0-3' }} toplam miktar</small>
+        </div>
+      </article>
+      <article class="desk-kpi-card inbound-kpi">
+        <div class="desk-kpi-icon"><i class="fa fa-arrow-left" aria-hidden="true"></i></div>
+        <div class="desk-kpi-info">
+          <span>Mikro Fişi Bekleyen Sevk</span>
+          <strong>{{ deliveryCandidates().length }} <small>adet</small></strong>
+          <small class="kpi-sub">{{ totalDeliveryQuantity() | number:'1.0-3' }} toplam miktar</small>
+        </div>
+      </article>
+      <article class="desk-kpi-card attention-kpi">
+        <div class="desk-kpi-icon"><i class="fa fa-triangle-exclamation" aria-hidden="true"></i></div>
+        <div class="desk-kpi-info">
+          <span>Müdahale Bekleyen Sevk</span>
+          <strong>{{ interventionDeliveries().length }} <small>takılan</small></strong>
+          <small class="kpi-sub">Kuyruk mutabakatı gerekli</small>
+        </div>
+      </article>
+      <article class="desk-kpi-card selection-kpi">
+        <div class="desk-kpi-icon"><i class="fa fa-check-double" aria-hidden="true"></i></div>
+        <div class="desk-kpi-info">
+          <span>Seçilen Evrak Toplamı</span>
+          <strong>{{ selectedOrderReferences().size + selectedDeliveryReferences().size }} <small>seçili</small></strong>
+          <small class="kpi-sub">{{ selectedOrderReferences().size }} sipariş / {{ selectedDeliveryReferences().size }} sevk</small>
+        </div>
+      </article>
+    </section>
+
     @if (actionMessage()) {
-      <div class="status-message" role="status">{{ actionMessage() }}</div>
+      <div class="status-message" role="status">
+        <i class="fa fa-circle-info" aria-hidden="true"></i>
+        <span>{{ actionMessage() }}</span>
+      </div>
     }
     @if (actionListWarning()) {
-      <div class="status-message warning" role="alert">{{ actionListWarning() }}</div>
+      <div class="status-message warning" role="alert">
+        <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+        <span>{{ actionListWarning() }}</span>
+      </div>
     }
     @if (actionLoading()) {
       <div class="status-message loading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> İşlem sürüyor...</div>
     }
+
     <section class="action-desk">
+      <!-- 1. KAPI: Sipariş Gönder -->
       <article class="action-card outbound">
-        <div class="action-icon"><i class="fa fa-arrow-right" aria-hidden="true"></i></div>
-        <div class="action-copy">
-          <span class="step-label">1. KAPI</span>
-          <h3>Mikro'dan AXATA'ya Sipariş Gönder</h3>
-          <p>Seçilen tarihteki açık depo ve alınan firma siparişlerini el terminallerine toplama işi olarak gönderir.</p>
+        <div class="action-card-header">
+          <div class="action-icon"><i class="fa fa-arrow-right" aria-hidden="true"></i></div>
+          <div class="action-copy">
+            <span class="step-label">1. KAPI · ÇIKIŞ</span>
+            <h3>Mikro'dan AXATA'ya Sipariş Gönder</h3>
+            <p>Açık depo ve firma siparişlerini el terminallerine toplama işi olarak iletir.</p>
+          </div>
+          <div class="card-selection-badge">
+            {{ selectedOrderReferences().size }} / {{ filteredOrderCandidates().length }} seçili
+          </div>
         </div>
         <div class="action-table table-wrap">
           <table>
             <thead>
               <tr>
-                <th><input type="checkbox" title="Tümünü seç" (change)="toggleAllOrders()" /></th>
+                <th class="col-checkbox"><input type="checkbox" title="Tümünü seç" (change)="toggleAllOrders()" /></th>
                 <th>Tür</th><th>Evrak</th><th>Özet</th><th>Tarih</th><th>Kalem</th><th>Miktar</th>
               </tr>
             </thead>
             <tbody>
               @for (item of filteredOrderCandidates(); track item.taskCode + ':' + item.documentReference) {
-                <tr>
-                  <td><input type="checkbox" [checked]="isOrderSelected(item)" (change)="toggleOrder(item)" /></td>
-                  <td>{{ item.typeLabel }}</td>
+                <tr [class.selected-row]="isOrderSelected(item)">
+                  <td class="col-checkbox"><input type="checkbox" [checked]="isOrderSelected(item)" (change)="toggleOrder(item)" /></td>
+                  <td><span class="type-pill">{{ item.typeLabel }}</span></td>
                   <td><strong>{{ item.documentReference }}</strong></td>
-                  <td>{{ item.summary }}</td>
+                  <td class="wrap-cell">{{ item.summary }}</td>
                   <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
                   <td>{{ item.lineCount }}</td>
-                  <td>{{ item.totalQuantity | number:'1.0-3' }}</td>
+                  <td><strong>{{ item.totalQuantity | number:'1.0-3' }}</strong></td>
                 </tr>
               } @empty {
                 <tr><td colspan="7" class="empty-cell">Seçilen tarihte gönderilmeyi bekleyen açık sipariş bulunmuyor.</td></tr>
@@ -84,36 +180,48 @@
             </tbody>
           </table>
         </div>
-        <button type="button" class="command-button primary" [disabled]="actionLoading() || selectedOrderReferences().size === 0" (click)="dispatchSelectedOrders()">
-          <i class="fa fa-paper-plane" aria-hidden="true"></i> Seçilen {{ selectedOrderReferences().size }} Siparişi Terminale Gönder
-        </button>
+        <div class="card-footer-action">
+          <button type="button" class="command-button primary" [disabled]="actionLoading() || selectedOrderReferences().size === 0" (click)="dispatchSelectedOrders()">
+            <i class="fa fa-paper-plane" aria-hidden="true"></i>
+            Seçilen {{ selectedOrderReferences().size }} Siparişi Terminale Gönder
+            @if (selectedOrderQuantity() > 0) {
+              <span class="btn-qty-badge">({{ selectedOrderQuantity() | number:'1.0-3' }} miktar)</span>
+            }
+          </button>
+        </div>
       </article>
 
+      <!-- 2. KAPI: Sevk Fişi Oluştur -->
       <article class="action-card inbound">
-        <div class="action-icon"><i class="fa fa-arrow-left" aria-hidden="true"></i></div>
-        <div class="action-copy">
-          <span class="step-label">2. KAPI</span>
-          <h3>AXATA'dan Mikro'ya Sevk Fişi Oluştur</h3>
-          <p>AXATA'da yüklemesi tamamlanan sevkleri Mikro depolar arası sevk fişine dönüştürür.</p>
+        <div class="action-card-header">
+          <div class="action-icon"><i class="fa fa-arrow-left" aria-hidden="true"></i></div>
+          <div class="action-copy">
+            <span class="step-label">2. KAPI · GİRİŞ</span>
+            <h3>AXATA'dan Mikro'ya Sevk Fişi Oluştur</h3>
+            <p>AXATA'da yüklemesi tamamlanan sevkleri Mikro depolar arası sevk fişine dönüştürür.</p>
+          </div>
+          <div class="card-selection-badge">
+            {{ selectedDeliveryReferences().size }} / {{ filteredDeliveryCandidates().length }} seçili
+          </div>
         </div>
         <div class="action-table table-wrap">
           <table>
             <thead>
               <tr>
-                <th><input type="checkbox" title="Tümünü seç" (change)="toggleAllDeliveries()" /></th>
+                <th class="col-checkbox"><input type="checkbox" title="Tümünü seç" (change)="toggleAllDeliveries()" /></th>
                 <th>Mikro Evrakı</th><th>AXATA Sevk</th><th>Tarih</th><th>Depolar</th><th>Kalem</th><th>Miktar</th>
               </tr>
             </thead>
             <tbody>
               @for (item of filteredDeliveryCandidates(); track item.axataSequenceNo) {
-                <tr>
-                  <td><input type="checkbox" [checked]="isDeliverySelected(item)" (change)="toggleDelivery(item)" /></td>
+                <tr [class.selected-row]="isDeliverySelected(item)">
+                  <td class="col-checkbox"><input type="checkbox" [checked]="isDeliverySelected(item)" (change)="toggleDelivery(item)" /></td>
                   <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
-                  <td>{{ item.axataDeliveryNo }}</td>
+                  <td><span class="seq-pill">#{{ item.axataDeliveryNo }}</span></td>
                   <td>{{ item.axataDate | date:'dd.MM.yyyy' }}</td>
-                  <td>{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</td>
+                  <td><span class="route-pill">{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</span></td>
                   <td>{{ item.axataLineCount }}</td>
-                  <td>{{ item.axataQuantity | number:'1.0-3' }}</td>
+                  <td><strong>{{ item.axataQuantity | number:'1.0-3' }}</strong></td>
                 </tr>
               } @empty {
                 <tr><td colspan="7" class="empty-cell">Seçilen tarihte Mikro fişi bekleyen tamamlanmış sevk bulunmuyor.</td></tr>
@@ -121,113 +229,225 @@
             </tbody>
           </table>
         </div>
-        <button type="button" class="command-button success" [disabled]="actionLoading() || selectedDeliveryReferences().size === 0" (click)="importSelectedDeliveries()">
-          <i class="fa fa-truck" aria-hidden="true"></i> Seçilen {{ selectedDeliveryReferences().size }} Sevki Mikro'ya Aktar
-        </button>
+        <div class="card-footer-action">
+          <button type="button" class="command-button success" [disabled]="actionLoading() || selectedDeliveryReferences().size === 0" (click)="importSelectedDeliveries()">
+            <i class="fa fa-truck-fast" aria-hidden="true"></i>
+            Seçilen {{ selectedDeliveryReferences().size }} Sevki Mikro'ya Aktar
+            @if (selectedDeliveryQuantity() > 0) {
+              <span class="btn-qty-badge">({{ selectedDeliveryQuantity() | number:'1.0-3' }} miktar)</span>
+            }
+          </button>
+        </div>
       </article>
     </section>
+
     @if (deliveryImportProgress(); as progress) {
-      <div class="status-message" role="status">
+      <div class="status-message progress-box" role="status">
         <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
-        {{ progress.current }} / {{ progress.total }} sevk işleniyor: {{ progress.reference }}
+        <span><strong>{{ progress.current }} / {{ progress.total }}</strong> sevk işleniyor: {{ progress.reference }}</span>
       </div>
     }
+
     @if (deliveryImportResults().length > 0) {
-      <section class="data-section">
-        <h3>Son Aktarım Sonuçları</h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Evrak</th><th>Durum</th><th>Sonuç</th></tr></thead>
-          <tbody>@for (result of deliveryImportResults(); track result.reference) {
-            <tr>
-              <td><strong>{{ result.reference }}</strong></td>
-              <td [class.negative]="!result.success">{{ result.success ? 'Tamamlandı' : 'Hata' }}</td>
-              <td>{{ result.message || (result.error ? 'Aktarım tamamlanamadı.' : '-') }}</td>
-            </tr>
-          }</tbody>
-        </table></div>
+      <section class="data-section results-section">
+        <div class="section-title-row">
+          <h3><i class="fa fa-square-poll-vertical" aria-hidden="true"></i> Son Aktarım Sonuçları</h3>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Evrak</th><th>Durum</th><th>Sonuç</th></tr></thead>
+            <tbody>
+              @for (result of deliveryImportResults(); track result.reference) {
+                <tr>
+                  <td><strong>{{ result.reference }}</strong></td>
+                  <td>
+                    <span class="pill-badge" [class.badge-success]="result.success" [class.badge-danger]="!result.success">
+                      <i class="fa" [class.fa-check]="result.success" [class.fa-xmark]="!result.success" aria-hidden="true"></i>
+                      {{ result.success ? 'Tamamlandı' : 'Hata' }}
+                    </span>
+                  </td>
+                  <td>{{ result.message || (result.error ? 'Aktarım tamamlanamadı.' : '-') }}</td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </section>
     }
+
     @if (filteredInterventionDeliveries().length > 0) {
       <section class="data-section attention-section">
-        <h3>Müdahale Bekleyen / Takılan Sevkler</h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Mikro Evrakı</th><th>AXATA Sevk</th><th>Depolar</th><th>Durum</th><th>Açıklama</th><th>İşlem</th></tr></thead>
-          <tbody>@for (item of filteredInterventionDeliveries(); track item.axataSequenceNo) {
-            <tr>
-              <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
-              <td>{{ item.axataDeliveryNo }} (#{{ item.axataSequenceNo }})</td>
-              <td>{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</td>
-              <td>{{ deliveryStateLabel(item) }}</td>
-              <td class="wrap-cell">{{ item.warning || '-' }}</td>
-              <td class="row-actions">
-                @if (canReconcileDelivery(item)) {
-                  <button type="button" class="link-button" [disabled]="actionLoading()" (click)="reconcileDelivery(item)">Doğrula ve Kuyruğu Kapat</button>
-                }
-                <button type="button" class="link-button" (click)="traceDelivery(item)">İzle</button>
-              </td>
-            </tr>
-          }</tbody>
-        </table></div>
+        <div class="section-title-row">
+          <h3><i class="fa fa-shield-halved" aria-hidden="true"></i> Müdahale Bekleyen / Takılan Sevkler</h3>
+          <span class="pill-badge badge-warning">{{ filteredInterventionDeliveries().length }} Evrak</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Mikro Evrakı</th>
+                <th>AXATA Sevk</th>
+                <th>Depolar</th>
+                <th>Durum</th>
+                <th>Açıklama</th>
+                <th class="col-actions">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of filteredInterventionDeliveries(); track item.axataSequenceNo) {
+                <tr>
+                  <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
+                  <td><span class="seq-pill">#{{ item.axataDeliveryNo }}</span> <small class="text-muted">(#{{ item.axataSequenceNo }})</small></td>
+                  <td><span class="route-pill">{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</span></td>
+                  <td>
+                    <span class="pill-badge" [class.badge-warning]="item.mikroCheckState === 'MikroShipmentExistsPendingAck'" [class.badge-danger]="item.mikroCheckState === 'OrderNotFound' || item.mikroCheckState === 'OrderLineMismatch'" [class.badge-neutral]="item.mikroCheckState === 'CancelledInAxata' || item.mikroCheckState === 'EmptyAxataDelivery'">
+                      {{ deliveryStateLabel(item) }}
+                    </span>
+                  </td>
+                  <td class="wrap-cell text-muted">{{ item.warning || '-' }}</td>
+                  <td class="col-actions">
+                    @if (canReconcileDelivery(item)) {
+                      <button type="button" class="btn-action primary" [disabled]="actionLoading()" (click)="reconcileDelivery(item)" title="Mikro fişi doğrulanmış sevk kuyruğunu güvenle kapatır">
+                        <i class="fa fa-check" aria-hidden="true"></i> Doğrula ve Kuyruğu Kapat
+                      </button>
+                    }
+                    <button type="button" class="btn-action secondary" (click)="traceDelivery(item)" title="Evrakın detaylı geçmişini izle">
+                      <i class="fa fa-eye" aria-hidden="true"></i> İzle
+                    </button>
+                  </td>
+                </tr>
+              }
+            </tbody>
+          </table>
+        </div>
       </section>
     }
-    <p class="desk-note">Canlı yazma işlemleri mevcut güvenli AXATA senkronizasyon servisini kullanır. Bu kokpit ikinci bir yazma yolu oluşturmaz.</p>
+
+    <p class="desk-note"><i class="fa fa-circle-check" aria-hidden="true"></i> Canlı yazma işlemleri mevcut güvenli AXATA senkronizasyon servisini kullanır. Bu kokpit ikinci bir yazma yolu oluşturmaz.</p>
   }
 
   @if (activeTab === 'documents') {
     <div class="filter-bar">
-      <label>Başlangıç <input type="date" [(ngModel)]="documentStartDate" /></label>
-      <label>Bitiş <input type="date" [(ngModel)]="documentEndDate" /></label>
-      <label>Evrak tipi
-        <select [(ngModel)]="documentType">
-          <option value="all">Tüm evraklar</option>
-          <option value="Order">Siparişler</option>
-          <option value="Shipment">Sevkler</option>
-          <option value="Receiving">Mal kabuller</option>
-        </select>
-      </label>
-      <label>Durum
-        <select [(ngModel)]="documentStatus">
-          <option value="all">Tüm durumlar</option>
-          <option value="pending">Bekleyen</option>
-          <option value="processing">İşlemde</option>
-          <option value="completed">Tamamlanan</option>
-          <option value="in-transit">Yoldaki mallar</option>
-        </select>
-      </label>
-      <label>Evrak / mağaza / plaka <input type="search" [(ngModel)]="documentSearchTerm" (keyup.enter)="loadDocuments()" /></label>
-      <button type="button" (click)="loadDocuments()" [disabled]="loading()">Listele</button>
+      <div class="filter-row-top">
+        <div class="filter-group">
+          <label>Başlangıç <input type="date" [(ngModel)]="documentStartDate" /></label>
+          <label>Bitiş <input type="date" [(ngModel)]="documentEndDate" /></label>
+        </div>
+        <div class="preset-chips">
+          <button type="button" class="preset-btn" (click)="setDocumentDay(0)">Bugün</button>
+          <button type="button" class="preset-btn" (click)="setDocumentDay(1)">Dün</button>
+          <button type="button" class="preset-btn" (click)="setDocumentRange(6)">Son 7 Gün</button>
+          <button type="button" class="preset-btn" (click)="setDocumentThisMonth()">Bu Ay</button>
+        </div>
+        <div class="filter-group">
+          <label>Evrak tipi
+            <select [(ngModel)]="documentType" (change)="loadDocuments()">
+              <option value="all">Tüm evraklar</option>
+              <option value="Order">Siparişler</option>
+              <option value="Shipment">Sevkler</option>
+              <option value="Receiving">Mal kabuller</option>
+            </select>
+          </label>
+          <label>Durum
+            <select [(ngModel)]="documentStatus" (change)="loadDocuments()">
+              <option value="all">Tüm durumlar</option>
+              <option value="pending">Bekleyen</option>
+              <option value="processing">İşlemde</option>
+              <option value="completed">Tamamlanan</option>
+              <option value="in-transit">Yoldaki mallar</option>
+            </select>
+          </label>
+        </div>
+        <div class="filter-group filter-search-wrap">
+          <label>Arama <input type="search" [(ngModel)]="documentSearchTerm" placeholder="Evrak, mağaza veya plaka..." (keyup.enter)="loadDocuments()" /></label>
+          <button type="button" class="command-button primary compact-btn" (click)="loadDocuments()" [disabled]="loading()">
+            <i class="fa fa-search" aria-hidden="true"></i> Listele
+          </button>
+        </div>
+      </div>
     </div>
+
     @if (documents(); as list) {
       <section class="metric-grid compact">
-        <article><span>Toplam Evrak</span><strong>{{ list.totalCount }}</strong></article>
-        <article><span>Listelenen</span><strong>{{ list.items.length }}</strong></article>
-        <article><span>Bu Sayfada Yoldaki</span><strong>{{ inTransitDocumentCount() }}</strong></article>
-        <article><span>Kaynak</span><strong>AXATA</strong><small>Salt okunur canlı veri</small></article>
+        <article class="stat-card">
+          <span>Toplam Evrak</span>
+          <strong>{{ list.totalCount }}</strong>
+          <small>Sorgu aralığı</small>
+        </article>
+        <article class="stat-card">
+          <span>Listelenen</span>
+          <strong>{{ list.items.length }}</strong>
+          <small>Mevcut sayfa</small>
+        </article>
+        <article class="stat-card warning-stat">
+          <span>Yoldaki Mallar</span>
+          <strong>{{ inTransitDocumentCount() }}</strong>
+          <small>Merkeze yönelmiş / kabul bekleyen</small>
+        </article>
+        <article class="stat-card">
+          <span>Kaynak</span>
+          <strong>AXATA</strong>
+          <small>Salt okunur canlı veri</small>
+        </article>
       </section>
+
       <section class="data-section">
-        <h3>AXATA Sipariş, Sevk ve Mal Kabul Evrakları</h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Tür</th><th>Evrak</th><th>Hareket</th><th>Tarih</th><th>Kaynak</th><th>Hedef</th><th>Durum</th><th>Kalem</th><th>Miktar</th><th>Plaka</th><th></th></tr></thead>
-          <tbody>@for (item of list.items; track item.documentKey) {
-            <tr [class.in-transit-row]="item.isInTransit">
-              <td>{{ item.documentTypeDescription }}</td>
-              <td><strong>{{ item.documentNo }}</strong></td>
-              <td>{{ item.movementType || '-' }}</td>
-              <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
-              <td>{{ item.sourceCode || '-' }} {{ item.sourceName || '' }}</td>
-              <td>{{ item.targetCode || '-' }} {{ item.targetName || '' }}</td>
-              <td>{{ item.isInTransit ? 'Yolda / kabul bekliyor' : item.statusDescription }}</td>
-              <td>{{ item.lineCount }}</td>
-              <td>{{ item.quantity | number:'1.0-3' }}</td>
-              <td>{{ item.vehiclePlate || '-' }}</td>
-              <td><button type="button" class="link-button" (click)="traceDocument(item)">İzle</button></td>
-            </tr>
-          } @empty {<tr><td colspan="11" class="empty-cell">Seçilen filtrelerde AXATA evrakı bulunamadı.</td></tr>}</tbody>
-        </table></div>
+        <div class="section-title-row">
+          <h3>AXATA Sipariş, Sevk ve Mal Kabul Evrakları</h3>
+          <span class="range-info">{{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }} evrak</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead>
+              <tr>
+                <th>Tür</th><th>Evrak No</th><th>Hareket</th><th>Tarih</th><th>Kaynak</th><th>Hedef</th><th>Durum</th><th>Kalem</th><th>Miktar</th><th>Plaka</th><th class="col-actions">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              @for (item of list.items; track item.documentKey) {
+                <tr [class.in-transit-row]="item.isInTransit">
+                  <td><span class="type-pill" [class.order]="item.documentType === 'Order'" [class.shipment]="item.documentType === 'Shipment'" [class.receiving]="item.documentType === 'Receiving'">{{ item.documentTypeDescription }}</span></td>
+                  <td><strong>{{ item.documentNo }}</strong></td>
+                  <td><span class="seq-pill">{{ item.movementType || '-' }}</span></td>
+                  <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
+                  <td>{{ item.sourceCode || '-' }} {{ item.sourceName || '' }}</td>
+                  <td>{{ item.targetCode || '-' }} {{ item.targetName || '' }}</td>
+                  <td>
+                    @if (item.isInTransit) {
+                      <span class="pill-badge badge-warning in-transit-badge">
+                        <i class="fa fa-truck-moving fa-fade" aria-hidden="true"></i> Yolda / Kabul Bekliyor
+                      </span>
+                    } @else if (item.flowState === 'Completed') {
+                      <span class="pill-badge badge-success"><i class="fa fa-check" aria-hidden="true"></i> {{ item.statusDescription }}</span>
+                    } @else if (item.flowState === 'Processing') {
+                      <span class="pill-badge badge-info"><i class="fa fa-clock" aria-hidden="true"></i> {{ item.statusDescription }}</span>
+                    } @else {
+                      <span class="pill-badge badge-neutral">{{ item.statusDescription }}</span>
+                    }
+                  </td>
+                  <td>{{ item.lineCount }}</td>
+                  <td><strong>{{ item.quantity | number:'1.0-3' }}</strong></td>
+                  <td><span class="plate-pill">{{ item.vehiclePlate || '-' }}</span></td>
+                  <td class="col-actions">
+                    <button type="button" class="btn-action secondary" (click)="traceDocument(item)">
+                      <i class="fa fa-eye" aria-hidden="true"></i> İzle
+                    </button>
+                  </td>
+                </tr>
+              } @empty {
+                <tr><td colspan="11" class="empty-cell">Seçilen filtrelerde AXATA evrakı bulunamadı.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
         <div class="pager">
-          <button type="button" class="link-button" [disabled]="documentSkip === 0 || loading()" (click)="previousDocumentPage()">Önceki</button>
-          <span>{{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }}</span>
-          <button type="button" class="link-button" [disabled]="documentSkip + list.items.length >= list.totalCount || loading()" (click)="nextDocumentPage()">Sonraki</button>
+          <button type="button" class="btn-action secondary" [disabled]="documentSkip === 0 || loading()" (click)="previousDocumentPage()">
+            <i class="fa fa-chevron-left" aria-hidden="true"></i> Önceki
+          </button>
+          <span class="pager-text">{{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }}</span>
+          <button type="button" class="btn-action secondary" [disabled]="documentSkip + list.items.length >= list.totalCount || loading()" (click)="nextDocumentPage()">
+            Sonraki <i class="fa fa-chevron-right" aria-hidden="true"></i>
+          </button>
         </div>
       </section>
     }
@@ -235,34 +455,85 @@
 
   @if (activeTab === 'overview') {
     <div class="filter-bar">
-      <label>Operasyon tarihi <input type="date" [(ngModel)]="selectedDate" /></label>
-      <button type="button" (click)="loadOverview()" [disabled]="loading()">Göster</button>
+      <div class="filter-group">
+        <label>Operasyon tarihi <input type="date" [(ngModel)]="selectedDate" /></label>
+        <button type="button" class="preset-btn" (click)="setOverviewToday()">Bugün</button>
+        <button type="button" class="command-button primary compact-btn" (click)="loadOverview()" [disabled]="loading()">
+          <i class="fa fa-refresh" aria-hidden="true"></i> Göster
+        </button>
+      </div>
     </div>
     @if (overview(); as data) {
       <section class="metric-grid">
-        <article><span>Toplama Bekleyen</span><strong>{{ data.outbound.pendingOrderCount }}</strong><small>Açık mağaza siparişi</small></article>
-        <article><span>Aktif Yükleme</span><strong>{{ data.outbound.pickingOrderCount }}</strong><small>Rampada devam eden sevk</small></article>
-        <article><span>Sevk Edilen</span><strong>{{ data.outbound.shippedTodayCount }}</strong><small>{{ data.outbound.shippedTodayQty | number:'1.0-3' }} miktar</small></article>
-        <article><span>Kuyrukta Bekleyen</span><strong>{{ data.queues.outboundWaitingIntegrationCount + data.queues.inboundWaitingIntegrationCount }}</strong><small>AXATA entegrasyon kuyruğu</small></article>
-        <article><span>Kabul Bekleyen</span><strong>{{ data.inbound.pendingReceivingCount }}</strong><small>Giriş siparişi</small></article>
-        <article><span>Kabul Tamamlanan</span><strong>{{ data.inbound.completedTodayCount }}</strong><small>Seçilen gün</small></article>
+        <article class="stat-card stat-accent-blue">
+          <div class="stat-header"><i class="fa fa-boxes-stacked" aria-hidden="true"></i><span>Toplama Bekleyen</span></div>
+          <strong>{{ data.outbound.pendingOrderCount }}</strong>
+          <small>Açık mağaza siparişi</small>
+        </article>
+        <article class="stat-card stat-accent-amber">
+          <div class="stat-header"><i class="fa fa-truck-ramp-box" aria-hidden="true"></i><span>Aktif Yükleme</span></div>
+          <strong>{{ data.outbound.pickingOrderCount }}</strong>
+          <small>Rampada devam eden sevk</small>
+        </article>
+        <article class="stat-card stat-accent-green">
+          <div class="stat-header"><i class="fa fa-truck-fast" aria-hidden="true"></i><span>Sevk Edilen</span></div>
+          <strong>{{ data.outbound.shippedTodayCount }}</strong>
+          <small>{{ data.outbound.shippedTodayQty | number:'1.0-3' }} miktar sevk edildi</small>
+        </article>
+        <article class="stat-card stat-accent-purple">
+          <div class="stat-header"><i class="fa fa-clock-rotate-left" aria-hidden="true"></i><span>Kuyrukta Bekleyen</span></div>
+          <strong>{{ data.queues.outboundWaitingIntegrationCount + data.queues.inboundWaitingIntegrationCount }}</strong>
+          <small>AXATA entegrasyon kuyruğu</small>
+        </article>
+        <article class="stat-card stat-accent-teal">
+          <div class="stat-header"><i class="fa fa-inbox" aria-hidden="true"></i><span>Kabul Bekleyen</span></div>
+          <strong>{{ data.inbound.pendingReceivingCount }}</strong>
+          <small>Giriş mal kabul siparişi</small>
+        </article>
+        <article class="stat-card stat-accent-cyan">
+          <div class="stat-header"><i class="fa fa-clipboard-check" aria-hidden="true"></i><span>Kabul Tamamlanan</span></div>
+          <strong>{{ data.inbound.completedTodayCount }}</strong>
+          <small>Seçilen gün tamamlandı</small>
+        </article>
       </section>
 
       <section class="data-section">
-        <h3>Canlı Rampa Yüklemeleri</h3>
-        <div class="table-wrap"><table>
-          <thead><tr><th>Sevk</th><th>Hedef</th><th>Plaka</th><th>Rampa</th><th>Toplayıcı</th><th>Başlangıç</th><th>Kalem</th></tr></thead>
-          <tbody>@for (item of data.activeLoadings; track item.shipmentYear + '-' + item.shipmentNo) {
-            <tr><td><strong>{{ item.shipmentYear }}/{{ item.shipmentNo }}</strong></td><td>{{ item.destinationCode }} - {{ item.destinationName || '-' }}</td><td>{{ item.plate || '-' }}</td><td>{{ item.ramp || '-' }}</td><td>{{ item.picker || '-' }}</td><td>{{ item.startTime || '-' }}</td><td>{{ item.lineCount }}</td></tr>
-          } @empty {<tr><td colspan="7" class="empty-cell">Seçilen tarihte devam eden rampa yüklemesi yok.</td></tr>}</tbody>
-        </table></div>
-      </section>
-
-      <section class="data-section">
-        <h3>Toplama Emri Bekleyen Siparişler</h3>
+        <div class="section-title-row">
+          <h3><i class="fa fa-truck-ramp-box" aria-hidden="true"></i> Canlı Rampa Yüklemeleri</h3>
+          <span class="range-info">{{ data.activeLoadings.length }} aktif yükleme</span>
+        </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Sipariş</th><th>Hedef</th><th>Tarih</th><th>Kalem</th><th>Miktar</th><th></th></tr></thead>
+            <thead>
+              <tr><th>Sevk</th><th>Hedef Mağaza</th><th>Plaka</th><th>Rampa</th><th>Toplayıcı</th><th>Başlangıç</th><th>Kalem</th></tr>
+            </thead>
+            <tbody>
+              @for (item of data.activeLoadings; track item.shipmentYear + '-' + item.shipmentNo) {
+                <tr>
+                  <td><strong>{{ item.shipmentYear }}/{{ item.shipmentNo }}</strong></td>
+                  <td>{{ item.destinationCode }} - {{ item.destinationName || '-' }}</td>
+                  <td><span class="plate-pill">{{ item.plate || '-' }}</span></td>
+                  <td><span class="ramp-pill">{{ item.ramp || '-' }}</span></td>
+                  <td>{{ item.picker || '-' }}</td>
+                  <td>{{ item.startTime || '-' }}</td>
+                  <td><strong>{{ item.lineCount }}</strong></td>
+                </tr>
+              } @empty {
+                <tr><td colspan="7" class="empty-cell">Seçilen tarihte devam eden rampa yüklemesi yok.</td></tr>
+              }
+            </tbody>
+          </table>
+        </div>
+      </section>
+
+      <section class="data-section">
+        <div class="section-title-row">
+          <h3><i class="fa fa-boxes-stacked" aria-hidden="true"></i> Toplama Emri Bekleyen Siparişler</h3>
+          <span class="range-info">{{ data.pendingOrders.length }} açık sipariş</span>
+        </div>
+        <div class="table-wrap">
+          <table>
+            <thead><tr><th>Sipariş</th><th>Hedef Mağaza</th><th>Tarih</th><th>Kalem</th><th>Miktar</th><th class="col-actions">İşlem</th></tr></thead>
             <tbody>
               @for (item of data.pendingOrders; track item.orderNo) {
                 <tr>
@@ -270,8 +541,12 @@
                   <td>{{ item.targetCode }} - {{ item.targetName || '-' }}</td>
                   <td>{{ item.orderDate | date:'dd.MM.yyyy' }}</td>
                   <td>{{ item.lineCount }}</td>
-                  <td>{{ item.totalOrderQty | number:'1.0-3' }}</td>
-                  <td><button type="button" class="link-button" (click)="traceOrder(item.orderNo)">İzle</button></td>
+                  <td><strong>{{ item.totalOrderQty | number:'1.0-3' }}</strong></td>
+                  <td class="col-actions">
+                    <button type="button" class="btn-action secondary" (click)="traceOrder(item.orderNo)">
+                      <i class="fa fa-eye" aria-hidden="true"></i> İzle
+                    </button>
+                  </td>
                 </tr>
               } @empty {
                 <tr><td colspan="6" class="empty-cell">Bekleyen açık sipariş bulunmuyor.</td></tr>
@@ -285,81 +560,207 @@
 
   @if (activeTab === 'trace') {
     <div class="search-bar">
-      <label for="trace-search">Evrak numarası</label>
-      <input id="trace-search" type="search" [(ngModel)]="searchTerm" placeholder="Sipariş, irsaliye veya sevk no" (keyup.enter)="searchTrace()" />
-      <button type="button" (click)="searchTrace()" [disabled]="loading()"><i class="fa fa-search"></i> Sorgula</button>
+      <div class="search-bar-inner">
+        <label for="trace-search"><i class="fa fa-magnifying-glass" aria-hidden="true"></i> Evrak numarası</label>
+        <div class="search-input-wrap">
+          <input id="trace-search" type="search" [(ngModel)]="searchTerm" placeholder="Örn: F147.5389 veya 2026/12345 veya sevk no..." (keyup.enter)="searchTrace()" />
+          @if (searchTerm) {
+            <button type="button" class="clear-search-btn" (click)="searchTerm = ''" title="Temizle">
+              <i class="fa fa-times" aria-hidden="true"></i>
+            </button>
+          }
+        </div>
+        <button type="button" class="command-button primary" (click)="searchTrace()" [disabled]="loading()">
+          <i class="fa fa-search" aria-hidden="true"></i> Sorgula
+        </button>
+      </div>
     </div>
+
     @if (traceResult(); as trace) {
       @if (trace.documentType === 'NotFound') {
-        <div class="empty-state">Bu numarayla eşleşen AXATA evrakı bulunamadı.</div>
+        <div class="empty-state">
+          <i class="fa fa-circle-question" aria-hidden="true"></i>
+          <p><strong>{{ trace.searchTerm }}</strong> numarasıyla eşleşen AXATA evrakı bulunamadı.</p>
+        </div>
       } @else {
-        <section class="document-summary">
-          <div><span>Evrak</span><strong>{{ trace.orderNo || trace.searchTerm }}</strong></div>
-          <div><span>Hedef / Cari</span><strong>{{ trace.targetCode || '-' }} {{ trace.targetName || '' }}</strong></div>
-          <div><span>Durum</span><strong>{{ trace.orderStatusDescription || trace.documentType }}</strong></div>
+        <section class="document-summary-card">
+          <div class="summary-col">
+            <span class="summary-label">Evrak Numarası</span>
+            <strong>{{ trace.orderNo || trace.searchTerm }}</strong>
+          </div>
+          <div class="summary-col">
+            <span class="summary-label">Hedef / Cari</span>
+            <strong>{{ trace.targetCode || '-' }} {{ trace.targetName || '' }}</strong>
+          </div>
+          <div class="summary-col">
+            <span class="summary-label">Hareket Tipi</span>
+            <span class="seq-pill">{{ trace.movementType || '-' }}</span>
+          </div>
+          <div class="summary-col">
+            <span class="summary-label">AXATA Durumu</span>
+            <span class="pill-badge badge-info">{{ trace.orderStatusDescription || trace.documentType }}</span>
+          </div>
         </section>
+
         @for (shipment of trace.shipments; track shipment.shipmentYear + '-' + shipment.shipmentNo) {
           <section class="data-section">
-            <h3>Sevk {{ shipment.shipmentYear }}/{{ shipment.shipmentNo }} · {{ shipment.statusDescription }}</h3>
-            <div class="table-wrap"><table>
-              <thead><tr><th>Kalem</th><th>Stok</th><th>Ürün</th><th>İstenen</th><th>Sevk</th><th>Fark</th></tr></thead>
-              <tbody>@for (line of shipment.details; track line.itemOrderNo) {
-                <tr><td>{{ line.lineNo }}</td><td>{{ line.sku }}</td><td>{{ line.skuName }}</td><td>{{ line.orderedQty }}</td><td>{{ line.shippedQty }}</td><td [class.negative]="line.differenceQty > 0">{{ line.differenceQty }}</td></tr>
-              }</tbody>
-            </table></div>
+            <div class="section-title-row">
+              <h3><i class="fa fa-truck" aria-hidden="true"></i> Sevk {{ shipment.shipmentYear }}/{{ shipment.shipmentNo }} · {{ shipment.statusDescription }}</h3>
+              @if (shipment.ramp) {
+                <span class="ramp-pill">Rampa: {{ shipment.ramp }}</span>
+              }
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Kalem</th><th>Stok Kodu</th><th>Ürün Adı</th><th>İstenen</th><th>Sevk</th><th>Fark</th></tr></thead>
+                <tbody>
+                  @for (line of shipment.details; track line.itemOrderNo) {
+                    <tr>
+                      <td>{{ line.lineNo }}</td>
+                      <td><strong>{{ line.sku }}</strong></td>
+                      <td>{{ line.skuName }}</td>
+                      <td>{{ line.orderedQty }}</td>
+                      <td><strong>{{ line.shippedQty }}</strong></td>
+                      <td [class.negative]="line.differenceQty > 0">{{ line.differenceQty }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           </section>
         }
+
         @if (trace.pickingLogs.length > 0) {
-          <section class="data-section"><h3>Toplama Geçmişi</h3><div class="table-wrap"><table>
-            <thead><tr><th>Zaman</th><th>Personel</th><th>Konum</th><th>Stok</th><th>Ürün</th><th>Miktar</th><th>Palet</th></tr></thead>
-            <tbody>@for (log of trace.pickingLogs; track log.sequence) {
-              <tr><td>{{ log.logDate || '-' }} {{ log.logTime || '' }}</td><td>{{ log.picker || '-' }}</td><td>{{ log.zone || '' }} {{ log.location || '-' }}</td><td>{{ log.sku || '-' }}</td><td>{{ log.skuName || '-' }}</td><td>{{ log.quantity | number:'1.0-3' }}</td><td>{{ log.palletNo || '-' }}</td></tr>
-            }</tbody>
-          </table></div></section>
+          <section class="data-section">
+            <div class="section-title-row">
+              <h3><i class="fa fa-boxes-packing" aria-hidden="true"></i> Toplama Geçmişi</h3>
+              <span class="range-info">{{ trace.pickingLogs.length }} hareket</span>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Zaman</th><th>Personel</th><th>Konum</th><th>Stok</th><th>Ürün</th><th>Miktar</th><th>Palet</th></tr></thead>
+                <tbody>
+                  @for (log of trace.pickingLogs; track log.sequence) {
+                    <tr>
+                      <td>{{ log.logDate || '-' }} {{ log.logTime || '' }}</td>
+                      <td>{{ log.picker || '-' }}</td>
+                      <td><span class="ramp-pill">{{ log.zone || '' }} {{ log.location || '-' }}</span></td>
+                      <td><strong>{{ log.sku || '-' }}</strong></td>
+                      <td>{{ log.skuName || '-' }}</td>
+                      <td><strong>{{ log.quantity | number:'1.0-3' }}</strong></td>
+                      <td><span class="seq-pill">{{ log.palletNo || '-' }}</span></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
         }
+
         @if (trace.integrationQueues.length > 0) {
-          <section class="data-section"><h3>Entegrasyon Kuyruğu</h3><div class="table-wrap"><table>
-            <thead><tr><th>Kuyruk</th><th>Evrak</th><th>Durum</th><th>Hedef</th><th>Tarih</th></tr></thead>
-            <tbody>@for (queue of trace.integrationQueues; track queue.queueType + ':' + queue.documentNo + ':' + queue.status) {
-              <tr><td>{{ queue.queueType }}</td><td><strong>{{ queue.documentNo }}</strong></td><td>{{ queue.statusDescription }}</td><td>{{ queue.targetCode || '-' }}</td><td>{{ queue.creationDate || '-' }}</td></tr>
-            }</tbody>
-          </table></div></section>
+          <section class="data-section">
+            <div class="section-title-row">
+              <h3><i class="fa fa-clock-rotate-left" aria-hidden="true"></i> Entegrasyon Kuyruğu</h3>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Kuyruk</th><th>Evrak</th><th>Durum</th><th>Hedef</th><th>Tarih</th></tr></thead>
+                <tbody>
+                  @for (queue of trace.integrationQueues; track queue.queueType + ':' + queue.documentNo + ':' + queue.status) {
+                    <tr>
+                      <td><span class="type-pill">{{ queue.queueType }}</span></td>
+                      <td><strong>{{ queue.documentNo }}</strong></td>
+                      <td>
+                        <span class="pill-badge" [class.badge-success]="queue.status === 1" [class.badge-warning]="queue.status !== 1">
+                          {{ queue.statusDescription }}
+                        </span>
+                      </td>
+                      <td>{{ queue.targetCode || '-' }}</td>
+                      <td>{{ queue.creationDate || '-' }}</td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
         }
+
         @for (inbound of trace.inbounds; track inbound.orderId) {
-          <section class="data-section"><h3>Mal Kabul {{ inbound.documentNo }} · {{ inbound.statusDescription }}</h3><div class="table-wrap"><table>
-            <thead><tr><th>Satır</th><th>Stok</th><th>Ürün</th><th>Beklenen</th><th>Kabul</th></tr></thead>
-            <tbody>@for (line of inbound.details; track line.lineNo) {
-              <tr><td>{{ line.lineNo }}</td><td>{{ line.sku }}</td><td>{{ line.skuName || '-' }}</td><td>{{ line.expectedQty | number:'1.0-3' }}</td><td>{{ line.receivedQty | number:'1.0-3' }}</td></tr>
-            }</tbody>
-          </table></div></section>
+          <section class="data-section">
+            <div class="section-title-row">
+              <h3><i class="fa fa-inbox" aria-hidden="true"></i> Mal Kabul {{ inbound.documentNo }} · {{ inbound.statusDescription }}</h3>
+            </div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Satır</th><th>Stok Kodu</th><th>Ürün</th><th>Beklenen</th><th>Kabul</th></tr></thead>
+                <tbody>
+                  @for (line of inbound.details; track line.lineNo) {
+                    <tr>
+                      <td>{{ line.lineNo }}</td>
+                      <td><strong>{{ line.sku }}</strong></td>
+                      <td>{{ line.skuName || '-' }}</td>
+                      <td>{{ line.expectedQty | number:'1.0-3' }}</td>
+                      <td><strong>{{ line.receivedQty | number:'1.0-3' }}</strong></td>
+                    </tr>
+                  }
+                </tbody>
+              </table>
+            </div>
+          </section>
         }
       }
+
       @if (trace.mikroCrossCheck; as mikro) {
         <section class="data-section mikro-cross-check" [class.ok]="mikro.decisionCode === 'Completed'" [class.alert]="mikro.decisionCode === 'OrderNotFound' || mikro.decisionCode === 'ClosedWithoutShipment' || mikro.decisionCode === 'MikroUnavailable'">
-          <h3>Mikro Karşılığı · {{ mikro.orderSerie }}/{{ mikro.orderNo }}</h3>
+          <div class="section-title-row">
+            <h3><i class="fa fa-code-compare" aria-hidden="true"></i> Mikro ERP Karşılığı Mutabakatı · {{ mikro.orderSerie }}/{{ mikro.orderNo }}</h3>
+          </div>
           <div class="cross-check-verdict">
-            <div><span>AXATA</span><strong>{{ trace.documentType === 'NotFound' ? 'Evrak bulunamadı' : (trace.orderStatusDescription || trace.documentType) }}</strong></div>
-            <div><span>Mikro</span><strong>{{ mikro.orderFound ? (mikro.openLineCount + ' açık / ' + mikro.closedLineCount + ' kapalı satır') : 'Sipariş bulunamadı' }}</strong></div>
-            <div><span>Karar</span><strong>{{ mikro.decision }}</strong></div>
+            <div>
+              <span>AXATA Durumu</span>
+              <strong>{{ trace.documentType === 'NotFound' ? 'Evrak bulunamadı' : (trace.orderStatusDescription || trace.documentType) }}</strong>
+            </div>
+            <div>
+              <span>Mikro Durumu</span>
+              <strong>{{ mikro.orderFound ? (mikro.openLineCount + ' açık / ' + mikro.closedLineCount + ' kapalı satır') : 'Sipariş bulunamadı' }}</strong>
+            </div>
+            <div>
+              <span>Sistem Kararı</span>
+              <strong class="decision-text">{{ mikro.decision }}</strong>
+            </div>
           </div>
           @if (mikro.warning) {
-            <div class="status-message warning" role="alert">{{ mikro.warning }}</div>
+            <div class="status-message warning" role="alert">
+              <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+              <span>{{ mikro.warning }}</span>
+            </div>
           }
           @if (mikro.orderFound) {
-            <section class="metric-grid compact">
-              <article><span>Sipariş Tarihi</span><strong>{{ mikro.orderDate | date:'dd.MM.yyyy' }}</strong></article>
-              <article><span>Depolar</span><strong>{{ mikro.sourceWarehouseNo ?? '-' }} → {{ mikro.targetWarehouseNo ?? '-' }}</strong></article>
-              <article><span>İstenen</span><strong>{{ mikro.orderedQuantity | number:'1.0-3' }}</strong></article>
-              <article><span>Teslim</span><strong>{{ mikro.deliveredQuantity | number:'1.0-3' }}</strong></article>
+            <section class="metric-grid compact cross-kpi-grid">
+              <article class="stat-card"><span>Sipariş Tarihi</span><strong>{{ mikro.orderDate | date:'dd.MM.yyyy' }}</strong></article>
+              <article class="stat-card"><span>Depolar</span><strong>{{ mikro.sourceWarehouseNo ?? '-' }} → {{ mikro.targetWarehouseNo ?? '-' }}</strong></article>
+              <article class="stat-card"><span>İstenen Miktar</span><strong>{{ mikro.orderedQuantity | number:'1.0-3' }}</strong></article>
+              <article class="stat-card"><span>Teslim Miktar</span><strong>{{ mikro.deliveredQuantity | number:'1.0-3' }}</strong></article>
             </section>
-            <div class="table-wrap"><table>
-              <thead><tr><th>Mikro Sevk Fişi</th><th>Tarih</th><th>Resmi Belge</th><th>Depolar</th><th>Kalem</th><th>Miktar</th></tr></thead>
-              <tbody>@for (shipment of mikro.shipments; track shipment.documentSerie + '/' + shipment.documentOrderNo) {
-                <tr><td><strong>{{ shipment.documentSerie }}/{{ shipment.documentOrderNo }}</strong></td><td>{{ shipment.documentDate | date:'dd.MM.yyyy' }}</td><td>{{ shipment.officialDocumentNo || '-' }}</td><td>{{ shipment.sourceWarehouseNo ?? '-' }} → {{ shipment.targetWarehouseNo ?? '-' }}</td><td>{{ shipment.lineCount }}</td><td>{{ shipment.quantity | number:'1.0-3' }}</td></tr>
-              } @empty {
-                <tr><td colspan="6" class="empty-cell">Bu siparişe bağlı Mikro sevk fişi bulunmuyor.</td></tr>
-              }</tbody>
-            </table></div>
+            <div class="table-wrap">
+              <table>
+                <thead><tr><th>Mikro Sevk Fişi</th><th>Tarih</th><th>Resmi Belge</th><th>Depolar</th><th>Kalem</th><th>Miktar</th></tr></thead>
+                <tbody>
+                  @for (shipment of mikro.shipments; track shipment.documentSerie + '/' + shipment.documentOrderNo) {
+                    <tr>
+                      <td><strong>{{ shipment.documentSerie }}/{{ shipment.documentOrderNo }}</strong></td>
+                      <td>{{ shipment.documentDate | date:'dd.MM.yyyy' }}</td>
+                      <td>{{ shipment.officialDocumentNo || '-' }}</td>
+                      <td><span class="route-pill">{{ shipment.sourceWarehouseNo ?? '-' }} → {{ shipment.targetWarehouseNo ?? '-' }}</span></td>
+                      <td>{{ shipment.lineCount }}</td>
+                      <td><strong>{{ shipment.quantity | number:'1.0-3' }}</strong></td>
+                    </tr>
+                  } @empty {
+                    <tr><td colspan="6" class="empty-cell">Bu siparişe bağlı Mikro sevk fişi bulunmuyor.</td></tr>
+                  }
+                </tbody>
+              </table>
+            </div>
           }
         </section>
       }
@@ -368,68 +769,224 @@
 
   @if (activeTab === 'performance' || activeTab === 'fillrate') {
     <div class="filter-bar">
-      <label>Başlangıç <input type="date" [(ngModel)]="reportStartDate" /></label>
-      <label>Bitiş <input type="date" [(ngModel)]="reportEndDate" /></label>
-      <button type="button" (click)="activeTab === 'performance' ? loadPerformance() : loadFillRate()" [disabled]="loading()">Raporla</button>
-      <small>En fazla 31 gün</small>
+      <div class="filter-group">
+        <label>Başlangıç <input type="date" [(ngModel)]="reportStartDate" /></label>
+        <label>Bitiş <input type="date" [(ngModel)]="reportEndDate" /></label>
+        <div class="preset-chips">
+          <button type="button" class="preset-btn" (click)="setReportPreset(6)">Son 7 Gün</button>
+          <button type="button" class="preset-btn" (click)="setReportThisMonth()">Bu Ay</button>
+        </div>
+        <button type="button" class="command-button primary compact-btn" (click)="activeTab === 'performance' ? loadPerformance() : loadFillRate()" [disabled]="loading()">
+          <i class="fa fa-chart-line" aria-hidden="true"></i> Raporla
+        </button>
+        <small class="text-muted">En fazla 31 gün</small>
+      </div>
     </div>
   }
 
   @if (activeTab === 'performance' && performance(); as report) {
-    <section class="data-section"><h3>Toplayıcı Performansı</h3><div class="table-wrap"><table>
-      <thead><tr><th>Operatör</th><th>Sevk</th><th>Görev</th><th>Kalem</th><th>Miktar</th><th>Eksik</th><th>Tamamlama</th><th>Ort. Süre</th></tr></thead>
-      <tbody>@for (item of report.pickers; track item.userId) {
-        <tr><td><strong>{{ item.userName || item.userId }}</strong></td><td>{{ item.totalShipments }}</td><td>{{ item.totalPickTasks }}</td><td>{{ item.totalLines }}</td><td>{{ item.totalQuantity }}</td><td>{{ item.unpickedLines }}</td><td>%{{ item.completionRate }}</td><td>{{ item.averageDurationMinutes | number:'1.0-1' }} dk</td></tr>
-      } @empty {<tr><td colspan="8" class="empty-cell">Seçilen dönemde performans kaydı bulunamadı.</td></tr>}</tbody>
-    </table></div></section>
-    <section class="data-section"><h3>Bölge Bazlı Toplama</h3><div class="table-wrap"><table>
-      <thead><tr><th>Bölge</th><th>Sevk</th><th>Kalem</th><th>Miktar</th><th>Eksik</th></tr></thead>
-      <tbody>@for (zone of report.zones; track zone.zoneCode) {
-        <tr><td><strong>{{ zone.zoneCode }}</strong></td><td>{{ zone.totalShipments }}</td><td>{{ zone.totalLines }}</td><td>{{ zone.totalQuantity | number:'1.0-3' }}</td><td>{{ zone.unpickedLines }}</td></tr>
-      } @empty {<tr><td colspan="5" class="empty-cell">Bölge performans kaydı bulunamadı.</td></tr>}</tbody>
-    </table></div></section>
+    <section class="data-section">
+      <div class="section-title-row">
+        <h3><i class="fa fa-person-walking-arrow-right" aria-hidden="true"></i> Toplayıcı Performansı</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Operatör</th><th>Sevk</th><th>Görev</th><th>Kalem</th><th>Miktar</th><th>Eksik</th><th>Tamamlama</th><th>Ort. Süre</th></tr></thead>
+          <tbody>
+            @for (item of report.pickers; track item.userId) {
+              <tr>
+                <td><strong>{{ item.userName || item.userId }}</strong></td>
+                <td>{{ item.totalShipments }}</td>
+                <td>{{ item.totalPickTasks }}</td>
+                <td>{{ item.totalLines }}</td>
+                <td>{{ item.totalQuantity }}</td>
+                <td>{{ item.unpickedLines }}</td>
+                <td>
+                  <div class="table-progress-wrap">
+                    <span class="rate-label">%{{ item.completionRate }}</span>
+                    <div class="progress-bar-track">
+                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(item.completionRate)" [style.width.%]="boundedPercentage(item.completionRate)"></div>
+                    </div>
+                  </div>
+                </td>
+                <td>{{ item.averageDurationMinutes | number:'1.0-1' }} dk</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="8" class="empty-cell">Seçilen dönemde performans kaydı bulunamadı.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="data-section">
+      <div class="section-title-row">
+        <h3><i class="fa fa-map-location-dot" aria-hidden="true"></i> Bölge Bazlı Toplama</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Bölge</th><th>Sevk</th><th>Kalem</th><th>Miktar</th><th>Eksik</th></tr></thead>
+          <tbody>
+            @for (zone of report.zones; track zone.zoneCode) {
+              <tr>
+                <td><strong><span class="ramp-pill">{{ zone.zoneCode }}</span></strong></td>
+                <td>{{ zone.totalShipments }}</td>
+                <td>{{ zone.totalLines }}</td>
+                <td><strong>{{ zone.totalQuantity | number:'1.0-3' }}</strong></td>
+                <td>{{ zone.unpickedLines }}</td>
+              </tr>
+            } @empty {
+              <tr><td colspan="5" class="empty-cell">Bölge performans kaydı bulunamadı.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
   }
 
   @if (activeTab === 'fillrate' && fillRate(); as report) {
     <section class="metric-grid compact">
-      <article><span>Genel Karşılama</span><strong>%{{ report.overallFillRate }}</strong></article>
-      <article><span>Tam Karşılanan</span><strong>{{ report.fullySuppliedLines }}</strong></article>
-      <article><span>Kısmi</span><strong>{{ report.partiallySuppliedLines }}</strong></article>
-      <article><span>Karşılanmayan</span><strong>{{ report.unsuppliedLines }}</strong></article>
+      <article class="stat-card stat-accent-green">
+        <span>Genel Karşılama</span>
+        <strong>%{{ report.overallFillRate }}</strong>
+        <div class="progress-bar-track mt-1">
+          <div class="progress-bar-fill" [ngClass]="getProgressColorClass(report.overallFillRate)" [style.width.%]="boundedPercentage(report.overallFillRate)"></div>
+        </div>
+      </article>
+      <article class="stat-card"><span>Tam Karşılanan</span><strong>{{ report.fullySuppliedLines }}</strong><small>Kalem</small></article>
+      <article class="stat-card"><span>Kısmi Karşılanan</span><strong>{{ report.partiallySuppliedLines }}</strong><small>Kalem</small></article>
+      <article class="stat-card warning-stat"><span>Karşılanmayan</span><strong>{{ report.unsuppliedLines }}</strong><small>Kalem</small></article>
     </section>
-    <section class="data-section"><h3>Mağaza Bazlı Karşılama</h3><div class="table-wrap"><table>
-      <thead><tr><th>Mağaza</th><th>Sipariş</th><th>Kalem</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
-      <tbody>@for (item of report.stores; track item.storeCode) {
-        <tr><td><strong>{{ item.storeCode }}</strong> {{ item.storeName }}</td><td>{{ item.orderCount }}</td><td>{{ item.totalLines }}</td><td>{{ item.totalOrderedQty }}</td><td>{{ item.totalShippedQty }}</td><td>{{ item.totalMissingQty }}</td><td>%{{ item.fillRatePercentage }}</td></tr>
-      }</tbody>
-    </table></div></section>
-    <section class="data-section"><h3>En Çok Eksik Kalan Ürünler</h3><div class="table-wrap"><table>
-      <thead><tr><th>Stok</th><th>Ürün</th><th>Sipariş</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
-      <tbody>@for (item of report.topMissingSkus; track item.sku) {
-        <tr><td><strong>{{ item.sku }}</strong></td><td>{{ item.skuName || '-' }}</td><td>{{ item.orderCount }}</td><td>{{ item.totalOrderedQty | number:'1.0-3' }}</td><td>{{ item.totalShippedQty | number:'1.0-3' }}</td><td class="negative">{{ item.totalMissingQty | number:'1.0-3' }}</td><td>%{{ item.fillRatePercentage }}</td></tr>
-      } @empty {<tr><td colspan="7" class="empty-cell">Eksik karşılanan ürün bulunmadı.</td></tr>}</tbody>
-    </table></div></section>
+
+    <section class="data-section">
+      <div class="section-title-row">
+        <h3><i class="fa fa-store" aria-hidden="true"></i> Mağaza Bazlı Karşılama</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Mağaza</th><th>Sipariş</th><th>Kalem</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
+          <tbody>
+            @for (item of report.stores; track item.storeCode) {
+              <tr>
+                <td><strong>{{ item.storeCode }}</strong> {{ item.storeName }}</td>
+                <td>{{ item.orderCount }}</td>
+                <td>{{ item.totalLines }}</td>
+                <td>{{ item.totalOrderedQty }}</td>
+                <td><strong>{{ item.totalShippedQty }}</strong></td>
+                <td class="negative">{{ item.totalMissingQty }}</td>
+                <td>
+                  <div class="table-progress-wrap">
+                    <span class="rate-label">%{{ item.fillRatePercentage }}</span>
+                    <div class="progress-bar-track">
+                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(item.fillRatePercentage)" [style.width.%]="boundedPercentage(item.fillRatePercentage)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="data-section">
+      <div class="section-title-row">
+        <h3><i class="fa fa-boxes-packing" aria-hidden="true"></i> En Çok Eksik Kalan Ürünler</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Stok</th><th>Ürün</th><th>Sipariş</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
+          <tbody>
+            @for (item of report.topMissingSkus; track item.sku) {
+              <tr>
+                <td><strong>{{ item.sku }}</strong></td>
+                <td>{{ item.skuName || '-' }}</td>
+                <td>{{ item.orderCount }}</td>
+                <td>{{ item.totalOrderedQty | number:'1.0-3' }}</td>
+                <td>{{ item.totalShippedQty | number:'1.0-3' }}</td>
+                <td class="negative"><strong>{{ item.totalMissingQty | number:'1.0-3' }}</strong></td>
+                <td>
+                  <div class="table-progress-wrap">
+                    <span class="rate-label">%{{ item.fillRatePercentage }}</span>
+                    <div class="progress-bar-track">
+                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(item.fillRatePercentage)" [style.width.%]="boundedPercentage(item.fillRatePercentage)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            } @empty {
+              <tr><td colspan="7" class="empty-cell">Eksik karşılanan ürün bulunmadı.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
   }
 
   @if (activeTab === 'capacity' && capacity(); as report) {
     <section class="metric-grid">
-      <article><span>Toplam Göz</span><strong>{{ report.totalLocations }}</strong></article>
-      <article><span>Dolu</span><strong>{{ report.occupiedLocations }}</strong></article>
-      <article><span>Boş</span><strong>{{ report.emptyLocations }}</strong></article>
-      <article><span>Bloke</span><strong>{{ report.blockedLocations }}</strong></article>
-      <article><span>Doluluk</span><strong>%{{ report.occupancyRatePercentage }}</strong></article>
+      <article class="stat-card"><span>Toplam Göz</span><strong>{{ report.totalLocations }}</strong><small>Raf hücresi</small></article>
+      <article class="stat-card stat-accent-blue"><span>Dolu Göz</span><strong>{{ report.occupiedLocations }}</strong><small>Aktif stoklu</small></article>
+      <article class="stat-card stat-accent-green"><span>Boş Göz</span><strong>{{ report.emptyLocations }}</strong><small>Yerleşime uygun</small></article>
+      <article class="stat-card warning-stat"><span>Bloke Göz</span><strong>{{ report.blockedLocations }}</strong><small>Kullanım dışı</small></article>
+      <article class="stat-card stat-accent-purple">
+        <span>Doluluk Oranı</span>
+        <strong>%{{ report.occupancyRatePercentage }}</strong>
+        <div class="progress-bar-track mt-1">
+          <div class="progress-bar-fill" [ngClass]="getProgressColorClass(report.occupancyRatePercentage)" [style.width.%]="boundedPercentage(report.occupancyRatePercentage)"></div>
+        </div>
+      </article>
     </section>
-    <section class="data-section"><h3>Bölge Bazlı Kapasite</h3><div class="table-wrap"><table>
-      <thead><tr><th>Bölge</th><th>Toplam</th><th>Dolu</th><th>Boş</th><th>Doluluk</th></tr></thead>
-      <tbody>@for (zone of report.zones; track zone.zone) {
-        <tr><td>{{ zone.zone }}</td><td>{{ zone.totalLocations }}</td><td>{{ zone.occupiedLocations }}</td><td>{{ zone.emptyLocations }}</td><td>%{{ zone.occupancyRatePercentage }}</td></tr>
-      }</tbody>
-    </table></div></section>
-    <section class="data-section"><h3>Stok Yeri Tipleri</h3><div class="table-wrap"><table>
-      <thead><tr><th>Tip</th><th>Açıklama</th><th>Göz Sayısı</th></tr></thead>
-      <tbody>@for (item of report.stockTypes; track item.typeCode) {
-        <tr><td><strong>{{ item.typeCode }}</strong></td><td>{{ item.typeDescription || '-' }}</td><td>{{ item.locationCount }}</td></tr>
-      } @empty {<tr><td colspan="3" class="empty-cell">Stok yeri tipi bulunamadı.</td></tr>}</tbody>
-    </table></div></section>
+
+    <section class="data-section">
+      <div class="section-title-row">
+        <h3><i class="fa fa-cubes-stacked" aria-hidden="true"></i> Bölge Bazlı Kapasite</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Bölge</th><th>Toplam</th><th>Dolu</th><th>Boş</th><th>Doluluk</th></tr></thead>
+          <tbody>
+            @for (zone of report.zones; track zone.zone) {
+              <tr>
+                <td><strong><span class="ramp-pill">{{ zone.zone }}</span></strong></td>
+                <td>{{ zone.totalLocations }}</td>
+                <td><strong>{{ zone.occupiedLocations }}</strong></td>
+                <td>{{ zone.emptyLocations }}</td>
+                <td>
+                  <div class="table-progress-wrap">
+                    <span class="rate-label">%{{ zone.occupancyRatePercentage }}</span>
+                    <div class="progress-bar-track">
+                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(zone.occupancyRatePercentage)" [style.width.%]="boundedPercentage(zone.occupancyRatePercentage)"></div>
+                    </div>
+                  </div>
+                </td>
+              </tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <section class="data-section">
+      <div class="section-title-row">
+        <h3><i class="fa fa-tags" aria-hidden="true"></i> Stok Yeri Tipleri</h3>
+      </div>
+      <div class="table-wrap">
+        <table>
+          <thead><tr><th>Tip Kodu</th><th>Açıklama</th><th>Göz Sayısı</th></tr></thead>
+          <tbody>
+            @for (item of report.stockTypes; track item.typeCode) {
+              <tr>
+                <td><strong>{{ item.typeCode }}</strong></td>
+                <td>{{ item.typeDescription || '-' }}</td>
+                <td><strong>{{ item.locationCount }}</strong></td>
+              </tr>
+            } @empty {
+              <tr><td colspan="3" class="empty-cell">Stok yeri tipi bulunamadı.</td></tr>
+            }
+          </tbody>
+        </table>
+      </div>
+    </section>
   }
 </div>

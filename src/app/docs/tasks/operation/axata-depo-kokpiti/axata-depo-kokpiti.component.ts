@@ -1,6 +1,6 @@
 import { CommonModule } from '@angular/common';
 import { HttpErrorResponse } from '@angular/common/http';
-import { Component, OnInit, inject, signal } from '@angular/core';
+import { Component, OnInit, computed, inject, signal } from '@angular/core';
 import { FormsModule } from '@angular/forms';
 import { RouterLink } from '@angular/router';
 import { catchError, finalize, forkJoin, map, Observable, of } from 'rxjs';
@@ -96,6 +96,27 @@ export class AxataDepoKokpitiComponent implements OnInit {
   readonly deliveryImportResults = signal<DeliveryImportOutcome[]>([]);
   readonly selectedOrderReferences = signal<ReadonlySet<string>>(new Set());
   readonly selectedDeliveryReferences = signal<ReadonlySet<string>>(new Set());
+  readonly totalOrderQuantity = computed(() =>
+    this.orderCandidates().reduce((total, item) => total + (item.totalQuantity || 0), 0)
+  );
+  readonly selectedOrderQuantity = computed(() => {
+    const selected = this.selectedOrderReferences();
+    return this.orderCandidates()
+      .filter((item) => selected.has(this.orderKey(item)))
+      .reduce((total, item) => total + (item.totalQuantity || 0), 0);
+  });
+  readonly totalDeliveryQuantity = computed(() =>
+    this.deliveryCandidates().reduce((total, item) => total + (item.axataQuantity || 0), 0)
+  );
+  readonly selectedDeliveryQuantity = computed(() => {
+    const selected = this.selectedDeliveryReferences();
+    return this.deliveryCandidates()
+      .filter((item) => selected.has(this.deliveryKey(item)))
+      .reduce((total, item) => total + (item.axataQuantity || 0), 0);
+  });
+  readonly inTransitDocumentCount = computed(() =>
+    this.documents()?.items.filter((item) => item.isInTransit).length ?? 0
+  );
   filteredOrderCandidates(): ActionOrderCandidate[] {
     const term = this.actionSearchTerm.trim().toLocaleLowerCase('tr-TR');
     if (!term) return this.orderCandidates();
@@ -122,10 +143,6 @@ export class AxataDepoKokpitiComponent implements OnInit {
         .toLocaleLowerCase('tr-TR')
         .includes(term)
     );
-  }
-
-  inTransitDocumentCount(): number {
-    return this.documents()?.items.filter((item) => item.isInTransit).length ?? 0;
   }
 
   ngOnInit(): void {
@@ -251,6 +268,59 @@ export class AxataDepoKokpitiComponent implements OnInit {
     const visible = this.filteredDeliveryCandidates();
     const allSelected = visible.length > 0 && visible.every((item) => this.isDeliverySelected(item));
     this.selectedDeliveryReferences.set(allSelected ? new Set() : new Set(visible.map((item) => this.deliveryKey(item))));
+  }
+
+  setActionDatePreset(daysAgo: number): void {
+    this.actionDate = this.relativeDate(daysAgo);
+    this.loadActionDesk();
+  }
+
+  setDocumentDay(daysAgo: number): void {
+    const date = this.relativeDate(daysAgo);
+    this.documentStartDate = date;
+    this.documentEndDate = date;
+    this.loadDocuments();
+  }
+
+  setDocumentRange(daysAgo: number): void {
+    this.documentStartDate = this.relativeDate(daysAgo);
+    this.documentEndDate = this.today();
+    this.loadDocuments();
+  }
+
+  setDocumentThisMonth(): void {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA');
+    this.documentStartDate = firstDay;
+    this.documentEndDate = this.today();
+    this.loadDocuments();
+  }
+
+  setReportPreset(days: number): void {
+    this.reportStartDate = this.relativeDate(days);
+    this.reportEndDate = this.today();
+    if (this.activeTab === 'performance') this.loadPerformance();
+    else if (this.activeTab === 'fillrate') this.loadFillRate();
+  }
+
+  setReportThisMonth(): void {
+    const now = new Date();
+    const firstDay = new Date(now.getFullYear(), now.getMonth(), 1).toLocaleDateString('en-CA');
+    this.reportStartDate = firstDay;
+    this.reportEndDate = this.today();
+    if (this.activeTab === 'performance') this.loadPerformance();
+    else if (this.activeTab === 'fillrate') this.loadFillRate();
+  }
+
+  getProgressColorClass(rate: number): string {
+    if (rate >= 90) return 'progress-success';
+    if (rate >= 75) return 'progress-warning';
+    return 'progress-danger';
+  }
+
+  boundedPercentage(rate: number): number {
+    if (!Number.isFinite(rate)) return 0;
+    return Math.min(100, Math.max(0, rate));
   }
 
   isOrderSelected(item: ActionOrderCandidate): boolean {
@@ -596,6 +666,11 @@ export class AxataDepoKokpitiComponent implements OnInit {
 
   private orderKey(item: ActionOrderCandidate): string {
     return `${item.taskCode}:${item.documentReference}`;
+  }
+
+  setOverviewToday(): void {
+    this.selectedDate = this.today();
+    this.loadOverview();
   }
 
   private today(): string {

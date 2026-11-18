@@ -158,6 +158,7 @@ export const OPERATION_TASK_SOURCE = {
         'Kokpit metrikleri AXATA kaynagindan salt okunur; aktarim komutlari mevcut guvenli senkronizasyon akisina gider',
         'Siparis, sevk, mal kabul ve yoldaki transferler tarih ve durum bazinda listelenir',
         'Takilan C01 sevkleri gizlenmez; yalniz Mikro fisi dogrulanan kayitlarda kuyruk kapatma aksiyonu acilir',
+        'Gun ve tarih araligi kisayollari gercek sorgu araligiyla birebir eslesir; rapor yuzdeleri tasarimi bozmadan 0-100 araliginda cizilir',
         'SIPMASTER -> SIPDETAIL -> SEVK_LINK -> SEVK_DETAIL zincirini izler',
         'Toplayici ve rampa hareketlerini saniyesine kadar takip eder',
         'Fill-rate karisiligini coklu sevk dagilimi kuralina gore hesaplar'
@@ -180,6 +181,12 @@ export const OPERATION_TASK_SOURCE = {
           name: 'Mevcut AXATA senkronizasyon akisi',
           description: 'Kolay islem masasi ikinci bir yazma yolu olusturmadan mevcut guvenli endpointleri kullanir',
           endpoints: [
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/overview', description: 'Canli AXATA depo operasyon ozeti' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/documents', description: 'Tarih, evrak tipi ve durum filtreli salt okunur AXATA evrak listesi' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/trace', description: 'AXATA evraki ile Mikro siparis ve sevk izini birlikte getirir' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/picking-performance', description: 'Toplayici ve bolge performansi' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/fill-rate', description: 'Magaza ve urun bazli karsilama orani' },
+            { method: 'GET', path: '/api/operasyon-islemleri/axata-depo-operasyonlari/capacity', description: 'Raf ve stok yeri kapasitesi' },
             { method: 'GET', path: '/api/integrations/axata-sync/operations/issued-warehouse-order-sync/documents/candidates', description: 'Mikrodan AXATAya gonderilecek siparis adaylari' },
             { method: 'POST', path: '/api/integrations/axata-sync/operations/issued-warehouse-order-sync/documents/dispatch-batch', description: 'Secili siparisleri AXATAya toplu gonderir' },
             { method: 'GET', path: '/api/integrations/axata-sync/operations/received-company-order-sync/documents/candidates', description: 'Mikrodan AXATAya gonderilecek alinan firma siparisi adaylari' },

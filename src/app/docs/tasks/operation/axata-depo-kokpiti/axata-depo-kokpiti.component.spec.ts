@@ -149,6 +149,35 @@ describe('AxataDepoKokpitiComponent', () => {
     }));
   });
 
+  it('keeps the yesterday preset on a single calendar day', () => {
+    const { component, warehouseApi } = createComponent();
+
+    component.setDocumentDay(1);
+
+    const query = warehouseApi.getDocuments.calls.mostRecent().args[0];
+    expect(query.startDate).toBe(query.endDate);
+  });
+
+  it('builds the last seven days preset as an inclusive range', () => {
+    const { component, warehouseApi } = createComponent();
+
+    component.setDocumentRange(6);
+
+    const query = warehouseApi.getDocuments.calls.mostRecent().args[0];
+    const dayDifference =
+      (Date.parse(query.endDate!) - Date.parse(query.startDate!)) / 86_400_000;
+    expect(dayDifference).toBe(6);
+  });
+
+  it('bounds visual percentages without changing the reported value', () => {
+    const { component } = createComponent();
+
+    expect(component.boundedPercentage(-5)).toBe(0);
+    expect(component.boundedPercentage(82.5)).toBe(82.5);
+    expect(component.boundedPercentage(120)).toBe(100);
+    expect(component.boundedPercentage(Number.NaN)).toBe(0);
+  });
+
   it('selects repeated document numbers independently by AXATA sequence', () => {
     const { component } = createComponent();
     const first = createDelivery(265016);
