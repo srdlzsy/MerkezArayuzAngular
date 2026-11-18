@@ -5,7 +5,8 @@ import type {
   CustomerAddressDto,
   CustomerAddressPatchHttpRequest,
   CustomerAddressUpdateResponse,
-  MikroDocumentCandidateDto
+  MikroDocumentCandidateDto,
+  StockMovementDocumentDto
 } from '@interfaces';
 
 import { API_BASE_URL } from '../api-base-url.token';
@@ -40,6 +41,32 @@ describe('DuzeltmeIslemleriService customer addresses', () => {
           'https://api.test/api/duzeltme-islemleri/mikro-evrak-duzenleme/evrak-eslesmeleri' &&
         candidate.params.get('documentSerie') === 'G3' &&
         candidate.params.get('documentOrderNo') === '2262'
+    );
+    expect(request.request.method).toBe('GET');
+    request.flush([]);
+  });
+
+  it('keeps the selected stock movement warehouse route in the lookup', () => {
+    service
+      .findStockMovementDocuments({
+        documentSerie: 'G3',
+        documentOrderNo: 2262,
+        documentType: 17,
+        movementKind: 3,
+        normalReturn: 0,
+        inputWarehouseNo: 120,
+        outputWarehouseNo: 53
+      })
+      .subscribe((documents: StockMovementDocumentDto[]) => expect(documents).toEqual([]));
+
+    const request = httpTesting.expectOne(
+      (candidate) =>
+        candidate.url ===
+          'https://api.test/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-hareketleri/eslesmeler' &&
+        candidate.params.get('documentSerie') === 'G3' &&
+        candidate.params.get('documentOrderNo') === '2262' &&
+        candidate.params.get('inputWarehouseNo') === '120' &&
+        candidate.params.get('outputWarehouseNo') === '53'
     );
     expect(request.request.method).toBe('GET');
     request.flush([]);

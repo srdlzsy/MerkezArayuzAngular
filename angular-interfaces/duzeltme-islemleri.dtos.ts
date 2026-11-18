@@ -528,6 +528,8 @@ export interface StockMovementDocumentLookupHttpRequest {
   movementKind?: number | null;
   normalReturn?: number | null;
   warehouseNo?: number | null;
+  inputWarehouseNo?: number | null;
+  outputWarehouseNo?: number | null;
 }
 
 export interface MikroDocumentSearchHttpRequest {

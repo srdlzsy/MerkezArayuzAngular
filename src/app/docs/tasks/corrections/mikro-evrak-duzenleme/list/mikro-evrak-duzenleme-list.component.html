@@ -1037,6 +1037,14 @@
             <strong>
               {{ match.header.customerTitle || match.header.customerCode || 'Carisiz Evrak' }}
             </strong>
+            <span class="movement-match-identities">
+              <code>sth_evraktip: {{ match.header.documentType }} - {{ match.header.documentTypeName }}</code>
+              <code>sth_tip: {{ match.header.movementTypes.join(', ') }} - {{ (match.header.movementTypeNames || []).join(' / ') }}</code>
+              <code>sth_cins: {{ match.header.movementKind }} - {{ match.header.movementKindName }}</code>
+              <code>sth_normal_iade: {{ match.header.normalReturn }} - {{ match.header.normalReturnName }}</code>
+              <code>sth_cikis_depo_no: {{ match.header.outputWarehouseNo }}</code>
+              <code>sth_giris_depo_no: {{ match.header.inputWarehouseNo }}</code>
+            </span>
             <small>
               {{ match.header.movementDate | date: 'dd.MM.yyyy' }} ·
               {{ stockMovementWarehouseLabel(match) }} ·
@@ -1261,6 +1269,11 @@
             <strong>
               {{ match.header.name || match.header.warehouseName || 'Sayım Fişi' }}
             </strong>
+            <span class="movement-match-identities">
+              <code>sym_depono: {{ match.header.warehouseNo }}</code>
+              <code>sym_evrakno: {{ match.header.documentNo }}</code>
+              <code>sym_tarihi: {{ match.header.documentDate | date: 'dd.MM.yyyy' }}</code>
+            </span>
             <small>
               Evrak No: {{ match.header.documentNo }} ·
               Tarih: {{ match.header.documentDate | date: 'dd.MM.yyyy' }} ·
@@ -1465,6 +1478,13 @@
             <strong>
               {{ match.header.customerTitle || match.header.customerCode || 'Cari Belirtilmemiş' }}
             </strong>
+            <span class="movement-match-identities">
+              <code>cha_evrak_tip: {{ match.header.documentType }} - {{ match.header.documentTypeName }}</code>
+              <code>cha_tip: {{ match.header.movementTypes.join(', ') }} - {{ (match.header.movementTypeNames || []).join(' / ') }}</code>
+              <code>cha_cinsi: {{ match.header.movementKind }} - {{ match.header.movementKindName }}</code>
+              <code>cha_normal_Iade: {{ match.header.normalReturn }} - {{ match.header.normalReturnName }}</code>
+              <code>cha_kod: {{ match.header.customerCode || '-' }}</code>
+            </span>
             <small>
               Tarih: {{ (match.header.movementDate || match.header.documentDate) | date: 'dd.MM.yyyy' }} ·
               {{ match.header.normalReturnName || 'Normal' }} ·
@@ -1699,6 +1719,12 @@
             <strong>
               {{ match.header.customerTitle || match.header.customerCode || 'Cari Belirtilmemiş' }}
             </strong>
+            <span class="movement-match-identities">
+              <code>sip_tip: {{ match.header.orderType }} - {{ match.header.orderTypeName }}</code>
+              <code>sip_cins: {{ match.header.orderKind }} - {{ match.header.orderKindName }}</code>
+              <code>sip_depono: {{ match.header.warehouseNo }}</code>
+              <code>sip_musteri_kod: {{ match.header.customerCode || '-' }}</code>
+            </span>
             <small>
               Tarih: {{ (match.header.orderDate || match.header.documentDate) | date: 'dd.MM.yyyy' }} ·
               Depo: {{ match.header.warehouseNo }} ({{ match.header.warehouseName }}) ·
@@ -1946,6 +1972,10 @@
             <strong>
               {{ warehouseOrderTypeLabel(match) }}
             </strong>
+            <span class="movement-match-identities">
+              <code>ssip_cikdepo: {{ match.header.outWarehouseNo }} - {{ match.header.outWarehouseName }}</code>
+              <code>ssip_girdepo: {{ match.header.inWarehouseNo }} - {{ match.header.inWarehouseName }}</code>
+            </span>
             <small>
               Tarih: {{ (match.header.orderDate || match.header.documentDate) | date: 'dd.MM.yyyy' }} ·
               {{ match.header.lineCount }} satır · {{ match.header.totalQuantity | number: '1.0-3' }} miktar

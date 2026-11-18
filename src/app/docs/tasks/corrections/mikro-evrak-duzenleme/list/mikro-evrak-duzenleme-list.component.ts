@@ -714,7 +714,9 @@ export class MikroEvrakDuzenlemeListComponent {
     movementType: null,
     movementKind: null,
     normalReturn: null,
-    warehouseNo: null
+    warehouseNo: null,
+    inputWarehouseNo: null,
+    outputWarehouseNo: null
   };
   protected inventoryCountLookup: InventoryCountDocumentLookupHttpRequest = {
     warehouseNo: this.authService.currentUser()?.depoNo ?? 0,
@@ -911,7 +913,9 @@ export class MikroEvrakDuzenlemeListComponent {
         movementType: candidate.movementTypes.length === 1 ? candidate.movementTypes[0] ?? null : null,
         movementKind: candidate.movementKind,
         normalReturn: candidate.normalReturn,
-        warehouseNo: null
+        warehouseNo: null,
+        inputWarehouseNo: candidate.inputWarehouseNo,
+        outputWarehouseNo: candidate.outputWarehouseNo
       };
       this.openSelectedStockMovement();
       return;
@@ -958,15 +962,40 @@ export class MikroEvrakDuzenlemeListComponent {
   }
 
   protected candidateIdentityParts(candidate: MikroDocumentCandidateDto): string[] {
-    const parts = [
-      candidate.documentTypeName,
-      candidate.movementTypeNames.join(' / '),
-      candidate.movementKindName,
-      candidate.normalReturnName,
-      candidate.orderTypeName,
-      candidate.orderKindName
+    if (candidate.documentFamily === 'stock-movement') {
+      return [
+        `sth_evraktip: ${candidate.documentType} - ${candidate.documentTypeName}`,
+        `sth_tip: ${candidate.movementTypes.join(', ')} - ${candidate.movementTypeNames.join(' / ')}`,
+        `sth_cins: ${candidate.movementKind} - ${candidate.movementKindName}`,
+        `sth_normal_iade: ${candidate.normalReturn} - ${candidate.normalReturnName}`,
+        `sth_cikis_depo_no: ${candidate.outputWarehouseNo ?? '-'}`,
+        `sth_giris_depo_no: ${candidate.inputWarehouseNo ?? '-'}`
+      ];
+    }
+
+    if (candidate.documentFamily === 'customer-movement') {
+      return [
+        `cha_evrak_tip: ${candidate.documentType} - ${candidate.documentTypeName}`,
+        `cha_tip: ${candidate.movementTypes.join(', ')} - ${candidate.movementTypeNames.join(' / ')}`,
+        `cha_cinsi: ${candidate.movementKind} - ${candidate.movementKindName}`,
+        `cha_normal_Iade: ${candidate.normalReturn} - ${candidate.normalReturnName}`,
+        `cha_kod: ${candidate.referenceCode || '-'}`
+      ];
+    }
+
+    if (candidate.documentFamily === 'company-order') {
+      return [
+        `sip_tip: ${candidate.orderType} - ${candidate.orderTypeName}`,
+        `sip_cins: ${candidate.orderKind} - ${candidate.orderKindName}`,
+        `sip_depono: ${candidate.warehouseNo ?? '-'}`,
+        `sip_musteri_kod: ${candidate.referenceCode || '-'}`
+      ];
+    }
+
+    return [
+      `ssip_cikdepo: ${candidate.outputWarehouseNo ?? '-'}`,
+      `ssip_girdepo: ${candidate.inputWarehouseNo ?? '-'}`
     ];
-    return parts.filter((part) => !!part?.trim());
   }
 
   protected candidateWarehouseLabel(candidate: MikroDocumentCandidateDto): string {
@@ -1429,7 +1458,9 @@ export class MikroEvrakDuzenlemeListComponent {
       movementType: null,
       movementKind: null,
       normalReturn: null,
-      warehouseNo: this.stockLookup.warehouseNo
+      warehouseNo: this.stockLookup.warehouseNo,
+      inputWarehouseNo: null,
+      outputWarehouseNo: null
     };
 
     this.busyAction.set('movement-load');
@@ -1813,10 +1844,10 @@ export class MikroEvrakDuzenlemeListComponent {
     const lookup: CustomerMovementDocumentLookupHttpRequest = {
       documentSerie: this.customerLookup.documentSerie,
       documentOrderNo: this.customerLookup.documentOrderNo,
-      documentType: this.customerLookup.documentType || null,
-      movementType: this.customerLookup.movementType || null,
-      movementKind: this.customerLookup.movementKind || null,
-      normalReturn: this.customerLookup.normalReturn || null,
+      documentType: this.customerLookup.documentType ?? null,
+      movementType: this.customerLookup.movementType ?? null,
+      movementKind: this.customerLookup.movementKind ?? null,
+      normalReturn: this.customerLookup.normalReturn ?? null,
       customerCode: this.customerLookup.customerCode?.trim() || null
     };
 
@@ -1941,8 +1972,8 @@ export class MikroEvrakDuzenlemeListComponent {
     const lookup: CompanyOrderDocumentLookupHttpRequest = {
       documentSerie: this.companyOrderLookup.documentSerie,
       documentOrderNo: this.companyOrderLookup.documentOrderNo,
-      orderType: this.companyOrderLookup.orderType || null,
-      orderKind: this.companyOrderLookup.orderKind || null,
+      orderType: this.companyOrderLookup.orderType ?? null,
+      orderKind: this.companyOrderLookup.orderKind ?? null,
       warehouseNo: (this.companyOrderLookup.warehouseNo ?? 0) > 0 ? this.companyOrderLookup.warehouseNo : null,
       customerCode: this.companyOrderLookup.customerCode?.trim() || null
     };
@@ -2574,7 +2605,7 @@ export class MikroEvrakDuzenlemeListComponent {
     document: StockMovementDocumentDto
   ): string => {
     const header = document.header;
-    return `${header.documentSerie}|${header.documentOrderNo}|${header.documentType}|${header.movementKind}|${header.normalReturn}`;
+    return `${header.documentSerie}|${header.documentOrderNo}|${header.documentType}|${header.movementKind}|${header.normalReturn}|${header.inputWarehouseNo}|${header.outputWarehouseNo}`;
   };
   protected trackByField = (_index: number, field: FieldDefinition): string => field.key;
 
@@ -2771,7 +2802,9 @@ export class MikroEvrakDuzenlemeListComponent {
           ? prepared.header.movementTypes[0] ?? null
           : null,
       movementKind: prepared.header.movementKind,
-      normalReturn: prepared.header.normalReturn
+      normalReturn: prepared.header.normalReturn,
+      inputWarehouseNo: prepared.header.inputWarehouseNo,
+      outputWarehouseNo: prepared.header.outputWarehouseNo
     };
     this.stockMovement.set(this.clone(prepared));
     this.stockMovementDraft.set(this.clone(prepared));
