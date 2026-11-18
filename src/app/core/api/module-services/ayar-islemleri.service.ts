@@ -189,11 +189,14 @@ export class AyarIslemleriService extends BaseApiService {
     return this.getWithQuery<SafeWriteMonitoringItemDto[]>(
       'ayar-islemleri/veritabani-izleme/guvenli-yazmalar',
       {
+        searchText: request.searchText?.trim() || undefined,
         status: request.status?.trim() || undefined,
         operationCode: request.operationCode?.trim() || undefined,
         warehouseNo: request.warehouseNo ?? undefined,
         retryable: request.retryable ?? undefined,
         includeCompleted: request.includeCompleted ?? false,
+        createdFromUtc: request.createdFromUtc ?? undefined,
+        createdToUtc: request.createdToUtc ?? undefined,
         take: request.take ?? 100,
       },
     );

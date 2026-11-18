@@ -408,11 +408,14 @@ export interface DatabaseMonitoringIncidentDto {
 export type SafeWriteMonitoringStatus = 'Processing' | 'Completed' | 'Failed' | 'Cancelled';
 
 export interface SafeWriteMonitoringListHttpRequest {
+  searchText?: string | null;
   status?: SafeWriteMonitoringStatus | null;
   operationCode?: string | null;
   warehouseNo?: number | null;
   retryable?: boolean | null;
   includeCompleted?: boolean | null;
+  createdFromUtc?: string | null;
+  createdToUtc?: string | null;
   take?: number | null;
 }
 
@@ -463,6 +466,7 @@ export interface SafeWriteReviewAuditDto {
   resultStatus: string | null;
   resultErrorCode: string | null;
   message: string | null;
+  source: 'System' | 'Review' | string;
 }
 
 export type WorkerMonitoringStatus = 'Healthy' | 'Degraded' | 'Unhealthy' | 'Disabled' | string;

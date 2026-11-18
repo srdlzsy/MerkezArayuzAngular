@@ -8,11 +8,15 @@ export type SafeWriteStatusFilter = SafeWriteMonitoringStatus | '';
 export type SafeWriteRetryableFilter = 'all' | 'true' | 'false';
 
 export interface SafeWriteFilterValue {
+  searchText: string;
   status: SafeWriteStatusFilter;
   operationCode: string;
   warehouseNo: number | null;
   retryable: SafeWriteRetryableFilter;
   includeCompleted: boolean;
+  startDate: string;
+  endDate: string;
+  take: number | null;
 }
 
 export type SafeWriteStatusTone = 'info' | 'warn' | 'danger' | 'success' | 'neutral';
@@ -29,6 +33,7 @@ export function buildSafeWriteMonitoringRequest(
   const warehouseNo = Number(value.warehouseNo);
 
   return {
+    searchText: value.searchText.trim() || undefined,
     status: value.status || undefined,
     operationCode: value.operationCode.trim() || undefined,
     warehouseNo: Number.isFinite(warehouseNo) && warehouseNo > 0
@@ -36,8 +41,29 @@ export function buildSafeWriteMonitoringRequest(
       : undefined,
     retryable: value.retryable === 'all' ? undefined : value.retryable === 'true',
     includeCompleted: value.includeCompleted,
-    take: 100
+    createdFromUtc: toUtcBoundary(value.startDate, false),
+    createdToUtc: toUtcBoundary(value.endDate, true),
+    take: Number.isFinite(Number(value.take))
+      ? Math.min(500, Math.max(1, Math.trunc(Number(value.take))))
+      : 100
   };
+}
+
+function toUtcBoundary(value: string, nextDay: boolean): string | undefined {
+  if (!value) {
+    return undefined;
+  }
+
+  const date = new Date(`${value}T00:00:00`);
+  if (Number.isNaN(date.getTime())) {
+    return undefined;
+  }
+
+  if (nextDay) {
+    date.setDate(date.getDate() + 1);
+  }
+
+  return date.toISOString();
 }
 
 export function getSafeWriteStatusPresentation(
@@ -70,6 +96,14 @@ export function getSafeWriteStatusPresentation(
   }
 
   if (item.status === 'Failed' && item.retryable === false) {
+    if (item.errorCode === 'SAFE_WRITE_VALIDATION_REJECTED') {
+      return {
+        label: 'Veri Dogrulamasinda Reddedildi',
+        tone: 'neutral',
+        retryLabel: 'Kaydi duzelt'
+      };
+    }
+
     return {
       label: 'Manuel Inceleme Gerekli',
       tone: 'danger',

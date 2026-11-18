@@ -632,6 +632,15 @@
   flex-wrap: nowrap;
 }
 
+.safe-write-search-field {
+  min-width: min(100%, 22rem);
+  flex: 1 1 22rem;
+}
+
+.safe-write-limit-field {
+  max-width: 8rem;
+}
+
 .safe-write-status {
   max-width: 15rem;
   line-height: 1.25;
@@ -659,6 +668,27 @@
 .safe-write-detail-grid dd {
   white-space: normal;
   overflow-wrap: anywhere;
+}
+
+.safe-write-error-detail {
+  grid-column: 1 / -1;
+}
+
+.timeline-source {
+  display: inline-flex;
+  border: 1px solid #bfdbfe;
+  border-radius: 4px;
+  padding: 0.12rem 0.34rem;
+  color: #1e3a8a;
+  background: #eff6ff;
+  font-size: 0.7rem;
+  font-weight: 800;
+}
+
+.timeline-source-review {
+  border-color: #bbf7d0;
+  color: #166534;
+  background: #f0fdf4;
 }
 
 .safe-write-review-form {
@@ -691,7 +721,7 @@
 }
 
 .safe-write-review-history .data-table {
-  min-width: 960px;
+  min-width: 1040px;
 }
 
 .data-table .wrap-cell {

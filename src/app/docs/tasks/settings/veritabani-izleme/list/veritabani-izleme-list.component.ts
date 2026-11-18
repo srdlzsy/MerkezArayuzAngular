@@ -145,11 +145,15 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     }),
   });
   protected readonly safeWriteFilterForm = new FormGroup({
+    searchText: new FormControl('', { nonNullable: true }),
     status: new FormControl<SafeWriteStatusFilter>('', { nonNullable: true }),
     operationCode: new FormControl('', { nonNullable: true }),
     warehouseNo: new FormControl<number | null>(null),
     retryable: new FormControl<SafeWriteRetryableFilter>('all', { nonNullable: true }),
     includeCompleted: new FormControl(false, { nonNullable: true }),
+    startDate: new FormControl('', { nonNullable: true }),
+    endDate: new FormControl('', { nonNullable: true }),
+    take: new FormControl<number | null>(100),
   });
   protected readonly safeWriteReviewForm = new FormGroup({
     reason: new FormControl('', {
@@ -174,8 +178,11 @@ export class VeritabaniIzlemeListComponent implements OnInit {
     this.hasPermission(`${PERMISSION_PREFIX}.resolve-safe-write`),
   );
   protected readonly canReviewSelectedSafeWrite = computed(() => {
-    const status = this.selectedSafeWrite()?.status;
-    return this.canResolveSafeWrites() && status !== 'Completed' && status !== 'Cancelled';
+    const selected = this.selectedSafeWrite();
+    return this.canResolveSafeWrites() &&
+      selected?.status !== 'Completed' &&
+      selected?.status !== 'Cancelled' &&
+      selected?.errorCode !== 'SAFE_WRITE_VALIDATION_REJECTED';
   });
   protected readonly canTerminateSelected = computed(
     () => this.canTerminate() && !!this.selectedSession()?.canTerminate,
@@ -251,11 +258,15 @@ export class VeritabaniIzlemeListComponent implements OnInit {
 
   protected resetSafeWriteFilters(): void {
     this.safeWriteFilterForm.reset({
+      searchText: '',
       status: '',
       operationCode: '',
       warehouseNo: null,
       retryable: 'all',
       includeCompleted: false,
+      startDate: '',
+      endDate: '',
+      take: 100,
     });
     this.loadSafeWrites(true);
   }
@@ -556,6 +567,63 @@ export class VeritabaniIzlemeListComponent implements OnInit {
 
   protected safeWriteRetryLabel(item: SafeWriteMonitoringItemDto): string {
     return getSafeWriteStatusPresentation(item).retryLabel;
+  }
+
+  protected safeWriteOperationLabel(operationCode: string | null | undefined): string {
+    switch (operationCode) {
+      case 'siparis-islemleri.verilen-depo-siparisleri.create':
+        return 'Verilen Depo Siparisi';
+      case 'siparis-islemleri.verilen-firma-siparisleri.create':
+        return 'Verilen Firma Siparisi';
+      case 'mal-kabul-islemleri.firma-mal-kabulleri.create':
+        return 'Firma Mal Kabulu';
+      case 'sevk-islemleri.giden-depolar-arasi-sevkler.create':
+        return 'Depolar Arasi Sevk';
+      case 'sevk-islemleri.giden-firma-sevkleri.create':
+        return 'Firma Sevki';
+      case 'iade-islemleri.giden-depo-iadeleri.create':
+        return 'Depo Iadesi';
+      case 'iade-islemleri.firma-iadeleri.create':
+        return 'Firma Iadesi';
+      case 'stok-islemleri.virmanlar.create':
+        return 'Virman';
+      case 'stok-islemleri.zayiat-fisleri.create':
+        return 'Zayiat Fisi';
+      case 'stok-islemleri.masraf-fisleri.create':
+        return 'Masraf Fisi';
+      case 'stok-islemleri.sayim-sonuclari.create':
+        return 'Sayim Sonucu';
+      default:
+        return operationCode?.trim() || 'Bilinmeyen Islem';
+    }
+  }
+
+  protected safeWriteTimelineActionLabel(action: string | null | undefined): string {
+    switch (action) {
+      case 'Created': return 'Kayit Olusturuldu';
+      case 'CurrentState': return 'Son Durum';
+      case 'Recheck': return 'Yeniden Dogrulandi';
+      case 'AllowRetry': return 'Tekrar Acildi';
+      case 'Cancel': return 'Iptal Edildi';
+      case 'OwnerRecheck': return 'Kullanici Dogrulamasi';
+      case 'OwnerRetryExhausted': return 'Otomatik Tekrar Kapandi';
+      default: return action?.trim() || '-';
+    }
+  }
+
+  protected safeWriteTimelineSourceLabel(source: string | null | undefined): string {
+    return source === 'Review' ? 'Yetkili' : 'Sistem';
+  }
+
+  protected safeWriteTimelineStatusLabel(status: string | null | undefined): string {
+    switch (status) {
+      case 'Processing': return 'Isleniyor';
+      case 'Completed': return 'Tamamlandi';
+      case 'Failed': return 'Basarisiz';
+      case 'Cancelled': return 'Iptal Edildi';
+      case '-': return '-';
+      default: return status?.trim() || '-';
+    }
   }
 
   protected workerStatusClass(worker: WorkerMonitoringItemDto): string {

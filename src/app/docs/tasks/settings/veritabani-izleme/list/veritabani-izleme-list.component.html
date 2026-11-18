@@ -750,6 +750,14 @@
         [formGroup]="safeWriteFilterForm"
         (ngSubmit)="applySafeWriteFilters()"
       >
+        <label class="field safe-write-search-field">
+          <span>Kayit Ara</span>
+          <input
+            type="search"
+            formControlName="searchText"
+            placeholder="Kayit/takip GUID, operasyon veya hata"
+          />
+        </label>
         <label class="field">
           <span>Durum</span>
           <select formControlName="status">
@@ -780,9 +788,21 @@
           <span>Depo No</span>
           <input type="number" formControlName="warehouseNo" min="1" step="1" placeholder="120" />
         </label>
+        <label class="field">
+          <span>Baslangic Tarihi</span>
+          <input type="date" formControlName="startDate" />
+        </label>
+        <label class="field">
+          <span>Bitis Tarihi</span>
+          <input type="date" formControlName="endDate" />
+        </label>
+        <label class="field safe-write-limit-field">
+          <span>Kayit Limiti</span>
+          <input type="number" formControlName="take" min="1" max="500" step="1" />
+        </label>
         <label class="safe-write-toggle">
           <input type="checkbox" formControlName="includeCompleted" />
-          <span>Tamamlananlari dahil et</span>
+          <span>Tamamlanan ve iptal edilenleri dahil et</span>
         </label>
         <div class="filter-actions safe-write-filter-actions">
           <button
@@ -826,8 +846,8 @@
                 </span>
               </td>
               <td>
-                {{ item.operationCode || '-'
-                }}<span class="table-meta">{{ item.requestedByUserId || '-' }}</span>
+                {{ safeWriteOperationLabel(item.operationCode)
+                }}<span class="table-meta">{{ item.operationCode || '-' }}</span>
               </td>
               <td>{{ item.warehouseNo }}</td>
               <td [title]="item.clientRequestId">
@@ -875,11 +895,16 @@
 
         <dl class="detail-grid safe-write-detail-grid">
           <div><dt>Durum</dt><dd>{{ safeWriteStatusLabel(selected) }}</dd></div>
-          <div><dt>Operasyon</dt><dd>{{ selected.operationCode || '-' }}</dd></div>
+          <div><dt>Operasyon</dt><dd>{{ safeWriteOperationLabel(selected.operationCode) }}<span class="table-meta">{{ selected.operationCode || '-' }}</span></dd></div>
           <div><dt>Depo</dt><dd>{{ selected.warehouseNo }}</dd></div>
           <div><dt>Hata Kodu</dt><dd>{{ selected.errorCode || '-' }}</dd></div>
           <div><dt>Takip Kimligi</dt><dd>{{ selected.clientRequestId }}</dd></div>
+          <div><dt>Kayit Kimligi</dt><dd>{{ selected.id }}</dd></div>
+          <div><dt>Isteyen Kullanici</dt><dd>{{ selected.requestedByUserId }}</dd></div>
+          <div><dt>Olusturulma</dt><dd>{{ formatDate(selected.createdAtUtc) }}</dd></div>
           <div><dt>Son Guncelleme</dt><dd>{{ formatDate(selected.updatedAtUtc || selected.createdAtUtc) }}</dd></div>
+          <div><dt>Tamamlanma</dt><dd>{{ formatDate(selected.completedAtUtc) }}</dd></div>
+          <div class="safe-write-error-detail"><dt>Sonuc / Hata</dt><dd>{{ selected.errorMessage || 'Kayitli hata mesaji yok.' }}</dd></div>
         </dl>
 
         <form
@@ -933,12 +958,17 @@
           </div>
         </form>
 
+        <div class="safe-write-readonly-note" *ngIf="selected.errorCode === 'SAFE_WRITE_VALIDATION_REJECTED'">
+          Mikro yazimi baslamadan once veri dogrulamasinda reddedildi. Bu kayit icin uzlastirma gerekmez;
+          hata mesajindaki urun veya miktarlari duzeltip yeni bir islem baslatin.
+        </div>
+
         <div class="safe-write-readonly-note" *ngIf="!canResolveSafeWrites()">
           Bu kaydin inceleme gecmisini gorebilirsiniz. Sonuclandirma aksiyonlari icin ek yetki gerekir.
         </div>
 
         <div class="safe-write-history-head">
-          <strong>Inceleme Gecmisi</strong>
+          <strong>Islem Zaman Cizelgesi</strong>
           <span class="table-meta">
             {{ isSafeWriteReviewLoading() ? 'Yukleniyor' : safeWriteReviewHistory().length + ' kayit' }}
           </span>
@@ -948,6 +978,7 @@
             <thead>
               <tr>
                 <th>Tarih</th>
+                <th>Kaynak</th>
                 <th>Aksiyon / Sonuc</th>
                 <th>Onceki</th>
                 <th>Sonraki</th>
@@ -958,9 +989,10 @@
             <tbody>
               <tr *ngFor="let review of safeWriteReviewHistory(); trackBy: trackBySafeWriteReview">
                 <td>{{ formatDate(review.reviewedAtUtc) }}</td>
-                <td>{{ review.action || '-' }}<span class="table-meta">{{ review.outcome || '-' }}</span></td>
-                <td>{{ review.previousStatus || '-' }}<span class="table-meta">{{ review.previousErrorCode || '-' }}</span></td>
-                <td>{{ review.resultStatus || '-' }}<span class="table-meta">{{ review.resultErrorCode || '-' }}</span></td>
+                <td><span class="timeline-source" [class.timeline-source-review]="review.source === 'Review'">{{ safeWriteTimelineSourceLabel(review.source) }}</span></td>
+                <td>{{ safeWriteTimelineActionLabel(review.action) }}<span class="table-meta">{{ review.outcome || '-' }}</span></td>
+                <td>{{ safeWriteTimelineStatusLabel(review.previousStatus) }}<span class="table-meta">{{ review.previousErrorCode || '-' }}</span></td>
+                <td>{{ safeWriteTimelineStatusLabel(review.resultStatus) }}<span class="table-meta">{{ review.resultErrorCode || '-' }}</span></td>
                 <td class="wrap-cell">{{ review.reason || '-' }}</td>
                 <td class="wrap-cell">{{ review.message || '-' }}</td>
               </tr>
@@ -969,7 +1001,7 @@
         </div>
         <ng-template #noSafeWriteReviewHistory>
           <div class="panel-empty">
-            {{ isSafeWriteReviewLoading() ? 'Inceleme gecmisi yukleniyor.' : 'Bu kayit icin henuz inceleme islemi yok.' }}
+            {{ isSafeWriteReviewLoading() ? 'Islem zaman cizelgesi yukleniyor.' : 'Bu kayit icin zaman cizelgesi bulunamadi.' }}
           </div>
         </ng-template>
       </div>

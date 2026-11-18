@@ -27,35 +27,49 @@ describe('safe write monitoring helpers', () => {
 
   it('builds the default incomplete-record request without empty filters', () => {
     expect(buildSafeWriteMonitoringRequest({
+      searchText: '',
       status: '',
       operationCode: '   ',
       warehouseNo: null,
       retryable: 'all',
-      includeCompleted: false
+      includeCompleted: false,
+      startDate: '',
+      endDate: '',
+      take: 100
     })).toEqual({
+      searchText: undefined,
       status: undefined,
       operationCode: undefined,
       warehouseNo: undefined,
       retryable: undefined,
       includeCompleted: false,
+      createdFromUtc: undefined,
+      createdToUtc: undefined,
       take: 100
     });
   });
 
   it('normalizes explicit filters for the monitoring request', () => {
     expect(buildSafeWriteMonitoringRequest({
+      searchText: ' ff2ede2d ',
       status: 'Completed',
       operationCode: ' inventory-count.create ',
       warehouseNo: 120.8,
       retryable: 'false',
-      includeCompleted: true
+      includeCompleted: true,
+      startDate: '',
+      endDate: '',
+      take: 750
     })).toEqual({
+      searchText: 'ff2ede2d',
       status: 'Completed',
       operationCode: 'inventory-count.create',
       warehouseNo: 120,
       retryable: false,
       includeCompleted: true,
-      take: 100
+      createdFromUtc: undefined,
+      createdToUtc: undefined,
+      take: 500
     });
   });
 
@@ -102,6 +116,15 @@ describe('safe write monitoring helpers', () => {
       label: 'Manuel Inceleme Gerekli',
       tone: 'danger',
       retryLabel: 'Tekrar gonderme'
+    });
+    expect(getSafeWriteStatusPresentation(createItem({
+      status: 'Failed',
+      errorCode: 'SAFE_WRITE_VALIDATION_REJECTED',
+      retryable: false
+    }))).toEqual({
+      label: 'Veri Dogrulamasinda Reddedildi',
+      tone: 'neutral',
+      retryLabel: 'Kaydi duzelt'
     });
     expect(getSafeWriteStatusPresentation(createItem({ status: 'Failed' }))).toEqual({
       label: 'Siniflandirilmamis / Eski Hata',

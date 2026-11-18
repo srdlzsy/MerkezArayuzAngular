@@ -187,11 +187,14 @@ describe('AyarIslemleriService database monitoring', () => {
 
   it('gets incomplete safe writes with normalized monitoring filters', () => {
     service.getSafeWriteMonitoringItems({
+      searchText: ' ff2ede2d-4ccb-4443-93f9-16f3e4a59446 ',
       status: 'Failed',
       operationCode: ' inventory-count.create ',
       warehouseNo: 120,
       retryable: true,
       includeCompleted: false,
+      createdFromUtc: '2026-11-16T21:00:00.000Z',
+      createdToUtc: '2026-11-18T21:00:00.000Z',
       take: 50
     }).subscribe();
 
@@ -199,11 +202,14 @@ describe('AyarIslemleriService database monitoring', () => {
       call.url.endsWith('/ayar-islemleri/veritabani-izleme/guvenli-yazmalar')
     );
     expect(request.request.method).toBe('GET');
+    expect(request.request.params.get('searchText')).toBe('ff2ede2d-4ccb-4443-93f9-16f3e4a59446');
     expect(request.request.params.get('status')).toBe('Failed');
     expect(request.request.params.get('operationCode')).toBe('inventory-count.create');
     expect(request.request.params.get('warehouseNo')).toBe('120');
     expect(request.request.params.get('retryable')).toBe('true');
     expect(request.request.params.get('includeCompleted')).toBe('false');
+    expect(request.request.params.get('createdFromUtc')).toBe('2026-11-16T21:00:00.000Z');
+    expect(request.request.params.get('createdToUtc')).toBe('2026-11-18T21:00:00.000Z');
     expect(request.request.params.get('take')).toBe('50');
     request.flush([]);
   });
