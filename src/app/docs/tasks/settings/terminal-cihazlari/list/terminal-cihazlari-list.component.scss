@@ -74,7 +74,7 @@
   color: #0f172a;
   font-size: 1.45rem;
   font-weight: 800;
-  letter-spacing: -0.02em;
+  letter-spacing: 0;
 }
 
 .head-pill-group {
@@ -182,7 +182,7 @@
   align-items: center;
   gap: 0.75rem;
   border: 1px solid var(--term-slate-border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0.7rem 0.85rem;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.04);
@@ -195,12 +195,12 @@
 
 .kpi-card-highlight {
   border-color: #bbf7d0;
-  background: linear-gradient(to bottom right, #fff, #f0fdf4);
+  background: #f0fdf4;
 }
 
 .kpi-card-warning {
   border-color: #fde68a;
-  background: linear-gradient(to bottom right, #fff, #fffbeb);
+  background: #fffbeb;
 }
 
 .kpi-icon {
@@ -254,7 +254,7 @@
   color: var(--term-slate-muted);
   font-size: 0.72rem;
   font-weight: 800;
-  letter-spacing: 0.03em;
+  letter-spacing: 0;
   text-transform: uppercase;
   white-space: nowrap;
   overflow: hidden;
@@ -285,7 +285,7 @@
 // -------------------------------------------------------------
 .filter-card {
   border: 1px solid var(--term-slate-border);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0.75rem 0.95rem;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
@@ -314,7 +314,7 @@
   font-size: 0.74rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 .pill-group {
@@ -381,7 +381,7 @@
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 .field-item select,
@@ -511,7 +511,7 @@
 .installation-panel,
 .detail-panel {
   border: 1px solid var(--term-slate-border);
-  border-radius: 10px;
+  border-radius: 8px;
   background: #fff;
   box-shadow: 0 1px 3px rgba(0, 0, 0, 0.03);
   overflow: hidden;
@@ -554,7 +554,7 @@
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
   text-align: left;
   border-bottom: 1px solid #e2e8f0;
   white-space: nowrap;
@@ -880,7 +880,7 @@
   font-size: 0.72rem;
   font-weight: 800;
   text-transform: uppercase;
-  letter-spacing: 0.02em;
+  letter-spacing: 0;
 }
 
 .device-id-code {

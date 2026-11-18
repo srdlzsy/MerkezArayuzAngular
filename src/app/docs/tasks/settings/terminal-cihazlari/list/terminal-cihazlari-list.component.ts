@@ -63,6 +63,8 @@ export class TerminalCihazlariListComponent implements OnInit {
   private readonly api = inject(AyarIslemleriService);
   private readonly searchApi = inject(AramaService);
   private readonly destroyRef = inject(DestroyRef);
+  private summaryRequestRevision = 0;
+  private listRequestRevision = 0;
 
   protected readonly canList = computed(() => this.hasPermission(`${PERMISSION_PREFIX}.list`));
   protected readonly canDetail = computed(() =>
@@ -286,32 +288,38 @@ export class TerminalCihazlariListComponent implements OnInit {
   }
 
   private loadSummary(): void {
-    if (this.isSummaryLoading()) {
-      return;
-    }
-
+    const requestRevision = ++this.summaryRequestRevision;
     this.isSummaryLoading.set(true);
     this.api
       .getTerminalInstallationSummary(this.resolveWarehouseNo())
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isSummaryLoading.set(false))
+        finalize(() => {
+          if (requestRevision === this.summaryRequestRevision) {
+            this.isSummaryLoading.set(false);
+          }
+        })
       )
       .subscribe({
-        next: (summary: TerminalInstallationSummaryDto) => this.summary.set(summary),
-        error: (error: unknown) =>
+        next: (summary: TerminalInstallationSummaryDto) => {
+          if (requestRevision === this.summaryRequestRevision) {
+            this.summary.set(summary);
+          }
+        },
+        error: (error: unknown) => {
+          if (requestRevision !== this.summaryRequestRevision) {
+            return;
+          }
           this.showError(
             'Ozet alinamadi',
             getErrorMessage(error, 'Terminal cihaz ozeti okunamadi.')
-          )
+          );
+        }
       });
   }
 
   private loadInstallations(showFeedback = false): void {
-    if (this.isListLoading()) {
-      return;
-    }
-
+    const requestRevision = ++this.listRequestRevision;
     this.isListLoading.set(true);
     this.api
       .getTerminalInstallations({
@@ -324,10 +332,17 @@ export class TerminalCihazlariListComponent implements OnInit {
       })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isListLoading.set(false))
+        finalize(() => {
+          if (requestRevision === this.listRequestRevision) {
+            this.isListLoading.set(false);
+          }
+        })
       )
       .subscribe({
         next: (installations: TerminalInstallationDto[]) => {
+          if (requestRevision !== this.listRequestRevision) {
+            return;
+          }
           this.installations.set(installations ?? []);
           if (showFeedback) {
             this.feedback.set({
@@ -338,6 +353,9 @@ export class TerminalCihazlariListComponent implements OnInit {
           }
         },
         error: (error: unknown) => {
+          if (requestRevision !== this.listRequestRevision) {
+            return;
+          }
           this.installations.set([]);
           this.showError(
             'Cihazlar alinamadi',

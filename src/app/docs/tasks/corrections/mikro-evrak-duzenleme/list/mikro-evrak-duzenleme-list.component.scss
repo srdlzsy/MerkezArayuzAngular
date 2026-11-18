@@ -30,7 +30,7 @@ p {
 .feedback,
 .empty-state {
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: var(--surface);
 }
 
@@ -40,9 +40,7 @@ p {
   gap: 1rem;
   align-items: end;
   padding: 1rem 1.1rem;
-  background:
-    radial-gradient(circle at 90% 10%, rgba(124, 58, 237, 0.12), transparent 28%),
-    #fff;
+  background: #fff;
 }
 
 .eyebrow,
@@ -51,7 +49,7 @@ p {
   color: var(--muted);
   font-size: 0.68rem;
   font-weight: 900;
-  letter-spacing: 0.08em;
+  letter-spacing: 0;
   text-transform: uppercase;
 }
 
@@ -211,7 +209,7 @@ p {
 .tab-strip {
   padding: 0.35rem;
   border: 1px solid var(--line);
-  border-radius: 12px;
+  border-radius: 8px;
   background: #fff;
 }
 
@@ -248,7 +246,7 @@ p {
 .primary-action {
   border-color: var(--accent);
   color: #fff;
-  background: linear-gradient(135deg, var(--accent), var(--accent-dark));
+  background: var(--accent-dark);
 }
 
 .secondary-action {
@@ -485,7 +483,7 @@ button:disabled {
   display: grid;
   gap: 0.55rem;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0.7rem;
   background: #fff;
 }
@@ -694,7 +692,7 @@ button:disabled {
   display: grid;
   gap: 0.6rem;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0.65rem;
   background: #fff;
 }
@@ -703,7 +701,7 @@ button:disabled {
   display: grid;
   gap: 0.6rem;
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   padding: 0.65rem;
   background: #fff;
 }
@@ -910,7 +908,7 @@ button:disabled {
 
 .line-card {
   border: 1px solid var(--line);
-  border-radius: 10px;
+  border-radius: 8px;
   overflow: hidden;
   background: #fff;
 }

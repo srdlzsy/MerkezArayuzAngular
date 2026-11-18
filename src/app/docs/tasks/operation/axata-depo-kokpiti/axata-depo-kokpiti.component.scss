@@ -58,7 +58,7 @@
   font-size: 20px;
   font-weight: 750;
   color: var(--ink);
-  letter-spacing: -0.3px;
+  letter-spacing: 0;
 }
 
 .live-pill {
@@ -399,7 +399,7 @@
   font-size: 11px;
   font-weight: 650;
   text-transform: uppercase;
-  letter-spacing: 0.2px;
+  letter-spacing: 0;
 }
 
 .desk-kpi-info strong {
@@ -488,7 +488,7 @@
   border-radius: 4px;
   font-size: 10px;
   font-weight: 800;
-  letter-spacing: 0.5px;
+  letter-spacing: 0;
   margin-bottom: 4px;
 }
 
@@ -672,7 +672,7 @@ th {
   font-weight: 750;
   font-size: 11px;
   text-transform: uppercase;
-  letter-spacing: 0.3px;
+  letter-spacing: 0;
   border-bottom: 1px solid var(--line);
 }
 

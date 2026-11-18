@@ -166,6 +166,9 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   private readonly api = inject(AyarIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
+  private historyRequestRevision = 0;
+  private safeWriteRequestRevision = 0;
+  private safeWriteHistoryRequestRevision = 0;
 
   protected readonly canList = computed(() => this.hasPermission(`${PERMISSION_PREFIX}.list`));
   protected readonly canViewHistory = computed(() =>
@@ -273,11 +276,14 @@ export class VeritabaniIzlemeListComponent implements OnInit {
 
   protected selectSafeWrite(item: SafeWriteMonitoringItemDto): void {
     this.selectedSafeWrite.set(item);
+    this.safeWriteReviewHistory.set([]);
     this.safeWriteReviewForm.reset({ reason: '' });
     this.loadSafeWriteReviewHistory(item.id);
   }
 
   protected closeSafeWriteReview(): void {
+    this.safeWriteHistoryRequestRevision += 1;
+    this.isSafeWriteReviewLoading.set(false);
     this.selectedSafeWrite.set(null);
     this.safeWriteReviewHistory.set([]);
     this.safeWriteReviewForm.reset({ reason: '' });
@@ -858,46 +864,66 @@ export class VeritabaniIzlemeListComponent implements OnInit {
   }
 
   private loadIncidents(showFeedback: boolean): void {
-    if (!this.canViewHistory() || this.isHistoryLoading()) {
+    if (!this.canViewHistory()) {
       return;
     }
 
+    const requestRevision = ++this.historyRequestRevision;
     this.isHistoryLoading.set(true);
     this.api
       .getDatabaseMonitoringIncidents()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isHistoryLoading.set(false)),
+        finalize(() => {
+          if (requestRevision === this.historyRequestRevision) {
+            this.isHistoryLoading.set(false);
+          }
+        }),
       )
       .subscribe({
         next: (incidents: DatabaseMonitoringIncidentDto[]) => {
+          if (requestRevision !== this.historyRequestRevision) {
+            return;
+          }
           this.incidents.set(incidents ?? []);
           if (showFeedback) {
             this.showSuccess('Olaylar yenilendi', `${incidents?.length ?? 0} olay listelendi.`);
           }
         },
-        error: (error: unknown) =>
+        error: (error: unknown) => {
+          if (requestRevision !== this.historyRequestRevision) {
+            return;
+          }
           this.showError(
             'Olaylar alinamadi',
             getErrorMessage(error, 'Veritabani olay gecmisi okunamadi.'),
-          ),
+          );
+        },
       });
   }
 
   private loadTerminations(showFeedback: boolean): void {
-    if (!this.canViewHistory() || this.isHistoryLoading()) {
+    if (!this.canViewHistory()) {
       return;
     }
 
+    const requestRevision = ++this.historyRequestRevision;
     this.isHistoryLoading.set(true);
     this.api
       .getDatabaseSessionTerminationAudits()
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isHistoryLoading.set(false)),
+        finalize(() => {
+          if (requestRevision === this.historyRequestRevision) {
+            this.isHistoryLoading.set(false);
+          }
+        }),
       )
       .subscribe({
         next: (terminations: DatabaseSessionTerminationDto[]) => {
+          if (requestRevision !== this.historyRequestRevision) {
+            return;
+          }
           this.terminations.set(terminations ?? []);
           if (showFeedback) {
             this.showSuccess(
@@ -906,31 +932,43 @@ export class VeritabaniIzlemeListComponent implements OnInit {
             );
           }
         },
-        error: (error: unknown) =>
+        error: (error: unknown) => {
+          if (requestRevision !== this.historyRequestRevision) {
+            return;
+          }
           this.showError(
             'Sonlandirma gecmisi alinamadi',
             getErrorMessage(error, 'Oturum sonlandirma gecmisi okunamadi.'),
-          ),
+          );
+        },
       });
   }
 
   private loadSafeWrites(showFeedback: boolean): void {
-    if (!this.canViewHistory() || this.isSafeWriteLoading()) {
+    if (!this.canViewHistory()) {
       return;
     }
 
     const request: SafeWriteMonitoringListHttpRequest = buildSafeWriteMonitoringRequest(
       this.safeWriteFilterForm.getRawValue(),
     );
+    const requestRevision = ++this.safeWriteRequestRevision;
     this.isSafeWriteLoading.set(true);
     this.api
       .getSafeWriteMonitoringItems(request)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isSafeWriteLoading.set(false)),
+        finalize(() => {
+          if (requestRevision === this.safeWriteRequestRevision) {
+            this.isSafeWriteLoading.set(false);
+          }
+        }),
       )
       .subscribe({
         next: (items: SafeWriteMonitoringItemDto[]) => {
+          if (requestRevision !== this.safeWriteRequestRevision) {
+            return;
+          }
           this.safeWrites.set(items ?? []);
           const selectedId = this.selectedSafeWrite()?.id;
           if (selectedId) {
@@ -943,34 +981,56 @@ export class VeritabaniIzlemeListComponent implements OnInit {
             );
           }
         },
-        error: (error: unknown) =>
+        error: (error: unknown) => {
+          if (requestRevision !== this.safeWriteRequestRevision) {
+            return;
+          }
           this.showError(
             'Guvenli yazmalar alinamadi',
             getErrorMessage(error, 'Guvenli create kayitlari okunamadi.'),
-          ),
+          );
+        },
       });
   }
 
   private loadSafeWriteReviewHistory(id: string): void {
-    if (!this.canViewHistory() || this.isSafeWriteReviewLoading()) {
+    if (!this.canViewHistory()) {
       return;
     }
 
+    const requestRevision = ++this.safeWriteHistoryRequestRevision;
     this.isSafeWriteReviewLoading.set(true);
     this.api
       .getSafeWriteReviewHistory(id)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.isSafeWriteReviewLoading.set(false)),
+        finalize(() => {
+          if (requestRevision === this.safeWriteHistoryRequestRevision) {
+            this.isSafeWriteReviewLoading.set(false);
+          }
+        }),
       )
       .subscribe({
-        next: (items: SafeWriteReviewAuditDto[]) =>
-          this.safeWriteReviewHistory.set(items ?? []),
-        error: (error: unknown) =>
+        next: (items: SafeWriteReviewAuditDto[]) => {
+          if (
+            requestRevision === this.safeWriteHistoryRequestRevision &&
+            this.selectedSafeWrite()?.id === id
+          ) {
+            this.safeWriteReviewHistory.set(items ?? []);
+          }
+        },
+        error: (error: unknown) => {
+          if (
+            requestRevision !== this.safeWriteHistoryRequestRevision ||
+            this.selectedSafeWrite()?.id !== id
+          ) {
+            return;
+          }
           this.showError(
             'Inceleme gecmisi alinamadi',
             getErrorMessage(error, 'Guvenli yazma inceleme gecmisi okunamadi.'),
-          ),
+          );
+        },
       });
   }
 

@@ -588,6 +588,7 @@ export class MikroEvrakDuzenlemeListComponent {
   private readonly authService = inject(AuthService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
+  private documentSearchRevision = 0;
 
   protected readonly activeTab = signal<EditorTab>('stock-card');
   protected readonly busyAction = signal<BusyAction | null>(null);
@@ -863,6 +864,7 @@ export class MikroEvrakDuzenlemeListComponent {
       return;
     }
 
+    const requestRevision = ++this.documentSearchRevision;
     this.busyAction.set('document-search');
     this.feedback.set(null);
     this.documentCandidates.set([]);
@@ -871,10 +873,17 @@ export class MikroEvrakDuzenlemeListComponent {
       .findDocuments({ documentSerie, documentOrderNo })
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.busyAction.set(null))
+        finalize(() => {
+          if (requestRevision === this.documentSearchRevision) {
+            this.busyAction.set(null);
+          }
+        })
       )
       .subscribe({
         next: (documents: MikroDocumentCandidateDto[]) => {
+          if (requestRevision !== this.documentSearchRevision) {
+            return;
+          }
           this.documentCandidates.set(documents);
           if (documents.length === 0) {
             this.feedback.set({
@@ -896,7 +905,11 @@ export class MikroEvrakDuzenlemeListComponent {
             message: `${documents.length} fiziksel evraktan duzenlemek istediginizi secin.`
           });
         },
-        error: (error: unknown) => this.handleError(error, 'Mikro evraklari aranirken hata olustu.')
+        error: (error: unknown) => {
+          if (requestRevision === this.documentSearchRevision) {
+            this.handleError(error, 'Mikro evraklari aranirken hata olustu.');
+          }
+        }
       });
   }
 
