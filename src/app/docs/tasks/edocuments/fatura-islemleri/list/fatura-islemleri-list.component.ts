@@ -75,6 +75,7 @@ import {
   sumSendingTaxTotal,
   sumViewingInvoiceTotal,
   sumViewingTaxTotal,
+  printHtmlViaIframe,
   type SendingSortKey,
   type SendingSortState
 } from './fatura-islemleri-sending.helpers';
@@ -384,6 +385,7 @@ export class FaturaIslemleriListComponent {
   protected readonly sendingPdfLoadingKey = signal<string | null>(null);
   protected readonly sendingRowPrintingKey = signal<string | null>(null);
   protected readonly sendingBulkPrintLoading = signal(false);
+  protected readonly sendingBulkPrintProgress = signal<{ current: number; total: number } | null>(null);
   protected readonly sendingRenderLoading = signal(false);
   protected readonly sendingRenderMode = signal<'default' | 'manual'>('default');
   protected readonly selectedSendingKeys = signal<string[]>([]);
@@ -710,9 +712,20 @@ export class FaturaIslemleriListComponent {
   );
   protected readonly selectedSendingItems = computed(() => {
     const keys = new Set(this.selectedSendingKeys());
-    return (this.sendingList()?.items ?? []).filter((item) =>
+    const visible = this.filteredSendingItems().filter((item) =>
       keys.has(this.buildSendingKey(item.documentSerie, item.documentOrderNo))
     );
+    if (visible.length === keys.size) {
+      return visible;
+    }
+    const visibleKeys = new Set(
+      visible.map((item) => this.buildSendingKey(item.documentSerie, item.documentOrderNo))
+    );
+    const others = (this.sendingList()?.items ?? []).filter((item) => {
+      const k = this.buildSendingKey(item.documentSerie, item.documentOrderNo);
+      return keys.has(k) && !visibleKeys.has(k);
+    });
+    return [...visible, ...others];
   });
   protected readonly filteredUnsentSendingItems = computed(() =>
     this.filteredSendingItems().filter((item) => !item.isSent)
@@ -1722,7 +1735,33 @@ export class FaturaIslemleriListComponent {
     );
   }
 
-  protected async printSendingRowInvoice(item: InvoiceSendingListItemDto, preOpenedWindow?: Window | null): Promise<void> {
+  private async printSendingInvoiceDirect(item: InvoiceSendingListItemDto): Promise<void> {
+    if (item.isSent) {
+      const scenario = this.getInvoiceScenario(item.scenario);
+      if (!scenario) {
+        throw new Error(`${item.documentSerie}/${item.documentOrderNo} icin PDF senaryosu belirlenemedi.`);
+      }
+      const blob = await firstValueFrom(
+        this.faturaIslemleriService.getInvoiceSendingPdf(item.documentSerie, item.documentOrderNo, scenario)
+      );
+      await this.pdfPrintService.print({ blob, title: item.sentDocumentNo || item.invoiceId });
+    } else {
+      const detail = await firstValueFrom(
+        this.faturaIslemleriService.getInvoiceSendingDetail(
+          item.documentSerie,
+          item.documentOrderNo,
+          this.resolveSendingScenario(item.scenario)
+        )
+      );
+      const htmlContent = detail.document.htmlContent?.trim();
+      if (!htmlContent) {
+        throw new Error('Fatura HTML onizleme icerigi bulunamadi.');
+      }
+      await printHtmlViaIframe(htmlContent, item.invoiceId || 'Fatura');
+    }
+  }
+
+  protected async printSendingRowInvoice(item: InvoiceSendingListItemDto): Promise<void> {
     if (!this.canSendDetail()) {
       this.feedback.set({
         tone: 'error',
@@ -1732,63 +1771,17 @@ export class FaturaIslemleriListComponent {
       return;
     }
 
-    const previewWindow =
-      !item.isSent && preOpenedWindow === undefined
-        ? window.open('', '_blank', 'width=960,height=720')
-        : (preOpenedWindow ?? null);
-
-    if (!item.isSent && preOpenedWindow === undefined && !previewWindow) {
-      this.feedback.set({
-        tone: 'error',
-        title: 'Yazdirma penceresi acilamadi',
-        message: 'Tarayicida acilir pencereye (pop-up) izin verin.'
-      });
-      return;
-    }
-
-    if (previewWindow) {
-      previewWindow.document.title = `${item.invoiceId} - Fatura Hazirlaniyor`;
-      previewWindow.document.body.textContent = 'Fatura yazdirma gorunumu hazirlaniyor...';
-    }
-
     const itemKey = this.buildSendingKey(item.documentSerie, item.documentOrderNo);
     this.sendingRowPrintingKey.set(itemKey);
 
     try {
-      if (item.isSent) {
-        const scenario = this.getInvoiceScenario(item.scenario);
-        if (!scenario) {
-          throw new Error(`${item.documentSerie}/${item.documentOrderNo} icin PDF senaryosu belirlenemedi.`);
-        }
-        const blob = await firstValueFrom(
-          this.faturaIslemleriService.getInvoiceSendingPdf(item.documentSerie, item.documentOrderNo, scenario)
-        );
-        await this.pdfPrintService.print({ blob, title: item.sentDocumentNo || item.invoiceId });
-      } else {
-        const detail = await firstValueFrom(
-          this.faturaIslemleriService.getInvoiceSendingDetail(
-            item.documentSerie,
-            item.documentOrderNo,
-            this.resolveSendingScenario(item.scenario)
-          )
-        );
-        const htmlContent = detail.document.htmlContent?.trim();
-        if (!htmlContent) {
-          throw new Error('Fatura HTML onizleme icerigi bulunamadi.');
-        }
-        this.documentPrintService.printHtml({
-          markup: htmlContent,
-          targetWindow: previewWindow ?? undefined,
-          printDelayMs: 400
-        });
-      }
+      await this.printSendingInvoiceDirect(item);
       this.feedback.set({
         tone: 'success',
         title: 'Yazdirma hazir',
         message: `${item.invoiceId} yazdirma penceresine gonderildi.`
       });
     } catch (error) {
-      previewWindow?.close();
       this.feedback.set({
         tone: 'error',
         title: 'Yazdirilamadi',
@@ -1818,28 +1811,44 @@ export class FaturaIslemleriListComponent {
     this.sendingBulkPrintLoading.set(true);
     let successCount = 0;
     const failedList: string[] = [];
+    const total = items.length;
 
-    for (const item of items) {
-      try {
-        await this.printSendingRowInvoice(item, null);
-        successCount++;
-      } catch {
-        failedList.push(item.invoiceId || `${item.documentSerie}/${item.documentOrderNo}`);
+    try {
+      for (let i = 0; i < total; i++) {
+        const item = items[i];
+        this.sendingBulkPrintProgress.set({ current: i + 1, total });
+        const itemKey = this.buildSendingKey(item.documentSerie, item.documentOrderNo);
+        this.sendingRowPrintingKey.set(itemKey);
+
+        try {
+          await this.printSendingInvoiceDirect(item);
+          successCount++;
+          if (i < total - 1) {
+            await new Promise((resolve) => setTimeout(resolve, 300));
+          }
+        } catch {
+          failedList.push(item.invoiceId || `${item.documentSerie}/${item.documentOrderNo}`);
+        } finally {
+          this.sendingRowPrintingKey.set(null);
+        }
       }
+    } finally {
+      this.sendingBulkPrintLoading.set(false);
+      this.sendingBulkPrintProgress.set(null);
+      this.sendingRowPrintingKey.set(null);
     }
 
-    this.sendingBulkPrintLoading.set(false);
     this.feedback.set(
       failedList.length > 0
         ? {
             tone: 'error',
             title: 'Toplu yazdirma kismen basarisiz',
-            message: `${successCount}/${items.length} fatura yazdirildi. Hata alanlar: ${failedList.join(', ')}`
+            message: `${successCount}/${total} fatura yazdirildi. Hata alanlar: ${failedList.join(', ')}`
           }
         : {
             tone: 'success',
             title: 'Toplu yazdirma tamamlandi',
-            message: `${items.length} fatura yazdirma penceresine gonderildi.`
+            message: `${total} fatura sirayla yazdirma penceresine gonderildi.`
           }
     );
   }

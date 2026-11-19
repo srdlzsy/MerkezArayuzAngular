@@ -9,7 +9,8 @@ import {
   resolveSendingScenario,
   sortSendingItems,
   sumSendingPayableTotal,
-  sumSendingTaxTotal
+  sumSendingTaxTotal,
+  printHtmlViaIframe
 } from './fatura-islemleri-sending.helpers';
 
 describe('fatura-islemleri-sending.helpers', () => {
@@ -107,5 +108,10 @@ describe('fatura-islemleri-sending.helpers', () => {
     const fixedNow = new Date(2026, 10, 17);
     expect(isSendingDatePresetMatch('today', '2026-11-17', '2026-11-17', fixedNow)).toBeTrue();
     expect(isSendingDatePresetMatch('today', '2026-11-16', '2026-11-17', fixedNow)).toBeFalse();
+  });
+
+  it('prints html via iframe and handles cleanup', async () => {
+    const promise = printHtmlViaIframe('<h1>Test</h1>', 'Test Title', 100);
+    await expectAsync(promise).toBeResolved();
   });
 });

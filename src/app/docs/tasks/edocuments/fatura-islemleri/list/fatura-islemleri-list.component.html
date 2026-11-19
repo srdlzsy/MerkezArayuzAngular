@@ -952,7 +952,11 @@
                     aria-hidden="true"
                   ></i>
                   <span>
-                    {{ sendingBulkPrintLoading() ? 'Yazdırılıyor...' : ('Seçilenleri Yazdır (' + selectedSendingItems().length + ')') }}
+                    {{
+                      sendingBulkPrintLoading()
+                        ? (sendingBulkPrintProgress() ? ('Yazdırılıyor (' + sendingBulkPrintProgress()!.current + '/' + sendingBulkPrintProgress()!.total + ')...') : 'Yazdırılıyor...')
+                        : ('Seçilenleri Yazdır (' + selectedSendingItems().length + ')')
+                    }}
                   </span>
                 </button>
                 <button

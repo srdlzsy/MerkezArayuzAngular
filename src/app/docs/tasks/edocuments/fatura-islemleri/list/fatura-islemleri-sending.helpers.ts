@@ -243,6 +243,94 @@ export function sumViewingTaxTotal(items: readonly { taxTotal?: number | null }[
   return items.reduce((sum, item) => sum + (toFiniteNumber(item.taxTotal) ?? 0), 0);
 }
 
+export function printHtmlViaIframe(
+  htmlContent: string,
+  title?: string,
+  timeoutMs = 15_000
+): Promise<void> {
+  return new Promise<void>((resolve, reject) => {
+    if (typeof document === 'undefined') {
+      resolve();
+      return;
+    }
+
+    const frame = document.createElement('iframe');
+    frame.style.position = 'fixed';
+    frame.style.left = '-10000px';
+    frame.style.top = '0';
+    frame.style.width = '1px';
+    frame.style.height = '1px';
+    frame.style.border = '0';
+    frame.style.opacity = '0';
+    if (title) {
+      frame.title = title;
+    }
+    document.body.appendChild(frame);
+
+    const frameWindow = frame.contentWindow;
+    const frameDoc = frameWindow?.document;
+
+    if (!frameWindow || !frameDoc) {
+      frame.remove();
+      reject(new Error('Yazdirma alani olusturulamadi.'));
+      return;
+    }
+
+    let settled = false;
+    let fallbackTimer: ReturnType<typeof setTimeout> | undefined;
+    let resolveTimer: ReturnType<typeof setTimeout> | undefined;
+
+    const cleanup = (error?: Error) => {
+      if (settled) {
+        return;
+      }
+      settled = true;
+      if (fallbackTimer !== undefined) {
+        clearTimeout(fallbackTimer);
+      }
+      if (resolveTimer !== undefined) {
+        clearTimeout(resolveTimer);
+      }
+      try {
+        frameWindow.removeEventListener('afterprint', onAfterPrint);
+      } catch {}
+      setTimeout(() => {
+        try {
+          frame.remove();
+        } catch {}
+      }, 1000);
+
+      // Hata varsa reddet; aksi halde toplu yazdirma hatali faturayi basarili sayar.
+      if (error) {
+        reject(error);
+        return;
+      }
+      resolve();
+    };
+    const onAfterPrint = () => cleanup();
+
+    frameDoc.open();
+    frameDoc.write(htmlContent);
+    frameDoc.close();
+
+    try {
+      frameWindow.addEventListener('afterprint', onAfterPrint, { once: true });
+    } catch {}
+
+    fallbackTimer = setTimeout(() => cleanup(), timeoutMs);
+
+    setTimeout(() => {
+      try {
+        frameWindow.focus();
+        frameWindow.print();
+        resolveTimer = setTimeout(() => cleanup(), 300);
+      } catch (err) {
+        cleanup(err instanceof Error ? err : new Error('Yazdirma baslatilamadi.'));
+      }
+    }, 300);
+  });
+}
+
 
 
 
