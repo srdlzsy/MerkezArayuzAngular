@@ -1,49 +1,96 @@
 <div class="axata-cockpit">
+  <!-- Executive Page Header -->
   <header class="page-header">
     <div class="header-titles">
-      <div class="header-badge-row">
-        <h2>AXATA Depo Kokpiti</h2>
+      <div class="header-kicker-row">
+        <span class="section-kicker">Depo &amp; Lojistik Operasyonları</span>
         <span class="live-pill">
           <i class="fa fa-circle" aria-hidden="true"></i>
           Merkez Depo · No {{ overview()?.metadata?.warehouseNo ?? 50 }}
         </span>
       </div>
+      <div class="header-badge-row">
+        <h2>AXATA Depo Kokpiti</h2>
+        <div class="header-summary-pills">
+          <span class="head-chip">
+            Sipariş: <strong>{{ orderCandidates().length }}</strong>
+          </span>
+          <span class="head-chip">
+            Sevk: <strong>{{ deliveryCandidates().length }}</strong>
+          </span>
+          @if (interventionDeliveries().length > 0) {
+            <span class="head-chip head-chip-warning">
+              <i class="fa fa-triangle-exclamation" aria-hidden="true"></i>
+              Müdahale: <strong>{{ interventionDeliveries().length }}</strong>
+            </span>
+          }
+        </div>
+      </div>
       <p>Merkez deponun günlük aktarım işleri, canlı operasyon takibi ve uçtan uca evrak mutabakatı</p>
     </div>
+
     <div class="header-actions">
-      <button type="button" class="icon-button" title="Verileri yenile" [disabled]="loading() || actionLoading()" (click)="refreshActiveTab()">
+      <a
+        routerLink="/docs/api/axata-senkronizasyonu"
+        class="advanced-link"
+        title="Gelişmiş Senkronizasyon Ekranı"
+      >
+        <i class="fa fa-sliders" aria-hidden="true"></i>
+        <span>Gelişmiş AXATA Ekranı</span>
+      </a>
+      <button
+        type="button"
+        class="refresh-btn"
+        title="Verileri yenile"
+        [disabled]="loading() || actionLoading()"
+        (click)="refreshActiveTab()"
+      >
         <i class="fa fa-rotate-right" [class.fa-spin]="loading() || actionLoading()" aria-hidden="true"></i>
+        <span>{{ loading() || actionLoading() ? 'Yenileniyor...' : 'Yenile' }}</span>
       </button>
     </div>
   </header>
 
+  <!-- Segmented Navigation Tabs -->
   <nav class="cockpit-tabs" aria-label="AXATA depo kokpiti bölümleri">
     <button type="button" [class.active]="activeTab === 'actions'" (click)="setTab('actions')">
-      <i class="fa fa-bolt" aria-hidden="true"></i> Kolay İşlem Masası
+      <i class="fa fa-bolt" aria-hidden="true"></i>
+      <span>Kolay İşlem Masası</span>
       @if (orderCandidates().length + deliveryCandidates().length > 0) {
         <span class="tab-badge">{{ orderCandidates().length + deliveryCandidates().length }}</span>
       }
+      @if (interventionDeliveries().length > 0) {
+        <span class="tab-badge warning" title="Müdahale bekleyen sevk sayısı">
+          {{ interventionDeliveries().length }}
+        </span>
+      }
     </button>
     <button type="button" [class.active]="activeTab === 'documents'" (click)="setTab('documents')">
-      <i class="fa fa-file-lines" aria-hidden="true"></i> AXATA Evrakları
+      <i class="fa fa-file-lines" aria-hidden="true"></i>
+      <span>AXATA Evrakları</span>
       @if (documents(); as docs) {
         <span class="tab-badge neutral">{{ docs.totalCount }}</span>
       }
     </button>
     <button type="button" [class.active]="activeTab === 'overview'" (click)="setTab('overview')">
-      <i class="fa fa-tower-broadcast" aria-hidden="true"></i> Canlı Operasyon
+      <i class="fa fa-tower-broadcast" aria-hidden="true"></i>
+      <span>Canlı Operasyon</span>
     </button>
     <button type="button" [class.active]="activeTab === 'trace'" (click)="setTab('trace')">
-      <i class="fa fa-magnifying-glass" aria-hidden="true"></i> Evrak İzleme
+      <i class="fa fa-magnifying-glass" aria-hidden="true"></i>
+      <span>Evrak İzleme</span>
     </button>
     <button type="button" [class.active]="activeTab === 'performance'" (click)="setTab('performance')">
-      <i class="fa fa-chart-simple" aria-hidden="true"></i> Toplama Performansı
+      <i class="fa fa-chart-simple" aria-hidden="true"></i>
+      <span>Toplama Performansı</span>
     </button>
     <button type="button" [class.active]="activeTab === 'fillrate'" (click)="setTab('fillrate')">
-      <i class="fa fa-bullseye" aria-hidden="true"></i> Karşılama Oranı
+      <i class="fa fa-bullseye" aria-hidden="true"></i>
+      <span>Karşılama Oranı</span>
     </button>
     <button type="button" [class.active]="activeTab === 'capacity'" (click)="setTab('capacity')">
-      <i class="fa fa-boxes-stacked" aria-hidden="true"></i> Raf Kapasitesi
+      <i class="fa fa-boxes-stacked" aria-hidden="true"></i>
+      <span>Raf Kapasitesi</span>
     </button>
   </nav>
 
@@ -54,73 +101,98 @@
     </div>
   }
   @if (loading()) {
-    <div class="status-message loading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> AXATA verileri yükleniyor...</div>
+    <div class="status-message loading">
+      <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+      <span>AXATA verileri yükleniyor...</span>
+    </div>
   }
 
+  <!-- TAB 1: KOLAY İŞLEM MASASI -->
   @if (activeTab === 'actions') {
     <div class="action-toolbar">
-      <div class="toolbar-date-group">
-        <label for="action-date">Evrak tarihi</label>
-        <input id="action-date" type="date" [(ngModel)]="actionDate" (change)="loadActionDesk()" />
-        <div class="preset-chips">
-          <button type="button" class="preset-btn" (click)="setActionDatePreset(0)">Bugün</button>
-          <button type="button" class="preset-btn" (click)="setActionDatePreset(1)">Dün</button>
-          <button type="button" class="preset-btn" (click)="setActionDatePreset(2)">2 Gün Önce</button>
+      <div class="toolbar-field-group">
+        <div class="field-item">
+          <label class="field-label" for="action-date">Evrak Tarihi</label>
+          <input id="action-date" type="date" [(ngModel)]="actionDate" (change)="loadActionDesk()" />
+        </div>
+        <div class="field-item">
+          <span class="field-label">Hızlı Seçim</span>
+          <div class="preset-chips">
+            <button type="button" class="preset-btn" (click)="setActionDatePreset(0)">Bugün</button>
+            <button type="button" class="preset-btn" (click)="setActionDatePreset(1)">Dün</button>
+            <button type="button" class="preset-btn" (click)="setActionDatePreset(2)">2 Gün Önce</button>
+          </div>
         </div>
       </div>
+
       <div class="toolbar-search-group">
-        <label for="action-search">Evrak ara</label>
-        <div class="search-input-wrap">
-          <input id="action-search" type="search" [(ngModel)]="actionSearchTerm" placeholder="Sipariş, sevk veya mağaza..." />
-          @if (actionSearchTerm) {
-            <button type="button" class="clear-search-btn" (click)="actionSearchTerm = ''" title="Aramayı temizle">
-              <i class="fa fa-times" aria-hidden="true"></i>
-            </button>
-          }
+        <div class="field-item search-field-item">
+          <label class="field-label" for="action-search">Tablo İçi Hızlı Arama</label>
+          <div class="search-input-wrap">
+            <i class="fa fa-magnifying-glass search-lead-icon" aria-hidden="true"></i>
+            <input
+              id="action-search"
+              type="search"
+              [(ngModel)]="actionSearchTerm"
+              placeholder="Sipariş no, sevk no, mağaza veya açıklama..."
+            />
+            @if (actionSearchTerm) {
+              <button
+                type="button"
+                class="clear-search-btn"
+                (click)="actionSearchTerm = ''"
+                title="Aramayı temizle"
+              >
+                <i class="fa fa-times" aria-hidden="true"></i>
+              </button>
+            }
+          </div>
         </div>
-      </div>
-      <div class="toolbar-actions">
-        <button type="button" class="icon-button" title="Listeleri yenile" [disabled]="actionLoading()" (click)="loadActionDesk()">
-          <i class="fa fa-rotate-right" [class.fa-spin]="actionLoading()" aria-hidden="true"></i>
-        </button>
-        <a routerLink="/docs/api/axata-senkronizasyonu" class="advanced-link" title="Gelişmiş Senkronizasyon Ekranı">
-          <i class="fa fa-sliders" aria-hidden="true"></i> Gelişmiş AXATA ekranı
-        </a>
       </div>
     </div>
 
     <!-- Summary KPI Row for Action Desk -->
     <section class="metric-grid compact desk-kpi-grid">
       <article class="desk-kpi-card outbound-kpi">
-        <div class="desk-kpi-icon"><i class="fa fa-arrow-right" aria-hidden="true"></i></div>
+        <div class="desk-kpi-icon"><i class="fa fa-paper-plane" aria-hidden="true"></i></div>
         <div class="desk-kpi-info">
           <span>Terminale Gönderilecek Sipariş</span>
-          <strong>{{ orderCandidates().length }} <small>adet</small></strong>
+          <strong>{{ orderCandidates().length }} <small>evrak</small></strong>
           <small class="kpi-sub">{{ totalOrderQuantity() | number:'1.0-3' }} toplam miktar</small>
         </div>
       </article>
       <article class="desk-kpi-card inbound-kpi">
-        <div class="desk-kpi-icon"><i class="fa fa-arrow-left" aria-hidden="true"></i></div>
+        <div class="desk-kpi-icon"><i class="fa fa-truck-fast" aria-hidden="true"></i></div>
         <div class="desk-kpi-info">
           <span>Mikro Fişi Bekleyen Sevk</span>
-          <strong>{{ deliveryCandidates().length }} <small>adet</small></strong>
+          <strong>{{ deliveryCandidates().length }} <small>evrak</small></strong>
           <small class="kpi-sub">{{ totalDeliveryQuantity() | number:'1.0-3' }} toplam miktar</small>
         </div>
       </article>
-      <article class="desk-kpi-card attention-kpi">
-        <div class="desk-kpi-icon"><i class="fa fa-triangle-exclamation" aria-hidden="true"></i></div>
+      <article
+        class="desk-kpi-card attention-kpi"
+        [class.has-warning]="interventionDeliveries().length > 0"
+      >
+        <div class="desk-kpi-icon"><i class="fa fa-shield-halved" aria-hidden="true"></i></div>
         <div class="desk-kpi-info">
           <span>Müdahale Bekleyen Sevk</span>
-          <strong>{{ interventionDeliveries().length }} <small>takılan</small></strong>
-          <small class="kpi-sub">Kuyruk mutabakatı gerekli</small>
+          <strong>{{ interventionDeliveries().length }} <small>kayıt</small></strong>
+          <small class="kpi-sub">
+            {{ interventionDeliveries().length > 0 ? 'Kuyruk mutabakatı gerekli' : 'Takılan evrak bulunmuyor' }}
+          </small>
         </div>
       </article>
       <article class="desk-kpi-card selection-kpi">
         <div class="desk-kpi-icon"><i class="fa fa-check-double" aria-hidden="true"></i></div>
         <div class="desk-kpi-info">
-          <span>Seçilen Evrak Toplamı</span>
-          <strong>{{ selectedOrderReferences().size + selectedDeliveryReferences().size }} <small>seçili</small></strong>
-          <small class="kpi-sub">{{ selectedOrderReferences().size }} sipariş / {{ selectedDeliveryReferences().size }} sevk</small>
+          <span>İşlem İçin Seçilen</span>
+          <strong>
+            {{ selectedOrderReferences().size + selectedDeliveryReferences().size }}
+            <small>seçili</small>
+          </strong>
+          <small class="kpi-sub">
+            {{ selectedOrderReferences().size }} sipariş · {{ selectedDeliveryReferences().size }} sevk
+          </small>
         </div>
       </article>
     </section>
@@ -138,55 +210,96 @@
       </div>
     }
     @if (actionLoading()) {
-      <div class="status-message loading"><i class="fa fa-spinner fa-spin" aria-hidden="true"></i> İşlem sürüyor...</div>
+      <div class="status-message loading">
+        <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
+        <span>İşlem yürütülüyor, lütfen bekleyin...</span>
+      </div>
     }
 
     <section class="action-desk">
       <!-- 1. KAPI: Sipariş Gönder -->
       <article class="action-card outbound">
         <div class="action-card-header">
-          <div class="action-icon"><i class="fa fa-arrow-right" aria-hidden="true"></i></div>
+          <div class="action-icon"><i class="fa fa-arrow-right-to-bracket" aria-hidden="true"></i></div>
           <div class="action-copy">
-            <span class="step-label">1. KAPI · ÇIKIŞ</span>
+            <div class="action-title-line">
+              <span class="step-label">1. KAPI · ÇIKIŞ</span>
+              <span class="card-selection-badge" [class.has-selection]="selectedOrderReferences().size > 0">
+                {{ selectedOrderReferences().size }} / {{ filteredOrderCandidates().length }} seçili
+              </span>
+            </div>
             <h3>Mikro'dan AXATA'ya Sipariş Gönder</h3>
-            <p>Açık depo ve firma siparişlerini el terminallerine toplama işi olarak iletir.</p>
-          </div>
-          <div class="card-selection-badge">
-            {{ selectedOrderReferences().size }} / {{ filteredOrderCandidates().length }} seçili
+            <p>Açık depo ve firma siparişlerini el terminallerine toplama emri olarak iletir.</p>
           </div>
         </div>
+
         <div class="action-table table-wrap">
           <table>
             <thead>
               <tr>
-                <th class="col-checkbox"><input type="checkbox" title="Tümünü seç" (change)="toggleAllOrders()" /></th>
-                <th>Tür</th><th>Evrak</th><th>Özet</th><th>Tarih</th><th>Kalem</th><th>Miktar</th>
+                <th class="col-checkbox">
+                  <input
+                    type="checkbox"
+                    title="Tümünü seç / bırak"
+                    [checked]="filteredOrderCandidates().length > 0 && selectedOrderReferences().size === filteredOrderCandidates().length"
+                    (change)="toggleAllOrders()"
+                  />
+                </th>
+                <th>Tür</th>
+                <th>Evrak No</th>
+                <th>Mağaza / Özet</th>
+                <th>Tarih</th>
+                <th class="num-col">Kalem</th>
+                <th class="num-col">Miktar</th>
               </tr>
             </thead>
             <tbody>
               @for (item of filteredOrderCandidates(); track item.taskCode + ':' + item.documentReference) {
-                <tr [class.selected-row]="isOrderSelected(item)">
-                  <td class="col-checkbox"><input type="checkbox" [checked]="isOrderSelected(item)" (change)="toggleOrder(item)" /></td>
+                <tr
+                  class="clickable-row"
+                  [class.selected-row]="isOrderSelected(item)"
+                  (click)="toggleOrder(item)"
+                >
+                  <td class="col-checkbox" (click)="$event.stopPropagation()">
+                    <input
+                      type="checkbox"
+                      [checked]="isOrderSelected(item)"
+                      (change)="toggleOrder(item)"
+                    />
+                  </td>
                   <td><span class="type-pill">{{ item.typeLabel }}</span></td>
-                  <td><strong>{{ item.documentReference }}</strong></td>
+                  <td><strong class="doc-ref">{{ item.documentReference }}</strong></td>
                   <td class="wrap-cell">{{ item.summary }}</td>
-                  <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
-                  <td>{{ item.lineCount }}</td>
-                  <td><strong>{{ item.totalQuantity | number:'1.0-3' }}</strong></td>
+                  <td class="muted-cell">{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
+                  <td class="num-col">{{ item.lineCount }}</td>
+                  <td class="num-col"><strong>{{ item.totalQuantity | number:'1.0-3' }}</strong></td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="empty-cell">Seçilen tarihte gönderilmeyi bekleyen açık sipariş bulunmuyor.</td></tr>
+                <tr>
+                  <td colspan="7" class="empty-cell">
+                    <div class="empty-inline">
+                      <i class="fa fa-circle-check" aria-hidden="true"></i>
+                      <span>Seçilen tarihte terminale gönderilmeyi bekleyen açık sipariş bulunmuyor.</span>
+                    </div>
+                  </td>
+                </tr>
               }
             </tbody>
           </table>
         </div>
+
         <div class="card-footer-action">
-          <button type="button" class="command-button primary" [disabled]="actionLoading() || selectedOrderReferences().size === 0" (click)="dispatchSelectedOrders()">
+          <div class="footer-meta">
+            <span>Seçili Miktar: <strong>{{ selectedOrderQuantity() | number:'1.0-3' }}</strong></span>
+          </div>
+          <button
+            type="button"
+            class="command-button primary"
+            [disabled]="actionLoading() || selectedOrderReferences().size === 0"
+            (click)="dispatchSelectedOrders()"
+          >
             <i class="fa fa-paper-plane" aria-hidden="true"></i>
-            Seçilen {{ selectedOrderReferences().size }} Siparişi Terminale Gönder
-            @if (selectedOrderQuantity() > 0) {
-              <span class="btn-qty-badge">({{ selectedOrderQuantity() | number:'1.0-3' }} miktar)</span>
-            }
+            <span>Seçilen {{ selectedOrderReferences().size }} Siparişi Terminale Gönder</span>
           </button>
         </div>
       </article>
@@ -194,48 +307,86 @@
       <!-- 2. KAPI: Sevk Fişi Oluştur -->
       <article class="action-card inbound">
         <div class="action-card-header">
-          <div class="action-icon"><i class="fa fa-arrow-left" aria-hidden="true"></i></div>
+          <div class="action-icon"><i class="fa fa-truck-ramp-box" aria-hidden="true"></i></div>
           <div class="action-copy">
-            <span class="step-label">2. KAPI · GİRİŞ</span>
+            <div class="action-title-line">
+              <span class="step-label">2. KAPI · GİRİŞ</span>
+              <span class="card-selection-badge" [class.has-selection]="selectedDeliveryReferences().size > 0">
+                {{ selectedDeliveryReferences().size }} / {{ filteredDeliveryCandidates().length }} seçili
+              </span>
+            </div>
             <h3>AXATA'dan Mikro'ya Sevk Fişi Oluştur</h3>
             <p>AXATA'da yüklemesi tamamlanan sevkleri Mikro depolar arası sevk fişine dönüştürür.</p>
           </div>
-          <div class="card-selection-badge">
-            {{ selectedDeliveryReferences().size }} / {{ filteredDeliveryCandidates().length }} seçili
-          </div>
         </div>
+
         <div class="action-table table-wrap">
           <table>
             <thead>
               <tr>
-                <th class="col-checkbox"><input type="checkbox" title="Tümünü seç" (change)="toggleAllDeliveries()" /></th>
-                <th>Mikro Evrakı</th><th>AXATA Sevk</th><th>Tarih</th><th>Depolar</th><th>Kalem</th><th>Miktar</th>
+                <th class="col-checkbox">
+                  <input
+                    type="checkbox"
+                    title="Tümünü seç / bırak"
+                    [checked]="filteredDeliveryCandidates().length > 0 && selectedDeliveryReferences().size === filteredDeliveryCandidates().length"
+                    (change)="toggleAllDeliveries()"
+                  />
+                </th>
+                <th>Mikro Evrakı</th>
+                <th>AXATA Sevk</th>
+                <th>Tarih</th>
+                <th>Depo Rotası</th>
+                <th class="num-col">Kalem</th>
+                <th class="num-col">Miktar</th>
               </tr>
             </thead>
             <tbody>
               @for (item of filteredDeliveryCandidates(); track item.axataSequenceNo) {
-                <tr [class.selected-row]="isDeliverySelected(item)">
-                  <td class="col-checkbox"><input type="checkbox" [checked]="isDeliverySelected(item)" (change)="toggleDelivery(item)" /></td>
-                  <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
+                <tr
+                  class="clickable-row"
+                  [class.selected-row]="isDeliverySelected(item)"
+                  (click)="toggleDelivery(item)"
+                >
+                  <td class="col-checkbox" (click)="$event.stopPropagation()">
+                    <input
+                      type="checkbox"
+                      [checked]="isDeliverySelected(item)"
+                      (change)="toggleDelivery(item)"
+                    />
+                  </td>
+                  <td><strong class="doc-ref">{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
                   <td><span class="seq-pill">#{{ item.axataDeliveryNo }}</span></td>
-                  <td>{{ item.axataDate | date:'dd.MM.yyyy' }}</td>
+                  <td class="muted-cell">{{ item.axataDate | date:'dd.MM.yyyy' }}</td>
                   <td><span class="route-pill">{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</span></td>
-                  <td>{{ item.axataLineCount }}</td>
-                  <td><strong>{{ item.axataQuantity | number:'1.0-3' }}</strong></td>
+                  <td class="num-col">{{ item.axataLineCount }}</td>
+                  <td class="num-col"><strong>{{ item.axataQuantity | number:'1.0-3' }}</strong></td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="empty-cell">Seçilen tarihte Mikro fişi bekleyen tamamlanmış sevk bulunmuyor.</td></tr>
+                <tr>
+                  <td colspan="7" class="empty-cell">
+                    <div class="empty-inline">
+                      <i class="fa fa-circle-check" aria-hidden="true"></i>
+                      <span>Seçilen tarihte Mikro fişi bekleyen tamamlanmış sevk bulunmuyor.</span>
+                    </div>
+                  </td>
+                </tr>
               }
             </tbody>
           </table>
         </div>
+
         <div class="card-footer-action">
-          <button type="button" class="command-button success" [disabled]="actionLoading() || selectedDeliveryReferences().size === 0" (click)="importSelectedDeliveries()">
+          <div class="footer-meta">
+            <span>Seçili Miktar: <strong>{{ selectedDeliveryQuantity() | number:'1.0-3' }}</strong></span>
+          </div>
+          <button
+            type="button"
+            class="command-button success"
+            [disabled]="actionLoading() || selectedDeliveryReferences().size === 0"
+            (click)="importSelectedDeliveries()"
+          >
             <i class="fa fa-truck-fast" aria-hidden="true"></i>
-            Seçilen {{ selectedDeliveryReferences().size }} Sevki Mikro'ya Aktar
-            @if (selectedDeliveryQuantity() > 0) {
-              <span class="btn-qty-badge">({{ selectedDeliveryQuantity() | number:'1.0-3' }} miktar)</span>
-            }
+            <span>Seçilen {{ selectedDeliveryReferences().size }} Sevki Mikro'ya Aktar</span>
           </button>
         </div>
       </article>
@@ -244,7 +395,10 @@
     @if (deliveryImportProgress(); as progress) {
       <div class="status-message progress-box" role="status">
         <i class="fa fa-spinner fa-spin" aria-hidden="true"></i>
-        <span><strong>{{ progress.current }} / {{ progress.total }}</strong> sevk işleniyor: {{ progress.reference }}</span>
+        <span>
+          <strong>{{ progress.current }} / {{ progress.total }}</strong> sevk işleniyor:
+          <strong>{{ progress.reference }}</strong>
+        </span>
       </div>
     }
 
@@ -252,17 +406,33 @@
       <section class="data-section results-section">
         <div class="section-title-row">
           <h3><i class="fa fa-square-poll-vertical" aria-hidden="true"></i> Son Aktarım Sonuçları</h3>
+          <span class="range-info">{{ deliveryImportResults().length }} işlem sonucu</span>
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Evrak</th><th>Durum</th><th>Sonuç</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Evrak</th>
+                <th>Durum</th>
+                <th>Detay / Açıklama</th>
+              </tr>
+            </thead>
             <tbody>
               @for (result of deliveryImportResults(); track result.reference) {
                 <tr>
-                  <td><strong>{{ result.reference }}</strong></td>
+                  <td><strong class="doc-ref">{{ result.reference }}</strong></td>
                   <td>
-                    <span class="pill-badge" [class.badge-success]="result.success" [class.badge-danger]="!result.success">
-                      <i class="fa" [class.fa-check]="result.success" [class.fa-xmark]="!result.success" aria-hidden="true"></i>
+                    <span
+                      class="pill-badge"
+                      [class.badge-success]="result.success"
+                      [class.badge-danger]="!result.success"
+                    >
+                      <i
+                        class="fa"
+                        [class.fa-check]="result.success"
+                        [class.fa-xmark]="!result.success"
+                        aria-hidden="true"
+                      ></i>
                       {{ result.success ? 'Tamamlandı' : 'Hata' }}
                     </span>
                   </td>
@@ -287,8 +457,8 @@
               <tr>
                 <th>Mikro Evrakı</th>
                 <th>AXATA Sevk</th>
-                <th>Depolar</th>
-                <th>Durum</th>
+                <th>Depo Rotası</th>
+                <th>Kontrol Durumu</th>
                 <th>Açıklama</th>
                 <th class="col-actions">İşlem</th>
               </tr>
@@ -296,24 +466,45 @@
             <tbody>
               @for (item of filteredInterventionDeliveries(); track item.axataSequenceNo) {
                 <tr>
-                  <td><strong>{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
-                  <td><span class="seq-pill">#{{ item.axataDeliveryNo }}</span> <small class="text-muted">(#{{ item.axataSequenceNo }})</small></td>
+                  <td><strong class="doc-ref">{{ item.documentSerie }}/{{ item.documentOrderNo }}</strong></td>
+                  <td>
+                    <span class="seq-pill">#{{ item.axataDeliveryNo }}</span>
+                    <small class="text-muted"> (#{{ item.axataSequenceNo }})</small>
+                  </td>
                   <td><span class="route-pill">{{ item.sourceWarehouseNo }} → {{ item.targetWarehouseNo }}</span></td>
                   <td>
-                    <span class="pill-badge" [class.badge-warning]="item.mikroCheckState === 'MikroShipmentExistsPendingAck'" [class.badge-danger]="item.mikroCheckState === 'OrderNotFound' || item.mikroCheckState === 'OrderLineMismatch'" [class.badge-neutral]="item.mikroCheckState === 'CancelledInAxata' || item.mikroCheckState === 'EmptyAxataDelivery'">
+                    <span
+                      class="pill-badge"
+                      [class.badge-warning]="item.mikroCheckState === 'MikroShipmentExistsPendingAck'"
+                      [class.badge-danger]="item.mikroCheckState === 'OrderNotFound' || item.mikroCheckState === 'OrderLineMismatch'"
+                      [class.badge-neutral]="item.mikroCheckState === 'CancelledInAxata' || item.mikroCheckState === 'EmptyAxataDelivery'"
+                    >
                       {{ deliveryStateLabel(item) }}
                     </span>
                   </td>
                   <td class="wrap-cell text-muted">{{ item.warning || '-' }}</td>
                   <td class="col-actions">
-                    @if (canReconcileDelivery(item)) {
-                      <button type="button" class="btn-action primary" [disabled]="actionLoading()" (click)="reconcileDelivery(item)" title="Mikro fişi doğrulanmış sevk kuyruğunu güvenle kapatır">
-                        <i class="fa fa-check" aria-hidden="true"></i> Doğrula ve Kuyruğu Kapat
+                    <div class="row-action-group">
+                      @if (canReconcileDelivery(item)) {
+                        <button
+                          type="button"
+                          class="btn-action primary"
+                          [disabled]="actionLoading()"
+                          (click)="reconcileDelivery(item)"
+                          title="Mikro fişi doğrulanmış sevk kuyruğunu güvenle kapatır"
+                        >
+                          <i class="fa fa-check" aria-hidden="true"></i> Doğrula ve Kapat
+                        </button>
+                      }
+                      <button
+                        type="button"
+                        class="btn-action secondary"
+                        (click)="traceDelivery(item)"
+                        title="Evrakın detaylı geçmişini izle"
+                      >
+                        <i class="fa fa-eye" aria-hidden="true"></i> İzle
                       </button>
-                    }
-                    <button type="button" class="btn-action secondary" (click)="traceDelivery(item)" title="Evrakın detaylı geçmişini izle">
-                      <i class="fa fa-eye" aria-hidden="true"></i> İzle
-                    </button>
+                    </div>
                   </td>
                 </tr>
               }
@@ -323,58 +514,85 @@
       </section>
     }
 
-    <p class="desk-note"><i class="fa fa-circle-check" aria-hidden="true"></i> Canlı yazma işlemleri mevcut güvenli AXATA senkronizasyon servisini kullanır. Bu kokpit ikinci bir yazma yolu oluşturmaz.</p>
+    <p class="desk-note">
+      <i class="fa fa-shield-halved" aria-hidden="true"></i>
+      <span>Canlı yazma işlemleri mevcut güvenli AXATA senkronizasyon servisini kullanır; mükerrer kayıt koruması aktiftir.</span>
+    </p>
   }
 
+  <!-- TAB 2: AXATA EVRAKLARI -->
   @if (activeTab === 'documents') {
     <div class="filter-bar">
-      <div class="filter-row-top">
-        <div class="filter-group">
-          <label>Başlangıç <input type="date" [(ngModel)]="documentStartDate" /></label>
-          <label>Bitiş <input type="date" [(ngModel)]="documentEndDate" /></label>
+      <div class="filter-grid">
+        <div class="field-item">
+          <label class="field-label">Başlangıç</label>
+          <input type="date" [(ngModel)]="documentStartDate" />
         </div>
-        <div class="preset-chips">
-          <button type="button" class="preset-btn" (click)="setDocumentDay(0)">Bugün</button>
-          <button type="button" class="preset-btn" (click)="setDocumentDay(1)">Dün</button>
-          <button type="button" class="preset-btn" (click)="setDocumentRange(6)">Son 7 Gün</button>
-          <button type="button" class="preset-btn" (click)="setDocumentThisMonth()">Bu Ay</button>
+        <div class="field-item">
+          <label class="field-label">Bitiş</label>
+          <input type="date" [(ngModel)]="documentEndDate" />
         </div>
-        <div class="filter-group">
-          <label>Evrak tipi
-            <select [(ngModel)]="documentType" (change)="loadDocuments()">
-              <option value="all">Tüm evraklar</option>
-              <option value="Order">Siparişler</option>
-              <option value="Shipment">Sevkler</option>
-              <option value="Receiving">Mal kabuller</option>
-            </select>
-          </label>
-          <label>Durum
-            <select [(ngModel)]="documentStatus" (change)="loadDocuments()">
-              <option value="all">Tüm durumlar</option>
-              <option value="pending">Bekleyen</option>
-              <option value="processing">İşlemde</option>
-              <option value="completed">Tamamlanan</option>
-              <option value="in-transit">Yoldaki mallar</option>
-            </select>
-          </label>
+        <div class="field-item">
+          <span class="field-label">Hızlı Tarih</span>
+          <div class="preset-chips">
+            <button type="button" class="preset-btn" (click)="setDocumentDay(0)">Bugün</button>
+            <button type="button" class="preset-btn" (click)="setDocumentDay(1)">Dün</button>
+            <button type="button" class="preset-btn" (click)="setDocumentRange(6)">Son 7 Gün</button>
+            <button type="button" class="preset-btn" (click)="setDocumentThisMonth()">Bu Ay</button>
+          </div>
         </div>
-        <div class="filter-group filter-search-wrap">
-          <label>Arama <input type="search" [(ngModel)]="documentSearchTerm" placeholder="Evrak, mağaza veya plaka..." (keyup.enter)="loadDocuments()" /></label>
-          <button type="button" class="command-button primary compact-btn" (click)="loadDocuments()" [disabled]="loading()">
-            <i class="fa fa-search" aria-hidden="true"></i> Listele
-          </button>
+        <div class="field-item">
+          <label class="field-label">Evrak Tipi</label>
+          <select [(ngModel)]="documentType" (change)="loadDocuments()">
+            <option value="all">Tüm evraklar</option>
+            <option value="Order">Siparişler</option>
+            <option value="Shipment">Sevkler</option>
+            <option value="Receiving">Mal kabuller</option>
+          </select>
+        </div>
+        <div class="field-item">
+          <label class="field-label">Durum</label>
+          <select [(ngModel)]="documentStatus" (change)="loadDocuments()">
+            <option value="all">Tüm durumlar</option>
+            <option value="pending">Bekleyen</option>
+            <option value="processing">İşlemde</option>
+            <option value="completed">Tamamlanan</option>
+            <option value="in-transit">Yoldaki mallar</option>
+          </select>
+        </div>
+        <div class="field-item search-field-item">
+          <label class="field-label">Arama</label>
+          <div class="search-action-inline">
+            <div class="search-input-wrap">
+              <i class="fa fa-magnifying-glass search-lead-icon" aria-hidden="true"></i>
+              <input
+                type="search"
+                [(ngModel)]="documentSearchTerm"
+                placeholder="Evrak, mağaza veya plaka..."
+                (keyup.enter)="loadDocuments()"
+              />
+            </div>
+            <button
+              type="button"
+              class="command-button primary compact-btn"
+              (click)="loadDocuments()"
+              [disabled]="loading()"
+            >
+              <i class="fa fa-search" aria-hidden="true"></i> Listele
+            </button>
+          </div>
         </div>
       </div>
     </div>
 
     @if (documents(); as list) {
       <section class="metric-grid compact">
-        <article class="stat-card">
+        <article class="stat-card stat-accent-blue">
           <span>Toplam Evrak</span>
           <strong>{{ list.totalCount }}</strong>
           <small>Sorgu aralığı</small>
         </article>
-        <article class="stat-card">
+        <article class="stat-card stat-accent-teal">
           <span>Listelenen</span>
           <strong>{{ list.items.length }}</strong>
           <small>Mevcut sayfa</small>
@@ -384,32 +602,53 @@
           <strong>{{ inTransitDocumentCount() }}</strong>
           <small>Merkeze yönelmiş / kabul bekleyen</small>
         </article>
-        <article class="stat-card">
-          <span>Kaynak</span>
-          <strong>AXATA</strong>
+        <article class="stat-card stat-accent-purple">
+          <span>Veri Kaynağı</span>
+          <strong>AXATA WMS</strong>
           <small>Salt okunur canlı veri</small>
         </article>
       </section>
 
       <section class="data-section">
         <div class="section-title-row">
-          <h3>AXATA Sipariş, Sevk ve Mal Kabul Evrakları</h3>
-          <span class="range-info">{{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }} evrak</span>
+          <h3><i class="fa fa-file-lines" aria-hidden="true"></i> AXATA Sipariş, Sevk ve Mal Kabul Evrakları</h3>
+          <span class="range-info">
+            {{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }} evrak
+          </span>
         </div>
         <div class="table-wrap">
           <table>
             <thead>
               <tr>
-                <th>Tür</th><th>Evrak No</th><th>Hareket</th><th>Tarih</th><th>Kaynak</th><th>Hedef</th><th>Durum</th><th>Kalem</th><th>Miktar</th><th>Plaka</th><th class="col-actions">İşlem</th>
+                <th>Tür</th>
+                <th>Evrak No</th>
+                <th>Hareket</th>
+                <th>Tarih</th>
+                <th>Kaynak</th>
+                <th>Hedef</th>
+                <th>Durum</th>
+                <th class="num-col">Kalem</th>
+                <th class="num-col">Miktar</th>
+                <th>Plaka</th>
+                <th class="col-actions">İşlem</th>
               </tr>
             </thead>
             <tbody>
               @for (item of list.items; track item.documentKey) {
                 <tr [class.in-transit-row]="item.isInTransit">
-                  <td><span class="type-pill" [class.order]="item.documentType === 'Order'" [class.shipment]="item.documentType === 'Shipment'" [class.receiving]="item.documentType === 'Receiving'">{{ item.documentTypeDescription }}</span></td>
-                  <td><strong>{{ item.documentNo }}</strong></td>
+                  <td>
+                    <span
+                      class="type-pill"
+                      [class.order]="item.documentType === 'Order'"
+                      [class.shipment]="item.documentType === 'Shipment'"
+                      [class.receiving]="item.documentType === 'Receiving'"
+                    >
+                      {{ item.documentTypeDescription }}
+                    </span>
+                  </td>
+                  <td><strong class="doc-ref">{{ item.documentNo }}</strong></td>
                   <td><span class="seq-pill">{{ item.movementType || '-' }}</span></td>
-                  <td>{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
+                  <td class="muted-cell">{{ item.documentDate | date:'dd.MM.yyyy' }}</td>
                   <td>{{ item.sourceCode || '-' }} {{ item.sourceName || '' }}</td>
                   <td>{{ item.targetCode || '-' }} {{ item.targetName || '' }}</td>
                   <td>
@@ -418,15 +657,19 @@
                         <i class="fa fa-truck-moving fa-fade" aria-hidden="true"></i> Yolda / Kabul Bekliyor
                       </span>
                     } @else if (item.flowState === 'Completed') {
-                      <span class="pill-badge badge-success"><i class="fa fa-check" aria-hidden="true"></i> {{ item.statusDescription }}</span>
+                      <span class="pill-badge badge-success">
+                        <i class="fa fa-check" aria-hidden="true"></i> {{ item.statusDescription }}
+                      </span>
                     } @else if (item.flowState === 'Processing') {
-                      <span class="pill-badge badge-info"><i class="fa fa-clock" aria-hidden="true"></i> {{ item.statusDescription }}</span>
+                      <span class="pill-badge badge-info">
+                        <i class="fa fa-clock" aria-hidden="true"></i> {{ item.statusDescription }}
+                      </span>
                     } @else {
                       <span class="pill-badge badge-neutral">{{ item.statusDescription }}</span>
                     }
                   </td>
-                  <td>{{ item.lineCount }}</td>
-                  <td><strong>{{ item.quantity | number:'1.0-3' }}</strong></td>
+                  <td class="num-col">{{ item.lineCount }}</td>
+                  <td class="num-col"><strong>{{ item.quantity | number:'1.0-3' }}</strong></td>
                   <td><span class="plate-pill">{{ item.vehiclePlate || '-' }}</span></td>
                   <td class="col-actions">
                     <button type="button" class="btn-action secondary" (click)="traceDocument(item)">
@@ -435,17 +678,31 @@
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="11" class="empty-cell">Seçilen filtrelerde AXATA evrakı bulunamadı.</td></tr>
+                <tr>
+                  <td colspan="11" class="empty-cell">Seçilen filtrelerde AXATA evrakı bulunamadı.</td>
+                </tr>
               }
             </tbody>
           </table>
         </div>
         <div class="pager">
-          <button type="button" class="btn-action secondary" [disabled]="documentSkip === 0 || loading()" (click)="previousDocumentPage()">
+          <button
+            type="button"
+            class="btn-action secondary"
+            [disabled]="documentSkip === 0 || loading()"
+            (click)="previousDocumentPage()"
+          >
             <i class="fa fa-chevron-left" aria-hidden="true"></i> Önceki
           </button>
-          <span class="pager-text">{{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }}</span>
-          <button type="button" class="btn-action secondary" [disabled]="documentSkip + list.items.length >= list.totalCount || loading()" (click)="nextDocumentPage()">
+          <span class="pager-text">
+            {{ list.totalCount === 0 ? 0 : documentSkip + 1 }} - {{ documentSkip + list.items.length }} / {{ list.totalCount }}
+          </span>
+          <button
+            type="button"
+            class="btn-action secondary"
+            [disabled]="documentSkip + list.items.length >= list.totalCount || loading()"
+            (click)="nextDocumentPage()"
+          >
             Sonraki <i class="fa fa-chevron-right" aria-hidden="true"></i>
           </button>
         </div>
@@ -453,45 +710,78 @@
     }
   }
 
+  <!-- TAB 3: CANLI OPERASYON -->
   @if (activeTab === 'overview') {
     <div class="filter-bar">
-      <div class="filter-group">
-        <label>Operasyon tarihi <input type="date" [(ngModel)]="selectedDate" /></label>
-        <button type="button" class="preset-btn" (click)="setOverviewToday()">Bugün</button>
-        <button type="button" class="command-button primary compact-btn" (click)="loadOverview()" [disabled]="loading()">
-          <i class="fa fa-refresh" aria-hidden="true"></i> Göster
-        </button>
+      <div class="filter-grid">
+        <div class="field-item">
+          <label class="field-label">Operasyon Tarihi</label>
+          <input type="date" [(ngModel)]="selectedDate" />
+        </div>
+        <div class="field-item">
+          <span class="field-label">Hızlı Seçim</span>
+          <div class="preset-chips">
+            <button type="button" class="preset-btn" (click)="setOverviewToday()">Bugün</button>
+            <button
+              type="button"
+              class="command-button primary compact-btn"
+              (click)="loadOverview()"
+              [disabled]="loading()"
+            >
+              <i class="fa fa-rotate" aria-hidden="true"></i> Göster
+            </button>
+          </div>
+        </div>
       </div>
     </div>
+
     @if (overview(); as data) {
       <section class="metric-grid">
         <article class="stat-card stat-accent-blue">
-          <div class="stat-header"><i class="fa fa-boxes-stacked" aria-hidden="true"></i><span>Toplama Bekleyen</span></div>
+          <div class="stat-header">
+            <i class="fa fa-boxes-stacked" aria-hidden="true"></i>
+            <span>Toplama Bekleyen</span>
+          </div>
           <strong>{{ data.outbound.pendingOrderCount }}</strong>
           <small>Açık mağaza siparişi</small>
         </article>
         <article class="stat-card stat-accent-amber">
-          <div class="stat-header"><i class="fa fa-truck-ramp-box" aria-hidden="true"></i><span>Aktif Yükleme</span></div>
+          <div class="stat-header">
+            <i class="fa fa-truck-ramp-box" aria-hidden="true"></i>
+            <span>Aktif Yükleme</span>
+          </div>
           <strong>{{ data.outbound.pickingOrderCount }}</strong>
           <small>Rampada devam eden sevk</small>
         </article>
         <article class="stat-card stat-accent-green">
-          <div class="stat-header"><i class="fa fa-truck-fast" aria-hidden="true"></i><span>Sevk Edilen</span></div>
+          <div class="stat-header">
+            <i class="fa fa-truck-fast" aria-hidden="true"></i>
+            <span>Sevk Edilen</span>
+          </div>
           <strong>{{ data.outbound.shippedTodayCount }}</strong>
           <small>{{ data.outbound.shippedTodayQty | number:'1.0-3' }} miktar sevk edildi</small>
         </article>
         <article class="stat-card stat-accent-purple">
-          <div class="stat-header"><i class="fa fa-clock-rotate-left" aria-hidden="true"></i><span>Kuyrukta Bekleyen</span></div>
+          <div class="stat-header">
+            <i class="fa fa-clock-rotate-left" aria-hidden="true"></i>
+            <span>Kuyrukta Bekleyen</span>
+          </div>
           <strong>{{ data.queues.outboundWaitingIntegrationCount + data.queues.inboundWaitingIntegrationCount }}</strong>
           <small>AXATA entegrasyon kuyruğu</small>
         </article>
         <article class="stat-card stat-accent-teal">
-          <div class="stat-header"><i class="fa fa-inbox" aria-hidden="true"></i><span>Kabul Bekleyen</span></div>
+          <div class="stat-header">
+            <i class="fa fa-inbox" aria-hidden="true"></i>
+            <span>Kabul Bekleyen</span>
+          </div>
           <strong>{{ data.inbound.pendingReceivingCount }}</strong>
           <small>Giriş mal kabul siparişi</small>
         </article>
         <article class="stat-card stat-accent-cyan">
-          <div class="stat-header"><i class="fa fa-clipboard-check" aria-hidden="true"></i><span>Kabul Tamamlanan</span></div>
+          <div class="stat-header">
+            <i class="fa fa-clipboard-check" aria-hidden="true"></i>
+            <span>Kabul Tamamlanan</span>
+          </div>
           <strong>{{ data.inbound.completedTodayCount }}</strong>
           <small>Seçilen gün tamamlandı</small>
         </article>
@@ -505,21 +795,31 @@
         <div class="table-wrap">
           <table>
             <thead>
-              <tr><th>Sevk</th><th>Hedef Mağaza</th><th>Plaka</th><th>Rampa</th><th>Toplayıcı</th><th>Başlangıç</th><th>Kalem</th></tr>
+              <tr>
+                <th>Sevk No</th>
+                <th>Hedef Mağaza</th>
+                <th>Plaka</th>
+                <th>Rampa</th>
+                <th>Toplayıcı</th>
+                <th>Başlangıç</th>
+                <th class="num-col">Kalem</th>
+              </tr>
             </thead>
             <tbody>
               @for (item of data.activeLoadings; track item.shipmentYear + '-' + item.shipmentNo) {
                 <tr>
-                  <td><strong>{{ item.shipmentYear }}/{{ item.shipmentNo }}</strong></td>
+                  <td><strong class="doc-ref">{{ item.shipmentYear }}/{{ item.shipmentNo }}</strong></td>
                   <td>{{ item.destinationCode }} - {{ item.destinationName || '-' }}</td>
                   <td><span class="plate-pill">{{ item.plate || '-' }}</span></td>
                   <td><span class="ramp-pill">{{ item.ramp || '-' }}</span></td>
                   <td>{{ item.picker || '-' }}</td>
-                  <td>{{ item.startTime || '-' }}</td>
-                  <td><strong>{{ item.lineCount }}</strong></td>
+                  <td class="muted-cell">{{ item.startTime || '-' }}</td>
+                  <td class="num-col"><strong>{{ item.lineCount }}</strong></td>
                 </tr>
               } @empty {
-                <tr><td colspan="7" class="empty-cell">Seçilen tarihte devam eden rampa yüklemesi yok.</td></tr>
+                <tr>
+                  <td colspan="7" class="empty-cell">Seçilen tarihte devam eden rampa yüklemesi bulunmuyor.</td>
+                </tr>
               }
             </tbody>
           </table>
@@ -533,15 +833,24 @@
         </div>
         <div class="table-wrap">
           <table>
-            <thead><tr><th>Sipariş</th><th>Hedef Mağaza</th><th>Tarih</th><th>Kalem</th><th>Miktar</th><th class="col-actions">İşlem</th></tr></thead>
+            <thead>
+              <tr>
+                <th>Sipariş No</th>
+                <th>Hedef Mağaza</th>
+                <th>Tarih</th>
+                <th class="num-col">Kalem</th>
+                <th class="num-col">Miktar</th>
+                <th class="col-actions">İşlem</th>
+              </tr>
+            </thead>
             <tbody>
               @for (item of data.pendingOrders; track item.orderNo) {
                 <tr>
-                  <td><strong>{{ item.orderNo }}</strong></td>
+                  <td><strong class="doc-ref">{{ item.orderNo }}</strong></td>
                   <td>{{ item.targetCode }} - {{ item.targetName || '-' }}</td>
-                  <td>{{ item.orderDate | date:'dd.MM.yyyy' }}</td>
-                  <td>{{ item.lineCount }}</td>
-                  <td><strong>{{ item.totalOrderQty | number:'1.0-3' }}</strong></td>
+                  <td class="muted-cell">{{ item.orderDate | date:'dd.MM.yyyy' }}</td>
+                  <td class="num-col">{{ item.lineCount }}</td>
+                  <td class="num-col"><strong>{{ item.totalOrderQty | number:'1.0-3' }}</strong></td>
                   <td class="col-actions">
                     <button type="button" class="btn-action secondary" (click)="traceOrder(item.orderNo)">
                       <i class="fa fa-eye" aria-hidden="true"></i> İzle
@@ -549,7 +858,9 @@
                   </td>
                 </tr>
               } @empty {
-                <tr><td colspan="6" class="empty-cell">Bekleyen açık sipariş bulunmuyor.</td></tr>
+                <tr>
+                  <td colspan="6" class="empty-cell">Bekleyen açık sipariş bulunmuyor.</td>
+                </tr>
               }
             </tbody>
           </table>
@@ -558,21 +869,38 @@
     }
   }
 
+  <!-- TAB 4: EVRAK İZLEME -->
   @if (activeTab === 'trace') {
     <div class="search-bar">
       <div class="search-bar-inner">
-        <label for="trace-search"><i class="fa fa-magnifying-glass" aria-hidden="true"></i> Evrak numarası</label>
-        <div class="search-input-wrap">
-          <input id="trace-search" type="search" [(ngModel)]="searchTerm" placeholder="Örn: F147.5389 veya 2026/12345 veya sevk no..." (keyup.enter)="searchTrace()" />
-          @if (searchTerm) {
-            <button type="button" class="clear-search-btn" (click)="searchTerm = ''" title="Temizle">
-              <i class="fa fa-times" aria-hidden="true"></i>
+        <div class="field-item search-field-item">
+          <label class="field-label" for="trace-search">Evrak / Sipariş / Sevk Numarası</label>
+          <div class="search-action-inline">
+            <div class="search-input-wrap">
+              <i class="fa fa-magnifying-glass search-lead-icon" aria-hidden="true"></i>
+              <input
+                id="trace-search"
+                type="search"
+                [(ngModel)]="searchTerm"
+                placeholder="Örn: F147.5389 veya 2026/12345 veya sevk no..."
+                (keyup.enter)="searchTrace()"
+              />
+              @if (searchTerm) {
+                <button type="button" class="clear-search-btn" (click)="searchTerm = ''" title="Temizle">
+                  <i class="fa fa-times" aria-hidden="true"></i>
+                </button>
+              }
+            </div>
+            <button
+              type="button"
+              class="command-button primary compact-btn"
+              (click)="searchTrace()"
+              [disabled]="loading()"
+            >
+              <i class="fa fa-search" aria-hidden="true"></i> Sorgula
             </button>
-          }
+          </div>
         </div>
-        <button type="button" class="command-button primary" (click)="searchTrace()" [disabled]="loading()">
-          <i class="fa fa-search" aria-hidden="true"></i> Sorgula
-        </button>
       </div>
     </div>
 
@@ -586,7 +914,7 @@
         <section class="document-summary-card">
           <div class="summary-col">
             <span class="summary-label">Evrak Numarası</span>
-            <strong>{{ trace.orderNo || trace.searchTerm }}</strong>
+            <strong class="doc-ref">{{ trace.orderNo || trace.searchTerm }}</strong>
           </div>
           <div class="summary-col">
             <span class="summary-label">Hedef / Cari</span>
@@ -605,23 +933,35 @@
         @for (shipment of trace.shipments; track shipment.shipmentYear + '-' + shipment.shipmentNo) {
           <section class="data-section">
             <div class="section-title-row">
-              <h3><i class="fa fa-truck" aria-hidden="true"></i> Sevk {{ shipment.shipmentYear }}/{{ shipment.shipmentNo }} · {{ shipment.statusDescription }}</h3>
+              <h3>
+                <i class="fa fa-truck" aria-hidden="true"></i>
+                Sevk {{ shipment.shipmentYear }}/{{ shipment.shipmentNo }} · {{ shipment.statusDescription }}
+              </h3>
               @if (shipment.ramp) {
                 <span class="ramp-pill">Rampa: {{ shipment.ramp }}</span>
               }
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Kalem</th><th>Stok Kodu</th><th>Ürün Adı</th><th>İstenen</th><th>Sevk</th><th>Fark</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Kalem</th>
+                    <th>Stok Kodu</th>
+                    <th>Ürün Adı</th>
+                    <th class="num-col">İstenen</th>
+                    <th class="num-col">Sevk</th>
+                    <th class="num-col">Fark</th>
+                  </tr>
+                </thead>
                 <tbody>
                   @for (line of shipment.details; track line.itemOrderNo) {
                     <tr>
                       <td>{{ line.lineNo }}</td>
-                      <td><strong>{{ line.sku }}</strong></td>
+                      <td><strong class="doc-ref">{{ line.sku }}</strong></td>
                       <td>{{ line.skuName }}</td>
-                      <td>{{ line.orderedQty }}</td>
-                      <td><strong>{{ line.shippedQty }}</strong></td>
-                      <td [class.negative]="line.differenceQty > 0">{{ line.differenceQty }}</td>
+                      <td class="num-col">{{ line.orderedQty }}</td>
+                      <td class="num-col"><strong>{{ line.shippedQty }}</strong></td>
+                      <td class="num-col" [class.negative]="line.differenceQty > 0">{{ line.differenceQty }}</td>
                     </tr>
                   }
                 </tbody>
@@ -638,16 +978,26 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Zaman</th><th>Personel</th><th>Konum</th><th>Stok</th><th>Ürün</th><th>Miktar</th><th>Palet</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Zaman</th>
+                    <th>Personel</th>
+                    <th>Konum</th>
+                    <th>Stok</th>
+                    <th>Ürün</th>
+                    <th class="num-col">Miktar</th>
+                    <th>Palet</th>
+                  </tr>
+                </thead>
                 <tbody>
                   @for (log of trace.pickingLogs; track log.sequence) {
                     <tr>
-                      <td>{{ log.logDate || '-' }} {{ log.logTime || '' }}</td>
+                      <td class="muted-cell">{{ log.logDate || '-' }} {{ log.logTime || '' }}</td>
                       <td>{{ log.picker || '-' }}</td>
                       <td><span class="ramp-pill">{{ log.zone || '' }} {{ log.location || '-' }}</span></td>
-                      <td><strong>{{ log.sku || '-' }}</strong></td>
+                      <td><strong class="doc-ref">{{ log.sku || '-' }}</strong></td>
                       <td>{{ log.skuName || '-' }}</td>
-                      <td><strong>{{ log.quantity | number:'1.0-3' }}</strong></td>
+                      <td class="num-col"><strong>{{ log.quantity | number:'1.0-3' }}</strong></td>
                       <td><span class="seq-pill">{{ log.palletNo || '-' }}</span></td>
                     </tr>
                   }
@@ -664,19 +1014,31 @@
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Kuyruk</th><th>Evrak</th><th>Durum</th><th>Hedef</th><th>Tarih</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Kuyruk</th>
+                    <th>Evrak</th>
+                    <th>Durum</th>
+                    <th>Hedef</th>
+                    <th>Tarih</th>
+                  </tr>
+                </thead>
                 <tbody>
                   @for (queue of trace.integrationQueues; track queue.queueType + ':' + queue.documentNo + ':' + queue.status) {
                     <tr>
                       <td><span class="type-pill">{{ queue.queueType }}</span></td>
-                      <td><strong>{{ queue.documentNo }}</strong></td>
+                      <td><strong class="doc-ref">{{ queue.documentNo }}</strong></td>
                       <td>
-                        <span class="pill-badge" [class.badge-success]="queue.status === 1" [class.badge-warning]="queue.status !== 1">
+                        <span
+                          class="pill-badge"
+                          [class.badge-success]="queue.status === 1"
+                          [class.badge-warning]="queue.status !== 1"
+                        >
                           {{ queue.statusDescription }}
                         </span>
                       </td>
                       <td>{{ queue.targetCode || '-' }}</td>
-                      <td>{{ queue.creationDate || '-' }}</td>
+                      <td class="muted-cell">{{ queue.creationDate || '-' }}</td>
                     </tr>
                   }
                 </tbody>
@@ -688,19 +1050,30 @@
         @for (inbound of trace.inbounds; track inbound.orderId) {
           <section class="data-section">
             <div class="section-title-row">
-              <h3><i class="fa fa-inbox" aria-hidden="true"></i> Mal Kabul {{ inbound.documentNo }} · {{ inbound.statusDescription }}</h3>
+              <h3>
+                <i class="fa fa-inbox" aria-hidden="true"></i>
+                Mal Kabul {{ inbound.documentNo }} · {{ inbound.statusDescription }}
+              </h3>
             </div>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Satır</th><th>Stok Kodu</th><th>Ürün</th><th>Beklenen</th><th>Kabul</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Satır</th>
+                    <th>Stok Kodu</th>
+                    <th>Ürün</th>
+                    <th class="num-col">Beklenen</th>
+                    <th class="num-col">Kabul</th>
+                  </tr>
+                </thead>
                 <tbody>
                   @for (line of inbound.details; track line.lineNo) {
                     <tr>
                       <td>{{ line.lineNo }}</td>
-                      <td><strong>{{ line.sku }}</strong></td>
+                      <td><strong class="doc-ref">{{ line.sku }}</strong></td>
                       <td>{{ line.skuName || '-' }}</td>
-                      <td>{{ line.expectedQty | number:'1.0-3' }}</td>
-                      <td><strong>{{ line.receivedQty | number:'1.0-3' }}</strong></td>
+                      <td class="num-col">{{ line.expectedQty | number:'1.0-3' }}</td>
+                      <td class="num-col"><strong>{{ line.receivedQty | number:'1.0-3' }}</strong></td>
                     </tr>
                   }
                 </tbody>
@@ -711,18 +1084,29 @@
       }
 
       @if (trace.mikroCrossCheck; as mikro) {
-        <section class="data-section mikro-cross-check" [class.ok]="mikro.decisionCode === 'Completed'" [class.alert]="mikro.decisionCode === 'OrderNotFound' || mikro.decisionCode === 'ClosedWithoutShipment' || mikro.decisionCode === 'MikroUnavailable'">
+        <section
+          class="data-section mikro-cross-check"
+          [class.ok]="mikro.decisionCode === 'Completed'"
+          [class.alert]="mikro.decisionCode === 'OrderNotFound' || mikro.decisionCode === 'ClosedWithoutShipment' || mikro.decisionCode === 'MikroUnavailable'"
+        >
           <div class="section-title-row">
-            <h3><i class="fa fa-code-compare" aria-hidden="true"></i> Mikro ERP Karşılığı Mutabakatı · {{ mikro.orderSerie }}/{{ mikro.orderNo }}</h3>
+            <h3>
+              <i class="fa fa-code-compare" aria-hidden="true"></i>
+              Mikro ERP Karşılığı Mutabakatı · {{ mikro.orderSerie }}/{{ mikro.orderNo }}
+            </h3>
           </div>
           <div class="cross-check-verdict">
             <div>
               <span>AXATA Durumu</span>
-              <strong>{{ trace.documentType === 'NotFound' ? 'Evrak bulunamadı' : (trace.orderStatusDescription || trace.documentType) }}</strong>
+              <strong>
+                {{ trace.documentType === 'NotFound' ? 'Evrak bulunamadı' : (trace.orderStatusDescription || trace.documentType) }}
+              </strong>
             </div>
             <div>
               <span>Mikro Durumu</span>
-              <strong>{{ mikro.orderFound ? (mikro.openLineCount + ' açık / ' + mikro.closedLineCount + ' kapalı satır') : 'Sipariş bulunamadı' }}</strong>
+              <strong>
+                {{ mikro.orderFound ? (mikro.openLineCount + ' açık / ' + mikro.closedLineCount + ' kapalı satır') : 'Sipariş bulunamadı' }}
+              </strong>
             </div>
             <div>
               <span>Sistem Kararı</span>
@@ -737,26 +1121,53 @@
           }
           @if (mikro.orderFound) {
             <section class="metric-grid compact cross-kpi-grid">
-              <article class="stat-card"><span>Sipariş Tarihi</span><strong>{{ mikro.orderDate | date:'dd.MM.yyyy' }}</strong></article>
-              <article class="stat-card"><span>Depolar</span><strong>{{ mikro.sourceWarehouseNo ?? '-' }} → {{ mikro.targetWarehouseNo ?? '-' }}</strong></article>
-              <article class="stat-card"><span>İstenen Miktar</span><strong>{{ mikro.orderedQuantity | number:'1.0-3' }}</strong></article>
-              <article class="stat-card"><span>Teslim Miktar</span><strong>{{ mikro.deliveredQuantity | number:'1.0-3' }}</strong></article>
+              <article class="stat-card">
+                <span>Sipariş Tarihi</span>
+                <strong>{{ mikro.orderDate | date:'dd.MM.yyyy' }}</strong>
+              </article>
+              <article class="stat-card">
+                <span>Depolar</span>
+                <strong>{{ mikro.sourceWarehouseNo ?? '-' }} → {{ mikro.targetWarehouseNo ?? '-' }}</strong>
+              </article>
+              <article class="stat-card">
+                <span>İstenen Miktar</span>
+                <strong>{{ mikro.orderedQuantity | number:'1.0-3' }}</strong>
+              </article>
+              <article class="stat-card">
+                <span>Teslim Miktar</span>
+                <strong>{{ mikro.deliveredQuantity | number:'1.0-3' }}</strong>
+              </article>
             </section>
             <div class="table-wrap">
               <table>
-                <thead><tr><th>Mikro Sevk Fişi</th><th>Tarih</th><th>Resmi Belge</th><th>Depolar</th><th>Kalem</th><th>Miktar</th></tr></thead>
+                <thead>
+                  <tr>
+                    <th>Mikro Sevk Fişi</th>
+                    <th>Tarih</th>
+                    <th>Resmi Belge</th>
+                    <th>Depo Rotası</th>
+                    <th class="num-col">Kalem</th>
+                    <th class="num-col">Miktar</th>
+                  </tr>
+                </thead>
                 <tbody>
                   @for (shipment of mikro.shipments; track shipment.documentSerie + '/' + shipment.documentOrderNo) {
                     <tr>
-                      <td><strong>{{ shipment.documentSerie }}/{{ shipment.documentOrderNo }}</strong></td>
-                      <td>{{ shipment.documentDate | date:'dd.MM.yyyy' }}</td>
+                      <td><strong class="doc-ref">{{ shipment.documentSerie }}/{{ shipment.documentOrderNo }}</strong></td>
+                      <td class="muted-cell">{{ shipment.documentDate | date:'dd.MM.yyyy' }}</td>
                       <td>{{ shipment.officialDocumentNo || '-' }}</td>
-                      <td><span class="route-pill">{{ shipment.sourceWarehouseNo ?? '-' }} → {{ shipment.targetWarehouseNo ?? '-' }}</span></td>
-                      <td>{{ shipment.lineCount }}</td>
-                      <td><strong>{{ shipment.quantity | number:'1.0-3' }}</strong></td>
+                      <td>
+                        <span class="route-pill">
+                          {{ shipment.sourceWarehouseNo ?? '-' }} → {{ shipment.targetWarehouseNo ?? '-' }}
+                        </span>
+                      </td>
+                      <td class="num-col">{{ shipment.lineCount }}</td>
+                      <td class="num-col"><strong>{{ shipment.quantity | number:'1.0-3' }}</strong></td>
                     </tr>
                   } @empty {
-                    <tr><td colspan="6" class="empty-cell">Bu siparişe bağlı Mikro sevk fişi bulunmuyor.</td></tr>
+                    <tr>
+                      <td colspan="6" class="empty-cell">Bu siparişe bağlı Mikro sevk fişi bulunmuyor.</td>
+                    </tr>
                   }
                 </tbody>
               </table>
@@ -767,52 +1178,85 @@
     }
   }
 
+  <!-- TAB 5 & 6 SHARED FILTER BAR -->
   @if (activeTab === 'performance' || activeTab === 'fillrate') {
     <div class="filter-bar">
-      <div class="filter-group">
-        <label>Başlangıç <input type="date" [(ngModel)]="reportStartDate" /></label>
-        <label>Bitiş <input type="date" [(ngModel)]="reportEndDate" /></label>
-        <div class="preset-chips">
-          <button type="button" class="preset-btn" (click)="setReportPreset(6)">Son 7 Gün</button>
-          <button type="button" class="preset-btn" (click)="setReportThisMonth()">Bu Ay</button>
+      <div class="filter-grid">
+        <div class="field-item">
+          <label class="field-label">Başlangıç</label>
+          <input type="date" [(ngModel)]="reportStartDate" />
         </div>
-        <button type="button" class="command-button primary compact-btn" (click)="activeTab === 'performance' ? loadPerformance() : loadFillRate()" [disabled]="loading()">
-          <i class="fa fa-chart-line" aria-hidden="true"></i> Raporla
-        </button>
-        <small class="text-muted">En fazla 31 gün</small>
+        <div class="field-item">
+          <label class="field-label">Bitiş</label>
+          <input type="date" [(ngModel)]="reportEndDate" />
+        </div>
+        <div class="field-item">
+          <span class="field-label">Hızlı Dönem (En fazla 31 gün)</span>
+          <div class="preset-chips">
+            <button type="button" class="preset-btn" (click)="setReportPreset(6)">Son 7 Gün</button>
+            <button type="button" class="preset-btn" (click)="setReportThisMonth()">Bu Ay</button>
+            <button
+              type="button"
+              class="command-button primary compact-btn"
+              (click)="activeTab === 'performance' ? loadPerformance() : loadFillRate()"
+              [disabled]="loading()"
+            >
+              <i class="fa fa-chart-line" aria-hidden="true"></i> Raporla
+            </button>
+          </div>
+        </div>
       </div>
     </div>
   }
 
+  <!-- TAB 5: TOPLAMA PERFORMANSI -->
   @if (activeTab === 'performance' && performance(); as report) {
     <section class="data-section">
       <div class="section-title-row">
         <h3><i class="fa fa-person-walking-arrow-right" aria-hidden="true"></i> Toplayıcı Performansı</h3>
+        <span class="range-info">{{ report.pickers.length }} operatör</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Operatör</th><th>Sevk</th><th>Görev</th><th>Kalem</th><th>Miktar</th><th>Eksik</th><th>Tamamlama</th><th>Ort. Süre</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Operatör</th>
+              <th class="num-col">Sevk</th>
+              <th class="num-col">Görev</th>
+              <th class="num-col">Kalem</th>
+              <th class="num-col">Miktar</th>
+              <th class="num-col">Eksik</th>
+              <th>Tamamlama</th>
+              <th class="num-col">Ort. Süre</th>
+            </tr>
+          </thead>
           <tbody>
             @for (item of report.pickers; track item.userId) {
               <tr>
                 <td><strong>{{ item.userName || item.userId }}</strong></td>
-                <td>{{ item.totalShipments }}</td>
-                <td>{{ item.totalPickTasks }}</td>
-                <td>{{ item.totalLines }}</td>
-                <td>{{ item.totalQuantity }}</td>
-                <td>{{ item.unpickedLines }}</td>
+                <td class="num-col">{{ item.totalShipments }}</td>
+                <td class="num-col">{{ item.totalPickTasks }}</td>
+                <td class="num-col">{{ item.totalLines }}</td>
+                <td class="num-col"><strong>{{ item.totalQuantity }}</strong></td>
+                <td class="num-col" [class.negative]="item.unpickedLines > 0">{{ item.unpickedLines }}</td>
                 <td>
                   <div class="table-progress-wrap">
                     <span class="rate-label">%{{ item.completionRate }}</span>
                     <div class="progress-bar-track">
-                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(item.completionRate)" [style.width.%]="boundedPercentage(item.completionRate)"></div>
+                      <div
+                        class="progress-bar-fill"
+                        [ngClass]="getProgressColorClass(item.completionRate)"
+                        [style.width.%]="boundedPercentage(item.completionRate)"
+                      ></div>
                     </div>
                   </div>
                 </td>
-                <td>{{ item.averageDurationMinutes | number:'1.0-1' }} dk</td>
+                <td class="num-col">{{ item.averageDurationMinutes | number:'1.0-1' }} dk</td>
               </tr>
             } @empty {
-              <tr><td colspan="8" class="empty-cell">Seçilen dönemde performans kaydı bulunamadı.</td></tr>
+              <tr>
+                <td colspan="8" class="empty-cell">Seçilen dönemde performans kaydı bulunamadı.</td>
+              </tr>
             }
           </tbody>
         </table>
@@ -822,21 +1266,32 @@
     <section class="data-section">
       <div class="section-title-row">
         <h3><i class="fa fa-map-location-dot" aria-hidden="true"></i> Bölge Bazlı Toplama</h3>
+        <span class="range-info">{{ report.zones.length }} bölge</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Bölge</th><th>Sevk</th><th>Kalem</th><th>Miktar</th><th>Eksik</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Bölge</th>
+              <th class="num-col">Sevk</th>
+              <th class="num-col">Kalem</th>
+              <th class="num-col">Miktar</th>
+              <th class="num-col">Eksik</th>
+            </tr>
+          </thead>
           <tbody>
             @for (zone of report.zones; track zone.zoneCode) {
               <tr>
                 <td><strong><span class="ramp-pill">{{ zone.zoneCode }}</span></strong></td>
-                <td>{{ zone.totalShipments }}</td>
-                <td>{{ zone.totalLines }}</td>
-                <td><strong>{{ zone.totalQuantity | number:'1.0-3' }}</strong></td>
-                <td>{{ zone.unpickedLines }}</td>
+                <td class="num-col">{{ zone.totalShipments }}</td>
+                <td class="num-col">{{ zone.totalLines }}</td>
+                <td class="num-col"><strong>{{ zone.totalQuantity | number:'1.0-3' }}</strong></td>
+                <td class="num-col" [class.negative]="zone.unpickedLines > 0">{{ zone.unpickedLines }}</td>
               </tr>
             } @empty {
-              <tr><td colspan="5" class="empty-cell">Bölge performans kaydı bulunamadı.</td></tr>
+              <tr>
+                <td colspan="5" class="empty-cell">Bölge performans kaydı bulunamadı.</td>
+              </tr>
             }
           </tbody>
         </table>
@@ -844,41 +1299,73 @@
     </section>
   }
 
+  <!-- TAB 6: KARŞILAMA ORANI -->
   @if (activeTab === 'fillrate' && fillRate(); as report) {
     <section class="metric-grid compact">
       <article class="stat-card stat-accent-green">
         <span>Genel Karşılama</span>
         <strong>%{{ report.overallFillRate }}</strong>
         <div class="progress-bar-track mt-1">
-          <div class="progress-bar-fill" [ngClass]="getProgressColorClass(report.overallFillRate)" [style.width.%]="boundedPercentage(report.overallFillRate)"></div>
+          <div
+            class="progress-bar-fill"
+            [ngClass]="getProgressColorClass(report.overallFillRate)"
+            [style.width.%]="boundedPercentage(report.overallFillRate)"
+          ></div>
         </div>
       </article>
-      <article class="stat-card"><span>Tam Karşılanan</span><strong>{{ report.fullySuppliedLines }}</strong><small>Kalem</small></article>
-      <article class="stat-card"><span>Kısmi Karşılanan</span><strong>{{ report.partiallySuppliedLines }}</strong><small>Kalem</small></article>
-      <article class="stat-card warning-stat"><span>Karşılanmayan</span><strong>{{ report.unsuppliedLines }}</strong><small>Kalem</small></article>
+      <article class="stat-card stat-accent-blue">
+        <span>Tam Karşılanan</span>
+        <strong>{{ report.fullySuppliedLines }}</strong>
+        <small>Kalem</small>
+      </article>
+      <article class="stat-card stat-accent-teal">
+        <span>Kısmi Karşılanan</span>
+        <strong>{{ report.partiallySuppliedLines }}</strong>
+        <small>Kalem</small>
+      </article>
+      <article class="stat-card warning-stat">
+        <span>Karşılanmayan</span>
+        <strong>{{ report.unsuppliedLines }}</strong>
+        <small>Kalem</small>
+      </article>
     </section>
 
     <section class="data-section">
       <div class="section-title-row">
         <h3><i class="fa fa-store" aria-hidden="true"></i> Mağaza Bazlı Karşılama</h3>
+        <span class="range-info">{{ report.stores.length }} mağaza</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Mağaza</th><th>Sipariş</th><th>Kalem</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Mağaza</th>
+              <th class="num-col">Sipariş</th>
+              <th class="num-col">Kalem</th>
+              <th class="num-col">İstenen</th>
+              <th class="num-col">Karşılanan</th>
+              <th class="num-col">Eksik</th>
+              <th>Karşılama Oranı</th>
+            </tr>
+          </thead>
           <tbody>
             @for (item of report.stores; track item.storeCode) {
               <tr>
-                <td><strong>{{ item.storeCode }}</strong> {{ item.storeName }}</td>
-                <td>{{ item.orderCount }}</td>
-                <td>{{ item.totalLines }}</td>
-                <td>{{ item.totalOrderedQty }}</td>
-                <td><strong>{{ item.totalShippedQty }}</strong></td>
-                <td class="negative">{{ item.totalMissingQty }}</td>
+                <td><strong>{{ item.storeCode }}</strong> · {{ item.storeName }}</td>
+                <td class="num-col">{{ item.orderCount }}</td>
+                <td class="num-col">{{ item.totalLines }}</td>
+                <td class="num-col">{{ item.totalOrderedQty }}</td>
+                <td class="num-col"><strong>{{ item.totalShippedQty }}</strong></td>
+                <td class="num-col negative">{{ item.totalMissingQty }}</td>
                 <td>
                   <div class="table-progress-wrap">
                     <span class="rate-label">%{{ item.fillRatePercentage }}</span>
                     <div class="progress-bar-track">
-                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(item.fillRatePercentage)" [style.width.%]="boundedPercentage(item.fillRatePercentage)"></div>
+                      <div
+                        class="progress-bar-fill"
+                        [ngClass]="getProgressColorClass(item.fillRatePercentage)"
+                        [style.width.%]="boundedPercentage(item.fillRatePercentage)"
+                      ></div>
                     </div>
                   </div>
                 </td>
@@ -895,27 +1382,43 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Stok</th><th>Ürün</th><th>Sipariş</th><th>İstenen</th><th>Karşılanan</th><th>Eksik</th><th>Oran</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Stok Kodu</th>
+              <th>Ürün Adı</th>
+              <th class="num-col">Sipariş</th>
+              <th class="num-col">İstenen</th>
+              <th class="num-col">Karşılanan</th>
+              <th class="num-col">Eksik</th>
+              <th>Karşılama Oranı</th>
+            </tr>
+          </thead>
           <tbody>
             @for (item of report.topMissingSkus; track item.sku) {
               <tr>
-                <td><strong>{{ item.sku }}</strong></td>
+                <td><strong class="doc-ref">{{ item.sku }}</strong></td>
                 <td>{{ item.skuName || '-' }}</td>
-                <td>{{ item.orderCount }}</td>
-                <td>{{ item.totalOrderedQty | number:'1.0-3' }}</td>
-                <td>{{ item.totalShippedQty | number:'1.0-3' }}</td>
-                <td class="negative"><strong>{{ item.totalMissingQty | number:'1.0-3' }}</strong></td>
+                <td class="num-col">{{ item.orderCount }}</td>
+                <td class="num-col">{{ item.totalOrderedQty | number:'1.0-3' }}</td>
+                <td class="num-col">{{ item.totalShippedQty | number:'1.0-3' }}</td>
+                <td class="num-col negative"><strong>{{ item.totalMissingQty | number:'1.0-3' }}</strong></td>
                 <td>
                   <div class="table-progress-wrap">
                     <span class="rate-label">%{{ item.fillRatePercentage }}</span>
                     <div class="progress-bar-track">
-                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(item.fillRatePercentage)" [style.width.%]="boundedPercentage(item.fillRatePercentage)"></div>
+                      <div
+                        class="progress-bar-fill"
+                        [ngClass]="getProgressColorClass(item.fillRatePercentage)"
+                        [style.width.%]="boundedPercentage(item.fillRatePercentage)"
+                      ></div>
                     </div>
                   </div>
                 </td>
               </tr>
             } @empty {
-              <tr><td colspan="7" class="empty-cell">Eksik karşılanan ürün bulunmadı.</td></tr>
+              <tr>
+                <td colspan="7" class="empty-cell">Eksik karşılanan ürün bulunmadı.</td>
+              </tr>
             }
           </tbody>
         </table>
@@ -923,17 +1426,38 @@
     </section>
   }
 
+  <!-- TAB 7: RAF KAPASİTESİ -->
   @if (activeTab === 'capacity' && capacity(); as report) {
     <section class="metric-grid">
-      <article class="stat-card"><span>Toplam Göz</span><strong>{{ report.totalLocations }}</strong><small>Raf hücresi</small></article>
-      <article class="stat-card stat-accent-blue"><span>Dolu Göz</span><strong>{{ report.occupiedLocations }}</strong><small>Aktif stoklu</small></article>
-      <article class="stat-card stat-accent-green"><span>Boş Göz</span><strong>{{ report.emptyLocations }}</strong><small>Yerleşime uygun</small></article>
-      <article class="stat-card warning-stat"><span>Bloke Göz</span><strong>{{ report.blockedLocations }}</strong><small>Kullanım dışı</small></article>
+      <article class="stat-card stat-accent-teal">
+        <span>Toplam Göz</span>
+        <strong>{{ report.totalLocations }}</strong>
+        <small>Raf hücresi</small>
+      </article>
+      <article class="stat-card stat-accent-blue">
+        <span>Dolu Göz</span>
+        <strong>{{ report.occupiedLocations }}</strong>
+        <small>Aktif stoklu</small>
+      </article>
+      <article class="stat-card stat-accent-green">
+        <span>Boş Göz</span>
+        <strong>{{ report.emptyLocations }}</strong>
+        <small>Yerleşime uygun</small>
+      </article>
+      <article class="stat-card warning-stat">
+        <span>Bloke Göz</span>
+        <strong>{{ report.blockedLocations }}</strong>
+        <small>Kullanım dışı</small>
+      </article>
       <article class="stat-card stat-accent-purple">
         <span>Doluluk Oranı</span>
         <strong>%{{ report.occupancyRatePercentage }}</strong>
         <div class="progress-bar-track mt-1">
-          <div class="progress-bar-fill" [ngClass]="getProgressColorClass(report.occupancyRatePercentage)" [style.width.%]="boundedPercentage(report.occupancyRatePercentage)"></div>
+          <div
+            class="progress-bar-fill"
+            [ngClass]="getProgressColorClass(report.occupancyRatePercentage)"
+            [style.width.%]="boundedPercentage(report.occupancyRatePercentage)"
+          ></div>
         </div>
       </article>
     </section>
@@ -941,22 +1465,35 @@
     <section class="data-section">
       <div class="section-title-row">
         <h3><i class="fa fa-cubes-stacked" aria-hidden="true"></i> Bölge Bazlı Kapasite</h3>
+        <span class="range-info">{{ report.zones.length }} bölge</span>
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Bölge</th><th>Toplam</th><th>Dolu</th><th>Boş</th><th>Doluluk</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Bölge</th>
+              <th class="num-col">Toplam Göz</th>
+              <th class="num-col">Dolu</th>
+              <th class="num-col">Boş</th>
+              <th>Doluluk Oranı</th>
+            </tr>
+          </thead>
           <tbody>
             @for (zone of report.zones; track zone.zone) {
               <tr>
                 <td><strong><span class="ramp-pill">{{ zone.zone }}</span></strong></td>
-                <td>{{ zone.totalLocations }}</td>
-                <td><strong>{{ zone.occupiedLocations }}</strong></td>
-                <td>{{ zone.emptyLocations }}</td>
+                <td class="num-col">{{ zone.totalLocations }}</td>
+                <td class="num-col"><strong>{{ zone.occupiedLocations }}</strong></td>
+                <td class="num-col">{{ zone.emptyLocations }}</td>
                 <td>
                   <div class="table-progress-wrap">
                     <span class="rate-label">%{{ zone.occupancyRatePercentage }}</span>
                     <div class="progress-bar-track">
-                      <div class="progress-bar-fill" [ngClass]="getProgressColorClass(zone.occupancyRatePercentage)" [style.width.%]="boundedPercentage(zone.occupancyRatePercentage)"></div>
+                      <div
+                        class="progress-bar-fill"
+                        [ngClass]="getProgressColorClass(zone.occupancyRatePercentage)"
+                        [style.width.%]="boundedPercentage(zone.occupancyRatePercentage)"
+                      ></div>
                     </div>
                   </div>
                 </td>
@@ -973,16 +1510,24 @@
       </div>
       <div class="table-wrap">
         <table>
-          <thead><tr><th>Tip Kodu</th><th>Açıklama</th><th>Göz Sayısı</th></tr></thead>
+          <thead>
+            <tr>
+              <th>Tip Kodu</th>
+              <th>Açıklama</th>
+              <th class="num-col">Göz Sayısı</th>
+            </tr>
+          </thead>
           <tbody>
             @for (item of report.stockTypes; track item.typeCode) {
               <tr>
-                <td><strong>{{ item.typeCode }}</strong></td>
+                <td><strong class="doc-ref">{{ item.typeCode }}</strong></td>
                 <td>{{ item.typeDescription || '-' }}</td>
-                <td><strong>{{ item.locationCount }}</strong></td>
+                <td class="num-col"><strong>{{ item.locationCount }}</strong></td>
               </tr>
             } @empty {
-              <tr><td colspan="3" class="empty-cell">Stok yeri tipi bulunamadı.</td></tr>
+              <tr>
+                <td colspan="3" class="empty-cell">Stok yeri tipi bulunamadı.</td>
+              </tr>
             }
           </tbody>
         </table>
