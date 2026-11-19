@@ -308,6 +308,18 @@ export interface KunyeLabelTagDto extends LabelTagDto {
   productUnit: string;
 }
 
+export interface ManavCodeListItemDto {
+  productGroup: string;
+  productName: string;
+  code: number;
+  mnvsfCode: number | null;
+  stockCode: string;
+  mnvsfStockCode: string | null;
+  categoryCode: string;
+  /** Ayni eslesme adindaki MNVSF kart sayisi; 1'den buyukse kart tanimlari kontrol edilmeli. */
+  mnvsfMatchCount: number;
+}
+
 export interface CreateLabelDocumentHttpRequest {
   warehouseNo?: number;
   lines: CreateLabelDocumentLineHttpRequest[];

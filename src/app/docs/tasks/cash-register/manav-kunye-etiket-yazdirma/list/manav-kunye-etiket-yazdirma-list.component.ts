@@ -3,7 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
-import type { IManavKunyeTag } from '@interfaces';
+import type { IManavKunyeTag, ManavCodeListItemDto } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
@@ -23,7 +23,27 @@ interface FeedbackState {
   message: string;
 }
 
+export type ManavKunyeActiveTab = 'kunye-tags' | 'code-list';
+
+export interface ManavCodeListPairRow {
+  rowIndex: number;
+  left: ManavCodeListItemDto;
+  right: ManavCodeListItemDto | null;
+}
+
+export interface ManavCodeListGroupSection {
+  groupName: string;
+  totalCount: number;
+  matchedCount: number;
+  rows: ManavCodeListPairRow[];
+}
+
 const LIST_PERMISSION = 'kasa-islemleri.manav-kunye-etiket-yazdirma.list';
+const GROUP_ORDER: Readonly<Record<string, number>> = {
+  'MEYVE ÇEŞİTLERİ': 1,
+  'SEBZE ÇEŞİTLERİ': 2,
+  'DİĞER': 3
+};
 
 @Component({
   selector: 'app-manav-kunye-etiket-yazdirma-list',
@@ -37,6 +57,9 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
   private readonly printComponent?: ManavKunyeEtiketPrintComponent;
 
   protected readonly page: DocsContentPage = DOCS_PAGES['manav-kunye-etiket-yazdirma'];
+  protected readonly activeTab = signal<ManavKunyeActiveTab>('kunye-tags');
+
+  // Existing Kunye Etiket Yazdirma state (untouched behavior)
   protected readonly tags = signal<IManavKunyeTag[]>([]);
   protected readonly isLoading = signal(false);
   protected readonly feedback = signal<FeedbackState | null>(null);
@@ -94,6 +117,69 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
     );
   });
 
+  // Additional Feature: Manav Kod Listesi (MNV / MNVSF) state
+  protected readonly codeListItems = signal<ManavCodeListItemDto[]>([]);
+  protected readonly isCodeListLoading = signal(false);
+  protected readonly codeListLoaded = signal(false);
+  protected readonly codeListFeedback = signal<FeedbackState | null>(null);
+  protected readonly codeListPrintState = signal<'idle' | 'preparing'>('idle');
+  protected readonly codeListSearchTerm = signal('');
+  protected readonly codeListGroupFilter = signal<string>('ALL');
+
+  protected readonly codeListFruitCount = computed(
+    () => this.codeListItems().filter((item) => item.productGroup === 'MEYVE ÇEŞİTLERİ').length
+  );
+  protected readonly codeListVegetableCount = computed(
+    () => this.codeListItems().filter((item) => item.productGroup === 'SEBZE ÇEŞİTLERİ').length
+  );
+  protected readonly codeListMatchedMnvsfCount = computed(
+    () => this.codeListItems().filter((item) => item.mnvsfCode !== null && item.mnvsfCode !== undefined).length
+  );
+  protected readonly codeListDuplicateMnvsfCount = computed(
+    () => this.codeListItems().filter((item) => (item.mnvsfMatchCount ?? 0) > 1).length
+  );
+  protected readonly codeListAvailableGroups = computed(() => {
+    const groups = new Set<string>();
+    for (const item of this.codeListItems()) {
+      if (item.productGroup) {
+        groups.add(item.productGroup);
+      }
+    }
+    return Array.from(groups).sort(
+      (a, b) => (GROUP_ORDER[a] ?? 99) - (GROUP_ORDER[b] ?? 99) || a.localeCompare(b, 'tr-TR')
+    );
+  });
+
+  protected readonly filteredCodeListItems = computed(() => {
+    const groupFilter = this.codeListGroupFilter();
+    const term = this.normalizeSearch(this.codeListSearchTerm());
+
+    return this.codeListItems().filter((item) => {
+      if (groupFilter !== 'ALL' && item.productGroup !== groupFilter) {
+        return false;
+      }
+
+      if (!term) {
+        return true;
+      }
+
+      return [
+        item.productName,
+        item.productGroup,
+        item.code,
+        item.mnvsfCode ?? '',
+        item.stockCode,
+        item.mnvsfStockCode ?? ''
+      ]
+        .map((value) => this.normalizeSearch(value))
+        .some((value) => value.includes(term));
+    });
+  });
+
+  protected readonly codeListSections = computed<ManavCodeListGroupSection[]>(() =>
+    this.buildCodeListSections(this.filteredCodeListItems())
+  );
+
   private readonly destroyRef = inject(DestroyRef);
 
   constructor(
@@ -107,6 +193,13 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
   ngOnInit(): void {
     if (this.canListTags() && this.warehouseNo()) {
       this.loadTags();
+    }
+  }
+
+  protected setActiveTab(tab: ManavKunyeActiveTab): void {
+    this.activeTab.set(tab);
+    if (tab === 'code-list' && !this.codeListLoaded() && !this.isCodeListLoading()) {
+      this.loadCodeList();
     }
   }
 
@@ -168,6 +261,171 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
           this.setFeedback('error', 'Manav kunye etiketleri alinirken hata olustu.');
         }
       });
+  }
+
+  protected loadCodeList(): void {
+    if (!this.canListTags()) {
+      this.codeListItems.set([]);
+      this.codeListFeedback.set({
+        tone: 'error',
+        message: 'Manav kod listesini goruntuleme yetkiniz yok.'
+      });
+      return;
+    }
+
+    this.codeListFeedback.set(null);
+    this.isCodeListLoading.set(true);
+
+    this.kasaIslemleriService
+      .getManavKodListesi()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (items: ManavCodeListItemDto[]) => {
+          const normalized = items ?? [];
+          this.codeListItems.set(normalized);
+          this.codeListLoaded.set(true);
+          this.isCodeListLoading.set(false);
+
+          if (normalized.length === 0) {
+            this.codeListFeedback.set({
+              tone: 'info',
+              message: 'Aktif manav kisa kod kaydi bulunamadi.'
+            });
+          }
+        },
+        error: () => {
+          this.codeListItems.set([]);
+          this.isCodeListLoading.set(false);
+          this.codeListFeedback.set({
+            tone: 'error',
+            message: 'Manav kod listesi alinirken hata olustu.'
+          });
+        }
+      });
+  }
+
+  /**
+   * MNVSF hucre metni. Karsiligi yoksa `emptyText` doner; ayni isimde birden fazla
+   * MNVSF karti varsa ekranda kontrol icin "(!)" eklenir (baskida da gorunur ki kasada fark edilsin).
+   */
+  protected formatMnvsfCode(item: ManavCodeListItemDto, emptyText: string): string {
+    if (item.mnvsfCode === null || item.mnvsfCode === undefined) {
+      return emptyText;
+    }
+
+    return (item.mnvsfMatchCount ?? 0) > 1 ? `${item.mnvsfCode} (!)` : String(item.mnvsfCode);
+  }
+
+  protected onCodeListSearchChange(value: string): void {
+    this.codeListSearchTerm.set(value);
+  }
+
+  protected onCodeListGroupFilterChange(value: string): void {
+    this.codeListGroupFilter.set(value || 'ALL');
+  }
+
+  protected clearCodeListFilters(): void {
+    this.codeListSearchTerm.set('');
+    this.codeListGroupFilter.set('ALL');
+  }
+
+  protected async printCodeList(): Promise<void> {
+    if (this.codeListPrintState() === 'preparing') {
+      return;
+    }
+
+    if (!this.filteredCodeListItems().length) {
+      this.codeListFeedback.set({
+        tone: 'info',
+        message: 'Yazdirilacak manav kod listesi kaydi bulunamadi.'
+      });
+      return;
+    }
+
+    this.codeListPrintState.set('preparing');
+    const printRoot = document.querySelector<HTMLElement>(
+      '#codeListPrintSection.manav-code-list-print-root'
+    );
+
+    if (!printRoot) {
+      this.codeListPrintState.set('idle');
+      this.codeListFeedback.set({
+        tone: 'error',
+        message: 'Manav kod listesi baski alani bulunamadi.'
+      });
+      return;
+    }
+
+    try {
+      const started = await this.inPlacePrintService.print({
+        styleId: 'manav-code-list-print-shell',
+        styles: ManavKunyeEtiketYazdirmaListComponent.CODE_LIST_PRINT_STYLES,
+        mount: { element: printRoot, documentClassName: 'manav-code-list-printing' },
+        afterPrint: () => this.codeListPrintState.set('idle')
+      });
+
+      if (!started) {
+        this.codeListPrintState.set('idle');
+        this.codeListFeedback.set({
+          tone: 'error',
+          message: 'Manav kod listesi baskisi baslatilamadi.'
+        });
+      }
+    } catch {
+      this.codeListPrintState.set('idle');
+      this.codeListFeedback.set({
+        tone: 'error',
+        message: 'Baski hazirlanamadi. Lutfen tarayicinin yazdirma iznini kontrol edip tekrar deneyin.'
+      });
+    }
+  }
+
+  private buildCodeListSections(
+    items: readonly ManavCodeListItemDto[]
+  ): ManavCodeListGroupSection[] {
+    if (!items.length) {
+      return [];
+    }
+
+    const grouped = new Map<string, ManavCodeListItemDto[]>();
+    for (const item of items) {
+      const groupName = item.productGroup || 'DİĞER';
+      const bucket = grouped.get(groupName);
+      if (bucket) {
+        bucket.push(item);
+      } else {
+        grouped.set(groupName, [item]);
+      }
+    }
+
+    const sortedGroupNames = Array.from(grouped.keys()).sort(
+      (a, b) => (GROUP_ORDER[a] ?? 99) - (GROUP_ORDER[b] ?? 99) || a.localeCompare(b, 'tr-TR')
+    );
+
+    return sortedGroupNames.map((groupName) => {
+      const groupItems = [...(grouped.get(groupName) ?? [])].sort((a, b) =>
+        a.productName.localeCompare(b.productName, 'tr-TR')
+      );
+      const half = Math.ceil(groupItems.length / 2);
+      const rows: ManavCodeListPairRow[] = [];
+
+      for (let index = 0; index < half; index++) {
+        rows.push({
+          rowIndex: index,
+          left: groupItems[index],
+          right: groupItems[index + half] ?? null
+        });
+      }
+
+      return {
+        groupName,
+        totalCount: groupItems.length,
+        matchedCount: groupItems.filter(
+          (item) => item.mnvsfCode !== null && item.mnvsfCode !== undefined
+        ).length,
+        rows
+      };
+    });
   }
 
   private getWarehouseNoForRequest(): number | null {
@@ -238,6 +496,16 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
 
   protected readonly trackByTag = (_index: number, tag: IManavKunyeTag): string =>
     `${tag.stockCode}-${tag.takenTag}`;
+
+  protected readonly trackByCodeListSection = (
+    _index: number,
+    section: ManavCodeListGroupSection
+  ): string => section.groupName;
+
+  protected readonly trackByCodeListPairRow = (
+    _index: number,
+    row: ManavCodeListPairRow
+  ): string => `${row.left.stockCode}-${row.right?.stockCode ?? row.rowIndex}`;
 
   private setFeedback(tone: FeedbackState['tone'], message: string): void {
     this.feedback.set({ tone, message });
@@ -348,4 +616,133 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
       throw new Error('Manav kunye baskisi baslatilamadi.');
     }
   }
+
+  private static readonly CODE_LIST_PRINT_STYLES = `
+    @page {
+      size: A4 portrait;
+      margin: 5mm;
+    }
+
+    @media print {
+      html.manav-code-list-printing,
+      body.manav-code-list-printing {
+        width: auto !important;
+        height: auto !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        background: #fff !important;
+        color: #000 !important;
+        -webkit-print-color-adjust: exact !important;
+        print-color-adjust: exact !important;
+      }
+
+      body.manav-code-list-printing > :not(.manav-code-list-print-root) {
+        display: none !important;
+      }
+
+      .app-sidebar,
+      .topbar,
+      .topbar-mobile,
+      .sidebar-backdrop,
+      .manav-kunye-screen,
+      .kunye-print-root {
+        display: none !important;
+      }
+
+      .manav-code-list-print-root {
+        display: block !important;
+        position: static !important;
+        left: auto !important;
+        top: auto !important;
+        width: 100% !important;
+        margin: 0 !important;
+        padding: 0 !important;
+        visibility: visible !important;
+        pointer-events: auto !important;
+        background: #fff !important;
+      }
+
+      .code-sheet-print-page {
+        width: 100%;
+        max-width: 200mm;
+        margin: 0 auto;
+        font-family: Arial, Helvetica, sans-serif;
+        color: #000;
+      }
+
+      .code-sheet-group {
+        margin-bottom: 2.2mm;
+        break-inside: avoid;
+        page-break-inside: avoid;
+      }
+
+      .code-sheet-group:last-child {
+        margin-bottom: 0;
+      }
+
+      .code-sheet-group-banner {
+        background: #111 !important;
+        color: #fff !important;
+        text-align: center;
+        font-size: 8.5pt;
+        font-weight: 900;
+        letter-spacing: 0.04em;
+        text-transform: uppercase;
+        padding: 0.9mm 2mm;
+        border: 0.35mm solid #000;
+        border-bottom: 0;
+      }
+
+      .code-sheet-table {
+        width: 100%;
+        border-collapse: collapse;
+        table-layout: fixed;
+        border: 0.35mm solid #000;
+      }
+
+      .code-sheet-table th,
+      .code-sheet-table td {
+        border: 0.25mm solid #000;
+        padding: 0.45mm 1.2mm;
+        font-size: 7.1pt;
+        line-height: 1.12;
+        color: #000;
+        overflow: hidden;
+        text-overflow: ellipsis;
+        white-space: nowrap;
+      }
+
+      .code-sheet-table thead th {
+        background: #e5e7eb !important;
+        font-size: 6.8pt;
+        font-weight: 800;
+        text-align: left;
+      }
+
+      .code-sheet-table th.col-code,
+      .code-sheet-table td.col-code {
+        width: 11mm;
+        text-align: right;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .code-sheet-table th.col-mnvsf,
+      .code-sheet-table td.col-mnvsf {
+        width: 16mm;
+        text-align: right;
+        font-weight: 800;
+        font-variant-numeric: tabular-nums;
+      }
+
+      .code-sheet-table td.col-name {
+        font-weight: 800;
+      }
+
+      .code-sheet-table th.col-divider,
+      .code-sheet-table td.col-divider {
+        border-right: 0.5mm solid #000 !important;
+      }
+    }
+  `;
 }

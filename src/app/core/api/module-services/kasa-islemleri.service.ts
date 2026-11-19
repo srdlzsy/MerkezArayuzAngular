@@ -33,6 +33,7 @@ import {
   IFurpaOnlineCashRegisterDetailApiDto,
   IFurpaPaymentTypeLookupItemApiDto,
   IManavKunyeTag,
+  ManavCodeListItemDto,
   IFurpaUpdateCashSummaryBanknotesRequestApiDto,
   IFurpaUpdateCashSummaryBanknotesResponseApiDto,
   IFurpaUpdateCashSummaryDetailsRequestApiDto,
@@ -284,6 +285,12 @@ export class KasaIslemleriService extends BaseApiService {
         warehouseNo,
         dateToGet: dateToGet?.slice(0, 10) || undefined
       }
+    );
+  }
+
+  getManavKodListesi(): Observable<ManavCodeListItemDto[]> {
+    return this.get<ManavCodeListItemDto[]>(
+      'kasa-islemleri/manav-kunye-etiket-yazdirma/kod-listesi'
     );
   }
 

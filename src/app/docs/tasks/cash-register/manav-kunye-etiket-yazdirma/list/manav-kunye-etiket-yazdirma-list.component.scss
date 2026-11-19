@@ -39,6 +39,66 @@
   align-items: end;
 }
 
+.head-right-group {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: flex-end;
+  gap: 0.5rem;
+}
+
+.mode-tabs {
+  display: inline-flex;
+  flex-wrap: wrap;
+  gap: 0.25rem;
+  padding: 0.22rem;
+  border: 1px solid var(--kunye-border);
+  border-radius: 8px;
+  background: var(--kunye-soft);
+}
+
+.mode-tab {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.38rem;
+  min-height: 2rem;
+  padding: 0.34rem 0.68rem;
+  border: 1px solid transparent;
+  border-radius: 6px;
+  background: transparent;
+  color: var(--kunye-muted);
+  cursor: pointer;
+  font: inherit;
+  font-size: 0.78rem;
+  font-weight: 800;
+  transition: background-color 0.15s ease, color 0.15s ease, border-color 0.15s ease;
+}
+
+.mode-tab:hover {
+  color: var(--kunye-ink);
+}
+
+.mode-tab.active {
+  border-color: rgba(15, 118, 110, 0.32);
+  background: #fff;
+  color: var(--kunye-accent);
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.06);
+}
+
+.tab-badge {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  min-width: 1.35rem;
+  height: 1.2rem;
+  padding: 0 0.34rem;
+  border-radius: 999px;
+  background: rgba(15, 118, 110, 0.12);
+  color: var(--kunye-accent);
+  font-size: 0.68rem;
+  font-weight: 900;
+}
+
 .title-block {
   display: grid;
   gap: 0.12rem;
@@ -133,7 +193,8 @@
   gap: 0.18rem;
 }
 
-.field input {
+.field input,
+.field select {
   width: 100%;
   min-height: 2.08rem;
   padding: 0.38rem 0.5rem;
@@ -145,7 +206,8 @@
   font: inherit;
 }
 
-.field input:focus {
+.field input:focus,
+.field select:focus {
   outline: 2px solid rgba(15, 118, 110, 0.14);
   border-color: var(--kunye-accent);
 }
@@ -350,7 +412,105 @@
   background: var(--kunye-soft);
 }
 
-.kunye-print-root {
+/* ========================================================================= */
+/* MANAV KOD LISTESI KASA FORMU ONIZLEME GORUNUMU                            */
+/* ========================================================================= */
+.code-sheet-preview-wrap {
+  display: grid;
+  gap: 0.85rem;
+  max-height: calc(100vh - 300px);
+  overflow: auto;
+  padding: 0.5rem;
+  border: 1px solid var(--kunye-border);
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.code-sheet-preview-wrap .code-sheet-group {
+  background: #fff;
+  border: 1.5px solid #1e293b;
+  box-shadow: 0 2px 6px rgba(15, 23, 42, 0.04);
+}
+
+.code-sheet-preview-wrap .code-sheet-group-banner {
+  padding: 0.36rem 0.75rem;
+  background: #111827;
+  color: #fff;
+  text-align: center;
+  font-size: 0.82rem;
+  font-weight: 900;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+}
+
+.code-sheet-preview-wrap .code-sheet-table {
+  width: 100%;
+  min-width: 820px;
+  border-collapse: collapse;
+  table-layout: fixed;
+}
+
+.code-sheet-preview-wrap .code-sheet-table th,
+.code-sheet-preview-wrap .code-sheet-table td {
+  padding: 0.28rem 0.52rem;
+  border: 1px solid #334155;
+  color: #0f172a;
+  font-size: 0.76rem;
+  line-height: 1.22;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.code-sheet-preview-wrap .code-sheet-table thead th {
+  background: #e2e8f0;
+  color: #0f172a;
+  font-size: 0.7rem;
+  font-weight: 900;
+  text-align: left;
+}
+
+.code-sheet-preview-wrap .code-sheet-table tbody tr:nth-child(even) {
+  background: #f8fafc;
+}
+
+.code-sheet-preview-wrap .code-sheet-table tbody tr:hover {
+  background: #ecfdf5;
+}
+
+.code-sheet-preview-wrap .code-sheet-table td.col-name {
+  font-weight: 800;
+}
+
+.code-sheet-preview-wrap .code-sheet-table th.col-code,
+.code-sheet-preview-wrap .code-sheet-table td.col-code {
+  width: 68px;
+  text-align: right;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+}
+
+.code-sheet-preview-wrap .code-sheet-table th.col-mnvsf,
+.code-sheet-preview-wrap .code-sheet-table td.col-mnvsf {
+  width: 96px;
+  text-align: right;
+  font-weight: 900;
+  font-variant-numeric: tabular-nums;
+  color: #0f766e;
+}
+
+.code-sheet-preview-wrap .code-sheet-table th.col-divider,
+.code-sheet-preview-wrap .code-sheet-table td.col-divider {
+  border-right: 2.5px solid #0f172a;
+}
+
+.code-sheet-preview-wrap .code-sheet-table td.needs-check {
+  background: #fff7ed;
+  color: #b45309;
+}
+
+.kunye-print-root,
+.manav-code-list-print-root {
   position: fixed;
   top: 0;
   left: -10000px;
@@ -363,6 +523,10 @@
   .scope-bar,
   .data-head {
     grid-template-columns: 1fr;
+  }
+
+  .head-right-group {
+    justify-content: flex-start;
   }
 
   .metric-strip {
@@ -388,7 +552,9 @@
   }
 
   .task-action,
-  .selection-pill {
+  .selection-pill,
+  .mode-tabs,
+  .mode-tab {
     width: 100%;
   }
 
