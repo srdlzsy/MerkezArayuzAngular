@@ -607,4 +607,105 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       requiredPermissionCodes: ['ayar-islemleri.b2b-ayarlari.manage'],
     },
   ),
+  'yeni-kasa-yonetimi': singleRouteTask(
+    {
+      id: 'yeni-kasa-yonetimi',
+      title: 'Yeni Kasa Yönetim Ayarları',
+      subtitle: 'Shopigo POS kasa genel ayarları, ödeme yöntemleri, yetki matrisi, müşteri ekranı ve hızlı tuş gruplarını yönetir.',
+      baseRouteOrFile: '/api/ayar-islemleri/yeni-kasa-yonetimi',
+      highlights: [
+        'Genel Ayarlar: Fiş/fatura limitleri, nakit limit, yazıcı/kağıt genişliği ve Pavo ayarları.',
+        'Ödeme Yöntemleri: Buton sıralaması, aktif/pasif durumu ve Pavo aracı/tip kodları.',
+        'Kasa Yetki Matrisi: Personel, Mağaza Yöneticisi ve Müdür rolleri için 37 kasa yetkisi.',
+        'Müşteri Ekranı: 1920x1080 JPEG görsel desteği, tarih kısıtı ve slider ayarları.',
+        'Hızlı Tuş Grupları: 20 karakter category_key, 283x283 ürün görselleri ve kategori eşleştirme.',
+      ],
+      listTitle: 'Endpointler',
+      items: [
+        {
+          name: 'Shopigo Kasa Yönetimi',
+          description: 'POS kasalarının parametrik ayarlarını ve görsel içeriklerini yönetir.',
+          endpoints: [
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/genel-ayarlar',
+              description: 'Kasa genel ayarlarını getirir',
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/genel-ayarlar',
+              description: 'Kasa genel ayarlarını günceller',
+              payload: 'UpdateYeniKasaAppSettingsRequest',
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/odeme-yontemleri',
+              description: 'Ödeme yöntemlerini listeler',
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/odeme-yontemleri',
+              description: 'Ödeme yöntemini günceller',
+              payload: 'UpdateYeniKasaPaymentMethodRequest',
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/odeme-yontemleri/siralama',
+              description: 'Ödeme yöntemleri sıra ve aktiflik durumunu toplu günceller',
+              payload: 'UpdatePaymentMethodsOrderRequest',
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/yetki-matrisi',
+              description: 'Kasa yetki matrisini getirir',
+            },
+            {
+              method: 'PUT',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/yetki-matrisi',
+              description: 'Rol yetkilerini günceller',
+              payload: 'UpdateRolePermissionsRequest',
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/icerikler',
+              description: 'Müşteri ekranı görsellerini listeler',
+            },
+            {
+              method: 'POST',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/icerikler',
+              description: 'Müşteri ekranına yeni görsel yükler (1920x1080 <= 1.5MB)',
+              payload: 'CreateYeniKasaDisplayContentRequest',
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/kategoriler',
+              description: 'Hızlı tuş gruplarını listeler',
+            },
+            {
+              method: 'GET',
+              path: '/api/ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/urunler/{categoryKey}',
+              description: 'Kategoriye bağlı hızlı tuş ürünlerini listeler',
+            },
+          ],
+        },
+      ],
+      codeSample: `{
+  "fisFaturaLimit": 9900.00,
+  "nakitLimit": 0.00,
+  "fisGenislik": "80mm",
+  "pavoFis": 1
+}`,
+    },
+    () =>
+      import(
+        '../tasks/settings/yeni-kasa-yonetimi/list/yeni-kasa-yonetimi-list.component'
+      ).then((m) => m.YeniKasaYonetimiListComponent),
+    {
+      accessKeyAliases: ['YeniKasaYonetimi', 'yeni-kasa-yonetimi', 'shopigo-kasa-yonetimi'],
+      requiredPermissionCodes: [
+        'ayar-islemleri.yeni-kasa-yonetimi.page',
+        'ayar-islemleri.yeni-kasa-yonetimi.list',
+      ],
+    },
+  ),
 } as const satisfies Record<string, DocsTaskSource>;

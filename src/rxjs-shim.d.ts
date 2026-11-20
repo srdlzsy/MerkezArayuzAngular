@@ -24,6 +24,8 @@ declare module 'rxjs' {
   export const filter: any;
   export const startWith: any;
   export const shareReplay: any;
+  export const debounceTime: any;
+  export const distinctUntilChanged: any;
 }
 
 declare module 'rxjs/operators' {
@@ -35,4 +37,6 @@ declare module 'rxjs/operators' {
   export const finalize: any;
   export const takeWhile: any;
   export const filter: any;
+  export const debounceTime: any;
+  export const distinctUntilChanged: any;
 }

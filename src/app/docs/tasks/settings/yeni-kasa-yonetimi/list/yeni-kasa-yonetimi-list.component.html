@@ -1,0 +1,1145 @@
+<section class="task-page" *ngIf="page as current">
+  <article class="yeni-kasa-workspace">
+    <!-- 1. EXECUTIVE PAGE HEADER -->
+    <header class="yk-page-head">
+      <div class="yk-head-info">
+        <div class="yk-kicker-row">
+          <span class="yk-section-kicker">Ayar İşlemleri</span>
+          <span class="yk-system-pill">
+            <i class="fa-solid fa-cash-register" aria-hidden="true"></i>
+            Shopigo POS Master Yönetimi
+          </span>
+        </div>
+
+        <div class="yk-title-row">
+          <h2>{{ current.title }}</h2>
+          <div class="yk-head-pills">
+            <span class="yk-stat-chip chip-pavo">
+              <i class="fa-solid fa-credit-card" aria-hidden="true"></i>
+              <strong>{{ paymentMethods().length }}</strong> Ödeme Metodu
+            </span>
+            <span class="yk-stat-chip">
+              <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
+              <strong>{{ permissions().length }}</strong> Kasa Yetkisi
+            </span>
+            <span class="yk-stat-chip">
+              <i class="fa-solid fa-tv" aria-hidden="true"></i>
+              <strong>{{ displayContents().length }}</strong> Ekran Görseli
+            </span>
+            <span class="yk-stat-chip">
+              <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
+              <strong>{{ categories().length }}</strong> Hızlı Tuş Grubu
+            </span>
+          </div>
+        </div>
+
+        <p class="yk-subtitle">{{ current.subtitle }}</p>
+      </div>
+
+      <div class="yk-head-actions">
+        <button
+          *ngIf="canUpdate()"
+          type="button"
+          (click)="triggerSyncPush()"
+          [disabled]="isLoading('sync-push')"
+          class="yk-btn-secondary"
+          style="border-color: #38bdf8; color: #0284c7; background: #f0f9ff;"
+          title="Tüm aktif POS kasalarına anlık canlı senkronizasyon sinyali gönder">
+          <i class="fa-solid fa-tower-broadcast" [class.spin]="isLoading('sync-push')" aria-hidden="true"></i>
+          Tüm Kasaları Tetikle (Canlı Dağıtım)
+        </button>
+        <button
+          type="button"
+          (click)="loadAllData()"
+          [disabled]="isLoading('load')"
+          class="yk-btn-refresh"
+          title="Tüm ayarları ve verileri sunucudan yeniden yükle">
+          <i class="fa-solid fa-rotate" [class.spin]="isLoading('load')" aria-hidden="true"></i>
+          Verileri Yenile
+        </button>
+      </div>
+    </header>
+
+    <!-- 2. FEEDBACK ALERT MESSAGE -->
+    <div
+      *ngIf="feedback() as fb"
+      class="yk-alert-box"
+      [class.alert-success]="fb.tone === 'success'"
+      [class.alert-error]="fb.tone === 'error'"
+      [class.alert-info]="fb.tone === 'info'">
+      <div class="alert-icon">
+        <i
+          class="fa-solid"
+          [class.fa-circle-check]="fb.tone === 'success'"
+          [class.fa-triangle-exclamation]="fb.tone === 'error'"
+          [class.fa-circle-info]="fb.tone === 'info'"
+          aria-hidden="true"></i>
+      </div>
+      <div class="alert-content">
+        <h4>{{ fb.title }}</h4>
+        <p>{{ fb.message }}</p>
+      </div>
+      <button type="button" (click)="feedback.set(null)" class="alert-close" aria-label="Kapat">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <!-- 3. MODERN SEGMENTED TABS -->
+    <nav class="yk-tab-nav" aria-label="Yeni Kasa Yönetimi Alt Sekmeleri">
+      <button
+        type="button"
+        (click)="setTab('general')"
+        class="yk-tab-btn"
+        [class.is-active]="activeTab() === 'general'">
+        <i class="fa-solid fa-sliders" aria-hidden="true"></i>
+        Genel Ayarlar & Fiş Limitleri
+      </button>
+
+      <button
+        type="button"
+        (click)="setTab('payment-methods')"
+        class="yk-tab-btn"
+        [class.is-active]="activeTab() === 'payment-methods'">
+        <i class="fa-solid fa-money-bill-wave" aria-hidden="true"></i>
+        Ödeme Yöntemleri
+        <span class="tab-badge">{{ paymentMethods().length }}</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="setTab('role-matrix')"
+        class="yk-tab-btn"
+        [class.is-active]="activeTab() === 'role-matrix'">
+        <i class="fa-solid fa-user-shield" aria-hidden="true"></i>
+        Kasa Yetki Matrisi
+        <span class="tab-badge">{{ permissions().length }} Yetki</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="setTab('display')"
+        class="yk-tab-btn"
+        [class.is-active]="activeTab() === 'display'">
+        <i class="fa-solid fa-desktop" aria-hidden="true"></i>
+        Müşteri Ekranı (Display)
+        <span class="tab-badge">{{ displayContents().length }}</span>
+      </button>
+
+      <button
+        type="button"
+        (click)="setTab('fast-access')"
+        class="yk-tab-btn"
+        [class.is-active]="activeTab() === 'fast-access'">
+        <i class="fa-solid fa-table-cells" aria-hidden="true"></i>
+        Hızlı Tuş Grupları & Ürünler
+        <span class="tab-badge">{{ categories().length }} Grup</span>
+      </button>
+    </nav>
+
+    <!-- 4. TAB 1: GENEL AYARLAR -->
+    <section *ngIf="activeTab() === 'general'" class="yk-tab-panel">
+      <div class="yk-card">
+        <div class="yk-card-head">
+          <div class="title-group">
+            <h3>Fiş, Fatura & Yazıcı Parametreleri</h3>
+            <p>Shopigo POS terminallerinde geçerli yasal limitler, termal yazıcı satır dot ayarları ve Pavo fiş entegrasyonu.</p>
+          </div>
+        </div>
+
+        <form [formGroup]="generalSettingsForm" (ngSubmit)="saveGeneralSettings()">
+          <div class="yk-form-grid">
+            <div class="yk-field-group">
+              <label for="fisFaturaLimit">Fiş / Fatura Limiti (TL)</label>
+              <input
+                id="fisFaturaLimit"
+                type="number"
+                step="0.01"
+                formControlName="fisFaturaLimit"
+                class="yk-input"
+                placeholder="9900.00" />
+              <span class="yk-hint">Yasal fiş üst limiti (Örn: 9.900,00 TL).</span>
+            </div>
+
+            <div class="yk-field-group">
+              <label for="fisGenislik">Yazıcı Kağıt Genişliği</label>
+              <select id="fisGenislik" formControlName="fisGenislik" class="yk-select">
+                <option value="80mm">80mm (Standart Termal Fiş)</option>
+                <option value="58mm">58mm (Kompakt POS Fişi)</option>
+              </select>
+              <span class="yk-hint">Fiziksel termal yazıcı kağıt formatı.</span>
+            </div>
+
+            <div class="yk-field-group">
+              <label for="printerDotsPerLine">Printer Dot / Line</label>
+              <input
+                id="printerDotsPerLine"
+                type="number"
+                formControlName="printerDotsPerLine"
+                class="yk-input"
+                placeholder="576" />
+              <span class="yk-hint">80mm yazıcı kafası için standart: 576 dot.</span>
+            </div>
+
+            <div class="yk-field-group">
+              <label class="yk-checkbox-card" for="pavoFis">
+                <input type="checkbox" id="pavoFis" formControlName="pavoFis" />
+                <span>Pavo Fiş Basımı Aktif</span>
+              </label>
+              <span class="yk-hint">Aktif edildiğinde fiş çıktısı Pavo cihazı üzerinden yönetilir.</span>
+            </div>
+          </div>
+
+          <div class="yk-card-head" style="margin-top: 1.5rem;">
+            <div class="title-group">
+              <h3>FTP & Terminal Senkronizasyon Sunucu Ayarları</h3>
+              <p>POS kasa terminallerinin görsel, ürün ve yetki güncellemelerini çektiği FTP bağlantı parametreleri.</p>
+            </div>
+          </div>
+
+          <div class="yk-form-grid">
+            <div class="yk-field-group">
+              <label for="ftpHost">FTP Host / Sunucu IP</label>
+              <input
+                id="ftpHost"
+                type="text"
+                formControlName="ftpHost"
+                class="yk-input"
+                placeholder="10.0.0.55" />
+            </div>
+
+            <div class="yk-field-group">
+              <label for="ftpPort">FTP Port</label>
+              <input
+                id="ftpPort"
+                type="number"
+                formControlName="ftpPort"
+                readonly
+                class="yk-input"
+                placeholder="21" />
+              <span class="yk-hint">Altyapı yapılandırmasından gelir; bu ekrandan değiştirilemez.</span>
+            </div>
+
+            <div class="yk-field-group">
+              <label for="ftpFolderPath">Klasör Yolu (Remote Path)</label>
+              <input
+                id="ftpFolderPath"
+                type="text"
+                formControlName="ftpFolderPath"
+                readonly
+                class="yk-input"
+                placeholder="/kasa_sync/" />
+              <span class="yk-hint">Altyapı yapılandırmasından gelir; bu ekrandan değiştirilemez.</span>
+            </div>
+
+            <div class="yk-field-group">
+              <label for="ftpUsername">FTP Kullanıcı Adı</label>
+              <input
+                id="ftpUsername"
+                type="text"
+                formControlName="ftpUsername"
+                class="yk-input" />
+            </div>
+
+            <div class="yk-field-group">
+              <label for="ftpPassword">FTP Şifre</label>
+              <input
+                id="ftpPassword"
+                type="password"
+                formControlName="ftpPassword"
+                autocomplete="new-password"
+                placeholder="Değiştirmek için yeni parola girin"
+                class="yk-input" />
+              <span class="yk-hint">Güvenlik nedeniyle mevcut parola gösterilmez. Boş bırakırsanız korunur.</span>
+            </div>
+          </div>
+
+          <!-- FTP Bağlantı Sınama Butonu ve Sonuç Alanı -->
+          <div *ngIf="canUpdate()" style="margin-top: 1rem; padding: 0.75rem 1rem; background: var(--yk-bg-muted); border-radius: 8px; border: 1px solid var(--yk-border); display: flex; align-items: center; justify-content: space-between; flex-wrap: wrap; gap: 0.75rem;">
+            <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+              <button
+                type="button"
+                (click)="testFtpConnection()"
+                [disabled]="isLoading('test-ftp')"
+                class="yk-btn-secondary"
+                style="border-color: #64748b;">
+                <i class="fa-solid fa-network-wired" *ngIf="!isLoading('test-ftp')" aria-hidden="true"></i>
+                <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('test-ftp')" aria-hidden="true"></i>
+                FTP Bağlantısını Sına
+              </button>
+              <span style="font-size: 0.75rem; color: var(--yk-text-muted);">
+                Sunucu IP ve port erişilebilirliğini anlık kontrol eder.
+              </span>
+            </div>
+
+            <div
+              *ngIf="ftpTestResult() as tr"
+              style="padding: 0.35rem 0.75rem; border-radius: 6px; font-size: 0.76rem; font-weight: 600; display: flex; align-items: center; gap: 0.4rem;"
+              [style.background]="tr.isSuccess ? '#ecfdf5' : '#fef2f2'"
+              [style.color]="tr.isSuccess ? '#065f46' : '#991b1b'"
+              [style.border]="tr.isSuccess ? '1px solid #a7f3d0' : '1px solid #fecaca'">
+              <i class="fa-solid" [class.fa-circle-check]="tr.isSuccess" [class.fa-circle-xmark]="!tr.isSuccess" aria-hidden="true"></i>
+              <span>{{ tr.message }} ({{ tr.latencyMs }} ms)</span>
+            </div>
+          </div>
+
+          <div *ngIf="canUpdate()" class="yk-form-footer">
+            <button
+              type="submit"
+              [disabled]="isLoading('save-settings')"
+              class="yk-btn-primary">
+              <i class="fa-solid fa-floppy-disk" *ngIf="!isLoading('save-settings')" aria-hidden="true"></i>
+              <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-settings')" aria-hidden="true"></i>
+              Genel Ayarları Kaydet
+            </button>
+          </div>
+        </form>
+      </div>
+    </section>
+
+    <!-- 5. TAB 2: ÖDEME YÖNTEMLERİ -->
+    <section *ngIf="activeTab() === 'payment-methods'" class="yk-tab-panel">
+      <div class="yk-card">
+        <div class="yk-card-head">
+          <div class="title-group">
+            <h3>Ödeme Yöntemleri ve POS Buton Sıralaması</h3>
+            <p>Kasa ekranında listelenecek ödeme butonlarının sırasını, durumunu ve Pavo entegrasyon parametrelerini düzenleyin.</p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div class="yk-search-bar">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input
+                type="text"
+                [ngModel]="paymentFilter()"
+                (ngModelChange)="paymentFilter.set($event)"
+                placeholder="Ödeme yöntemi veya marka ara..." />
+            </div>
+
+            <button
+              *ngIf="canUpdate()"
+              type="button"
+              (click)="savePaymentMethodsOrder()"
+              [disabled]="isLoading('save-payment')"
+              class="yk-btn-primary">
+              <i class="fa-solid fa-floppy-disk" *ngIf="!isLoading('save-payment')" aria-hidden="true"></i>
+              <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-payment')" aria-hidden="true"></i>
+              Sıralama ve Durumları Kaydet
+            </button>
+          </div>
+        </div>
+
+        <div class="yk-table-wrap">
+          <table class="yk-table">
+            <thead>
+              <tr>
+                <th style="width: 5rem; text-align: center;">Sıra No (sirano)</th>
+                <th>Ödeme Yöntemi (name)</th>
+                <th>Grup (group)</th>
+                <th>Marka (brand)</th>
+                <th>Pavo Tipi / Aracı (pavoType / pavoMediator)</th>
+                <th style="text-align: center;">Pavo Durumu (pavoIsActive)</th>
+                <th style="text-align: center;">Kasa Durumu (status)</th>
+                <th style="text-align: right;">İşlem</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let item of filteredPaymentMethods(); trackBy: trackPaymentById">
+                <td style="text-align: center;">
+                  <input
+                    type="number"
+                    [(ngModel)]="item.sirano"
+                    [readonly]="!canUpdate()"
+                    class="num-input" />
+                </td>
+                <td>
+                  <div style="font-weight: 700; color: var(--yk-text-main);">{{ item.name }}</div>
+                  <div *ngIf="item.description" style="font-size: 0.72rem; color: var(--yk-text-muted);">{{ item.description }}</div>
+                </td>
+                <td>
+                  <span class="yk-badge badge-muted">{{ item.group || '-' }}</span>
+                </td>
+                <td>
+                  <span style="font-weight: 600; color: var(--yk-text-secondary);">{{ item.brand || '-' }}</span>
+                </td>
+                <td>
+                  <span *ngIf="item.pavoType || item.pavoMediator" style="font-family: monospace; font-size: 0.74rem; background: var(--yk-indigo-soft); color: var(--yk-indigo); padding: 0.15rem 0.5rem; border-radius: 4px;">
+                    {{ item.pavoType || '-' }} / {{ item.pavoMediator || '-' }}
+                  </span>
+                  <span *ngIf="!item.pavoType && !item.pavoMediator" style="color: #cbd5e1;">-</span>
+                </td>
+                <td style="text-align: center;">
+                  <span
+                    class="yk-badge"
+                    [class.badge-success]="item.pavoIsActive === 1"
+                    [class.badge-muted]="item.pavoIsActive !== 1">
+                    <i class="fa-solid" [class.fa-check]="item.pavoIsActive === 1" [class.fa-minus]="item.pavoIsActive !== 1" aria-hidden="true"></i>
+                    {{ item.pavoIsActive === 1 ? 'Aktif' : 'Pasif' }}
+                  </span>
+                </td>
+                <td style="text-align: center;">
+                  <button
+                    type="button"
+                    (click)="togglePaymentStatus(item)"
+                    [disabled]="!canUpdate()"
+                    class="yk-status-toggle"
+                    [class.is-active]="item.status === 1"
+                    [class.is-passive]="item.status !== 1"
+                    title="Kasa durumunu değiştir">
+                    <i class="fa-solid" [class.fa-circle-check]="item.status === 1" [class.fa-circle-xmark]="item.status !== 1" aria-hidden="true"></i>
+                    {{ item.status === 1 ? 'Aktif' : 'Pasif' }}
+                  </button>
+                </td>
+                <td style="text-align: right;">
+                  <button
+                    *ngIf="canUpdate()"
+                    type="button"
+                    (click)="editPaymentMethod(item)"
+                    class="yk-btn-secondary"
+                    style="padding: 0.35rem 0.65rem; font-size: 0.75rem;">
+                    <i class="fa-solid fa-pen-to-square" aria-hidden="true"></i>
+                    Düzenle
+                  </button>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+      </div>
+    </section>
+
+    <!-- 6. TAB 3: KASA YETKİ MATRİSİ -->
+    <section *ngIf="activeTab() === 'role-matrix'" class="yk-tab-panel">
+      <div class="yk-card">
+        <div class="yk-card-head">
+          <div class="title-group">
+            <h3>Shopigo Kasa İşlem Yetki Matrisi</h3>
+            <p>Personel, Mağaza Yöneticisi ve Müdür rolleri için POS kasa işlem fonksiyon yetkileri.</p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap;">
+            <div class="yk-search-bar" style="width: 280px;">
+              <i class="fa-solid fa-magnifying-glass" aria-hidden="true"></i>
+              <input
+                type="text"
+                [ngModel]="permissionSearch()"
+                (ngModelChange)="permissionSearch.set($event)"
+                placeholder="Yetki adı ara (Örn: İade, İptal)..." />
+            </div>
+
+            <button
+              *ngIf="canUpdate()"
+              type="button"
+              (click)="saveAllRolePermissions()"
+              [disabled]="isLoading('save-roles')"
+              class="yk-btn-primary"
+              title="Tüm rollerin güncel yetkilerini tek tıkla kaydet">
+              <i class="fa-solid fa-floppy-disk" *ngIf="!isLoading('save-roles')" aria-hidden="true"></i>
+              <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-roles')" aria-hidden="true"></i>
+              Tüm Yetkileri Kaydet
+            </button>
+          </div>
+        </div>
+
+        <div class="yk-table-wrap">
+          <table class="yk-table">
+            <thead>
+              <tr>
+                <th style="min-width: 220px;">Yetki Adı</th>
+                <th style="min-width: 260px;">Açıklama</th>
+                <th *ngFor="let role of roles(); trackBy: trackRoleById" style="text-align: center; min-width: 140px;">
+                  <div style="font-weight: 800; color: var(--yk-text-main); font-size: 0.78rem;">{{ role.name }}</div>
+                  <div style="display: flex; align-items: center; justify-content: center; gap: 0.4rem; margin-top: 0.3rem;">
+                    <button
+                      type="button"
+                      (click)="toggleAllForRole(role.id, true)"
+                      [disabled]="!canUpdate()"
+                      style="background: none; border: none; font-size: 0.72rem; color: var(--yk-indigo); cursor: pointer; text-decoration: underline;">
+                      Tümü
+                    </button>
+                    <span style="color: #cbd5e1;">|</span>
+                    <button
+                      type="button"
+                      (click)="toggleAllForRole(role.id, false)"
+                      [disabled]="!canUpdate()"
+                      style="background: none; border: none; font-size: 0.72rem; color: var(--yk-text-muted); cursor: pointer; text-decoration: underline;">
+                      Temizle
+                    </button>
+                  </div>
+                </th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let perm of filteredPermissions(); trackBy: trackPermissionById">
+                <td>
+                  <div style="font-weight: 700; color: var(--yk-text-main);">{{ perm.name }}</div>
+                </td>
+                <td style="font-size: 0.75rem; color: var(--yk-text-secondary);">
+                  {{ perm.description || '-' }}
+                </td>
+                <td *ngFor="let role of roles(); trackBy: trackRoleById" style="text-align: center;">
+                  <input
+                    type="checkbox"
+                    [checked]="hasRolePermission(role.id, perm.id)"
+                    (change)="toggleRolePermission(role.id, perm.id)"
+                    [disabled]="!canUpdate()"
+                    style="width: 1.15rem; height: 1.15rem; cursor: pointer; accent-color: var(--yk-indigo);" />
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+
+        <div *ngIf="canUpdate()" class="yk-form-footer" style="justify-content: space-between; flex-wrap: wrap;">
+          <span style="font-size: 0.74rem; color: var(--yk-text-muted);">
+            * Değişikliklerin kasalara iletilmesi için "Tüm Yetkileri Kaydet" butonuna basınız.
+          </span>
+          <button
+            type="button"
+            (click)="saveAllRolePermissions()"
+            [disabled]="isLoading('save-roles')"
+            class="yk-btn-primary">
+            <i class="fa-solid fa-floppy-disk" *ngIf="!isLoading('save-roles')" aria-hidden="true"></i>
+            <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-roles')" aria-hidden="true"></i>
+            Tüm Yetkileri Kaydet
+          </button>
+        </div>
+      </div>
+    </section>
+
+    <!-- 7. TAB 4: MÜŞTERİ EKRANI (DISPLAY) -->
+    <section *ngIf="activeTab() === 'display'" class="yk-tab-panel">
+      <!-- BT Direktörü Bilgi Yönergesi & Slider Seçimi -->
+      <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.25rem;" class="split-col-responsive">
+        <div class="yk-info-callout">
+          <div class="callout-icon">
+            <i class="fa-solid fa-circle-info" aria-hidden="true"></i>
+          </div>
+          <div class="callout-text">
+            <h4>Müşteri Ekranı (Display) Standartları</h4>
+            <ul>
+              <li>İçerikler dosya sunucusunda <strong style="font-family: monospace;">\\10.0.0.55\kasa\Furpa Kasa Sync\musteri_gorselleri</strong> yoluna aktarılır.</li>
+              <li><strong>Görsel Standartları:</strong> Format: <strong>.jpg, .png</strong>, Çözünürlük: <strong>1920 x 1080 Full HD</strong>, Azami Boyut: <strong>1.5 MB</strong>.</li>
+              <li><strong>Video Standartları:</strong> Format: <strong>.mp4 (H.264), .webm</strong>, Azami Boyut: <strong>50 MB</strong>, Önerilen Süre: <strong>10 - 30 sn (Sessiz)</strong>.</li>
+            </ul>
+          </div>
+        </div>
+
+        <div class="yk-card" style="display: flex; flex-direction: column; justify-content: space-between;">
+          <div class="title-group" style="margin-bottom: 0.75rem;">
+            <h4 style="margin: 0; font-size: 0.88rem; font-weight: 700; color: var(--yk-text-main);">Müşteri Ekranı Slider Modu</h4>
+            <p style="margin: 0.2rem 0 0; font-size: 0.72rem; color: var(--yk-text-muted);">Satış ekranında tek veya iki görsel kaydırıcı modu.</p>
+          </div>
+
+          <div style="display: flex; flex-direction: column; gap: 0.6rem;">
+            <div
+              *ngFor="let setting of displaySettings(); trackBy: trackDisplaySettingById"
+              style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--yk-bg-muted); border-radius: 8px; border: 1px solid var(--yk-border);">
+              <div>
+                <div style="font-size: 0.82rem; font-weight: 700; color: var(--yk-text-main); text-transform: capitalize;">{{ setting.pageType }}</div>
+              </div>
+              <button
+                type="button"
+                (click)="toggleTwoSlider(setting)"
+                [disabled]="!canUpdate()"
+                class="yk-status-toggle"
+                [class.is-active]="setting.isTwoSlider === 1"
+                [class.is-passive]="setting.isTwoSlider !== 1">
+                <i class="fa-solid fa-arrows-split-up-and-left" aria-hidden="true"></i>
+                {{ setting.isTwoSlider === 1 ? '2 Slider Aktif' : 'Tek Slider' }}
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <!-- Yayındaki Görseller Listesi -->
+      <div class="yk-card">
+        <div class="yk-card-head">
+          <div class="title-group">
+            <h3>Yayındaki Müşteri Ekranı İçerikleri ({{ displayContents().length }})</h3>
+            <p>Müşteri ekranında dönüşümlü gösterilen kampanya, indirim, duyuru görsel ve videoları.</p>
+          </div>
+
+          <div style="display: flex; align-items: center; gap: 0.5rem; flex-wrap: wrap;">
+            <button
+              *ngIf="canUpdate() && displayContents().length > 0"
+              type="button"
+              (click)="saveDisplayContentsOrder()"
+              [disabled]="isLoading('save-display-order')"
+              class="yk-btn-secondary"
+              title="İçeriklerin ekranda dönüş sıralamasını kaydet">
+              <i class="fa-solid fa-arrow-down-1-9" *ngIf="!isLoading('save-display-order')" aria-hidden="true"></i>
+              <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-display-order')" aria-hidden="true"></i>
+              Sıralamayı Kaydet
+            </button>
+            <button
+              *ngIf="canCreate()"
+              type="button"
+              (click)="openNewDisplayModal()"
+              class="yk-btn-primary">
+              <i class="fa-solid fa-cloud-arrow-up" aria-hidden="true"></i>
+              Yeni İçerik Yükle
+            </button>
+          </div>
+        </div>
+
+        <div *ngIf="displayContents().length === 0" class="yk-empty-state">
+          <i class="fa-solid fa-photo-film" aria-hidden="true"></i>
+          <h4>Henüz müşteri ekranı içeriği yüklenmemiş</h4>
+          <p>"Yeni İçerik Yükle" butonuna tıklayarak 1920x1080 JPEG görsel veya MP4/WebM video ekleyebilirsiniz.</p>
+        </div>
+
+        <div *ngIf="displayContents().length > 0" class="yk-display-grid">
+          <div *ngFor="let item of displayContents(); trackBy: trackDisplayContentById" class="yk-display-card">
+            <div class="card-media">
+              <img
+                *ngIf="!isVideoContent(item)"
+                [src]="resolveImageUrl(item.imageUrl) || defaultDisplayImage"
+                [alt]="item.name"
+                (error)="onImageError($event, 'display')" />
+              <video
+                *ngIf="isVideoContent(item)"
+                [src]="resolveImageUrl(item.imageUrl)"
+                muted
+                preload="metadata"
+                controls
+                style="width: 100%; height: 100%; object-fit: cover;"></video>
+              <span class="media-badge">
+                <i class="fa-solid" [class.fa-video]="isVideoContent(item)" [class.fa-image]="!isVideoContent(item)" style="margin-right: 0.25rem;"></i>
+                {{ isVideoContent(item) ? 'Video' : 'Görsel' }}
+              </span>
+            </div>
+            <div class="card-body">
+              <div style="display: flex; align-items: center; justify-content: space-between; gap: 0.5rem; margin-bottom: 0.35rem;">
+                <h4 class="display-name" [title]="item.name" style="margin: 0; flex: 1;">{{ item.name }}</h4>
+                <div style="display: flex; align-items: center; gap: 0.3rem;">
+                  <span style="font-size: 0.72rem; color: var(--yk-text-muted); font-weight: 600;">Sıra:</span>
+                  <input
+                    type="number"
+                    [value]="item.sirano"
+                    (input)="updateDisplaySirano(item, $any($event.target).value)"
+                    title="Slayt Dönüş Sırası"
+                    style="width: 3.4rem; padding: 0.2rem 0.35rem; font-size: 0.75rem; border: 1px solid var(--yk-border); border-radius: 4px; text-align: center; font-weight: 700;" />
+                </div>
+              </div>
+              <div class="display-meta">
+                <div><strong>Yayın:</strong> {{ item.startDate ? (item.startDate | date:'dd.MM.yyyy') : 'Hemen' }} - {{ item.endDate ? (item.endDate | date:'dd.MM.yyyy') : 'Süresiz' }}</div>
+                <div><strong>Eklenme:</strong> {{ item.createdAt ? (item.createdAt | date:'dd.MM.yyyy HH:mm') : '-' }}</div>
+              </div>
+            </div>
+            <div *ngIf="canDelete()" class="card-footer">
+              <button
+                type="button"
+                (click)="deleteDisplayContent(item)"
+                class="btn-delete">
+                <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                Ekrani Kaldır
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <!-- 8. TAB 5: HIZLI TUŞ GRUPLARI & ÜRÜNLER -->
+    <section *ngIf="activeTab() === 'fast-access'" class="yk-tab-panel">
+      <!-- BT Direktörü Kural Bilgi Kartı -->
+      <div class="yk-info-callout callout-emerald">
+        <div class="callout-icon">
+          <i class="fa-solid fa-bolt" aria-hidden="true"></i>
+        </div>
+        <div class="callout-text">
+          <h4>Hızlı Tuş Grupları & Buton Görsel Kuralları</h4>
+          <ul>
+            <li>Yeni kategori oluşturulduğunda sistem otomatik 20 haneli benzersiz <strong style="font-family: monospace;">category_key</strong> üretir.</li>
+            <li>Eklenen ürün buton görselleri dosya sunucusunda <strong style="font-family: monospace;">\\10.0.0.55\kasa\Furpa Kasa Sync\urun_gorselleri</strong> klasörüne <strong style="font-family: monospace;">[stok_kodu].jpg</strong> olarak kaydedilir.</li>
+            <li>Standart Ölçü: <strong>283 x 283 Kare</strong>, Azami Boyut: <strong>30 KB</strong>.</li>
+          </ul>
+        </div>
+      </div>
+
+      <!-- Master-Detail 2 Sütunlu Çalışma Alanı -->
+      <div class="yk-split-layout">
+        <!-- SOL PANEL: KATEGORİ LİSTESİ -->
+        <div class="yk-card" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <div class="yk-card-head" style="margin-bottom: 0; padding-bottom: 0.65rem;">
+            <div class="title-group">
+              <h3 style="font-size: 0.92rem;">Gruplar ({{ categories().length }})</h3>
+            </div>
+            <button
+              *ngIf="canCreate()"
+              type="button"
+              (click)="openNewCategoryModal()"
+              class="yk-btn-emerald"
+              style="padding: 0.35rem 0.75rem; font-size: 0.74rem;">
+              <i class="fa-solid fa-plus" aria-hidden="true"></i>
+              Yeni Grup
+            </button>
+          </div>
+
+          <div class="yk-category-list">
+            <div
+              *ngFor="let cat of categories(); trackBy: trackCategoryById"
+              (click)="selectCategory(cat)"
+              class="yk-cat-item"
+              [class.is-selected]="selectedCategory()?.id === cat.id">
+              <div class="cat-info">
+                <span class="cat-name">{{ cat.name }}</span>
+              </div>
+              <div class="cat-meta">
+                <span class="badge-count">{{ cat.itemCount }} Buton</span>
+                <button
+                  *ngIf="canDelete()"
+                  type="button"
+                  (click)="deleteCategory(cat, $event)"
+                  [title]="cat.itemCount > 0 ? 'İçerisinde ' + cat.itemCount + ' adet ürün/buton bulunan kategori silinemez. Önce ürünleri siliniz.' : 'Kategoriyi Sil'"
+                  [disabled]="cat.itemCount > 0"
+                  [style.opacity]="cat.itemCount > 0 ? '0.35' : '1'"
+                  [style.cursor]="cat.itemCount > 0 ? 'not-allowed' : 'pointer'"
+                  class="btn-cat-del">
+                  <i class="fa-solid fa-trash-can" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+
+        <!-- SAĞ PANEL: SEÇİLİ KATEGORİ ÜRÜN BUTONLARI -->
+        <div class="yk-card" style="display: flex; flex-direction: column; gap: 0.85rem;">
+          <div *ngIf="selectedCategory() as selCat" style="display: flex; flex-direction: column; gap: 1rem;">
+            <div class="yk-card-head" style="margin-bottom: 0; padding-bottom: 0.65rem;">
+              <div class="title-group">
+                <h3 style="font-size: 1rem; display: flex; align-items: center; gap: 0.5rem;">
+                  {{ selCat.name }}
+                  <span style="font-family: monospace; font-size: 0.72rem; color: var(--yk-teal); background: var(--yk-teal-soft); border: 1px solid var(--yk-teal-border); padding: 0.15rem 0.5rem; border-radius: 9999px;">
+                    {{ selCat.categoryKey }}
+                  </span>
+                </h3>
+                <p>Kasa arayüzünde hızlı satış için konumlandırılan ürün butonları.</p>
+              </div>
+
+              <button
+                *ngIf="canCreate()"
+                type="button"
+                (click)="openNewItemModal()"
+                class="yk-btn-primary">
+                <i class="fa-solid fa-plus" aria-hidden="true"></i>
+                Gruba Ürün Ekle
+              </button>
+            </div>
+
+            <!-- Ürün Grid -->
+            <div *ngIf="categoryItems().length === 0" class="yk-empty-state">
+              <i class="fa-solid fa-boxes-stacked" aria-hidden="true"></i>
+              <h4>Bu grupta henüz ürün butonu bulunmuyor</h4>
+              <p>"Gruba Ürün Ekle" butonuna basarak stok kodu ve görsel yükleyebilirsiniz.</p>
+            </div>
+
+            <div *ngIf="categoryItems().length > 0" class="yk-product-grid">
+              <div *ngFor="let item of categoryItems(); trackBy: trackItemById" class="yk-prod-card">
+                <div class="prod-img">
+                  <img
+                    [src]="resolveImageUrl(item.imageUrl) || defaultProductImage"
+                    [alt]="item.inventoryCode"
+                    (error)="onImageError($event, 'product')" />
+                </div>
+                <div class="prod-details">
+                  <span class="p-code">{{ item.inventoryCode }}</span>
+                  <span class="p-name" [title]="item.productName || item.inventoryCode">{{ item.productName || '-' }}</span>
+                  <span *ngIf="item.barcode" class="p-barcode">{{ item.barcode }}</span>
+                </div>
+                <button
+                  *ngIf="canDelete()"
+                  type="button"
+                  (click)="deleteItem(item)"
+                  title="Butonu Kaldır"
+                  class="btn-item-del">
+                  <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+                </button>
+              </div>
+            </div>
+          </div>
+
+          <div *ngIf="!selectedCategory()" class="yk-empty-state">
+            <i class="fa-solid fa-hand-pointer" aria-hidden="true"></i>
+            <h4>Lütfen sol listeden bir grup seçin</h4>
+            <p>Seçilen grubun butonları ve ürün görselleri burada listelenecektir.</p>
+          </div>
+        </div>
+      </div>
+    </section>
+  </article>
+</section>
+
+<!-- 9. MODAL: YENİ MÜŞTERİ EKRANI İÇERİĞİ (GÖRSEL / VİDEO) YÜKLE -->
+<div *ngIf="isNewDisplayModalOpen()" class="yk-modal-backdrop">
+  <div class="yk-modal-card">
+    <div class="yk-modal-head">
+      <h3>Yeni Müşteri Ekranı İçeriği Yükle</h3>
+      <button type="button" (click)="closeNewDisplayModal()" class="btn-close" aria-label="Kapat">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="newDisplayForm" (ngSubmit)="submitNewDisplayContent()">
+      <div class="yk-modal-body">
+        <!-- İçerik Türü Seçimi -->
+        <div class="yk-field-group">
+          <label>İçerik Türü</label>
+          <div style="display: flex; gap: 0.5rem;">
+            <button
+              type="button"
+              (click)="setDisplayType('image')"
+              class="yk-btn-secondary"
+              [style.background]="newDisplayForm.get('type')?.value === 'image' ? 'var(--yk-indigo-soft)' : ''"
+              [style.borderColor]="newDisplayForm.get('type')?.value === 'image' ? 'var(--yk-indigo)' : ''"
+              [style.color]="newDisplayForm.get('type')?.value === 'image' ? 'var(--yk-indigo)' : ''">
+              <i class="fa-solid fa-image"></i> Görsel (JPG / PNG)
+            </button>
+            <button
+              type="button"
+              (click)="setDisplayType('video')"
+              class="yk-btn-secondary"
+              [style.background]="newDisplayForm.get('type')?.value === 'video' ? 'var(--yk-indigo-soft)' : ''"
+              [style.borderColor]="newDisplayForm.get('type')?.value === 'video' ? 'var(--yk-indigo)' : ''"
+              [style.color]="newDisplayForm.get('type')?.value === 'video' ? 'var(--yk-indigo)' : ''">
+              <i class="fa-solid fa-video"></i> Video (MP4 / WebM)
+            </button>
+          </div>
+        </div>
+
+        <div class="yk-field-group">
+          <label>Dosya Seçiniz ({{ newDisplayForm.get('type')?.value === 'video' ? 'MP4 / WebM, Azami 50MB' : '1920x1080 JPEG/PNG, Azami 1.5MB' }})</label>
+          <input
+            type="file"
+            [accept]="newDisplayForm.get('type')?.value === 'video' ? 'video/mp4,video/webm,.mp4,.webm' : 'image/jpeg,image/png,image/*'"
+            (change)="onDisplayFileSelected($event)"
+            class="yk-input" />
+          <span class="yk-hint">
+            {{ newDisplayForm.get('type')?.value === 'video'
+              ? 'Önerilen: 1080p H.264 MP4 veya WebM formatında, sessiz, 10-30 saniye video.'
+              : 'Yüklenen görseller otomatik olarak 1920x1080 Full HD JPEG olarak optimize edilir.' }}
+          </span>
+        </div>
+
+        <div *ngIf="displayPreviewUrl()" style="aspect-ratio: 16 / 9; background: #0f172a; border-radius: 8px; overflow: hidden; border: 1px solid var(--yk-border); display: flex; align-items: center; justify-content: center;">
+          <img
+            *ngIf="!isVideoContent({ type: newDisplayForm.get('type')?.value, name: newDisplayForm.get('name')?.value })"
+            [src]="displayPreviewUrl()"
+            alt="Önizleme"
+            style="width: 100%; height: 100%; object-fit: contain;" />
+          <video
+            *ngIf="isVideoContent({ type: newDisplayForm.get('type')?.value, name: newDisplayForm.get('name')?.value })"
+            [src]="displayPreviewUrl()"
+            controls
+            muted
+            style="width: 100%; height: 100%; object-fit: contain;"></video>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="yk-field-group">
+            <label for="dispPageType">Sayfa Tipi</label>
+            <select id="dispPageType" formControlName="pageType" class="yk-select">
+              <option value="sale_page">Satış Ekranı (sale_page)</option>
+              <option value="promotions_page">Promosyon Ekranı (promotions_page)</option>
+            </select>
+          </div>
+
+          <div class="yk-field-group">
+            <label for="dispName">İçerik Başlığı / Dosya Adı</label>
+            <input
+              id="dispName"
+              type="text"
+              formControlName="name"
+              [placeholder]="newDisplayForm.get('type')?.value === 'video' ? 'kampanya_tanitim.mp4' : 'kampanya_kasim.jpg'"
+              class="yk-input" />
+          </div>
+        </div>
+
+        <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+          <div class="yk-field-group">
+            <label for="dispStartDate">Başlangıç Tarihi</label>
+            <input
+              id="dispStartDate"
+              type="date"
+              formControlName="startDate"
+              class="yk-input" />
+          </div>
+
+          <div class="yk-field-group">
+            <label for="dispEndDate">Bitiş Tarihi</label>
+            <input
+              id="dispEndDate"
+              type="date"
+              formControlName="endDate"
+              class="yk-input" />
+          </div>
+        </div>
+      </div>
+
+      <div class="yk-modal-footer">
+        <button type="button" (click)="closeNewDisplayModal()" class="yk-btn-secondary">İptal</button>
+        <button
+          type="submit"
+          [disabled]="isLoading('save-display')"
+          class="yk-btn-primary">
+          <i class="fa-solid fa-cloud-arrow-up" *ngIf="!isLoading('save-display')" aria-hidden="true"></i>
+          <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-display')" aria-hidden="true"></i>
+          Yükle & Yayınla
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 10. MODAL: YENİ HIZLI TUŞ GRUBU -->
+<div *ngIf="isNewCategoryModalOpen()" class="yk-modal-backdrop">
+  <div class="yk-modal-card modal-md">
+    <div class="yk-modal-head">
+      <h3>Yeni Hızlı Tuş Grubu Oluştur</h3>
+      <button type="button" (click)="closeNewCategoryModal()" class="btn-close" aria-label="Kapat">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="newCategoryForm" (ngSubmit)="submitNewCategory()">
+      <div class="yk-modal-body">
+        <div class="yk-field-group">
+          <label for="catName">Grup Adı</label>
+          <input
+            id="catName"
+            type="text"
+            formControlName="name"
+            placeholder="Örn: Unlu Mamüller"
+            class="yk-input" />
+        </div>
+
+        <div class="yk-field-group">
+          <label for="catDesc">Açıklama (Opsiyonel)</label>
+          <input
+            id="catDesc"
+            type="text"
+            formControlName="description"
+            placeholder="Örn: Ekmek, simit ve unlu mamul butonları"
+            class="yk-input" />
+        </div>
+
+        <p style="font-size: 0.72rem; color: var(--yk-text-muted); margin: 0;">
+          * Sistem tarafından 20 karakterlik benzersiz bir <strong style="font-family: monospace; color: var(--yk-teal);">category_key</strong> otomatik üretilecektir.
+        </p>
+      </div>
+
+      <div class="yk-modal-footer">
+        <button type="button" (click)="closeNewCategoryModal()" class="yk-btn-secondary">İptal</button>
+        <button
+          type="submit"
+          [disabled]="newCategoryForm.invalid || isLoading('save-category')"
+          class="yk-btn-emerald">
+          <i class="fa-solid fa-check" *ngIf="!isLoading('save-category')" aria-hidden="true"></i>
+          <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-category')" aria-hidden="true"></i>
+          Grup Oluştur
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 11. MODAL: HIZLI TUŞ ÜRÜN EKLE -->
+<div *ngIf="isNewItemModalOpen()" class="yk-modal-backdrop">
+  <div class="yk-modal-card modal-md">
+    <div class="yk-modal-head">
+      <h3>Gruba Ürün Ekle</h3>
+      <button type="button" (click)="closeNewItemModal()" class="btn-close" aria-label="Kapat">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <form [formGroup]="newItemForm" (ngSubmit)="submitNewItem()">
+      <div class="yk-modal-body">
+        <!-- Mikro Stok Canlı Arama (Debounced Autocomplete) -->
+        <div class="yk-field-group">
+          <label for="stockSearch">Mikro Stok Canlı Arama</label>
+          <div style="position: relative;">
+            <input
+              id="stockSearch"
+              type="text"
+              [formControl]="stockSearchControl"
+              placeholder="Mikro'da ürün adı, kodu veya barkodu ara (Örn: Çay, Süt, 0161...)"
+              class="yk-input"
+              autocomplete="off" />
+
+            <div
+              *ngIf="stockSearchResults().length > 0"
+              style="position: absolute; top: calc(100% + 4px); left: 0; right: 0; background: var(--yk-bg-card, #ffffff); border: 1px solid var(--yk-border, #e2e8f0); border-radius: 8px; box-shadow: 0 10px 25px -5px rgba(0,0,0,0.15); max-height: 220px; overflow-y: auto; z-index: 50;">
+              <div
+                *ngFor="let s of stockSearchResults()"
+                (click)="selectStockItem(s)"
+                style="padding: 0.5rem 0.75rem; border-bottom: 1px solid var(--yk-border-light, #f1f5f9); cursor: pointer; display: flex; flex-direction: column; gap: 0.2rem;"
+                onmouseover="this.style.background='var(--yk-bg-muted, #f8fafc)'"
+                onmouseout="this.style.background='transparent'">
+                <div style="font-weight: 700; color: var(--yk-text-main, #0f172a); font-size: 0.8rem;">{{ s.stockName }}</div>
+                <div style="display: flex; gap: 0.75rem; font-size: 0.72rem; color: var(--yk-text-muted, #64748b); font-family: monospace;">
+                  <span>Kod: <strong style="color: var(--yk-indigo, #6366f1);">{{ s.stockCode }}</strong></span>
+                  <span *ngIf="s.barcode">Barkod: {{ s.barcode }}</span>
+                </div>
+              </div>
+            </div>
+          </div>
+          <span class="yk-hint">Listeden ürün seçtiğinizde stok kodu ve barkod otomatik dolar.</span>
+        </div>
+
+        <div class="yk-field-group">
+          <label for="itemInvCode">Stok Kodu (Gerekli)</label>
+          <input
+            id="itemInvCode"
+            type="text"
+            formControlName="inventoryCode"
+            placeholder="Örn: 016125"
+            class="yk-input"
+            style="font-family: monospace; font-weight: 700;" />
+          <span class="yk-hint">Ürün görseli dosya adı: [stok_kodu].jpg olarak kaydedilecektir.</span>
+        </div>
+
+        <div class="yk-field-group">
+          <label for="itemBarcode">Barkod (Opsiyonel)</label>
+          <input
+            id="itemBarcode"
+            type="text"
+            formControlName="barcode"
+            placeholder="Örn: 869000000000"
+            class="yk-input"
+            style="font-family: monospace;" />
+        </div>
+
+        <div class="yk-field-group">
+          <label>Ürün Görseli (283 x 283 Kare, Azami 30KB)</label>
+          <input
+            type="file"
+            accept="image/*"
+            (change)="onItemImageSelected($event)"
+            class="yk-input" />
+        </div>
+
+        <div *ngIf="itemPreviewUrl()" style="width: 120px; height: 120px; margin: 0 auto; background: var(--yk-bg-muted); border-radius: 8px; overflow: hidden; border: 1px solid var(--yk-border); display: flex; align-items: center; justify-content: center;">
+          <img [src]="itemPreviewUrl()" alt="Önizleme" style="width: 100%; height: 100%; object-fit: cover;" />
+        </div>
+      </div>
+
+      <div class="yk-modal-footer">
+        <button type="button" (click)="closeNewItemModal()" class="yk-btn-secondary">İptal</button>
+        <button
+          type="submit"
+          [disabled]="newItemForm.invalid || isLoading('save-item')"
+          class="yk-btn-primary">
+          <i class="fa-solid fa-plus" *ngIf="!isLoading('save-item')" aria-hidden="true"></i>
+          <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-item')" aria-hidden="true"></i>
+          Gruba Ekle
+        </button>
+      </div>
+    </form>
+  </div>
+</div>
+
+<!-- 12. MODAL: TEK ÖDEME YÖNTEMİ DÜZENLE -->
+<div *ngIf="editingPayment() as payment" class="yk-modal-backdrop">
+  <div class="yk-modal-card modal-md">
+    <div class="yk-modal-head">
+      <h3>Ödeme Yöntemi Düzenle</h3>
+      <button type="button" (click)="closeEditPaymentModal()" class="btn-close" aria-label="Kapat">
+        <i class="fa-solid fa-xmark" aria-hidden="true"></i>
+      </button>
+    </div>
+
+    <div class="yk-modal-body">
+      <div class="yk-field-group">
+        <label>Ödeme Yöntemi Adı</label>
+        <input
+          type="text"
+          [(ngModel)]="payment.name"
+          class="yk-input"
+          style="font-weight: 700;" />
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="yk-field-group">
+          <label>Grup</label>
+          <select [(ngModel)]="payment.group" class="yk-input">
+            <option [ngValue]="null">-- Grup Seçiniz --</option>
+            <option *ngFor="let g of paymentLookups().groups" [value]="g">{{ g | uppercase }}</option>
+            <option *ngIf="payment.group && !paymentLookups().groups.includes(payment.group)" [value]="payment.group">
+              {{ payment.group }} (Özel)
+            </option>
+          </select>
+        </div>
+
+        <div class="yk-field-group">
+          <label>Marka (Lookup)</label>
+          <select [(ngModel)]="payment.brand" class="yk-input">
+            <option [ngValue]="null">-- Marka Seçiniz (İsteğe Bağlı) --</option>
+            <option *ngFor="let b of paymentLookups().brands" [value]="b.code">{{ b.label }}</option>
+            <option *ngIf="payment.brand && !hasBrandCode(payment.brand)" [value]="payment.brand">
+              {{ payment.brand }} (Özel Marka)
+            </option>
+          </select>
+        </div>
+      </div>
+
+      <div style="display: grid; grid-template-columns: 1fr 1fr; gap: 0.75rem;">
+        <div class="yk-field-group">
+          <label>Pavo Tipi</label>
+          <input
+            type="text"
+            [(ngModel)]="payment.pavoType"
+            class="yk-input"
+            style="font-family: monospace;" />
+        </div>
+
+        <div class="yk-field-group">
+          <label>Pavo Aracı</label>
+          <input
+            type="text"
+            [(ngModel)]="payment.pavoMediator"
+            class="yk-input"
+            style="font-family: monospace;" />
+        </div>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--yk-bg-muted); border-radius: 8px; border: 1px solid var(--yk-border);">
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--yk-text-main);">Pavo Entegrasyonu Aktif</span>
+        <button
+          type="button"
+          (click)="payment.pavoIsActive = (payment.pavoIsActive === 1 ? 0 : 1)"
+          class="yk-status-toggle"
+          [class.is-active]="payment.pavoIsActive === 1"
+          [class.is-passive]="payment.pavoIsActive !== 1">
+          {{ payment.pavoIsActive === 1 ? 'Aktif' : 'Pasif' }}
+        </button>
+      </div>
+
+      <div style="display: flex; align-items: center; justify-content: space-between; padding: 0.5rem 0.75rem; background: var(--yk-bg-muted); border-radius: 8px; border: 1px solid var(--yk-border);">
+        <span style="font-size: 0.82rem; font-weight: 700; color: var(--yk-text-main);">Kasa Durumu</span>
+        <button
+          type="button"
+          (click)="payment.status = (payment.status === 1 ? 0 : 1)"
+          class="yk-status-toggle"
+          [class.is-active]="payment.status === 1"
+          [class.is-passive]="payment.status !== 1">
+          {{ payment.status === 1 ? 'Aktif' : 'Pasif' }}
+        </button>
+      </div>
+    </div>
+
+    <div class="yk-modal-footer">
+      <button type="button" (click)="closeEditPaymentModal()" class="yk-btn-secondary">İptal</button>
+      <button
+        type="button"
+        (click)="saveSinglePaymentMethod()"
+        [disabled]="isLoading('save-payment')"
+        class="yk-btn-primary">
+        <i class="fa-solid fa-floppy-disk" *ngIf="!isLoading('save-payment')" aria-hidden="true"></i>
+        <i class="fa-solid fa-spinner fa-spin" *ngIf="isLoading('save-payment')" aria-hidden="true"></i>
+        Kaydet
+      </button>
+    </div>
+  </div>
+</div>

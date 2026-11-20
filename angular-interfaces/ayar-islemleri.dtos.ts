@@ -666,3 +666,238 @@ export interface TerminalHeartbeatHttpRequest {
   androidSdk?: number | null;
   supportedAbis?: string[] | null;
 }
+
+export interface YeniKasaAppSettingsDto {
+  id: number;
+  pavoFis: number;
+  fisGenislik: string | null;
+  printerDotsPerLine: number | null;
+  fisFaturaLimit: number | null;
+  nakitLimit: number | null;
+  ftpHost: string | null;
+  ftpPort: number | null;
+  ftpUsername: string | null;
+  ftpPassword: string | null;
+  ftpFolderPath: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface UpdateYeniKasaAppSettingsRequest {
+  pavoFis: number;
+  fisGenislik?: string | null;
+  printerDotsPerLine?: number | null;
+  fisFaturaLimit?: number | null;
+  nakitLimit?: number | null;
+  ftpHost?: string | null;
+  ftpUsername?: string | null;
+  ftpPassword?: string | null;
+}
+
+export interface TestFtpConnectionRequest {
+  ftpHost: string;
+  ftpPort?: number | null;
+  ftpUsername?: string | null;
+  ftpPassword?: string | null;
+  ftpFolderPath?: string | null;
+}
+
+export interface TestFtpConnectionResultDto {
+  isSuccess: boolean;
+  latencyMs: number;
+  message: string;
+}
+
+export interface SyncPushResultDto {
+  isSuccess: boolean;
+  message: string;
+  triggeredAtUtc: string;
+}
+
+export interface YeniKasaPaymentMethodDto {
+  id: number;
+  name: string;
+  description: string | null;
+  status: number;
+  sirano: number;
+  pavoIsActive: number;
+  pavoType: string | null;
+  pavoMediator: string | null;
+  brand: string | null;
+  group: string | null;
+}
+
+export interface UpdateYeniKasaPaymentMethodRequest {
+  id: number;
+  name: string;
+  description?: string | null;
+  status: number;
+  sirano: number;
+  pavoIsActive: number;
+  pavoType?: string | null;
+  pavoMediator?: string | null;
+  brand?: string | null;
+  group?: string | null;
+}
+
+export interface PaymentMethodOrderUpdateItem {
+  id: number;
+  sirano: number;
+  status: number;
+}
+
+export interface YeniKasaPaymentLookupItemDto {
+  code: string;
+  label: string;
+}
+
+export interface YeniKasaPaymentMethodLookupsDto {
+  groups: string[];
+  brands: YeniKasaPaymentLookupItemDto[];
+}
+
+export interface UpdatePaymentMethodsOrderRequest {
+  items: PaymentMethodOrderUpdateItem[];
+}
+
+export interface YeniKasaRoleDto {
+  id: number;
+  name: string;
+  description: string | null;
+}
+
+export interface YeniKasaPermissionDto {
+  id: number;
+  name: string;
+  code: string;
+  description: string | null;
+}
+
+export interface YeniKasaRolePermissionDto {
+  roleId: number;
+  permissionId: number;
+}
+
+export interface YeniKasaRolePermissionMatrixDto {
+  roles: YeniKasaRoleDto[];
+  permissions: YeniKasaPermissionDto[];
+  rolePermissions: YeniKasaRolePermissionDto[];
+}
+
+export interface UpdateRolePermissionsRequest {
+  roleId: number;
+  permissionIds: number[];
+}
+
+export interface BulkRolePermissionUpdateItem {
+  roleId: number;
+  permissionIds: number[];
+}
+
+export interface BulkUpdateRolePermissionsRequest {
+  roles: BulkRolePermissionUpdateItem[];
+}
+
+export interface CopyRolePermissionsRequest {
+  sourceRoleId: number;
+  targetRoleId: number;
+}
+
+export interface CopyRolePermissionsResultDto {
+  isSuccess: boolean;
+  copiedPermissionCount: number;
+  message: string;
+}
+
+export interface YeniKasaDisplaySettingsDto {
+  id: number;
+  pageType: string;
+  isTwoSlider: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface UpdateYeniKasaDisplaySettingsRequest {
+  id: number;
+  isTwoSlider: number;
+}
+
+export interface YeniKasaDisplayContentDto {
+  id: number;
+  type: string | null;
+  name: string;
+  sirano: number;
+  startDate: string | null;
+  endDate: string | null;
+  pageType: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+  imageUrl: string | null;
+}
+
+export interface CreateYeniKasaDisplayContentRequest {
+  type?: string | null;
+  name?: string | null;
+  sirano?: number;
+  startDate?: string | null;
+  endDate?: string | null;
+  pageType?: string | null;
+  base64Data?: string | null;
+}
+
+export interface DisplayContentOrderUpdateItem {
+  id: number;
+  sirano: number;
+}
+
+export interface UpdateDisplayContentsOrderRequest {
+  items: DisplayContentOrderUpdateItem[];
+}
+
+export interface YeniKasaStockLookupDto {
+  stockCode: string;
+  stockName: string;
+  barcode: string | null;
+  unit: string | null;
+  salePrice: number | null;
+}
+
+export interface YeniKasaFastAccessCategoryDto {
+  id: number;
+  name: string;
+  description: string | null;
+  categoryKey: string;
+  itemCount: number;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface CreateFastAccessCategoryRequest {
+  name: string;
+  description?: string | null;
+}
+
+export interface UpdateFastAccessCategoryRequest {
+  id: number;
+  name: string;
+  description?: string | null;
+}
+
+export interface YeniKasaFastAccessItemDto {
+  id: number;
+  inventoryCode: string;
+  productName: string | null;
+  barcode: string | null;
+  imagePath: string | null;
+  categoryKey: string;
+  imageUrl: string | null;
+  createdAt: string | null;
+  updatedAt: string | null;
+}
+
+export interface CreateFastAccessItemRequest {
+  categoryKey: string;
+  inventoryCode: string;
+  barcode?: string | null;
+  base64Data?: string | null;
+}

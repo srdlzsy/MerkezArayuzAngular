@@ -50,6 +50,33 @@ import type {
   UpdateB2BUserHttpRequest,
   UpdateCashierHttpRequest,
   WorkerMonitoringSnapshotDto,
+  YeniKasaAppSettingsDto,
+  UpdateYeniKasaAppSettingsRequest,
+  YeniKasaPaymentMethodDto,
+  YeniKasaPaymentMethodLookupsDto,
+  UpdateYeniKasaPaymentMethodRequest,
+  UpdatePaymentMethodsOrderRequest,
+  YeniKasaRolePermissionMatrixDto,
+  UpdateRolePermissionsRequest,
+  BulkRolePermissionUpdateItem,
+  BulkUpdateRolePermissionsRequest,
+  YeniKasaDisplaySettingsDto,
+  UpdateYeniKasaDisplaySettingsRequest,
+  YeniKasaDisplayContentDto,
+  CreateYeniKasaDisplayContentRequest,
+  YeniKasaFastAccessCategoryDto,
+  CreateFastAccessCategoryRequest,
+  UpdateFastAccessCategoryRequest,
+  YeniKasaFastAccessItemDto,
+  CreateFastAccessItemRequest,
+  TestFtpConnectionRequest,
+  TestFtpConnectionResultDto,
+  SyncPushResultDto,
+  CopyRolePermissionsRequest,
+  CopyRolePermissionsResultDto,
+  DisplayContentOrderUpdateItem,
+  UpdateDisplayContentsOrderRequest,
+  YeniKasaStockLookupDto,
 } from '@interfaces';
 
 import { BaseApiService } from '../base-api.service';
@@ -456,5 +483,119 @@ export class AyarIslemleriService extends BaseApiService {
       `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}`,
       request,
     );
+  }
+
+  // Yeni Kasa Yönetimi - Genel Ayarlar
+  getYeniKasaAppSettings(): Observable<YeniKasaAppSettingsDto | null> {
+    return this.get<YeniKasaAppSettingsDto | null>('ayar-islemleri/yeni-kasa-yonetimi/genel-ayarlar');
+  }
+
+  updateYeniKasaAppSettings(request: UpdateYeniKasaAppSettingsRequest): Observable<void> {
+    return this.put<void, UpdateYeniKasaAppSettingsRequest>('ayar-islemleri/yeni-kasa-yonetimi/genel-ayarlar', request);
+  }
+
+  testYeniKasaFtpConnection(request: TestFtpConnectionRequest): Observable<TestFtpConnectionResultDto> {
+    return this.post<TestFtpConnectionResultDto, TestFtpConnectionRequest>('ayar-islemleri/yeni-kasa-yonetimi/genel-ayarlar/test-ftp', request);
+  }
+
+  triggerYeniKasaSyncPush(): Observable<SyncPushResultDto> {
+    return this.post<SyncPushResultDto, void>('ayar-islemleri/yeni-kasa-yonetimi/sync-push', undefined as unknown as void);
+  }
+
+  // Yeni Kasa Yönetimi - Ödeme Yöntemleri
+  getYeniKasaPaymentMethods(): Observable<YeniKasaPaymentMethodDto[]> {
+    return this.get<YeniKasaPaymentMethodDto[]>('ayar-islemleri/yeni-kasa-yonetimi/odeme-yontemleri');
+  }
+
+  getYeniKasaPaymentMethodLookups(): Observable<YeniKasaPaymentMethodLookupsDto> {
+    return this.get<YeniKasaPaymentMethodLookupsDto>('ayar-islemleri/yeni-kasa-yonetimi/odeme-yontemleri/lookups');
+  }
+
+  updateYeniKasaPaymentMethod(request: UpdateYeniKasaPaymentMethodRequest): Observable<void> {
+    return this.put<void, UpdateYeniKasaPaymentMethodRequest>('ayar-islemleri/yeni-kasa-yonetimi/odeme-yontemleri', request);
+  }
+
+  updateYeniKasaPaymentMethodsOrder(request: UpdatePaymentMethodsOrderRequest): Observable<void> {
+    return this.put<void, UpdatePaymentMethodsOrderRequest>('ayar-islemleri/yeni-kasa-yonetimi/odeme-yontemleri/siralama', request);
+  }
+
+  // Yeni Kasa Yönetimi - Yetki Matrisi
+  getYeniKasaRolePermissionMatrix(): Observable<YeniKasaRolePermissionMatrixDto> {
+    return this.get<YeniKasaRolePermissionMatrixDto>('ayar-islemleri/yeni-kasa-yonetimi/yetki-matrisi');
+  }
+
+  updateYeniKasaRolePermissions(request: UpdateRolePermissionsRequest): Observable<void> {
+    return this.put<void, UpdateRolePermissionsRequest>('ayar-islemleri/yeni-kasa-yonetimi/yetki-matrisi', request);
+  }
+
+  bulkUpdateYeniKasaRolePermissions(request: BulkUpdateRolePermissionsRequest): Observable<void> {
+    return this.put<void, BulkUpdateRolePermissionsRequest>('ayar-islemleri/yeni-kasa-yonetimi/yetki-matrisi/toplu', request);
+  }
+
+  copyYeniKasaRolePermissions(request: CopyRolePermissionsRequest): Observable<CopyRolePermissionsResultDto> {
+    return this.post<CopyRolePermissionsResultDto, CopyRolePermissionsRequest>('ayar-islemleri/yeni-kasa-yonetimi/yetki-matrisi/kopyala', request);
+  }
+
+  // Yeni Kasa Yönetimi - Müşteri Ekranı
+  getYeniKasaDisplaySettings(): Observable<YeniKasaDisplaySettingsDto[]> {
+    return this.get<YeniKasaDisplaySettingsDto[]>('ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/ayarlar');
+  }
+
+  updateYeniKasaDisplaySettings(request: UpdateYeniKasaDisplaySettingsRequest): Observable<void> {
+    return this.put<void, UpdateYeniKasaDisplaySettingsRequest>('ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/ayarlar', request);
+  }
+
+  getYeniKasaDisplayContents(pageType?: string): Observable<YeniKasaDisplayContentDto[]> {
+    return this.getWithQuery<YeniKasaDisplayContentDto[]>('ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/icerikler', {
+      pageType: pageType || undefined,
+    });
+  }
+
+  createYeniKasaDisplayContent(request: CreateYeniKasaDisplayContentRequest): Observable<YeniKasaDisplayContentDto> {
+    return this.post<YeniKasaDisplayContentDto, CreateYeniKasaDisplayContentRequest>('ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/icerikler', request);
+  }
+
+  updateYeniKasaDisplayContentsOrder(request: UpdateDisplayContentsOrderRequest): Observable<void> {
+    return this.put<void, UpdateDisplayContentsOrderRequest>('ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/siralama', request);
+  }
+
+  deleteYeniKasaDisplayContent(id: number): Observable<void> {
+    return this.delete<void>(`ayar-islemleri/yeni-kasa-yonetimi/musteri-ekrani/icerikler/${id}`);
+  }
+
+  // Yeni Kasa Yönetimi - Hızlı Tuş Grupları & Ürünler
+  getYeniKasaFastAccessCategories(): Observable<YeniKasaFastAccessCategoryDto[]> {
+    return this.get<YeniKasaFastAccessCategoryDto[]>('ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/kategoriler');
+  }
+
+  createYeniKasaFastAccessCategory(request: CreateFastAccessCategoryRequest): Observable<YeniKasaFastAccessCategoryDto> {
+    return this.post<YeniKasaFastAccessCategoryDto, CreateFastAccessCategoryRequest>('ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/kategoriler', request);
+  }
+
+  updateYeniKasaFastAccessCategory(request: UpdateFastAccessCategoryRequest): Observable<void> {
+    return this.put<void, UpdateFastAccessCategoryRequest>('ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/kategoriler', request);
+  }
+
+  deleteYeniKasaFastAccessCategory(id: number): Observable<void> {
+    return this.delete<void>(`ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/kategoriler/${id}`);
+  }
+
+  getYeniKasaFastAccessItems(categoryKey: string): Observable<YeniKasaFastAccessItemDto[]> {
+    return this.get<YeniKasaFastAccessItemDto[]>(`ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/urunler/${encodeURIComponent(categoryKey)}`);
+  }
+
+  createYeniKasaFastAccessItem(request: CreateFastAccessItemRequest): Observable<YeniKasaFastAccessItemDto> {
+    return this.post<YeniKasaFastAccessItemDto, CreateFastAccessItemRequest>('ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/urunler', request);
+  }
+
+  deleteYeniKasaFastAccessItem(id: number): Observable<void> {
+    return this.delete<void>(`ayar-islemleri/yeni-kasa-yonetimi/hizli-tus/urunler/${id}`);
+  }
+
+  searchYeniKasaStocks(query: string, take: number = 20): Observable<YeniKasaStockLookupDto[]> {
+    return this.getWithQuery<YeniKasaStockLookupDto[]>('ayar-islemleri/yeni-kasa-yonetimi/stok-ara', {
+      q: query.trim(),
+      take
+    });
   }
 }
