@@ -57,6 +57,8 @@ interface KalemFormValue {
   birim: string;
   birimKatsayisi: number | null;
   birimFiyati: number | null;
+  brutBirimFiyati: number | null;
+  fiyatKaynagi: string;
   siparisMiktari: number | null;
   irsaliyeMiktari: number | null;
   fiiliKabulMiktari: number | null;
@@ -75,6 +77,8 @@ type KalemFormGroup = FormGroup<{
   birim: FormControl<string>;
   birimKatsayisi: FormControl<number | null>;
   birimFiyati: FormControl<number | null>;
+  brutBirimFiyati: FormControl<number | null>;
+  fiyatKaynagi: FormControl<string>;
   siparisMiktari: FormControl<number | null>;
   irsaliyeMiktari: FormControl<number | null>;
   fiiliKabulMiktari: FormControl<number | null>;
@@ -842,6 +846,8 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       birim: new FormControl(stock.unitName?.trim() ?? '', { nonNullable: true }),
       birimKatsayisi: new FormControl(stock.unitMultiplier ?? null),
       birimFiyati: new FormControl(this.resolvePurchaseUnitPrice(stock)),
+      brutBirimFiyati: new FormControl(this.toPositiveNumberOrNull(stock.purchaseGrossPrice)),
+      fiyatKaynagi: new FormControl(stock.purchasePriceSource?.trim() ?? '', { nonNullable: true }),
       siparisMiktari: new FormControl<number | null>(0, {
         validators: [Validators.required, Validators.min(0)]
       }),
@@ -905,6 +911,8 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
         birim: new FormControl(kalem.unitName?.trim() ?? '', { nonNullable: true }),
         birimKatsayisi: new FormControl(kalem.unitPointer ?? 1),
         birimFiyati: new FormControl(this.toPositiveNumberOrNull(kalem.unitPrice)),
+        brutBirimFiyati: new FormControl(this.toPositiveNumberOrNull(kalem.unitPrice)),
+        fiyatKaynagi: new FormControl('siparis', { nonNullable: true }),
         siparisMiktari: new FormControl<number | null>(incomingQuantity, {
           validators: [Validators.required, Validators.min(0.01)]
         }),
@@ -1008,6 +1016,8 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
         birim: new FormControl(line.unitCode?.trim() ?? '', { nonNullable: true }),
         birimKatsayisi: new FormControl(1),
         birimFiyati: new FormControl(unitPrice),
+        brutBirimFiyati: new FormControl(unitPrice),
+        fiyatKaynagi: new FormControl('e-belge', { nonNullable: true }),
         siparisMiktari: new FormControl<number | null>(0, {
           validators: [Validators.required, Validators.min(0)]
         }),
@@ -1273,5 +1283,4 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     return resolveHttpErrorMessage(error, fallback);
   }
 }
-
 
