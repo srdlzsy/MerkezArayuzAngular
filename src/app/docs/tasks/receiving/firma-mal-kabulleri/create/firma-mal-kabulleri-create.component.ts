@@ -46,6 +46,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 interface KalemFormValue {
   taslakGuid: string;
@@ -117,7 +118,7 @@ const positiveIntegerValidator: ValidatorFn = (control: AbstractControl): Valida
 @Component({
   selector: 'app-firma-mal-kabulleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
   templateUrl: './firma-mal-kabulleri-create.component.html',
   styleUrl: './firma-mal-kabulleri-create.component.scss'
 })

@@ -184,16 +184,6 @@
   opacity: 0.65;
 }
 
-.analysis-tabs {
-  display: grid;
-  grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.36rem;
-  padding: 0.22rem;
-  border: 1px solid var(--analysis-border);
-  border-radius: 8px;
-  background: var(--analysis-soft);
-}
-
 .analysis-tab {
   display: inline-flex;
   align-items: center;
@@ -233,12 +223,6 @@
 .metric-strip {
   display: grid;
   grid-template-columns: repeat(5, minmax(0, 1fr));
-  gap: 0.52rem;
-}
-
-.risk-strip {
-  display: grid;
-  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: 0.52rem;
 }
 
@@ -774,6 +758,7 @@
   overflow-x: auto;
   gap: 0.45rem;
   padding: 0.35rem;
+  border: 1px solid var(--analysis-border);
   background: #f1f5f9;
   border-radius: 12px;
   scrollbar-width: thin;

@@ -37,6 +37,16 @@
         Yeni Islem Olarak Kaydet
       </button>
 
+      <app-create-workflow-bar
+        documentTitle="Stok Virmani"
+        partnerLabel=""
+        warehouseLabel="Depo"
+        [warehouseValue]="currentWarehouseLabel()"
+        [dateValue]="form.controls.documentDate.value"
+        [lineCount]="lineCount()"
+        [totalQuantity]="totalQuantity()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Virman Ust Bilgileri</h3>

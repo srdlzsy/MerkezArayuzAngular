@@ -1,5 +1,31 @@
 /* Shared tokens are values only; they do not style page elements by themselves. */
 :root {
+  /* 4/8/12/16/24 px Spacing Scale */
+  --furpa-space-1: 0.25rem; /* 4px */
+  --furpa-space-2: 0.5rem;  /* 8px */
+  --furpa-space-3: 0.75rem; /* 12px */
+  --furpa-space-4: 1rem;    /* 16px */
+  --furpa-space-5: 1.5rem;  /* 24px */
+  --furpa-space-6: 2rem;    /* 32px */
+
+  /* Typography Scale (All >= 0.7rem architecture floor) */
+  --furpa-font-xs: 0.75rem;
+  --furpa-font-sm: 0.84rem;
+  --furpa-font-base: 0.88rem;
+  --furpa-font-md: 1rem;
+  --furpa-font-lg: 1.18rem;
+  --furpa-font-xl: 1.35rem;
+
+  /* Control & Layout Dimensions (40-48px ergonomic target) */
+  --furpa-control-height-sm: 36px;
+  --furpa-control-height: 40px;
+  --furpa-control-height-lg: 44px;
+  --furpa-radius-sm: 6px;
+  --furpa-radius-md: 8px;
+  --furpa-radius-lg: 12px;
+  --furpa-radius-pill: 999px;
+
+  /* Core Operational Colors & Surfaces */
   --operation-text: #0f172a;
   --operation-text-secondary: #334155;
   --operation-muted: #526579;
@@ -12,41 +38,58 @@
   --operation-border-soft: #e2e8f0;
   --operation-surface: #fff;
   --operation-surface-muted: #f8fafc;
+
+  /* Semantic Status Palettes (Error, Success, Warning, Info) */
+  --operation-danger-text: #991b1b;
   --operation-danger-surface: #fff7f7;
   --operation-danger-border: #fecaca;
+  --operation-success-text: #166534;
   --operation-success-surface: #f0fdf4;
   --operation-success-border: #bbf7d0;
+  --operation-warning-text: #9a3412;
   --operation-warning-surface: #fff7ed;
   --operation-warning-border: #fed7aa;
+  --operation-info-text: #1e40af;
   --operation-info-surface: #eff6ff;
   --operation-info-border: #bfdbfe;
-  --operation-focus-border: #93c5fd;
-  --operation-focus-ring: rgba(59, 130, 246, 0.14);
-  --operation-panel-radius: 8px;
-  --operation-dialog-radius: 10px;
-  --operation-control-radius: 6px;
-  --operation-control-height: 36px;
-  --operation-panel-padding: 0.52rem 0.62rem;
-  --operation-grid-gap: 0.46rem;
-  --operation-caption-size: 0.78rem;
-  --operation-control-font-size: 0.88rem;
-  --operation-body-font-size: 0.875rem;
-  --operation-title-font-size: 1.18rem;
+
+  /* Focus & Accessibility Rings */
+  --operation-focus-border: #0f766e;
+  --operation-focus-ring: rgba(15, 118, 110, 0.16);
+
+  /* Mapped Operation Tokens */
+  --operation-panel-radius: var(--furpa-radius-md);
+  --operation-dialog-radius: var(--furpa-radius-lg);
+  --operation-control-radius: var(--furpa-radius-sm);
+  --operation-control-height: var(--furpa-control-height);
+  --operation-panel-padding: var(--furpa-space-3) var(--furpa-space-4);
+  --operation-grid-gap: var(--furpa-space-2);
+  --operation-caption-size: var(--furpa-font-xs);
+  --operation-control-font-size: var(--furpa-font-base);
+  --operation-body-font-size: var(--furpa-font-base);
+  --operation-title-font-size: var(--furpa-font-lg);
   --operation-shadow-panel: 0 6px 18px rgba(15, 23, 42, 0.06);
   --operation-shadow-dialog: 0 14px 34px rgba(15, 23, 42, 0.18);
   --operation-shadow-raised: 0 24px 60px rgba(15, 23, 42, 0.24);
-  --operation-compact-control-height: 30px;
+  --operation-compact-control-height: 34px;
   --operation-compact-caption-size: 0.72rem;
-  --operation-compact-control-font-size: 0.84rem;
+  --operation-compact-control-font-size: var(--furpa-font-sm);
   --operation-compact-body-font-size: 0.82rem;
 }
 
 /* Keep 1366x768 workstations usable at browser zoom 100 without shrinking text. */
 @media (max-width: 1440px), (max-height: 800px) {
   :root {
-    --operation-control-height: 34px;
-    --operation-panel-padding: 0.44rem 0.52rem;
-    --operation-grid-gap: 0.38rem;
-    --operation-compact-control-height: 29px;
+    --operation-control-height: 38px;
+    --operation-panel-padding: 0.6rem 0.75rem;
+    --operation-grid-gap: 0.45rem;
+    --operation-compact-control-height: 32px;
+  }
+}
+
+@media (max-width: 768px) {
+  :root {
+    --operation-control-height: 42px;
+    --operation-panel-padding: var(--furpa-space-3);
   }
 }

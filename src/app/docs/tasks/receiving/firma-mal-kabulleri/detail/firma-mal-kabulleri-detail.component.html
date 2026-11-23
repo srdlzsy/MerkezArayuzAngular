@@ -29,6 +29,39 @@
           </span>
         </p>
       </article>
+      <article class="info-card" *ngIf="discrepancyLineCount() > 0">
+        <h3>Farkli Satir</h3>
+        <p>
+          <span class="status-pill status-pill-warn">{{ discrepancyLineCount() }} kalem</span>
+        </p>
+      </article>
+
+      <div class="detail-view-tabs" *ngIf="!isLoading() && header()" role="tablist" aria-label="Detay gorunum sekmeleri">
+        <button
+          type="button"
+          class="detail-tab-btn"
+          [class.is-active]="activeDetailTab() === 'all'"
+          (click)="setDetailTab('all')"
+        >
+          Tumu
+        </button>
+        <button
+          type="button"
+          class="detail-tab-btn"
+          [class.is-active]="activeDetailTab() === 'lines'"
+          (click)="setDetailTab('lines')"
+        >
+          Kalemler ({{ kalemCount() }})
+        </button>
+        <button
+          type="button"
+          class="detail-tab-btn"
+          [class.is-active]="activeDetailTab() === 'summary'"
+          (click)="setDetailTab('summary')"
+        >
+          Belge Ozeti
+        </button>
+      </div>
     </section>
 
     <article class="state-card" *ngIf="isLoading()">
@@ -42,7 +75,7 @@
     </article>
 
     <ng-container *ngIf="!isLoading() && header() as header">
-      <section class="summary-grid">
+      <section class="summary-grid" *ngIf="activeDetailTab() !== 'lines'">
         <article class="summary-card">
           <h3>Seri / Sira</h3>
           <p>{{ getHeaderText(header, 'documentSerie') || '-' }} / {{ getHeaderNumber(header, 'documentOrderNo') ?? '-' }}</p>
@@ -83,8 +116,41 @@
         </article>
       </section>
 
-      <section class="task-block">
-        <div class="task-title">Irsaliye Kalemleri</div>
+      <section class="task-block" *ngIf="activeDetailTab() !== 'summary'">
+        <div class="detail-lines-head">
+          <div class="task-title">
+            <span>Irsaliye Kalemleri</span>
+            <small *ngIf="hasActiveLineFilter()">({{ filteredKalemCount() }} / {{ kalemCount() }})</small>
+          </div>
+
+          <div class="detail-lines-toolbar" *ngIf="kalemCount() > 1">
+            <input
+              type="search"
+              class="detail-line-search"
+              [value]="lineSearchTerm()"
+              placeholder="Stok kodu, urun adi veya parti ara..."
+              (input)="updateLineSearch($any($event.target).value ?? '')"
+            />
+            <button
+              type="button"
+              class="detail-discrepancy-toggle"
+              *ngIf="discrepancyLineCount() > 0"
+              [class.is-active]="onlyDiscrepancyLines()"
+              (click)="toggleDiscrepancyFilter()"
+            >
+              <i class="fa-solid fa-triangle-exclamation" aria-hidden="true"></i>
+              <span>Farkli Satirlar ({{ discrepancyLineCount() }})</span>
+            </button>
+            <button
+              type="button"
+              class="detail-clear-btn"
+              *ngIf="hasActiveLineFilter()"
+              (click)="clearLineFilters()"
+            >
+              Temizle
+            </button>
+          </div>
+        </div>
 
         <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
           <table>
@@ -106,7 +172,10 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let kalem of kalemler(); let i = index; trackBy: trackByKalem">
+              <tr
+                *ngFor="let kalem of kalemler(); let i = index; trackBy: trackByKalem"
+                [class.row-discrepancy]="isLineDiscrepancy(kalem)"
+              >
                 <td>{{ i + 1 }}</td>
                 <td>{{ getLineText(kalem, 'stockCode') || '-' }}</td>
                 <td>{{ getLineText(kalem, 'stockName') || '-' }}</td>

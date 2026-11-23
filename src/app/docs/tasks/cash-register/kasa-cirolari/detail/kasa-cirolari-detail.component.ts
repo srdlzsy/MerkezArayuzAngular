@@ -85,7 +85,37 @@ export class KasaCirolariDetailComponent
     return header.cashierName?.trim() || header.cashierCode || '-';
   });
   protected readonly payments = computed(() => this.detail()?.payments ?? []);
+  protected readonly paymentSearchTerm = signal('');
+  protected readonly activeDetailTab = signal<'all' | 'lines' | 'summary'>('all');
+  protected readonly filteredPayments = computed(() => {
+    const items = this.payments();
+    const term = this.paymentSearchTerm().trim().toLocaleLowerCase('tr-TR');
+
+    if (!term) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.paymentTypeName, `${item.paymentTypeNo ?? ''}`, item.cashBankName, item.cashBankCode]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('tr-TR')
+        .includes(term)
+    );
+  });
   protected readonly paymentCount = computed(() => this.payments().length);
+
+  protected updatePaymentSearch(term: string): void {
+    this.paymentSearchTerm.set(term);
+  }
+
+  protected clearPaymentSearch(): void {
+    this.paymentSearchTerm.set('');
+  }
+
+  protected setDetailTab(tab: 'all' | 'lines' | 'summary'): void {
+    this.activeDetailTab.set(tab);
+  }
   protected readonly paymentAmountTotal = computed(() =>
     this.sumBy(this.payments(), (item) => item.amount)
   );

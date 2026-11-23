@@ -1,13 +1,21 @@
 import { SelectionModel } from '@angular/cdk/collections';
 import { CommonModule } from '@angular/common';
-import { Component, DestroyRef, OnInit, ViewChild, inject, signal } from '@angular/core';
+import { Component, DestroyRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import type { IKunyeTag } from '@interfaces';
+import { finalize } from 'rxjs';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
+import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import {
+  buildAllWarehousesPermissionCode,
+  currentUserCanUseAllWarehouses,
+  currentUserHasPermission,
+  formatCurrentWarehouseLabel
+} from '../../../core/admin-warehouse.helpers';
 import { InPlacePrintService } from '../../../core/document-print/in-place-print.service';
 import { KunyeEtiketPrintComponent } from './print/kunye-etiket-print.component';
 
@@ -15,6 +23,8 @@ interface FeedbackState {
   tone: 'info' | 'error' | 'success';
   message: string;
 }
+
+const LIST_PERMISSION = 'kasa-islemleri.kunye-etiket-yazdirma.list';
 
 @Component({
   selector: 'app-kunye-etiket-yazdirma-list',
@@ -31,20 +41,56 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
   protected readonly feedback = signal<FeedbackState | null>(null);
   protected readonly printState = signal<'idle' | 'preparing'>('idle');
   protected readonly selectedDate = signal(this.getTodayDate());
+  protected readonly warehouseNo = signal<number | null>(null);
+  protected readonly canListTags = computed(() =>
+    currentUserHasPermission(this.authService.currentUser(), LIST_PERMISSION)
+  );
+  protected readonly canUseWarehouseScope = computed(() =>
+    currentUserCanUseAllWarehouses(
+      this.authService.currentUser(),
+      buildAllWarehousesPermissionCode(this.page.id, this.page.baseRouteOrFile)
+    )
+  );
+  protected readonly selectedWarehouseLabel = computed(() => {
+    if (!this.canUseWarehouseScope()) {
+      return formatCurrentWarehouseLabel(this.authService.currentUser());
+    }
+
+    const warehouseNo = this.warehouseNo();
+    return warehouseNo ? `Depo ${warehouseNo}` : 'Depo sec';
+  });
   protected readonly selection = new SelectionModel<IKunyeTag>(true, []);
 
   protected readonly selectedCount = signal(0);
   protected readonly selectedTags = signal<IKunyeTag[]>([]);
 
   private readonly destroyRef = inject(DestroyRef);
+  private activeTagsRequest: { unsubscribe(): void } | null = null;
+  private activeTagsRequestId = 0;
 
   constructor(
+    private readonly authService: AuthService,
     private readonly kasaIslemleriService: KasaIslemleriService,
     private readonly inPlacePrintService: InPlacePrintService
-  ) {}
+  ) {
+    this.warehouseNo.set(this.authService.currentUser()?.depoNo ?? null);
+  }
 
   ngOnInit(): void {
-    this.loadTags();
+    if (this.canListTags() && this.getWarehouseNoForRequest()) {
+      this.loadTags();
+    }
+  }
+
+  protected onWarehouseNoChange(value: number | string | null): void {
+    if (!this.canUseWarehouseScope()) {
+      this.warehouseNo.set(this.authService.currentUser()?.depoNo ?? null);
+      return;
+    }
+
+    const numericValue = Number(value);
+    this.warehouseNo.set(Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null);
+    this.clearLoadedTags();
   }
 
   protected onDateChange(value: string): void {
@@ -53,6 +99,22 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
   }
 
   protected loadTags(): void {
+    this.cancelTagsRequest();
+
+    if (!this.canListTags()) {
+      this.tags.set([]);
+      this.setFeedback('error', 'Kunye etiketlerini listeleme yetkiniz yok.');
+      return;
+    }
+
+    const warehouseNo = this.getWarehouseNoForRequest();
+
+    if (!warehouseNo) {
+      this.tags.set([]);
+      this.setFeedback('error', 'Kunye etiketleri icin depo secin.');
+      return;
+    }
+
     const selectedDate = this.selectedDate();
 
     if (!selectedDate) {
@@ -69,12 +131,25 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
 
     this.feedback.set(null);
     this.isLoading.set(true);
+    const requestId = this.activeTagsRequestId;
 
-    this.kasaIslemleriService
-      .getKunyeler(formattedDate)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+    this.activeTagsRequest = this.kasaIslemleriService
+      .getKunyeler(formattedDate, warehouseNo)
+      .pipe(
+        finalize(() => {
+          if (requestId === this.activeTagsRequestId) {
+            this.activeTagsRequest = null;
+            this.isLoading.set(false);
+          }
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
       next: (tags: IKunyeTag[]) => {
+        if (requestId !== this.activeTagsRequestId) {
+          return;
+        }
+
         this.tags.set(tags ?? []);
         this.selection.clear();
         this.syncSelectionCount();
@@ -83,13 +158,15 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
           this.setFeedback('info', 'Secilen tarihe ait etiket bulunamadi.');
         }
 
-        this.isLoading.set(false);
       },
       error: () => {
+        if (requestId !== this.activeTagsRequestId) {
+          return;
+        }
+
         this.tags.set([]);
         this.selection.clear();
         this.syncSelectionCount();
-        this.isLoading.set(false);
         this.setFeedback('error', 'Veri alinirken hata olustu.');
       }
     });
@@ -140,6 +217,29 @@ export class KunyeEtiketYazdirmaListComponent implements OnInit {
   private syncSelectionCount(): void {
     this.selectedCount.set(this.selection.selected.length);
     this.selectedTags.set([...this.selection.selected]);
+  }
+
+  private clearLoadedTags(): void {
+    this.cancelTagsRequest();
+    this.tags.set([]);
+    this.selection.clear();
+    this.syncSelectionCount();
+    this.feedback.set(null);
+  }
+
+  private cancelTagsRequest(): void {
+    this.activeTagsRequestId += 1;
+    this.activeTagsRequest?.unsubscribe();
+    this.activeTagsRequest = null;
+    this.isLoading.set(false);
+  }
+
+  private getWarehouseNoForRequest(): number | null {
+    if (!this.canUseWarehouseScope()) {
+      return this.authService.currentUser()?.depoNo ?? null;
+    }
+
+    return this.warehouseNo();
   }
 
   private getTodayDate(): string {

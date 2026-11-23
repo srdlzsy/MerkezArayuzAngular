@@ -59,6 +59,33 @@
           </span>
         </p>
       </article>
+
+      <div class="detail-view-tabs" *ngIf="!isLoading() && header() && !isEditing()" role="tablist" aria-label="Detay gorunum sekmeleri">
+        <button
+          type="button"
+          class="detail-tab-btn"
+          [class.is-active]="activeDetailTab() === 'all'"
+          (click)="setDetailTab('all')"
+        >
+          Tumu
+        </button>
+        <button
+          type="button"
+          class="detail-tab-btn"
+          [class.is-active]="activeDetailTab() === 'lines'"
+          (click)="setDetailTab('lines')"
+        >
+          Kalemler ({{ kalemCount() }})
+        </button>
+        <button
+          type="button"
+          class="detail-tab-btn"
+          [class.is-active]="activeDetailTab() === 'summary'"
+          (click)="setDetailTab('summary')"
+        >
+          Belge Ozeti
+        </button>
+      </div>
     </section>
 
     <article class="state-card" *ngIf="isLoading()">
@@ -85,7 +112,7 @@
         <p>{{ updateBlockedReason() }}</p>
       </article>
 
-      <section class="summary-grid">
+      <section class="summary-grid" *ngIf="activeDetailTab() !== 'lines' || isEditing()">
         <article class="summary-card">
           <h3>Seri / Sira</h3>
           <p>{{ getHeaderText(header, 'documentSerie') || '-' }} / {{ getHeaderNumber(header, 'documentOrderNo') ?? '-' }}</p>
@@ -251,10 +278,33 @@
         </div>
       </form>
 
-      <section class="task-block">
-        <div class="task-title">Kalemler</div>
+      <section class="task-block" *ngIf="activeDetailTab() !== 'summary' && !isEditing()">
+        <div class="detail-lines-head">
+          <div class="task-title">
+            <span>Kalemler</span>
+            <small *ngIf="hasActiveLineFilter()">({{ filteredKalemCount() }} / {{ kalemCount() }})</small>
+          </div>
 
-        <div class="table-wrap" *ngIf="!isEditing() && kalemler().length; else noKalemler">
+          <div class="detail-lines-toolbar" *ngIf="kalemCount() > 1">
+            <input
+              type="search"
+              class="detail-line-search"
+              [value]="lineSearchTerm()"
+              placeholder="Stok kodu, urun adi veya parti ara..."
+              (input)="updateLineSearch($any($event.target).value ?? '')"
+            />
+            <button
+              type="button"
+              class="detail-clear-btn"
+              *ngIf="hasActiveLineFilter()"
+              (click)="clearLineFilters()"
+            >
+              Temizle
+            </button>
+          </div>
+        </div>
+
+        <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
           <table>
             <thead>
               <tr>

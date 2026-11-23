@@ -1,4 +1,4 @@
-import { Directive, computed, inject } from '@angular/core';
+import { Directive, computed, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { joinTruthy } from '@core/api/furpa-merkez-api.utils';
@@ -41,7 +41,34 @@ export abstract class SiparisTaskDetailBase<
   protected readonly printDocumentNoLabel: string = 'Siparis No';
   protected readonly printLineTitle: string = 'Siparis Kalemleri';
   protected readonly includeBarcodeInPrint: boolean = false;
+  protected readonly lineSearchTerm = signal('');
+  protected readonly activeDetailTab = signal<'all' | 'lines' | 'summary'>('all');
   protected readonly itemCount = computed(() => this.items().length);
+  protected readonly filteredItems = computed<DetailItem<TDetail>[]>(() => {
+    const allItems = this.items();
+    const term = this.lineSearchTerm().trim().toLocaleLowerCase('tr-TR');
+
+    if (!term) {
+      return allItems;
+    }
+
+    return allItems.filter((item) => {
+      const searchable = [
+        this.getRecordText(item, 'stockCode'),
+        this.getRecordText(item, 'stockName'),
+        this.getRecordText(item, 'barcode'),
+        this.getRecordText(item, 'unitName'),
+        this.getRecordText(item, 'description')
+      ]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('tr-TR');
+
+      return searchable.includes(term);
+    });
+  });
+  protected readonly filteredItemCount = computed(() => this.filteredItems().length);
+  protected readonly hasActiveLineFilter = computed(() => this.lineSearchTerm().trim().length > 0);
   protected readonly canPrintDocument = computed(() => !this.isLoading() && !!this.detail()?.header);
   protected readonly orderIdentity = computed(() => {
     const payload = this.data;
@@ -54,6 +81,18 @@ export abstract class SiparisTaskDetailBase<
   });
 
   protected readonly documentPrintService = inject(DocumentPrintService);
+
+  protected updateLineSearch(term: string): void {
+    this.lineSearchTerm.set(term);
+  }
+
+  protected clearLineFilters(): void {
+    this.lineSearchTerm.set('');
+  }
+
+  protected setDetailTab(tab: 'all' | 'lines' | 'summary'): void {
+    this.activeDetailTab.set(tab);
+  }
 
   protected abstract override loadDetail(): void;
 

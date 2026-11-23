@@ -100,6 +100,16 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
     gap: 0.48rem;
   }
 
+  :is(.form-shell, .dialog-body)[data-create-step='document'] :is(.kalem-panel, .search-panel) {
+    display: none;
+  }
+
+  :is(.form-shell, .dialog-body)[data-create-step='lines'] .panel:not(.kalem-panel):not(.search-panel):not(:has(.dual-search)),
+  :is(.form-shell, .dialog-body)[data-create-step='lines'] .panel:has(.dual-search) :is(.panel-head, .contact-row, .official-document-card, .dual-search > .search-block:first-child),
+  :is(.form-shell, .dialog-body)[data-create-step='review'] .panel:not(.kalem-panel) {
+    display: none;
+  }
+
   :is(.panel, .query-card, .state-card, .info-card, .summary-card, .task-item) {
     border: 1px solid var(--op-border);
     border-radius: var(--operation-panel-radius);

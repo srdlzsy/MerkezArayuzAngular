@@ -40,10 +40,12 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo,
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 import {
   CENTRAL_WAREHOUSE_NO,
   buildPackageQuantityMessage,
   getPackageQuantityViolation,
+  resolvePackageCount,
 } from '../../warehouse-order-package.rules';
 
 const MANUAL_SOURCE_PRODUCT_WAREHOUSE_NOS = new Set([53, 55, 56, 58]);
@@ -101,7 +103,7 @@ type KalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-verilen-depo-siparisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
   templateUrl: './verilen-depo-siparisleri-create.component.html',
   styleUrl: './verilen-depo-siparisleri-create.component.scss',
 })
@@ -364,14 +366,21 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     );
 
     if (existingControl) {
+      const existingPackageFactor = this.normalizePositiveNumber(
+        existingControl.controls.koliKatsayisi.value,
+      );
+      const isCentralWarehouseOrder =
+        this.selectedWarehouse()?.sourceWarehouseNo === CENTRAL_WAREHOUSE_NO;
       const step =
+        (isCentralWarehouseOrder ? existingPackageFactor : null) ??
         this.normalizePositiveNumber(stock.secondaryUnitMultiplier) ??
         this.normalizePositiveNumber(stock.unitMultiplier) ??
         this.normalizePositiveNumber(existingControl.controls.birimKatsayisi.value) ??
         1;
       const current = Number(existingControl.controls.siparisMiktari.value ?? 0);
-      existingControl.controls.siparisMiktari.setValue(current + step);
+      existingControl.controls.siparisMiktari.setValue(this.roundQuantity(current + step));
       existingControl.controls.siparisMiktari.markAsDirty();
+      this.syncPackageQuantity(existingControl);
       this.resolveGreenGrocerLine(existingControl);
       this.stockQuery.setValue('');
       this.stockResults.set([]);
@@ -793,7 +802,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     if (
       !Number.isFinite(packageQuantity) ||
-      packageQuantity <= 0 ||
+      packageQuantity < 0 ||
       !Number.isFinite(packageFactor) ||
       packageFactor <= 1
     ) {
@@ -806,12 +815,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.clearLineResolution(control);
   }
 
-  protected clearPackageQuantity(control: KalemFormGroup): void {
-    if (control.controls.koliMiktari.value === null) {
-      return;
-    }
+  protected syncPackageQuantity(control: KalemFormGroup): void {
+    const quantity = Number(control.controls.siparisMiktari.value ?? 0);
+    const packageFactor = Number(control.controls.koliKatsayisi.value ?? 0);
+    const packageCount = resolvePackageCount(quantity, packageFactor);
 
-    control.controls.koliMiktari.setValue(null, { emitEvent: false });
+    control.controls.koliMiktari.setValue(packageCount, { emitEvent: false });
   }
 
   protected getWarehouseLabel(warehouse: IFurpaSourceWarehouseSearchItemApiDto): string {

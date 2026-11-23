@@ -1,6 +1,7 @@
 import {
   buildPackageQuantityMessage,
   getPackageQuantityViolation,
+  resolvePackageCount,
 } from './warehouse-order-package.rules';
 
 describe('warehouse order package rules', () => {
@@ -26,5 +27,11 @@ describe('warehouse order package rules', () => {
     expect(violation ? buildPackageQuantityMessage(violation, 'ADET') : '').toContain(
       '1 yerine 20 girin',
     );
+  });
+
+  it('keeps the displayed package count in sync with an exact total quantity', () => {
+    expect(resolvePackageCount(36, 12)).toBe(3);
+    expect(resolvePackageCount(0, 12)).toBe(0);
+    expect(resolvePackageCount(13, 12)).toBeNull();
   });
 });

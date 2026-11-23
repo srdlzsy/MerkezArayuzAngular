@@ -1,0 +1,277 @@
+:host {
+  display: block;
+}
+
+.create-workflow-shell {
+  display: grid;
+  gap: 0.45rem;
+  padding: 0.55rem 0.68rem;
+  border: 1px solid var(--operation-border-color, #dbe5f1);
+  border-radius: var(--operation-panel-radius, 8px);
+  background: var(--operation-surface, #fff);
+}
+
+.create-workflow-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.create-step-pills {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.3rem;
+  padding: 0.22rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 8px;
+  background: #f8fafc;
+}
+
+.create-step-pill {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.36rem;
+  min-height: 32px;
+  padding: 0.28rem 0.68rem;
+  border: 0;
+  border-radius: 6px;
+  background: transparent;
+  color: #475569;
+  font-size: 0.8rem;
+  font-weight: 700;
+  cursor: pointer;
+  transition: background-color 0.14s ease, color 0.14s ease;
+}
+
+.create-step-pill:hover {
+  color: #0f172a;
+  background: #eef2f6;
+}
+
+.create-step-pill.is-active {
+  color: var(--operation-accent, #0f766e);
+  background: #fff;
+  box-shadow: 0 1px 3px rgba(15, 23, 42, 0.08);
+  font-weight: 800;
+}
+
+.step-index {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 18px;
+  height: 18px;
+  border-radius: 999px;
+  background: #e2e8f0;
+  color: #334155;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.create-step-pill.is-active .step-index {
+  background: var(--operation-accent, #0f766e);
+  color: #fff;
+}
+
+.step-alert-badge {
+  padding: 0.08rem 0.38rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #9a3412;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.create-shortcut-hints {
+  display: inline-flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: 0.36rem;
+}
+
+.shortcut-chip {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.32rem;
+  min-height: 30px;
+  padding: 0.2rem 0.52rem;
+  border: 1px solid #dbe5f1;
+  border-radius: 6px;
+  background: #f8fafc;
+  color: #475569;
+  font-size: 0.75rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+.shortcut-chip:hover {
+  border-color: var(--operation-accent-border, #b7e2db);
+  background: var(--operation-accent-surface, #e8f7f4);
+  color: var(--operation-accent, #0f766e);
+}
+
+.shortcut-chip kbd {
+  padding: 0.08rem 0.34rem;
+  border: 1px solid #cbd5e1;
+  border-radius: 4px;
+  background: #fff;
+  color: #0f172a;
+  font-family: inherit;
+  font-size: 0.72rem;
+  font-weight: 800;
+}
+
+.create-summary-strip {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
+  gap: 0.42rem;
+}
+
+.create-summary-item {
+  display: grid;
+  gap: 0.14rem;
+  min-width: 0;
+  padding: 0.38rem 0.56rem;
+  border: 1px solid #e2e8f0;
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.create-summary-item span {
+  color: #64748b;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.create-summary-item strong {
+  overflow: hidden;
+  color: #0f172a;
+  font-size: 0.84rem;
+  font-weight: 800;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.create-summary-item strong.is-empty {
+  color: #94a3b8;
+  font-weight: 600;
+}
+
+.create-summary-item.is-accent {
+  border-color: var(--operation-accent-border, #b7e2db);
+  background: var(--operation-accent-surface, #e8f7f4);
+}
+
+.create-summary-item.is-accent strong {
+  color: var(--operation-accent, #0f766e);
+}
+
+.create-summary-item.is-warning {
+  border-color: #fed7aa;
+  background: #fff7ed;
+}
+
+.create-summary-item.is-warning strong {
+  color: #9a3412;
+}
+
+.create-review-card {
+  display: grid;
+  gap: 0.52rem;
+  padding: 0.65rem 0.75rem;
+  border: 1px solid var(--operation-accent-border, #b7e2db);
+  border-radius: 8px;
+  background: #f0fdfa;
+}
+
+.create-review-head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  flex-wrap: wrap;
+  gap: 0.5rem;
+}
+
+.review-kicker {
+  display: block;
+  color: #0f766e;
+  font-size: 0.72rem;
+  font-weight: 800;
+  text-transform: uppercase;
+}
+
+.create-review-head h4 {
+  margin: 0.12rem 0 0;
+  color: #0f172a;
+  font-size: 0.94rem;
+}
+
+.review-status-pill {
+  padding: 0.24rem 0.6rem;
+  border-radius: 999px;
+  background: #fef3c7;
+  color: #9a3412;
+  font-size: 0.75rem;
+  font-weight: 800;
+}
+
+.review-status-pill.is-ready {
+  background: #dcfce7;
+  color: #166534;
+}
+
+.create-review-checklist {
+  display: grid;
+  gap: 0.36rem;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.create-review-checklist li {
+  display: flex;
+  align-items: center;
+  gap: 0.48rem;
+  padding: 0.38rem 0.58rem;
+  border-radius: 6px;
+  background: #fff;
+  font-size: 0.84rem;
+  color: #1e293b;
+}
+
+.create-review-checklist li.is-ok i {
+  color: #16a34a;
+}
+
+.create-review-checklist li.is-missing {
+  background: #fff5f5;
+  color: #991b1b;
+}
+
+.create-review-checklist li.is-missing i {
+  color: #dc2626;
+}
+
+.create-review-checklist li.is-warning {
+  background: #fff7ed;
+  color: #9a3412;
+}
+
+.create-review-checklist li.is-warning i {
+  color: #ea580c;
+}
+
+@media (max-width: 768px) {
+  .create-step-pills {
+    width: 100%;
+  }
+
+  .create-step-pill {
+    flex: 1 1 auto;
+    justify-content: center;
+  }
+}

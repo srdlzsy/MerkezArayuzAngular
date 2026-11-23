@@ -82,6 +82,27 @@
   color: #475569;
 }
 
+.warehouse-summary {
+  display: grid;
+  gap: 0.35rem;
+  min-width: 220px;
+}
+
+.warehouse-summary span {
+  font-size: 0.7rem;
+  font-weight: 700;
+  color: #475569;
+}
+
+.warehouse-summary strong {
+  min-height: 2rem;
+  padding: 0.45rem 0.6rem;
+  border: 1px solid #d7e1ec;
+  border-radius: 8px;
+  background: #f8fafc;
+  color: #0f172a;
+}
+
 .field input {
   padding: 0.45rem 0.6rem;
   border-radius: 8px;
@@ -181,6 +202,10 @@ th {
   }
 
   .field {
+    min-width: 100%;
+  }
+
+  .warehouse-summary {
     min-width: 100%;
   }
 

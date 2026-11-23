@@ -37,6 +37,16 @@
         Yeni Islem Olarak Kaydet
       </button>
 
+      <app-create-workflow-bar
+        documentTitle="Zayiat Fisi"
+        partnerLabel=""
+        warehouseLabel="Depo"
+        [warehouseValue]="currentWarehouseLabel()"
+        [dateValue]="form.controls.documentDate.value"
+        [lineCount]="lineCount()"
+        [totalQuantity]="totalQuantity()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Zayiat Ust Bilgileri</h3>

@@ -31,6 +31,15 @@
       <div class="feedback feedback-error" *ngIf="loadError()">{{ loadError() }}</div>
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
 
+      <app-create-workflow-bar
+        [documentTitle]="current.title"
+        partnerLabel="Sevk Referansi"
+        [partnerValue]="controls.seri.value ? (controls.seri.value + '/' + (controls.sira.value ?? '')) : ''"
+        warehouseLabel="Kabul Deposu"
+        [warehouseValue]="currentWarehouseLabel()"
+        [lineCount]="kalemCount()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Sevk Referansi</h3>

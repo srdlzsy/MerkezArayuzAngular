@@ -64,6 +64,9 @@ export class ApiListTableComponent<Row extends object = object> {
   protected readonly printRootId = `api-list-print-${Math.random().toString(36).slice(2)}`;
   protected readonly pageSizeOptions = [10, 25, 50, 100] as const;
   protected readonly filterTerm = signal('');
+  protected readonly selectedStatusFilter = signal('');
+  protected readonly hiddenColumnKeys = signal<ReadonlySet<string>>(new Set());
+  protected readonly columnPickerOpen = signal(false);
   protected readonly pageSize = signal(25);
   protected readonly currentPageIndex = signal(1);
   protected readonly sortKey = signal<string | null>(null);
@@ -73,18 +76,80 @@ export class ApiListTableComponent<Row extends object = object> {
   protected readonly printGeneratedAt = signal('');
   protected readonly exportErrorMessage = signal<string | null>(null);
 
+  protected readonly visibleColumns = computed(() => {
+    const allColumns = this.columns();
+    const hidden = this.hiddenColumnKeys();
+
+    if (!hidden.size) {
+      return allColumns;
+    }
+
+    const filtered = allColumns.filter((column) => !hidden.has(column.key));
+    return filtered.length ? filtered : allColumns;
+  });
+  protected readonly hiddenColumnCount = computed(
+    () => this.columns().length - this.visibleColumns().length
+  );
+  protected readonly statusColumn = computed(
+    () => this.columns().find((column) => column.type === 'status') ?? null
+  );
+  protected readonly statusFilterOptions = computed(() => {
+    const statusColumn = this.statusColumn();
+
+    if (!statusColumn) {
+      return [];
+    }
+
+    const counts = new Map<string, number>();
+
+    for (const row of this.rows()) {
+      const value = this.formatText(
+        this.readCell(row, statusColumn),
+        statusColumn.emptyValue || 'Bilinmiyor'
+      ).trim();
+
+      if (value) {
+        counts.set(value, (counts.get(value) ?? 0) + 1);
+      }
+    }
+
+    return Array.from(counts.entries())
+      .map(([label, count]) => ({ label, count }))
+      .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, 'tr'));
+  });
   protected readonly totalCount = computed(() => this.rows().length);
-  protected readonly hasActiveFilter = computed(() => this.filterTerm().trim().length > 0);
+  protected readonly hasActiveFilter = computed(
+    () => this.filterTerm().trim().length > 0 || this.selectedStatusFilter().trim().length > 0
+  );
   protected readonly filteredRows = computed(() => {
     const term = this.filterTerm().trim().toLocaleLowerCase('tr-TR');
+    const selectedStatus = this.selectedStatusFilter().trim();
+    const statusColumn = this.statusColumn();
     const rows = this.rows();
     const columns = this.columns();
 
-    if (!term) {
+    if (!term && !selectedStatus) {
       return [...rows];
     }
 
-    return rows.filter((row) => this.buildSearchText(row, columns).includes(term));
+    return rows.filter((row) => {
+      if (selectedStatus && statusColumn) {
+        const rowStatus = this.formatText(
+          this.readCell(row, statusColumn),
+          statusColumn.emptyValue || 'Bilinmiyor'
+        ).trim();
+
+        if (rowStatus !== selectedStatus) {
+          return false;
+        }
+      }
+
+      if (term && !this.buildSearchText(row, columns).includes(term)) {
+        return false;
+      }
+
+      return true;
+    });
   });
   protected readonly sortedRows = computed(() => {
     const rows = [...this.filteredRows()];
@@ -194,8 +259,45 @@ export class ApiListTableComponent<Row extends object = object> {
     this.currentPageIndex.set(1);
   }
 
+  protected updateStatusFilter(value: string): void {
+    this.selectedStatusFilter.set(value);
+    this.currentPageIndex.set(1);
+  }
+
   protected clearFilter(): void {
-    this.updateFilter('');
+    this.filterTerm.set('');
+    this.selectedStatusFilter.set('');
+    this.currentPageIndex.set(1);
+  }
+
+  protected toggleColumnPicker(): void {
+    this.columnPickerOpen.update((open) => !open);
+  }
+
+  protected isColumnVisible(key: string): boolean {
+    return !this.hiddenColumnKeys().has(key);
+  }
+
+  protected toggleColumnVisibility(key: string): void {
+    const currentHidden = new Set(this.hiddenColumnKeys());
+
+    if (currentHidden.has(key)) {
+      currentHidden.delete(key);
+      this.hiddenColumnKeys.set(currentHidden);
+      return;
+    }
+
+    const totalVisible = this.columns().filter((column) => !currentHidden.has(column.key)).length;
+    if (totalVisible <= 1) {
+      return;
+    }
+
+    currentHidden.add(key);
+    this.hiddenColumnKeys.set(currentHidden);
+  }
+
+  protected resetColumnVisibility(): void {
+    this.hiddenColumnKeys.set(new Set());
   }
 
   protected updatePageSize(value: string | number): void {

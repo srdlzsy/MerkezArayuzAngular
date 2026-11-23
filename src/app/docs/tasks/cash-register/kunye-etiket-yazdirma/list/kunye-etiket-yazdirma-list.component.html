@@ -19,14 +19,41 @@
   </header>
 
   <section class="filters kunye-print-hidden">
+    <label class="field" *ngIf="canUseWarehouseScope(); else lockedWarehouseScope">
+      <span>Depo No</span>
+      <input
+        type="number"
+        min="1"
+        [ngModel]="warehouseNo()"
+        (ngModelChange)="onWarehouseNoChange($event)"
+      />
+    </label>
+
+    <ng-template #lockedWarehouseScope>
+      <div class="warehouse-summary">
+        <span>Depo</span>
+        <strong>{{ selectedWarehouseLabel() }}</strong>
+      </div>
+    </ng-template>
+
     <label class="field">
       <span>Kunye Tarihi</span>
       <input type="date" [ngModel]="selectedDate()" (ngModelChange)="onDateChange($event)" />
     </label>
 
+    <button
+      type="button"
+      class="primary-button"
+      (click)="loadTags()"
+      [disabled]="isLoading() || !canListTags() || !warehouseNo()"
+    >
+      {{ isLoading() ? 'Yukleniyor' : 'Etiketleri Getir' }}
+    </button>
+
     <div class="status">
       <span *ngIf="isLoading()" class="pill">Yukleniyor</span>
       <span *ngIf="!isLoading() && hasData()" class="pill success">{{ tags().length }} etiket</span>
+      <span class="pill">{{ selectedWarehouseLabel() }}</span>
     </div>
   </section>
 

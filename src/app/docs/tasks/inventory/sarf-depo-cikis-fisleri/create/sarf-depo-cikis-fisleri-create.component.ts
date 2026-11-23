@@ -36,6 +36,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 type MasrafLineFormGroup = FormGroup<{
   stockCode: FormControl<string>;
@@ -51,7 +52,7 @@ type MasrafLineFormGroup = FormGroup<{
 @Component({
   selector: 'app-sarf-depo-cikis-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
   templateUrl: './sarf-depo-cikis-fisleri-create.component.html',
   styleUrl: './sarf-depo-cikis-fisleri-create.component.scss'
 })

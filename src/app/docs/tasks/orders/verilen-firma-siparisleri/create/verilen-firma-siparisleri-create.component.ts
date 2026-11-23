@@ -36,6 +36,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo,
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 interface KalemFormValue {
   stokKodu: string;
@@ -74,7 +75,7 @@ type KalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-verilen-firma-siparisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
   templateUrl: './verilen-firma-siparisleri-create.component.html',
   styleUrl: './verilen-firma-siparisleri-create.component.scss',
 })

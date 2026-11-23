@@ -3,6 +3,7 @@ import { CommonModule } from '@angular/common';
 import { Component, DestroyRef, OnInit, ViewChild, computed, inject, signal } from '@angular/core';
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
+import { finalize } from 'rxjs';
 import type { IManavKunyeTag, ManavCodeListItemDto } from '@interfaces';
 
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
@@ -181,6 +182,8 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
   );
 
   private readonly destroyRef = inject(DestroyRef);
+  private activeTagsRequest: { unsubscribe(): void } | null = null;
+  private activeTagsRequestId = 0;
 
   constructor(
     private readonly authService: AuthService,
@@ -211,10 +214,12 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
 
     const numericValue = Number(value);
     this.warehouseNo.set(Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null);
+    this.clearLoadedTags();
   }
 
   protected onDateChange(value: string): void {
     this.selectedDate.set(value);
+    this.clearLoadedTags();
   }
 
   protected onSearchChange(value: string): void {
@@ -222,6 +227,8 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
   }
 
   protected loadTags(): void {
+    this.cancelTagsRequest();
+
     if (!this.canListTags()) {
       this.tags.set([]);
       this.setFeedback('error', 'Manav kunye etiketlerini listeleme yetkiniz yok.');
@@ -237,12 +244,25 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
 
     this.feedback.set(null);
     this.isLoading.set(true);
+    const requestId = this.activeTagsRequestId;
 
-    this.kasaIslemleriService
+    this.activeTagsRequest = this.kasaIslemleriService
       .getManavKunyeEtiketleri(warehouseNo, this.selectedDate() || null)
-      .pipe(takeUntilDestroyed(this.destroyRef))
+      .pipe(
+        finalize(() => {
+          if (requestId === this.activeTagsRequestId) {
+            this.activeTagsRequest = null;
+            this.isLoading.set(false);
+          }
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
       .subscribe({
         next: (tags: IManavKunyeTag[]) => {
+          if (requestId !== this.activeTagsRequestId) {
+            return;
+          }
+
           this.tags.set(tags ?? []);
           this.selection.clear();
           this.syncSelectionCount();
@@ -251,16 +271,33 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
             this.setFeedback('info', 'Secilen filtrelerle manav kunye etiketi bulunamadi.');
           }
 
-          this.isLoading.set(false);
         },
         error: () => {
+          if (requestId !== this.activeTagsRequestId) {
+            return;
+          }
+
           this.tags.set([]);
           this.selection.clear();
           this.syncSelectionCount();
-          this.isLoading.set(false);
           this.setFeedback('error', 'Manav kunye etiketleri alinirken hata olustu.');
         }
       });
+  }
+
+  private clearLoadedTags(): void {
+    this.cancelTagsRequest();
+    this.tags.set([]);
+    this.selection.clear();
+    this.syncSelectionCount();
+    this.feedback.set(null);
+  }
+
+  private cancelTagsRequest(): void {
+    this.activeTagsRequestId += 1;
+    this.activeTagsRequest?.unsubscribe();
+    this.activeTagsRequest = null;
+    this.isLoading.set(false);
   }
 
   protected loadCodeList(): void {

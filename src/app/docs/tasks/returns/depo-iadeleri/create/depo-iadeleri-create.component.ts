@@ -40,6 +40,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 interface KalemFormValue {
   stokKodu: string;
@@ -80,7 +81,7 @@ interface ReturnLineProduct {
 @Component({
   selector: 'app-depo-iadeleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ScrollingModule],
+  imports: [CommonModule, ReactiveFormsModule, ScrollingModule, CreateWorkflowBarComponent],
   templateUrl: './depo-iadeleri-create.component.html',
   styleUrl: './depo-iadeleri-create.component.scss'
 })

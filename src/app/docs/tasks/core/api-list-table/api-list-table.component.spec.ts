@@ -194,4 +194,24 @@ describe('ApiListTableComponent', () => {
 
     expect(print.calls.mostRecent().args[0].styles).toContain('size: A4 portrait');
   });
+
+  it('toggles column visibility while keeping at least one column visible', () => {
+    const component = createComponent() as unknown as {
+      visibleColumns(): ApiListTableColumn<TestRow>[];
+      toggleColumnVisibility(key: string): void;
+      resetColumnVisibility(): void;
+    };
+
+    expect(component.visibleColumns().length).toBe(2);
+
+    component.toggleColumnVisibility('amount');
+    expect(component.visibleColumns().map((col) => col.key)).toEqual(['name']);
+
+    // Cannot hide the last remaining column
+    component.toggleColumnVisibility('name');
+    expect(component.visibleColumns().map((col) => col.key)).toEqual(['name']);
+
+    component.resetColumnVisibility();
+    expect(component.visibleColumns().length).toBe(2);
+  });
 });

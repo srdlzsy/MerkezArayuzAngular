@@ -164,8 +164,15 @@ export abstract class ApiTaskListPageBase<
       .sort((left, right) => right.count - left.count || left.label.localeCompare(right.label, 'tr'))
       .slice(0, 3);
   });
+  protected readonly hasCustomQueryFilters = computed(
+    () =>
+      this.startDate() !== this.getInitialStartDate() ||
+      this.endDate() !== this.getInitialEndDate() ||
+      this.adminWarehouseNo().trim().length > 0
+  );
 
   ngOnInit(): void {
+    this.restorePersistedQueryFilters();
     this.loadRows();
     const pending = this.safeCreatePendingRecords().find((record) =>
       !this.safeCreatePendingStore.wasRecoveryAttemptedInSession(
@@ -787,6 +794,48 @@ export abstract class ApiTaskListPageBase<
     this.adminWarehouseNo.set(value);
   }
 
+  protected resetQueryFilters(): void {
+    this.startDate.set(this.getInitialStartDate());
+    this.endDate.set(this.getInitialEndDate());
+    this.adminWarehouseNo.set('');
+    this.clearPersistedQueryFilters();
+    this.loadRows();
+  }
+
+  protected getSummaryStatusTone(label: string): 'success' | 'warning' | 'danger' | 'neutral' {
+    const normalized = label.trim().toLocaleLowerCase('tr-TR');
+
+    if (
+      normalized.includes('hata') ||
+      normalized.includes('iptal') ||
+      normalized.includes('red') ||
+      normalized.includes('basarisiz')
+    ) {
+      return 'danger';
+    }
+
+    if (
+      normalized.includes('bekl') ||
+      normalized.includes('acik') ||
+      normalized.includes('kontrol') ||
+      normalized.includes('kismi')
+    ) {
+      return 'warning';
+    }
+
+    if (
+      normalized.includes('tamam') ||
+      normalized.includes('onay') ||
+      normalized.includes('kapali') ||
+      normalized.includes('hazir') ||
+      normalized.includes('aktaril')
+    ) {
+      return 'success';
+    }
+
+    return 'neutral';
+  }
+
   protected resolveListWarehouseNo(): number | undefined {
     if (this.isAdminUser()) {
       return this.getAdminWarehouseNo() ?? undefined;
@@ -820,6 +869,8 @@ export abstract class ApiTaskListPageBase<
       this.errorMessage.set('Baslangic tarihi bitis tarihinden buyuk olamaz.');
       return;
     }
+
+    this.persistQueryFilters();
 
     const requestId = ++this.activeRequestId;
     this.activeListRequest?.unsubscribe();
@@ -1106,5 +1157,97 @@ export abstract class ApiTaskListPageBase<
       value === undefined
       ? toPositiveWarehouseNo(value)
       : null;
+  }
+
+  private getFilterStorageKey(): string | null {
+    const pageId = this.page?.id?.trim();
+    return pageId ? `furpa.list-filter.${pageId}` : null;
+  }
+
+  private restorePersistedQueryFilters(): void {
+    const storageKey = this.getFilterStorageKey();
+
+    if (!storageKey || typeof sessionStorage === 'undefined') {
+      return;
+    }
+
+    try {
+      const raw = sessionStorage.getItem(storageKey);
+
+      if (!raw) {
+        return;
+      }
+
+      const parsed = JSON.parse(raw) as {
+        startDate?: unknown;
+        endDate?: unknown;
+        adminWarehouseNo?: unknown;
+        defaultStartDate?: unknown;
+        defaultEndDate?: unknown;
+      };
+
+      if (
+        parsed.defaultStartDate !== this.getInitialStartDate() ||
+        parsed.defaultEndDate !== this.getInitialEndDate()
+      ) {
+        return;
+      }
+
+      if (typeof parsed.startDate === 'string' && parsed.startDate.trim()) {
+        this.startDate.set(parsed.startDate.trim());
+      }
+
+      if (typeof parsed.endDate === 'string' && parsed.endDate.trim()) {
+        this.endDate.set(parsed.endDate.trim());
+      }
+
+      if (typeof parsed.adminWarehouseNo === 'string') {
+        this.adminWarehouseNo.set(parsed.adminWarehouseNo.trim());
+      }
+    } catch {
+      // Ignore corrupt session storage state.
+    }
+  }
+
+  private persistQueryFilters(): void {
+    const storageKey = this.getFilterStorageKey();
+
+    if (!storageKey || typeof sessionStorage === 'undefined') {
+      return;
+    }
+
+    if (!this.hasCustomQueryFilters()) {
+      this.clearPersistedQueryFilters();
+      return;
+    }
+
+    try {
+      sessionStorage.setItem(
+        storageKey,
+        JSON.stringify({
+          startDate: this.startDate().trim(),
+          endDate: this.endDate().trim(),
+          adminWarehouseNo: this.adminWarehouseNo().trim(),
+          defaultStartDate: this.getInitialStartDate(),
+          defaultEndDate: this.getInitialEndDate()
+        })
+      );
+    } catch {
+      // Ignore quota errors.
+    }
+  }
+
+  private clearPersistedQueryFilters(): void {
+    const storageKey = this.getFilterStorageKey();
+
+    if (!storageKey || typeof sessionStorage === 'undefined') {
+      return;
+    }
+
+    try {
+      sessionStorage.removeItem(storageKey);
+    } catch {
+      // Ignore storage errors.
+    }
   }
 }

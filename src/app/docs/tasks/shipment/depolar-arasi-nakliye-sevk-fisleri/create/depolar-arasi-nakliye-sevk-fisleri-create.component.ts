@@ -44,6 +44,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 interface KalemFormValue {
   taslakGuid: string;
@@ -95,7 +96,7 @@ type KalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-depolar-arasi-nakliye-sevk-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './depolar-arasi-nakliye-sevk-fisleri-create.component.html',
   styleUrl: './depolar-arasi-nakliye-sevk-fisleri-create.component.scss'
 })

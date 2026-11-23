@@ -151,4 +151,49 @@ describe('KalemliTaskDetailBase', () => {
       { label: 'Teslim Alan', value: 'Mehmet Kaya' }
     ]);
   });
+
+  it('filters visible lines by search term and discrepancy while keeping print rows complete', () => {
+    configure({ seri: 'MK', sira: 42 });
+    const fixture = TestBed.createComponent(TestKalemliDetailComponent);
+    const component = fixture.componentInstance as unknown as {
+      responses: Observable<unknown>[];
+      kalemler(): Array<{ stockCode?: string }>;
+      kalemCount(): number;
+      filteredKalemCount(): number;
+      discrepancyLineCount(): number;
+      updateLineSearch(term: string): void;
+      toggleDiscrepancyFilter(): void;
+      clearLineFilters(): void;
+      printDocument(): void;
+    };
+
+    component.responses.push(
+      of({
+        header: { documentSerie: 'MK', documentOrderNo: 42, customerTitle: 'Sutas' },
+        items: [
+          { stockCode: 'SUT-01', stockName: 'Sut 1L', dispatchQuantity: 24, physicalAcceptedQuantity: 24 },
+          { stockCode: 'YOG-02', stockName: 'Yogurt 2KG', dispatchQuantity: 12, physicalAcceptedQuantity: 10, returnQuantity: 2 }
+        ]
+      })
+    );
+    fixture.detectChanges();
+
+    expect(component.kalemCount()).toBe(2);
+    expect(component.discrepancyLineCount()).toBe(1);
+
+    component.updateLineSearch('yogurt');
+    expect(component.filteredKalemCount()).toBe(1);
+    expect(component.kalemler()[0].stockCode).toBe('YOG-02');
+
+    // Printing still includes all 2 rows
+    component.printDocument();
+    expect(printSpy.calls.mostRecent().args[0].rows.length).toBe(2);
+
+    component.clearLineFilters();
+    expect(component.filteredKalemCount()).toBe(2);
+
+    component.toggleDiscrepancyFilter();
+    expect(component.filteredKalemCount()).toBe(1);
+    expect(component.kalemler()[0].stockCode).toBe('YOG-02');
+  });
 });

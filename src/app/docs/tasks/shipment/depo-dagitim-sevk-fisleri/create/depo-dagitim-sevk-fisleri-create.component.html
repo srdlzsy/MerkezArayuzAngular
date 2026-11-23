@@ -47,6 +47,17 @@
         Yeni Islem Olarak Kaydet
       </button>
 
+      <app-create-workflow-bar
+        [documentTitle]="current.title"
+        partnerLabel="Hedef Depo"
+        [partnerValue]="selectedWarehouse() ? getWarehouseLabel(selectedWarehouse()!) : ''"
+        warehouseLabel="Cikis Deposu"
+        [warehouseValue]="currentWarehouseLabel()"
+        [documentNoValue]="controls.documentNo.value"
+        [dateValue]="controls.documentDate.value"
+        [lineCount]="kalemCount()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Dagitim Bilgileri</h3>

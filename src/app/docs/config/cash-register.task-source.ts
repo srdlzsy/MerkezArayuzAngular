@@ -271,7 +271,7 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Kasa Islemleri altindaki tarih bazli kunye etiket onizleme ve yazdirma gorevi.',
       baseRouteOrFile: '/api/kasa-islemleri/kunye-etiket-yazdirma',
       highlights: [
-        'JWT deposuna gore kunye etiket kayitlari',
+        'Standart kullanicida JWT deposu, Tum Depolar yetkisinde secilen depo',
         'Onizleme ve yazdirma',
         'LabelTagDto response modeli'
       ],
@@ -284,8 +284,9 @@ export const CASH_REGISTER_TASK_SOURCE = {
           endpoints: [
             {
               method: 'GET',
-              path: '/api/kasa-islemleri/kunye-etiket-yazdirma?dateToGet=...',
-              description: 'Secilen gun icin kullanici deposuna ait kunye etiket kayitlarini getirir'
+              path: '/api/kasa-islemleri/kunye-etiket-yazdirma?dateToGet=...&warehouseNo=110',
+              description:
+                'Secilen gun icin yetkili depo kapsamindaki kunye etiket kayitlarini getirir'
             }
           ]
         }
@@ -305,10 +306,10 @@ export const CASH_REGISTER_TASK_SOURCE = {
         'Kasa Islemleri altindaki depo bazli manav kunye etiketlerini stok, fiyat ve birim bilgileriyle listeler.',
       baseRouteOrFile: '/api/kasa-islemleri/manav-kunye-etiket-yazdirma',
       highlights: [
-        'warehouseNo zorunludur',
+        'Standart kullanicida JWT deposu, Tum Depolar yetkisinde secilen warehouseNo kullanilir',
         'dateToGet opsiyoneldir; bos ise son 1 ay icinden son kunye kayitlari gelir',
         'KunyeLabelTagDto response modeli stok kodu, satis fiyati ve urun birimi tasir',
-        'Endpoint anonim aciktir; menu gorunurlugu page, liste aksiyonu list yetkisine baglidir'
+        'Endpoint list yetkisine, depo degistirme all-warehouses yetkisine baglidir'
       ],
       listTitle: 'Manav Kunye Etiket Yazdirma Akisi',
       items: [

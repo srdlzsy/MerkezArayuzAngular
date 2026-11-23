@@ -36,6 +36,17 @@
         Yeni Islem Olarak Kaydet
       </button>
 
+      <app-create-workflow-bar
+        [documentTitle]="current.title"
+        partnerLabel="Firma / Cari"
+        [partnerValue]="selectedCustomer() ? getCustomerLabel(selectedCustomer()!) : ''"
+        warehouseLabel="Cikis Deposu"
+        [warehouseValue]="currentWarehouseLabel()"
+        [documentNoValue]="controls.documentNo.value"
+        [dateValue]="controls.documentDate.value"
+        [lineCount]="kalemCount()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Sevk Bilgileri</h3>

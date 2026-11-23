@@ -39,6 +39,16 @@
         Yeni Islem Olarak Kaydet
       </button>
 
+      <app-create-workflow-bar
+        [documentTitle]="current.title"
+        partnerLabel="Muhatap Depo"
+        [partnerValue]="selectedWarehouse() ? getWarehouseLabel(selectedWarehouse()!) : ''"
+        warehouseLabel="Depo"
+        [warehouseValue]="currentWarehouseLabel()"
+        [dateValue]="controls.orderDate.value"
+        [lineCount]="kalemCount()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Siparis Bilgileri</h3>
@@ -178,18 +188,20 @@
                   <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1"
                     >Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span
                   >
-                  <div class="stock-source-badges" *ngIf="getStockSourceBadges(stock).length">
-                    <span
-                      *ngFor="let badge of getStockSourceBadges(stock)"
-                      class="source-badge"
-                      [class.source-badge-warehouse]="badge.tone === 'warehouse'"
-                      [class.source-badge-company]="badge.tone === 'company'"
-                      [class.source-badge-mixed]="badge.tone === 'mixed'"
-                      [class.source-badge-muted]="badge.tone === 'muted'"
-                    >
-                      {{ badge.label }}
-                    </span>
-                  </div>
+                  <ng-container *ngIf="getStockSourceBadges(stock) as sourceBadges">
+                    <div class="stock-source-badges" *ngIf="sourceBadges.length">
+                      <span
+                        *ngFor="let badge of sourceBadges"
+                        class="source-badge"
+                        [class.source-badge-warehouse]="badge.tone === 'warehouse'"
+                        [class.source-badge-company]="badge.tone === 'company'"
+                        [class.source-badge-mixed]="badge.tone === 'mixed'"
+                        [class.source-badge-muted]="badge.tone === 'muted'"
+                      >
+                        {{ badge.label }}
+                      </span>
+                    </div>
+                  </ng-container>
                 </div>
                 <button type="button" class="add-mini">+</button>
               </div>
@@ -296,7 +308,7 @@
                   formControlName="koliMiktari"
                   [placeholder]="kalem.controls.ikinciBirim.value || 'Koli'"
                   (input)="applyPackageQuantity(kalem)"
-                  (change)="applyPackageQuantity(kalem)"
+                  (change)="applyPackageQuantity(kalem); resolveGreenGrocerLine(kalem)"
                 />
                 <input
                   type="number"
@@ -307,9 +319,8 @@
                   [class.error]="
                     kalem.controls.siparisMiktari.invalid && kalem.controls.siparisMiktari.touched
                   "
-                  (input)="clearPackageQuantity(kalem)"
+                  (input)="syncPackageQuantity(kalem)"
                   (change)="resolveGreenGrocerLine(kalem)"
-                  (blur)="resolveGreenGrocerLine(kalem)"
                 />
               </div>
               <small
@@ -320,8 +331,8 @@
               >
                 Gecerli miktar
               </small>
-              <small class="package-warning" *ngIf="getPackageMultipleWarning(kalem)">
-                {{ getPackageMultipleWarning(kalem) }}
+              <small class="package-warning" *ngIf="getPackageMultipleWarning(kalem) as warning">
+                {{ warning }}
               </small>
             </div>
             <div class="col-islem">

@@ -59,6 +59,7 @@ class CustomDateListPageComponent extends TestListPageComponent {
 
 describe('ApiTaskListPageBase', () => {
   beforeEach(() => {
+    sessionStorage.clear();
     TestBed.configureTestingModule({
       imports: [TestListPageComponent, CustomDateListPageComponent],
       providers: [
@@ -237,5 +238,32 @@ describe('ApiTaskListPageBase', () => {
 
     expect(dialog.open).toHaveBeenCalled();
     expect(component.rows()).toEqual([{ seri: 'A', sira: 10, durumu: 'Hazir' }]);
+  });
+
+  it('persists custom query filters across page recreation and resets back to defaults', () => {
+    const firstFixture = TestBed.createComponent(TestListPageComponent);
+    const firstComponent = firstFixture.componentInstance as any;
+    firstComponent.responses.push(of([]), of([{ seri: 'A', sira: 1, durumu: 'Tamamlandi' }]));
+    firstFixture.detectChanges();
+
+    firstComponent.updateStartDate('2026-04-01');
+    firstComponent.updateEndDate('2026-04-05');
+    firstComponent.loadRows();
+
+    expect(firstComponent.hasCustomQueryFilters()).toBeTrue();
+
+    const secondFixture = TestBed.createComponent(TestListPageComponent);
+    const secondComponent = secondFixture.componentInstance as any;
+    secondComponent.responses.push(of([]), of([]));
+    secondFixture.detectChanges();
+
+    expect(secondComponent.startDate()).toBe('2026-04-01');
+    expect(secondComponent.endDate()).toBe('2026-04-05');
+
+    secondComponent.resetQueryFilters();
+    const today = secondComponent.formatAsInputDate(new Date());
+    expect(secondComponent.startDate()).toBe(today);
+    expect(secondComponent.endDate()).toBe(today);
+    expect(secondComponent.hasCustomQueryFilters()).toBeFalse();
   });
 });

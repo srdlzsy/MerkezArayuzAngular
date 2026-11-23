@@ -1,11 +1,36 @@
-<section class="draft-bar" [class.draft-bar-error]="hasError">
-  <div class="draft-summary">
-    <i class="fa-solid fa-file-pen" aria-hidden="true"></i>
-    <span class="draft-title">Tarayici Taslaklari</span>
-    <span class="draft-count">{{ moduleDraftCount }}/{{ maxDraftCount }}</span>
+<section class="draft-bar" [class.draft-bar-error]="hasError" [class.is-expanded]="isExpanded || hasError">
+  <div class="draft-top-row">
+    <div class="draft-summary">
+      <i class="fa-solid fa-file-pen" aria-hidden="true"></i>
+      <span class="draft-title">Tarayici Taslaklari</span>
+      <span class="draft-count">{{ moduleDraftCount }}/{{ maxDraftCount }}</span>
+      <p class="draft-status" *ngIf="status">{{ status }}</p>
+    </div>
+
+    <div class="draft-top-actions">
+      <button
+        type="button"
+        class="draft-button"
+        title="Bos bir taslakla devam et"
+        [disabled]="moduleDraftCount >= maxDraftCount"
+        (click)="newDraft.emit()"
+      >
+        <i class="fa-solid fa-plus" aria-hidden="true"></i>
+        <span>Yeni Taslak</span>
+      </button>
+      <button
+        type="button"
+        class="draft-button draft-toggle-button"
+        [attr.aria-expanded]="isExpanded || hasError"
+        (click)="toggleExpanded()"
+      >
+        <i class="fa-solid" [ngClass]="(isExpanded || hasError) ? 'fa-chevron-up' : 'fa-chevron-down'" aria-hidden="true"></i>
+        <span>{{ (isExpanded || hasError) ? 'Gizle' : 'Taslaklari Yonet' }}</span>
+      </button>
+    </div>
   </div>
 
-  <div class="draft-controls">
+  <div class="draft-controls" *ngIf="isExpanded || hasError">
     <select
       aria-label="Kayitli taslak"
       [value]="selectedDraftId"
@@ -26,7 +51,7 @@
       (click)="openSelectedDraft()"
     >
       <i class="fa-solid fa-folder-open" aria-hidden="true"></i>
-      <span>Ac</span>
+      <span>Taslagi Ac</span>
     </button>
     <button
       type="button"
@@ -38,17 +63,5 @@
     >
       <i class="fa-solid fa-trash" aria-hidden="true"></i>
     </button>
-    <button
-      type="button"
-      class="draft-button"
-      title="Bos bir taslakla devam et"
-      [disabled]="moduleDraftCount >= maxDraftCount"
-      (click)="newDraft.emit()"
-    >
-      <i class="fa-solid fa-plus" aria-hidden="true"></i>
-      <span>Yeni Taslak</span>
-    </button>
   </div>
-
-  <p class="draft-status" *ngIf="status">{{ status }}</p>
 </section>

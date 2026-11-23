@@ -38,6 +38,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 interface KalemFormValue {
   stokKodu: string;
@@ -81,7 +82,7 @@ type KalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-depo-dagitim-sevk-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './depo-dagitim-sevk-fisleri-create.component.html',
   styleUrl: './depo-dagitim-sevk-fisleri-create.component.scss'
 })

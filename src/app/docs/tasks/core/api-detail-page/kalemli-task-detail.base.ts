@@ -1,4 +1,4 @@
-import { Directive, computed, inject } from '@angular/core';
+import { Directive, computed, inject, signal } from '@angular/core';
 import { Observable } from 'rxjs';
 
 import { joinTruthy } from '@core/api/furpa-merkez-api.utils';
@@ -45,11 +45,62 @@ export abstract class KalemliTaskDetailBase<
   protected readonly header = computed<DetailHeader<TDetail> | null>(
     () => (this.detail()?.header ?? null) as DetailHeader<TDetail> | null
   );
-  protected readonly kalemler = computed<DetailLine<TDetail>[]>(
+  protected readonly rawKalemler = computed<DetailLine<TDetail>[]>(
     () => [...(this.detail()?.items ?? [])] as DetailLine<TDetail>[]
   );
+  protected readonly lineSearchTerm = signal('');
+  protected readonly onlyDiscrepancyLines = signal(false);
+  protected readonly activeDetailTab = signal<'all' | 'lines' | 'summary'>('all');
+  protected readonly kalemler = computed<DetailLine<TDetail>[]>(() => {
+    const items = this.rawKalemler();
+    const term = this.lineSearchTerm().trim().toLocaleLowerCase('tr-TR');
+    const onlyDiscrepancy = this.onlyDiscrepancyLines();
+
+    if (!term && !onlyDiscrepancy) {
+      return items;
+    }
+
+    return items.filter((item) => {
+      if (onlyDiscrepancy && !this.isLineDiscrepancy(item)) {
+        return false;
+      }
+
+      if (term && !this.matchesLineSearch(item, term)) {
+        return false;
+      }
+
+      return true;
+    });
+  });
   protected readonly canPrintDocument = computed(() => !this.isLoading() && !!this.header());
-  protected readonly kalemCount = computed(() => this.kalemler().length);
+  protected readonly kalemCount = computed(() => this.rawKalemler().length);
+  protected readonly filteredKalemCount = computed(() => this.kalemler().length);
+  protected readonly discrepancyLineCount = computed(
+    () => this.rawKalemler().filter((item) => this.isLineDiscrepancy(item)).length
+  );
+  protected readonly hasActiveLineFilter = computed(
+    () => this.lineSearchTerm().trim().length > 0 || this.onlyDiscrepancyLines()
+  );
+  protected readonly totalLineQuantity = computed(() =>
+    this.rawKalemler().reduce(
+      (sum, item) =>
+        sum +
+        (this.getLineNumber(
+          item,
+          'physicalAcceptedQuantity',
+          'quantity',
+          'dispatchQuantity',
+          'miktar'
+        ) ?? 0),
+      0
+    )
+  );
+  protected readonly totalLineAmount = computed(() =>
+    this.rawKalemler().reduce(
+      (sum, item) => sum + (this.getLineNumber(item, 'lineAmount', 'totalAmount', 'tutar') ?? 0),
+      0
+    )
+  );
   protected readonly orderIdentity = computed(() => {
     const payload = this.data;
 
@@ -187,11 +238,65 @@ export abstract class KalemliTaskDetailBase<
       }
     }
 
-    const lineOrderNos = this.kalemler()
+    const lineOrderNos = this.rawKalemler()
       .map((line) => this.getLineText(line, 'warehouseOrderNo'))
       .filter(Boolean);
 
     return Array.from(new Set(lineOrderNos)).join(', ');
+  }
+
+  protected updateLineSearch(term: string): void {
+    this.lineSearchTerm.set(term);
+  }
+
+  protected toggleDiscrepancyFilter(): void {
+    this.onlyDiscrepancyLines.update((current) => !current);
+  }
+
+  protected clearLineFilters(): void {
+    this.lineSearchTerm.set('');
+    this.onlyDiscrepancyLines.set(false);
+  }
+
+  protected setDetailTab(tab: 'all' | 'lines' | 'summary'): void {
+    this.activeDetailTab.set(tab);
+  }
+
+  protected isLineDiscrepancy(line: object | null | undefined): boolean {
+    if (!line) {
+      return false;
+    }
+
+    const returnQty = this.getLineNumber(line, 'returnQuantity', 'iadeMiktar');
+    if (returnQty !== null && returnQty > 0) {
+      return true;
+    }
+
+    const dispatchQty = this.getLineNumber(line, 'dispatchQuantity');
+    const acceptedQty = this.getLineNumber(line, 'physicalAcceptedQuantity');
+    if (dispatchQty !== null && acceptedQty !== null && Math.abs(dispatchQty - acceptedQty) > 0.0001) {
+      return true;
+    }
+
+    return false;
+  }
+
+  private matchesLineSearch(line: object, normalizedTerm: string): boolean {
+    const searchable = [
+      this.getLineText(line, 'stockCode', 'stokKodu'),
+      this.getLineText(line, 'stockName', 'stokIsmi'),
+      this.getLineText(line, 'barcode', 'barkodu'),
+      this.getLineText(line, 'unitName', 'birim'),
+      this.getLineText(line, 'partyCode', 'partiKodu'),
+      this.getLineText(line, 'description', 'aciklama'),
+      this.getLineText(line, 'returnStatus', 'iadeDurumu'),
+      this.getLineText(line, 'warehouseOrderNo')
+    ]
+      .filter(Boolean)
+      .join(' ')
+      .toLocaleLowerCase('tr-TR');
+
+    return searchable.includes(normalizedTerm);
   }
 
   protected resolveWarehouseName(header: object, side: 'source' | 'target'): string {
@@ -234,7 +339,7 @@ export abstract class KalemliTaskDetailBase<
       sections: this.buildPrintSections(header, mode),
       lineTitle: this.printLineTitle,
       columns: documentColumns,
-      rows: this.kalemler().map((kalem, index) => printColumns.map((column) => column.value(kalem, index))),
+      rows: this.rawKalemler().map((kalem, index) => printColumns.map((column) => column.value(kalem, index))),
       signatures: this.buildPrintSignatures(header, mode)
     });
   }

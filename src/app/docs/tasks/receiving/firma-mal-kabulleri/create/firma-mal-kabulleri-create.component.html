@@ -34,6 +34,18 @@
         </span>
       </div>
 
+      <app-create-workflow-bar
+        [documentTitle]="current.title"
+        partnerLabel="Tedarikci"
+        [partnerValue]="selectedCustomer() ? getCustomerLabel(selectedCustomer()!) : ''"
+        warehouseLabel="Giris Deposu"
+        [warehouseValue]="currentWarehouseLabel()"
+        [documentNoValue]="(controls.documentSerie.value || '') + (controls.documentOrderNo.value ? (' / ' + controls.documentOrderNo.value) : '')"
+        [dateValue]="controls.documentDate.value"
+        [lineCount]="kalemCount()"
+        [discrepancyCount]="toplamIadeMiktari() > 0 ? 1 : 0"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Irsaliye Bilgileri</h3>

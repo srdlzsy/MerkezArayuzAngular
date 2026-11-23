@@ -36,6 +36,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 type SayimLineFormGroup = FormGroup<{
   stockCode: FormControl<string>;
@@ -48,7 +49,7 @@ type SayimLineFormGroup = FormGroup<{
 @Component({
   selector: 'app-sayim-sonuclari-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
   templateUrl: './sayim-sonuclari-create.component.html',
   styleUrl: './sayim-sonuclari-create.component.scss'
 })

@@ -38,6 +38,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 interface KalemFormValue {
   stokKodu: string;
@@ -82,7 +83,7 @@ type KalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-giden-firma-sevkleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './giden-firma-sevkleri-create.component.html',
   styleUrl: './giden-firma-sevkleri-create.component.scss'
 })

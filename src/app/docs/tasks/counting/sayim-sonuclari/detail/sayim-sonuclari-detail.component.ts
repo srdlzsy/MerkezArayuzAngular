@@ -36,15 +36,47 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
   private readonly documentPrintService = inject(DocumentPrintService);
 
   protected readonly printError = signal('');
+  protected readonly lineSearchTerm = signal('');
+  protected readonly activeDetailTab = signal<'all' | 'lines' | 'summary'>('all');
   protected readonly activeDepoNo = computed(() => this.authService.currentUser()?.depoNo);
   protected readonly requestWarehouseNo = computed(() => {
     const rowWarehouseNo = this.data?.warehouseNo;
 
     return Number.isFinite(rowWarehouseNo) ? Number(rowWarehouseNo) : this.activeDepoNo();
   });
-  protected readonly kalemler = computed(() => this.detail()?.items ?? []);
-  protected readonly kalemCount = computed(() => this.kalemler().length);
+  protected readonly rawKalemler = computed(() => this.detail()?.items ?? []);
+  protected readonly kalemler = computed(() => {
+    const items = this.rawKalemler();
+    const term = this.lineSearchTerm().trim().toLocaleLowerCase('tr-TR');
+
+    if (!term) {
+      return items;
+    }
+
+    return items.filter((item) =>
+      [item.stockCode, item.stockName, item.barcode, item.unitName]
+        .filter(Boolean)
+        .join(' ')
+        .toLocaleLowerCase('tr-TR')
+        .includes(term)
+    );
+  });
+  protected readonly kalemCount = computed(() => this.rawKalemler().length);
+  protected readonly filteredKalemCount = computed(() => this.kalemler().length);
+  protected readonly hasActiveLineFilter = computed(() => this.lineSearchTerm().trim().length > 0);
   protected readonly currentDetail = computed(() => this.detail()?.header ?? null);
+
+  protected updateLineSearch(term: string): void {
+    this.lineSearchTerm.set(term);
+  }
+
+  protected clearLineFilters(): void {
+    this.lineSearchTerm.set('');
+  }
+
+  protected setDetailTab(tab: 'all' | 'lines' | 'summary'): void {
+    this.activeDetailTab.set(tab);
+  }
   protected readonly requestIdentity = computed(() => {
     const payload = this.data;
     const depoNo = this.requestWarehouseNo();
@@ -124,7 +156,7 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
         { label: 'Miktar 4', width: '7%', align: 'right' },
         { label: 'Miktar 5', width: '7%', align: 'right' }
       ],
-      rows: this.kalemler().map((kalem, index) => [
+      rows: this.rawKalemler().map((kalem, index) => [
         index + 1,
         kalem.stockCode,
         kalem.stockName,

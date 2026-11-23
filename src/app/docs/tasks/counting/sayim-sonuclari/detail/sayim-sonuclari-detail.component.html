@@ -37,7 +37,45 @@
     </article>
 
     <ng-container *ngIf="!isLoading() && currentDetail() as detail">
-      <section class="summary-grid">
+      <section class="info-grid">
+        <article class="info-card emphasis-card">
+          <h3>Kalem Sayisi</h3>
+          <p>{{ detail.lineCount || kalemCount() }}</p>
+        </article>
+        <article class="info-card">
+          <h3>Toplam Miktar</h3>
+          <p>{{ formatNumber(detail.totalQuantity) }}</p>
+        </article>
+
+        <div class="detail-view-tabs" role="tablist" aria-label="Detay gorunum sekmeleri">
+          <button
+            type="button"
+            class="detail-tab-btn"
+            [class.is-active]="activeDetailTab() === 'all'"
+            (click)="setDetailTab('all')"
+          >
+            Tumu
+          </button>
+          <button
+            type="button"
+            class="detail-tab-btn"
+            [class.is-active]="activeDetailTab() === 'lines'"
+            (click)="setDetailTab('lines')"
+          >
+            Kalemler ({{ kalemCount() }})
+          </button>
+          <button
+            type="button"
+            class="detail-tab-btn"
+            [class.is-active]="activeDetailTab() === 'summary'"
+            (click)="setDetailTab('summary')"
+          >
+            Belge Ozeti
+          </button>
+        </div>
+      </section>
+
+      <section class="summary-grid" *ngIf="activeDetailTab() !== 'lines'">
         <article class="summary-card">
           <h3>Evrak No</h3>
           <p>{{ detail.documentNo }}</p>
@@ -64,13 +102,30 @@
         </article>
       </section>
 
-      <section class="task-block">
-        <header class="table-heading">
+      <section class="task-block" *ngIf="activeDetailTab() !== 'summary'">
+        <header class="table-heading detail-lines-head">
           <div>
             <span class="section-kicker">Sayim Kalemleri</span>
             <strong>Stok ve miktar detaylari</strong>
           </div>
-          <span class="line-count">{{ kalemCount() }} kalem</span>
+          <div class="detail-lines-toolbar" *ngIf="kalemCount() > 1">
+            <input
+              type="search"
+              class="detail-line-search"
+              [value]="lineSearchTerm()"
+              placeholder="Stok kodu, urun adi veya barkod ara..."
+              (input)="updateLineSearch($any($event.target).value ?? '')"
+            />
+            <button
+              type="button"
+              class="detail-clear-btn"
+              *ngIf="hasActiveLineFilter()"
+              (click)="clearLineFilters()"
+            >
+              Temizle
+            </button>
+          </div>
+          <span class="line-count">{{ filteredKalemCount() }} / {{ kalemCount() }} kalem</span>
         </header>
 
         <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">

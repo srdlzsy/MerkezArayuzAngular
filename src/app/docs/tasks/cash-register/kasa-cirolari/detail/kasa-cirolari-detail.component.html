@@ -65,7 +65,36 @@
     </article>
 
     <ng-container *ngIf="header() as currentHeader">
-      <section class="detail-section">
+      <div class="info-grid">
+        <div class="detail-view-tabs" role="tablist" aria-label="Detay gorunum sekmeleri">
+          <button
+            type="button"
+            class="detail-tab-btn"
+            [class.is-active]="activeDetailTab() === 'all'"
+            (click)="setDetailTab('all')"
+          >
+            Tumu
+          </button>
+          <button
+            type="button"
+            class="detail-tab-btn"
+            [class.is-active]="activeDetailTab() === 'lines'"
+            (click)="setDetailTab('lines')"
+          >
+            Odemeler ({{ paymentCount() }})
+          </button>
+          <button
+            type="button"
+            class="detail-tab-btn"
+            [class.is-active]="activeDetailTab() === 'summary'"
+            (click)="setDetailTab('summary')"
+          >
+            Vardiya Ozeti
+          </button>
+        </div>
+      </div>
+
+      <section class="detail-section" *ngIf="activeDetailTab() !== 'lines'">
         <div class="section-head">
           <div class="section-copy">
             <span class="section-kicker">Ust Bilgi</span>
@@ -97,11 +126,28 @@
         </section>
       </section>
 
-      <section class="detail-section payment-shell" *ngIf="detail() as currentDetail">
-        <div class="section-head section-head-split">
+      <section class="detail-section payment-shell" *ngIf="detail() as currentDetail" [hidden]="activeDetailTab() === 'summary'">
+        <div class="section-head section-head-split detail-lines-head">
           <div class="section-copy">
             <span class="section-kicker">Odeme Dagilimi</span>
             <h3>Odeme detaylari</h3>
+          </div>
+          <div class="detail-lines-toolbar" *ngIf="paymentCount() > 1">
+            <input
+              type="search"
+              class="detail-line-search"
+              [value]="paymentSearchTerm()"
+              placeholder="Odeme tipi veya kasa/banka ara..."
+              (input)="updatePaymentSearch($any($event.target).value ?? '')"
+            />
+            <button
+              type="button"
+              class="detail-clear-btn"
+              *ngIf="paymentSearchTerm().trim().length > 0"
+              (click)="clearPaymentSearch()"
+            >
+              Temizle
+            </button>
           </div>
           <app-excel-export-button
             [exporting]="excelExporting()"
@@ -125,7 +171,7 @@
           </article>
         </section>
 
-        <div class="table-wrap" *ngIf="currentDetail.payments.length; else noPayments">
+        <div class="table-wrap" *ngIf="filteredPayments().length; else noPayments">
           <table>
             <thead>
               <tr>
@@ -138,7 +184,7 @@
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let payment of currentDetail.payments">
+              <tr *ngFor="let payment of filteredPayments()">
                 <td class="label-cell">
                   <strong>{{ payment.paymentTypeName || '-' }}</strong>
                   <div class="meta-line">No: {{ payment.paymentTypeNo }}</div>

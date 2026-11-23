@@ -37,6 +37,17 @@
         Yeni Islem Olarak Kaydet
       </button>
 
+      <app-create-workflow-bar
+        documentTitle="Sayim Sonucu"
+        partnerLabel="Sayim Adi"
+        [partnerValue]="form.controls.name.value"
+        warehouseLabel="Depo"
+        [warehouseValue]="currentWarehouseLabel()"
+        [dateValue]="form.controls.documentDate.value"
+        [lineCount]="lineCount()"
+        [totalQuantity]="totalQuantity()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Sayim Bilgileri</h3>
@@ -123,20 +134,29 @@
             [formGroupName]="i"
           >
             <div class="line-main sayim-line-main">
-              <label class="field">
-                <span>Stok Kodu *</span>
-                <input type="text" formControlName="stockCode" />
-              </label>
+              <ng-container *ngIf="line.controls.stockCode.value && line.controls.stockName.value; else manualSayimInputs">
+                <div class="field field-wide">
+                  <span>Urun Kimligi</span>
+                  <strong>{{ line.controls.stockName.value }}</strong>
+                  <small>{{ line.controls.stockCode.value }}<ng-container *ngIf="line.controls.barcode.value"> · Barkod: {{ line.controls.barcode.value }}</ng-container></small>
+                </div>
+              </ng-container>
+              <ng-template #manualSayimInputs>
+                <label class="field">
+                  <span>Stok Kodu *</span>
+                  <input type="text" formControlName="stockCode" />
+                </label>
 
-              <label class="field">
-                <span>Stok Adi</span>
-                <input type="text" formControlName="stockName" />
-              </label>
+                <label class="field">
+                  <span>Stok Adi</span>
+                  <input type="text" formControlName="stockName" />
+                </label>
 
-              <label class="field">
-                <span>Barkod</span>
-                <input type="text" formControlName="barcode" />
-              </label>
+                <label class="field">
+                  <span>Barkod</span>
+                  <input type="text" formControlName="barcode" />
+                </label>
+              </ng-template>
 
               <label class="field compact-field">
                 <span>Sayilan Miktar *</span>

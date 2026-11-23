@@ -3,6 +3,21 @@
     <div class="welcome-box">
       <h2>{{ current.title }}</h2>
     </div>
+
+    <div class="hero-summary-strip" *ngIf="!isLoading() && rows().length" aria-label="Liste ozet gostergeleri">
+      <div class="hero-kpi-pill" data-tone="primary">
+        <span>Toplam</span>
+        <strong>{{ totalCount() }}</strong>
+      </div>
+      <div
+        class="hero-kpi-pill"
+        *ngFor="let summary of statusSummary()"
+        [attr.data-tone]="getSummaryStatusTone(summary.label)"
+      >
+        <span>{{ summary.label }}</span>
+        <strong>{{ summary.count }}</strong>
+      </div>
+    </div>
   </header>
 
   <section class="task-block">
@@ -51,17 +66,29 @@
 
         <button
           type="button"
-          class="task-action task-action-secondary query-create"
+          class="task-action task-action-create query-create"
           *ngIf="canCreate"
           [disabled]="!canOpenCreate()"
           [title]="getCreateButtonTitle()"
           (click)="openCreate()"
         >
-          {{ getCreateButtonLabel() }}
+          <i class="fa-solid fa-plus" aria-hidden="true"></i>
+          <span>{{ getCreateButtonLabel() }}</span>
         </button>
 
         <button type="button" class="task-action task-action-primary query-submit" (click)="loadRows()" [disabled]="isLoading()">
           {{ isLoading() ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+
+        <button
+          type="button"
+          class="task-action task-action-secondary query-reset"
+          *ngIf="hasCustomQueryFilters()"
+          [disabled]="isLoading()"
+          title="Tarih ve depo filtrelerini varsayilana dondur"
+          (click)="resetQueryFilters()"
+        >
+          Sifirla
         </button>
 
         <button
@@ -123,9 +150,14 @@
       <p>{{ errorMessage }}</p>
     </article>
 
-    <article class="state-card" *ngIf="isLoading()">
+    <article class="state-card state-card-loading" *ngIf="isLoading()">
       <h3>{{ getLoadingTitle() }}</h3>
       <p>{{ getLoadingMessage() }}</p>
+      <div class="skeleton-rows" aria-hidden="true">
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+        <div class="skeleton-row"></div>
+      </div>
     </article>
 
     <article class="state-card state-card-info" *ngIf="activityMessage() as activityMessage">

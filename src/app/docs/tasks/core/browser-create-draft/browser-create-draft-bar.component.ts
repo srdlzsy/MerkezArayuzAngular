@@ -26,6 +26,11 @@ export class BrowserCreateDraftBarComponent implements OnChanges {
 
   protected readonly maxDraftCount = MAX_BROWSER_CREATE_DRAFTS_PER_MODULE;
   protected selectedDraftId = '';
+  protected isExpanded = false;
+
+  toggleExpanded(): void {
+    this.isExpanded = !this.isExpanded;
+  }
 
   ngOnChanges(): void {
     const selectedStillExists = this.records.some((record) => record.id === this.selectedDraftId);

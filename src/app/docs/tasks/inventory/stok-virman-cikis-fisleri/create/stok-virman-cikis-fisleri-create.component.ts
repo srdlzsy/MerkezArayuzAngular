@@ -37,6 +37,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 type VirmanLineFormGroup = FormGroup<{
   stockCode: FormControl<string>;
@@ -62,7 +63,7 @@ const VIRMAN_STOCK_SEARCH_TAKE = 100;
 @Component({
   selector: 'app-stok-virman-cikis-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
   templateUrl: './stok-virman-cikis-fisleri-create.component.html',
   styleUrl: './stok-virman-cikis-fisleri-create.component.scss'
 })

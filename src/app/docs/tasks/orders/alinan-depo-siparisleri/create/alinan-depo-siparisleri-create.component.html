@@ -18,6 +18,16 @@
     <form id="alinan-depo-siparis-form" class="form-shell" [formGroup]="form" (ngSubmit)="submit()">
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
 
+      <app-create-workflow-bar
+        [documentTitle]="current.title"
+        partnerLabel="Muhatap Depo"
+        [partnerValue]="selectedWarehouse() ? getWarehouseLabel(selectedWarehouse()!) : ''"
+        warehouseLabel="Depo"
+        [warehouseValue]="currentWarehouseLabel()"
+        [dateValue]="controls.orderDate.value"
+        [lineCount]="kalemCount()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Siparis Bilgileri</h3>

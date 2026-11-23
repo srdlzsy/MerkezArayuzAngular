@@ -4,12 +4,12 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  gap: 0.32rem;
-  min-height: 30px;
+  gap: 0.36rem;
+  min-height: 36px;
   border: 1px solid #d7e1ec;
-  border-radius: 8px;
-  padding: 0.32rem 0.56rem;
-  font-size: 0.78rem;
+  border-radius: var(--operation-control-radius, 6px);
+  padding: 0.36rem 0.72rem;
+  font-size: var(--furpa-font-sm, 0.84rem);
   font-weight: 700;
   cursor: pointer;
   transition: transform 0.16s ease, background-color 0.16s ease, border-color 0.16s ease;
@@ -113,11 +113,11 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 30px;
+  min-height: 36px;
   border-radius: 7px;
-  padding: 0.28rem 0.56rem;
+  padding: 0.34rem 0.64rem;
   font: inherit;
-  font-size: 0.74rem;
+  font-size: 0.78rem;
   font-weight: 800;
   cursor: pointer;
 }
@@ -146,13 +146,13 @@
 }
 
 .editable-stock-query input {
-  min-height: 32px;
+  min-height: 38px;
 }
 
 .editable-stock-error {
   margin: 0;
   color: #b91c1c;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 800;
 }
 
@@ -188,19 +188,19 @@
 
 .editable-stock-result strong {
   color: #0f172a;
-  font-size: 0.74rem;
+  font-size: 0.8rem;
 }
 
 .editable-stock-result span {
   margin-top: 0.1rem;
   color: #475569;
-  font-size: 0.68rem;
+  font-size: 0.74rem;
 }
 
 .editable-stock-result small {
   margin-top: 0.08rem;
   color: #0f766e;
-  font-size: 0.66rem;
+  font-size: 0.72rem;
   font-weight: 800;
 }
 
@@ -208,14 +208,14 @@
   display: inline-flex;
   align-items: center;
   justify-content: center;
-  min-height: 28px;
+  min-height: 32px;
   border: 1px solid #99f6e4;
   border-radius: 7px;
-  padding: 0.26rem 0.5rem;
+  padding: 0.28rem 0.56rem;
   color: #0f766e;
   background: #ecfdf5;
   font: inherit;
-  font-size: 0.72rem;
+  font-size: 0.75rem;
   font-weight: 900;
   cursor: pointer;
 }
@@ -251,7 +251,7 @@
 
 .edit-field span {
   color: #475569;
-  font-size: 0.6rem;
+  font-size: 0.74rem;
   font-weight: 800;
   letter-spacing: 0;
   text-transform: uppercase;
@@ -261,13 +261,13 @@
 .editable-table input {
   width: 100%;
   min-width: 0;
-  min-height: 30px;
+  min-height: 36px;
   border: 1px solid #cbd5e1;
   border-radius: 7px;
-  padding: 0.28rem 0.42rem;
+  padding: 0.34rem 0.48rem;
   color: #0f172a;
   font: inherit;
-  font-size: 0.76rem;
+  font-size: 0.84rem;
   background: #ffffff;
 }
 

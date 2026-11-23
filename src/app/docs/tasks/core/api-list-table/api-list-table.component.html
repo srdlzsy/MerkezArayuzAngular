@@ -10,6 +10,22 @@
       />
     </label>
 
+    <label class="control-field control-field-status" *ngIf="statusFilterOptions().length > 1">
+      <span>Durum</span>
+      <select
+        [value]="selectedStatusFilter()"
+        (change)="updateStatusFilter($any($event.target).value ?? '')"
+      >
+        <option value="">Tum Durumlar ({{ totalCount() }})</option>
+        <option
+          *ngFor="let option of statusFilterOptions()"
+          [value]="option.label"
+        >
+          {{ option.label }} ({{ option.count }})
+        </option>
+      </select>
+    </label>
+
     <div class="control-actions">
       <button
         *ngIf="hasActiveFilter()"
@@ -19,6 +35,21 @@
       >
         <i class="fa-solid fa-xmark" aria-hidden="true"></i>
         Filtreyi Temizle
+      </button>
+
+      <button
+        *ngIf="columns().length > 2"
+        type="button"
+        class="column-picker-trigger"
+        [class.is-active]="columnPickerOpen() || hiddenColumnCount() > 0"
+        [attr.aria-expanded]="columnPickerOpen()"
+        (click)="toggleColumnPicker()"
+      >
+        <i class="fa-solid fa-table-columns" aria-hidden="true"></i>
+        <span>Kolonlar</span>
+        <strong class="column-picker-badge" *ngIf="hiddenColumnCount() > 0">
+          {{ visibleColumns().length }}/{{ columns().length }}
+        </strong>
       </button>
 
       <app-excel-export-button
@@ -79,6 +110,35 @@
     </div>
   </div>
 
+  <div class="column-picker-panel" *ngIf="columnPickerOpen() && columns().length > 2">
+    <div class="column-picker-header">
+      <span>Gorunur Kolonlar ({{ visibleColumns().length }} / {{ columns().length }})</span>
+      <button
+        type="button"
+        class="ghost-action"
+        *ngIf="hiddenColumnCount() > 0"
+        (click)="resetColumnVisibility()"
+      >
+        Tumunu Goster
+      </button>
+    </div>
+    <div class="column-picker-chips">
+      <label
+        class="column-picker-chip"
+        *ngFor="let column of columns(); trackBy: trackByColumn"
+        [class.is-checked]="isColumnVisible(column.key)"
+      >
+        <input
+          type="checkbox"
+          [checked]="isColumnVisible(column.key)"
+          [disabled]="isColumnVisible(column.key) && visibleColumns().length <= 1"
+          (change)="toggleColumnVisibility(column.key)"
+        />
+        <span>{{ column.label }}</span>
+      </label>
+    </div>
+  </div>
+
   <article class="state-card state-card-error" *ngIf="exportErrorMessage() as errorMessage">
     <h3>Excel Aktarimi Basarisiz</h3>
     <p>{{ errorMessage }}</p>
@@ -115,7 +175,7 @@
               />
             </th>
             <th
-              *ngFor="let column of columns(); trackBy: trackByColumn"
+              *ngFor="let column of visibleColumns(); trackBy: trackByColumn"
               [attr.aria-sort]="getAriaSort(column.key)"
               [attr.data-key]="column.key"
               [attr.title]="column.label"
@@ -156,7 +216,7 @@
               />
             </td>
             <td
-              *ngFor="let column of columns(); trackBy: trackByColumn"
+              *ngFor="let column of visibleColumns(); trackBy: trackByColumn"
               [attr.data-label]="column.label"
               [attr.data-key]="column.key"
               [attr.title]="formatPrintCell(row, column)"

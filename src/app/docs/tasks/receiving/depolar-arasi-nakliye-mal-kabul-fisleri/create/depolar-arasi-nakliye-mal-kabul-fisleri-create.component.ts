@@ -30,6 +30,7 @@ import {
   getCurrentWarehouseNo,
   toPositiveWarehouseNo
 } from '../../../core/admin-warehouse.helpers';
+import { CreateWorkflowBarComponent } from '../../../core/create-form/create-workflow-bar.component';
 
 interface MalKabulDialogData {
   seri?: string;
@@ -54,7 +55,7 @@ type KabulKalemFormGroup = FormGroup<{
 @Component({
   selector: 'app-depolar-arasi-nakliye-mal-kabul-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule],
+  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
   templateUrl: './depolar-arasi-nakliye-mal-kabul-fisleri-create.component.html',
   styleUrl: './depolar-arasi-nakliye-mal-kabul-fisleri-create.component.scss'
 })

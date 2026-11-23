@@ -12,6 +12,23 @@
   </header>
 
   <div class="dialog-body">
+    <section class="info-grid">
+      <article class="info-card emphasis-card">
+        <h3>Evrak</h3>
+        <p>{{ item.documentSerie }} / {{ item.documentOrderNo }}</p>
+      </article>
+      <article class="info-card">
+        <h3>Fark Tipi</h3>
+        <p>
+          <span class="status-pill status-pill-warn">{{ getDifferenceTypeLabel(item.differenceType) }}</span>
+        </p>
+      </article>
+      <article class="info-card">
+        <h3>Fark Miktari</h3>
+        <p>{{ formatNumber(item.differenceQuantity) }} {{ item.unitName || '' }}</p>
+      </article>
+    </section>
+
     <section class="summary-grid">
       <article class="summary-card" *ngIf="item.documentNo">
         <h3>Belge</h3>

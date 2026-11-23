@@ -33,6 +33,16 @@
         Yeni Islem Olarak Kaydet
       </button>
 
+      <app-create-workflow-bar
+        [documentTitle]="current.title"
+        partnerLabel="Tedarikci"
+        [partnerValue]="selectedCustomer() ? getCustomerLabel(selectedCustomer()!) : ''"
+        warehouseLabel="Depo"
+        [warehouseValue]="currentWarehouseLabel()"
+        [dateValue]="controls.orderDate.value"
+        [lineCount]="kalemCount()"
+      ></app-create-workflow-bar>
+
       <section class="panel">
         <div class="panel-head">
           <h3>Siparis Bilgileri</h3>

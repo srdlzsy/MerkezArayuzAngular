@@ -39,6 +39,26 @@ export function getPackageQuantityViolation(
   };
 }
 
+export function resolvePackageCount(quantity: number, packageFactor: number): number | null {
+  const normalizedPackageFactor = Math.abs(packageFactor);
+
+  if (
+    !Number.isFinite(quantity) ||
+    !Number.isFinite(normalizedPackageFactor) ||
+    quantity < 0 ||
+    normalizedPackageFactor <= 1
+  ) {
+    return null;
+  }
+
+  const packageCount = quantity / normalizedPackageFactor;
+  const roundedPackageCount = Math.round(packageCount);
+
+  return Math.abs(packageCount - roundedPackageCount) <= PACKAGE_MULTIPLE_TOLERANCE
+    ? roundedPackageCount
+    : null;
+}
+
 export function buildPackageQuantityMessage(
   violation: PackageQuantityViolation,
   unitName = 'birim',
