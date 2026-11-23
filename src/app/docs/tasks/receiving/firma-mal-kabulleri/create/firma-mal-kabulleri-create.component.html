@@ -151,9 +151,9 @@
               <input
                 type="checkbox"
                 [checked]="hideDelistedProducts"
-                (change)="hideDelistedProducts = $any($event.target).checked"
+                disabled
               />
-              <span>Pasif/DLS gizle</span>
+              <span>Pasif/DLS gizlenir</span>
             </label>
             <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
 

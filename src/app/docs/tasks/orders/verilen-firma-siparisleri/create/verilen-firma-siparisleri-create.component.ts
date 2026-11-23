@@ -108,7 +108,7 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   );
   protected readonly customerResults = signal<IFurpaCustomerSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
-  protected hideDelistedProducts = false;
+  protected readonly hideDelistedProducts = true;
   protected readonly customerProducts = signal<CompanyOrderCustomerProductDto[]>([]);
   protected readonly selectedCustomer = signal<IFurpaCustomerSearchItemApiDto | null>(null);
   protected readonly customerLoading = signal(false);
@@ -397,6 +397,13 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected addKalem(stock: IFurpaProductSearchItemApiDto): void {
+    if (this.isUnavailableProduct(stock)) {
+      this.stockError.set(
+        `Bu urun pasif veya DLS durumunda oldugu icin firma siparisine eklenemez: ${stock.stockCode}`
+      );
+      return;
+    }
+
     const normalizedStockCode = stock.stockCode.trim().toLocaleUpperCase('tr-TR');
     const existingControl = this.kalemler.controls.find(
       (control) =>
@@ -534,6 +541,16 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
 
     if (this.kalemler.length === 0) {
       this.stockError.set('Siparis icin en az bir kalem eklemelisin.');
+    }
+
+    const unavailableLine = this.kalemler.controls.find((control) =>
+      this.startsWithDls(control.controls.stokIsmi.value),
+    );
+    if (unavailableLine) {
+      this.submitError.set(
+        `Pasif veya DLS urun firma siparisinde kullanilamaz: ${unavailableLine.controls.stokKodu.value}`,
+      );
+      return;
     }
 
     if (this.form.invalid || !this.selectedCustomer() || this.kalemler.length === 0) {
@@ -806,7 +823,7 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     for (const stock of results) {
       const key = stock.stockCode?.trim().toLocaleUpperCase('tr-TR');
 
-      if (!key || uniqueStocks.has(key)) {
+      if (!key || uniqueStocks.has(key) || this.isUnavailableProduct(stock)) {
         continue;
       }
 
@@ -827,7 +844,12 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       const stockCode = product.stockCode?.trim();
       const key = stockCode?.toLocaleUpperCase('tr-TR');
 
-      if (!stockCode || !key || uniqueProducts.has(key)) {
+      if (
+        !stockCode ||
+        !key ||
+        uniqueProducts.has(key) ||
+        this.startsWithDls(product.stockName)
+      ) {
         continue;
       }
 
@@ -931,8 +953,20 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     return normalizedValue ? normalizedValue : null;
   }
 
-  private resolveIncludeDelisted(): boolean | undefined {
-    return this.hideDelistedProducts ? false : undefined;
+  private resolveIncludeDelisted(): boolean {
+    return false;
+  }
+
+  private isUnavailableProduct(stock: IFurpaProductSearchItemApiDto): boolean {
+    return (
+      stock.isPassive === true ||
+      stock.isDelisted === true ||
+      this.startsWithDls(stock.stockName)
+    );
+  }
+
+  private startsWithDls(stockName: string | null | undefined): boolean {
+    return stockName?.trimStart().toLocaleUpperCase('tr-TR').startsWith('DLS') === true;
   }
 
   private resolveRequestWarehouseNo(): number | undefined {

@@ -153,7 +153,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
   protected readonly officialDocumentQuery = new FormControl('', { nonNullable: true });
   protected readonly customerResults = signal<IFurpaCustomerSearchItemApiDto[]>([]);
   protected readonly stockResults = signal<IFurpaProductSearchItemApiDto[]>([]);
-  protected hideDelistedProducts = false;
+  protected readonly hideDelistedProducts = true;
   protected readonly selectedCustomer = signal<IFurpaCustomerSearchItemApiDto | null>(null);
   protected readonly officialDocumentPreview = signal<CompanyReceivingEDespatchPreviewDto | null>(null);
   protected readonly customerLoading = signal(false);
@@ -647,6 +647,13 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected addKalem(stock: IFurpaProductSearchItemApiDto): void {
+    if (this.isUnavailableProduct(stock)) {
+      this.stockError.set(
+        `Bu urun pasif veya DLS durumunda oldugu icin mal kabule eklenemez: ${stock.stockCode}`
+      );
+      return;
+    }
+
     const normalizedStockCode = stock.stockCode.trim().toLocaleUpperCase('tr-TR');
     const existingControl = this.kalemler.controls.find(
       (control) =>
@@ -700,6 +707,16 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
 
     if (this.kalemler.length === 0) {
       this.stockError.set('Irsaliye icin en az bir kalem eklemelisin.');
+    }
+
+    const unavailableLine = this.kalemler.controls.find((control) =>
+      this.startsWithDls(control.controls.stokIsmi.value)
+    );
+    if (unavailableLine) {
+      this.submitError.set(
+        `Pasif veya DLS urun mal kabulde kullanilamaz: ${unavailableLine.controls.stokKodu.value}`
+      );
+      return;
     }
 
     if (this.form.invalid || !this.selectedCustomer() || this.kalemler.length === 0) {
@@ -1248,7 +1265,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     for (const stock of results) {
       const key = stock.stockCode?.trim().toLocaleUpperCase('tr-TR');
 
-      if (!key || uniqueStocks.has(key)) {
+      if (!key || uniqueStocks.has(key) || this.isUnavailableProduct(stock)) {
         continue;
       }
 
@@ -1265,8 +1282,16 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     return normalizedValue ? normalizedValue : null;
   }
 
-  private resolveIncludeDelisted(): boolean | undefined {
-    return this.hideDelistedProducts ? false : undefined;
+  private resolveIncludeDelisted(): boolean {
+    return false;
+  }
+
+  private isUnavailableProduct(stock: IFurpaProductSearchItemApiDto): boolean {
+    return stock.isPassive === true || stock.isDelisted === true || this.startsWithDls(stock.stockName);
+  }
+
+  private startsWithDls(stockName: string | null | undefined): boolean {
+    return stockName?.trimStart().toLocaleUpperCase('tr-TR').startsWith('DLS') === true;
   }
 
   private resolveRequestWarehouseNo(): number | undefined {
