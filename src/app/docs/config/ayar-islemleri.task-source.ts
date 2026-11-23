@@ -614,6 +614,7 @@ export const AYAR_ISLEMLERI_TASK_SOURCE = {
       subtitle: 'Shopigo POS kasa genel ayarları, ödeme yöntemleri, yetki matrisi, müşteri ekranı ve hızlı tuş gruplarını yönetir.',
       baseRouteOrFile: '/api/ayar-islemleri/yeni-kasa-yonetimi',
       highlights: [
+        'Alt modül yetkileri: Beş sekme birbirinden bağımsız yetkilendirilir; Angular yalnız izinli sekmeleri gösterir ve API yalnız izinli veri gruplarını açar.',
         'Genel Ayarlar: Fiş/fatura limitleri, nakit limit, yazıcı/kağıt genişliği ve Pavo ayarları.',
         'Ödeme Yöntemleri: Buton sıralaması, aktif/pasif durumu ve Pavo aracı/tip kodları.',
         'Kasa Yetki Matrisi: Personel, Mağaza Yöneticisi ve Müdür rolleri için 37 kasa yetkisi.',

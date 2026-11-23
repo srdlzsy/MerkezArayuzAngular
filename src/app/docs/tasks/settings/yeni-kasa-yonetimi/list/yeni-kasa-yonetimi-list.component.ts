@@ -85,6 +85,28 @@ export class YeniKasaYonetimiListComponent implements OnInit {
   protected readonly canDelete = computed(() =>
     hasSettingsPermission(this.authService, 'yeni-kasa-yonetimi', 'ayar-islemleri.yeni-kasa-yonetimi.delete')
   );
+  protected readonly canAccessGeneralSettings = computed(() =>
+    hasSettingsPermission(this.authService, 'yeni-kasa-yonetimi', 'ayar-islemleri.yeni-kasa-yonetimi.genel-ayarlar')
+  );
+  protected readonly canAccessPaymentMethods = computed(() =>
+    hasSettingsPermission(this.authService, 'yeni-kasa-yonetimi', 'ayar-islemleri.yeni-kasa-yonetimi.odeme-yontemleri')
+  );
+  protected readonly canAccessRoleMatrix = computed(() =>
+    hasSettingsPermission(this.authService, 'yeni-kasa-yonetimi', 'ayar-islemleri.yeni-kasa-yonetimi.yetki-matrisi')
+  );
+  protected readonly canAccessCustomerDisplay = computed(() =>
+    hasSettingsPermission(this.authService, 'yeni-kasa-yonetimi', 'ayar-islemleri.yeni-kasa-yonetimi.musteri-ekrani')
+  );
+  protected readonly canAccessFastAccess = computed(() =>
+    hasSettingsPermission(this.authService, 'yeni-kasa-yonetimi', 'ayar-islemleri.yeni-kasa-yonetimi.hizli-tuslar')
+  );
+  protected readonly hasAnySectionAccess = computed(() =>
+    this.canAccessGeneralSettings() ||
+    this.canAccessPaymentMethods() ||
+    this.canAccessRoleMatrix() ||
+    this.canAccessCustomerDisplay() ||
+    this.canAccessFastAccess()
+  );
 
   // 1. Genel Ayarlar Formu & FTP Testi
   protected readonly generalSettingsForm = new FormGroup({
@@ -191,13 +213,32 @@ export class YeniKasaYonetimiListComponent implements OnInit {
   protected readonly itemPreviewUrl = signal<string | null>(null);
 
   ngOnInit(): void {
+    this.activeTab.set(this.firstAccessibleTab());
     this.loadAllData();
-    this.setupStockSearch();
+    if (this.canAccessFastAccess()) {
+      this.setupStockSearch();
+    }
   }
 
   protected setTab(tab: ActiveTab): void {
+    if (!this.canAccessTab(tab)) return;
     this.activeTab.set(tab);
     this.feedback.set(null);
+  }
+
+  private firstAccessibleTab(): ActiveTab {
+    const tabs: ActiveTab[] = ['general', 'payment-methods', 'role-matrix', 'display', 'fast-access'];
+    return tabs.find(tab => this.canAccessTab(tab)) ?? 'general';
+  }
+
+  private canAccessTab(tab: ActiveTab): boolean {
+    switch (tab) {
+      case 'general': return this.canAccessGeneralSettings();
+      case 'payment-methods': return this.canAccessPaymentMethods();
+      case 'role-matrix': return this.canAccessRoleMatrix();
+      case 'display': return this.canAccessCustomerDisplay();
+      case 'fast-access': return this.canAccessFastAccess();
+    }
   }
 
   protected isLoading(action: ActionType): boolean {
@@ -221,40 +262,44 @@ export class YeniKasaYonetimiListComponent implements OnInit {
 
   // --- Genel Veri Yükleme ---
   protected loadAllData(): void {
-    this.startLoading('load');
-    this.ayarService.getYeniKasaAppSettings()
-      .pipe(
-        takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.stopLoading('load'))
-      )
-      .subscribe({
-        next: (settings: YeniKasaAppSettingsDto | null) => {
-          if (settings) {
-            this.generalSettingsForm.patchValue({
-              fisFaturaLimit: settings.fisFaturaLimit,
-              nakitLimit: settings.nakitLimit,
-              fisGenislik: settings.fisGenislik ?? '80mm',
-              printerDotsPerLine: settings.printerDotsPerLine ?? 576,
-              pavoFis: settings.pavoFis === 1,
-              ftpHost: settings.ftpHost ?? '',
-              ftpPort: settings.ftpPort ?? 21,
-              ftpUsername: settings.ftpUsername ?? '',
-              ftpPassword: '',
-              ftpFolderPath: settings.ftpFolderPath ?? ''
-            });
-          }
-        },
-        error: (err: unknown) => this.feedback.set({
-          tone: 'error',
-          title: 'Ayarlar Yüklenemedi',
-          message: getErrorMessage(err, 'Genel ayarlar yüklenirken bir hata oluştu.')
-        })
-      });
+    if (!this.hasAnySectionAccess()) return;
 
-    this.loadPaymentMethods();
-    this.loadRoleMatrix();
-    this.loadDisplayData();
-    this.loadFastAccessCategories();
+    if (this.canAccessGeneralSettings()) {
+      this.startLoading('load');
+      this.ayarService.getYeniKasaAppSettings()
+        .pipe(
+          takeUntilDestroyed(this.destroyRef),
+          finalize(() => this.stopLoading('load'))
+        )
+        .subscribe({
+          next: (settings: YeniKasaAppSettingsDto | null) => {
+            if (settings) {
+              this.generalSettingsForm.patchValue({
+                fisFaturaLimit: settings.fisFaturaLimit,
+                nakitLimit: settings.nakitLimit,
+                fisGenislik: settings.fisGenislik ?? '80mm',
+                printerDotsPerLine: settings.printerDotsPerLine ?? 576,
+                pavoFis: settings.pavoFis === 1,
+                ftpHost: settings.ftpHost ?? '',
+                ftpPort: settings.ftpPort ?? 21,
+                ftpUsername: settings.ftpUsername ?? '',
+                ftpPassword: '',
+                ftpFolderPath: settings.ftpFolderPath ?? ''
+              });
+            }
+          },
+          error: (err: unknown) => this.feedback.set({
+            tone: 'error',
+            title: 'Ayarlar Yüklenemedi',
+            message: getErrorMessage(err, 'Genel ayarlar yüklenirken bir hata oluştu.')
+          })
+        });
+    }
+
+    if (this.canAccessPaymentMethods()) this.loadPaymentMethods();
+    if (this.canAccessRoleMatrix()) this.loadRoleMatrix();
+    if (this.canAccessCustomerDisplay()) this.loadDisplayData();
+    if (this.canAccessFastAccess()) this.loadFastAccessCategories();
   }
 
   // --- 1. Genel Ayarlar & FTP Testi & Canlı Dağıtım ---

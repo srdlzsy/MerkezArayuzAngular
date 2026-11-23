@@ -14,19 +14,19 @@
         <div class="yk-title-row">
           <h2>{{ current.title }}</h2>
           <div class="yk-head-pills">
-            <span class="yk-stat-chip chip-pavo">
+            <span *ngIf="canAccessPaymentMethods()" class="yk-stat-chip chip-pavo">
               <i class="fa-solid fa-credit-card" aria-hidden="true"></i>
               <strong>{{ paymentMethods().length }}</strong> Ödeme Metodu
             </span>
-            <span class="yk-stat-chip">
+            <span *ngIf="canAccessRoleMatrix()" class="yk-stat-chip">
               <i class="fa-solid fa-shield-halved" aria-hidden="true"></i>
               <strong>{{ permissions().length }}</strong> Kasa Yetkisi
             </span>
-            <span class="yk-stat-chip">
+            <span *ngIf="canAccessCustomerDisplay()" class="yk-stat-chip">
               <i class="fa-solid fa-tv" aria-hidden="true"></i>
               <strong>{{ displayContents().length }}</strong> Ekran Görseli
             </span>
-            <span class="yk-stat-chip">
+            <span *ngIf="canAccessFastAccess()" class="yk-stat-chip">
               <i class="fa-solid fa-layer-group" aria-hidden="true"></i>
               <strong>{{ categories().length }}</strong> Hızlı Tuş Grubu
             </span>
@@ -38,7 +38,7 @@
 
       <div class="yk-head-actions">
         <button
-          *ngIf="canUpdate()"
+          *ngIf="canUpdate() && canAccessGeneralSettings()"
           type="button"
           (click)="triggerSyncPush()"
           [disabled]="isLoading('sync-push')"
@@ -49,6 +49,7 @@
           Tüm Kasaları Tetikle (Canlı Dağıtım)
         </button>
         <button
+          *ngIf="hasAnySectionAccess()"
           type="button"
           (click)="loadAllData()"
           [disabled]="isLoading('load')"
@@ -87,6 +88,7 @@
     <!-- 3. MODERN SEGMENTED TABS -->
     <nav class="yk-tab-nav" aria-label="Yeni Kasa Yönetimi Alt Sekmeleri">
       <button
+        *ngIf="canAccessGeneralSettings()"
         type="button"
         (click)="setTab('general')"
         class="yk-tab-btn"
@@ -96,6 +98,7 @@
       </button>
 
       <button
+        *ngIf="canAccessPaymentMethods()"
         type="button"
         (click)="setTab('payment-methods')"
         class="yk-tab-btn"
@@ -106,6 +109,7 @@
       </button>
 
       <button
+        *ngIf="canAccessRoleMatrix()"
         type="button"
         (click)="setTab('role-matrix')"
         class="yk-tab-btn"
@@ -116,6 +120,7 @@
       </button>
 
       <button
+        *ngIf="canAccessCustomerDisplay()"
         type="button"
         (click)="setTab('display')"
         class="yk-tab-btn"
@@ -126,6 +131,7 @@
       </button>
 
       <button
+        *ngIf="canAccessFastAccess()"
         type="button"
         (click)="setTab('fast-access')"
         class="yk-tab-btn"
@@ -136,8 +142,18 @@
       </button>
     </nav>
 
+    <div *ngIf="!hasAnySectionAccess()" class="yk-alert-box alert-info">
+      <div class="alert-icon">
+        <i class="fa-solid fa-lock" aria-hidden="true"></i>
+      </div>
+      <div class="alert-content">
+        <h4>Alt Modül Yetkisi Bulunamadı</h4>
+        <p>Yeni Kasa Yönetimi sayfasına erişiminiz var; ancak kullanabileceğiniz bir ayar sekmesi tanımlanmamış.</p>
+      </div>
+    </div>
+
     <!-- 4. TAB 1: GENEL AYARLAR -->
-    <section *ngIf="activeTab() === 'general'" class="yk-tab-panel">
+    <section *ngIf="activeTab() === 'general' && canAccessGeneralSettings()" class="yk-tab-panel">
       <div class="yk-card">
         <div class="yk-card-head">
           <div class="title-group">
@@ -297,7 +313,7 @@
     </section>
 
     <!-- 5. TAB 2: ÖDEME YÖNTEMLERİ -->
-    <section *ngIf="activeTab() === 'payment-methods'" class="yk-tab-panel">
+    <section *ngIf="activeTab() === 'payment-methods' && canAccessPaymentMethods()" class="yk-tab-panel">
       <div class="yk-card">
         <div class="yk-card-head">
           <div class="title-group">
@@ -408,7 +424,7 @@
     </section>
 
     <!-- 6. TAB 3: KASA YETKİ MATRİSİ -->
-    <section *ngIf="activeTab() === 'role-matrix'" class="yk-tab-panel">
+    <section *ngIf="activeTab() === 'role-matrix' && canAccessRoleMatrix()" class="yk-tab-panel">
       <div class="yk-card">
         <div class="yk-card-head">
           <div class="title-group">
@@ -507,7 +523,7 @@
     </section>
 
     <!-- 7. TAB 4: MÜŞTERİ EKRANI (DISPLAY) -->
-    <section *ngIf="activeTab() === 'display'" class="yk-tab-panel">
+    <section *ngIf="activeTab() === 'display' && canAccessCustomerDisplay()" class="yk-tab-panel">
       <!-- BT Direktörü Bilgi Yönergesi & Slider Seçimi -->
       <div style="display: grid; grid-template-columns: 2fr 1.2fr; gap: 1.25rem;" class="split-col-responsive">
         <div class="yk-info-callout">
@@ -642,7 +658,7 @@
     </section>
 
     <!-- 8. TAB 5: HIZLI TUŞ GRUPLARI & ÜRÜNLER -->
-    <section *ngIf="activeTab() === 'fast-access'" class="yk-tab-panel">
+    <section *ngIf="activeTab() === 'fast-access' && canAccessFastAccess()" class="yk-tab-panel">
       <!-- BT Direktörü Kural Bilgi Kartı -->
       <div class="yk-info-callout callout-emerald">
         <div class="callout-icon">

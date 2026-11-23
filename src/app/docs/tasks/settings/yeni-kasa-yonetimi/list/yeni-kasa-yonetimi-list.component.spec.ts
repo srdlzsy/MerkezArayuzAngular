@@ -178,17 +178,59 @@ describe('YeniKasaYonetimiListComponent', () => {
     const component = fixture.componentInstance;
     fixture.detectChanges();
 
-    return { fixture, component };
+    return {
+      fixture,
+      component,
+      spies: {
+        getAppSettingsSpy,
+        getPaymentMethodsSpy,
+        getPaymentLookupsSpy,
+        getRolePermissionMatrixSpy,
+        getDisplaySettingsSpy,
+        getDisplayContentsSpy,
+        getFastAccessCategoriesSpy,
+        getFastAccessItemsSpy
+      }
+    };
   }
 
   it('bilesen basariyla olusturulmali ve varsayilan sekme genel ayarlar olmali', () => {
     const { component } = setup(
       createUserWithPermissions([
         'ayar-islemleri.yeni-kasa-yonetimi.page',
-        'ayar-islemleri.yeni-kasa-yonetimi.list'
+        'ayar-islemleri.yeni-kasa-yonetimi.list',
+        'ayar-islemleri.yeni-kasa-yonetimi.genel-ayarlar',
+        'ayar-islemleri.yeni-kasa-yonetimi.odeme-yontemleri',
+        'ayar-islemleri.yeni-kasa-yonetimi.yetki-matrisi',
+        'ayar-islemleri.yeni-kasa-yonetimi.musteri-ekrani',
+        'ayar-islemleri.yeni-kasa-yonetimi.hizli-tuslar'
       ])
     );
 
     expect(component).toBeTruthy();
+  });
+
+  it('yalniz izin verilen sekmeyi gosterip sadece o sekmenin verisini yuklemeli', () => {
+    const { fixture, spies } = setup(
+      createUserWithPermissions([
+        'ayar-islemleri.yeni-kasa-yonetimi.page',
+        'ayar-islemleri.yeni-kasa-yonetimi.list',
+        'ayar-islemleri.yeni-kasa-yonetimi.odeme-yontemleri'
+      ])
+    );
+
+    const visibleTabs = Array.from(
+      fixture.nativeElement.querySelectorAll('.yk-tab-btn') as NodeListOf<HTMLButtonElement>
+    ).map(button => button.textContent?.trim() ?? '');
+
+    expect(visibleTabs.length).toBe(1);
+    expect(visibleTabs[0]).toContain('Ödeme Yöntemleri');
+    expect(fixture.nativeElement.querySelector('.yk-tab-btn.is-active')?.textContent).toContain('Ödeme Yöntemleri');
+    expect(spies.getPaymentMethodsSpy).toHaveBeenCalledTimes(1);
+    expect(spies.getPaymentLookupsSpy).toHaveBeenCalledTimes(1);
+    expect(spies.getAppSettingsSpy).not.toHaveBeenCalled();
+    expect(spies.getRolePermissionMatrixSpy).not.toHaveBeenCalled();
+    expect(spies.getDisplaySettingsSpy).not.toHaveBeenCalled();
+    expect(spies.getFastAccessCategoriesSpy).not.toHaveBeenCalled();
   });
 });
