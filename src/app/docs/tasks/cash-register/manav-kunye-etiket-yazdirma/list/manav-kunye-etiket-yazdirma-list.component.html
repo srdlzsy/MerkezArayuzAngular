@@ -53,16 +53,64 @@
     <!-- MEVCUT GORUNUM: KUNYE ETIKET YAZDIRMA (DOKUNULMADI)                    -->
     <!-- ===================================================================== -->
     <ng-container *ngIf="activeTab() === 'kunye-tags'">
-      <section class="scope-bar">
-        <label class="field" *ngIf="canUseWarehouseScope(); else lockedWarehouseScope">
-          <span>Depo No</span>
-          <input
-            type="number"
-            min="1"
-            [ngModel]="warehouseNo()"
-            (ngModelChange)="onWarehouseNoChange($event)"
-          />
-        </label>
+      <section class="scope-bar" [class.scope-bar-wide]="canUseWarehouseScope()">
+        <ng-container *ngIf="canUseWarehouseScope(); else lockedWarehouseScope">
+          <div class="field warehouse-search-field">
+            <span>Depo Ara</span>
+            <div class="warehouse-search-row">
+              <input
+                type="search"
+                placeholder="Depo adi veya no (bos birakip Ara = Tumu)"
+                [ngModel]="warehouseSearchQuery()"
+                (ngModelChange)="onWarehouseSearchQueryChange($event)"
+                (keydown.enter)="$event.preventDefault(); searchWarehouses()"
+              />
+              <button
+                type="button"
+                class="task-action task-action-secondary"
+                [disabled]="warehouseSearchLoading()"
+                (click)="searchWarehouses()"
+              >
+                {{ warehouseSearchLoading() ? '...' : 'Ara' }}
+              </button>
+              <button
+                type="button"
+                class="task-action task-action-secondary"
+                *ngIf="warehouseSearchQuery() || warehouseSearchResults().length"
+                (click)="clearWarehouseSearch()"
+              >
+                Temizle
+              </button>
+            </div>
+
+            <small class="warehouse-search-error" *ngIf="warehouseSearchError()">
+              {{ warehouseSearchError() }}
+            </small>
+
+            <div class="warehouse-search-results" *ngIf="warehouseSearchResults().length">
+              <button
+                type="button"
+                class="warehouse-result-item"
+                *ngFor="let item of warehouseSearchResults(); trackBy: trackByWarehouse"
+                [class.is-selected]="item.warehouseNo === warehouseNo()"
+                (click)="selectWarehouse(item)"
+              >
+                <strong>{{ item.warehouseNo }}</strong>
+                <span>{{ item.warehouseName || ('Depo ' + item.warehouseNo) }}</span>
+              </button>
+            </div>
+          </div>
+
+          <label class="field warehouse-no-field">
+            <span>Depo No</span>
+            <input
+              type="number"
+              min="1"
+              [ngModel]="warehouseNo()"
+              (ngModelChange)="onWarehouseNoChange($event)"
+            />
+          </label>
+        </ng-container>
 
         <ng-template #lockedWarehouseScope>
           <div class="scope-pill">

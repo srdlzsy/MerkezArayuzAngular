@@ -4,8 +4,9 @@ import { Component, DestroyRef, OnInit, ViewChild, computed, inject, signal } fr
 import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormsModule } from '@angular/forms';
 import { finalize } from 'rxjs';
-import type { IManavKunyeTag, ManavCodeListItemDto } from '@interfaces';
+import type { IManavKunyeTag, ManavCodeListItemDto, WarehouseLookupItemDto } from '@interfaces';
 
+import { AramaService } from '../../../../../core/api/module-services/arama.service';
 import { KasaIslemleriService } from '../../../../../core/api/module-services/kasa-islemleri.service';
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
@@ -68,6 +69,11 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
   protected readonly selectedDate = signal('');
   protected readonly searchTerm = signal('');
   protected readonly warehouseNo = signal<number | null>(null);
+  protected readonly selectedWarehouseName = signal('');
+  protected readonly warehouseSearchQuery = signal('');
+  protected readonly warehouseSearchResults = signal<WarehouseLookupItemDto[]>([]);
+  protected readonly warehouseSearchLoading = signal(false);
+  protected readonly warehouseSearchError = signal('');
   protected readonly canListTags = computed(() =>
     currentUserHasPermission(this.authService.currentUser(), LIST_PERMISSION)
   );
@@ -86,7 +92,12 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
     }
 
     const warehouseNo = this.warehouseNo();
-    return warehouseNo ? `Depo ${warehouseNo}` : 'Depo sec';
+    if (!warehouseNo) {
+      return 'Depo sec';
+    }
+
+    const warehouseName = this.selectedWarehouseName().trim();
+    return warehouseName ? `${warehouseNo} - ${warehouseName}` : `Depo ${warehouseNo}`;
   });
   protected readonly selection = new SelectionModel<IManavKunyeTag>(true, []);
   protected readonly selectedCount = signal(0);
@@ -182,7 +193,9 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
   );
 
   private readonly destroyRef = inject(DestroyRef);
+  private readonly aramaService = inject(AramaService);
   private activeTagsRequest: { unsubscribe(): void } | null = null;
+  private activeWarehouseSearchRequest: { unsubscribe(): void } | null = null;
   private activeTagsRequestId = 0;
 
   constructor(
@@ -214,8 +227,85 @@ export class ManavKunyeEtiketYazdirmaListComponent implements OnInit {
 
     const numericValue = Number(value);
     this.warehouseNo.set(Number.isFinite(numericValue) && numericValue > 0 ? numericValue : null);
+    this.selectedWarehouseName.set('');
     this.clearLoadedTags();
   }
+
+  protected onWarehouseSearchQueryChange(value: string): void {
+    this.warehouseSearchQuery.set(value);
+    this.warehouseSearchError.set('');
+  }
+
+  protected searchWarehouses(): void {
+    if (!this.canUseWarehouseScope()) {
+      return;
+    }
+
+    const query = this.warehouseSearchQuery().trim();
+    const numericQuery = /^\d+$/.test(query) ? Number(query) : null;
+
+    if (query.length === 1 && numericQuery === null) {
+      this.warehouseSearchError.set('Depo aramasi icin en az 2 karakter veya depo no girin.');
+      return;
+    }
+
+    this.activeWarehouseSearchRequest?.unsubscribe();
+    this.activeWarehouseSearchRequest = null;
+    this.warehouseSearchLoading.set(true);
+    this.warehouseSearchError.set('');
+
+    const request$ = !query
+      ? this.aramaService.listAllWarehouses(100)
+      : numericQuery !== null && numericQuery > 0
+        ? this.aramaService.searchWarehouse(undefined, 30, numericQuery)
+        : this.aramaService.searchWarehouse(query, 30);
+
+    this.activeWarehouseSearchRequest = request$
+      .pipe(
+        finalize(() => {
+          this.activeWarehouseSearchRequest = null;
+          this.warehouseSearchLoading.set(false);
+        }),
+        takeUntilDestroyed(this.destroyRef)
+      )
+      .subscribe({
+        next: (results: WarehouseLookupItemDto[]) => {
+          const items = results ?? [];
+          this.warehouseSearchResults.set(items);
+          if (!items.length) {
+            this.warehouseSearchError.set('Eslesen depo bulunamadi.');
+          }
+        },
+        error: () => {
+          this.warehouseSearchResults.set([]);
+          this.warehouseSearchError.set('Depo aramasi sirasinda hata olustu.');
+        }
+      });
+  }
+
+  protected selectWarehouse(warehouse: WarehouseLookupItemDto): void {
+    if (!this.canUseWarehouseScope()) {
+      return;
+    }
+
+    this.warehouseNo.set(warehouse.warehouseNo);
+    this.selectedWarehouseName.set(warehouse.warehouseName?.trim() || '');
+    this.warehouseSearchQuery.set(
+      `${warehouse.warehouseNo} - ${warehouse.warehouseName || ''}`.trim()
+    );
+    this.warehouseSearchResults.set([]);
+    this.warehouseSearchError.set('');
+    this.loadTags();
+  }
+
+  protected clearWarehouseSearch(): void {
+    this.warehouseSearchQuery.set('');
+    this.warehouseSearchResults.set([]);
+    this.warehouseSearchError.set('');
+  }
+
+  protected trackByWarehouse = (_index: number, item: WarehouseLookupItemDto): number =>
+    item.warehouseNo;
 
   protected onDateChange(value: string): void {
     this.selectedDate.set(value);
