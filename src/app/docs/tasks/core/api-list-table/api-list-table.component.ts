@@ -166,12 +166,7 @@ export class ApiListTableComponent<Row extends object = object> {
   protected readonly resolvedPrintColumns = computed(() => this.printColumns() ?? this.columns());
   protected readonly resolvedPrintOrientation = computed<'portrait' | 'landscape'>(() => {
     const orientation = this.printOrientation();
-
-    if (orientation !== 'auto') {
-      return orientation;
-    }
-
-    return this.resolvedPrintColumns().length >= 9 ? 'landscape' : 'portrait';
+    return orientation === 'landscape' ? 'landscape' : 'portrait';
   });
   protected readonly usesDensePrintLayout = computed(
     () => this.resolvedPrintColumns().length >= 9

@@ -153,7 +153,7 @@ describe('ApiListTableComponent', () => {
     expect(print.calls.mostRecent().args[0].styles).toContain('size: A4 portrait');
   });
 
-  it('uses landscape A4 automatically for dense tables', async () => {
+  it('keeps portrait A4 by default even for dense tables', async () => {
     const print = jasmine.createSpy('print').and.resolveTo(true);
     TestBed.configureTestingModule({
       imports: [ApiListTableComponent],
@@ -170,7 +170,7 @@ describe('ApiListTableComponent', () => {
 
     await (fixture.componentInstance as unknown as TableTestAccess).printList();
 
-    expect(print.calls.mostRecent().args[0].styles).toContain('size: A4 landscape');
+    expect(print.calls.mostRecent().args[0].styles).toContain('size: A4 portrait');
     expect(print.calls.mostRecent().args[0].styles).toContain('margin: 5mm 6mm');
   });
 

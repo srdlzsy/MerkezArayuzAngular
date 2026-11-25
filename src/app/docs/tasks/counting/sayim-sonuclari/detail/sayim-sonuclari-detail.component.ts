@@ -10,7 +10,10 @@ import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
 import { ApiTaskDetailBase } from '../../../core/api-detail-page/api-task-detail.base';
-import { DocumentPrintService } from '../../../core/document-print/document-print.service';
+import {
+  DocumentPrintColumn,
+  DocumentPrintService
+} from '../../../core/document-print/document-print.service';
 
 interface SayimSonuclariDetailDialogData {
   evrakNo: number ;
@@ -64,6 +67,25 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
   protected readonly kalemCount = computed(() => this.rawKalemler().length);
   protected readonly filteredKalemCount = computed(() => this.kalemler().length);
   protected readonly hasActiveLineFilter = computed(() => this.lineSearchTerm().trim().length > 0);
+  protected readonly hasQuantity2 = computed(() =>
+    this.rawKalemler().some((item) => this.hasNonZeroQuantity(item.quantity2))
+  );
+  protected readonly hasQuantity3 = computed(() =>
+    this.rawKalemler().some((item) => this.hasNonZeroQuantity(item.quantity3))
+  );
+  protected readonly hasQuantity4 = computed(() =>
+    this.rawKalemler().some((item) => this.hasNonZeroQuantity(item.quantity4))
+  );
+  protected readonly hasQuantity5 = computed(() =>
+    this.rawKalemler().some((item) => this.hasNonZeroQuantity(item.quantity5))
+  );
+  protected readonly hasExtraQuantities = computed(
+    () =>
+      this.hasQuantity2() ||
+      this.hasQuantity3() ||
+      this.hasQuantity4() ||
+      this.hasQuantity5()
+  );
   protected readonly currentDetail = computed(() => this.detail()?.header ?? null);
 
   protected updateLineSearch(term: string): void {
@@ -87,6 +109,11 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
 
     return `${payload.evrakNo} / Depo ${depoNo} / ${this.formatDocumentDate(payload.tarih)}`;
   });
+
+  private hasNonZeroQuantity(value: number | null | undefined): boolean {
+    const numeric = Number(value ?? 0);
+    return Number.isFinite(numeric) && numeric !== 0;
+  }
 
   protected formatDocumentDate(value: string | null | undefined): string {
     if (!value?.trim()) {
@@ -122,12 +149,44 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
     }
 
     this.printError.set('');
+    const showQty2 = this.hasQuantity2();
+    const showQty3 = this.hasQuantity3();
+    const showQty4 = this.hasQuantity4();
+    const showQty5 = this.hasQuantity5();
+    const extraCount = [showQty2, showQty3, showQty4, showQty5].filter(Boolean).length;
+
+    const columns: DocumentPrintColumn[] = [
+      { label: '#', width: extraCount ? '4%' : '5%', align: 'center' },
+      { label: 'Stok Kodu', width: extraCount ? '11%' : '13%' },
+      { label: 'Stok Ismi', width: `${extraCount ? 52 - extraCount * 8 : 42}%` },
+      { label: 'Barkod', width: extraCount ? '16%' : '18%' },
+      { label: 'Birim', width: extraCount ? '8%' : '10%', align: 'center' },
+      {
+        label: extraCount ? 'Miktar 1' : 'Miktar',
+        width: extraCount ? '9%' : '12%',
+        align: 'right'
+      }
+    ];
+
+    if (showQty2) {
+      columns.push({ label: 'Miktar 2', width: '8%', align: 'right' });
+    }
+    if (showQty3) {
+      columns.push({ label: 'Miktar 3', width: '8%', align: 'right' });
+    }
+    if (showQty4) {
+      columns.push({ label: 'Miktar 4', width: '8%', align: 'right' });
+    }
+    if (showQty5) {
+      columns.push({ label: 'Miktar 5', width: '8%', align: 'right' });
+    }
+
     const started = this.documentPrintService.print({
       title: 'Sayim Sonucu',
       subtitle: detail.name || `Sayim ${detail.documentNo}`,
       branch: `${detail.warehouseNo} - ${detail.warehouseName || 'Depo'}`,
-      orientation: 'landscape',
-      density: 'dense',
+      orientation: 'portrait',
+      density: extraCount >= 2 ? 'dense' : 'compact',
       sections: [
         {
           title: 'Belge Bilgileri',
@@ -143,32 +202,32 @@ export class SayimSonuclariDetailComponent extends ApiTaskDetailBase<
         }
       ],
       lineTitle: `Sayim Kalemleri (${this.kalemCount()})`,
-      columns: [
-        { label: '#', width: '4%', align: 'center' },
-        { label: 'Stok Kodu', width: '9%' },
-        { label: 'Stok Ismi', width: '24%' },
-        { label: 'Barkod', width: '14%' },
-        { label: 'Birim', width: '7%', align: 'center' },
-        { label: 'Birim Musiri', width: '8%', align: 'center' },
-        { label: 'Miktar 1', width: '7%', align: 'right' },
-        { label: 'Miktar 2', width: '7%', align: 'right' },
-        { label: 'Miktar 3', width: '7%', align: 'right' },
-        { label: 'Miktar 4', width: '7%', align: 'right' },
-        { label: 'Miktar 5', width: '7%', align: 'right' }
-      ],
-      rows: this.rawKalemler().map((kalem, index) => [
-        index + 1,
-        kalem.stockCode,
-        kalem.stockName,
-        kalem.barcode,
-        kalem.unitName,
-        kalem.unitPointer,
-        this.formatNumber(kalem.quantity1),
-        this.formatNumber(kalem.quantity2),
-        this.formatNumber(kalem.quantity3),
-        this.formatNumber(kalem.quantity4),
-        this.formatNumber(kalem.quantity5)
-      ])
+      columns,
+      rows: this.rawKalemler().map((kalem, index) => {
+        const row: unknown[] = [
+          index + 1,
+          kalem.stockCode,
+          kalem.stockName,
+          kalem.barcode,
+          kalem.unitName,
+          this.formatNumber(kalem.quantity1)
+        ];
+
+        if (showQty2) {
+          row.push(this.formatNumber(kalem.quantity2));
+        }
+        if (showQty3) {
+          row.push(this.formatNumber(kalem.quantity3));
+        }
+        if (showQty4) {
+          row.push(this.formatNumber(kalem.quantity4));
+        }
+        if (showQty5) {
+          row.push(this.formatNumber(kalem.quantity5));
+        }
+
+        return row;
+      })
     });
 
     if (!started) {

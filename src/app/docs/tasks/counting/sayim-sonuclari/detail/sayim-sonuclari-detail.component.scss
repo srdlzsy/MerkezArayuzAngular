@@ -66,33 +66,31 @@
 }
 
 .count-lines-table {
-  min-width: 980px;
-  table-layout: fixed;
+  min-width: 680px;
 }
 
 .col-row {
-  width: 4%;
+  width: 52px;
 }
 
 .col-code {
-  width: 8%;
+  width: 120px;
 }
 
 .col-name {
-  width: 28%;
+  min-width: 240px;
 }
 
 .col-barcode {
-  width: 13%;
+  width: 150px;
 }
 
-.col-unit,
-.col-pointer {
-  width: 6%;
+.col-unit {
+  width: 88px;
 }
 
 .col-quantity {
-  width: 7%;
+  width: 96px;
 }
 
 .count-lines-table th,

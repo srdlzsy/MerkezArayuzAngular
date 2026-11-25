@@ -130,28 +130,18 @@
 
         <div class="table-wrap" *ngIf="kalemler().length; else noKalemler">
           <table class="count-lines-table">
-            <colgroup>
-              <col class="col-row" />
-              <col class="col-code" />
-              <col class="col-name" />
-              <col class="col-barcode" />
-              <col class="col-unit" />
-              <col class="col-pointer" />
-              <col class="col-quantity" span="5" />
-            </colgroup>
             <thead>
               <tr>
-                <th>Satir</th>
-                <th>Stok Kodu</th>
-                <th>Stok Ismi</th>
-                <th>Barkod</th>
-                <th>Birim</th>
-                <th class="numeric-cell">Birim No</th>
-                <th class="numeric-cell">Miktar 1</th>
-                <th class="numeric-cell">Miktar 2</th>
-                <th class="numeric-cell">Miktar 3</th>
-                <th class="numeric-cell">Miktar 4</th>
-                <th class="numeric-cell">Miktar 5</th>
+                <th class="col-row">Satir</th>
+                <th class="col-code">Stok Kodu</th>
+                <th class="col-name">Stok Ismi</th>
+                <th class="col-barcode">Barkod</th>
+                <th class="col-unit">Birim</th>
+                <th class="numeric-cell col-quantity">{{ hasExtraQuantities() ? 'Miktar 1' : 'Miktar' }}</th>
+                <th class="numeric-cell col-quantity" *ngIf="hasQuantity2()">Miktar 2</th>
+                <th class="numeric-cell col-quantity" *ngIf="hasQuantity3()">Miktar 3</th>
+                <th class="numeric-cell col-quantity" *ngIf="hasQuantity4()">Miktar 4</th>
+                <th class="numeric-cell col-quantity" *ngIf="hasQuantity5()">Miktar 5</th>
               </tr>
             </thead>
             <tbody>
@@ -161,12 +151,11 @@
                 <td class="stock-name">{{ kalem.stockName || '-' }}</td>
                 <td class="barcode">{{ kalem.barcode || '-' }}</td>
                 <td>{{ kalem.unitName || '-' }}</td>
-                <td class="numeric-cell">{{ kalem.unitPointer }}</td>
                 <td class="numeric-cell quantity-value">{{ formatNumber(kalem.quantity1) }}</td>
-                <td class="numeric-cell" [class.zero-value]="kalem.quantity2 === 0">{{ formatNumber(kalem.quantity2) }}</td>
-                <td class="numeric-cell" [class.zero-value]="kalem.quantity3 === 0">{{ formatNumber(kalem.quantity3) }}</td>
-                <td class="numeric-cell" [class.zero-value]="kalem.quantity4 === 0">{{ formatNumber(kalem.quantity4) }}</td>
-                <td class="numeric-cell" [class.zero-value]="kalem.quantity5 === 0">{{ formatNumber(kalem.quantity5) }}</td>
+                <td class="numeric-cell" *ngIf="hasQuantity2()" [class.zero-value]="kalem.quantity2 === 0">{{ formatNumber(kalem.quantity2) }}</td>
+                <td class="numeric-cell" *ngIf="hasQuantity3()" [class.zero-value]="kalem.quantity3 === 0">{{ formatNumber(kalem.quantity3) }}</td>
+                <td class="numeric-cell" *ngIf="hasQuantity4()" [class.zero-value]="kalem.quantity4 === 0">{{ formatNumber(kalem.quantity4) }}</td>
+                <td class="numeric-cell" *ngIf="hasQuantity5()" [class.zero-value]="kalem.quantity5 === 0">{{ formatNumber(kalem.quantity5) }}</td>
               </tr>
             </tbody>
           </table>
