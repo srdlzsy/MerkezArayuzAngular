@@ -113,6 +113,7 @@ export class AramaService extends BaseApiService {
     take: number = 150,
     includeDelisted?: boolean,
     sourceWarehouseNo?: number,
+    operationType?: string,
   ): Observable<ProductLookupItemDto[]> {
     const normalizedBarcode = this.normalizeOptionalText(barcode);
     const normalizedStockCode = this.normalizeOptionalText(stockCode);
@@ -148,6 +149,7 @@ export class AramaService extends BaseApiService {
       supplierCode: normalizedSupplierCode,
       companyCode: normalizedCompanyCode,
       includeDelisted,
+      operationType: this.normalizeOptionalText(operationType),
       take,
     };
 
@@ -163,6 +165,7 @@ export class AramaService extends BaseApiService {
     includeDelisted?: boolean,
     sourceWarehouseNo?: number,
     warehouseNo?: number,
+    operationType?: string,
   ): Observable<ProductLookupItemDto[]> {
     const filters = this.buildProductSearchQuery(query);
     return this.searchProducts(
@@ -175,6 +178,7 @@ export class AramaService extends BaseApiService {
       take,
       includeDelisted,
       sourceWarehouseNo,
+      operationType,
     );
   }
 

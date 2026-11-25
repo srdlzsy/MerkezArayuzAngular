@@ -233,7 +233,7 @@ export class MikroEvrakDuzenlemeListComponent {
 
   protected stockSearch = {
     searchText: '',
-    includePassive: false,
+    includePassive: true,
     take: 50
   };
   protected documentSearch = {
@@ -242,12 +242,12 @@ export class MikroEvrakDuzenlemeListComponent {
   };
   protected warehouseCardSearch = {
     searchText: '',
-    includePassive: false,
+    includePassive: true,
     take: 50
   };
   protected customerCardSearch = {
     searchText: '',
-    includePassive: false,
+    includePassive: true,
     take: 50
   };
   protected warehouseFilterNo: number | null = null;

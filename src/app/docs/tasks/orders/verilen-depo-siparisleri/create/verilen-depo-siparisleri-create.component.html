@@ -165,7 +165,7 @@
                 [checked]="hideDelistedProducts"
                 (change)="hideDelistedProducts = $any($event.target).checked"
               />
-              <span>Pasif/DLS gizle</span>
+              <span>Kilitli/DLS gizle</span>
             </label>
 
             <p class="helper-text" *ngIf="presetProductsLoading()">
@@ -179,6 +179,7 @@
             <div class="search-results stock-results-list" *ngIf="stockResults().length">
               <div
                 class="result-item stock-result"
+                [class.stock-result-disabled]="!canSelectStock(stock)"
                 *ngFor="let stock of stockResults(); trackBy: trackByStock"
                 (click)="addKalem(stock)"
               >
@@ -202,8 +203,16 @@
                       </span>
                     </div>
                   </ng-container>
+                  <span
+                    class="stock-operation-reason"
+                    *ngIf="getStockOperationReason(stock) as reason"
+                  >
+                    {{ reason }}
+                  </span>
                 </div>
-                <button type="button" class="add-mini">+</button>
+                <button type="button" class="add-mini" [disabled]="!canSelectStock(stock)">
+                  +
+                </button>
               </div>
             </div>
           </div>

@@ -16,6 +16,7 @@ export interface ProductSearchHttpRequest {
   supplierCode?: string;
   companyCode?: string;
   includeDelisted?: boolean;
+  operationType?: string;
   take?: number;
 }
 
@@ -63,6 +64,9 @@ export interface ProductLookupItemDto {
   embeddedQuantity: number | null;
   embeddedQuantityUnit: string | null;
   isBarcodeCheckDigitValid: boolean | null;
+  isUsableInOperation?: boolean;
+  operationDecisionCode?: string | null;
+  operationDecision?: string | null;
 }
 
 export interface VarYokSearchHttpRequest {

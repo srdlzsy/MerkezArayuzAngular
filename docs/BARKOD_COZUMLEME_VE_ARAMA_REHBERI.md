@@ -277,6 +277,7 @@ GET /api/arama-islemleri/urunler?warehouseNo=110&stockName=sut&take=20
 GET /api/arama-islemleri/urunler?warehouseNo=110&stockCode=015550
 GET /api/arama-islemleri/urunler?warehouseNo=110&barcode=8690000000000
 GET /api/arama-islemleri/urunler?warehouseNo=110&companyCode=120.01.03106&stockName=sut
+GET /api/arama-islemleri/urunler?warehouseNo=110&sourceWarehouseNo=50&stockName=sut&operationType=order
 ```
 
 Kurallar:
@@ -284,13 +285,25 @@ Kurallar:
 - `barcode`, `stockCode`, `stockName`, `companyCode` veya `supplierCode`
   alanlarindan en az biri verilmelidir.
 - `stockName` en az 2 karakter olmalidir.
-- `take` default 20, max 100 olur.
+- `take` default 150, max 150 olur.
 - Barkod 27/29 terazi barkoduysa burada da `lookupBarcode` ilk 7 haneye
   normalize edilir; sonuc bulunamazsa ayni urun/PLU kismi icin `27`/`29`
   alternatif prefix'i de denenir.
-- Bu endpoint `dbo.__StokveFiyatArama_Gokhan` prosedurunu kullanir.
-- Liste icin uygundur, ama satira ekleme karari icin son kontrol yine
-  `barkodlar/{barcode}/cozumle` olmalidir.
+- Bu endpoint yalniz dolu filtreleri iceren parametrik ve salt-okunur Mikro
+  sorgusunu kullanir. Stok kodu ve barkod esitlik filtresiyle, urun adi ise
+  `LIKE` filtresiyle aranir. Tedarikci uygunlugu satir cogaltmadan `EXISTS`
+  ile kontrol edilir.
+- `operationType` gonderilmeyen genel aramalar mevcut davranisini korur. Pasif
+  veya DLS kayitlar `includeDelisted` secimine gore listelenir; Mikro Evrak
+  Duzenleme gibi genel yonetim ekranlari depo siparisi kurallariyla daraltilmaz.
+- Depo siparisi ekranlari `operationType=order` gonderir. Bu baglamda eslesen
+  urun kaybolmaz; `isUsableInOperation`, `operationDecisionCode` ve
+  `operationDecision` alanlariyla kullanilabilir veya gerekceli kilitli doner.
+  Pasif, DLS, siparise kapali ya da kaynak depo katalogunda olmayan urun satira
+  eklenemez.
+- Barkodla tekil secimde `barkodlar/{barcode}/cozumle` ayni operasyon kararini
+  verir. Depo siparisi kaydedilirken backend bu kurallari yeniden Mikro'dan
+  dogrular; eski istemci veya degistirilmis istek bu kontrolu atlayamaz.
 
 ## Fiyat Gorme
 

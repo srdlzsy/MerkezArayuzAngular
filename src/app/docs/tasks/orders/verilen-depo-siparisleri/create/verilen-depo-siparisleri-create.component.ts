@@ -328,6 +328,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
         this.resolveIncludeDelisted(),
         this.selectedWarehouse()?.sourceWarehouseNo,
         this.resolveRequestWarehouseNo(),
+        'order',
       )
       .pipe(finalize(() => requestId === this.stockRequestId && this.stockLoading.set(false)))
       .subscribe({
@@ -337,9 +338,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
           }
 
           const normalizedResults = this.normalizeStocks(results ?? []);
-          this.stockResults.set(normalizedResults);
+          const visibleResults = this.hideDelistedProducts
+            ? normalizedResults.filter((stock) => this.canSelectStock(stock))
+            : normalizedResults;
+          this.stockResults.set(visibleResults);
 
-          if (normalizedResults.length === 0) {
+          if (visibleResults.length === 0) {
             this.stockError.set('Aramana uygun stok bulunamadi.');
           }
         },
@@ -354,8 +358,10 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   }
 
   protected addKalem(stock: IFurpaProductSearchItemApiDto): void {
-    if (stock.isOrderBlocked) {
-      this.stockError.set('Secilen stok siparise kapalidir.');
+    if (!this.canSelectStock(stock)) {
+      this.stockError.set(
+        stock.operationDecision?.trim() || 'Secilen stok depo siparisi icin kullanilamaz.',
+      );
       return;
     }
 
@@ -394,6 +400,18 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockQuery.setValue('');
     this.stockResults.set([]);
     this.stockError.set('');
+  }
+
+  protected canSelectStock(stock: IFurpaProductSearchItemApiDto): boolean {
+    return stock.isUsableInOperation !== false && !stock.isOrderBlocked;
+  }
+
+  protected getStockOperationReason(stock: IFurpaProductSearchItemApiDto): string | null {
+    if (this.canSelectStock(stock)) {
+      return null;
+    }
+
+    return stock.operationDecision?.trim() || 'Urun depo siparisi icin kullanilamaz.';
   }
 
   protected removeKalem(index: number): void {
@@ -1170,9 +1188,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
       const stockCode = control.controls.stokKodu.value.trim();
       const unitName = control.controls.birim.value.trim() || 'birim';
-      this.stockError.set(
-        `${stockCode}: ${buildPackageQuantityMessage(violation, unitName)}`,
-      );
+      this.stockError.set(`${stockCode}: ${buildPackageQuantityMessage(violation, unitName)}`);
       control.controls.siparisMiktari.markAsTouched();
       return false;
     }
