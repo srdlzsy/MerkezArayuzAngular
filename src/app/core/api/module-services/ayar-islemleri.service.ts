@@ -1,11 +1,15 @@
 import { Injectable } from '@angular/core';
 import { Observable } from 'rxjs';
 import type {
+  B2BAccountLookupDto,
   B2BBulletinDto,
   B2BBulletinListHttpRequest,
+  B2BMenuOptionDto,
   B2BUserDetailDto,
   B2BUserDto,
   B2BUserListHttpRequest,
+  CreateB2BUserHttpRequest,
+  ResetB2BUserPasswordHttpRequest,
   DatabaseMonitoringIncidentDto,
   DatabaseMonitoringSnapshotDto,
   DatabaseRollbackStatusDto,
@@ -478,11 +482,39 @@ export class AyarIslemleriService extends BaseApiService {
     );
   }
 
+  createB2BUser(request: CreateB2BUserHttpRequest): Observable<B2BUserDetailDto> {
+    return this.post<B2BUserDetailDto, CreateB2BUserHttpRequest>(
+      'ayar-islemleri/b2b-ayarlari/kullanicilar',
+      request,
+    );
+  }
+
   updateB2BUser(userId: string, request: UpdateB2BUserHttpRequest): Observable<B2BUserDetailDto> {
     return this.put<B2BUserDetailDto, UpdateB2BUserHttpRequest>(
       `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}`,
       request,
     );
+  }
+
+  resetB2BUserPassword(
+    userId: string,
+    request: ResetB2BUserPasswordHttpRequest,
+  ): Observable<void> {
+    return this.post<void, ResetB2BUserPasswordHttpRequest>(
+      `ayar-islemleri/b2b-ayarlari/kullanicilar/${encodeURIComponent(userId)}/sifre-sifirla`,
+      request,
+    );
+  }
+
+  getB2BMenus(): Observable<B2BMenuOptionDto[]> {
+    return this.get<B2BMenuOptionDto[]>('ayar-islemleri/b2b-ayarlari/menuler');
+  }
+
+  searchB2BAccounts(search?: string, take = 20): Observable<B2BAccountLookupDto[]> {
+    return this.getWithQuery<B2BAccountLookupDto[]>('ayar-islemleri/b2b-ayarlari/cariler', {
+      search: search?.trim() || undefined,
+      take,
+    });
   }
 
   // Yeni Kasa Yönetimi - Genel Ayarlar

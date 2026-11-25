@@ -67,7 +67,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let item of bulletins(); trackBy: trackByBulletin" (click)="selectBulletin(item)">
+            <tr
+              *ngFor="let item of bulletins(); trackBy: trackByBulletin"
+              [class.is-selected]="item.id === bulletinDraft.id"
+              (click)="selectBulletin(item)"
+            >
               <td data-label="Bulten"><strong>{{ item.definition }}</strong></td>
               <td data-label="Link"><span>{{ item.link }}</span></td>
               <td data-label="Tarih">{{ item.createDate | date:'dd.MM.yyyy HH:mm' }}</td>
@@ -111,7 +115,7 @@
     </aside>
   </section>
 
-  <section class="workspace" *ngIf="activeTab() === 'users'">
+  <section class="workspace workspace-users" *ngIf="activeTab() === 'users'">
     <article class="list-panel">
       <div class="toolbar">
         <label class="field">
@@ -124,6 +128,9 @@
         </label>
         <button type="button" class="action-button" (click)="loadUsers()" [disabled]="loadingAction() === 'load' || !canList()">
           {{ loadingAction() === 'load' ? 'Yukleniyor...' : 'Listele' }}
+        </button>
+        <button type="button" class="action-button primary" (click)="newUser()" [disabled]="!canCreate()">
+          + Yeni Kullanici
         </button>
       </div>
 
@@ -139,7 +146,11 @@
             </tr>
           </thead>
           <tbody>
-            <tr *ngFor="let user of users(); trackBy: trackByUser" (click)="selectUser(user)">
+            <tr
+              *ngFor="let user of users(); trackBy: trackByUser"
+              [class.is-selected]="user.userId === userDraft.userId"
+              (click)="selectUser(user)"
+            >
               <td data-label="Kullanici"><strong>{{ user.userFullName }}</strong><span>{{ user.categories?.join(', ') || '-' }}</span></td>
               <td data-label="E-posta">{{ user.userMail }}</td>
               <td data-label="Durum"><span class="status-pill" [class.is-passive]="!user.status">{{ user.status ? 'Aktif' : 'Pasif' }}</span></td>
@@ -157,40 +168,205 @@
 
     <aside class="edit-panel">
       <div class="panel-title">
-        <span>Kullanici Guncelle</span>
-        <button type="button" class="mini" (click)="clearUserSelection()">Temizle</button>
+        <span>{{ isEditUserMode() ? 'Kullanici Guncelle' : 'Yeni B2B Kullanicisi' }}</span>
+        <button type="button" class="mini" (click)="newUser()" [disabled]="!canCreate()">Yeni</button>
       </div>
 
       <label class="field">
         <span>Ad Soyad</span>
-        <input type="text" maxlength="70" [(ngModel)]="userDraft.userFullName" [disabled]="!userDraft.userId" />
+        <input type="text" maxlength="70" [(ngModel)]="userDraft.userFullName" [disabled]="!canEditUserForm()" />
       </label>
+
       <label class="field">
         <span>E-posta</span>
-        <input type="email" maxlength="150" [(ngModel)]="userDraft.userMail" [disabled]="!userDraft.userId" />
+        <input type="email" maxlength="150" [(ngModel)]="userDraft.userMail" [disabled]="!canEditUserForm()" />
       </label>
-      <label class="field">
-        <span>Menu</span>
-        <input type="text" [(ngModel)]="userDraft.menus" [disabled]="!userDraft.userId" />
-      </label>
+
+      <div class="two-col" *ngIf="!isEditUserMode()">
+        <label class="field">
+          <span>Sifre</span>
+          <input
+            type="password"
+            minlength="6"
+            maxlength="100"
+            autocomplete="new-password"
+            placeholder="En az 6 karakter"
+            [(ngModel)]="userDraft.password"
+            [disabled]="!canEditUserForm()"
+          />
+        </label>
+        <label class="field">
+          <span>Sifre Tekrar</span>
+          <input
+            type="password"
+            minlength="6"
+            maxlength="100"
+            autocomplete="new-password"
+            [(ngModel)]="userDraft.passwordConfirm"
+            [disabled]="!canEditUserForm()"
+          />
+        </label>
+      </div>
+
       <label class="field">
         <span>Bitis Tarihi</span>
-        <input type="datetime-local" [(ngModel)]="userDraft.userEndDate" [disabled]="!userDraft.userId" />
+        <input type="datetime-local" [(ngModel)]="userDraft.userEndDate" [disabled]="!canEditUserForm()" />
       </label>
+
       <label class="check-field form-check">
-        <input type="checkbox" [(ngModel)]="userDraft.status" [disabled]="!userDraft.userId" />
+        <input type="checkbox" [(ngModel)]="userDraft.status" [disabled]="!canEditUserForm()" />
         Aktif kullanici
       </label>
 
-      <button type="button" class="action-button primary" (click)="saveUser()" [disabled]="loadingAction() === 'save' || !userDraft.userId || !canUpdate()">
-        {{ loadingAction() === 'save' ? 'Kaydediliyor...' : 'Kullaniciyi Kaydet' }}
+      <section class="sub-section">
+        <div class="sub-section-head">
+          <strong>Menuler <small *ngIf="menuOptions().length">({{ selectedMenuCount() }}/{{ menuOptions().length }})</small></strong>
+          <div class="inline-actions" *ngIf="menuOptions().length">
+            <button type="button" class="mini" (click)="selectAllMenus()" [disabled]="!canEditUserForm()">Tumunu Sec</button>
+            <button type="button" class="mini" (click)="clearAllMenus()" [disabled]="!canEditUserForm()">Temizle</button>
+          </div>
+        </div>
+
+        <div class="menu-groups" *ngIf="menuGroups().length; else manualMenuInput">
+          <div class="menu-group" *ngFor="let group of menuGroups(); trackBy: trackByMenuGroup">
+            <span class="menu-group-title">{{ group.groupName }}</span>
+            <div class="menu-check-grid">
+              <label class="menu-check" *ngFor="let item of group.items; trackBy: trackByMenuOption">
+                <input
+                  type="checkbox"
+                  [checked]="isMenuSelected(item.id)"
+                  (change)="toggleMenu(item.id)"
+                  [disabled]="!canEditUserForm()"
+                />
+                <span>{{ item.menuName }}</span>
+              </label>
+            </div>
+          </div>
+        </div>
+
+        <ng-template #manualMenuInput>
+          <label class="field">
+            <span>Menu ID (Virgulle)</span>
+            <input type="text" [(ngModel)]="userDraft.menus" [disabled]="!canEditUserForm()" />
+          </label>
+        </ng-template>
+      </section>
+
+      <section class="sub-section">
+        <div class="sub-section-head">
+          <strong>Bagli Cari Hesaplar <small>({{ userDraft.accounts.length }})</small></strong>
+        </div>
+
+        <div class="linked-accounts" *ngIf="userDraft.accounts.length; else noLinkedAccounts">
+          <div class="linked-account-row" *ngFor="let account of userDraft.accounts; let idx = index; trackBy: trackByAccountDraft">
+            <div class="linked-account-info">
+              <strong>{{ account.accountCode ? (account.accountCode + ' - ' + (account.accountTitle || '')) : account.accountId }}</strong>
+              <span>Kategori: {{ account.category || '01' }}</span>
+            </div>
+            <button type="button" class="mini danger" (click)="removeAccount(idx)" [disabled]="!canEditUserForm()">
+              Kaldir
+            </button>
+          </div>
+        </div>
+
+        <ng-template #noLinkedAccounts>
+          <span class="muted-note">Henuz bagli cari hesap secilmedi.</span>
+        </ng-template>
+
+        <div class="account-picker" *ngIf="canEditUserForm()">
+          <div class="account-picker-bar">
+            <label class="field">
+              <span>Mikro Cari Ara</span>
+              <input
+                type="search"
+                placeholder="Kod, unvan veya VKN..."
+                [(ngModel)]="accountSearch"
+                (keydown.enter)="searchAccounts()"
+              />
+            </label>
+            <label class="field category-field">
+              <span>Kategori</span>
+              <input type="text" maxlength="50" [(ngModel)]="newAccountCategory" />
+            </label>
+            <button
+              type="button"
+              class="action-button"
+              (click)="searchAccounts()"
+              [disabled]="loadingAction() === 'accountSearch' || !canList()"
+            >
+              {{ loadingAction() === 'accountSearch' ? '...' : 'Ara' }}
+            </button>
+          </div>
+
+          <div class="account-search-results" *ngIf="accountSearchResults().length">
+            <div class="account-result-row" *ngFor="let item of accountSearchResults(); trackBy: trackByAccountLookup">
+              <div class="linked-account-info">
+                <strong>{{ item.accountCode }} - {{ item.accountTitle }}</strong>
+                <span *ngIf="item.taxNumber">VKN: {{ item.taxNumber }}</span>
+              </div>
+              <button
+                type="button"
+                class="mini"
+                (click)="addAccount(item)"
+                [disabled]="isAccountAttached(item.accountId)"
+              >
+                {{ isAccountAttached(item.accountId) ? 'Eklendi' : 'Ekle' }}
+              </button>
+            </div>
+          </div>
+
+          <span class="muted-note" *ngIf="accountSearchExecuted() && !accountSearchResults().length">
+            Arama kriterine uygun Mikro carisi bulunamadi.
+          </span>
+        </div>
+      </section>
+
+      <button
+        type="button"
+        class="action-button primary"
+        (click)="saveUser()"
+        [disabled]="loadingAction() === 'save' || !canEditUserForm()"
+      >
+        {{ loadingAction() === 'save' ? 'Kaydediliyor...' : (isEditUserMode() ? 'Kullaniciyi Guncelle' : 'Kullanici Olustur') }}
       </button>
 
-      <section class="account-list" *ngIf="selectedUser()?.accounts?.length">
-        <strong>Bagli Hesaplar</strong>
-        <span *ngFor="let account of selectedUser()?.accounts; trackBy: trackByAccount">
-          {{ account.category || '-' }} / {{ account.accountId }}
-        </span>
+      <section class="sub-section password-reset-box" *ngIf="isEditUserMode() && canUpdate()">
+        <div class="sub-section-head">
+          <strong>Sifre Sifirla</strong>
+        </div>
+
+        <div class="two-col">
+          <label class="field">
+            <span>Yeni Sifre</span>
+            <input
+              type="password"
+              minlength="6"
+              maxlength="100"
+              autocomplete="new-password"
+              placeholder="En az 6 karakter"
+              [(ngModel)]="resetPasswordDraft"
+            />
+          </label>
+          <label class="field">
+            <span>Tekrar</span>
+            <input
+              type="password"
+              minlength="6"
+              maxlength="100"
+              autocomplete="new-password"
+              [(ngModel)]="resetPasswordConfirmDraft"
+            />
+          </label>
+        </div>
+
+        <button
+          type="button"
+          class="action-button"
+          (click)="resetUserPassword()"
+          [disabled]="loadingAction() === 'password' || !resetPasswordDraft"
+        >
+          {{ loadingAction() === 'password' ? 'Guncelleniyor...' : 'Sifreyi Guncelle' }}
+        </button>
       </section>
     </aside>
   </section>

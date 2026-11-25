@@ -275,10 +275,27 @@ export interface B2BUserAccountDto {
   id: number;
   accountId: string;
   category: string | null;
+  accountCode?: string | null;
+  accountTitle?: string | null;
+}
+
+export interface B2BUserAccountInputHttpRequest {
+  accountId: string;
+  category?: string | null;
 }
 
 export interface B2BUserDetailDto extends B2BUserDto {
   accounts: B2BUserAccountDto[];
+}
+
+export interface CreateB2BUserHttpRequest {
+  userFullName: string;
+  userMail: string;
+  password: string;
+  status: boolean;
+  menus?: string | null;
+  userEndDate: string;
+  accounts?: B2BUserAccountInputHttpRequest[] | null;
 }
 
 export interface UpdateB2BUserHttpRequest {
@@ -287,6 +304,27 @@ export interface UpdateB2BUserHttpRequest {
   status: boolean;
   menus?: string | null;
   userEndDate?: string | null;
+  accounts?: B2BUserAccountInputHttpRequest[] | null;
+}
+
+export interface ResetB2BUserPasswordHttpRequest {
+  newPassword: string;
+}
+
+export interface B2BMenuOptionDto {
+  id: number;
+  menuName: string;
+  menuRoute: string;
+  menuIcon: string;
+  menuGroupId: number;
+  menuGroupName: string;
+}
+
+export interface B2BAccountLookupDto {
+  accountId: string;
+  accountCode: string;
+  accountTitle: string;
+  taxNumber?: string | null;
 }
 
 export type DatabaseMonitoringSeverity = 'info' | 'warning' | 'critical' | string;
