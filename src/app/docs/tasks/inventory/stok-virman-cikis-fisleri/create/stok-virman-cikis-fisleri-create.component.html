@@ -28,6 +28,16 @@
       (ngSubmit)="submit()"
     >
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <app-browser-create-draft-bar
+        [records]="browserDrafts()"
+        [moduleDraftCount]="browserDraftModuleCount()"
+        [activeDraftId]="browserDraftActiveId()"
+        [status]="browserDraftStatus()"
+        [hasError]="browserDraftHasError()"
+        (openDraft)="openBrowserDraft($event)"
+        (deleteDraft)="deleteBrowserDraft($event)"
+        (newDraft)="startNewBrowserDraft()"
+      />
       <button
         *ngIf="safeCreateFailure()?.allowsNewAttempt"
         type="button"
@@ -100,6 +110,8 @@
                 type="text"
                 [formControl]="outgoingStockQuery"
                 placeholder="Urun kodu, adi veya barkod"
+                (input)="!$any($event.target).value?.trim() ? outgoingStockResults.set([]) : null"
+                (keydown.escape)="outgoingStockResults.set([])"
                 (keydown.enter)="$event.preventDefault(); searchVirmanStock('outgoing')"
               />
               <button
@@ -113,6 +125,10 @@
             </div>
 
             <div class="search-results inline-results" *ngIf="outgoingStockResults().length">
+              <div class="search-results-head">
+                <span>{{ outgoingStockResults().length }} urun bulundu</span>
+                <button type="button" class="search-results-close" (click)="outgoingStockResults.set([])">Kapat</button>
+              </div>
               <button
                 type="button"
                 class="result-item"
@@ -141,6 +157,8 @@
                 type="text"
                 [formControl]="incomingStockQuery"
                 placeholder="Urun kodu, adi veya barkod"
+                (input)="!$any($event.target).value?.trim() ? incomingStockResults.set([]) : null"
+                (keydown.escape)="incomingStockResults.set([])"
                 (keydown.enter)="$event.preventDefault(); searchVirmanStock('incoming')"
               />
               <button
@@ -154,6 +172,10 @@
             </div>
 
             <div class="search-results inline-results" *ngIf="incomingStockResults().length">
+              <div class="search-results-head">
+                <span>{{ incomingStockResults().length }} urun bulundu</span>
+                <button type="button" class="search-results-close" (click)="incomingStockResults.set([])">Kapat</button>
+              </div>
               <button
                 type="button"
                 class="result-item"

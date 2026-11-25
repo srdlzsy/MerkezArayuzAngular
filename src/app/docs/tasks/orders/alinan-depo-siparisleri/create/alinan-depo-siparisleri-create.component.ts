@@ -25,6 +25,7 @@ import { SiparisIslemleriService } from '../../../../../core/api/module-services
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { resolveHttpErrorMessage, trimToMaxLength } from '../../../core/api-error.helpers';
 import {
@@ -78,10 +79,26 @@ type KalemFormGroup = FormGroup<{
   modelKodu: FormControl<string>;
 }>;
 
+type KalemDraftValue = ReturnType<KalemFormGroup['getRawValue']>;
+
+interface AlinanDepoSiparisDraftPayload {
+  form: {
+    muhatapDepoNo: number | null;
+    muhatapAdSoyad: string;
+    ekleyenAdSoyad: string;
+    orderDate: string;
+    deliveryDate: string;
+    description: string;
+    adminWarehouseNo: number | null;
+    kalemler: KalemDraftValue[];
+  };
+  selectedWarehouse: IFurpaSourceWarehouseSearchItemApiDto | null;
+}
+
 @Component({
   selector: 'app-alinan-depo-siparisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './alinan-depo-siparisleri-create.component.html',
   styleUrl: './alinan-depo-siparisleri-create.component.scss'
 })
@@ -153,6 +170,30 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       } else {
         this.stockQuery.disable({ emitEvent: false });
       }
+    });
+
+    this.setupBrowserDraft<AlinanDepoSiparisDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'orders',
+      operationCode: 'alinan-depo-siparisleri.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({
+        form: this.form.getRawValue(),
+        selectedWarehouse: this.selectedWarehouse()
+      }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        !!payload.selectedWarehouse ||
+        payload.form.kalemler.length > 0 ||
+        !!payload.form.muhatapAdSoyad.trim() ||
+        !!payload.form.description.trim(),
+      title: (payload) =>
+        payload.selectedWarehouse
+          ? this.getWarehouseLabel(payload.selectedWarehouse)
+          : 'Yeni alinan depo siparisi',
+      lineCount: (payload) => payload.form.kalemler.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
     });
   }
 
@@ -355,6 +396,7 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       .pipe(finalize(() => this.submitting.set(false)))
       .subscribe({
         next: () => {
+          this.completeBrowserDraft();
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
@@ -556,6 +598,88 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
+  }
+
+  private createKalemFormGroupFromValue(value: KalemDraftValue): KalemFormGroup {
+    return new FormGroup({
+      stokKodu: new FormControl(value.stokKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stokIsmi: new FormControl(value.stokIsmi ?? '', { nonNullable: true }),
+      barkodu: new FormControl(value.barkodu ?? '', { nonNullable: true }),
+      birim: new FormControl(value.birim ?? '', { nonNullable: true }),
+      birimKatsayisi: new FormControl<number | null>(value.birimKatsayisi ?? null),
+      ikinciBirim: new FormControl(value.ikinciBirim ?? '', { nonNullable: true }),
+      koliKatsayisi: new FormControl<number | null>(value.koliKatsayisi ?? null),
+      koliBarkodu: new FormControl(value.koliBarkodu ?? '', { nonNullable: true }),
+      siparisMiktari: new FormControl<number | null>(value.siparisMiktari ?? 1, {
+        validators: [Validators.required, Validators.min(0.01)]
+      }),
+      cozumMiktari: new FormControl<number | null>(value.cozumMiktari ?? null),
+      cozumBirim: new FormControl(value.cozumBirim ?? '', { nonNullable: true }),
+      cozumMesaj: new FormControl(value.cozumMesaj ?? '', { nonNullable: true }),
+      cozumDurum: new FormControl(value.cozumDurum ?? '', { nonNullable: true }),
+      cozumHata: new FormControl(value.cozumHata ?? '', { nonNullable: true }),
+      greenGrocerCase: new FormControl<GreenGrocerOrderLineSnapshotHttpRequest | null>(
+        value.greenGrocerCase ?? null
+      ),
+      aciklama: new FormControl(value.aciklama ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)]
+      }),
+      skt: new FormControl(value.skt ?? '', { nonNullable: true }),
+      modelKodu: new FormControl(value.modelKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
+    });
+  }
+
+  private restoreBrowserDraft(payload: AlinanDepoSiparisDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.kalemler)) {
+      throw new Error('Gecersiz siparis taslagi.');
+    }
+
+    const { kalemler, ...header } = payload.form;
+    this.kalemler.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    kalemler.forEach((kalem) =>
+      this.kalemler.push(this.createKalemFormGroupFromValue(kalem), { emitEvent: false })
+    );
+    this.selectedWarehouse.set(payload.selectedWarehouse);
+    this.warehouseQuery.setValue(
+      payload.selectedWarehouse ? this.getWarehouseLabel(payload.selectedWarehouse) : '',
+      { emitEvent: false }
+    );
+    this.warehouseResults.set([]);
+    this.stockResults.set([]);
+    this.warehouseError.set('');
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.kalemler.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        muhatapDepoNo: null,
+        muhatapAdSoyad: '',
+        ekleyenAdSoyad: this.getCurrentDisplayName(),
+        orderDate: this.today,
+        deliveryDate: this.today,
+        description: '',
+        adminWarehouseNo: null
+      },
+      { emitEvent: false }
+    );
+    this.selectedWarehouse.set(null);
+    this.warehouseQuery.setValue('', { emitEvent: false });
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.warehouseResults.set([]);
+    this.stockResults.set([]);
+    this.warehouseError.set('');
+    this.stockError.set('');
+    this.submitError.set('');
   }
 
   private buildRequest(): IFurpaCreateWarehouseOrderRequestApiDto {

@@ -60,75 +60,40 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h3>Dagitim Bilgileri</h3>
+          <h3>1 · Dagitim Bilgileri</h3>
         </div>
 
-        <div class="dual-search">
-          <div class="search-block">
-            <div class="search-label">Depo Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="warehouseQuery"
-                placeholder="Depo adi veya unvan..."
-                (keydown.enter)="$event.preventDefault(); searchWarehouse()"
-              />
-              <button type="button" class="small-btn" [disabled]="warehouseLoading()" (click)="searchWarehouse()">
-                {{ warehouseLoading() ? '...' : 'Ara' }}
-              </button>
-            </div>
-            <div class="feedback-error mini-error" *ngIf="warehouseError()">{{ warehouseError() }}</div>
+        <div class="search-block">
+          <div class="search-label">Hedef Depo Ara *</div>
+          <div class="search-input-group">
+            <input
+              type="text"
+              data-create-entity-search
+              [formControl]="warehouseQuery"
+              placeholder="Depo adi veya unvan..."
+              (input)="!$any($event.target).value?.trim() ? warehouseResults.set([]) : null"
+              (keydown.escape)="warehouseResults.set([])"
+              (keydown.enter)="$event.preventDefault(); searchWarehouse()"
+            />
+            <button type="button" class="small-btn" [disabled]="warehouseLoading()" (click)="searchWarehouse()">
+              {{ warehouseLoading() ? '...' : 'Ara' }}
+            </button>
+          </div>
+          <div class="feedback-error mini-error" *ngIf="warehouseError()">{{ warehouseError() }}</div>
 
-            <div class="selected-item" *ngIf="selectedWarehouse() as warehouse">
-              <span class="selected-text">{{ getWarehouseLabel(warehouse) }} - {{ getWarehouseName(warehouse) }}</span>
-              <button type="button" class="clear-btn" (click)="clearWarehouse()">X</button>
-            </div>
-
-            <div class="search-results" *ngIf="warehouseResults().length">
-              <div class="result-item" *ngFor="let warehouse of warehouseResults(); trackBy: trackByWarehouse" (click)="selectWarehouse(warehouse)">
-                <strong>{{ getWarehouseLabel(warehouse) }}</strong>
-                <span>{{ getWarehouseName(warehouse) }}</span>
-              </div>
-            </div>
+          <div class="selected-item" *ngIf="selectedWarehouse() as warehouse">
+            <span class="selected-text">{{ getWarehouseLabel(warehouse) }} - {{ getWarehouseName(warehouse) }}</span>
+            <button type="button" class="clear-btn" (click)="clearWarehouse()">X</button>
           </div>
 
-          <div class="search-block">
-            <div class="search-label">Stok Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="stockQuery"
-                placeholder="Stok adi, kodu veya barkod..."
-                (keydown.enter)="$event.preventDefault(); searchStock()"
-              />
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="stockLoading() || !selectedWarehouse()"
-                (click)="searchStock()"
-              >
-                {{ stockLoading() ? '...' : 'Ara' }}
-              </button>
+          <div class="search-results" *ngIf="warehouseResults().length">
+            <div class="search-results-head">
+              <span>{{ warehouseResults().length }} depo bulundu</span>
+              <button type="button" class="search-results-close" (click)="warehouseResults.set([])">Kapat</button>
             </div>
-            <label class="delist-toggle">
-              <input
-                type="checkbox"
-                [checked]="hideDelistedProducts"
-                (change)="hideDelistedProducts = $any($event.target).checked"
-              />
-              <span>Pasif/DLS gizle</span>
-            </label>
-            <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
-
-            <div class="search-results stock-results-list" *ngIf="stockResults().length">
-              <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
-                <div>
-                  <strong>{{ stock.stockName }}</strong>
-                  <span class="stock-code">{{ stock.stockCode }}</span>
-                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
-                </div>
-                <button type="button" class="add-mini">+</button>
-              </div>
+            <div class="result-item" *ngFor="let warehouse of warehouseResults(); trackBy: trackByWarehouse" (click)="selectWarehouse(warehouse)">
+              <strong>{{ getWarehouseLabel(warehouse) }}</strong>
+              <span>{{ getWarehouseName(warehouse) }}</span>
             </div>
           </div>
         </div>
@@ -149,39 +114,86 @@
             <label>Hareket Tarihi *</label>
             <input type="date" formControlName="movementDate" />
           </div>
-          <div class="contact-field" *ngIf="isAdminUser()">
-            <label>Kaynak Depo No</label>
-            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
-            <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
-          </div>
-        </div>
-
-        <div class="contact-row">
           <div class="contact-field">
             <label>Belge Tarihi *</label>
             <input type="date" formControlName="documentDate" />
           </div>
-          <div class="contact-field">
-            <label>Belge No</label>
-            <input type="text" formControlName="documentNo" maxlength="25" placeholder="Opsiyonel" />
-          </div>
-          <div class="contact-field">
-            <label>Aciklama</label>
-            <input type="text" formControlName="description" maxlength="50" placeholder="Opsiyonel" />
-          </div>
         </div>
 
-        <p class="helper-text">
-          Plaka ve sofor bilgileri create adiminda degil, e-irsaliye gonderimi sirasinda alinmalidir.
-        </p>
+        <details class="create-extra-drawer" open>
+          <summary>Ek Bilgiler (Belge No, Aciklama, Kaynak Depo)</summary>
+          <div class="create-extra-drawer-body">
+            <div class="contact-row">
+              <div class="contact-field">
+                <label>Belge No</label>
+                <input type="text" formControlName="documentNo" maxlength="25" placeholder="Opsiyonel" />
+              </div>
+              <div class="contact-field">
+                <label>Aciklama</label>
+                <input type="text" formControlName="description" maxlength="50" placeholder="Opsiyonel" />
+              </div>
+              <div class="contact-field" *ngIf="isAdminUser()">
+                <label>Kaynak Depo No</label>
+                <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+                <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
+              </div>
+            </div>
+          </div>
+        </details>
       </section>
 
       <section class="panel kalem-panel">
         <div class="panel-head">
-          <h3>Sevk Kalemleri</h3>
+          <h3>2 · Sevk Kalemleri</h3>
           <div class="kalem-stats" *ngIf="kalemCount()">
             <span class="badge">{{ kalemCount() }} Kalem</span>
             <span class="total-badge">Toplam: {{ toplamMiktar() }}</span>
+          </div>
+        </div>
+
+        <div class="kalem-search-bar">
+          <div class="kalem-search-bar-row">
+            <input
+              type="text"
+              data-create-stock-search
+              [formControl]="stockQuery"
+              placeholder="Stok adi, kodu veya barkod ara (F2)..."
+              (input)="!$any($event.target).value?.trim() ? stockResults.set([]) : null; !$any($event.target).value?.trim() ? stockError.set('') : null"
+              (keydown.escape)="stockResults.set([]); stockError.set('')"
+              (keydown.enter)="$event.preventDefault(); searchStock()"
+            />
+            <button
+              type="button"
+              class="small-btn"
+              [disabled]="stockLoading() || !selectedWarehouse()"
+              (click)="searchStock()"
+            >
+              {{ stockLoading() ? '...' : 'Stok Ara' }}
+            </button>
+            <label class="delist-toggle">
+              <input
+                type="checkbox"
+                [checked]="hideDelistedProducts"
+                (change)="hideDelistedProducts = $any($event.target).checked"
+              />
+              <span>Pasif/DLS gizle</span>
+            </label>
+          </div>
+          <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
+
+          <div class="search-results stock-results-list" *ngIf="stockResults().length">
+            <div class="search-results-head">
+              <span>{{ stockResults().length }} urun bulundu</span>
+              <button type="button" class="search-results-close" (click)="stockResults.set([]); stockError.set('')">Kapat</button>
+            </div>
+            <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
+              <div>
+                <strong>{{ stock.stockName }}</strong>
+                <span class="stock-code">{{ stock.stockCode }}</span>
+                <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
+              </div>
+              <button type="button" class="add-mini">+</button>
+            </div>
           </div>
         </div>
 

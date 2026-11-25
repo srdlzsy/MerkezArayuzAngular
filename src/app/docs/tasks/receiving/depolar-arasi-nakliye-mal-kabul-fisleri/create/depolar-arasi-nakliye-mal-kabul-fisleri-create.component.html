@@ -30,6 +30,16 @@
     >
       <div class="feedback feedback-error" *ngIf="loadError()">{{ loadError() }}</div>
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <app-browser-create-draft-bar
+        [records]="browserDrafts()"
+        [moduleDraftCount]="browserDraftModuleCount()"
+        [activeDraftId]="browserDraftActiveId()"
+        [status]="browserDraftStatus()"
+        [hasError]="browserDraftHasError()"
+        (openDraft)="openBrowserDraft($event)"
+        (deleteDraft)="deleteBrowserDraft($event)"
+        (newDraft)="startNewBrowserDraft()"
+      />
 
       <app-create-workflow-bar
         [documentTitle]="current.title"

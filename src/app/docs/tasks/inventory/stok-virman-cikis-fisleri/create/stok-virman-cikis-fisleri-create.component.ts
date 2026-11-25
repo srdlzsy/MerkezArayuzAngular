@@ -22,6 +22,7 @@ import { StokIslemleriService } from '../../../../../core/api/module-services/st
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
   SafeCreateFailure,
@@ -60,10 +61,23 @@ interface VirmanStockSelection {
 
 const VIRMAN_STOCK_SEARCH_TAKE = 100;
 
+type VirmanLineDraftValue = ReturnType<VirmanLineFormGroup['getRawValue']>;
+
+interface VirmanDraftPayload {
+  form: {
+    movementDate: string;
+    documentDate: string;
+    adminWarehouseNo: number | null;
+    documentNo: string;
+    description: string;
+    lines: VirmanLineDraftValue[];
+  };
+}
+
 @Component({
   selector: 'app-stok-virman-cikis-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './stok-virman-cikis-fisleri-create.component.html',
   styleUrl: './stok-virman-cikis-fisleri-create.component.scss'
 })
@@ -140,6 +154,21 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     this.outgoingQuantity.valueChanges
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe((quantity: number | null) => this.refreshSuggestedTargetQuantity(quantity));
+
+    this.setupBrowserDraft<VirmanDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'inventory',
+      operationCode: 'stok-virman-cikis-fisleri.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({ form: this.form.getRawValue() }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        payload.form.lines.length > 0 || !!payload.form.documentNo.trim(),
+      title: (payload) => payload.form.description.trim() || 'Yeni stok virmani',
+      lineCount: (payload) => payload.form.lines.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
+    });
   }
 
   protected get lines(): FormArray<VirmanLineFormGroup> {
@@ -330,6 +359,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       .subscribe({
         next: (result: unknown) => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.close({ created: true, result });
         },
         error: (error: HttpErrorResponse) => {
@@ -382,6 +412,71 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
       default:
         return 'Bilinmiyor';
     }
+  }
+
+  private createLineFormGroupFromValue(value: VirmanLineDraftValue): VirmanLineFormGroup {
+    return new FormGroup({
+      stockCode: new FormControl(value.stockCode ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stockName: new FormControl(value.stockName ?? '', { nonNullable: true }),
+      movementType: new FormControl<number | null>(value.movementType ?? 1, {
+        validators: [Validators.required, Validators.min(0)]
+      }),
+      unitPointer: new FormControl<number | null>(value.unitPointer ?? 1, {
+        validators: [Validators.required, Validators.min(1)]
+      }),
+      quantity: new FormControl<number | null>(value.quantity ?? 1, {
+        validators: [Validators.required, Validators.min(1)]
+      }),
+      description: new FormControl(value.description ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)]
+      }),
+      partyCode: new FormControl(value.partyCode ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      }),
+      lotNo: new FormControl<number | null>(value.lotNo ?? 0),
+      projectCode: new FormControl(value.projectCode ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
+    });
+  }
+
+  private restoreBrowserDraft(payload: VirmanDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.lines)) {
+      throw new Error('Gecersiz virman taslagi.');
+    }
+
+    const { lines, ...header } = payload.form;
+    this.lines.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    lines.forEach((line) =>
+      this.lines.push(this.createLineFormGroupFromValue(line), { emitEvent: false })
+    );
+    this.outgoingStockResults.set([]);
+    this.incomingStockResults.set([]);
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.lines.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        movementDate: this.today,
+        documentDate: this.today,
+        adminWarehouseNo: null,
+        documentNo: '',
+        description: 'Reyon duzenleme virmani'
+      },
+      { emitEvent: false }
+    );
+    this.clearVirmanPairForm();
+    this.stockError.set('');
+    this.submitError.set('');
   }
 
   private buildRequest(): IFurpaCreateVirmanRequestApiDto {

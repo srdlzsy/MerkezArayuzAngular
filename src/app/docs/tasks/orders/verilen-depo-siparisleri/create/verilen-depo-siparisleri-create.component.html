@@ -30,6 +30,16 @@
       (ngSubmit)="submit()"
     >
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <app-browser-create-draft-bar
+        [records]="browserDrafts()"
+        [moduleDraftCount]="browserDraftModuleCount()"
+        [activeDraftId]="browserDraftActiveId()"
+        [status]="browserDraftStatus()"
+        [hasError]="browserDraftHasError()"
+        (openDraft)="openBrowserDraft($event)"
+        (deleteDraft)="deleteBrowserDraft($event)"
+        (newDraft)="startNewBrowserDraft()"
+      />
       <button
         *ngIf="safeCreateFailure()?.allowsNewAttempt"
         type="button"
@@ -51,30 +61,12 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h3>Siparis Bilgileri</h3>
+          <h3>1 · Siparis Bilgileri</h3>
         </div>
 
         <div class="dual-search">
           <div class="search-block">
-            <div class="search-label">Depo Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="warehouseQuery"
-                placeholder="Depo adi veya unvan..."
-                (keydown.enter)="$event.preventDefault(); searchWarehouse()"
-              />
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="warehouseLoading()"
-                (click)="searchWarehouse()"
-              >
-                {{ warehouseLoading() ? '...' : 'Ara' }}
-              </button>
-            </div>
-
-            <div class="search-label search-label-secondary">Depo Sec</div>
+            <div class="search-label">Depo Sec *</div>
             <div class="search-input-group">
               <select [formControl]="warehouseSelect" (change)="selectWarehouseFromDropdown()">
                 <option value="">
@@ -88,48 +80,43 @@
                 </option>
               </select>
             </div>
-
-            <div class="search-input-group action-row">
-              <button
-                type="button"
-                class="small-btn fetch-btn"
-                [disabled]="presetProductsLoading() || !selectedWarehouse()"
-                (click)="loadRecommendedKalemler()"
-              >
-                {{
-                  presetProductsAction() === 'recommended' ? 'Getiriliyor...' : 'Onerilenleri Getir'
-                }}
-              </button>
-              <button
-                type="button"
-                class="small-btn fetch-btn source-products-btn"
-                [disabled]="presetProductsLoading() || !selectedWarehouse()"
-                (click)="loadSourceProducts()"
-              >
-                {{
-                  presetProductsAction() === 'source' ? 'Getiriliyor...' : 'Kaynak Urunleri Getir'
-                }}
-              </button>
-            </div>
-
-            <p class="helper-text">
-              Onerilen miktarlari hesaplatabilir veya kaynak depoya tanimli urunleri miktarsiz
-              olarak tabloya cekebilirsin.
-            </p>
-
-            <div class="feedback-error mini-error" *ngIf="warehouseError()">
-              {{ warehouseError() }}
-            </div>
             <div class="feedback-error mini-error" *ngIf="warehouseOptionsError()">
               {{ warehouseOptionsError() }}
             </div>
+          </div>
 
-            <div class="selected-item" *ngIf="selectedWarehouse() as warehouse">
-              <span class="selected-text">{{ getWarehouseLabel(warehouse) }}</span>
-              <button type="button" class="clear-btn" (click)="clearWarehouse()">X</button>
+          <div class="search-block">
+            <div class="search-label">Depo Ara (Hizli Filtre)</div>
+            <div class="search-input-group">
+              <input
+                type="text"
+                data-create-entity-search
+                [formControl]="warehouseQuery"
+                placeholder="Depo adi veya unvan..."
+                (input)="!$any($event.target).value?.trim() ? warehouseResults.set([]) : null"
+                (keydown.escape)="warehouseResults.set([])"
+                (keydown.enter)="$event.preventDefault(); searchWarehouse()"
+              />
+              <button
+                type="button"
+                class="small-btn"
+                [disabled]="warehouseLoading()"
+                (click)="searchWarehouse()"
+              >
+                {{ warehouseLoading() ? '...' : 'Ara' }}
+              </button>
+            </div>
+            <div class="feedback-error mini-error" *ngIf="warehouseError()">
+              {{ warehouseError() }}
             </div>
 
             <div class="search-results" *ngIf="warehouseResults().length">
+              <div class="search-results-head">
+                <span>{{ warehouseResults().length }} depo bulundu</span>
+                <button type="button" class="search-results-close" (click)="warehouseResults.set([])">
+                  Kapat
+                </button>
+              </div>
               <div
                 class="result-item"
                 *ngFor="let warehouse of warehouseResults(); trackBy: trackByWarehouse"
@@ -137,82 +124,6 @@
               >
                 <strong>{{ getWarehouseLabel(warehouse) }}</strong>
                 <span>{{ warehouse.modelNames.join(', ') || warehouse.sourceWarehouseName }}</span>
-              </div>
-            </div>
-          </div>
-
-          <div class="search-block">
-            <div class="search-label">Stok Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="stockQuery"
-                placeholder="Stok adi, kodu veya barkod..."
-                (keydown.enter)="$event.preventDefault(); searchStock()"
-              />
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="stockLoading() || !selectedWarehouse()"
-                (click)="searchStock()"
-              >
-                {{ stockLoading() ? '...' : 'Ara' }}
-              </button>
-            </div>
-            <label class="delist-toggle">
-              <input
-                type="checkbox"
-                [checked]="hideDelistedProducts"
-                (change)="hideDelistedProducts = $any($event.target).checked"
-              />
-              <span>Kilitli/DLS gizle</span>
-            </label>
-
-            <p class="helper-text" *ngIf="presetProductsLoading()">
-              Secilen depo icin
-              {{ presetProductsAction() === 'source' ? 'kaynak urunleri' : 'onerilen kalemler' }}
-              getiriliyor...
-            </p>
-
-            <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
-
-            <div class="search-results stock-results-list" *ngIf="stockResults().length">
-              <div
-                class="result-item stock-result"
-                [class.stock-result-disabled]="!canSelectStock(stock)"
-                *ngFor="let stock of stockResults(); trackBy: trackByStock"
-                (click)="addKalem(stock)"
-              >
-                <div class="stock-result-main">
-                  <strong>{{ stock.stockName }}</strong>
-                  <span class="stock-code">{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
-                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1"
-                    >Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span
-                  >
-                  <ng-container *ngIf="getStockSourceBadges(stock) as sourceBadges">
-                    <div class="stock-source-badges" *ngIf="sourceBadges.length">
-                      <span
-                        *ngFor="let badge of sourceBadges"
-                        class="source-badge"
-                        [class.source-badge-warehouse]="badge.tone === 'warehouse'"
-                        [class.source-badge-company]="badge.tone === 'company'"
-                        [class.source-badge-mixed]="badge.tone === 'mixed'"
-                        [class.source-badge-muted]="badge.tone === 'muted'"
-                      >
-                        {{ badge.label }}
-                      </span>
-                    </div>
-                  </ng-container>
-                  <span
-                    class="stock-operation-reason"
-                    *ngIf="getStockOperationReason(stock) as reason"
-                  >
-                    {{ reason }}
-                  </span>
-                </div>
-                <button type="button" class="add-mini" [disabled]="!canSelectStock(stock)">
-                  +
-                </button>
               </div>
             </div>
           </div>
@@ -251,7 +162,7 @@
 
       <section class="panel kalem-panel">
         <div class="panel-head">
-          <h3>Siparis Kalemleri</h3>
+          <h3>2 · Siparis Kalemleri</h3>
           <div class="kalem-stats" *ngIf="kalemCount()">
             <span class="badge">{{ kalemCount() }} Kalem</span>
             <span class="total-badge">Toplam: {{ toplamSiparisMiktari() }}</span>
@@ -266,9 +177,106 @@
           </div>
         </div>
 
+        <div class="kalem-search-bar">
+          <div class="kalem-search-bar-row">
+            <input
+              type="text"
+              data-create-stock-search
+              [formControl]="stockQuery"
+              placeholder="Stok adi, kodu veya barkod ara (F2)..."
+              (input)="!$any($event.target).value?.trim() ? stockResults.set([]) : null; !$any($event.target).value?.trim() ? stockError.set('') : null"
+              (keydown.escape)="stockResults.set([]); stockError.set('')"
+              (keydown.enter)="$event.preventDefault(); searchStock()"
+            />
+            <button
+              type="button"
+              class="small-btn"
+              [disabled]="stockLoading() || !selectedWarehouse()"
+              (click)="searchStock()"
+            >
+              {{ stockLoading() ? '...' : 'Stok Ara' }}
+            </button>
+            <button
+              type="button"
+              class="small-btn fetch-btn"
+              [disabled]="presetProductsLoading() || !selectedWarehouse()"
+              (click)="loadRecommendedKalemler()"
+            >
+              {{
+                presetProductsAction() === 'recommended' ? 'Getiriliyor...' : 'Onerilenleri Getir'
+              }}
+            </button>
+            <button
+              type="button"
+              class="small-btn fetch-btn source-products-btn"
+              [disabled]="presetProductsLoading() || !selectedWarehouse()"
+              (click)="loadSourceProducts()"
+            >
+              {{
+                presetProductsAction() === 'source' ? 'Getiriliyor...' : 'Kaynak Urunleri Getir'
+              }}
+            </button>
+            <label class="delist-toggle">
+              <input
+                type="checkbox"
+                [checked]="hideDelistedProducts"
+                (change)="hideDelistedProducts = $any($event.target).checked"
+              />
+              <span>Kilitli/DLS gizle</span>
+            </label>
+          </div>
+
+          <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
+
+          <div class="search-results stock-results-list" *ngIf="stockResults().length">
+            <div class="search-results-head">
+              <span>{{ stockResults().length }} urun bulundu</span>
+              <button type="button" class="search-results-close" (click)="stockResults.set([]); stockError.set('')">
+                Kapat
+              </button>
+            </div>
+            <div
+              class="result-item stock-result"
+              [class.stock-result-disabled]="!canSelectStock(stock)"
+              *ngFor="let stock of stockResults(); trackBy: trackByStock"
+              (click)="addKalem(stock)"
+            >
+              <div class="stock-result-main">
+                <strong>{{ stock.stockName }}</strong>
+                <span class="stock-code">{{ stock.stockCode }} / {{ stock.barcode || '-' }}</span>
+                <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1"
+                  >Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span
+                >
+                <ng-container *ngIf="getStockSourceBadges(stock) as sourceBadges">
+                  <div class="stock-source-badges" *ngIf="sourceBadges.length">
+                    <span
+                      *ngFor="let badge of sourceBadges"
+                      class="source-badge"
+                      [class.source-badge-warehouse]="badge.tone === 'warehouse'"
+                      [class.source-badge-company]="badge.tone === 'company'"
+                      [class.source-badge-mixed]="badge.tone === 'mixed'"
+                      [class.source-badge-muted]="badge.tone === 'muted'"
+                    >
+                      {{ badge.label }}
+                    </span>
+                  </div>
+                </ng-container>
+                <span
+                  class="stock-operation-reason"
+                  *ngIf="getStockOperationReason(stock) as reason"
+                >
+                  {{ reason }}
+                </span>
+              </div>
+              <button type="button" class="add-mini" [disabled]="!canSelectStock(stock)">
+                +
+              </button>
+            </div>
+          </div>
+        </div>
+
         <div class="empty-state" *ngIf="!kalemCount()">
-          Depo secip yukaridan stok arayarak kalem ekleyin veya listeden depo secip onerilenleri
-          getirin
+          Depo secip yukaridan stok arayarak kalem ekleyin veya onerilenleri getirin
         </div>
 
         <div class="kalem-table-head" *ngIf="kalemCount()">

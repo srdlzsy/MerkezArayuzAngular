@@ -1,127 +1,117 @@
-<section class="create-workflow-shell" aria-label="Evrak olusturma is akisi ve ozeti">
-  <div class="create-workflow-top">
-    <nav class="create-step-pills" role="tablist" aria-label="Evrak olusturma adimlari">
-      <button
-        type="button"
-        class="create-step-pill"
-        [class.is-active]="activeStep() === 'all'"
-        (click)="setStep('all')"
-      >
-        <span>Tum Alanlar</span>
-      </button>
-      <button
-        type="button"
-        class="create-step-pill"
-        [class.is-active]="activeStep() === 'document'"
-        (click)="setStep('document')"
-      >
-        <span class="step-index">1</span>
-        <span>Belge &amp; Secim</span>
-      </button>
-      <button
-        type="button"
-        class="create-step-pill"
-        [class.is-active]="activeStep() === 'lines'"
-        (click)="setStep('lines')"
-      >
-        <span class="step-index">2</span>
-        <span>Kalemler ({{ lineCount }})</span>
-      </button>
-      <button
-        type="button"
-        class="create-step-pill"
-        [class.is-active]="activeStep() === 'review'"
-        [class.has-warning]="discrepancyCount > 0 || validationWarnings.length > 0"
-        (click)="setStep('review')"
-      >
-        <span class="step-index">3</span>
-        <span>Kontrol</span>
-        <strong class="step-alert-badge" *ngIf="discrepancyCount > 0">{{ discrepancyCount }} fark</strong>
-      </button>
-    </nav>
+<section class="create-status-bar" aria-label="Evrak gorunumu ve ozeti">
+  <nav class="create-view-tabs" role="tablist" aria-label="Evrak bolumleri">
+    <button
+      type="button"
+      role="tab"
+      class="create-view-tab"
+      [class.is-active]="activeView() === 'header'"
+      [attr.aria-selected]="activeView() === 'header'"
+      (click)="setView('header')"
+    >
+      <span class="tab-step">1</span>
+      <span>Ust Bilgiler</span>
+    </button>
 
-    <div class="create-shortcut-hints">
-      <button type="button" class="shortcut-chip" title="Stok / Barkod aramasina odaklan (F2)" (click)="focusStockSearch()">
-        <kbd>F2</kbd>
-        <span>Stok Ara</span>
-      </button>
-      <button
-        type="button"
-        class="shortcut-chip"
-        *ngIf="partnerLabel"
-        title="Firma / Depo / Siparis secimine odaklan (F4)"
-        (click)="focusEntitySearch()"
-      >
-        <kbd>F4</kbd>
-        <span>{{ partnerLabel }}</span>
-      </button>
-      <button type="button" class="shortcut-chip" title="Son Kontrol adimini ac (Ctrl+S)" (click)="setStep(activeStep() === 'review' ? 'all' : 'review')">
-        <kbd>Ctrl+S</kbd>
-        <span>Kontrol</span>
-      </button>
-    </div>
-  </div>
+    <button
+      type="button"
+      role="tab"
+      class="create-view-tab create-view-tab-lines"
+      [class.is-active]="activeView() === 'lines'"
+      [class.is-next-cta]="activeView() === 'header'"
+      [attr.aria-selected]="activeView() === 'lines'"
+      (click)="setView('lines')"
+    >
+      <span class="tab-step">2</span>
+      <span>{{ lineCount > 0 ? 'Kalemler' : 'Kalem Ekle' }}</span>
+      <strong class="tab-count" [class.has-items]="lineCount > 0">{{ lineCount }}</strong>
+    </button>
+  </nav>
 
-  <div class="create-summary-strip">
-    <article class="create-summary-item" *ngIf="partnerLabel">
-      <span>{{ partnerLabel }}</span>
+  <div class="create-status-meta">
+    <span class="status-meta-item" *ngIf="partnerLabel">
+      <small>{{ partnerLabel }}:</small>
       <strong [class.is-empty]="!partnerValue">{{ partnerValue || 'Secilmedi' }}</strong>
-    </article>
+    </span>
 
-    <article class="create-summary-item" *ngIf="warehouseValue">
-      <span>{{ warehouseLabel }}</span>
+    <span class="status-meta-item" *ngIf="warehouseValue">
+      <small>{{ warehouseLabel }}:</small>
       <strong>{{ warehouseValue }}</strong>
-    </article>
+    </span>
 
-    <article class="create-summary-item" *ngIf="documentNoValue">
-      <span>Belge</span>
+    <span class="status-meta-item" *ngIf="documentNoValue">
+      <small>Belge:</small>
       <strong>{{ documentNoValue }}</strong>
-    </article>
+    </span>
 
-    <article class="create-summary-item" *ngIf="dateValue">
-      <span>Tarih</span>
+    <span class="status-meta-item" *ngIf="dateValue">
+      <small>Tarih:</small>
       <strong>{{ dateValue }}</strong>
-    </article>
-
-    <article class="create-summary-item is-accent">
-      <span>Eklenen Kalem</span>
-      <strong>{{ lineCount }} kalem<ng-container *ngIf="totalQuantity !== null && totalQuantity !== ''"> · {{ totalQuantity }}</ng-container></strong>
-    </article>
-
-    <article class="create-summary-item is-warning" *ngIf="discrepancyCount > 0">
-      <span>Fark / Iade</span>
-      <strong>{{ discrepancyCount }} satir</strong>
-    </article>
+    </span>
   </div>
 
-  <article class="create-review-card" *ngIf="activeStep() === 'review'">
-    <div class="create-review-head">
-      <div>
-        <span class="review-kicker">ADIM 3 · SON KONTROL VE MUTABAKAT</span>
-        <h4>{{ documentTitle }} Kayit Oncesi Kontrolu</h4>
-      </div>
-      <span class="review-status-pill" [class.is-ready]="lineCount > 0 && !!partnerValue && !validationWarnings.length">
-        {{ lineCount > 0 && (!partnerLabel || !!partnerValue) ? 'Kayda Hazir' : 'Eksik Bilgi Var' }}
-      </span>
-    </div>
+  <div class="create-status-actions">
+    <span class="status-warning-pill" *ngIf="discrepancyCount > 0">
+      {{ discrepancyCount }} fark
+    </span>
 
-    <ul class="create-review-checklist">
-      <li [class.is-ok]="!partnerLabel || !!partnerValue" [class.is-missing]="!!partnerLabel && !partnerValue">
-        <i class="fa-solid" [ngClass]="(!partnerLabel || !!partnerValue) ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
-        <span><strong>{{ partnerLabel }}:</strong> {{ partnerValue || 'Henuz secilmedi (Kayit oncesi seciniz)' }}</span>
-      </li>
-      <li [class.is-ok]="lineCount > 0" [class.is-missing]="lineCount === 0">
-        <i class="fa-solid" [ngClass]="lineCount > 0 ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
-        <span><strong>Evrak Kalemleri:</strong> {{ lineCount > 0 ? (lineCount + ' kalem eklendi') : 'Henuz kalem eklenmedi' }}</span>
-      </li>
-      <li class="is-warning" *ngIf="discrepancyCount > 0">
-        <i class="fa-solid fa-triangle-exclamation"></i>
-        <span><strong>Miktar Farki:</strong> {{ discrepancyCount }} kalemde siparis/irsaliye ile fiili miktar farki bulunuyor.</span>
-      </li>
-      <li class="is-missing" *ngFor="let warning of validationWarnings">
-        <i class="fa-solid fa-circle-exclamation"></i>
-        <span>{{ warning }}</span>
-      </li>
-    </ul>
-  </article>
+    <button
+      type="button"
+      class="status-next-btn"
+      *ngIf="activeView() === 'header'"
+      title="Kalem ekleme ve stok arama ekranina gec (F2)"
+      (click)="focusStockSearch()"
+    >
+      <span>Kalem Eklemeye Gec</span>
+      <i class="fa-solid fa-arrow-right" aria-hidden="true"></i>
+    </button>
+
+    <button
+      type="button"
+      class="status-back-btn"
+      *ngIf="activeView() === 'lines'"
+      title="Evrak ust bilgilerine don (F4)"
+      (click)="setView('header')"
+    >
+      <i class="fa-solid fa-arrow-left" aria-hidden="true"></i>
+      <span>Ust Bilgiler</span>
+    </button>
+
+    <button
+      type="button"
+      class="status-check-btn"
+      [class.is-active]="showReview()"
+      title="Kayit oncesi kontrol (Ctrl+S)"
+      (click)="toggleReview()"
+    >
+      Kontrol
+    </button>
+  </div>
 </section>
+
+<article class="create-review-card" *ngIf="showReview()">
+  <div class="create-review-head">
+    <strong>{{ documentTitle }} · Kayit Oncesi Kontrol</strong>
+    <span class="review-status-pill" [class.is-ready]="lineCount > 0 && (!partnerLabel || !!partnerValue) && !validationWarnings.length">
+      {{ lineCount > 0 && (!partnerLabel || !!partnerValue) ? 'Kayda Hazir' : 'Eksik Bilgi Var' }}
+    </span>
+  </div>
+
+  <ul class="create-review-checklist">
+    <li *ngIf="partnerLabel" [class.is-ok]="!!partnerValue" [class.is-missing]="!partnerValue">
+      <i class="fa-solid" [ngClass]="partnerValue ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
+      <span><strong>{{ partnerLabel }}:</strong> {{ partnerValue || 'Henuz secilmedi' }}</span>
+    </li>
+    <li [class.is-ok]="lineCount > 0" [class.is-missing]="lineCount === 0">
+      <i class="fa-solid" [ngClass]="lineCount > 0 ? 'fa-circle-check' : 'fa-circle-exclamation'"></i>
+      <span><strong>Kalemler:</strong> {{ lineCount > 0 ? (lineCount + ' kalem eklendi') : 'Henuz kalem eklenmedi' }}</span>
+    </li>
+    <li class="is-warning" *ngIf="discrepancyCount > 0">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span><strong>Miktar Farki:</strong> {{ discrepancyCount }} kalemde fark bulunuyor.</span>
+    </li>
+    <li class="is-warning" *ngFor="let warning of validationWarnings">
+      <i class="fa-solid fa-triangle-exclamation"></i>
+      <span>{{ warning }}</span>
+    </li>
+  </ul>
+</article>

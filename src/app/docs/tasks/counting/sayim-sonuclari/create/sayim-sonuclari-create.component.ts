@@ -21,6 +21,7 @@ import { SayimIslemleriService } from '../../../../../core/api/module-services/s
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
   SafeCreateFailure,
@@ -46,10 +47,21 @@ type SayimLineFormGroup = FormGroup<{
   quantity: FormControl<number | null>;
 }>;
 
+type SayimLineDraftValue = ReturnType<SayimLineFormGroup['getRawValue']>;
+
+interface SayimDraftPayload {
+  form: {
+    name: string;
+    documentDate: string;
+    adminWarehouseNo: number | null;
+    lines: SayimLineDraftValue[];
+  };
+}
+
 @Component({
   selector: 'app-sayim-sonuclari-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './sayim-sonuclari-create.component.html',
   styleUrl: './sayim-sonuclari-create.component.scss'
 })
@@ -101,6 +113,24 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     adminWarehouseNo: new FormControl<number | null>(null),
     lines: new FormArray<SayimLineFormGroup>([])
   });
+
+  constructor() {
+    super();
+    this.setupBrowserDraft<SayimDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'counting',
+      operationCode: 'sayim-sonuclari.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({ form: this.form.getRawValue() }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        payload.form.lines.length > 0 || !!payload.form.name.trim(),
+      title: (payload) => payload.form.name.trim() || 'Yeni sayim sonucu',
+      lineCount: (payload) => payload.form.lines.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
+    });
+  }
 
   protected get lines(): FormArray<SayimLineFormGroup> {
     return this.form.controls.lines;
@@ -227,6 +257,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
       .subscribe({
         next: (result: unknown) => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.close({ created: true, result });
         },
         error: (error: HttpErrorResponse) => {
@@ -258,6 +289,54 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     index: number,
     control: SayimLineFormGroup
   ): string => control.controls.stockCode.value.trim() || `${index}`;
+
+  private createLineFormGroupFromValue(value: SayimLineDraftValue): SayimLineFormGroup {
+    return new FormGroup({
+      stockCode: new FormControl(value.stockCode ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stockName: new FormControl(value.stockName ?? '', { nonNullable: true }),
+      barcode: new FormControl(value.barcode ?? '', { nonNullable: true }),
+      unitPointer: new FormControl<number | null>(value.unitPointer ?? 1, {
+        validators: [Validators.required, Validators.min(1)]
+      }),
+      quantity: new FormControl<number | null>(value.quantity ?? 1, {
+        validators: [Validators.required, Validators.min(0.001)]
+      })
+    });
+  }
+
+  private restoreBrowserDraft(payload: SayimDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.lines)) {
+      throw new Error('Gecersiz sayim taslagi.');
+    }
+
+    const { lines, ...header } = payload.form;
+    this.lines.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    lines.forEach((line) =>
+      this.lines.push(this.createLineFormGroupFromValue(line), { emitEvent: false })
+    );
+    this.stockResults.set([]);
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.lines.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        name: '',
+        documentDate: this.today,
+        adminWarehouseNo: null
+      },
+      { emitEvent: false }
+    );
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.stockResults.set([]);
+    this.stockError.set('');
+    this.submitError.set('');
+  }
 
   private buildRequest(): IFurpaCreateInventoryCountRequestApiDto {
     const rawValue = this.form.getRawValue();

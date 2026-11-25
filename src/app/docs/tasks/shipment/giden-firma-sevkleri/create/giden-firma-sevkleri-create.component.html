@@ -49,85 +49,50 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h3>Sevk Bilgileri</h3>
+          <h3>1 · Sevk Bilgileri</h3>
         </div>
 
-        <div class="dual-search">
-          <div class="search-block">
-            <div class="search-label">Firma Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="customerQuery"
-                placeholder="Cari kod veya unvan..."
-                (keydown.enter)="$event.preventDefault(); searchCustomer()"
-              />
-              <button type="button" class="small-btn" [disabled]="customerLoading()" (click)="searchCustomer()">
-                {{ customerLoading() ? '...' : 'Ara' }}
-              </button>
-            </div>
-            <div class="feedback-error mini-error" *ngIf="customerError()">{{ customerError() }}</div>
+        <div class="search-block">
+          <div class="search-label">Firma Ara *</div>
+          <div class="search-input-group">
+            <input
+              type="text"
+              data-create-entity-search
+              [formControl]="customerQuery"
+              placeholder="Cari kod veya unvan..."
+              (input)="!$any($event.target).value?.trim() ? customerResults.set([]) : null"
+              (keydown.escape)="customerResults.set([])"
+              (keydown.enter)="$event.preventDefault(); searchCustomer()"
+            />
+            <button type="button" class="small-btn" [disabled]="customerLoading()" (click)="searchCustomer()">
+              {{ customerLoading() ? '...' : 'Ara' }}
+            </button>
+          </div>
+          <div class="feedback-error mini-error" *ngIf="customerError()">{{ customerError() }}</div>
 
-            <div class="selected-item" *ngIf="selectedCustomer() as customer">
-              <span class="selected-text">{{ getCustomerLabel(customer) }}</span>
-              <button type="button" class="clear-btn" (click)="clearCustomer()">X</button>
-            </div>
-
-            <div class="search-results" *ngIf="customerResults().length">
-              <div
-                class="result-item"
-                *ngFor="let customer of customerResults(); trackBy: trackByCustomer"
-                [class.customer-result-disabled]="customer.isLocked || customer.isClosed"
-                [attr.aria-disabled]="customer.isLocked || customer.isClosed"
-                [title]="customer.isLocked || customer.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
-                (click)="!customer.isLocked && !customer.isClosed && selectCustomer(customer)"
-              >
-                <strong>{{ customer.customerCode }}</strong>
-                <span>{{ getCustomerLabel(customer) }}</span>
-                <small class="customer-result-status" *ngIf="customer.isLocked || customer.isClosed">
-                  {{ customer.isLocked ? 'Kilitli' : 'Kapali' }}
-                </small>
-              </div>
-            </div>
+          <div class="selected-item" *ngIf="selectedCustomer() as customer">
+            <span class="selected-text">{{ getCustomerLabel(customer) }}</span>
+            <button type="button" class="clear-btn" (click)="clearCustomer()">X</button>
           </div>
 
-          <div class="search-block">
-            <div class="search-label">Stok Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="stockQuery"
-                placeholder="Stok adi, kodu veya barkod..."
-                (keydown.enter)="$event.preventDefault(); searchStock()"
-              />
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="stockLoading() || !selectedCustomer()"
-                (click)="searchStock()"
-              >
-                {{ stockLoading() ? '...' : 'Ara' }}
-              </button>
+          <div class="search-results" *ngIf="customerResults().length">
+            <div class="search-results-head">
+              <span>{{ customerResults().length }} firma bulundu</span>
+              <button type="button" class="search-results-close" (click)="customerResults.set([])">Kapat</button>
             </div>
-            <label class="delist-toggle">
-              <input
-                type="checkbox"
-                [checked]="hideDelistedProducts"
-                (change)="hideDelistedProducts = $any($event.target).checked"
-              />
-              <span>Pasif/DLS gizle</span>
-            </label>
-            <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
-
-            <div class="search-results stock-results-list" *ngIf="stockResults().length">
-              <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
-                <div>
-                  <strong>{{ stock.stockName }}</strong>
-                  <span class="stock-code">{{ stock.stockCode }}</span>
-                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
-                </div>
-                <button type="button" class="add-mini">+</button>
-              </div>
+            <div
+              class="result-item"
+              *ngFor="let customer of customerResults(); trackBy: trackByCustomer"
+              [class.customer-result-disabled]="customer.isLocked || customer.isClosed"
+              [attr.aria-disabled]="customer.isLocked || customer.isClosed"
+              [title]="customer.isLocked || customer.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
+              (click)="!customer.isLocked && !customer.isClosed && selectCustomer(customer)"
+            >
+              <strong>{{ customer.customerCode }}</strong>
+              <span>{{ getCustomerLabel(customer) }}</span>
+              <small class="customer-result-status" *ngIf="customer.isLocked || customer.isClosed">
+                {{ customer.isLocked ? 'Kilitli' : 'Kapali' }}
+              </small>
             </div>
           </div>
         </div>
@@ -154,16 +119,60 @@
             <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
           </div>
         </div>
-
-
       </section>
 
       <section class="panel kalem-panel">
         <div class="panel-head">
-          <h3>Sevk Kalemleri</h3>
+          <h3>2 · Sevk Kalemleri</h3>
           <div class="kalem-stats" *ngIf="kalemCount()">
             <span class="badge">{{ kalemCount() }} Kalem</span>
             <span class="total-badge">Toplam: {{ toplamMiktar() }}</span>
+          </div>
+        </div>
+
+        <div class="kalem-search-bar">
+          <div class="kalem-search-bar-row">
+            <input
+              type="text"
+              data-create-stock-search
+              [formControl]="stockQuery"
+              placeholder="Stok adi, kodu veya barkod ara (F2)..."
+              (input)="!$any($event.target).value?.trim() ? stockResults.set([]) : null; !$any($event.target).value?.trim() ? stockError.set('') : null"
+              (keydown.escape)="stockResults.set([]); stockError.set('')"
+              (keydown.enter)="$event.preventDefault(); searchStock()"
+            />
+            <button
+              type="button"
+              class="small-btn"
+              [disabled]="stockLoading() || !selectedCustomer()"
+              (click)="searchStock()"
+            >
+              {{ stockLoading() ? '...' : 'Stok Ara' }}
+            </button>
+            <label class="delist-toggle">
+              <input
+                type="checkbox"
+                [checked]="hideDelistedProducts"
+                (change)="hideDelistedProducts = $any($event.target).checked"
+              />
+              <span>Pasif/DLS gizle</span>
+            </label>
+          </div>
+          <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
+
+          <div class="search-results stock-results-list" *ngIf="stockResults().length">
+            <div class="search-results-head">
+              <span>{{ stockResults().length }} urun bulundu</span>
+              <button type="button" class="search-results-close" (click)="stockResults.set([]); stockError.set('')">Kapat</button>
+            </div>
+            <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
+              <div>
+                <strong>{{ stock.stockName }}</strong>
+                <span class="stock-code">{{ stock.stockCode }}</span>
+                <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
+              </div>
+              <button type="button" class="add-mini">+</button>
+            </div>
           </div>
         </div>
 

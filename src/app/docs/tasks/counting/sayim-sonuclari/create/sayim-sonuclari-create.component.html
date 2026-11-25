@@ -28,6 +28,16 @@
       (ngSubmit)="submit()"
     >
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <app-browser-create-draft-bar
+        [records]="browserDrafts()"
+        [moduleDraftCount]="browserDraftModuleCount()"
+        [activeDraftId]="browserDraftActiveId()"
+        [status]="browserDraftStatus()"
+        [hasError]="browserDraftHasError()"
+        (openDraft)="openBrowserDraft($event)"
+        (deleteDraft)="deleteBrowserDraft($event)"
+        (newDraft)="startNewBrowserDraft()"
+      />
       <button
         *ngIf="safeCreateFailure()?.allowsNewAttempt"
         type="button"
@@ -85,6 +95,8 @@
             type="text"
             [formControl]="stockQuery"
             placeholder="Sayilan stok, kod veya barkod"
+            (input)="!$any($event.target).value?.trim() ? stockResults.set([]) : null; !$any($event.target).value?.trim() ? stockError.set('') : null"
+            (keydown.escape)="stockResults.set([]); stockError.set('')"
             (keydown.enter)="$event.preventDefault(); searchStock()"
           />
           <button type="button" class="small-btn" [disabled]="stockLoading()" (click)="searchStock()">
@@ -106,6 +118,10 @@
         <div class="feedback feedback-error compact" *ngIf="stockError()">{{ stockError() }}</div>
 
         <div class="search-results" *ngIf="stockResults().length">
+          <div class="search-results-head">
+            <span>{{ stockResults().length }} urun bulundu</span>
+            <button type="button" class="search-results-close" (click)="stockResults.set([]); stockError.set('')">Kapat</button>
+          </div>
           <button
             type="button"
             class="result-item"

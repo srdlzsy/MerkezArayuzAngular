@@ -21,6 +21,7 @@ import { StokIslemleriService } from '../../../../../core/api/module-services/st
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
   SafeCreateFailure,
@@ -49,10 +50,25 @@ type MasrafLineFormGroup = FormGroup<{
   projectCode: FormControl<string>;
 }>;
 
+type MasrafLineDraftValue = ReturnType<MasrafLineFormGroup['getRawValue']>;
+
+interface MasrafDraftPayload {
+  form: {
+    creator: string;
+    acceptor: string;
+    movementDate: string;
+    documentDate: string;
+    documentNo: string;
+    description: string;
+    adminWarehouseNo: number | null;
+    lines: MasrafLineDraftValue[];
+  };
+}
+
 @Component({
   selector: 'app-sarf-depo-cikis-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './sarf-depo-cikis-fisleri-create.component.html',
   styleUrl: './sarf-depo-cikis-fisleri-create.component.scss'
 })
@@ -114,6 +130,27 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
     adminWarehouseNo: new FormControl<number | null>(null),
     lines: new FormArray<MasrafLineFormGroup>([])
   });
+
+  constructor() {
+    super();
+    this.setupBrowserDraft<MasrafDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'inventory',
+      operationCode: 'sarf-depo-cikis-fisleri.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({ form: this.form.getRawValue() }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        payload.form.lines.length > 0 ||
+        !!payload.form.acceptor.trim() ||
+        !!payload.form.documentNo.trim(),
+      title: (payload) =>
+        payload.form.acceptor.trim() || payload.form.description.trim() || 'Yeni masraf fisi',
+      lineCount: (payload) => payload.form.lines.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
+    });
+  }
 
   protected get lines(): FormArray<MasrafLineFormGroup> {
     return this.form.controls.lines;
@@ -240,6 +277,7 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
       .subscribe({
         next: (result: unknown) => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.close({ created: true, result });
         },
         error: (error: HttpErrorResponse) => {
@@ -271,6 +309,70 @@ export class SarfDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
     index: number,
     control: MasrafLineFormGroup
   ): string => control.controls.stockCode.value.trim() || `${index}`;
+
+  private createLineFormGroupFromValue(value: MasrafLineDraftValue): MasrafLineFormGroup {
+    return new FormGroup({
+      stockCode: new FormControl(value.stockCode ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stockName: new FormControl(value.stockName ?? '', { nonNullable: true }),
+      unitPointer: new FormControl<number | null>(value.unitPointer ?? 1, {
+        validators: [Validators.required, Validators.min(1)]
+      }),
+      quantity: new FormControl<number | null>(value.quantity ?? 1, {
+        validators: [Validators.required, Validators.min(0.001)]
+      }),
+      description: new FormControl(value.description ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)]
+      }),
+      partyCode: new FormControl(value.partyCode ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      }),
+      lotNo: new FormControl<number | null>(value.lotNo ?? 0),
+      projectCode: new FormControl(value.projectCode ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
+    });
+  }
+
+  private restoreBrowserDraft(payload: MasrafDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.lines)) {
+      throw new Error('Gecersiz masraf taslagi.');
+    }
+
+    const { lines, ...header } = payload.form;
+    this.lines.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    lines.forEach((line) =>
+      this.lines.push(this.createLineFormGroupFromValue(line), { emitEvent: false })
+    );
+    this.stockResults.set([]);
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.lines.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        creator: this.authService.currentUser()?.displayName || '',
+        acceptor: '',
+        movementDate: this.today,
+        documentDate: this.today,
+        documentNo: '',
+        description: 'Ic tuketim masrafi',
+        adminWarehouseNo: null
+      },
+      { emitEvent: false }
+    );
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.stockResults.set([]);
+    this.stockError.set('');
+    this.submitError.set('');
+  }
 
   private buildRequest(): IFurpaCreateStockReceiptRequestApiDto {
     const rawValue = this.form.getRawValue();

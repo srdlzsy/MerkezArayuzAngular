@@ -17,6 +17,16 @@
   <div class="dialog-body">
     <form id="toptan-giris-form" class="form-shell" [attr.inert]="safeCreateFailure()?.retryable ? '' : null" [formGroup]="form" (ngSubmit)="submit()">
       <div class="feedback feedback-error" *ngIf="submitError()">{{ submitError() }}</div>
+      <app-browser-create-draft-bar
+        [records]="browserDrafts()"
+        [moduleDraftCount]="browserDraftModuleCount()"
+        [activeDraftId]="browserDraftActiveId()"
+        [status]="browserDraftStatus()"
+        [hasError]="browserDraftHasError()"
+        (openDraft)="openBrowserDraft($event)"
+        (deleteDraft)="deleteBrowserDraft($event)"
+        (newDraft)="startNewBrowserDraft()"
+      />
       <button
         *ngIf="safeCreateFailure()?.allowsNewAttempt"
         type="button"
@@ -48,195 +58,55 @@
 
       <section class="panel">
         <div class="panel-head">
-          <h3>Irsaliye Bilgileri</h3>
+          <h3>1 · Irsaliye Bilgileri</h3>
         </div>
 
-        <div class="dual-search">
-          <div class="search-block">
-            <div class="search-label">Firma Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="customerQuery"
-                placeholder="Cari kod veya unvan..."
-                (keydown.enter)="$event.preventDefault(); searchCustomer()"
-              />
-              <button type="button" class="small-btn" [disabled]="customerLoading()" (click)="searchCustomer()">
-                {{ customerLoading() ? '...' : 'Ara' }}
-              </button>
-            </div>
-            <div class="feedback-error mini-error" *ngIf="customerError()">{{ customerError() }}</div>
+        <div class="search-block">
+          <div class="search-label">Firma Ara *</div>
+          <div class="search-input-group">
+            <input
+              type="text"
+              data-create-entity-search
+              [formControl]="customerQuery"
+              placeholder="Cari kod veya unvan..."
+              (input)="!$any($event.target).value?.trim() ? customerResults.set([]) : null"
+              (keydown.escape)="customerResults.set([])"
+              (keydown.enter)="$event.preventDefault(); searchCustomer()"
+            />
+            <button type="button" class="small-btn" [disabled]="customerLoading()" (click)="searchCustomer()">
+              {{ customerLoading() ? '...' : 'Ara' }}
+            </button>
+          </div>
+          <div class="feedback-error mini-error" *ngIf="customerError()">{{ customerError() }}</div>
 
-            <div class="selected-item" *ngIf="selectedCustomer() as customer">
-              <span class="selected-text">{{ getCustomerLabel(customer) }}</span>
-              <button type="button" class="clear-btn" (click)="clearCustomer()">X</button>
-            </div>
-
-            <div class="search-results" *ngIf="customerResults().length">
-              <div
-                class="result-item"
-                *ngFor="let customer of customerResults(); trackBy: trackByCustomer"
-                [class.customer-result-disabled]="customer.isLocked || customer.isClosed"
-                [attr.aria-disabled]="customer.isLocked || customer.isClosed"
-                [title]="customer.isLocked || customer.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
-                (click)="!customer.isLocked && !customer.isClosed && selectCustomer(customer)"
-              >
-                <strong>{{ customer.customerCode }}</strong>
-                <span>{{ getCustomerLabel(customer) }}</span>
-                <small class="customer-result-status" *ngIf="customer.isLocked || customer.isClosed">
-                  {{ customer.isLocked ? 'Kilitli' : 'Kapali' }}
-                </small>
-              </div>
-            </div>
+          <div class="selected-item" *ngIf="selectedCustomer() as customer">
+            <span class="selected-text">{{ getCustomerLabel(customer) }}</span>
+            <button type="button" class="clear-btn" (click)="clearCustomer()">X</button>
           </div>
 
-          <div class="search-block">
-            <div class="search-label">Siparisten Mal Kabul</div>
-            <div class="order-actions">
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="orderLoading() || !selectedCustomer()"
-                (click)="loadOrdersFromCustomer()"
-              >
-                {{ orderLoading() ? 'Yukleniyor...' : 'Siparisleri Getir' }}
-              </button>
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="!selectedOrderCount()"
-                (click)="addSelectedOrdersToKalemler()"
-              >
-                Secilenleri Kalemlere Ekle
-              </button>
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="!selectedOrderCount() || !kalemCount()"
-                (click)="removeSelectedOrdersFromKalemler()"
-              >
-                Secilenleri Kaldir
+          <div class="search-results" *ngIf="customerResults().length">
+            <div class="search-results-head">
+              <span>{{ customerResults().length }} firma bulundu</span>
+              <button type="button" class="search-results-close" (click)="customerResults.set([])">
+                Kapat
               </button>
             </div>
-            <div class="feedback-error mini-error" *ngIf="orderError()">{{ orderError() }}</div>
-
-            <div class="order-results" *ngIf="orderResultsOpen() && availableOrders().length">
-              <label
-                class="order-item"
-                *ngFor="let order of availableOrders(); trackBy: trackByOrder"
-              >
-                <input
-                  type="checkbox"
-                  [checked]="isOrderSelected(order)"
-                  (change)="toggleOrderSelection(order, $any($event.target).checked)"
-                />
-                <span class="order-info">
-                  <strong>{{ getOrderDisplay(order) }}</strong>
-                  <span class="order-meta">Tarih: {{ order.header.documentDate | date: 'dd.MM.yyyy HH:mm' }}</span>
-                  <span class="order-meta">Durum: {{ order.header.isClosed ? 'Kapali' : 'Acik' }}</span>
-                  <span class="order-meta">Muhatap: {{ order.header.customerDisplayName || '-' }}</span>
-                  <span class="order-meta">Kalem: {{ order.items.length }}</span>
-                </span>
-              </label>
-            </div>
-          </div>
-
-          <div class="search-block">
-            <div class="search-label">Stok Ara</div>
-            <div class="search-input-group">
-              <input
-                type="text"
-                [formControl]="stockQuery"
-                placeholder="Stok adi, kodu veya barkod..."
-                (keydown.enter)="$event.preventDefault(); searchStock()"
-              />
-              <button
-                type="button"
-                class="small-btn"
-                [disabled]="stockLoading() || !selectedCustomer()"
-                (click)="searchStock()"
-              >
-                {{ stockLoading() ? '...' : 'Ara' }}
-              </button>
-            </div>
-            <label class="delist-toggle">
-              <input
-                type="checkbox"
-                [checked]="hideDelistedProducts"
-                disabled
-              />
-              <span>Pasif/DLS gizlenir</span>
-            </label>
-            <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
-
-            <div class="search-results stock-results-list" *ngIf="stockResults().length">
-              <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
-                <div>
-                  <strong>{{ stock.stockName }}</strong>
-                  <span class="stock-code">{{ stock.stockCode }}</span>
-                  <span class="package-note" *ngIf="stock.purchasePrice !== null && stock.purchasePrice !== undefined">
-                    Net alis: {{ stock.purchasePrice | number: '1.2-4' }} TL
-                    <ng-container *ngIf="stock.purchaseGrossPrice !== null && stock.purchaseGrossPrice !== undefined && stock.purchaseGrossPrice !== stock.purchasePrice">
-                      / Brut: {{ stock.purchaseGrossPrice | number: '1.2-4' }} TL
-                    </ng-container>
-                  </span>
-                  <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
-                </div>
-                <button type="button" class="add-mini">+</button>
-              </div>
+            <div
+              class="result-item"
+              *ngFor="let customer of customerResults(); trackBy: trackByCustomer"
+              [class.customer-result-disabled]="customer.isLocked || customer.isClosed"
+              [attr.aria-disabled]="customer.isLocked || customer.isClosed"
+              [title]="customer.isLocked || customer.isClosed ? 'Kilitli veya kapali cari secilemez.' : null"
+              (click)="!customer.isLocked && !customer.isClosed && selectCustomer(customer)"
+            >
+              <strong>{{ customer.customerCode }}</strong>
+              <span>{{ getCustomerLabel(customer) }}</span>
+              <small class="customer-result-status" *ngIf="customer.isLocked || customer.isClosed">
+                {{ customer.isLocked ? 'Kilitli' : 'Kapali' }}
+              </small>
             </div>
           </div>
         </div>
-
-        <section class="official-document-card">
-          <div class="official-document-search">
-            <label class="official-document-field">
-              <span>E-Belge ETTN / UUID</span>
-              <input
-                type="text"
-                [formControl]="officialDocumentQuery"
-                placeholder="QR'dan gelen ETTN veya UUID"
-                (keydown.enter)="$event.preventDefault(); loadOfficialDocumentFromEttn()"
-              />
-            </label>
-            <button
-              type="button"
-              class="small-btn"
-              [disabled]="officialDocumentLoading()"
-              (click)="loadOfficialDocumentFromEttn()"
-            >
-              {{ officialDocumentLoading() ? 'Okunuyor...' : 'E-Belge Oku' }}
-            </button>
-          </div>
-
-          <div class="feedback-error mini-error" *ngIf="officialDocumentError()">
-            {{ officialDocumentError() }}
-          </div>
-
-          <article class="official-document-preview" *ngIf="officialDocumentPreview() as preview">
-            <div class="official-document-summary">
-              <span class="document-kind">{{ getOfficialDocumentLabel(preview) }}</span>
-              <strong>{{ preview.sourceDocumentNumber || preview.despatchNumber || preview.invoiceNumber || preview.ettn }}</strong>
-              <span>{{ preview.matchedLineCount || 0 }} / {{ preview.totalLineCount || 0 }} eslesen kalem</span>
-              <span *ngIf="preview.invoiceTotal !== null && preview.invoiceTotal !== undefined">
-                Toplam: {{ preview.invoiceTotal | number: '1.2-2' }} {{ preview.currencyCode || '' }}
-              </span>
-            </div>
-
-            <div class="official-document-warnings" *ngIf="preview.warnings?.length">
-              <span *ngFor="let warning of preview.warnings">{{ warning }}</span>
-            </div>
-
-            <button
-              type="button"
-              class="small-btn"
-              [disabled]="!preview.isFound || !getMatchedOfficialDocumentLineCount(preview)"
-              (click)="addMatchedOfficialDocumentLines()"
-            >
-              Eslesen Kalemleri Ekle ({{ getMatchedOfficialDocumentLineCount(preview) }})
-            </button>
-          </article>
-        </section>
 
         <div class="contact-row">
           <div class="contact-field">
@@ -246,14 +116,6 @@
               Zorunlu
             </small>
           </div>
-          <div class="contact-field" *ngIf="isAdminUser()">
-            <label>Depo No</label>
-            <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
-            <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
-          </div>
-        </div>
-
-        <div class="contact-row">
           <div class="contact-field">
             <label>Hareket Tarihi *</label>
             <input type="date" formControlName="movementDate" />
@@ -268,7 +130,6 @@
           <div class="contact-field">
             <label>Evrak Serisi *</label>
             <input type="text" formControlName="documentSerie" maxlength="20" placeholder="Ornek: FMK120" />
-            <small>Yalniz harf ve rakam kullanin.</small>
             <small class="field-error" *ngIf="isDocumentSerieInvalid()">
               Evrak serisi zorunludur.
             </small>
@@ -280,39 +141,212 @@
               Pozitif tam sayi girin.
             </small>
           </div>
-          <div class="contact-field">
-            <label>Teslim Eden</label>
-            <input type="text" formControlName="deliverer" maxlength="25" placeholder="Opsiyonel" />
-          </div>
-          <div class="contact-field">
-            <label>Teslim Alan</label>
-            <input type="text" formControlName="receiver" maxlength="25" placeholder="Opsiyonel" />
-          </div>
         </div>
 
+        <details class="create-extra-drawer" open>
+          <summary>Ek Bilgiler (Teslim Eden / Alan, Depo, Kabul Kurallari)</summary>
+          <div class="create-extra-drawer-body">
+            <div class="contact-row">
+              <div class="contact-field" *ngIf="isAdminUser()">
+                <label>Depo No</label>
+                <input type="number" min="1" formControlName="adminWarehouseNo" placeholder="Aktif depo" />
+                <small class="helper-inline">Bos kalirsa {{ currentWarehouseLabel() }} kullanilir.</small>
+              </div>
+              <div class="contact-field">
+                <label>Teslim Eden</label>
+                <input type="text" formControlName="deliverer" maxlength="25" placeholder="Opsiyonel" />
+              </div>
+              <div class="contact-field">
+                <label>Teslim Alan</label>
+                <input type="text" formControlName="receiver" maxlength="25" placeholder="Opsiyonel" />
+              </div>
+            </div>
 
-        <div class="contact-row">
-          <label class="contact-field" style="justify-content: center;">
-            <input type="checkbox" formControlName="allowOrderOverReceiving" />
-            <span>Siparis kalanini asan kabule izin ver</span>
-          </label>
-          <label class="contact-field" style="justify-content: center;">
-            <input type="checkbox" formControlName="autoCreateReturnForPartialAcceptance" />
-            <span>Eksik kabul farki icin firma iadesi olustur</span>
-          </label>
+            <div class="create-checkbox-row">
+              <label class="create-checkbox-option">
+                <input type="checkbox" formControlName="allowOrderOverReceiving" />
+                <span>Siparis kalanini asan kabule izin ver</span>
+              </label>
+              <label class="create-checkbox-option">
+                <input type="checkbox" formControlName="autoCreateReturnForPartialAcceptance" />
+                <span>Eksik kabul farki icin firma iadesi olustur</span>
+              </label>
+            </div>
+          </div>
+        </details>
+
+        <div class="kalem-drawer-grid">
+          <details class="create-extra-drawer" [attr.open]="(orderResultsOpen() && availableOrders().length) || orderError() ? '' : null">
+            <summary>Siparisten Mal Kabul Getir</summary>
+            <div class="create-extra-drawer-body">
+              <div class="order-actions">
+                <button
+                  type="button"
+                  class="small-btn"
+                  [disabled]="orderLoading() || !selectedCustomer()"
+                  (click)="loadOrdersFromCustomer()"
+                >
+                  {{ orderLoading() ? 'Yukleniyor...' : 'Siparisleri Getir' }}
+                </button>
+                <button
+                  type="button"
+                  class="small-btn"
+                  [disabled]="!selectedOrderCount()"
+                  (click)="addSelectedOrdersToKalemler()"
+                >
+                  Secilenleri Kalemlere Ekle
+                </button>
+                <button
+                  type="button"
+                  class="small-btn"
+                  [disabled]="!selectedOrderCount() || !kalemCount()"
+                  (click)="removeSelectedOrdersFromKalemler()"
+                >
+                  Secilenleri Kaldir
+                </button>
+              </div>
+              <div class="feedback-error mini-error" *ngIf="orderError()">{{ orderError() }}</div>
+
+              <div class="order-results" *ngIf="orderResultsOpen() && availableOrders().length">
+                <label
+                  class="order-item"
+                  *ngFor="let order of availableOrders(); trackBy: trackByOrder"
+                >
+                  <input
+                    type="checkbox"
+                    [checked]="isOrderSelected(order)"
+                    (change)="toggleOrderSelection(order, $any($event.target).checked)"
+                  />
+                  <span class="order-info">
+                    <strong>{{ getOrderDisplay(order) }}</strong>
+                    <span class="order-meta">Tarih: {{ order.header.documentDate | date: 'dd.MM.yyyy HH:mm' }}</span>
+                    <span class="order-meta">Durum: {{ order.header.isClosed ? 'Kapali' : 'Acik' }}</span>
+                    <span class="order-meta">Muhatap: {{ order.header.customerDisplayName || '-' }}</span>
+                    <span class="order-meta">Kalem: {{ order.items.length }}</span>
+                  </span>
+                </label>
+              </div>
+            </div>
+          </details>
+
+          <details class="create-extra-drawer" [attr.open]="officialDocumentPreview() || officialDocumentError() ? '' : null">
+            <summary>E-Belge ETTN / UUID ile Kalem Oku</summary>
+            <div class="create-extra-drawer-body">
+              <div class="official-document-search">
+                <label class="official-document-field">
+                  <span>E-Belge ETTN / UUID</span>
+                  <input
+                    type="text"
+                    [formControl]="officialDocumentQuery"
+                    placeholder="QR'dan gelen ETTN veya UUID"
+                    (keydown.enter)="$event.preventDefault(); loadOfficialDocumentFromEttn()"
+                  />
+                </label>
+                <button
+                  type="button"
+                  class="small-btn"
+                  [disabled]="officialDocumentLoading()"
+                  (click)="loadOfficialDocumentFromEttn()"
+                >
+                  {{ officialDocumentLoading() ? 'Okunuyor...' : 'E-Belge Oku' }}
+                </button>
+              </div>
+
+              <div class="feedback-error mini-error" *ngIf="officialDocumentError()">
+                {{ officialDocumentError() }}
+              </div>
+
+              <article class="official-document-preview" *ngIf="officialDocumentPreview() as preview">
+                <div class="official-document-summary">
+                  <span class="document-kind">{{ getOfficialDocumentLabel(preview) }}</span>
+                  <strong>{{ preview.sourceDocumentNumber || preview.despatchNumber || preview.invoiceNumber || preview.ettn }}</strong>
+                  <span>{{ preview.matchedLineCount || 0 }} / {{ preview.totalLineCount || 0 }} eslesen kalem</span>
+                  <span *ngIf="preview.invoiceTotal !== null && preview.invoiceTotal !== undefined">
+                    Toplam: {{ preview.invoiceTotal | number: '1.2-2' }} {{ preview.currencyCode || '' }}
+                  </span>
+                </div>
+
+                <div class="official-document-warnings" *ngIf="preview.warnings?.length">
+                  <span *ngFor="let warning of preview.warnings">{{ warning }}</span>
+                </div>
+
+                <button
+                  type="button"
+                  class="small-btn"
+                  [disabled]="!preview.isFound || !getMatchedOfficialDocumentLineCount(preview)"
+                  (click)="addMatchedOfficialDocumentLines()"
+                >
+                  Eslesen Kalemleri Ekle ({{ getMatchedOfficialDocumentLineCount(preview) }})
+                </button>
+              </article>
+            </div>
+          </details>
         </div>
-
       </section>
 
       <section class="panel kalem-panel">
         <div class="panel-head">
-          <h3>Mal Kabul Kalemleri</h3>
+          <h3>2 · Mal Kabul Kalemleri</h3>
           <div class="kalem-stats" *ngIf="kalemCount()">
             <span class="badge">{{ kalemCount() }} Kalem</span>
             <span class="total-badge">Siparis: {{ toplamSiparisMiktari() | number: '1.0-2' }}</span>
             <span class="total-badge alt">Irsaliye: {{ toplamIrsaliyeMiktari() | number: '1.0-2' }}</span>
             <span class="total-badge net">Fiili: {{ toplamFiiliKabulMiktari() | number: '1.0-2' }}</span>
             <span class="total-badge return" *ngIf="toplamIadeMiktari() > 0">Iade: {{ toplamIadeMiktari() | number: '1.0-2' }}</span>
+          </div>
+        </div>
+
+        <div class="kalem-search-bar">
+          <div class="kalem-search-bar-row">
+            <input
+              type="text"
+              data-create-stock-search
+              [formControl]="stockQuery"
+              placeholder="Stok adi, kodu veya barkod ara (F2)..."
+              (input)="!$any($event.target).value?.trim() ? stockResults.set([]) : null; !$any($event.target).value?.trim() ? stockError.set('') : null"
+              (keydown.escape)="stockResults.set([]); stockError.set('')"
+              (keydown.enter)="$event.preventDefault(); searchStock()"
+            />
+            <button
+              type="button"
+              class="small-btn"
+              [disabled]="stockLoading() || !selectedCustomer()"
+              (click)="searchStock()"
+            >
+              {{ stockLoading() ? '...' : 'Stok Ara' }}
+            </button>
+            <label class="delist-toggle">
+              <input
+                type="checkbox"
+                [checked]="hideDelistedProducts"
+                disabled
+              />
+              <span>Pasif/DLS gizlenir</span>
+            </label>
+          </div>
+          <div class="feedback-error mini-error" *ngIf="stockError()">{{ stockError() }}</div>
+
+          <div class="search-results stock-results-list" *ngIf="stockResults().length">
+            <div class="search-results-head">
+              <span>{{ stockResults().length }} urun bulundu</span>
+              <button type="button" class="search-results-close" (click)="stockResults.set([]); stockError.set('')">
+                Kapat
+              </button>
+            </div>
+            <div class="result-item stock-result" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="addKalem(stock)">
+              <div>
+                <strong>{{ stock.stockName }}</strong>
+                <span class="stock-code">{{ stock.stockCode }}</span>
+                <span class="package-note" *ngIf="stock.purchasePrice !== null && stock.purchasePrice !== undefined">
+                  Net alis: {{ stock.purchasePrice | number: '1.2-4' }} TL
+                  <ng-container *ngIf="stock.purchaseGrossPrice !== null && stock.purchaseGrossPrice !== undefined && stock.purchaseGrossPrice !== stock.purchasePrice">
+                    / Brut: {{ stock.purchaseGrossPrice | number: '1.2-4' }} TL
+                  </ng-container>
+                </span>
+                <span class="package-note" *ngIf="(stock.unitMultiplier ?? 0) > 1">Koli ici: {{ stock.unitMultiplier }} {{ stock.unitName || 'birim' }}</span>
+              </div>
+              <button type="button" class="add-mini">+</button>
+            </div>
           </div>
         </div>
 

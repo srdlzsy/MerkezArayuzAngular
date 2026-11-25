@@ -25,6 +25,7 @@ import { IadeIslemleriService } from '../../../../../core/api/module-services/ia
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
   SafeCreateFailure,
@@ -78,10 +79,27 @@ interface ReturnLineProduct {
   unitMultiplier: number | null;
 }
 
+type KalemDraftValue = ReturnType<KalemFormGroup['getRawValue']>;
+
+interface DepoIadeDraftPayload {
+  form: {
+    muhatapDepoNo: number | null;
+    muhatapAdSoyad: string;
+    transitWarehouseNo: number | null;
+    movementDate: string;
+    documentDate: string;
+    adminWarehouseNo: number | null;
+    documentNo: string;
+    description: string;
+    kalemler: KalemDraftValue[];
+  };
+  selectedWarehouse: IFurpaWarehouseSearchItemApiDto | null;
+}
+
 @Component({
   selector: 'app-depo-iadeleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, ScrollingModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, ScrollingModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './depo-iadeleri-create.component.html',
   styleUrl: './depo-iadeleri-create.component.scss'
 })
@@ -171,6 +189,30 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       } else {
         this.stockQuery.disable({ emitEvent: false });
       }
+    });
+
+    this.setupBrowserDraft<DepoIadeDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'returns',
+      operationCode: 'depo-iadeleri.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({
+        form: this.form.getRawValue(),
+        selectedWarehouse: this.selectedWarehouse()
+      }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        !!payload.selectedWarehouse ||
+        payload.form.kalemler.length > 0 ||
+        !!payload.form.muhatapAdSoyad.trim() ||
+        !!payload.form.description.trim(),
+      title: (payload) =>
+        payload.selectedWarehouse
+          ? this.getWarehouseLabel(payload.selectedWarehouse)
+          : 'Yeni depo iadesi',
+      lineCount: (payload) => payload.form.kalemler.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
     });
   }
 
@@ -531,6 +573,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
@@ -614,6 +657,81 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
+  }
+
+  private createKalemFormGroupFromValue(value: KalemDraftValue): KalemFormGroup {
+    return new FormGroup({
+      stokKodu: new FormControl(value.stokKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stokIsmi: new FormControl(value.stokIsmi ?? '', { nonNullable: true }),
+      barkodu: new FormControl(value.barkodu ?? '', { nonNullable: true }),
+      birim: new FormControl(value.birim ?? '', { nonNullable: true }),
+      birimKatsayisi: new FormControl<number | null>(value.birimKatsayisi ?? null),
+      miktar: new FormControl<number | null>(value.miktar ?? 1, {
+        validators: [Validators.required, Validators.min(0.01)]
+      }),
+      aciklama: new FormControl(value.aciklama ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)]
+      }),
+      skt: new FormControl(value.skt ?? '', { nonNullable: true }),
+      modelKodu: new FormControl(value.modelKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
+    });
+  }
+
+  private restoreBrowserDraft(payload: DepoIadeDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.kalemler)) {
+      throw new Error('Gecersiz depo iade taslagi.');
+    }
+
+    const { kalemler, ...header } = payload.form;
+    this.kalemler.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    kalemler.forEach((kalem) =>
+      this.kalemler.push(this.createKalemFormGroupFromValue(kalem), { emitEvent: false })
+    );
+    this.selectedWarehouse.set(payload.selectedWarehouse);
+    this.warehouseQuery.setValue(
+      payload.selectedWarehouse ? this.getWarehouseLabel(payload.selectedWarehouse) : '',
+      { emitEvent: false }
+    );
+    this.warehouseResults.set([]);
+    this.stockResults.set([]);
+    this.warehouseError.set('');
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.kalemler.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        muhatapDepoNo: null,
+        muhatapAdSoyad: '',
+        transitWarehouseNo: 60,
+        movementDate: this.today,
+        documentDate: this.today,
+        adminWarehouseNo: null,
+        documentNo: '',
+        description: ''
+      },
+      { emitEvent: false }
+    );
+    this.selectedWarehouse.set(null);
+    this.returnableProductsPanelOpen.set(false);
+    this.returnableProducts.set([]);
+    this.selectedReturnableProductCodes.set(new Set());
+    this.warehouseQuery.setValue('', { emitEvent: false });
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.warehouseResults.set([]);
+    this.stockResults.set([]);
+    this.warehouseError.set('');
+    this.stockError.set('');
+    this.submitError.set('');
   }
 
   private buildRequest(): IFurpaCreateWarehouseReturnRequestApiDto {

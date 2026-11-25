@@ -21,6 +21,7 @@ import { MalKabulIslemleriService } from '../../../../../core/api/module-service
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import { resolveHttpErrorMessage } from '../../../core/api-error.helpers';
 import {
@@ -52,10 +53,23 @@ type KabulKalemFormGroup = FormGroup<{
   warehouseOrderNo: FormControl<string>;
 }>;
 
+type KabulLineDraftValue = ReturnType<KabulKalemFormGroup['getRawValue']>;
+
+interface DepoMalKabulDraftPayload {
+  form: {
+    seri: string;
+    sira: number | null;
+    adminWarehouseNo: number | null;
+    allowDiscrepancy: boolean;
+    lines: KabulLineDraftValue[];
+  };
+  activeReceipt: IFurpaWarehouseReceiptDetailApiDto | null;
+}
+
 @Component({
   selector: 'app-depolar-arasi-nakliye-mal-kabul-fisleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './depolar-arasi-nakliye-mal-kabul-fisleri-create.component.html',
   styleUrl: './depolar-arasi-nakliye-mal-kabul-fisleri-create.component.scss'
 })
@@ -124,6 +138,29 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
     if (this.data?.autoLoad && typeof seri === 'string' && seri.trim() && typeof sira === 'number') {
       this.loadReceiptDetail();
     }
+
+    this.setupBrowserDraft<DepoMalKabulDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'receiving',
+      operationCode: 'depolar-arasi-nakliye-mal-kabul.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({
+        form: this.form.getRawValue(),
+        activeReceipt: this.activeReceipt()
+      }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        !!payload.form.seri.trim() ||
+        payload.form.sira !== null ||
+        payload.form.lines.length > 0,
+      title: (payload) =>
+        payload.form.seri.trim()
+          ? `${payload.form.seri.trim()}/${payload.form.sira ?? '-'}`
+          : 'Yeni depo mal kabulu',
+      lineCount: (payload) => payload.form.lines.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
+    });
   }
 
   protected get lines(): FormArray<KabulKalemFormGroup> {
@@ -245,6 +282,7 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
             return;
           }
 
+          this.completeBrowserDraft();
           this.close({ created: true, accepted: true, result });
         },
         error: (error: HttpErrorResponse) => {
@@ -376,6 +414,56 @@ export class DepolarArasiNakliyeMalKabulFisleriCreateComponent extends DocsTaskD
       description: new FormControl(kalem.description?.trim() ?? '', { nonNullable: true }),
       warehouseOrderNo: new FormControl(kalem.warehouseOrderNo?.trim() ?? '', { nonNullable: true })
     });
+  }
+
+  private createLineFormGroupFromValue(value: KabulLineDraftValue): KabulKalemFormGroup {
+    return new FormGroup({
+      movementGuid: new FormControl(value.movementGuid ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stockCode: new FormControl(value.stockCode ?? '', { nonNullable: true }),
+      stockName: new FormControl(value.stockName ?? '', { nonNullable: true }),
+      unitName: new FormControl(value.unitName ?? '', { nonNullable: true }),
+      shippedQuantity: new FormControl<number | null>(value.shippedQuantity ?? 0),
+      receivedQuantity: new FormControl<number | null>(value.receivedQuantity ?? 0, {
+        validators: [Validators.required, Validators.min(0)]
+      }),
+      description: new FormControl(value.description ?? '', { nonNullable: true }),
+      warehouseOrderNo: new FormControl(value.warehouseOrderNo ?? '', { nonNullable: true })
+    });
+  }
+
+  private restoreBrowserDraft(payload: DepoMalKabulDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.lines)) {
+      throw new Error('Gecersiz depo mal kabul taslagi.');
+    }
+
+    const { lines, ...header } = payload.form;
+    this.lines.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    lines.forEach((line) =>
+      this.lines.push(this.createLineFormGroupFromValue(line), { emitEvent: false })
+    );
+    this.activeReceipt.set(payload.activeReceipt ?? null);
+    this.loadError.set('');
+    this.submitError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.lines.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        seri: '',
+        sira: null,
+        adminWarehouseNo: null,
+        allowDiscrepancy: false
+      },
+      { emitEvent: false }
+    );
+    this.activeReceipt.set(null);
+    this.loadError.set('');
+    this.submitError.set('');
   }
 
   private buildRequest(): IFurpaWarehouseReceiptAcceptanceRequestApiDto {

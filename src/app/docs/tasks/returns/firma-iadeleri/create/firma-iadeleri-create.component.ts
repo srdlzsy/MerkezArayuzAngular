@@ -22,6 +22,7 @@ import { IadeIslemleriService } from '../../../../../core/api/module-services/ia
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
   SafeCreateFailure,
@@ -63,10 +64,28 @@ type KalemFormGroup = FormGroup<{
   modelKodu: FormControl<string>;
 }>;
 
+type KalemDraftValue = ReturnType<KalemFormGroup['getRawValue']>;
+
+interface FirmaIadeDraftPayload {
+  form: {
+    muhatapFirmaCariKod: string;
+    muhatapFirmaUnvani: string;
+    muhatapAdSoyad: string;
+    deliverer: string;
+    movementDate: string;
+    documentDate: string;
+    documentNo: string;
+    description: string;
+    adminWarehouseNo: number | null;
+    kalemler: KalemDraftValue[];
+  };
+  selectedCustomer: IFurpaCustomerSearchItemApiDto | null;
+}
+
 @Component({
   selector: 'app-firma-iadeleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './firma-iadeleri-create.component.html',
   styleUrl: './firma-iadeleri-create.component.scss'
 })
@@ -153,6 +172,30 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
       } else {
         this.stockQuery.disable({ emitEvent: false });
       }
+    });
+
+    this.setupBrowserDraft<FirmaIadeDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'returns',
+      operationCode: 'firma-iadeleri.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({
+        form: this.form.getRawValue(),
+        selectedCustomer: this.selectedCustomer()
+      }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        !!payload.selectedCustomer ||
+        payload.form.kalemler.length > 0 ||
+        !!payload.form.muhatapAdSoyad.trim() ||
+        !!payload.form.description.trim(),
+      title: (payload) =>
+        payload.selectedCustomer
+          ? this.getCustomerLabel(payload.selectedCustomer)
+          : 'Yeni firma iadesi',
+      lineCount: (payload) => payload.form.kalemler.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
     });
   }
 
@@ -366,6 +409,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
       .subscribe({
         next: () => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.close({ created: true });
         },
         error: (error: HttpErrorResponse) => {
@@ -436,6 +480,79 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
       skt: new FormControl('', { nonNullable: true }),
       modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
     });
+  }
+
+  private createKalemFormGroupFromValue(value: KalemDraftValue): KalemFormGroup {
+    return new FormGroup({
+      stokKodu: new FormControl(value.stokKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stokIsmi: new FormControl(value.stokIsmi ?? '', { nonNullable: true }),
+      barkodu: new FormControl(value.barkodu ?? '', { nonNullable: true }),
+      birim: new FormControl(value.birim ?? '', { nonNullable: true }),
+      birimKatsayisi: new FormControl<number | null>(value.birimKatsayisi ?? null),
+      siparisMiktari: new FormControl<number | null>(value.siparisMiktari ?? 1, {
+        validators: [Validators.required, Validators.min(0.01)]
+      }),
+      aciklama: new FormControl(value.aciklama ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)]
+      }),
+      skt: new FormControl(value.skt ?? '', { nonNullable: true }),
+      modelKodu: new FormControl(value.modelKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
+    });
+  }
+
+  private restoreBrowserDraft(payload: FirmaIadeDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.kalemler)) {
+      throw new Error('Gecersiz firma iade taslagi.');
+    }
+
+    const { kalemler, ...header } = payload.form;
+    this.kalemler.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    kalemler.forEach((kalem) =>
+      this.kalemler.push(this.createKalemFormGroupFromValue(kalem), { emitEvent: false })
+    );
+    this.selectedCustomer.set(payload.selectedCustomer);
+    this.customerQuery.setValue(
+      payload.selectedCustomer ? this.getCustomerLabel(payload.selectedCustomer) : '',
+      { emitEvent: false }
+    );
+    this.customerResults.set([]);
+    this.stockResults.set([]);
+    this.customerError.set('');
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.kalemler.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        muhatapFirmaCariKod: '',
+        muhatapFirmaUnvani: '',
+        muhatapAdSoyad: '',
+        deliverer: '',
+        movementDate: this.today,
+        documentDate: this.today,
+        documentNo: '',
+        description: '',
+        adminWarehouseNo: null
+      },
+      { emitEvent: false }
+    );
+    this.selectedCustomer.set(null);
+    this.customerQuery.setValue('', { emitEvent: false });
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.customerResults.set([]);
+    this.stockResults.set([]);
+    this.customerError.set('');
+    this.stockError.set('');
+    this.submitError.set('');
   }
 
   private buildRequest(): IFurpaCreateCompanyShipmentRequestApiDto {

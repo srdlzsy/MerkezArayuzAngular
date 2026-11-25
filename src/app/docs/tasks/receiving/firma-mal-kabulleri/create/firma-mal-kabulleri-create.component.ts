@@ -30,6 +30,7 @@ import { AramaService } from '../../../../../core/api/module-services/arama.serv
 import { formatDateOnly } from '../../../../../core/api/furpa-merkez-api.utils';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
+import { BrowserCreateDraftBarComponent } from '../../../core/browser-create-draft/browser-create-draft-bar.component';
 import { DocsTaskDialogBase } from '../../../core/task-dialog.base';
 import {
   SafeCreateFailure,
@@ -115,10 +116,32 @@ const positiveIntegerValidator: ValidatorFn = (control: AbstractControl): Valida
   return Number.isInteger(value) && value > 0 ? null : { positiveInteger: true };
 };
 
+type KalemDraftValue = ReturnType<KalemFormGroup['getRawValue']>;
+
+interface FirmaMalKabulDraftPayload {
+  form: {
+    muhatapFirmaCariKod: string;
+    muhatapFirmaUnvani: string;
+    muhatapAdSoyad: string;
+    movementDate: string;
+    documentDate: string;
+    documentSerie: string;
+    documentOrderNo: number | null;
+    deliverer: string;
+    receiver: string;
+    description: string;
+    allowOrderOverReceiving: boolean;
+    autoCreateReturnForPartialAcceptance: boolean;
+    adminWarehouseNo: number | null;
+    kalemler: KalemDraftValue[];
+  };
+  selectedCustomer: IFurpaCustomerSearchItemApiDto | null;
+}
+
 @Component({
   selector: 'app-firma-mal-kabulleri-create',
   standalone: true,
-  imports: [CommonModule, ReactiveFormsModule, CreateWorkflowBarComponent],
+  imports: [CommonModule, ReactiveFormsModule, BrowserCreateDraftBarComponent, CreateWorkflowBarComponent],
   templateUrl: './firma-mal-kabulleri-create.component.html',
   styleUrl: './firma-mal-kabulleri-create.component.scss'
 })
@@ -224,6 +247,31 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       } else {
         this.stockQuery.disable({ emitEvent: false });
       }
+    });
+
+    this.setupBrowserDraft<FirmaMalKabulDraftPayload>({
+      user: this.authService.currentUser(),
+      moduleCode: 'receiving',
+      operationCode: 'firma-mal-kabulleri.create',
+      changes$: this.form.valueChanges,
+      capture: () => ({
+        form: this.form.getRawValue(),
+        selectedCustomer: this.selectedCustomer()
+      }),
+      restore: (payload) => this.restoreBrowserDraft(payload),
+      reset: () => this.resetBrowserDraftForm(),
+      isMeaningful: (payload) =>
+        !!payload.selectedCustomer ||
+        payload.form.kalemler.length > 0 ||
+        !!payload.form.documentSerie.trim() ||
+        payload.form.documentOrderNo !== null ||
+        !!payload.form.muhatapAdSoyad.trim(),
+      title: (payload) =>
+        payload.selectedCustomer
+          ? this.getCustomerLabel(payload.selectedCustomer)
+          : 'Yeni firma mal kabulu',
+      lineCount: (payload) => payload.form.kalemler.length,
+      warehouseNo: () => this.resolveRequestWarehouseNo()
     });
   }
 
@@ -742,6 +790,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       .subscribe({
         next: (result: IFurpaCreateCompanyReceiptResponseApiDto) => {
           this.safeCreateRetry.reset();
+          this.completeBrowserDraft();
           this.createdReceiptResult.set(result);
         },
         error: (error: HttpErrorResponse) => {
@@ -1092,6 +1141,99 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     }
 
     return formatDateOnly(date);
+  }
+
+  private createKalemFormGroupFromValue(value: KalemDraftValue): KalemFormGroup {
+    return new FormGroup({
+      taslakGuid: new FormControl(value.taslakGuid ?? '', { nonNullable: true }),
+      siparisGuid: new FormControl(value.siparisGuid ?? '', { nonNullable: true }),
+      siparisReferansi: new FormControl(value.siparisReferansi ?? '', { nonNullable: true }),
+      stokKodu: new FormControl(value.stokKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.required]
+      }),
+      stokIsmi: new FormControl(value.stokIsmi ?? '', { nonNullable: true }),
+      barkodu: new FormControl(value.barkodu ?? '', { nonNullable: true }),
+      birim: new FormControl(value.birim ?? '', { nonNullable: true }),
+      birimKatsayisi: new FormControl<number | null>(value.birimKatsayisi ?? null),
+      birimFiyati: new FormControl<number | null>(value.birimFiyati ?? null),
+      brutBirimFiyati: new FormControl<number | null>(value.brutBirimFiyati ?? null),
+      fiyatKaynagi: new FormControl(value.fiyatKaynagi ?? '', { nonNullable: true }),
+      siparisMiktari: new FormControl<number | null>(value.siparisMiktari ?? 0, {
+        validators: [Validators.required, Validators.min(0)]
+      }),
+      irsaliyeMiktari: new FormControl<number | null>(value.irsaliyeMiktari ?? 1, {
+        validators: [Validators.required, Validators.min(0.01), Validators.max(100000)]
+      }),
+      fiiliKabulMiktari: new FormControl<number | null>(value.fiiliKabulMiktari ?? 1, {
+        validators: [Validators.required, Validators.min(0), Validators.max(100000)]
+      }),
+      aciklama: new FormControl(value.aciklama ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(50)]
+      }),
+      skt: new FormControl(value.skt ?? '', { nonNullable: true }),
+      modelKodu: new FormControl(value.modelKodu ?? '', {
+        nonNullable: true,
+        validators: [Validators.maxLength(25)]
+      })
+    }, { validators: [acceptedQuantityValidator] });
+  }
+
+  private restoreBrowserDraft(payload: FirmaMalKabulDraftPayload): void {
+    if (!payload?.form || !Array.isArray(payload.form.kalemler)) {
+      throw new Error('Gecersiz mal kabul taslagi.');
+    }
+
+    const { kalemler, ...header } = payload.form;
+    this.kalemler.clear({ emitEvent: false });
+    this.form.patchValue(header, { emitEvent: false });
+    kalemler.forEach((kalem) =>
+      this.kalemler.push(this.createKalemFormGroupFromValue(kalem), { emitEvent: false })
+    );
+    this.selectedCustomer.set(payload.selectedCustomer);
+    this.customerQuery.setValue(
+      payload.selectedCustomer ? this.getCustomerLabel(payload.selectedCustomer) : '',
+      { emitEvent: false }
+    );
+    this.customerResults.set([]);
+    this.stockResults.set([]);
+    this.customerError.set('');
+    this.stockError.set('');
+  }
+
+  private resetBrowserDraftForm(): void {
+    this.kalemler.clear({ emitEvent: false });
+    this.form.reset(
+      {
+        muhatapFirmaCariKod: '',
+        muhatapFirmaUnvani: '',
+        muhatapAdSoyad: '',
+        movementDate: this.today,
+        documentDate: this.today,
+        documentSerie: '',
+        documentOrderNo: null,
+        deliverer: '',
+        receiver: '',
+        description: '',
+        allowOrderOverReceiving: false,
+        autoCreateReturnForPartialAcceptance: true,
+        adminWarehouseNo: null
+      },
+      { emitEvent: false }
+    );
+    this.selectedCustomer.set(null);
+    this.officialDocumentPreview.set(null);
+    this.availableOrders.set([]);
+    this.selectedOrderKeys.set([]);
+    this.customerQuery.setValue('', { emitEvent: false });
+    this.stockQuery.setValue('', { emitEvent: false });
+    this.officialDocumentQuery.setValue('', { emitEvent: false });
+    this.customerResults.set([]);
+    this.stockResults.set([]);
+    this.customerError.set('');
+    this.stockError.set('');
+    this.submitError.set('');
   }
 
   private buildRequest(): IFurpaCreateCompanyReceiptRequestApiDto {

@@ -13,6 +13,7 @@ import {
 } from '@angular/core';
 
 export type CreateWorkflowStep = 'all' | 'document' | 'lines' | 'review';
+export type CreateDialogView = 'header' | 'lines';
 
 export interface CreateSummaryItem {
   label: string;
@@ -50,7 +51,8 @@ export class CreateWorkflowBarComponent implements OnInit, OnChanges {
   @Output() readonly stepChange = new EventEmitter<CreateWorkflowStep>();
   @Output() readonly submitRequested = new EventEmitter<void>();
 
-  protected readonly activeStep = signal<CreateWorkflowStep>('all');
+  protected readonly activeView = signal<CreateDialogView>('header');
+  protected readonly showReview = signal(false);
 
   private readonly onDocumentKeyDown = (event: KeyboardEvent): void => {
     if (event.key === 'F2' || event.code === 'F2') {
@@ -73,12 +75,12 @@ export class CreateWorkflowBarComponent implements OnInit, OnChanges {
     ) {
       event.preventDefault();
       event.stopPropagation();
-      this.setStep(this.activeStep() === 'review' ? 'all' : 'review');
+      this.toggleReview();
     }
   };
 
   ngOnInit(): void {
-    this.syncParentStepAttribute(this.activeStep());
+    this.syncParentViewAttribute(this.activeView());
     this.documentRef.addEventListener('keydown', this.onDocumentKeyDown, true);
     this.destroyRef.onDestroy(() => {
       this.documentRef.removeEventListener('keydown', this.onDocumentKeyDown, true);
@@ -86,77 +88,74 @@ export class CreateWorkflowBarComponent implements OnInit, OnChanges {
   }
 
   ngOnChanges(): void {
-    this.syncParentStepAttribute(this.activeStep());
+    this.syncParentViewAttribute(this.activeView());
   }
 
-  setStep(step: CreateWorkflowStep): void {
-    this.activeStep.set(step);
-    this.syncParentStepAttribute(step);
-    this.stepChange.emit(step);
+  setView(view: CreateDialogView): void {
+    this.activeView.set(view);
+    this.showReview.set(false);
+    this.syncParentViewAttribute(view);
+    this.stepChange.emit(view === 'lines' ? 'lines' : 'document');
+  }
+
+  toggleReview(): void {
+    const next = !this.showReview();
+    this.showReview.set(next);
+    this.stepChange.emit(next ? 'review' : this.activeView() === 'lines' ? 'lines' : 'document');
   }
 
   focusStockSearch(): void {
-    if (this.activeStep() === 'document' || this.activeStep() === 'review') {
-      this.setStep('lines');
+    if (this.activeView() !== 'lines') {
+      this.setView('lines');
     }
 
     this.scheduleFocus(
-      '[data-create-stock-search], .search-panel input[type="text"], .search-panel input[type="search"], .dual-search .search-block:last-child input[type="text"], .dual-search .search-block:last-child input[type="search"], input[placeholder*="Stok" i], input[placeholder*="Barkod" i], input[placeholder*="Sayilan" i]'
+      '[data-create-stock-search], .kalem-search-bar input[type="text"], .kalem-search-bar input[type="search"], .search-panel input[type="text"], .search-panel input[type="search"], input[placeholder*="Stok" i], input[placeholder*="Barkod" i], input[placeholder*="Sayilan" i]'
     );
   }
 
   focusEntitySearch(): void {
-    if (this.activeStep() === 'lines' || this.activeStep() === 'review') {
-      this.setStep('document');
+    if (this.activeView() !== 'header') {
+      this.setView('header');
     }
 
     this.scheduleFocus(
-      '[data-create-entity-search], .dual-search .search-block:first-child input[type="text"], .dual-search .search-block:first-child input[type="search"], input[placeholder*="Cari" i], input[placeholder*="Firma" i], input[placeholder*="Depo" i], input[placeholder*="Seri" i], input[placeholder*="Sayim" i]'
+      '[data-create-entity-search], .search-block input[type="text"], input[placeholder*="Cari" i], input[placeholder*="Firma" i], input[placeholder*="Depo" i], input[placeholder*="Seri" i], input[placeholder*="Sayim" i]'
     );
   }
 
   private scheduleFocus(selector: string): void {
     const run = (): void => {
       const dialogRoot = this.findDialogRoot();
-      if (!dialogRoot) {
-        return;
-      }
-
-      const candidates = Array.from(dialogRoot.querySelectorAll<HTMLElement>(selector));
-      const target =
-        candidates.find((el) => !(el as HTMLInputElement).disabled && el.offsetParent !== null) ??
-        candidates.find((el) => !(el as HTMLInputElement).disabled);
-
-      if (!target) {
-        return;
-      }
-
-      target.scrollIntoView({ block: 'center', behavior: 'smooth' });
-      target.focus();
-
-      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
-        target.select();
+      const target = dialogRoot?.querySelector<HTMLInputElement>(selector);
+      if (target && !target.disabled) {
+        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+        target.focus();
+        target.select?.();
       }
     };
 
-    if (typeof requestAnimationFrame === 'function') {
-      requestAnimationFrame(run);
-    } else {
-      run();
+    setTimeout(run, 0);
+  }
+
+  private syncParentViewAttribute(view: CreateDialogView): void {
+    const host = this.hostRef.nativeElement;
+    const container =
+      host.closest<HTMLElement>('.form-shell') ??
+      host.closest<HTMLElement>('.dialog-body') ??
+      host.parentElement;
+
+    if (container) {
+      container.setAttribute('data-create-view', view);
     }
   }
 
   private findDialogRoot(): HTMLElement | null {
+    const host = this.hostRef.nativeElement;
     return (
-      this.hostRef.nativeElement.closest('.dialog-page, .create-page, .task-page') ??
-      this.hostRef.nativeElement.parentElement
+      host.closest<HTMLElement>('.dialog-page') ??
+      host.closest<HTMLElement>('.form-shell') ??
+      host.parentElement
     );
-  }
-
-  private syncParentStepAttribute(step: CreateWorkflowStep): void {
-    const formShell = this.hostRef.nativeElement.closest('.form-shell, .dialog-body');
-    if (formShell) {
-      formShell.setAttribute('data-create-step', step);
-    }
   }
 }
