@@ -1347,3 +1347,52 @@ td {
     }
   }
 }
+
+.bulk-target-panel {
+  margin: 0.5rem 0;
+  padding: 0.5rem;
+  border: 1px solid var(--line);
+  border-radius: 6px;
+  background: #f8fafc;
+}
+
+.bulk-target-toolbar {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 0.45rem;
+  font-size: 0.75rem;
+}
+
+.bulk-all-toggle,
+.bulk-target-item {
+  display: inline-flex;
+  align-items: center;
+  gap: 0.35rem;
+}
+
+.bulk-all-toggle {
+  font-weight: 700;
+}
+
+.bulk-target-list {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(180px, 1fr));
+  gap: 0.3rem 0.5rem;
+  max-height: 150px;
+  margin-top: 0.5rem;
+  padding-top: 0.5rem;
+  overflow: auto;
+  border-top: 1px solid var(--line);
+}
+
+.bulk-target-item {
+  min-width: 0;
+  font-size: 0.72rem;
+
+  span {
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+}

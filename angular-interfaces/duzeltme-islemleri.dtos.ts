@@ -481,6 +481,27 @@ export interface StockCardWarehouseUpdateResponse {
   warehouseSettings: StockCardWarehouseSettingsDto;
 }
 
+export interface StockCardWarehouseBulkPatchHttpRequest {
+  warehouseNos: number[];
+  applyToAllActiveWarehouses: boolean;
+  patch: StockCardWarehousePatchHttpRequest;
+}
+
+export interface StockCardWarehouseBulkUpdateItemDto {
+  warehouseNo: number;
+  warehouseName: string;
+  succeeded: boolean;
+  errorMessage: string | null;
+  warehouseSettings: StockCardWarehouseSettingsDto | null;
+}
+
+export interface StockCardWarehouseBulkUpdateResponse {
+  requestedCount: number;
+  succeededCount: number;
+  failedCount: number;
+  items: StockCardWarehouseBulkUpdateItemDto[];
+}
+
 export interface StockSalesPriceDto {
   priceGuid: string | null;
   stockCode: string;
@@ -512,6 +533,26 @@ export interface StockSalesPriceUpsertResponse {
   created: boolean;
   previousPrice: number | null;
   salesPrice: StockSalesPriceDto;
+}
+
+export interface StockSalesPriceBulkUpsertHttpRequest extends StockSalesPriceUpsertHttpRequest {
+  warehouseNos: number[];
+  applyToAllActiveWarehouses: boolean;
+}
+
+export interface StockSalesPriceBulkUpsertItemDto {
+  warehouseNo: number;
+  warehouseName: string;
+  succeeded: boolean;
+  errorMessage: string | null;
+  salesPrice: StockSalesPriceDto | null;
+}
+
+export interface StockSalesPriceBulkUpsertResponse {
+  requestedCount: number;
+  succeededCount: number;
+  failedCount: number;
+  items: StockSalesPriceBulkUpsertItemDto[];
 }
 
 export interface StockSalesPriceDeleteHttpRequest {

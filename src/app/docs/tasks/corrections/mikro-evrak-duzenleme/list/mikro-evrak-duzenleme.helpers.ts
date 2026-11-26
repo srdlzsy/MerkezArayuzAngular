@@ -22,6 +22,7 @@ export type BusyAction =
   | 'customer-card-save'
   | 'sales-price-load'
   | 'sales-price-save'
+  | 'sales-price-bulk-save'
   | 'sales-price-delete'
   | 'movement-load'
   | 'movement-save'

@@ -296,6 +296,52 @@
               </div>
             </div>
 
+            <div class="bulk-target-panel" *ngIf="stockCardWarehouseSettings().length">
+              <div class="bulk-target-toolbar">
+                <label class="bulk-all-toggle">
+                  <input
+                    type="checkbox"
+                    [(ngModel)]="bulkApplyToAllActiveWarehouses"
+                    [ngModelOptions]="{ standalone: true }"
+                  />
+                  <span>Tum aktif depolar</span>
+                </label>
+                <span *ngIf="!bulkApplyToAllActiveWarehouses">
+                  {{ bulkWarehouseNos().size }} depo secildi
+                </span>
+                <button
+                  type="button"
+                  class="secondary-action"
+                  [disabled]="bulkApplyToAllActiveWarehouses"
+                  (click)="selectAllVisibleWarehouses()"
+                >
+                  Tumunu Sec
+                </button>
+                <button
+                  type="button"
+                  class="secondary-action"
+                  [disabled]="bulkApplyToAllActiveWarehouses || !bulkWarehouseNos().size"
+                  (click)="clearBulkWarehouses()"
+                >
+                  Temizle
+                </button>
+              </div>
+              <div class="bulk-target-list" *ngIf="!bulkApplyToAllActiveWarehouses">
+                <label
+                  *ngFor="let setting of stockCardWarehouseSettings(); trackBy: trackByWarehouseNo"
+                  class="bulk-target-item"
+                >
+                  <input
+                    type="checkbox"
+                    [ngModel]="isBulkWarehouseSelected(setting.warehouseNo)"
+                    [ngModelOptions]="{ standalone: true }"
+                    (ngModelChange)="toggleBulkWarehouse(setting.warehouseNo, $event)"
+                  />
+                  <span>{{ setting.warehouseNo }} - {{ setting.warehouseName }}</span>
+                </label>
+              </div>
+            </div>
+
             <div class="warehouse-layout">
               <div class="warehouse-list">
                 <button
@@ -381,6 +427,22 @@
                     (click)="deleteWarehouseSetting()"
                   >
                     {{ warehouseBusyAction() === 'delete' ? 'Siliniyor...' : 'Depo Ozel Ayarini Sil' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="primary-action"
+                    [disabled]="!canUpdate() || warehouseBusyAction() === 'bulk' || (!bulkApplyToAllActiveWarehouses && !bulkWarehouseNos().size)"
+                    (click)="saveWarehouseSettingsBulk()"
+                  >
+                    {{ warehouseBusyAction() === 'bulk' ? 'Uygulaniyor...' : 'Hedef Depolara Uygula' }}
+                  </button>
+                  <button
+                    type="button"
+                    class="secondary-action reset-global-action"
+                    [disabled]="!canUpdate() || warehouseBusyAction() === 'bulk' || (!bulkApplyToAllActiveWarehouses && !bulkWarehouseNos().size)"
+                    (click)="saveWarehouseSettingsBulk(true)"
+                  >
+                    Hedefleri Globale Dondur
                   </button>
                   <button
                     type="button"
@@ -583,6 +645,14 @@
                   </div>
 
                   <div class="warehouse-actions">
+                    <button
+                      type="button"
+                      class="primary-action"
+                      [disabled]="!canUpdate() || isBusy('sales-price-bulk-save') || (!bulkApplyToAllActiveWarehouses && !bulkWarehouseNos().size)"
+                      (click)="saveSalesPriceBulk()"
+                    >
+                      {{ isBusy('sales-price-bulk-save') ? 'Uygulaniyor...' : 'Hedef Depolara Fiyati Uygula' }}
+                    </button>
                     <button
                       type="button"
                       class="primary-action"

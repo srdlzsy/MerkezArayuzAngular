@@ -7,7 +7,7 @@ Kapsam: kayitli HTTP method/route ve alias'lar, binding kaynagi, request alanlar
 
 `bildirilmemis` response tipi, runtime cevabinin bos oldugu anlamina gelmez. Anonim endpointler konfigurasyon/ag/servis kontrollerine tabi olabilir. JWT fallback policy, acik Authorize olmasa da uygulanir.
 
-Endpoint sayisi (method + route): 868. Model sayisi: 853.
+Endpoint sayisi (method + route): 870. Model sayisi: 859.
 
 Bunlara ek olarak EndpointDataSource uzerinden dogrulanan iki health route'u vardir: `/health/live`, `/health/ready`. Bu middleware route'larinda method kisiti yoktur; istemci GET kullanmalidir. Anonimdir, JSON dondurur; Healthy/Degraded=200, Unhealthy=503. `live` yalniz prosesi, `ready` core_dependencies, operations_export_path ve background_workers kontrollerini olcer. Alanlar: status (string), durationMilliseconds (number), checks (ad -> status/durationMilliseconds/description/data). Tum runtime route'lari envanterde yer alir; yeni ve ApiExplorer disinda kalan route eklenirse test basarisiz olur.
 
@@ -161,9 +161,11 @@ Ozel response'lar: `/` Hosting:ExposeDiagnosticsOnRoot=false iken yalniz service
 | GET | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.detail | path: stockCode / string (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockCardDetailDto<br>400: ProblemDetails<br>404: ProblemDetails |
 | PUT | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.update | path: stockCode / string (zorunlu)<br>body: request / StockCardPatchHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockCardUpdateResponse<br>400: ProblemDetails<br>404: ProblemDetails |
 | GET | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.detail | path: stockCode / string (zorunlu)<br>query: warehouseNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockCardWarehouseSettingsDto&gt;<br>400: ProblemDetails<br>404: ProblemDetails |
+| PUT | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar/toplu` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.update | path: stockCode / string (zorunlu)<br>body: request / StockCardWarehouseBulkPatchHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockCardWarehouseBulkUpdateResponse<br>400: ProblemDetails<br>404: ProblemDetails |
 | DELETE | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar/{warehouseNo}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.delete | path: stockCode / string (zorunlu)<br>path: warehouseNo / integer (int32) (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: MikroDocumentDeleteResponse<br>400: ProblemDetails<br>404: ProblemDetails |
 | PUT | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar/{warehouseNo}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.update | path: stockCode / string (zorunlu)<br>path: warehouseNo / integer (int32) (zorunlu)<br>body: request / StockCardWarehousePatchHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockCardWarehouseUpdateResponse<br>400: ProblemDetails<br>404: ProblemDetails |
 | GET | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.detail | path: stockCode / string (zorunlu)<br>query: warehouseNo / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: IReadOnlyCollection&lt;StockSalesPriceDto&gt;<br>400: ProblemDetails<br>404: ProblemDetails |
+| PUT | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari/toplu` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.update | path: stockCode / string (zorunlu)<br>body: request / StockSalesPriceBulkUpsertHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockSalesPriceBulkUpsertResponse<br>400: ProblemDetails<br>404: ProblemDetails |
 | DELETE | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari/{warehouseNo}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.delete | path: stockCode / string (zorunlu)<br>path: warehouseNo / integer (int32) (zorunlu)<br>query: PriceListNo / integer (int32)<br>query: PaymentPlanNo / integer (int32)<br>query: UnitPointer / integer (int32) | 401: ProblemDetails<br>403: ProblemDetails<br>200: MikroDocumentDeleteResponse<br>400: ProblemDetails<br>404: ProblemDetails |
 | PUT | `/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari/{warehouseNo}` | JWT + duzeltme-islemleri.mikro-evrak-duzenleme.update | path: stockCode / string (zorunlu)<br>path: warehouseNo / integer (int32) (zorunlu)<br>body: request / StockSalesPriceUpsertHttpRequest (zorunlu) | 401: ProblemDetails<br>403: ProblemDetails<br>200: StockSalesPriceUpsertResponse<br>400: ProblemDetails<br>404: ProblemDetails |
 | GET | `/api/entegrasyon-islemleri/pos-muhasebe-aktarimi` | JWT + entegrasyon-islemleri.pos-muhasebe-aktarimi.list | query: StartDate / string (date-time)<br>query: EndDate / string (date-time)<br>query: WarehouseNo / integer (int32)<br>query: OnlyPending / boolean | 401: ProblemDetails<br>403: ProblemDetails<br>200: PosAccountingOverviewDto<br>400: ProblemDetails |
@@ -3037,6 +3039,25 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `stockCard` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardDetailDto | Hayir |  |
 | `summary` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.MikroDocumentUpdateSummary | Hayir |  |
 
+### FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehouseBulkUpdateItemDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `errorMessage` | string | Hayir | nullable |
+| `succeeded` | boolean | Hayir |  |
+| `warehouseName` | string | Hayir | nullable |
+| `warehouseNo` | integer (int32) | Hayir |  |
+| `warehouseSettings` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehouseSettingsDto | Hayir |  |
+
+### FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehouseBulkUpdateResponse
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `failedCount` | integer (int32) | Hayir |  |
+| `items` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehouseBulkUpdateItemDto[] | Hayir | nullable |
+| `requestedCount` | integer (int32) | Hayir |  |
+| `succeededCount` | integer (int32) | Hayir |  |
+
 ### FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehouseSettingsDto
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
@@ -3161,6 +3182,25 @@ Enum degerleri JSON sozlesmesinde bulunur.
 |---|---|---|---|
 | `document` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockMovementDocumentDto | Hayir |  |
 | `summary` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.MikroDocumentUpdateSummary | Hayir |  |
+
+### FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockSalesPriceBulkUpsertItemDto
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `errorMessage` | string | Hayir | nullable |
+| `salesPrice` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockSalesPriceDto | Hayir |  |
+| `succeeded` | boolean | Hayir |  |
+| `warehouseName` | string | Hayir | nullable |
+| `warehouseNo` | integer (int32) | Hayir |  |
+
+### FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockSalesPriceBulkUpsertResponse
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `failedCount` | integer (int32) | Hayir |  |
+| `items` | FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockSalesPriceBulkUpsertItemDto[] | Hayir | nullable |
+| `requestedCount` | integer (int32) | Hayir |  |
+| `succeededCount` | integer (int32) | Hayir |  |
 
 ### FurpaMerkezApi.Application.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockSalesPriceDto
 
@@ -5467,10 +5507,13 @@ Enum degerleri JSON sozlesmesinde bulunur.
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
 |---|---|---|---|
+| `authDbProfileStorageEnabled` | boolean | Hayir |  |
+| `authDbTrackingEnabled` | boolean | Hayir |  |
 | `defaultOverDeliveryTolerancePercent` | number (double) | Hayir |  |
 | `enabled` | boolean | Hayir |  |
 | `modelCodes` | string[] | Hayir | nullable |
 | `orderLinkingEnabled` | boolean | Hayir |  |
+| `requireOrderUserManualApproval` | boolean | Hayir |  |
 | `severeOverDeliveryMultiplier` | number (double) | Hayir |  |
 | `sourceWarehouseNo` | integer (int32) | Hayir |  |
 
@@ -5508,24 +5551,31 @@ Enum degerleri JSON sozlesmesinde bulunur.
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
 |---|---|---|---|
+| `alternativeAverageKgPerCase` | number (double) | Hayir | nullable |
 | `averageCaseCount` | integer (int32) | Hayir | nullable |
 | `averageKgPerCase` | number (double) | Hayir | nullable |
 | `averageRecordCount` | integer (int32) | Hayir | nullable |
 | `averageSource` | string | Hayir | nullable |
+| `averageWindowDaysUsed` | integer (int32) | Hayir | nullable |
+| `calculationTier` | string | Hayir | nullable |
 | `coefficientOfVariation` | number (double) | Hayir | nullable |
 | `confidence` | string | Hayir | nullable |
 | `conversionMode` | string | Hayir | nullable |
+| `driftDetected` | boolean | Hayir |  |
+| `driftPercent` | number (double) | Hayir | nullable |
 | `errors` | string[] | Hayir | nullable |
 | `estimatedQuantity` | number (double) | Hayir |  |
 | `inputMode` | string | Hayir | nullable |
 | `inputQuantity` | number (double) | Hayir |  |
 | `isOrderLinkable` | boolean | Hayir |  |
 | `isUsable` | boolean | Hayir |  |
+| `labelAgeDays` | integer (int32) | Hayir | nullable |
 | `latestLabelDate` | string (date-time) | Hayir | nullable |
 | `microUnit` | string | Hayir | nullable |
 | `modelCode` | string | Hayir | nullable |
 | `modelName` | string | Hayir | nullable |
 | `overDeliveryTolerancePercent` | number (double) | Hayir |  |
+| `priorAverageKgPerCase` | number (double) | Hayir | nullable |
 | `requiresManualApproval` | boolean | Hayir |  |
 | `severeOverDeliveryMultiplier` | number (double) | Hayir |  |
 | `stockCode` | string | Hayir | nullable |
@@ -5699,16 +5749,22 @@ Enum degerleri JSON sozlesmesinde bulunur.
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
 |---|---|---|---|
+| `actualShippedCaseCount` | number (double) | Hayir | nullable |
+| `actualShippedQuantity` | number (double) | Hayir | nullable |
 | `averageCaseCount` | integer (int32) | Hayir | nullable |
 | `averageKgPerCase` | number (double) | Hayir | nullable |
 | `averageRecordCount` | integer (int32) | Hayir | nullable |
 | `averageSource` | string | Hayir | nullable |
+| `calculationTier` | string | Hayir | nullable |
 | `coefficientOfVariation` | number (double) | Hayir | nullable |
 | `confidence` | string | Hayir | nullable |
 | `estimatedQuantity` | number (double) | Hayir |  |
 | `inputMode` | string | Hayir | nullable |
 | `inputQuantity` | number (double) | Hayir |  |
+| `manualApprovalConfirmed` | boolean | Hayir |  |
 | `microUnit` | string | Hayir | nullable |
+| `requiresManualApproval` | boolean | Hayir |  |
+| `shipmentStatus` | string | Hayir | nullable |
 | `unitsPerCase` | number (double) | Hayir | nullable |
 
 ### FurpaMerkezApi.Application.Modules.GreenGrocer.Reports.GreenGrocerReportDocumentDto
@@ -10204,18 +10260,25 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `actualShippedCaseCount` | number (double) | Hayir | nullable |
 | `actualShippedQuantity` | number (double) | Hayir | nullable |
 | `allowOrderLinking` | boolean | Hayir |  |
+| `approvedKgPerCase` | number (double) | Hayir | nullable |
 | `averageCaseCount` | integer (int32) | Hayir | nullable |
 | `averageKgPerCase` | number (double) | Hayir | nullable |
 | `averageRecordCount` | integer (int32) | Hayir | nullable |
 | `averageSource` | string | Hayir | nullable |
+| `averageWindowDaysUsed` | integer (int32) | Hayir | nullable |
+| `calculationTier` | string | Hayir | nullable |
 | `coefficientOfVariation` | number (double) | Hayir | nullable |
 | `confidence` | string | Hayir | nullable |
 | `conversionMode` | string | Hayir | nullable |
+| `driftPercent` | number (double) | Hayir | nullable |
 | `estimatedQuantity` | number (double) | Hayir |  |
 | `inputMode` | string | Hayir | nullable |
 | `inputQuantity` | number (double) | Hayir |  |
+| `labelAgeDays` | integer (int32) | Hayir | nullable |
+| `manualApprovalConfirmed` | boolean | Hayir |  |
 | `microUnit` | string | Hayir | nullable |
 | `overDeliveryTolerancePercent` | number (double) | Hayir |  |
+| `priorAverageKgPerCase` | number (double) | Hayir | nullable |
 | `requiresManualApproval` | boolean | Hayir |  |
 | `severeOverDeliveryMultiplier` | number (double) | Hayir |  |
 | `status` | string | Hayir | nullable |
@@ -11486,6 +11549,14 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `unit4Name` | string | Hayir | minLength=0; maxLength=10; nullable |
 | `wholesaleTaxPointer` | integer (int32) | Hayir | min=0; max=255; nullable |
 
+### FurpaMerkezApi.WebApi.Controllers.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehouseBulkPatchHttpRequest
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `applyToAllActiveWarehouses` | boolean | Hayir |  |
+| `patch` | FurpaMerkezApi.WebApi.Controllers.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehousePatchHttpRequest | Evet |  |
+| `warehouseNos` | integer (int32)[] | Hayir | nullable |
+
 ### FurpaMerkezApi.WebApi.Controllers.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockCardWarehousePatchHttpRequest
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
@@ -11571,6 +11642,19 @@ Enum degerleri JSON sozlesmesinde bulunur.
 | `taxAmount` | number (double) | Hayir | min=0; nullable |
 | `taxPointer` | integer (int32) | Hayir | min=0; max=255; nullable |
 | `unitPointer` | integer (int32) | Hayir | min=1; max=4; nullable |
+
+### FurpaMerkezApi.WebApi.Controllers.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockSalesPriceBulkUpsertHttpRequest
+
+| JSON alani | Tip | Zorunlu | Sinirlar |
+|---|---|---|---|
+| `applyToAllActiveWarehouses` | boolean | Hayir |  |
+| `changeReason` | integer (int32) | Hayir | min=0; max=255 |
+| `currencyType` | integer (int32) | Hayir | min=0; max=255 |
+| `paymentPlanNo` | integer (int32) | Hayir | min=0; max=2147483647 |
+| `price` | number (double) | Hayir |  |
+| `priceListNo` | integer (int32) | Hayir | min=1; max=2147483647 |
+| `unitPointer` | integer (int32) | Hayir | min=1; max=4 |
+| `warehouseNos` | integer (int32)[] | Hayir | nullable |
 
 ### FurpaMerkezApi.WebApi.Controllers.Modules.DuzeltmeIslemleri.MikroEvrakDuzenleme.StockSalesPriceUpsertHttpRequest
 
@@ -12834,6 +12918,7 @@ Enum degerleri JSON sozlesmesinde bulunur.
 |---|---|---|---|
 | `customerResponsibilityCenter` | string | Hayir | minLength=0; maxLength=25; nullable |
 | `description` | string | Hayir | minLength=0; maxLength=50; nullable |
+| `greenGrocerActualCaseCount` | number (double) | Hayir | max=100000; nullable |
 | `greenGrocerOverDeliveryConfirmed` | boolean | Hayir |  |
 | `greenGrocerReferenceOrderLineGuid` | string (uuid) | Hayir | nullable |
 | `lotNo` | integer (int32) | Hayir | min=0; max=2147483647 |
@@ -12943,17 +13028,28 @@ Enum degerleri JSON sozlesmesinde bulunur.
 
 | JSON alani | Tip | Zorunlu | Sinirlar |
 |---|---|---|---|
+| `allowOrderLinking` | boolean | Hayir |  |
+| `approvedKgPerCase` | number (double) | Hayir | nullable |
 | `averageCaseCount` | integer (int32) | Hayir | min=0; max=2147483647; nullable |
 | `averageKgPerCase` | number (double) | Hayir | nullable |
 | `averageRecordCount` | integer (int32) | Hayir | min=0; max=2147483647; nullable |
 | `averageSource` | string | Evet | minLength=0; maxLength=60 |
+| `averageWindowDaysUsed` | integer (int32) | Hayir | min=1; max=365; nullable |
+| `calculationTier` | string | Hayir | minLength=0; maxLength=10; nullable |
 | `coefficientOfVariation` | number (double) | Hayir | min=0; nullable |
 | `confidence` | string | Evet | minLength=0; maxLength=30 |
 | `conversionMode` | string | Evet | minLength=0; maxLength=60 |
+| `driftPercent` | number (double) | Hayir | nullable |
 | `estimatedQuantity` | number (double) | Hayir | max=100000 |
 | `inputMode` | string | Evet | minLength=0; maxLength=40 |
 | `inputQuantity` | number (double) | Hayir | max=100000 |
+| `labelAgeDays` | integer (int32) | Hayir | min=0; max=3650; nullable |
+| `manualApprovalConfirmed` | boolean | Hayir |  |
 | `microUnit` | string | Evet | minLength=0; maxLength=20 |
+| `overDeliveryTolerancePercent` | number (double) | Hayir | min=0; max=1000; nullable |
+| `priorAverageKgPerCase` | number (double) | Hayir | nullable |
+| `requiresManualApproval` | boolean | Hayir |  |
+| `severeOverDeliveryMultiplier` | number (double) | Hayir | min=1.0001; max=100; nullable |
 | `unitsPerCase` | number (double) | Hayir | nullable |
 
 ### FurpaMerkezApi.WebApi.Controllers.Modules.SiparisIslemleri.VerilenFirmaSiparisleri.ApproveCompanyOrderItemHttpRequest

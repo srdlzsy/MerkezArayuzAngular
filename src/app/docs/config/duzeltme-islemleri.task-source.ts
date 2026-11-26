@@ -66,6 +66,12 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
               payload: 'StockCardWarehousePatchHttpRequest'
             },
             {
+              method: 'PUT',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/depolar/toplu',
+              description: 'Stok depo ayarlarini secili veya tum aktif depolara uygular',
+              payload: 'StockCardWarehouseBulkPatchHttpRequest'
+            },
+            {
               method: 'GET',
               path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari',
               description: 'Stok kartinin aktif depo satis fiyatlarini getirir'
@@ -75,6 +81,12 @@ export const DUZELTME_ISLEMLERI_TASK_SOURCE = {
               path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari/{warehouseNo}',
               description: 'Secili depoda stok satis fiyatini olusturur veya gunceller',
               payload: 'StockSalesPriceUpsertHttpRequest'
+            },
+            {
+              method: 'PUT',
+              path: '/api/duzeltme-islemleri/mikro-evrak-duzenleme/stok-kartlari/{stockCode}/satis-fiyatlari/toplu',
+              description: 'Stok satis fiyatini secili veya tum aktif depolara uygular',
+              payload: 'StockSalesPriceBulkUpsertHttpRequest'
             },
             {
               method: 'GET',

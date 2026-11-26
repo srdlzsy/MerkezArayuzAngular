@@ -33,10 +33,14 @@ import type {
   StockCardPatchHttpRequest,
   StockCardSearchHttpRequest,
   StockCardUpdateResponse,
+  StockCardWarehouseBulkPatchHttpRequest,
+  StockCardWarehouseBulkUpdateResponse,
   StockCardWarehousePatchHttpRequest,
   StockCardWarehouseSettingsDto,
   StockCardWarehouseUpdateResponse,
   StockSalesPriceDto,
+  StockSalesPriceBulkUpsertHttpRequest,
+  StockSalesPriceBulkUpsertResponse,
   StockSalesPriceDeleteHttpRequest,
   StockSalesPriceUpsertHttpRequest,
   StockSalesPriceUpsertResponse,
@@ -208,6 +212,16 @@ export class DuzeltmeIslemleriService extends BaseApiService {
     );
   }
 
+  bulkUpdateStockCardWarehouseSettings(
+    stockCode: string,
+    request: StockCardWarehouseBulkPatchHttpRequest
+  ): Observable<StockCardWarehouseBulkUpdateResponse> {
+    return this.put<StockCardWarehouseBulkUpdateResponse, StockCardWarehouseBulkPatchHttpRequest>(
+      `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/depolar/toplu`,
+      request
+    );
+  }
+
   deleteStockCardWarehouseSettings(
     stockCode: string,
     warehouseNo: number
@@ -234,6 +248,16 @@ export class DuzeltmeIslemleriService extends BaseApiService {
   ): Observable<StockSalesPriceUpsertResponse> {
     return this.put<StockSalesPriceUpsertResponse, StockSalesPriceUpsertHttpRequest>(
       `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/satis-fiyatlari/${warehouseNo}`,
+      request
+    );
+  }
+
+  bulkUpsertStockSalesPrice(
+    stockCode: string,
+    request: StockSalesPriceBulkUpsertHttpRequest
+  ): Observable<StockSalesPriceBulkUpsertResponse> {
+    return this.put<StockSalesPriceBulkUpsertResponse, StockSalesPriceBulkUpsertHttpRequest>(
+      `${ROOT}/stok-kartlari/${encodeURIComponent(stockCode)}/satis-fiyatlari/toplu`,
       request
     );
   }

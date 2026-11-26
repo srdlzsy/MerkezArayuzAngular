@@ -33,10 +33,14 @@ import type {
   StockCardListItemDto,
   StockCardPatchHttpRequest,
   StockCardUpdateResponse,
+  StockCardWarehouseBulkPatchHttpRequest,
+  StockCardWarehouseBulkUpdateResponse,
   StockCardWarehousePatchHttpRequest,
   StockCardWarehouseSettingsDto,
   StockCardWarehouseUpdateResponse,
   StockSalesPriceDto,
+  StockSalesPriceBulkUpsertHttpRequest,
+  StockSalesPriceBulkUpsertResponse,
   StockSalesPriceDeleteHttpRequest,
   StockSalesPriceUpsertHttpRequest,
   StockSalesPriceUpsertResponse,
@@ -154,7 +158,9 @@ export class MikroEvrakDuzenlemeListComponent {
   protected readonly stockCardWarehouseSettings = signal<StockCardWarehouseSettingsDto[]>([]);
   protected readonly selectedWarehouseSetting = signal<StockCardWarehouseSettingsDto | null>(null);
   protected readonly warehouseSettingDraft = signal<StockCardWarehouseSettingsDto | null>(null);
-  protected readonly warehouseBusyAction = signal<'load' | 'save' | 'delete' | null>(null);
+  protected readonly warehouseBusyAction = signal<'load' | 'save' | 'delete' | 'bulk' | null>(null);
+  protected readonly bulkWarehouseNos = signal<ReadonlySet<number>>(new Set<number>());
+  protected bulkApplyToAllActiveWarehouses = false;
   protected readonly stockSalesPrices = signal<StockSalesPriceDto[]>([]);
   protected readonly selectedSalesPrice = signal<StockSalesPriceDto | null>(null);
   protected readonly salesPriceDraft = signal<StockSalesPriceDto | null>(null);
@@ -1841,6 +1847,88 @@ export class MikroEvrakDuzenlemeListComponent {
     this.warehouseSettingDraft.set(setting ? this.clone(setting) : null);
   }
 
+  protected isBulkWarehouseSelected(warehouseNo: number): boolean {
+    return this.bulkWarehouseNos().has(warehouseNo);
+  }
+
+  protected toggleBulkWarehouse(warehouseNo: number, selected: boolean): void {
+    const next = new Set(this.bulkWarehouseNos());
+    if (selected) {
+      next.add(warehouseNo);
+    } else {
+      next.delete(warehouseNo);
+    }
+    this.bulkWarehouseNos.set(next);
+  }
+
+  protected selectAllVisibleWarehouses(): void {
+    this.bulkWarehouseNos.set(
+      new Set(this.stockCardWarehouseSettings().map((item) => item.warehouseNo))
+    );
+  }
+
+  protected clearBulkWarehouses(): void {
+    this.bulkWarehouseNos.set(new Set<number>());
+  }
+
+  protected async saveWarehouseSettingsBulk(resetToGlobal = false): Promise<void> {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    const draft = this.warehouseSettingDraft();
+    const warehouseNos = [...this.bulkWarehouseNos()];
+    if (
+      !stockCode ||
+      !draft ||
+      !this.canUpdate() ||
+      (!this.bulkApplyToAllActiveWarehouses && warehouseNos.length === 0)
+    ) {
+      return;
+    }
+
+    const targetText = this.bulkApplyToAllActiveWarehouses
+      ? 'tum aktif depolara'
+      : `${warehouseNos.length} secili depoya`;
+    const confirmed = await this.confirmDialog.confirm({
+      title: resetToGlobal ? 'Depo ayarlari globale donsun mu?' : 'Depo ayarlari toplu uygulansin mi?',
+      message: `${stockCode} stok kartinin depo ayarlari ${targetText} uygulanacak.`,
+      confirmText: 'Uygula',
+      tone: 'warning'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const request: StockCardWarehouseBulkPatchHttpRequest = {
+      warehouseNos,
+      applyToAllActiveWarehouses: this.bulkApplyToAllActiveWarehouses,
+      patch: resetToGlobal
+        ? { resetToGlobal: true }
+        : {
+            salesStopped: draft.salesStopped,
+            orderStopped: draft.orderStopped,
+            receivingStopped: draft.receivingStopped,
+            isPassive: draft.isPassive,
+            discountDisabled: draft.discountDisabled,
+            resetToGlobal: false
+          }
+    };
+
+    this.warehouseBusyAction.set('bulk');
+    this.feedback.set(null);
+    this.service
+      .bulkUpdateStockCardWarehouseSettings(stockCode, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.warehouseBusyAction.set(null))
+      )
+      .subscribe({
+        next: (response: StockCardWarehouseBulkUpdateResponse) => {
+          this.loadStockCardWarehouseSettings();
+          this.setBulkOperationFeedback('Depo ayarlari', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Depo ayarlari toplu uygulanamadi.')
+      });
+  }
+
   protected setWarehouseField(
     draft: StockCardWarehouseSettingsDto,
     key: string,
@@ -1966,6 +2054,60 @@ export class MikroEvrakDuzenlemeListComponent {
           this.selectSalesPrice(null);
           this.handleError(error, 'Stok satis fiyatlari getirilemedi.');
         }
+      });
+  }
+
+  protected async saveSalesPriceBulk(): Promise<void> {
+    const stockCode = this.selectedStockCard()?.stockCode;
+    const price = this.toPositiveNumber(this.newSalesPrice.price);
+    const warehouseNos = [...this.bulkWarehouseNos()];
+    if (
+      !stockCode ||
+      !price ||
+      !this.canUpdate() ||
+      (!this.bulkApplyToAllActiveWarehouses && warehouseNos.length === 0)
+    ) {
+      return;
+    }
+
+    const targetText = this.bulkApplyToAllActiveWarehouses
+      ? 'tum aktif depolara'
+      : `${warehouseNos.length} secili depoya`;
+    const confirmed = await this.confirmDialog.confirm({
+      title: 'Satis fiyati toplu uygulansin mi?',
+      message: `${stockCode} icin ${price} tutarindaki fiyat ${targetText} yazilacak.`,
+      confirmText: 'Fiyati Uygula',
+      tone: 'warning'
+    });
+    if (!confirmed) {
+      return;
+    }
+
+    const request: StockSalesPriceBulkUpsertHttpRequest = {
+      warehouseNos,
+      applyToAllActiveWarehouses: this.bulkApplyToAllActiveWarehouses,
+      priceListNo: this.toPositiveNumber(this.newSalesPrice.priceListNo) ?? 1,
+      paymentPlanNo: this.toNonNegativeNumber(this.newSalesPrice.paymentPlanNo) ?? 0,
+      unitPointer: this.toPositiveNumber(this.newSalesPrice.unitPointer) ?? 1,
+      price,
+      currencyType: this.toNonNegativeNumber(this.newSalesPrice.currencyType) ?? 0,
+      changeReason: this.toNonNegativeNumber(this.newSalesPrice.changeReason) ?? 4
+    };
+
+    this.busyAction.set('sales-price-bulk-save');
+    this.feedback.set(null);
+    this.service
+      .bulkUpsertStockSalesPrice(stockCode, request)
+      .pipe(
+        takeUntilDestroyed(this.destroyRef),
+        finalize(() => this.busyAction.set(null))
+      )
+      .subscribe({
+        next: (response: StockSalesPriceBulkUpsertResponse) => {
+          this.loadStockSalesPrices();
+          this.setBulkOperationFeedback('Satis fiyatlari', response);
+        },
+        error: (error: unknown) => this.handleError(error, 'Satis fiyati toplu uygulanamadi.')
       });
   }
 
@@ -2804,6 +2946,31 @@ export class MikroEvrakDuzenlemeListComponent {
   private toNonNegativeNumber(value: unknown): number | undefined {
     const numberValue = Number(value);
     return Number.isFinite(numberValue) && numberValue >= 0 ? numberValue : undefined;
+  }
+
+  private setBulkOperationFeedback(
+    title: string,
+    response: {
+      requestedCount: number;
+      succeededCount: number;
+      failedCount: number;
+      items: Array<{ warehouseNo: number; warehouseName: string; errorMessage: string | null }>;
+    }
+  ): void {
+    const failed = response.items
+      .filter((item) => !!item.errorMessage)
+      .slice(0, 3)
+      .map(
+        (item) =>
+          `${item.warehouseNo}${item.warehouseName ? ` - ${item.warehouseName}` : ''}: ${item.errorMessage}`
+      );
+    this.feedback.set({
+      tone: response.failedCount > 0 ? 'info' : 'success',
+      title: response.failedCount > 0 ? `${title} kismi tamamlandi` : `${title} uygulandi`,
+      message: `${response.succeededCount}/${response.requestedCount} depo basarili${
+        failed.length ? `. Hata: ${failed.join(' | ')}` : ''
+      }`
+    });
   }
 
   private toNullableNumber(value: unknown): number | null {
