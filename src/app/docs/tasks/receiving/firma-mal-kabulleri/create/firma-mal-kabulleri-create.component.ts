@@ -1196,10 +1196,17 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
       payload.selectedCustomer ? this.getCustomerLabel(payload.selectedCustomer) : '',
       { emitEvent: false }
     );
+    this.officialDocumentPreview.set(null);
+    this.availableOrders.set([]);
+    this.selectedOrderKeys.set([]);
+    this.officialDocumentQuery.setValue('', { emitEvent: false });
+    this.createdReceiptResult.set(null);
     this.customerResults.set([]);
     this.stockResults.set([]);
     this.customerError.set('');
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -1226,6 +1233,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     this.officialDocumentPreview.set(null);
     this.availableOrders.set([]);
     this.selectedOrderKeys.set([]);
+    this.createdReceiptResult.set(null);
     this.customerQuery.setValue('', { emitEvent: false });
     this.stockQuery.setValue('', { emitEvent: false });
     this.officialDocumentQuery.setValue('', { emitEvent: false });
@@ -1234,6 +1242,7 @@ export class FirmaMalKabulleriCreateComponent extends DocsTaskDialogBase {
     this.customerError.set('');
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateCompanyReceiptRequestApiDto {

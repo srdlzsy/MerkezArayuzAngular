@@ -385,6 +385,9 @@ export class B2BAyarlariListComponent {
   }
 
   protected selectUser(user: B2BUserDto): void {
+    if (this.selectedUser()?.userId !== user.userId) {
+      this.selectedUser.set(null);
+    }
     this.applyUserDraft(user);
     this.resetPasswordDraft = '';
     this.resetPasswordConfirmDraft = '';
@@ -444,6 +447,10 @@ export class B2BAyarlariListComponent {
       category: item.category.trim() || '01'
     }));
 
+    // Detay (bagli cariler) yuklenmeden guncelleme yapilirsa mevcut bagli carileri silmemek icin
+    // accounts alanini null gonder; API null geldiginde UserAccounts kayitlarina dokunmaz.
+    const accountsLoaded = !isEdit || this.selectedUser()?.userId === this.userDraft.userId;
+
     if (!isEdit) {
       if (this.userDraft.password.length < 6) {
         this.setFeedback('error', 'Sifre gecersiz', 'Yeni kullanici sifresi en az 6 karakter olmalidir.');
@@ -495,7 +502,7 @@ export class B2BAyarlariListComponent {
       status: this.userDraft.status,
       menus: this.userDraft.menus.trim() || null,
       userEndDate: endDateIso,
-      accounts: accountsPayload
+      accounts: accountsLoaded ? accountsPayload : null
     };
 
     this.loadingAction.set('save');

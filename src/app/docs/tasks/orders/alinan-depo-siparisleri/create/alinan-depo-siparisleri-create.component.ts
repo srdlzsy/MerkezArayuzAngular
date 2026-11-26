@@ -656,6 +656,7 @@ export class AlinanDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.warehouseError.set('');
     this.stockError.set('');
+    this.submitError.set('');
   }
 
   private resetBrowserDraftForm(): void {

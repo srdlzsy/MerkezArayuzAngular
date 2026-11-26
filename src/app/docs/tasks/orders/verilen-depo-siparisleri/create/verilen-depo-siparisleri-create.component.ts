@@ -1164,6 +1164,8 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.warehouseError.set('');
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -1189,6 +1191,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.warehouseError.set('');
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateWarehouseOrderRequestApiDto {

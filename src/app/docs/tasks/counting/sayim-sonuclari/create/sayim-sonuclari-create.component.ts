@@ -320,6 +320,8 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     );
     this.stockResults.set([]);
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -336,6 +338,7 @@ export class SayimSonuclariCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateInventoryCountRequestApiDto {

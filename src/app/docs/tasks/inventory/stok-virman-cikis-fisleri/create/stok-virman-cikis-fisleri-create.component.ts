@@ -457,9 +457,10 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     lines.forEach((line) =>
       this.lines.push(this.createLineFormGroupFromValue(line), { emitEvent: false })
     );
-    this.outgoingStockResults.set([]);
-    this.incomingStockResults.set([]);
+    this.clearVirmanPairForm();
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -477,6 +478,7 @@ export class StokVirmanCikisFisleriCreateComponent extends DocsTaskDialogBase {
     this.clearVirmanPairForm();
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateVirmanRequestApiDto {

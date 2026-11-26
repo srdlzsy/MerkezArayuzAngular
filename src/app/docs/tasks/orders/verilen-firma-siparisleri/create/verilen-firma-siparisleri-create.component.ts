@@ -854,10 +854,14 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
       payload.selectedCustomer ? this.getCustomerLabel(payload.selectedCustomer) : '',
       { emitEvent: false },
     );
+    this.customerProducts.set([]);
+    this.customerProductsQuery.setValue('', { emitEvent: false });
     this.customerResults.set([]);
     this.stockResults.set([]);
     this.customerError.set('');
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -887,6 +891,7 @@ export class VerilenFirmaSiparisleriCreateComponent extends DocsTaskDialogBase {
     this.customerError.set('');
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateCompanyOrderRequestApiDto {

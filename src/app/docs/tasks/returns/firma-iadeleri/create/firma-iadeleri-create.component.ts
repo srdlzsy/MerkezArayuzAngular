@@ -527,6 +527,8 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.customerError.set('');
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -553,6 +555,7 @@ export class FirmaIadeleriCreateComponent extends DocsTaskDialogBase {
     this.customerError.set('');
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateCompanyShipmentRequestApiDto {

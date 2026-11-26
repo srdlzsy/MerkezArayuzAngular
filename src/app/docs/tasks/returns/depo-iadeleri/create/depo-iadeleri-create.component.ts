@@ -700,10 +700,15 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
       payload.selectedWarehouse ? this.getWarehouseLabel(payload.selectedWarehouse) : '',
       { emitEvent: false }
     );
+    this.returnableProductsPanelOpen.set(false);
+    this.returnableProducts.set([]);
+    this.selectedReturnableProductCodes.set(new Set());
     this.warehouseResults.set([]);
     this.stockResults.set([]);
     this.warehouseError.set('');
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -732,6 +737,7 @@ export class DepoIadeleriCreateComponent extends DocsTaskDialogBase {
     this.warehouseError.set('');
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateWarehouseReturnRequestApiDto {

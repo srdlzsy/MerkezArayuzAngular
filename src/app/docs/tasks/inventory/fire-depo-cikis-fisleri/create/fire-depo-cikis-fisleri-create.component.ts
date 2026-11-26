@@ -352,6 +352,8 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
     );
     this.stockResults.set([]);
     this.stockError.set('');
+    this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private resetBrowserDraftForm(): void {
@@ -372,6 +374,7 @@ export class FireDepoCikisFisleriCreateComponent extends DocsTaskDialogBase {
     this.stockResults.set([]);
     this.stockError.set('');
     this.submitError.set('');
+    this.safeCreateRetry.reset();
   }
 
   private buildRequest(): IFurpaCreateStockReceiptRequestApiDto {

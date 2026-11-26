@@ -127,11 +127,24 @@ export class CreateWorkflowBarComponent implements OnInit, OnChanges {
   private scheduleFocus(selector: string): void {
     const run = (): void => {
       const dialogRoot = this.findDialogRoot();
-      const target = dialogRoot?.querySelector<HTMLInputElement>(selector);
-      if (target && !target.disabled) {
-        target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
-        target.focus();
-        target.select?.();
+      if (!dialogRoot) {
+        return;
+      }
+
+      const candidates = Array.from(dialogRoot.querySelectorAll<HTMLElement>(selector));
+      const target =
+        candidates.find((el) => !(el as HTMLInputElement).disabled && el.offsetParent !== null) ??
+        candidates.find((el) => !(el as HTMLInputElement).disabled);
+
+      if (!target) {
+        return;
+      }
+
+      target.scrollIntoView({ block: 'nearest', behavior: 'smooth' });
+      target.focus();
+
+      if (target instanceof HTMLInputElement || target instanceof HTMLTextAreaElement) {
+        target.select();
       }
     };
 
