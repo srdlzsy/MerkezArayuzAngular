@@ -313,6 +313,16 @@
                 >
                   {{ getLineResolutionLabel(kalem) }}
                 </span>
+                <span
+                  class="resolution-note resolution-note-warning"
+                  *ngIf="
+                    isGreenGrocerOrder() &&
+                    kalem.controls.cozumDurum.value !== 'error' &&
+                    kalem.controls.cozumHata.value
+                  "
+                >
+                  {{ kalem.controls.cozumHata.value }}
+                </span>
               </div>
             </div>
             <div class="col-miktar">

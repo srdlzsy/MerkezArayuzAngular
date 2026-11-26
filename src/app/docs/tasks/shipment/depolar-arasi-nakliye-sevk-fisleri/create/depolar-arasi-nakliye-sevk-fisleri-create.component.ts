@@ -14,7 +14,8 @@ import type {
   IFurpaWarehouseOrderDetailApiDto,
   IFurpaWarehouseOrderItemApiDto,
   IFurpaProductSearchItemApiDto,
-  IFurpaCreateWarehouseShippingRequestApiDto
+  IFurpaCreateWarehouseShippingRequestApiDto,
+  WarehouseOrderLineGreenGrocerCaseDto
 } from '@interfaces';
 import { finalize } from 'rxjs';
 
@@ -60,6 +61,9 @@ interface KalemFormValue {
   aciklama: string;
   skt: string;
   modelKodu: string;
+  greenGrocerCase?: WarehouseOrderLineGreenGrocerCaseDto | null;
+  greenGrocerActualCaseCount?: number | null;
+  greenGrocerOverDeliveryConfirmed?: boolean;
 }
 
 interface DepolarArasiNakliyeSevkDraftPayload {
@@ -91,6 +95,9 @@ type KalemFormGroup = FormGroup<{
   aciklama: FormControl<string>;
   skt: FormControl<string>;
   modelKodu: FormControl<string>;
+  greenGrocerCase: FormControl<WarehouseOrderLineGreenGrocerCaseDto | null>;
+  greenGrocerActualCaseCount: FormControl<number | null>;
+  greenGrocerOverDeliveryConfirmed: FormControl<boolean>;
 }>;
 
 @Component({
@@ -556,6 +563,10 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       return;
     }
 
+    if (!this.validateGreenGrocerShipments()) {
+      return;
+    }
+
     let request: IFurpaCreateWarehouseShippingRequestApiDto;
     try {
       request = this.buildRequest();
@@ -655,8 +666,9 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
   }
 
   private createKalemFormGroupFromValue(value: KalemFormValue): KalemFormGroup {
+    const isGreenGrocer = !!value.greenGrocerCase;
     const quantityValidators = [Validators.required, Validators.min(0.01)];
-    if (Number(value.siparisMiktari ?? 0) > 0) {
+    if (!isGreenGrocer && Number(value.siparisMiktari ?? 0) > 0) {
       quantityValidators.push(Validators.max(Number(value.siparisMiktari)));
     }
 
@@ -676,7 +688,14 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       miktar: new FormControl<number | null>(value.miktar, { validators: quantityValidators }),
       aciklama: new FormControl(value.aciklama, { nonNullable: true, validators: [Validators.maxLength(50)] }),
       skt: new FormControl(value.skt, { nonNullable: true }),
-      modelKodu: new FormControl(value.modelKodu, { nonNullable: true, validators: [Validators.maxLength(25)] })
+      modelKodu: new FormControl(value.modelKodu, { nonNullable: true, validators: [Validators.maxLength(25)] }),
+      greenGrocerCase: new FormControl<WarehouseOrderLineGreenGrocerCaseDto | null>(value.greenGrocerCase ?? null),
+      greenGrocerActualCaseCount: new FormControl<number | null>(value.greenGrocerActualCaseCount ?? null, {
+        validators: [Validators.min(0.01)]
+      }),
+      greenGrocerOverDeliveryConfirmed: new FormControl<boolean>(!!value.greenGrocerOverDeliveryConfirmed, {
+        nonNullable: true
+      })
     });
   }
 
@@ -758,17 +777,20 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
     });
 
     const incomingQuantity = this.getOrderLineRemainingQuantity(kalem);
+    const greenGrocerCase = kalem.greenGrocerCase ?? null;
+    const isGreenGrocer = !!greenGrocerCase;
 
     if (existingControl) {
       const currentSevk = Number(existingControl.controls.miktar.value ?? 0);
       existingControl.controls.siparisMiktari.setValue(incomingQuantity);
-      existingControl.controls.miktar.setValidators([
-        Validators.required,
-        Validators.min(0.01),
-        Validators.max(incomingQuantity)
-      ]);
+      existingControl.controls.greenGrocerCase.setValue(greenGrocerCase);
+      const validators = [Validators.required, Validators.min(0.01)];
+      if (!isGreenGrocer) {
+        validators.push(Validators.max(incomingQuantity));
+      }
+      existingControl.controls.miktar.setValidators(validators);
 
-      if (!Number.isFinite(currentSevk) || currentSevk <= 0 || currentSevk > incomingQuantity) {
+      if (!Number.isFinite(currentSevk) || currentSevk <= 0 || (!isGreenGrocer && currentSevk > incomingQuantity)) {
         existingControl.controls.miktar.setValue(incomingQuantity);
       }
 
@@ -778,30 +800,149 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
       return true;
     }
 
+    const defaultQuantity = isGreenGrocer
+      ? Math.max(0.01, this.roundMetric(greenGrocerCase.estimatedQuantity - (greenGrocerCase.actualShippedQuantity ?? 0)))
+      : incomingQuantity;
+
     this.kalemler.push(
-      new FormGroup({
-        taslakGuid: new FormControl('', { nonNullable: true }),
-        siparisGuid: new FormControl(siparisGuid, { nonNullable: true }),
-        siparisReferansi: new FormControl(siparisReferansi, { nonNullable: true }),
-        stokKodu: new FormControl(stokKodu, {
-          nonNullable: true,
-          validators: [Validators.required]
-        }),
-        stokIsmi: new FormControl(kalem.stockName?.trim() ?? '', { nonNullable: true }),
-        barkodu: new FormControl('', { nonNullable: true }),
-        birim: new FormControl(kalem.unitName?.trim() ?? '', { nonNullable: true }),
-        birimKatsayisi: new FormControl(kalem.unitPointer ?? 1),
-        siparisMiktari: new FormControl<number | null>(incomingQuantity),
-        miktar: new FormControl<number | null>(incomingQuantity, {
-          validators: [Validators.required, Validators.min(0.01), Validators.max(incomingQuantity)]
-        }),
-        aciklama: new FormControl(trimToMaxLength(kalem.description, 50), { nonNullable: true, validators: [Validators.maxLength(50)] }),
-        skt: new FormControl('', { nonNullable: true }),
-        modelKodu: new FormControl('', { nonNullable: true, validators: [Validators.maxLength(25)] })
+      this.createKalemFormGroupFromValue({
+        taslakGuid: '',
+        siparisGuid,
+        siparisReferansi,
+        stokKodu,
+        stokIsmi: kalem.stockName?.trim() ?? '',
+        barkodu: '',
+        birim: kalem.unitName?.trim() ?? '',
+        birimKatsayisi: kalem.unitPointer ?? 1,
+        siparisMiktari: incomingQuantity,
+        miktar: defaultQuantity > 0 ? defaultQuantity : incomingQuantity,
+        aciklama: trimToMaxLength(kalem.description, 50),
+        skt: '',
+        modelKodu: '',
+        greenGrocerCase,
+        greenGrocerActualCaseCount: null,
+        greenGrocerOverDeliveryConfirmed: false
       })
     );
 
     return true;
+  }
+
+  protected getGreenGrocerShipmentMetrics(control: KalemFormGroup): {
+    inputQuantity: number;
+    inputModeLabel: string;
+    microUnit: string;
+    expected: number;
+    previousShipped: number;
+    currentShipped: number;
+    totalShipped: number;
+    remaining: number;
+    completionPercent: number;
+    averageKgPerCase: number | null;
+    priorAverageKgPerCase: number | null;
+    knownShippedCases: number | null;
+    severity: 'normal' | 'warning' | 'critical';
+    warningLimit: number;
+    criticalLimit: number;
+    requiresApproval: boolean;
+  } | null {
+    const snapshot = control.controls.greenGrocerCase.value;
+    if (!snapshot) {
+      return null;
+    }
+
+    const expected = Number(snapshot.estimatedQuantity ?? 0);
+    const previousShipped = Number(snapshot.actualShippedQuantity ?? 0);
+    const currentShipped = Math.max(0, Number(control.controls.miktar.value ?? 0) || 0);
+    const totalShipped = this.roundMetric(previousShipped + currentShipped);
+    const remaining = Math.max(0, this.roundMetric(expected - totalShipped));
+    const completionPercent = expected > 0 ? Math.round((totalShipped / expected) * 1000) / 10 : 0;
+    const tolerancePercent = Number(snapshot.overDeliveryTolerancePercent ?? 20);
+    const severeMultiplier = Number(snapshot.severeOverDeliveryMultiplier ?? 1.5);
+    const warningLimit = this.roundMetric(expected * (1 + tolerancePercent / 100));
+    const criticalLimit = this.roundMetric(expected * severeMultiplier);
+
+    let severity: 'normal' | 'warning' | 'critical' = 'normal';
+    if (expected > 0 && totalShipped >= criticalLimit) {
+      severity = 'critical';
+    } else if (expected > 0 && totalShipped > warningLimit) {
+      severity = 'warning';
+    }
+
+    const prevCases = snapshot.actualShippedCaseCount;
+    const currCases = control.controls.greenGrocerActualCaseCount.value;
+    const hasKnownCases =
+      (typeof prevCases === 'number' && prevCases > 0) ||
+      (typeof currCases === 'number' && currCases > 0);
+    const knownShippedCases = hasKnownCases
+      ? this.roundMetric((prevCases ?? 0) + (currCases && currCases > 0 ? currCases : 0))
+      : null;
+
+    return {
+      inputQuantity: Number(snapshot.inputQuantity ?? 0),
+      inputModeLabel: this.getGreenGrocerInputModeLabel(snapshot.inputMode),
+      microUnit: snapshot.microUnit || control.controls.birim.value || 'KG',
+      expected,
+      previousShipped,
+      currentShipped,
+      totalShipped,
+      remaining,
+      completionPercent,
+      averageKgPerCase: snapshot.averageKgPerCase ?? null,
+      priorAverageKgPerCase: snapshot.priorAverageKgPerCase ?? null,
+      knownShippedCases,
+      severity,
+      warningLimit,
+      criticalLimit,
+      requiresApproval: severity === 'warning' || !!snapshot.requiresManualApproval
+    };
+  }
+
+  private validateGreenGrocerShipments(): boolean {
+    for (const control of this.kalemler.controls) {
+      const metrics = this.getGreenGrocerShipmentMetrics(control);
+      if (!metrics) {
+        continue;
+      }
+
+      const name = control.controls.stokIsmi.value || control.controls.stokKodu.value;
+      if (metrics.severity === 'critical') {
+        this.submitError.set(
+          `${name} icin toplam sevk (${metrics.totalShipped} ${metrics.microUnit}) kritik siniri (${metrics.criticalLimit} ${metrics.microUnit}) asiyor. Miktari duzeltmeden kaydedilemez.`
+        );
+        return false;
+      }
+
+      if (metrics.requiresApproval && !control.controls.greenGrocerOverDeliveryConfirmed.value) {
+        this.submitError.set(
+          `${name} icin fazla sevk / manuel onay kutusunu isaretlemeden kaydedilemez.`
+        );
+        return false;
+      }
+    }
+
+    return true;
+  }
+
+  private getGreenGrocerInputModeLabel(mode: string | null | undefined): string {
+    switch (mode) {
+      case 'Case':
+        return 'kasa';
+      case 'Pack':
+        return 'koli';
+      case 'Piece':
+        return 'adet';
+      case 'KgDirect':
+        return 'kg';
+      case 'Sarf':
+        return 'sarf';
+      default:
+        return 'kasa';
+    }
+  }
+
+  private roundMetric(value: number): number {
+    return Math.round(value * 1000) / 1000;
   }
 
   private canUseOrderLineForDispatch(kalem: IFurpaWarehouseOrderItemApiDto): boolean {
@@ -830,11 +971,20 @@ export class DepolarArasiNakliyeSevkFisleriCreateComponent extends DocsTaskDialo
   }
 
   private mapKalem(kalem: KalemFormValue, sourceWarehouseNo: number | undefined) {
-    const warehouseOrderLineGuid =
-      sourceWarehouseNo === 56 ? null : this.normalizeOptionalText(kalem.siparisGuid);
+    const orderGuid = this.normalizeOptionalText(kalem.siparisGuid);
+    const isGreenGrocer = sourceWarehouseNo === 56 || !!kalem.greenGrocerCase;
+    const warehouseOrderLineGuid = isGreenGrocer ? null : orderGuid;
+    const greenGrocerReferenceOrderLineGuid = isGreenGrocer && orderGuid ? orderGuid : null;
+    const actualCaseCount =
+      typeof kalem.greenGrocerActualCaseCount === 'number' && kalem.greenGrocerActualCaseCount > 0
+        ? this.roundMetric(kalem.greenGrocerActualCaseCount)
+        : null;
 
     return {
       ...(warehouseOrderLineGuid ? { warehouseOrderLineGuid } : {}),
+      ...(greenGrocerReferenceOrderLineGuid ? { greenGrocerReferenceOrderLineGuid } : {}),
+      ...(kalem.greenGrocerOverDeliveryConfirmed ? { greenGrocerOverDeliveryConfirmed: true } : {}),
+      ...(actualCaseCount !== null ? { greenGrocerActualCaseCount: actualCaseCount } : {}),
       stockCode: kalem.stokKodu.trim(),
       quantity: Number(kalem.miktar ?? 0),
       unitPrice: 0,

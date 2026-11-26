@@ -48,6 +48,12 @@ export interface GreenGrocerProductCaseInfoDto {
   averageRecordCount: number | null;
   averageCaseCount: number | null;
   coefficientOfVariation: number | null;
+  calculationTier?: string | null;
+  requiresManualApproval?: boolean;
+  manualApprovalConfirmed?: boolean;
+  actualShippedQuantity?: number | null;
+  actualShippedCaseCount?: number | null;
+  shipmentStatus?: string | null;
 }
 
 export interface IFurpaGreenGrocerSummaryReportItemApiDto {
@@ -225,9 +231,30 @@ export interface GreenGrocerProductCaseResolutionDto {
   confidence: GreenGrocerProductCaseConfidence;
   requiresManualApproval: boolean;
   isOrderLinkable: boolean;
+  overDeliveryTolerancePercent?: number | null;
+  severeOverDeliveryMultiplier?: number | null;
   isUsable: boolean;
   warnings: string[];
   errors: string[];
+  calculationTier?: string | null;
+  averageWindowDaysUsed?: number | null;
+  labelAgeDays?: number | null;
+  priorAverageKgPerCase?: number | null;
+  driftPercent?: number | null;
+  driftDetected?: boolean;
+  alternativeAverageKgPerCase?: number | null;
+}
+
+export interface GreenGrocerProductCaseCapabilitiesDto {
+  enabled: boolean;
+  orderLinkingEnabled: boolean;
+  requireOrderUserManualApproval: boolean;
+  authDbProfileStorageEnabled: boolean;
+  authDbTrackingEnabled: boolean;
+  sourceWarehouseNo: number;
+  modelCodes: string[];
+  defaultOverDeliveryTolerancePercent: number;
+  severeOverDeliveryMultiplier: number;
 }
 
 export type GreenGrocerOperationsTypeCode = '10' | '11' | '12' | '23' | 'all' | 'tum' | string;

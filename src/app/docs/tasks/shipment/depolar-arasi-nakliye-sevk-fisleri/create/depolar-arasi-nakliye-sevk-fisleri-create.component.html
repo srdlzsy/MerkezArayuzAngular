@@ -253,22 +253,52 @@
                 <span class="kalem-kod" *ngIf="kalem.controls.siparisReferansi.value">
                   Siparis: {{ kalem.controls.siparisReferansi.value }}
                 </span>
-                <span class="kalem-barkod" *ngIf="kalem.controls.siparisMiktari.value !== null">
+                <span class="kalem-barkod" *ngIf="!kalem.controls.greenGrocerCase.value && kalem.controls.siparisMiktari.value !== null">
                   Kalan Miktar: {{ kalem.controls.siparisMiktari.value | number: '1.0-2' }}
                 </span>
                 <span class="kalem-barkod" *ngIf="kalem.controls.barkodu.value">Barkod: {{ kalem.controls.barkodu.value }}</span>
-                <span class="package-note" *ngIf="(kalem.controls.birimKatsayisi.value ?? 0) > 1">Koli ici: {{ kalem.controls.birimKatsayisi.value }} {{ kalem.controls.birim.value || 'birim' }}</span>
+                <span class="package-note" *ngIf="!kalem.controls.greenGrocerCase.value && (kalem.controls.birimKatsayisi.value ?? 0) > 1">Koli ici: {{ kalem.controls.birimKatsayisi.value }} {{ kalem.controls.birim.value || 'birim' }}</span>
+                <div class="gg-shipment-strip" *ngIf="getGreenGrocerShipmentMetrics(kalem) as gg">
+                  <div class="gg-metrics-4">
+                    <span><small>Istenen</small><strong>{{ gg.inputQuantity | number: '1.0-2' }} {{ gg.inputModeLabel }}</strong></span>
+                    <span><small>Hedef</small><strong>{{ gg.expected | number: '1.0-2' }} {{ gg.microUnit }}</strong></span>
+                    <span><small>Sevk edilen</small><strong>{{ gg.totalShipped | number: '1.0-2' }} {{ gg.microUnit }} (%{{ gg.completionPercent | number: '1.0-1' }})</strong></span>
+                    <span><small>Kalan</small><strong>{{ gg.remaining | number: '1.0-2' }} {{ gg.microUnit }}</strong></span>
+                  </div>
+                  <div class="gg-meta-line">
+                    <span *ngIf="gg.averageKgPerCase">Katsayi: {{ gg.averageKgPerCase | number: '1.0-2' }} KG/kasa</span>
+                    <span *ngIf="gg.previousShipped > 0">Onceki sevk: {{ gg.previousShipped | number: '1.0-2' }} {{ gg.microUnit }}</span>
+                    <span>Fiziksel kasa: {{ gg.knownShippedCases !== null ? (gg.knownShippedCases | number: '1.0-2') + ' kasa' : 'Kasa adedi bilinmiyor' }}</span>
+                    <span *ngIf="gg.priorAverageKgPerCase">Onceki ort: {{ gg.priorAverageKgPerCase | number: '1.0-2' }} KG</span>
+                  </div>
+                  <div class="gg-alert gg-alert-critical" *ngIf="gg.severity === 'critical'">
+                    Kritik sinir ({{ gg.criticalLimit | number: '1.0-2' }} {{ gg.microUnit }}) asildi — miktari azaltin.
+                  </div>
+                  <label class="gg-confirm-check" *ngIf="gg.severity !== 'critical' && gg.requiresApproval">
+                    <input type="checkbox" formControlName="greenGrocerOverDeliveryConfirmed" />
+                    <span>Tolerans ustu / onayli sevki onayliyorum (ust sinir {{ gg.warningLimit | number: '1.0-2' }} {{ gg.microUnit }})</span>
+                  </label>
+                </div>
               </div>
             </div>
             <div class="col-miktar">
               <input
                 type="number"
-                [attr.min]="kalem.controls.siparisMiktari.value !== null ? 0.01 : (kalem.controls.birimKatsayisi.value ?? 1)"
-                [attr.max]="kalem.controls.siparisMiktari.value ?? null"
-                [attr.step]="kalem.controls.birimKatsayisi.value ?? 1"
+                [attr.min]="kalem.controls.greenGrocerCase.value || kalem.controls.siparisMiktari.value !== null ? 0.01 : (kalem.controls.birimKatsayisi.value ?? 1)"
+                [attr.max]="kalem.controls.greenGrocerCase.value ? null : (kalem.controls.siparisMiktari.value ?? null)"
+                [attr.step]="kalem.controls.greenGrocerCase.value ? 0.01 : (kalem.controls.birimKatsayisi.value ?? 1)"
                 formControlName="miktar"
-                placeholder="Sevk"
+                [placeholder]="kalem.controls.greenGrocerCase.value ? 'Gercek KG' : 'Sevk'"
                 [class.error]="kalem.controls.miktar.invalid && kalem.controls.miktar.touched"
+              />
+              <input
+                *ngIf="kalem.controls.greenGrocerCase.value"
+                type="number"
+                min="0.01"
+                step="1"
+                formControlName="greenGrocerActualCaseCount"
+                placeholder="Kasa (ops.)"
+                class="gg-case-input"
               />
               <small class="field-error" *ngIf="kalem.controls.miktar.invalid && kalem.controls.miktar.touched">
                 {{ kalem.controls.miktar.hasError('max') ? 'Kalan miktari asamaz.' : 'Gecerli miktar' }}

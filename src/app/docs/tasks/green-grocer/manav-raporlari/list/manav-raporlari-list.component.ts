@@ -106,6 +106,10 @@ interface ProductBreakdownExportRow {
   quantity: number;
   caseText: string;
   caseAverageText: string;
+  tierStatusText: string;
+  shipmentText: string;
+  actualShippedQuantity: number | null;
+  actualShippedCaseText: string;
 }
 
 const TASK_ID = 'green-grocer-reports';
@@ -261,6 +265,10 @@ export class ManavRaporlariListComponent {
         quantity: this.toSafeNumber(item.quantity),
         caseText: this.formatCaseInfo(item.caseInfo),
         caseAverageText: this.formatCaseAverage(item.caseInfo),
+        tierStatusText: this.formatCaseTierStatus(item.caseInfo),
+        shipmentText: this.formatCaseShipment(item.caseInfo),
+        actualShippedQuantity: this.toFiniteNumber(item.caseInfo?.actualShippedQuantity),
+        actualShippedCaseText: this.formatCaseShippedCaseCount(item.caseInfo),
       })),
     ),
   );
@@ -545,6 +553,75 @@ export class ManavRaporlariListComponent {
     }
 
     return caseInfo.confidence?.trim() || '';
+  }
+
+  protected formatCaseTierStatus(
+    caseInfo: GreenGrocerProductCaseInfoDto | null | undefined,
+  ): string {
+    if (!caseInfo) {
+      return '';
+    }
+
+    const tier = caseInfo.calculationTier?.trim();
+    const parts: string[] = [];
+
+    if (tier && tier !== 'Mixed') {
+      parts.push(tier);
+    } else if (tier === 'Mixed') {
+      parts.push('Karma kademe');
+    }
+
+    if (caseInfo.manualApprovalConfirmed) {
+      parts.push('Onayli');
+    } else if (caseInfo.requiresManualApproval) {
+      parts.push('Kontrol onerilir');
+    }
+
+    return parts.join(' · ');
+  }
+
+  protected isCaseReviewRecommended(
+    caseInfo: GreenGrocerProductCaseInfoDto | null | undefined,
+  ): boolean {
+    return !!caseInfo?.requiresManualApproval && !caseInfo?.manualApprovalConfirmed;
+  }
+
+  protected formatCaseShippedCaseCount(
+    caseInfo: GreenGrocerProductCaseInfoDto | null | undefined,
+  ): string {
+    if (!caseInfo) {
+      return '';
+    }
+
+    const shippedQty = this.toFiniteNumber(caseInfo.actualShippedQuantity);
+    if (shippedQty === null) {
+      return '';
+    }
+
+    const shippedCases = this.toFiniteNumber(caseInfo.actualShippedCaseCount);
+    if (shippedCases !== null) {
+      const unit = this.getInputModeLabel(caseInfo.inputMode);
+      return `${this.quantityFormatter.format(shippedCases)} ${unit}`;
+    }
+
+    return 'Kasa adedi bilinmiyor';
+  }
+
+  protected formatCaseShipment(caseInfo: GreenGrocerProductCaseInfoDto | null | undefined): string {
+    if (!caseInfo) {
+      return '';
+    }
+
+    const shippedQty = this.toFiniteNumber(caseInfo.actualShippedQuantity);
+    if (shippedQty === null) {
+      return '';
+    }
+
+    const microUnit = caseInfo.microUnit?.trim() || '';
+    const caseLabel = this.formatCaseShippedCaseCount(caseInfo);
+    const qtyLabel = `${this.quantityFormatter.format(shippedQty)} ${microUnit}`.trim();
+
+    return caseLabel ? `Sevk: ${qtyLabel} (${caseLabel})` : `Sevk: ${qtyLabel}`;
   }
 
   protected formatDocument(item: IFurpaGreenGrocerBranchReportItemApiDto): string {
@@ -1492,7 +1569,12 @@ export class ManavRaporlariListComponent {
   }
 
   private buildCasePrintLines(caseInfo: GreenGrocerProductCaseInfoDto | null | undefined): string {
-    const lines = [this.formatCaseInfo(caseInfo), this.formatCaseAverage(caseInfo)].filter(Boolean);
+    const lines = [
+      this.formatCaseInfo(caseInfo),
+      this.formatCaseAverage(caseInfo),
+      this.formatCaseTierStatus(caseInfo),
+      this.formatCaseShipment(caseInfo),
+    ].filter(Boolean);
 
     return lines.length
       ? `<span class="subline case-line">${lines.map((line) => this.escapeHtml(line)).join('<br>')}</span>`
@@ -1577,6 +1659,13 @@ export class ManavRaporlariListComponent {
       { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
       { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
+      { label: 'Kademe / Kontrol', value: (row) => this.formatCaseTierStatus(row.caseInfo) },
+      {
+        label: 'Sevk Edilen',
+        value: (row) => this.toFiniteNumber(row.caseInfo?.actualShippedQuantity),
+        type: 'number',
+      },
+      { label: 'Sevk Kasa', value: (row) => this.formatCaseShippedCaseCount(row.caseInfo) },
     ];
   }
 
@@ -1618,6 +1707,13 @@ export class ManavRaporlariListComponent {
       { label: 'Miktar', value: (row) => this.toSafeNumber(row.quantity), type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
       { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
+      { label: 'Kademe / Kontrol', value: (row) => this.formatCaseTierStatus(row.caseInfo) },
+      {
+        label: 'Sevk Edilen',
+        value: (row) => this.toFiniteNumber(row.caseInfo?.actualShippedQuantity),
+        type: 'number',
+      },
+      { label: 'Sevk Kasa', value: (row) => this.formatCaseShippedCaseCount(row.caseInfo) },
       { label: 'Silinebilir', value: (row) => (row.canDelete === false ? 'Hayir' : 'Evet') },
     ];
   }
@@ -1642,6 +1738,13 @@ export class ManavRaporlariListComponent {
       { label: 'Toplam Miktar', value: 'quantity', type: 'number' },
       { label: 'Kasa/Koli', value: (row) => this.formatCaseInfo(row.caseInfo) },
       { label: 'Ortalama', value: (row) => this.formatCaseAverage(row.caseInfo) },
+      { label: 'Kademe / Kontrol', value: (row) => this.formatCaseTierStatus(row.caseInfo) },
+      {
+        label: 'Sevk Edilen',
+        value: (row) => this.toFiniteNumber(row.caseInfo?.actualShippedQuantity),
+        type: 'number',
+      },
+      { label: 'Sevk Kasa', value: (row) => this.formatCaseShippedCaseCount(row.caseInfo) },
       { label: 'Kirilim Satiri', value: (row) => row.breakdownItems.length, type: 'number' },
     ];
   }
@@ -1662,6 +1765,9 @@ export class ManavRaporlariListComponent {
       { label: 'Miktar', value: 'quantity', type: 'number' },
       { label: 'Kasa/Koli', value: 'caseText' },
       { label: 'Ortalama', value: 'caseAverageText' },
+      { label: 'Kademe / Kontrol', value: 'tierStatusText' },
+      { label: 'Sevk Edilen', value: 'actualShippedQuantity', type: 'number' },
+      { label: 'Sevk Kasa', value: 'actualShippedCaseText' },
     ];
   }
 }

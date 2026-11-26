@@ -12,6 +12,7 @@ import type {
   GreenGrocerReportTypeOptionDto,
   GreenGrocerProductCaseProfileDto,
   GreenGrocerProductCaseProfileListHttpRequest,
+  GreenGrocerProductCaseCapabilitiesDto,
   GreenGrocerProductCaseResolutionDto,
   GreenGrocerProductCaseResolutionHttpRequest,
   IFurpaGreenGrocerBranchReportItemApiDto,
@@ -119,6 +120,12 @@ export class GreenGrocerService extends BaseApiService {
   deleteProductCaseProfile(stockCode: string): Observable<void> {
     return this.delete<void>(
       `${this.productCaseProfilesPath}/${encodeURIComponent(stockCode.trim())}`
+    );
+  }
+
+  getProductCaseCapabilities(): Observable<GreenGrocerProductCaseCapabilitiesDto> {
+    return this.get<GreenGrocerProductCaseCapabilitiesDto>(
+      `${this.productCaseProfilesPath}/capabilities`
     );
   }
 

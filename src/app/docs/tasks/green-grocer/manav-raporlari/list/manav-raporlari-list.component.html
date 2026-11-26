@@ -168,6 +168,18 @@
                         *ngIf="formatCaseAverage(item.caseInfo) as averageText"
                         >{{ averageText }}</small
                       >
+                      <small
+                        class="case-info"
+                        [class.case-info-warning]="isCaseReviewRecommended(item.caseInfo)"
+                        [class.case-info-muted]="!isCaseReviewRecommended(item.caseInfo)"
+                        *ngIf="formatCaseTierStatus(item.caseInfo) as tierText"
+                        >{{ tierText }}</small
+                      >
+                      <small
+                        class="case-info case-info-shipment"
+                        *ngIf="formatCaseShipment(item.caseInfo) as shipmentText"
+                        >{{ shipmentText }}</small
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -273,6 +285,18 @@
                         *ngIf="formatCaseAverage(item.caseInfo) as averageText"
                         >{{ averageText }}</small
                       >
+                      <small
+                        class="case-info"
+                        [class.case-info-warning]="isCaseReviewRecommended(item.caseInfo)"
+                        [class.case-info-muted]="!isCaseReviewRecommended(item.caseInfo)"
+                        *ngIf="formatCaseTierStatus(item.caseInfo) as tierText"
+                        >{{ tierText }}</small
+                      >
+                      <small
+                        class="case-info case-info-shipment"
+                        *ngIf="formatCaseShipment(item.caseInfo) as shipmentText"
+                        >{{ shipmentText }}</small
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -372,6 +396,18 @@
                         *ngIf="formatCaseAverage(item.caseInfo) as averageText"
                         >{{ averageText }}</small
                       >
+                      <small
+                        class="case-info"
+                        [class.case-info-warning]="isCaseReviewRecommended(item.caseInfo)"
+                        [class.case-info-muted]="!isCaseReviewRecommended(item.caseInfo)"
+                        *ngIf="formatCaseTierStatus(item.caseInfo) as tierText"
+                        >{{ tierText }}</small
+                      >
+                      <small
+                        class="case-info case-info-shipment"
+                        *ngIf="formatCaseShipment(item.caseInfo) as shipmentText"
+                        >{{ shipmentText }}</small
+                      >
                     </td>
                     <td class="number-cell">{{ item.breakdownItems.length }}</td>
                   </tr>
@@ -452,6 +488,18 @@
                       <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
                         caseText
                       }}</small>
+                      <small
+                        class="case-info"
+                        [class.case-info-warning]="isCaseReviewRecommended(item.caseInfo)"
+                        [class.case-info-muted]="!isCaseReviewRecommended(item.caseInfo)"
+                        *ngIf="formatCaseTierStatus(item.caseInfo) as tierText"
+                        >{{ tierText }}</small
+                      >
+                      <small
+                        class="case-info case-info-shipment"
+                        *ngIf="formatCaseShipment(item.caseInfo) as shipmentText"
+                        >{{ shipmentText }}</small
+                      >
                     </td>
                   </tr>
                 </tbody>
@@ -549,6 +597,18 @@
                       <small class="case-info" *ngIf="formatCaseInfo(item.caseInfo) as caseText">{{
                         caseText
                       }}</small>
+                      <small
+                        class="case-info"
+                        [class.case-info-warning]="isCaseReviewRecommended(item.caseInfo)"
+                        [class.case-info-muted]="!isCaseReviewRecommended(item.caseInfo)"
+                        *ngIf="formatCaseTierStatus(item.caseInfo) as tierText"
+                        >{{ tierText }}</small
+                      >
+                      <small
+                        class="case-info case-info-shipment"
+                        *ngIf="formatCaseShipment(item.caseInfo) as shipmentText"
+                        >{{ shipmentText }}</small
+                      >
                     </td>
                   </tr>
                 </tbody>

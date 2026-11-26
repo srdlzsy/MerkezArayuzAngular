@@ -101,6 +101,9 @@ export interface CreateInterWarehouseShipmentLineHttpRequest {
   projectCode: string;
   customerResponsibilityCenter?: string;
   productResponsibilityCenter?: string;
+  greenGrocerReferenceOrderLineGuid?: string | null;
+  greenGrocerOverDeliveryConfirmed?: boolean;
+  greenGrocerActualCaseCount?: number | null;
 }
 
 export interface CreateInterWarehouseShipmentResponse {

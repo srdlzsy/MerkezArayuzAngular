@@ -539,6 +539,105 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
     font-weight: 600;
   }
 
+  .green-grocer-approval-row {
+    flex: 1 0 100%;
+    display: flex;
+    flex-wrap: wrap;
+    align-items: center;
+    gap: 0.5rem;
+    margin-top: 0.2rem;
+    padding: 0.35rem 0.5rem;
+    border: 1px solid #f59e0b;
+    border-radius: 6px;
+    background: #fffbeb;
+  }
+
+  .green-grocer-approval-row .approval-kg-field {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.3rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #92400e;
+  }
+
+  .green-grocer-approval-row .approval-kg-field input {
+    width: 78px;
+    min-height: 26px;
+    padding: 0.14rem 0.35rem;
+    font-size: 0.78rem;
+  }
+
+  .green-grocer-approval-row .approval-check,
+  .gg-confirm-check {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    font-size: 0.74rem;
+    font-weight: 700;
+    color: #92400e;
+    cursor: pointer;
+  }
+
+  .gg-shipment-strip {
+    flex: 1 0 100%;
+    display: grid;
+    gap: 0.28rem;
+    margin-top: 0.25rem;
+    padding: 0.4rem 0.52rem;
+    border: 1px solid #bae6fd;
+    border-radius: 6px;
+    background: #f0f9ff;
+  }
+
+  .gg-metrics-4 {
+    display: grid;
+    grid-template-columns: repeat(4, minmax(0, 1fr));
+    gap: 0.35rem;
+  }
+
+  .gg-metrics-4 > span {
+    display: grid;
+    gap: 0.05rem;
+  }
+
+  .gg-metrics-4 small {
+    color: #475569;
+    font-size: 0.65rem;
+    font-weight: 800;
+    text-transform: uppercase;
+  }
+
+  .gg-metrics-4 strong {
+    color: #0f172a;
+    font-size: 0.78rem;
+    font-weight: 800;
+    font-variant-numeric: tabular-nums;
+  }
+
+  .gg-meta-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.2rem 0.6rem;
+    color: #334155;
+    font-size: 0.71rem;
+    font-weight: 600;
+  }
+
+  .gg-alert-critical {
+    padding: 0.24rem 0.42rem;
+    border-radius: 5px;
+    background: #fef2f2;
+    border: 1px solid #fecaca;
+    color: #b91c1c;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
+  .gg-case-input {
+    margin-top: 0.28rem;
+  }
+
   :is(.empty-state, .feedback, .feedback-error) {
     padding: 0.42rem 0.52rem;
     border-radius: var(--operation-panel-radius);
@@ -739,4 +838,14 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel.docs-task-d
       grid-template-columns: 1fr;
     }
   }
+}
+
+.green-grocer-page .case-info-warning {
+  color: #b45309;
+  font-weight: 600;
+}
+
+.green-grocer-page .case-info-shipment {
+  color: #0f766e;
+  font-weight: 600;
 }

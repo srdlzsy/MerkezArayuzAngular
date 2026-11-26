@@ -5,6 +5,7 @@ import { takeUntilDestroyed } from '@angular/core/rxjs-interop';
 import { FormArray, FormControl, FormGroup, ReactiveFormsModule, Validators } from '@angular/forms';
 import type {
   GreenGrocerOrderLineSnapshotHttpRequest,
+  GreenGrocerProductCaseCapabilitiesDto,
   GreenGrocerProductCaseResolutionDto,
   IFurpaSourceWarehouseSearchItemApiDto,
   IFurpaCreateWarehouseOrderRequestApiDto,
@@ -144,6 +145,11 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     });
   private readonly lineResolutionRequestIds = new WeakMap<KalemFormGroup, number>();
   private greenGrocerResolutionDisabled = false;
+  private greenGrocerCapabilitiesLoaded = false;
+  private greenGrocerFeatureEnabled = true;
+  private greenGrocerSourceWarehouseNo = 56;
+  private greenGrocerRequireOrderUserManualApproval = false;
+  private greenGrocerAuthDbTrackingEnabled = false;
 
   protected readonly page: DocsContentPage = DOCS_PAGES['verilen-depo-siparisleri'];
   protected readonly isAdminUser = computed(() =>
@@ -212,6 +218,7 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
   constructor() {
     super();
     this.loadWarehouseOptions();
+    this.loadGreenGrocerCapabilities();
 
     effect(() => {
       const hasWarehouse = !!this.selectedWarehouse();
@@ -710,11 +717,49 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
 
   protected isGreenGrocerOrder(): boolean {
     const warehouseNo = this.selectedWarehouse()?.sourceWarehouseNo;
+    if (this.greenGrocerCapabilitiesLoaded) {
+      return (
+        this.greenGrocerFeatureEnabled &&
+        warehouseNo === this.greenGrocerSourceWarehouseNo &&
+        !this.greenGrocerResolutionDisabled
+      );
+    }
+
     return (
       warehouseNo !== undefined &&
       this.usesManualSourceProductSelection(warehouseNo) &&
       !this.greenGrocerResolutionDisabled
     );
+  }
+
+  private loadGreenGrocerCapabilities(): void {
+    this.greenGrocerService
+      .getProductCaseCapabilities()
+      .pipe(takeUntilDestroyed(this.destroyRef))
+      .subscribe({
+        next: (capabilities: GreenGrocerProductCaseCapabilitiesDto) => {
+          this.greenGrocerCapabilitiesLoaded = true;
+          this.greenGrocerFeatureEnabled = capabilities.enabled;
+          this.greenGrocerRequireOrderUserManualApproval =
+            capabilities.requireOrderUserManualApproval;
+          this.greenGrocerAuthDbTrackingEnabled = capabilities.authDbTrackingEnabled;
+
+          if (Number.isFinite(capabilities.sourceWarehouseNo) && capabilities.sourceWarehouseNo > 0) {
+            this.greenGrocerSourceWarehouseNo = capabilities.sourceWarehouseNo;
+          }
+
+          for (const control of this.kalemler.controls) {
+            if (this.isGreenGrocerOrder()) {
+              this.resolveGreenGrocerLine(control);
+            } else {
+              this.clearLineResolution(control);
+            }
+          }
+        },
+        error: () => {
+          // Eski API surumlerinde mevcut secim kuraliyla kesintisiz devam edilir.
+        },
+      });
   }
 
   private usesManualSourceProductSelection(warehouseNo: number | null | undefined): boolean {
@@ -786,11 +831,14 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
             return;
           }
 
-          control.controls.cozumDurum.setValue('error', { emitEvent: false });
+          control.controls.cozumDurum.setValue('warning', { emitEvent: false });
           control.controls.cozumMiktari.setValue(null, { emitEvent: false });
           control.controls.cozumBirim.setValue('', { emitEvent: false });
           control.controls.greenGrocerCase.setValue(null, { emitEvent: false });
-          control.controls.cozumMesaj.setValue('', { emitEvent: false });
+          control.controls.cozumMesaj.setValue(
+            'Kasa hesabi yapilamadi; girilen miktarla devam edilecek.',
+            { emitEvent: false },
+          );
           control.controls.cozumHata.setValue(
             this.resolveErrorMessage(error, 'Kaynak depo urunu cozumlemesi yapilamadi.'),
             { emitEvent: false },
@@ -1235,9 +1283,25 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     const estimatedQuantity = Number(resolution.estimatedQuantity ?? 0);
     const inputMode = this.getInputModeLabel(resolution.inputMode);
     const outputUnit = resolution.microUnit?.trim() || resolution.unit1?.trim() || '';
-    const baseMessage =
-      `${this.formatQuantity(resolution.inputQuantity)} ${inputMode}` +
-      ` ~= ${this.formatQuantity(estimatedQuantity)} ${outputUnit}`.trimEnd();
+    const detailParts: string[] = [
+      `${this.formatQuantity(resolution.inputQuantity)} ${inputMode} ~= ${this.formatQuantity(estimatedQuantity)} ${outputUnit}`.trim(),
+    ];
+
+    if (typeof resolution.averageKgPerCase === 'number' && resolution.averageKgPerCase > 0) {
+      detailParts.push(`Ort: ${this.formatQuantity(resolution.averageKgPerCase)} KG/kasa`);
+    }
+
+    if (resolution.averageWindowDaysUsed && resolution.averageRecordCount) {
+      detailParts.push(
+        `Son ${resolution.averageWindowDaysUsed}g · ${resolution.averageRecordCount} etiket · ${resolution.averageCaseCount ?? 0} kasa`,
+      );
+    }
+
+    if (resolution.driftDetected && typeof resolution.priorAverageKgPerCase === 'number') {
+      detailParts.push(`Onceki: ${this.formatQuantity(resolution.priorAverageKgPerCase)} KG`);
+    }
+
+    const baseMessage = detailParts.join(' · ');
 
     control.controls.cozumBirim.setValue(outputUnit, { emitEvent: false });
 
@@ -1261,7 +1325,12 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
     control.controls.cozumMesaj.setValue(baseMessage, { emitEvent: false });
     control.controls.cozumHata.setValue(resolution.warnings?.[0] ?? '', { emitEvent: false });
     control.controls.cozumDurum.setValue(
-      resolution.confidence === 'Medium' || resolution.warnings?.length ? 'warning' : 'ready',
+      resolution.requiresManualApproval ||
+        resolution.confidence === 'Low' ||
+        resolution.confidence === 'Medium' ||
+        resolution.warnings?.length
+        ? 'warning'
+        : 'ready',
       { emitEvent: false },
     );
   }
@@ -1376,6 +1445,18 @@ export class VerilenDepoSiparisleriCreateComponent extends DocsTaskDialogBase {
       averageCaseCount: resolution.averageCaseCount ?? null,
       coefficientOfVariation: resolution.coefficientOfVariation ?? null,
       confidence: resolution.confidence,
+      requiresManualApproval:
+        this.greenGrocerRequireOrderUserManualApproval && resolution.requiresManualApproval,
+      allowOrderLinking: this.greenGrocerAuthDbTrackingEnabled && resolution.isOrderLinkable,
+      overDeliveryTolerancePercent: resolution.overDeliveryTolerancePercent ?? 20,
+      severeOverDeliveryMultiplier: resolution.severeOverDeliveryMultiplier ?? 1.5,
+      calculationTier: resolution.calculationTier ?? null,
+      averageWindowDaysUsed: resolution.averageWindowDaysUsed ?? null,
+      labelAgeDays: resolution.labelAgeDays ?? null,
+      priorAverageKgPerCase: resolution.priorAverageKgPerCase ?? null,
+      driftPercent: resolution.driftPercent ?? null,
+      manualApprovalConfirmed: false,
+      approvedKgPerCase: null,
     };
   }
 

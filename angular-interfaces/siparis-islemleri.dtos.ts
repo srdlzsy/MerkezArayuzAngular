@@ -241,6 +241,17 @@ export interface GreenGrocerOrderLineSnapshotHttpRequest {
   averageCaseCount?: number | null;
   coefficientOfVariation?: number | null;
   confidence: GreenGrocerProductCaseConfidence;
+  requiresManualApproval?: boolean;
+  allowOrderLinking?: boolean;
+  overDeliveryTolerancePercent?: number | null;
+  severeOverDeliveryMultiplier?: number | null;
+  calculationTier?: string | null;
+  averageWindowDaysUsed?: number | null;
+  labelAgeDays?: number | null;
+  priorAverageKgPerCase?: number | null;
+  driftPercent?: number | null;
+  manualApprovalConfirmed?: boolean;
+  approvedKgPerCase?: number | null;
 }
 
 export interface WarehouseOrderLineGreenGrocerCaseDto extends GreenGrocerOrderLineSnapshotHttpRequest {
