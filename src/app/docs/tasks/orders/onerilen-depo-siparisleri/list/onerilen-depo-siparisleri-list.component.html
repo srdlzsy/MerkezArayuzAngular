@@ -85,6 +85,18 @@
       </div>
 
       <div class="selection-actions">
+        <button
+          type="button"
+          class="task-action task-action-secondary"
+          (click)="printSuggestions()"
+          [disabled]="isLoading() || !lines().length"
+        >
+          {{
+            selectedCount() > 0 && selectedCount() < lines().length
+              ? 'Secilenleri Yazdir (A4)'
+              : 'Yazdir (A4)'
+          }}
+        </button>
         <button type="button" class="task-action task-action-secondary" (click)="clearSelection()">
           Secimi Temizle
         </button>

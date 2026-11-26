@@ -18,7 +18,14 @@ import { SiparisIslemleriService } from '../../../../../core/api/module-services
 import { AuthService } from '../../../../../core/auth/services/auth.service';
 import { DOCS_PAGES } from '../../../../config/docs-pages.config';
 import { DocsContentPage } from '../../../../models/docs.models';
-import { getCurrentWarehouseNo } from '../../../core/admin-warehouse.helpers';
+import {
+  formatCurrentWarehouseLabel,
+  getCurrentWarehouseNo,
+} from '../../../core/admin-warehouse.helpers';
+import {
+  DocumentPrintColumn,
+  DocumentPrintService,
+} from '../../../core/document-print/document-print.service';
 import {
   SafeCreateFailure,
   SafeCreateRetryDraft,
@@ -60,6 +67,7 @@ export class OnerilenDepoSiparisleriListComponent {
   private readonly aramaService = inject(AramaService);
   private readonly siparisIslemleriService = inject(SiparisIslemleriService);
   private readonly authService = inject(AuthService);
+  private readonly documentPrintService = inject(DocumentPrintService);
   private readonly pendingStore = inject(SafeCreatePendingStore);
   private readonly today = formatDateOnly(new Date());
   private readonly safeCreateRetry =
@@ -468,6 +476,111 @@ export class OnerilenDepoSiparisleriListComponent {
     this.lines.update((lines) => lines.map((line) => ({ ...line, selected: false })));
   }
 
+  protected printSuggestions(): void {
+    const allLines = this.lines();
+    if (!allLines.length) {
+      return;
+    }
+
+    const selectedLines = this.selectedLines();
+    const isPartialSelection = selectedLines.length > 0 && selectedLines.length < allLines.length;
+    const targetLines = selectedLines.length > 0 ? selectedLines : allLines;
+    const formValue = this.filterForm.getRawValue();
+    const sourceWarehouseLabel = this.resolveSelectedSourceWarehouseLabel(
+      formValue.sourceWarehouseNo,
+    );
+    const targetWarehouseLabel = formatCurrentWarehouseLabel(this.authService.currentUser());
+    const totalNeed = targetLines.reduce(
+      (total, line) => total + this.safeNumber(line.item.needQuantity),
+      0,
+    );
+    const totalSuggested = targetLines.reduce(
+      (total, line) => total + this.safeNumber(line.item.suggestedOrderQuantity),
+      0,
+    );
+    const totalQuantity = targetLines.reduce(
+      (total, line) => total + this.safeNumber(line.quantity),
+      0,
+    );
+    const scopeLabel = isPartialSelection
+      ? `Secili ${targetLines.length} / ${allLines.length} satir`
+      : `${targetLines.length} satir`;
+
+    const columns: readonly DocumentPrintColumn[] = [
+      { label: '#', width: '4%', align: 'center' },
+      { label: 'Stok Kodu', width: '10%' },
+      { label: 'Stok Ismi', width: '27%' },
+      { label: 'Barkod', width: '14%' },
+      { label: 'Koli', width: '6%', align: 'right' },
+      { label: 'Hedef', width: '7%', align: 'right' },
+      { label: 'Kaynak', width: '7%', align: 'right' },
+      { label: 'Ihtiyac', width: '8%', align: 'right' },
+      { label: 'Oneri', width: '8%', align: 'right' },
+      { label: 'Miktar', width: '9%', align: 'right' },
+    ];
+
+    const started = this.documentPrintService.print({
+      title: 'Onerilen Depo Siparisleri',
+      subtitle: `${sourceWarehouseLabel} · ${scopeLabel}`,
+      branch: targetWarehouseLabel,
+      orientation: 'portrait',
+      density: 'dense',
+      sections: [
+        {
+          title: 'Siparis ve Analiz Bilgileri',
+          fields: [
+            { label: 'Kaynak Depo', value: sourceWarehouseLabel },
+            { label: 'Hedef Depo', value: targetWarehouseLabel },
+            {
+              label: 'Geri / Oneri Gun',
+              value: `${formValue.lookbackDays} gun / ${formValue.fallbackRecommendedDay} gun`,
+            },
+            {
+              label: 'Siparis / Teslim Tarihi',
+              value: `${formValue.orderDate || '-'} / ${formValue.deliveryDate || '-'}`,
+            },
+            { label: 'Satir Sayisi', value: scopeLabel },
+            { label: 'Toplam Ihtiyac', value: this.formatNumber(totalNeed) },
+            { label: 'Toplam Oneri', value: this.formatNumber(totalSuggested) },
+            { label: 'Toplam Miktar', value: this.formatNumber(totalQuantity) },
+            {
+              label: 'Aciklama',
+              value: formValue.description.trim(),
+              wide: true,
+              optional: true,
+            },
+          ],
+        },
+      ],
+      lineTitle: isPartialSelection
+        ? `Secili Oneri Satirlari (${targetLines.length} / ${allLines.length})`
+        : `Oneri Satirlari (${targetLines.length})`,
+      columns,
+      rows: targetLines.map((line, index) => [
+        index + 1,
+        line.item.stockCode || '-',
+        line.convertedOrderLabel
+          ? `${line.item.stockName || '-'} [${line.convertedOrderLabel}]`
+          : line.item.stockName || '-',
+        line.item.barcode || '-',
+        this.formatNumber(this.getUnitMultiplier(line.item)),
+        this.formatNumber(line.item.targetOnHand),
+        this.formatNumber(line.item.sourceOnHand),
+        this.formatNumber(line.item.needQuantity),
+        this.formatNumber(line.item.suggestedOrderQuantity),
+        this.formatNumber(line.quantity),
+      ]),
+    });
+
+    if (!started) {
+      this.feedback.set({
+        tone: 'error',
+        title: 'Yazdirma baslatilamadi',
+        message: 'Tarayicinin acilir pencere iznini kontrol edin.',
+      });
+    }
+  }
+
   protected formatNumber(value: number | null | undefined): string {
     return new Intl.NumberFormat('tr-TR', {
       maximumFractionDigits: 2,
@@ -537,6 +650,20 @@ export class OnerilenDepoSiparisleriListComponent {
         responsibilityCenter: '',
       })),
     });
+  }
+
+  private resolveSelectedSourceWarehouseLabel(sourceWarehouseNo: number | null): string {
+    if (sourceWarehouseNo === null || sourceWarehouseNo === undefined) {
+      return '-';
+    }
+
+    const selectedWarehouse = this.sourceWarehouses().find(
+      (warehouse) => warehouse.sourceWarehouseNo === sourceWarehouseNo,
+    );
+
+    return selectedWarehouse
+      ? this.getSourceWarehouseLabel(selectedWarehouse)
+      : `Depo ${sourceWarehouseNo}`;
   }
 
   private safeNumber(value: number | null | undefined): number {
