@@ -107,6 +107,7 @@ export class B2BAyarlariListComponent {
   private readonly ayarIslemleriService = inject(AyarIslemleriService);
   private readonly confirmDialog = inject(AppConfirmDialogService);
   private readonly destroyRef = inject(DestroyRef);
+  private userDetailRequestId = 0;
 
   protected readonly page: DocsContentPage = DOCS_PAGES[TASK_ID];
   protected readonly activeTab = signal<B2BTab>('bulletins');
@@ -370,6 +371,10 @@ export class B2BAyarlariListComponent {
   }
 
   protected newUser(): void {
+    this.userDetailRequestId += 1;
+    if (this.loadingAction() === 'detail') {
+      this.loadingAction.set(null);
+    }
     this.selectedUser.set(null);
     const defaultMenus = this.menuOptions()
       .map((item) => String(item.id))
@@ -385,6 +390,7 @@ export class B2BAyarlariListComponent {
   }
 
   protected selectUser(user: B2BUserDto): void {
+    const requestId = ++this.userDetailRequestId;
     if (this.selectedUser()?.userId !== user.userId) {
       this.selectedUser.set(null);
     }
@@ -404,14 +410,24 @@ export class B2BAyarlariListComponent {
       .getB2BUser(user.userId)
       .pipe(
         takeUntilDestroyed(this.destroyRef),
-        finalize(() => this.loadingAction.set(null))
+        finalize(() => {
+          if (requestId === this.userDetailRequestId && this.loadingAction() === 'detail') {
+            this.loadingAction.set(null);
+          }
+        })
       )
       .subscribe({
         next: (detail: B2BUserDetailDto) => {
+          if (requestId !== this.userDetailRequestId || this.userDraft.userId !== user.userId) {
+            return;
+          }
           this.selectedUser.set(detail);
           this.applyUserDraft(detail);
         },
         error: (error: unknown) => {
+          if (requestId !== this.userDetailRequestId || this.userDraft.userId !== user.userId) {
+            return;
+          }
           this.setFeedback('error', 'Detay alinamadi', getErrorMessage(error, 'Kullanici detayi alinamadi.'));
         }
       });
