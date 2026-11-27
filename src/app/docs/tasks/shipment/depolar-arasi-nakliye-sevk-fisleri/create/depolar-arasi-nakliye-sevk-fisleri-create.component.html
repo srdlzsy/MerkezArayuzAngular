@@ -260,24 +260,23 @@
                 <span class="package-note" *ngIf="!kalem.controls.greenGrocerCase.value && (kalem.controls.birimKatsayisi.value ?? 0) > 1">Koli ici: {{ kalem.controls.birimKatsayisi.value }} {{ kalem.controls.birim.value || 'birim' }}</span>
                 <div class="gg-shipment-strip" *ngIf="getGreenGrocerShipmentMetrics(kalem) as gg">
                   <div class="gg-metrics-4">
-                    <span><small>Istenen</small><strong>{{ gg.inputQuantity | number: '1.0-2' }} {{ gg.inputModeLabel }}</strong></span>
-                    <span><small>Hedef</small><strong>{{ gg.expected | number: '1.0-2' }} {{ gg.microUnit }}</strong></span>
+                    <span><small>Tahmini kasa</small><strong>{{ gg.expectedCaseCount | number: '1.0-2' }} kasa</strong></span>
+                    <span><small>Siparis</small><strong>{{ gg.expected | number: '1.0-2' }} {{ gg.microUnit }}</strong></span>
                     <span><small>Sevk edilen</small><strong>{{ gg.totalShipped | number: '1.0-2' }} {{ gg.microUnit }} (%{{ gg.completionPercent | number: '1.0-1' }})</strong></span>
                     <span><small>Kalan</small><strong>{{ gg.remaining | number: '1.0-2' }} {{ gg.microUnit }}</strong></span>
                   </div>
                   <div class="gg-meta-line">
                     <span *ngIf="gg.averageKgPerCase">Katsayi: {{ gg.averageKgPerCase | number: '1.0-2' }} KG/kasa</span>
                     <span *ngIf="gg.previousShipped > 0">Onceki sevk: {{ gg.previousShipped | number: '1.0-2' }} {{ gg.microUnit }}</span>
-                    <span>Fiziksel kasa: {{ gg.knownShippedCases !== null ? (gg.knownShippedCases | number: '1.0-2') + ' kasa' : 'Kasa adedi bilinmiyor' }}</span>
+                    <span>Tahmini sevk kasa: {{ gg.knownShippedCases !== null ? (gg.knownShippedCases | number: '1.0-2') + ' / ' + (gg.expectedCaseCount | number: '1.0-2') + ' kasa' : 'Hesaplanamadi' }}</span>
                     <span *ngIf="gg.priorAverageKgPerCase">Onceki ort: {{ gg.priorAverageKgPerCase | number: '1.0-2' }} KG</span>
                   </div>
                   <div class="gg-alert gg-alert-critical" *ngIf="gg.severity === 'critical'">
-                    Kritik sinir ({{ gg.criticalLimit | number: '1.0-2' }} {{ gg.microUnit }}) asildi — miktari azaltin.
+                    Siparis KG veya tahmini kasa kritik seviyede asildi. Uyari kaydi tutulur; sevk engellenmez.
                   </div>
-                  <label class="gg-confirm-check" *ngIf="gg.severity !== 'critical' && gg.requiresApproval">
-                    <input type="checkbox" formControlName="greenGrocerOverDeliveryConfirmed" />
-                    <span>Tolerans ustu / onayli sevki onayliyorum (ust sinir {{ gg.warningLimit | number: '1.0-2' }} {{ gg.microUnit }})</span>
-                  </label>
+                  <div class="gg-alert" *ngIf="gg.severity === 'warning'">
+                    Siparis KG veya tahmini kasa asildi. Fiili miktari kontrol edin; sevk engellenmez.
+                  </div>
                 </div>
               </div>
             </div>

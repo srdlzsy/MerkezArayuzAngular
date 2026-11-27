@@ -634,6 +634,16 @@ body .cdk-overlay-container .cdk-overlay-pane.docs-task-dialog-panel {
     font-weight: 700;
   }
 
+  .gg-alert:not(.gg-alert-critical) {
+    padding: 0.24rem 0.42rem;
+    border: 1px solid #f6d58d;
+    border-radius: 5px;
+    background: #fffbeb;
+    color: #92400e;
+    font-size: 0.72rem;
+    font-weight: 700;
+  }
+
   .gg-case-input {
     margin-top: 0.28rem;
   }

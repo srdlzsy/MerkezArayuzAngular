@@ -73,6 +73,8 @@ export interface WarehouseOrderLineItemDto {
   packageCode: string;
   projectCode: string;
   greenGrocerCase?: WarehouseOrderLineGreenGrocerCaseDto | null;
+  modelCode?: string;
+  barcode?: string;
 }
 
 export interface WarehouseOrderDetailDto {
@@ -258,6 +260,7 @@ export interface WarehouseOrderLineGreenGrocerCaseDto extends GreenGrocerOrderLi
   actualShippedQuantity?: number | null;
   actualShippedCaseCount?: number | null;
   status?: string | null;
+  isCaseCountEstimated?: boolean;
 }
 
 // ============================================================================
