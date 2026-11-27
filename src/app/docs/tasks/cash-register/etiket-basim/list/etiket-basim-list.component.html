@@ -2,9 +2,32 @@
   <article class="etiket-basim-screen surface-card">
     <header class="page-head">
       <div class="title-block">
-        <span>Kasa İşlemleri</span>
-        <h2>{{ current.title }}</h2>
+        <span class="kicker">Kasa İşlemleri</span>
+        <div class="title-row">
+          <h2>{{ current.title }}</h2>
+          <span class="date-badge">{{ selectedDate() | date:'dd.MM.yyyy' }}</span>
+        </div>
       </div>
+
+      <nav class="workspace-tabs" aria-label="Çalışma alanı">
+        <button
+          type="button"
+          class="workspace-tab"
+          [class.is-active]="activeTab() !== 'reports'"
+          (click)="setActiveTab('records')"
+        >
+          Mal Kabul &amp; Etiket
+          <span class="tab-count" *ngIf="listSummary().waiting">{{ listSummary().waiting }}</span>
+        </button>
+        <button
+          type="button"
+          class="workspace-tab"
+          [class.is-active]="activeTab() === 'reports'"
+          (click)="openReportsTab()"
+        >
+          Raporlar &amp; Mikro Kontrol
+        </button>
+      </nav>
 
       <div class="head-actions">
         <button
@@ -12,11 +35,17 @@
           class="task-action"
           (click)="startManualRecord()"
           [disabled]="!canCreate()"
+          title="Resmi hal faturası olmadan istisna manuel kabul başlat"
         >
-          Manuel Kabul
+          + Manuel Kabul
         </button>
-        <button type="button" class="task-action" (click)="setActiveTab('reports')">
-          Raporlar
+        <button
+          type="button"
+          class="task-action"
+          (click)="loadDailyWorkspace()"
+          [disabled]="isLoading() || isIncomingInvoiceLoading() || !canList()"
+        >
+          {{ isLoading() || isIncomingInvoiceLoading() ? 'Yükleniyor...' : 'Yenile' }}
         </button>
       </div>
     </header>
@@ -27,43 +56,102 @@
       [class.is-error]="currentFeedback.tone === 'error'"
       [class.is-success]="currentFeedback.tone === 'success'"
     >
-      <strong>{{ currentFeedback.title }}</strong>
-      <span>{{ currentFeedback.message }}</span>
+      <div class="feedback-copy">
+        <strong>{{ currentFeedback.title }}</strong>
+        <span>{{ currentFeedback.message }}</span>
+      </div>
+      <button type="button" class="feedback-close" aria-label="Bildirimi kapat" (click)="dismissFeedback()">
+        &times;
+      </button>
     </article>
 
-    <section class="flow-strip" *ngIf="activeTab() !== 'reports'">
-      <article>
-        <span>1</span>
-        <strong>Gelen Fatura</strong>
-        <small>{{ incomingInvoiceSummary().ready }} hazır / {{ incomingInvoiceSummary().total }} belge</small>
-      </article>
-      <article>
-        <span>2</span>
-        <strong>Tartım ve Etiket</strong>
-        <small>{{ listSummary().waiting }} bekleyen kayıt</small>
-      </article>
-      <article>
-        <span>3</span>
-        <strong>Mikro Kontrol</strong>
-        <small>{{ listSummary().transferred }} aktarılan</small>
-      </article>
-      <article>
-        <span>4</span>
-        <strong>Rapor</strong>
-        <small>Fark ve depo stok kontrolu</small>
-      </article>
+    <section class="flow-strip" *ngIf="activeTab() !== 'reports'" aria-label="İşlem adımları">
+      <button
+        type="button"
+        class="flow-step"
+        [class.is-done]="!!selectedIncomingInvoice() || !!selectedInvoiceDetail()"
+        [class.is-active]="!selectedIncomingInvoice() && !selectedInvoiceDetail()"
+        (click)="toggleIncomingInvoiceList()"
+      >
+        <span class="step-badge">1</span>
+        <div class="step-body">
+          <strong>Gelen Hal Faturası</strong>
+          <small>{{ incomingInvoiceSummary().ready }} hazır / {{ incomingInvoiceSummary().total }} belge</small>
+        </div>
+      </button>
+
+      <div
+        class="flow-step"
+        [class.is-done]="!!selectedRecord()"
+        [class.is-active]="(!!selectedIncomingInvoice() || !!selectedInvoiceDetail()) && !selectedRecord()"
+      >
+        <span class="step-badge">2</span>
+        <div class="step-body">
+          <strong>Tartım &amp; Etiket</strong>
+          <small>{{ listSummary().waiting }} bekleyen kayıt</small>
+        </div>
+      </div>
+
+      <div
+        class="flow-step"
+        [class.is-done]="!!selectedRecord()?.microTransferred"
+        [class.is-active]="!!selectedRecord() && !selectedRecord()?.microTransferred"
+      >
+        <span class="step-badge">3</span>
+        <div class="step-body">
+          <strong>Mikro Aktarım</strong>
+          <small>{{ listSummary().transferred }} aktarılan</small>
+        </div>
+      </div>
+
+      <button type="button" class="flow-step flow-step-action" (click)="openReportsTab('comparison')">
+        <span class="step-badge">4</span>
+        <div class="step-body">
+          <strong>Rapor &amp; Kontrol</strong>
+          <small>Fark ve depo stok kontrolü &rarr;</small>
+        </div>
+      </button>
     </section>
 
     <section class="incoming-panel" *ngIf="activeTab() !== 'reports'">
-      <div class="panel-head compact">
+      <div class="panel-head">
         <div class="title-block">
-          <span>Gelen Faturalar</span>
-          <h3>{{ incomingInvoiceSummary().total }} belge</h3>
+          <span class="kicker">Adım 1 · Uyumsoft Gelen Hal Faturaları</span>
+          <div class="title-inline">
+            <h3>{{ incomingInvoiceSummary().total }} belge</h3>
+            <span class="pill-counter pill-ready" *ngIf="incomingInvoiceSummary().ready">
+              {{ incomingInvoiceSummary().ready }} hazır
+            </span>
+            <span class="pill-counter pill-done" *ngIf="incomingInvoiceSummary().processed">
+              {{ incomingInvoiceSummary().processed }} işlendi
+            </span>
+          </div>
         </div>
 
-        <div class="invoice-tools">
-          <label class="field date-field">
-            <span>Baslangic</span>
+        <div class="panel-head-actions">
+          <button
+            type="button"
+            class="task-action task-action-subtle"
+            *ngIf="selectedIncomingInvoice() || selectedInvoiceDetail()"
+            (click)="clearSelectedInvoice()"
+          >
+            Fatura Seçimini Temizle
+          </button>
+          <button
+            type="button"
+            class="task-action"
+            *ngIf="incomingInvoices().length"
+            (click)="toggleIncomingInvoiceList()"
+          >
+            {{ showIncomingInvoiceList() ? 'Fatura Listesini Gizle' : 'Fatura Listesini Aç (' + incomingInvoices().length + ')' }}
+          </button>
+        </div>
+      </div>
+
+      <div class="invoice-toolbar">
+        <div class="invoice-filter-row">
+          <label class="field">
+            <span>Başlangıç</span>
             <input
               type="date"
               [max]="maxDate"
@@ -71,8 +159,8 @@
               (ngModelChange)="setInvoiceStartDate($event)"
             />
           </label>
-          <label class="field date-field">
-            <span>Bitis</span>
+          <label class="field">
+            <span>Bitiş</span>
             <input
               type="date"
               [max]="maxDate"
@@ -80,31 +168,13 @@
               (ngModelChange)="setInvoiceEndDate($event)"
             />
           </label>
-          <label class="field search-field">
-            <span>Tedarikçi</span>
+          <label class="field field-grow">
+            <span>Fatura / Cari Ara</span>
             <input
               type="search"
-              placeholder="Mikro cari ara"
-              [(ngModel)]="supplierQuery"
-              (keydown.enter)="searchSuppliers()"
-            />
-          </label>
-          <label class="field search-field">
-            <span>Fatura Ara</span>
-            <input
-              type="search"
-              placeholder="Cari, vergi no, belge veya mesaj"
+              placeholder="Firma adı, vergi no, belge no veya mesaj..."
               [(ngModel)]="invoiceSearchText"
               (keydown.enter)="loadIncomingInvoices()"
-            />
-          </label>
-          <label class="field search-field">
-            <span>ETTN</span>
-            <input
-              type="search"
-              placeholder="ETTN ile detay getir"
-              [(ngModel)]="invoiceEttn"
-              (keydown.enter)="loadInvoiceDetailByEttn()"
             />
           </label>
           <label class="check-field">
@@ -113,24 +183,8 @@
               [(ngModel)]="includeArchivedInvoices"
               (change)="loadIncomingInvoices()"
             />
-            Arsiv dahil
+            <span>Arşiv dahil</span>
           </label>
-          <button
-            type="button"
-            class="task-action"
-            (click)="searchSuppliers()"
-            [disabled]="isSupplierSearching()"
-          >
-            {{ isSupplierSearching() ? 'Araniyor...' : 'Cari Bul' }}
-          </button>
-          <button
-            type="button"
-            class="task-action"
-            (click)="loadInvoiceDetailByEttn()"
-            [disabled]="isInvoiceDetailLoading() || !invoiceEttn.trim() || !canDetail()"
-          >
-            {{ isInvoiceDetailLoading() ? 'Yükleniyor...' : 'ETTN Getir' }}
-          </button>
           <button
             type="button"
             class="task-action task-action-primary"
@@ -139,133 +193,110 @@
           >
             {{ isIncomingInvoiceLoading() ? 'Yükleniyor...' : 'Faturaları Getir' }}
           </button>
+        </div>
+
+        <div class="invoice-ettn-row">
+          <label class="field field-grow">
+            <span>ETTN / UUID ile Doğrudan Fatura Getir</span>
+            <input
+              type="search"
+              placeholder="Fatura ETTN kodunu yapıştırın ve Enter'a basın"
+              [(ngModel)]="invoiceEttn"
+              (keydown.enter)="loadInvoiceDetailByEttn()"
+            />
+          </label>
           <button
             type="button"
             class="task-action"
-            *ngIf="incomingInvoices().length"
-            (click)="toggleIncomingInvoiceList()"
+            (click)="loadInvoiceDetailByEttn()"
+            [disabled]="isInvoiceDetailLoading() || !invoiceEttn.trim() || !canDetail()"
           >
-            {{ showIncomingInvoiceList() ? 'Listeyi Kapat' : 'Listeyi Ac' }}
+            {{ isInvoiceDetailLoading() ? 'Yükleniyor...' : 'ETTN Getir' }}
           </button>
         </div>
       </div>
 
-      <div class="invoice-supplier-results" *ngIf="supplierResults().length">
-        <button
-          type="button"
-          *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier"
-          (click)="selectSupplier(supplier)"
-        >
-          <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
-          <span>{{ getSupplierCode(supplier) }} / {{ supplier.supplierTaxNo || '-' }}</span>
-        </button>
-      </div>
-      <p class="field-message" *ngIf="supplierSearchMessage() && !supplierResults().length">
-        {{ supplierSearchMessage() }}
-      </p>
-
-      <article class="selected-invoice-card" *ngIf="selectedIncomingInvoice() as invoice">
-        <ng-container *ngIf="selectedInvoiceDetail() as detail">
+      <article class="selected-invoice-card" *ngIf="selectedIncomingInvoice() || selectedInvoiceDetail()">
+        <ng-container *ngIf="selectedInvoiceDetail() as detail; else selectedInvoiceFallback">
           <div class="selected-invoice-title">
             <span class="status-pill status-ready">
-              {{ invoiceLineSummary().matched }} / {{ invoiceLineSummary().total }} kalem
+              {{ invoiceLineSummary().matched }} / {{ invoiceLineSummary().total }} kalem hazır
             </span>
-            <div>
+            <div class="selected-invoice-meta">
               <strong>{{ getInvoiceDetailTitle(detail) }}</strong>
-              <small>{{ getInvoiceDetailDocument(detail) }} / {{ detail.invoiceTypeCode || invoice.invoiceType || 'Fatura' }}</small>
-              <small *ngIf="getInvoiceDetailWeightSummary(detail)">{{ getInvoiceDetailWeightSummary(detail) }}</small>
+              <small>
+                {{ getInvoiceDetailDocument(detail) }} · {{ detail.invoiceTypeCode || selectedIncomingInvoice()?.invoiceType || 'Fatura' }}
+              </small>
+              <small class="weight-summary" *ngIf="getInvoiceDetailWeightSummary(detail)">
+                {{ getInvoiceDetailWeightSummary(detail) }}
+              </small>
             </div>
           </div>
           <dl>
             <div>
               <dt>Fatura Tarihi</dt>
-              <dd>{{ detail.issueDate || getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }}</dd>
-            </div>
-            <div>
-              <dt>Toplam</dt>
-              <dd>{{ detail.payableAmount || invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ detail.documentCurrencyCode || invoice.documentCurrencyCode || 'TL' }}</dd>
+              <dd>{{ detail.issueDate || (selectedIncomingInvoice() ? getIncomingInvoiceDate(selectedIncomingInvoice()!) : null) | date:'dd.MM.yyyy' }}</dd>
             </div>
             <div>
               <dt>Matrah</dt>
-              <dd>{{ detail.taxExclusiveAmount || invoice.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
+              <dd>{{ detail.taxExclusiveAmount || selectedIncomingInvoice()?.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
             </div>
             <div>
               <dt>KDV</dt>
-              <dd>{{ detail.taxTotal || invoice.taxTotal || 0 | number:'1.2-2' }}</dd>
+              <dd>{{ detail.taxTotal || selectedIncomingInvoice()?.taxTotal || 0 | number:'1.2-2' }}</dd>
+            </div>
+            <div class="highlight-stat">
+              <dt>Genel Toplam</dt>
+              <dd>{{ detail.payableAmount || selectedIncomingInvoice()?.invoiceTotal || 0 | number:'1.2-2' }} {{ detail.documentCurrencyCode || selectedIncomingInvoice()?.documentCurrencyCode || 'TL' }}</dd>
             </div>
           </dl>
         </ng-container>
-        <ng-container *ngIf="!selectedInvoiceDetail()">
-        <div class="selected-invoice-title">
-          <span class="status-pill" [ngClass]="getIncomingInvoiceStatusClass(invoice)">
-            {{ getIncomingInvoiceStatusLabel(invoice) }}
-          </span>
-          <div>
-            <strong>{{ getIncomingInvoiceTitle(invoice) }}</strong>
-            <small>{{ getSelectedInvoiceSubtitle(invoice) }}</small>
-          </div>
-        </div>
-        <dl>
-          <div>
-            <dt>Fatura Tarihi</dt>
-            <dd>{{ getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }}</dd>
-          </div>
-          <div>
-            <dt>Toplam</dt>
-            <dd>{{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</dd>
-          </div>
-          <div>
-            <dt>Matrah</dt>
-            <dd>{{ invoice.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
-          </div>
-          <div>
-            <dt>KDV</dt>
-            <dd>{{ invoice.taxTotal || 0 | number:'1.2-2' }}</dd>
-          </div>
-        </dl>
-        </ng-container>
-      </article>
 
-      <article class="selected-invoice-card" *ngIf="!selectedIncomingInvoice() && selectedInvoiceDetail() as detail">
-        <div class="selected-invoice-title">
-          <span class="status-pill status-ready">
-            {{ invoiceLineSummary().matched }} / {{ invoiceLineSummary().total }} kalem
-          </span>
-          <div>
-            <strong>{{ getInvoiceDetailTitle(detail) }}</strong>
-            <small>{{ getInvoiceDetailDocument(detail) }} / {{ detail.invoiceTypeCode || 'Fatura' }}</small>
-            <small *ngIf="getInvoiceDetailWeightSummary(detail)">{{ getInvoiceDetailWeightSummary(detail) }}</small>
-          </div>
-        </div>
-        <dl>
-          <div>
-            <dt>Fatura Tarihi</dt>
-            <dd>{{ detail.issueDate | date:'dd.MM.yyyy' }}</dd>
-          </div>
-          <div>
-            <dt>Toplam</dt>
-            <dd>{{ detail.payableAmount || 0 | number:'1.2-2' }} {{ detail.documentCurrencyCode || 'TL' }}</dd>
-          </div>
-          <div>
-            <dt>Matrah</dt>
-            <dd>{{ detail.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
-          </div>
-          <div>
-            <dt>KDV</dt>
-            <dd>{{ detail.taxTotal || 0 | number:'1.2-2' }}</dd>
-          </div>
-        </dl>
+        <ng-template #selectedInvoiceFallback>
+          <ng-container *ngIf="selectedIncomingInvoice() as invoice">
+            <div class="selected-invoice-title">
+              <span class="status-pill" [ngClass]="getIncomingInvoiceStatusClass(invoice)">
+                {{ getIncomingInvoiceStatusLabel(invoice) }}
+              </span>
+              <div class="selected-invoice-meta">
+                <strong>{{ getIncomingInvoiceTitle(invoice) }}</strong>
+                <small>{{ getSelectedInvoiceSubtitle(invoice) }}</small>
+              </div>
+            </div>
+            <dl>
+              <div>
+                <dt>Fatura Tarihi</dt>
+                <dd>{{ getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }}</dd>
+              </div>
+              <div>
+                <dt>Matrah</dt>
+                <dd>{{ invoice.taxExclusiveAmount || 0 | number:'1.2-2' }}</dd>
+              </div>
+              <div>
+                <dt>KDV</dt>
+                <dd>{{ invoice.taxTotal || 0 | number:'1.2-2' }}</dd>
+              </div>
+              <div class="highlight-stat">
+                <dt>Genel Toplam</dt>
+                <dd>{{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</dd>
+              </div>
+            </dl>
+          </ng-container>
+        </ng-template>
       </article>
 
       <section class="invoice-lines-panel" *ngIf="selectedInvoiceDetail() as detail">
         <div class="panel-head compact">
           <div class="title-block">
-            <span>Fatura Kalemleri</span>
-            <h3>{{ invoiceLineSummary().matched }} hazır / {{ invoiceLineSummary().total }} satır</h3>
+            <span class="kicker">Fatura Kalemleri</span>
+            <div class="title-inline">
+              <h3>{{ invoiceLineSummary().matched }} hazır / {{ invoiceLineSummary().total }} satır</h3>
+              <span class="helper-chip">Tartıma almak için bir satıra tıklayın</span>
+            </div>
           </div>
           <button
             type="button"
-            class="task-action"
+            class="task-action task-action-subtle"
             (click)="loadSelectedInvoiceDetail()"
             [disabled]="isInvoiceDetailLoading() || !selectedIncomingInvoice()"
           >
@@ -281,12 +312,12 @@
           <table class="record-table invoice-lines-table">
             <thead>
               <tr>
-                <th>#</th>
+                <th class="col-index">#</th>
                 <th>Fatura Ürünü</th>
-                <th>Miktar</th>
-                <th>Fiyat</th>
-                <th>KDV</th>
-                <th>Mikro Stok</th>
+                <th>Miktar / Kap</th>
+                <th class="col-num">Birim Fiyat</th>
+                <th class="col-num">KDV</th>
+                <th>Mikro (MNV) Stok</th>
                 <th>Durum</th>
               </tr>
             </thead>
@@ -294,9 +325,10 @@
               <tr
                 *ngFor="let line of detail.lines; let i = index; trackBy: trackByInvoiceLine"
                 [class.is-selected]="isSelectedInvoiceLine(line)"
+                [class.is-unmatched]="!isInvoiceLineReady(line)"
                 (click)="selectInvoiceLine(line)"
               >
-                <td data-label="#">{{ i + 1 }}</td>
+                <td data-label="#" class="col-index">{{ i + 1 }}</td>
                 <td data-label="Fatura Ürünü">
                   <strong>{{ line.stockName || '-' }}</strong>
                   <span>{{ line.stockCode || '-' }} / {{ line.barcode || '-' }}</span>
@@ -305,10 +337,10 @@
                   <strong>{{ line.quantity || 0 | number:'1.0-3' }} {{ line.unitCode || '' }}</strong>
                   <span *ngIf="getInvoiceLineWeightSummary(line)">{{ getInvoiceLineWeightSummary(line) }}</span>
                 </td>
-                <td data-label="Fiyat">{{ line.unitPrice || 0 | number:'1.2-2' }}</td>
-                <td data-label="KDV">%{{ line.taxRatePercent || 0 | number:'1.0-2' }}</td>
+                <td data-label="Fiyat" class="col-num">{{ line.unitPrice || 0 | number:'1.2-2' }}</td>
+                <td data-label="KDV" class="col-num">%{{ line.taxRatePercent || 0 | number:'1.0-2' }}</td>
                 <td data-label="Mikro Stok">
-                  <strong>{{ getInvoiceLineMicroStockName(line) || '-' }}</strong>
+                  <strong>{{ getInvoiceLineMicroStockName(line) || 'Eşleştirilmedi' }}</strong>
                   <span>{{ getInvoiceLineMicroStockCode(line) || '-' }} / {{ getInvoiceLineMicroBarcode(line) || '-' }}</span>
                 </td>
                 <td data-label="Durum">
@@ -343,28 +375,33 @@
           [class.is-selected]="isSelectedIncomingInvoice(invoice)"
           (click)="selectIncomingInvoice(invoice)"
         >
-          <span class="status-pill" [ngClass]="getIncomingInvoiceStatusClass(invoice)">
-            {{ getIncomingInvoiceStatusLabel(invoice) }}
-          </span>
+          <div class="incoming-card-top">
+            <span class="status-pill" [ngClass]="getIncomingInvoiceStatusClass(invoice)">
+              {{ getIncomingInvoiceStatusLabel(invoice) }}
+            </span>
+            <time>{{ getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }}</time>
+          </div>
           <strong>{{ getIncomingInvoiceTitle(invoice) }}</strong>
-          <span>{{ getIncomingInvoiceDocument(invoice) }}</span>
-          <small>{{ getIncomingInvoiceDate(invoice) | date:'dd.MM.yyyy' }} / {{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</small>
+          <span class="incoming-doc">{{ getIncomingInvoiceDocument(invoice) }}</span>
           <em>{{ invoice.matchedSupplierCode || invoice.supplierTaxNo || invoice.message || '-' }}</em>
-          <button
-            type="button"
-            class="mini-action"
-            [disabled]="!canStartInvoiceAcceptance(invoice)"
-            (click)="selectIncomingInvoice(invoice); $event.stopPropagation()"
-          >
-            Kabul Baslat
-          </button>
+          <div class="incoming-card-foot">
+            <b>{{ invoice.invoiceTotal || 0 | number:'1.2-2' }} {{ invoice.documentCurrencyCode || 'TL' }}</b>
+            <button
+              type="button"
+              class="mini-action"
+              [disabled]="!canStartInvoiceAcceptance(invoice)"
+              (click)="selectIncomingInvoice(invoice); $event.stopPropagation()"
+            >
+              {{ isSelectedIncomingInvoice(invoice) ? 'Seçili' : 'Kabul Başlat' }}
+            </button>
+          </div>
         </article>
       </div>
 
       <ng-template #emptyInvoices>
         <article class="empty-state compact-empty" *ngIf="!incomingInvoices().length">
-          <strong>Gelen fatura yok</strong>
-          <span>Tarih veya arama bilgisini degistirip tekrar deneyin.</span>
+          <strong>Gelen fatura bulunamadı</strong>
+          <span>Tarih aralığını veya arama kriterini değiştirip "Faturaları Getir" butonuna tıklayın.</span>
         </article>
       </ng-template>
     </section>
@@ -372,210 +409,417 @@
     <section class="operation-panel" *ngIf="activeTab() !== 'reports'">
       <div class="operation-top">
         <section class="entry-panel">
-          <div class="entry-caption">
-            <strong>{{ draftModeLabel() }}</strong>
-            <span>
-              {{ selectedIncomingInvoice() ? 'Fatura üzerinden' : 'Manuel taslak' }} /
-              {{ selectedRecordLabel() }}
-            </span>
-          </div>
-
-          <article class="save-hint" *ngIf="saveBlockReason() && !canSaveDraft()">
-            {{ saveBlockReason() }}
-          </article>
-          <article class="save-hint transfer-hint" *ngIf="microTransferBlockReason() && selectedRecord() && !selectedRecord()?.microTransferred">
-            Mikro aktarim: {{ microTransferBlockReason() }}
-          </article>
-
-          <div class="entry-grid">
-            <label class="field">
-              <span>Cari Kodu</span>
-              <input type="text" [(ngModel)]="draft.supplierCode" (ngModelChange)="onDraftTextChange()" />
-            </label>
-            <label class="field field-wide">
-              <span>Tedarikçi Firma</span>
-              <input type="text" [(ngModel)]="draft.supplierName" (ngModelChange)="onDraftTextChange()" />
-            </label>
-            <label class="field">
-              <span>Tarih</span>
-              <input type="date" [max]="maxDate" [ngModel]="selectedDate()" (ngModelChange)="setSelectedDate($event)" />
-            </label>
-            <label class="field field-small">
-              <span>Evrak Seri</span>
-              <input type="text" [(ngModel)]="draft.documentSeries" (ngModelChange)="onDraftTextChange()" />
-            </label>
-            <label class="field field-small">
-              <span>Evrak No</span>
-              <input type="text" [(ngModel)]="draft.documentNo" (ngModelChange)="onDraftTextChange()" />
-            </label>
-
-            <label class="field field-wide">
-              <span>Stok Adı</span>
-              <input type="text" [(ngModel)]="draft.stockName" (ngModelChange)="onDraftTextChange()" />
-            </label>
-            <label class="field field-small">
-              <span>Stok Kodu</span>
-              <input type="text" [(ngModel)]="draft.stockCode" (ngModelChange)="onDraftTextChange()" />
-            </label>
-            <label class="field">
-              <span>Barkodu</span>
-              <input type="text" [(ngModel)]="draft.stockBarcode" (ngModelChange)="onDraftTextChange(); scheduleCalculation()" />
-            </label>
-            <label class="field">
-              <span>Teslim Alan</span>
-              <input type="text" [(ngModel)]="draft.receivedBy" (ngModelChange)="onDraftTextChange()" />
-            </label>
-
-            <label class="field">
-              <span>Toplam Kilo</span>
-              <input type="number" step="0.01" [ngModel]="draft.grossWeight" (ngModelChange)="onDraftNumberChange('grossWeight', $event)" />
-            </label>
-            <label class="field field-small">
-              <span>Kasa Sayısı</span>
-              <input type="number" min="1" step="1" [ngModel]="draft.caseCount" (ngModelChange)="onDraftNumberChange('caseCount', $event)" />
-            </label>
-            <label class="field field-small">
-              <span>Kasa Darası</span>
-              <input type="number" step="0.01" [ngModel]="draft.caseTare" (ngModelChange)="onDraftNumberChange('caseTare', $event)" />
-            </label>
-            <label class="field field-small">
-              <span>Palet Darası</span>
-              <input type="number" step="0.01" [ngModel]="draft.palletTare" (ngModelChange)="onDraftNumberChange('palletTare', $event)" />
-            </label>
-            <label class="field">
-              <span>Ortalama Kasa Kilosu</span>
-              <input [value]="(calculation()?.averageCaseWeight || 0) | number:'1.2-2'" readonly />
-            </label>
-            <label class="field">
-              <span>Toplam Net Kilo</span>
-              <input [value]="(calculation()?.netReceivedWeight || 0) | number:'1.2-2'" readonly />
-            </label>
-          </div>
-
-          <div class="entry-search">
-            <label class="field">
-              <span>Tedarikçi Ara</span>
-              <input type="search" placeholder="Kod veya ad" [(ngModel)]="supplierQuery" (keydown.enter)="searchSuppliers()" />
-            </label>
-            <button type="button" class="task-action" (click)="searchSuppliers()" [disabled]="isSupplierSearching()">
-              {{ isSupplierSearching() ? 'Aranıyor...' : 'Firma Ara' }}
-            </button>
-            <label class="field">
-              <span>Stok Ara</span>
-              <input type="search" placeholder="Stok adı, kodu veya barkod" [(ngModel)]="stockQuery" (keydown.enter)="searchStocks()" />
-            </label>
-            <label class="field prefix-field">
-              <span>Prefix</span>
-              <input type="text" [(ngModel)]="stockPrefix" />
-            </label>
-            <button type="button" class="task-action" (click)="searchStocks()" [disabled]="isStockSearching()">
-              {{ isStockSearching() ? 'Aranıyor...' : 'Stok Ara' }}
-            </button>
-          </div>
-
-          <div class="lookup-drawer" *ngIf="supplierResults().length || supplierSearchMessage()">
-            <div class="lookup-results compact-results" *ngIf="supplierResults().length">
-              <button type="button" *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier" (click)="selectSupplier(supplier)">
-                <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
-                <span>{{ getSupplierCode(supplier) }} / {{ supplier.supplierTaxNo || '-' }}</span>
-              </button>
-            </div>
-            <p class="field-message" *ngIf="supplierSearchMessage()">{{ supplierSearchMessage() }}</p>
-          </div>
-
-          <div class="lookup-drawer" *ngIf="stockResults().length || stockSearchMessage()">
-            <div class="lookup-results compact-results" *ngIf="stockResults().length">
-              <button type="button" *ngFor="let stock of stockResults(); trackBy: trackByStock" (click)="selectStock(stock)">
-                <strong>{{ getStockName(stock) || getStockCode(stock) }}</strong>
-                <span>{{ getStockCode(stock) }} / {{ getStockBarcode(stock) || '-' }} / {{ stock.unitName || '-' }}</span>
-              </button>
-            </div>
-            <p class="field-message" *ngIf="stockSearchMessage()">{{ stockSearchMessage() }}</p>
-          </div>
-
-          <div class="entry-bottom">
-            <div class="case-type-group">
-              <span>Kasa Tipi</span>
-              <label><input type="radio" name="caseType" value="REHINLI" [(ngModel)]="draft.caseType" (ngModelChange)="onDraftTextChange()" /> Rehinli</label>
-              <label><input type="radio" name="caseType" value="REHINSIZ" [(ngModel)]="draft.caseType" (ngModelChange)="onDraftTextChange()" /> Rehinsiz</label>
-            </div>
-
-            <div class="barcode-panel">
-              <div class="barcode-lines">
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
-                <span></span>
+          <div class="entry-header">
+            <div class="title-block">
+              <span class="kicker">Adım 2 · Tartım, Kabul ve Etiket Girişi</span>
+              <div class="title-inline">
+                <h3>{{ draftModeLabel() }}</h3>
+                <span class="mode-pill" [class.mode-invoice]="!!selectedIncomingInvoice() || !!selectedInvoiceDetail()">
+                  {{ selectedIncomingInvoice() || selectedInvoiceDetail() ? 'Fatura üzerinden' : 'Manuel taslak' }}
+                </span>
+                <span class="record-ref-pill">{{ selectedRecordLabel() }}</span>
               </div>
-              <small>{{ calculation()?.labelBarcode || draft.stockBarcode || '000000' }}</small>
-              <em>Kayıt No: {{ selectedRecord()?.id || '-' }}</em>
+            </div>
+          </div>
+
+          <div class="hint-stack" *ngIf="(saveBlockReason() && !canSaveDraft()) || (microTransferBlockReason() && selectedRecord() && !selectedRecord()?.microTransferred)">
+            <article class="save-hint" *ngIf="saveBlockReason() && !canSaveDraft()">
+              <strong>Kaydetmek için:</strong> {{ saveBlockReason() }}
+            </article>
+            <article class="save-hint transfer-hint" *ngIf="microTransferBlockReason() && selectedRecord() && !selectedRecord()?.microTransferred">
+              <strong>Mikro aktarımı:</strong> {{ microTransferBlockReason() }}
+            </article>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-head">
+              <strong>Belge ve Tedarikçi Bilgileri</strong>
+              <div class="inline-lookup">
+                <input
+                  type="search"
+                  placeholder="Mikro tedarikçi ara (en az 2 karakter)..."
+                  [(ngModel)]="supplierQuery"
+                  (keydown.enter)="searchSuppliers()"
+                />
+                <button
+                  type="button"
+                  class="task-action task-action-subtle"
+                  (click)="searchSuppliers()"
+                  [disabled]="isSupplierSearching()"
+                >
+                  {{ isSupplierSearching() ? 'Aranıyor...' : 'Firma Ara' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="lookup-drawer" *ngIf="supplierResults().length || supplierSearchMessage()">
+              <div class="lookup-drawer-head">
+                <span>{{ supplierResults().length ? supplierResults().length + ' tedarikçi bulundu' : 'Tedarikçi Arama' }}</span>
+                <button type="button" class="drawer-close" (click)="clearSupplierSearch()">Kapat &times;</button>
+              </div>
+              <div class="lookup-results" *ngIf="supplierResults().length">
+                <button
+                  type="button"
+                  *ngFor="let supplier of supplierResults(); trackBy: trackBySupplier"
+                  (click)="selectSupplier(supplier)"
+                >
+                  <strong>{{ getSupplierName(supplier) || getSupplierCode(supplier) }}</strong>
+                  <span>{{ getSupplierCode(supplier) }} · VKN: {{ supplier.supplierTaxNo || '-' }}</span>
+                </button>
+              </div>
+              <p class="field-message" *ngIf="supplierSearchMessage()">{{ supplierSearchMessage() }}</p>
+            </div>
+
+            <div class="section-grid grid-supplier">
+              <label class="field">
+                <span>Kabul Tarihi</span>
+                <input type="date" [max]="maxDate" [ngModel]="selectedDate()" (ngModelChange)="setSelectedDate($event)" />
+              </label>
+              <label class="field">
+                <span>Cari Kodu *</span>
+                <input type="text" placeholder="320..." [(ngModel)]="draft.supplierCode" (ngModelChange)="onDraftTextChange()" />
+              </label>
+              <label class="field span-2">
+                <span>Tedarikçi Firma *</span>
+                <input type="text" placeholder="Tedarikçi unvanı" [(ngModel)]="draft.supplierName" (ngModelChange)="onDraftTextChange()" />
+              </label>
+              <label class="field">
+                <span>Evrak Seri</span>
+                <input type="text" placeholder="MNV" [(ngModel)]="draft.documentSeries" (ngModelChange)="onDraftTextChange()" />
+              </label>
+              <label class="field">
+                <span>Evrak No *</span>
+                <input type="text" placeholder="Belge no" [(ngModel)]="draft.documentNo" (ngModelChange)="onDraftTextChange()" />
+              </label>
+              <label class="field span-2">
+                <span>Teslim Alan *</span>
+                <input type="text" placeholder="Teslim alan personel adı" [(ngModel)]="draft.receivedBy" (ngModelChange)="onDraftTextChange()" />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section">
+            <div class="form-section-head">
+              <strong>Ürün / Mikro (MNV) Stok Bilgileri</strong>
+              <div class="inline-lookup inline-lookup-stock">
+                <input
+                  type="search"
+                  placeholder="Stok adı, kodu veya barkod ara..."
+                  [(ngModel)]="stockQuery"
+                  (keydown.enter)="searchStocks()"
+                />
+                <input
+                  type="text"
+                  class="prefix-input"
+                  aria-label="Stok öneki"
+                  title="Stok kodu öneki (varsayılan MNV)"
+                  [(ngModel)]="stockPrefix"
+                />
+                <button
+                  type="button"
+                  class="task-action task-action-subtle"
+                  (click)="searchStocks()"
+                  [disabled]="isStockSearching()"
+                >
+                  {{ isStockSearching() ? 'Aranıyor...' : 'Stok Ara' }}
+                </button>
+              </div>
+            </div>
+
+            <div class="lookup-drawer" *ngIf="stockResults().length || stockSearchMessage()">
+              <div class="lookup-drawer-head">
+                <span>{{ stockResults().length ? stockResults().length + ' stok bulundu' : 'Stok Arama' }}</span>
+                <button type="button" class="drawer-close" (click)="clearStockSearch()">Kapat &times;</button>
+              </div>
+              <div class="lookup-results" *ngIf="stockResults().length">
+                <button
+                  type="button"
+                  *ngFor="let stock of stockResults(); trackBy: trackByStock"
+                  (click)="selectStock(stock)"
+                >
+                  <strong>{{ getStockName(stock) || getStockCode(stock) }}</strong>
+                  <span>{{ getStockCode(stock) }} · Barkod: {{ getStockBarcode(stock) || '-' }} · {{ stock.unitName || '-' }}</span>
+                </button>
+              </div>
+              <p class="field-message" *ngIf="stockSearchMessage()">{{ stockSearchMessage() }}</p>
+            </div>
+
+            <div class="section-grid grid-stock">
+              <label class="field span-2">
+                <span>Stok Adı *</span>
+                <input type="text" placeholder="Örn: DOMATES SALKIM" [(ngModel)]="draft.stockName" (ngModelChange)="onDraftTextChange()" />
+              </label>
+              <label class="field">
+                <span>Stok Kodu *</span>
+                <input type="text" placeholder="MNV..." [(ngModel)]="draft.stockCode" (ngModelChange)="onDraftTextChange()" />
+              </label>
+              <label class="field">
+                <span>Barkod *</span>
+                <input
+                  type="text"
+                  placeholder="Ürün barkodu"
+                  [(ngModel)]="draft.stockBarcode"
+                  (ngModelChange)="onDraftTextChange(); scheduleCalculation()"
+                />
+              </label>
+            </div>
+          </div>
+
+          <div class="form-section form-section-weighing">
+            <div class="form-section-head">
+              <strong>Tartım, Dara ve Kasa Hesabı</strong>
+              <div class="case-type-toggle" role="radiogroup" aria-label="Kasa Tipi">
+                <label [class.is-checked]="draft.caseType === 'REHINLI'">
+                  <input
+                    type="radio"
+                    name="caseType"
+                    value="REHINLI"
+                    [(ngModel)]="draft.caseType"
+                    (ngModelChange)="onDraftTextChange()"
+                  />
+                  Rehinli Kasa
+                </label>
+                <label [class.is-checked]="draft.caseType === 'REHINSIZ'">
+                  <input
+                    type="radio"
+                    name="caseType"
+                    value="REHINSIZ"
+                    [(ngModel)]="draft.caseType"
+                    (ngModelChange)="onDraftTextChange()"
+                  />
+                  Rehinsiz Kasa
+                </label>
+              </div>
+            </div>
+
+            <div class="section-grid grid-weights">
+              <label class="field">
+                <span>Brüt / Toplam Kilo (kg) *</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  [ngModel]="draft.grossWeight"
+                  (ngModelChange)="onDraftNumberChange('grossWeight', $event)"
+                />
+              </label>
+              <label class="field">
+                <span>Kasa Sayısı *</span>
+                <input
+                  type="number"
+                  min="1"
+                  step="1"
+                  placeholder="1"
+                  [ngModel]="draft.caseCount"
+                  (ngModelChange)="onDraftNumberChange('caseCount', $event)"
+                />
+              </label>
+              <label class="field">
+                <span>1 Kasa Darası (kg) *</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  [ngModel]="draft.caseTare"
+                  (ngModelChange)="onDraftNumberChange('caseTare', $event)"
+                />
+              </label>
+              <label class="field">
+                <span>Palet Darası (kg)</span>
+                <input
+                  type="number"
+                  step="0.01"
+                  placeholder="0.00"
+                  [ngModel]="draft.palletTare"
+                  (ngModelChange)="onDraftNumberChange('palletTare', $event)"
+                />
+              </label>
+            </div>
+
+            <div class="calc-summary-strip">
+              <article class="calc-tile calc-tile-primary">
+                <span>Toplam Net Kilo</span>
+                <strong>{{ (calculation()?.netReceivedWeight || 0) | number:'1.2-2' }} kg</strong>
+              </article>
+              <article class="calc-tile">
+                <span>Ort. Kasa Kilosu</span>
+                <strong>{{ (calculation()?.averageCaseWeight || 0) | number:'1.2-2' }} kg</strong>
+              </article>
+              <article class="calc-tile">
+                <span>Toplam Kasa Darası</span>
+                <strong>{{ (calculation()?.caseTotalTare || 0) | number:'1.2-2' }} kg</strong>
+              </article>
+              <article class="calc-tile">
+                <span>Etiket Barkodu / Kayıt</span>
+                <strong class="mono-text">{{ calculation()?.labelBarcode || draft.stockBarcode || '-' }}</strong>
+                <small>Kayıt #{{ selectedRecord()?.id || 'Yeni' }}</small>
+              </article>
             </div>
           </div>
         </section>
 
         <aside class="operation-actions">
-          <button type="button" class="task-action" (click)="startNewRecord()" [disabled]="!canCreate()">
-            Yeni Kayıt
-          </button>
-          <button type="button" class="task-action task-action-primary" (click)="saveDraft()" [disabled]="!canSaveDraft()">
-            {{ isSaving() ? 'Kaydediliyor...' : 'Kaydet' }}
-          </button>
-          <button type="button" class="task-action" (click)="calculateDraft()" [disabled]="isCalculating()">
-            {{ isCalculating() ? 'Hesaplanıyor...' : 'Hesapla' }}
-          </button>
-          <button type="button" class="task-action" (click)="printCurrentLabel()" [disabled]="isLabelLoading() || isPrinting()">
-            {{ isLabelLoading() ? 'Hazırlanıyor...' : 'Etiket Yazdır' }}
-          </button>
+          <div class="action-card">
+            <span class="kicker">Kayıt İşlemleri</span>
+            <button
+              type="button"
+              class="task-action task-action-primary action-lg"
+              (click)="saveDraft()"
+              [disabled]="!canSaveDraft()"
+            >
+              {{ isSaving() ? 'Kaydediliyor...' : (selectedRecord() ? 'Kaydı Güncelle' : 'Kabulü Kaydet') }}
+            </button>
+
+            <div class="action-pair">
+              <button
+                type="button"
+                class="task-action"
+                (click)="calculateDraft()"
+                [disabled]="isCalculating()"
+              >
+                {{ isCalculating() ? '...' : 'Hesapla' }}
+              </button>
+              <button
+                type="button"
+                class="task-action"
+                (click)="startNewRecord()"
+                [disabled]="!canCreate()"
+              >
+                Yeni Kayıt
+              </button>
+            </div>
+          </div>
+
+          <div class="action-card">
+            <span class="kicker">Termal Rulo Etiket (60×40 mm)</span>
+            <div class="thermal-preview-card" aria-label="60x40 mm termal etiket önizleme">
+              <div class="tp-title">{{ (labelPreview()?.stockName || draft.stockName || 'STOK ADI') }}</div>
+              <div class="tp-row">
+                <span>Stok Kod : {{ labelPreview()?.stockCode || draft.stockCode || '-' }}</span>
+                <span>{{ formatLabelDate(labelPreview()?.labelDate || selectedDate()) }}</span>
+              </div>
+              <div class="tp-row">
+                <span>Barkod : {{ labelPreview()?.stockBarcode || draft.stockBarcode || '-' }}</span>
+                <strong>{{ formatLabelCaseType(labelPreview()?.caseType || draft.caseType) }}</strong>
+              </div>
+              <div class="tp-row tp-weights">
+                <span>Ort.Ağırlık: {{ formatLabelWeight(labelPreview()?.averageCaseWeight ?? calculation()?.averageCaseWeight) }} KG</span>
+                <span>Dara: {{ formatLabelWeight(labelPreview()?.caseTare ?? draft.caseTare) }} KG</span>
+              </div>
+              <div class="tp-barcode">
+                <svg #previewBarcode class="preview-barcode-svg"></svg>
+                <span class="tp-barcode-empty" *ngIf="!(labelPreview()?.labelBarcode || calculation()?.labelBarcode || draft.stockBarcode)">
+                  Barkod hesaplanınca burada görünür
+                </span>
+              </div>
+            </div>
+            <label class="field copy-field">
+              <span>Etiket Adedi (Kopya)</span>
+              <input
+                type="number"
+                min="1"
+                max="200"
+                step="1"
+                [ngModel]="labelCopyCount"
+                (ngModelChange)="setLabelCopyCount($event)"
+              />
+            </label>
+            <button
+              type="button"
+              class="task-action task-action-accent"
+              (click)="printCurrentLabel()"
+              [disabled]="isLabelLoading() || isPrinting()"
+            >
+              {{ isLabelLoading() ? 'Hazırlanıyor...' : (isPrinting() ? 'Yazdırılıyor...' : 'Termal Etiket Yazdır') }}
+            </button>
+          </div>
+
+          <div class="action-card">
+            <span class="kicker">Mikro Entegrasyonu</span>
+            <button
+              type="button"
+              class="task-action task-action-micro"
+              (click)="transferCurrentRecordToMicro()"
+              [disabled]="!canTransferCurrentRecord()"
+            >
+              {{ isTransferring() ? 'Aktarılıyor...' : 'Mikro\'ya Aktar' }}
+            </button>
+            <small class="action-note" *ngIf="selectedRecord()?.microTransferred">
+              Bu kayıt Mikro'ya aktarıldı.
+            </small>
+          </div>
+
           <button
             type="button"
-            class="task-action task-action-primary"
-            (click)="transferCurrentRecordToMicro()"
-            [disabled]="!canTransferCurrentRecord()"
+            class="task-action task-action-danger"
+            (click)="deleteRecord()"
+            [disabled]="!selectedRecord() || !!selectedRecord()?.microTransferred || isDeleting() || !canDelete()"
           >
-            {{ isTransferring() ? 'Aktarılıyor...' : 'Mikro\'ya Aktar' }}
-          </button>
-          <button type="button" class="task-action task-action-danger" (click)="deleteRecord()" [disabled]="!selectedRecord() || !!selectedRecord()?.microTransferred || isDeleting() || !canDelete()">
-            Sil
-          </button>
-          <button type="button" class="task-action" (click)="loadDailyWorkspace()" [disabled]="isLoading() || isIncomingInvoiceLoading() || !canList()">
-            {{ isLoading() ? 'Yükleniyor...' : 'Listele' }}
+            {{ isDeleting() ? 'Siliniyor...' : 'Seçili Kaydı Sil' }}
           </button>
         </aside>
       </div>
 
       <section class="metric-strip">
         <article class="metric-card">
-          <span>Kayıt</span>
+          <span>Günlük Kayıt</span>
           <strong>{{ listSummary().total }}</strong>
         </article>
-        <article class="metric-card">
-          <span>Bekleyen</span>
+        <article class="metric-card metric-warning">
+          <span>Mikro Bekleyen</span>
           <strong>{{ listSummary().waiting }}</strong>
         </article>
-        <article class="metric-card">
-          <span>Aktarılan</span>
+        <article class="metric-card metric-success">
+          <span>Mikro'ya Aktarılan</span>
           <strong>{{ listSummary().transferred }}</strong>
         </article>
-        <article class="metric-card">
-          <span>Net Kilo</span>
-          <strong>{{ listSummary().netWeight | number:'1.2-2' }}</strong>
+        <article class="metric-card metric-accent">
+          <span>Toplam Net Kilo</span>
+          <strong>{{ listSummary().netWeight | number:'1.2-2' }} kg</strong>
         </article>
       </section>
 
-      <section class="records-panel legacy-records">
+      <section class="records-panel">
         <div class="panel-head">
           <div class="title-block">
-            <span>Günlük Liste</span>
-            <h3>{{ visibleRecords().length }} / {{ records().length }} kayıt</h3>
+            <span class="kicker">Adım 3 · Günlük Kabul Listesi</span>
+            <div class="title-inline">
+              <h3>{{ visibleRecords().length }} / {{ records().length }} kayıt</h3>
+              <div class="status-filter-pills" role="group" aria-label="Durum filtresi">
+                <button
+                  type="button"
+                  [class.is-active]="recordStatusFilter() === 'all'"
+                  (click)="recordStatusFilter.set('all')"
+                >
+                  Tümü ({{ records().length }})
+                </button>
+                <button
+                  type="button"
+                  [class.is-active]="recordStatusFilter() === 'waiting'"
+                  (click)="recordStatusFilter.set('waiting')"
+                >
+                  Bekleyen ({{ listSummary().waiting }})
+                </button>
+                <button
+                  type="button"
+                  [class.is-active]="recordStatusFilter() === 'transferred'"
+                  (click)="recordStatusFilter.set('transferred')"
+                >
+                  Aktarılan ({{ listSummary().transferred }})
+                </button>
+              </div>
+            </div>
           </div>
 
           <div class="list-tools">
             <label class="field search-field">
               <span>Liste Arama</span>
-              <input type="search" placeholder="Cari, evrak, stok veya barkod" [ngModel]="recordSearch()" (ngModelChange)="recordSearch.set($event)" />
+              <input
+                type="search"
+                placeholder="Cari, evrak, stok veya barkod..."
+                [ngModel]="recordSearch()"
+                (ngModelChange)="recordSearch.set($event)"
+              />
             </label>
             <label class="field sort-field">
               <span>Sıralama</span>
@@ -586,54 +830,72 @@
           </div>
         </div>
 
-        <div class="table-wrap legacy-table-wrap" *ngIf="visibleRecords().length; else emptyRecords">
-          <table class="record-table legacy-table">
+        <div class="table-wrap records-table-wrap" *ngIf="visibleRecords().length; else emptyRecords">
+          <table class="record-table data-records-table">
             <thead>
               <tr>
-                <th>ID</th>
-                <th><button type="button" (click)="setSort('supplierName')">Tedarikçi Firma {{ sortIcon('supplierName') }}</button></th>
-                <th><button type="button" (click)="setSort('seriesAndNumber')">Evrak No {{ sortIcon('seriesAndNumber') }}</button></th>
-                <th>Stok Kodu</th>
-                <th>Barkodu</th>
-                <th><button type="button" (click)="setSort('stockName')">Stok Adı {{ sortIcon('stockName') }}</button></th>
-                <th><button type="button" (click)="setSort('grossWeight')">Toplam Miktar {{ sortIcon('grossWeight') }}</button></th>
-                <th>Kasa Darasi</th>
-                <th><button type="button" (click)="setSort('caseCount')">Kasa Sayisi {{ sortIcon('caseCount') }}</button></th>
-                <th>Kasa Toplam Dara</th>
-                <th>Palet Dara</th>
-                <th><button type="button" (click)="setSort('averageCaseWeight')">Kasa Ortalama {{ sortIcon('averageCaseWeight') }}</button></th>
-                <th><button type="button" (click)="setSort('netReceivedWeight')">Net Alınan Miktar {{ sortIcon('netReceivedWeight') }}</button></th>
-                <th>Teslim Alan</th>
-                <th>Mikro</th>
-                <th>Kasa Tipi</th>
-                <th>İşlem</th>
+                <th class="col-id">ID</th>
+                <th class="col-supplier"><button type="button" (click)="setSort('supplierName')">Tedarikçi Firma {{ sortIcon('supplierName') }}</button></th>
+                <th class="col-doc"><button type="button" (click)="setSort('seriesAndNumber')">Evrak No {{ sortIcon('seriesAndNumber') }}</button></th>
+                <th class="col-stock"><button type="button" (click)="setSort('stockName')">Stok {{ sortIcon('stockName') }}</button></th>
+                <th class="col-barcode">Barkod</th>
+                <th class="col-num"><button type="button" (click)="setSort('grossWeight')">Brüt {{ sortIcon('grossWeight') }}</button></th>
+                <th class="col-num"><button type="button" (click)="setSort('caseCount')">Kasa {{ sortIcon('caseCount') }}</button></th>
+                <th class="col-num">Kasa Dara</th>
+                <th class="col-num">Top. Dara</th>
+                <th class="col-num">Palet</th>
+                <th class="col-num"><button type="button" (click)="setSort('averageCaseWeight')">Ort. Kasa {{ sortIcon('averageCaseWeight') }}</button></th>
+                <th class="col-num"><button type="button" (click)="setSort('netReceivedWeight')">Net Kilo {{ sortIcon('netReceivedWeight') }}</button></th>
+                <th class="col-meta">Kasa Tipi / Alan</th>
+                <th class="col-status">Mikro</th>
+                <th class="col-actions">İşlem</th>
               </tr>
             </thead>
             <tbody>
-              <tr *ngFor="let record of visibleRecords(); trackBy: trackByRecord" [class.is-selected]="isSelectedRecord(record)" (click)="selectRecord(record)">
-                <td data-label="ID">{{ record.id }}</td>
-                <td data-label="Tedarikçi Firma"><strong>{{ record.supplierName }}</strong><span>{{ record.supplierCode }}</span></td>
+              <tr
+                *ngFor="let record of visibleRecords(); trackBy: trackByRecord"
+                [class.is-selected]="isSelectedRecord(record)"
+                (click)="selectRecord(record)"
+              >
+                <td data-label="ID" class="col-id">#{{ record.id }}</td>
+                <td data-label="Tedarikçi Firma">
+                  <strong>{{ record.supplierName }}</strong>
+                  <span>{{ record.supplierCode }}</span>
+                </td>
                 <td data-label="Evrak No">{{ record.seriesAndNumber || record.documentNo || '-' }}</td>
-                <td data-label="Stok Kodu">{{ record.stockCode }}</td>
-                <td data-label="Barkodu">{{ record.stockBarcode || '-' }}</td>
-                <td data-label="Stok Adı"><strong>{{ record.stockName }}</strong></td>
-                <td data-label="Toplam Miktar">{{ record.grossWeight | number:'1.2-2' }}</td>
-                <td data-label="Kasa Darasi">{{ record.caseTare | number:'1.2-2' }}</td>
-                <td data-label="Kasa Sayisi">{{ record.caseCount }}</td>
-                <td data-label="Kasa Toplam Dara">{{ record.caseTotalTare | number:'1.2-2' }}</td>
-                <td data-label="Palet Dara">{{ record.palletTare | number:'1.2-2' }}</td>
-                <td data-label="Kasa Ortalama">{{ record.averageCaseWeight | number:'1.2-2' }}</td>
-                <td data-label="Net Alınan Miktar">{{ record.netReceivedWeight | number:'1.2-2' }}</td>
-                <td data-label="Teslim Alan">{{ record.receivedBy || '-' }}</td>
+                <td data-label="Stok">
+                  <strong>{{ record.stockName }}</strong>
+                  <span>{{ record.stockCode }}</span>
+                </td>
+                <td data-label="Barkod" class="mono-cell">{{ record.stockBarcode || '-' }}</td>
+                <td data-label="Brüt" class="col-num">{{ record.grossWeight | number:'1.2-2' }}</td>
+                <td data-label="Kasa" class="col-num">{{ record.caseCount }}</td>
+                <td data-label="Kasa Dara" class="col-num">{{ record.caseTare | number:'1.2-2' }}</td>
+                <td data-label="Top. Dara" class="col-num">{{ record.caseTotalTare | number:'1.2-2' }}</td>
+                <td data-label="Palet" class="col-num">{{ record.palletTare | number:'1.2-2' }}</td>
+                <td data-label="Ort. Kasa" class="col-num">{{ record.averageCaseWeight | number:'1.2-2' }}</td>
+                <td data-label="Net Kilo" class="col-num net-col">{{ record.netReceivedWeight | number:'1.2-2' }}</td>
+                <td data-label="Kasa Tipi / Alan">
+                  <strong>{{ record.caseType || '-' }}</strong>
+                  <span>{{ record.receivedBy || '-' }}</span>
+                </td>
                 <td data-label="Mikro">
                   <span class="status-pill" [ngClass]="getStatusClass(record)">
                     {{ record.microTransferred ? 'Aktarıldı' : 'Bekliyor' }}
                   </span>
                 </td>
-                <td data-label="Kasa Tipi">{{ record.caseType || '-' }}</td>
                 <td data-label="İşlem" class="action-cell">
-                  <button type="button" class="icon-action" (click)="selectRecord(record); $event.stopPropagation()">Sec</button>
-                  <button type="button" class="icon-action" (click)="printRecordLabel(record); $event.stopPropagation()" [disabled]="isLabelLoading() || isPrinting() || !canDetail()">Yazdır</button>
+                  <button type="button" class="icon-action" (click)="selectRecord(record); $event.stopPropagation()">
+                    Düzenle
+                  </button>
+                  <button
+                    type="button"
+                    class="icon-action icon-action-accent"
+                    (click)="printRecordLabel(record); $event.stopPropagation()"
+                    [disabled]="isLabelLoading() || isPrinting() || !canDetail()"
+                  >
+                    Etiket
+                  </button>
                 </td>
               </tr>
             </tbody>
@@ -643,7 +905,7 @@
         <ng-template #emptyRecords>
           <article class="empty-state">
             <strong>Kayıt bulunamadı</strong>
-            <span>Tarih veya arama filtresini degistirip tekrar listeleyin.</span>
+            <span>Seçilen gün veya filtre için kabul etiketi kaydı yok. Yukarıdan fatura seçerek veya "Manuel Kabul" ile yeni kayıt oluşturabilirsiniz.</span>
           </article>
         </ng-template>
       </section>
@@ -653,191 +915,222 @@
       <div class="report-head">
         <div class="report-tabs">
           <button type="button" [class.is-active]="activeReportTab() === 'received'" (click)="loadReport('received')">
-            Gelen Urun
+            Gelen Ürün Raporu
           </button>
           <button type="button" [class.is-active]="activeReportTab() === 'comparison'" (click)="loadReport('comparison')">
-            Mikro Kontrol
+            Mikro Karşılaştırma
           </button>
           <button type="button" [class.is-active]="activeReportTab() === 'depot'" (click)="loadReport('depot')">
-            Depo Stok
+            Depo Stok Raporu
           </button>
         </div>
 
-        <label class="field report-warehouse" *ngIf="activeReportTab() === 'depot'">
-          <span>Depo</span>
-          <input
-            type="number"
-            min="1"
-            [disabled]="!canUseWarehouseScope()"
-            [placeholder]="currentWarehouseLabel()"
-            [ngModel]="reportWarehouseNo"
-            (ngModelChange)="updateReportWarehouseNo($event)"
-          />
-        </label>
+        <div class="report-controls">
+          <label class="field report-date">
+            <span>Rapor Tarihi</span>
+            <input
+              type="date"
+              [max]="maxDate"
+              [ngModel]="selectedDate()"
+              (ngModelChange)="setSelectedDate($event)"
+            />
+          </label>
 
-        <button
-          type="button"
-          class="task-action task-action-primary"
-          (click)="loadReport()"
-          [disabled]="isReportLoading()"
-        >
-          {{ isReportLoading() ? 'Yükleniyor...' : 'Raporu Getir' }}
-        </button>
-        <button type="button" class="task-action" (click)="setActiveTab('records')">
-          Kayıt Ekranı
-        </button>
+          <label class="field report-warehouse" *ngIf="activeReportTab() === 'depot'">
+            <span>Depo No</span>
+            <input
+              type="number"
+              min="1"
+              [disabled]="!canUseWarehouseScope()"
+              [placeholder]="currentWarehouseLabel()"
+              [ngModel]="reportWarehouseNo"
+              (ngModelChange)="updateReportWarehouseNo($event)"
+            />
+          </label>
+
+          <button
+            type="button"
+            class="task-action task-action-primary"
+            (click)="loadReport()"
+            [disabled]="isReportLoading()"
+          >
+            {{ isReportLoading() ? 'Yükleniyor...' : 'Raporu Getir' }}
+          </button>
+          <button type="button" class="task-action" (click)="setActiveTab('records')">
+            &larr; Mal Kabul Ekranı
+          </button>
+        </div>
       </div>
 
-      <div class="table-wrap compact-table" *ngIf="activeReportTab() === 'received'">
-        <table class="record-table report-table">
-          <thead>
-            <tr>
-              <th>Tarih</th>
-              <th>Cari</th>
-              <th>Stok</th>
-              <th>Kilo</th>
-              <th>Mikro</th>
-              <th>Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of receivedReportRows()">
-              <td data-label="Tarih">{{ row.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
-              <td data-label="Cari">
-                <strong>{{ row.supplierName || '-' }}</strong>
-                <span>{{ row.supplierCode || row.seriesAndNumber || '-' }}</span>
-              </td>
-              <td data-label="Stok">
-                <strong>{{ row.stockName || '-' }}</strong>
-                <span>{{ row.stockCode || row.stockBarcode || '-' }} / {{ row.unitName || '-' }}</span>
-              </td>
-              <td data-label="Kilo">
-                <strong>{{ (row.netReceivedWeight || 0) | number:'1.2-2' }} net</strong>
-                <span>
-                  Mikro {{ (row.invoiceQuantity || 0) | number:'1.2-2' }} /
-                  Fark {{ (row.invoiceDifference || 0) | number:'1.2-2' }}
-                </span>
-              </td>
-              <td data-label="Mikro">
-                <strong>{{ row.microDocument || '-' }}</strong>
-                <span>{{ row.labelRowCount || 0 }} etiket / {{ row.microRowCount || 0 }} mikro</span>
-              </td>
-              <td data-label="Durum">
-                {{ row.microTransferred ? 'Aktarıldı' : row.status || 'Bekliyor' }}
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ng-container *ngIf="activeReportTab() === 'received'">
+        <div class="table-wrap compact-table" *ngIf="receivedReportRows().length; else emptyReceivedReport">
+          <table class="record-table report-table">
+            <thead>
+              <tr>
+                <th>Tarih</th>
+                <th>Cari</th>
+                <th>Stok</th>
+                <th>Kilo &amp; Fark</th>
+                <th>Mikro Evrak</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of receivedReportRows()">
+                <td data-label="Tarih">{{ row.createdAt | date:'dd.MM.yyyy HH:mm' }}</td>
+                <td data-label="Cari">
+                  <strong>{{ row.supplierName || '-' }}</strong>
+                  <span>{{ row.supplierCode || row.seriesAndNumber || '-' }}</span>
+                </td>
+                <td data-label="Stok">
+                  <strong>{{ row.stockName || '-' }}</strong>
+                  <span>{{ row.stockCode || row.stockBarcode || '-' }} / {{ row.unitName || '-' }}</span>
+                </td>
+                <td data-label="Kilo">
+                  <strong>{{ (row.netReceivedWeight || 0) | number:'1.2-2' }} kg net</strong>
+                  <span>
+                    Mikro {{ (row.invoiceQuantity || 0) | number:'1.2-2' }} ·
+                    Fark {{ (row.invoiceDifference || 0) | number:'1.2-2' }}
+                  </span>
+                </td>
+                <td data-label="Mikro">
+                  <strong>{{ row.microDocument || '-' }}</strong>
+                  <span>{{ row.labelRowCount || 0 }} etiket / {{ row.microRowCount || 0 }} mikro</span>
+                </td>
+                <td data-label="Durum">
+                  <span class="status-pill" [class.status-transferred]="row.microTransferred" [class.status-waiting]="!row.microTransferred">
+                    {{ row.microTransferred ? 'Aktarıldı' : row.status || 'Bekliyor' }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #emptyReceivedReport>
+          <article class="empty-state">
+            <strong>Gelen ürün raporu boş</strong>
+            <span>Seçilen tarih için gelen ürün kaydı bulunamadı.</span>
+          </article>
+        </ng-template>
+      </ng-container>
 
-      <div class="table-wrap compact-table" *ngIf="activeReportTab() === 'comparison'">
-        <table class="record-table report-table">
-          <thead>
-            <tr>
-              <th>Cari</th>
-              <th>Stok</th>
-              <th>Etiket</th>
-              <th>Mikro</th>
-              <th>Fark</th>
-              <th>Durum</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of comparisonReportRows()">
-              <td data-label="Cari">
-                <strong>{{ row.supplierName || '-' }}</strong>
-                <span>{{ row.supplierCode || '-' }}</span>
-              </td>
-              <td data-label="Stok">
-                <strong>{{ row.stockName || '-' }}</strong>
-                <span>{{ row.stockCode || '-' }}</span>
-              </td>
-              <td data-label="Etiket">
-                <strong>{{ row.labelNetWeight | number:'1.2-2' }}</strong>
-                <span>{{ row.labelRowCount }} satir</span>
-              </td>
-              <td data-label="Mikro">
-                <strong>{{ row.microQuantity | number:'1.2-2' }}</strong>
-                <span>{{ row.microDocument || row.microRowCount + ' satir' }}</span>
-              </td>
-              <td data-label="Fark">
-                <strong>{{ row.difference | number:'1.2-2' }}</strong>
-                <span>{{ row.microAmount | number:'1.2-2' }} TL</span>
-              </td>
-              <td data-label="Durum">
-                <span class="status-pill" [ngClass]="getComparisonStatusClass(row.status)">
-                  {{ getComparisonStatusLabel(row.status) }}
-                </span>
-              </td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ng-container *ngIf="activeReportTab() === 'comparison'">
+        <div class="table-wrap compact-table" *ngIf="comparisonReportRows().length; else emptyComparisonReport">
+          <table class="record-table report-table">
+            <thead>
+              <tr>
+                <th>Cari</th>
+                <th>Stok</th>
+                <th>Etiket Net</th>
+                <th>Mikro Miktar</th>
+                <th>Fark &amp; Tutar</th>
+                <th>Durum</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of comparisonReportRows()">
+                <td data-label="Cari">
+                  <strong>{{ row.supplierName || '-' }}</strong>
+                  <span>{{ row.supplierCode || '-' }}</span>
+                </td>
+                <td data-label="Stok">
+                  <strong>{{ row.stockName || '-' }}</strong>
+                  <span>{{ row.stockCode || '-' }}</span>
+                </td>
+                <td data-label="Etiket">
+                  <strong>{{ row.labelNetWeight | number:'1.2-2' }} kg</strong>
+                  <span>{{ row.labelRowCount }} satır</span>
+                </td>
+                <td data-label="Mikro">
+                  <strong>{{ row.microQuantity | number:'1.2-2' }} kg</strong>
+                  <span>{{ row.microDocument || row.microRowCount + ' satır' }}</span>
+                </td>
+                <td data-label="Fark">
+                  <strong>{{ row.difference | number:'1.2-2' }} kg</strong>
+                  <span>{{ row.microAmount | number:'1.2-2' }} TL</span>
+                </td>
+                <td data-label="Durum">
+                  <span class="status-pill" [ngClass]="getComparisonStatusClass(row.status)">
+                    {{ getComparisonStatusLabel(row.status) }}
+                  </span>
+                </td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #emptyComparisonReport>
+          <article class="empty-state">
+            <strong>Karşılaştırma kaydı yok</strong>
+            <span>Seçilen gün için etiket – Mikro karşılaştırma verisi bulunamadı.</span>
+          </article>
+        </ng-template>
+      </ng-container>
 
-      <div class="table-wrap compact-table" *ngIf="activeReportTab() === 'depot'">
-        <table class="record-table report-table">
-          <thead>
-            <tr>
-              <th>Depo</th>
-              <th>Stok</th>
-              <th>Tedarikçi</th>
-              <th>Miktar</th>
-              <th>Son Kabul</th>
-            </tr>
-          </thead>
-          <tbody>
-            <tr *ngFor="let row of depotReportRows()">
-              <td data-label="Depo">{{ row.warehouseName || row.warehouseNo || '-' }}</td>
-              <td data-label="Stok">
-                <strong>{{ row.stockName || '-' }}</strong>
-                <span>{{ row.stockCode || row.barcode || row.stockBarcode || '-' }} / {{ row.unitName || '-' }}</span>
-              </td>
-              <td data-label="Tedarikçi">{{ row.supplierName || '-' }}</td>
-              <td data-label="Miktar">
-                <strong>{{ (row.netReceivedWeight || row.totalQuantity || row.quantity || 0) | number:'1.2-2' }}</strong>
-                <span>{{ row.caseCount || 0 }} kasa / {{ (row.averageCaseWeight || 0) | number:'1.2-2' }} ort.</span>
-              </td>
-              <td data-label="Son Kabul">{{ row.lastReceivedAt | date:'dd.MM.yyyy HH:mm' }}</td>
-            </tr>
-          </tbody>
-        </table>
-      </div>
+      <ng-container *ngIf="activeReportTab() === 'depot'">
+        <div class="table-wrap compact-table" *ngIf="depotReportRows().length; else emptyDepotReport">
+          <table class="record-table report-table">
+            <thead>
+              <tr>
+                <th>Depo</th>
+                <th>Stok</th>
+                <th>Tedarikçi</th>
+                <th>Miktar &amp; Kasa</th>
+                <th>Son Kabul</th>
+              </tr>
+            </thead>
+            <tbody>
+              <tr *ngFor="let row of depotReportRows()">
+                <td data-label="Depo">{{ row.warehouseName || row.warehouseNo || '-' }}</td>
+                <td data-label="Stok">
+                  <strong>{{ row.stockName || '-' }}</strong>
+                  <span>{{ row.stockCode || row.barcode || row.stockBarcode || '-' }} / {{ row.unitName || '-' }}</span>
+                </td>
+                <td data-label="Tedarikçi">{{ row.supplierName || '-' }}</td>
+                <td data-label="Miktar">
+                  <strong>{{ (row.netReceivedWeight || row.totalQuantity || row.quantity || 0) | number:'1.2-2' }} kg</strong>
+                  <span>{{ row.caseCount || 0 }} kasa · {{ (row.averageCaseWeight || 0) | number:'1.2-2' }} kg ort.</span>
+                </td>
+                <td data-label="Son Kabul">{{ row.lastReceivedAt | date:'dd.MM.yyyy HH:mm' }}</td>
+              </tr>
+            </tbody>
+          </table>
+        </div>
+        <ng-template #emptyDepotReport>
+          <article class="empty-state">
+            <strong>Depo stok raporu boş</strong>
+            <span>Seçilen depo ve tarih için stok kaydı bulunamadı.</span>
+          </article>
+        </ng-template>
+      </ng-container>
     </section>
   </article>
 
-  <section class="etiket-basim-print-root" *ngIf="labelPreview()">
+  <section #printRoot class="etiket-basim-print-root" *ngIf="labelPreview()">
     <article
       class="print-label"
       *ngFor="let label of printCopies(); let copyIndex = index; trackBy: trackByPrintCopy"
     >
       <div class="print-label-content">
-        <header class="print-label-header">
-          <strong>{{ label.stockName || '-' }}</strong>
-          <time>{{ label.labelDate | date:'dd.MM.yyyy' }}</time>
-        </header>
+        <div class="print-label-title">{{ label.stockName || '-' }}</div>
 
-        <span class="print-label-supplier">{{ label.supplierName || '-' }}</span>
+        <div class="print-label-row">
+          <span class="print-label-kv"><span class="kv-lbl">Stok Kod</span> : {{ label.stockCode || '-' }}</span>
+          <time class="print-label-date">{{ formatLabelDate(label.labelDate) }}</time>
+        </div>
 
-        <div class="print-label-meta">
-          <span>
-            <small>Ort. kasa</small>
-            <b>{{ label.averageCaseWeight | number:'1.2-2' }} kg</b>
-          </span>
-          <span>
-            <small>Kasa tipi</small>
-            <b>{{ label.caseType || '-' }}</b>
-          </span>
-          <span>
-            <small>Dara</small>
-            <b>{{ label.caseTare | number:'1.2-2' }} kg</b>
-          </span>
+        <div class="print-label-row">
+          <span class="print-label-kv"><span class="kv-lbl">Barkod</span> : {{ label.stockBarcode || '-' }}</span>
+          <strong class="print-label-casetype">{{ formatLabelCaseType(label.caseType) }}</strong>
+        </div>
+
+        <div class="print-label-row print-label-weights">
+          <span>Ort.Ağırlık:&nbsp;&nbsp;{{ formatLabelWeight(label.averageCaseWeight) }} KG</span>
+          <span>Dara:&nbsp;&nbsp;{{ formatLabelWeight(label.caseTare) }} KG</span>
         </div>
 
         <div class="print-label-barcode">
           <svg #printBarcode class="barcode-svg"></svg>
         </div>
-
-        <small class="print-label-code">{{ label.labelBarcode || label.stockBarcode || '-' }}</small>
       </div>
     </article>
   </section>

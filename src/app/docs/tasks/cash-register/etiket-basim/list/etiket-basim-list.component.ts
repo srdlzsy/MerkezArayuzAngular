@@ -127,6 +127,9 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   @ViewChild('previewBarcode')
   private readonly previewBarcode?: ElementRef<SVGSVGElement>;
 
+  @ViewChild('printRoot')
+  private readonly printRoot?: ElementRef<HTMLElement>;
+
   @ViewChildren('printBarcode')
   private readonly printBarcodeElements!: QueryList<ElementRef<SVGSVGElement>>;
 
@@ -188,6 +191,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected readonly supplierSearchMessage = signal<string | null>(null);
   protected readonly stockSearchMessage = signal<string | null>(null);
   protected readonly recordSearch = signal('');
+  protected readonly recordStatusFilter = signal<'all' | 'waiting' | 'transferred'>('all');
   protected readonly sortKey = signal<RecordSortKey>('createdAt');
   protected readonly sortDirection = signal<SortDirection>('desc');
   protected readonly isLoading = signal(false);
@@ -285,61 +289,23 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected draftMissingFields(): string[] {
     const missing: string[] = [];
-
-    if (!this.draft.supplierCode.trim()) {
-      missing.push('Cari kodu');
-    }
-
-    if (!this.draft.supplierName.trim()) {
-      missing.push('Tedarikçi firma');
-    }
-
-    if (!this.draft.documentNo.trim()) {
-      missing.push('Evrak no');
-    }
-
-    if (!this.draft.stockCode.trim()) {
-      missing.push('Stok kodu');
-    }
-
-    if (!this.draft.stockName.trim()) {
-      missing.push('Stok adı');
-    }
-
-    if (!this.draft.stockBarcode.trim()) {
-      missing.push('Barkod');
-    }
-
-    if (!this.draft.receivedBy.trim()) {
-      missing.push('Teslim alan');
-    }
-
-    if (this.draft.grossWeight === null || this.draft.grossWeight <= 0) {
-      missing.push('Toplam kilo');
-    }
-
-    if (this.draft.caseTare === null || this.draft.caseTare < 0) {
-      missing.push('Kasa darasi');
-    }
-
+    if (!this.draft.supplierCode.trim()) missing.push('Cari kodu');
+    if (!this.draft.supplierName.trim()) missing.push('Tedarikçi firma');
+    if (!this.draft.documentNo.trim()) missing.push('Evrak no');
+    if (!this.draft.stockCode.trim()) missing.push('Stok kodu');
+    if (!this.draft.stockName.trim()) missing.push('Stok adı');
+    if (!this.draft.stockBarcode.trim()) missing.push('Barkod');
+    if (!this.draft.receivedBy.trim()) missing.push('Teslim alan');
+    if (this.draft.grossWeight === null || this.draft.grossWeight <= 0) missing.push('Toplam kilo');
+    if (this.draft.caseTare === null || this.draft.caseTare < 0) missing.push('Kasa darasi');
     return missing;
   }
 
   protected saveBlockReason(): string {
     const selected = this.selectedRecord();
-
-    if (this.isSaving()) {
-      return 'Kayıt işlemi devam ediyor.';
-    }
-
-    if (selected?.microTransferred) {
-      return 'Mikro\'ya aktarılmış kayıt güncellenemez.';
-    }
-
-    if (selected ? !this.canUpdate() : !this.canCreate()) {
-      return 'Kaydetme yetkiniz bulunmuyor.';
-    }
-
+    if (this.isSaving()) return 'Kayıt işlemi devam ediyor.';
+    if (selected?.microTransferred) return 'Mikro\'ya aktarılmış kayıt güncellenemez.';
+    if (selected ? !this.canUpdate() : !this.canCreate()) return 'Kaydetme yetkiniz bulunmuyor.';
     const missing = this.draftMissingFields();
     return missing.length ? `Eksik: ${missing.join(', ')}` : '';
   }
@@ -347,53 +313,17 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected microTransferBlockReason(): string {
     const record = this.selectedRecord();
     const line = this.selectedInvoiceLine();
-
-    if (this.isTransferring()) {
-      return 'Mikro aktarim devam ediyor.';
-    }
-
-    if (!this.canTransfer()) {
-      return 'Mikro aktarim yetkiniz bulunmuyor.';
-    }
-
-    if (!record) {
-      return 'Once kaydi kaydedip listeden secin.';
-    }
-
-    if (record.microTransferred) {
-      return 'Bu kayıt daha önce Mikro\'ya aktarılmış.';
-    }
-
-    if (!this.selectedInvoiceDetail()) {
-      return 'Mikro aktarımı için fatura detayı seçin.';
-    }
-
-    if (!line) {
-      return 'Mikro aktarımı için fatura kalemi seçin.';
-    }
-
-    if (!this.draft.stockCode.trim()) {
-      return 'Fatura kalemi için MNV stok eşleştirin.';
-    }
-
-    const quantity = this.resolveTransferQuantity(record);
-
-    if (quantity <= 0) {
-      return 'Net kilo/miktar sıfırdan büyük olmalı.';
-    }
-
-    if (this.toSafeNumber(line.unitPrice) <= 0) {
-      return 'Fatura kaleminde birim fiyat yok.';
-    }
-
-    if (line.taxPointer === null && line.taxPointer === undefined && line.taxRatePercent === null && line.taxRatePercent === undefined) {
-      return 'Fatura kaleminde KDV bilgisi yok.';
-    }
-
-    if (!this.draft.supplierCode.trim()) {
-      return 'Tedarikçi cari kodu seçili olmalı.';
-    }
-
+    if (this.isTransferring()) return 'Mikro aktarim devam ediyor.';
+    if (!this.canTransfer()) return 'Mikro aktarim yetkiniz bulunmuyor.';
+    if (!record) return 'Once kaydi kaydedip listeden secin.';
+    if (record.microTransferred) return 'Bu kayıt daha önce Mikro\'ya aktarılmış.';
+    if (!this.selectedInvoiceDetail()) return 'Mikro aktarımı için fatura detayı seçin.';
+    if (!line) return 'Mikro aktarımı için fatura kalemi seçin.';
+    if (!this.draft.stockCode.trim()) return 'Fatura kalemi için MNV stok eşleştirin.';
+    if (this.resolveTransferQuantity(record) <= 0) return 'Net kilo/miktar sıfırdan büyük olmalı.';
+    if (this.toSafeNumber(line.unitPrice) <= 0) return 'Fatura kaleminde birim fiyat yok.';
+    if (line.taxPointer == null && line.taxRatePercent == null) return 'Fatura kaleminde KDV bilgisi yok.';
+    if (!this.draft.supplierCode.trim()) return 'Tedarikçi cari kodu seçili olmalı.';
     return '';
   }
 
@@ -420,6 +350,32 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected setActiveTab(tab: EtiketBasimTab): void {
     this.activeTab.set(tab);
+  }
+
+  protected openReportsTab(tab: EtiketBasimReportTab = this.activeReportTab()): void {
+    this.activeTab.set('reports');
+    this.loadReport(tab);
+  }
+
+  protected dismissFeedback(): void {
+    this.feedback.set(null);
+  }
+
+  protected clearSupplierSearch(): void {
+    this.supplierResults.set([]);
+    this.supplierSearchMessage.set(null);
+  }
+
+  protected clearStockSearch(): void {
+    this.stockResults.set([]);
+    this.stockSearchMessage.set(null);
+  }
+
+  protected clearSelectedInvoice(): void {
+    this.selectedIncomingInvoice.set(null);
+    this.selectedInvoiceDetail.set(null);
+    this.selectedInvoiceLine.set(null);
+    this.showIncomingInvoiceList.set(true);
   }
 
   protected setSelectedDate(value: string): void {
@@ -1163,9 +1119,13 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.isPrinting.set(true);
     this.scheduleBarcodeRender();
 
+    const printRootEl = this.printRoot?.nativeElement;
     const started = await this.inPlacePrintService.print({
       styleId: 'etiket-basim-print-shell',
       styles: ETIKET_BASIM_PRINT_STYLES,
+      ...(printRootEl
+        ? { mount: { element: printRootEl, documentClassName: 'etiket-basim-printing' } }
+        : {}),
       beforePrint: () => this.renderAllBarcodes(),
       afterPrint: () => this.isPrinting.set(false)
     });
@@ -1290,8 +1250,15 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected visibleRecords(): EtiketBasimAcceptanceRecordDto[] {
     const term = this.normalizeSearch(this.recordSearch());
+    const statusFilter = this.recordStatusFilter();
+    const statusFiltered =
+      statusFilter === 'waiting'
+        ? this.records().filter((record) => !record.microTransferred)
+        : statusFilter === 'transferred'
+          ? this.records().filter((record) => !!record.microTransferred)
+          : this.records();
     const rows = term
-      ? this.records().filter((record) =>
+      ? statusFiltered.filter((record) =>
           [
             record.supplierCode,
             record.supplierName,
@@ -1305,7 +1272,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
             .map((value) => this.normalizeSearch(value))
             .some((value) => value.includes(term))
         )
-      : this.records();
+      : statusFiltered;
 
     return [...rows].sort((left, right) => this.compareRecords(left, right));
   }
@@ -1828,27 +1795,53 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     }
   }
 
+  protected formatLabelCaseType(value: string | null | undefined): string {
+    return this.normalizeCaseType(value) === 'REHINSIZ' ? 'REHİNSİZ KASA' : 'REHİNLİ KASA';
+  }
+
+  protected formatLabelWeight(value: number | null | undefined): string {
+    return this.toSafeNumber(value).toLocaleString('tr-TR', {
+      minimumFractionDigits: 2,
+      maximumFractionDigits: 2
+    });
+  }
+
+  protected formatLabelDate(value: string | null | undefined): string {
+    const raw = (value ?? '').trim();
+    const match = raw.match(/^(\d{4})-(\d{2})-(\d{2})/);
+    return match ? `${match[3]}-${match[2]}-${match[1]}` : raw || '-';
+  }
+
   private renderAllBarcodes(): void {
     const label = this.labelPreview();
-    const barcode = label?.labelBarcode || label?.labelBarcodeRaw || label?.stockBarcode || '';
+    const previewCode =
+      label?.labelBarcode ||
+      label?.labelBarcodeRaw ||
+      this.calculation()?.labelBarcode ||
+      this.calculation()?.labelBarcodeRaw ||
+      label?.stockBarcode ||
+      this.draft.stockBarcode ||
+      '';
+    const printCode = label?.labelBarcode || label?.labelBarcodeRaw || label?.stockBarcode || '';
 
-    renderBarcodeSvg(this.previewBarcode?.nativeElement ?? null, barcode, {
-      barWidth: 1.1,
-      barHeight: 34,
-      fontSize: 10,
-      marginX: 4,
-      marginTop: 2
+    renderBarcodeSvg(this.previewBarcode?.nativeElement ?? null, previewCode, {
+      barWidth: 1.4,
+      barHeight: 36,
+      fontSize: 12,
+      marginX: 2,
+      marginTop: 1,
+      textMargin: 1
     });
 
     const elements = this.printBarcodeElements?.toArray() ?? [];
-
     elements.forEach((element) =>
-      renderBarcodeSvg(element.nativeElement, barcode, {
-        barWidth: 1.15,
-        barHeight: 36,
-        fontSize: 0,
-        marginX: 1,
-        marginTop: 0
+      renderBarcodeSvg(element.nativeElement, printCode, {
+        barWidth: 1.55,
+        barHeight: 42,
+        fontSize: 13,
+        marginX: 2,
+        marginTop: 1,
+        textMargin: 1
       })
     );
   }
