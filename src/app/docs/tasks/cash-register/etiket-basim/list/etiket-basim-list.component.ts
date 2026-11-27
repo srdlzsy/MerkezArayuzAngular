@@ -157,6 +157,8 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     { key: 'status', label: 'Durum' }
   ];
 
+  protected readonly caseTarePresets: readonly number[] = [0, 1, 1.5, 2, 2.5];
+  private lastReceivedBy = '';
   protected draft: EtiketBasimDraft = createEmptyDraft();
   protected supplierQuery = '';
   protected stockQuery = '';
@@ -283,8 +285,28 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   });
   protected readonly canTransferCurrentRecord = computed(() => {
     this.draftVersion();
-
     return !this.microTransferBlockReason();
+  });
+  protected readonly liveMetrics = computed(() => {
+    this.draftVersion();
+    const calc = this.calculation();
+    if (calc) {
+      return {
+        caseTotalTare: this.toSafeNumber(calc.caseTotalTare),
+        netReceivedWeight: this.toSafeNumber(calc.netReceivedWeight),
+        averageCaseWeight: this.toSafeNumber(calc.averageCaseWeight),
+        isEstimated: false
+      };
+    }
+
+    const gross = this.toSafeNumber(this.draft.grossWeight);
+    const caseCount = Math.max(1, Math.trunc(this.toSafeNumber(this.draft.caseCount) || 1));
+    const caseTare = Math.max(0, this.toSafeNumber(this.draft.caseTare));
+    const palletTare = Math.max(0, this.toSafeNumber(this.draft.palletTare));
+    const caseTotalTare = this.roundNumber(caseTare * caseCount, 2);
+    const netReceivedWeight = gross > 0 ? this.roundNumber(gross - caseTotalTare - palletTare, 2) : 0;
+    const averageCaseWeight = netReceivedWeight > 0 ? this.roundNumber(netReceivedWeight / caseCount, 2) : 0;
+    return { caseTotalTare, netReceivedWeight, averageCaseWeight, isEstimated: gross > 0 };
   });
 
   protected draftMissingFields(): string[] {
@@ -297,7 +319,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     if (!this.draft.stockBarcode.trim()) missing.push('Barkod');
     if (!this.draft.receivedBy.trim()) missing.push('Teslim alan');
     if (this.draft.grossWeight === null || this.draft.grossWeight <= 0) missing.push('Toplam kilo');
-    if (this.draft.caseTare === null || this.draft.caseTare < 0) missing.push('Kasa darasi');
+    if (this.draft.caseTare === null || this.draft.caseTare < 0) missing.push('Kasa darası');
     return missing;
   }
 
@@ -313,9 +335,9 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected microTransferBlockReason(): string {
     const record = this.selectedRecord();
     const line = this.selectedInvoiceLine();
-    if (this.isTransferring()) return 'Mikro aktarim devam ediyor.';
-    if (!this.canTransfer()) return 'Mikro aktarim yetkiniz bulunmuyor.';
-    if (!record) return 'Once kaydi kaydedip listeden secin.';
+    if (this.isTransferring()) return 'Mikro aktarım devam ediyor.';
+    if (!this.canTransfer()) return 'Mikro aktarım yetkiniz bulunmuyor.';
+    if (!record) return 'Önce kaydı kaydedip listeden seçin.';
     if (record.microTransferred) return 'Bu kayıt daha önce Mikro\'ya aktarılmış.';
     if (!this.selectedInvoiceDetail()) return 'Mikro aktarımı için fatura detayı seçin.';
     if (!line) return 'Mikro aktarımı için fatura kalemi seçin.';
@@ -329,6 +351,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   constructor() {
     this.reportWarehouseNo = getCurrentWarehouseNo(this.authService.currentUser());
+    this.draft.receivedBy = this.resolveDefaultReceivedBy();
   }
 
   ngOnInit(): void {
@@ -341,6 +364,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.printBarcodeElements.changes
       .pipe(takeUntilDestroyed(this.destroyRef))
       .subscribe(() => this.renderAllBarcodes());
+    this.scheduleBarcodeRender();
   }
 
   ngOnDestroy(): void {
@@ -491,6 +515,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.selectedIncomingInvoice.set(invoice);
     this.selectedRecord.set(null);
     this.draft = createEmptyDraft();
+    this.draft.receivedBy = this.resolveDefaultReceivedBy();
     this.calculation.set(null);
     this.labelPreview.set(null);
     this.selectedInvoiceDetail.set(null);
@@ -596,6 +621,11 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected selectInvoiceLine(line: ManavMalKabulVeEtiketInvoiceLineDto): void {
     this.selectedInvoiceLine.set(line);
+    this.selectedRecord.set(null);
+    this.labelPreview.set(null);
+    if (!this.draft.receivedBy.trim()) {
+      this.draft.receivedBy = this.resolveDefaultReceivedBy();
+    }
     this.applyInvoiceLineWeightToDraft(line);
 
     if (!this.isInvoiceLineMatched(line)) {
@@ -603,17 +633,14 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       const stockCode = line.stockCode?.trim() || '';
       this.draft.stockCode = '';
       this.draft.stockBarcode = '';
-
-      if (stockName) {
-        this.draft.stockName = stockName;
-      }
-
+      if (stockName) this.draft.stockName = stockName;
       this.stockQuery = this.joinLabel(stockCode, stockName);
       this.calculation.set(null);
       this.touchDraft();
+      this.scheduleBarcodeRender();
       this.setFeedback(
         'info',
-        'Stok eslestirme gerekli',
+        'Stok eşleştirme gerekli',
         line.warnings?.[0] || 'Bu fatura kalemi için MNV stok seçin.'
       );
       this.activeTab.set('form');
@@ -623,21 +650,14 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     const stockCode = line.matchedStockCode?.trim() || '';
     const stockName = line.matchedStockName?.trim() || line.stockName?.trim() || '';
     const stockBarcode = line.matchedBarcode?.trim() || '';
-
-    if (stockCode) {
-      this.draft.stockCode = stockCode;
-    }
-
-    if (stockName) {
-      this.draft.stockName = stockName;
-    }
-
-    if (stockBarcode) {
-      this.draft.stockBarcode = stockBarcode;
-    }
+    if (stockCode) this.draft.stockCode = stockCode;
+    if (stockName) this.draft.stockName = stockName;
+    if (stockBarcode) this.draft.stockBarcode = stockBarcode;
 
     this.stockQuery = this.joinLabel(stockCode, stockName);
+    this.labelCopyCount = Math.max(1, Math.trunc(this.toSafeNumber(this.draft.caseCount) || 1));
     this.touchDraft();
+    this.scheduleBarcodeRender();
     this.scheduleCalculation();
     this.activeTab.set('form');
   }
@@ -645,6 +665,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
   protected startNewRecord(): void {
     this.selectedRecord.set(null);
     this.draft = createEmptyDraft();
+    this.draft.receivedBy = this.resolveDefaultReceivedBy();
     this.touchDraft();
     this.supplierQuery = '';
     this.stockQuery = '';
@@ -782,7 +803,16 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.stockResults.set([]);
     this.stockSearchMessage.set(null);
     this.touchDraft();
+    this.scheduleBarcodeRender();
     this.scheduleCalculation();
+  }
+
+  protected applyCaseTarePreset(tare: number): void {
+    this.onDraftNumberChange('caseTare', tare);
+  }
+
+  protected syncCopyCountFromCases(): void {
+    this.setLabelCopyCount(this.draft.caseCount || 1);
   }
 
   protected onDraftNumberChange(key: DraftNumberKey, value: string | number | null): void {
@@ -790,12 +820,17 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     this.calculation.set(null);
     this.labelPreview.set(null);
     this.touchDraft();
+    this.scheduleBarcodeRender();
     this.scheduleCalculation();
   }
 
   protected onDraftTextChange(): void {
+    if (this.draft.receivedBy.trim()) {
+      this.lastReceivedBy = this.draft.receivedBy.trim();
+    }
     this.labelPreview.set(null);
     this.touchDraft();
+    this.scheduleBarcodeRender();
   }
 
   protected calculateDraft(silent = false): void {
@@ -807,7 +842,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       this.calculation.set(null);
 
       if (!silent) {
-        this.setFeedback('error', 'Eksik bilgi', 'Brut kilo ve kasa darasi girilmeden hesaplama yapilamaz.');
+        this.setFeedback('error', 'Eksik bilgi', 'Brüt kilo ve kasa darası girilmeden hesaplama yapılamaz.');
       }
 
       return;
@@ -853,7 +888,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       });
   }
 
-  protected saveDraft(): void {
+  protected saveDraft(printAfterSave = false): void {
     const request = this.buildSaveRequest();
 
     if (!request) {
@@ -877,6 +912,7 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
       return;
     }
 
+    this.lastReceivedBy = request.receivedBy;
     this.isSaving.set(true);
 
     const request$ = selected
@@ -897,17 +933,21 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
             caseTotalTare: record.caseTotalTare,
             netReceivedWeight: record.netReceivedWeight,
             averageCaseWeight: record.averageCaseWeight,
-      labelBarcodeRaw: record.labelBarcodeRaw,
-      labelBarcode: record.labelBarcode,
+            labelBarcodeRaw: record.labelBarcodeRaw,
+            labelBarcode: record.labelBarcode,
             barcodeSymbology: record.barcodeSymbology
           });
           this.labelPreview.set(null);
           this.labelCopyCount = Math.max(1, Math.trunc(this.toSafeNumber(record.caseCount) || 1));
+          this.scheduleBarcodeRender();
           this.setFeedback(
             'success',
             selected ? 'Kayıt güncellendi' : 'Kayıt oluşturuldu',
             `${record.seriesAndNumber || record.id} hazır.`
           );
+          if (printAfterSave) {
+            this.printRecordLabel(record);
+          }
         },
         error: (error: unknown) => {
           this.setFeedback(
@@ -1325,43 +1365,28 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   protected getComparisonStatusLabel(status: string | null | undefined): string {
     switch ((status ?? '').trim().toLocaleUpperCase('tr-TR')) {
-      case 'ESLESTI':
-        return 'Eslesti';
-      case 'YAKIN':
-        return 'Yakin';
-      case 'FARKLI':
-        return 'Farkli';
-      case 'SADECE_ETIKET':
-        return 'Sadece Etiket';
-      case 'SADECE_MIKRO':
-        return 'Sadece Mikro';
-      default:
-        return status?.trim() || '-';
+      case 'ESLESTI': return 'Eşleşti';
+      case 'YAKIN': return 'Yakın';
+      case 'FARKLI': return 'Farklı';
+      case 'SADECE_ETIKET': return 'Sadece Etiket';
+      case 'SADECE_MIKRO': return 'Sadece Mikro';
+      default: return status?.trim() || '-';
     }
   }
 
   protected getComparisonStatusClass(status: string | null | undefined): string {
     switch ((status ?? '').trim().toLocaleUpperCase('tr-TR')) {
-      case 'ESLESTI':
-        return 'status-transferred';
-      case 'YAKIN':
-        return 'status-waiting';
-      default:
-        return 'status-blocked';
+      case 'ESLESTI': return 'status-transferred';
+      case 'YAKIN': return 'status-waiting';
+      default: return 'status-blocked';
     }
   }
 
   protected getIncomingInvoiceStatusLabel(
     invoice: ManavMalKabulVeEtiketIncomingInvoiceDto
   ): string {
-    if (invoice.isProcessed) {
-      return 'Islendi';
-    }
-
-    if (this.canStartInvoiceAcceptance(invoice)) {
-      return 'Hazır';
-    }
-
+    if (invoice.isProcessed) return 'İşlendi';
+    if (this.canStartInvoiceAcceptance(invoice)) return 'Hazır';
     return invoice.status?.trim() || invoice.message?.trim() || 'Kontrol';
   }
 
@@ -1459,16 +1484,29 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
     return this.isSelectedInvoiceLine(line) && !!this.draft.stockCode.trim();
   }
 
+  protected getInvoiceLineRecordState(
+    line: ManavMalKabulVeEtiketInvoiceLineDto
+  ): 'transferred' | 'accepted' | null {
+    const stockCode = this.getInvoiceLineMicroStockCode(line).trim();
+    const detail = this.selectedInvoiceDetail();
+    const docNo = detail ? this.getInvoiceDetailDocument(detail) : this.draft.documentNo.trim();
+    if (!stockCode || !docNo || docNo === '-') return null;
+    const matched = this.records().filter(
+      (r) =>
+        r.stockCode?.trim() === stockCode &&
+        (r.documentNo?.trim() === docNo || r.seriesAndNumber?.includes(docNo))
+    );
+    if (!matched.length) return null;
+    return matched.some((r) => r.microTransferred) ? 'transferred' : 'accepted';
+  }
+
   protected getInvoiceLineStatusLabel(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
-    if (this.isInvoiceLineMatched(line)) {
-      return 'Hazır';
-    }
-
-    if (this.isInvoiceLineReady(line)) {
-      return 'Stok seçildi';
-    }
-
-    return line.warnings?.[0] || 'Stok eslestir';
+    const state = this.getInvoiceLineRecordState(line);
+    if (state === 'transferred') return 'Mikro\'da';
+    if (state === 'accepted') return 'Kabul edildi';
+    if (this.isInvoiceLineMatched(line)) return 'Hazır';
+    if (this.isInvoiceLineReady(line)) return 'Stok seçildi';
+    return line.warnings?.[0] || 'Stok eşleştir';
   }
 
   protected getInvoiceLineMicroStockName(line: ManavMalKabulVeEtiketInvoiceLineDto): string {
@@ -2024,6 +2062,17 @@ export class EtiketBasimListComponent implements OnInit, AfterViewInit, OnDestro
 
   private setFeedback(tone: FeedbackState['tone'], title: string, message: string): void {
     this.feedback.set({ tone, title, message });
+  }
+
+  private resolveDefaultReceivedBy(): string {
+    const user = this.authService.currentUser();
+    return (
+      this.lastReceivedBy ||
+      user?.displayName?.trim() ||
+      [user?.ad, user?.soyad].filter(Boolean).join(' ').trim() ||
+      user?.username?.trim() ||
+      ''
+    );
   }
 
   private getToday(): string {

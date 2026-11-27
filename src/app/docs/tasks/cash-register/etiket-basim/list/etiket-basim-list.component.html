@@ -346,8 +346,10 @@
                 <td data-label="Durum">
                   <span
                     class="status-pill"
-                    [class.status-ready]="isInvoiceLineReady(line)"
-                    [class.status-blocked]="!isInvoiceLineReady(line)"
+                    [class.status-transferred]="getInvoiceLineRecordState(line) === 'transferred'"
+                    [class.status-accepted]="getInvoiceLineRecordState(line) === 'accepted'"
+                    [class.status-ready]="!getInvoiceLineRecordState(line) && isInvoiceLineReady(line)"
+                    [class.status-blocked]="!getInvoiceLineRecordState(line) && !isInvoiceLineReady(line)"
                   >
                     {{ getInvoiceLineStatusLabel(line) }}
                   </span>
@@ -623,6 +625,16 @@
                   [ngModel]="draft.caseTare"
                   (ngModelChange)="onDraftNumberChange('caseTare', $event)"
                 />
+                <div class="tare-presets" role="group" aria-label="Hızlı kasa darası">
+                  <button
+                    type="button"
+                    *ngFor="let preset of caseTarePresets"
+                    [class.is-active]="draft.caseTare === preset"
+                    (click)="applyCaseTarePreset(preset)"
+                  >
+                    {{ preset }}
+                  </button>
+                </div>
               </label>
               <label class="field">
                 <span>Palet Darası (kg)</span>
@@ -637,17 +649,20 @@
             </div>
 
             <div class="calc-summary-strip">
-              <article class="calc-tile calc-tile-primary">
+              <article
+                class="calc-tile calc-tile-primary"
+                [class.calc-tile-danger]="(draft.grossWeight || 0) > 0 && liveMetrics().netReceivedWeight <= 0"
+              >
                 <span>Toplam Net Kilo</span>
-                <strong>{{ (calculation()?.netReceivedWeight || 0) | number:'1.2-2' }} kg</strong>
+                <strong>{{ liveMetrics().netReceivedWeight | number:'1.2-2' }} kg</strong>
               </article>
               <article class="calc-tile">
                 <span>Ort. Kasa Kilosu</span>
-                <strong>{{ (calculation()?.averageCaseWeight || 0) | number:'1.2-2' }} kg</strong>
+                <strong>{{ liveMetrics().averageCaseWeight | number:'1.2-2' }} kg</strong>
               </article>
               <article class="calc-tile">
                 <span>Toplam Kasa Darası</span>
-                <strong>{{ (calculation()?.caseTotalTare || 0) | number:'1.2-2' }} kg</strong>
+                <strong>{{ liveMetrics().caseTotalTare | number:'1.2-2' }} kg</strong>
               </article>
               <article class="calc-tile">
                 <span>Etiket Barkodu / Kayıt</span>
@@ -668,6 +683,14 @@
               [disabled]="!canSaveDraft()"
             >
               {{ isSaving() ? 'Kaydediliyor...' : (selectedRecord() ? 'Kaydı Güncelle' : 'Kabulü Kaydet') }}
+            </button>
+            <button
+              type="button"
+              class="task-action task-action-accent"
+              (click)="saveDraft(true)"
+              [disabled]="!canSaveDraft() || isLabelLoading() || isPrinting()"
+            >
+              Kaydet &amp; Etiket Yazdır
             </button>
 
             <div class="action-pair">
@@ -703,7 +726,7 @@
                 <strong>{{ formatLabelCaseType(labelPreview()?.caseType || draft.caseType) }}</strong>
               </div>
               <div class="tp-row tp-weights">
-                <span>Ort.Ağırlık: {{ formatLabelWeight(labelPreview()?.averageCaseWeight ?? calculation()?.averageCaseWeight) }} KG</span>
+                <span>Ort.Ağırlık: {{ formatLabelWeight(labelPreview()?.averageCaseWeight ?? liveMetrics().averageCaseWeight) }} KG</span>
                 <span>Dara: {{ formatLabelWeight(labelPreview()?.caseTare ?? draft.caseTare) }} KG</span>
               </div>
               <div class="tp-barcode">
@@ -713,17 +736,27 @@
                 </span>
               </div>
             </div>
-            <label class="field copy-field">
-              <span>Etiket Adedi (Kopya)</span>
-              <input
-                type="number"
-                min="1"
-                max="200"
-                step="1"
-                [ngModel]="labelCopyCount"
-                (ngModelChange)="setLabelCopyCount($event)"
-              />
-            </label>
+            <div class="copy-row">
+              <label class="field copy-field">
+                <span>Etiket Adedi</span>
+                <input
+                  type="number"
+                  min="1"
+                  max="200"
+                  step="1"
+                  [ngModel]="labelCopyCount"
+                  (ngModelChange)="setLabelCopyCount($event)"
+                />
+              </label>
+              <button
+                type="button"
+                class="task-action task-action-subtle copy-sync"
+                (click)="syncCopyCountFromCases()"
+                title="Kopya sayısını kasa sayısına eşitle"
+              >
+                = {{ draft.caseCount || 1 }} kasa
+              </button>
+            </div>
             <button
               type="button"
               class="task-action task-action-accent"
